@@ -9,102 +9,17 @@ Example working with custom objects:
 https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomObjectsApi.md
 
 """
-# TODO:
-# - Do we want to split the CLI commands into two modules: application
-#   and management? cmds_management.py
-
 import collections
-import enum
-import json
-import sys
-import time
 import typing as t
-from functools import partial
 from gettext import gettext
 
 import click
-import requests
-from kubernetes import client, config, stream, watch
-
-if t.TYPE_CHECKING:
-    from multiprocessing.pool import AsyncResult
-
-# https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomObjectsApi.md
-try:
-    config.load_kube_config()
-except config.config_exception.ConfigException:
-    config.load_incluster_config()
-
-CUSTOM_OBJECT_API = client.CustomObjectsApi()
-CORE_API = client.CoreV1Api()
-APPS_API = client.AppsV1Api()
+from orchestcli import cmds
 
 # TODO: config values
 NAMESPACE = "orchest"
 ORCHEST_CLUSTER_NAME = "cluster-1"
 APPLICATION_CMDS = ["adduser"]
-
-get_namespaced_custom_object = partial(
-    CUSTOM_OBJECT_API.get_namespaced_custom_object,
-    group="orchest.io",
-    version="v1alpha1",
-    plural="orchestclusters",
-)
-create_namespaced_custom_object = partial(
-    CUSTOM_OBJECT_API.create_namespaced_custom_object,
-    group="orchest.io",
-    version="v1alpha1",
-    plural="orchestclusters",
-)
-patch_namespaced_custom_object = partial(
-    CUSTOM_OBJECT_API.patch_namespaced_custom_object,
-    group="orchest.io",
-    version="v1alpha1",
-    plural="orchestclusters",
-)
-
-
-def echo(*args, **kwargs) -> None:
-    """Wrapped `click.echo`.
-
-    Note:
-        Will do nothing in case the current CLI command is invoked with
-        the `--json` flag.
-
-    """
-    click_ctx = click.get_current_context()
-    if click_ctx is None:
-        return click.echo(*args, **kwargs)
-    elif click_ctx.params.get("json_flag") is True:
-        return
-    else:
-        return click.echo(*args, **kwargs)
-
-
-JECHO_CALLS = 0
-
-
-def jecho(*args, **kwargs) -> None:
-    """JSON echo."""
-    # Invoking `jecho` multiple times within one CLI invocation would
-    # mean that the final output is not JSON parsable.
-    global JECHO_CALLS
-    assert JECHO_CALLS == 0, "`jecho` should only be called once per CLI invocation."
-    JECHO_CALLS += 1
-
-    message = kwargs.get("message")
-    if message is not None:
-        kwargs["message"] = json.dumps(message, sort_keys=True, indent=True)
-    else:
-        if args and args[0] is not None:
-            args = (json.dumps(args[0], sort_keys=True, indent=True), *args[1:])
-    return click.echo(*args, **kwargs)  # type: ignore
-
-
-class CRObjectNotFound(Exception):
-    """CR Object defining Orchest Cluster not found."""
-
-    pass
 
 
 class ClickCommonOptionsCmd(click.Command):
@@ -187,26 +102,6 @@ def cli():
     pass
 
 
-# NOTE: Schema to be kept in sync with:
-# `services/orchest-controller/pkg/apis/orchest/v1alpha1/types.go`
-class ClusterStatus(enum.Enum):
-    INITIALIZING = "Initializing"
-    DEPLOYINGTHIRDPARTIES = "Deploying Third Parties"
-    DEPLOYEDTHIRDPARTIES = "Deployed Third Parties"
-    DEPLOYINGORCHEST = "Deploying Orchest Control Plane"
-    DEPLOYEDORCHEST = "Deployed Orchest Control Plane"
-    RESTARTING = "Restarting"
-    STARTING = "Starting"
-    RUNNING = "Running"
-    PAUSING = "Pausing"
-    PAUSED = "Paused"
-    UPDATING = "Updating"
-    ERROR = "Error"
-    UNKNOWN = "Unknown"
-    UNHEALTHY = "Unhealthy"
-    DELETING = "Deleting"
-
-
 @click.option(
     "--cloud",
     is_flag=True,
@@ -224,68 +119,9 @@ class ClusterStatus(enum.Enum):
 @cli.command(cls=ClickCommonOptionsCmd)
 def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
     """Install Orchest."""
-    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-
-    custom_object = {
-        "apiVersion": "orchest.io/v1alpha1",
-        "kind": "OrchestCluster",
-        "metadata": {
-            "name": cluster_name,
-            "namespace": ns,
-        },
-        "spec": {
-            "orchest": {
-                "orchestHost": fqdn,
-                "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
-                "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
-            },
-        },
-    }
-
-    # Once the CR is created, the operator will read it and start
-    # setting up the Orchest Cluster.
-    try:
-        create_namespaced_custom_object(
-            namespace=ns,
-            body=custom_object,
-        )
-    except client.ApiException as e:
-        if e.status == 409:  # conflict
-            echo("Orchest is already installed. To update, run:", err=True)
-            echo("\torchest update", err=True)
-        else:
-            echo("Failed to install Orchest.", err=True)
-            echo("Could not create the required namespaced custom object.", err=True)
-        sys.exit(1)
-
-    echo("Setting up the Orchest Cluster...", nl=True)
-    display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
-    echo("Successfully installed Orchest!")
-
-    if fqdn is not None:
-        echo(
-            f"Orchest is running with an FQDN equal to {fqdn}. To access it locally,"
-            " add an entry to your '/etc/hosts' file mapping the cluster ip"
-            f" (`minikube ip`) to '{fqdn}'. If you are on mac run the `minikube tunnel`"
-            f" daemon and map '127.0.0.1' to {fqdn} in the '/etc/hosts' file instead."
-            f" You will then be able to reach Orchest at http://{fqdn}."
-        )
-    else:
-        echo(
-            "Orchest is running without an FQDN. To access Orchest locally, simply"
-            " go to the IP returned by `minikube ip`. If you are on mac run the"
-            " `minikube tunnel` daemon and map '127.0.0.1' to `minikube ip` in the"
-            " '/etc/hosts' file instead."
-        )
+    cmds.install(cloud, fqdn, **common_options)
 
 
-# TODO:
-# - The `orchest-controller` needs to be deployed with certain labels
-#   as otherwise this CLI command can't update the controller before
-#   updating the cluster. Needs to be a note in the docs probably and
-#   error handled here.
-# - It can be possible that users need to apply a new CRD. This needs
-#   to be included somewhere.
 @click.option(
     "--version",
     default=None,
@@ -312,169 +148,7 @@ def update(version: t.Optional[str], watch_flag: bool, **common_options) -> None
         The operation fails if the Orchest Cluster would be downgraded.
 
     """
-
-    def lte(old: str, new: str) -> bool:
-        """Returns `old <= new`, i.e. less than or equal.
-
-        In other words, returns whether `new` is a newer version than
-        `old`.
-
-        Note:
-            Both `old` and `new` must follow the CalVer versioning
-            scheme, e.g. "v2022.03.8".
-
-        """
-        old, new = old[1:], new[1:]
-        for o, n in zip(old.split("."), new.split(".")):
-            if int(o) > int(n):
-                return False
-            elif int(o) < int(n):
-                return True
-        return True
-
-    def fetch_latest_available_version(curr_version: str) -> t.Optional[str]:
-        url = f"https://update-info.orchest.io/api/orchest/update-info/v2?version={curr_version}"
-        resp = requests.get(url, timeout=5)
-
-        if resp.status_code == 200:
-            data = resp.json()
-            return data["latest_version"]
-        else:
-            return None
-
-    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-
-    try:
-        curr_version = _get_orchest_cluster_version(ns, cluster_name)
-
-    except CRObjectNotFound as e:
-        echo(
-            "Failed to fetch current Orchest Cluster version to make"
-            " sure the cluster isn't downgraded.",
-            err=True,
-        )
-        echo(e, err=True)
-        sys.exit(1)
-
-    except KeyError:
-        echo(
-            "Failed to fetch current Orchest Cluster version to make"
-            " sure the cluster isn't downgraded.",
-            err=True,
-        )
-        echo(
-            "Make sure your CLI version is compatible with the running"
-            " Orchest Cluster version.",
-            err=True,
-        )
-        sys.exit(1)
-
-    if version is None:
-        version = fetch_latest_available_version(curr_version)
-        if version is None:
-            echo("Failed to fetch latest available version to update to.", err=True)
-            sys.exit(1)
-    else:
-        # Verify user input.
-        try:
-            year, month, patch = version.split(".")
-            if len(year) != 5 or len(month) != 2 or len(patch) == 0:
-                raise
-
-            int(year[1:]), int(month), int(patch)
-        except Exception:
-            echo(
-                f"The format of the given version '{version}'"
-                " is incorrect and can't be updated to.",
-                err=True,
-            )
-            echo("The version should follow CalVer, e.g. 'v2022.02.4'.", err=True)
-            sys.exit(1)
-
-    if curr_version == version:
-        echo(f"Orchest Cluster is already on version: {version}.")
-        sys.exit()
-    elif not lte(curr_version, version):
-        echo("Aborting update. Downgrading is not supported.", err=True)
-        echo(
-            f"Orchest Cluster is on version '{curr_version}',"
-            f" which is newer than the given version '{version}'.",
-            err=True,
-        )
-        sys.exit(1)
-
-    # NOTE: It is possible that the `orchest-controller` updated, but
-    # the CR Object can't be updated. Thus we need to make sure that
-    # `orchest update` can be invoked again even though the controller
-    # is already updated.
-    echo("Updating the Orchest Controller...")
-    APPS_API.patch_namespaced_deployment(
-        name="orchest-controller",
-        namespace=ns,  # controller is currently deployed in same ns
-        # TODO: Move controller to specific version and away from latest
-        body={
-            "spec": {
-                "template": {
-                    "spec": {
-                        "containers": [
-                            {
-                                "name": "controller",
-                                "image": "orchest/orchest-controller:latest",
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        field_manager="StrategicMergePatch",
-    )
-
-    # Wait until the `orchest-controller` is successfully updated. We
-    # don't accidentally want the old `orchest-controller` to initiate
-    # the update process.
-    w = watch.Watch()
-    for event in w.stream(
-        CORE_API.list_namespaced_pod,
-        namespace=ns,
-        label_selector=("app=orchest-controller"),
-        timeout_seconds=60,
-    ):
-        # TODO: get rid of latest
-        if event["object"].spec.containers[0].image == "orchest/orchest-controller:latest":  # type: ignore
-            if event["object"].status.phase == "Running":  # type: ignore
-                w.stop()
-
-    echo("Updating the Orchest Cluster...")
-    breakpoint()
-    try:
-        patch_namespaced_custom_object(
-            name=cluster_name,
-            namespace=ns,
-            body={"spec": {"orchest": {"version": version}}},
-        )
-    except client.ApiException as e:
-        echo("Failed to update the Orchest Cluster version.", err=True)
-        if e.status == 404:  # not found
-            echo(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found.",
-                err=True,
-            )
-        else:
-            echo(f"Reason: {e.reason}", err=True)
-        sys.exit(1)
-
-    if watch_flag:
-        display_spinner(ClusterStatus.RUNNING, ClusterStatus.UPDATING)
-        display_spinner(ClusterStatus.UPDATING, ClusterStatus.RUNNING)
-        echo("Successfully updated Orchest!")
-
-
-class LogLevel(str, enum.Enum):
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
+    cmds.update(version, watch_flag, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -497,13 +171,13 @@ class LogLevel(str, enum.Enum):
     "--log-level",
     default=None,
     show_default=True,
-    type=click.Choice(LogLevel),
+    type=click.Choice(cmds.LogLevel),
     help="Log level to set on Orchest services.",
 )
 def patch(
     dev: t.Optional[bool],
     cloud: t.Optional[bool],
-    log_level: t.Optional[LogLevel],
+    log_level: t.Optional[cmds.LogLevel],
     **common_options,
 ) -> None:
     """Patch the Orchest Cluster.
@@ -514,119 +188,7 @@ def patch(
         orchest patch --dev
 
     """
-
-    def convert_to_strategic_merge_patch(patch_obj: t.Dict, obj: t.Dict) -> None:
-        """Strategically merges list[dict] of `patch_obj` with `obj`.
-
-        `patch_obj` is changed in-place.
-
-        Precedence is given to `patch_obj`, i.e. if a key only exists in
-        `patch_obj` then that value is preserved.
-
-        Note:
-            It is assumed that all lists inside the given objects are
-            lists of dictionaries, i.e. list[dict], and those
-            dictionaries are of the format::
-
-                {"name": ..., "value", ...}
-
-        """
-        for key, spec in patch_obj.items():
-            if key not in obj:
-                continue
-
-            if isinstance(spec, dict):
-                convert_to_strategic_merge_patch(patch_obj[key], obj[key])
-            elif isinstance(spec, list):
-                # Strategically merge it.
-                patch_items = set(d["name"] for d in spec)
-                for obj_item in obj[key]:
-                    if obj_item["name"] not in patch_items:
-                        spec.append(obj_item)
-
-    echo("Patching the Orchest Cluster.")
-    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-
-    # Only update changed values.
-    if dev is None:
-        env_var_dev = None
-    elif dev:
-        # TODO: Make request to `orchest-api` to disable Telemetry. Do
-        # note that is an application like command and so needs to be
-        # gated by a check of status of the Orchest Cluster.
-        env_var_dev = {"name": "FLASK_ENV", "value": "development"}
-
-        _cmd = (
-            "minikube start --memory 16000 --cpus 12 "
-            '--mount-string="$(pwd):/orchest-dev-repo" --mount'
-        )
-        echo(
-            "Note that when running in dev mode you need to have mounted the orchest "
-            "repository into minikube. For example by running the following when "
-            f"creating the cluster, while being in the repo: '{_cmd}'. The behaviour "
-            "of mounting in minikube is driver dependant and has some open issues, "
-            "so try to stay on the proven path. A cluster created through the "
-            "scripts/install_minikube.sh script, for example, would lead to the mount "
-            "only working on the master node, due to the kvm driver."
-        )
-    else:
-        env_var_dev = {"name": "FLASK_ENV", "value": "production"}
-
-    if cloud is None:
-        env_var_cloud = None
-    else:
-        env_var_cloud = {"name": "CLOUD", "value": str(cloud)}
-
-    if log_level is None:
-        env_var_log_level = None
-    else:
-        env_var_log_level = {"name": "ORCHEST_LOG_LEVEL", "value": log_level.value}
-
-    # NOTE: The merge strategy of a PATCH will always be replace. It
-    # should be possible to define strategic merge on CRDs, but for some
-    # reason we didn't get this to work:
-    # https://kubernetes.io/docs/reference/using-api/server-side-apply/#custom-resources
-    # Therefore, we first GET the custom object, PATCH it at runtime
-    # our selves, then send the PATCH request.
-    custom_object = _get_namespaced_custom_object(ns, cluster_name)
-    orchest_spec_patch = {
-        "authServer": {
-            "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
-        },
-        "orchestWebServer": {
-            "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
-        },
-        "orchestApi": {
-            "env": [env for env in [env_var_dev] if env is not None],
-        },
-        "env": [env for env in [env_var_log_level] if env is not None],
-    }
-    convert_to_strategic_merge_patch(
-        orchest_spec_patch,
-        custom_object["spec"]["orchest"],  # type: ignore
-    )
-
-    try:
-        patch_namespaced_custom_object(
-            name=cluster_name,
-            namespace=ns,
-            body={"spec": {"orchest": orchest_spec_patch}},
-        )
-    except client.ApiException as e:
-        echo("Failed to patch the Orchest Cluster.", err=True)
-        if e.status == 404:  # not found
-            echo(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found.",
-                err=True,
-            )
-        else:
-            echo(f"Reason: {e.reason}", err=True)
-        sys.exit(1)
-
-    display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSING)
-    display_spinner(ClusterStatus.PAUSING, ClusterStatus.RUNNING)
-    echo("Successfully patched the Orchest Cluster.")
+    cmds.patch(dev, cloud, log_level, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -646,36 +208,7 @@ def version(json_flag: bool, **common_options) -> None:
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.spec.orchest.version}"
 
     """
-    try:
-        version = _get_orchest_cluster_version(
-            common_options["namespace"],
-            common_options["cluster_name"],
-        )
-
-    except CRObjectNotFound as e:
-        if json_flag:
-            jecho({})
-        else:
-            echo("Failed to fetch Orchest Cluster version.", err=True)
-            echo(e, err=True)
-        sys.exit(1)
-
-    except KeyError:
-        if json_flag:
-            jecho({})
-        else:
-            echo("Failed to fetch Orchest Cluster version.", err=True)
-            echo(
-                "Make sure your CLI version is compatible with the running"
-                " Orchest Cluster version.",
-                err=True,
-            )
-        sys.exit(1)
-
-    if json_flag:
-        jecho({"version": version})
-    else:
-        echo(version)
+    cmds.version(json_flag, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -698,27 +231,7 @@ def status(json_flag: bool, **common_options) -> None:
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.status.message}"
 
     """
-    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-
-    # NOTE: If an uncaught exception is raised, Python will exit with
-    # exit code equal to 1.
-    try:
-        status = _get_orchest_cluster_status(ns, cluster_name)
-    except CRObjectNotFound as e:
-        if json_flag:
-            jecho({})
-        else:
-            echo("Failed to fetch Orchest Cluster status.", err=True)
-            echo(e, err=True)
-        sys.exit(1)
-
-    if status is None:
-        echo("Failed to fetch Orchest Cluster status. Please try again.", err=True)
-    else:
-        if json_flag:
-            jecho({"status": status.value})
-        else:
-            echo(status.value)
+    cmds.status(json_flag, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -739,30 +252,7 @@ def stop(watch: bool, **common_options) -> None:
     Equivalent `kubectl` command:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": true}}}'
     """
-    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-
-    echo("Stopping the Orchest Cluster.")
-    try:
-        patch_namespaced_custom_object(
-            name=cluster_name,
-            namespace=ns,
-            body={"spec": {"orchest": {"pause": True}}},
-        )
-    except client.ApiException as e:
-        echo("Failed to pause the Orchest Cluster.", err=True)
-        if e.status == 404:  # not found
-            echo(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found.",
-                err=True,
-            )
-        else:
-            echo(f"Reason: {e.reason}", err=True)
-        sys.exit(1)
-
-    if watch:
-        display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
-        echo("Successfully stopped Orchest.")
+    cmds.stop(watch, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -781,30 +271,7 @@ def start(watch: bool, **common_options) -> None:
     Equivalent `kubectl` command:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": false}}}'
     """
-    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-
-    echo("Starting the Orchest Cluster.")
-    try:
-        patch_namespaced_custom_object(
-            name=cluster_name,
-            namespace=ns,
-            body={"spec": {"orchest": {"pause": False}}},
-        )
-    except client.ApiException as e:
-        echo("Failed to unpause the Orchest Cluster.", err=True)
-        if e.status == 404:  # not found
-            echo(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found.",
-                err=True,
-            )
-        else:
-            echo(f"Reason: {e.reason}", err=True)
-        sys.exit(1)
-
-    if watch:
-        display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
-        echo("Successfully started Orchest.")
+    cmds.start(watch, common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -828,37 +295,7 @@ def restart(watch: bool, **common_options) -> None:
         \t-p='{"metadata": {"annotations": {"orchest.io/restart": "true"}}}'
 
     """
-    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-
-    echo("Restarting the Orchest Cluster.")
-    try:
-        patch_namespaced_custom_object(
-            name=cluster_name,
-            namespace=ns,
-            # NOTE: strategic merge does work on the annotations in the
-            # metadata.
-            # `RestartAnnotationKey` in the `orchest-controller`.
-            body={"metadata": {"annotations": {"orchest.io/restart": "true"}}},
-            # Don't replace the annotations instead merge with existing
-            # keys.
-            field_manager="StrategicMergePatch",
-        )
-    except client.ApiException as e:
-        echo("Failed to restart the Orchest Cluster.", err=True)
-        if e.status == 404:  # not found
-            echo(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found.",
-                err=True,
-            )
-        else:
-            echo(f"Reason: {e.reason}", err=True)
-        sys.exit(1)
-
-    if watch:
-        display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
-        display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
-        echo("Successfully restarted Orchest.")
+    cmds.restart(watch, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -916,311 +353,12 @@ def adduser(
         # Get prompts to enter password and machine token.
         orchest adduser UserName --set-token
     """
-    # TODO: Extract gate once we introduce more application commands.
-    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-    try:
-        status = _get_orchest_cluster_status(ns, cluster_name)
-    except CRObjectNotFound as e:
-        echo(f"Failed to add specified user: {username}.", err=True)
-        echo(e, err=True)
-        sys.exit(1)
-
-    if status != ClusterStatus.RUNNING:
-        echo(
-            "Orchest is currently unable to add a new user, because the Orchest"
-            f" Cluster is '{'unknown' if status is None else status.value}'.",
-            err=True,
-        )
-        echo(
-            "Please try again once the Orchest Cluster is"
-            f" '{ClusterStatus.RUNNING.value}', see:"
-            "\n\torchest status",
-            err=True,
-        )
-        sys.exit(1)
-
-    if non_interactive:
-        password = non_interactive_password
-        token = non_interactive_token
-    else:
-        if non_interactive_password:
-            echo(
-                "Can't use `--non-interactive-password` without `--non-interactive`",
-                err=True,
-            )
-            sys.exit(1)
-        if non_interactive_token:
-            echo(
-                "Can't use `--non-interactive-token` without `--non-interactive`",
-                err=True,
-            )
-            sys.exit(1)
-
-        password = click.prompt("Password", hide_input=True, confirmation_prompt=True)
-        if set_token:
-            token = click.prompt("Token", hide_input=True, confirmation_prompt=True)
-        else:
-            token = None
-
-    try:
-        _add_user(ns, cluster_name, username, password, is_admin, token)
-    except ValueError as e:
-        echo(f"Failed to add specified user: {username}.", err=True)
-        echo(e, err=True)
-        sys.exit(1)
-    except RuntimeError as e:
-        echo(f"Failed to add specified user: {username}.", err=True)
-        # NOTE: A newline is already returned by the auth-server.
-        echo(e, err=True, nl=False)
-        sys.exit(1)
-
-    echo(f"Successfully added {'admin' if is_admin else ''} user: {username}.")
-
-
-def _add_user(
-    ns: str,
-    cluster_name: str,
-    username: str,
-    password: t.Optional[str],
-    is_admin: bool,
-    token: t.Optional[str],
-) -> None:
-    if password is None:
-        raise ValueError("Password must be specified")
-    elif not password:
-        raise ValueError("Password can't be empty.")
-    if token is not None and not token:
-        raise ValueError("Token can't be empty.")
-
-    pods = CORE_API.list_namespaced_pod(
-        ns,
-        label_selector=(
-            "contoller.orchest.io/component=auth-server,"
-            f"controller.orchest.io={cluster_name}"
-        ),
+    cmds.adduser(
+        username,
+        is_admin,
+        non_interactive,
+        non_interactive_password,
+        set_token,
+        non_interactive_token,
+        **common_options,
     )
-    if not pods:
-        raise RuntimeError(
-            "Orchest Cluster is in an invalid state: no authentication server"
-            " ('auth-server') found."
-        )
-    elif len(pods.items) > 1:
-        raise RuntimeError(
-            "Orchest Cluster is in an invalid state: multiple authentication"
-            " servers ('auth-server') found."
-        )
-    else:
-        auth_server_pod = pods.items[0]
-
-    command = ["python", "add_user.py", username, password]
-    if token is not None:
-        command.append("--token")
-        command.append(token)
-    if is_admin:
-        command.append("--is_admin")
-
-    client = stream.stream(
-        CORE_API.connect_get_namespaced_pod_exec,
-        name=auth_server_pod.metadata.name,
-        namespace=ns,
-        command=command,
-        stderr=True,
-        stdin=False,
-        stdout=True,
-        tty=False,
-        # Gives us a WS client so we can get the return code.
-        _preload_content=False,
-    )
-    # NOTE: Timeout shouldn't be needed, but we don't want to keep the
-    # WS connection open indefinitely if something goes wrong in the
-    # auth-server.
-    client.run_forever(timeout=20)
-    if client.returncode != 0:
-        raise RuntimeError(client.read_all())
-
-
-def _get_orchest_cluster_status(
-    ns: str, cluster_name: str
-) -> t.Optional[ClusterStatus]:
-    """Gets Orchest Cluster status.
-
-    Note:
-        Passes `kwargs` to underlying `get_namespaced_custom_object`
-        call.
-
-    Returns:
-        multiprocessing.pool.AsyncResult if `async_req=True`,
-        None if custom object did contain `status` entry,
-        the status of the custom object otherwise.
-
-    Raises:
-        CRObjectNotFound: Custom Object could not be found.
-
-    """
-    # TODO: The moment the `/status` endpoint is implemented we can
-    # switch to `CUSTOM_OBJECT_API.get_namespaced_custom_object_status`
-    custom_object = _get_namespaced_custom_object(ns, cluster_name)
-    custom_object = t.cast(t.Dict, custom_object)
-    return _parse_cluster_status_from_custom_object(custom_object)
-
-
-def _parse_cluster_status_from_custom_object(
-    custom_object: t.Dict,
-) -> t.Optional[ClusterStatus]:
-    try:
-        # TODO: Introduce more granularity later and add `message`
-        status = ClusterStatus(custom_object["status"]["state"])
-    except KeyError:
-        # NOTE: KeyError can get hit due to `"status"` not (yet) being
-        # present in the response:
-        # https://github.com/kubernetes-client/python/issues/1772
-        return None
-
-    return status
-
-
-def _get_namespaced_custom_object(
-    ns: str, cluster_name: str, **kwargs
-) -> t.Union[t.Dict, "AsyncResult"]:
-    """
-
-    Note:
-        Passes `kwargs` to underlying `get_namespaced_custom_object`
-        call.
-
-    Returns:
-        multiprocessing.pool.AsyncResult if `async_req=True`,
-        the custom object otherwise.
-
-    Raises:
-        CRObjectNotFound: Custom Object could not be found.
-
-    """
-    try:
-        custom_object = get_namespaced_custom_object(
-            name=cluster_name,
-            namespace=ns,
-            **kwargs,
-        )
-    except client.ApiException as e:
-        if e.status == 404:  # not found
-            raise CRObjectNotFound(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found."
-            )
-        else:
-            raise
-
-    return custom_object
-
-
-def display_spinner(
-    curr_status: ClusterStatus,
-    end_status: ClusterStatus,
-    file: t.Optional[t.IO] = None,
-) -> None:
-    """Displays a spinner until the end status is reached.
-
-    The spinner is displayed in `file` which defaults to `STDOUT`.
-
-    """
-
-    def echo(*args, **kwargs):
-        """Local echo function.
-
-        Inside the function one can now call the regular `echo` instead
-        of always having to call `echo(..., file=file)`.
-
-        """
-        global echo
-        nonlocal file
-
-        if file is None:
-            file = sys.stdout
-
-        if kwargs.get("file") is None:
-            return echo(*args, file=file, **kwargs)
-        else:
-            return echo(*args, **kwargs)
-
-    # Get the required arguments to get the status of the custom object
-    # from the click context.
-    click_ctx = click.get_current_context()
-    assert click_ctx is not None, "Can only be invoked inside a Click Context."
-
-    ns = click_ctx.params.get("namespace")
-    cluster_name = click_ctx.params.get("cluster_name")
-
-    try:
-        # NOTE: Click's `echo` makes sure the ANSI characters work
-        # cross-platform. For Windows it uses `colorama` to do so.
-        echo("\033[?25l", nl=False)  # hide cursor
-
-        # NOTE: Watching (using `watch.Watch().stream(...)`) is not
-        # supported, thus we go for a loop instead:
-        # https://github.com/kubernetes-client/python/issues/1679
-        prev_status = curr_status
-
-        # Use `async_req` to make sure spinner is always loading.
-        thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
-        while curr_status != end_status:
-            thread = t.cast("AsyncResult", thread)
-            if thread.ready():
-                try:
-                    resp = thread.get()
-                except client.ApiException as e:
-                    echo(err=True)  # newline
-                    echo(f"🙅 Failed to {click_ctx.command.name}", err=True)
-                    if e.status == 404:  # not found
-                        echo(
-                            "The CR Object defining the Orchest Cluster was removed"
-                            " by an external process during installation.",
-                            err=True,
-                        )
-                        sys.exit(1)
-                    else:
-                        raise
-
-                curr_status = _parse_cluster_status_from_custom_object(resp)  # type: ignore
-                thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
-
-            if curr_status is None:
-                curr_status = prev_status
-
-            if curr_status == prev_status:
-                for _ in range(3):
-                    echo("\r", nl=False)  # Move cursor to beginning of line
-                    echo("\033[K", nl=False)  # Erase until end of line
-                    echo(f"🚶 {curr_status.value}", nl=False)
-                    time.sleep(0.2)
-                    echo("\r", nl=False)
-                    echo("\033[K", nl=False)
-                    echo(f"🏃 {curr_status.value}", nl=False)
-                    time.sleep(0.2)
-
-            else:
-                echo("\r", nl=False)
-                echo("\033[K", nl=False)
-                echo(f"🏁 {prev_status.value}", nl=True)
-                prev_status = curr_status
-
-                # Otherwise we would wait without reason once the
-                # command has finished.
-                if curr_status != end_status:
-                    thread.wait()  # type: ignore
-    finally:
-        echo("\033[?25h", nl=False)  # show cursor
-
-
-def _get_orchest_cluster_version(ns: str, cluster_name: str) -> str:
-    """Gets the current version of the Orchest Cluster.
-
-    Raises:
-        CRObjectNotFound: If the Orchest Cluster CR Object couldn't be
-            found.
-        KeyError: If the `version` entry couldn't be accessed from the
-            CR Object.
-
-    """
-    custom_object = _get_namespaced_custom_object(ns, cluster_name)
-    return custom_object["spec"]["orchest"]["version"]  # type: ignore
