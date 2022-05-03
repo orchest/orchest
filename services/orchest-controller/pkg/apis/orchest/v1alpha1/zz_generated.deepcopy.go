@@ -161,6 +161,7 @@ func (in *OrchestClusterStatus) DeepCopyInto(out *OrchestClusterStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	in.LastHeartbeatTime.DeepCopyInto(&out.LastHeartbeatTime)
 	return
 }
 

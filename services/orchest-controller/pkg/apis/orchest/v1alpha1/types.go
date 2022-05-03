@@ -15,8 +15,10 @@ const (
 	EventFailed  = "Failed"
 )
 
-// PodPhase is a label for the condition of a OrchestCluster at the current time.
+// OrchestClusterPhase is a label for the condition of a OrchestCluster at the current time.
 type OrchestClusterPhase string
+
+type OrchestClusterEvent string
 
 const (
 	// OrchestClusterPhase
@@ -29,6 +31,7 @@ const (
 	Starting              OrchestClusterPhase = "Starting"
 	Running               OrchestClusterPhase = "Running"
 	Pausing               OrchestClusterPhase = "Pausing"
+	Cleanup               OrchestClusterPhase = "Cleanup"
 	Paused                OrchestClusterPhase = "Paused"
 	Upgrading             OrchestClusterPhase = "Updating"
 	Error                 OrchestClusterPhase = "Error"
@@ -36,22 +39,32 @@ const (
 	Unhealthy             OrchestClusterPhase = "Unhealthy"
 	Deleting              OrchestClusterPhase = "Deleting"
 
-	//Reasons
-	DeployingArgo         = "Deploying argo-workflow"
-	DeployingCertManager  = "Deploying cert-manager"
-	DeployingRegistry     = "Deploying docker-registry"
-	DeployingNginxIngress = "Deploying nginx-ingress"
+	//Events
+	// DeployingThirdParties events
+	DeployingArgo         OrchestClusterEvent = "Deploying argo-workflow"
+	DeployingCertManager  OrchestClusterEvent = "Deploying cert-manager"
+	DeployingRegistry     OrchestClusterEvent = "Deploying docker-registry"
+	CreatingCertificates  OrchestClusterEvent = "Creating docker-registry certificates"
+	DeployingNginxIngress OrchestClusterEvent = "Deploying nginx-ingress"
 
-	DeployingOrchestDatabase  = "Deploying orchest-database"
-	UpgradingOrchestDatabase  = "Upgrading orchest-database"
-	DeployingAuthServer       = "Deploying auth-server"
-	UpgradingAuthServer       = "Upgrading auth-server"
-	DeployingCeleryWorker     = "Deploying celery-worker"
-	UpgradingCeleryWorker     = "Upgrading celery-worker"
-	DeployingOrchestApi       = "Deploying orchest-api"
-	UpgradingOrchestApi       = "Upgrading orchest-api"
-	DeployingOrchestWebserver = "Deploying orchest-webserver"
-	UpgradingOrchestWebserver = "Upgrading orchest-webserver"
+	// DeployingOrchest and Upgrading events
+	DeployingOrchestDatabase OrchestClusterEvent = "Deploying orchest-database"
+	UpgradingOrchestDatabase OrchestClusterEvent = "Upgrading orchest-database"
+
+	DeployingAuthServer OrchestClusterEvent = "Deploying auth-server"
+	UpgradingAuthServer OrchestClusterEvent = "Upgrading auth-server"
+
+	DeployingCeleryWorker OrchestClusterEvent = "Deploying celery-worker"
+	UpgradingCeleryWorker OrchestClusterEvent = "Upgrading celery-worker"
+
+	DeployingOrchestApi OrchestClusterEvent = "Deploying orchest-api"
+	UpgradingOrchestApi OrchestClusterEvent = "Upgrading orchest-api"
+
+	DeployingOrchestWebserver OrchestClusterEvent = "Deploying orchest-webserver"
+	UpgradingOrchestWebserver OrchestClusterEvent = "Upgrading orchest-webserver"
+
+	DeployingRabbitmq OrchestClusterEvent = "Deploying rabbitmq-server"
+	UpgradingRabbitmq OrchestClusterEvent = "Upgrading rabbitmq-server"
 )
 
 type OrchestResourcesSpec struct {
@@ -150,12 +163,9 @@ type OrchestClusterSpec struct {
 }
 
 type Condition struct {
-	Type               OrchestClusterPhase    `json:"type,omitempty"`
-	Status             corev1.ConditionStatus `json:"status,omitempty"`
-	Reason             string                 `json:"reason,omitempty"`
-	Message            string                 `json:"message,omitempty"`
-	LastHeartbeatTime  metav1.Time            `json:"lastHeartbeatTime,omitempty"`
-	LastTransitionTime metav1.Time            `json:"lastTransitionTime,omitempty"`
+	Event              OrchestClusterEvent `json:"event,omitempty"`
+	LastHeartbeatTime  metav1.Time         `json:"lastHeartbeatTime,omitempty"`
+	LastTransitionTime metav1.Time         `json:"lastTransitionTime,omitempty"`
 }
 
 // OrchestClusterStatus defines the status of OrchestCluster
@@ -173,6 +183,8 @@ type OrchestClusterStatus struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 
 	Version string `json:"version,omitempty"`
+
+	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
 }
 
 // +genclient

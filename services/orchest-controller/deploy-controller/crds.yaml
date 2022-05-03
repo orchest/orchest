@@ -810,23 +810,19 @@ spec:
                 conditions:
                   items:
                     properties:
+                      event:
+                        type: string
                       lastHeartbeatTime:
                         format: date-time
                         type: string
                       lastTransitionTime:
                         format: date-time
                         type: string
-                      message:
-                        type: string
-                      reason:
-                        type: string
-                      status:
-                        type: string
-                      type:
-                        description: PodPhase is a label for the condition of a OrchestCluster at the current time.
-                        type: string
                     type: object
                   type: array
+                lastHeartbeatTime:
+                  format: date-time
+                  type: string
                 observedGeneration:
                   description: The generation observed by the controller.
                   format: int64
@@ -837,7 +833,7 @@ spec:
                 reason:
                   type: string
                 state:
-                  description: PodPhase is a label for the condition of a OrchestCluster at the current time.
+                  description: OrchestClusterPhase is a label for the condition of a OrchestCluster at the current time.
                   type: string
                 version:
                   type: string

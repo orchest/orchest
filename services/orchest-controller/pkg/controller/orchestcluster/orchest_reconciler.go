@@ -7,6 +7,7 @@ import (
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -72,6 +73,12 @@ var (
 
 type deployFunction func(context.Context, string, *orchestv1alpha1.OrchestCluster) error
 
+type deployHandler struct {
+	function    deployFunction
+	updateEvent orchestv1alpha1.OrchestClusterEvent
+	deployEvent orchestv1alpha1.OrchestClusterEvent
+}
+
 // OrchestReconciler reconciles a single OrchestCluster
 type OrchestReconciler struct {
 	key string
@@ -82,7 +89,7 @@ type OrchestReconciler struct {
 
 	controller *OrchestClusterController
 
-	deploymentFunctions map[string]deployFunction
+	deploymentHandler map[string]deployHandler
 
 	sleepTime time.Duration
 }
@@ -95,26 +102,55 @@ func NewOrchestReconciler(key string,
 		return nil
 	}
 	reconciler := &OrchestReconciler{
-		key:                 key,
-		name:                name,
-		namespace:           namespace,
-		controller:          controller,
-		sleepTime:           time.Second,
-		deploymentFunctions: map[string]deployFunction{},
+		key:               key,
+		name:              name,
+		namespace:         namespace,
+		controller:        controller,
+		sleepTime:         time.Second,
+		deploymentHandler: map[string]deployHandler{},
 	}
 
-	reconciler.deploymentFunctions[orchestApi] = reconciler.deployOrchestApi
-	reconciler.deploymentFunctions[orchestDatabase] = reconciler.deployOrchestDatabase
-	reconciler.deploymentFunctions[authServer] = reconciler.deployAuthServer
-	reconciler.deploymentFunctions[celeryWorker] = reconciler.deployCeleryWorker
-	reconciler.deploymentFunctions[rabbitmq] = reconciler.deployRabbitmq
-	reconciler.deploymentFunctions[orchestWebserver] = reconciler.deployWebserver
+	reconciler.deploymentHandler[orchestApi] = deployHandler{
+		function:    reconciler.deployOrchestApi,
+		updateEvent: orchestv1alpha1.UpgradingOrchestApi,
+		deployEvent: orchestv1alpha1.DeployingOrchestApi,
+	}
+
+	reconciler.deploymentHandler[orchestDatabase] = deployHandler{
+		function:    reconciler.deployOrchestDatabase,
+		updateEvent: orchestv1alpha1.UpgradingOrchestDatabase,
+		deployEvent: orchestv1alpha1.DeployingOrchestDatabase,
+	}
+
+	reconciler.deploymentHandler[authServer] = deployHandler{
+		function:    reconciler.deployAuthServer,
+		updateEvent: orchestv1alpha1.UpgradingAuthServer,
+		deployEvent: orchestv1alpha1.DeployingAuthServer,
+	}
+
+	reconciler.deploymentHandler[celeryWorker] = deployHandler{
+		function:    reconciler.deployCeleryWorker,
+		updateEvent: orchestv1alpha1.UpgradingCeleryWorker,
+		deployEvent: orchestv1alpha1.DeployingCeleryWorker,
+	}
+
+	reconciler.deploymentHandler[rabbitmq] = deployHandler{
+		function:    reconciler.deployRabbitmq,
+		updateEvent: orchestv1alpha1.UpgradingRabbitmq,
+		deployEvent: orchestv1alpha1.DeployingRabbitmq,
+	}
+
+	reconciler.deploymentHandler[orchestWebserver] = deployHandler{
+		function:    reconciler.deployWebserver,
+		updateEvent: orchestv1alpha1.UpgradingOrchestWebserver,
+		deployEvent: orchestv1alpha1.DeployingOrchestWebserver,
+	}
 
 	return reconciler
 }
 
 // Installs deployer if the config is changed
-func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
+func (r *OrchestReconciler) Reconcile(ctx context.Context) (err error) {
 
 	// First we need to retrive the latest version of OrchestCluster
 	orchest, err := r.controller.oClient.OrchestV1alpha1().OrchestClusters(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
@@ -123,6 +159,20 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 			// OrchestCluster does not exist, return
 			return nil
 		}
+		return err
+	}
+
+	nextPhase, endPhase := r.determineNextPhase(orchest)
+	if nextPhase == endPhase {
+		return
+	}
+	err = r.controller.updatePhase(ctx, orchest.Namespace, orchest.Name, nextPhase, "")
+	defer func() {
+		if err == nil {
+			err = r.controller.updatePhase(ctx, orchest.Namespace, orchest.Name, endPhase, "")
+		}
+	}()
+	if err != nil {
 		return err
 	}
 
@@ -166,48 +216,66 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 		deployment, ok := deployments[deploymentName]
 		// deployment does not exist, let't create it
 		if !ok {
-
-			err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-				orchestv1alpha1.DeployingOrchest, corev1.ConditionTrue, fmt.Sprintf("Deploying %s", deploymentName))
+			handler, ok := r.deploymentHandler[deploymentName]
+			if !ok {
+				return errors.Wrapf(err, "failed to get deployment handler of %s", deploymentName)
+			}
+			err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name, handler.deployEvent)
 			if err != nil {
 				klog.Error(err)
 				return errors.Wrapf(err, "failed to update status while changing the state to DeployingOrchest")
 			}
 
-			err = r.deploymentFunctions[deploymentName](ctx, generation, orchest)
+			err = handler.function(ctx, generation, orchest)
 			if err != nil {
 				return errors.Wrapf(err, "failed to deploy %s component", deploymentName)
 			}
 		} else {
-
 			//Update the deployment
 			if !isDeploymentUpdated(deployment, orchest.Generation) || isDeploymentPaused(deployment) {
-				err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-					orchestv1alpha1.Upgrading, corev1.ConditionTrue, fmt.Sprintf("Upgrading %s", deploymentName))
+				handler, ok := r.deploymentHandler[deploymentName]
+				if !ok {
+					return errors.Wrapf(err, "failed to get deployment handler of %s", deploymentName)
+				}
+
+				err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name, handler.updateEvent)
 				if err != nil {
 					return errors.Wrapf(err, "failed to update status while changing the state to Upgrading")
 				}
 
-				err = r.deploymentFunctions[deploymentName](ctx, generation, orchest)
+				err = handler.function(ctx, generation, orchest)
 				if err != nil {
 					return errors.Wrapf(err, "failed to update %s component", deploymentName)
-				}
-
-				err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-					orchestv1alpha1.Upgrading, corev1.ConditionTrue, fmt.Sprintf("Upgraded %s", deploymentName))
-				// It's minor error, we will move on
-				if err != nil {
-					klog.Warning("failed to update state to Updating")
 				}
 			}
 		}
 	}
 
-	err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-		orchestv1alpha1.Running, corev1.ConditionTrue, "Orchest is running")
-
 	return err
 
+}
+
+func (r *OrchestReconciler) determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
+	orchestv1alpha1.OrchestClusterPhase, orchestv1alpha1.OrchestClusterPhase) {
+
+	phase := orchest.Status.Phase
+	endPhase := orchestv1alpha1.Running
+
+	if *orchest.Spec.Orchest.Pause && orchest.Status.Phase != orchestv1alpha1.Paused {
+		phase = orchestv1alpha1.Pausing
+		endPhase = orchestv1alpha1.Paused
+	} else if orchest.Status.Phase == orchestv1alpha1.DeployedThirdParties {
+		phase = orchestv1alpha1.DeployingOrchest
+	} else if orchest.Status.ObservedHash != computeHash(&orchest.Spec) {
+		phase = orchestv1alpha1.Upgrading
+	}
+
+	// If restart key is present, next phase would be in restarting
+	if _, ok := orchest.GetAnnotations()[RestartAnnotationKey]; ok {
+		phase = orchestv1alpha1.Restarting
+	}
+
+	return phase, endPhase
 }
 
 func (r *OrchestReconciler) shouldPause(orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
@@ -253,6 +321,23 @@ func (r *OrchestReconciler) shouldPause(orchest *orchestv1alpha1.OrchestCluster)
 func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (*orchestv1alpha1.OrchestCluster,
 	error) {
 
+	// Check if the cleanup still in progress
+	_, err := r.controller.kClient.CoreV1().Pods(r.namespace).Get(ctx, orchestApiCleanup, metav1.GetOptions{})
+	if err == nil {
+		err = r.waitForCleanupPod(ctx, r.namespace, orchestApiCleanup)
+		if err != nil {
+			return nil, err
+		}
+
+		err = r.getKClient().CoreV1().Pods(r.namespace).Delete(ctx, orchestApiCleanup, metav1.DeleteOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+	} else if err != nil && !kerrors.IsNotFound(err) {
+		return nil, err
+	}
+
 	// get the current deployments and pause them (change their replica to 0)
 	deployments, err := r.getDeployments(orchest)
 	if err != nil {
@@ -297,22 +382,17 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 	}
 
 	if len(deploymentsToPause) > 0 {
-		err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-			orchestv1alpha1.Pausing, corev1.ConditionTrue, "Pausing the cluster")
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
-		}
 
 		for _, deployment := range deploymentsToPause {
 			err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-				orchestv1alpha1.Pausing, corev1.ConditionTrue, fmt.Sprintf("Pausing %s", deployment.Name))
+				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Pausing %s", deployment.Name)))
 			if err != nil {
 				return orchest, errors.Wrapf(err, "failed to update status while pausing %s", deployment.Name)
 			}
-			pauseDeployment(ctx, r.getClient(), pauseReason, orchest.Generation, deployment)
+			pauseDeployment(ctx, r.getKClient(), pauseReason, orchest.Generation, deployment)
 
 			err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-				orchestv1alpha1.Pausing, corev1.ConditionTrue, fmt.Sprintf("Paused %s", deployment.Name))
+				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Paused %s", deployment.Name)))
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to update status after pausing %s", deployment.Name)
 			}
@@ -322,6 +402,10 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 				err := r.cleanup(ctx, orchest)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to cleanup OrchestCluster")
+				}
+				err = r.getKClient().CoreV1().Pods(r.namespace).Delete(ctx, orchestApiCleanup, metav1.DeleteOptions{})
+				if err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -333,12 +417,6 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to remove RestartAnnotationKey from OrchestCluster")
 		}
-	}
-
-	err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-		orchestv1alpha1.Paused, corev1.ConditionTrue, "Paused the cluster")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update status while changing the state to Paused")
 	}
 
 	return orchest, nil
@@ -571,6 +649,7 @@ func (r *OrchestReconciler) cleanup(ctx context.Context, orchest *orchestv1alpha
 	}
 
 	return r.waitForCleanupPod(ctx, r.namespace, orchestApiCleanup)
+
 }
 
 func (r *OrchestReconciler) waitForCleanupPod(ctx context.Context, namespace, name string) error {
@@ -588,7 +667,7 @@ func (r *OrchestReconciler) waitForCleanupPod(ctx context.Context, namespace, na
 			<-time.After(r.sleepTime)
 		}
 
-		if !utils.IsPodActive(ctx, r.getClient(), name, r.namespace) {
+		if !utils.IsPodActive(ctx, r.getKClient(), name, r.namespace) {
 			klog.V(2).Infof("pod is succeeded. object key : %s/%s", name, namespace)
 			return nil
 		}
@@ -610,7 +689,7 @@ func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, na
 			<-time.After(r.sleepTime)
 		}
 
-		if utils.IsDeploymentReady(ctx, r.getClient(), name, r.namespace) {
+		if utils.IsDeploymentReady(ctx, r.getKClient(), name, r.namespace) {
 			klog.V(2).Infof("Deployment is ready. object key : %s/%s", name, namespace)
 			return nil
 		}
@@ -621,8 +700,12 @@ func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, na
 	return errors.Errorf("exceeded max retry count waiting for deployment to become ready %s", name)
 }
 
-func (r *OrchestReconciler) getClient() kubernetes.Interface {
+func (r *OrchestReconciler) getKClient() kubernetes.Interface {
 	return r.controller.kClient
+}
+
+func (r *OrchestReconciler) getOClient() versioned.Interface {
+	return r.controller.oClient
 }
 
 func (r *OrchestReconciler) getGeneralClient() client.Client {

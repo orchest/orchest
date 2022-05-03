@@ -110,6 +110,8 @@ func getCleanupPod(metadata metav1.ObjectMeta,
 	pod := &corev1.Pod{
 		ObjectMeta: metadata,
 		Spec: corev1.PodSpec{
+			RestartPolicy:      corev1.RestartPolicyNever,
+			ServiceAccountName: orchestApi,
 			Containers: []corev1.Container{
 				{
 					Name: metadata.Name,
