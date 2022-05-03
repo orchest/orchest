@@ -267,7 +267,10 @@ const snakeCase = (str: string, divider = "_") =>
     .toLowerCase();
 
 export const toQueryString = <T extends string>(
-  query: Record<T, string | number | boolean | undefined | null> | null
+  query:
+    | Partial<Record<T, string | number | boolean | undefined | null>>
+    | null
+    | undefined
 ) => {
   const isObject =
     typeof query === "object" &&

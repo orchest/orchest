@@ -184,6 +184,9 @@ export const generateMockProjectCollection = () => {
       projectCollection[projectUuid] = setter(project);
       return projectCollection[projectUuid];
     },
+    getAll() {
+      return projectCollection;
+    },
     reset() {
       projectCollection = {};
     },
