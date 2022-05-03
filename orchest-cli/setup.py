@@ -35,6 +35,7 @@ setuptools.setup(
     install_requires=[
         "click",
         "kubernetes>=21.7.0",
+        "requests",  # required by kubernetes as well
     ],
     entry_points={
         "console_scripts": [

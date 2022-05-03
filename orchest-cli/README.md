@@ -68,6 +68,7 @@ TODO:
         as well.
 - [ ] TODOs in `cli.py`
 - [ ] `update` and `restart` to work in the GUI
+  - [ ] If CLI is invoked inside the `orchest-api` then we need to catch the `SystemExit` error.
 - [x] Make sure `cleanup` is invoked on certain actions, e.g. restart/pause.
 - [x] Are ingresses etc. working?
 - [ ] Whenever the CRD is changed, users need to `kubectl apply` its changes. Otherwise the

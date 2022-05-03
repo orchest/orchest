@@ -23,7 +23,8 @@ from functools import partial
 from gettext import gettext
 
 import click
-from kubernetes import client, config, stream
+import requests
+from kubernetes import client, config, stream, watch
 
 if t.TYPE_CHECKING:
     from multiprocessing.pool import AsyncResult
@@ -32,6 +33,7 @@ if t.TYPE_CHECKING:
 config.load_kube_config()
 CUSTOM_OBJECT_API = client.CustomObjectsApi()
 CORE_API = client.CoreV1Api()
+APPS_API = client.AppsV1Api()
 
 # TODO: config values
 NAMESPACE = "orchest"
@@ -194,7 +196,7 @@ class ClusterStatus(enum.Enum):
     RUNNING = "Running"
     PAUSING = "Pausing"
     PAUSED = "Paused"
-    UPGRADING = "Updating"
+    UPDATING = "Updating"
     ERROR = "Error"
     UNKNOWN = "Unknown"
     UNHEALTHY = "Unhealthy"
@@ -274,7 +276,194 @@ def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
 
 
 # TODO:
-# def update()
+# - The `orchest-controller` needs to be deployed with certain labels
+#   as otherwise this CLI command can't update the controller before
+#   updating the cluster. Needs to be a note in the docs probably and
+#   error handled here.
+# - It can be possible that users need to apply a new CRD. This needs
+#   to be included somewhere.
+@click.option(
+    "--version",
+    default=None,
+    show_default=True,
+    help="Version to update the Orchest Cluster to.",
+)
+@click.option(
+    "--watch/--no-watch",
+    "watch_flag",  # name for arg
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Watch cluster status changes.",
+)
+@cli.command(cls=ClickCommonOptionsCmd)
+def update(version: t.Optional[str], watch_flag: bool, **common_options) -> None:
+    """Update Orchest.
+
+    If `--version` is not given, then it tries to update Orchest to the
+    latest version.
+
+    \b
+    Note:
+        The operation fails if the Orchest Cluster would be downgraded.
+
+    """
+
+    def lte(old: str, new: str) -> bool:
+        """Returns `old <= new`, i.e. less than or equal.
+
+        In other words, returns whether `new` is a newer version than
+        `old`.
+
+        Note:
+            Both `old` and `new` must follow the CalVer versioning
+            scheme, e.g. "v2022.03.8".
+
+        """
+        old, new = old[1:], new[1:]
+        for o, n in zip(old.split("."), new.split(".")):
+            if int(o) > int(n):
+                return False
+            elif int(o) < int(n):
+                return True
+        return True
+
+    def fetch_latest_available_version(curr_version: str) -> t.Optional[str]:
+        url = f"https://update-info.orchest.io/api/orchest/update-info/v2?version={curr_version}"
+        resp = requests.get(url, timeout=5)
+
+        if resp.status_code == 200:
+            data = resp.json()
+            return data["latest_version"]
+        else:
+            return None
+
+    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
+
+    try:
+        curr_version = _get_orchest_cluster_version(ns, cluster_name)
+
+    except CRObjectNotFound as e:
+        echo(
+            "Failed to fetch current Orchest Cluster version to make"
+            " sure the cluster isn't downgraded.",
+            err=True,
+        )
+        echo(e, err=True)
+        sys.exit(1)
+
+    except KeyError:
+        echo(
+            "Failed to fetch current Orchest Cluster version to make"
+            " sure the cluster isn't downgraded.",
+            err=True,
+        )
+        echo(
+            "Make sure your CLI version is compatible with the running"
+            " Orchest Cluster version.",
+            err=True,
+        )
+        sys.exit(1)
+
+    if version is None:
+        version = fetch_latest_available_version(curr_version)
+        if version is None:
+            echo("Failed to fetch latest available version to update to.", err=True)
+            sys.exit(1)
+    else:
+        # Verify user input.
+        try:
+            year, month, patch = version.split(".")
+            if len(year) != 5 or len(month) != 2 or len(patch) == 0:
+                raise
+
+            int(year[1:]), int(month), int(patch)
+        except Exception:
+            echo(
+                f"The format of the given version '{version}'"
+                " is incorrect and can't be updated to.",
+                err=True,
+            )
+            echo("The version should follow CalVer, e.g. 'v2022.02.4'.", err=True)
+            sys.exit(1)
+
+    if curr_version == version:
+        echo(f"Orchest Cluster is already on version: {version}.")
+        sys.exit()
+    elif not lte(curr_version, version):
+        echo("Aborting update. Downgrading is not supported.", err=True)
+        echo(
+            f"Orchest Cluster is on version '{curr_version}',"
+            f" which is newer than the given version '{version}'.",
+            err=True,
+        )
+        sys.exit(1)
+
+    # NOTE: It is possible that the `orchest-controller` updated, but
+    # the CR Object can't be updated. Thus we need to make sure that
+    # `orchest update` can be invoked again even though the controller
+    # is already updated.
+    echo("Updating the Orchest Controller...")
+    APPS_API.patch_namespaced_deployment(
+        name="orchest-controller",
+        namespace=ns,  # controller is currently deployed in same ns
+        # TODO: Move controller to specific version and away from latest
+        body={
+            "spec": {
+                "template": {
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "controller",
+                                "image": "orchest/orchest-controller:latest",
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        field_manager="StrategicMergePatch",
+    )
+
+    # Wait until the `orchest-controller` is successfully updated. We
+    # don't accidentally want the old `orchest-controller` to initiate
+    # the update process.
+    w = watch.Watch()
+    for event in w.stream(
+        CORE_API.list_namespaced_pod,
+        namespace=ns,
+        label_selector=("app=orchest-controller"),
+        timeout_seconds=60,
+    ):
+        # TODO: get rid of latest
+        if event["object"].spec.containers[0].image == "orchest/orchest-controller:latest":  # type: ignore
+            if event["object"].status.phase == "Running":  # type: ignore
+                w.stop()
+
+    echo("Updating the Orchest Cluster...")
+    breakpoint()
+    try:
+        patch_namespaced_custom_object(
+            name=cluster_name,
+            namespace=ns,
+            body={"spec": {"orchest": {"version": version}}},
+        )
+    except client.ApiException as e:
+        echo("Failed to update the Orchest Cluster version.", err=True)
+        if e.status == 404:  # not found
+            echo(
+                f"The Orchest Cluster named '{cluster_name}' in namespace"
+                f" '{ns}' could not be found.",
+                err=True,
+            )
+        else:
+            echo(f"Reason: {e.reason}", err=True)
+        sys.exit(1)
+
+    if watch_flag:
+        display_spinner(ClusterStatus.RUNNING, ClusterStatus.UPDATING)
+        display_spinner(ClusterStatus.UPDATING, ClusterStatus.RUNNING)
+        echo("Successfully updated Orchest!")
 
 
 class LogLevel(str, enum.Enum):
@@ -358,7 +547,9 @@ def patch(
     if dev is None:
         env_var_dev = None
     elif dev:
-        # TODO: Make request to `orchest-api` to disable Telemetry.
+        # TODO: Make request to `orchest-api` to disable Telemetry. Do
+        # note that is an application like command and so needs to be
+        # gated by a check of status of the Orchest Cluster.
         env_var_dev = {"name": "FLASK_ENV", "value": "development"}
 
         _cmd = (
@@ -452,10 +643,11 @@ def version(json_flag: bool, **common_options) -> None:
 
     """
     try:
-        custom_object = _get_namespaced_custom_object(
+        version = _get_orchest_cluster_version(
             common_options["namespace"],
             common_options["cluster_name"],
         )
+
     except CRObjectNotFound as e:
         if json_flag:
             jecho({})
@@ -464,8 +656,6 @@ def version(json_flag: bool, **common_options) -> None:
             echo(e, err=True)
         sys.exit(1)
 
-    try:
-        version = custom_object["spec"]["orchest"]["version"]  # type: ignore
     except KeyError:
         if json_flag:
             jecho({})
@@ -1016,3 +1206,17 @@ def display_spinner(
                     thread.wait()  # type: ignore
     finally:
         echo("\033[?25h", nl=False)  # show cursor
+
+
+def _get_orchest_cluster_version(ns: str, cluster_name: str) -> str:
+    """Gets the current version of the Orchest Cluster.
+
+    Raises:
+        CRObjectNotFound: If the Orchest Cluster CR Object couldn't be
+            found.
+        KeyError: If the `version` entry couldn't be accessed from the
+            CR Object.
+
+    """
+    custom_object = _get_namespaced_custom_object(ns, cluster_name)
+    return custom_object["spec"]["orchest"]["version"]  # type: ignore
