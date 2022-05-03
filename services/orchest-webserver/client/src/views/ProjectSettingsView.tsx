@@ -7,8 +7,9 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import { RouteName, toQueryString } from "@/routingConfig";
+import { RouteName } from "@/routingConfig";
 import { Project } from "@/types";
+import { toQueryString } from "@/utils/routing";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,

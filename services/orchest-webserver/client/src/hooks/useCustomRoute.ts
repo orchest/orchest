@@ -1,5 +1,5 @@
-import { toQueryString } from "@/routingConfig";
 import { openInNewTab } from "@/utils/openInNewTab";
+import { toQueryString } from "@/utils/routing";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useHistory, useLocation } from "react-router-dom";

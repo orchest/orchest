@@ -1,6 +1,4 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
-import { withinProjectPaths } from "@/routingConfig";
 import type { Project } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -18,17 +16,15 @@ const validateProjectUuid = (
 };
 
 export const useGetValidProjectUuid = (
-  projectUuidFromRoute: string | undefined
+  projectUuidFromRoute: string | undefined,
+  isMatchingProjectPaths: boolean
 ) => {
   const { state, dispatch } = useProjectsContext();
-
-  // if current view only involves ONE project, ProjectSelector would appear
-  const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
 
   const validProjectUuid = React.useMemo(() => {
     const shouldShow =
       state.hasLoadedProjects &&
-      matchWithinProjectPaths &&
+      isMatchingProjectPaths &&
       state.projects.length > 0;
 
     if (!shouldShow) return undefined;
@@ -43,7 +39,7 @@ export const useGetValidProjectUuid = (
 
     return validProjectUuid;
   }, [
-    matchWithinProjectPaths,
+    isMatchingProjectPaths,
     projectUuidFromRoute,
     state.hasLoadedProjects,
     state.projects,

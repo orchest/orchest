@@ -1,16 +1,15 @@
-import { siteMap } from "@/routingConfig";
 import React from "react";
 
 export const useAutoChangeProject = (
   validProjectUuid: string | undefined,
   projectUuidFromRoute: string | undefined,
   projectPath: string | undefined,
-  customNavigateTo: (projectUuid: string, path: string) => void
+  customNavigateTo: (projectUuid: string, path: string | undefined) => void
 ) => {
   const onChangeProject = React.useCallback(
     (uuid: string) => {
       if (uuid) {
-        customNavigateTo(uuid, projectPath || siteMap.pipeline.path);
+        customNavigateTo(uuid, projectPath);
       }
     },
     [projectPath, customNavigateTo]

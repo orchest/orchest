@@ -9,18 +9,18 @@ import { useGetValidProjectUuid } from "./useGetValidProjectUuid";
 export const useProjectSelector = (
   projectUuidFromRoute: string | undefined,
   targetRoutePath: string | undefined,
-  customNavigateTo: (projectUuid: string, path: string) => void
+  customNavigateTo: (projectUuid: string, path: string | undefined) => void
 ) => {
   // ProjectSelector only renders when the current view only concerns ONE project,
   // which can be inferred from the route path.
   // e.g.  `/pipeline`, `/jobs`.
-  const shouldFetchProjects = hasValue(targetRoutePath);
-  const projects = useFetchProjectsForSelector(shouldFetchProjects);
+  const isMatchingProjectPaths = hasValue(targetRoutePath);
+  const projects = useFetchProjectsForSelector(isMatchingProjectPaths);
 
   const [
     validProjectUuid,
     shouldShowInvalidProjectUuidAlert,
-  ] = useGetValidProjectUuid(projectUuidFromRoute);
+  ] = useGetValidProjectUuid(projectUuidFromRoute, isMatchingProjectPaths);
 
   const onChangeProject = useAutoChangeProject(
     validProjectUuid,

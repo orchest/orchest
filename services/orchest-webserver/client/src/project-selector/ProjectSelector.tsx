@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
-import { withinProjectPaths } from "@/routingConfig";
+import { siteMap, withinProjectPaths } from "@/routingConfig";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
 import InputBase from "@mui/material/InputBase";
@@ -34,8 +34,8 @@ export const ProjectSelector = () => {
   const { projectUuid: projectUuidFromRoute, navigateTo } = useCustomRoute();
 
   const customNavigateTo = React.useCallback(
-    (projectUuid: string, path: string) => {
-      navigateTo(path, { query: { projectUuid } });
+    (projectUuid: string, path: string | undefined) => {
+      navigateTo(path || siteMap.pipeline.path, { query: { projectUuid } });
     },
     [navigateTo]
   );

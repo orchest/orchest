@@ -1,5 +1,5 @@
-import { toQueryString } from "@/Routes";
 import { Project } from "@/types";
+import { toQueryString } from "@/utils/routing";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { MutatorCallback } from "swr";
