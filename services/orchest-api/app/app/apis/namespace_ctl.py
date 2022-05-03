@@ -5,6 +5,7 @@ import uuid
 import yaml
 from flask import current_app, request
 from flask_restx import Namespace, Resource
+from orchestcli.cli import restart
 
 from _orchest.internals import config as _config
 from app import schema, utils
@@ -46,10 +47,7 @@ class StartUpdate(Resource):
 class Restart(Resource):
     @api.doc("orchest_api_restart")
     def post(self):
-        restart_pod_manifest = _get_restart_pod_manifest()
-        k8s_core_api.create_namespaced_pod(
-            _config.ORCHEST_NAMESPACE, restart_pod_manifest
-        )
+        restart()
 
         return {}, 201
 

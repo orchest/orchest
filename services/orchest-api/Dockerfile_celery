@@ -9,6 +9,7 @@ RUN apt-get update \
 # Get all requirements in place.
 COPY ./requirements.txt /orchest/services/orchest-api/
 COPY ./lib/python /orchest/lib/python
+COPY ./orchest-cli /orchest/orchest-cli
 
 # Set the `WORKDIR` so the editable installs in the `requirements.txt`
 # can use relative paths.

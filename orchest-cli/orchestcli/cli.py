@@ -30,7 +30,11 @@ if t.TYPE_CHECKING:
     from multiprocessing.pool import AsyncResult
 
 # https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomObjectsApi.md
-config.load_kube_config()
+try:
+    config.load_kube_config()
+except config.config_exception.ConfigException:
+    config.load_incluster_config()
+
 CUSTOM_OBJECT_API = client.CustomObjectsApi()
 CORE_API = client.CoreV1Api()
 APPS_API = client.AppsV1Api()
