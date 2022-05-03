@@ -64,7 +64,8 @@ deployment
               - -c
               - "[ -f worker-builds.pid ] &&
                 [ -f worker-interactive.pid ] &&
-                [ -f worker-jobs.pid ]"
+                [ -f worker-jobs.pid ] &&
+                [ -f worker-deliveries.pid ]"
           periodSeconds: 5
           timeoutSeconds: 5
           successThreshold: 1

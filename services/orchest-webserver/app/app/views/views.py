@@ -559,6 +559,11 @@ def register_views(app, db):
             with TwoPhaseExecutor(db.session) as tpe:
                 project_uuid = CreateProject(tpe).transaction(request.json["name"])
                 return jsonify({"project_uuid": project_uuid})
+        except error.InvalidProjectName as e:
+            return (
+                jsonify({"message": str(e)}),
+                400,
+            )
         except Exception as e:
 
             # The sql integrity error message can be quite ugly.
