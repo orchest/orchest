@@ -68,6 +68,8 @@ export const CreateProjectDialog = ({
         ],
       }));
 
+      dispatch({ type: "SET_PROJECT", payload: project_uuid });
+
       navigateTo(siteMap.pipeline.path, {
         query: { projectUuid: project_uuid },
       });

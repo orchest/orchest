@@ -14,13 +14,13 @@ export const useProjectSelector = (
   // ProjectSelector only renders when the current view only concerns ONE project,
   // which can be inferred from the route path.
   // e.g.  `/pipeline`, `/jobs`.
-  const hasMatchingRoutePath = hasValue(targetRoutePath);
-  const projects = useFetchProjectsForSelector(hasMatchingRoutePath);
+  const shouldFetchProjects = hasValue(targetRoutePath);
+  const projects = useFetchProjectsForSelector(shouldFetchProjects);
 
   const [
     validProjectUuid,
     shouldShowInvalidProjectUuidAlert,
-  ] = useGetValidProjectUuid(projectUuidFromRoute, projects);
+  ] = useGetValidProjectUuid(projectUuidFromRoute);
 
   const onChangeProject = useAutoChangeProject(
     validProjectUuid,

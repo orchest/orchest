@@ -18,8 +18,7 @@ const validateProjectUuid = (
 };
 
 export const useGetValidProjectUuid = (
-  projectUuidFromRoute: string | undefined,
-  projects: Project[]
+  projectUuidFromRoute: string | undefined
 ) => {
   const { state, dispatch } = useProjectsContext();
 
@@ -28,24 +27,26 @@ export const useGetValidProjectUuid = (
 
   const validProjectUuid = React.useMemo(() => {
     const shouldShow =
-      state.hasLoadedProjects && matchWithinProjectPaths && projects.length > 0;
+      state.hasLoadedProjects &&
+      matchWithinProjectPaths &&
+      state.projects.length > 0;
 
     if (!shouldShow) return undefined;
 
     const isProjectUuidFromRouteValid =
       hasValue(projectUuidFromRoute) &&
-      validateProjectUuid(projectUuidFromRoute, projects);
+      validateProjectUuid(projectUuidFromRoute, state.projects);
 
     const validProjectUuid = isProjectUuidFromRouteValid
       ? projectUuidFromRoute
-      : projects[0].uuid;
+      : state.projects[0].uuid;
 
     return validProjectUuid;
   }, [
     matchWithinProjectPaths,
     projectUuidFromRoute,
     state.hasLoadedProjects,
-    projects,
+    state.projects,
   ]);
 
   React.useEffect(() => {

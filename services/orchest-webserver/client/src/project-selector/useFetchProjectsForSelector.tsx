@@ -3,10 +3,11 @@ import { useFetchProjects } from "@/projects-view/hooks/useFetchProjects";
 import React from "react";
 
 export const useFetchProjectsForSelector = (shouldFetch: boolean) => {
-  const { dispatch } = useProjectsContext();
+  const { state, dispatch } = useProjectsContext();
 
   const { projects } = useFetchProjects({
-    shouldFetch,
+    // only need to fetch if `state.projects` is undefined.
+    shouldFetch: shouldFetch && !state.hasLoadedProjects,
     skipDiscovery: true,
   });
 
@@ -16,5 +17,8 @@ export const useFetchProjectsForSelector = (shouldFetch: boolean) => {
     if (projects) dispatch({ type: "SET_PROJECTS", payload: projects });
   }, [projects, dispatch]);
 
-  return projects;
+  // Note that we pass along `state.projects` instead of `projects` from useFetchProjects.
+  // `state.projects` should be the single source of truth,
+  // as `projects` from useFetchProjects is a transitionary value from the fetcher.
+  return state.projects;
 };

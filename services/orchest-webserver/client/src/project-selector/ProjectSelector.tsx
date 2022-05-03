@@ -31,21 +31,13 @@ const CustomInput = styled(InputBase)(({ theme }) => ({
 
 export const ProjectSelector = () => {
   const { setAlert } = useAppContext();
-  const {
-    projectUuid: projectUuidFromRoute,
-    navigateTo,
-    pipelineUuid,
-    jobUuid,
-    runUuid,
-  } = useCustomRoute();
+  const { projectUuid: projectUuidFromRoute, navigateTo } = useCustomRoute();
 
   const customNavigateTo = React.useCallback(
     (projectUuid: string, path: string) => {
-      navigateTo(path, {
-        query: { projectUuid, pipelineUuid, jobUuid, runUuid },
-      });
+      navigateTo(path, { query: { projectUuid } });
     },
-    [navigateTo, jobUuid, pipelineUuid, runUuid]
+    [navigateTo]
   );
 
   const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
@@ -53,14 +45,15 @@ export const ProjectSelector = () => {
   const {
     validProjectUuid,
     projects,
-    shouldShowInvalidProjectUuidAlert,
     onChangeProject,
+    shouldShowInvalidProjectUuidAlert,
   } = useProjectSelector(
     projectUuidFromRoute,
     matchWithinProjectPaths?.root || matchWithinProjectPaths?.path,
     customNavigateTo
   );
 
+  // If `project_uuid` query arg exists but not valid, user should be prompted with an alert.
   React.useEffect(() => {
     if (shouldShowInvalidProjectUuidAlert) {
       setAlert(
@@ -76,7 +69,7 @@ export const ProjectSelector = () => {
       );
     }
     // This effect shouldn't be triggered if ONLY projectUuidFromRoute is changed.
-  }, [setAlert, shouldShowInvalidProjectUuidAlert]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setAlert, shouldShowInvalidProjectUuidAlert, projectUuidFromRoute]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!validProjectUuid) return null;
 
@@ -117,7 +110,7 @@ export const ProjectSelector = () => {
           },
         }}
       >
-        {projects.map((project) => {
+        {(projects || []).map((project) => {
           return (
             <MenuItem key={project.uuid} value={project.uuid}>
               {project.path}

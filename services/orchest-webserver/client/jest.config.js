@@ -5,14 +5,10 @@ const { compilerOptions } = require("./tsconfig");
 module.exports = {
   verbose: true,
   preset: "ts-jest",
-  globals: {
-    "ts-jest": {
-      babelConfig: require("./babel.config.js"),
-    },
-  },
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: "<rootDir>/",
   }),
+  transformIgnorePatterns: ["node_modules/(?!xterm-for-react)"],
   testMatch: [
     "**/tests/**/*.+(ts|tsx|js)",
     "**/?(*.)+(spec|test).+(ts|tsx|js)",

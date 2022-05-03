@@ -155,7 +155,7 @@ const ProjectsView: React.FC = () => {
   };
 
   const {
-    projects,
+    projects = [],
     fetchProjects,
     setProjects,
     fetchProjectsError,

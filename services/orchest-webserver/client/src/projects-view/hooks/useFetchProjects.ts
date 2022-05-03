@@ -15,7 +15,7 @@ export const useFetchProjects = (params?: {
     : { shouldFetch: true };
 
   const {
-    data: projects = [],
+    data,
     mutate,
     error: fetchProjectsError,
     isValidating: isFetchingProjects,
@@ -31,7 +31,7 @@ export const useFetchProjects = (params?: {
   );
 
   return {
-    projects,
+    projects: data,
     fetchProjectsError,
     isFetchingProjects,
     fetchProjects: mutate,

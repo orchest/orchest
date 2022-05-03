@@ -7,7 +7,7 @@
   "scripts": {
     "build": "./build.sh",
     "dev": "./build.sh --watch",
-    "test": "jest --verbose",
+    "test": "jest --clearCache && jest --verbose",
     "test:ci": "jest --ci --runInBand",
     "test:coverage": "jest --verbose --coverage",
     "test:watch": "jest --watchAll",
