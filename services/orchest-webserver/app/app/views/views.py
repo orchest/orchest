@@ -1010,7 +1010,7 @@ def register_views(app, db):
 
         if path.startswith("/"):
             file_path = resolve_absolute_path(path)
-            if not is_valid_data_path(file_path):
+            if not is_valid_data_path(file_path, True):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
