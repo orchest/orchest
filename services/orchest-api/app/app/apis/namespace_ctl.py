@@ -5,7 +5,7 @@ import uuid
 import yaml
 from flask import current_app, request
 from flask_restx import Namespace, Resource
-from orchestcli.cli import restart
+from orchestcli import cmds
 
 from _orchest.internals import config as _config
 from app import schema, utils
@@ -46,10 +46,13 @@ class StartUpdate(Resource):
 @api.route("/restart")
 class Restart(Resource):
     @api.doc("orchest_api_restart")
+    @ns.response(code=500, model=schema.dictionary, description="Invalid request")
     def post(self):
-        restart()
-
-        return {}, 201
+        try:
+            cmds.restart(False, namespace="orchest", cluster_name="cluster-1")
+            return {}, 201
+        except SystemExit:
+            return {"message": "failed to restart"}, 500
 
 
 @api.route("/orchest-images-to-pre-pull")
