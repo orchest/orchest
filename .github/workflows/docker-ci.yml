@@ -26,6 +26,7 @@ jobs:
             -i jupyter-enterprise-gateway,
             -i base-kernel-py -i base-kernel-r,
             -i base-kernel-julia,
+            -i base-kernel-javascript,
             -i update-sidecar,
             -i node-agent,
             -i orchest-ctl -i celery-worker -i memory-server -i session-sidecar,
@@ -76,6 +77,12 @@ jobs:
         env:
           DOCKERHUB_REPOSITORY: orchest/base-kernel-julia
           README_FILEPATH: services/base-images/base-kernel-julia/README.md
+      
+      - name: Push README files to DockerHub base-kernel-javascript
+        uses: peter-evans/dockerhub-description@v2
+        env:
+          DOCKERHUB_REPOSITORY: orchest/base-kernel-javascript
+          README_FILEPATH: services/base-images/base-kernel-javascript/README.md
 
       - name: Push README files to DockerHub base-kernel-py
         uses: peter-evans/dockerhub-description@v2

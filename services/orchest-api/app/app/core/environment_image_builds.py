@@ -62,7 +62,17 @@ def write_environment_dockerfile(
     """
     statements = []
 
-    statements.append(f"FROM docker.io/{base_image}")
+    # Users can override using the docker.io repo by
+    # prefixing the base_image with 'registry:'
+    # E.g. 'python' (assumed docker.io)
+    # E.g. 'registry:quay.io/python/python:3.9' (uses quay.io registry)
+    custom_registry_prefix = "registry:"
+    if base_image.startswith(custom_registry_prefix):
+        full_basename = base_image[len(custom_registry_prefix):]
+    else:
+        full_basename = f"docker.io/{base_image}"
+
+    statements.append(f"FROM {full_basename}")
     statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
     statements.append(f"LABEL _orchest_environment_uuid={env_uuid}")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')

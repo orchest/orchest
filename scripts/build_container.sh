@@ -35,6 +35,7 @@ while getopts "s:i:t:no:vem" opt; do
       SKIP_IMGS+=("base-kernel-py") 
       SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
+      SKIP_IMGS+=("base-kernel-javascript")
       SKIP_IMGS+=("base-kernel-r") 
       SKIP_IMGS+=("update-sidecar")
       ;;
@@ -61,6 +62,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "base-kernel-py-gpu"
         "base-kernel-r"
         "base-kernel-julia"
+        "base-kernel-javascript"
         "orchest-api"
         "orchest-ctl"
         "update-sidecar"
@@ -77,6 +79,7 @@ LIB_IMAGES=(
     "base-kernel-py-gpu"
     "base-kernel-r"
     "base-kernel-julia"
+    "base-kernel-javascript"
     "orchest-ctl"
     "orchest-api"
     "orchest-webserver"
@@ -107,6 +110,7 @@ SDK_IMAGES=(
     "base-kernel-py-gpu"
     "base-kernel-r"
     "base-kernel-julia"
+    "base-kernel-javascript"
 )
 
 HELM_IMAGES=(
@@ -284,6 +288,18 @@ do
         build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/base-kernel-julia:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-julia/Dockerfile \
+            --no-cache=$NO_CACHE \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+
+    fi
+
+    if [ $IMG == "base-kernel-javascript" ]; then
+
+        build_ctx=$DIR/../services/base-images
+        build=(docker build --platform linux/amd64 --progress=plain \
+            -t "orchest/base-kernel-javascript:$BUILD_TAG" \
+            -f $DIR/../services/base-images/base-kernel-javascript/Dockerfile \
             --no-cache=$NO_CACHE \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
