@@ -23,6 +23,8 @@ Architecture:
 
     Application commands (commands that interact with the Orchest
     application directly, e.g. `adduser`):
+    * Design goal: Can be thought of as `pod exec` commands, given that
+      that interacts with Orchest at the application level.
     * Writes: Done through CLI only as it includes application specific
       logic
         * Caveat: CLI needs to be kept in sync with the Orchest
