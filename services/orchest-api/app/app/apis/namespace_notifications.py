@@ -118,6 +118,9 @@ class SendSubscriberTestPingDelivery(Resource):
         ):
             return {"message": "success"}, 200
         else:
+            if response is not None:
+                logger.info(response.status_code)
+                logger.info(response.text)
             return {"message": "failure"}, 500
 
 

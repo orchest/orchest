@@ -83,7 +83,7 @@ def _post_process_payload(payload: dict, webhook: models.Webhook) -> None:
     # To keep thing brief.
     payload["delivered_for"].pop("subscriptions", None)
 
-    if webhook.is_slack_webhook():
+    if webhook.is_slack_webhook() or webhook.is_teams_webhook():
         payload["text"] = json.dumps(payload, sort_keys=True, indent=1)
     elif webhook.is_discord_webhook():
         payload["content"] = json.dumps(payload, sort_keys=True, indent=1)

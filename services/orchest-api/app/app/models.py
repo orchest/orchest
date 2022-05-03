@@ -1510,6 +1510,9 @@ class Webhook(Subscriber):
     def is_discord_webhook(self) -> bool:
         return self.url.startswith("https://discord.com/api/webhooks/")
 
+    def is_teams_webhook(self) -> bool:
+        return "webhook.office.com" in self.url
+
     __mapper_args__ = {
         "polymorphic_identity": "webhook",
     }
