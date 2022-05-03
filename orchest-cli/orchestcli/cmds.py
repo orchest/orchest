@@ -1,12 +1,10 @@
 """The Orchest CLI commands.
 
-Polling the API from your browser:
-    kubectl proxy --port=8000
-Then go to a URL, e.g:
-http://localhost:8000/apis/orchest.io/v1alpha1/namespaces/orchest/orchestclusters/cluster-1
+More on the structure of the CLI can be found in `cli.py`.
 
-Example working with custom objects:
-https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomObjectsApi.md
+All commands here are just interacting (read or write) with the CR
+Object defining the Orchest Cluster to trigger actions in the
+`orchest-controller` that is watching the CR Object for changes.
 
 """
 import enum
@@ -103,7 +101,7 @@ class CRObjectNotFound(Exception):
     pass
 
 
-# NOTE: Schema to be kept in sync with:
+# NOTE: Schema to be kept in sync with `OrchestClusterPhase` from:
 # `services/orchest-controller/pkg/apis/orchest/v1alpha1/types.go`
 class ClusterStatus(enum.Enum):
     INITIALIZING = "Initializing"
@@ -221,7 +219,10 @@ def update(
         return True
 
     def fetch_latest_available_version(curr_version: str) -> t.Optional[str]:
-        url = f"https://update-info.orchest.io/api/orchest/update-info/v2?version={curr_version}"
+        url = (
+            "https://update-info.orchest.io/api/orchest/"
+            f"update-info/v2?version={curr_version}"
+        )
         resp = requests.get(url, timeout=5)
 
         if resp.status_code == 200:
@@ -328,7 +329,8 @@ def update(
         timeout_seconds=60,
     ):
         # TODO: get rid of latest
-        if event["object"].spec.containers[0].image == "orchest/orchest-controller:latest":  # type: ignore
+        curr_img = event["object"].spec.containers[0].image  # type: ignore
+        if curr_img == "orchest/orchest-controller:latest":
             if event["object"].status.phase == "Running":  # type: ignore
                 w.stop()
 
@@ -959,7 +961,9 @@ def _display_spinner(
                     else:
                         raise
 
-                curr_status = _parse_cluster_status_from_custom_object(resp)  # type: ignore
+                curr_status = _parse_cluster_status_from_custom_object(
+                    resp,
+                )  # type: ignore
                 thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
 
             if curr_status is None:

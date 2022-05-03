@@ -14,7 +14,6 @@ ignore =
 per-file-ignores =
     orchest-sdk/python/orchest/__init__.py: F401
     orchest-cli/orchestcli/cli.py: W505, E501
-    orchest-cli/orchestcli/cmds.py: W505, E501
     services/orchest-api/app/app/core/sessions/__init__.py: F401
     services/orchest-ctl/app/orchest/__init__.py: F401
 

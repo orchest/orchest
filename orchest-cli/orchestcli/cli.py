@@ -116,7 +116,7 @@ class ClickHelpCategories(click.Group):
             for subcommand, cmd in commands:
                 help = cmd.get_short_help_str(limit)
 
-                # TODO: Instead we could make it into a separate click
+                # NOTE: Instead we could make it into a separate click
                 # group and add both groups to the cli entrypoint group.
                 if subcommand in APPLICATION_CMDS:
                     categories["Application Commands"].append((subcommand, help))
