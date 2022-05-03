@@ -29,7 +29,7 @@ class SubscriberList(Resource):
     @api.doc("get_subscribers")
     @api.response(200, "Success", schema.subscribers)
     def get(self):
-        """Gets all subscribers, without subscriptions."""
+        """Gets all subscribers, doesn't include their subscriptions."""
         subscribers = models.Subscriber.query.options(
             noload(models.Subscriber.subscriptions)
         ).all()
@@ -46,7 +46,7 @@ class SubscriberList(Resource):
 class WebhookList(Resource):
     @api.doc("create_webhook")
     @api.expect(schema.webhook_spec, validate=True)
-    @api.response(200, "Success", schema.webhook_with_secret)
+    @api.response(201, "Success", schema.webhook_with_secret)
     def post(self):
         """Creates a webhook with the given subscriptions.
 
@@ -92,6 +92,36 @@ class Subscriber(Resource):
         models.Subscriber.query.filter(models.Subscriber.uuid == uuid).delete()
         db.session.commit()
         return {"message": ""}, 201
+
+
+@api.route("/subscribers/test-ping-delivery/<string:uuid>")
+class SendSubscriberTestPingDelivery(Resource):
+    @api.doc("subscribers/test-ping-delivery")
+    @api.response(200, "Success")
+    @api.response(500, "Failure")
+    def get(self, uuid: str):
+        """Send a test ping delivery to the subscriber.
+
+        This endpoint allows to send a ping event notifications to the
+        subscriber, so that it's possible to test if a given webhook
+        is working end to end, i.e. the deliveree is reachable.
+
+        The endpoint will return a 200 if the response obtained from the
+        deliveree is to be considered successfull, 500 otherwise.
+
+        """
+        response = webhooks.send_test_ping_delivery(uuid)
+        if (
+            response is not None
+            and response.status_code >= 200
+            and response.status_code <= 299
+        ):
+            return {"message": "success"}, 200
+        else:
+            if response is not None:
+                logger.info(response.status_code)
+                logger.info(response.text)
+            return {"message": "failure"}, 500
 
 
 @api.route("/subscribers/subscribed-to/<string:event_type>")

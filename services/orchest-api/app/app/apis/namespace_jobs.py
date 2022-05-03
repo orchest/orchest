@@ -722,6 +722,11 @@ class RunJob(TwoPhaseFunction):
             job.status = "STARTED"
             events.register_job_started(job.project_uuid, job.uuid)
 
+        if job.schedule is not None:
+            events.register_cron_job_run_started(
+                job.project_uuid, job.uuid, job.total_scheduled_executions
+            )
+
         # To be later used by the collateral effect function.
         tasks_to_launch = []
 
@@ -794,11 +799,6 @@ class RunJob(TwoPhaseFunction):
                     )
                 )
             db.session.bulk_save_objects(pipeline_steps)
-
-        if job.schedule is not None:
-            events.register_cron_job_run_started(
-                job.project_uuid, job.uuid, job.total_scheduled_executions
-            )
 
         job.total_scheduled_executions += 1
         # Must run after total_scheduled_executions has been updated.
@@ -1358,8 +1358,6 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         # See if the job is done running (all its runs are done).
         if status_update["status"] in ["SUCCESS", "FAILURE", "ABORTED"]:
 
-            DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
-
             # Only non recurring jobs terminate to SUCCESS.
             if job.schedule is None:
                 self._update_one_off_job(job_uuid)
@@ -1367,6 +1365,8 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                 self._update_cron_job_run(
                     job_uuid, pipeline_run_uuid, status_update["status"]
                 )
+
+            DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
 
         return {"message": "Status was updated successfully"}, 200
 
@@ -1450,6 +1450,15 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         )
 
         if runs_to_complete == 0:
+            status = "SUCCESS"
+
+            if (
+                models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+                .filter(models.NonInteractivePipelineRun.status == "FAILURE")
+                .count()
+            ) > 0:
+                status = "FAILURE"
+
             if (
                 models.Job.query.filter_by(uuid=job_uuid)
                 .filter(
@@ -1459,13 +1468,13 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                     # 2PF.
                     models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
                 )
-                .update({"status": "SUCCESS"})
+                .update({"status": status})
                 > 0
             ):
-                # NOTIFICATIONS_TODO: we will probably need to
-                # alter how we define a job SUCCESS status,
-                # might require FE changes as well.
-                events.register_job_succeeded(job.project_uuid, job_uuid)
+                if status == "SUCCESS":
+                    events.register_job_succeeded(job.project_uuid, job_uuid)
+                else:
+                    events.register_job_failed(job.project_uuid, job_uuid)
 
     def _collateral(self):
         pass

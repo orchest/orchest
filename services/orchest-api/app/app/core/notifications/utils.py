@@ -18,7 +18,7 @@ def subscription_specs_to_subscriptions(
             project_uuid = sub.get("project_uuid")
             job_uuid = sub.get("job_uuid")
             if event_type is None:
-                raise ValueError("Missing 'event_type'.")
+                raise ValueError(f"Missing 'event_type' for subscription '{key}'.")
             if project_uuid is not None:
                 if job_uuid is None:
                     subscription_objects.append(

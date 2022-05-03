@@ -37,6 +37,7 @@ def _register_event(ev: models.Event) -> None:
             event=ev.uuid,
             deliveree=sub.uuid,
             status="SCHEDULED",
+            notification_payload=ev.to_notification_payload(),
         )
         db.session.add(delivery)
 
@@ -130,11 +131,20 @@ def register_cron_job_run_started(
     project_uuid: str, job_uuid: str, run_index: int
 ) -> None:
     """Adds a cron-job run started to the db, doesn't commit."""
+    # Need to get the value now because a cronjob can be edited.
+    job = (
+        db.session.query(models.Job.parameters).filter(
+            models.Job.project_uuid == project_uuid,
+            models.Job.uuid == job_uuid,
+        )
+    ).one()
+
     ev = models.CronJobRunEvent(
         type="project:cron-job:run:started",
         project_uuid=project_uuid,
         job_uuid=job_uuid,
         run_index=run_index,
+        total_pipeline_runs=len(job.parameters),
     )
     _register_event(ev)
 
@@ -143,11 +153,24 @@ def register_cron_job_run_succeeded(
     project_uuid: str, job_uuid: str, run_index: int
 ) -> None:
     """Adds a cron-job run succeeded to the db, doesn't commit."""
+    # Retrieve the original value, the cronjob could have been edited.
+    run_started_event = (
+        db.session.query(models.CronJobRunEvent.total_pipeline_runs).filter(
+            models.CronJobRunEvent.type == "project:cron-job:run:started",
+            models.CronJobRunEvent.project_uuid == project_uuid,
+            models.CronJobRunEvent.job_uuid == job_uuid,
+            models.CronJobRunEvent.run_index == run_index,
+        )
+    ).first()
+    total_pipeline_runs = (
+        run_started_event.total_pipeline_runs if run_started_event is not None else None
+    )
     ev = models.CronJobRunEvent(
         type="project:cron-job:run:succeeded",
         project_uuid=project_uuid,
         job_uuid=job_uuid,
         run_index=run_index,
+        total_pipeline_runs=total_pipeline_runs,
     )
     _register_event(ev)
 
@@ -156,11 +179,24 @@ def register_cron_job_run_failed(
     project_uuid: str, job_uuid: str, run_index: int
 ) -> None:
     """Adds a cron-job run failed to the db, doesn't commit."""
+    # Retrieve the original value, the cronjob could have been edited.
+    run_started_event = (
+        db.session.query(models.CronJobRunEvent.total_pipeline_runs).filter(
+            models.CronJobRunEvent.type == "project:cron-job:run:started",
+            models.CronJobRunEvent.project_uuid == project_uuid,
+            models.CronJobRunEvent.job_uuid == job_uuid,
+            models.CronJobRunEvent.run_index == run_index,
+        )
+    ).first()
+    total_pipeline_runs = (
+        run_started_event.total_pipeline_runs if run_started_event is not None else None
+    )
     ev = models.CronJobRunEvent(
         type="project:cron-job:run:failed",
         project_uuid=project_uuid,
         job_uuid=job_uuid,
         run_index=run_index,
+        total_pipeline_runs=total_pipeline_runs,
     )
     _register_event(ev)
 
@@ -188,12 +224,24 @@ def _register_cron_job_run_pipeline_run_event(
         )
         .one()
     ).job_run_index
+    run_started_event = (
+        db.session.query(models.CronJobRunEvent.total_pipeline_runs).filter(
+            models.CronJobRunEvent.type == "project:cron-job:run:started",
+            models.CronJobRunEvent.project_uuid == project_uuid,
+            models.CronJobRunEvent.job_uuid == job_uuid,
+            models.CronJobRunEvent.run_index == run_index,
+        )
+    ).first()
+    total_pipeline_runs = (
+        run_started_event.total_pipeline_runs if run_started_event is not None else None
+    )
     ev = models.CronJobRunPipelineRunEvent(
         type=type,
         project_uuid=project_uuid,
         job_uuid=job_uuid,
         pipeline_run_uuid=pipeline_run_uuid,
         run_index=run_index,
+        total_pipeline_runs=total_pipeline_runs,
     )
     _register_event(ev)
 
