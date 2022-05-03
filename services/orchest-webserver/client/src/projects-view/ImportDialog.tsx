@@ -26,8 +26,8 @@ const ERROR_MAPPING: Record<CreateProjectError, string> = {
     "project name contains illegal character(s).",
 } as const;
 
-const getMappedErrorMessage = (key: CreateProjectError | string) => {
-  if (ERROR_MAPPING[key] !== undefined) {
+const getMappedErrorMessage = (key: CreateProjectError | string | null) => {
+  if (key && ERROR_MAPPING[key] !== undefined) {
     return ERROR_MAPPING[key];
   } else {
     return "undefined error. Please try again.";
@@ -57,7 +57,7 @@ const getProjectNameFromUrl = (importUrl: string) => {
 const ImportDialog: React.FC<{
   projectName: string;
   setProjectName: React.Dispatch<React.SetStateAction<string>>;
-  importUrl?: string;
+  importUrl: string;
   setImportUrl: (url: string) => void;
   onImportComplete?: (backgroundTaskResult: BackgroundTask) => void;
   open: boolean;

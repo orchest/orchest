@@ -30,6 +30,12 @@ class OutOfProjectError(Exception):
     pass
 
 
+class OutOfDataDirectoryError(Exception):
+    """Attempting to do an operation outside the data directory."""
+
+    pass
+
+
 class ProjectDoesNotExist(Exception):
     pass
 
