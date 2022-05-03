@@ -764,8 +764,13 @@ def is_valid_pipeline_relative_path(
     return abs_path.startswith(project_path)
 
 
-def is_valid_data_path(path: str):
-    return os.path.abspath(os.path.normpath(path)).startswith("/data")
+def is_valid_data_path(path: str, is_absolute=False):
+    if not is_absolute and not path.startswith("/data/"):
+        return False
+    absolute_data_path = path if is_absolute else resolve_absolute_path(path)
+    return os.path.abspath(os.path.normpath(absolute_data_path)).startswith(
+        _config.USERDIR_DATA
+    )
 
 
 def resolve_absolute_path(abs_path: str) -> Optional[str]:

@@ -5,7 +5,7 @@ import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { CanvasFunctions } from "./PipelineViewport";
 
 export const useKeyboardEventsOnViewport = (
-  canvasFuncRef: React.MutableRefObject<CanvasFunctions>
+  canvasFuncRef: React.MutableRefObject<CanvasFunctions | undefined>
 ) => {
   const { dispatch, keysDown } = usePipelineEditorContext();
   const { setPipelineCanvasState } = usePipelineCanvasContext();
@@ -22,7 +22,7 @@ export const useKeyboardEventsOnViewport = (
         setPipelineCanvasState({ panningState: "ready-to-pan" });
         keysDown.add("Space");
       }
-      if (event.key === "h" && !keysDown.has("h")) {
+      if (canvasFuncRef.current && event.key === "h" && !keysDown.has("h")) {
         canvasFuncRef.current.centerView();
         keysDown.add("h");
       }
