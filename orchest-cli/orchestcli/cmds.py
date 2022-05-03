@@ -1,4 +1,4 @@
-"""The Orchest CLI.
+"""The Orchest CLI commands.
 
 Polling the API from your browser:
     kubectl proxy --port=8000
@@ -9,10 +9,6 @@ Example working with custom objects:
 https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomObjectsApi.md
 
 """
-# TODO:
-# - Do we want to split the CLI commands into two modules: application
-#   and management? cmds_management.py
-
 import enum
 import json
 import sys
@@ -27,7 +23,6 @@ from kubernetes import client, config, stream, watch
 if t.TYPE_CHECKING:
     from multiprocessing.pool import AsyncResult
 
-# https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomObjectsApi.md
 try:
     config.load_kube_config()
 except config.config_exception.ConfigException:
@@ -72,7 +67,11 @@ def echo(*args, **kwargs) -> None:
         the `--json` flag.
 
     """
-    click_ctx = click.get_current_context()
+    try:
+        click_ctx = click.get_current_context()
+    except RuntimeError:
+        click_ctx = None
+
     if click_ctx is None:
         return click.echo(*args, **kwargs)
     elif click_ctx.params.get("json_flag") is True:
@@ -128,7 +127,7 @@ class ClusterStatus(enum.Enum):
 
 
 def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
-    """Install Orchest."""
+    """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     custom_object = {
@@ -164,7 +163,7 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
         sys.exit(1)
 
     echo("Setting up the Orchest Cluster...", nl=True)
-    display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
+    _display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
     echo("Successfully installed Orchest!")
 
     if fqdn is not None:
@@ -192,16 +191,7 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
 # - It can be possible that users need to apply a new CRD. This needs
 #   to be included somewhere.
 def update(version: t.Optional[str], watch_flag: bool, **kwargs) -> None:
-    """Update Orchest.
-
-    If `--version` is not given, then it tries to update Orchest to the
-    latest version.
-
-    \b
-    Note:
-        The operation fails if the Orchest Cluster would be downgraded.
-
-    """
+    """Updates Orchest."""
 
     def lte(old: str, new: str) -> bool:
         """Returns `old <= new`, i.e. less than or equal.
@@ -357,8 +347,8 @@ def update(version: t.Optional[str], watch_flag: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch_flag:
-        display_spinner(ClusterStatus.RUNNING, ClusterStatus.UPDATING)
-        display_spinner(ClusterStatus.UPDATING, ClusterStatus.RUNNING)
+        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.UPDATING)
+        _display_spinner(ClusterStatus.UPDATING, ClusterStatus.RUNNING)
         echo("Successfully updated Orchest!")
 
 
@@ -368,14 +358,7 @@ def patch(
     log_level: t.Optional[LogLevel],
     **kwargs,
 ) -> None:
-    """Patch the Orchest Cluster.
-
-    \b
-    Usage:
-        # Run Orchest in development mode.
-        orchest patch --dev
-
-    """
+    """Patches the Orchest Cluster."""
 
     def convert_to_strategic_merge_patch(patch_obj: t.Dict, obj: t.Dict) -> None:
         """Strategically merges list[dict] of `patch_obj` with `obj`.
@@ -486,19 +469,13 @@ def patch(
             echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
-    display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSING)
-    display_spinner(ClusterStatus.PAUSING, ClusterStatus.RUNNING)
+    _display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSING)
+    _display_spinner(ClusterStatus.PAUSING, ClusterStatus.RUNNING)
     echo("Successfully patched the Orchest Cluster.")
 
 
 def version(json_flag: bool, **kwargs) -> None:
-    """Get running Orchest version.
-
-    \b
-    Equivalent `kubectl` command:
-        kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.spec.orchest.version}"
-
-    """
+    """Gets running Orchest version."""
     try:
         version = _get_orchest_cluster_version(
             kwargs["namespace"],
@@ -532,16 +509,7 @@ def version(json_flag: bool, **kwargs) -> None:
 
 
 def status(json_flag: bool, **kwargs) -> None:
-    """Get Orchest Cluster status.
-
-    If invoked with `--json`, then failure to get Orchest Cluster status
-    will return an empty JSON Object, i.e. `{}`.
-
-    \b
-    Equivalent `kubectl` command:
-        kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.status.message}"
-
-    """
+    """Gets Orchest Cluster status."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     # NOTE: If an uncaught exception is raised, Python will exit with
@@ -566,14 +534,7 @@ def status(json_flag: bool, **kwargs) -> None:
 
 
 def stop(watch: bool, **kwargs) -> None:
-    """Stop Orchest.
-
-    All underlying Orchest deployments will scaled to zero replicas.
-
-    \b
-    Equivalent `kubectl` command:
-        kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": true}}}'
-    """
+    """Stops Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     echo("Stopping the Orchest Cluster.")
@@ -596,17 +557,12 @@ def stop(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
+        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
         echo("Successfully stopped Orchest.")
 
 
 def start(watch: bool, **kwargs) -> None:
-    """Start Orchest.
-
-    \b
-    Equivalent `kubectl` command:
-        kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": false}}}'
-    """
+    """Starts Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     echo("Starting the Orchest Cluster.")
@@ -629,22 +585,12 @@ def start(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
+        _display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
         echo("Successfully started Orchest.")
 
 
 def restart(watch: bool, **kwargs) -> None:
-    """Restart Orchest.
-
-    Useful to reinitialize the Orchest application for config changes to
-    take effect.
-
-    \b
-    Equivalent `kubectl` command:
-        kubectl -n orchest patch orchestclusters cluster-1 --type='merge' \\
-        \t-p='{"metadata": {"annotations": {"orchest.io/restart": "true"}}}'
-
-    """
+    """Restarts Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     echo("Restarting the Orchest Cluster.")
@@ -673,11 +619,12 @@ def restart(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
-        display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
+        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
+        _display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
         echo("Successfully restarted Orchest.")
 
 
+# Application command.
 def adduser(
     username: str,
     is_admin: bool,
@@ -687,18 +634,9 @@ def adduser(
     non_interactive_token: t.Optional[str],
     **kwargs,
 ) -> None:
-    """Add a new user to Orchest.
-
-    \b
-    Usage:
-        # Adding a new user non-interactively. This can be useful for
-        # automations.
-        orchest adduser UserName --non-interactive --non-interactive-password=password
-        \b
-        # Get prompts to enter password and machine token.
-        orchest adduser UserName --set-token
-    """
-    # TODO: Extract gate once we introduce more application commands.
+    """Adds a new user to Orchest."""
+    # Gate the application logic, by checking whether the Orchest
+    # Cluster is in a valid state.
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
@@ -896,7 +834,7 @@ def _get_namespaced_custom_object(
     return custom_object
 
 
-def display_spinner(
+def _display_spinner(
     curr_status: ClusterStatus,
     end_status: ClusterStatus,
     file: t.Optional[t.IO] = None,
@@ -927,6 +865,8 @@ def display_spinner(
 
     # Get the required arguments to get the status of the custom object
     # from the click context.
+    # TODO: This click context will likely lead to errors now that we
+    # allow direct Python invokation.
     click_ctx = click.get_current_context()
     assert click_ctx is not None, "Can only be invoked inside a Click Context."
 

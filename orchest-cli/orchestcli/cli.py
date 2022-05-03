@@ -1,14 +1,36 @@
 """The Orchest CLI.
 
-Polling the API from your browser:
-    kubectl proxy --port=8000
-Then go to a URL, e.g:
-http://localhost:8000/apis/orchest.io/v1alpha1/namespaces/orchest/orchestclusters/cluster-1
+Management commands (commands that change the cluster state):
+* Design goal: Users should be able to use tools like `kubectl` for all
+  functionality of management commands. The CLI serves as a convenience
+  wrapper for common operations.
+* Writes: Users should be able to do these by changing the CR directly
+  themselves. The CLI is just a convenience wrapper here.
+* Reads: Done by reading the CR object. For example, version is just an
+  entry in the object that users can read directly or can the CLI for to
+  do it for them.
 
-Example working with custom objects:
-https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomObjectsApi.md
+Application commands (commands that interact with the Orchest
+application directly, e.g. `adduser`):
+* Writes: Done through CLI only as it includes application specific logic
+    * Caveat: CLI needs to be kept in sync with the Orchest application
+      itself. For example when updating Orchest it may very well be that
+      the new CLI is not compatible (we should try to ensure backwards
+      compatibility) or simply can not do certain application level
+      commands (e.g. adduser being added in a new version that the CLI
+      does not yet support). Users need to update the CLI accordingly
+      themselves.
+* Reads: We don't have such functionality yet, but likely only possible
+  through CLI. For example, listing all users in the auth-server .
+
+Archirecture:
+...
 
 """
+# TODO: Explain structure, so that Python can invoke things the CLI
+# command body is in another function.
+
+
 import collections
 import typing as t
 from gettext import gettext
@@ -16,9 +38,10 @@ from gettext import gettext
 import click
 from orchestcli import cmds
 
-# TODO: config values
 NAMESPACE = "orchest"
 ORCHEST_CLUSTER_NAME = "cluster-1"
+# Application commands are displayed separately from management commands
+# in the help menu.
 APPLICATION_CMDS = ["adduser"]
 
 
@@ -271,7 +294,7 @@ def start(watch: bool, **common_options) -> None:
     Equivalent `kubectl` command:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": false}}}'
     """
-    cmds.start(watch, common_options)
+    cmds.start(watch, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)

@@ -58,7 +58,7 @@ TODO:
         delete their cluster if they were using it solely for Orchest.
 - [ ] GitHub Action workflow files to publish CLI on release
 - [ ] CLI module docstring explaining architecture, e.g. manag. cmds and appl cmds
-- [ ] Structure of CLI code
+- [x] Structure of CLI code
 - [ ] Installation docs (and how to self-host as you might need nginx reverse-proxy)
   - [ ] We will recommend to install Orchest on a clean cluster (a non-existing cluster) because
         it is hard to play well with other software already installed on the cluster, e.g. ingress,
