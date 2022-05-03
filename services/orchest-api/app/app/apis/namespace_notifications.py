@@ -8,6 +8,7 @@ from sqlalchemy.orm import joinedload, noload
 from app import models, schema, utils
 from app.connections import db
 from app.core import notifications
+from app.core.notifications import webhooks
 
 api = Namespace("notifications", description="Orchest-api notifications API.")
 api = utils.register_schema(api)
@@ -26,45 +27,63 @@ class SubscribableEventList(Resource):
 @api.route("/subscribers")
 class SubscriberList(Resource):
     @api.doc("get_subscribers")
-    @api.marshal_with(schema.subscribers)
+    @api.response(200, "Success", schema.subscribers)
     def get(self):
         """Gets all subscribers, without subscriptions."""
         subscribers = models.Subscriber.query.options(
             noload(models.Subscriber.subscriptions)
         ).all()
-        return {"subscribers": subscribers}, 200
+        marshalled = []
+        for subscriber in subscribers:
+            if isinstance(subscriber, models.Webhook):
+                marshalled.append(marshal(subscriber, schema.webhook))
+            else:
+                marshalled.append(marshal(subscriber, schema.subscriber))
+        return {"subscribers": marshalled}, 200
 
-    @api.doc("create_subscriber")
-    @api.expect(schema.subscriber_spec)
-    @api.response(200, "Success", schema.subscriber)
+
+@api.route("/subscribers/webhooks")
+class WebhookList(Resource):
+    @api.doc("create_webhook")
+    @api.expect(schema.webhook_spec, validate=True)
+    @api.response(200, "Success", schema.webhook_with_secret)
     def post(self):
-        """Creates a subscriber with the given subscriptions.
+        """Creates a webhook with the given subscriptions.
 
-        Repeated subscription entries are ignored.
+        Repeated subscription entries are ignored. If no secret is
+        passed a secret will be generated through the BE. This endpoint
+        returns a model with said secret, all other endpoints do not,
+        meaning that it's not possible to get back a secret from the BE
+        once the webhook has been created, for security reasons.
         """
-        subscriber_spec = request.get_json()
-        subscriptions = subscriber_spec.get("subscriptions", [])
-
         try:
-            subscriber = notifications.create_subscriber(subscriptions)
+            webhook = webhooks.create_webhook(request.get_json())
         except (ValueError, sqlalchemy.exc.IntegrityError) as e:
             return {"message": str(e)}, 400
 
         db.session.commit()
-        return marshal(subscriber, schema.subscriber), 201
+        return marshal(webhook, schema.webhook_with_secret), 201
 
 
 @api.route("/subscribers/<string:uuid>")
 class Subscriber(Resource):
     @api.doc("subscriber")
-    @api.marshal_with(schema.subscriber)
+    @api.response(200, "Success", schema.subscriber)
+    @api.response(200, "Success", schema.webhook)
     def get(self, uuid: str):
         """Gets a subscriber, including its subscriptions."""
         subscriber = (
             models.Subscriber.query.options(joinedload(models.Subscriber.subscriptions))
             .filter(models.Subscriber.uuid == uuid)
-            .one()
+            .first()
         )
+        if subscriber is None:
+            return {"message": f"Subscriber {uuid} does not exist."}, 404
+
+        if isinstance(subscriber, models.Webhook):
+            subscriber = marshal(subscriber, schema.webhook)
+        else:
+            subscriber = marshal(subscriber, schema.subscriber)
 
         return subscriber, 200
 
@@ -78,7 +97,7 @@ class Subscriber(Resource):
 @api.route("/subscribers/subscribed-to/<string:event_type>")
 class SubscribersSubscribedToEvent(Resource):
     @api.doc("get_subscribers_subscribed_to_event")
-    @api.marshal_with(schema.subscribers)
+    @api.response(200, "Success", schema.subscribers)
     @api.doc(
         "get_subscribers_subscribed_to_event",
         params={
@@ -128,4 +147,11 @@ class SubscribersSubscribedToEvent(Resource):
         except ValueError as e:
             return {"message": str(e)}, 400
 
-        return {"subscribers": alerted_subscribers}, 200
+        marshalled = []
+        for subscriber in alerted_subscribers:
+            if isinstance(subscriber, models.Webhook):
+                marshalled.append(marshal(subscriber, schema.webhook))
+            else:
+                marshalled.append(marshal(subscriber, schema.subscriber))
+
+        return {"subscribers": marshalled}, 200

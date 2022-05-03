@@ -6,14 +6,17 @@ subscriptions, which cannot later be altered. If wished for, this can be
 easily changed, since the db schema allows to do so.
 
 """
+import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import noload
 
-from app import models, utils
+from app import models
+from app import utils as app_utils
 from app.connections import db
+from app.core.notifications import webhooks
 
-logger = utils.get_logger()
+logger = app_utils.get_logger()
 
 
 def get_subscribable_events() -> List[dict]:
@@ -32,70 +35,6 @@ def get_subscribable_events() -> List[dict]:
         res.append({"name": name, "optional_filters": optional_filters})
 
     return res
-
-
-def _subscription_specs_to_subscriptions(
-    subscriber_uuid: str, subscriptions: List[dict]
-) -> List[models.Subscription]:
-    subs_keys = set()
-    subscription_objects = []
-    for sub in subscriptions:
-        key = "|".join([f"{key}:{sub[key]}" for key in sorted(sub.keys())])
-        if key not in subs_keys:
-            subs_keys.add(key)
-            event_type = sub.get("event_type")
-            project_uuid = sub.get("project_uuid")
-            job_uuid = sub.get("job_uuid")
-            if event_type is None:
-                raise ValueError("Missing 'event_type'.")
-            if project_uuid is not None:
-                if job_uuid is None:
-                    subscription_objects.append(
-                        models.ProjectSpecificSubscription(
-                            subscriber_uuid=subscriber_uuid,
-                            event_type=sub["event_type"],
-                            project_uuid=project_uuid,
-                        )
-                    )
-                else:
-                    subscription_objects.append(
-                        models.ProjectJobSpecificSubscription(
-                            subscriber_uuid=subscriber_uuid,
-                            event_type=sub["event_type"],
-                            project_uuid=project_uuid,
-                            job_uuid=job_uuid,
-                        )
-                    )
-            elif job_uuid is not None:
-                raise ValueError(
-                    "Must specify 'project_uuid' if job_uuid is 'specified'."
-                )
-            else:
-                subscription_objects.append(
-                    models.Subscription(
-                        subscriber_uuid=subscriber_uuid,
-                        event_type=sub["event_type"],
-                    )
-                )
-    return subscription_objects
-
-
-def create_subscriber(subscriptions: List[dict]) -> models.Subscriber:
-    """Creates a subscriber entry in the database, does not commit.
-
-    This is a placeholder for future "real" subscribers.
-    """
-    if not subscriptions:
-        raise ValueError("A subscriber must have at least a subscription.")
-
-    subscriber = models.Subscriber()
-    db.session.add(subscriber)
-    # To avoid FK errors and to force sqlalchemy to generate the
-    # subscriber uuid.
-    db.session.flush()
-    subs = _subscription_specs_to_subscriptions(subscriber.uuid, subscriptions)
-    db.session.bulk_save_objects(subs)
-    return subscriber
 
 
 def get_subscribers_subscribed_to_event(
@@ -161,3 +100,30 @@ def get_subscribers_subscribed_to_event(
     )
 
     return notified_subscribers
+
+
+def process_notifications_deliveries_task() -> None:
+    logger.info("Processing notifications deliveries")
+
+    # Note that we don't select for update here, said locking will
+    # happen on a single delivery basis.
+    webhook_deliveries = (
+        (db.session.query(models.Delivery.uuid))
+        .join(models.Webhook, models.Webhook.uuid == models.Delivery.deliveree)
+        .filter(
+            models.Delivery.status.in_(["SCHEDULED", "RESCHEDULED"]),
+            models.Delivery.scheduled_at
+            <= datetime.datetime.now(datetime.timezone.utc),
+        )
+        .order_by(models.Delivery.scheduled_at)
+        .all()
+    )
+
+    logger.info(f"Found {len(webhook_deliveries)} webhook deliveries to deliver.")
+
+    for delivery in webhook_deliveries:
+        try:
+            webhooks.deliver(delivery.uuid)
+        # Don't let failures affect other deliveries.
+        except Exception as e:
+            logger.error(e)

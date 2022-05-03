@@ -8,6 +8,8 @@ TODO:
 
 """
 import copy
+import datetime
+import enum
 import uuid
 from typing import Any, Dict
 
@@ -1282,12 +1284,43 @@ class Subscriber(BaseModel):
         UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
     )
 
+    type = db.Column(db.String(50), nullable=False)
+
     subscriptions = db.relationship(
         "Subscription",
         lazy="select",
         passive_deletes=True,
         cascade="all, delete",
     )
+
+    __mapper_args__ = {
+        "polymorphic_on": "type",
+        "polymorphic_identity": "subscriber",
+        "with_polymorphic": "*",
+    }
+
+
+class Webhook(Subscriber):
+    class ContentType(enum.Enum):
+        JSON = "application/json"
+        URLENCODED = "application/x-www-form-urlencoded"
+
+    __tablename__ = None
+
+    url = db.Column(db.String(), nullable=False)
+
+    name = db.Column(db.String(100), nullable=False)
+
+    verify_ssl = db.Column(db.Boolean(), nullable=False)
+
+    # Used to calculate the HMAC digest of the payload and sign it.
+    secret = deferred(db.Column(db.String(), nullable=False))
+
+    content_type = db.Column(db.String(50), nullable=False)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "webhook",
+    }
 
 
 class Subscription(BaseModel):
@@ -1375,4 +1408,68 @@ event.listen(
     ProjectJobSpecificSubscription,
     "before_insert",
     ProjectJobSpecificSubscription.check_constraints,
+)
+
+
+class Delivery(BaseModel):
+    """Essentially, a transactional outbox for notifications.
+
+    Extend this class if you need to keep track of information that
+    depends on the deliveree, like response status code etc.
+    """
+
+    __tablename__ = "deliveries"
+
+    uuid = db.Column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+
+    # The event which the delivery is about.
+    event = db.Column(
+        UUID(as_uuid=False),
+        db.ForeignKey("events.uuid", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # The subscriber that subscribed to the event.
+    deliveree = db.Column(
+        UUID(as_uuid=False),
+        db.ForeignKey("subscribers.uuid", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # SCHEDULED, RESCHEDULED, DELIVERED
+    status = db.Column(db.String(15), nullable=False)
+
+    # Used for capped exponential backoff of retries in combination with
+    # scheduled_at.
+    n_delivery_attempts = db.Column(db.Integer, nullable=False, default=0)
+
+    scheduled_at = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    delivered_at = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=True,
+    )
+
+    def reschedule(self) -> None:
+        self.status = "RESCHEDULED"
+        self.n_delivery_attempts = self.n_delivery_attempts + 1
+        backoff = min(2 ** (self.n_delivery_attempts), 3600)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        self.scheduled_at = now + datetime.timedelta(seconds=backoff)
+
+    def set_delivered(self) -> None:
+        self.status = "DELIVERED"
+        self.delivered_at = datetime.datetime.now(datetime.timezone.utc)
+
+
+Index(
+    None,
+    Delivery.status,
+    Delivery.scheduled_at,
 )

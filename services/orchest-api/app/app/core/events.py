@@ -1,23 +1,54 @@
 """Module to register events to keep track of.
 
-This might/will be of interest for notifications, analytics, etc.
+Upon the registration of an event in the db, deliveries are created
+accordingly based on any subscribers subscribed to the event type that
+happened.
 """
 from app import models, utils
 from app.connections import db
+from app.core import notifications
 
 _logger = utils.get_logger()
 
 
-def _register_one_off_job_event(type: str, project_uuid: str, job_uuid: str) -> None:
-    ev = models.OneOffJobEvent(type=type, project_uuid=project_uuid, job_uuid=job_uuid)
+def _register_event(ev: models.Event) -> None:
     db.session.add(ev)
     _logger.info(ev)
+
+    project_uuid = None
+    job_uuid = None
+    if isinstance(ev, models.ProjectEvent):
+        project_uuid = ev.project_uuid
+    # Don't use a else if, JobEvent ISA ProjectEvent.
+    if isinstance(ev, models.JobEvent):
+        job_uuid = ev.job_uuid
+
+    db.session.flush()
+
+    subscribers = notifications.get_subscribers_subscribed_to_event(
+        ev.type, project_uuid=project_uuid, job_uuid=job_uuid
+    )
+    for sub in subscribers:
+        _logger.info(
+            f"Scheduling delivery for event {ev.uuid}, event type: {ev.type} for "
+            f"deliveree {sub.uuid}."
+        )
+        delivery = models.Delivery(
+            event=ev.uuid,
+            deliveree=sub.uuid,
+            status="SCHEDULED",
+        )
+        db.session.add(delivery)
+
+
+def _register_one_off_job_event(type: str, project_uuid: str, job_uuid: str) -> None:
+    ev = models.OneOffJobEvent(type=type, project_uuid=project_uuid, job_uuid=job_uuid)
+    _register_event(ev)
 
 
 def _register_cron_job_event(type: str, project_uuid: str, job_uuid: str) -> None:
     ev = models.CronJobEvent(type=type, project_uuid=project_uuid, job_uuid=job_uuid)
-    db.session.add(ev)
-    _logger.info(ev)
+    _register_event(ev)
 
 
 def _is_cron_job(job_uuid: str) -> bool:
@@ -105,9 +136,7 @@ def register_cron_job_run_started(
         job_uuid=job_uuid,
         run_index=run_index,
     )
-
-    db.session.add(ev)
-    _logger.info(ev)
+    _register_event(ev)
 
 
 def register_cron_job_run_succeeded(
@@ -120,9 +149,7 @@ def register_cron_job_run_succeeded(
         job_uuid=job_uuid,
         run_index=run_index,
     )
-
-    db.session.add(ev)
-    _logger.info(ev)
+    _register_event(ev)
 
 
 def register_cron_job_run_failed(
@@ -135,9 +162,7 @@ def register_cron_job_run_failed(
         job_uuid=job_uuid,
         run_index=run_index,
     )
-
-    db.session.add(ev)
-    _logger.info(ev)
+    _register_event(ev)
 
 
 def _register_one_off_job_pipeline_run_event(
@@ -149,8 +174,7 @@ def _register_one_off_job_pipeline_run_event(
         job_uuid=job_uuid,
         pipeline_run_uuid=pipeline_run_uuid,
     )
-    db.session.add(ev)
-    _logger.info(ev)
+    _register_event(ev)
 
 
 def _register_cron_job_run_pipeline_run_event(
@@ -171,8 +195,7 @@ def _register_cron_job_run_pipeline_run_event(
         pipeline_run_uuid=pipeline_run_uuid,
         run_index=run_index,
     )
-    db.session.add(ev)
-    _logger.info(ev)
+    _register_event(ev)
 
 
 def register_job_pipeline_run_created(

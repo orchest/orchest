@@ -17,7 +17,7 @@ from app import errors as self_errors
 from app import utils
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
-from app.core import environments, registry
+from app.core import environments, notifications, registry
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipelines import Pipeline, run_pipeline_workflow
@@ -357,3 +357,10 @@ def registry_garbage_collection(self) -> None:
         if has_deleted_images or repositories_to_gc:
             registry.run_registry_garbage_collection(repositories_to_gc)
         return "SUCCESS"
+
+
+@celery.task(bind=True, base=AbortableTask)
+def process_notifications_deliveries(self):
+    with application.app_context():
+        notifications.process_notifications_deliveries_task()
+    return "SUCCESS"
