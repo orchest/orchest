@@ -1,35 +1,51 @@
 """The Orchest CLI.
 
-Management commands (commands that change the cluster state):
-* Design goal: Users should be able to use tools like `kubectl` for all
-  functionality of management commands. The CLI serves as a convenience
-  wrapper for common operations.
-* Writes: Users should be able to do these by changing the CR directly
-  themselves. The CLI is just a convenience wrapper here.
-* Reads: Done by reading the CR object. For example, version is just an
-  entry in the object that users can read directly or can the CLI for to
-  do it for them.
+Architecture:
+    CLI -- r/w --> CR Object <-- r/w -- Controller
+    where the CLI lives outside of the Kubernetes cluster and the CR
+    Object and the Controller live inside the Kubernetes cluster.
 
-Application commands (commands that interact with the Orchest
-application directly, e.g. `adduser`):
-* Writes: Done through CLI only as it includes application specific logic
-    * Caveat: CLI needs to be kept in sync with the Orchest application
-      itself. For example when updating Orchest it may very well be that
-      the new CLI is not compatible (we should try to ensure backwards
-      compatibility) or simply can not do certain application level
-      commands (e.g. adduser being added in a new version that the CLI
-      does not yet support). Users need to update the CLI accordingly
-      themselves.
-* Reads: We don't have such functionality yet, but likely only possible
-  through CLI. For example, listing all users in the auth-server .
+    As a common practice, only the controller is writing to the status
+    section of the CR Object as to inform the status of the Orchest
+    Cluster it is managing. This status will be used to gate application
+    commands as to not issue those commands when the cluster is in an
+    invalid state.
 
-Archirecture:
-...
+    Management commands (commands that change the cluster state):
+    * Design goal: Users should be able to use tools like `kubectl` for
+      all functionality of management commands. The CLI serves as a
+      convenience wrapper for common operations.
+    * Writes: Users should be able to do these by changing the CR
+      directly themselves. The CLI is just a convenience wrapper here.
+    * Reads: Done by reading the CR object. For example, version is just
+      an entry in the object that users can read directly or can the CLI
+      for to do it for them.
+
+    Application commands (commands that interact with the Orchest
+    application directly, e.g. `adduser`):
+    * Writes: Done through CLI only as it includes application specific
+      logic
+        * Caveat: CLI needs to be kept in sync with the Orchest
+          application itself. For example when updating Orchest it may
+          very well be that the new CLI is not compatible (we should try
+          to ensure backwards compatibility) or simply can not do
+          certain application level commands (e.g. adduser being added
+          in a new version that the CLI does not yet support). Users
+          need to update the CLI accordingly themselves.
+    * Reads: We don't have such functionality yet, but likely only
+      possible through CLI. For example, listing all users in the
+      auth-server .
+
+Implementation details:
+    The CLI commands are defined in this module, whereas the actual body
+    of those commands live in separate modules. The reason being is that
+    due to the decorator usage for `click`, the commands can't be
+    invoked directly as if they were functions. Since we want to invoke
+    CLI commands through Python directly (instead of only invoking them
+    in a CLI manner), the CLI commands are separated from the actual
+    logic.
 
 """
-# TODO: Explain structure, so that Python can invoke things the CLI
-# command body is in another function.
-
 
 import collections
 import typing as t
@@ -40,6 +56,8 @@ from orchestcli import cmds
 
 NAMESPACE = "orchest"
 ORCHEST_CLUSTER_NAME = "cluster-1"
+ORCHEST_CONTROLLER_DEPLOY_NAME = "orchest-controller"
+ORCHEST_CONTROLLER_POD_LABEL_SELECTOR = "app=orchest-controller"
 # Application commands are displayed separately from management commands
 # in the help menu.
 APPLICATION_CMDS = ["adduser"]
@@ -66,6 +84,8 @@ class ClickCommonOptionsCmd(click.Command):
         ] + self.params
 
 
+# Largely a copy-paste from the original source code, but extended to
+# display separated categories in the help menu.
 class ClickHelpCategories(click.Group):
     def format_commands(
         self, ctx: click.Context, formatter: click.HelpFormatter
@@ -152,6 +172,18 @@ def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
     help="Version to update the Orchest Cluster to.",
 )
 @click.option(
+    "--controller-deploy-name",
+    default=ORCHEST_CONTROLLER_DEPLOY_NAME,
+    show_default=True,
+    help="Deployment name of the controller managing the Orchest Cluster.",
+)
+@click.option(
+    "--controller-pod-label-selector",
+    default=ORCHEST_CONTROLLER_POD_LABEL_SELECTOR,
+    show_default=True,
+    help="Label selector of the controller pod managing the Orchest Cluster.",
+)
+@click.option(
     "--watch/--no-watch",
     "watch_flag",  # name for arg
     is_flag=True,
@@ -160,7 +192,13 @@ def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
     help="Watch cluster status changes.",
 )
 @cli.command(cls=ClickCommonOptionsCmd)
-def update(version: t.Optional[str], watch_flag: bool, **common_options) -> None:
+def update(
+    version: t.Optional[str],
+    controller_deploy_name: str,
+    controller_pod_label_selector: str,
+    watch_flag: bool,
+    **common_options,
+) -> None:
     """Update Orchest.
 
     If `--version` is not given, then it tries to update Orchest to the
@@ -170,8 +208,18 @@ def update(version: t.Optional[str], watch_flag: bool, **common_options) -> None
     Note:
         The operation fails if the Orchest Cluster would be downgraded.
 
+    \b
+    Usage:
+        orchest update
+
     """
-    cmds.update(version, watch_flag, **common_options)
+    cmds.update(
+        version,
+        controller_deploy_name,
+        controller_pod_label_selector,
+        watch_flag,
+        **common_options,
+    )
 
 
 @cli.command(cls=ClickCommonOptionsCmd)

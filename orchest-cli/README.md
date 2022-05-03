@@ -69,6 +69,11 @@ TODO:
 - [ ] TODOs in `cli.py`
 - [ ] `update` and `restart` to work in the GUI
   - [ ] If CLI is invoked inside the `orchest-api` then we need to catch the `SystemExit` error.
+- [ ] PR description to contain how to test `update`. It is as simple as building the minimal set of
+      images twice, but with different tags and try to update to that newer tag.
+- [ ] Seems to be an issue with `dev` mode? The orchest-api doesn't start correctly and thus the
+      webserver also can't query it for the config settings.
+- [ ] Seems like the `cleanup` pod fails?
 - [x] Make sure `cleanup` is invoked on certain actions, e.g. restart/pause.
 - [x] Are ingresses etc. working?
 - [ ] Whenever the CRD is changed, users need to `kubectl apply` its changes. Otherwise the
@@ -84,6 +89,8 @@ TODO:
       CR changes (but no process will be running to invoke the second one).
 - [x] Additional flags / options / file to specify installation
 - [ ] `orchest-controller` needs to be versioned as well instead of "latest"
+  - [ ] `orchest-controller` to contain the right default version. Otherwise it will only ever
+        install the hardcoded `v2022.04.0`
 - [x] Cluster is never put into `Paused` after pausing
   - [ ] Unpausing (so doing `pause: false`) results in the cluster status being set to `Updating`
 - [ ] I think it would be nice to have a visualization indicating the different state transitions

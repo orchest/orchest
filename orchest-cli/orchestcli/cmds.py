@@ -67,10 +67,7 @@ def echo(*args, **kwargs) -> None:
         the `--json` flag.
 
     """
-    try:
-        click_ctx = click.get_current_context()
-    except RuntimeError:
-        click_ctx = None
+    click_ctx = click.get_current_context(silent=True)
 
     if click_ctx is None:
         return click.echo(*args, **kwargs)
@@ -184,14 +181,25 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
 
 
 # TODO:
-# - The `orchest-controller` needs to be deployed with certain labels
-#   as otherwise this CLI command can't update the controller before
-#   updating the cluster. Needs to be a note in the docs probably and
-#   error handled here.
 # - It can be possible that users need to apply a new CRD. This needs
 #   to be included somewhere.
-def update(version: t.Optional[str], watch_flag: bool, **kwargs) -> None:
-    """Updates Orchest."""
+# - Provide ready to go templates to deploy the orchest-controller.
+def update(
+    version: t.Optional[str],
+    controller_deploy_name: str,
+    controller_pod_label_selector: str,
+    watch_flag: bool,
+    **kwargs,
+) -> None:
+    """Updates Orchest.
+
+    Note:
+        The arguments `controller_deploy_name` and
+        `controller_pod_label_selector` need to be explicitely provided
+        given that everyone could have applied a custom
+        orchest-controller deployment.
+
+    """
 
     def lte(old: str, new: str) -> bool:
         """Returns `old <= new`, i.e. less than or equal.
@@ -289,7 +297,7 @@ def update(version: t.Optional[str], watch_flag: bool, **kwargs) -> None:
     # is already updated.
     echo("Updating the Orchest Controller...")
     APPS_API.patch_namespaced_deployment(
-        name="orchest-controller",
+        name=controller_deploy_name,
         namespace=ns,  # controller is currently deployed in same ns
         # TODO: Move controller to specific version and away from latest
         body={
@@ -316,7 +324,7 @@ def update(version: t.Optional[str], watch_flag: bool, **kwargs) -> None:
     for event in w.stream(
         CORE_API.list_namespaced_pod,
         namespace=ns,
-        label_selector=("app=orchest-controller"),
+        label_selector=(controller_pod_label_selector),
         timeout_seconds=60,
     ):
         # TODO: get rid of latest
@@ -325,9 +333,6 @@ def update(version: t.Optional[str], watch_flag: bool, **kwargs) -> None:
                 w.stop()
 
     echo("Updating the Orchest Cluster...")
-    # TODO: Test it by building images under another tag locally on the
-    # node.
-    breakpoint()
     try:
         patch_namespaced_custom_object(
             name=cluster_name,
@@ -389,16 +394,36 @@ def patch(
                     if obj_item["name"] not in patch_items:
                         spec.append(obj_item)
 
+    def disable_telemetry() -> None:
+        command = [
+            "curl",
+            "-X",
+            "PUT",
+            "localhost:80/api/ctl/orchest-settings",
+            "-H",
+            "Content-Type: application/json",
+            "-d",
+            '{"TELEMETRY_DISABLED": true}',
+        ]
+        _run_pod_exec(
+            ns,
+            cluster_name,
+            "orchest-api",
+            command,
+        )
+
     echo("Patching the Orchest Cluster.")
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
-    # Only update changed values.
     if dev is None:
         env_var_dev = None
     elif dev:
-        # TODO: Make request to `orchest-api` to disable Telemetry. Do
-        # note that is an application like command and so needs to be
-        # gated by a check of status of the Orchest Cluster.
+        try:
+            disable_telemetry()
+        except RuntimeError as e:
+            echo(e, err=True)
+            echo("Failed to disable telemetry. Continuing.", err=True)
+
         env_var_dev = {"name": "FLASK_ENV", "value": "development"}
 
         _cmd = (
@@ -635,29 +660,7 @@ def adduser(
     **kwargs,
 ) -> None:
     """Adds a new user to Orchest."""
-    # Gate the application logic, by checking whether the Orchest
-    # Cluster is in a valid state.
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
-    try:
-        status = _get_orchest_cluster_status(ns, cluster_name)
-    except CRObjectNotFound as e:
-        echo(f"Failed to add specified user: {username}.", err=True)
-        echo(e, err=True)
-        sys.exit(1)
-
-    if status != ClusterStatus.RUNNING:
-        echo(
-            "Orchest is currently unable to add a new user, because the Orchest"
-            f" Cluster is '{'unknown' if status is None else status.value}'.",
-            err=True,
-        )
-        echo(
-            "Please try again once the Orchest Cluster is"
-            f" '{ClusterStatus.RUNNING.value}', see:"
-            "\n\torchest status",
-            err=True,
-        )
-        sys.exit(1)
 
     if non_interactive:
         password = non_interactive_password
@@ -712,26 +715,6 @@ def _add_user(
     if token is not None and not token:
         raise ValueError("Token can't be empty.")
 
-    pods = CORE_API.list_namespaced_pod(
-        ns,
-        label_selector=(
-            "contoller.orchest.io/component=auth-server,"
-            f"controller.orchest.io={cluster_name}"
-        ),
-    )
-    if not pods:
-        raise RuntimeError(
-            "Orchest Cluster is in an invalid state: no authentication server"
-            " ('auth-server') found."
-        )
-    elif len(pods.items) > 1:
-        raise RuntimeError(
-            "Orchest Cluster is in an invalid state: multiple authentication"
-            " servers ('auth-server') found."
-        )
-    else:
-        auth_server_pod = pods.items[0]
-
     command = ["python", "add_user.py", username, password]
     if token is not None:
         command.append("--token")
@@ -739,9 +722,82 @@ def _add_user(
     if is_admin:
         command.append("--is_admin")
 
+    _run_pod_exec(
+        ns,
+        cluster_name,
+        "auth-server",
+        command,
+    )
+
+
+def _run_pod_exec(
+    ns: str,
+    cluster_name: str,
+    orchest_service: str,
+    command: t.List[str],
+    check_gate=True,
+) -> None:
+    """Runs `command` inside the pod defined by `orchest_service`.
+
+    Raises:
+        RuntimeError: If something went wrong when trying to run the
+            command in the pod, or when the command did not return with
+            a zero exit code.
+
+    """
+
+    def passes_gate(ns: str, cluster_name: str) -> t.Tuple[bool, str]:
+        """Returns whether the Orchest Cluster is in a valid state.
+
+        Returns:
+            True, "": if Cluster is in a valid state.
+            False, reason: if Cluster is in an invalid state.
+
+        """
+        try:
+            status = _get_orchest_cluster_status(ns, cluster_name)
+        except CRObjectNotFound as e:
+            return False, str(e)
+
+        if status != ClusterStatus.RUNNING:
+            reason = (
+                "The Orchest Cluster state is "
+                " '{'unknown' if status is None else status.value}', whereas it needs"
+                " to be '{ClusterStatus.RUNNING.value}'. Check:"
+                "\n\torchest status"
+            )
+            return False, reason
+
+        return True, ""
+
+    if check_gate:
+        passed_gate, reason = passes_gate(ns, cluster_name)
+        if not passed_gate:
+            raise RuntimeError(f"Failed to pass gate: {reason}")
+
+    pods = CORE_API.list_namespaced_pod(
+        ns,
+        label_selector=(
+            f"{orchest_service}={orchest_service},"
+            "contoller.orchest.io/part-of=orchest,"
+            f"controller.orchest.io={cluster_name}"
+        ),
+    )
+    if not pods:
+        raise RuntimeError(
+            f"Orchest Cluster is in an invalid state: no '{orchest_service}' found."
+        )
+    elif len(pods.items) > 1:
+        raise RuntimeError(
+            "Orchest Cluster is in an invalid state: multiple "
+            f" '{orchest_service}' found."
+        )
+    else:
+        pod = pods.items[0]
+
     client = stream.stream(
         CORE_API.connect_get_namespaced_pod_exec,
-        name=auth_server_pod.metadata.name,
+        name=pod.metadata.name,
         namespace=ns,
         command=command,
         stderr=True,
@@ -752,8 +808,8 @@ def _add_user(
         _preload_content=False,
     )
     # NOTE: Timeout shouldn't be needed, but we don't want to keep the
-    # WS connection open indefinitely if something goes wrong in the
-    # auth-server.
+    # WS connection open indefinitely if something goes wrong when
+    # running the command.
     client.run_forever(timeout=20)
     if client.returncode != 0:
         raise RuntimeError(client.read_all())
@@ -865,10 +921,10 @@ def _display_spinner(
 
     # Get the required arguments to get the status of the custom object
     # from the click context.
-    # TODO: This click context will likely lead to errors now that we
-    # allow direct Python invokation.
-    click_ctx = click.get_current_context()
-    assert click_ctx is not None, "Can only be invoked inside a Click Context."
+    # If the assertion fails, try adding `watch=False` to the command
+    # as to not to display a spinner.
+    click_ctx = click.get_current_context(silent=True)
+    assert click_ctx is not None, "Can only display spinner through CLI invocation."
 
     ns = click_ctx.params.get("namespace")
     cluster_name = click_ctx.params.get("cluster_name")
