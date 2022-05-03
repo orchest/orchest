@@ -23,6 +23,7 @@ COPY celery_daemon_configs/supervisord.conf /etc/supervisor/supervisord.conf
 COPY celery_daemon_configs/worker_builds.conf \
      celery_daemon_configs/worker_interactive.conf \
      celery_daemon_configs/worker_jobs.conf \
+     celery_daemon_configs/worker_deliveries.conf \
      /etc/supervisor/conf.d/
 
 # To be consistent with the other services.

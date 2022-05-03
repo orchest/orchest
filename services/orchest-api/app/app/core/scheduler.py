@@ -30,6 +30,7 @@ logger = logging.getLogger("job-scheduler")
 class SchedulerJobType(enum.Enum):
     SCHEDULE_JOB_RUNS = "SCHEDULE_JOB_RUNS"
     PROCESS_IMAGES_FOR_DELETION = "PROCESS_IMAGES_FOR_DELETION"
+    PROCESS_NOTIFICATIONS_DELIVERIES = "PROCESS_NOTIFICATIONS_DELIVERIES"
 
 
 def add_recurring_jobs_to_scheduler(
@@ -57,6 +58,11 @@ def add_recurring_jobs_to_scheduler(
             "allowed_to_run": True,
             "interval": app.config["IMAGES_DELETION_INTERVAL"],
             "job_func": jobs.handle_process_images_for_deletion,
+        },
+        "process notifications deliveries": {
+            "allowed_to_run": True,
+            "interval": app.config["NOTIFICATIONS_DELIVERIES_INTERVAL"],
+            "job_func": jobs.handle_process_notifications_deliveries,
         },
     }
 
@@ -112,6 +118,17 @@ class Jobs:
             SchedulerJobType.PROCESS_IMAGES_FOR_DELETION.value,
             interval,
             process_images_for_deletion,
+            app,
+        )
+
+    def handle_process_notifications_deliveries(
+        self, app: Flask, interval: int = 0
+    ) -> None:
+        """Handles processing notifications deliveries for deletion."""
+        return self._handle_recurring_scheduler_job(
+            SchedulerJobType.PROCESS_NOTIFICATIONS_DELIVERIES.value,
+            interval,
+            process_notification_deliveries,
             app,
         )
 
@@ -299,7 +316,7 @@ def schedule_job_runs(app) -> None:
                 logger.error(e)
 
 
-def process_images_for_deletion(app):
+def process_images_for_deletion(app) -> None:
     """Processes built images to find inactive ones.
 
     Goes through env images and marks the inactive ones for removal,
@@ -337,4 +354,12 @@ def process_images_for_deletion(app):
         celery = make_celery(app)
         app.logger.info("Sending registry garbage collection task.")
         res = celery.send_task(name="app.core.tasks.registry_garbage_collection")
+        res.forget()
+
+
+def process_notification_deliveries(app) -> None:
+    with app.app_context():
+        app.logger.debug("Sending process notifications deliveries task.")
+        celery = make_celery(app)
+        res = celery.send_task(name="app.core.tasks.process_notifications_deliveries")
         res.forget()

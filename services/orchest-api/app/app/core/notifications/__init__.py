@@ -6,6 +6,7 @@ subscriptions, which cannot later be altered. If wished for, this can be
 easily changed, since the db schema allows to do so.
 
 """
+import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import noload
@@ -13,6 +14,7 @@ from sqlalchemy.orm import noload
 from app import models
 from app import utils as app_utils
 from app.connections import db
+from app.core.notifications import webhooks
 
 logger = app_utils.get_logger()
 
@@ -98,3 +100,30 @@ def get_subscribers_subscribed_to_event(
     )
 
     return notified_subscribers
+
+
+def process_notifications_deliveries_task() -> None:
+    logger.info("Processing notifications deliveries")
+
+    # Note that we don't select for update here, said locking will
+    # happen on a single delivery basis.
+    webhook_deliveries = (
+        (db.session.query(models.Delivery.uuid))
+        .join(models.Webhook, models.Webhook.uuid == models.Delivery.deliveree)
+        .filter(
+            models.Delivery.status.in_(["SCHEDULED", "RESCHEDULED"]),
+            models.Delivery.scheduled_at
+            <= datetime.datetime.now(datetime.timezone.utc),
+        )
+        .order_by(models.Delivery.scheduled_at)
+        .all()
+    )
+
+    logger.info(f"Found {len(webhook_deliveries)} webhook deliveries to deliver.")
+
+    for delivery in webhook_deliveries:
+        try:
+            webhooks.deliver(delivery.uuid)
+        # Don't let failures affect other deliveries.
+        except Exception as e:
+            logger.error(e)

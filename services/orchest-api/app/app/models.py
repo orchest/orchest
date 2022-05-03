@@ -8,6 +8,7 @@ TODO:
 
 """
 import copy
+import datetime
 import enum
 import uuid
 from typing import Any, Dict
@@ -1454,6 +1455,17 @@ class Delivery(BaseModel):
         TIMESTAMP(timezone=True),
         nullable=True,
     )
+
+    def reschedule(self) -> None:
+        self.status = "RESCHEDULED"
+        self.n_delivery_attempts = self.n_delivery_attempts + 1
+        backoff = min(2 ** (self.n_delivery_attempts), 3600)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        self.scheduled_at = now + datetime.timedelta(seconds=backoff)
+
+    def set_delivered(self) -> None:
+        self.status = "DELIVERED"
+        self.delivered_at = datetime.datetime.now(datetime.timezone.utc)
 
 
 Index(
