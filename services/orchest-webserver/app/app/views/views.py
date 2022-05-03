@@ -844,6 +844,18 @@ def register_views(app, db):
 
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
+
+                is_project_file = is_valid_pipeline_relative_path(
+                    project_uuid, pipeline_uuid, step["file_path"]
+                )
+
+                is_data_file = is_valid_data_path(step["file_path"])
+
+                if not (is_project_file or is_data_file):
+                    raise app_error.OutOfAllowedDirectoryError(
+                        "File is neither in the project, nor in the data directory."
+                    )
+
                 extensions = list(
                     map(lambda x: f".{x.lower()}", ["ipynb", "py", "R", "sh", "jl"])
                 )
