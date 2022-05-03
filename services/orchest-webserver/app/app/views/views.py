@@ -559,7 +559,7 @@ def register_views(app, db):
             with TwoPhaseExecutor(db.session) as tpe:
                 project_uuid = CreateProject(tpe).transaction(request.json["name"])
                 return jsonify({"project_uuid": project_uuid})
-        except error.InvalidProjectName as e:
+        except app_error.InvalidProjectName as e:
             return (
                 jsonify({"message": str(e)}),
                 400,
