@@ -1253,6 +1253,8 @@ def _prepare_parameters_payload(
             parameters_payload[k] = v
         else:
             step_name = pipeline_definition.get("steps").get(k, {}).get("title")
+            if step_name is None:
+                step_name = "untitled"
             parameters_payload[f"step-{step_name}-{k}"] = v
     return parameters_payload
 

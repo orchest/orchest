@@ -40,7 +40,12 @@ class ProjectList(Resource):
         project = request.get_json()
 
         if len(project["name"]) > 255:
-            return {}, 400
+            return {
+                "message": (
+                    "The provided project name exceeds the maximum length of 255 "
+                    "characters."
+                )
+            }, 400
 
         project["env_variables"] = project.get("env_variables", {})
         if not _utils.are_environment_variables_valid(project["env_variables"]):

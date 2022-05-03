@@ -223,6 +223,10 @@ def deliver(delivery_uuid: str) -> None:
             if response.status_code >= 200 and response.status_code <= 299:
                 logger.info(f"Delivered {delivery_uuid}.")
                 delivery.set_delivered()
+                # Not really useful to set_delivered() atm since it will
+                # get deleted, but we might add some collateral effects
+                # or other logic to set_delivered in the future.
+                db.session.delete(delivery)
             else:
                 raise self_errors.DeliveryFailed(
                     f"Failed to deliver {delivery_uuid}: {response.status_code}."
@@ -232,5 +236,4 @@ def deliver(delivery_uuid: str) -> None:
             delivery.reschedule()
             logger.info(f"Rescheduling {delivery_uuid} at {delivery.scheduled_at}.")
 
-    db.session.delete(delivery)
     db.session.commit()
