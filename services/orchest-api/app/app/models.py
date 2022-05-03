@@ -1206,6 +1206,9 @@ class JobEvent(ProjectEvent):
         job_payload["name"] = job.name
         job_payload["status"] = job.status
         job_payload["pipeline_name"] = job.pipeline_name
+        job_payload[
+            "url_path"
+        ] = f"/job?project_uuid={job.project_uuid}&job_uuid={job.uuid}"
 
         return payload
 
@@ -1284,6 +1287,10 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
     payload["status"] = pipeline_run.status
     payload["parameters"] = _prepare_parameters_payload(
         job.pipeline_definition, pipeline_run.parameters
+    )
+    payload["url_path"] = (
+        f"/job-run?project_uuid={job.project_uuid}&pipeline_uuid={job.pipeline_uuid}&"
+        f"job_uuid={job.uuid}&run_uuid={pipeline_run.uuid}"
     )
 
     if pipeline_run.status == "FAILURE":
