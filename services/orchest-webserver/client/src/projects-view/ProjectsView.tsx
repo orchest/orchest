@@ -26,9 +26,9 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
+import { useFetchProjects } from "../hooks/useFetchProjects";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectPathDialog } from "./EditProjectPathDialog";
-import { useFetchProjects } from "./hooks/useFetchProjects";
 import { ImportDialog } from "./ImportDialog";
 
 type ProjectRow = Pick<
