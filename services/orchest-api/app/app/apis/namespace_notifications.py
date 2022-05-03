@@ -29,7 +29,7 @@ class SubscriberList(Resource):
     @api.doc("get_subscribers")
     @api.response(200, "Success", schema.subscribers)
     def get(self):
-        """Gets all subscribers, without subscriptions."""
+        """Gets all subscribers, doesn't include their subscriptions."""
         subscribers = models.Subscriber.query.options(
             noload(models.Subscriber.subscriptions)
         ).all()
@@ -46,7 +46,7 @@ class SubscriberList(Resource):
 class WebhookList(Resource):
     @api.doc("create_webhook")
     @api.expect(schema.webhook_spec, validate=True)
-    @api.response(200, "Success", schema.webhook_with_secret)
+    @api.response(201, "Success", schema.webhook_with_secret)
     def post(self):
         """Creates a webhook with the given subscriptions.
 
