@@ -115,9 +115,10 @@ def _prepare_request(
     # Prepare the request, then sign the body.
     if deliveree.content_type == models.Webhook.ContentType.URLENCODED.value:
         # Entries that aren't primitive types are encoded to string.
-        payload["delivered_for"] = json.dumps(payload["delivered_for"])
-        payload["event"] = json.dumps(payload["event"])
-        request = requests.Request("POST", deliveree.url, data=payload)
+        urlencoded_payload = {}
+        urlencoded_payload["delivered_for"] = json.dumps(payload["delivered_for"])
+        urlencoded_payload["event"] = json.dumps(payload["event"])
+        request = requests.Request("POST", deliveree.url, data=urlencoded_payload)
     elif deliveree.content_type == models.Webhook.ContentType.JSON.value:
         request = requests.Request("POST", deliveree.url, json=payload)
 
@@ -152,9 +153,10 @@ def send_test_ping_delivery(deliveree_uuid: str) -> Optional[requests.Response]:
     _post_process_payload(payload, webhook)
 
     if webhook.content_type == models.Webhook.ContentType.URLENCODED.value:
-        payload["delivered_for"] = json.dumps(payload["delivered_for"])
-        payload["event"] = json.dumps(payload["event"])
-        request = requests.Request("POST", webhook.url, data=payload)
+        urlencoded_payload = {}
+        urlencoded_payload["delivered_for"] = json.dumps(payload["delivered_for"])
+        urlencoded_payload["event"] = json.dumps(payload["event"])
+        request = requests.Request("POST", webhook.url, data=urlencoded_payload)
     elif webhook.content_type == models.Webhook.ContentType.JSON.value:
         request = requests.Request("POST", webhook.url, json=payload)
 
