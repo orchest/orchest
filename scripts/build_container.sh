@@ -36,7 +36,6 @@ while getopts "s:i:t:no:vem" opt; do
       SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
       SKIP_IMGS+=("base-kernel-r")
-      SKIP_IMGS+=("update-sidecar")
       ;;
     t)
       BUILD_TAG="$OPTARG"
@@ -62,7 +61,6 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "base-kernel-r"
         "base-kernel-julia"
         "orchest-api"
-        "update-sidecar"
         "orchest-webserver"
         "memory-server"
         "session-sidecar"
@@ -82,7 +80,6 @@ LIB_IMAGES=(
     "memory-server"
     "session-sidecar"
     "auth-server"
-    "update-sidecar"
     "celery-worker"
     "jupyter-enterprise-gateway"
     "node-agent"
@@ -108,9 +105,9 @@ SDK_IMAGES=(
     "base-kernel-julia"
 )
 
-HELM_IMAGES=(
+CLI_IMAGES=(
     "orchest-api"
-    "update-sidecar"
+    "celery-worker"
 )
 
 CLEANUP_BUILD_CTX=()
@@ -150,8 +147,9 @@ run_build () {
                 cp $DIR/../$pnpm_file $build_ctx/pnpm_files 2>/dev/null
             done
         fi
-        if containsElement "${image}" "${HELM_IMAGES[@]}" ; then
+        if containsElement "${image}" "${CLI_IMAGES[@]}" ; then
             cp -r $DIR/../deploy $build_ctx/deploy 2>/dev/null
+            cp -r $DIR/../orchest-cli $build_ctx/orchest-cli 2>/dev/null
         fi
     fi
     # copy end
@@ -192,8 +190,9 @@ function cleanup() {
             if containsElement "${image}" "${PNPM_IMAGES[@]}" ; then
                 rm -rf $i/pnpm_files 2>/dev/null
             fi
-            if containsElement "${image}" "${HELM_IMAGES[@]}" ; then
+            if containsElement "${image}" "${CLI_IMAGES[@]}" ; then
                 rm -rf $i/deploy 2>/dev/null
+                rm -rf $i/orchest-cli 2>/dev/null
             fi
 
             rm $i/.dockerignore 2> /dev/null
@@ -319,17 +318,6 @@ do
             -t "orchest/orchest-api:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-    fi
-
-    if [ $IMG == "update-sidecar" ]; then
-
-        build_ctx=$DIR/../services/update-sidecar
-        build=(docker build --progress=plain \
-            -t "orchest/update-sidecar:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/update-sidecar/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
