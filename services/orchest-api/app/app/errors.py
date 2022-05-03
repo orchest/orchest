@@ -40,3 +40,7 @@ class ImageNotFound(Exception):
 
 class ImageRegistryDeletionError(Exception):
     ...
+
+
+class DeliveryFailed(Exception):
+    pass
