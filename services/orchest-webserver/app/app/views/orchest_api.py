@@ -1,7 +1,8 @@
 import requests
 from flask import current_app, jsonify, request
 
-from app import analytics, error
+from _orchest.internals import analytics
+from app import error
 from app.core import jobs
 from app.models import Pipeline, Project
 from app.utils import (

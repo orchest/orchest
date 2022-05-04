@@ -18,6 +18,7 @@ DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
+FLASK_ENV = os.environ.get("FLASK_ENV")
 CLOUD = os.environ.get("CLOUD") == "True"
 ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN")
 GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"

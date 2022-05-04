@@ -11,8 +11,7 @@ import posthog
 from flask.app import Flask
 from posthog.request import APIError
 
-from app.config import CONFIG_CLASS as StaticConfig
-from app.utils import write_config
+from _orchest.internals import config as _config
 
 logger = logging.getLogger(__name__)
 
@@ -201,8 +200,8 @@ def _send_event(telemetry_uuid: str, event_name: str, event_data: dict) -> None:
 def _add_app_properties(data: dict, app: Flask) -> None:
     data["app_properties"] = {
         "orchest_version": app.config.get("ORCHEST_REPO_TAG"),
-        "dev": StaticConfig.FLASK_ENV == "development",
-        "cloud": StaticConfig.CLOUD,
+        "dev": _config.FLASK_ENV == "development",
+        "cloud": _config.CLOUD,
         "max_interactive_runs_parallelism": app.config.get(
             "MAX_INTERACTIVE_RUNS_PARALLELISM"
         ),
@@ -213,7 +212,7 @@ def _add_app_properties(data: dict, app: Flask) -> None:
 def _add_system_properties(data: dict) -> None:
     data["system_properties"] = {
         "host_os": os.environ.get("HOST_OS"),
-        "gpu_enabled_instance": StaticConfig.GPU_ENABLED_INSTANCE,
+        "gpu_enabled_instance": _config.GPU_ENABLED_INSTANCE,
     }
 
 
@@ -222,7 +221,7 @@ def _get_telemetry_uuid(app: Flask) -> str:
 
     if telemetry_uuid is None:
         telemetry_uuid = str(uuid.uuid4())
-        write_config(app, "TELEMETRY_UUID", telemetry_uuid)
+        app.config["TELEMETRY_UUID"] = telemetry_uuid
 
     return telemetry_uuid
 

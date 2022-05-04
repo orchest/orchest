@@ -29,8 +29,9 @@ import sqlalchemy
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask.app import Flask
 
+from _orchest.internals import analytics
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from app import analytics, models
+from app import models
 from app.connections import db
 
 logger = logging.getLogger("job-scheduler")
