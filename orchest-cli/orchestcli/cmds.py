@@ -50,6 +50,18 @@ patch_namespaced_custom_object = partial(
     version="v1alpha1",
     plural="orchestclusters",
 )
+list_namespaced_custom_object = partial(
+    CUSTOM_OBJECT_API.list_namespaced_custom_object,
+    group="orchest.io",
+    version="v1alpha1",
+    plural="orchestclusters",
+)
+delete_namespaced_custom_object = partial(
+    CUSTOM_OBJECT_API.delete_namespaced_custom_object,
+    group="orchest.io",
+    version="v1alpha1",
+    plural="orchestclusters",
+)
 
 
 class LogLevel(str, enum.Enum):
@@ -180,6 +192,38 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
             " `minikube tunnel` daemon and map '127.0.0.1' to `minikube ip` in the"
             " '/etc/hosts' file instead."
         )
+
+
+def uninstall(**kwargs) -> None:
+    """Uninstalls Orchest."""
+    ns = kwargs["namespace"]
+
+    echo("Uninstalling Orchest...")
+
+    # Remove all orchestcluster resources in the namespace. Otherwise
+    # the namespace can't be removed due to the configured finalizers
+    # on the orchestcluster resources.
+    echo("Removing all Orchest Clusters...")
+    custom_objects = list_namespaced_custom_object(namespace=ns)
+    for custom_object in custom_objects["items"]:
+        delete_namespaced_custom_object(
+            namespace=ns,
+            name=custom_object["metadata"]["name"],
+        )
+
+    # Remove namespace, which will also remove all resources contained
+    # in it.
+    echo(f"Removing '{ns}' namespace...")
+    CORE_API.delete_namespace(ns)
+    while True:
+        try:
+            CORE_API.read_namespace(ns)
+        except client.ApiException as e:
+            if e.status == 404:
+                echo("\nSuccessfully uninstalled Orchest.")
+                return
+            raise e
+        time.sleep(1)
 
 
 # TODO:

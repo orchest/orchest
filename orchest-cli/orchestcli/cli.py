@@ -167,6 +167,17 @@ def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
     cmds.install(cloud, fqdn, **common_options)
 
 
+# TODO: Should be improved to remove the provided Orchest Cluster,
+# then the `orchest-controller` to remove the Cluster resources.
+@cli.command(cls=ClickCommonOptionsCmd)
+def uninstall(**common_options) -> None:
+    """Uninstall Orchest.
+
+    Uninstalls Orchest by removing the provided namespace.
+    """
+    cmds.uninstall(**common_options)
+
+
 @click.option(
     "--version",
     default=None,
