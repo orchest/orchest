@@ -33,7 +33,7 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     install_requires=[
-        "click",
+        "click>=8.0.0",  # implies python >= 3.6
         "kubernetes>=21.7.0",
         "requests",  # required by kubernetes as well
     ],
