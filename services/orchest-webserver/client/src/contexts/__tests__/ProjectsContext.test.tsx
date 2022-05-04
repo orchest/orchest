@@ -58,7 +58,7 @@ describe("useProjectsContext", () => {
     resetMock();
     rerender();
 
-    // Before each case, `mockData.project1Uuid` should be loaded
+    // Before each case, load `mockData.project1Uuid` and `mockData.project1Pipelines`
 
     expect(result.current.state.projectUuid).toEqual(undefined);
     expect(result.current.state.pipelines).toEqual(undefined);
@@ -69,28 +69,27 @@ describe("useProjectsContext", () => {
     act(() => {
       result.current.dispatch({
         type: "SET_PROJECTS",
-        payload: [
-          mockProjects.get(mockData.project1Uuid).project,
-          mockProjects.get(mockData.project2Uuid).project,
-        ],
+        payload: Object.values(mockProjects.getAll()).map(
+          (collection) => collection.project
+        ),
       });
       result.current.dispatch({
         type: "SET_PROJECT",
         payload: mockData.project1Uuid,
       });
+      act(() => {
+        result.current.dispatch({
+          type: "SET_PIPELINES",
+          payload: mockData.project1Pipelines,
+        });
+      });
     });
 
-    // First render
-
     expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
-    expect(result.current.state.pipelines).toEqual(undefined);
-    expect(result.current.state.pipeline).toEqual(undefined);
-
-    await waitForNextUpdate();
-
     expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
-
-    expect(result.current.state.pipeline).toEqual(undefined);
+    expect(result.current.state.pipeline).toEqual(
+      mockData.project1Pipelines[0]
+    );
   });
 
   afterEach(() => {
@@ -110,29 +109,10 @@ describe("useProjectsContext", () => {
     expect(result.current.state.pipeline).toEqual(undefined);
   });
 
-  it("should refetch pipelines when changing project uuid", async () => {
-    act(() => {
-      result.current.dispatch({
-        type: "SET_PROJECT",
-        payload: mockData.project2Uuid,
-      });
-    });
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project2Uuid);
-    expect(result.current.state.pipelines).toEqual(undefined);
-    expect(result.current.state.pipeline).toEqual(undefined);
-
-    // await the async fetch update
-    await waitForNextUpdate();
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project2Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project2Pipelines);
-    expect(result.current.state.pipeline).toEqual(undefined);
-  });
-
   it("should be able to switch pipeline by uuid", async () => {
     const pipeline = mockData.project1Pipelines[1];
     const pipelineUuid = pipeline.uuid;
+
     act(() => {
       result.current.dispatch({
         type: "UPDATE_PIPELINE",

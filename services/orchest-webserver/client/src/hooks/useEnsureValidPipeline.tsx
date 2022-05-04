@@ -1,6 +1,7 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useAutoFetchPipelines } from "@/contexts/useAutoFetchPipelines";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import Box from "@mui/material/Box";
@@ -22,6 +23,9 @@ export const useEnsureValidPipeline = () => {
     state: { pipelines, pipeline, hasLoadedPipelinesInPipelineEditor },
     dispatch,
   } = useProjectsContext();
+
+  useAutoFetchPipelines();
+
   const {
     navigateTo,
     projectUuid: projectUuidFromRoute,
