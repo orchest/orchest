@@ -18,7 +18,7 @@ type ServerConfig struct {
 
 func NewDefaultServerConfig() ServerConfig {
 	return ServerConfig{
-		Endpoint: ":5000",
+		Endpoint: ":80",
 	}
 }
 
