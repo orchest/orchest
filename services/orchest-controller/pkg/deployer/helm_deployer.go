@@ -43,7 +43,7 @@ func (d *HelmDeployer) InstallIfChanged(ctx context.Context, namespace string,
 		WithName(d.name).
 		WithNamespace(namespace).
 		WithCreateNamespace().
-		WithAtomic().WithTimeout(time.Second * 1800)
+		WithAtomic().WithTimeout(time.Second * 180)
 
 	if d.valuesPath != "" {
 		args.WithValuesFile(d.valuesPath)
