@@ -662,7 +662,7 @@ func (controller *OrchestClusterController) updatePhase(ctx context.Context,
 	namespace, name string,
 	phase orchestv1alpha1.OrchestClusterPhase, reason string) error {
 
-	orchest, err := controller.ocLister.OrchestClusters(namespace).Get(name)
+	orchest, err := controller.oClient.OrchestV1alpha1().OrchestClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			klog.V(2).Info("OrchestCluster %s resource not found.", name)
@@ -673,7 +673,7 @@ func (controller *OrchestClusterController) updatePhase(ctx context.Context,
 	}
 
 	if orchest.Status != nil && orchest.Status.Phase == phase {
-		orchest.Status.LastHeartbeatTime = metav1.NewTime(time.Now())
+		return nil
 	} else {
 		orchest.Status = &orchestv1alpha1.OrchestClusterStatus{
 			Phase:             phase,
@@ -699,7 +699,7 @@ func (controller *OrchestClusterController) updateCondition(ctx context.Context,
 	namespace, name string,
 	event orchestv1alpha1.OrchestClusterEvent) error {
 
-	orchest, err := controller.ocLister.OrchestClusters(namespace).Get(name)
+	orchest, err := controller.oClient.OrchestV1alpha1().OrchestClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			klog.V(2).Info("OrchestCluster %s resource not found.", name)
