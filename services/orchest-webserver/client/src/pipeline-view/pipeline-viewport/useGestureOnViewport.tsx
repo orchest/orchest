@@ -25,7 +25,7 @@ const isTrachpad = (event: WheelEvent) => {
  * All the gesture events for PipelineEditor should be implemented in this hook.
  */
 export const useGestureOnViewport = (
-  ref: React.MutableRefObject<HTMLDivElement>,
+  ref: React.MutableRefObject<HTMLDivElement | null>,
   pipelineSetHolderOrigin: (newOrigin: [number, number]) => void
 ) => {
   const {

@@ -52,7 +52,7 @@ def register_schema(api: Namespace) -> Namespace:
 
 def update_status_db(
     status_update: Dict[str, str], model: Model, filter_by: Dict[str, str]
-) -> None:
+) -> bool:
     """Updates the status attribute of particular entry in the database.
 
     An entity that has already reached an end state, i.e. FAILURE,

@@ -8,6 +8,7 @@ from app.apis.namespace_environments import api as ns_envs
 from app.apis.namespace_info import api as ns_info
 from app.apis.namespace_jobs import api as ns_jobs
 from app.apis.namespace_jupyter_image_builds import api as ns_jupyter_image_builds
+from app.apis.namespace_notifications import api as ns_notifications
 from app.apis.namespace_pipelines import api as ns_pipelines
 from app.apis.namespace_projects import api as ns_projects
 from app.apis.namespace_runs import api as ns_runs
@@ -31,6 +32,7 @@ api.add_namespace(ns_envs)
 api.add_namespace(ns_info)
 api.add_namespace(ns_jobs)
 api.add_namespace(ns_jupyter_image_builds)
+api.add_namespace(ns_notifications)
 api.add_namespace(ns_pipelines)
 api.add_namespace(ns_projects)
 api.add_namespace(ns_runs)
