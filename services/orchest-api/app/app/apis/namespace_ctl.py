@@ -1,5 +1,4 @@
 """API endpoints for unspecified orchest-api level information."""
-import secrets
 import uuid
 
 import yaml
@@ -9,7 +8,6 @@ from orchestcli import cmds
 
 from _orchest.internals import config as _config
 from app import schema, utils
-from app.connections import k8s_core_api
 from config import CONFIG_CLASS
 
 ns = Namespace("ctl", description="Orchest-api internal control.")
