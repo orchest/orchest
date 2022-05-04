@@ -121,6 +121,6 @@ Error: Multiple head revisions
 
 **Context**
     Alembic creates revision files to do migrations. When two different branches have done schema
-    migrations than the head will diverge, similar to git now having two different branches which
+    migrations then the head will diverge, similar to git now having two different branches which
     point to different commits. Once these branches get merged, the alembic revision heads need to
     be merged as well.

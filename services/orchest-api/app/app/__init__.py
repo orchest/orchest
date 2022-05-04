@@ -173,6 +173,15 @@ def create_required_directories() -> None:
         meaning that new directories can be added but no old directories
         can be (re)moved.
 
+        Moreover, the function is invoked whenever the Flask app is
+        started. To make sure that after updating the Flask app is still
+        able to run correctly the directories need to be in the places
+        it expects. Since a user could be updating from any older
+        version we would have to support migration paths for all.
+        Alternatively, we can stick to not introduce breaking changes
+        and keep supporting old directory structures (whilst still
+        adding new ones).
+
     """
     for path in [
         _config.USERDIR_DATA,
