@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orchest-controller
+  namespace: orchest
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /controller
+            pathType: Prefix
+            backend:
+              service:
+                name: orchest-controller
+                port:
+                  number: 80
