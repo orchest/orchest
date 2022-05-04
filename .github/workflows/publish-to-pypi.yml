@@ -1,4 +1,4 @@
-name: Publish SDK to PyPi
+name: Publish SDK & CLI to PyPi
 
 # Whenever Orchest is released, also publish the Orchest SDK.
 on:
@@ -28,5 +28,11 @@ jobs:
       - name: Upload SDK
         run: |
           cd orchest-sdk/python
+          python setup.py sdist
+          twine upload dist/* --non-interactive --skip-existing
+
+      - name: Upload CLI
+        run: |
+          cd orchest-cli
           python setup.py sdist
           twine upload dist/* --non-interactive --skip-existing
