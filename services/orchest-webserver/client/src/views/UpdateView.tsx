@@ -44,7 +44,7 @@ const UpdateView: React.FC = () => {
         console.log("Starting update.");
 
         try {
-          cancelableFetch<{}>(
+          cancelableFetch(
             "/async/start-update",
             { method: "POST" },
             false
@@ -52,7 +52,7 @@ const UpdateView: React.FC = () => {
             setState((prevState) => ({
               ...prevState,
             }));
-            console.log("Update started, polling update-sidecar.");
+            console.log("Update started, polling controller.");
 
             // TODO: hardcoded namespace and cluster name values.
             makeCancelable(
@@ -65,7 +65,7 @@ const UpdateView: React.FC = () => {
               })
               .catch((retries) => {
                 console.error(
-                  "Update sidecar heartbeat checking timed out after " +
+                  "Controller heartbeat checking timed out after " +
                     retries +
                     " retries."
                 );
@@ -88,11 +88,11 @@ const UpdateView: React.FC = () => {
   };
 
   useInterval(() => {
-    cancelableFetch<{ updating: boolean; update_output: any }>(
+    cancelableFetch<{ state: string; lastHeartbeatTime: string }>(
       `/namespaces/orchest/clusters/cluster-1/status`
     )
       .then((json) => {
-        if (json.updating === false) {
+        if (json.state === "Running") {
           setState((prevState) => ({
             ...prevState,
             updating: false,
@@ -101,7 +101,7 @@ const UpdateView: React.FC = () => {
         }
         setState((prevState) => ({
           ...prevState,
-          updateOutput: json.update_output,
+          updateOutput: "Updated the cluster",
         }));
       })
       .catch((e) => {
