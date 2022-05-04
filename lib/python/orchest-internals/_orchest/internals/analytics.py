@@ -4,7 +4,6 @@ import copy
 import logging
 import os
 import time
-import uuid
 from enum import Enum
 from typing import Optional
 
@@ -155,7 +154,12 @@ def send_event(
         }
 
     Args:
-        app: The Flask application that received the event.
+        app: The Flask application that received the event. The app is
+            expected to be have been initialized and to contain the
+            following: TELEMETRY_UUID, MAX_JOB_RUNS_PARALLELISM,
+            MAX_INTERACTIVE_RUNS_PARALLELISM. TODO: can we do away with
+            passing the flask app to this module?
+
         event: The event to send.
         event_properties: Any information that describes the event. This
             information will be anonymized and sent to the telemetry
@@ -168,6 +172,10 @@ def send_event(
     """
     if app.config["TELEMETRY_DISABLED"]:
         return False
+
+    telemetry_uuid = app.config.get("TELEMETRY_UUID")
+    if telemetry_uuid is None:
+        app.logger.error("No telemetry uuid found, won't send telemetry event.")
 
     if not _posthog_initialized:
         _initialize_posthog()
@@ -192,7 +200,6 @@ def send_event(
     _add_app_properties(event_data, app)
     _add_system_properties(event_data)
 
-    telemetry_uuid = _get_telemetry_uuid(app)
     try:
         _send_event(telemetry_uuid, event.value, event_data)
     except AnalyticsServiceError:
@@ -214,7 +221,7 @@ def _send_event(telemetry_uuid: str, event_name: str, event_data: dict) -> None:
 
 def _add_app_properties(data: dict, app: Flask) -> None:
     data["app_properties"] = {
-        "orchest_version": app.config.get("ORCHEST_REPO_TAG"),
+        "orchest_version": _config.ORCHEST_VERSION,
         "dev": _config.FLASK_ENV == "development",
         "cloud": _config.CLOUD,
         "max_interactive_runs_parallelism": app.config.get(
@@ -229,16 +236,6 @@ def _add_system_properties(data: dict) -> None:
         "host_os": os.environ.get("HOST_OS"),
         "gpu_enabled_instance": _config.GPU_ENABLED_INSTANCE,
     }
-
-
-def _get_telemetry_uuid(app: Flask) -> str:
-    telemetry_uuid = app.config.get("TELEMETRY_UUID")
-
-    if telemetry_uuid is None:
-        telemetry_uuid = str(uuid.uuid4())
-        app.config["TELEMETRY_UUID"] = telemetry_uuid
-
-    return telemetry_uuid
 
 
 class _Anonymizer:
