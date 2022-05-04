@@ -1,7 +1,7 @@
 [flake8]
 exclude =
-    jupyter_server_config.py,
-    services/orchest-api/app/migrations/versions
+    jupyter_server_config.py
+    services/orchest-api/app/migrations/versions/*.py
 
 ignore =
     # Space before :
