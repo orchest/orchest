@@ -3,7 +3,6 @@ import collections
 import copy
 import logging
 import os
-import time
 from enum import Enum
 from typing import Optional
 
@@ -108,34 +107,6 @@ def _initialize_posthog() -> None:
     posthog.host = _config.POSTHOG_HOST
     global _posthog_initialized
     _posthog_initialized = True
-
-
-# NOTE: You might actually want to use the concurrent safe wrapper
-# `Scheduler.handle_telemetry_heartbeat_signal` in ../core/scheduler.py
-# instead.
-def send_heartbeat_signal(app: Flask) -> None:
-    """Sends a heartbeat signal to the telemetry service.
-
-    A user is considered to be active if the user has triggered any
-    webserver logs in the last half of the `TELEMETRY_INTERVAL`.
-
-    """
-    # Value of None indicates that the user's activity could not be
-    # determined.
-    active = None
-    try:
-        t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
-    except OSError:
-        app.logger.error(
-            "Analytics heartbeat failed to identify whether the user is active.",
-            exc_info=True,
-        )
-    else:
-        diff_minutes = (time.time() - t) / 60
-        active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
-
-    send_event(app, Event.HEARTBEAT_TRIGGER, {"active": active})
-    app.logger.debug(f"Successfully sent analytics event '{Event.HEARTBEAT_TRIGGER}'.")
 
 
 def send_event(
