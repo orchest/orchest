@@ -28,6 +28,15 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 
 	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.CeleryWorker.Env)
 
+	/*
+				        - name: tls-secret
+		          secret:
+		            secretName: registry-tls-secret
+		            items:
+		              - key: ca.crt
+		                path: additional-ca-cert-bundle.crt
+	*/
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,
@@ -44,6 +53,20 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 						},
 					},
 				},
+				{
+					Name: "tls-secret",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: "registry-tls-secret",
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "ca.crt",
+									Path: "additional-ca-cert-bundle.crt",
+								},
+							},
+						},
+					},
+				},
 			},
 			Containers: []corev1.Container{
 				{
@@ -55,12 +78,17 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 							Name:      userDirName,
 							MountPath: userdirMountPath,
 						},
+						{
+							Name:      "tls-secret",
+							MountPath: "/usr/lib/ssl/certs/additional-ca-cert-bundle.crt",
+							SubPath:   "additional-ca-cert-bundle.crt",
+							ReadOnly:  true,
+						},
 					},
 				},
 			},
 		},
 	}
-
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metadata,
 		Spec: appsv1.DeploymentSpec{

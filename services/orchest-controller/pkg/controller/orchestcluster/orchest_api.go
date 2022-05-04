@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -60,6 +61,20 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 						},
 					},
 				},
+				{
+					Name: "tls-secret",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: "registry-tls-secret",
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "ca.crt",
+									Path: "additional-ca-cert-bundle.crt",
+								},
+							},
+						},
+					},
+				},
 			},
 			Containers: []corev1.Container{
 				{
@@ -76,6 +91,25 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 							Name:      userDirName,
 							MountPath: userdirMountPath,
 						},
+						{
+							Name:      "tls-secret",
+							MountPath: "/usr/lib/ssl/certs/additional-ca-cert-bundle.crt",
+							SubPath:   "additional-ca-cert-bundle.crt",
+							ReadOnly:  true,
+						},
+					},
+					ReadinessProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							HTTPGet: &corev1.HTTPGetAction{
+								Path:   "/api",
+								Port:   intstr.FromInt(80),
+								Scheme: corev1.URISchemeHTTP,
+							},
+						},
+						PeriodSeconds:    10,
+						TimeoutSeconds:   2,
+						SuccessThreshold: 1,
+						FailureThreshold: 5,
 					},
 				},
 			},
