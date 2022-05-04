@@ -1,21 +1,22 @@
 // @ts-check
+import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { siteMap, withinProjectPaths } from "@/routingConfig";
 import type { Project } from "@/types";
+import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
 import InputBase from "@mui/material/InputBase";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
-import {
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { Code } from "./common/Code";
 
 const CustomInput = styled(InputBase)(({ theme }) => ({
   "&.Mui-focused .MuiInputBase-input": {
@@ -33,12 +34,19 @@ const CustomInput = styled(InputBase)(({ theme }) => ({
 }));
 
 export const ProjectSelector = () => {
+  const { setAlert } = useAppContext();
   const { state, dispatch } = useProjectsContext();
-  const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
+  const {
+    navigateTo,
+    projectUuid: projectUuidFromRoute,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+  } = useCustomRoute();
   // if current view only involves ONE project, ProjectSelector would appear
   const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
 
-  const promiseManager = React.useMemo(() => new PromiseManager(), []);
+  const { cancelableFetch } = useCancelableFetch();
 
   const onChangeProject = (uuid: string) => {
     if (uuid) {
@@ -46,7 +54,9 @@ export const ProjectSelector = () => {
         ? matchWithinProjectPaths.root || matchWithinProjectPaths.path
         : siteMap.pipeline.path;
 
-      navigateTo(path, { query: { projectUuid: uuid } });
+      navigateTo(path, {
+        query: { projectUuid: uuid, pipelineUuid, jobUuid, runUuid },
+      });
     }
   };
 
@@ -54,27 +64,12 @@ export const ProjectSelector = () => {
   const validateProjectUuid = (
     uuidToValidate: string | undefined | null,
     projects: Project[]
-  ): string | null | undefined => {
-    let isValid = uuidToValidate
+  ): uuidToValidate is string => {
+    if (!hasValue(uuidToValidate)) return false;
+
+    return uuidToValidate
       ? projects.some((project) => project.uuid == uuidToValidate)
       : false;
-
-    return isValid ? uuidToValidate : undefined;
-  };
-
-  const fetchProjects = () => {
-    let fetchProjectsPromise = makeCancelable(
-      makeRequest("GET", "/async/projects?skip_discovery=true"),
-      promiseManager
-    );
-
-    fetchProjectsPromise.promise
-      .then((response) => {
-        let fetchedProjects: Project[] = JSON.parse(response);
-
-        dispatch({ type: "SET_PROJECTS", payload: fetchedProjects });
-      })
-      .catch((error) => console.log(error));
   };
 
   // sync state.projectUuid and the route param projectUuid
@@ -87,32 +82,54 @@ export const ProjectSelector = () => {
   React.useEffect(() => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
     // in case that project is deleted
-    if (matchWithinProjectPaths) fetchProjects();
-
-    return () => {
-      promiseManager.cancelCancelablePromises();
-    };
-  }, [matchWithinProjectPaths]);
+    if (matchWithinProjectPaths) {
+      cancelableFetch<Project[]>("/async/projects?skip_discovery=true")
+        .then((fetchedProjects) => {
+          dispatch({ type: "SET_PROJECTS", payload: fetchedProjects });
+        })
+        .catch((error) => console.log(error));
+    }
+  }, [matchWithinProjectPaths, cancelableFetch, dispatch]);
 
   React.useEffect(() => {
     if (state.hasLoadedProjects && matchWithinProjectPaths) {
-      const invalidProjectUuid = !validateProjectUuid(
-        projectUuidFromRoute,
-        state.projects
-      );
+      const validProjectUuid =
+        state.projects.length > 0 &&
+        projectUuidFromRoute &&
+        validateProjectUuid(projectUuidFromRoute, state.projects);
 
-      if (invalidProjectUuid) {
-        if (state.projects.length === 0) return;
-        // Select the first one from the given projects
-        let newProjectUuid = state.projects[0].uuid;
-        // navigate ONLY if user is at the project root and
-        // we're switching projects (because of detecting an
-        // invalidProjectUuid)
+      if (projectUuidFromRoute && !validProjectUuid) {
+        setAlert(
+          "Project not found",
+          <Stack direction="column" spacing={2}>
+            <Box>
+              {`Couldn't find project `}
+              <Code>{projectUuidFromRoute}</Code>
+              {` . The project might have been deleted, or you might have had a wrong URL.`}
+            </Box>
+            <Box>Will try to load another existing project.</Box>
+          </Stack>
+        );
+      }
+
+      const newProjectUuid = validProjectUuid
+        ? projectUuidFromRoute
+        : state.projects[0]?.uuid;
+
+      // Always update state.projectuuid.
+      // This is the only place that set a valid projectUuid
+      if (newProjectUuid) {
         dispatch({ type: "SET_PROJECT", payload: newProjectUuid });
+      }
+
+      // Only change project if newProjectUuid is different from projectUuidFromRoute
+      // if newProjectUuid is undefined, it means that the page is being loaded for the first time,
+      // no need to change project.
+      if (newProjectUuid && newProjectUuid !== projectUuidFromRoute) {
         onChangeProject(newProjectUuid);
       }
     }
-  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects]);
+  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects, setAlert]);
 
   if (
     !matchWithinProjectPaths ||

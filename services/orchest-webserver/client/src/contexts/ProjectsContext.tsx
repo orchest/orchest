@@ -125,13 +125,29 @@ const reducer = (
       return { ...state, pipelineSaveStatus: action.payload };
     case "SET_PIPELINE_IS_READONLY":
       return { ...state, pipelineIsReadOnly: action.payload };
-    case "SET_PROJECT":
+    case "SET_PROJECT": {
+      if (!action.payload) {
+        return {
+          ...state,
+          projectUuid: undefined,
+          pipelines: undefined,
+          pipeline: undefined,
+        };
+      }
+      // Ensure that projectUuid is valid in the state.
+      // So that we could show proper warnings in case user provides
+      // an invalid projectUuid from the route args.
+      const foundProject = state.projects?.find(
+        (project) => project.uuid === action.payload
+      );
+      if (!foundProject) return state;
       return {
         ...state,
-        projectUuid: action.payload,
+        projectUuid: foundProject.uuid,
         pipelines: undefined,
         pipeline: undefined,
       };
+    }
     case "SET_PROJECTS":
       return { ...state, projects: action.payload, hasLoadedProjects: true };
     default: {

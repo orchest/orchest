@@ -1,3 +1,4 @@
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   BuildRequest,
@@ -6,9 +7,7 @@ import {
   OrchestServerConfig,
   OrchestUserConfig,
 } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { IntercomProvider } from "react-use-intercom";
 
 /** Utility functions
  =====================================================
@@ -358,6 +357,7 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
 export const AppContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
   const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+  const { cancelableFetch } = useCancelableFetch();
 
   /**
    * =========================== side effects
@@ -368,7 +368,7 @@ export const AppContextProvider: React.FC = ({ children }) => {
   React.useEffect(() => {
     const fetchServerConfig = async () => {
       try {
-        const serverConfig = await fetcher<OrchestServerConfig>(
+        const serverConfig = await cancelableFetch<OrchestServerConfig>(
           "/async/server-config"
         );
         dispatch({ type: "SET_SERVER_CONFIG", payload: serverConfig });
@@ -439,22 +439,20 @@ export const AppContextProvider: React.FC = ({ children }) => {
   );
 
   return (
-    <IntercomProvider appId={state.config?.INTERCOM_APP_ID || ""}>
-      <Context.Provider
-        value={{
-          state,
-          dispatch,
-          setAlert,
-          setConfirm,
-          requestBuild,
-          deletePromptMessage,
-          setAsSaved,
-          isDrawerOpen,
-          setIsDrawerOpen,
-        }}
-      >
-        {state.isLoaded ? children : null}
-      </Context.Provider>
-    </IntercomProvider>
+    <Context.Provider
+      value={{
+        state,
+        dispatch,
+        setAlert,
+        setConfirm,
+        requestBuild,
+        deletePromptMessage,
+        setAsSaved,
+        isDrawerOpen,
+        setIsDrawerOpen,
+      }}
+    >
+      {state.isLoaded ? children : null}
+    </Context.Provider>
   );
 };

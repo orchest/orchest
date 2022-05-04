@@ -20,8 +20,8 @@ export const fetchPipelineJson = (
     | {
         pipelineUuid: string | undefined;
         projectUuid: string | undefined;
-        jobUuid: string | undefined;
-        runUuid: string | undefined;
+        jobUuid?: string | undefined;
+        runUuid?: string | undefined;
       }
 ) => {
   const url =

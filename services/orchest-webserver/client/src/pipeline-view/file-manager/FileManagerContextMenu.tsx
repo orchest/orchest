@@ -9,7 +9,12 @@ import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
-import { cleanFilePath, queryArgs, unpackCombinedPath } from "./common";
+import {
+  cleanFilePath,
+  FILE_MANAGEMENT_ENDPOINT,
+  queryArgs,
+  unpackCombinedPath,
+} from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export type ContextMenuType = "tree" | "background";
@@ -58,7 +63,7 @@ export const FileManagerContextMenu: React.FC<{
     let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
 
     await fetch(
-      `/async/file-management/duplicate?${queryArgs({
+      `${FILE_MANAGEMENT_ENDPOINT}/duplicate?${queryArgs({
         path,
         root,
         project_uuid: projectUuid,

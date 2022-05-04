@@ -15,12 +15,12 @@ import React from "react";
 
 type CancellableMessage = Extract<PromptMessage, Confirm>;
 type CancellableType = Extract<PromptMessageType, "confirm">;
-const cancellableTypes: CancellableType[] = ["confirm"];
-// use type guard to ensure the promptMessage is cancellable
+const cancelableTypes: CancellableType[] = ["confirm"];
+// use type guard to ensure the promptMessage is cancelable
 const checkCancellable = (
   message: PromptMessage
 ): message is CancellableMessage => {
-  return typedIncludes(cancellableTypes, message.type);
+  return typedIncludes(cancelableTypes, message.type);
 };
 
 // If the trigger of the Dialog is also a keydown, setting the default prop `autoFocus` to `true` will also trigger the button click.
@@ -86,14 +86,14 @@ export const SystemDialog: React.FC = () => {
 
   // handles when user click away the dialog
   const dialogOnClose = () => {
-    // if the prompt message is cancellable, we cancel it and do nothing
+    // if the prompt message is cancelable, we cancel it and do nothing
     if (isCancellable) {
       cancel();
       return;
     }
     // below we handle click-away behavior case by case
     // ==============================================================================
-    // alert is not cancellable, when user click away, it's seen as "confirm"
+    // alert is not cancelable, when user click away, it's seen as "confirm"
     if (promptMessage.type === "alert") confirm();
   };
 

@@ -13,7 +13,7 @@ const JobsView: React.FC = () => {
 
   return (
     <Layout>
-      <ProjectBasedView projectUuid={projectUuid}>
+      <ProjectBasedView>
         <JobList projectUuid={projectUuid}></JobList>
       </ProjectBasedView>
     </Layout>
