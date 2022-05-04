@@ -14,15 +14,14 @@ export const useFetchProjects = (params?: {
     ? { shouldFetch: true, ...params }
     : { shouldFetch: true };
 
+  const cacheKey = `/async/projects${toQueryString(restParams)}`;
+
   const {
     data,
     mutate,
     error: fetchProjectsError,
     isValidating: isFetchingProjects,
-  } = useSWR<Project[]>(
-    shouldFetch ? `/async/projects${toQueryString(restParams)}` : null,
-    fetcher
-  );
+  } = useSWR<Project[]>(shouldFetch ? cacheKey : null, fetcher);
 
   const setProjects = React.useCallback(
     (data?: Project[] | Promise<Project[]> | MutatorCallback<Project[]>) =>

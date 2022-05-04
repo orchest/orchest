@@ -5,7 +5,7 @@ import React from "react";
 export const useFetchProjectsForSelector = (shouldFetch: boolean) => {
   const { state, dispatch } = useProjectsContext();
 
-  const { projects } = useFetchProjects({
+  const { projects, isFetchingProjects } = useFetchProjects({
     // only need to fetch if `state.projects` is undefined.
     shouldFetch: shouldFetch && !state.hasLoadedProjects,
     skipDiscovery: true,
@@ -14,11 +14,11 @@ export const useFetchProjectsForSelector = (shouldFetch: boolean) => {
   React.useEffect(() => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
     // in case that project is deleted
-    if (projects) dispatch({ type: "SET_PROJECTS", payload: projects });
-  }, [projects, dispatch]);
+    if (projects && !isFetchingProjects)
+      // Only use `useFetchProjects` to fetch data, then immediately pass it to ProjectsContext.
+      dispatch({ type: "SET_PROJECTS", payload: projects });
+  }, [projects, isFetchingProjects, dispatch]);
 
   // Note that we pass along `state.projects` instead of `projects` from useFetchProjects.
-  // `state.projects` should be the single source of truth,
-  // as `projects` from useFetchProjects is a transitionary value from the fetcher.
   return state.projects;
 };
