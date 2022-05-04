@@ -57,7 +57,7 @@ const StepDetailsComponent: React.FC<{
   } = usePipelineEditorContext();
 
   const step = eventVars.steps[eventVars.openedStep || ""];
-  const subViewIndex = eventVars.subViewIndex
+  const subViewIndex = eventVars.subViewIndex;
 
   const connections = React.useMemo(() => {
     if (!step) return {};
