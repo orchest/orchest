@@ -84,11 +84,7 @@ const validateImportUrl = (
   if (!validURL(importUrl))
     return {
       error: true,
-      helperText: (
-        <HelperText>
-          Please make sure you enter a valid HTTPS git-repo URL.
-        </HelperText>
-      ),
+      helperText: <HelperText>Not a valid HTTPS git repository URL</HelperText>,
     };
 
   // if the URL is not from Orchest, warn the user about it.
