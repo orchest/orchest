@@ -465,7 +465,10 @@ export const ImportDialog: React.FC<{
                     fullWidth
                     autoFocus={hideUploadOption}
                     placeholder="Git repository URL"
-                    onBlur={() => setShouldShowImportUrlValidation(true)}
+                    onBlur={() => {
+                      if (importUrl.length > 0)
+                        setShouldShowImportUrlValidation(true);
+                    }}
                     {...(shouldShowImportUrlValidation
                       ? importUrlValidation
                       : {
@@ -475,7 +478,11 @@ export const ImportDialog: React.FC<{
                             importResult?.status === "FAILURE" ? "" : " ",
                         })}
                     value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value.length === 0)
+                        setShouldShowImportUrlValidation(false);
+                      setImportUrl(e.target.value);
+                    }}
                     data-test-id="project-url-textfield"
                   />
                 </form>
