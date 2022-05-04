@@ -329,11 +329,16 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 	error) {
 
 	// Check if the cleanup still in progress
-	_, err := r.controller.kClient.CoreV1().Pods(r.namespace).Get(ctx, orchestApiCleanup, metav1.GetOptions{})
+	pod, err := r.controller.kClient.CoreV1().Pods(r.namespace).Get(ctx, orchestApiCleanup, metav1.GetOptions{})
 	if err == nil {
-		err = r.waitForCleanupPod(ctx, r.namespace, orchestApiCleanup)
-		if err != nil {
-			return nil, err
+		generation, ok := pod.Labels[ControllerRevisionHashLabelKey]
+
+		// This is our cleanup pod, wait for it
+		if ok && generation == fmt.Sprint(orchest.Generation) {
+			err = r.waitForCleanupPod(ctx, r.namespace, orchestApiCleanup)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		err = r.getKClient().CoreV1().Pods(r.namespace).Delete(ctx, orchestApiCleanup, metav1.DeleteOptions{})
