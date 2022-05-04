@@ -6,9 +6,9 @@ import * as React from "react";
 import { SWRConfig } from "swr";
 import { useProjectSelector } from "../useProjectSelector";
 
-const wrapper = ({ children }) => {
+const wrapper = ({ children = null }) => {
   return (
-    <SWRConfig value={{ revalidateOnMount: true, provider: () => new Map() }}>
+    <SWRConfig value={{ provider: () => new Map() }}>
       <ProjectsContextProvider>{children}</ProjectsContextProvider>;
     </SWRConfig>
   );
@@ -43,16 +43,45 @@ const generateMockProjects = (totalProjectCount = 7) => {
 };
 
 describe("useProjectSelector", () => {
+  const { result, waitForNextUpdate, rerender, unmount } = renderHook<
+    {
+      children?: null;
+      projectUuidFromRoute: string | undefined;
+      targetRoutePath: string | undefined;
+    },
+    {
+      validProjectUuid: string | undefined;
+      projects: Project[];
+      shouldShowInvalidProjectUuidAlert: boolean;
+      onChangeProject: (uuid: string) => void;
+    }
+  >(
+    ({ projectUuidFromRoute, targetRoutePath }) =>
+      useTestHook(projectUuidFromRoute, targetRoutePath),
+    {
+      wrapper,
+      initialProps: {
+        projectUuidFromRoute: undefined,
+        targetRoutePath: undefined,
+      },
+    }
+  );
   beforeEach(async () => {
     mockProjects.reset();
+    unmount();
+    rerender({
+      projectUuidFromRoute: undefined,
+      targetRoutePath: undefined,
+    });
   });
   afterEach(() => {
     jest.clearAllMocks();
   });
 
   it("should do nothing if params are undefined", async () => {
-    const { result } = renderHook(() => useTestHook(undefined, undefined), {
-      wrapper,
+    rerender({
+      projectUuidFromRoute: undefined,
+      targetRoutePath: undefined,
     });
 
     expect(result.current.projects).toEqual([]);
@@ -65,10 +94,10 @@ describe("useProjectSelector", () => {
     const projects = generateMockProjects();
     const mockProjectUuid = projects[0].uuid;
 
-    const { result, waitForNextUpdate } = renderHook(
-      () => useTestHook(undefined, "/mock-path"),
-      { wrapper }
-    );
+    rerender({
+      projectUuidFromRoute: undefined,
+      targetRoutePath: "/mock-path",
+    });
 
     await waitForNextUpdate();
 
@@ -86,10 +115,10 @@ describe("useProjectSelector", () => {
     const projects = generateMockProjects();
     const mockProjectUuid = projects[0].uuid;
 
-    const { result, waitForNextUpdate } = renderHook(
-      () => useTestHook("invalid-project-uuid", "/mock-path"),
-      { wrapper }
-    );
+    rerender({
+      projectUuidFromRoute: "invalid-project-uuid",
+      targetRoutePath: "/mock-path",
+    });
 
     await waitForNextUpdate();
 
@@ -108,10 +137,10 @@ describe("useProjectSelector", () => {
     // Pick any project except the first one, because the first one is the default if projectUuid is not given.
     const mockProjectUuid = projects[3].uuid;
 
-    const { result, waitForNextUpdate } = renderHook(
-      () => useTestHook(mockProjectUuid, "/mock-path"),
-      { wrapper }
-    );
+    rerender({
+      projectUuidFromRoute: mockProjectUuid,
+      targetRoutePath: "/mock-path",
+    });
 
     await waitForNextUpdate();
 
@@ -121,15 +150,15 @@ describe("useProjectSelector", () => {
     expect(navigateToMock.mock.calls.length).toBe(0);
   });
 
-  it("should trigger navigation when attempting to change project.", async () => {
+  it("should be able to change project.", async () => {
     const projects = generateMockProjects();
     const mockProjectUuid = projects[3].uuid;
     const targetProjectUuid = projects[5].uuid;
 
-    const { result, waitForNextUpdate } = renderHook(
-      () => useTestHook(mockProjectUuid, "/mock-path"),
-      { wrapper }
-    );
+    rerender({
+      projectUuidFromRoute: mockProjectUuid,
+      targetRoutePath: "/mock-path",
+    });
 
     await waitForNextUpdate();
 
@@ -141,6 +170,20 @@ describe("useProjectSelector", () => {
     result.current.onChangeProject(targetProjectUuid);
 
     expect(navigateToMock.mock.calls.length).toBe(1);
+    expect(navigateToMock.mock.calls[0]).toEqual([
+      targetProjectUuid,
+      "/mock-path",
+    ]);
+
+    rerender({
+      projectUuidFromRoute: targetProjectUuid,
+      targetRoutePath: "/mock-path",
+    });
+
+    expect(result.current.validProjectUuid).toEqual(targetProjectUuid);
+    expect(result.current.projects).toEqual(projects);
+    expect(result.current.shouldShowInvalidProjectUuidAlert).toEqual(false);
+    expect(navigateToMock.mock.calls.length).toEqual(1);
     expect(navigateToMock.mock.calls[0]).toEqual([
       targetProjectUuid,
       "/mock-path",
