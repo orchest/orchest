@@ -1,3 +1,4 @@
+import base64
 import collections
 import copy
 import logging
@@ -99,6 +100,17 @@ class Event(Enum):
             )
 
 
+_posthog_initialized = False
+
+
+def _initialize_posthog() -> None:
+    logger.info("Initializing posthog")
+    posthog.api_key = base64.b64decode(_config.POSTHOG_API_KEY).decode()
+    posthog.host = _config.POSTHOG_HOST
+    global _posthog_initialized
+    _posthog_initialized = True
+
+
 # NOTE: You might actually want to use the concurrent safe wrapper
 # `Scheduler.handle_telemetry_heartbeat_signal` in ../core/scheduler.py
 # instead.
@@ -156,6 +168,9 @@ def send_event(
     """
     if app.config["TELEMETRY_DISABLED"]:
         return False
+
+    if not _posthog_initialized:
+        _initialize_posthog()
 
     if event_properties is None:
         event_data = {"event_properties": {}}
