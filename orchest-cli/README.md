@@ -51,54 +51,8 @@ Deploying a new controller:
   `kubectl -n orchest get orchestclusters` have the expected output (including a `STATUS` column).
   Also then we can get just the status instead of the entire object.
 
-TODO:
-
-- [ ] Check with old CTL whether we have all the functionality we need.
-  - [ ] `uninstall` to delete CR Object and then delete `orchest` namespace? Can also tell users to
-        delete their cluster if they were using it solely for Orchest.
-- [ ] GitHub Action workflow files to publish CLI on release
-- [ ] CLI module docstring explaining architecture, e.g. manag. cmds and appl cmds
-- [x] Structure of CLI code
-- [ ] Installation docs (and how to self-host as you might need nginx reverse-proxy)
-  - [ ] We will recommend to install Orchest on a clean cluster (a non-existing cluster) because
-        it is hard to play well with other software already installed on the cluster, e.g. ingress,
-        argo, etc.
-  - [ ] Open an issue to fix the above point.
-  - [ ] Show usage of CLI and direct yaml apply. The controller will get a service and ingress rule
-        as well.
-- [ ] TODOs in `cli.py`
-- [ ] `update` and `restart` to work in the GUI
-  - [ ] If CLI is invoked inside the `orchest-api` then we need to catch the `SystemExit` error.
-- [ ] PR description to contain how to test `update`. It is as simple as building the minimal set of
-      images twice, but with different tags and try to update to that newer tag.
-- [ ] Seems to be an issue with `dev` mode? The orchest-api doesn't start correctly and thus the
-      webserver also can't query it for the config settings.
-- [ ] Seems like the `cleanup` pod fails?
-- [x] Make sure `cleanup` is invoked on certain actions, e.g. restart/pause.
-- [x] Are ingresses etc. working?
-- [ ] Whenever the CRD is changed, users need to `kubectl apply` its changes. Otherwise the
-      controller might use fields that aren't defined yet. So we need a robust first version of the CRD.
-- [ ] Stay with `update` and not go with `upgrade`
-  - [ ] `update` for CLI to just get CR Object status. Or do we poll from endpoint as well given
-        that the two paths are then the same and it is better for future versions of the CLI?
-- [x] "Deploying Orchest" --> "Deploying Orchest control plane"
-- [ ] Removal of `orchest-ctl` from codebase (and changes to `namespace_ctl.py`)
-- [x] Great CRD
-- [ ] Tests? Could also be as simple as running a type checker for now.
-- [x] `orchest restart` doesn't work when invoked through the `orchest-api` because it requires two
-      CR changes (but no process will be running to invoke the second one).
-- [x] Additional flags / options / file to specify installation
-- [ ] `orchest-controller` needs to be versioned as well instead of "latest"
-  - [ ] `orchest-controller` to contain the right default version. Otherwise it will only ever
-        install the hardcoded `v2022.04.0`
-- [x] Cluster is never put into `Paused` after pausing
-  - [ ] Unpausing (so doing `pause: false`) results in the cluster status being set to `Updating`
-- [ ] I think it would be nice to have a visualization indicating the different state transitions
-      the operator makes. Sort of a state machine.
-  - [ ] Note that the `docker-registry` is managed through Helm and not the `orchest-controller`.
-
 ### Questions
 
 - How about the ingress addon?
 - Do we want to install the `orchest-controller` in a dedicated namespace. Otherwise it could become
-  "impossible" to delete the `orchest` cluster (due to the finalizer on the CRD).
+  "impossible" to delete the `orchest` cluster (due to the finalizer on the CR Object).
