@@ -27,7 +27,6 @@ const UpdateView: React.FC = () => {
     ...prevState,
     updating: false,
     updateOutput: "",
-    token: "",
   }));
   const [updatePollInterval, setUpdatePollInterval] = React.useState<
     number | null
@@ -41,23 +40,24 @@ const UpdateView: React.FC = () => {
         setState({
           updating: true,
           updateOutput: "",
-          token: "",
         });
         console.log("Starting update.");
 
         try {
-          cancelableFetch<{ token: string }>(
+          cancelableFetch<{}>(
             "/async/start-update",
             { method: "POST" },
             false
           ).then((json) => {
             setState((prevState) => ({
               ...prevState,
-              token: json.token,
             }));
             console.log("Update started, polling update-sidecar.");
 
-            makeCancelable(checkHeartbeat("/update-sidecar/heartbeat"))
+            // TODO: hardcoded namespace and cluster name values.
+            makeCancelable(
+              checkHeartbeat("/namespaces/orchest/clusters/cluster-1/status")
+            )
               .then(() => {
                 console.log("Heartbeat successful.");
                 resolve(true);
@@ -89,7 +89,7 @@ const UpdateView: React.FC = () => {
 
   useInterval(() => {
     cancelableFetch<{ updating: boolean; update_output: any }>(
-      `/update-sidecar/update-status?token=${state.token}`
+      `/namespaces/orchest/clusters/cluster-1/status`
     )
       .then((json) => {
         if (json.updating === false) {

@@ -25,22 +25,18 @@ class StartUpdate(Resource):
         description="Update Orchest.",
     )
     def post(self):
-        token = secrets.token_hex(20)
-        update_pod_manifest = _get_update_pod_manifest()
-        sidecar_manifest = _get_update_sidecar_manifest(
-            update_pod_manifest["metadata"]["name"], token
-        )
-        # Create the sidecar first to avoid the risk of the update_pod
-        # shutting down the orchest-api before that happens.
-        k8s_core_api.create_namespaced_pod(_config.ORCHEST_NAMESPACE, sidecar_manifest)
-        k8s_core_api.create_namespaced_pod(
-            _config.ORCHEST_NAMESPACE, update_pod_manifest
-        )
-
-        data = {
-            "token": token,
-        }
-        return data, 201
+        try:
+            cmds.update(
+                version=None,
+                controller_deploy_name="orchest-controller",
+                controller_pod_label_selector="app=orchest-controller",
+                watch_flag=False,
+                namespace="orchest",
+                cluster_name="cluster-1",
+            )
+            return {}, 201
+        except SystemExit:
+            return {"message": "failed to update"}, 500
 
 
 @api.route("/restart")
