@@ -205,11 +205,22 @@ def update(
         In other words, returns whether `new` is a newer version than
         `old`.
 
-        Note:
-            Both `old` and `new` must follow the CalVer versioning
-            scheme, e.g. "v2022.03.8".
+        Raises:
+            ValueError: If `old` or `new` does not follow our CalVer
+                versioning scheme.
 
         """
+        if not _is_calver_version(old):
+            raise ValueError(
+                f"The given version '{old}' does not follow"
+                " CalVer versioning, e.g. 'v2022.02.4'."
+            )
+        elif not _is_calver_version(new):
+            raise ValueError(
+                f"The given version '{new}' does not follow"
+                " CalVer versioning, e.g. 'v2022.02.4'."
+            )
+
         old, new = old[1:], new[1:]
         for o, n in zip(old.split("."), new.split(".")):
             if int(o) > int(n):
@@ -265,13 +276,7 @@ def update(
             sys.exit(1)
     else:
         # Verify user input.
-        try:
-            year, month, patch = version.split(".")
-            if len(year) != 5 or len(month) != 2 or len(patch) == 0:
-                raise
-
-            int(year[1:]), int(month), int(patch)
-        except Exception:
+        if not _is_calver_version(version):
             echo(
                 f"The format of the given version '{version}'"
                 " is incorrect and can't be updated to.",
@@ -1006,3 +1011,21 @@ def _get_orchest_cluster_version(ns: str, cluster_name: str) -> str:
     """
     custom_object = _get_namespaced_custom_object(ns, cluster_name)
     return custom_object["spec"]["orchest"]["version"]  # type: ignore
+
+
+def _is_calver_version(version: str) -> bool:
+    try:
+        year, month, patch = version.split(".")
+        if (
+            not year.startswith("v")
+            or len(year) != 5
+            or len(month) != 2
+            or len(patch) == 0
+        ):
+            raise
+
+        int(year[1:]), int(month), int(patch)
+    except Exception:
+        return False
+
+    return True
