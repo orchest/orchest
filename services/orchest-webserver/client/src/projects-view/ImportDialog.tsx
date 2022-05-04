@@ -430,6 +430,8 @@ export const ImportDialog: React.FC<{
 
   const theme = useTheme();
 
+  const [isHoverDropZone, setIsHoverDropZone] = React.useState(false);
+
   return (
     <Dialog
       open={open}
@@ -510,6 +512,8 @@ export const ImportDialog: React.FC<{
                             alignItems="center"
                             direction="column"
                             spacing={1}
+                            onMouseOver={() => setIsHoverDropZone(true)}
+                            onMouseLeave={() => setIsHoverDropZone(false)}
                             sx={{
                               height: "16vh",
                               border: (theme) =>
@@ -518,12 +522,6 @@ export const ImportDialog: React.FC<{
                                 theme.palette.common.white,
                               borderRadius: (theme) => theme.spacing(0.5),
                               cursor: "pointer",
-                              "&:hover": {
-                                border: (theme) =>
-                                  `2px dashed ${theme.palette.grey[600]}`,
-                                backgroundColor: (theme) =>
-                                  theme.palette.grey[50],
-                              },
                             }}
                             style={
                               isDragActive
@@ -533,6 +531,11 @@ export const ImportDialog: React.FC<{
                                       theme.palette.primary.main,
                                       0.08
                                     ),
+                                  }
+                                : isHoverDropZone
+                                ? {
+                                    border: `2px dashed ${theme.palette.grey[600]}`,
+                                    backgroundColor: theme.palette.grey[50],
                                   }
                                 : {}
                             }
@@ -544,6 +547,8 @@ export const ImportDialog: React.FC<{
                                 color: (theme) =>
                                   isDragActive
                                     ? theme.palette.primary.main
+                                    : isHoverDropZone
+                                    ? theme.palette.grey[600]
                                     : theme.palette.grey[500],
                               }}
                             />
