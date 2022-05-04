@@ -82,4 +82,4 @@ const Routes = () => {
   );
 };
 
-export { siteMap, Routes };
+export { Routes };

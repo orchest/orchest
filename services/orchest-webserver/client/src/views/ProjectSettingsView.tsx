@@ -6,8 +6,7 @@ import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
-import { RouteName } from "@/routingConfig";
+import { RouteName, siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import { toQueryString } from "@/utils/routing";
 import {

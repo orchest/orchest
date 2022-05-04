@@ -1,6 +1,6 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import AddIcon from "@mui/icons-material/Add";
 import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";

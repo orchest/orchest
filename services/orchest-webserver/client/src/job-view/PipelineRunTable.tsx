@@ -7,7 +7,7 @@ import { NoParameterAlert } from "@/components/ParamTree";
 import { StatusInline } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { Pagination, PipelineRun } from "@/types";
 import { toQueryString } from "@/utils/routing";
 import { ellipsis } from "@/utils/styles";

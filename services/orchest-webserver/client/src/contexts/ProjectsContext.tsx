@@ -174,7 +174,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     isFetchingPipelines,
     error,
     fetchPipelines,
-  } = useFetchPipelines({ projectUuid: state.projectUuid });
+  } = useFetchPipelines(state.projectUuid);
 
   const hasPipelinesChanged = useHasChanged(state.pipelines);
 

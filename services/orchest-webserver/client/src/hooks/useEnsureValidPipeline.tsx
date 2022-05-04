@@ -2,7 +2,7 @@ import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";

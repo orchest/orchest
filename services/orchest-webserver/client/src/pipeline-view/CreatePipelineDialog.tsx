@@ -2,7 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { PipelineMetaData } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import { checkGate } from "@/utils/webserver-utils";

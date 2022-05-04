@@ -14,6 +14,10 @@ const wrapper = ({ children = null }) => {
   );
 };
 
+const navigateToMock = jest.fn(
+  (projectUuid: string, path: string | undefined) => undefined
+);
+
 const useTestHook = (
   projectUuidFromRoute: string | undefined,
   targetRoutePath: string | undefined
@@ -26,10 +30,6 @@ const useTestHook = (
 
   return values;
 };
-
-const navigateToMock = jest.fn(
-  (projectUuid: string, path: string | undefined) => undefined
-);
 
 const generateMockProjects = (totalProjectCount = 7) => {
   mockProjects.reset();
@@ -69,10 +69,6 @@ describe("useProjectSelector", () => {
   beforeEach(async () => {
     mockProjects.reset();
     unmount();
-    rerender({
-      projectUuidFromRoute: undefined,
-      targetRoutePath: undefined,
-    });
   });
   afterEach(() => {
     jest.clearAllMocks();

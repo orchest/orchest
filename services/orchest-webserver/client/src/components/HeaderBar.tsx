@@ -3,7 +3,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { cleanFilePath } from "@/pipeline-view/file-manager/common";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";

@@ -77,6 +77,11 @@ const useHistoryListener = <T>({
   }, []);
 };
 
+export type NavigateParams = {
+  query?: Record<string, string | number | boolean | undefined | null>;
+  state?: Record<string, string | number | boolean | undefined | null>;
+};
+
 // these are common use cases that are all over the place
 // if there are specific cases that you need to pass some querystrings or states
 // better make use of useLocationQuery and useLocationState
@@ -109,11 +114,6 @@ const useCustomRoute = () => {
     // stringify the value for all the other cases.
     return !hasValue(value) ? undefined : String(value);
   });
-
-  type NavigateParams = {
-    query?: Record<string, string | number | boolean | undefined | null>;
-    state?: Record<string, string | number | boolean | undefined | null>;
-  };
 
   const navigateTo = React.useCallback(
     (

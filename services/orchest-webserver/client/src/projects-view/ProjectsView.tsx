@@ -13,7 +13,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
 import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
