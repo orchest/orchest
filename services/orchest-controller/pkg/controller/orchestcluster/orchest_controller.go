@@ -329,7 +329,7 @@ func (controller *OrchestClusterController) handleErr(err error, key interface{}
 		controller.queue.Forget(key)
 		return
 	}
-	klog.Warningf("dropping orchest csluter %q out of the queue: %v", key, err)
+	klog.Warningf("dropping orchest cluster %q out of the queue: %v", key, err)
 	controller.queue.Forget(key)
 	utilruntime.HandleError(err)
 }
