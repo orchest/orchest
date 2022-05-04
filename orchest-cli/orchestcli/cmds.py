@@ -379,15 +379,29 @@ def patch(
 
         `patch_obj` is changed in-place.
 
-        Precedence is given to `patch_obj`, i.e. if a key only exists in
-        `patch_obj` then that value is preserved.
-
         Note:
             It is assumed that all lists inside the given objects are
             lists of dictionaries, i.e. list[dict], and those
             dictionaries are of the format::
 
                 {"name": ..., "value", ...}
+
+        Precedence is given to `patch_obj`, i.e. if a dict["name"] entry
+        exists in both the lists of `patch_obj` and `obj` then the
+        dict of `patch_obj` is kept.
+
+        Example:
+            >>> patch = {
+            ...     "key": [{"name": "patch-1", "value": "patch-1"}]
+            ... }
+            >>> obj = {"key": [{"name": "patch-1", "value": "obj-1"}]}
+            >>> convert_to_strategic_merge_patch(patch, obj)
+            >>> patch
+            ... {"key": [{"name": "patch-1", "value": "patch-1"}]}
+
+        More information on what a strategic merge patch is can be found
+        here:
+            https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch
 
         """
         for key, spec in patch_obj.items():
