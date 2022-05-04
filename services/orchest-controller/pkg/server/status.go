@@ -29,6 +29,4 @@ func (s *Server) GetOrchetsClusterStatus(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeJsonResponse(w, http.StatusOK, orchest.Status)
-	return
-
 }
