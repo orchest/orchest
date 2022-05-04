@@ -115,10 +115,35 @@ describe("useProjectSelector", () => {
 
     await waitForNextUpdate();
 
-    // hook is loaded for the first time
     expect(result.current.validProjectUuid).toEqual(mockProjectUuid);
     expect(result.current.projects).toEqual(projects);
     expect(result.current.shouldShowInvalidProjectUuidAlert).toEqual(false);
     expect(navigateToMock.mock.calls.length).toBe(0);
+  });
+
+  it("should trigger navigation when attempting to change project.", async () => {
+    const projects = generateMockProjects();
+    const mockProjectUuid = projects[3].uuid;
+    const targetProjectUuid = projects[5].uuid;
+
+    const { result, waitForNextUpdate } = renderHook(
+      () => useTestHook(mockProjectUuid, "/mock-path"),
+      { wrapper }
+    );
+
+    await waitForNextUpdate();
+
+    expect(result.current.validProjectUuid).toEqual(mockProjectUuid);
+    expect(result.current.projects).toEqual(projects);
+    expect(result.current.shouldShowInvalidProjectUuidAlert).toEqual(false);
+    expect(navigateToMock.mock.calls.length).toBe(0);
+
+    result.current.onChangeProject(targetProjectUuid);
+
+    expect(navigateToMock.mock.calls.length).toBe(1);
+    expect(navigateToMock.mock.calls[0]).toEqual([
+      targetProjectUuid,
+      "/mock-path",
+    ]);
   });
 });
