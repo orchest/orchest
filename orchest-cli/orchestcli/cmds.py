@@ -18,6 +18,8 @@ import click
 import requests
 from kubernetes import client, config, stream, watch
 
+# Only when running a type checker, e.g. mypy, would we do the following
+# imports. Apart from type checking these imports are not needed.
 if t.TYPE_CHECKING:
     from multiprocessing.pool import AsyncResult
 
