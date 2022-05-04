@@ -148,7 +148,6 @@ run_build () {
             done
         fi
         if containsElement "${image}" "${CLI_IMAGES[@]}" ; then
-            cp -r $DIR/../deploy $build_ctx/deploy 2>/dev/null
             cp -r $DIR/../orchest-cli $build_ctx/orchest-cli 2>/dev/null
         fi
     fi
@@ -191,7 +190,6 @@ function cleanup() {
                 rm -rf $i/pnpm_files 2>/dev/null
             fi
             if containsElement "${image}" "${CLI_IMAGES[@]}" ; then
-                rm -rf $i/deploy 2>/dev/null
                 rm -rf $i/orchest-cli 2>/dev/null
             fi
 
