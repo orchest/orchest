@@ -1,12 +1,8 @@
 """API endpoints for unspecified orchest-api level information."""
-import uuid
-
-import yaml
 from flask import current_app, request
 from flask_restx import Namespace, Resource
 from orchestcli import cmds
 
-from _orchest.internals import config as _config
 from app import schema, utils
 from config import CONFIG_CLASS
 
@@ -18,7 +14,7 @@ api = utils.register_schema(ns)
 class StartUpdate(Resource):
     @api.doc("orchest_api_start_update")
     @api.marshal_with(
-        schema.update_sidecar_info,
+        schema.dictionary,
         code=201,
         description="Update Orchest.",
     )
@@ -34,7 +30,7 @@ class StartUpdate(Resource):
             )
             return {}, 201
         except SystemExit:
-            return {"message": "failed to update"}, 500
+            return {"message": "Failed to update."}, 500
 
 
 @api.route("/restart")
@@ -46,7 +42,7 @@ class Restart(Resource):
             cmds.restart(False, namespace="orchest", cluster_name="cluster-1")
             return {}, 201
         except SystemExit:
-            return {"message": "failed to restart"}, 500
+            return {"message": "Failed to restart."}, 500
 
 
 @api.route("/orchest-images-to-pre-pull")
@@ -158,58 +154,4 @@ def _get_update_sidecar_manifest(update_pod_name, token: str) -> dict:
             "serviceAccountName": "orchest-api",
         },
     }
-    return manifest
-
-
-def _get_orchest_ctl_pod_manifest(command_label: str) -> dict:
-    with open(_config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
-        manifest = yaml.safe_load(f)
-
-    manifest["metadata"]["labels"]["version"] = CONFIG_CLASS.ORCHEST_VERSION
-    manifest["metadata"]["labels"]["command"] = command_label
-
-    containers = manifest["spec"]["containers"]
-    orchest_ctl_container = containers[0]
-    orchest_ctl_container[
-        "image"
-    ] = f"orchest/orchest-ctl:{CONFIG_CLASS.ORCHEST_VERSION}"
-    for env_var in orchest_ctl_container["env"]:
-        if env_var["name"] == "ORCHEST_VERSION":
-            env_var["value"] = CONFIG_CLASS.ORCHEST_VERSION
-            break
-
-    # This is to know the name in advance.
-    manifest["metadata"].pop("generateName", None)
-    manifest["metadata"]["name"] = f"orchest-ctl-{uuid.uuid4()}"
-    return manifest
-
-
-def _get_update_pod_manifest() -> dict:
-    # The update pod is of the same version of the cluster, it will stop
-    # the cluster then spawn an hidden-update pod which will update to
-    # the desired version.
-    manifest = _get_orchest_ctl_pod_manifest("update")
-
-    containers = manifest["spec"]["containers"]
-    orchest_ctl_container = containers[0]
-
-    orchest_ctl_container["command"] = ["/bin/bash", "-c"]
-    # Make sure the sidecar is online before updating.
-    orchest_ctl_container["args"] = [
-        "while true; do nc -zvw1 update-sidecar 80 > /dev/null 2>&1 && orchest update "
-        "&& break; sleep 1; done"
-    ]
-
-    return manifest
-
-
-def _get_restart_pod_manifest() -> dict:
-    manifest = _get_orchest_ctl_pod_manifest("restart")
-
-    containers = manifest["spec"]["containers"]
-    orchest_ctl_container = containers[0]
-    orchest_ctl_container["command"] = ["/bin/bash", "-c"]
-    # Make sure the sidecar is online before updating.
-    orchest_ctl_container["args"] = ["orchest restart"]
-
     return manifest

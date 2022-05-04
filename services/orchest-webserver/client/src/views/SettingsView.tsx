@@ -227,7 +227,7 @@ const SettingsView: React.FC = () => {
                     " retries."
                 );
               });
-          }, 5000); // allow 5 seconds for orchest-ctl to stop orchest
+          }, 5000); // allow 5 seconds for orchest-controller to stop orchest
           return true;
         } catch (error) {
           console.error(error);
