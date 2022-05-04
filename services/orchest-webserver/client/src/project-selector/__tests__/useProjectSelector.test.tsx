@@ -1,7 +1,7 @@
 import { ProjectsContextProvider } from "@/contexts/ProjectsContext";
 import { Project } from "@/types";
 import { chance, mockProjects } from "@/__mocks__/mockProjects.mock";
-import { renderHook } from "@testing-library/react-hooks";
+import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
 import { SWRConfig } from "swr";
 import { useProjectSelector } from "../useProjectSelector";
@@ -167,7 +167,9 @@ describe("useProjectSelector", () => {
     expect(result.current.shouldShowInvalidProjectUuidAlert).toEqual(false);
     expect(navigateToMock.mock.calls.length).toBe(0);
 
-    result.current.onChangeProject(targetProjectUuid);
+    act(() => {
+      result.current.onChangeProject(targetProjectUuid);
+    });
 
     expect(navigateToMock.mock.calls.length).toBe(1);
     expect(navigateToMock.mock.calls[0]).toEqual([
