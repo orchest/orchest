@@ -28,5 +28,8 @@ COPY --from=build-env /go/src/github.com/orchest/orchest/services/orchest-contro
 
 COPY ./deploy /deploy
 
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
+
 # Run the controller
 ENTRYPOINT ["controller"]
