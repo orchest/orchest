@@ -197,7 +197,7 @@ def update(
 
     Note:
         The arguments `controller_deploy_name` and
-        `controller_pod_label_selector` need to be explicitely provided
+        `controller_pod_label_selector` need to be explicitly provided
         given that everyone could have applied a custom
         orchest-controller deployment.
 
