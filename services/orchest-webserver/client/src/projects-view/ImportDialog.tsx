@@ -18,7 +18,6 @@ import {
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
-import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
@@ -114,26 +113,38 @@ const ProjectMetadata = ({
   return (
     <Stack direction="row" justifyContent="space-around" alignItems="center">
       <Stack direction="column" alignItems="center">
-        <InsertDriveFileOutlinedIcon fontSize="small" />
-        <Typography variant="caption">
+        <InsertDriveFileOutlinedIcon
+          fontSize="medium"
+          sx={{ color: (theme) => alpha(theme.palette.common.black, 0.46) }}
+        />
+        <Typography
+          variant="body2"
+          sx={{ marginTop: (theme) => theme.spacing(1) }}
+        >
           {withPlural(value.fileCount, "File")}
         </Typography>
       </Stack>
       <Stack direction="column" alignItems="center">
-        <DeviceHubIcon fontSize="small" />
-        <Typography variant="caption">
+        <DeviceHubIcon
+          fontSize="medium"
+          sx={{ color: (theme) => alpha(theme.palette.common.black, 0.46) }}
+        />
+        <Typography
+          variant="body2"
+          sx={{ marginTop: (theme) => theme.spacing(1) }}
+        >
           {withPlural(value.pipeline_count, "Pipeline")}
         </Typography>
       </Stack>
       <Stack direction="column" alignItems="center">
-        <PendingActionsIcon fontSize="small" />
-        <Typography variant="caption">
-          {withPlural(value.job_count || 0, "Job")}
-        </Typography>
-      </Stack>
-      <Stack direction="column" alignItems="center">
-        <ViewComfyIcon fontSize="small" />
-        <Typography variant="caption">
+        <ViewComfyIcon
+          fontSize="medium"
+          sx={{ color: (theme) => alpha(theme.palette.common.black, 0.46) }}
+        />
+        <Typography
+          variant="body2"
+          sx={{ marginTop: (theme) => theme.spacing(1) }}
+        >
           {withPlural(value.environment_count, "Environment")}
         </Typography>
       </Stack>
@@ -153,7 +164,7 @@ const dialogTitleMappings: Record<ImportStatus, string> = {
   IMPORTING: "Importing project",
   UPLOADING: "Uploading project",
   FILES_STORED: "Complete",
-  SAVING_PROJECT_NAME: "Complete",
+  SAVING_PROJECT_NAME: "Upload complete",
 };
 
 export const ImportDialog: React.FC<{
@@ -511,7 +522,6 @@ export const ImportDialog: React.FC<{
                             justifyContent="center"
                             alignItems="center"
                             direction="column"
-                            spacing={1}
                             onMouseOver={() => setIsHoverDropZone(true)}
                             onMouseLeave={() => setIsHoverDropZone(false)}
                             sx={{
@@ -553,7 +563,11 @@ export const ImportDialog: React.FC<{
                               }}
                             />
                             <Typography variant="body2">{`Drag & drop project folder here`}</Typography>
-                            <Button>Browse files</Button>
+                            <Button
+                              sx={{ marginTop: (theme) => theme.spacing(1) }}
+                            >
+                              Browse files
+                            </Button>
                           </Stack>
                         )}
                       </UploadFilesForm>
