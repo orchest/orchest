@@ -40,6 +40,7 @@ export type EventVars = {
   };
   error?: string | null;
   timestamp: number | undefined;
+  subViewIndex: number;
 };
 
 type Action =
@@ -124,6 +125,10 @@ type Action =
   | {
       type: "SET_ERROR";
       payload: string | null;
+    }
+  | {
+      type: "SELECT_SUB_VIEW";
+      payload: number;
     };
 
 type ActionCallback = (previousState: EventVars) => Action | void;
@@ -375,6 +380,7 @@ export const useEventVars = () => {
             ...updated,
             openedStep: newStep.uuid,
             openedMultiStep: false,
+            subViewIndex: 0,
             ...selectSteps([newStep.uuid]),
           });
         }
@@ -623,6 +629,10 @@ export const useEventVars = () => {
           return { ...state, error: action.payload };
         }
 
+        case "SELECT_SUB_VIEW": {
+          return { ...state, subViewIndex: action.payload };
+        }
+
         default: {
           console.error(`[EventVars] Unknown action: "${action}"`);
           return state;
@@ -651,6 +661,7 @@ export const useEventVars = () => {
     connections: [],
     selectedConnection: null,
     timestamp: undefined,
+    subViewIndex: 0,
   });
 
   // this function doesn't trigger update, it simply persists clientX clientY for calculation

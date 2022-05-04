@@ -57,6 +57,7 @@ const StepDetailsComponent: React.FC<{
   } = usePipelineEditorContext();
 
   const step = eventVars.steps[eventVars.openedStep || ""];
+  const subViewIndex = eventVars.subViewIndex
 
   const connections = React.useMemo(() => {
     if (!step) return {};
@@ -77,8 +78,6 @@ const StepDetailsComponent: React.FC<{
   const onClose = () => {
     dispatch({ type: "SET_OPENED_STEP", payload: undefined });
   };
-
-  const [subViewIndex, setSubViewIndex] = React.useState(0);
 
   const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth);
 
@@ -109,7 +108,7 @@ const StepDetailsComponent: React.FC<{
     e: React.SyntheticEvent<Element, Event>,
     index: number
   ) => {
-    setSubViewIndex(index);
+    dispatch({ type: "SELECT_SUB_VIEW", payload: index });
   };
 
   const tabs = [
