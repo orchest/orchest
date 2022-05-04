@@ -8,6 +8,7 @@ import {
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { fetchProject } from "@/hooks/useFetchProject";
 import { Project } from "@/types";
 import {
   BackgroundTask,
@@ -236,8 +237,7 @@ export const ImportDialog: React.FC<{
         // result.result is project.path (tempProjectName), but project_uuid is not yet available,
         // because it requires a file-discovery request to instantiate `project_uuid`.
         // Therefore, send another GET call to get its uuid.
-        const fetchedProjects = await fetchProjects();
-
+        const fetchedProjects = await fetcher<Project[]>(`/async/projects`);
         const foundProject = (fetchedProjects || []).find(
           (project) => project.path === result.result
         );
@@ -245,7 +245,7 @@ export const ImportDialog: React.FC<{
         if (foundProject) setNewProjectUuid(foundProject.uuid);
       }
     },
-    [fetchProjects]
+    []
   );
 
   const {
@@ -270,7 +270,23 @@ export const ImportDialog: React.FC<{
     setImportStatus("READY");
   };
 
-  const closeDialog = () => {
+  const closeDialog = async () => {
+    if (newProjectUuid) {
+      // Delete the temporary project
+      try {
+        await fetcher("/async/projects", {
+          method: "DELETE",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
+            project_uuid: newProjectUuid,
+          }),
+        });
+      } catch (error) {
+        console.error(
+          `Failed to delete the temporary project with UUID ${newProjectUuid}. ${error}`
+        );
+      }
+    }
     reset();
     onClose();
   };
@@ -314,6 +330,7 @@ export const ImportDialog: React.FC<{
         headers: HEADER.JSON,
         body: JSON.stringify({ name: projectName }),
       });
+      await fetchProjects();
       onImportComplete({ path: projectName, uuid: newProjectUuid });
       reset();
     } catch (error) {
@@ -361,11 +378,7 @@ export const ImportDialog: React.FC<{
         }
       );
       // Get all the default info for this project.
-      const fetchedProjects = await fetchProjects();
-
-      const tempProject = fetchedProjects?.find(
-        (fetchedProject) => fetchedProject.uuid === project_uuid
-      );
+      const tempProject = await fetchProject(project_uuid);
 
       if (tempProject) {
         setNewProjectMetadata({
@@ -393,7 +406,7 @@ export const ImportDialog: React.FC<{
       );
       return project_uuid;
     },
-    [fetchProjects]
+    []
   );
 
   const uploadFilesAndSetImportStatus = React.useCallback(
@@ -442,6 +455,8 @@ export const ImportDialog: React.FC<{
   const theme = useTheme();
 
   const [isHoverDropZone, setIsHoverDropZone] = React.useState(false);
+
+  const isShowingCancelButton = isAllowedToClose || newProjectUuid.length > 0;
 
   return (
     <Dialog
@@ -623,7 +638,7 @@ export const ImportDialog: React.FC<{
         </Stack>
       </DialogContent>
       <DialogActions>
-        {isAllowedToClose && (
+        {isShowingCancelButton && (
           <Button color="secondary" onClick={closeDialog} tabIndex={-1}>
             Cancel
           </Button>
