@@ -112,7 +112,7 @@ Error: Multiple head revisions
            "services/orchest-api/app/migrations/versions"
 
        # Rebuild the orchest-api container on the node
-       scripts/build_container.sh -i orcehst-api -t "v2022.04.0" -o "v2022.04.0"
+       scripts/build_container.sh -i orchest-api -t "v2022.04.0" -o "v2022.04.0"
 
        # Edit the orchest-api deployment again to make sure to not
        # run the sleep command anymore.
