@@ -71,7 +71,9 @@ def echo(*args, **kwargs) -> None:
 
     if click_ctx is None:
         return click.echo(*args, **kwargs)
-    elif click_ctx.params.get("json_flag") is True:
+
+    json_flag = click_ctx.params.get("json_flag")
+    if json_flag and json_flag is not None:
         return
     else:
         return click.echo(*args, **kwargs)
