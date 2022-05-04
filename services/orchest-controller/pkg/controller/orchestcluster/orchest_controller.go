@@ -563,6 +563,12 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 		copy.Spec.Orchest.AuthServer.Env = utils.GetEnvVarFromMap(controller.config.AuthServerDefaultEnvVars)
 	}
 
+	nodeAgentImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, nodeAgentName, copy.Spec.Orchest.Version)
+	if copy.Spec.Orchest.NodeAgent.Image != nodeAgentImage {
+		changed = true
+		copy.Spec.Orchest.NodeAgent.Image = nodeAgentImage
+	}
+
 	// Postgres configs
 	if copy.Spec.Postgres.Image == "" {
 		changed = true

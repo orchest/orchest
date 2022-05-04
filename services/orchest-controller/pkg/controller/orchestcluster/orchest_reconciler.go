@@ -59,6 +59,7 @@ var (
 		orchestApi,
 		authServer,
 		orchestWebserver,
+		nodeAgentName,
 	}
 
 	//Labels and annotations
@@ -144,6 +145,12 @@ func NewOrchestReconciler(key string,
 		function:    reconciler.deployWebserver,
 		updateEvent: orchestv1alpha1.UpgradingOrchestWebserver,
 		deployEvent: orchestv1alpha1.DeployingOrchestWebserver,
+	}
+
+	reconciler.deploymentHandler[nodeAgentName] = deployHandler{
+		function:    reconciler.deployNodeAgent,
+		updateEvent: orchestv1alpha1.UpgradingNodeAgent,
+		deployEvent: orchestv1alpha1.DeployingNodeAgent,
 	}
 
 	return reconciler
@@ -338,10 +345,23 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 		return nil, err
 	}
 
-	// get the current deployments and pause them (change their replica to 0)
+	// get the current deployments and node-agent and pause them (change their replica to 0)
 	deployments, err := r.getDeployments(orchest)
 	if err != nil {
 		return nil, err
+	}
+
+	_, err = r.getKClient().AppsV1().DaemonSets(orchest.Namespace).Get(ctx, nodeAgentName, metav1.GetOptions{})
+	if err != nil && !kerrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	// Delete the node-agent
+	if err == nil {
+		err = r.getKClient().AppsV1().DaemonSets(orchest.Namespace).Delete(ctx, nodeAgentName, metav1.DeleteOptions{})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// There is no deployment, return early
@@ -636,6 +656,19 @@ func (r *OrchestReconciler) deployRabbitmq(ctx context.Context, hash string, orc
 	}
 
 	return r.waitForDeployment(ctx, r.namespace, rabbitmq)
+}
+
+func (r *OrchestReconciler) deployNodeAgent(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
+
+	objects := getNodeAgentManifests(hash, orchest)
+	for _, obj := range objects {
+		err := r.upsertObject(ctx, obj)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *OrchestReconciler) cleanup(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {

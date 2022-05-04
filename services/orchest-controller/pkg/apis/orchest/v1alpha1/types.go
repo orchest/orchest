@@ -65,6 +65,9 @@ const (
 
 	DeployingRabbitmq OrchestClusterEvent = "Deploying rabbitmq-server"
 	UpgradingRabbitmq OrchestClusterEvent = "Upgrading rabbitmq-server"
+
+	DeployingNodeAgent OrchestClusterEvent = "Deploying node-agent"
+	UpgradingNodeAgent OrchestClusterEvent = "Upgrading node-agent"
 )
 
 type OrchestResourcesSpec struct {
