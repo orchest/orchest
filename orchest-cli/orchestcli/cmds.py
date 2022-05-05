@@ -280,7 +280,7 @@ def update(
     def fetch_latest_available_version(curr_version: str) -> t.Optional[str]:
         url = (
             "https://update-info.orchest.io/api/orchest/"
-            f"update-info/v2?version={curr_version}"
+            f"update-info/v3?version={curr_version}"
         )
         resp = requests.get(url, timeout=5)
 
