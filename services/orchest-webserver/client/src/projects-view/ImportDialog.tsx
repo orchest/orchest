@@ -22,6 +22,7 @@ import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUpload
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import WarningIcon from "@mui/icons-material/Warning";
+import { SxProps, Theme } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -31,6 +32,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress, {
   LinearProgressProps,
 } from "@mui/material/LinearProgress";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import useTheme from "@mui/material/styles/useTheme";
@@ -107,48 +109,50 @@ const validateImportUrl = (
   return { error: false, helperText: " " };
 };
 
+const TextWithPlaceHolder = ({
+  value,
+  unit,
+}: {
+  value: number | undefined;
+  unit: string;
+}) => {
+  return value ? (
+    <Typography variant="body2" sx={{ marginTop: (theme) => theme.spacing(1) }}>
+      {withPlural(value, unit)}
+    </Typography>
+  ) : (
+    <Skeleton
+      width={100} // This is a magic number
+      height={20}
+      sx={{ marginTop: (theme) => theme.spacing(1) }}
+    />
+  );
+};
+
+const projectMetadataIconProps: SxProps<Theme> = {
+  fontSize: "medium",
+  color: (theme) => alpha(theme.palette.common.black, 0.46),
+};
+
 const ProjectMetadata = ({
   value,
 }: {
-  value: Project & { fileCount: number };
+  value: (Project & { fileCount: number }) | undefined;
 }) => {
+  const { fileCount, pipeline_count, environment_count } = value || {};
   return (
     <Stack direction="row" justifyContent="space-around" alignItems="center">
       <Stack direction="column" alignItems="center">
-        <InsertDriveFileOutlinedIcon
-          fontSize="medium"
-          sx={{ color: (theme) => alpha(theme.palette.common.black, 0.46) }}
-        />
-        <Typography
-          variant="body2"
-          sx={{ marginTop: (theme) => theme.spacing(1) }}
-        >
-          {withPlural(value.fileCount, "File")}
-        </Typography>
+        <InsertDriveFileOutlinedIcon sx={projectMetadataIconProps} />
+        <TextWithPlaceHolder value={fileCount} unit="File" />
       </Stack>
       <Stack direction="column" alignItems="center">
-        <DeviceHubIcon
-          fontSize="medium"
-          sx={{ color: (theme) => alpha(theme.palette.common.black, 0.46) }}
-        />
-        <Typography
-          variant="body2"
-          sx={{ marginTop: (theme) => theme.spacing(1) }}
-        >
-          {withPlural(value.pipeline_count, "Pipeline")}
-        </Typography>
+        <DeviceHubIcon sx={projectMetadataIconProps} />
+        <TextWithPlaceHolder value={pipeline_count} unit="Pipeline" />
       </Stack>
       <Stack direction="column" alignItems="center">
-        <ViewComfyIcon
-          fontSize="medium"
-          sx={{ color: (theme) => alpha(theme.palette.common.black, 0.46) }}
-        />
-        <Typography
-          variant="body2"
-          sx={{ marginTop: (theme) => theme.spacing(1) }}
-        >
-          {withPlural(value.environment_count, "Environment")}
-        </Typography>
+        <ViewComfyIcon sx={projectMetadataIconProps} />
+        <TextWithPlaceHolder value={environment_count} unit="Environment" />
       </Stack>
     </Stack>
   );
@@ -655,9 +659,7 @@ export const ImportDialog: React.FC<{
           )}
           {importStatus !== "READY" && (
             <Stack direction="column" spacing={2}>
-              {newProjectMetadata && (
-                <ProjectMetadata value={newProjectMetadata} />
-              )}
+              <ProjectMetadata value={newProjectMetadata} />
               <Stack direction="row" spacing={1} alignItems="center">
                 <LinearProgress
                   value={isNumber(progress) ? progress : undefined}
