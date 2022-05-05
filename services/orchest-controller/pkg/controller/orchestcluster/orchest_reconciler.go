@@ -477,8 +477,8 @@ func (r *OrchestReconciler) ensurePvc(ctx context.Context, curHash, name, size s
 	storageClass := orchest.Spec.Orchest.Resources.StorageClassName
 
 	// Retrive the created pvcs
-	oldPvc, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, builderDirName, metav1.GetOptions{})
-	newPvc := r.persistentVolumeClaim(builderDirName, r.namespace, storageClass, size, curHash, orchest)
+	oldPvc, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, name, metav1.GetOptions{})
+	newPvc := r.persistentVolumeClaim(name, r.namespace, storageClass, size, curHash, orchest)
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, newPvc, metav1.CreateOptions{})
@@ -490,22 +490,16 @@ func (r *OrchestReconciler) ensurePvc(ctx context.Context, curHash, name, size s
 		return err
 	}
 
-	r.adoptPVC(ctx, oldPvc, newPvc)
+	return r.adoptPVC(ctx, oldPvc, newPvc)
 
-	return nil
 }
 
 func (r *OrchestReconciler) adoptPVC(ctx context.Context, oldPvc, newPvc *corev1.PersistentVolumeClaim) error {
-	patchData, err := utils.GetPatchData(oldPvc, newPvc)
-	if err != nil {
+
+	if !reflect.DeepEqual(oldPvc.OwnerReferences[0], newPvc.OwnerReferences[0]) {
+		oldPvc.OwnerReferences = newPvc.OwnerReferences
+		_, err := r.getKClient().CoreV1().PersistentVolumeClaims(oldPvc.Namespace).Update(ctx, oldPvc, metav1.UpdateOptions{})
 		return err
-	}
-
-	patch := client.RawPatch(types.StrategicMergePatchType, patchData)
-
-	err = r.getGeneralClient().Patch(ctx, oldPvc, patch)
-	if err != nil {
-		return errors.Wrapf(err, "failed to patch the pvc %v", oldPvc)
 	}
 	return nil
 }
