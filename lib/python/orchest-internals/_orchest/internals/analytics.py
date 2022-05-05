@@ -1,9 +1,8 @@
+import base64
 import collections
 import copy
 import logging
 import os
-import time
-import uuid
 from enum import Enum
 from typing import Optional
 
@@ -11,8 +10,7 @@ import posthog
 from flask.app import Flask
 from posthog.request import APIError
 
-from app.config import CONFIG_CLASS as StaticConfig
-from app.utils import write_config
+from _orchest.internals import config as _config
 
 logger = logging.getLogger(__name__)
 
@@ -100,32 +98,15 @@ class Event(Enum):
             )
 
 
-# NOTE: You might actually want to use the concurrent safe wrapper
-# `Scheduler.handle_telemetry_heartbeat_signal` in ../core/scheduler.py
-# instead.
-def send_heartbeat_signal(app: Flask) -> None:
-    """Sends a heartbeat signal to the telemetry service.
+_posthog_initialized = False
 
-    A user is considered to be active if the user has triggered any
-    webserver logs in the last half of the `TELEMETRY_INTERVAL`.
 
-    """
-    # Value of None indicates that the user's activity could not be
-    # determined.
-    active = None
-    try:
-        t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
-    except OSError:
-        app.logger.error(
-            "Analytics heartbeat failed to identify whether the user is active.",
-            exc_info=True,
-        )
-    else:
-        diff_minutes = (time.time() - t) / 60
-        active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
-
-    send_event(app, Event.HEARTBEAT_TRIGGER, {"active": active})
-    app.logger.debug(f"Successfully sent analytics event '{Event.HEARTBEAT_TRIGGER}'.")
+def _initialize_posthog() -> None:
+    logger.info("Initializing posthog")
+    posthog.api_key = base64.b64decode(_config.POSTHOG_API_KEY).decode()
+    posthog.host = _config.POSTHOG_HOST
+    global _posthog_initialized
+    _posthog_initialized = True
 
 
 def send_event(
@@ -144,7 +125,12 @@ def send_event(
         }
 
     Args:
-        app: The Flask application that received the event.
+        app: The Flask application that received the event. The app is
+            expected to be have been initialized and to contain the
+            following: TELEMETRY_UUID, MAX_JOB_RUNS_PARALLELISM,
+            MAX_INTERACTIVE_RUNS_PARALLELISM. TODO: can we do away with
+            passing the flask app to this module?
+
         event: The event to send.
         event_properties: Any information that describes the event. This
             information will be anonymized and sent to the telemetry
@@ -157,6 +143,13 @@ def send_event(
     """
     if app.config["TELEMETRY_DISABLED"]:
         return False
+
+    telemetry_uuid = app.config.get("TELEMETRY_UUID")
+    if telemetry_uuid is None:
+        app.logger.error("No telemetry uuid found, won't send telemetry event.")
+
+    if not _posthog_initialized:
+        _initialize_posthog()
 
     if event_properties is None:
         event_data = {"event_properties": {}}
@@ -178,7 +171,6 @@ def send_event(
     _add_app_properties(event_data, app)
     _add_system_properties(event_data)
 
-    telemetry_uuid = _get_telemetry_uuid(app)
     try:
         _send_event(telemetry_uuid, event.value, event_data)
     except AnalyticsServiceError:
@@ -200,9 +192,9 @@ def _send_event(telemetry_uuid: str, event_name: str, event_data: dict) -> None:
 
 def _add_app_properties(data: dict, app: Flask) -> None:
     data["app_properties"] = {
-        "orchest_version": app.config.get("ORCHEST_REPO_TAG"),
-        "dev": StaticConfig.FLASK_ENV == "development",
-        "cloud": StaticConfig.CLOUD,
+        "orchest_version": _config.ORCHEST_VERSION,
+        "dev": _config.FLASK_ENV == "development",
+        "cloud": _config.CLOUD,
         "max_interactive_runs_parallelism": app.config.get(
             "MAX_INTERACTIVE_RUNS_PARALLELISM"
         ),
@@ -213,18 +205,8 @@ def _add_app_properties(data: dict, app: Flask) -> None:
 def _add_system_properties(data: dict) -> None:
     data["system_properties"] = {
         "host_os": os.environ.get("HOST_OS"),
-        "gpu_enabled_instance": StaticConfig.GPU_ENABLED_INSTANCE,
+        "gpu_enabled_instance": _config.GPU_ENABLED_INSTANCE,
     }
-
-
-def _get_telemetry_uuid(app: Flask) -> str:
-    telemetry_uuid = app.config.get("TELEMETRY_UUID")
-
-    if telemetry_uuid is None:
-        telemetry_uuid = str(uuid.uuid4())
-        write_config(app, "TELEMETRY_UUID", telemetry_uuid)
-
-    return telemetry_uuid
 
 
 class _Anonymizer:

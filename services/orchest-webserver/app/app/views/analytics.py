@@ -1,6 +1,6 @@
 from flask import request
 
-from app import analytics
+from _orchest.internals import analytics
 
 
 def register_analytics_views(app, db):

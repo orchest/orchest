@@ -14,10 +14,16 @@ USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
 
 ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"]
 
+POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
+POSTHOG_HOST = "https://analytics.orchest.io"
+
+ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
+
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
+FLASK_ENV = os.environ.get("FLASK_ENV")
 CLOUD = os.environ.get("CLOUD") == "True"
 ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN")
 GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"

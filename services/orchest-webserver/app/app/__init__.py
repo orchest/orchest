@@ -7,7 +7,6 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 
-import base64
 import contextlib
 import logging
 import os
@@ -18,7 +17,6 @@ from logging.config import dictConfig
 from pprint import pformat
 from subprocess import Popen
 
-import posthog
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request, safe_join, send_from_directory
 from flask_migrate import Migrate
@@ -105,12 +103,6 @@ def create_app(to_migrate_db=False):
     # Add below `to_migrate_db` check, otherwise it will get logged
     # twice. Because before the app starts we first migrate.
     app.logger.info("Flask CONFIG: %s" % app.config)
-
-    # Initialize posthog ASAP, at least before setting up the scheduler
-    # but after `to_migrate_db`.
-    if not app.config["TELEMETRY_DISABLED"]:
-        posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"]).decode()
-        posthog.host = app.config["POSTHOG_HOST"]
 
     if not _utils.is_running_from_reloader():
         with app.app_context():

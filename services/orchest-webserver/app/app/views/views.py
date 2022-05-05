@@ -13,12 +13,12 @@ from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
 
+from _orchest.internals import analytics
 from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
-from app import analytics
 from app import error as app_error
 from app.core.filemanager import (
     allowed_file,
