@@ -311,9 +311,10 @@ const ProjectsView: React.FC = () => {
           sx: {
             ...defaultOverlaySx,
             margin: (theme) => theme.spacing(-4),
-            width: (theme) => `calc(100% - ${theme.spacing(0)})`,
-            height: (theme) => `calc(100% - ${theme.spacing(8.075)})`,
-            border: (theme) => `4px solid ${theme.palette.primary.main}`,
+            top: (theme) => theme.spacing(12.125),
+            width: "100%",
+            height: (theme) => `calc(100% - ${theme.spacing(8.125)})`,
+            border: (theme) => `2px solid ${theme.palette.primary.main}`,
           },
         }}
       >
