@@ -101,7 +101,9 @@ def create_app(
             return app
 
         with app.app_context():
-            app.config.update(utils.OrchestSettings().as_dict())
+            settings = utils.OrchestSettings()
+            settings.save()
+            app.config.update(settings.as_dict())
 
     # Create a background scheduler (in a daemon thread) for every
     # gunicorn worker. The individual schedulers do not cause duplicate
