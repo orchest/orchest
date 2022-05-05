@@ -501,7 +501,8 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 		return nil, errors.Wrap(err, "failed to get OrchestCluster")
 	}
 
-	if orchest.Status.ObservedGeneration == orchest.Generation {
+	if orchest.Status.ObservedGeneration == orchest.Generation ||
+		(orchest.Spec.Orchest.Pause != nil && *orchest.Spec.Orchest.Pause) {
 		return orchest, nil
 	}
 
