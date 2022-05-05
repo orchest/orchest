@@ -56,7 +56,9 @@ const UpdateView: React.FC = () => {
 
             // TODO: hardcoded namespace and cluster name values.
             makeCancelable(
-              checkHeartbeat("/namespaces/orchest/clusters/cluster-1/status")
+              checkHeartbeat(
+                "/controller/namespaces/orchest/clusters/cluster-1/status"
+              )
             )
               .then(() => {
                 console.log("Heartbeat successful.");
@@ -89,7 +91,7 @@ const UpdateView: React.FC = () => {
 
   useInterval(() => {
     cancelableFetch<{ state: string; lastHeartbeatTime: string }>(
-      `/namespaces/orchest/clusters/cluster-1/status`
+      `/controller/namespaces/orchest/clusters/cluster-1/status`
     )
       .then((json) => {
         if (json.state === "Running") {
