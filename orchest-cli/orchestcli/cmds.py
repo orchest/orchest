@@ -353,7 +353,6 @@ def update(
     APPS_API.patch_namespaced_deployment(
         name=controller_deploy_name,
         namespace=ns,  # controller is currently deployed in same ns
-        # TODO: Move controller to specific version and away from latest
         body={
             "spec": {
                 "template": {
@@ -361,7 +360,7 @@ def update(
                         "containers": [
                             {
                                 "name": "controller",
-                                "image": "orchest/orchest-controller:latest",
+                                "image": f"orchest/orchest-controller:{version}",
                             }
                         ]
                     }
@@ -381,9 +380,8 @@ def update(
         label_selector=(controller_pod_label_selector),
         timeout_seconds=60,
     ):
-        # TODO: get rid of latest
         curr_img = event["object"].spec.containers[0].image  # type: ignore
-        if curr_img == "orchest/orchest-controller:latest":
+        if curr_img == f"orchest/orchest-controller:{version}":
             if event["object"].status.phase == "Running":  # type: ignore
                 w.stop()
 
