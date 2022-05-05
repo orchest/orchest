@@ -212,8 +212,7 @@ func GetEnvVarFromMap(envVars map[string]string) []corev1.EnvVar {
 	return result
 }
 
-func MergeEnvVars(envVarLists ...[]corev1.EnvVar) []corev1.EnvVar {
-
+func GetMapFromEnvVar(envVarLists ...[]corev1.EnvVar) map[string]string {
 	length := 0
 	for _, envVarList := range envVarLists {
 		length += len(envVarList)
@@ -227,7 +226,12 @@ func MergeEnvVars(envVarLists ...[]corev1.EnvVar) []corev1.EnvVar {
 		}
 	}
 
-	return GetEnvVarFromMap(mapEnvVars)
+	return mapEnvVars
+}
+
+func MergeEnvVars(envVarLists ...[]corev1.EnvVar) []corev1.EnvVar {
+	envMap := GetMapFromEnvVar(envVarLists...)
+	return GetEnvVarFromMap(envMap)
 }
 
 // This function is borrowed from projectcountour

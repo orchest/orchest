@@ -43,39 +43,62 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 
 	image := orchest.Spec.Orchest.OrchestApi.Image
 
-	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.OrchestApi.Env)
+	envMap := utils.GetMapFromEnvVar(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.OrchestApi.Env)
 
+	volumes := []corev1.Volume{
+		{
+			Name: userDirName,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: userDirName,
+					ReadOnly:  false,
+				},
+			},
+		},
+		{
+			Name: "tls-secret",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "registry-tls-secret",
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "ca.crt",
+							Path: "additional-ca-cert-bundle.crt",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      userDirName,
+			MountPath: userdirMountPath,
+		},
+		{
+			Name:      "tls-secret",
+			MountPath: "/usr/lib/ssl/certs/additional-ca-cert-bundle.crt",
+			SubPath:   "additional-ca-cert-bundle.crt",
+			ReadOnly:  true,
+		},
+	}
+
+	devMod := isDevelopmentEnabled(envMap)
+	if devMod {
+		devVolumes, devVolumeMounts := getDevVolumes(orchestApi, true, false, true)
+		volumes = append(volumes, devVolumes...)
+		volumeMounts = append(volumeMounts, devVolumeMounts...)
+	}
+
+	env := utils.GetEnvVarFromMap(envMap)
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: orchestApi,
-			Volumes: []corev1.Volume{
-				{
-					Name: userDirName,
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: userDirName,
-							ReadOnly:  false,
-						},
-					},
-				},
-				{
-					Name: "tls-secret",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: "registry-tls-secret",
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "ca.crt",
-									Path: "additional-ca-cert-bundle.crt",
-								},
-							},
-						},
-					},
-				},
-			},
+			Volumes:            volumes,
 			Containers: []corev1.Container{
 				{
 					Name:            orchestApi,
@@ -86,19 +109,8 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 							ContainerPort: 80,
 						},
 					},
-					Env: env,
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      userDirName,
-							MountPath: userdirMountPath,
-						},
-						{
-							Name:      "tls-secret",
-							MountPath: "/usr/lib/ssl/certs/additional-ca-cert-bundle.crt",
-							SubPath:   "additional-ca-cert-bundle.crt",
-							ReadOnly:  true,
-						},
-					},
+					Env:          env,
+					VolumeMounts: volumeMounts,
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							HTTPGet: &corev1.HTTPGetAction{

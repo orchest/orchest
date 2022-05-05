@@ -93,6 +93,62 @@ func getServiceManifest(metadata metav1.ObjectMeta,
 
 }
 
+func getDevVolumes(service string, mountApp, mountClient, mountInternalLib bool) ([]corev1.Volume, []corev1.VolumeMount) {
+
+	/*
+		{
+			"name": "orchest-dev-repo",
+			"hostPath": {
+				"path": "/orchest-dev-repo",
+				"type": "DirectoryOrCreate",
+			},
+		}
+	*/
+
+	volumeType := corev1.HostPathDirectoryOrCreate
+
+	volumes := []corev1.Volume{
+		{
+			Name: "orchest-dev-repo",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/orchest-dev-repo",
+					Type: &volumeType,
+				},
+			},
+		},
+	}
+
+	volumeMounts := make([]corev1.VolumeMount, 0)
+
+	if mountApp {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "orchest-dev-repo",
+			MountPath: fmt.Sprintf("/orchest/services/%s/app", service),
+			SubPath:   fmt.Sprintf("services/%s/app", service),
+		})
+	}
+
+	if mountClient {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "orchest-dev-repo",
+			MountPath: fmt.Sprintf("/orchest/services/%s/client", service),
+			SubPath:   fmt.Sprintf("services/%s/client", service),
+		})
+	}
+
+	if mountInternalLib {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "orchest-dev-repo",
+			MountPath: "/orchest/lib",
+			SubPath:   "lib",
+		})
+	}
+
+	return volumes, volumeMounts
+
+}
+
 func getRbacManifest(metadata metav1.ObjectMeta) []client.Object {
 
 	clusterRole := &rbacv1.ClusterRole{
@@ -264,9 +320,12 @@ func isDeploymentUpdated(dep *appsv1.Deployment, generation int64) bool {
 	return templateMatches
 }
 
-func shouldUpdateDeployment(dep *appsv1.Deployment) bool {
-	_, ok := dep.Annotations[PauseReasonAnnotationKey]
-	return ok
+func isDevelopmentEnabled(envMap map[string]string) bool {
+	value, ok := envMap["FLASK_ENV"]
+	if ok && value == "development" {
+		return true
+	}
+	return false
 }
 
 func isDeploymentPaused(dep *appsv1.Deployment) bool {
