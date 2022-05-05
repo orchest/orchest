@@ -26,7 +26,7 @@ const UpdateView: React.FC = () => {
   const [state, setState] = React.useState((prevState) => ({
     ...prevState,
     updating: false,
-    updateOutput: "",
+    updateOutput: [],
   }));
   const [updatePollInterval, setUpdatePollInterval] = React.useState<
     number | null
@@ -39,7 +39,7 @@ const UpdateView: React.FC = () => {
       async (resolve) => {
         setState({
           updating: true,
-          updateOutput: "",
+          updateOutput: [],
         });
         console.log("Starting update.");
 
@@ -100,11 +100,19 @@ const UpdateView: React.FC = () => {
             updating: false,
           }));
           setUpdatePollInterval(null);
+        } else {
+          setState((prevState) => ({
+            ...prevState,
+            updateOutput: json.conditions.sort(function (a, b) {
+              let dateA = new Date(a.lastHeartbeatTime);
+              let dateB = new Date(b.lastHeartbeatTime);
+              // sort in reversed order
+              if (dateA < dateB) return 1;
+              if (dateA > dateB) return -1;
+              return 0;
+            }),
+          }));
         }
-        setState((prevState) => ({
-          ...prevState,
-          updateOutput: "Updated the cluster",
-        }));
       })
       .catch((e) => {
         if (!e.isCanceled) {
@@ -113,9 +121,10 @@ const UpdateView: React.FC = () => {
       });
   }, updatePollInterval);
 
-  let updateOutputLines = state.updateOutput.split("\n").reverse();
-  updateOutputLines =
-    updateOutputLines[0] == "" ? updateOutputLines.slice(1) : updateOutputLines;
+  let updateOutputLines = [];
+  state.updateOutput.forEach((element) =>
+    updateOutputLines.push(element.event)
+  );
 
   return (
     <Layout>
