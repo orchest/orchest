@@ -124,5 +124,5 @@ SIDECAR_PORT = 1111
 
 ORCHEST_NAMESPACE = "orchest"
 ORCHEST_UPDATE_INFO_URL = (
-    "https://update-info.orchest.io/api/orchest/update-info/v2?version={version}"
+    "https://update-info.orchest.io/api/orchest/update-info/v3?version={version}"
 )

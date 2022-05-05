@@ -40,7 +40,7 @@ export const handlers = [
             orchest_examples_repo:
               "https://github.com/orchest/orchest-examples",
             orchest_update_info_json:
-              "https://update-info.orchest.io/api/orchest/update-info/v2?version=v2022.04.0",
+              "https://update-info.orchest.io/api/orchest/update-info/v3?version=v2022.04.0",
             readthedocs: "https://docs.orchest.io/en/stable",
             slack:
               "https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w",
