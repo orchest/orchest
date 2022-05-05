@@ -6,7 +6,7 @@ import {
 import { alpha } from "@mui/material";
 import Box, { BoxProps } from "@mui/material/Box";
 import { SxProps, Theme } from "@mui/material/styles";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { fetcher, Fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileWithPath, useDropzone } from "react-dropzone";
 
@@ -29,10 +29,12 @@ export const generateUploadFiles = ({
   projectUuid,
   root,
   path: targetFolderPath,
+  cancelableFetch,
 }: {
   projectUuid: string;
   root: FileManagementRoot;
   path: string;
+  cancelableFetch?: Fetcher<void>;
 }) => (
   files: File[] | FileList,
   onUploaded?: (completedCount: number, totalCount: number) => void
@@ -62,7 +64,9 @@ export const generateUploadFiles = ({
     let formData = new FormData();
     formData.append("file", file);
 
-    await fetcher(
+    const customFetch = cancelableFetch || fetcher;
+
+    await customFetch(
       `${FILE_MANAGEMENT_ENDPOINT}/upload?${queryArgs({
         root,
         path,

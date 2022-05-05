@@ -75,7 +75,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       setAsSaved(false);
       console.error(e);
     }
-  }, [jupyterSetupScript, setAsSaved]);
+  }, [jupyterSetupScript, setAsSaved, cancelableFetch]);
 
   const buildImage = React.useCallback(async () => {
     window.orchest.jupyter.unload();

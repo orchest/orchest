@@ -100,14 +100,12 @@ const FilePreviewView: React.FC = () => {
       ? getPipelineJSONEndpoint({ pipelineUuid, projectUuid, jobUuid, runUuid })
       : getPipelineJSONEndpoint({ pipelineUuid, projectUuid });
 
-    const [pipelineJson, job] = await makeCancelable(
-      Promise.all([
-        fetchPipelineJson(pipelineURL),
-        jobUuid
-          ? cancelableFetch<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`)
-          : null,
-      ])
-    );
+    const [pipelineJson, job] = await Promise.all([
+      makeCancelable(fetchPipelineJson(pipelineURL)),
+      jobUuid
+        ? cancelableFetch<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`)
+        : null,
+    ]);
 
     const pipelineFilePath =
       job?.pipeline_run_spec.run_config.pipeline_path ||
@@ -132,7 +130,7 @@ const FilePreviewView: React.FC = () => {
         loadingFile: true,
       }));
 
-      makeCancelable(Promise.all([fetchFile(), fetchPipeline()]))
+      Promise.all([fetchFile(), fetchPipeline()])
         .then(() => {
           setState((prevState) => ({
             ...prevState,

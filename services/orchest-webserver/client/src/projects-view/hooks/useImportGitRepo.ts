@@ -1,6 +1,4 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useAsync } from "@/hooks/useAsync";
-import { useHasChanged } from "@/hooks/useHasChanged";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
@@ -25,7 +23,6 @@ export const validProjectName = (
 };
 
 export const useImportGitRepo = (
-  projectName: unknown,
   importUrl: string,
   onComplete: (result?: BackgroundTask) => void
 ) => {
@@ -35,62 +32,52 @@ export const useImportGitRepo = (
     []
   );
 
-  const { data, run, status: fetchStatus, setData } = useAsync<BackgroundTask>({
-    initialState: {
-      uuid: "",
-      result: null,
-      status: "PENDING",
-    },
+  const [data, setData] = React.useState<BackgroundTask>({
+    uuid: "",
+    result: null,
+    status: "PENDING",
   });
 
-  const hasStartedBackgroundTask = React.useRef(false);
-  const shouldReset = useHasChanged(projectName);
   React.useEffect(() => {
-    hasStartedBackgroundTask.current = false;
-  }, [shouldReset]);
-
-  React.useEffect(() => {
-    if (
-      fetchStatus === "RESOLVED" &&
-      data &&
-      !hasStartedBackgroundTask.current
-    ) {
-      backgroundTaskPoller.startPollingBackgroundTask(data.uuid, (result) => {
-        if (result.status === "SUCCESS" && !hasStartedBackgroundTask.current) {
-          hasStartedBackgroundTask.current = true;
-          setData(result);
-          onComplete(result);
-        }
-      });
-    }
-
     return () => {
       backgroundTaskPoller.removeAllTasks();
     };
-  }, [fetchStatus, onComplete, data, setData, backgroundTaskPoller]);
+  }, [backgroundTaskPoller]);
 
-  const startImport = React.useCallback(() => {
-    const validation = validProjectName(projectName);
-    if (!validation.valid) {
-      setAlert(
-        "Warning",
-        `Invalid project name: ${projectName}. ${validation.reason}`
+  const startImport = React.useCallback(
+    async (projectName: string | undefined) => {
+      const validation = validProjectName(projectName);
+      if (!validation.valid) {
+        setAlert(
+          "Warning",
+          `Invalid project name: ${projectName}. ${validation.reason}`
+        );
+        onComplete();
+        return;
+      }
+
+      const { uuid } = await fetcher<{ uuid: string }>(
+        `/async/projects/import-git`,
+        {
+          method: "POST",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
+            url: importUrl,
+            project_name: validation.value,
+          }),
+        }
       );
-      onComplete();
-      return;
-    }
 
-    run(
-      fetcher<BackgroundTask>(`/async/projects/import-git`, {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify({
-          url: importUrl,
-          project_name: validation.value,
-        }),
-      })
-    );
-  }, [importUrl, projectName, onComplete, run, setAlert]);
+      backgroundTaskPoller.startPollingBackgroundTask(uuid, (result) => {
+        if (result.status === "SUCCESS") {
+          setData(result);
+          backgroundTaskPoller.removeAllTasks();
+          onComplete(result);
+        }
+      });
+    },
+    [importUrl, onComplete, setAlert, backgroundTaskPoller, setData]
+  );
 
   const clearImportResult = React.useCallback(() => {
     setData({

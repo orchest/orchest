@@ -8,6 +8,7 @@ import {
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { fetchProject } from "@/hooks/useFetchProject";
 import { Project } from "@/types";
 import {
@@ -156,6 +157,7 @@ const ProjectMetadata = ({
 type ImportStatus =
   | "READY"
   | "IMPORTING"
+  | "CREATING_TEMP_PROJECT"
   | "UPLOADING"
   | "FILES_STORED"
   | "SAVING_PROJECT_NAME";
@@ -164,9 +166,19 @@ const dialogTitleMappings: Record<ImportStatus, string> = {
   READY: "Import project",
   IMPORTING: "Importing project",
   UPLOADING: "Uploading project",
+  CREATING_TEMP_PROJECT: "Uploading project",
   FILES_STORED: "Upload complete",
   SAVING_PROJECT_NAME: "Upload complete",
 };
+
+const deleteProject = (projectUuid: string) =>
+  fetcher("/async/projects", {
+    method: "DELETE",
+    headers: HEADER.JSON,
+    body: JSON.stringify({
+      project_uuid: projectUuid,
+    }),
+  });
 
 export const ImportDialog: React.FC<{
   importUrl: string;
@@ -206,7 +218,7 @@ export const ImportDialog: React.FC<{
   const [tempProjectName, setTempProjectName] = React.useState<string>();
 
   React.useEffect(() => {
-    if (open) setTempProjectName(uuidv4());
+    if (open) setTempProjectName(`temp-project-${uuidv4()}`);
   }, [open]);
 
   const [
@@ -216,9 +228,58 @@ export const ImportDialog: React.FC<{
 
   const [importStatus, setImportStatus] = React.useState<ImportStatus>("READY");
 
-  const isAllowedToClose = React.useMemo(() => {
+  const [newProjectUuid, setNewProjectUuid] = React.useState<string>();
+
+  const isAllowedToCloseWithEscape = React.useMemo(() => {
     return importStatus === "READY";
   }, [importStatus]);
+
+  const startImportGitRepo = () => {
+    setImportStatus("IMPORTING");
+    setProgress("unknown");
+    const gitProjectName = getProjectNameFromUrl(importUrl);
+    setProjectName(gitProjectName);
+    // This makes the temp name a bit more meaningful,
+    // so that user could somehow recognize it in case the process is interrupted.
+    setTempProjectName(`${gitProjectName}-${uuidv4()}`);
+
+    fireImportGitRepoRequest(`${gitProjectName}-${uuidv4()}`);
+  };
+
+  const reset = React.useCallback(() => {
+    setShouldShowImportUrlValidation(false);
+    setImportUrl("");
+    setProjectName("");
+    setImportStatus("READY");
+    setNewProjectUuid(undefined);
+    setTempProjectName(undefined);
+  }, [setImportUrl]);
+
+  const {
+    cancelableFetch,
+    cancelAll: cancelAllCancelablePromises,
+  } = useCancelableFetch();
+
+  const deleteTempProject = React.useCallback(async () => {
+    if (newProjectUuid) {
+      try {
+        await deleteProject(newProjectUuid);
+      } catch (error) {
+        console.error(
+          `Failed to delete the temporary project with UUID ${newProjectUuid}. ${error}`
+        );
+      }
+    }
+  }, [newProjectUuid]);
+
+  const closeDialog = React.useCallback(async () => {
+    // if user forces closing the dialog, cancel all cancelable promises,
+    // e.g. ongoing uploading file POST requests.
+    cancelAllCancelablePromises();
+    deleteTempProject(); // No need to await this call; no point to block user for this.
+    reset();
+    onClose();
+  }, [cancelAllCancelablePromises, deleteTempProject, onClose, reset]);
 
   const onFinishedImportingGitRepo = React.useCallback(
     async (result: BackgroundTask | undefined) => {
@@ -237,59 +298,37 @@ export const ImportDialog: React.FC<{
         // result.result is project.path (tempProjectName), but project_uuid is not yet available,
         // because it requires a file-discovery request to instantiate `project_uuid`.
         // Therefore, send another GET call to get its uuid.
-        const fetchedProjects = await fetcher<Project[]>(`/async/projects`);
-        const foundProject = (fetchedProjects || []).find(
-          (project) => project.path === result.result
-        );
+        try {
+          const fetchedProjects = await fetcher<Project[]>(`/async/projects`);
+          const foundProject = (fetchedProjects || []).find(
+            (project) => project.path === result.result
+          );
 
-        if (foundProject) setNewProjectUuid(foundProject.uuid);
+          if (!foundProject) {
+            // This is a no-op, unless BE is broken.
+            throw new Error("Unable to fetch the project list.");
+            return;
+          }
+
+          setNewProjectUuid(foundProject.uuid);
+        } catch (error) {
+          await closeDialog();
+          await setAlert(
+            "Error",
+            `Failed to import Git repository. ${error.message || ""}`
+          );
+          fetchProjects();
+        }
       }
     },
-    []
+    [closeDialog, fetchProjects, setAlert]
   );
 
   const {
     startImport: fireImportGitRepoRequest,
     importResult,
     clearImportResult,
-  } = useImportGitRepo(tempProjectName, importUrl, onFinishedImportingGitRepo);
-
-  const [newProjectUuid, setNewProjectUuid] = React.useState("");
-
-  const startImportGitRepo = () => {
-    setImportStatus("IMPORTING");
-    setProgress("unknown");
-    fireImportGitRepoRequest();
-    setProjectName(getProjectNameFromUrl(importUrl));
-  };
-
-  const reset = () => {
-    setShouldShowImportUrlValidation(false);
-    setImportUrl("");
-    setProjectName("");
-    setImportStatus("READY");
-  };
-
-  const closeDialog = async () => {
-    if (newProjectUuid) {
-      // Delete the temporary project
-      try {
-        await fetcher("/async/projects", {
-          method: "DELETE",
-          headers: HEADER.JSON,
-          body: JSON.stringify({
-            project_uuid: newProjectUuid,
-          }),
-        });
-      } catch (error) {
-        console.error(
-          `Failed to delete the temporary project with UUID ${newProjectUuid}. ${error}`
-        );
-      }
-    }
-    reset();
-    onClose();
-  };
+  } = useImportGitRepo(importUrl, onFinishedImportingGitRepo);
 
   const importUrlValidation = React.useMemo(
     () => validateImportUrl(importUrl),
@@ -369,6 +408,7 @@ export const ImportDialog: React.FC<{
       files: File[] | FileList,
       onFileUploaded?: (completedCount: number, totalCount: number) => void
     ) => {
+      setImportStatus("CREATING_TEMP_PROJECT");
       const { project_uuid } = await fetcher<{ project_uuid: string }>(
         "/async/projects",
         {
@@ -378,6 +418,8 @@ export const ImportDialog: React.FC<{
         }
       );
       // Get all the default info for this project.
+      setNewProjectUuid(project_uuid);
+
       const tempProject = await fetchProject(project_uuid);
 
       if (tempProject) {
@@ -396,17 +438,20 @@ export const ImportDialog: React.FC<{
         });
       }
 
+      setImportStatus("UPLOADING");
+
       // Upload files
       await Promise.all(
         generateUploadFiles({
           projectUuid: project_uuid,
           root: "/project-dir",
           path: "/",
+          // Use cancelable fetch to prevent mutating states when user cancel uploading.
+          cancelableFetch,
         })(files, onFileUploaded)
       );
-      return project_uuid;
     },
-    []
+    [cancelableFetch]
   );
 
   const uploadFilesAndSetImportStatus = React.useCallback(
@@ -416,18 +461,23 @@ export const ImportDialog: React.FC<{
           "Error",
           "Failed to create a temporary project to start uploading."
         );
+        reset();
         return;
       }
 
-      setImportStatus("UPLOADING");
-      const projectUuid = await createProjectAndUploadFiles(
-        tempProjectName,
-        files,
-        updateProgress
-      );
-      setImportStatus("FILES_STORED");
-      setNewProjectUuid(projectUuid);
-      setProjectName("");
+      try {
+        setProjectName("");
+        await createProjectAndUploadFiles(
+          tempProjectName,
+          files,
+          updateProgress
+        );
+        setImportStatus("FILES_STORED");
+        setTempProjectName(undefined);
+      } catch (error) {
+        setAlert("Error", "Failed to upload files.");
+        reset();
+      }
     },
     [
       createProjectAndUploadFiles,
@@ -436,6 +486,7 @@ export const ImportDialog: React.FC<{
       setProjectName,
       setAlert,
       updateProgress,
+      reset,
     ]
   );
 
@@ -456,16 +507,26 @@ export const ImportDialog: React.FC<{
 
   const [isHoverDropZone, setIsHoverDropZone] = React.useState(false);
 
-  const isShowingCancelButton = isAllowedToClose || newProjectUuid.length > 0;
+  // While creating the temp project, cancel is not allowed.
+  // the UUID of the temp project is needed for later operations in case user wants to cancel the whole process.
+  const isShowingCancelButton =
+    isAllowedToCloseWithEscape || importStatus !== "CREATING_TEMP_PROJECT";
+
+  const title = React.useMemo(() => {
+    const mappedTitle = dialogTitleMappings[importStatus];
+    return hideUploadOption
+      ? mappedTitle.replace(/^Upload/, "Import")
+      : mappedTitle;
+  }, [importStatus, hideUploadOption]);
 
   return (
     <Dialog
       open={open}
-      onClose={isAllowedToClose ? closeDialog : undefined}
+      onClose={isAllowedToCloseWithEscape ? closeDialog : undefined}
       fullWidth
       maxWidth="sm"
     >
-      <DialogTitle>{dialogTitleMappings[importStatus]}</DialogTitle>
+      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Stack
           direction="column"
@@ -640,7 +701,7 @@ export const ImportDialog: React.FC<{
       <DialogActions>
         {isShowingCancelButton && (
           <Button color="secondary" onClick={closeDialog} tabIndex={-1}>
-            Cancel
+            {`Cancel${hideUploadOption ? "" : " upload"}`}
           </Button>
         )}
         {importStatus === "READY" ? (
@@ -666,7 +727,7 @@ export const ImportDialog: React.FC<{
             type="submit"
             form="save-project-name"
           >
-            Save
+            {hideUploadOption ? "Save" : "View project"}
           </Button>
         )}
       </DialogActions>
