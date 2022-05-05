@@ -10,15 +10,14 @@ import { fetcher, Fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileWithPath, useDropzone } from "react-dropzone";
 
+export type FileWithValidPath = FileWithPath & { readonly path: string };
+
 /**
  * this function determines if the given file is a file uploaded via useDropzone
  * if true, the file has a property "path"
  * @param file File | FileWithPath
  * @returns boolean
  */
-
-export type FileWithValidPath = FileWithPath & { readonly path: string };
-
 export function isUploadedViaDropzone(
   file: File | FileWithPath
 ): file is FileWithValidPath {
