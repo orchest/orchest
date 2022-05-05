@@ -10,6 +10,9 @@ import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
+// Note: this is the testable part of the hook `useEnsureValidPipeline`
+// as we want to separate it from the global contexts: `useCustomRoute` and `useAppContext`.
+// This hook should NOT be used alone except in jest tests.
 export const useEnsureValidPipelineBase = (
   navigateTo: (
     path: string,
@@ -84,7 +87,7 @@ export const useEnsureValidPipelineBase = (
 };
 
 /**
- * Ensure that `pipeline` in ProjectsContext is a valid one.
+ * `useEnsureValidPipeline` ensures that `pipeline` in ProjectsContext is a valid one.
  * If the given `pipeline_uuid` in the route is not valid, it will show an alert and navigate to the
  * first pipeline in the project.
  *
