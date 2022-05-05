@@ -47,9 +47,11 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  nodeAgentName,
-					Image: image,
-					Env:   env,
+					Name:            nodeAgentName,
+					Image:           image,
+					Env:             env,
+					ImagePullPolicy: corev1.PullIfNotPresent,
+
 					Command: []string{
 						"python",
 						"./app/main.py",

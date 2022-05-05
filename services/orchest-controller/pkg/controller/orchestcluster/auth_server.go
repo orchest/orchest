@@ -36,8 +36,9 @@ func getAuthServerDeployment(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:  authServer,
-					Image: image,
+					Name:            authServer,
+					Image:           image,
+					ImagePullPolicy: corev1.PullIfNotPresent,
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: 80,

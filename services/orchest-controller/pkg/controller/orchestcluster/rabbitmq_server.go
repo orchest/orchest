@@ -41,8 +41,9 @@ func getRabbitMqDeployment(metadata metav1.ObjectMeta,
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  rabbitmq,
-					Image: orchest.Spec.RabbitMq.Image,
+					Name:            rabbitmq,
+					Image:           orchest.Spec.RabbitMq.Image,
+					ImagePullPolicy: corev1.PullIfNotPresent,
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: 5672,

@@ -70,9 +70,10 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  celeryWorker,
-					Image: image,
-					Env:   env,
+					Name:            celeryWorker,
+					Image:           image,
+					Env:             env,
+					ImagePullPolicy: corev1.PullIfNotPresent,
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      userDirName,
