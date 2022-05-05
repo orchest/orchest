@@ -1500,16 +1500,16 @@ class Webhook(Subscriber):
 
     __tablename__ = None
 
-    url = db.Column(db.String(), nullable=False)
+    url = db.Column(db.String(), nullable=True)
 
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), nullable=True)
 
-    verify_ssl = db.Column(db.Boolean(), nullable=False)
+    verify_ssl = db.Column(db.Boolean(), nullable=True)
 
     # Used to calculate the HMAC digest of the payload and sign it.
-    secret = deferred(db.Column(db.String(), nullable=False))
+    secret = deferred(db.Column(db.String(), nullable=True))
 
-    content_type = db.Column(db.String(50), nullable=False)
+    content_type = db.Column(db.String(50), nullable=True)
 
     def is_slack_webhook(self) -> bool:
         return self.url.startswith("https://hooks.slack.com/")
