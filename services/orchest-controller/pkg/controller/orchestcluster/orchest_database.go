@@ -41,8 +41,10 @@ func getOrchetDatabaseDeployment(metadata metav1.ObjectMeta,
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  orchestDatabase,
-					Image: orchest.Spec.Postgres.Image,
+					Name:            orchestDatabase,
+					Image:           orchest.Spec.Postgres.Image,
+					ImagePullPolicy: corev1.PullIfNotPresent,
+
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: 5432,

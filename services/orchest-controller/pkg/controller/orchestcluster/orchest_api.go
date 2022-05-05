@@ -78,8 +78,9 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  orchestApi,
-					Image: image,
+					Name:            orchestApi,
+					Image:           image,
+					ImagePullPolicy: corev1.PullIfNotPresent,
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: 80,

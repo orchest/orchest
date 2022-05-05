@@ -47,8 +47,9 @@ func getOrchetWebserverDeployment(metadata metav1.ObjectMeta,
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  orchestWebserver,
-					Image: image,
+					Name:            orchestWebserver,
+					Image:           image,
+					ImagePullPolicy: corev1.PullIfNotPresent,
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: 80,
