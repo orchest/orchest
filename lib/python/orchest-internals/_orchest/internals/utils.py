@@ -252,3 +252,52 @@ def copytree(
 
 def get_userdir_relpath(path):
     return os.path.relpath(path, "/userdir")
+
+
+def _is_calver_version(version: str) -> bool:
+    try:
+        year, month, patch = version.split(".")
+        if (
+            not year.startswith("v")
+            or len(year) != 5
+            or len(month) != 2
+            or len(patch) == 0
+        ):
+            raise
+
+        int(year[1:]), int(month), int(patch)
+    except Exception:
+        return False
+
+    return True
+
+
+def is_version_lt(expected_older: str, expected_newer: str) -> bool:
+    """Returns `old < new`, i.e. less than.
+
+    In other words, returns whether `expected_newer` is a newer version
+    than `expected_older`.
+
+    Raises:
+        ValueError: If `expected_older` or `expected_newer` does not
+            follow our CalVer versioning scheme.
+
+    """
+    if not _is_calver_version(expected_older):
+        raise ValueError(
+            f"The given version '{expected_older}' does not follow"
+            " CalVer versioning, e.g. 'v2022.02.4'."
+        )
+    elif not _is_calver_version(expected_newer):
+        raise ValueError(
+            f"The given version '{expected_newer}' does not follow"
+            " CalVer versioning, e.g. 'v2022.02.4'."
+        )
+
+    expected_older, expected_newer = expected_older[1:], expected_newer[1:]
+    for o, n in zip(expected_older.split("."), expected_newer.split(".")):
+        if int(o) > int(n):
+            return False
+        elif int(o) < int(n):
+            return True
+    return False
