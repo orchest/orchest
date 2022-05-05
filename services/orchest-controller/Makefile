@@ -7,10 +7,18 @@ TOOLS_DIR := $(PWD)/.cache/tools
 CONTROLLER_GEN=$(TOOLS_DIR)/controller-gen
 YQ=$(TOOLS_DIR)/yq-v3
 
+GO_PROJECT=github.com/orchest/orchest/services/orchest-controller
 
-.PHONY: build
-build:
+# inject the version number into the golang version package
+LDFLAGS := ${if ${ORCHEST_VERSION},,-X ./pkg/version.Version=$(ORCHEST_VERSION)}
+
+.PHONY: docker
+docker:
 	@docker build --rm -t $(TAG) . -f Dockerfile
+
+.PHONY: controller
+controller:
+	CGO_ENABLED=0 GOOS=linux go build -ldflags="$(LDFLAGS)" -o bin/controller ./cmd/controller
 
 .SECONDARY: $(CONTROLLER_GEN)
 $(CONTROLLER_GEN):
