@@ -1525,6 +1525,15 @@ class Webhook(Subscriber):
     }
 
 
+class AnalyticsSubscriber(Subscriber):
+
+    __tablename__ = None
+
+    __mapper_args__ = {
+        "polymorphic_identity": "analytics",
+    }
+
+
 class Subscription(BaseModel):
     __tablename__ = "subscriptions"
 
