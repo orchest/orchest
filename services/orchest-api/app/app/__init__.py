@@ -30,6 +30,7 @@ from app.apis.namespace_jupyter_image_builds import (
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
+from app.core.notifications import analytics as api_analytics
 from app.core.scheduler import add_recurring_jobs_to_scheduler
 from app.models import (
     EnvironmentImageBuild,
@@ -98,6 +99,10 @@ def create_app(
     # might be called (inside this function) before it is migrated.
     if to_migrate_db:
         return app
+
+    # Keep analytics subscribed to all events of interest.
+    with app.app_context():
+        api_analytics.upsert_analytics_subscriptions()
 
     # Create a background scheduler (in a daemon thread) for every
     # gunicorn worker. The individual schedulers do not cause duplicate

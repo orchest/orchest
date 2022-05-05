@@ -30,6 +30,7 @@ class Event(Enum):
     CONFIRM_SHOW = "confirm show"
     CRONJOB_PAUSE = "cron-job pause"
     CRONJOB_RESUME = "cron-job resume"
+    DEBUG_PING = "debug ping"
     ENVIRONMENT_BUILD_CANCEL = "environment-build cancel"
     ENVIRONMENT_BUILD_START = "environment-build start"
     HEARTBEAT_TRIGGER = "heartbeat trigger"
@@ -147,6 +148,7 @@ def send_event(
     telemetry_uuid = app.config.get("TELEMETRY_UUID")
     if telemetry_uuid is None:
         app.logger.error("No telemetry uuid found, won't send telemetry event.")
+        return False
 
     if not _posthog_initialized:
         _initialize_posthog()
