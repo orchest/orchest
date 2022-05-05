@@ -24,7 +24,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { makeRequest } from "@orchest/lib-utils";
+import { hasValue, makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectPathDialog } from "./EditProjectPathDialog";
@@ -296,7 +296,10 @@ const ProjectsView: React.FC = () => {
         className="view-page projects-view"
         uploadFiles={dropFilesToCreateProject}
         disabled={
-          isImportDialogOpen || (projectRows.length === 0 && isFetchingProjects)
+          isImportDialogOpen ||
+          isShowingCreateModal ||
+          hasValue(projectUuidOnEdit) ||
+          (projectRows.length === 0 && isFetchingProjects)
         }
         sx={{
           display: "flex",
@@ -307,10 +310,10 @@ const ProjectsView: React.FC = () => {
         overlayProps={{
           sx: {
             ...defaultOverlaySx,
-            margin: (theme) => theme.spacing(-2),
-            width: "calc(100% - 32px)",
-            height: "calc(100% - 96px)",
-            border: (theme) => `2px dashed ${theme.palette.primary.main}`,
+            margin: (theme) => theme.spacing(-4),
+            width: (theme) => `calc(100% - ${theme.spacing(0)})`,
+            height: (theme) => `calc(100% - ${theme.spacing(8.075)})`,
+            border: (theme) => `4px solid ${theme.palette.primary.main}`,
           },
         }}
       >

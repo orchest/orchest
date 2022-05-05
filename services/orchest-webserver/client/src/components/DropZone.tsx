@@ -3,6 +3,7 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
+import { alpha } from "@mui/material";
 import Box, { BoxProps } from "@mui/material/Box";
 import { SxProps, Theme } from "@mui/material/styles";
 import { fetcher, hasValue } from "@orchest/lib-utils";
@@ -78,11 +79,13 @@ export const generateUploadFiles = ({
 
 export const defaultOverlaySx: SxProps<Theme> = {
   position: "absolute",
-  width: "calc(100% - 4px)",
-  height: "calc(100% - 4px)",
-  margin: "2px",
+  width: (theme) => `calc(100% - ${theme.spacing(0.5)})`,
+  height: (theme) => `calc(100% - ${theme.spacing(1)})`,
+  margin: (theme) => theme.spacing(0.25),
   pointerEvents: "none",
-  border: (theme) => `2px dotted ${theme.palette.primary.light}`,
+  border: (theme) => `2px solid ${theme.palette.primary.main}`,
+  backgroundColor: (theme) => alpha(theme.palette.primary.light, 0.2),
+  zIndex: 3,
 };
 
 export const DropZone: React.FC<
