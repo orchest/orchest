@@ -27,7 +27,9 @@ func getAuthServerDeployment(metadata metav1.ObjectMeta,
 
 	image := orchest.Spec.Orchest.AuthServer.Image
 
-	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.AuthServer.Env)
+	envMap := utils.GetMapFromEnvVar(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.AuthServer.Env)
+
+	env := utils.GetEnvVarFromMap(envMap)
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -48,6 +50,14 @@ func getAuthServerDeployment(metadata metav1.ObjectMeta,
 				},
 			},
 		},
+	}
+
+	devMod := isDevelopmentEnabled(envMap)
+
+	if devMod {
+		volumes, volumeMounts := getDevVolumes(authServer, true, true, true)
+		template.Spec.Volumes = volumes
+		template.Spec.Containers[0].VolumeMounts = volumeMounts
 	}
 
 	deployment := &appsv1.Deployment{

@@ -27,24 +27,43 @@ func getOrchetWebserverDeployment(metadata metav1.ObjectMeta,
 
 	image := orchest.Spec.Orchest.OrchestWebServer.Image
 
-	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.OrchestWebServer.Env)
+	envMap := utils.GetMapFromEnvVar(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.OrchestWebServer.Env)
+
+	devMod := isDevelopmentEnabled(envMap)
+
+	volumes := []corev1.Volume{
+		{
+			Name: userDirName,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: userDirName,
+					ReadOnly:  false,
+				},
+			},
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      userDirName,
+			MountPath: userdirMountPath,
+		},
+	}
+
+	if devMod {
+		devVolumes, devVolumeMounts := getDevVolumes(orchestWebserver, true, true, true)
+		volumes = append(volumes, devVolumes...)
+		volumeMounts = append(volumeMounts, devVolumeMounts...)
+	}
+
+	env := utils.GetEnvVarFromMap(envMap)
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,
 		},
 		Spec: corev1.PodSpec{
-			Volumes: []corev1.Volume{
-				{
-					Name: userDirName,
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: userDirName,
-							ReadOnly:  false,
-						},
-					},
-				},
-			},
+			Volumes: volumes,
 			Containers: []corev1.Container{
 				{
 					Name:            orchestWebserver,
@@ -55,13 +74,8 @@ func getOrchetWebserverDeployment(metadata metav1.ObjectMeta,
 							ContainerPort: 80,
 						},
 					},
-					Env: env,
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      userDirName,
-							MountPath: userdirMountPath,
-						},
-					},
+					Env:          env,
+					VolumeMounts: volumeMounts,
 				},
 			},
 		},
