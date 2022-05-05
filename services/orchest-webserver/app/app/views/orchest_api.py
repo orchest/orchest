@@ -228,14 +228,6 @@ def register_orchest_api_views(app, db):
             json=job_spec,
         )
 
-        analytics.send_event(
-            app,
-            analytics.Event.JOB_CREATE,
-            {
-                "job_definition": job_spec,
-                "snapshot_size": get_project_snapshot_size(job_spec["project_uuid"]),
-            },
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/duplicate", methods=["POST"])
@@ -534,7 +526,6 @@ def register_orchest_api_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/%s" % (job_uuid),
         )
 
-        analytics.send_event(app, analytics.Event.JOB_CANCEL, {"job_uuid": job_uuid})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/cronjobs/pause/<job_uuid>", methods=["POST"])
@@ -546,7 +537,6 @@ def register_orchest_api_views(app, db):
             + "/api/jobs/cronjobs/pause/%s" % (job_uuid),
         )
 
-        analytics.send_event(app, analytics.Event.CRONJOB_PAUSE, {"job_uuid": job_uuid})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/cronjobs/resume/<job_uuid>", methods=["POST"])
@@ -558,9 +548,6 @@ def register_orchest_api_views(app, db):
             + "/api/jobs/cronjobs/resume/%s" % (job_uuid),
         )
 
-        analytics.send_event(
-            app, analytics.Event.CRONJOB_RESUME, {"job_uuid": job_uuid}
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["PUT"])
@@ -596,11 +583,6 @@ def register_orchest_api_views(app, db):
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/jobs/%s/%s" % (job_uuid, run_uuid),
-        )
-        analytics.send_event(
-            app,
-            analytics.Event.JOB_PIPELINE_RUN_CANCEL,
-            {"job_uuid": job_uuid, "run_uuid": run_uuid},
         )
 
         return resp.content, resp.status_code, resp.headers.items()
@@ -668,11 +650,6 @@ def register_orchest_api_views(app, db):
                 )
 
                 remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
-                analytics.send_event(
-                    app,
-                    analytics.Event.JOB_DELETE,
-                    {"job_uuid": job_uuid},
-                )
                 return resp.content, resp.status_code, resp.headers.items()
 
             elif resp.status_code == 404:
@@ -691,11 +668,6 @@ def register_orchest_api_views(app, db):
         resp = requests.delete(
             f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
             f"jobs/cleanup/{job_uuid}/{run_uuid}"
-        )
-        analytics.send_event(
-            app,
-            analytics.Event.JOB_PIPELINE_RUN_DELETE,
-            {"job_uuid": job_uuid, "run_uuid": run_uuid},
         )
         return resp.content, resp.status_code, resp.headers.items()
 
