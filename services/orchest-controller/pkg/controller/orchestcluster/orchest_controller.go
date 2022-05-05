@@ -12,6 +12,7 @@ import (
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/version"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -76,7 +77,7 @@ func NewDefaultControllerConfig() ControllerConfig {
 		DeployDir:                 "/deploy",
 		PostgresDefaultImage:      "postgres:13.1",
 		RabbitmqDefaultImage:      "rabbitmq:3",
-		OrchestDefaultVersion:     "v2022.05.0",
+		OrchestDefaultVersion:     version.Version,
 		CeleryWorkerImageName:     "orchest/celery-worker",
 		OrchestApiImageName:       "orchest/orchest-api",
 		OrchestWebserverImageName: "orchest/orchest-webserver",

@@ -407,8 +407,7 @@ def update(
         sys.exit(1)
 
     if watch_flag:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.UPDATING)
-        _display_spinner(ClusterStatus.UPDATING, ClusterStatus.RUNNING)
+        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
         echo("Successfully updated Orchest!")
 
 
@@ -563,8 +562,7 @@ def patch(
             echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
-    _display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSING)
-    _display_spinner(ClusterStatus.PAUSING, ClusterStatus.RUNNING)
+    _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
     echo("Successfully patched the Orchest Cluster.")
 
 
@@ -713,8 +711,7 @@ def restart(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
-        _display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
+        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
         echo("Successfully restarted Orchest.")
 
 
@@ -968,6 +965,25 @@ def _display_spinner(
 
     The spinner is displayed in `file` which defaults to `STDOUT`.
 
+    Note:
+        The spinner is not "fool-proof" when running quick succinct
+        CLI commands.
+
+        For example: running <--> updating. Then when the cluster
+        status is "updating", one can't infer whether that was due to
+        the current invoked command or the next command. Thus the
+        spinner can't know whether it should stop displaying.
+
+        The spinner is displayed based on the cluster status, which is
+        just one moment in time: the moment the request is returned.
+        Based on the ping of a user and the speed with which the
+        `orchest-controller` changes the status of the cluster, we can't
+        infer whether the `end_status` has already been reached.
+
+        The implementation assumes the `end_status` is reached
+        eventually and no concurrent/quick successive commands are
+        issued.
+
     """
 
     def echo(*args, **kwargs):
@@ -998,6 +1014,15 @@ def _display_spinner(
     ns = click_ctx.params.get("namespace")
     cluster_name = click_ctx.params.get("cluster_name")
 
+    # NOTE: Assumes the `orchest-controller` changes the status of the
+    # Orchest Cluster based on the management command within 10s and the
+    # initial request getting the cluster status succeeding within that
+    # time as well. Meaning that the passed `curr_status` is actually no
+    # longer the actual status of the Cluster. Allowing the passed
+    # `curr_status` to equal the `end_status` (without requiring double
+    # invocation of this function, which would lead to other issues).
+    invocation_time = time.time()
+
     try:
         # NOTE: Click's `echo` makes sure the ANSI characters work
         # cross-platform. For Windows it uses `colorama` to do so.
@@ -1010,14 +1035,14 @@ def _display_spinner(
 
         # Use `async_req` to make sure spinner is always loading.
         thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
-        while curr_status != end_status:
+        while curr_status != end_status or (time.time() - invocation_time < 10):
             thread = t.cast("AsyncResult", thread)
             if thread.ready():
                 try:
                     resp = thread.get()
                 except client.ApiException as e:
                     echo(err=True)  # newline
-                    echo(f"🙅 Failed to {click_ctx.command.name}", err=True)
+                    echo(f"🙅 Failed to {click_ctx.command.name}.", err=True)
                     if e.status == 404:  # not found
                         echo(
                             "The CR Object defining the Orchest Cluster was removed"
@@ -1058,7 +1083,7 @@ def _display_spinner(
                 if curr_status != end_status:
                     thread.wait()  # type: ignore
     finally:
-        echo("\033[?25h", nl=False)  # show cursor
+        echo("\033[?25h", nl=True)  # show cursor
 
 
 def _get_orchest_cluster_version(ns: str, cluster_name: str) -> str:

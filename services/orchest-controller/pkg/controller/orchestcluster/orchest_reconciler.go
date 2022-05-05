@@ -202,12 +202,14 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) (err error) {
 
 	generation := fmt.Sprint(orchest.Generation)
 
-	err = r.ensureUserDir(ctx, generation, orchest)
+	err = r.ensurePvc(ctx, generation, userDirName,
+		orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
 	if err != nil {
 		return errors.Wrapf(err, "failed to ensure %s pvc", userDirName)
 	}
 
-	err = r.ensureBuildCacheDir(ctx, generation, orchest)
+	err = r.ensurePvc(ctx, generation, builderDirName,
+		orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
 	if err != nil {
 		return errors.Wrapf(err, "failed to ensure %s pvc", builderDirName)
 	}
@@ -471,43 +473,40 @@ func (r *OrchestReconciler) getDeployments(orchest *orchestv1alpha1.OrchestClust
 	return deploymentMap, nil
 }
 
-func (r *OrchestReconciler) ensureUserDir(ctx context.Context, curHash string, orchest *orchestv1alpha1.OrchestCluster) error {
+func (r *OrchestReconciler) ensurePvc(ctx context.Context, curHash, name, size string, orchest *orchestv1alpha1.OrchestCluster) error {
 	storageClass := orchest.Spec.Orchest.Resources.StorageClassName
-	size := orchest.Spec.Orchest.Resources.UserDirVolumeSize
 
 	// Retrive the created pvcs
-	_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, userDirName, metav1.GetOptions{})
+	oldPvc, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, builderDirName, metav1.GetOptions{})
+	newPvc := r.persistentVolumeClaim(builderDirName, r.namespace, storageClass, size, curHash, orchest)
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
-		uaerDir := r.persistentVolumeClaim(userDirName, r.namespace, storageClass, size, curHash, orchest)
-		_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, uaerDir, metav1.CreateOptions{})
+		_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, newPvc, metav1.CreateOptions{})
 		if err != nil {
-			return errors.Wrapf(err, "failed to create %s pvc", userDirName)
+			return errors.Wrapf(err, "failed to create %s pvc", builderDirName)
 		}
 		return nil
+	} else if err != nil {
+		return err
 	}
 
-	// TODO: create a new userdir, move the data from old userdir to new one and delete the old one
+	r.adoptPVC(ctx, oldPvc, newPvc)
 
 	return nil
 }
 
-func (r *OrchestReconciler) ensureBuildCacheDir(ctx context.Context, curHash string, orchest *orchestv1alpha1.OrchestCluster) error {
-	storageClass := orchest.Spec.Orchest.Resources.StorageClassName
-	size := orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize
-
-	// Retrive the created pvcs
-	_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, builderDirName, metav1.GetOptions{})
-	// userdir is not created or is removed, we have to recreate it
-	if err != nil && kerrors.IsNotFound(err) {
-		buildDir := r.persistentVolumeClaim(builderDirName, r.namespace, storageClass, size, curHash, orchest)
-		_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, buildDir, metav1.CreateOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to create %s pvc", builderDirName)
-		}
+func (r *OrchestReconciler) adoptPVC(ctx context.Context, oldPvc, newPvc *corev1.PersistentVolumeClaim) error {
+	patchData, err := utils.GetPatchData(oldPvc, newPvc)
+	if err != nil {
+		return err
 	}
 
-	// TODO: create a new userdir, move the data from old userdir to new one and delete the old one
+	patch := client.RawPatch(types.StrategicMergePatchType, patchData)
+
+	err = r.getGeneralClient().Patch(ctx, oldPvc, patch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch the pvc %v", oldPvc)
+	}
 	return nil
 }
 
@@ -572,7 +571,7 @@ func (r *OrchestReconciler) upsertObject(ctx context.Context, object client.Obje
 
 	patchData, err := utils.GetPatchData(oldObj, object)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	patch := client.RawPatch(types.StrategicMergePatchType, patchData)
