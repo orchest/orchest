@@ -99,6 +99,47 @@ _event_type_to_analytics_event_enum = {
 }
 
 
+def generate_payload_for_analytics(event: models.Event) -> dict:
+    """Creates an analytics module compatible payload.
+
+    Acts as a compatibility layer between orchest-api events and what
+    the shared analytics module expects, and also provides some "old"
+    fields to the analytics BE, to avoid breaking changes.
+    """
+
+    analytics_payload = event.to_notification_payload()
+    event_type = analytics_payload["type"]
+
+    if event_type.startswith("project:cron-job:") or event_type.startswith(
+        "project:one-off-job:"
+    ):
+        analytics_payload["job_uuid"] = analytics_payload["job"]["uuid"]
+
+    if event_type.startswith("project:cron-job:run:pipeline-run:"):
+        analytics_payload["run_uuid"] = analytics_payload["job"]["run"]["pipeline_run"][
+            "uuid"
+        ]
+    elif event_type.startswith("project:one-off-job:pipeline-run:"):
+        analytics_payload["run_uuid"] = analytics_payload["job"]["pipeline_run"]["uuid"]
+
+    if event_type in ["project:cron-job:created", "project:one-off-job:created"]:
+        analytics_payload["snapshot_size"] = 10
+        job: models.Job = models.Job.query.filter(
+            models.Job.project_uuid == analytics_payload["project"]["uuid"],
+            models.Job.uuid == analytics_payload["job"]["uuid"],
+        ).one()
+        analytics_payload["job_definition"] = {
+            "parameters": job.parameters,
+            "project_uuid": job.project_uuid,
+            "pipeline_uuid": job.pipeline_uuid,
+            "draft": True,
+            "uuid": job.uuid,
+            "pipeline_run_spec": {"run_type": "full", "uuids": []},
+        }
+
+    return analytics_payload
+
+
 def deliver(delivery_uuid: str) -> None:
     """Delivers an analytics delivery. Will commit to the database.
 

@@ -7,6 +7,7 @@ happened.
 from app import models, utils
 from app.connections import db
 from app.core import notifications
+from app.core.notifications import analytics as api_analytics
 
 _logger = utils.get_logger()
 
@@ -33,11 +34,16 @@ def _register_event(ev: models.Event) -> None:
             f"Scheduling delivery for event {ev.uuid}, event type: {ev.type} for "
             f"deliveree {sub.uuid}."
         )
+        if isinstance(sub, models.AnalyticsSubscriber):
+            notification_payload = api_analytics.generate_payload_for_analytics(ev)
+        else:
+            notification_payload = ev.to_notification_payload()
+
         delivery = models.Delivery(
             event=ev.uuid,
             deliveree=sub.uuid,
             status="SCHEDULED",
-            notification_payload=ev.to_notification_payload(),
+            notification_payload=notification_payload,
         )
         db.session.add(delivery)
 
