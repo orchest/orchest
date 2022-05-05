@@ -29,6 +29,8 @@ func getOrchetWebserverDeployment(metadata metav1.ObjectMeta,
 
 	envMap := utils.GetMapFromEnvVar(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.OrchestWebServer.Env)
 
+	env := utils.GetEnvVarFromMap(envMap)
+
 	devMod := isDevelopmentEnabled(envMap)
 
 	volumes := []corev1.Volume{
@@ -55,8 +57,6 @@ func getOrchetWebserverDeployment(metadata metav1.ObjectMeta,
 		volumes = append(volumes, devVolumes...)
 		volumeMounts = append(volumeMounts, devVolumeMounts...)
 	}
-
-	env := utils.GetEnvVarFromMap(envMap)
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{

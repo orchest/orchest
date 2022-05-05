@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"reflect"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -490,6 +491,20 @@ func (controller *OrchestClusterController) validateOrchestCluster(ctx context.C
 func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster) (*orchestv1alpha1.OrchestCluster, error) {
 
+	orchest, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Get(ctx, orchest.Name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.V(2).Info("OrchestCluster %s resource not found.", orchest.Name)
+			return nil, nil
+		}
+		// Error reading OrchestCluster - The request will be requeued.
+		return nil, errors.Wrap(err, "failed to get OrchestCluster")
+	}
+
+	if orchest.Status.ObservedGeneration == orchest.Generation {
+		return orchest, nil
+	}
+
 	copy := orchest.DeepCopy()
 
 	// Orchest configs
@@ -578,13 +593,18 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = controller.config.BuilddirDefaultVolumeSize
 	}
 
-	result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
+	if !reflect.DeepEqual(copy.Spec, orchest.Spec) {
+		copy.Status.ObservedGeneration = copy.Generation
+		copy.Status.ObservedHash = computeHash(&copy.Spec)
+		result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
 
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update orchest with default values  %q", orchest.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to update orchest with default values  %q", orchest.Name)
+		}
+		return result, nil
+
 	}
-	return result, nil
-
+	return orchest, nil
 }
 
 func (controller *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
