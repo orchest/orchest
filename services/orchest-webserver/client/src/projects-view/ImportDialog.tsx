@@ -164,7 +164,7 @@ const dialogTitleMappings: Record<ImportStatus, string> = {
   READY: "Import project",
   IMPORTING: "Importing project",
   UPLOADING: "Uploading project",
-  FILES_STORED: "Complete",
+  FILES_STORED: "Upload complete",
   SAVING_PROJECT_NAME: "Upload complete",
 };
 
