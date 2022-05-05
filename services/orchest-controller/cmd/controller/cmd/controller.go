@@ -8,6 +8,7 @@ import (
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcluster"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/server"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/version"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
 )
@@ -47,7 +48,7 @@ func NewControllerCommand() *cobra.Command {
 		"builderSize", controllerConfig.BuilddirDefaultVolumeSize, "The default size for builddir pvc")
 
 	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestDefaultVersion,
-		"defaultVersion", controllerConfig.OrchestDefaultVersion, "The default version for orchest components")
+		"defaultVersion", version.Version, "The default version for orchest components")
 
 	cmd.PersistentFlags().BoolVar(&controllerConfig.DefaultPause,
 		"pause", controllerConfig.DefaultPause, "Default Orchest Cluster pause state")
