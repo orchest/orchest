@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"reflect"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -594,7 +593,7 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = controller.config.BuilddirDefaultVolumeSize
 	}
 
-	if !reflect.DeepEqual(copy.Spec, orchest.Spec) {
+	if computeHash(&copy.Spec) != computeHash(&orchest.Spec) {
 		copy.Status.ObservedGeneration = copy.Generation
 		copy.Status.ObservedHash = computeHash(&copy.Spec)
 		result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
@@ -602,6 +601,8 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to update orchest with default values  %q", orchest.Name)
 		}
+
+		klog.Infof("OrchestCluster is updated with default values %s", orchest.Name)
 		return result, nil
 
 	}
@@ -676,11 +677,16 @@ func (controller *OrchestClusterController) updatePhase(ctx context.Context,
 
 	if orchest.Status != nil && orchest.Status.Phase == phase {
 		return nil
+	} else if orchest.Status != nil {
+		orchest.Status.Phase = phase
+		orchest.Status.LastHeartbeatTime = metav1.NewTime(time.Now())
+		orchest.Status.Conditions = nil
 	} else {
 		orchest.Status = &orchestv1alpha1.OrchestClusterStatus{
 			Phase:             phase,
 			LastHeartbeatTime: metav1.NewTime(time.Now()),
 		}
+
 	}
 
 	if orchest.Status.Phase == orchestv1alpha1.Running ||

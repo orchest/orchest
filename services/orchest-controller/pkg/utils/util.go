@@ -28,10 +28,11 @@ func Remove(list []string, s string) []string {
 func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 	hasher.Reset()
 	printer := spew.ConfigState{
-		Indent:         " ",
-		SortKeys:       true,
-		DisableMethods: true,
-		SpewKeys:       true,
+		Indent:                  " ",
+		SortKeys:                true,
+		DisableMethods:          true,
+		DisablePointerAddresses: true,
+		SpewKeys:                true,
 	}
 	printer.Fprintf(hasher, "%#v", objectToWrite)
 }
