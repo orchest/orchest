@@ -10,6 +10,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { fetchProject } from "@/hooks/useFetchProject";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { Project } from "@/types";
 import {
   BackgroundTask,
@@ -40,7 +41,6 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { fetcher, HEADER, uuidv4, validURL } from "@orchest/lib-utils";
 import React from "react";
-import { useFetchProjects } from "./hooks/useFetchProjects";
 import { useImportGitRepo, validProjectName } from "./hooks/useImportGitRepo";
 
 const ERROR_MAPPING: Record<CreateProjectError, string> = {
@@ -210,7 +210,7 @@ export const ImportDialog: React.FC<{
   // If state.projects doesn't contain the new project, it will show "project doesn't exist" error in `/pipeline`.
   const { dispatch } = useProjectsContext();
   React.useEffect(() => {
-    dispatch({ type: "SET_PROJECTS", payload: projects });
+    if (projects) dispatch({ type: "SET_PROJECTS", payload: projects });
   }, [dispatch, projects]);
 
   // Because import will occur before user giving a name,
@@ -340,7 +340,7 @@ export const ImportDialog: React.FC<{
   );
 
   const existingProjectNames = React.useMemo(() => {
-    return projects.map((project) => project.path);
+    return (projects || []).map((project) => project.path);
   }, [projects]);
 
   const projectNameValidation = React.useMemo(() => {
