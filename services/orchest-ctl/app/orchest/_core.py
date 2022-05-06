@@ -729,7 +729,14 @@ def _update() -> None:
     a user through the CLI. This code will change the state of the
     deployment of Orchest. It assumes Orchest has been stopped.
     """
-    utils.echo("Updating...")
+    utils.echo(
+        "Orchest has gone through a breaking change to introduce a native kubernetes "
+        "operator for managing Orchest. You are on the latest pre-operator version "
+        "and cannot automatically update further. Head to the docs at "
+        "https://docs.orchest.io/en/stable/getting_started/installation.html for "
+        "instructions on how to move to this newer version of Orchest."
+    )
+    return
 
     # Check if Orchest is actually stopped.
     depls = k8sw.get_orchest_deployments()
