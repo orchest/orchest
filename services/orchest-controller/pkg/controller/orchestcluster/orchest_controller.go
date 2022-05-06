@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"reflect"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -594,7 +593,7 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = controller.config.BuilddirDefaultVolumeSize
 	}
 
-	if !reflect.DeepEqual(copy.Spec, orchest.Spec) {
+	if computeHash(&copy.Spec) != computeHash(&orchest.Spec) {
 		copy.Status.ObservedGeneration = copy.Generation
 		copy.Status.ObservedHash = computeHash(&copy.Spec)
 		result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
