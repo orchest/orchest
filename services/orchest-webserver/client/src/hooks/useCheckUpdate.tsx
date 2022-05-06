@@ -74,11 +74,15 @@ export const useCheckUpdate = () => {
           {`There is a new version of Orchest that contains infrastructure breaking changes. Directly updating to the new version is unfortunately not possible.`}
         </Typography>
         <Typography variant="body2" sx={{ marginTop: 4 }}>
-          {`Please refer to the installation guide to re-install Orchest with the new version `}
-          <a href="https://docs.orchest.io/en/stable/getting_started/installation.html ">
-            the tutorial
+          {`Please refer to `}
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href="https://docs.orchest.io/en/stable/getting_started/installation.html "
+          >
+            the installation guide
           </a>
-          .
+          {` to re-install Orchest with the new version.`}
         </Typography>
       </>,
       (resolve) => {
