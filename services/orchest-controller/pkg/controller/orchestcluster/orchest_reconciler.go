@@ -74,6 +74,8 @@ var (
 
 type deployFunction func(context.Context, string, *orchestv1alpha1.OrchestCluster) error
 
+type checkDeployment func(ctx context.Context, client kubernetes.Interface, name, namespace string) bool
+
 type deployHandler struct {
 	function    deployFunction
 	updateEvent orchestv1alpha1.OrchestClusterEvent
@@ -448,7 +450,7 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 			}
 			pauseDeployment(ctx, r.getKClient(), pauseReason, orchest.Generation, deployment)
 
-			err = r.waitForDeployment(ctx, deployment.Namespace, deployment.Name)
+			err = r.waitForDeployment(ctx, deployment.Namespace, deployment.Name, utils.IsDeploymentPaused)
 			if err != nil {
 				return nil, err
 			}
@@ -623,7 +625,7 @@ func (r *OrchestReconciler) deployOrchestDatabase(ctx context.Context, hash stri
 		}
 	}
 
-	return r.waitForDeployment(ctx, r.namespace, orchestDatabase)
+	return r.waitForDeployment(ctx, r.namespace, orchestDatabase, utils.IsDeploymentReady)
 }
 
 func (r *OrchestReconciler) deployAuthServer(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
@@ -636,7 +638,7 @@ func (r *OrchestReconciler) deployAuthServer(ctx context.Context, hash string, o
 		}
 	}
 
-	return r.waitForDeployment(ctx, r.namespace, authServer)
+	return r.waitForDeployment(ctx, r.namespace, authServer, utils.IsDeploymentReady)
 }
 
 func (r *OrchestReconciler) deployOrchestApi(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
@@ -649,7 +651,7 @@ func (r *OrchestReconciler) deployOrchestApi(ctx context.Context, hash string, o
 		}
 	}
 
-	return r.waitForDeployment(ctx, r.namespace, orchestApi)
+	return r.waitForDeployment(ctx, r.namespace, orchestApi, utils.IsDeploymentReady)
 }
 
 func (r *OrchestReconciler) deployCeleryWorker(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
@@ -662,7 +664,7 @@ func (r *OrchestReconciler) deployCeleryWorker(ctx context.Context, hash string,
 		}
 	}
 
-	return r.waitForDeployment(ctx, r.namespace, celeryWorker)
+	return r.waitForDeployment(ctx, r.namespace, celeryWorker, utils.IsDeploymentReady)
 }
 
 func (r *OrchestReconciler) deployWebserver(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
@@ -675,7 +677,7 @@ func (r *OrchestReconciler) deployWebserver(ctx context.Context, hash string, or
 		}
 	}
 
-	return r.waitForDeployment(ctx, r.namespace, orchestWebserver)
+	return r.waitForDeployment(ctx, r.namespace, orchestWebserver, utils.IsDeploymentReady)
 }
 
 func (r *OrchestReconciler) deployRabbitmq(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
@@ -688,7 +690,7 @@ func (r *OrchestReconciler) deployRabbitmq(ctx context.Context, hash string, orc
 		}
 	}
 
-	return r.waitForDeployment(ctx, r.namespace, rabbitmq)
+	return r.waitForDeployment(ctx, r.namespace, rabbitmq, utils.IsDeploymentReady)
 }
 
 func (r *OrchestReconciler) deployNodeAgent(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
@@ -744,7 +746,7 @@ func (r *OrchestReconciler) waitForCleanupPod(ctx context.Context, namespace, na
 	return errors.Errorf("exceeded max retry count waiting for pod to succeed %s", name)
 }
 
-func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, name string) error {
+func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, name string, fn checkDeployment) error {
 	klog.V(2).Infof("Waiting for deployment to become ready object key: %s/%s", namespace, name)
 
 	// wait for deployment to become ready
@@ -755,7 +757,7 @@ func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, na
 			<-time.After(r.sleepTime)
 		}
 
-		if utils.IsDeploymentReady(ctx, r.getKClient(), name, r.namespace) {
+		if fn(ctx, r.getKClient(), name, r.namespace) {
 			klog.V(2).Infof("Deployment is ready. object key : %s/%s", name, namespace)
 			return nil
 		}

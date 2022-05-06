@@ -143,6 +143,26 @@ func IsDeploymentReady(ctx context.Context, client kubernetes.Interface, name, n
 	return *deployment.Spec.Replicas == deployment.Status.ReadyReplicas
 }
 
+// IsDeploymentPaused checks if the deployment is paused
+func IsDeploymentPaused(ctx context.Context, client kubernetes.Interface, name, namespace string) bool {
+
+	deployment, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.V(2).Info("deployment %s resource not found.", name)
+		}
+		// Error reading Deployment.
+		return false
+	}
+
+	// Replicas is not intialized yet
+	if deployment.Spec.Replicas == nil {
+		return false
+	}
+
+	return *deployment.Spec.Replicas == deployment.Status.ReadyReplicas
+}
+
 func IsPodActive(ctx context.Context, client kubernetes.Interface, name, namespace string) bool {
 
 	pod, err := client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
