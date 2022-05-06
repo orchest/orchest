@@ -410,5 +410,5 @@ export type UpdateInfo = {
 };
 
 export type OrchestVersion = {
-  version: string | null;
+  version: string | null | undefined;
 };
