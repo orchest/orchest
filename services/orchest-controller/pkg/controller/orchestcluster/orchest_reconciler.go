@@ -267,24 +267,54 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) (err error) {
 func (r *OrchestReconciler) determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 	orchestv1alpha1.OrchestClusterPhase, orchestv1alpha1.OrchestClusterPhase) {
 
-	phase := orchest.Status.Phase
-	endPhase := orchestv1alpha1.Running
+	// Next phase is the phase the OrchestCluster will enter
+	var nextPhase orchestv1alpha1.OrchestClusterPhase
 
-	if *orchest.Spec.Orchest.Pause && orchest.Status.Phase != orchestv1alpha1.Paused {
-		phase = orchestv1alpha1.Pausing
+	// After nextPhase is finished, the OrchestCluster will enter endPhase
+	var endPhase orchestv1alpha1.OrchestClusterPhase
+
+	// The current phase of the cluster
+	curPhase := orchest.Status.Phase
+
+	if *orchest.Spec.Orchest.Pause && curPhase != orchestv1alpha1.Paused {
+		// If the cluster needs to be paused but not paused yet
+
+		nextPhase = orchestv1alpha1.Pausing
+
 		endPhase = orchestv1alpha1.Paused
-	} else if orchest.Status.Phase == orchestv1alpha1.DeployedThirdParties {
-		phase = orchestv1alpha1.DeployingOrchest
+
+	} else if *orchest.Spec.Orchest.Pause && curPhase == orchestv1alpha1.Paused {
+		// If the cluster needs to be paused and already paused
+		nextPhase = orchestv1alpha1.Paused
+
+		endPhase = orchestv1alpha1.Paused
+
+	} else if curPhase == orchestv1alpha1.DeployingThirdParties {
+		// If the cluster is deploying third parties, it continue deploying, and
+		// will enter deployed once finished
+		nextPhase = curPhase
+
+		endPhase = orchestv1alpha1.DeployedThirdParties
+
 	} else if orchest.Status.ObservedHash != computeHash(&orchest.Spec) {
-		phase = orchestv1alpha1.Upgrading
+		// If the hash is changed, the cluster enters upgrading state and then running
+		nextPhase = orchestv1alpha1.Upgrading
+
+		endPhase = orchestv1alpha1.Running
+
+	} else if _, ok := orchest.GetAnnotations()[RestartAnnotationKey]; ok {
+		// If restart annotation is present, cluster enters restarting phase then running
+		nextPhase = orchestv1alpha1.Restarting
+
+		endPhase = orchestv1alpha1.Running
+
+	} else {
+
+		nextPhase = curPhase
+		endPhase = orchestv1alpha1.Running
 	}
 
-	// If restart key is present, next phase would be in restarting
-	if _, ok := orchest.GetAnnotations()[RestartAnnotationKey]; ok {
-		phase = orchestv1alpha1.Restarting
-	}
-
-	return phase, endPhase
+	return nextPhase, endPhase
 }
 
 func (r *OrchestReconciler) shouldPause(orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
