@@ -22,8 +22,12 @@ export const EditProjectPathDialog = ({
   projectUuid: string | undefined;
   onClose: () => void;
   setProjects: (
-    data?: Project[] | Promise<Project[]> | MutatorCallback<Project[]>
-  ) => Promise<Project[]>;
+    data?:
+      | Project[]
+      | Promise<Project[]>
+      | MutatorCallback<Project[]>
+      | undefined
+  ) => Promise<Project[] | undefined>;
   projects: Project[];
 }) => {
   const { setAlert } = useAppContext();
@@ -112,7 +116,7 @@ export const EditProjectPathDialog = ({
             value={projectName}
             label="Project name"
             helperText={validation || " "}
-            error={validation.length > 0}
+            error={hasValue(validation) && validation.length > 0}
             disabled={isUpdatingProjectPath}
             onChange={(e) => {
               setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));

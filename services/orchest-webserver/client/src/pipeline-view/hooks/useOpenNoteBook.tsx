@@ -1,5 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import React from "react";
 
 export const useOpenNoteBook = () => {

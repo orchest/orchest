@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMounted } from "@/hooks/useMounted";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { IOrchestSession } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import LensIcon from "@mui/icons-material/Lens";

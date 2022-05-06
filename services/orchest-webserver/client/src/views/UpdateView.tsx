@@ -13,7 +13,7 @@ import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { checkHeartbeat } from "@orchest/lib-utils";
+import { checkHeartbeat, fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 const UpdateView: React.FC = () => {
@@ -44,11 +44,9 @@ const UpdateView: React.FC = () => {
         console.log("Starting update.");
 
         try {
-          cancelableFetch(
-            "/async/start-update",
-            { method: "POST" },
-            false
-          ).then((json) => {
+          fetcher<{ token: string }>("/async/start-update", {
+            method: "POST",
+          }).then((json) => {
             setState((prevState) => ({
               ...prevState,
             }));

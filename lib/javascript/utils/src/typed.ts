@@ -148,16 +148,18 @@ export function activeElementIsInput() {
 }
 
 // used in orchest-webserver only
-export function validURL(string) {
-  let url;
-
+export function validURL(
+  url: string | undefined,
+  skipHttpsChecking = false
+): url is string {
+  if (!url) return false;
   try {
-    url = new URL(string);
+    new URL(url);
   } catch (_) {
     return false;
   }
 
-  return true;
+  return skipHttpsChecking || url.startsWith("https://");
 }
 
 // used in orchest-webserver only

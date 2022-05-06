@@ -14,8 +14,10 @@ export const useImportUrl = (initialImportUrl?: string) => {
       : ""
   );
 
-  const setImportUrl = (url: string) =>
-    setRawImportUrl(url.trim().toLowerCase());
+  const setImportUrl = React.useCallback(
+    (url: string) => setRawImportUrl(url.trim().toLowerCase()),
+    []
+  );
 
   return [importUrl, setImportUrl] as const;
 };
