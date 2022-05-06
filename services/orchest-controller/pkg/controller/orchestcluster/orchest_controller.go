@@ -603,7 +603,7 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 			return nil, errors.Wrapf(err, "failed to update orchest with default values  %q", orchest.Name)
 		}
 
-		klog.Info("OrchestCluster is updated with default values %s", orchest.Name)
+		klog.Infof("OrchestCluster is updated with default values %s", orchest.Name)
 		return result, nil
 
 	}
