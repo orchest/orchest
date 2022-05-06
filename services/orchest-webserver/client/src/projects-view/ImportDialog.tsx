@@ -268,13 +268,14 @@ export const ImportDialog: React.FC<{
     if (newProjectUuid) {
       try {
         await deleteProject(newProjectUuid);
+        fetchProjects();
       } catch (error) {
         console.error(
           `Failed to delete the temporary project with UUID ${newProjectUuid}. ${error}`
         );
       }
     }
-  }, [newProjectUuid]);
+  }, [newProjectUuid, fetchProjects]);
 
   const closeDialog = React.useCallback(async () => {
     // if user forces closing the dialog, cancel all cancelable promises,
