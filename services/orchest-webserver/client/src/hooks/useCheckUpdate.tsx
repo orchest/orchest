@@ -5,7 +5,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { siteMap } from "@/Routes";
 import { OrchestVersion, UpdateInfo } from "@/types";
 import Typography from "@mui/material/Typography";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import useSWRImmutable from "swr/immutable";
 import { useCancelablePromise } from "./useCancelablePromise";
@@ -29,7 +29,7 @@ const shouldPromptOrchestUpdate = (
   skipVersion: string | null = null
 ) => {
   // The latest version information has not yet been fetched by Orchest.
-  if (latestVersion === null) return false;
+  if (!hasValue(latestVersion)) return false;
   if (isVersionLTE(latestVersion, currentVersion)) return false;
   return skipVersion !== latestVersion;
 };
@@ -48,28 +48,63 @@ const fetchLatestVersion = () =>
 // it is best to place this hook in top-level components (i.e. the ones
 // defined in the routingConfig.tsx).
 export const useCheckUpdate = () => {
+  const { setConfirm, setAlert } = useAppContext();
+  const { navigateTo } = useCustomRoute();
+
   const [skipVersion, setSkipVersion] = useLocalStorage<string | null>(
     "skip_version",
     null
   );
+
+  // NOTE: this is a temporary alert that will be removed in the next release.
+  // ============================= start of the temporary code block ============================
+  const [
+    shouldShowBreakingChangeAlert,
+    setShouldShowBreakingChangeAlert,
+  ] = useLocalStorage<boolean>(
+    "should_show_breaking_change_alert_05-2022",
+    true
+  );
+
+  const promptBreakingChangesAlert = React.useCallback(() => {
+    setAlert(
+      "Breaking changes in the next version",
+      <>
+        <Typography variant="body2">
+          {`There is a new version of Orchest that contains infrastructure breaking changes. Updating to the new version via GUI is not supported.`}
+        </Typography>
+        <Typography variant="body2" sx={{ marginTop: 4 }}>
+          {`Please check out the following tutorial to update to the newer version: `}
+          <a href="https://github.com/orchest/orchest/to-be-defined">
+            the tutorial
+          </a>
+          .
+        </Typography>
+      </>,
+      (resolve) => {
+        setShouldShowBreakingChangeAlert(false);
+        resolve(true);
+        return true;
+      }
+    );
+  }, [setAlert, setShouldShowBreakingChangeAlert]);
+
+  // ============================= end of the temporary code block ============================
 
   // Only make requests every hour, because the latest Orchest version gets
   // fetched once per hour. Use `useSWRImmutable` to disable all kinds of
   // automatic revalidation; just serve from cache and refresh cache
   // once per hour.
   const { data: orchestVersion } = useSWRImmutable(
-    "/async/version",
+    true ? null : "/async/version",
     fetchOrchestVersion,
     { refreshInterval: 3600000 }
   );
   const { data: latestVersion } = useSWRImmutable(
-    "/async/orchest-update-info",
+    true ? null : "/async/orchest-update-info",
     fetchLatestVersion,
     { refreshInterval: 3600000 }
   );
-
-  const { setConfirm } = useAppContext();
-  const { navigateTo } = useCustomRoute();
 
   const promptUpdate = React.useCallback(
     (localVersion: string, versionToUpdate: string) => {
@@ -125,18 +160,21 @@ export const useCheckUpdate = () => {
       if (shouldPromptUpdate) {
         promptUpdate(localVersion, versionToUpdate);
       } else if (shouldPromptNoUpdate) {
-        setConfirm(
+        setAlert(
           "No update available",
           "There doesn't seem to be a new update available."
         );
       }
     },
-    [setConfirm, promptUpdate]
+    [setAlert, promptUpdate]
   );
 
   const { makeCancelable } = useCancelablePromise();
 
   const checkUpdateNow = React.useCallback(async () => {
+    promptBreakingChangesAlert();
+    return;
+
     // Use fetcher directly instead of mutate function from the SWR
     // calls to prevent updating the values which would trigger the
     // useEffect and thereby prompting the user twice. In addition,
@@ -152,10 +190,22 @@ export const useCheckUpdate = () => {
   }, [handlePrompt, makeCancelable]);
 
   React.useEffect(() => {
+    if (shouldShowBreakingChangeAlert) {
+      promptBreakingChangesAlert();
+    }
+    return;
+
     if (orchestVersion && latestVersion) {
       handlePrompt(orchestVersion, latestVersion, skipVersion, false);
     }
-  }, [orchestVersion, latestVersion, skipVersion, handlePrompt]);
+  }, [
+    orchestVersion,
+    latestVersion,
+    skipVersion,
+    handlePrompt,
+    promptBreakingChangesAlert,
+    shouldShowBreakingChangeAlert,
+  ]);
 
   return checkUpdateNow;
 };
