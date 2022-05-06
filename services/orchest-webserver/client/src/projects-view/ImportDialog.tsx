@@ -116,7 +116,7 @@ const TextWithPlaceHolder = ({
   value: number | undefined;
   unit: string;
 }) => {
-  return value ? (
+  return isNumber(value) ? (
     <Typography variant="body2" sx={{ marginTop: (theme) => theme.spacing(1) }}>
       {withPlural(value, unit)}
     </Typography>
