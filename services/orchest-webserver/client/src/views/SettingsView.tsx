@@ -19,7 +19,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { checkHeartbeat } from "@orchest/lib-utils";
+import { checkHeartbeat, fetcher } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
@@ -141,11 +141,7 @@ const SettingsView: React.FC = () => {
 
       setAsSaved(true);
 
-      cancelableFetch(
-        "/async/user-config",
-        { method: "POST", body: formData },
-        false
-      )
+      fetcher("/async/user-config", { method: "POST", body: formData })
         .catch((e) => {
           console.error(e);
           setAlert("Error", JSON.parse(e.body).message);
@@ -207,7 +203,7 @@ const SettingsView: React.FC = () => {
           requiresRestart: [],
         }));
         try {
-          await cancelableFetch("/async/restart", { method: "POST" }, false);
+          await fetcher("/async/restart", { method: "POST" });
           resolve(true);
 
           setTimeout(() => {
