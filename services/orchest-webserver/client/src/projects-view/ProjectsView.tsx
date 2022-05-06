@@ -12,7 +12,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
-import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
@@ -26,9 +25,9 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { hasValue, makeRequest } from "@orchest/lib-utils";
 import React from "react";
-import { useFetchProjects } from "../hooks/useFetchProjects";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectPathDialog } from "./EditProjectPathDialog";
+import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
 
 type ProjectRow = Pick<
@@ -48,7 +47,7 @@ const ProjectsView: React.FC = () => {
 
   const {
     dispatch,
-    state: { projectUuid },
+    state: { projectUuid, projects },
   } = useProjectsContext();
   const { navigateTo } = useCustomRoute();
 
@@ -149,33 +148,10 @@ const ProjectsView: React.FC = () => {
   };
 
   const {
-    projects = [],
     fetchProjects,
     setProjects,
-    fetchProjectsError,
     isFetchingProjects,
-  } = useFetchProjects({ sessionCounts: true, jobCounts: true });
-
-  const mounted = useMounted();
-
-  React.useEffect(() => {
-    if (mounted.current && fetchProjectsError)
-      setAlert("Error", "Error fetching projects");
-  }, [fetchProjectsError, setAlert, mounted]);
-
-  React.useEffect(() => {
-    if (
-      mounted.current &&
-      !isFetchingProjects &&
-      !fetchProjectsError &&
-      projects
-    ) {
-      dispatch({
-        type: "SET_PROJECTS",
-        payload: projects,
-      });
-    }
-  }, [projects, mounted, isFetchingProjects, fetchProjectsError, dispatch]);
+  } = useFetchProjectsForProjectsView();
 
   const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
     return projects.map((project) => {

@@ -191,6 +191,7 @@ export const ImportDialog: React.FC<{
   open: boolean;
   onClose: () => void;
   hideUploadOption?: boolean;
+  hideProjectMetadata?: boolean;
   filesToUpload?: FileList | File[];
 }> = ({
   importUrl,
@@ -199,11 +200,14 @@ export const ImportDialog: React.FC<{
   open,
   onClose,
   hideUploadOption,
+  hideProjectMetadata,
   filesToUpload,
 }) => {
   const { setAlert } = useAppContext();
 
-  const { projects, fetchProjects } = useFetchProjects();
+  const { projects, fetchProjects } = useFetchProjects({
+    shouldFetch: open, // Should only be fired when the dialog is open.
+  });
 
   // Keep state.projects up-to-date
   // After importing an project, it will immediately navigate to `/pipeline` of the new project
@@ -268,14 +272,21 @@ export const ImportDialog: React.FC<{
     if (newProjectUuid) {
       try {
         await deleteProject(newProjectUuid);
-        fetchProjects();
+        // Delete the temp project from ProjectsContext manually instead of relying on fetchProjects and the useEffect,
+        // because fetchProjects is forbidden when open is false.
+        dispatch((currentState) => {
+          const updatedProjects = currentState.projects.filter(
+            (project) => project.uuid !== newProjectUuid
+          );
+          return { type: "SET_PROJECTS", payload: updatedProjects };
+        });
       } catch (error) {
         console.error(
           `Failed to delete the temporary project with UUID ${newProjectUuid}. ${error}`
         );
       }
     }
-  }, [newProjectUuid, fetchProjects]);
+  }, [newProjectUuid, dispatch]);
 
   const closeDialog = React.useCallback(async () => {
     // if user forces closing the dialog, cancel all cancelable promises,
@@ -660,7 +671,9 @@ export const ImportDialog: React.FC<{
           )}
           {importStatus !== "READY" && (
             <Stack direction="column" spacing={2}>
-              <ProjectMetadata value={newProjectMetadata} />
+              {!hideProjectMetadata && (
+                <ProjectMetadata value={newProjectMetadata} />
+              )}
               <Stack direction="row" spacing={1} alignItems="center">
                 <LinearProgress
                   value={isNumber(progress) ? progress : undefined}

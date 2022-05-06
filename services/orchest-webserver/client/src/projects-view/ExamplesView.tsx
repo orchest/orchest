@@ -132,6 +132,7 @@ const ExamplesView: React.FC = () => {
           setImportUrl={setImportUrl}
           onImportComplete={onImportComplete}
           hideUploadOption
+          hideProjectMetadata
         />
         <ImportSuccessDialog
           projectName={projectName}
