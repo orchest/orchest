@@ -678,11 +678,16 @@ func (controller *OrchestClusterController) updatePhase(ctx context.Context,
 
 	if orchest.Status != nil && orchest.Status.Phase == phase {
 		return nil
+	} else if orchest.Status != nil {
+		orchest.Status.Phase = phase
+		orchest.Status.LastHeartbeatTime = metav1.NewTime(time.Now())
+		orchest.Status.Conditions = nil
 	} else {
 		orchest.Status = &orchestv1alpha1.OrchestClusterStatus{
 			Phase:             phase,
 			LastHeartbeatTime: metav1.NewTime(time.Now()),
 		}
+
 	}
 
 	if orchest.Status.Phase == orchestv1alpha1.Running ||
