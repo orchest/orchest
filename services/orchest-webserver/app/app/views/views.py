@@ -851,13 +851,6 @@ def register_views(app, db):
                         "File is neither in the project, nor in the data directory."
                     )
 
-                extensions = list(
-                    map(lambda x: f".{x.lower()}", ["ipynb", "py", "R", "sh", "jl"])
-                )
-
-                if not step["file_path"].endswith(tuple(extensions)):
-                    raise ValueError("Unsupported pipeline step file type.")
-
                 if not step["file_path"].startswith("/"):
                     step["file_path"] = normalize_project_relative_path(
                         step["file_path"]
