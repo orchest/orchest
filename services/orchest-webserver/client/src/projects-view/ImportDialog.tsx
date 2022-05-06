@@ -193,10 +193,12 @@ export const ImportDialog: React.FC<{
   hideUploadOption?: boolean;
   hideProjectMetadata?: boolean;
   filesToUpload?: FileList | File[];
+  confirmButtonLabel?: string;
 }> = ({
   importUrl,
   setImportUrl,
   onImportComplete,
+  confirmButtonLabel = "Save",
   open,
   onClose,
   hideUploadOption,
@@ -743,7 +745,7 @@ export const ImportDialog: React.FC<{
             type="submit"
             form="save-project-name"
           >
-            {hideUploadOption ? "Save" : "View project"}
+            {confirmButtonLabel}
           </Button>
         )}
       </DialogActions>

@@ -301,6 +301,7 @@ const ProjectsView: React.FC = () => {
           open={isImportDialogOpen}
           onClose={() => setIsImportDialogOpen(false)}
           filesToUpload={filesToUpload}
+          confirmButtonLabel={`Save & view`}
         />
         <EditProjectPathDialog
           projects={projects}
