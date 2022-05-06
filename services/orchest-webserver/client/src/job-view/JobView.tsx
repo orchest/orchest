@@ -8,7 +8,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { Job } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";

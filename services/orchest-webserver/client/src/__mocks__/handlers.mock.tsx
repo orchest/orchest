@@ -60,6 +60,15 @@ export const handlers = [
       })
     );
   }),
+  rest.get(`/async/projects`, (req, res, ctx) => {
+    const projectCollection = mockProjects.getAll();
+
+    const projects = Object.values(projectCollection).map(
+      (collection) => collection.project
+    );
+
+    return res(ctx.json(projects));
+  }),
   rest.get(`/async/projects/:projectUuid`, (req, res, ctx) => {
     const projectUuid = req.params.projectUuid as string;
     if (!projectUuid) return res(ctx.status(404));

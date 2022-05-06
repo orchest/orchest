@@ -2,6 +2,9 @@ import { Project } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import useSWR from "swr";
 
+export const fetchProject = (projectUuid: string, isFullPath = false) =>
+  fetcher<Project>(isFullPath ? projectUuid : `/async/projects/${projectUuid}`);
+
 export function useFetchProject<T = Project>({
   projectUuid,
   selector = (p) => (p as unknown) as T,
@@ -12,7 +15,7 @@ export function useFetchProject<T = Project>({
   const { data, error, isValidating, mutate } = useSWR<T>(
     projectUuid ? `/async/projects/${projectUuid}` : null,
     (url: string) =>
-      fetcher<Project>(url).then((response) => selector(response))
+      fetchProject(url, true).then((response) => selector(response))
   );
   return {
     data,

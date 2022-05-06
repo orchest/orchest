@@ -10,7 +10,7 @@ import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { CustomImage, Environment, EnvironmentImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";

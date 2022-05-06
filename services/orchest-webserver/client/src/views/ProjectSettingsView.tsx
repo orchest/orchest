@@ -6,9 +6,9 @@ import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
-import { RouteName, toQueryString } from "@/routingConfig";
+import { RouteName, siteMap } from "@/routingConfig";
 import { Project } from "@/types";
+import { toQueryString } from "@/utils/routing";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -18,6 +18,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -82,15 +83,11 @@ const ProjectSettingsView: React.FC = () => {
       }
     }
 
-    // perform PUT to update
-    cancelableFetch(
-      `/async/projects/${projectUuid}`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ env_variables: envVariablesObj.value }),
-      },
-      false // don't cancel this PUT request
-    )
+    // perform PUT to update; don't cancel this PUT request
+    fetcher(`/async/projects/${projectUuid}`, {
+      method: "PUT",
+      body: JSON.stringify({ env_variables: envVariablesObj.value }),
+    })
       .then(() => {
         setAsSaved();
       })

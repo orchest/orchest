@@ -1,3 +1,4 @@
+import { generateUploadFiles } from "@/components/DropZone";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -10,7 +11,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { FileWithPath } from "react-dropzone";
 import { FileManagementRoot, treeRoots } from "../common";
 import { CreatePipelineDialog } from "../CreatePipelineDialog";
 import { ActionBar } from "./ActionBar";
@@ -34,18 +34,6 @@ import {
 import { FileManagerLocalContextProvider } from "./FileManagerLocalContext";
 import { FileTree } from "./FileTree";
 import { FileTreeContainer } from "./FileTreeContainer";
-
-/**
- * this function determines if the given file is a file uploaded via useDropzone
- * if true, the file has a property "path"
- * @param file File | FileWithPath
- * @returns boolean
- */
-function isUploadedViaDropzone(
-  file: File | FileWithPath
-): file is FileWithPath {
-  return hasValue((file as FileWithPath).path);
-}
 
 const deepestExpand = (expanded: string[]) => {
   if (expanded.length === 0) {
@@ -100,7 +88,7 @@ export function FileManager() {
     setFileTrees,
   } = useFileManagerContext();
 
-  const containerRef = React.useRef<typeof Stack>();
+  const containerRef = React.useRef<typeof Stack | null>(null);
 
   // only show the progress if it takes longer than 125 ms
   const [_inProgress, setInProgress] = React.useState(false);
@@ -115,7 +103,7 @@ export function FileManager() {
     "determinate"
   );
   const [contextMenu, setContextMenu] = React.useState<ContextMenuMetadata>(
-    null
+    undefined
   );
 
   const root = React.useMemo(() => getActiveRoot(selectedFiles, treeRoots), [
@@ -136,11 +124,12 @@ export function FileManager() {
 
   const collapseAll = () => {
     setExpanded([]);
-    setContextMenu(null);
+    setContextMenu(undefined);
   };
 
   const browsePath = React.useCallback(
     async (combinedPath) => {
+      if (!projectUuid) return;
       setProgressType("determinate");
       setInProgress(true);
 
@@ -162,6 +151,21 @@ export function FileManager() {
     [fileTrees, projectUuid, setFileTrees]
   );
 
+  const doUploadFiles = React.useCallback(
+    (files: File[] | FileList, onUploaded: () => void) => {
+      if (!projectUuid) return;
+      const lastSelectedFolder = lastSelectedFolderPath(selectedFiles);
+      return Promise.all(
+        generateUploadFiles({
+          projectUuid,
+          root,
+          path: lastSelectedFolder,
+        })(files, onUploaded)
+      );
+    },
+    [projectUuid, selectedFiles, root]
+  );
+
   const uploadFiles = React.useCallback(
     async (files: File[] | FileList) => {
       let progressTotal = files.length;
@@ -169,58 +173,18 @@ export function FileManager() {
       setInProgress(true);
       setProgressType("determinate");
 
-      // ensure that we are handling File[] instead of FileList
-      const promises = Array.from(files).map(
-        async (file: File | FileWithPath) => {
-          try {
-            // Derive folder to upload the file to if webkitRelativePath includes a slash
-            // (means the file was uploaded as a folder through drag or folder file selection)
-            const isUploadedAsFolder = isUploadedViaDropzone(file)
-              ? /.+\/.+/.test(file.path)
-              : file.webkitRelativePath !== undefined &&
-                file.webkitRelativePath.includes("/");
+      await doUploadFiles(files, () => {
+        progressHolder.progress += 1;
+        let progressPercentage = Math.round(
+          (progressHolder.progress / progressTotal) * 100
+        );
+        setProgress(progressPercentage);
+      });
 
-            const lastSelectedFolder = lastSelectedFolderPath(selectedFiles);
-
-            let path = !isUploadedAsFolder
-              ? lastSelectedFolder
-              : `${lastSelectedFolder}${(isUploadedViaDropzone(file)
-                  ? file.path
-                  : file.webkitRelativePath
-                )
-                  .split("/")
-                  .slice(0, -1)
-                  .filter((value) => value.length > 0)
-                  .join("/")}/`;
-
-            let formData = new FormData();
-            formData.append("file", file);
-
-            await fetcher(
-              `${FILE_MANAGEMENT_ENDPOINT}/upload?${queryArgs({
-                root,
-                path,
-                project_uuid: projectUuid,
-              })}`,
-              { method: "POST", body: formData }
-            );
-
-            progressHolder.progress += 1;
-            let progressPercentage =
-              (progressHolder.progress / progressTotal) * 100;
-            setProgress(progressPercentage);
-          } catch (error) {
-            console.error(error);
-            alert(error.message);
-          }
-        }
-      );
-
-      await Promise.all(promises);
       reload();
       setInProgress(false);
     },
-    [reload, root, projectUuid, selectedFiles]
+    [reload, doUploadFiles]
   );
 
   /**
@@ -332,7 +296,7 @@ export function FileManager() {
                         dense
                         onClick={() => {
                           reload();
-                          setContextMenu(null);
+                          setContextMenu(undefined);
                         }}
                       >
                         Refresh

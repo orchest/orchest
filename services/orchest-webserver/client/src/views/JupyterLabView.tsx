@@ -10,7 +10,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type {
   Pipeline,
   PipelineJson,

@@ -1,7 +1,7 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { Position } from "@/types";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -19,13 +19,15 @@ import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export type ContextMenuType = "tree" | "background";
 
-export type ContextMenuMetadata = {
-  position: Position;
-  type: ContextMenuType;
-} | null;
+export type ContextMenuMetadata =
+  | {
+      position: Position;
+      type: ContextMenuType;
+    }
+  | undefined;
 
 export const FileManagerContextMenu: React.FC<{
-  metadata: ContextMenuMetadata;
+  metadata: ContextMenuMetadata | undefined;
 }> = ({ metadata, children }) => {
   const { setAlert } = useAppContext();
   const { navigateTo, jobUuid } = useCustomRoute();
@@ -52,11 +54,11 @@ export const FileManagerContextMenu: React.FC<{
     handleContextRename,
     handleDelete,
     handleDownload,
-    contextMenuCombinedPath,
+    contextMenuCombinedPath = "",
   } = useFileManagerLocalContext();
 
   const handleDuplicate = React.useCallback(async () => {
-    if (isReadOnly) return;
+    if (isReadOnly || !projectUuid) return;
 
     handleClose();
 
@@ -142,14 +144,14 @@ export const FileManagerContextMenu: React.FC<{
 
   return (
     <Menu
-      open={metadata !== null}
+      open={metadata !== undefined}
       onClose={handleClose}
       anchorReference="anchorPosition"
       anchorPosition={
-        metadata !== null
+        metadata !== undefined
           ? {
-              top: metadata?.position.y,
-              left: metadata?.position.x,
+              top: metadata?.position.y || 0,
+              left: metadata?.position.x || 0,
             }
           : undefined
       }
