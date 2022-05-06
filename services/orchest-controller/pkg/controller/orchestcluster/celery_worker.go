@@ -98,9 +98,7 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 			},
 			Template: template,
 			Strategy: appsv1.DeploymentStrategy{
-				RollingUpdate: &appsv1.RollingUpdateDeployment{
-					MaxUnavailable: &Zero,
-				},
+				Type: appsv1.RecreateDeploymentStrategyType,
 			},
 		},
 	}
