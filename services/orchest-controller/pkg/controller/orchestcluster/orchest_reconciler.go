@@ -448,6 +448,11 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 			}
 			pauseDeployment(ctx, r.getKClient(), pauseReason, orchest.Generation, deployment)
 
+			err = r.waitForDeployment(ctx, deployment.Namespace, deployment.Name)
+			if err != nil {
+				return nil, err
+			}
+
 			err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
 				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Paused %s", deployment.Name)))
 			if err != nil {
