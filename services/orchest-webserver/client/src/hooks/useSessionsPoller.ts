@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { IOrchestSession } from "@/types";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";

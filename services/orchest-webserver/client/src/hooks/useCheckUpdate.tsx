@@ -2,7 +2,7 @@ import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { OrchestVersion, UpdateInfo } from "@/types";
 import Typography from "@mui/material/Typography";
 import { fetcher } from "@orchest/lib-utils";

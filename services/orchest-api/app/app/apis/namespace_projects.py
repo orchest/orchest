@@ -38,6 +38,15 @@ class ProjectList(Resource):
     def post(self):
         """Create a new project."""
         project = request.get_json()
+
+        if len(project["name"]) > 255:
+            return {
+                "message": (
+                    "The provided project name exceeds the maximum length of 255 "
+                    "characters."
+                )
+            }, 400
+
         project["env_variables"] = project.get("env_variables", {})
         if not _utils.are_environment_variables_valid(project["env_variables"]):
             return {"message": ("Invalid environment variables definition.")}, 400
@@ -72,9 +81,14 @@ class Project(Resource):
     def put(self, project_uuid):
         """Update a project."""
         update = request.get_json()
+
+        if len(update["name"]) > 255:
+            return {}, 400
+
         update = models.Project.keep_column_entries(update)
         if not _utils.are_environment_variables_valid(update.get("env_variables", {})):
             return {"message": ("Invalid environment variables definition.")}, 400
+
         if update:
             try:
                 models.Project.query.filter_by(uuid=project_uuid).update(update)

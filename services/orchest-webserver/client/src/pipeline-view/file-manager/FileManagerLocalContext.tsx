@@ -2,7 +2,8 @@ import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { fetchPipelines } from "@/hooks/useFetchPipelines";
+import { siteMap } from "@/routingConfig";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
@@ -87,7 +88,6 @@ export const FileManagerLocalContextProvider: React.FC<{
   const { setConfirm } = useAppContext();
   const {
     state: { pipelines = [] },
-    fetchPipelines,
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
@@ -219,9 +219,9 @@ export const FileManagerLocalContextProvider: React.FC<{
         // Send a GET request for file dicovery
         // to ensure that the pipeline is removed from DB.
         // It's not needed to await it because we don't use the response
-        fetchPipelines();
+        fetchPipelines(projectUuid);
 
-        // Clean up `state.pipelines` is still needed.
+        // `state.pipelines` should be cleaned up.
         const pipelinePaths = pathsThatContainsPipelineFiles.map(({ path }) =>
           path.replace(/^\//, "")
         );
@@ -274,7 +274,6 @@ export const FileManagerLocalContextProvider: React.FC<{
     pipeline?.path,
     navigateTo,
     dispatch,
-    fetchPipelines,
   ]);
 
   const handleDownload = React.useCallback(() => {

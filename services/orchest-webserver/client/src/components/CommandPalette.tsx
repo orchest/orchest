@@ -1,7 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
-import { siteMap } from "@/Routes";
-import { pageCommands } from "@/routingConfig";
+import { pageCommands, siteMap } from "@/routingConfig";
 import { Job, Project } from "@/types";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";

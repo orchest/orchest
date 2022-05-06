@@ -20,5 +20,6 @@ psycopg2-binary
 python-engineio
 python-socketio[client]
 requests
+validators
 six>=1.13.0
 -e file:../../lib/python/orchest-internals

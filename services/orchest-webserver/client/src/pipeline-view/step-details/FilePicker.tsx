@@ -11,12 +11,12 @@ import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import {
-  absoluteToRelativePath,
   ALLOWED_STEP_EXTENSIONS,
   collapseDoubleDots,
   extensionFromFilename,
 } from "@orchest/lib-utils";
 import React from "react";
+import { getFilePathForRelativeToProject } from "../file-manager/common";
 
 const validatePathInTree = (path: string, tree: FileTree) => {
   // path assumed to start with /
@@ -77,19 +77,11 @@ type FilePickerProps = {
   cwd: string;
   icon?: React.ReactNode;
   helperText: string;
-  onChangeValue?: (value: FilePickerProps["value"]) => void;
+  onChangeValue: (value: FilePickerProps["value"]) => void;
   tree: FileTree;
   value: string;
   menuMaxWidth?: string;
   onSelectMenuItem: (node: FileTree) => void;
-};
-
-const visualizePath = (path: string, cwd: string) => {
-  if (path.startsWith("/data:/")) return path.replace(/^\/data\:\//, "/data/");
-  return absoluteToRelativePath(
-    path.replace(/^\/project-dir\:\//, "/"),
-    cwd
-  ).slice(1);
 };
 
 const getFolderPath = (filePath: string) =>
@@ -105,8 +97,10 @@ const computeAbsPath = ({
     return getFolderPath(value.replace(/^\/data\//, "/data:/"));
   }
 
+  const absCwd = `/project-dir:/${cwd === "/" ? "" : cwd}`;
+
   // The rest is a relative path to pipelineCwd
-  const projectFilePath = collapseDoubleDots(`${cwd}${value}`);
+  const projectFilePath = collapseDoubleDots(`${absCwd}${value}`);
   const isFile = !projectFilePath.endsWith("/");
   const directoryPath = isFile
     ? getFolderPath(projectFilePath)
@@ -114,11 +108,7 @@ const computeAbsPath = ({
 
   // Check if directoryPath exists.
   // If not, use pipelineCwd as fallback.
-  const validDirectoryPath = !validatePathInTree(directoryPath, tree)
-    ? cwd
-    : directoryPath;
-
-  return `/project-dir:${validDirectoryPath}`;
+  return !validatePathInTree(directoryPath, tree) ? absCwd : directoryPath;
 };
 
 const ITEM_HEIGHT = 48;
@@ -139,10 +129,10 @@ const FilePicker: React.FC<FilePickerProps> = ({
     return computeAbsPath({ cwd, value, tree });
   }, [cwd, value, tree]);
 
-  const [absPath, setAbsPath] = React.useState(computedAbsPath);
+  const [absPath, setAbsPath] = React.useState<string>(computedAbsPath);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>();
-  const menuRef = React.useRef<HTMLDivElement>();
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
   useClickOutside(menuRef, () => setIsDropdownOpen(false));
 
   const isBlurAllowed = React.useRef(true);
@@ -157,22 +147,6 @@ const FilePicker: React.FC<FilePickerProps> = ({
     setAbsPath((oldPath) => {
       return oldPath.slice(0, oldPath.slice(0, -1).lastIndexOf("/") + 1);
     });
-  };
-
-  const onSelectListItem = (selectedNode: FileTree) => {
-    onSelectMenuItem(selectedNode);
-    if (selectedNode.type === "directory") {
-      setAbsPath((oldPath) => {
-        // If it's root, it needs to be handled differently.
-        // It is either "/project-dir:/", or "/data:/".
-        if (!selectedNode.depth) return selectedNode.path;
-
-        return `${oldPath}${selectedNode.name}/`;
-      });
-    } else {
-      onChangeValue(visualizePath(`${absPath}${selectedNode.name}`, cwd));
-      setIsDropdownOpen(false);
-    }
   };
 
   const onFocusTextField = () => {
@@ -192,7 +166,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
     // that was triggered from within the component.
     // state.path is modified when navigating the directory.
     if (absPath !== computedAbsPath) {
-      onChangeValue(visualizePath(absPath, cwd));
+      onChangeValue(getFilePathForRelativeToProject(absPath, cwd));
     }
   }, [absPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -207,9 +181,10 @@ const FilePicker: React.FC<FilePickerProps> = ({
         // Root nodes need to be handled differently.
         // Because `node.name` is used to render UI, we have to check node.path, which ends with ":/".
         // For the rest of the nodes, simply compare node.name.
-        const isRoot = child.depth === 0 && /^\/(.*):\/$/.test(child.path);
+        const isRoot =
+          child.depth === 0 && /^\/(.*):\/$/.test(child.path || "");
         const valueToCompare = isRoot
-          ? child.path.replace(/\//g, "")
+          ? (child.path || "").replace(/\//g, "")
           : child.name;
 
         if (valueToCompare === component) {
@@ -231,6 +206,26 @@ const FilePicker: React.FC<FilePickerProps> = ({
       }),
     };
   }, [absPath, tree]);
+
+  const onSelectListItem = (selectedNode: FileTree) => {
+    onSelectMenuItem(selectedNode);
+    if (selectedNode.type === "directory") {
+      setAbsPath((oldPath) => {
+        const selectedNodePath = selectedNode.path || "";
+        // If it's root, it needs to be handled differently.
+        // It is either "/project-dir:/", or "/data:/".
+        if (["/project-dir:/", "/data:/"].includes(selectedNodePath))
+          return selectedNodePath;
+
+        return `${oldPath}${selectedNode.name}/`;
+      });
+    } else {
+      onChangeValue(
+        getFilePathForRelativeToProject(`${absPath}${selectedNode.name}`, cwd)
+      );
+      setIsDropdownOpen(false);
+    }
+  };
 
   return (
     <Box sx={{ position: "relative" }}>

@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -65,6 +65,8 @@ export const CreateProjectDialog = ({
           },
         ],
       }));
+
+      dispatch({ type: "SET_PROJECT", payload: project_uuid });
 
       navigateTo(siteMap.pipeline.path, {
         query: { projectUuid: project_uuid },

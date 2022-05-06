@@ -39,6 +39,11 @@ class CreateProject(TwoPhaseFunction):
         Returns:
             UUID of the newly initialized project.
         """
+        if len(project_path) > 255:
+            raise error.InvalidProjectName(
+                "Project name can't be longer than 255 characters."
+            )
+
         # The collateral effect will later make use of this.
         project_uuid = str(uuid.uuid4())
         new_project = Project(
@@ -129,7 +134,7 @@ class CreateProject(TwoPhaseFunction):
 
         resp = requests.post(
             f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/projects/',
-            json={"uuid": project_uuid},
+            json={"uuid": project_uuid, "name": project_path},
         )
         if resp.status_code != 201:
             raise Exception("Orchest-api project creation failed.")
@@ -204,6 +209,10 @@ class RenameProject(TwoPhaseFunction):
     """
 
     def _transaction(self, project_uuid: str, new_name: str):
+        if len(new_name) > 255:
+            raise error.InvalidProjectName(
+                "Project name can't be longer than 255 characters."
+            )
 
         project = (
             Project.query.with_for_update()
@@ -255,6 +264,16 @@ class RenameProject(TwoPhaseFunction):
 
         Project.query.filter_by(uuid=project_uuid).update({"status": "READY"})
         db.session.commit()
+
+        resp = requests.put(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/projects'
+                f"/{project_uuid}"
+            ),
+            json={"name": new_name},
+        )
+        if resp.status_code != 200:
+            raise Exception("Orchest-api project name change failed.")
 
     def _revert(self):
         # Move it back if necessary. This avoids the project being

@@ -6,7 +6,7 @@ import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import PeopleIcon from "@mui/icons-material/People";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";

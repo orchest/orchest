@@ -21,12 +21,12 @@ export function collapseDoubleDots(path: string) {
    * */
 
   let pathComponents = path.split("/");
-  let newPathComponents = [];
+  let newPathComponents = [] as string[];
   let skipCount = 0;
 
   // traverse in reverse
   for (let x = pathComponents.length - 1; x >= 0; x--) {
-    if (pathComponents[x] == "..") {
+    if (pathComponents[x] === "..") {
       // skip path that follows
       skipCount += 1;
     } else if (skipCount > 0) {

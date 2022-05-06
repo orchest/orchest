@@ -15,7 +15,7 @@ import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,

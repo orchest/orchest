@@ -1,19 +1,27 @@
-import { toQueryString } from "@/Routes";
 import { Project } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
+import { toQueryString } from "@/utils/routing";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { MutatorCallback } from "swr";
 
 export const useFetchProjects = (params?: {
-  sessionCounts: boolean;
-  jobCounts: boolean;
+  shouldFetch?: boolean;
+  sessionCounts?: boolean;
+  jobCounts?: boolean;
+  skipDiscovery?: boolean;
 }) => {
+  const { shouldFetch, ...restParams } = hasValue(params)
+    ? { shouldFetch: true, ...params }
+    : { shouldFetch: true };
+
+  const cacheKey = `/async/projects${toQueryString(restParams)}`;
+
   const {
-    data: projects = [],
+    data,
     mutate,
     error: fetchProjectsError,
     isValidating: isFetchingProjects,
-  } = useSWR<Project[]>(`/async/projects${toQueryString(params)}`, fetcher);
+  } = useSWR<Project[]>(shouldFetch ? cacheKey : null, fetcher);
 
   const setProjects = React.useCallback(
     (data?: Project[] | Promise<Project[]> | MutatorCallback<Project[]>) =>
@@ -22,7 +30,7 @@ export const useFetchProjects = (params?: {
   );
 
   return {
-    projects,
+    projects: data,
     fetchProjectsError,
     isFetchingProjects,
     fetchProjects: mutate,
