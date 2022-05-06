@@ -3,6 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { useHotKeys } from "@/hooks/useHotKeys";
+import { siteMap } from "@/routingConfig";
 import type { Connection, PipelineJson, Step, StepsDict } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { layoutPipeline } from "@/utils/pipeline-layout";
@@ -27,7 +28,6 @@ import {
   hasValue,
 } from "@orchest/lib-utils";
 import React from "react";
-import { siteMap } from "../Routes";
 import { BackToJobButton } from "./BackToJobButton";
 import {
   getNodeCenter,

@@ -13,7 +13,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
 import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
@@ -26,9 +26,9 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
+import { useFetchProjects } from "../hooks/useFetchProjects";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectPathDialog } from "./EditProjectPathDialog";
-import { useFetchProjects } from "./hooks/useFetchProjects";
 import { ImportDialog } from "./ImportDialog";
 
 type ProjectRow = Pick<
@@ -155,7 +155,7 @@ const ProjectsView: React.FC = () => {
   };
 
   const {
-    projects,
+    projects = [],
     fetchProjects,
     setProjects,
     fetchProjectsError,

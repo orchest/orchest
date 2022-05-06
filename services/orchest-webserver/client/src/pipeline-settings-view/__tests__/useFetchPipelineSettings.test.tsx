@@ -1,37 +1,37 @@
 import { AppContextProvider, useAppContext } from "@/contexts/AppContext";
 import { ProjectsContextProvider } from "@/contexts/ProjectsContext";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
+import { chance, mockProjects } from "@/__mocks__/mockProjects.mock";
 import { server } from "@/__mocks__/server.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
 import { SWRConfig } from "swr";
-import { chance, mockProjects } from "../../__mocks__/mockProjects.mock";
 import { useFetchPipelineSettings } from "../useFetchPipelineSettings";
 
-const wrapper = ({ children }) => {
-  return (
-    <SWRConfig value={{ revalidateOnMount: true }}>
-      <AppContextProvider>
-        <ProjectsContextProvider>{children}</ProjectsContextProvider>;
-      </AppContextProvider>
-    </SWRConfig>
-  );
-};
-
-const useTestHook = (props: {
-  projectUuid: string | undefined;
-  pipelineUuid: string | undefined;
-  jobUuid: string | undefined;
-  runUuid: string | undefined;
-}) => {
-  const {
-    state: { hasUnsavedChanges },
-  } = useAppContext();
-  const values = useFetchPipelineSettings(props);
-  return { ...values, hasUnsavedChanges };
-};
-
 describe("useFetchPipelineSettings", () => {
+  const wrapper = ({ children }) => {
+    return (
+      <SWRConfig value={{ revalidateOnMount: true }}>
+        <AppContextProvider>
+          <ProjectsContextProvider>{children}</ProjectsContextProvider>;
+        </AppContextProvider>
+      </SWRConfig>
+    );
+  };
+
+  const useTestHook = (props: {
+    projectUuid: string | undefined;
+    pipelineUuid: string | undefined;
+    jobUuid: string | undefined;
+    runUuid: string | undefined;
+  }) => {
+    const {
+      state: { hasUnsavedChanges },
+    } = useAppContext();
+    const values = useFetchPipelineSettings(props);
+    return { ...values, hasUnsavedChanges };
+  };
+
   beforeEach(async () => {
     mockProjects.reset();
   });
@@ -39,6 +39,11 @@ describe("useFetchPipelineSettings", () => {
   it("should fetch and update pipeline settings for a non-read-only pipeline", async () => {
     const mockProjectUuid = chance.guid();
     const mockPipelineUuid = chance.guid();
+
+    const project = mockProjects.get(mockProjectUuid).project;
+    const pipeline = mockProjects
+      .get(mockProjectUuid)
+      .pipelines.get(mockPipelineUuid);
 
     const { result, waitForNextUpdate } = renderHook(
       () =>
@@ -50,11 +55,6 @@ describe("useFetchPipelineSettings", () => {
         }),
       { wrapper }
     );
-
-    const project = mockProjects.get(mockProjectUuid).project;
-    const pipeline = mockProjects
-      .get(mockProjectUuid)
-      .pipelines.get(mockPipelineUuid);
 
     await waitForNextUpdate();
 
