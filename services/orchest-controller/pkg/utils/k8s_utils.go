@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -228,6 +229,10 @@ func GetEnvVarFromMap(envVars map[string]string) []corev1.EnvVar {
 	for name, value := range envVars {
 		result = append(result, corev1.EnvVar{Name: name, Value: value})
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
 
 	return result
 }
