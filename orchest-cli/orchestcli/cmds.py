@@ -349,6 +349,12 @@ def update(
     # the CR Object can't be updated. Thus we need to make sure that
     # `orchest update` can be invoked again even though the controller
     # is already updated.
+
+    # NOTE: It is possible the update of orchest-controller needs more
+    # than updating the image. for example some environment variables
+    # are added or CRD definitions are changed. we should come up with a
+    # solotion to update even in those scenarios, for example receiving
+    # the updated version of manifests from a URL and apply it.
     echo("Updating the Orchest Controller...")
     APPS_API.patch_namespaced_deployment(
         name=controller_deploy_name,
