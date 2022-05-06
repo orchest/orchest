@@ -90,9 +90,10 @@ const UpdateView: React.FC = () => {
   };
 
   useInterval(() => {
-    cancelableFetch<{ state: string; lastHeartbeatTime: string }>(
-      `/controller/namespaces/orchest/clusters/cluster-1/status`
-    )
+    cancelableFetch<{
+      state: string;
+      conditions: { lastHeartbeatTime: string }[];
+    }>(`/controller/namespaces/orchest/clusters/cluster-1/status`)
       .then((json) => {
         if (json.state === "Running") {
           setState((prevState) => ({
