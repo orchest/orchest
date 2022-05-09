@@ -113,12 +113,6 @@ jobs:
           DOCKERHUB_REPOSITORY: orchest/auth-server
           README_FILEPATH: services/auth-server/README.md
 
-      - name: Push README files to DockerHub update-sidecar
-        uses: peter-evans/dockerhub-description@v2
-        env:
-          DOCKERHUB_REPOSITORY: orchest/update-sidecar
-          README_FILEPATH: services/update-sidecar/README.md
-
   # To be enabled back once the k8s version hits the cloud.
   # dispatch-orchest-ami-build:
   #   needs: buildpush
