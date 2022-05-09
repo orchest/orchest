@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"reflect"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -507,95 +508,149 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 
 	copy := orchest.DeepCopy()
 
+	changed := false
+
 	// Orchest configs
 	if copy.Spec.Orchest.Version == "" {
+		changed = true
 		copy.Spec.Orchest.Version = controller.config.OrchestDefaultVersion
 	}
 
 	if copy.Spec.Orchest.Pause == nil {
+		changed = true
 		copy.Spec.Orchest.Pause = &controller.config.DefaultPause
 	}
 
-	copy.Spec.Orchest.Env = utils.MergeEnvVars(utils.GetEnvVarFromMap(controller.config.OrchestDefaultEnvVars),
-		copy.Spec.Orchest.Env)
+	if copy.Spec.Orchest.Env == nil {
+		changed = true
+		copy.Spec.Orchest.Env = make([]corev1.EnvVar, 0, len(controller.config.OrchestDefaultEnvVars))
+	}
+
+	envChanged := utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
+		controller.config.OrchestDefaultEnvVars, false)
+	if envChanged {
+		changed = true
+	}
 
 	if copy.Spec.Orchest.OrchestHost != nil {
-		copy.Spec.Orchest.Env = append(copy.Spec.Orchest.Env, corev1.EnvVar{
-			Name:  "ORCHEST_FQDN",
-			Value: *copy.Spec.Orchest.OrchestHost,
-		})
+		envChanged := utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
+			map[string]string{"ORCHEST_FQDN": *copy.Spec.Orchest.OrchestHost}, true)
+		if envChanged {
+			changed = true
+		}
 	}
 
 	// Orchest-API configs
 	apiImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestApi, copy.Spec.Orchest.Version)
 	if copy.Spec.Orchest.OrchestApi.Image != apiImage {
+		changed = true
 		copy.Spec.Orchest.OrchestApi.Image = apiImage
 	}
 
-	copy.Spec.Orchest.OrchestApi.Env = utils.MergeEnvVars(utils.GetEnvVarFromMap(controller.config.OrchestApiDefaultEnvVars),
-		copy.Spec.Orchest.OrchestApi.Env)
+	if copy.Spec.Orchest.OrchestApi.Env == nil {
+		changed = true
+		copy.Spec.Orchest.OrchestApi.Env = make([]corev1.EnvVar, 0, len(controller.config.OrchestApiDefaultEnvVars))
+	}
+
+	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.OrchestApi.Env,
+		controller.config.OrchestApiDefaultEnvVars, false)
+	if envChanged {
+		changed = true
+	}
 
 	// Orchest-Webserver configs
 	webserverImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestWebserver, copy.Spec.Orchest.Version)
 	if copy.Spec.Orchest.OrchestWebServer.Image != webserverImage {
+		changed = true
 		copy.Spec.Orchest.OrchestWebServer.Image = webserverImage
 	}
 
-	copy.Spec.Orchest.OrchestWebServer.Env = utils.MergeEnvVars(utils.GetEnvVarFromMap(controller.config.OrchestWebserverDefaultEnvVars),
-		copy.Spec.Orchest.OrchestWebServer.Env)
+	if copy.Spec.Orchest.OrchestWebServer.Env == nil {
+		changed = true
+		copy.Spec.Orchest.OrchestWebServer.Env = make([]corev1.EnvVar, 0, len(controller.config.OrchestWebserverDefaultEnvVars))
+	}
+
+	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.OrchestWebServer.Env,
+		controller.config.OrchestWebserverDefaultEnvVars, false)
+	if envChanged {
+		changed = true
+	}
 
 	// Celery-Worker configs
 	celeryWorkerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, celeryWorker, copy.Spec.Orchest.Version)
 	if copy.Spec.Orchest.CeleryWorker.Image != celeryWorkerImage {
+		changed = true
 		copy.Spec.Orchest.CeleryWorker.Image = celeryWorkerImage
 	}
 
-	copy.Spec.Orchest.CeleryWorker.Env = utils.MergeEnvVars(
-		utils.GetEnvVarFromMap(controller.config.CeleryWorkerDefaultEnvVars), copy.Spec.Orchest.CeleryWorker.Env)
+	if copy.Spec.Orchest.CeleryWorker.Env == nil {
+		changed = true
+		copy.Spec.Orchest.CeleryWorker.Env = make([]corev1.EnvVar, 0, len(controller.config.CeleryWorkerDefaultEnvVars))
+	}
+
+	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.CeleryWorker.Env,
+		controller.config.CeleryWorkerDefaultEnvVars, false)
+	if envChanged {
+		changed = true
+	}
 
 	// Auth-Server configs
 	authServerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, authServer, copy.Spec.Orchest.Version)
 	if copy.Spec.Orchest.AuthServer.Image != authServerImage {
+		changed = true
 		copy.Spec.Orchest.AuthServer.Image = authServerImage
 	}
 
-	copy.Spec.Orchest.AuthServer.Env = utils.MergeEnvVars(
-		utils.GetEnvVarFromMap(controller.config.AuthServerDefaultEnvVars), copy.Spec.Orchest.AuthServer.Env)
+	if copy.Spec.Orchest.AuthServer.Env == nil {
+		changed = true
+		copy.Spec.Orchest.AuthServer.Env = make([]corev1.EnvVar, 0, len(controller.config.AuthServerDefaultEnvVars))
+	}
+
+	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.AuthServer.Env,
+		controller.config.AuthServerDefaultEnvVars, false)
+	if envChanged {
+		changed = true
+	}
 
 	nodeAgentImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, nodeAgentName, copy.Spec.Orchest.Version)
 	if copy.Spec.Orchest.NodeAgent.Image != nodeAgentImage {
+		changed = true
 		copy.Spec.Orchest.NodeAgent.Image = nodeAgentImage
 	}
 
 	// Postgres configs
 	if copy.Spec.Postgres.Image == "" {
+		changed = true
 		copy.Spec.Postgres.Image = controller.config.PostgresDefaultImage
 	}
 
-	if copy.Spec.Postgres.Env == nil {
+	if copy.Spec.Postgres.Env == nil && len(controller.config.OrchestDatabaseDefaultEnvVars) != 0 {
+		changed = true
 		copy.Spec.Postgres.Env = utils.GetEnvVarFromMap(controller.config.OrchestDatabaseDefaultEnvVars)
 	}
 
 	// RabbitMq configs
 	if copy.Spec.RabbitMq.Image == "" {
+		changed = true
 		copy.Spec.RabbitMq.Image = controller.config.RabbitmqDefaultImage
 	}
 
-	if copy.Spec.RabbitMq.Env == nil {
+	if copy.Spec.RabbitMq.Env == nil && len(controller.config.RabbitmqDefaultEnvVars) != 0 {
+		changed = true
 		copy.Spec.RabbitMq.Env = utils.GetEnvVarFromMap(controller.config.RabbitmqDefaultEnvVars)
 	}
 
 	if copy.Spec.Orchest.Resources.UserDirVolumeSize == "" {
+		changed = true
 		copy.Spec.Orchest.Resources.UserDirVolumeSize = controller.config.UserdirDefaultVolumeSize
 	}
 
 	if copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize == "" {
+		changed = true
 		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = controller.config.BuilddirDefaultVolumeSize
 	}
 
-	if computeHash(&copy.Spec) != computeHash(&orchest.Spec) {
-		copy.Status.ObservedGeneration = copy.Generation
-		copy.Status.ObservedHash = computeHash(&copy.Spec)
+	if changed || !reflect.DeepEqual(copy.Spec, orchest.Spec) {
 		result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
 
 		if err != nil {
