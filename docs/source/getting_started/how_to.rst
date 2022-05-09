@@ -75,7 +75,8 @@ Currently GPU support is not yet available. Coming soon!
 
 Use the Orchest CLI
 -------------------
-Below you will find the most important ``orchest-cli`` commands that you need to know:
+Below you will find the most important ``orchest-cli`` commands that you need to know (you can also get all this
+information by running ``orchest -h``):
 
 .. code-block:: sh
 

@@ -13,11 +13,9 @@ Installation
 Prerequisites
 -------------
 
-* `minikube <https://minikube.sigs.k8s.io/docs/start/>`_
 * `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_
-* bash
-
-Windows specific instructions can be found below `Windows`_.
+* `git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
+* `pip <https://pip.pypa.io/en/stable/installation/>`_
 
 Kubernetes cluster
 ~~~~~~~~~~~~~~~~~~
@@ -107,22 +105,3 @@ cluster IP directly, you can install Orchest using:
 GPU support
 -----------
 Currently GPU support is not yet available. Coming soon!
-
-
-Windows
-~~~~~~~
-.. caution::
-   For all further steps, including installation of the prerequisites, make sure to run CLI commands
-   inside a WSL terminal. You can do this by opening the distribution using the Start menu or by
-   `setting up the Windows Terminal
-   <https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal>`_.
-
-   Only WSL 2 is supported.
-
-Make sure you don't clone the Orchest repository in the paths shared with Windows (e.g.
-``/mnt/C/...``). Due to permission handling in WSL2 this is not supported. Use the native filesystem
-instead, for example clone orchest in the Linux user home directory:
-
-.. code-block:: bash
-
-   cd && git clone https://github.com/orchest/orchest.git
