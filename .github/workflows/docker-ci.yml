@@ -59,12 +59,6 @@ jobs:
           DOCKERHUB_REPOSITORY: orchest/celery-worker
           README_FILEPATH: services/orchest-api/README.md
 
-      - name: Push README files to DockerHub orchest-ctl
-        uses: peter-evans/dockerhub-description@v2
-        env:
-          DOCKERHUB_REPOSITORY: orchest/orchest-ctl
-          README_FILEPATH: services/orchest-ctl/README.md
-
       - name: Push README files to DockerHub base-kernel-r
         uses: peter-evans/dockerhub-description@v2
         env:
