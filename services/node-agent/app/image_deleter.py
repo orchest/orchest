@@ -16,6 +16,7 @@ import aiodocker
 import aiohttp
 
 from _orchest.internals import config as _config
+from _orchest.internals import utils as _utils
 
 logger = logging.getLogger("IMAGE_DELETER")
 
@@ -156,7 +157,7 @@ async def run():
                                 continue
 
                             name, tag = img.split(":")
-                            if tag != orchest_v:
+                            if _utils.is_version_lt(tag, orchest_v):
                                 # Only delete an old image if the up to
                                 # date one made it to the node, to avoid
                                 # slowing doing updates.

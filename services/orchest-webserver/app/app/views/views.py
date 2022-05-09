@@ -14,8 +14,6 @@ from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
 
 from _orchest.internals import config as _config
-from _orchest.internals import errors as _errors
-from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
 from app import analytics
@@ -194,10 +192,12 @@ def register_views(app, db):
             "PIPELINE_PARAMETERS_RESERVED_KEY",
         ]
 
-        user_config = _utils.GlobalOrchestConfig()
+        user_config = requests.get(
+            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/ctl/orchest-settings'
+        ).json()
         return jsonify(
             {
-                "user_config": user_config.as_dict(),
+                "user_config": user_config,
                 "config": {
                     **{key: app.config[key] for key in front_end_config},
                     **{key: getattr(_config, key) for key in front_end_config_internal},
@@ -241,16 +241,13 @@ def register_views(app, db):
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
 
-        # Current user config, from disk.
-        try:
-            current_config = _utils.GlobalOrchestConfig()
-        except _errors.CorruptedFileError as e:
-            app.logger.error(e, exc_info=True)
-            return {"message": "Global user configuration could not be read."}, 500
+        current_config = requests.get(
+            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/ctl/orchest-settings'
+        ).json()
 
         if request.method == "GET":
             return {
-                "user_config": current_config.as_dict(),
+                "user_config": current_config,
             }
 
         if request.method == "POST":
@@ -267,18 +264,11 @@ def register_views(app, db):
                 app.logger.debug(e, exc_info=True)
                 return {"message": "Given config is invalid JSON."}, 400
 
-            try:
-                current_config.set(config)
-            except (TypeError, ValueError) as e:
-                app.logger.debug(e, exc_info=True)
-                return {"message": f"{e}"}, 400
-
-            requires_restart = current_config.save(flask_app=app)
-
-            return {
-                "requires_restart": requires_restart,
-                "user_config": current_config.as_dict(),
-            }
+            resp = requests.post(
+                f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/ctl/orchest-settings',
+                json=config,
+            )
+            return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/async/host-info", methods=["GET"])
     def host_info():

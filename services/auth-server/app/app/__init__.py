@@ -11,6 +11,7 @@ import os
 from logging.config import dictConfig
 from pprint import pformat
 
+import requests
 import werkzeug
 from flask import Flask, request
 from flask_migrate import Migrate
@@ -18,6 +19,7 @@ from sqlalchemy_utils import create_database, database_exists
 
 from app.connections import db
 from app.views import register_views
+from config import CONFIG_CLASS
 
 
 def create_app(config_class=None, to_migrate_db=False):
@@ -31,6 +33,12 @@ def create_app(config_class=None, to_migrate_db=False):
     """
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    if not to_migrate_db:
+        orchest_config = requests.get(
+            f"http://{CONFIG_CLASS.ORCHEST_API_ADDRESS}/api/ctl/orchest-settings"
+        ).json()
+        app.config.update(orchest_config)
 
     init_logging()
 

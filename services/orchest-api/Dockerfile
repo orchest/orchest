@@ -4,11 +4,10 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 RUN apt-get update \
     && apt-get install -y netcat
 
-COPY ./deploy/orchest-ctl /orchest/deploy/orchest-ctl
-
 # Get all requirements in place.
 COPY ./requirements.txt /orchest/services/orchest-api/
 COPY ./lib /orchest/lib
+COPY ./orchest-cli /orchest/orchest-cli
 
 # Set the `WORKDIR` so the editable installs in the `requirements.txt`
 # can use relative paths.
