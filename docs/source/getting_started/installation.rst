@@ -157,5 +157,12 @@ You can expect the build to finish in roughly 15 minutes.
    # Build Orchest's container images from source (in parallel).
    scripts/build_container.sh -o "v2022.03.8" -t "v2022.03.8"
 
+   python3 -m venv venv && source venv/bin/activate
+   
+   # Make sure you are in the `orchest-cli/` directory 
+   cd orchest-cli
+
+   pip install -e .
+
    # Install Orchest
-   bash orchest install
+   orchest install
