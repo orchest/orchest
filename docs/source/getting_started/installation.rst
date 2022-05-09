@@ -71,24 +71,6 @@ Install ``orchest`` via ``orchest-cli``
    # Install orchest
    orchest install
 
-Install ``orchest`` via ``OrchestCluster CRD``
-----------------------------------------------
-
-Create a new ``orchest.yaml`` with following sample configurations
-
-.. code-block:: yaml
-
-   apiVersion: orchest.io/v1alpha1
-   kind: OrchestCluster
-   metadata:
-      name: cluster-1
-      namespace: orchest
-
-Then the cluster can be deplyed by applying it via ``kubectl``.
-
-.. code-block:: bash
-
-   kubectl apply -f orchest.yaml
 
 Now the cluster can be reached the IP returned by:
 
@@ -102,7 +84,7 @@ Now the cluster can be reached the IP returned by:
 
 .. note::
    Authentication is disabled in default installation.
-   
+
 .. tip::
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
    <quickstart>`.
