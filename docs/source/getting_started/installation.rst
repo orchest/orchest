@@ -112,8 +112,8 @@ Now the cluster can be reached the IP returned by:
    minikube ip
 
 .. note::
-   We will recommend to install Orchest on a clean cluster (a non-existing cluster) because it is 
-   hard to play well with other software already installed on the cluster, e.g. ingress, argo, etc.
+   We recommend to install Orchest on a clean cluster (a non-existing cluster) because it is 
+   hard to play well with other software already installed on the cluster, e.g, argo, etc.
 
 .. note::
    authentication is disabled in default installation.
