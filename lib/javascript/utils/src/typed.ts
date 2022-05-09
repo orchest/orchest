@@ -7,69 +7,6 @@ export function uuidv4() {
   });
 }
 
-type CancelablePromise<T = string> = {
-  cancel: () => void;
-  promise: Promise<T>;
-};
-
-// used in orchest-webserver only
-export class PromiseManager {
-  cancelablePromises: CancelablePromise<any>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-  constructor() {
-    this.cancelablePromises = [];
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  appendCancelablePromise(cancelablePromise: CancelablePromise<any>) {
-    this.cancelablePromises.push(cancelablePromise);
-  }
-
-  cancelCancelablePromises() {
-    for (let cancelablePromise of this.cancelablePromises) {
-      cancelablePromise.cancel();
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  clearCancelablePromise(cancelablePromise: CancelablePromise<any>) {
-    let index = this.cancelablePromises.indexOf(cancelablePromise);
-    this.cancelablePromises.splice(index, 1);
-  }
-}
-
-// used in orchest-webserver only
-export function makeCancelable<T = string>(
-  promise: Promise<T>,
-  promiseManager: PromiseManager
-) {
-  let hasCanceled_ = false;
-
-  let cancelablePromise: CancelablePromise<T> = {
-    cancel() {
-      hasCanceled_ = true;
-    },
-    promise: new Promise<T>((resolve, reject) => {
-      promise.then(
-        (val) => {
-          hasCanceled_ ? reject({ isCanceled: true }) : resolve(val);
-
-          promiseManager.clearCancelablePromise(cancelablePromise);
-        },
-        (error) => {
-          hasCanceled_ ? reject({ isCanceled: true }) : reject(error);
-
-          promiseManager.clearCancelablePromise(cancelablePromise);
-        }
-      );
-    }),
-  };
-
-  promiseManager.appendCancelablePromise(cancelablePromise);
-
-  return cancelablePromise;
-}
-
 // used in orchest-webserver only
 export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
 
@@ -84,12 +21,12 @@ export function collapseDoubleDots(path: string) {
    * */
 
   let pathComponents = path.split("/");
-  let newPathComponents = [];
+  let newPathComponents = [] as string[];
   let skipCount = 0;
 
   // traverse in reverse
   for (let x = pathComponents.length - 1; x >= 0; x--) {
-    if (pathComponents[x] == "..") {
+    if (pathComponents[x] === "..") {
       // skip path that follows
       skipCount += 1;
     } else if (skipCount > 0) {
@@ -160,11 +97,7 @@ export function someParentHasClass(element, classname) {
 }
 
 // used in mdc-components only
-export function checkHeartbeat(url, retries?) {
-  if (retries === undefined) {
-    retries = 250;
-  }
-
+export function checkHeartbeat(url: string, retries = 250) {
   let tries = 0;
 
   let requestLambda = (resolve, reject) => {
@@ -215,16 +148,18 @@ export function activeElementIsInput() {
 }
 
 // used in orchest-webserver only
-export function validURL(string) {
-  let url;
-
+export function validURL(
+  url: string | undefined,
+  skipHttpsChecking = false
+): url is string {
+  if (!url) return false;
   try {
-    url = new URL(string);
+    new URL(url);
   } catch (_) {
     return false;
   }
 
-  return true;
+  return skipHttpsChecking || url.startsWith("https://");
 }
 
 // used in orchest-webserver only

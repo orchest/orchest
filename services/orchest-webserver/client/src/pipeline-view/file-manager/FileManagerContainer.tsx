@@ -1,3 +1,4 @@
+import { DropZone } from "@/components/DropZone";
 import {
   ElementSize,
   ResizableContainer,
@@ -9,7 +10,6 @@ import { isNumber } from "@/utils/webserver-utils";
 import Box, { BoxProps } from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
-import { useDropzone } from "react-dropzone";
 import { FILE_MANAGER_ROOT_CLASS } from "./common";
 
 const MIN_PANEL_HEIGHT = 100;
@@ -20,21 +20,10 @@ export const FileManagerContainer = React.forwardRef<
     uploadFiles: (files: File[] | FileList) => Promise<void>;
   }
 >(function FileManagerContainerComponent({ children, uploadFiles, sx }, ref) {
-  const localRef = React.useRef<typeof Stack>(null);
+  const localRef = React.useRef<typeof Stack | null>(null);
 
   const { pipelineUuid } = useCustomRoute();
   const disabled = !pipelineUuid;
-
-  const {
-    acceptedFiles,
-    getInputProps,
-    getRootProps,
-    isDragActive,
-  } = useDropzone();
-
-  React.useEffect(() => {
-    if (!disabled && acceptedFiles.length > 0) uploadFiles(acceptedFiles);
-  }, [disabled, uploadFiles, acceptedFiles]);
 
   const [storedHeight, setStoredHeight] = useLocalStorage(
     "pipelineEditor.fileManagerHeight",
@@ -84,12 +73,8 @@ export const FileManagerContainer = React.forwardRef<
     >
       {({ size, resizeHeight }) => {
         return (
-          <Stack
-            {...getRootProps({
-              onClick: (event) => {
-                event.stopPropagation();
-              },
-            })}
+          <DropZone
+            uploadFiles={uploadFiles}
             ref={(node: typeof Stack) => {
               // in order to manipulate a forwarded ref, we need to create a local ref to capture it
               localRef.current = node;
@@ -99,32 +84,22 @@ export const FileManagerContainer = React.forwardRef<
                 ref.current = node;
               }
             }}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+            }}
             className={FILE_MANAGER_ROOT_CLASS}
             style={{
               height: size.height,
               overflowY: "auto",
             }}
           >
-            {isDragActive && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  width: "calc(100% - 4px)",
-                  height: "calc(100% - 4px)",
-                  margin: "2px",
-                  pointerEvents: "none",
-                  border: (theme) =>
-                    `2px dotted ${theme.palette.primary.light}`,
-                }}
-              />
-            )}
-            <input {...getInputProps()} webkitdirectory="" directory="" />
             {children}
             <ResizeHeightBar
               resizeHeight={resizeHeight}
               sx={{ borderTop: (theme) => `1px solid ${theme.borderColor}` }}
             />
-          </Stack>
+          </DropZone>
         );
       }}
     </ResizableContainer>

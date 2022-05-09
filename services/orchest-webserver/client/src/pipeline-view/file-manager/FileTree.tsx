@@ -3,7 +3,8 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { fetchPipelines } from "@/hooks/useFetchPipelines";
+import { siteMap } from "@/routingConfig";
 import { IOrchestSessionUuid, PipelineMetaData } from "@/types";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -105,7 +106,7 @@ const sendChangePipelineFilePathRequest = (
   });
 };
 
-const doChangeFilePath = ({
+const doChangeFilePath = async ({
   pipelineUuid,
   projectUuid,
   ...params
@@ -117,16 +118,24 @@ const doChangeFilePath = ({
   projectUuid: string;
   pipelineUuid?: string;
 }) => {
-  if (isFileByExtension(["orchest"], params.newPath)) {
+  // sendChangePipelineFilePathRequest can only move a pipeline file within /project-dir:/ folder
+  // to move .orchest file from /project-dir:/ to /data:/, use /async/file-management/rename endpoint, and delete the pipeline from state.pipelines.
+  if (
+    isFileByExtension(["orchest"], params.newPath) &&
+    params.newRoot === "/project-dir" &&
+    pipelineUuid
+  ) {
+    // `pipeline_uuid` is only needed when newRoot is  "/project-dir:/".
     if (!pipelineUuid) throw new Error("pipeline_uuid is required.");
+
     return sendChangePipelineFilePathRequest(
       projectUuid,
       pipelineUuid,
       params.newPath
     );
-  } else {
-    return sendChangeFilePathRequest({ ...params, projectUuid });
   }
+
+  return sendChangeFilePathRequest({ ...params, projectUuid });
 };
 
 export const FileTree = React.memo(function FileTreeComponent({
@@ -147,7 +156,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
   const { getSession, toggleSession } = useSessionsContext();
   const {
-    state: { pipelines = [] },
+    state: { pipelines = [], pipeline },
     dispatch,
   } = useProjectsContext();
 
@@ -166,10 +175,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const onOpen = React.useCallback(
     (filePath) => {
-      if (
-        isWithinDataFolder(filePath) &&
-        isFileByExtension(["orchest", "ipynb"], filePath)
-      ) {
+      if (isWithinDataFolder(filePath)) {
         setAlert(
           "Notice",
           <>
@@ -349,15 +355,43 @@ export const FileTree = React.memo(function FileTreeComponent({
       const params = getFilePathChangeParams(oldFilePath, newFilePath);
       try {
         await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
+
+        // Moving a pipeline file from /data to /project-dir is equivalent to create new pipeline out of the .orchest file.
+        // Thus, fire a fetch pipelines request to force BE to dicover the .orchest file.
+        // and then update ProjectsContext and reload.
+        const shouldReloadImmediately =
+          isFileByExtension(["orchest"], params.newPath) &&
+          params.newRoot === "/project-dir";
+
+        if (shouldReloadImmediately) {
+          const updatedPipelines = await fetchPipelines(projectUuid);
+          dispatch({ type: "SET_PIPELINES", payload: updatedPipelines });
+          reload();
+          return;
+        }
+
+        // If `.orchest` file is moved into `/data`, the pipeline cannot be opened.
+        const shouldRemovePipeline =
+          isFileByExtension(["orchest"], params.newPath) &&
+          params.newRoot === "/data";
+
         const pipelineFilePath = cleanFilePath(params.newPath);
         dispatch((current) => {
+          const currentPipelines = current.pipelines || [];
+
+          const payload = shouldRemovePipeline
+            ? currentPipelines.filter((pipeline) => {
+                return pipeline.uuid !== pipelineUuid;
+              })
+            : currentPipelines.map((pipeline) => {
+                return pipeline.uuid === pipelineUuid
+                  ? { ...pipeline, path: pipelineFilePath }
+                  : pipeline;
+              });
+
           return {
             type: "SET_PIPELINES",
-            payload: (current.pipelines || []).map((pipeline) => {
-              return pipeline.uuid === pipelineUuid
-                ? { ...pipeline, path: pipelineFilePath }
-                : pipeline;
-            }),
+            payload,
           };
         });
 
@@ -386,10 +420,10 @@ export const FileTree = React.memo(function FileTreeComponent({
         oldFilePath,
       ]);
 
-      if (!isSafeToProceed) return;
+      if (!isSafeToProceed || !pipeline) return;
 
-      const filePathRelativeToProjectDir = cleanFilePath(oldFilePath);
-      const foundPipeline = pipelineDics[filePathRelativeToProjectDir];
+      const projectFilePathRelativeToProjectDir = cleanFilePath(pipeline.path);
+      const foundPipeline = pipelineDics[projectFilePathRelativeToProjectDir];
 
       await handleChangeFilePath({
         oldFilePath,
@@ -407,6 +441,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     },
     [
       dispatch,
+      pipeline,
       pipelineUuid,
       pipelineDics,
       handleChangeFilePath,
@@ -527,10 +562,18 @@ export const FileTree = React.memo(function FileTreeComponent({
             async (resolve) => {
               await Promise.all(
                 deducedPaths.map(([sourcePath, newPath]) => {
+                  // When moving a pipeline file, the pipelineUuid of this file should be used.
+                  const pipelineUuidInPayload = !sourcePath.endsWith(".orchest")
+                    ? pipelineUuid
+                    : pipelines.find(
+                        (pipeline) =>
+                          pipeline.path === cleanFilePath(sourcePath)
+                      )?.uuid;
+
                   return handleChangeFilePath({
                     oldFilePath: sourcePath,
                     newFilePath: newPath,
-                    pipelineUuid,
+                    pipelineUuid: pipelineUuidInPayload,
                     skipReload: true,
                   });
                 })
@@ -552,6 +595,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       setConfirm,
       projectUuid,
       pipelineUuid,
+      pipelines,
       moveFiles,
       handleChangeFilePath,
       reload,

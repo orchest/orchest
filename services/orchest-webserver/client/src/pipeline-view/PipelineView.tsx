@@ -3,10 +3,10 @@ import ProjectBasedView from "@/components/ProjectBasedView";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/routingConfig";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { siteMap } from "../Routes";
 import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext";
 import { PipelineEditorContextProvider } from "./contexts/PipelineEditorContext";
 import { FileManager } from "./file-manager/FileManager";
@@ -46,7 +46,7 @@ const PipelineView = () => {
           </FileManagerContextProvider>
         </PipelineEditorContextProvider>
       ) : (
-        <ProjectBasedView projectUuid={projectUuid} />
+        <ProjectBasedView />
       )}
     </Layout>
   );

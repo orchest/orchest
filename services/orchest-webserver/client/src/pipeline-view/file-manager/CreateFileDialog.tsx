@@ -22,6 +22,7 @@ import React from "react";
 import { FileManagementRoot } from "../common";
 import {
   allowedExtensionsMarkup,
+  FILE_MANAGEMENT_ENDPOINT,
   lastSelectedFolderPath,
   queryArgs,
   ROOT_SEPARATOR,
@@ -40,7 +41,7 @@ export const CreateFileDialog = ({
   root?: FileManagementRoot;
   onClose: () => void;
   onSuccess: (filePath: string) => void;
-  projectUuid: string;
+  projectUuid: string | undefined;
   initialFileName?: string;
 }) => {
   // Global state
@@ -70,13 +71,13 @@ export const CreateFileDialog = ({
   >();
   const isCreating = createFileStatus === "PENDING";
   const onSubmitModal = async () => {
-    if (isCreating) return;
+    if (isCreating || !projectUuid) return;
 
     const fullFilePath = `${lastSelectedFolder}${fileName}${fileExtension}`;
 
     await run(
       fetcher(
-        `/async/file-management/create?${queryArgs({
+        `${FILE_MANAGEMENT_ENDPOINT}/create?${queryArgs({
           project_uuid: projectUuid,
           root,
           path: fullFilePath,

@@ -40,6 +40,7 @@ export type EventVars = {
   };
   error?: string | null;
   timestamp: number | undefined;
+  subViewIndex: number;
 };
 
 type Action =
@@ -124,6 +125,10 @@ type Action =
   | {
       type: "SET_ERROR";
       payload: string | null;
+    }
+  | {
+      type: "SELECT_SUB_VIEW";
+      payload: number;
     };
 
 type ActionCallback = (previousState: EventVars) => Action | void;
@@ -142,7 +147,7 @@ const DEFAULT_STEP_SELECTOR = {
 
 export function removeConnection<
   T extends Pick<EventVars, "steps" | "connections">
->(baseState: T, connectionToDelete: Connection | null): T {
+>(baseState: T, connectionToDelete: Connection | NewConnection | null): T {
   if (!connectionToDelete) return baseState;
 
   const { startNodeUUID, endNodeUUID } = connectionToDelete;
@@ -154,7 +159,7 @@ export function removeConnection<
     );
   });
 
-  const subsequentStep = baseState.steps[endNodeUUID];
+  const subsequentStep = endNodeUUID ? baseState.steps[endNodeUUID] : undefined;
 
   const updatedState = {
     ...baseState,
@@ -162,7 +167,7 @@ export function removeConnection<
     selectedConnection: null,
   };
 
-  if (!subsequentStep) return updatedState;
+  if (!endNodeUUID || !subsequentStep) return updatedState;
 
   // remove it from the incoming_connections of its subsequent nodes
   // we don't have to clean up outgoing_connections
@@ -244,7 +249,7 @@ export const useEventVars = () => {
 
         // ==== user didn't mouseup on a step, abort
 
-        if (!endNodeUUID) {
+        if (!endNodeUUID && newConnection.current) {
           console.error("Failed to make connection. endNodeUUID is undefined.");
           const connectionToRemove = { ...newConnection.current };
           // when deleting connections, it's impossible that user is also creating a new connection
@@ -260,7 +265,7 @@ export const useEventVars = () => {
           startNodeUUID
         );
 
-        if (alreadyExists) {
+        if (alreadyExists && newConnection.current) {
           const error =
             "These steps are already connected. No new connection has been created.";
           const connectionToRemove = { ...newConnection.current };
@@ -275,7 +280,7 @@ export const useEventVars = () => {
           endNodeUUID,
         ]);
 
-        if (connectionCreatesCycle) {
+        if (connectionCreatesCycle && newConnection.current) {
           const error =
             "Connecting this step will create a cycle in your pipeline which is not supported.";
 
@@ -293,7 +298,8 @@ export const useEventVars = () => {
             (connection) => !connection.endNodeUUID
           );
           draft.connections[index].endNodeUUID = endNodeUUID;
-          draft.steps[endNodeUUID].incoming_connections.push(startNodeUUID);
+          if (startNodeUUID)
+            draft.steps[endNodeUUID].incoming_connections.push(startNodeUUID);
         });
       };
 
@@ -374,7 +380,7 @@ export const useEventVars = () => {
             ...state,
             ...updated,
             openedStep: newStep.uuid,
-            openedMultiStep: false,
+            subViewIndex: 0,
             ...selectSteps([newStep.uuid]),
           });
         }
@@ -426,7 +432,6 @@ export const useEventVars = () => {
             return {
               ...state,
               openedStep: uuids[0],
-              openedMultiStep: false,
               ...selectSteps(uuids),
             };
           }
@@ -583,7 +588,7 @@ export const useEventVars = () => {
                 ...outgoingConnections,
               ];
             },
-            []
+            [] as Connection[]
           );
           newConnection.current = undefined;
           const updatedState: EventVars = connectionsToDelete.reduce(
@@ -623,6 +628,10 @@ export const useEventVars = () => {
           return { ...state, error: action.payload };
         }
 
+        case "SELECT_SUB_VIEW": {
+          return { ...state, subViewIndex: action.payload };
+        }
+
         default: {
           console.error(`[EventVars] Unknown action: "${action}"`);
           return state;
@@ -651,6 +660,7 @@ export const useEventVars = () => {
     connections: [],
     selectedConnection: null,
     timestamp: undefined,
+    subViewIndex: 0,
   });
 
   // this function doesn't trigger update, it simply persists clientX clientY for calculation

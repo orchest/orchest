@@ -16,6 +16,7 @@ from app.utils import (
     get_pipeline_directory,
     get_pipeline_path,
     has_active_sessions,
+    is_valid_pipeline_relative_path,
     is_valid_project_relative_path,
     normalize_project_relative_path,
 )
@@ -343,6 +344,13 @@ class MovePipeline(TwoPhaseFunction):
                     os.path.join(rel_path, step_f_prefix, step_f_name)
                 )
                 step["file_path"] = file_path
+                if not is_valid_pipeline_relative_path(
+                    project_uuid, pipeline_uuid, file_path
+                ):
+                    raise error.OutOfProjectError(
+                        "Step path points outside of the project directory."
+                    )
+
             with open(old_path, "w") as json_file:
                 errors = check_pipeline_correctness(pipeline_def)
                 if errors:

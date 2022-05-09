@@ -1,4 +1,7 @@
-import { queryArgs } from "@/pipeline-view/file-manager/common";
+import {
+  FILE_MANAGEMENT_ENDPOINT,
+  queryArgs,
+} from "@/pipeline-view/file-manager/common";
 import {
   ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
@@ -27,7 +30,7 @@ export const isValidFile = async (
   // only check file existence if it passes rule based validation
   if (!project_uuid || !pipeline_uuid || !pathValidator(path)) return false;
   const response = await fetcher(
-    `/async/file-management/exists?${queryArgs({
+    `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
       project_uuid,
       pipeline_uuid,
       path,
@@ -52,7 +55,7 @@ export const useCheckFileValidity = (
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
   const cacheKey = isQueryArgsComplete
-    ? `/async/file-management/exists?${queryArgs({
+    ? `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
         projectUuid,
         pipelineUuid,
         path,

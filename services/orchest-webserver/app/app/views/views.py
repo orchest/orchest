@@ -8,7 +8,7 @@ import zipfile
 
 import requests
 import sqlalchemy
-from flask import current_app, jsonify, request, send_file
+from flask import current_app, jsonify, request, safe_join, send_file
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
@@ -18,7 +18,8 @@ from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
-from app import analytics, error
+from app import analytics
+from app import error as app_error
 from app.core.filemanager import (
     allowed_file,
     find_unique_duplicate_filepath,
@@ -56,6 +57,8 @@ from app.utils import (
     get_project_snapshot_size,
     get_repo_tag,
     get_session_counts,
+    is_valid_data_path,
+    is_valid_pipeline_relative_path,
     normalize_project_relative_path,
     pipeline_set_notebook_kernels,
     preprocess_script,
@@ -439,7 +442,7 @@ def register_views(app, db):
             try:
                 with TwoPhaseExecutor(db.session) as tpe:
                     RenameProject(tpe).transaction(project_uuid, new_name)
-            except error.ActiveSession:
+            except app_error.ActiveSession:
                 return (
                     jsonify(
                         {
@@ -461,7 +464,7 @@ def register_views(app, db):
                     ),
                     409,
                 )
-            except error.InvalidProjectName:
+            except app_error.InvalidProjectName:
                 return (
                     jsonify(
                         {
@@ -556,6 +559,11 @@ def register_views(app, db):
             with TwoPhaseExecutor(db.session) as tpe:
                 project_uuid = CreateProject(tpe).transaction(request.json["name"])
                 return jsonify({"project_uuid": project_uuid})
+        except app_error.InvalidProjectName as e:
+            return (
+                jsonify({"message": str(e)}),
+                400,
+            )
         except Exception as e:
 
             # The sql integrity error message can be quite ugly.
@@ -623,7 +631,7 @@ def register_views(app, db):
             try:
                 with TwoPhaseExecutor(db.session) as tpe:
                     MovePipeline(tpe).transaction(project_uuid, pipeline_uuid, path)
-            except error.ActiveSession:
+            except app_error.ActiveSession:
                 return (
                     jsonify(
                         {
@@ -633,7 +641,7 @@ def register_views(app, db):
                     ),
                     409,
                 )
-            except error.PipelineFileExists:
+            except app_error.PipelineFileExists:
                 return (
                     jsonify({"message": "File exists.", "code": 2}),
                     409,
@@ -642,12 +650,12 @@ def register_views(app, db):
                 return jsonify({"message": "Pipeline doesn't exist.", "code": 3}), 404
             except ValueError:
                 return jsonify({"message": "Invalid file name.", "code": 4}), 409
-            except error.PipelineFileDoesNotExist:
+            except app_error.PipelineFileDoesNotExist:
                 return (
                     jsonify({"message": "Pipeline file doesn't exist.", "code": 5}),
                     409,
                 )
-            except error.OutOfProjectError:
+            except app_error.OutOfProjectError:
                 return (
                     jsonify(
                         {"message": "Can't move outside of the project.", "code": 6}
@@ -752,14 +760,19 @@ def register_views(app, db):
         if os.path.isfile(pipeline_json_path):
             with open(pipeline_json_path, "r") as json_file:
                 pipeline_json = json.load(json_file)
-
             try:
                 step_file_path = pipeline_json["steps"][step_uuid]["file_path"]
+                if not is_valid_pipeline_relative_path(
+                    project_uuid, pipeline_uuid, step_file_path
+                ):
+                    raise app_error.OutOfProjectError(
+                        "Step path points outside of the project directory."
+                    )
 
                 if step_file_path.startswith("/"):
                     file_path = resolve_absolute_path(step_file_path)
                 else:
-                    file_path = os.path.join(pipeline_dir, step_file_path)
+                    file_path = safe_join(pipeline_dir, step_file_path)
 
                 filename = pipeline_json["steps"][step_uuid]["file_path"]
                 step_title = pipeline_json["steps"][step_uuid]["title"]
@@ -836,6 +849,18 @@ def register_views(app, db):
 
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
+
+                is_project_file = is_valid_pipeline_relative_path(
+                    project_uuid, pipeline_uuid, step["file_path"]
+                )
+
+                is_data_file = is_valid_data_path(step["file_path"])
+
+                if not (is_project_file or is_data_file):
+                    raise app_error.OutOfAllowedDirectoryError(
+                        "File is neither in the project, nor in the data directory."
+                    )
+
                 if not step["file_path"].startswith("/"):
                     step["file_path"] = normalize_project_relative_path(
                         step["file_path"]
@@ -948,7 +973,7 @@ def register_views(app, db):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-        file_path = os.path.join(root_dir_path, path[1:])
+        file_path = safe_join(root_dir_path, path[1:])
 
         if not file_path.split(".")[-1] in _config.ALLOWED_FILE_EXTENSIONS:
             return jsonify({"message": "Given file type is not supported."}), 409
@@ -983,6 +1008,10 @@ def register_views(app, db):
 
         if path.startswith("/"):
             file_path = resolve_absolute_path(path)
+            if not is_valid_data_path(file_path, True):
+                raise app_error.OutOfDataDirectoryError(
+                    "Path points outside of the data directory."
+                )
         else:
             pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
             file_path = normalize_project_relative_path(path)
@@ -1010,7 +1039,7 @@ def register_views(app, db):
             return jsonify({"message": str(e)}), 400
 
         # Make absolute path relative
-        target_path = os.path.join(root_dir_path, path[1:])
+        target_path = safe_join(root_dir_path, path[1:])
 
         if target_path == root_dir_path:
             return (
@@ -1049,7 +1078,7 @@ def register_views(app, db):
             return jsonify({"message": str(e)}), 400
 
         # Make absolute path relative
-        target_path = os.path.join(root_dir_path, path[1:])
+        target_path = safe_join(root_dir_path, path[1:])
 
         if os.path.isfile(target_path) or os.path.isdir(target_path):
             new_path = find_unique_duplicate_filepath(target_path)
@@ -1082,7 +1111,7 @@ def register_views(app, db):
         # Make absolute path relative
         path = "/".join(path.split("/")[1:])
 
-        full_path = os.path.join(root_dir_path, path)
+        full_path = safe_join(root_dir_path, path)
 
         if os.path.isdir(full_path) or os.path.isfile(full_path):
             return jsonify({"message": "Path already exists"}), 500
@@ -1115,15 +1144,16 @@ def register_views(app, db):
         if file and allowed_file(file.filename):
             filename = file.filename.split(os.sep)[-1]
             # Trim path for joining (up until this point paths always
-            # start and end with a /)
+            # start and end with a "/")
             path = path[1:]
-            dir_path = os.path.join(root_dir_path, path)
+            dir_path = safe_join(root_dir_path, path)
             # Create directory if it doesn't exist
             if not os.path.isdir(dir_path):
                 os.makedirs(dir_path, exist_ok=True)
-            file.save(os.path.join(dir_path, filename))
+            file_path = safe_join(dir_path, filename)
+            file.save(file_path)
 
-        return jsonify({"message": "Success"})
+        return jsonify({"file_path": file_path})
 
     @app.route("/async/file-management/rename", methods=["POST"])
     def filemanager_rename():
@@ -1143,8 +1173,8 @@ def register_views(app, db):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-        abs_old_path = os.path.join(old_root_path, old_path[1:])
-        abs_new_path = os.path.join(new_root_path, new_path[1:])
+        abs_old_path = safe_join(old_root_path, old_path[1:])
+        abs_new_path = safe_join(new_root_path, new_path[1:])
 
         try:
             os.rename(abs_old_path, abs_new_path)
@@ -1165,7 +1195,7 @@ def register_views(app, db):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-        target_path = os.path.join(root_dir_path, path[1:])
+        target_path = safe_join(root_dir_path, path[1:])
 
         if os.path.isfile(target_path):
             return send_file(target_path, as_attachment=True)
@@ -1180,6 +1210,25 @@ def register_views(app, db):
                 as_attachment=True,
                 attachment_filename=os.path.basename(target_path[:-1]) + ".zip",
             )
+
+    @app.route("/async/file-management/import-project-from-data", methods=["POST"])
+    def filemanager_import_project_from_data():
+        """Import a project from the data directory.
+
+        A temporary workaround to import uploaded projects correctly.
+        """
+        name = request.args.get("name")
+        if name is None or os.path.sep in name:
+            return jsonify({"message": f"Invalid name: {name}"}), 400
+
+        from_path = safe_join("/userdir/data", name)
+        to_path = safe_join("/userdir/projects", name)
+        os.rename(from_path, to_path)
+        # Pick up the project from the fs.
+        with TwoPhaseExecutor(db.session) as tpe:
+            project_uuid = CreateProject(tpe).transaction(name)
+
+        return {"project_uuid": project_uuid}, 201
 
     @app.route("/async/file-management/extension-search", methods=["GET"])
     def filemanager_extension_search():
@@ -1210,7 +1259,7 @@ def register_views(app, db):
 
         for extension in extensions:
             matches += list(
-                pathlib.Path(os.path.join(root_dir_path, path_filter)).glob(
+                pathlib.Path(safe_join(root_dir_path, path_filter)).glob(
                     "**/*.{}".format(extension)
                 )
             )

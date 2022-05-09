@@ -2,8 +2,8 @@ import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
-import { Position } from "@/types";
+import { fetchPipelines } from "@/hooks/useFetchPipelines";
+import { siteMap } from "@/routingConfig";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
@@ -17,7 +17,7 @@ import {
   unpackCombinedPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
-import { ContextMenuType } from "./FileManagerContextMenu";
+import { ContextMenuMetadata, ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
   reload: () => Promise<void>;
@@ -34,22 +34,17 @@ export type FileManagerLocalContextType = {
   handleDelete: () => void;
   handleDownload: () => void;
   handleContextRename: () => void;
-  contextMenuCombinedPath: string;
-  fileInRename: string;
-  setFileInRename: React.Dispatch<React.SetStateAction<string>>;
+  contextMenuCombinedPath: string | undefined;
+  fileInRename: string | undefined;
+  setFileInRename: React.Dispatch<React.SetStateAction<string | undefined>>;
   fileRenameNewName: string;
   setFileRenameNewName: React.Dispatch<React.SetStateAction<string>>;
-  setContextMenu: React.Dispatch<
-    React.SetStateAction<{
-      position: Position;
-      type: ContextMenuType;
-    }>
-  >;
+  setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuMetadata>>;
 };
 
 export const FileManagerLocalContext = React.createContext<
   FileManagerLocalContextType
->(null);
+>({} as FileManagerLocalContextType);
 
 export const useFileManagerLocalContext = () =>
   React.useContext(FileManagerLocalContext);
@@ -73,7 +68,7 @@ const downloadFile = (
 ) => {
   let { root, path } = unpackCombinedPath(combinedPath);
 
-  let downloadUrl = `/async/file-management/download?${queryArgs({
+  let downloadUrl = `${FILE_MANAGEMENT_ENDPOINT}/download?${queryArgs({
     path,
     root,
     project_uuid: projectUuid,
@@ -88,17 +83,11 @@ const downloadFile = (
 
 export const FileManagerLocalContextProvider: React.FC<{
   reload: () => Promise<void>;
-  setContextMenu: React.Dispatch<
-    React.SetStateAction<{
-      position: Position;
-      type: ContextMenuType;
-    }>
-  >;
+  setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuMetadata>>;
 }> = ({ children, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
   const {
     state: { pipelines = [] },
-    fetchPipelines,
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
@@ -118,7 +107,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
     string
   >();
-  const [fileInRename, setFileInRename] = React.useState<string>(undefined);
+  const [fileInRename, setFileInRename] = React.useState<string>();
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
 
   const handleContextMenu = React.useCallback(
@@ -131,7 +120,7 @@ export const FileManagerLocalContextProvider: React.FC<{
       event.stopPropagation();
       setContextMenuPath(combinedPath);
       setContextMenu((current) => {
-        return current === null
+        return current === undefined
           ? {
               position: {
                 x: event.clientX - 2,
@@ -139,7 +128,7 @@ export const FileManagerLocalContextProvider: React.FC<{
               },
               type,
             }
-          : null;
+          : undefined;
       });
     },
     [setContextMenu]
@@ -154,7 +143,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   );
 
   const handleClose = React.useCallback(() => {
-    setContextMenu(null);
+    setContextMenu(undefined);
   }, [setContextMenu]);
 
   const {
@@ -163,7 +152,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   } = useProjectsContext();
 
   const handleContextRename = React.useCallback(() => {
-    if (pipelineIsReadOnly) return;
+    if (pipelineIsReadOnly || !contextMenuCombinedPath) return;
 
     handleClose();
     setFileInRename(contextMenuCombinedPath);
@@ -171,7 +160,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [contextMenuCombinedPath, handleClose, pipelineIsReadOnly]);
 
   const handleDelete = React.useCallback(async () => {
-    if (pipelineIsReadOnly) return;
+    if (pipelineIsReadOnly || !contextMenuCombinedPath || !projectUuid) return;
 
     handleClose();
 
@@ -230,17 +219,19 @@ export const FileManagerLocalContextProvider: React.FC<{
         // Send a GET request for file dicovery
         // to ensure that the pipeline is removed from DB.
         // It's not needed to await it because we don't use the response
-        fetchPipelines();
+        fetchPipelines(projectUuid);
 
-        // Clean up `state.pipelines` is still needed.
+        // `state.pipelines` should be cleaned up.
         const pipelinePaths = pathsThatContainsPipelineFiles.map(({ path }) =>
           path.replace(/^\//, "")
         );
 
         dispatch((state) => {
-          const updatedPipelines = state.pipelines.filter((pipeline) => {
-            return !pipelinePaths.some((path) => pipeline.path === path);
-          });
+          const updatedPipelines = (state.pipelines || []).filter(
+            (pipeline) => {
+              return !pipelinePaths.some((path) => pipeline.path === path);
+            }
+          );
           return { type: "SET_PIPELINES", payload: updatedPipelines };
         });
 
@@ -283,10 +274,10 @@ export const FileManagerLocalContextProvider: React.FC<{
     pipeline?.path,
     navigateTo,
     dispatch,
-    fetchPipelines,
   ]);
 
   const handleDownload = React.useCallback(() => {
+    if (!contextMenuCombinedPath || !projectUuid) return;
     handleClose();
 
     const downloadLink = getBaseNameFromPath(contextMenuCombinedPath);

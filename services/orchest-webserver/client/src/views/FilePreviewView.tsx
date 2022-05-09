@@ -2,10 +2,14 @@ import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import {
+  useCancelableFetch,
+  useCancelablePromise,
+} from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { Job } from "@/types";
 import {
   getPipelineJSONEndpoint,
@@ -17,14 +21,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import {
-  fetcher,
-  hasValue,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-  RefManager,
-} from "@orchest/lib-utils";
+import { hasValue, RefManager } from "@orchest/lib-utils";
 import "codemirror/mode/python/python";
 import "codemirror/mode/r/r";
 import "codemirror/mode/shell/shell";
@@ -42,6 +39,8 @@ const FilePreviewView: React.FC = () => {
   const { setAlert } = useAppContext();
   const { state: projectsState, dispatch } = useProjectsContext();
   useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
+  const { cancelableFetch } = useCancelableFetch();
+  const { makeCancelable } = useCancelablePromise();
 
   // data from route
   const {
@@ -76,7 +75,6 @@ const FilePreviewView: React.FC = () => {
   const [retryIntervals, setRetryIntervals] = React.useState([]);
 
   const [refManager] = React.useState(new RefManager());
-  const [promiseManager] = React.useState(new PromiseManager());
 
   const loadPipelineView = (e: React.MouseEvent) => {
     const isJobRun = jobUuid && runUuid;
@@ -103,8 +101,10 @@ const FilePreviewView: React.FC = () => {
       : getPipelineJSONEndpoint({ pipelineUuid, projectUuid });
 
     const [pipelineJson, job] = await Promise.all([
-      fetchPipelineJson(pipelineURL),
-      jobUuid ? fetcher<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`) : null,
+      makeCancelable(fetchPipelineJson(pipelineURL)),
+      jobUuid
+        ? cancelableFetch<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`)
+        : null,
     ]);
 
     const pipelineFilePath =
@@ -130,12 +130,7 @@ const FilePreviewView: React.FC = () => {
         loadingFile: true,
       }));
 
-      let fetchAllPromise = makeCancelable(
-        Promise.all([fetchFile(), fetchPipeline()]),
-        promiseManager
-      );
-
-      fetchAllPromise.promise
+      Promise.all([fetchFile(), fetchPipeline()])
         .then(() => {
           setState((prevState) => ({
             ...prevState,
@@ -152,32 +147,20 @@ const FilePreviewView: React.FC = () => {
         });
     });
 
-  const fetchFile = () =>
-    new Promise((resolve, reject) => {
-      let fileURL = `/async/file-viewer/${projectUuid}/${pipelineUuid}/${stepUuid}`;
-      if (isJobRun) {
-        fileURL += "?pipeline_run_uuid=" + runUuid;
-        fileURL += "&job_uuid=" + jobUuid;
-      }
+  const fetchFile = () => {
+    let fileURL = `/async/file-viewer/${projectUuid}/${pipelineUuid}/${stepUuid}`;
+    if (isJobRun) {
+      fileURL += "?pipeline_run_uuid=" + runUuid;
+      fileURL += "&job_uuid=" + jobUuid;
+    }
 
-      let fetchFilePromise = makeCancelable(
-        makeRequest("GET", fileURL),
-        promiseManager
-      );
-
-      fetchFilePromise.promise
-        .then((response) => {
-          setState((prevState) => ({
-            ...prevState,
-            fileDescription: JSON.parse(response),
-          }));
-          resolve(undefined);
-        })
-        .catch((err) => {
-          console.log(err);
-          reject();
-        });
+    return cancelableFetch(fileURL).then((response) => {
+      setState((prevState) => ({
+        ...prevState,
+        fileDescription: response,
+      }));
     });
+  };
 
   const stepNavigate = (e: React.MouseEvent, newStepUuid: string) => {
     navigateTo(
@@ -290,8 +273,6 @@ const FilePreviewView: React.FC = () => {
     loadFile();
 
     return () => {
-      promiseManager.cancelCancelablePromises();
-
       retryIntervals.map((retryInterval) => clearInterval(retryInterval));
     };
   }, []);

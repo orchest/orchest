@@ -6,7 +6,6 @@ import {
   fetcher,
   hasValue,
   HEADER,
-  makeRequest,
 } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
@@ -222,7 +221,8 @@ export function checkGate(project_uuid: string) {
 }
 
 export class OverflowListener {
-  triggerOverflow: any;
+  private observer: ResizeObserver | undefined;
+  private triggerOverflow: HTMLElement | undefined;
 
   constructor() {} // eslint-disable-line @typescript-eslint/no-empty-function
 
@@ -233,19 +233,25 @@ export class OverflowListener {
 
       let triggerOverflow = $(".trigger-overflow").first()[0];
       if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
-        new ResizeObserver(() => {
-          if (triggerOverflow) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            if ($(triggerOverflow).overflowing()) {
-              $(".observe-overflow").addClass("overflowing");
-            } else {
-              $(".observe-overflow").removeClass("overflowing");
-            }
-          }
-        }).observe(triggerOverflow);
         this.triggerOverflow = triggerOverflow;
+        this.observer = new ResizeObserver(() => {
+          if (!this.triggerOverflow) return;
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          if ($(this.triggerOverflow).overflowing()) {
+            $(".observe-overflow").addClass("overflowing");
+          } else {
+            $(".observe-overflow").removeClass("overflowing");
+          }
+        });
+        this.observer.observe(this.triggerOverflow);
       }
+    }
+  }
+
+  detach() {
+    if (this.observer && this.triggerOverflow) {
+      this.observer.unobserve(this.triggerOverflow);
     }
   }
 }
@@ -254,11 +260,17 @@ export type CreateProjectError =
   | "project move failed"
   | "project name contains illegal character";
 
-export type BackgroundTask = {
-  uuid: string;
-  status: "SUCCESS" | "FAILURE" | "PENDING";
-  result: CreateProjectError | string | null;
-};
+export type BackgroundTask =
+  | {
+      uuid: string;
+      status: "SUCCESS" | "FAILURE";
+      result: CreateProjectError | string;
+    }
+  | {
+      uuid: string;
+      status: "PENDING";
+      result: null;
+    };
 
 export class BackgroundTaskPoller {
   private END_STATUSES: string[];
@@ -305,22 +317,21 @@ export class BackgroundTaskPoller {
     this.activeTasks = {};
   }
 
-  requestStatus(taskUuid: string) {
-    makeRequest("GET", `/async/background-tasks/${taskUuid}`).then(
-      (response: string) => {
-        try {
-          let data: BackgroundTask = JSON.parse(response);
-          if (this.END_STATUSES.includes(data.status)) {
-            this.taskCallbacks[taskUuid](data);
-            this.removeTask(taskUuid);
-          } else {
-            this.executeDelayedRequest(taskUuid);
-          }
-        } catch (error) {
-          console.error(error);
-        }
+  async requestStatus(taskUuid: string) {
+    try {
+      const data = await fetcher<BackgroundTask>(
+        `/async/background-tasks/${taskUuid}`
+      );
+
+      if (this.END_STATUSES.includes(data.status)) {
+        this.taskCallbacks[taskUuid](data);
+        this.removeTask(taskUuid);
+      } else {
+        this.executeDelayedRequest(taskUuid);
       }
-    );
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
 
@@ -535,3 +546,9 @@ export function pascalCaseToCapitalized(viewName) {
 export function isNumber(value: unknown): value is number {
   return !isNaN(Number(value));
 }
+
+export const withPlural = (
+  value: number,
+  unit: string,
+  toPlural = (singular: string) => `${singular}s`
+) => `${value} ${value > 1 ? toPlural(unit) : unit}`;

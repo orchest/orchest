@@ -1,12 +1,20 @@
-import { useFetchPipelines } from "@/hooks/useFetchPipelines";
-import { useHasChanged } from "@/hooks/useHasChanged";
 import type { PipelineMetaData, Project } from "@/types";
 import React from "react";
-import { KeyedMutator } from "swr";
 
 const ProjectsContext = React.createContext<IProjectsContext>(
   {} as IProjectsContext
 );
+
+export type IProjectsContextState = {
+  projectUuid?: string;
+  pipelineIsReadOnly: boolean;
+  pipelineSaveStatus: "saved" | "saving";
+  pipelines: PipelineMetaData[] | undefined;
+  pipeline?: PipelineMetaData | undefined;
+  projects: Project[];
+  hasLoadedProjects: boolean;
+  hasLoadedPipelinesInPipelineEditor: boolean;
+};
 
 export const useProjectsContext = () => React.useContext(ProjectsContext);
 
@@ -49,21 +57,11 @@ type Action =
     };
 
 type ActionCallback = (currentState: IProjectsContextState) => Action;
-type ProjectsContextAction = Action | ActionCallback;
-export interface IProjectsContextState {
-  projectUuid?: string;
-  pipelineIsReadOnly: boolean;
-  pipelineSaveStatus: "saved" | "saving";
-  pipelines: PipelineMetaData[] | undefined;
-  pipeline?: PipelineMetaData | undefined;
-  projects: Project[];
-  hasLoadedProjects: boolean;
-  hasLoadedPipelinesInPipelineEditor: boolean;
-}
+export type ProjectsContextAction = Action | ActionCallback;
+
 export interface IProjectsContext {
   state: IProjectsContextState;
   dispatch: (value: ProjectsContextAction) => void;
-  fetchPipelines: KeyedMutator<PipelineMetaData[]>;
 }
 
 const reducer = (
@@ -125,13 +123,29 @@ const reducer = (
       return { ...state, pipelineSaveStatus: action.payload };
     case "SET_PIPELINE_IS_READONLY":
       return { ...state, pipelineIsReadOnly: action.payload };
-    case "SET_PROJECT":
+    case "SET_PROJECT": {
+      if (!action.payload) {
+        return {
+          ...state,
+          projectUuid: undefined,
+          pipelines: undefined,
+          pipeline: undefined,
+        };
+      }
+      // Ensure that projectUuid is valid in the state.
+      // So that we could show proper warnings in case user provides
+      // an invalid projectUuid from the route args.
+      const foundProject = state.projects?.find(
+        (project) => project.uuid === action.payload
+      );
+      if (!foundProject) return state;
       return {
         ...state,
-        projectUuid: action.payload,
+        projectUuid: foundProject.uuid,
         pipelines: undefined,
         pipeline: undefined,
       };
+    }
     case "SET_PROJECTS":
       return { ...state, projects: action.payload, hasLoadedProjects: true };
     default: {
@@ -153,45 +167,8 @@ const initialState: IProjectsContextState = {
 export const ProjectsContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
-  const {
-    pipelines,
-    isFetchingPipelines,
-    error,
-    fetchPipelines,
-  } = useFetchPipelines({ projectUuid: state.projectUuid });
-
-  const hasPipelinesChanged = useHasChanged(state.pipelines);
-
-  React.useEffect(() => {
-    // When switching projects, state.pipelines will be cleaned up.
-    // then we need to refetch.
-    // Note that we don't want to trigger this when page is just loaded.
-    // because useFetchPipelines will do the inital request.
-    const hasPipelineCleanedUp =
-      !isFetchingPipelines && hasPipelinesChanged && !state.pipelines;
-
-    if (hasPipelineCleanedUp) fetchPipelines();
-  }, [
-    isFetchingPipelines,
-    state.pipelines,
-    hasPipelinesChanged,
-    fetchPipelines,
-  ]);
-
-  React.useEffect(() => {
-    if (!isFetchingPipelines && !error && pipelines) {
-      dispatch({ type: "LOAD_PIPELINES", payload: pipelines });
-    }
-  }, [dispatch, pipelines, isFetchingPipelines, error]);
-
   return (
-    <ProjectsContext.Provider
-      value={{
-        state,
-        dispatch,
-        fetchPipelines,
-      }}
-    >
+    <ProjectsContext.Provider value={{ state, dispatch }}>
       {children}
     </ProjectsContext.Provider>
   );

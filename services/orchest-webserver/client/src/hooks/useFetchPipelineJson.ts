@@ -20,14 +20,14 @@ export const fetchPipelineJson = (
     | {
         pipelineUuid: string | undefined;
         projectUuid: string | undefined;
-        jobUuid: string | undefined;
-        runUuid: string | undefined;
+        jobUuid?: string | undefined;
+        runUuid?: string | undefined;
       }
 ) => {
   const url =
     typeof props === "string" ? props : getPipelineJSONEndpoint(props);
 
-  if (!url) return;
+  if (!url) return Promise.reject();
 
   return fetcher<{
     pipeline_json: string;

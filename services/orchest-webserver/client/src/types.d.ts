@@ -77,6 +77,7 @@ export type OrchestConfig = {
     readthedocs: string;
     slack: string;
     website: string;
+    orchest_update_info_json: string;
     orchest_examples_repo: string;
     orchest_examples_json: string;
   };
@@ -139,7 +140,7 @@ export type Project = {
   path: string;
   uuid: string;
   pipeline_count: number;
-  job_count: number;
+  job_count: number | undefined;
   environment_count: number;
   project_snapshot_size: number;
   env_variables: Record<string, string>;
@@ -191,6 +192,7 @@ export type JobStatus =
   | "PAUSED"
   | "SUCCESS"
   | "ABORTED"
+  | "FAILURE"
   | "DRAFT";
 
 export type PipelineRun = {
@@ -270,7 +272,10 @@ export type Step = {
   incoming_connections: string[];
   environment: string;
   file_path: string;
-  kernel: { display_name?: string; name?: string };
+  kernel: {
+    display_name?: string;
+    name?: string;
+  };
   meta_data: { hidden: boolean; position: [number, number] };
   parameters: Record<string, any>;
 };
@@ -405,5 +410,5 @@ export type UpdateInfo = {
 };
 
 export type OrchestVersion = {
-  version: string | null;
+  version: string | null | undefined;
 };

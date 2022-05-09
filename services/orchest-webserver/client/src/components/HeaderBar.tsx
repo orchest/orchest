@@ -3,7 +3,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { cleanFilePath } from "@/pipeline-view/file-manager/common";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
@@ -22,8 +22,8 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useRouteMatch } from "react-router-dom";
+import { ProjectSelector } from "../project-selector/ProjectSelector";
 import { IconButton } from "./common/IconButton";
-import { ProjectSelector } from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
 
 export const HeaderBar = ({

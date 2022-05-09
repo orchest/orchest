@@ -7,7 +7,7 @@ import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { LogViewer } from "@/pipeline-view/LogViewer";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type {
   LogType,
   PipelineStepState,

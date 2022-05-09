@@ -23,8 +23,6 @@ const ProjectFilePicker: React.FC<{
     value
   );
 
-  const onChangeFileValue = (value: string) => onChange(value);
-
   const tree = React.useMemo<FileTree>(() => {
     return {
       name: "",
@@ -72,7 +70,7 @@ const ProjectFilePicker: React.FC<{
               ? "File exists in the project directory."
               : "Warning: this file wasn't found in the project directory."
           }
-          onChangeValue={onChangeFileValue}
+          onChangeValue={onChange}
           menuMaxWidth={menuMaxWidth}
           onSelectMenuItem={onSelectMenuItem}
         />

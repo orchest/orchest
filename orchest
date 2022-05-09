@@ -78,23 +78,6 @@ repo_version=$(git describe --tags --abbrev=0)
 cluster_version=$(minikube kubectl -- get namespace orchest -o \
     jsonpath='{.metadata.labels.version}')
 
-# Will be empty only if Orchest has not been installed yet.
-if [ -n "$cluster_version" ]; then
-    if [ "$repo_version" != "$cluster_version" ]; then
-        msg="The Orchest cluster version (${cluster_version}) is different from this
-        repository version (${repo_version}). Make sure those are in sync. To do that,
-        checkout the repo at a commit which tag matches the cluster version. For
-        example, first run (needed if the cluster is at a more recent version than
-        the repository):\n
-        "
-        echo -e $msg
-        echo -e "\tgit pull origin\n"
-        echo -e "Then checkout the required release version:\n"
-        echo -e "\tgit checkout tags/${cluster_version}"
-        exit 1
-    fi
-fi
-
 # Make sure orchest-ctl has the right permissions.
 minikube kubectl -- apply -f "$DIR/deploy/orchest-ctl/rbac" > /dev/null
 

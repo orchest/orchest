@@ -6,6 +6,8 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/auth-url: {{ include "library.service.auth" . }}
     nginx.ingress.kubernetes.io/auth-signin: /login
+    # No limit.
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
 spec:
   rules:
     {{- $ingress := .Values.global.ingress | default dict }}

@@ -7,15 +7,14 @@ import {
 } from "@/components/DataTable";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
-import ServiceForm from "@/components/ServiceForm";
-import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
+import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type {
   PipelineJson,
   Service,
@@ -24,9 +23,9 @@ import type {
 import {
   envVariablesArrayToDict,
   isValidEnvironmentVariableName,
-  OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
@@ -57,6 +56,8 @@ import {
   getOrderValue,
   instantiateNewService,
 } from "./common";
+import ServiceForm from "./ServiceForm";
+import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
@@ -153,7 +154,7 @@ const PipelineSettingsView: React.FC = () => {
   }, [services]);
 
   const [tabIndex, setTabIndex] = React.useState<number>(
-    tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
+    hasValue(initialTab) ? tabMapping[initialTab] : 0
   );
 
   const [servicesChanged, setServicesChanged] = React.useState(false);
@@ -169,15 +170,12 @@ const PipelineSettingsView: React.FC = () => {
   }
 
   const hasLoaded =
-    pipelineJson && envVariables && (isReadOnly || projectEnvVariables);
+    pipelineJson &&
+    envVariables &&
+    (isReadOnly || hasValue(projectEnvVariables));
 
   // If the component has loaded, attach the resize listener
-  const overflowListener = React.useMemo(() => new OverflowListener(), []);
-  React.useEffect(() => {
-    if (hasLoaded) {
-      overflowListener.attach();
-    }
-  }, [hasLoaded, overflowListener]);
+  useOverflowListener(hasLoaded);
 
   const onChangeService = (uuid: string, service: Service) => {
     setServices((current) => {
@@ -192,7 +190,8 @@ const PipelineSettingsView: React.FC = () => {
 
   const deleteService = async (serviceUuid: string) => {
     setServices((current) => {
-      const { [serviceUuid]: serviceToRemove, ...remainder } = current; // eslint-disable-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [serviceUuid]: serviceToRemove, ...remainder } = current || {};
       return remainder;
     });
 
@@ -394,33 +393,39 @@ const PipelineSettingsView: React.FC = () => {
     },
   ];
 
-  const serviceRows: DataTableRow<ServiceRow>[] = Object.entries(services)
-    .sort((a, b) => a[1].order - b[1].order)
-    .map(([uuid, service]) => {
-      return {
-        uuid,
-        name: service.name,
-        scope: service.scope
-          .map((scopeAsString) => scopeMap[scopeAsString])
-          .join(", "),
-        exposed: service.exposed ? "Yes" : "No",
-        authenticationRequired: service.requires_authentication ? "Yes" : "No",
-        remove: uuid,
-        details: (
-          <ServiceForm
-            key={uuid}
-            serviceUuid={uuid}
-            service={service}
-            services={services}
-            disabled={isReadOnly}
-            updateService={(updated) => onChangeService(uuid, updated)}
-            pipeline_uuid={pipelineUuid}
-            project_uuid={projectUuid}
-            run_uuid={runUuid}
-          />
-        ),
-      };
-    });
+  const serviceRows: DataTableRow<ServiceRow>[] = !services
+    ? []
+    : Object.entries(services)
+        .sort((a, b) => {
+          if (hasValue(a[1].order) && hasValue(b[1].order)) {
+            return a[1].order - b[1].order;
+          } else {
+            return 0;
+          }
+        })
+        .map(([uuid, service]) => {
+          return {
+            uuid,
+            name: service.name,
+            scope: service.scope
+              .map((scopeAsString) => scopeMap[scopeAsString])
+              .join(", "),
+            exposed: service.exposed ? "Yes" : "No",
+            authenticationRequired: service.requires_authentication
+              ? "Yes"
+              : "No",
+            remove: uuid,
+            details: (
+              <ServiceForm
+                key={uuid}
+                service={service}
+                services={services}
+                disabled={isReadOnly}
+                updateService={(updated) => onChangeService(uuid, updated)}
+              />
+            ),
+          };
+        });
 
   const isMemorySizeValid = isValidMemorySize(
     settings?.data_passing_memory_size || ""
@@ -429,6 +434,7 @@ const PipelineSettingsView: React.FC = () => {
   const prettifyInputParameters = () => {
     setInputParameters((current) => {
       try {
+        if (!current) return current;
         return JSON.stringify(JSON.parse(current));
       } catch (error) {
         return current;
@@ -436,10 +442,26 @@ const PipelineSettingsView: React.FC = () => {
     });
   };
 
+  const inputParametersError = React.useMemo(() => {
+    try {
+      JSON.parse(inputParameters);
+      return null;
+    } catch {
+      return (
+        <div className="warning push-up push-down">
+          <i className="material-icons">warning</i> Your input is not valid
+          JSON.
+        </div>
+      );
+    }
+  }, [inputParameters]);
+
   return (
     <Layout>
       <div className="view-page pipeline-settings-view">
-        {hasLoaded ? (
+        {!hasLoaded ? (
+          <LinearProgress />
+        ) : (
           <div className="pipeline-settings">
             <Stack
               direction="row"
@@ -542,18 +564,7 @@ const PipelineSettingsView: React.FC = () => {
                           onBlur={() => prettifyInputParameters()}
                           onBeforeChange={onChangePipelineParameters}
                         />
-                        {(() => {
-                          try {
-                            JSON.parse(inputParameters);
-                          } catch {
-                            return (
-                              <div className="warning push-up push-down">
-                                <i className="material-icons">warning</i> Your
-                                input is not valid JSON.
-                              </div>
-                            );
-                          }
-                        })()}
+                        {inputParametersError}
                       </div>
                       <div className="clear"></div>
                     </div>
@@ -650,7 +661,20 @@ const PipelineSettingsView: React.FC = () => {
                         );
                         onChangeService(uuidv4(), newService);
                       }}
-                    />
+                    >
+                      {(openServiceTemplatesDialog) => (
+                        <Button
+                          startIcon={<AddIcon />}
+                          variant="contained"
+                          color="secondary"
+                          onClick={openServiceTemplatesDialog}
+                          sx={{ marginTop: (theme) => theme.spacing(2) }}
+                          data-test-id="pipeline-service-add"
+                        >
+                          Add Service
+                        </Button>
+                      )}
+                    </ServiceTemplatesDialog>
                   )}
                 </Stack>
               </CustomTabPanel>
@@ -670,8 +694,6 @@ const PipelineSettingsView: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
-          <LinearProgress />
         )}
       </div>
     </Layout>
