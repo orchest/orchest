@@ -19,5 +19,5 @@ spec:
       serviceAccountName: orchest-controller
       containers:
         - name: controller
-          image: orchest/orchest-controller:v2022.05.2
+          image: orchest/orchest-controller:v2022.05.3
           imagePullPolicy: IfNotPresent
