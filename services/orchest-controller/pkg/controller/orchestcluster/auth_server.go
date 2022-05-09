@@ -17,7 +17,7 @@ func getAuthServerManifests(hash string, orchest *orchestv1alpha1.OrchestCluster
 
 	objects = append(objects, getAuthServerDeployment(metadata, matchLabels, orchest))
 	objects = append(objects, getServiceManifest(metadata, matchLabels, 80, orchest))
-	objects = append(objects, getIngressManifest(metadata, "/login", false, orchest))
+	objects = append(objects, getIngressManifest(metadata, "/login", false, false, orchest))
 
 	return objects
 }

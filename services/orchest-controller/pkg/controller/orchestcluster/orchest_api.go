@@ -21,7 +21,7 @@ func getOrchestApiManifests(hash string, orchest *orchestv1alpha1.OrchestCluster
 	objects = append(objects, getRbacManifest(metadata)...)
 	objects = append(objects, getOrchetApiDeployment(metadata, matchLabels, orchest))
 	objects = append(objects, getServiceManifest(metadata, matchLabels, 80, orchest))
-	objects = append(objects, getIngressManifest(metadata, "/orchest-api", true, orchest))
+	objects = append(objects, getIngressManifest(metadata, "/orchest-api", true, false, orchest))
 
 	return objects
 }

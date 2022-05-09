@@ -180,21 +180,25 @@ func getRbacManifest(metadata metav1.ObjectMeta) []client.Object {
 }
 
 func getIngressManifest(metadata metav1.ObjectMeta, path string,
-	enableAuth bool, orchest *orchestv1alpha1.OrchestCluster) client.Object {
+	enableAuth, enableSignin bool, orchest *orchestv1alpha1.OrchestCluster) client.Object {
 
-	var ingressMeta metav1.ObjectMeta
-	if enableAuth {
-		ingressMeta = *metadata.DeepCopy()
-		authServiceName := fmt.Sprintf("http://auth-server.%s.svc.cluster.local/auth", orchest.Namespace)
-		annotations := map[string]string{
-			"nginx.ingress.kubernetes.io/auth-url": authServiceName,
+	ingressMeta := *metadata.DeepCopy()
 
-			// No limit.
+	if ingressMeta.Annotations == nil {
+		ingressMeta.Annotations = map[string]string{
+			// No limit
 			"nginx.ingress.kubernetes.io/proxy-body-size": "0",
 		}
-		ingressMeta.Annotations = annotations
-	} else {
-		ingressMeta = metadata
+	}
+
+	if enableAuth {
+		authServiceName := fmt.Sprintf("http://auth-server.%s.svc.cluster.local/auth", orchest.Namespace)
+		ingressMeta.Annotations["nginx.ingress.kubernetes.io/auth-url"] = authServiceName
+
+	}
+
+	if enableSignin {
+		ingressMeta.Annotations["nginx.ingress.kubernetes.io/auth-signin"] = "/login"
 	}
 
 	rule := networkingv1.IngressRule{}

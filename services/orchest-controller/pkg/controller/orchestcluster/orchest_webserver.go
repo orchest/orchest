@@ -17,7 +17,7 @@ func getOrchetWebserverManifests(hash string, orchest *orchestv1alpha1.OrchestCl
 
 	objects = append(objects, getOrchetWebserverDeployment(metadata, matchLabels, orchest))
 	objects = append(objects, getServiceManifest(metadata, matchLabels, 80, orchest))
-	objects = append(objects, getIngressManifest(metadata, "/", true, orchest))
+	objects = append(objects, getIngressManifest(metadata, "/", true, true, orchest))
 
 	return objects
 }
