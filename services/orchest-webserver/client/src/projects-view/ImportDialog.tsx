@@ -11,6 +11,10 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { fetchProject } from "@/hooks/useFetchProject";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
+import {
+  FILE_MANAGEMENT_ENDPOINT,
+  queryArgs,
+} from "@/pipeline-view/file-manager/common";
 import { Project } from "@/types";
 import {
   BackgroundTask,
@@ -161,7 +165,6 @@ const ProjectMetadata = ({
 type ImportStatus =
   | "READY"
   | "IMPORTING"
-  | "CREATING_TEMP_PROJECT"
   | "UPLOADING"
   | "FILES_STORED"
   | "SAVING_PROJECT_NAME";
@@ -170,7 +173,6 @@ const dialogTitleMappings: Record<ImportStatus, string> = {
   READY: "Import project",
   IMPORTING: "Importing project",
   UPLOADING: "Uploading project",
-  CREATING_TEMP_PROJECT: "Uploading project",
   FILES_STORED: "Upload complete",
   SAVING_PROJECT_NAME: "Upload complete",
 };
@@ -426,15 +428,30 @@ export const ImportDialog: React.FC<{
       files: File[] | FileList,
       onFileUploaded?: (completedCount: number, totalCount: number) => void
     ) => {
-      setImportStatus("CREATING_TEMP_PROJECT");
+      setImportStatus("UPLOADING");
+
+      // Upload files
+      await Promise.all(
+        generateUploadFiles({
+          projectUuid: undefined,
+          root: "/data",
+          path: `/${projectName}/`,
+          isProjectUpload: true,
+          // Use cancelable fetch to prevent mutating states when user cancel uploading.
+          cancelableFetch,
+        })(files, onFileUploaded)
+      );
+
       const { project_uuid } = await fetcher<{ project_uuid: string }>(
-        "/async/projects",
+        `${FILE_MANAGEMENT_ENDPOINT}/import-project-from-data?${queryArgs({
+          name: projectName,
+        })}`,
         {
           method: "POST",
           headers: HEADER.JSON,
-          body: JSON.stringify({ name: projectName }),
         }
       );
+
       // Get all the default info for this project.
       setNewProjectUuid(project_uuid);
 
@@ -455,19 +472,6 @@ export const ImportDialog: React.FC<{
           fileCount: files.length,
         });
       }
-
-      setImportStatus("UPLOADING");
-
-      // Upload files
-      await Promise.all(
-        generateUploadFiles({
-          projectUuid: project_uuid,
-          root: "/project-dir",
-          path: "/",
-          // Use cancelable fetch to prevent mutating states when user cancel uploading.
-          cancelableFetch,
-        })(files, onFileUploaded)
-      );
     },
     [cancelableFetch]
   );
@@ -527,8 +531,7 @@ export const ImportDialog: React.FC<{
 
   // While creating the temp project, cancel is not allowed.
   // the UUID of the temp project is needed for later operations in case user wants to cancel the whole process.
-  const isShowingCancelButton =
-    isAllowedToCloseWithEscape || importStatus !== "CREATING_TEMP_PROJECT";
+  const isShowingCancelButton = isAllowedToCloseWithEscape;
 
   const title = React.useMemo(() => {
     const mappedTitle = dialogTitleMappings[importStatus];

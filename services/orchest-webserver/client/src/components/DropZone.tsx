@@ -28,11 +28,13 @@ export const generateUploadFiles = ({
   projectUuid,
   root,
   path: targetFolderPath,
+  isProjectUpload,
   cancelableFetch,
 }: {
-  projectUuid: string;
+  projectUuid?: string;
   root: FileManagementRoot;
   path: string;
+  isProjectUpload?: boolean;
   cancelableFetch?: Fetcher<void>;
 }) => (
   files: File[] | FileList,
@@ -49,7 +51,7 @@ export const generateUploadFiles = ({
       : file.webkitRelativePath !== undefined &&
         file.webkitRelativePath.includes("/");
 
-    const path = !isUploadedAsFolder
+    let path = !isUploadedAsFolder
       ? targetFolderPath
       : `${targetFolderPath}${(isUploadedViaDropzone(file)
           ? file.path
@@ -58,19 +60,33 @@ export const generateUploadFiles = ({
           .split("/")
           .slice(0, -1)
           .filter((value) => value.length > 0)
-          .join("/")}/`;
+          // Do not nest the project directory content.
+          .slice(isProjectUpload ? 1 : 0)
+          .join("/")}`;
+
+    if (isUploadedAsFolder && !path.endsWith("/")) {
+      path = path + "/";
+    }
 
     let formData = new FormData();
     formData.append("file", file);
 
     const customFetch = cancelableFetch || fetcher;
 
+    let queryArgsContent: {
+      root: FileManagementRoot;
+      path: string;
+      project_uuid?: string;
+    } = {
+      root,
+      path,
+    };
+
+    if (projectUuid !== undefined) {
+      queryArgsContent.project_uuid = projectUuid;
+    }
     await customFetch(
-      `${FILE_MANAGEMENT_ENDPOINT}/upload?${queryArgs({
-        root,
-        path,
-        project_uuid: projectUuid,
-      })}`,
+      `${FILE_MANAGEMENT_ENDPOINT}/upload?${queryArgs(queryArgsContent)}`,
       { method: "POST", body: formData }
     );
 
