@@ -12,7 +12,6 @@ to_build=(
 	memory-server
 	orchest-webserver
 	session-sidecar
-	update-sidecar
 )
 tag="k8s-beta"
 

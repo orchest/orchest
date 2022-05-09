@@ -26,7 +26,6 @@ jobs:
             -i jupyter-enterprise-gateway,
             -i base-kernel-py -i base-kernel-r,
             -i base-kernel-julia,
-            -i update-sidecar,
             -i node-agent,
             -i orchest-controller,
             -i celery-worker -i memory-server -i session-sidecar,

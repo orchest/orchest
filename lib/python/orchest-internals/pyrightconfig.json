@@ -7,7 +7,6 @@
     "../../../services/memory-server/app/",
     "../../../services/session-sidecar/app/",
     "../../../services/jupyter-server/",
-    "../../../services/update-sidecar/app/",
     "../../../services/base-images/runnable-shared/runner/"
   ],
 
