@@ -432,6 +432,7 @@ export const ImportDialog: React.FC<{
           projectUuid: undefined,
           root: "/data",
           path: `/${projectName}/`,
+          isProjectUpload: true,
           // Use cancelable fetch to prevent mutating states when user cancel uploading.
           cancelableFetch,
         })(files, onFileUploaded)
