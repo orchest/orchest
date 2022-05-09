@@ -188,6 +188,8 @@ func getIngressManifest(metadata metav1.ObjectMeta, path string,
 		authServiceName := fmt.Sprintf("http://auth-server.%s.svc.cluster.local/auth", orchest.Namespace)
 		annotations := make(map[string]string, 0)
 		annotations["nginx.ingress.kubernetes.io/auth-url"] = authServiceName
+		// No limit.
+		annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = "0"
 		ingressMeta.Annotations = annotations
 	} else {
 		ingressMeta = metadata
