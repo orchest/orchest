@@ -28,7 +28,8 @@ jobs:
             -i base-kernel-julia,
             -i update-sidecar,
             -i node-agent,
-            -i orchest-ctl -i celery-worker -i memory-server -i session-sidecar,
+            -i orchest-controller,
+            -i celery-worker -i memory-server -i session-sidecar,
           ]
 
     steps:

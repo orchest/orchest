@@ -56,45 +56,6 @@ export const useCheckUpdate = () => {
     null
   );
 
-  // NOTE: this is a temporary alert that will be removed in the next release.
-  // ============================= start of the temporary code block ============================
-  const [
-    shouldShowBreakingChangeAlert,
-    setShouldShowBreakingChangeAlert,
-  ] = useLocalStorage<boolean>(
-    "should_show_breaking_change_alert_05-2022",
-    true
-  );
-
-  const promptBreakingChangesAlert = React.useCallback(() => {
-    setAlert(
-      "Breaking changes in the next version",
-      <>
-        <Typography variant="body2">
-          {`There is a new version of Orchest that contains infrastructure breaking changes. Directly updating to the new version is unfortunately not possible.`}
-        </Typography>
-        <Typography variant="body2" sx={{ marginTop: 4 }}>
-          {`Please refer to `}
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href="https://docs.orchest.io/en/stable/getting_started/installation.html "
-          >
-            the installation guide
-          </a>
-          {` to re-install Orchest with the new version.`}
-        </Typography>
-      </>,
-      (resolve) => {
-        setShouldShowBreakingChangeAlert(false);
-        resolve(true);
-        return true;
-      }
-    );
-  }, [setAlert, setShouldShowBreakingChangeAlert]);
-
-  // ============================= end of the temporary code block ============================
-
   // Only make requests every hour, because the latest Orchest version gets
   // fetched once per hour. Use `useSWRImmutable` to disable all kinds of
   // automatic revalidation; just serve from cache and refresh cache
@@ -176,9 +137,6 @@ export const useCheckUpdate = () => {
   const { makeCancelable } = useCancelablePromise();
 
   const checkUpdateNow = React.useCallback(async () => {
-    promptBreakingChangesAlert();
-    return;
-
     // Use fetcher directly instead of mutate function from the SWR
     // calls to prevent updating the values which would trigger the
     // useEffect and thereby prompting the user twice. In addition,
@@ -194,22 +152,10 @@ export const useCheckUpdate = () => {
   }, [handlePrompt, makeCancelable]);
 
   React.useEffect(() => {
-    if (shouldShowBreakingChangeAlert) {
-      promptBreakingChangesAlert();
-    }
-    return;
-
     if (orchestVersion && latestVersion) {
       handlePrompt(orchestVersion, latestVersion, skipVersion, false);
     }
-  }, [
-    orchestVersion,
-    latestVersion,
-    skipVersion,
-    handlePrompt,
-    promptBreakingChangesAlert,
-    shouldShowBreakingChangeAlert,
-  ]);
+  }, [orchestVersion, latestVersion, skipVersion, handlePrompt]);
 
   return checkUpdateNow;
 };

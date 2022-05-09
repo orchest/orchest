@@ -53,6 +53,18 @@ class BaseModel(db.Model):
         return ans
 
 
+class Setting(BaseModel):
+    """The settings of Orchest."""
+
+    __tablename__ = "settings"
+
+    name = db.Column(db.String(50), primary_key=True, nullable=False)
+
+    # We store the value as a JSON object {"value": <actual value>} to
+    # be able to preserve types while storing 1 setting as 1 record.
+    value = db.Column(JSONB, nullable=False)
+
+
 class SchedulerJob(BaseModel):
     """Latest run of a job assigned to a Scheduler."""
 

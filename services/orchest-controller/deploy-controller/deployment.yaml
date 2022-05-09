@@ -1,0 +1,23 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: orchest-controller
+  namespace: orchest
+  labels:
+    app: orchest-controller
+spec:
+  selector:
+    matchLabels:
+      app: orchest-controller
+  replicas: 1
+  template:
+    metadata:
+      name: orchest-controller
+      labels:
+        app: orchest-controller
+    spec:
+      serviceAccountName: orchest-controller
+      containers:
+        - name: controller
+          image: orchest/orchest-controller:v2022.05.1
+          imagePullPolicy: IfNotPresent

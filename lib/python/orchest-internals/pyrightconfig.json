@@ -5,7 +5,6 @@
     "../../../services/orchest-api/app/",
     "../../../services/auth-server/app/",
     "../../../services/memory-server/app/",
-    "../../../services/orchest-ctl/app/",
     "../../../services/session-sidecar/app/",
     "../../../services/jupyter-server/",
     "../../../services/update-sidecar/app/",

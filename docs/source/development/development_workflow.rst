@@ -295,9 +295,6 @@ note that this won't include all the files defined in the Orchest repo), e.g.:
                 "path": "services/base-images/runnable-shared"
             },
             {
-                "path": "services/orchest-ctl"
-            },
-            {
                 "path": "services/session-sidecar"
             },
             {
