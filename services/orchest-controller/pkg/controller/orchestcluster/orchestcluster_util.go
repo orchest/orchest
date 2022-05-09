@@ -95,16 +95,6 @@ func getServiceManifest(metadata metav1.ObjectMeta,
 
 func getDevVolumes(service string, mountApp, mountClient, mountInternalLib bool) ([]corev1.Volume, []corev1.VolumeMount) {
 
-	/*
-		{
-			"name": "orchest-dev-repo",
-			"hostPath": {
-				"path": "/orchest-dev-repo",
-				"type": "DirectoryOrCreate",
-			},
-		}
-	*/
-
 	volumeType := corev1.HostPathDirectoryOrCreate
 
 	volumes := []corev1.Volume{

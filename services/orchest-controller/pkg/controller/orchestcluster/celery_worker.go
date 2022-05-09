@@ -28,15 +28,6 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 
 	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.CeleryWorker.Env)
 
-	/*
-				        - name: tls-secret
-		          secret:
-		            secretName: registry-tls-secret
-		            items:
-		              - key: ca.crt
-		                path: additional-ca-cert-bundle.crt
-	*/
-
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,

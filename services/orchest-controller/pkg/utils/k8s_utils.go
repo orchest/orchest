@@ -259,6 +259,24 @@ func MergeEnvVars(envVarLists ...[]corev1.EnvVar) []corev1.EnvVar {
 	return GetEnvVarFromMap(envMap)
 }
 
+// UpsertEnvVariable inserts the env variable from map to the list is not exist or update it
+// if replace it true and returns true if changed the envVarList
+func UpsertEnvVariable(envVarList *[]corev1.EnvVar, defaultEnvVarMap map[string]string, update bool) bool {
+
+	changed := false
+	envVarMap := GetMapFromEnvVar(*envVarList)
+
+	for defaultName, defaultValue := range defaultEnvVarMap {
+		if _, ok := envVarMap[defaultName]; !ok || update {
+			envVarMap[defaultName] = defaultValue
+			*envVarList = append(*envVarList, corev1.EnvVar{Name: defaultName, Value: defaultValue})
+			changed = true
+		}
+	}
+
+	return changed
+}
+
 // This function is borrowed from projectcountour
 // OutputCerts outputs the certs in certs as directed by config.
 func OutputCerts(ctx context.Context, namespace string, owner metav1.OwnerReference,
