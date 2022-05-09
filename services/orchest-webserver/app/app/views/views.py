@@ -1211,6 +1211,25 @@ def register_views(app, db):
                 attachment_filename=os.path.basename(target_path[:-1]) + ".zip",
             )
 
+    @app.route("/async/file-management/import-project-from-data", methods=["POST"])
+    def filemanager_import_project_from_data():
+        """Import a project from the data directory.
+
+        A temporary workaround to import uploaded projects correctly.
+        """
+        name = request.args.get("name")
+        if name is None or os.path.sep in name:
+            return jsonify({"message": f"Invalid name: {name}"}), 400
+
+        from_path = safe_join("/userdir/data", name)
+        to_path = safe_join("/userdir/projects", name)
+        os.rename(from_path, to_path)
+        # Pick up the project from the fs.
+        with TwoPhaseExecutor(db.session) as tpe:
+            project_uuid = CreateProject(tpe).transaction(name)
+
+        return {"project_uuid": project_uuid}, 201
+
     @app.route("/async/file-management/extension-search", methods=["GET"])
     def filemanager_extension_search():
         root = request.args.get("root")

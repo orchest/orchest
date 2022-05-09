@@ -160,6 +160,7 @@ export function FileManager() {
           projectUuid,
           root,
           path: lastSelectedFolder,
+          isProjectUpload: false,
         })(files, onUploaded)
       );
     },
