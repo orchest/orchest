@@ -11,6 +11,10 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { fetchProject } from "@/hooks/useFetchProject";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
+import {
+  FILE_MANAGEMENT_ENDPOINT,
+  queryArgs,
+} from "@/pipeline-view/file-manager/common";
 import { Project } from "@/types";
 import {
   BackgroundTask,
@@ -439,7 +443,9 @@ export const ImportDialog: React.FC<{
       );
 
       const { project_uuid } = await fetcher<{ project_uuid: string }>(
-        `/async/file-management/import-project-from-data?name=${projectName}`,
+        `${FILE_MANAGEMENT_ENDPOINT}/import-project-from-data?${queryArgs({
+          name: projectName,
+        })}`,
         {
           method: "POST",
           headers: HEADER.JSON,

@@ -73,10 +73,15 @@ export const generateUploadFiles = ({
 
     const customFetch = cancelableFetch || fetcher;
 
-    let queryArgsContent = {
+    let queryArgsContent: {
+      root: FileManagementRoot;
+      path: string;
+      project_uuid?: string;
+    } = {
       root,
       path,
     };
+
     if (projectUuid !== undefined) {
       queryArgsContent.project_uuid = projectUuid;
     }
