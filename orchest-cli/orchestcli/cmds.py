@@ -691,6 +691,15 @@ def restart(watch: bool, **kwargs) -> None:
 
     echo("Restarting the Orchest Cluster.")
     try:
+        status = _get_orchest_cluster_status(ns, cluster_name)
+    except CRObjectNotFound as e:
+        return False, str(e)
+
+    if status == ClusterStatus.PAUSED:
+        start(watch, **kwargs)
+        return
+
+    try:
         patch_namespaced_custom_object(
             name=cluster_name,
             namespace=ns,
