@@ -14,9 +14,7 @@ Prerequisites
 -------------
 
 * `minikube <https://minikube.sigs.k8s.io/docs/start/>`_
-* `helm <https://helm.sh/docs/intro/install/>`_
 * `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_
-* `GNU Make <https://www.gnu.org/software/make/>`_
 * bash
 
 Windows
@@ -52,13 +50,31 @@ minikube <https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/
 
 .. _regular installation:
 
-Install Orchest
----------------
+Deploy ``orchest-controller``
+-----------------------------
+The ``orchest-controller`` is required to install and manage ``orchest``
 .. code-block:: bash
-
    git clone https://github.com/orchest/orchest.git && cd orchest
 
-   bash orchest install
+   # Create the orchest namespace, as the Orchest Controller and Cluster will be deployed in
+   # orchest namespace
+   kubectl create ns orchest
+
+   # Deploy orchest-controller
+   kubectl apply -f services/orchest-controller/deploy-controller
+
+Install ``orchest-cli``
+-----------------------
+.. code-block:: bash
+   # Install orchest-cli via pip
+   pip install orchest-cli
+
+
+Install ``orchest``
+-------------------
+.. code-block:: bash
+   # Install orchest
+   orchest install
 
    # You can now reach Orchest on the IP returned by:
    minikube ip
@@ -74,7 +90,7 @@ cluster IP directly, you can install Orchest using:
 
 .. code-block:: bash
 
-   bash orchest install --fqdn="localorchest.io"
+   orchest install --fqdn="localorchest.io"
 
    # Set up the default Fully Qualified Domain Name (FQDN) in your
    # /etc/hosts so that you can reach Orchest locally.

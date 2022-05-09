@@ -75,27 +75,26 @@ Currently GPU support is not yet available. Coming soon!
 
 Use the Orchest CLI
 -------------------
-Below you will find the most important CLI commands that you need to know (you can also get all this
-information by running ``./orchest --help``:
+Below you will find the most important ``orchest-cli`` commands that you need to know:
 
 .. code-block:: sh
 
-   ./orchest start
+   orchest start
 
    # Stop Orchest (shuts down Orchest completely).
-   ./orchest stop
+   orchest stop
 
    # Install Orchest (check out the dedicated `Installation` guide in
    # the `Getting started` section).
-   ./orchest install
+   orchest install
 
    # Update Orchest to a newer version (NOTE: this can also be done
    # through the settings in the UI).
-   ./orchest update
+   orchest update
 
    # Get extensive version information. Useful to see whether the
    # installation was successful.
-   ./orchest version --ext
+   orchest version
 
 
 Use Orchest shortcuts like a pro
