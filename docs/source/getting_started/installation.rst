@@ -56,6 +56,7 @@ minikube <https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/
 
 Deploy ``orchest-controller``
 -----------------------------
+
 The ``orchest-controller`` is required to install and manage ``orchest``
 .. code-block:: bash
 
@@ -70,20 +71,44 @@ The ``orchest-controller`` is required to install and manage ``orchest``
 
 Install ``orchest-cli``
 -----------------------
+
 .. code-block:: bash
 
    # Install orchest-cli via pip
    pip install orchest-cli
 
 
-Install ``orchest``
--------------------
+Install ``orchest`` via ``orchest-cli``
+----------------------------------------
+
 .. code-block:: bash
 
    # Install orchest
    orchest install
 
-   # You can now reach Orchest on the IP returned by:
+Install ``orchest`` via ``OrchestCluster CRD``
+----------------------------------------------
+
+Create a new ``orchest.yaml`` with following sample configurations
+
+.. code-block:: yaml
+
+   apiVersion: orchest.io/v1alpha1
+   kind: OrchestCluster
+   metadata:
+      name: cluster-1
+      namespace: orchest
+
+Then the cluster can be deplyed by applying it via ``kubectl``.
+
+.. code-block:: bash
+
+   kubectl apply -f orchest.yaml
+
+Now the cluster can be reached the IP returned by:
+
+.. code-block:: bash
+
    minikube ip
 
 .. note::
@@ -92,7 +117,6 @@ Install ``orchest``
 
 .. note::
    authentication is disabled in default installation.
-   
 .. tip::
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
    <quickstart>`.
