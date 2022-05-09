@@ -30,7 +30,7 @@ export const generateUploadFiles = ({
   path: targetFolderPath,
   cancelableFetch,
 }: {
-  projectUuid: string;
+  projectUuid?: string;
   root: FileManagementRoot;
   path: string;
   cancelableFetch?: Fetcher<void>;
@@ -65,12 +65,15 @@ export const generateUploadFiles = ({
 
     const customFetch = cancelableFetch || fetcher;
 
+    let queryArgsContent = {
+      root,
+      path,
+    };
+    if (projectUuid !== undefined) {
+      queryArgsContent.project_uuid = projectUuid;
+    }
     await customFetch(
-      `${FILE_MANAGEMENT_ENDPOINT}/upload?${queryArgs({
-        root,
-        path,
-        project_uuid: projectUuid,
-      })}`,
+      `${FILE_MANAGEMENT_ENDPOINT}/upload?${queryArgs(queryArgsContent)}`,
       { method: "POST", body: formData }
     );
 
