@@ -48,12 +48,17 @@ minikube <https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/
    # Start a minikube cluster with profile "minikube".
    minikube start --cpus=4
 
+.. note::
+   In order to be able to access ``orchest`` nginx ingress controller has to be deployed, in minikube cluster
+   it can be done by running ``minikube addons enable ingress``.
+   
 .. _regular installation:
 
 Deploy ``orchest-controller``
 -----------------------------
 The ``orchest-controller`` is required to install and manage ``orchest``
 .. code-block:: bash
+
    git clone https://github.com/orchest/orchest.git && cd orchest
 
    # Create the orchest namespace, as the Orchest Controller and Cluster will be deployed in
@@ -66,6 +71,7 @@ The ``orchest-controller`` is required to install and manage ``orchest``
 Install ``orchest-cli``
 -----------------------
 .. code-block:: bash
+
    # Install orchest-cli via pip
    pip install orchest-cli
 
@@ -73,12 +79,20 @@ Install ``orchest-cli``
 Install ``orchest``
 -------------------
 .. code-block:: bash
+
    # Install orchest
    orchest install
 
    # You can now reach Orchest on the IP returned by:
    minikube ip
 
+.. note::
+   We will recommend to install Orchest on a clean cluster (a non-existing cluster) because it is 
+   hard to play well with other software already installed on the cluster, e.g. ingress, argo, etc.
+
+.. note::
+   authentication is disabled in default installation.
+   
 .. tip::
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
    <quickstart>`.
