@@ -10,6 +10,7 @@ import PipelineView from "./pipeline-view/PipelineView";
 import ExamplesView from "./projects-view/ExamplesView";
 import ProjectsView from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
+import SettingsView from "./settings-view/SettingsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import EnvironmentsView from "./views/EnvironmentsView";
 import FilePreviewView from "./views/FilePreviewView";
@@ -17,7 +18,6 @@ import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";
 import ManageUsersView from "./views/ManageUsersView";
 import ProjectSettingsView from "./views/ProjectSettingsView";
-import SettingsView from "./views/SettingsView";
 import UpdateView from "./views/UpdateView";
 
 // View components are imported here instead of routingConfig.

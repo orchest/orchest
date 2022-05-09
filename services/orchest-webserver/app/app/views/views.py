@@ -307,7 +307,7 @@ def register_views(app, db):
             }
         }
 
-        return host_info
+        return jsonify(host_info)
 
     @app.route("/async/jupyter-setup-script", methods=["GET", "POST"])
     def jupyter_setup_script():
