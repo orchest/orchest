@@ -29,6 +29,9 @@ class StartUpdate(Resource):
                 cluster_name="cluster-1",
             )
             return {}, 201
+        # This is a form of technical debt since we can't distinguish if
+        # an update fails because there is no newer version of a "real"
+        # failure.
         except SystemExit:
             return {"message": "Failed to update."}, 500
 

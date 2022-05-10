@@ -46,34 +46,51 @@ const UpdateView: React.FC = () => {
         try {
           fetcher<{ token: string }>("/async/start-update", {
             method: "POST",
-          }).then((json) => {
-            setState((prevState) => ({
-              ...prevState,
-            }));
-            console.log("Update started, polling controller.");
+          })
+            .then((json) => {
+              setState((prevState) => ({
+                ...prevState,
+              }));
+              console.log("Update started, polling controller.");
 
-            // TODO: hardcoded namespace and cluster name values.
-            makeCancelable(
-              checkHeartbeat(
-                "/controller/namespaces/orchest/clusters/cluster-1/status"
+              // TODO: hardcoded namespace and cluster name values.
+              makeCancelable(
+                checkHeartbeat(
+                  "/controller/namespaces/orchest/clusters/cluster-1/status"
+                )
               )
-            )
-              .then(() => {
-                console.log("Heartbeat successful.");
-                resolve(true);
-                startUpdatePolling();
-              })
-              .catch((retries) => {
-                console.error(
-                  "Controller heartbeat checking timed out after " +
-                    retries +
-                    " retries."
-                );
-              });
-          });
+                .then(() => {
+                  console.log("Heartbeat successful.");
+                  resolve(true);
+                  startUpdatePolling();
+                })
+                .catch((retries) => {
+                  console.error(
+                    "Controller heartbeat checking timed out after " +
+                      retries +
+                      " retries."
+                  );
+                });
+            })
+            .catch((error) => {
+              // This is a form of technical debt since we can't
+              // distinguish if an update fails because there is no
+              // newer version of a "real" failure.
+              setState((prevState) => ({
+                ...prevState,
+                updating: false,
+              }));
+              resolve(false);
+              setAlert("Error", "Orchest is already at the latest version.");
+              console.error("Failed to trigger update", error);
+            });
 
           return true;
         } catch (error) {
+          setState((prevState) => ({
+            ...prevState,
+            updating: false,
+          }));
           resolve(false);
           setAlert("Error", "Failed to trigger update");
           console.error("Failed to trigger update", error);
