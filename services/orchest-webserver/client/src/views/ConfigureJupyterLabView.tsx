@@ -6,7 +6,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { EnvironmentImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
@@ -75,7 +75,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       setAsSaved(false);
       console.error(e);
     }
-  }, [jupyterSetupScript, setAsSaved]);
+  }, [jupyterSetupScript, setAsSaved, cancelableFetch]);
 
   const buildImage = React.useCallback(async () => {
     window.orchest.jupyter.unload();
@@ -95,9 +95,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       if (!error.isCanceled) {
         setIgnoreIncomingLogs(false);
 
-        let resp = JSON.parse(error.body);
-
-        if (resp.message === "SessionInProgressException") {
+        if (error.message === "SessionInProgressException") {
           setConfirm(
             "Warning",
             <>

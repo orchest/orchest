@@ -158,6 +158,9 @@ debug-dump.tar.gz
 cypress/cypress/videos
 cypress/cypress/screenshots
 
+# Go debugger
+__debug_bin
+
 # ----- Don't ignore -------
 # Compiled custom GitHub Action
 !.github/custom-actions/github-linear-sync/dist/

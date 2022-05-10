@@ -14,8 +14,6 @@ from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
 
 from _orchest.internals import config as _config
-from _orchest.internals import errors as _errors
-from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
 from app import analytics
@@ -194,10 +192,12 @@ def register_views(app, db):
             "PIPELINE_PARAMETERS_RESERVED_KEY",
         ]
 
-        user_config = _utils.GlobalOrchestConfig()
+        user_config = requests.get(
+            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/ctl/orchest-settings'
+        ).json()
         return jsonify(
             {
-                "user_config": user_config.as_dict(),
+                "user_config": user_config,
                 "config": {
                     **{key: app.config[key] for key in front_end_config},
                     **{key: getattr(_config, key) for key in front_end_config_internal},
@@ -241,16 +241,13 @@ def register_views(app, db):
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
 
-        # Current user config, from disk.
-        try:
-            current_config = _utils.GlobalOrchestConfig()
-        except _errors.CorruptedFileError as e:
-            app.logger.error(e, exc_info=True)
-            return {"message": "Global user configuration could not be read."}, 500
+        current_config = requests.get(
+            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/ctl/orchest-settings'
+        ).json()
 
         if request.method == "GET":
             return {
-                "user_config": current_config.as_dict(),
+                "user_config": current_config,
             }
 
         if request.method == "POST":
@@ -267,18 +264,11 @@ def register_views(app, db):
                 app.logger.debug(e, exc_info=True)
                 return {"message": "Given config is invalid JSON."}, 400
 
-            try:
-                current_config.set(config)
-            except (TypeError, ValueError) as e:
-                app.logger.debug(e, exc_info=True)
-                return {"message": f"{e}"}, 400
-
-            requires_restart = current_config.save(flask_app=app)
-
-            return {
-                "requires_restart": requires_restart,
-                "user_config": current_config.as_dict(),
-            }
+            resp = requests.post(
+                f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/ctl/orchest-settings',
+                json=config,
+            )
+            return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/async/host-info", methods=["GET"])
     def host_info():
@@ -559,6 +549,11 @@ def register_views(app, db):
             with TwoPhaseExecutor(db.session) as tpe:
                 project_uuid = CreateProject(tpe).transaction(request.json["name"])
                 return jsonify({"project_uuid": project_uuid})
+        except app_error.InvalidProjectName as e:
+            return (
+                jsonify({"message": str(e)}),
+                400,
+            )
         except Exception as e:
 
             # The sql integrity error message can be quite ugly.
@@ -844,11 +839,16 @@ def register_views(app, db):
 
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
-                if not is_valid_pipeline_relative_path(
+
+                is_project_file = is_valid_pipeline_relative_path(
                     project_uuid, pipeline_uuid, step["file_path"]
-                ):
-                    raise app_error.OutOfProjectError(
-                        "Step path points outside of the project directory."
+                )
+
+                is_data_file = is_valid_data_path(step["file_path"])
+
+                if not (is_project_file or is_data_file):
+                    raise app_error.OutOfAllowedDirectoryError(
+                        "File is neither in the project, nor in the data directory."
                     )
 
                 if not step["file_path"].startswith("/"):
@@ -998,7 +998,7 @@ def register_views(app, db):
 
         if path.startswith("/"):
             file_path = resolve_absolute_path(path)
-            if not is_valid_data_path(file_path):
+            if not is_valid_data_path(file_path, True):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
@@ -1200,6 +1200,25 @@ def register_views(app, db):
                 as_attachment=True,
                 attachment_filename=os.path.basename(target_path[:-1]) + ".zip",
             )
+
+    @app.route("/async/file-management/import-project-from-data", methods=["POST"])
+    def filemanager_import_project_from_data():
+        """Import a project from the data directory.
+
+        A temporary workaround to import uploaded projects correctly.
+        """
+        name = request.args.get("name")
+        if name is None or os.path.sep in name:
+            return jsonify({"message": f"Invalid name: {name}"}), 400
+
+        from_path = safe_join("/userdir/data", name)
+        to_path = safe_join("/userdir/projects", name)
+        os.rename(from_path, to_path)
+        # Pick up the project from the fs.
+        with TwoPhaseExecutor(db.session) as tpe:
+            project_uuid = CreateProject(tpe).transaction(name)
+
+        return {"project_uuid": project_uuid}, 201
 
     @app.route("/async/file-management/extension-search", methods=["GET"])
     def filemanager_extension_search():

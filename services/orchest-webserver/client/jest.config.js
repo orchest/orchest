@@ -8,6 +8,11 @@ module.exports = {
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: "<rootDir>/",
   }),
+  transformIgnorePatterns: ["node_modules/(?!xterm-for-react)"],
+  testMatch: [
+    "**/tests/**/*.+(ts|tsx|js)",
+    "**/?(*.)+(spec|test).+(ts|tsx|js)",
+  ],
   transform: {
     "^.+\\.[t|j]sx?$": "<rootDir>/customTransformer.js",
   },
@@ -28,8 +33,8 @@ module.exports = {
       },
     ],
   ],
-  collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}"],
-  modulePathIgnorePatterns: ["__mocks__"],
+  collectCoverageFrom: ["<rootDir>/**/*.{js,jsx,ts,tsx}"],
+  modulePathIgnorePatterns: ["<rootDir>/*/__mocks__/*.mock.{js,jsx,ts,tsx}"],
   testEnvironment: "jsdom",
   testURL: "http://localhost:8080",
 };

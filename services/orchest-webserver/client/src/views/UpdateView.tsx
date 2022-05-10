@@ -13,7 +13,7 @@ import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { checkHeartbeat } from "@orchest/lib-utils";
+import { checkHeartbeat, fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 const UpdateView: React.FC = () => {
@@ -26,8 +26,7 @@ const UpdateView: React.FC = () => {
   const [state, setState] = React.useState((prevState) => ({
     ...prevState,
     updating: false,
-    updateOutput: "",
-    token: "",
+    updateOutput: [],
   }));
   const [updatePollInterval, setUpdatePollInterval] = React.useState<
     number | null
@@ -40,40 +39,58 @@ const UpdateView: React.FC = () => {
       async (resolve) => {
         setState({
           updating: true,
-          updateOutput: "",
-          token: "",
+          updateOutput: [],
         });
         console.log("Starting update.");
 
         try {
-          cancelableFetch<{ token: string }>(
-            "/async/start-update",
-            { method: "POST" },
-            false
-          ).then((json) => {
-            setState((prevState) => ({
-              ...prevState,
-              token: json.token,
-            }));
-            console.log("Update started, polling update-sidecar.");
+          fetcher<{ token: string }>("/async/start-update", {
+            method: "POST",
+          })
+            .then((json) => {
+              setState((prevState) => ({
+                ...prevState,
+              }));
+              console.log("Update started, polling controller.");
 
-            makeCancelable(checkHeartbeat("/update-sidecar/heartbeat"))
-              .then(() => {
-                console.log("Heartbeat successful.");
-                resolve(true);
-                startUpdatePolling();
-              })
-              .catch((retries) => {
-                console.error(
-                  "Update sidecar heartbeat checking timed out after " +
-                    retries +
-                    " retries."
-                );
-              });
-          });
+              // TODO: hardcoded namespace and cluster name values.
+              makeCancelable(
+                checkHeartbeat(
+                  "/controller/namespaces/orchest/clusters/cluster-1/status"
+                )
+              )
+                .then(() => {
+                  console.log("Heartbeat successful.");
+                  resolve(true);
+                  startUpdatePolling();
+                })
+                .catch((retries) => {
+                  console.error(
+                    "Controller heartbeat checking timed out after " +
+                      retries +
+                      " retries."
+                  );
+                });
+            })
+            .catch((error) => {
+              // This is a form of technical debt since we can't
+              // distinguish if an update fails because there is no
+              // newer version of a "real" failure.
+              setState((prevState) => ({
+                ...prevState,
+                updating: false,
+              }));
+              resolve(false);
+              setAlert("Error", "Orchest is already at the latest version.");
+              console.error("Failed to trigger update", error);
+            });
 
           return true;
         } catch (error) {
+          setState((prevState) => ({
+            ...prevState,
+            updating: false,
+          }));
           resolve(false);
           setAlert("Error", "Failed to trigger update");
           console.error("Failed to trigger update", error);
@@ -88,21 +105,30 @@ const UpdateView: React.FC = () => {
   };
 
   useInterval(() => {
-    cancelableFetch<{ updating: boolean; update_output: any }>(
-      `/update-sidecar/update-status?token=${state.token}`
-    )
+    cancelableFetch<{
+      state: string;
+      conditions: { lastHeartbeatTime: string }[];
+    }>(`/controller/namespaces/orchest/clusters/cluster-1/status`)
       .then((json) => {
-        if (json.updating === false) {
+        if (json.state === "Running") {
           setState((prevState) => ({
             ...prevState,
             updating: false,
           }));
           setUpdatePollInterval(null);
+        } else {
+          setState((prevState) => ({
+            ...prevState,
+            updateOutput: json.conditions.sort(function (a, b) {
+              let dateA = new Date(a.lastHeartbeatTime);
+              let dateB = new Date(b.lastHeartbeatTime);
+              // sort in reversed order
+              if (dateA < dateB) return 1;
+              if (dateA > dateB) return -1;
+              return 0;
+            }),
+          }));
         }
-        setState((prevState) => ({
-          ...prevState,
-          updateOutput: json.update_output,
-        }));
       })
       .catch((e) => {
         if (!e.isCanceled) {
@@ -111,9 +137,10 @@ const UpdateView: React.FC = () => {
       });
   }, updatePollInterval);
 
-  let updateOutputLines = state.updateOutput.split("\n").reverse();
-  updateOutputLines =
-    updateOutputLines[0] == "" ? updateOutputLines.slice(1) : updateOutputLines;
+  let updateOutputLines = [];
+  state.updateOutput.forEach((element) =>
+    updateOutputLines.push(element.event)
+  );
 
   return (
     <Layout>

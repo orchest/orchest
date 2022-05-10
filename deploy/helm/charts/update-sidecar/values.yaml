@@ -1,4 +1,0 @@
-
-name: update-sidecar
-service:
-  port: 80

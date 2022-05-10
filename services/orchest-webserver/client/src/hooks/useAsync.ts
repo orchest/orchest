@@ -63,17 +63,15 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
   const run = React.useCallback(
     (promise: Promise<T>) => {
       dispatch({ type: "PENDING", caching });
-      return makeCancelable(
-        promise.then(
-          (data) => {
-            dispatch({ type: "RESOLVED", data });
-            return data;
-          },
-          (error) => {
-            dispatch({ type: "REJECTED", error });
-            return;
-          }
-        )
+      return makeCancelable(promise).then(
+        (data) => {
+          dispatch({ type: "RESOLVED", data });
+          return data;
+        },
+        (error) => {
+          dispatch({ type: "REJECTED", error });
+          return;
+        }
       );
     },
     [dispatch, caching, makeCancelable]

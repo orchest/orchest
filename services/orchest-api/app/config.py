@@ -27,6 +27,7 @@ class Config:
     SCHEDULER_INTERVAL = 10
     # Same as above, but for image deletion and GC.
     IMAGES_DELETION_INTERVAL = 120
+    NOTIFICATIONS_DELIVERIES_INTERVAL = 1
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
 
@@ -63,6 +64,7 @@ class Config:
     result_backend_sqlalchemy_uri = f"postgresql://{_result_backend_server}"
     # this format is used by celery
     result_backend = f"db+postgresql+psycopg2://{_result_backend_server}"
+    worker_prefetch_multiplier = 1
 
     imports = ("app.core.tasks",)
     task_create_missing_queues = True
@@ -74,6 +76,7 @@ class Config:
         "app.core.tasks.build_environment_image": {"queue": "builds"},
         "app.core.tasks.build_jupyter_image": {"queue": "builds"},
         "app.core.tasks.registry_garbage_collection": {"queue": "builds"},
+        "app.core.tasks.process_notifications_deliveries": {"queue": "deliveries"},
     }
 
 

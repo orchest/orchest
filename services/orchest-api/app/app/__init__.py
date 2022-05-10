@@ -8,6 +8,7 @@ Additinal note:
 """
 import os
 from logging.config import dictConfig
+from pathlib import Path
 from pprint import pformat
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -29,10 +30,8 @@ from app.apis.namespace_jupyter_image_builds import (
 )
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
-from app.celery_app import make_celery
 from app.connections import db
-from app.core import environments
-from app.core.scheduler import Scheduler
+from app.core.scheduler import add_recurring_jobs_to_scheduler
 from app.models import (
     EnvironmentImageBuild,
     InteractivePipelineRun,
@@ -96,10 +95,15 @@ def create_app(
         # Necessary for db migrations.
         Migrate().init_app(app, db)
 
-    # NOTE: In this case we want to return ASAP as otherwise the DB
-    # might be called (inside this function) before it is migrated.
-    if to_migrate_db:
-        return app
+        # NOTE: In this case we want to return ASAP as otherwise the DB
+        # might be called (inside this function) before it is migrated.
+        if to_migrate_db:
+            return app
+
+        with app.app_context():
+            settings = utils.OrchestSettings()
+            settings.save()
+            app.config.update(settings.as_dict())
 
     # Create a background scheduler (in a daemon thread) for every
     # gunicorn worker. The individual schedulers do not cause duplicate
@@ -127,25 +131,15 @@ def create_app(
         )
 
         app.config["SCHEDULER"] = scheduler
+        add_recurring_jobs_to_scheduler(scheduler, app, run_on_add=True)
         scheduler.start()
-        scheduler.add_job(
-            # Locks rows it is processing.
-            Scheduler.check_for_jobs_to_be_scheduled,
-            "interval",
-            seconds=app.config["SCHEDULER_INTERVAL"],
-            args=[app],
-        )
-
-        scheduler.add_job(
-            process_images_for_deletion,
-            "interval",
-            seconds=app.config["IMAGES_DELETION_INTERVAL"],
-            args=[app],
-        )
 
         if not _utils.is_running_from_reloader():
             with app.app_context():
                 trigger_conditional_jupyter_image_build(app)
+
+    app.logger.info("Creating required directories for Orchest services.")
+    create_required_directories()
 
     if register_api:
         # Register blueprints at the end to avoid issues when migrating
@@ -156,45 +150,35 @@ def create_app(
     return app
 
 
-def process_images_for_deletion(app):
-    """Processes built images to find inactive ones.
+def create_required_directories() -> None:
+    """Creates required directories by Orchest services.
 
-    Goes through env images and marks the inactive ones for removal,
-    moreover, if necessary, queues the celery task in charge of removing
-    images from the registry.
+    Should work fine when running multiple gunicorn workers.
 
-    Note: this function should probably be moved in the scheduler module
-    to be consistent with the scheduler module of the webserver, said
-    module would need a bit of a refactoring.
+    Note:
+        It is very important, that this function is backwards compatible
+        meaning that new directories can be added but no old directories
+        can be (re)moved.
+
+        Moreover, the function is invoked whenever the Flask app is
+        started. To make sure that after updating the Flask app is still
+        able to run correctly the directories need to be in the places
+        it expects. Since a user could be updating from any older
+        version we would have to support migration paths for all.
+        Alternatively, we can stick to not introduce breaking changes
+        and keep supporting old directory structures (whilst still
+        adding new ones).
+
     """
-    with app.app_context():
-        environments.mark_env_images_that_can_be_removed()
-        utils.mark_custom_jupyter_images_to_be_removed()
-        db.session.commit()
-
-        # Don't queue the task if there are build tasks going, this is a
-        # "cheap" way to avoid piling up multiple garbage collection
-        # tasks while a build is ongoing.
-        if db.session.query(
-            db.session.query(EnvironmentImageBuild)
-            .filter(EnvironmentImageBuild.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar():
-            app.logger.info("Ongoing build, not queueing registry gc task.")
-            return
-
-        if db.session.query(
-            db.session.query(JupyterImageBuild)
-            .filter(JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar():
-            app.logger.info("Ongoing build, not queueing registry gc task.")
-            return
-
-        celery = make_celery(app)
-        app.logger.info("Sending registry garbage collection task.")
-        res = celery.send_task(name="app.core.tasks.registry_garbage_collection")
-        res.forget()
+    for path in [
+        _config.USERDIR_DATA,
+        _config.USERDIR_JOBS,
+        _config.USERDIR_PROJECTS,
+        _config.USERDIR_ENV_IMG_BUILDS,
+        _config.USERDIR_JUPYTER_IMG_BUILDS,
+        _config.USERDIR_JUPYTERLAB,
+    ]:
+        Path(path).mkdir(parents=True, exist_ok=True)
 
 
 def init_logging():

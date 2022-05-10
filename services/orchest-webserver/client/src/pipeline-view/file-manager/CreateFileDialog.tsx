@@ -41,7 +41,7 @@ export const CreateFileDialog = ({
   root?: FileManagementRoot;
   onClose: () => void;
   onSuccess: (filePath: string) => void;
-  projectUuid: string;
+  projectUuid: string | undefined;
   initialFileName?: string;
 }) => {
   // Global state
@@ -71,7 +71,7 @@ export const CreateFileDialog = ({
   >();
   const isCreating = createFileStatus === "PENDING";
   const onSubmitModal = async () => {
-    if (isCreating) return;
+    if (isCreating || !projectUuid) return;
 
     const fullFilePath = `${lastSelectedFolder}${fileName}${fileExtension}`;
 

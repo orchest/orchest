@@ -22,3 +22,5 @@ python-socketio[client]
 requests
 six>=1.13.0
 -e file:../../lib/python/orchest-internals
+-e file:../../orchest-cli
+

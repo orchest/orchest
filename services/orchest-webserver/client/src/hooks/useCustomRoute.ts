@@ -1,5 +1,5 @@
-import { toQueryString } from "@/routingConfig";
 import { openInNewTab } from "@/utils/openInNewTab";
+import { toQueryString } from "@/utils/routing";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useHistory, useLocation } from "react-router-dom";
@@ -77,6 +77,11 @@ const useHistoryListener = <T>({
   }, []);
 };
 
+export type NavigateParams = {
+  query?: Record<string, string | number | boolean | undefined | null>;
+  state?: Record<string, string | number | boolean | undefined | null>;
+};
+
 // these are common use cases that are all over the place
 // if there are specific cases that you need to pass some querystrings or states
 // better make use of useLocationQuery and useLocationState
@@ -110,11 +115,6 @@ const useCustomRoute = () => {
     return !hasValue(value) ? undefined : String(value);
   });
 
-  type NavigateParams = {
-    query?: Record<string, string | number | boolean | undefined | null>;
-    state?: Record<string, string | number | boolean | undefined | null>;
-  };
-
   const navigateTo = React.useCallback(
     (
       path: string,
@@ -122,10 +122,11 @@ const useCustomRoute = () => {
       e?: React.MouseEvent
     ) => {
       const [pathname, existingQueryString] = path.split("?");
-      const { query = null, state = {} } = params || {};
+      const { query = {}, state = {} } = params || {};
 
       const isMouseMiddleClick = e?.nativeEvent && e.nativeEvent.button === 1;
       const shouldOpenNewTab = e?.ctrlKey || e?.metaKey || isMouseMiddleClick;
+
       const queryString = existingQueryString
         ? `${existingQueryString}&${toQueryString(query)}`
         : toQueryString(query);

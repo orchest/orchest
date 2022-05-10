@@ -10,6 +10,18 @@ import datetime
 
 from flask_restx import Model, fields
 
+from app import models
+
+dictionary = Model("Dictionary", {})
+
+settings_update_response = Model(
+    "SettingsUpdateResponse",
+    {
+        "requires_restart": fields.List(fields.String, required=True),
+        "user_config": fields.Raw(required=True),
+    },
+)
+
 pagination_data = Model(
     "PaginationData",
     {
@@ -824,12 +836,136 @@ idleness_check_result = Model(
     },
 )
 
-update_sidecar_info = Model(
-    "UpdateSidecarInfo",
+subscription_spec = Model(
+    "SubscriptionSpec",
     {
-        "token": fields.String(
+        "event_type": fields.String(
+            required=True, description="Event type to subscribe to."
+        ),
+        "project_uuid": fields.String(
+            required=False,
+            description="Specifies if the subscription is only for a specific project.",
+        ),
+        "job_uuid": fields.String(
+            required=False,
+            description=(
+                "Specifies if the subscription is only for a "
+                "specific job of a project.",
+            ),
+        ),
+    },
+)
+
+subscriber_spec = Model(
+    "SubscriberSpec",
+    {
+        "subscriptions": fields.List(
+            fields.Nested(subscription_spec),
+            description="Collection of subscriptions, elements should be unique.",
+            min_items=1,
+        ),
+    },
+)
+
+webhook_spec = subscriber_spec.inherit(
+    "WebhookSpec",
+    {
+        "url": fields.String(required=True, description="URL of the webhook."),
+        "name": fields.String(required=True, description="Name of the webhook."),
+        "verify_ssl": fields.Boolean(
+            required=True, description="If https certificate should be verified."
+        ),
+        "secret": fields.String(
+            required=False, description="Secret used for HMAC signing the payload."
+        ),
+        "content_type": fields.String(
             required=True,
-            description="Token to access the update sidecar.",
+            description="Content type of the payload, e.g. json, urlencoded, etc.",
+            enum=[
+                models.Webhook.ContentType.JSON.value,
+                models.Webhook.ContentType.URLENCODED.value,
+            ],
+        ),
+    },
+)
+
+subscription = Model(
+    "Subscription",
+    {
+        "uuid": fields.String(required=True, description="UUID of the subscription."),
+        "subscriber_uuid": fields.String(
+            required=True, description="UUID of the subscriber."
+        ),
+        "event_type": fields.String(
+            required=True, description="Event type subscribed to."
+        ),
+        "project_uuid": fields.String(required=False, description="Project uuid."),
+        "job_uuid": fields.String(required=False, description="Job uuid."),
+    },
+)
+
+
+subscriber = Model(
+    "Subscriber",
+    {
+        "uuid": fields.String(required=True, description="UUID of the subscriber."),
+        "type": fields.String(
+            required=True,
+            description="Type of subscriber",
+            enum=["webhook", "subscriber"],
+        ),
+        "subscriptions": fields.List(
+            fields.Nested(subscription),
+            description="Subscriptions of the subscriber.",
+            required=False,
+        ),
+    },
+)
+
+webhook = subscriber.inherit(
+    "Webhook",
+    {
+        "url": fields.String(required=True, description="URL of the webhook."),
+        "name": fields.String(required=True, description="Name of the webhook."),
+        "verify_ssl": fields.Boolean(
+            required=True, description="If https certificate should be verified."
+        ),
+        "content_type": fields.String(
+            required=True,
+            description="Content type of the payload, e.g. json, urlencoded, etc.",
+            enum=[
+                models.Webhook.ContentType.JSON.value,
+                models.Webhook.ContentType.URLENCODED.value,
+            ],
+        ),
+    },
+)
+
+webhook_with_secret = webhook.inherit(
+    "WebhookWithSecret",
+    {
+        "secret": fields.String(
+            required=True, description="Secret used for HMAC signing the payload."
+        ),
+    },
+)
+
+subscribers = Model(
+    "Subscribers",
+    {
+        "subscribers": fields.List(
+            fields.Nested(subscriber), description="List of subscribers."
+        ),
+    },
+)
+
+event = Model(
+    "Event",
+    {
+        "uuid": fields.String(required=True, description="UUID of the event."),
+        "type": fields.String(required=True, description="Type of event."),
+        "timestamp": fields.DateTime(
+            required=True, description="When the event happened."
         ),
     },
 )

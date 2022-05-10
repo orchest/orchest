@@ -32,12 +32,11 @@ while getopts "s:i:t:no:vem" opt; do
       ;;
     m)
       # Build minimal set of images.
-      SKIP_IMGS+=("base-kernel-py") 
+      SKIP_IMGS+=("base-kernel-py")
       SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
       SKIP_IMGS+=("base-kernel-javascript")
       SKIP_IMGS+=("base-kernel-r") 
-      SKIP_IMGS+=("update-sidecar")
       ;;
     t)
       BUILD_TAG="$OPTARG"
@@ -64,13 +63,12 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "base-kernel-julia"
         "base-kernel-javascript"
         "orchest-api"
-        "orchest-ctl"
-        "update-sidecar"
         "orchest-webserver"
         "memory-server"
         "session-sidecar"
         "auth-server"
         "node-agent"
+        "orchest-controller"
     )
 fi
 
@@ -80,13 +78,11 @@ LIB_IMAGES=(
     "base-kernel-r"
     "base-kernel-julia"
     "base-kernel-javascript"
-    "orchest-ctl"
     "orchest-api"
     "orchest-webserver"
     "memory-server"
     "session-sidecar"
     "auth-server"
-    "update-sidecar"
     "celery-worker"
     "jupyter-enterprise-gateway"
     "node-agent"
@@ -113,10 +109,9 @@ SDK_IMAGES=(
     "base-kernel-javascript"
 )
 
-HELM_IMAGES=(
-    "orchest-ctl"
+CLI_IMAGES=(
     "orchest-api"
-    "update-sidecar"
+    "celery-worker"
 )
 
 CLEANUP_BUILD_CTX=()
@@ -156,8 +151,8 @@ run_build () {
                 cp $DIR/../$pnpm_file $build_ctx/pnpm_files 2>/dev/null
             done
         fi
-        if containsElement "${image}" "${HELM_IMAGES[@]}" ; then
-            cp -r $DIR/../deploy $build_ctx/deploy 2>/dev/null
+        if containsElement "${image}" "${CLI_IMAGES[@]}" ; then
+            cp -r $DIR/../orchest-cli $build_ctx/orchest-cli 2>/dev/null
         fi
     fi
     # copy end
@@ -198,8 +193,8 @@ function cleanup() {
             if containsElement "${image}" "${PNPM_IMAGES[@]}" ; then
                 rm -rf $i/pnpm_files 2>/dev/null
             fi
-            if containsElement "${image}" "${HELM_IMAGES[@]}" ; then
-                rm -rf $i/deploy 2>/dev/null
+            if containsElement "${image}" "${CLI_IMAGES[@]}" ; then
+                rm -rf $i/orchest-cli 2>/dev/null
             fi
 
             rm $i/.dockerignore 2> /dev/null
@@ -213,7 +208,7 @@ function cleanup() {
     if ! [ -z "$JUPYTER_USER_IMAGES" ]; then
         docker rmi $JUPYTER_USER_IMAGES >/dev/null
     fi
-    
+
 }
 
 trap cleanup SIGINT
@@ -341,28 +336,6 @@ do
             $build_ctx)
     fi
 
-    if [ $IMG == "orchest-ctl" ]; then
-
-        build_ctx=$DIR/../services/orchest-ctl
-        build=(docker build --platform linux/amd64 --progress=plain \
-            -t "orchest/orchest-ctl:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/orchest-ctl/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-    fi
-
-    if [ $IMG == "update-sidecar" ]; then
-
-        build_ctx=$DIR/../services/update-sidecar
-        build=(docker build --progress=plain \
-            -t "orchest/update-sidecar:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/update-sidecar/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-    fi
-
     if [ $IMG == "node-agent" ]; then
 
         build_ctx=$DIR/../services/node-agent
@@ -392,6 +365,17 @@ do
             -t "orchest/auth-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/auth-server/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    if [ $IMG == "orchest-controller" ]; then
+
+        build_ctx=$DIR/../services/orchest-controller
+        build=(docker build --platform linux/amd64 --progress=plain \
+            -t "orchest/orchest-controller:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/orchest-controller/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
@@ -436,4 +420,3 @@ wait < <(jobs -p)
 cleanup
 
 echo "[Done]!"
-

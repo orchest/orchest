@@ -9,6 +9,7 @@ RUN apt-get update \
 # Get all requirements in place.
 COPY ./requirements.txt /orchest/services/orchest-api/
 COPY ./lib/python /orchest/lib/python
+COPY ./orchest-cli /orchest/orchest-cli
 
 # Set the `WORKDIR` so the editable installs in the `requirements.txt`
 # can use relative paths.
@@ -23,6 +24,7 @@ COPY celery_daemon_configs/supervisord.conf /etc/supervisor/supervisord.conf
 COPY celery_daemon_configs/worker_builds.conf \
      celery_daemon_configs/worker_interactive.conf \
      celery_daemon_configs/worker_jobs.conf \
+     celery_daemon_configs/worker_deliveries.conf \
      /etc/supervisor/conf.d/
 
 # To be consistent with the other services.

@@ -1,4 +1,6 @@
-export function getOffset<T extends HTMLElement>(element: T | undefined) {
+export function getOffset<T extends HTMLElement>(
+  element: T | undefined | null
+) {
   if (!element) return { top: 0, left: 0 };
   const box = element.getBoundingClientRect();
   return {
@@ -7,14 +9,14 @@ export function getOffset<T extends HTMLElement>(element: T | undefined) {
   };
 }
 
-export const getWidth = (element: HTMLElement) => {
+export const getWidth = (element: HTMLElement | undefined | null) => {
   if (!element) return 0;
 
   const style = window.getComputedStyle(element, null);
   return parseFloat(style.width.replace("px", ""));
 };
 
-export const getHeight = (element: HTMLElement) => {
+export const getHeight = (element: HTMLElement | undefined | null) => {
   if (!element) return 0;
 
   const style = window.getComputedStyle(element, null);

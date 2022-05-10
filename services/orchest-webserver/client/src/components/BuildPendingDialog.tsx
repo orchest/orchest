@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { EnvironmentValidationData } from "@/types";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
