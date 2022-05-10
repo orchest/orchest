@@ -38,6 +38,7 @@ describe("useOrchestUserConfig", () => {
     await waitForNextUpdate();
 
     expect(parseJson(result.current.userConfig)).toEqual(userConfig);
+    expect(result.current.requiresRestart).toEqual([]);
     expect(setAsSaved.mock.calls.length).toEqual(0);
 
     return { result, waitForNextUpdate };
@@ -63,6 +64,7 @@ describe("useOrchestUserConfig", () => {
     });
 
     expect(parseJson(result.current.userConfig)).toEqual(updatedConfigJson);
+    expect(result.current.requiresRestart).toEqual([]);
     expect(setAsSaved.mock.calls.length).toEqual(1);
     expect(setAsSaved.mock.calls.slice(-1)[0]).toEqual([false]);
     expect(result.current.saveUserConfigError).toEqual(undefined);
