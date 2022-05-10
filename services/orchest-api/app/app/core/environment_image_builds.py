@@ -68,7 +68,7 @@ def write_environment_dockerfile(
     # E.g. 'registry:quay.io/python/python:3.9' (uses quay.io registry)
     custom_registry_prefix = "registry:"
     if base_image.startswith(custom_registry_prefix):
-        full_basename = base_image[len(custom_registry_prefix):]
+        full_basename = base_image[len(custom_registry_prefix) :]
     else:
         full_basename = f"docker.io/{base_image}"
 
@@ -244,7 +244,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         base_image = environment_properties["base_image"]
         # Temporary workaround for common.tsx not using the orchest
         # version.
-        if ":" not in base_image:
+        if ":" not in base_image and "orchest/" in base_image:
             base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
         write_environment_dockerfile(
             base_image,
