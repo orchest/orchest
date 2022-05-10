@@ -6,7 +6,11 @@ import { SWRConfig } from "swr";
 import { useOrchestUserConfig } from "../useOrchestUserConfig";
 
 const wrapper = ({ children = null }) => {
-  return <SWRConfig value={{ revalidateOnMount: true }}>{children}</SWRConfig>;
+  return (
+    <SWRConfig value={{ revalidateOnMount: true, provider: () => new Map() }}>
+      {children}
+    </SWRConfig>
+  );
 };
 
 const setAsSaved = jest.fn((value?: boolean | undefined) => undefined);
@@ -40,8 +44,6 @@ describe("useOrchestUserConfig", () => {
     expect(parseJson(result.current.userConfig)).toEqual(userConfig);
     expect(result.current.requiresRestart).toEqual([]);
     expect(setAsSaved.mock.calls.length).toEqual(0);
-
-    return { result, waitForNextUpdate };
   };
 
   beforeEach(async () => {
@@ -50,8 +52,12 @@ describe("useOrchestUserConfig", () => {
     unmount();
   });
 
+  it("should load user config", async () => {
+    await runStartCase();
+  });
+
   it("should save user config and get corresponding requires_restart", async () => {
-    const { result, waitForNextUpdate } = await runStartCase();
+    await runStartCase();
     const userConfigJson = mockConfig.get().user_config;
     const updatedConfigJson = {
       ...userConfigJson,
@@ -83,5 +89,41 @@ describe("useOrchestUserConfig", () => {
     expect(setAsSaved.mock.calls.length).toEqual(2);
     expect(setAsSaved.mock.calls.slice(-1)[0]).toEqual([true]);
     expect(result.current.saveUserConfigError).toEqual(undefined);
+  });
+
+  it("should throw an error if userConfig is an invalid JSON string", async () => {
+    await runStartCase();
+    const userConfigJson = mockConfig.get().user_config;
+    const updatedConfigJson = {
+      ...userConfigJson,
+      AUTH_ENABLED: !userConfigJson.AUTH_ENABLED,
+      TELEMETRY_DISABLED: !userConfigJson.TELEMETRY_DISABLED,
+    };
+
+    const invalidJsonString = JSON.stringify(updatedConfigJson).slice(1);
+
+    act(() => {
+      result.current.setUserConfig(invalidJsonString);
+    });
+
+    expect(result.current.userConfig).toEqual(invalidJsonString);
+    expect(result.current.requiresRestart).toEqual([]);
+    expect(setAsSaved.mock.calls.length).toEqual(1);
+    expect(setAsSaved.mock.calls.slice(-1)[0]).toEqual([false]);
+    expect(result.current.saveUserConfigError).toEqual(undefined);
+
+    act(() => {
+      result.current.saveUserConfig();
+    });
+
+    // The JSON string parsing validation takes place on the client side,
+    // therefore no actual async operation was fired.
+
+    expect(result.current.userConfig).toEqual(invalidJsonString);
+    expect(result.current.requiresRestart).toEqual([]);
+
+    expect(setAsSaved.mock.calls.length).toEqual(1);
+    expect(setAsSaved.mock.calls.slice(-1)[0]).toEqual([false]);
+    expect(result.current.saveUserConfigError).toBeDefined();
   });
 });

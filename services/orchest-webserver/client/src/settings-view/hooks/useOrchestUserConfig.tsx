@@ -72,8 +72,7 @@ export const useOrchestUserConfig = (
         });
       setAsSaved(true);
     } catch (error) {
-      console.error(`Tried to save config which is invalid JSON. ${error}`);
-      console.error(userConfig);
+      setSaveUserConfigError(error?.message || error);
     }
   }, [
     orchestConfig,
