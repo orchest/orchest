@@ -18,7 +18,10 @@ In order to code on Orchest, you need to have the following installed on your sy
 * `helm <https://helm.sh/docs/intro/install/>`_ (if you intend to develop files in ``/deploy``)
 * `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_ (you might want to try out a tool
   like ``k9s`` in the long run)
-* `pre-commit <https://pre-commit.com/#installation>`_
+* `pre-commit <https://pre-commit.com/#installation>`_ 
+
+  * `install go <https://go.dev/doc/install>`_ if you work on the controller
+
 * `npm <https://docs.npmjs.com/downloading-and-installing-node-js-and-npm>`_ and `pnpm
   <https://pnpm.io/installation#using-npm>`_
 * `jq <https://stedolan.github.io/jq/>`_ (useful when working with JSON in your terminal)
