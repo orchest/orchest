@@ -37,3 +37,7 @@ repos:
     rev: 3.8.4
     hooks:
       - id: flake8
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: master
+    hooks:
+      - id: go-fmt
