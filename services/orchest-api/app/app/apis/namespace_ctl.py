@@ -15,7 +15,7 @@ api = utils.register_schema(ns)
 class StartUpdate(Resource):
     @api.doc("orchest_api_start_update")
     @api.marshal_with(
-        schema.dictionary,
+        schema.update_started_response,
         code=201,
         description="Update Orchest.",
     )
@@ -29,7 +29,10 @@ class StartUpdate(Resource):
                 namespace=_config.ORCHEST_NAMESPACE,
                 cluster_name=_config.ORCHEST_CLUSTER,
             )
-            return {}, 201
+            return {
+                "namespace": _config.ORCHEST_NAMESPACE,
+                "cluster_name": _config.ORCHEST_CLUSTER,
+            }, 201
         # This is a form of technical debt since we can't distinguish if
         # an update fails because there is no newer version of a "real"
         # failure.
