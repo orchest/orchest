@@ -1,15 +1,15 @@
 Troubleshooting
 ===============
 
-When running against issues it can be helpful to increase the verbosity when starting Orchest and
+When running against issues it can be helpful to increase the verbosity of Orchest and
 changing the log level of all Orchest's containers. You can do this using:
 
 .. code-block:: sh
 
-   ./orchest start --log-level=DEBUG
+   orchest patch --log-level=DEBUG
 
 
-Some other Docker commands that can be useful when debugging Orchest:
+Some other kubectl commands that can be useful when debugging Orchest:
 
 .. code-block:: sh
 
@@ -124,3 +124,10 @@ Error: Multiple head revisions
     migrations then the head will diverge, similar to git now having two different branches which
     point to different commits. Once these branches get merged, the alembic revision heads need to
     be merged as well.
+
+Dev mode not working
+--------------------
+* Make sure you started the cluster with the Orchest repository mounted, see :ref:`here <cluster mount>`.
+* If you have changed some dependencies (i.e. requirements.txt files) you have to rebuild the image and
+  kill the pod to get it redeployed.
+
