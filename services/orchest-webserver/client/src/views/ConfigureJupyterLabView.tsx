@@ -95,9 +95,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       if (!error.isCanceled) {
         setIgnoreIncomingLogs(false);
 
-        let resp = JSON.parse(error.body);
-
-        if (resp.message === "SessionInProgressException") {
+        if (error.message === "SessionInProgressException") {
           setConfirm(
             "Warning",
             <>
