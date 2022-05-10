@@ -356,6 +356,14 @@ def _get_session_sidecar_deployment_manifest(
                                     "name": "ORCHEST_SESSION_TYPE",
                                     "value": session_type,
                                 },
+                                {
+                                    "name": "ORCHEST_NAMESPACE",
+                                    "value": _config.ORCHEST_NAMESPACE,
+                                },
+                                {
+                                    "name": "ORCHEST_CLUSTER",
+                                    "value": _config.ORCHEST_CLUSTER,
+                                },
                             ],
                             "volumeMounts": [
                                 volume_mounts_dict["project-dir"],
@@ -624,6 +632,8 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_SESSION_TYPE",
         "ORCHEST_GPU_ENABLED_INSTANCE",
         "ORCHEST_REGISTRY",
+        "ORCHEST_CLUSTER",
+        "ORCHEST_NAMESPACE",
     ]
     process_env_whitelist.extend(list(user_defined_env_vars.keys()))
     process_env_whitelist = ",".join(process_env_whitelist)
@@ -668,6 +678,8 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_SESSION_TYPE": session_type,
         "ORCHEST_GPU_ENABLED_INSTANCE": str(CONFIG_CLASS.GPU_ENABLED_INSTANCE),
         "ORCHEST_REGISTRY": registry_ip,
+        "ORCHEST_NAMESPACE": _config.ORCHEST_NAMESPACE,
+        "ORCHEST_CLUSTER": _config.ORCHEST_CLUSTER,
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
     user_defined_env_vars = [
