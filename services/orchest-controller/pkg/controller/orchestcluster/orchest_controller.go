@@ -532,6 +532,15 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 		changed = true
 	}
 
+	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
+		map[string]string{
+			"ORCHEST_CLUSTER": orchest.Name,
+			"ORCHEST_NAMESPACE": orchest.Namespace,
+		}, false)
+	if envChanged {
+		changed = true
+	}
+
 	if copy.Spec.Orchest.OrchestHost != nil {
 		envChanged := utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
 			map[string]string{"ORCHEST_FQDN": *copy.Spec.Orchest.OrchestHost}, true)
