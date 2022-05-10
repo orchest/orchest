@@ -1,15 +1,15 @@
 repos:
   - repo: https://github.com/pycqa/isort
-    rev: 5.6.4
+    rev: 5.10.1
     hooks:
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 20.8b1 # Replace by any tag/version: https://github.com/psf/black/tags
+    rev: 22.3.0 # Replace by any tag/version: https://github.com/psf/black/tags
     hooks:
       - id: black
         language_version: python3 # Should be a command that runs python3.6+
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: "v2.1.2"
+    rev: "v2.6.2"
     hooks:
       - id: prettier
         additional_dependencies:
@@ -17,7 +17,7 @@ repos:
           - typescript@4.3.2
           - prettier-plugin-organize-imports@2.3.4
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: "v7.32.0"
+    rev: "v8.15.0"
     hooks:
       - id: eslint
         files: \.[jt]sx?$ # *.js, *.jsx, *.ts and *.tsx
@@ -34,6 +34,6 @@ repos:
           - "@typescript-eslint/eslint-plugin@4.29.3"
           - "@typescript-eslint/parser@4.29.3"
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+    rev: 3.9.2
     hooks:
       - id: flake8
