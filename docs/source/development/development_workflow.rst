@@ -139,7 +139,7 @@ For this reason, we provide the following scripts:
 Incremental development (hot reloading)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The steps above allow you to rebuild the images for the services.
-In addition, you can also install Orchest in dev mode by using the ``--dev`` flag
+In addition, you can also set Orchest to run in dev mode with ``orchest patch --dev``
 so that code changes are instantly reflected, without having to build the containers again.
 The services that support dev mode are:
 
@@ -160,11 +160,10 @@ The services that support dev mode are:
    # Run the client dev server for hot reloading of client (i.e. FE) files.
    pnpm run dev &
 
-   # If Orchest is running, stop it.
-   ./orchest stop
+   orchest start
 
-   # Start Orchest in --dev mode.
-   ./orchest start --dev
+   orchest patch --dev
+
 
 .. note::
    🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
