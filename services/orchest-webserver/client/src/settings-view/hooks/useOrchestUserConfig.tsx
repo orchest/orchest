@@ -1,5 +1,5 @@
 import { OrchestConfig, OrchestUserConfig } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { configToInvisibleConfig, configToVisibleConfig } from "../common";
@@ -48,17 +48,18 @@ export const useOrchestUserConfig = (
 
       setUserConfigJson(joinedConfig);
 
-      let formData = new FormData();
-      formData.append("config", JSON.stringify(joinedConfig));
-
       await fetcher<{
         requires_restart: string[];
         user_config: OrchestUserConfig;
-      }>("/async/user-config", { method: "POST", body: formData })
+      }>("/async/user-config", {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify({ config: JSON.stringify(joinedConfig) }),
+      })
         .then(({ user_config, requires_restart }) => {
           setRequiresRestart(requires_restart);
           setUserConfigJson(user_config);
-          setUserConfig(
+          _setUserConfig(
             JSON.stringify(
               configToVisibleConfig(orchestConfig, user_config),
               null,
@@ -77,7 +78,7 @@ export const useOrchestUserConfig = (
   }, [
     orchestConfig,
     setAsSaved,
-    setUserConfig,
+    _setUserConfig,
     setUserConfigJson,
     userConfig,
     userConfigJson,

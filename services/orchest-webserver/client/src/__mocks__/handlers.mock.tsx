@@ -1,3 +1,4 @@
+import { OrchestUserConfig } from "@/types";
 import { rest } from "msw";
 import { mockConfig } from "./mockConfig.mock";
 import { getPipelineMedadatas, mockProjects } from "./mockProjects.mock";
@@ -7,6 +8,29 @@ export const handlers = [
     return res(
       ctx.json({
         user_config: mockConfig.get().user_config,
+      })
+    );
+  }),
+  rest.post<{ config: string }>("/async/user-config", (req, res, ctx) => {
+    const requestBody = req.body.config;
+
+    const updatedUserConfig = { ...mockConfig.get().user_config };
+    const requiresRestart = Object.entries(
+      JSON.parse(requestBody) as OrchestUserConfig
+    ).reduce((all, [key, value]) => {
+      if (updatedUserConfig[key] !== value) {
+        updatedUserConfig[key] = value;
+        return [...all, key];
+      }
+      return all;
+    }, [] as string[]);
+
+    mockConfig.set({ user_config: updatedUserConfig });
+
+    return res(
+      ctx.json({
+        user_config: updatedUserConfig,
+        requires_restart: requiresRestart,
       })
     );
   }),
