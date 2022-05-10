@@ -24,8 +24,13 @@ const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
 const ConfigureJupyterLabView: React.FC = () => {
   // global
-  const appContext = useAppContext();
-  const { setAlert, setConfirm, setAsSaved } = appContext;
+  const {
+    state: { hasUnsavedChanges },
+    setAlert,
+    setConfirm,
+    setAsSaved,
+    config,
+  } = useAppContext();
   const {
     deleteAllSessions,
     state: { sessionsKillAllInProgress, sessions },
@@ -78,7 +83,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   }, [jupyterSetupScript, setAsSaved, cancelableFetch]);
 
   const buildImage = React.useCallback(async () => {
-    window.orchest.jupyter.unload();
+    window.orchest.jupyter?.unload();
 
     setIsBuildingImage(true);
     setIgnoreIncomingLogs(true);
@@ -243,8 +248,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               }
               buildsKey="jupyter_image_builds"
               socketIONamespace={
-                appContext.state?.config
-                  ?.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
+                config?.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
               }
               streamIdentity={"jupyter"}
               onUpdateBuild={setJupyterEnvironmentBuild}
@@ -263,7 +267,7 @@ const ConfigureJupyterLabView: React.FC = () => {
                 variant="contained"
                 onClick={save}
               >
-                {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
+                {hasUnsavedChanges ? "Save*" : "Save"}
               </Button>
               {!building ? (
                 <Button

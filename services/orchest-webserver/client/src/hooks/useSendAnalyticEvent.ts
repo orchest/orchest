@@ -74,12 +74,10 @@ const stringifyObjectWithReactElements = (
   });
 
 const useSendAnalyticEvent = (
-  event?: string,
+  event?: string | undefined,
   props?: StringifyReactElement
 ) => {
-  const {
-    state: { config },
-  } = useAppContext();
+  const { config } = useAppContext();
   const mounted = useMounted();
   const shouldSend = config?.TELEMETRY_DISABLED === false && mounted.current;
 
@@ -111,7 +109,8 @@ const useSendAnalyticEvent = (
     }
     // it should take whatever in the given render
   }, [shouldSend]); // eslint-disable-line react-hooks/exhaustive-deps
-  return event ? undefined : send;
+
+  return send;
 };
 
 export { useSendAnalyticEvent };

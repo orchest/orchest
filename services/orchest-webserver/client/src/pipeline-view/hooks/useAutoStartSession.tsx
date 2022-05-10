@@ -62,7 +62,7 @@ export const useAutoStartSession = ({
 
   React.useEffect(() => {
     if (session?.status === "STOPPING") {
-      window.orchest.jupyter.unload();
+      window.orchest.jupyter?.unload();
     }
 
     if (session?.base_url) {
@@ -70,7 +70,7 @@ export const useAutoStartSession = ({
 
       if (base_url) {
         let baseAddress = "//" + window.location.host + base_url;
-        window.orchest.jupyter.updateJupyterInstance(baseAddress);
+        window.orchest.jupyter?.updateJupyterInstance(baseAddress);
       }
     }
   }, [session]);

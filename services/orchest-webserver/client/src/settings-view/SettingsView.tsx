@@ -36,7 +36,8 @@ const SettingsView: React.FC = () => {
     setAlert,
     setAsSaved,
     setConfirm,
-    state: { config: orchestConfig, hasUnsavedChanges },
+    state: { hasUnsavedChanges },
+    config: orchestConfig,
   } = useAppContext();
 
   const checkUpdate = useCheckUpdate();
@@ -51,19 +52,19 @@ const SettingsView: React.FC = () => {
   const {
     userConfig,
     setUserConfig,
-    saveConfig,
+    saveUserConfig,
     requiresRestart,
     setRequiresRestart,
-    saveConfigError,
+    saveUserConfigError,
   } = useOrchestUserConfig(setAsSaved, orchestConfig);
 
   React.useEffect(() => {
-    if (hasValue(saveConfigError))
+    if (hasValue(saveUserConfigError))
       setAlert(
         "Error",
-        `Failed to save config. ${saveConfigError || "Unknown reason."}`
+        `Failed to save config. ${saveUserConfigError || "Unknown reason."}`
       );
-  }, [saveConfigError, setAlert]);
+  }, [saveUserConfigError, setAlert]);
 
   const onClickManageUsers = (e: React.MouseEvent) => {
     navigateTo(siteMap.manageUsers.path, undefined, e);
@@ -163,7 +164,7 @@ const SettingsView: React.FC = () => {
                 <Button
                   variant="contained"
                   startIcon={<SaveIcon />}
-                  onClick={() => saveConfig()}
+                  onClick={() => saveUserConfig()}
                 >
                   {hasUnsavedChanges ? "SAVE*" : "SAVE"}
                 </Button>

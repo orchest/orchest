@@ -59,11 +59,7 @@ const ENVIRONMENT_BUILDS_BASE_ENDPOINT =
 
 const EnvironmentEditView: React.FC = () => {
   // global states
-  const {
-    setAlert,
-    setAsSaved,
-    state: { config },
-  } = useAppContext();
+  const { setAlert, setAsSaved, config } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.environment.path });
 
@@ -152,7 +148,7 @@ const EnvironmentEditView: React.FC = () => {
       // Saving an environment will invalidate the Jupyter <iframe>
       // TODO: perhaps this can be fixed with coordination between JLab +
       // Enterprise Gateway team.
-      window.orchest.jupyter.unload();
+      window.orchest.jupyter?.unload();
 
       try {
         const environmentUuidForUpdateOrCreate = environment?.uuid || "new";

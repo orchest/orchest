@@ -31,9 +31,11 @@ export const useOrchestUserConfig = (
 
   const [requiresRestart, setRequiresRestart] = React.useState<string[]>([]);
 
-  const [saveConfigError, setSaveConfigError] = React.useState<string>();
+  const [saveUserConfigError, setSaveUserConfigError] = React.useState<
+    string
+  >();
 
-  const saveConfig = React.useCallback(async () => {
+  const saveUserConfig = React.useCallback(async () => {
     if (!userConfig) return;
 
     try {
@@ -65,7 +67,7 @@ export const useOrchestUserConfig = (
           );
         })
         .catch((error) => {
-          setSaveConfigError(error?.message);
+          setSaveUserConfigError(error?.message);
         });
       setAsSaved(true);
     } catch (error) {
@@ -84,9 +86,9 @@ export const useOrchestUserConfig = (
   return {
     userConfig,
     setUserConfig,
-    saveConfig,
+    saveUserConfig,
     requiresRestart,
     setRequiresRestart,
-    saveConfigError,
+    saveUserConfigError,
   };
 };
