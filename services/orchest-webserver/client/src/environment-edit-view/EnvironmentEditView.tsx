@@ -295,9 +295,7 @@ const EnvironmentEditView: React.FC = () => {
       fetcher(
         `${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/${environmentBuild.project_uuid}/` +
           `${environmentBuild.environment_uuid}/${environmentBuild.image_tag}`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       )
         .then(() => {
           // immediately fetch latest status
