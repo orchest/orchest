@@ -58,10 +58,6 @@ def send_test_ping_delivery() -> bool:
     Returns:
         True if the delivery was made, False otherwise.
     """
-    # TODO: this is needed because a depency of this PR actually lives
-    # in the controller branch, remove this.
-    current_app.config["TELEMETRY_DISABLED"] = False
-    current_app.config["TELEMETRY_UUID"] = "e2e2abb5-3c54-4209-a245-e9fa37810824"
     return analytics.send_event(current_app, analytics.Event.DEBUG_PING, {})
 
 
@@ -123,7 +119,7 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
         analytics_payload["run_uuid"] = analytics_payload["job"]["pipeline_run"]["uuid"]
 
     if event_type in ["project:cron-job:created", "project:one-off-job:created"]:
-        analytics_payload["snapshot_size"] = 10
+        analytics_payload["snapshot_size"] = None
         job: models.Job = models.Job.query.filter(
             models.Job.project_uuid == analytics_payload["project"]["uuid"],
             models.Job.uuid == analytics_payload["job"]["uuid"],
@@ -177,17 +173,13 @@ def deliver(delivery_uuid: str) -> None:
         raise ValueError("Deliveree of delivery isn't of type AnalyticsSubscriber.")
 
     try:
-        # TODO: this is needed because a depency of this PR actually
-        # lives in the controller branch, remove this.
-        current_app.config["TELEMETRY_DISABLED"] = False
-        current_app.config["TELEMETRY_UUID"] = "e2e2abb5-3c54-4209-a245-e9fa37810824"
-
         payload = delivery.notification_payload
         analytics_event_type = _event_type_to_analytics_event_enum.get(
             payload["type"], analytics.Event.DEBUG_PING
         )
-        analytics.send_event(current_app, analytics_event_type, payload)
-        db.session.delete(delivery)
+        if analytics.send_event(current_app, analytics_event_type, payload):
+            delivery.set_delivered()
+            db.session.delete(delivery)
     except Exception as e:
         logger.error(e)
         delivery.reschedule()
