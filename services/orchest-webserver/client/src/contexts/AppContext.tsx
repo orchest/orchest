@@ -339,22 +339,27 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
   };
 };
 
-const useFetchSystemConfig = () => {
+const useFetchSystemConfig = (shouldStart: boolean) => {
   const { data, run } = useAsync<OrchestServerConfig>();
   React.useEffect(() => {
-    run(fetcher("/async/server-config"));
-  }, [run]);
+    if (shouldStart) run(fetcher("/async/server-config"));
+  }, [run, shouldStart]);
   return (data || {}) as {
     config?: OrchestConfig;
     user_config?: OrchestUserConfig;
   };
 };
 
-export const AppContextProvider: React.FC = ({ children }) => {
+// `shouldStart` is only useful when running tests.
+// Use it to control the side effects within AppContext when mocking.
+export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
+  children,
+  shouldStart = true,
+}) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
   const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
 
-  const { config, user_config } = useFetchSystemConfig();
+  const { config, user_config } = useFetchSystemConfig(shouldStart);
 
   /**
    * =========================== side effects
@@ -433,7 +438,7 @@ export const AppContextProvider: React.FC = ({ children }) => {
         setIsDrawerOpen,
       }}
     >
-      {config && user_config ? children : null}
+      {children}
     </Context.Provider>
   );
 };

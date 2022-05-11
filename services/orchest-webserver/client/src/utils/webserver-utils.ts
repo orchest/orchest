@@ -483,7 +483,7 @@ export function tryUntilTrue(action, retries, delay, interval?) {
 
 // Will return undefined if the envVariables are ill defined.
 export function envVariablesArrayToDict(
-  envVariables: EnvVarPair[]
+  envVariables: EnvVarPair[] = []
 ):
   | { status: "resolved"; value: Record<string, unknown> }
   | { status: "rejected"; error: string } {

@@ -20,10 +20,14 @@ export const fetchPipeline = (
 
 export const useFetchPipeline = (props: FetchPipelineProps | null) => {
   const { projectUuid, pipelineUuid, clearCacheOnUnmount } = props || {};
-  const { data, error, isValidating, mutate } = useSWR<Pipeline | undefined>(
+
+  const cacheKey =
     projectUuid && pipelineUuid
       ? `/async/pipelines/${projectUuid}/${pipelineUuid}`
-      : null,
+      : "";
+
+  const { data, error, isValidating, mutate } = useSWR<Pipeline | undefined>(
+    cacheKey || null,
     () => fetchPipeline(projectUuid, pipelineUuid)
   );
 

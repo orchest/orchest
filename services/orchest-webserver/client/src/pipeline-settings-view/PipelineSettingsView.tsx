@@ -12,6 +12,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
+import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
 import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
@@ -51,11 +52,7 @@ import { fetcher, hasValue, HEADER, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import {
-  generatePipelineJsonForSaving,
-  getOrderValue,
-  instantiateNewService,
-} from "./common";
+import { generatePipelineJsonForSaving, instantiateNewService } from "./common";
 import ServiceForm from "./ServiceForm";
 import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
@@ -130,6 +127,8 @@ const PipelineSettingsView: React.FC = () => {
   const isJobRun = hasValue(jobUuid && runUuid);
   const isReadOnly = isJobRun || isReadOnlyFromQueryString;
 
+  const isBrowserTabFocused = useFocusBrowserTab();
+
   // Fetching data
   const {
     projectEnvVariables,
@@ -145,9 +144,13 @@ const PipelineSettingsView: React.FC = () => {
     setPipelineName,
     inputParameters,
     setInputParameters,
-  } = useFetchPipelineSettings({ projectUuid, pipelineUuid, jobUuid, runUuid });
-
-  // local states
+  } = useFetchPipelineSettings({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    isBrowserTabFocused,
+  });
 
   const allServiceNames = React.useMemo(() => {
     return new Set(Object.values(services || {}).map((s) => s.name));
@@ -177,16 +180,17 @@ const PipelineSettingsView: React.FC = () => {
   // If the component has loaded, attach the resize listener
   useOverflowListener(hasLoaded);
 
-  const onChangeService = (uuid: string, service: Service) => {
-    setServices((current) => {
-      // Maintain client side order key
-      if (service.order === undefined) service.order = getOrderValue();
-      return { ...current, [uuid]: service };
-    });
+  const onChangeService = React.useCallback(
+    (uuid: string, service: Service) => {
+      setServices((current) => {
+        return { ...current, [uuid]: service };
+      });
 
-    setServicesChanged(true);
-    setAsSaved(false);
-  };
+      setServicesChanged(true);
+      setAsSaved(false);
+    },
+    [setServices, setAsSaved]
+  );
 
   const deleteService = async (serviceUuid: string) => {
     setServices((current) => {
@@ -290,7 +294,7 @@ const PipelineSettingsView: React.FC = () => {
     let formData = new FormData();
     formData.append("pipeline_json", JSON.stringify(updatedPipelineJson));
 
-    Promise.allSettled([
+    const [pipelineJsonChanges, pipelineChanges] = await Promise.allSettled([
       fetcher<{ success: boolean; reason?: string; message?: string }>(
         `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
         { method: "POST", body: formData }
@@ -310,37 +314,37 @@ const PipelineSettingsView: React.FC = () => {
           }),
         }
       ),
-    ]).then(([pipelineJsonChanges, pipelineChanges]) => {
-      const errorMessages = [
-        pipelineJsonChanges.status === "rejected"
-          ? "pipeline definition or Notebook JSON"
-          : undefined,
-        pipelineChanges.status === "rejected"
-          ? "environment variables"
-          : undefined,
-      ].filter((value) => value);
+    ]);
 
-      if (errorMessages.length > 0) {
-        setAlert("Error", `Could not save ${errorMessages.join(" and ")}`);
-      }
+    const errorMessages = [
+      pipelineJsonChanges.status === "rejected"
+        ? "pipeline definition or Notebook JSON"
+        : undefined,
+      pipelineChanges.status === "rejected"
+        ? "environment variables"
+        : undefined,
+    ].filter((value) => value);
 
-      // Sync changes with the global context
-      const payload = {
-        ...(pipelineJsonChanges.status === "fulfilled"
-          ? { name: pipelineName }
-          : undefined),
-        ...(pipelineChanges.status === "fulfilled"
-          ? { path: pipelinePath }
-          : undefined),
-      };
+    if (errorMessages.length > 0) {
+      setAlert("Error", `Could not save ${errorMessages.join(" and ")}`);
+    }
 
-      dispatch({
-        type: "UPDATE_PIPELINE",
-        payload: { uuid: pipelineUuid, ...payload },
-      });
+    // Sync changes with the global context
+    const payload = {
+      ...(pipelineJsonChanges.status === "fulfilled"
+        ? { name: pipelineName }
+        : undefined),
+      ...(pipelineChanges.status === "fulfilled"
+        ? { path: pipelinePath }
+        : undefined),
+    };
 
-      setAsSaved(errorMessages.length === 0);
+    dispatch({
+      type: "UPDATE_PIPELINE",
+      payload: { uuid: pipelineUuid, ...payload },
     });
+
+    setAsSaved(errorMessages.length === 0);
   };
 
   type ServiceRow = {
@@ -393,39 +397,38 @@ const PipelineSettingsView: React.FC = () => {
     },
   ];
 
-  const serviceRows: DataTableRow<ServiceRow>[] = !services
-    ? []
-    : Object.entries(services)
-        .sort((a, b) => {
-          if (hasValue(a[1].order) && hasValue(b[1].order)) {
-            return a[1].order - b[1].order;
-          } else {
-            return 0;
-          }
-        })
-        .map(([uuid, service]) => {
-          return {
-            uuid,
-            name: service.name,
-            scope: service.scope
-              .map((scopeAsString) => scopeMap[scopeAsString])
-              .join(", "),
-            exposed: service.exposed ? "Yes" : "No",
-            authenticationRequired: service.requires_authentication
-              ? "Yes"
-              : "No",
-            remove: uuid,
-            details: (
-              <ServiceForm
-                key={uuid}
-                service={service}
-                services={services}
-                disabled={isReadOnly}
-                updateService={(updated) => onChangeService(uuid, updated)}
-              />
-            ),
-          };
-        });
+  const serviceRows = React.useMemo<DataTableRow<ServiceRow>[]>(() => {
+    if (!services) return [];
+    const sortedServices = Object.entries(services).sort((a, b) => {
+      if (hasValue(a[1].order) && hasValue(b[1].order)) {
+        return a[1].order - b[1].order;
+      } else {
+        return 0;
+      }
+    });
+
+    return sortedServices.map(([uuid, service]) => {
+      return {
+        uuid,
+        name: service.name,
+        scope: service.scope
+          .map((scopeAsString) => scopeMap[scopeAsString])
+          .join(", "),
+        exposed: service.exposed ? "Yes" : "No",
+        authenticationRequired: service.requires_authentication ? "Yes" : "No",
+        remove: uuid,
+        details: (
+          <ServiceForm
+            key={uuid}
+            service={service}
+            services={services}
+            disabled={isReadOnly}
+            updateService={(updated) => onChangeService(uuid, updated)}
+          />
+        ),
+      };
+    });
+  }, [services, isReadOnly, onChangeService]);
 
   const isMemorySizeValid = isValidMemorySize(
     settings?.data_passing_memory_size || ""

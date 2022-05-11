@@ -1,7 +1,6 @@
-import { getOrderValue } from "@/pipeline-settings-view/common";
 import { PipelineJson } from "@/types";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { MutatorCallback } from "swr/dist/types";
@@ -56,9 +55,21 @@ export const fetchPipelineJson = (
       pipelineObj.services = {};
     }
 
-    // Augment services with order key
-    for (let service in pipelineObj.services) {
-      pipelineObj.services[service].order = getOrderValue();
+    let maxOrder = 0;
+    const sortedServices = Object.entries(pipelineObj.services).sort((a, b) => {
+      if (!hasValue(a[1].order) && !hasValue(b[1].order))
+        return a[1].name.localeCompare(b[1].name); // If both services have no order value, sort them by name.
+      if (!hasValue(a[1].order)) return -1;
+      if (!hasValue(b[1].order)) return 1;
+      maxOrder = Math.max(maxOrder, a[1].order, b[1].order);
+      return a[1].order - b[1].order;
+    });
+    // Add `order` if it's undefined
+    for (let sorted of sortedServices) {
+      if (!hasValue(pipelineObj.services[sorted[0]].order)) {
+        pipelineObj.services[sorted[0]].order = maxOrder + 1;
+        maxOrder += 1;
+      }
     }
 
     return pipelineObj;

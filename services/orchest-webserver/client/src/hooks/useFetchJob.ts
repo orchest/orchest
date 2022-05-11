@@ -17,12 +17,14 @@ export const useFetchJob = ({
 }) => {
   const { setAlert } = useAppContext();
 
+  const cacheKey = jobUuid
+    ? `/catch/api-proxy/api/jobs/${jobUuid}${
+        runStatuses ? "?aggregate_run_statuses=true" : ""
+      }`
+    : "";
+
   const { data: job, mutate, error, isValidating } = useSWR<Job>(
-    jobUuid
-      ? `/catch/api-proxy/api/jobs/${jobUuid}${
-          runStatuses ? "?aggregate_run_statuses=true" : ""
-        }`
-      : null,
+    cacheKey || null,
     fetcher
   );
 

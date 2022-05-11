@@ -20,10 +20,12 @@ export const fetchPipelineRun = (
 
 export const useFetchPipelineRun = (props: FetchPipelineRunProps | null) => {
   const { jobUuid, runUuid, clearCacheOnUnmount } = props || {};
+
+  const cacheKey =
+    jobUuid && runUuid ? `/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}` : "";
+
   const { data, error, isValidating, mutate } = useSWR<PipelineRun | undefined>(
-    jobUuid && runUuid
-      ? `/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`
-      : null,
+    cacheKey || null,
     () => fetchPipelineRun(jobUuid, runUuid)
   );
 

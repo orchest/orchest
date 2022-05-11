@@ -12,11 +12,13 @@ export function useFetchProject<T = Project>({
   projectUuid?: string;
   selector?: (project: Project) => T;
 }) {
+  const cacheKey = projectUuid ? `/async/projects/${projectUuid}` : "";
   const { data, error, isValidating, mutate } = useSWR<T>(
-    projectUuid ? `/async/projects/${projectUuid}` : null,
+    cacheKey || null,
     (url: string) =>
       fetchProject(url, true).then((response) => selector(response))
   );
+
   return {
     data,
     error,
