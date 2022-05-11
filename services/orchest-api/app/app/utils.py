@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import uuid
 from collections import ChainMap
@@ -663,3 +664,19 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
         )
 
     images_to_be_removed.update({"marked_for_removal": True})
+
+
+def get_job_dir_path(project_uuid: str, pipeline_uuid: str, job_uuid: str) -> str:
+    return os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
+
+
+def get_job_snapshot_path(project_uuid: str, pipeline_uuid: str, job_uuid: str) -> str:
+    job_dir = get_job_dir_path(project_uuid, pipeline_uuid, job_uuid)
+    return os.path.join(job_dir, "snapshot")
+
+
+def get_job_run_dir_path(
+    project_uuid: str, pipeline_uuid: str, job_uuid: str, run_uuid: str
+) -> str:
+    job_dir = get_job_dir_path(project_uuid, pipeline_uuid, job_uuid)
+    return os.path.join(job_dir, run_uuid)
