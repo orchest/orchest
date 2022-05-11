@@ -145,7 +145,12 @@ const FilePicker: React.FC<FilePickerProps> = ({
 
   const onNavigateUp = () => {
     setAbsPath((oldPath) => {
-      return oldPath.slice(0, oldPath.slice(0, -1).lastIndexOf("/") + 1);
+      const newPath = oldPath.slice(
+        0,
+        oldPath.slice(0, -1).lastIndexOf("/") + 1
+      );
+
+      return newPath === "/" ? "" : newPath;
     });
   };
 

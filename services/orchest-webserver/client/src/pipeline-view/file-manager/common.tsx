@@ -354,8 +354,9 @@ export const allowedExtensionsMarkup = ALLOWED_STEP_EXTENSIONS.map(
 );
 
 export const findFirstDiffIndex = (arrA: string[], arrB: string[]) => {
+  const range = Math.min(arrA.length, arrB.length);
   let i = 0;
-  while (arrA[i] === arrB[i]) i++;
+  while (i < range && arrA[i] === arrB[i]) i++;
   return i;
 };
 
@@ -377,7 +378,7 @@ export const getRelativePathTo = (filePath: string, targetFolder: string) => {
 
   const upLevels = cleanTargetFolderComponents.length - firstDiffIndex - 1;
 
-  const leadingString = "../".repeat(upLevels);
+  const leadingString = upLevels >= 0 ? "../".repeat(upLevels) : "";
 
   return `${leadingString}${remainingFilePathComponents.join("/")}`;
 };
