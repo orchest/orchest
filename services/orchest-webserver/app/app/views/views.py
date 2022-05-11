@@ -252,8 +252,8 @@ def register_views(app, db):
 
         if request.method == "POST":
             # Updated config, from client.
-            response = request.get_json()
-            config = response.get("config", None)
+            request_body = request.get_json()
+            config = request_body.get("config", None)
 
             if config is None:
                 return {"message": "No config was given."}, 400
