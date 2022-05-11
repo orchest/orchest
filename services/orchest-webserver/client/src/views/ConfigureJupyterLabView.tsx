@@ -6,7 +6,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { EnvironmentImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
@@ -24,8 +24,13 @@ const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
 const ConfigureJupyterLabView: React.FC = () => {
   // global
-  const appContext = useAppContext();
-  const { setAlert, setConfirm, setAsSaved } = appContext;
+  const {
+    state: { hasUnsavedChanges },
+    setAlert,
+    setConfirm,
+    setAsSaved,
+    config,
+  } = useAppContext();
   const {
     deleteAllSessions,
     state: { sessionsKillAllInProgress, sessions },
@@ -75,10 +80,10 @@ const ConfigureJupyterLabView: React.FC = () => {
       setAsSaved(false);
       console.error(e);
     }
-  }, [jupyterSetupScript, setAsSaved]);
+  }, [jupyterSetupScript, setAsSaved, cancelableFetch]);
 
   const buildImage = React.useCallback(async () => {
-    window.orchest.jupyter.unload();
+    window.orchest.jupyter?.unload();
 
     setIsBuildingImage(true);
     setIgnoreIncomingLogs(true);
@@ -95,9 +100,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       if (!error.isCanceled) {
         setIgnoreIncomingLogs(false);
 
-        let resp = JSON.parse(error.body);
-
-        if (resp.message === "SessionInProgressException") {
+        if (error.message === "SessionInProgressException") {
           setConfirm(
             "Warning",
             <>
@@ -243,8 +246,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               }
               buildsKey="jupyter_image_builds"
               socketIONamespace={
-                appContext.state?.config
-                  ?.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
+                config?.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
               }
               streamIdentity={"jupyter"}
               onUpdateBuild={setJupyterEnvironmentBuild}
@@ -263,7 +265,7 @@ const ConfigureJupyterLabView: React.FC = () => {
                 variant="contained"
                 onClick={save}
               >
-                {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
+                {hasUnsavedChanges ? "Save*" : "Save"}
               </Button>
               {!building ? (
                 <Button

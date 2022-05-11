@@ -3,7 +3,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { cleanFilePath } from "@/pipeline-view/file-manager/common";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
@@ -22,8 +22,8 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useRouteMatch } from "react-router-dom";
+import { ProjectSelector } from "../project-selector/ProjectSelector";
 import { IconButton } from "./common/IconButton";
-import { ProjectSelector } from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
 
 export const HeaderBar = ({
@@ -37,7 +37,7 @@ export const HeaderBar = ({
   const {
     state: { projectUuid, pipeline, pipelineSaveStatus, pipelineIsReadOnly },
   } = useProjectsContext();
-  const appContext = useAppContext();
+  const { user_config } = useAppContext();
   useSessionsPoller();
 
   const matchPipeline = useRouteMatch({
@@ -231,7 +231,7 @@ export const HeaderBar = ({
             direction="row"
             sx={{ paddingLeft: (theme) => theme.spacing(1) }}
           >
-            {appContext.state.user_config?.AUTH_ENABLED && (
+            {user_config?.AUTH_ENABLED && (
               <IconButton
                 title="Logout"
                 onClick={logoutHandler}

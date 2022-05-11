@@ -1,4 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
+import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -48,18 +49,6 @@ export function ActionBar({
   const openCreateFolderDialog = () => setIsCreateFolderDialogOpen(true);
   const closeCreateFolderDialog = () => setIsCreateFolderDialogOpen(false);
 
-  const uploadFileRef = React.useRef<HTMLInputElement>();
-  const uploadFolderRef = React.useRef<HTMLInputElement>();
-
-  const handleUploadFile = () => {
-    let files = uploadFileRef.current.files;
-    uploadFiles(files);
-  };
-
-  const handleUploadFolder = (e: React.ChangeEvent<HTMLInputElement>) => {
-    uploadFiles(e.target.files);
-  };
-
   const {
     state: { pipelineIsReadOnly },
   } = useProjectsContext();
@@ -93,23 +82,6 @@ export function ActionBar({
         <Box>
           {!pipelineIsReadOnly && (
             <>
-              <form style={{ display: "none" }}>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleUploadFile}
-                  ref={uploadFileRef}
-                />
-              </form>
-              <form style={{ display: "none" }}>
-                <input
-                  type="file"
-                  webkitdirectory=""
-                  directory=""
-                  onChange={handleUploadFolder}
-                  ref={uploadFolderRef}
-                />
-              </form>
               <FileManagerActionButton
                 title="Create file"
                 onClick={openCreateFileDialog}
@@ -122,22 +94,26 @@ export function ActionBar({
               >
                 <CreateNewFolderIcon />
               </FileManagerActionButton>
-              <FileManagerActionButton
-                onClick={() => {
-                  uploadFileRef.current.click();
-                }}
-                title="Upload file"
-              >
-                <UploadFileIcon />
-              </FileManagerActionButton>
-              <FileManagerActionButton
-                onClick={() => {
-                  uploadFolderRef.current?.click();
-                }}
-                title="Upload folder"
-              >
-                <DriveFolderUploadIcon />
-              </FileManagerActionButton>
+              <UploadFilesForm multiple upload={uploadFiles}>
+                {(onClick) => (
+                  <FileManagerActionButton
+                    onClick={onClick}
+                    title="Upload file"
+                  >
+                    <UploadFileIcon />
+                  </FileManagerActionButton>
+                )}
+              </UploadFilesForm>
+              <UploadFilesForm folder upload={uploadFiles}>
+                {(onClick) => (
+                  <FileManagerActionButton
+                    onClick={onClick}
+                    title="Upload folder"
+                  >
+                    <DriveFolderUploadIcon />
+                  </FileManagerActionButton>
+                )}
+              </UploadFilesForm>
             </>
           )}
           <FileManagerActionButton title="Refresh" onClick={reload}>

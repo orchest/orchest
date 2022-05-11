@@ -1,4 +1,3 @@
-import Chance from "chance";
 import type {
   Pipeline,
   PipelineJson,
@@ -6,8 +5,7 @@ import type {
   Project,
   Step,
 } from "../types";
-
-export const chance = new Chance();
+import { chance } from "./common.mock";
 
 type MockPipelineData = {
   metadata: PipelineMetaData;
@@ -183,6 +181,9 @@ export const generateMockProjectCollection = () => {
 
       projectCollection[projectUuid] = setter(project);
       return projectCollection[projectUuid];
+    },
+    getAll() {
+      return projectCollection;
     },
     reset() {
       projectCollection = {};

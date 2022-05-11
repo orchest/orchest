@@ -4,6 +4,8 @@
 #
 #    pip-compile requirements-dev.in
 #
+-e file:../../orchest-cli
+    # via -r requirements-dev.in
 -e file:../../lib/python/orchest-internals
     # via -r requirements-dev.in
 aiohttp==3.7.4
@@ -46,6 +48,7 @@ click==8.1.0
     #   click-plugins
     #   click-repl
     #   flask
+    #   orchest-cli
 click-didyoumean==0.3.0
     # via celery
 click-plugins==1.1.1
@@ -104,7 +107,9 @@ jsonschema==4.4.0
 kombu==5.2.4
     # via celery
 kubernetes==21.7.0
-    # via -r requirements-dev.in
+    # via
+    #   -r requirements-dev.in
+    #   orchest-cli
 mako==1.2.0
     # via alembic
 markupsafe==2.1.1

@@ -1,7 +1,7 @@
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
-type CancelablePromise<T> = {
+export type CancelablePromise<T> = {
   promise: Promise<T>;
   cancel: () => void;
 };
@@ -24,36 +24,35 @@ function _makeCancelable<T>(promise: Promise<T>) {
 
 export function useCancelablePromise() {
   const cancelablePromises = React.useRef<CancelablePromise<unknown>[]>([]);
-  React.useEffect(() => {
-    return () => {
-      cancelablePromises.current.forEach((p) => p.cancel());
-      cancelablePromises.current = [];
-    };
-  }, []);
 
-  const makeCancelable = React.useCallback(function <T>(p: Promise<T>) {
+  const makeCancelable = React.useCallback(function <T = void>(p: Promise<T>) {
     const cPromise = _makeCancelable(p);
     cancelablePromises.current.push(cPromise);
     return cPromise.promise;
   }, []);
 
-  return { makeCancelable };
+  const cancelAll = React.useCallback(() => {
+    () => {
+      cancelablePromises.current.forEach((p) => p.cancel());
+      cancelablePromises.current = [];
+    };
+  }, []);
+
+  React.useEffect(() => {
+    return () => cancelAll();
+  }, [cancelAll]);
+
+  return { makeCancelable, cancelAll };
 }
 
 export function useCancelableFetch() {
-  const { makeCancelable } = useCancelablePromise();
+  const { makeCancelable, cancelAll } = useCancelablePromise();
   const cancelableFetch = React.useCallback(
-    function <T>(
-      url: string,
-      params?: RequestInit | undefined,
-      cancelable = true
-    ) {
-      return cancelable
-        ? makeCancelable(fetcher<T>(url, params))
-        : fetcher<T>(url, params);
+    function <T>(url: string, params?: RequestInit | undefined) {
+      return makeCancelable(fetcher<T>(url, params));
     },
     [makeCancelable]
   );
 
-  return { cancelableFetch };
+  return { cancelableFetch, cancelAll };
 }

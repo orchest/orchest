@@ -10,7 +10,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type {
   Pipeline,
   PipelineJson,
@@ -67,7 +67,7 @@ const JupyterLabView: React.FC = () => {
     // unmount
     return () => {
       if (window.orchest.jupyter) {
-        window.orchest.jupyter.hide();
+        window.orchest.jupyter?.hide();
       }
 
       setVerifyKernelsInterval(undefined);
@@ -127,12 +127,12 @@ const JupyterLabView: React.FC = () => {
 
   useInterval(
     () => {
-      if (window.orchest.jupyter.isJupyterLoaded() && pipelineJson) {
+      if (window.orchest.jupyter?.isJupyterLoaded() && pipelineJson) {
         for (let stepUUID in pipelineJson.steps) {
           let step = pipelineJson.steps[stepUUID];
 
           if (step.file_path.length > 0 && step.environment.length > 0) {
-            window.orchest.jupyter.setNotebookKernel(
+            window.orchest.jupyter?.setNotebookKernel(
               collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
               `orchest-kernel-${step.environment}`
             );
@@ -167,10 +167,10 @@ const JupyterLabView: React.FC = () => {
   const conditionalRenderingOfJupyterLab = () => {
     if (window.orchest.jupyter) {
       if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
-        window.orchest.jupyter.show();
-        if (filePath) window.orchest.jupyter.navigateTo(filePath);
+        window.orchest.jupyter?.show();
+        if (filePath) window.orchest.jupyter?.navigateTo(filePath);
       } else {
-        window.orchest.jupyter.hide();
+        window.orchest.jupyter?.hide();
       }
     }
   };
@@ -178,7 +178,7 @@ const JupyterLabView: React.FC = () => {
   const updateJupyterInstance = () => {
     if (session?.base_url) {
       let baseAddress = "//" + window.location.host + session.base_url;
-      window.orchest.jupyter.updateJupyterInstance(baseAddress);
+      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
     }
   };
 

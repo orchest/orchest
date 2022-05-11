@@ -27,7 +27,7 @@ export const fetchPipelineJson = (
   const url =
     typeof props === "string" ? props : getPipelineJSONEndpoint(props);
 
-  if (!url) return;
+  if (!url) return Promise.reject();
 
   return fetcher<{
     pipeline_json: string;

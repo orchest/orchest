@@ -8,6 +8,7 @@ Additinal note:
 """
 import os
 from logging.config import dictConfig
+from pathlib import Path
 from pprint import pformat
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -95,10 +96,15 @@ def create_app(
         # Necessary for db migrations.
         Migrate().init_app(app, db)
 
-    # NOTE: In this case we want to return ASAP as otherwise the DB
-    # might be called (inside this function) before it is migrated.
-    if to_migrate_db:
-        return app
+        # NOTE: In this case we want to return ASAP as otherwise the DB
+        # might be called (inside this function) before it is migrated.
+        if to_migrate_db:
+            return app
+
+        with app.app_context():
+            settings = utils.OrchestSettings()
+            settings.save()
+            app.config.update(settings.as_dict())
 
     # Keep analytics subscribed to all events of interest.
     with app.app_context():
@@ -137,6 +143,9 @@ def create_app(
             with app.app_context():
                 trigger_conditional_jupyter_image_build(app)
 
+    app.logger.info("Creating required directories for Orchest services.")
+    create_required_directories()
+
     if register_api:
         # Register blueprints at the end to avoid issues when migrating
         # the DB. When registering a blueprint the DB schema is also
@@ -144,6 +153,37 @@ def create_app(
         app.register_blueprint(api, url_prefix="/api")
 
     return app
+
+
+def create_required_directories() -> None:
+    """Creates required directories by Orchest services.
+
+    Should work fine when running multiple gunicorn workers.
+
+    Note:
+        It is very important, that this function is backwards compatible
+        meaning that new directories can be added but no old directories
+        can be (re)moved.
+
+        Moreover, the function is invoked whenever the Flask app is
+        started. To make sure that after updating the Flask app is still
+        able to run correctly the directories need to be in the places
+        it expects. Since a user could be updating from any older
+        version we would have to support migration paths for all.
+        Alternatively, we can stick to not introduce breaking changes
+        and keep supporting old directory structures (whilst still
+        adding new ones).
+
+    """
+    for path in [
+        _config.USERDIR_DATA,
+        _config.USERDIR_JOBS,
+        _config.USERDIR_PROJECTS,
+        _config.USERDIR_ENV_IMG_BUILDS,
+        _config.USERDIR_JUPYTER_IMG_BUILDS,
+        _config.USERDIR_JUPYTERLAB,
+    ]:
+        Path(path).mkdir(parents=True, exist_ok=True)
 
 
 def init_logging():

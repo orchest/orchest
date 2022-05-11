@@ -12,6 +12,16 @@ from flask_restx import Model, fields
 
 from app import models
 
+dictionary = Model("Dictionary", {})
+
+settings_update_response = Model(
+    "SettingsUpdateResponse",
+    {
+        "requires_restart": fields.List(fields.String, required=True),
+        "user_config": fields.Raw(required=True),
+    },
+)
+
 pagination_data = Model(
     "PaginationData",
     {
@@ -822,16 +832,6 @@ idleness_check_result = Model(
             _idleness_check_result_details,
             required=True,
             description="Details of the idleness check.",
-        ),
-    },
-)
-
-update_sidecar_info = Model(
-    "UpdateSidecarInfo",
-    {
-        "token": fields.String(
-            required=True,
-            description="Token to access the update sidecar.",
         ),
     },
 )

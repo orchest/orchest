@@ -42,9 +42,7 @@ export const ImageBuildLog = ({
       fetcher<Record<string, EnvironmentImageBuild[]>>(url).then(
         (response) => response[buildsKey]
       ),
-    {
-      refreshInterval: BUILD_POLL_FREQUENCY[build ? 1 : 0],
-    }
+    { refreshInterval: BUILD_POLL_FREQUENCY[build ? 1 : 0] }
   );
 
   React.useEffect(() => {
@@ -72,35 +70,38 @@ export const ImageBuildLog = ({
   }, [fitAddon, xtermRef]);
 
   const socket = useSocketIO(socketIONamespace);
-
+  const hasRegisteredSocketIO = React.useRef(false);
   React.useEffect(() => {
-    socket.on(
-      "sio_streamed_task_data",
-      (data: { action: string; identity: string; output?: string }) => {
-        // ignore terminal outputs from other builds
+    if (!hasRegisteredSocketIO.current) {
+      hasRegisteredSocketIO.current = true;
+      socket.on(
+        "sio_streamed_task_data",
+        (data: { action: string; identity: string; output?: string }) => {
+          // ignore terminal outputs from other builds
 
-        if (data.identity == streamIdentity) {
-          if (
-            data.action === "sio_streamed_task_output" &&
-            !ignoreIncomingLogs
-          ) {
-            let lines = (data.output || "").split("\n");
-            for (let x = 0; x < lines.length; x++) {
-              if (x == lines.length - 1) {
-                xtermRef.current?.terminal.write(lines[x]);
-              } else {
-                xtermRef.current?.terminal.write(lines[x] + "\n\r");
+          if (data.identity === streamIdentity) {
+            if (
+              data.action === "sio_streamed_task_output" &&
+              !ignoreIncomingLogs
+            ) {
+              let lines = (data.output || "").split("\n");
+              for (let x = 0; x < lines.length; x++) {
+                if (x == lines.length - 1) {
+                  xtermRef.current?.terminal.write(lines[x]);
+                } else {
+                  xtermRef.current?.terminal.write(lines[x] + "\n\r");
+                }
               }
+            } else if (data["action"] == "sio_streamed_task_started") {
+              // This blocking mechanism makes sure old build logs are
+              // not displayed after the user has started a build
+              // during an ongoing build.
+              xtermRef.current?.terminal.reset();
             }
-          } else if (data["action"] == "sio_streamed_task_started") {
-            // This blocking mechanism makes sure old build logs are
-            // not displayed after the user has started a build
-            // during an ongoing build.
-            xtermRef.current?.terminal.reset();
           }
         }
-      }
-    );
+      );
+    }
   }, [socket, xtermRef, ignoreIncomingLogs, streamIdentity]);
 
   React.useEffect(() => {

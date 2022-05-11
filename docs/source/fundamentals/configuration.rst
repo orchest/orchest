@@ -7,10 +7,8 @@ Configuration
 
 Orchest settings
 ----------------
-Orchest stores a global configuration file at ``~/.config/orchest/config.json`` (or at
-``$XDG_CONFIG_HOME/orchest/config.json`` if defined) that configures the Orchest application. The
-content of the file can be changed from within in the UI through *Settings* and requires Orchest to
-be restarted for the changes to take effect.
+Orchest is configured through a number of settings that can be changed from within the UI through
+*Settings*. Some settings will require Orchest to be restarted for changes to take effect.
 
 Example content:
 

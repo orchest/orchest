@@ -1,6 +1,7 @@
 [flake8]
 exclude =
-    jupyter_server_config.py,
+    jupyter_server_config.py
+    services/orchest-api/app/migrations/versions/*.py
 
 ignore =
     # Space before :
@@ -13,6 +14,7 @@ ignore =
 
 per-file-ignores =
     orchest-sdk/python/orchest/__init__.py: F401
+    orchest-cli/orchestcli/cli.py: W505, E501
     services/orchest-api/app/app/core/sessions/__init__.py: F401
     services/orchest-ctl/app/orchest/__init__.py: F401
 

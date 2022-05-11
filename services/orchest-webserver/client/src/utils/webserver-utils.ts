@@ -6,7 +6,6 @@ import {
   fetcher,
   hasValue,
   HEADER,
-  makeRequest,
 } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
@@ -261,11 +260,17 @@ export type CreateProjectError =
   | "project move failed"
   | "project name contains illegal character";
 
-export type BackgroundTask = {
-  uuid: string;
-  status: "SUCCESS" | "FAILURE" | "PENDING";
-  result: CreateProjectError | string | null;
-};
+export type BackgroundTask =
+  | {
+      uuid: string;
+      status: "SUCCESS" | "FAILURE";
+      result: CreateProjectError | string;
+    }
+  | {
+      uuid: string;
+      status: "PENDING";
+      result: null;
+    };
 
 export class BackgroundTaskPoller {
   private END_STATUSES: string[];
@@ -312,22 +317,21 @@ export class BackgroundTaskPoller {
     this.activeTasks = {};
   }
 
-  requestStatus(taskUuid: string) {
-    makeRequest("GET", `/async/background-tasks/${taskUuid}`).then(
-      (response: string) => {
-        try {
-          let data: BackgroundTask = JSON.parse(response);
-          if (this.END_STATUSES.includes(data.status)) {
-            this.taskCallbacks[taskUuid](data);
-            this.removeTask(taskUuid);
-          } else {
-            this.executeDelayedRequest(taskUuid);
-          }
-        } catch (error) {
-          console.error(error);
-        }
+  async requestStatus(taskUuid: string) {
+    try {
+      const data = await fetcher<BackgroundTask>(
+        `/async/background-tasks/${taskUuid}`
+      );
+
+      if (this.END_STATUSES.includes(data.status)) {
+        this.taskCallbacks[taskUuid](data);
+        this.removeTask(taskUuid);
+      } else {
+        this.executeDelayedRequest(taskUuid);
       }
-    );
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
 
@@ -542,3 +546,9 @@ export function pascalCaseToCapitalized(viewName) {
 export function isNumber(value: unknown): value is number {
   return !isNaN(Number(value));
 }
+
+export const withPlural = (
+  value: number,
+  unit: string,
+  toPlural = (singular: string) => `${singular}s`
+) => `${value} ${value > 1 ? toPlural(unit) : unit}`;

@@ -62,7 +62,6 @@ if [ ${#SERVICES[@]} -eq 0 ]; then
         "session-sidecar"
         "orchest-api"
         "orchest-sdk"
-        "orchest-ctl"
         "orchest-webserver"
         "base-images-runnable"
     )
@@ -82,7 +81,7 @@ function setup_local_test_db() {
     docker run \
         --name "orchest-test-database" \
         -p "0:5432" \
-        --rm -d -e "POSTGRES_HOST_AUTH_METHOD=trust" postgres:13.1 > /dev/null 
+        --rm -d -e "POSTGRES_HOST_AUTH_METHOD=trust" postgres:13.1 > /dev/null
 
     function on_exit {
         docker container stop "orchest-test-database" > /dev/null 2>&1
@@ -155,11 +154,6 @@ do
     fi
     if [ $SERVICE == "orchest-sdk" ]; then
         TEST_DIR=$DIR/../orchest-sdk/python
-        REQ_DIR=$TEST_DIR
-        REQ_FILE=$REQ_DIR/requirements-dev.txt
-    fi
-    if [ $SERVICE == "orchest-ctl" ]; then
-        TEST_DIR=$DIR/../services/orchest-ctl
         REQ_DIR=$TEST_DIR
         REQ_FILE=$REQ_DIR/requirements-dev.txt
     fi

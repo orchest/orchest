@@ -17,6 +17,7 @@ from logging.config import dictConfig
 from pprint import pformat
 from subprocess import Popen
 
+import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request, safe_join, send_from_directory
 from flask_migrate import Migrate
@@ -24,7 +25,6 @@ from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
 from _orchest.internals import config as _config
-from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from app import config
 from app.connections import db, ma
@@ -73,16 +73,11 @@ def create_app(to_migrate_db=False):
 
     socketio = SocketIO(app, cors_allowed_origins="*")
 
-    # Read directory mount based config into Flask config.
-    try:
-        global_orchest_config = _utils.GlobalOrchestConfig()
-    except _errors.CorruptedFileError:
-        app.logger.error("Failed to load global orchest config file.", exc_info=True)
-    else:
-        app.config.update(global_orchest_config.as_dict())
-        # Initialize the config file. Needed in case the config file has
-        # been deleted or if Orchest has just been installed.
-        global_orchest_config.save(app)
+    if not to_migrate_db:
+        orchest_config = requests.get(
+            f"http://{config.CONFIG_CLASS.ORCHEST_API_ADDRESS}/api/ctl/orchest-settings"
+        ).json()
+        app.config.update(orchest_config)
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 
@@ -146,12 +141,12 @@ def create_app(to_migrate_db=False):
             # Infinite amount of grace time, so that if a task cannot be
             # instantly executed (e.g. if the webserver is busy) then it
             # will eventually be.
-            "misfire_grace_time": 2 ** 31,
+            "misfire_grace_time": 2**31,
             "coalesce": False,
             # So that the same job can be in the queue an infinite
             # amount of times, e.g. for concurrent requests issuing the
             # same tasks.
-            "max_instances": 2 ** 31,
+            "max_instances": 2**31,
         }
     )
     app.config["SCHEDULER"] = scheduler

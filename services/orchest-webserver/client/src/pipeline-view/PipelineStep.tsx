@@ -15,7 +15,7 @@ import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { getFilePathForDragFile } from "./file-manager/common";
+import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
@@ -237,7 +237,7 @@ const PipelineStepComponent = React.forwardRef<
         type: "ASSIGN_FILE_TO_STEP",
         payload: {
           stepUuid: uuid,
-          filePath: getFilePathForDragFile(dragFile.path, pipelineCwd),
+          filePath: getFilePathForRelativeToProject(dragFile.path, pipelineCwd),
         },
       });
       resetMove();
