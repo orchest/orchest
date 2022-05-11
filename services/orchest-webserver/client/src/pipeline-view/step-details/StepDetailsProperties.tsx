@@ -112,9 +112,10 @@ export const StepDetailsProperties = ({
       if (newFilePath.length > 0) {
         autogenerateFilePath.current = false;
       }
-      onSave({ file_path: newFilePath }, step.uuid);
+      if (newFilePath !== step.file_path)
+        onSave({ file_path: newFilePath }, step.uuid);
     },
-    [onSave, step.uuid]
+    [onSave, step.uuid, step.file_path]
   );
 
   const onChangeParameterJSON = (updatedParameterJSON: string) => {
@@ -125,7 +126,8 @@ export const StepDetailsProperties = ({
   };
 
   const onChangeKernel = (updatedKernel: string) => {
-    onSave({ kernel: { name: updatedKernel } }, step.uuid);
+    if (step.kernel.name !== updatedKernel)
+      onSave({ kernel: { name: updatedKernel } }, step.uuid);
   };
 
   const onChangeTitle = (updatedTitle: string) => {
@@ -133,7 +135,8 @@ export const StepDetailsProperties = ({
       ? { file_path: toValidFilename(updatedTitle) }
       : null;
 
-    onSave({ title: updatedTitle, ...filePathChange }, step.uuid);
+    if (step.title !== updatedTitle || filePathChange)
+      onSave({ title: updatedTitle, ...filePathChange }, step.uuid);
   };
 
   const swapConnectionOrder = (
