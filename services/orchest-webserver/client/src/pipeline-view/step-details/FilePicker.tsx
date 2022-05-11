@@ -12,13 +12,12 @@ import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import {
   ALLOWED_STEP_EXTENSIONS,
-  collapseDoubleDots,
   extensionFromFilename,
 } from "@orchest/lib-utils";
 import React from "react";
 import { getFilePathForRelativeToProject } from "../file-manager/common";
 
-const validatePathInTree = (path: string, tree: FileTree) => {
+export const validatePathInTree = (path: string, tree: FileTree) => {
   // path assumed to start with /
 
   /**
@@ -36,26 +35,33 @@ const validatePathInTree = (path: string, tree: FileTree) => {
     return false;
   }
 
-  if (path === "") return true; // the path represents the root of the tree
+  // `path` represents the root of the tree
+  if (path === "") return true;
 
-  if (tree.type !== "directory") {
-    return false;
-  }
-  if (path[0] !== "/") {
-    return false;
-  }
+  // Should always be absolute.
+  if (!path.startsWith("/")) return false;
 
   let pathComponents = path.split("/");
+
   let isFirstComponentDir = pathComponents.length > 2;
+
+  // `path` contains double slashes.
+  if (isFirstComponentDir && pathComponents[1] === "") return false;
 
   if (isFirstComponentDir) {
     for (let x = 0; x < tree.children.length; x++) {
       let child = tree.children[x];
-      if (child.name == pathComponents[1] && child.type == "directory") {
+
+      // Normally, `name` should be `path` without leading and trailing slashes,
+      // but sometimes `name` and `path` are not aligned for UI rendering purposes,
+      const matchingPathComponent =
+        child.name === pathComponents[1] ||
+        child.path?.replace(/^\//, "").replace(/\/$/, "") === pathComponents[1];
+
+      if (matchingPathComponent && child.type === "directory") {
         // Path ends in directory
-        if (pathComponents[2] == "") {
-          return true;
-        }
+        if (pathComponents[2] === "") return true;
+
         return validatePathInTree(
           "/" + pathComponents.slice(2).join("/"),
           child
@@ -73,8 +79,9 @@ const validatePathInTree = (path: string, tree: FileTree) => {
   }
 };
 
-type FilePickerProps = {
+export type FilePickerProps = {
   cwd: string;
+  absoluteCwd: string;
   icon?: React.ReactNode;
   helperText: string;
   onChangeValue: (value: FilePickerProps["value"]) => void;
@@ -84,67 +91,19 @@ type FilePickerProps = {
   onSelectMenuItem: (node: FileTree) => void;
 };
 
-const getFolderPath = (filePath: string) =>
-  filePath.split("/").slice(0, -1).join("/") + "/";
-
-const computeAbsPath = ({
-  cwd,
-  value,
-  tree,
-}: Pick<FilePickerProps, "cwd" | "value" | "tree">) => {
-  // The path for /data/ folder is absolute
-  if (value.startsWith("/data/")) {
-    return getFolderPath(value.replace(/^\/data\//, "/data:/"));
-  }
-
-  const absCwd = `/project-dir:/${cwd === "/" ? "" : cwd}`;
-
-  // The rest is a relative path to pipelineCwd
-  const projectFilePath = collapseDoubleDots(`${absCwd}${value}`);
-  const isFile = !projectFilePath.endsWith("/");
-  const directoryPath = isFile
-    ? getFolderPath(projectFilePath)
-    : projectFilePath;
-
-  // Check if directoryPath exists.
-  // If not, use pipelineCwd as fallback.
-  return !validatePathInTree(directoryPath, tree) ? absCwd : directoryPath;
-};
-
 const ITEM_HEIGHT = 48;
 
-// TODO: use MUI Dropdown when it is released
-
-const FilePicker: React.FC<FilePickerProps> = ({
+const useFilePicker = ({
   cwd,
-  value,
   tree,
+  absoluteCwd,
   onChangeValue,
-  helperText,
-  icon,
-  menuMaxWidth,
-  onSelectMenuItem,
-}) => {
-  const computedAbsPath = React.useMemo(() => {
-    return computeAbsPath({ cwd, value, tree });
-  }, [cwd, value, tree]);
-
-  const [absPath, setAbsPath] = React.useState<string>(computedAbsPath);
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const inputRef = React.useRef<HTMLInputElement>();
-  const menuRef = React.useRef<HTMLDivElement | null>(null);
-  useClickOutside(menuRef, () => setIsDropdownOpen(false));
-
-  const isBlurAllowed = React.useRef(true);
-  const onMouseOverMenu = () => {
-    isBlurAllowed.current = false;
-  };
-  const onMouseLeaveMenu = () => {
-    isBlurAllowed.current = true;
-  };
-
+}: Pick<FilePickerProps, "absoluteCwd" | "cwd" | "tree" | "onChangeValue">) => {
+  const [absoluteFolderPath, setAbsoluteFolderPath] = React.useState<string>(
+    absoluteCwd
+  );
   const onNavigateUp = () => {
-    setAbsPath((oldPath) => {
+    setAbsoluteFolderPath((oldPath) => {
       const newPath = oldPath.slice(
         0,
         oldPath.slice(0, -1).lastIndexOf("/") + 1
@@ -154,30 +113,18 @@ const FilePicker: React.FC<FilePickerProps> = ({
     });
   };
 
-  const onFocusTextField = () => {
-    setIsDropdownOpen(true);
-  };
-
-  const onBlurTextField = () => {
-    if (isBlurAllowed.current) setIsDropdownOpen(false);
-  };
-
   React.useEffect(() => {
-    // If the state.path doesn't match computedAbsPath, we need to update
-    // the value of the FilePicker field to be the directory
-    // we navigated to through the change to state.path.
-    // (to help the user find out their current path by displaying
-    // the relative path in the textfield - hence we update the value)
-    // that was triggered from within the component.
-    // state.path is modified when navigating the directory.
-    if (absPath !== computedAbsPath) {
-      onChangeValue(getFilePathForRelativeToProject(absPath, cwd));
+    // If absoluteFolderPath doesn't match absoluteCwd, we need to update
+    // the value of the FilePicker field to be the directory user is viewing via the dropdown.
+    // as a visual feedback.
+    if (absoluteFolderPath !== absoluteCwd) {
+      onChangeValue(getFilePathForRelativeToProject(absoluteFolderPath, cwd));
     }
-  }, [absPath]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [absoluteFolderPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { isRootNode, options } = React.useMemo(() => {
     // Absolute paths always start and end with a forward slash.
-    let pathComponents = absPath.slice(1, -1).split("/");
+    let pathComponents = absoluteFolderPath.slice(1, -1).split("/");
     let currentNode = tree;
 
     // traverse to the right directory node
@@ -210,12 +157,65 @@ const FilePicker: React.FC<FilePickerProps> = ({
         );
       }),
     };
-  }, [absPath, tree]);
+  }, [absoluteFolderPath, tree]);
+
+  return {
+    absoluteFolderPath,
+    setAbsoluteFolderPath,
+    onNavigateUp,
+    isRootNode,
+    options,
+  };
+};
+
+// TODO: use MUI Dropdown when it is released
+
+const FilePicker: React.FC<FilePickerProps> = ({
+  cwd,
+  absoluteCwd, // Because the file tree could have multiple roots, e.g. /project-dir:/ or /data:/.
+  value,
+  tree,
+  onChangeValue,
+  helperText,
+  icon,
+  menuMaxWidth,
+  onSelectMenuItem,
+}) => {
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const inputRef = React.useRef<HTMLInputElement>();
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
+  useClickOutside(menuRef, () => setIsDropdownOpen(false));
+
+  const {
+    absoluteFolderPath,
+    setAbsoluteFolderPath,
+    onNavigateUp,
+    isRootNode,
+    options,
+  } = useFilePicker({ cwd, absoluteCwd, tree, onChangeValue });
+
+  // When clicking on the dropdown menu, the built-in `onBlur` will be fired.
+  // Use a boolean to control if it's an intended blur behavior.
+  const isBlurAllowed = React.useRef(true);
+  const onMouseOverMenu = () => {
+    isBlurAllowed.current = false;
+  };
+  const onMouseLeaveMenu = () => {
+    isBlurAllowed.current = true;
+  };
+
+  const onFocusTextField = () => {
+    setIsDropdownOpen(true);
+  };
+
+  const onBlurTextField = () => {
+    if (isBlurAllowed.current) setIsDropdownOpen(false);
+  };
 
   const onSelectListItem = (selectedNode: FileTree) => {
     onSelectMenuItem(selectedNode);
     if (selectedNode.type === "directory") {
-      setAbsPath((oldPath) => {
+      setAbsoluteFolderPath((oldPath) => {
         const selectedNodePath = selectedNode.path || "";
         // If it's root, it needs to be handled differently.
         // It is either "/project-dir:/", or "/data:/".
@@ -226,7 +226,10 @@ const FilePicker: React.FC<FilePickerProps> = ({
       });
     } else {
       onChangeValue(
-        getFilePathForRelativeToProject(`${absPath}${selectedNode.name}`, cwd)
+        getFilePathForRelativeToProject(
+          `${absoluteFolderPath}${selectedNode.name}`,
+          cwd
+        )
       );
       setIsDropdownOpen(false);
     }
@@ -301,15 +304,6 @@ const FilePicker: React.FC<FilePickerProps> = ({
       )}
     </Box>
   );
-};
-
-FilePicker.defaultProps = {
-  tree: {
-    name: "/",
-    root: true,
-    type: "directory",
-    children: [],
-  },
 };
 
 export default FilePicker;
