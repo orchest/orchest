@@ -7,9 +7,12 @@ in the code base since currently the analytics module is shared across
 multiple services.
 
 """
+import os
+
 from flask import current_app
 
 from _orchest.internals import analytics
+from _orchest.internals import utils as _utils
 from app import models
 from app import utils as app_utils
 from app.connections import db
@@ -136,6 +139,33 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     return analytics_payload
 
 
+def _augment_payload(payload: dict) -> None:
+    """Last minute augmentations of an analytics payload.
+
+    Necessary to not introduce breaking changes to the existing
+    analytics schema and not having the orchest-api access the file
+    system.
+    """
+    if payload["type"] in ["project:one-off-job:created", "project:cron-job:created"]:
+        job = models.Job.query.filter(
+            models.Job.project_uuid == payload["project"]["uuid"],
+            models.Job.uuid == payload["job"]["uuid"],
+        ).first()
+        if job is None:
+            return
+
+        snapshot_path = app_utils.get_job_snapshot_path(
+            job.project_uuid,
+            job.pipeline_uuid,
+            job.uuid,
+        )
+        if os.path.exists(snapshot_path):
+            payload["snapshot_size"] = _utils.get_directory_size(
+                snapshot_path
+                # In MBs.
+            ) / (1024**2)
+
+
 def deliver(delivery_uuid: str) -> None:
     """Delivers an analytics delivery. Will commit to the database.
 
@@ -177,6 +207,9 @@ def deliver(delivery_uuid: str) -> None:
         analytics_event_type = _event_type_to_analytics_event_enum.get(
             payload["type"], analytics.Event.DEBUG_PING
         )
+
+        _augment_payload(payload)
+
         if analytics.send_event(current_app, analytics_event_type, payload):
             delivery.set_delivered()
             db.session.delete(delivery)

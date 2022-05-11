@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import subprocess
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests
 from flask import safe_join
@@ -304,7 +304,7 @@ def is_version_lt(expected_older: str, expected_newer: str) -> bool:
     return False
 
 
-def get_directory_size(path: str, skip_dirs: Iterable):
+def get_directory_size(path: str, skip_dirs: Optional[Iterable] = None):
     """Gets the directory size in bytes.
 
     Args:
@@ -315,6 +315,9 @@ def get_directory_size(path: str, skip_dirs: Iterable):
         Size of the directory in bytes.
 
     """
+    if skip_dirs is None:
+        skip_dirs = []
+
     size = 0
     for root, dirs, files in os.walk(path):
         size += sum(os.path.getsize(safe_join(root, name)) for name in files)
