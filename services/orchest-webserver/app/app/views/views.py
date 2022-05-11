@@ -252,7 +252,8 @@ def register_views(app, db):
 
         if request.method == "POST":
             # Updated config, from client.
-            config = request.form.get("config")
+            request_body = request.get_json()
+            config = request_body.get("config", None)
 
             if config is None:
                 return {"message": "No config was given."}, 400
@@ -307,7 +308,7 @@ def register_views(app, db):
             }
         }
 
-        return host_info
+        return jsonify(host_info)
 
     @app.route("/async/jupyter-setup-script", methods=["GET", "POST"])
     def jupyter_setup_script():

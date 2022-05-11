@@ -1,7 +1,8 @@
 import { AppContextProvider, useAppContext } from "@/contexts/AppContext";
 import { ProjectsContextProvider } from "@/contexts/ProjectsContext";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
-import { chance, mockProjects } from "@/__mocks__/mockProjects.mock";
+import { chance } from "@/__mocks__/common.mock";
+import { mockProjects } from "@/__mocks__/mockProjects.mock";
 import { server } from "@/__mocks__/server.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";

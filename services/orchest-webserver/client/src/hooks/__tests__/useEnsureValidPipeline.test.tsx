@@ -7,8 +7,8 @@ import {
 import type { NavigateParams } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { PipelineMetaData } from "@/types";
+import { chance } from "@/__mocks__/common.mock";
 import {
-  chance,
   getPipelineMedadatas,
   mockProjects,
 } from "@/__mocks__/mockProjects.mock";

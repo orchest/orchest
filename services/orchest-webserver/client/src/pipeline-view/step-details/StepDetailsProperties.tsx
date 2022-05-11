@@ -100,7 +100,7 @@ export const StepDetailsProperties = ({
       if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
         let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
 
-        window.orchest.jupyter.setNotebookKernel(
+        window.orchest.jupyter?.setNotebookKernel(
           collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
           kernelName
         );

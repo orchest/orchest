@@ -1,6 +1,7 @@
 import { ProjectsContextProvider } from "@/contexts/ProjectsContext";
 import { Project } from "@/types";
-import { chance, mockProjects } from "@/__mocks__/mockProjects.mock";
+import { chance } from "@/__mocks__/common.mock";
+import { mockProjects } from "@/__mocks__/mockProjects.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
 import { SWRConfig } from "swr";

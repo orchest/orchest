@@ -3,10 +3,10 @@ import { IntercomProvider } from "react-use-intercom";
 import { useAppContext } from "./AppContext";
 
 export const Intercom: React.FC = ({ children }) => {
-  const { state } = useAppContext();
+  const { config } = useAppContext();
 
   return (
-    <IntercomProvider appId={state.config?.INTERCOM_APP_ID || ""}>
+    <IntercomProvider appId={config?.INTERCOM_APP_ID || ""}>
       {children}
     </IntercomProvider>
   );

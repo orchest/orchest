@@ -34,7 +34,7 @@ $.fn.overflowing = function () {
 };
 
 const App = () => {
-  const [jupyter, setJupyter] = React.useState<Jupyter>(null);
+  const [jupyter, setJupyter] = React.useState<Jupyter | null>(null);
   const { boot } = useIntercom();
   const { setConfirm, isDrawerOpen, setIsDrawerOpen } = useAppContext();
 
@@ -42,8 +42,10 @@ const App = () => {
 
   // load server side config populated by flask template
   const {
-    state: { config, user_config, hasUnsavedChanges },
+    state: { hasUnsavedChanges },
     setAsSaved,
+    config,
+    user_config,
   } = useAppContext();
 
   const jupyterRef = React.useRef<HTMLDivElement>(null);
@@ -72,7 +74,8 @@ const App = () => {
   }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
-    setJupyter(new Jupyter(jupyterRef.current, setConfirm));
+    if (jupyterRef.current)
+      setJupyter(new Jupyter(jupyterRef.current, setConfirm));
   }, [setConfirm]);
 
   window.orchest = {

@@ -108,13 +108,7 @@ const getNewEnvironmentName = (
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
-  const {
-    setAlert,
-    setConfirm,
-    state: {
-      config: { ENVIRONMENT_DEFAULTS },
-    },
-  } = useAppContext();
+  const { setAlert, setConfirm, config } = useAppContext();
   const mounted = useMounted();
 
   const {
@@ -129,7 +123,8 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
 
   const removeFetchedEnvironment = (uuid: string) => {
     setFetchedEnvironments(
-      (current) => current.filter((current) => current.uuid !== uuid),
+      (current) =>
+        current ? current.filter((current) => current.uuid !== uuid) : current,
       false
     );
   };
@@ -189,9 +184,10 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   );
 
   const onCreateClick = async (e: React.MouseEvent) => {
-    if (isCreatingEnvironment) return;
+    if (isCreatingEnvironment || !config?.ENVIRONMENT_DEFAULTS) return;
     try {
       setIsCreatingEnvironment(true);
+      const defaultEnvironments = config?.ENVIRONMENT_DEFAULTS;
       const response = await fetcher<Environment>(
         `/store/environments/${projectUuid}/new`,
         {
@@ -199,10 +195,10 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
           headers: HEADER.JSON,
           body: JSON.stringify({
             environment: {
-              ...ENVIRONMENT_DEFAULTS,
+              ...defaultEnvironments,
               uuid: "new",
               name: getNewEnvironmentName(
-                ENVIRONMENT_DEFAULTS.name,
+                defaultEnvironments.name,
                 fetchedEnvironments
               ),
             },
