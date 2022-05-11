@@ -1,6 +1,5 @@
 import { OrchestConfig, OrchestUserConfig } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
-import "codemirror/mode/javascript/javascript";
 import React from "react";
 import useSWR, { MutatorCallback } from "swr";
 import { configToVisibleConfig } from "../common";
@@ -13,10 +12,12 @@ export const useOrchestUserConfigJson = (
     (url) =>
       fetcher<{ user_config: Partial<OrchestUserConfig> }>(url).then(
         (response) => {
+          if (!orchestConfig) return response.user_config;
           return configToVisibleConfig(orchestConfig, response.user_config);
         }
       )
   );
+
   const setUserConfigJson = React.useCallback(
     (
       data?:
@@ -26,5 +27,6 @@ export const useOrchestUserConfigJson = (
     ) => mutate(data, false),
     [mutate]
   );
+
   return { userConfigJson: data, setUserConfigJson };
 };

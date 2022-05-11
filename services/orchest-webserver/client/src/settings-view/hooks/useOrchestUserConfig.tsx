@@ -1,6 +1,5 @@
 import { OrchestConfig, OrchestUserConfig } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
-import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { configToInvisibleConfig, configToVisibleConfig } from "../common";
 import { useOrchestUserConfigJson } from "./useOrchestUserConfigJson";
@@ -24,7 +23,7 @@ export const useOrchestUserConfig = (
   );
 
   React.useEffect(() => {
-    if (!userConfigJson) return;
+    if (!userConfigJson || !orchestConfig) return;
     let visibleJSON = configToVisibleConfig(orchestConfig, userConfigJson);
     _setUserConfig(JSON.stringify(visibleJSON, null, 2));
   }, [orchestConfig, userConfigJson, _setUserConfig]);
@@ -36,7 +35,7 @@ export const useOrchestUserConfig = (
   >();
 
   const saveUserConfig = React.useCallback(async () => {
-    if (!userConfig) return;
+    if (!userConfig || !orchestConfig) return;
 
     try {
       let visibleJSON = JSON.parse(userConfig);

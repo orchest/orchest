@@ -1,13 +1,10 @@
 import { OrchestConfig, OrchestUserConfig } from "@/types";
-import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
 
 export const configToVisibleConfig = (
-  orchestConfig: OrchestConfig | undefined,
+  orchestConfig: OrchestConfig,
   configJSON: Partial<OrchestUserConfig>
 ): Partial<OrchestUserConfig> => {
-  if (!orchestConfig) return {};
-
   if (orchestConfig?.CLOUD !== true) {
     return configJSON;
   }
@@ -23,7 +20,7 @@ export const configToVisibleConfig = (
 };
 
 export const configToInvisibleConfig = (
-  orchestConfig: OrchestConfig | undefined,
+  orchestConfig: OrchestConfig,
   configJSON: Partial<OrchestUserConfig>
 ): Partial<OrchestUserConfig> => {
   if (orchestConfig?.CLOUD !== true) {
