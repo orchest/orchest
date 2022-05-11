@@ -42,7 +42,7 @@ To start, make sure you have :ref:`installed Orchest <regular installation>` and
 .. code-block:: bash
 
    # Make sure to be in the root-level orchest directory.
-   ./orchest start
+   orchest start
 
 Next create a new :ref:`project <projects>` named ``quickstart``. After creating the project, you will see that it
 does not yet have any :ref:`pipelines <pipeline>`.
@@ -173,4 +173,4 @@ to import the pipeline. You can also build the pipeline from scratch yourself!
    The :ref:`interactive session <interactive session>` does not shut down automatically and thus the
    resources will keep running when editing another pipeline, you can shut down the session manually
    by clicking on the shut down button. Of course all resources are shut down when you shut down
-   Orchest with ``./orchest stop``.
+   Orchest with ``orchest stop``.
