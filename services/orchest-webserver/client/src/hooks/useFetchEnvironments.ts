@@ -4,9 +4,12 @@ import React from "react";
 import useSWR from "swr";
 import { MutatorCallback } from "swr/dist/types";
 
-export function useFetchEnvironments(projectUuid: string | undefined) {
+export function useFetchEnvironments(
+  projectUuid: string | undefined,
+  queryString = ""
+) {
   const { data, error, isValidating, mutate } = useSWR<Environment[]>(
-    projectUuid ? `/store/environments/${projectUuid}` : null,
+    projectUuid ? `/store/environments/${projectUuid}${queryString}` : null,
     fetcher
   );
 
