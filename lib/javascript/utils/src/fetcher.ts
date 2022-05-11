@@ -26,6 +26,11 @@ export const fetcher = async <T>(url: string, params?: RequestInit) => {
   return jsonResponse as Promise<T>;
 };
 
+export type Fetcher<T = void> = (
+  url: string,
+  params?: RequestInit | undefined
+) => Promise<T>;
+
 export const HEADER = {
   JSON: { "Content-Type": "application/json; charset=UTF-8" },
   FORM: {

@@ -50,9 +50,7 @@ export const CustomImageDialog = ({
   }) => Promise<Environment | null>;
   setCustomImage: (value: CustomImage) => void;
 }) => {
-  const {
-    state: { config },
-  } = useAppContext();
+  const { config } = useAppContext();
   const {
     handleSubmit,
     handleChange,

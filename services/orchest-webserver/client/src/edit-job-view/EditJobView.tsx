@@ -15,7 +15,7 @@ import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
@@ -210,8 +210,7 @@ type JobUpdatePayload = {
 
 const EditJobView: React.FC = () => {
   // global states
-  const appContext = useAppContext();
-  const { setAlert, setAsSaved } = appContext;
+  const { config, setAlert, setAsSaved } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.editJob.path });
 
   // data from route
@@ -285,8 +284,7 @@ const EditJobView: React.FC = () => {
     if (job && pipelineJson) {
       // Do not generate another strategy_json if it has been defined
       // already.
-      const reserveKey =
-        appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+      const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
       const generatedStrategyJson =
         job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
           ? generateStrategyJson(pipelineJson, reserveKey)
@@ -311,11 +309,7 @@ const EditJobView: React.FC = () => {
       setPipelineRuns(newPipelineRuns);
       setPipelineRunRows(newPipelineRunRows);
     }
-  }, [
-    job,
-    pipelineJson,
-    appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
-  ]);
+  }, [job, pipelineJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY]);
 
   const handleJobNameChange = (name: string) => {
     setJob((prev) => (prev ? { ...prev, name } : prev));

@@ -4,7 +4,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { PipelineJson, StepsDict } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";

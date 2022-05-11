@@ -1,5 +1,0 @@
-apiVersion: v2
-description: The helm chart for ceph resources, CephCluster, Stroage Classes and etc.
-name: nfs
-version: 0.0.1
-icon: https://github.com/orchest/orchest/blob/master/docs/source/img/logo.png

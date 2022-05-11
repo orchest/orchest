@@ -38,9 +38,7 @@ export const NoParameterAlert = () => {
 };
 
 const ParamTree: React.FC<IParamTreeProps> = (props) => {
-  const {
-    state: { config },
-  } = useAppContext();
+  const { config } = useAppContext();
 
   const truncateParameterValue = (value) => {
     // stringify non string values
@@ -109,7 +107,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
 
     // first list pipeline parameters
     let pipelineParameterization =
-      strategyJSON[config?.PIPELINE_PARAMETERS_RESERVED_KEY];
+      strategyJSON[config?.PIPELINE_PARAMETERS_RESERVED_KEY || ""];
     if (pipelineParameterization) {
       pipelineParameterElement = generateParameterElement(
         pipelineParameterization,

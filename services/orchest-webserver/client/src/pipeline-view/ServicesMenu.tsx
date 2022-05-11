@@ -1,5 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { Service } from "@/types";
 import { getServiceURLs } from "@/utils/webserver-utils";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";

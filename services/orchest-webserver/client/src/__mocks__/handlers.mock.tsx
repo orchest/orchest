@@ -1,64 +1,50 @@
+import { OrchestUserConfig } from "@/types";
 import { rest } from "msw";
-import {
-  chance,
-  getPipelineMedadatas,
-  mockProjects,
-} from "./mockProjects.mock";
+import { mockConfig } from "./mockConfig.mock";
+import { getPipelineMedadatas, mockProjects } from "./mockProjects.mock";
 
 export const handlers = [
-  rest.get("/async/server-config", (req, res, ctx) => {
+  rest.get("/async/user-config", (req, res, ctx) => {
     return res(
       ctx.json({
-        config: {
-          CLOUD: false,
-          CLOUD_UNMODIFIABLE_CONFIG_VALUES: [
-            "TELEMETRY_UUID",
-            "TELEMETRY_DISABLED",
-            "AUTH_ENABLED",
-            "INTERCOM_USER_EMAIL",
-          ],
-          ENVIRONMENT_DEFAULTS: {
-            base_image: "orchest/base-kernel-py:v2022.04.0",
-            gpu_support: false,
-            language: "python",
-            name: "Python 3",
-            setup_script:
-              "#!/bin/bash\n\n# Install any dependencies you have in this shell script,\n# see https://docs.orchest.io/en/latest/fundamentals/environments.html#install-packages\n\n# E.g. mamba install -y tensorflow\n\n",
-          },
-          FLASK_ENV: "development",
-          GPU_ENABLED_INSTANCE: false,
-          INTERCOM_APP_ID: chance.guid(),
-          INTERCOM_DEFAULT_SIGNUP_DATE: "1577833200",
-          ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE:
-            "/environment_image_builds",
-          ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE:
-            "/jupyter_image_builds",
-          ORCHEST_WEB_URLS: {
-            github: "https://github.com/orchest/orchest",
-            orchest_examples_json:
-              "https://raw.githubusercontent.com/orchest/orchest-examples/main/orchest_examples_data.json",
-            orchest_examples_repo:
-              "https://github.com/orchest/orchest-examples",
-            orchest_update_info_json:
-              "https://update-info.orchest.io/api/orchest/update-info/v2?version=v2022.04.0",
-            readthedocs: "https://docs.orchest.io/en/stable",
-            slack:
-              "https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w",
-            website: "https://www.orchest.io",
-          },
-          PIPELINE_PARAMETERS_RESERVED_KEY: "pipeline_parameters",
-          TELEMETRY_DISABLED: true,
-        },
-        user_config: {
-          AUTH_ENABLED: false,
-          INTERCOM_USER_EMAIL: chance.email(),
-          MAX_INTERACTIVE_RUNS_PARALLELISM: 1,
-          MAX_JOB_RUNS_PARALLELISM: 1,
-          TELEMETRY_DISABLED: true,
-          TELEMETRY_UUID: chance.guid(),
-        },
+        user_config: mockConfig.get().user_config,
       })
     );
+  }),
+  rest.post<{ config: string }>("/async/user-config", (req, res, ctx) => {
+    const requestBody = req.body.config;
+
+    const updatedUserConfig = { ...mockConfig.get().user_config };
+    const requiresRestart = Object.entries(
+      JSON.parse(requestBody) as OrchestUserConfig
+    ).reduce((all, [key, value]) => {
+      if (updatedUserConfig[key] !== value) {
+        updatedUserConfig[key] = value;
+        return [...all, key];
+      }
+      return all;
+    }, [] as string[]);
+
+    mockConfig.set({ user_config: updatedUserConfig });
+
+    return res(
+      ctx.json({
+        user_config: updatedUserConfig,
+        requires_restart: requiresRestart,
+      })
+    );
+  }),
+  rest.get("/async/server-config", (req, res, ctx) => {
+    return res(ctx.json(mockConfig.get()));
+  }),
+  rest.get(`/async/projects`, (req, res, ctx) => {
+    const projectCollection = mockProjects.getAll();
+
+    const projects = Object.values(projectCollection).map(
+      (collection) => collection.project
+    );
+
+    return res(ctx.json(projects));
   }),
   rest.get(`/async/projects/:projectUuid`, (req, res, ctx) => {
     const projectUuid = req.params.projectUuid as string;

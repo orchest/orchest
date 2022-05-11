@@ -1,0 +1,165 @@
+replicaCount: 1
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+fullnameOverride: docker-registry
+
+image:
+  repository: registry
+  tag: 2.7.1
+  pullPolicy: IfNotPresent
+
+service:
+  name: registry
+  type: ClusterIP
+  port: 443
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: nginx
+  path: /
+  hosts:
+    - chart-example.local
+  annotations: {}
+  labels: {}
+  tls:
+
+resources: {}
+
+persistence:
+  accessMode: 'ReadWriteOnce'
+  enabled: true
+  size: 999Ti
+  # storageClass: '-'
+
+# set the type of filesystem to use: filesystem, s3
+storage: filesystem
+
+tlsSecretName: registry-tls-secret
+secrets:
+  haSharedSecret: ""
+  htpasswd: ""
+# Secrets for Azure
+#   azure:
+#     accountName: ""
+#     accountKey: ""
+#     container: ""
+# Secrets for S3 access and secret keys
+# Use a secretRef with keys (accessKey, secretKey) for secrets stored outside the chart
+#   s3:
+#     secretRef: ""
+#     accessKey: ""
+#     secretKey: ""
+# Secrets for Swift username and password
+#   swift:
+#     username: ""
+#     password: ""
+
+# Options for s3 storage type:
+# s3:
+#  region: us-east-1
+#  regionEndpoint: s3.us-east-1.amazonaws.com
+#  bucket: my-bucket
+#  rootdirectory: /object/prefix
+#  encrypt: false
+#  secure: true
+
+# Options for swift storage type:
+# swift:
+#  authurl: http://swift.example.com/
+#  container: my-container
+
+# https://docs.docker.com/registry/recipes/mirror/
+proxy:
+  enabled: false
+  remoteurl: https://registry-1.docker.io
+  username: ""
+  password: ""
+  # the ref for a secret stored outside of this chart
+  # Keys: proxyUsername, proxyPassword
+  secretRef: ""
+
+metrics:
+  enabled: false
+  port: 5001
+  # Create a prometheus-operator servicemonitor
+  serviceMonitor:
+    enabled: false
+    labels: {}
+  # prometheus-operator PrometheusRule defining alerting rules for a Prometheus instance
+  prometheusRule:
+    enabled: false
+    labels: {}
+    rules: {}
+
+configData:
+  version: 0.1
+  log:
+    fields:
+      service: registry
+  storage:
+    delete:
+      enabled: true
+    cache:
+      blobdescriptor: redis
+  redis:
+    addr: localhost
+    dialtimeout: 0ms
+    readtimeout: 0ms
+    writetimeout: 0ms
+  http:
+    addr: :5000
+    headers:
+      X-Content-Type-Options: [nosniff]
+    debug:
+      addr: :5001
+      prometheus:
+        enabled: false
+        path: /metrics
+  health:
+    storagedriver:
+      enabled: true
+      interval: 10s
+      threshold: 3
+
+securityContext:
+  enabled: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+priorityClassName: ""
+
+podDisruptionBudget: {}
+  # maxUnavailable: 1
+  # minAvailable: 2
+
+nodeSelector: {}
+
+affinity: {}
+
+tolerations: []
+
+extraVolumeMounts: []
+## Additional volumeMounts to the registry container.
+#  - mountPath: /secret-data
+#    name: cloudfront-pem-secret
+#    readOnly: true
+
+extraVolumes: []
+## Additional volumes to the pod.
+#  - name: cloudfront-pem-secret
+#    secret:
+#      secretName: cloudfront-credentials
+#      items:
+#        - key: cloudfront.pem
+#          path: cloudfront.pem
+#          mode: 511
+
+extraEnvVars: []
+## Additional ENV variables to set
+# - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+#   value: "/var/lib/example"

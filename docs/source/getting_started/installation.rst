@@ -13,29 +13,9 @@ Installation
 Prerequisites
 -------------
 
-* `minikube <https://minikube.sigs.k8s.io/docs/start/>`_
-* `helm <https://helm.sh/docs/intro/install/>`_
 * `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_
-* `GNU Make <https://www.gnu.org/software/make/>`_
-* bash
-
-Windows
-~~~~~~~
-.. caution::
-   For all further steps, including installation of the prerequisites, make sure to run CLI commands
-   inside a WSL terminal. You can do this by opening the distribution using the Start menu or by
-   `setting up the Windows Terminal
-   <https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal>`_.
-
-For windows please install Orchest within the WSL 2.
-
-Make sure you don't clone the Orchest repository in the paths shared with Windows (e.g.
-``/mnt/C/...``). Due to permission handling in WSL2 this is not supported. Use the native filesystem
-instead, for example clone orchest in the Linux user home directory:
-
-.. code-block:: bash
-
-   cd && git clone https://github.com/orchest/orchest.git
+* `git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
+* `pip <https://pip.pypa.io/en/stable/installation/>`_
 
 Kubernetes cluster
 ~~~~~~~~~~~~~~~~~~
@@ -50,18 +30,58 @@ minikube <https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/
    # Start a minikube cluster with profile "minikube".
    minikube start --cpus=4
 
+.. note::
+   In order to be able to access ``orchest`` nginx ingress controller has to be deployed, in minikube cluster
+   it can be done by running ``minikube addons enable ingress``.
+   
 .. _regular installation:
 
-Install Orchest
----------------
+Deploy ``orchest-controller``
+-----------------------------
+
+The ``orchest-controller`` is required to install and manage ``orchest``
+
 .. code-block:: bash
 
    git clone https://github.com/orchest/orchest.git && cd orchest
 
-   bash orchest install
+   # Create the orchest namespace, as the Orchest Controller and Cluster will be deployed in
+   # orchest namespace
+   kubectl create ns orchest
 
-   # You can now reach Orchest on the IP returned by:
+   # Deploy orchest-controller
+   kubectl apply -f services/orchest-controller/deploy-controller
+
+Install ``orchest-cli``
+-----------------------
+
+.. code-block:: bash
+
+   # Install orchest-cli via pip
+   pip install orchest-cli
+
+
+Install ``orchest`` via ``orchest-cli``
+----------------------------------------
+
+.. code-block:: bash
+
+   # Install orchest
+   orchest install
+
+
+Now the cluster can be reached the IP returned by:
+
+.. code-block:: bash
+
    minikube ip
+
+.. note::
+   We recommend to install Orchest on a clean cluster (a non-existing cluster) because it is 
+   hard to play well with other software already installed on the cluster, e.g, argo, etc.
+
+.. note::
+   Authentication is disabled in default installation.
 
 .. tip::
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
@@ -74,7 +94,7 @@ cluster IP directly, you can install Orchest using:
 
 .. code-block:: bash
 
-   bash orchest install --fqdn="localorchest.io"
+   orchest install --fqdn="localorchest.io"
 
    # Set up the default Fully Qualified Domain Name (FQDN) in your
    # /etc/hosts so that you can reach Orchest locally.
@@ -85,23 +105,3 @@ cluster IP directly, you can install Orchest using:
 GPU support
 -----------
 Currently GPU support is not yet available. Coming soon!
-
-Build from source
------------------
-You can expect the build to finish in roughly 15 minutes.
-
-.. code-block:: bash
-
-   git clone https://github.com/orchest/orchest.git && cd orchest
-
-   # Check out the version you would like to build.
-   git checkout v2022.03.8
-
-   # Activate `minikube`'s docker
-   eval $(minikube -p minikube docker-env)
-
-   # Build Orchest's container images from source (in parallel).
-   scripts/build_container.sh -o "v2022.03.8" -t "v2022.03.8"
-
-   # Install Orchest
-   bash orchest install

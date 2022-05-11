@@ -1,0 +1,11 @@
+# TEMPORY FILE: to be removed later
+apiVersion: orchest.io/v1alpha1
+kind: OrchestCluster
+metadata:
+  name: cluster-1
+  namespace: orchest
+spec:
+  singleNode: true
+  orchest:
+    nodeAgent:
+      image: orchest/node-agent

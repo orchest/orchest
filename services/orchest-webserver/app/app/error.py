@@ -36,6 +36,15 @@ class OutOfDataDirectoryError(Exception):
     pass
 
 
+class OutOfAllowedDirectoryError(Exception):
+    """
+    Attempting to do an operation outside the allowed directories,
+    i.e. the data directory or a project directory.
+    """
+
+    pass
+
+
 class ProjectDoesNotExist(Exception):
     pass
 

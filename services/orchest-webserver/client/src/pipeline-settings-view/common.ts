@@ -1,7 +1,6 @@
 import { ServiceTemplate } from "@/pipeline-settings-view/ServiceTemplatesDialog/content";
 import type { Json, PipelineJson, PipelineSettings, Service } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
-import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
 
 export const getOrderValue = () => {

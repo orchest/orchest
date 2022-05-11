@@ -1,7 +1,0 @@
-apiVersion: v2
-description: The helm chart for rabbitmq deployment
-name: rabbitmq
-version: 0.0.1
-icon: https://www.rabbitmq.com/img/rabbitmq_logo_strap.png
-sources:
-  - https://github.com/rabbitmq/rabbitmq-server

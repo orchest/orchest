@@ -1,5 +1,0 @@
-{{/*
-services
-*/}}
----
-{{ include "library.service" . }}

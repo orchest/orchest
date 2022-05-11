@@ -14,6 +14,7 @@ orchest.code-workspace
 #  .gitignore to avoid confusion
 services/*/.dockerignore
 services/*/lib
+services/orchest-webserver/app/core
 
 # Distribution / packaging
 .Python
@@ -157,6 +158,9 @@ debug-dump.tar.gz
 # Cypress output
 cypress/cypress/videos
 cypress/cypress/screenshots
+
+# Go debugger
+__debug_bin
 
 # ----- Don't ignore -------
 # Compiled custom GitHub Action

@@ -1,7 +1,0 @@
-apiVersion: v2
-description: The helm chart for postgres deployment
-name: postgres
-version: 0.0.1
-icon: https://www.postgresql.org/media/img/about/press/elephant.png
-sources:
-  - https://github.com/postgres/postgres

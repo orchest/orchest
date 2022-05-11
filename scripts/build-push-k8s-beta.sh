@@ -10,10 +10,8 @@ to_build=(
 	node-agent
 	orchest-api
 	memory-server
-	orchest-ctl
 	orchest-webserver
 	session-sidecar
-	update-sidecar
 )
 tag="k8s-beta"
 
