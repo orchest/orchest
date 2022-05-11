@@ -11,6 +11,7 @@ import requests
 from flask import current_app, safe_join
 
 from _orchest.internals import config as _config
+from _orchest.internals import utils as _utils
 from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
 from app import error
 from app.compat import migrate_pipeline
@@ -90,17 +91,6 @@ def get_project_directory(project_uuid):
 def get_project_snapshot_size(project_uuid):
     """Returns the snapshot size for a project in MB."""
 
-    def get_size(path, skip_dirs):
-        size = 0
-        for root, dirs, files in os.walk(path):
-            size += sum(os.path.getsize(safe_join(root, name)) for name in files)
-
-            for skip_dir in skip_dirs:
-                if skip_dir in dirs:
-                    dirs.remove(skip_dir)
-
-        return size
-
     project_dir = get_project_directory(project_uuid)
 
     # This does not count towards size for snapshots.
@@ -111,7 +101,7 @@ def get_project_snapshot_size(project_uuid):
     skip_dirs = [".orchest"]
 
     # Convert bytes to megabytes.
-    return get_size(project_dir, skip_dirs) / (1024 ** 2)
+    return _utils.get_directory_size(project_dir, skip_dirs) / (1024**2)
 
 
 def project_exists(project_uuid):

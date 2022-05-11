@@ -4,9 +4,10 @@ import logging
 import os
 import re
 import subprocess
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 import requests
+from flask import safe_join
 from werkzeug.serving import is_running_from_reloader as _irfr
 
 logger = logging.getLogger(__name__)
@@ -301,3 +302,25 @@ def is_version_lt(expected_older: str, expected_newer: str) -> bool:
         elif int(o) < int(n):
             return True
     return False
+
+
+def get_directory_size(path: str, skip_dirs: Iterable):
+    """Gets the directory size in bytes.
+
+    Args:
+        path: Path of the directory.
+        skip_dirs: Direcotires to skip when calculating the size.
+
+    Returns:
+        Size of the directory in bytes.
+
+    """
+    size = 0
+    for root, dirs, files in os.walk(path):
+        size += sum(os.path.getsize(safe_join(root, name)) for name in files)
+
+        for skip_dir in skip_dirs:
+            if skip_dir in dirs:
+                dirs.remove(skip_dir)
+
+    return size
