@@ -18,7 +18,10 @@ In order to code on Orchest, you need to have the following installed on your sy
 * `helm <https://helm.sh/docs/intro/install/>`_ (if you intend to develop files in ``/deploy``)
 * `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_ (you might want to try out a tool
   like ``k9s`` in the long run)
-* `pre-commit <https://pre-commit.com/#installation>`_
+* `pre-commit <https://pre-commit.com/#installation>`_ 
+
+  * `install go <https://go.dev/doc/install>`_ if you work on the controller
+
 * `npm <https://docs.npmjs.com/downloading-and-installing-node-js-and-npm>`_ and `pnpm
   <https://pnpm.io/installation#using-npm>`_
 * `jq <https://stedolan.github.io/jq/>`_ (useful when working with JSON in your terminal)
@@ -92,7 +95,7 @@ For example, to make changes on the ``orchest-api`` service, do the following:
     eval $(minikube -p minikube docker-env)
 
     # Save the Orchest version in use
-    export TAG=$(./orchest version --json | jq -r .cluster_version)
+    export TAG=$(orchest version --json | jq -r .version)
 
     # Build the desired image
     scripts/build_container.sh -i orchest-api -t $TAG -o $TAG
@@ -139,7 +142,7 @@ For this reason, we provide the following scripts:
 Incremental development (hot reloading)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The steps above allow you to rebuild the images for the services.
-In addition, you can also install Orchest in dev mode by using the ``--dev`` flag
+In addition, you can also set Orchest to run in dev mode with ``orchest patch --dev``
 so that code changes are instantly reflected, without having to build the containers again.
 The services that support dev mode are:
 
@@ -160,11 +163,10 @@ The services that support dev mode are:
    # Run the client dev server for hot reloading of client (i.e. FE) files.
    pnpm run dev &
 
-   # If Orchest is running, stop it.
-   ./orchest stop
+   orchest start
 
-   # Start Orchest in --dev mode.
-   ./orchest start --dev
+   orchest patch --dev
+
 
 .. note::
    🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
