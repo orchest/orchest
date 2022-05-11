@@ -534,7 +534,7 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 
 	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
 		map[string]string{
-			"ORCHEST_CLUSTER": orchest.Name,
+			"ORCHEST_CLUSTER":   orchest.Name,
 			"ORCHEST_NAMESPACE": orchest.Namespace,
 		}, false)
 	if envChanged {
