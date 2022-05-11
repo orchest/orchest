@@ -4,7 +4,9 @@ Upon the registration of an event in the db, deliveries are created
 accordingly based on any subscribers subscribed to the event type that
 happened.
 """
-from app import models, utils
+from app import models
+from app import utils
+from app import utils as app_utils
 from app.connections import db
 from app.core import notifications
 from app.core.notifications import analytics as api_analytics
@@ -30,14 +32,20 @@ def _register_event(ev: models.Event) -> None:
         ev.type, project_uuid=project_uuid, job_uuid=job_uuid
     )
     for sub in subscribers:
-        _logger.info(
-            f"Scheduling delivery for event {ev.uuid}, event type: {ev.type} for "
-            f"deliveree {sub.uuid}."
-        )
         if isinstance(sub, models.AnalyticsSubscriber):
+            if app_utils.OrchestSettings()["TELEMETRY_DISABLED"]:
+                _logger.info(
+                    "Telemetry is disabled, skipping event delivery to analytics."
+                )
+                continue
             notification_payload = api_analytics.generate_payload_for_analytics(ev)
         else:
             notification_payload = ev.to_notification_payload()
+
+        _logger.info(
+            f"Scheduling delivery for event {ev.uuid}, event type: {ev.type} for "
+            f"deliveree {sub.uuid} of type {sub.type}."
+        )
 
         delivery = models.Delivery(
             event=ev.uuid,
