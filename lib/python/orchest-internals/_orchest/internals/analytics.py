@@ -111,20 +111,16 @@ class Event(Enum):
             returned.
 
         """
-        try:
-            anonimization_func = getattr(
-                _Anonymizer, self.value.replace(":", "_").replace("-", "_")
-            )
-        except AttributeError:
-            # No need to anonymize the event.
+        anonymization_func = _ANONYMIZATION_MAPPINGS.get(self)
+        if anonymization_func is None:
             logger.debug(f"Analytics event '{self}' does not need anonymization.")
             return {}
 
         try:
-            return anonimization_func(event_properties)
+            return anonymization_func(event_properties)
         except Exception:
             raise RuntimeError(
-                f"Unexpected error while anonimizing event data for '{self}'."
+                f"Unexpected error while anonymizing event data for '{self}'."
             )
 
 
@@ -245,7 +241,8 @@ class _Anonymizer:
 
     !Note: if you are implementing a function to anonymize some event
     properties be aware that you are in charge of modifying the passed
-    `event_properties` object to anonymize it.
+    `event_properties` object to anonymize it. After implementing a
+    function, add it to Event._ANONYMIZATION_MAPPINGS.
     """
 
     @staticmethod
@@ -274,7 +271,7 @@ class _Anonymizer:
 
     @staticmethod
     def job_duplicated(event_properties: dict) -> dict:
-        return _Anonymizer.job_create(event_properties)
+        return _Anonymizer._job_created(event_properties)
 
     @staticmethod
     def job_updated(event_properties: dict) -> dict:
@@ -321,6 +318,18 @@ class _Anonymizer:
                 "orchest/"
             )
         return derived_properties
+
+
+_ANONYMIZATION_MAPPINGS = {
+    Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created,
+    Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created,
+    Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
+    Event.JOB_UPDATED: _Anonymizer.job_updated,
+    Event.SESSION_STARTED: _Anonymizer.session_started,
+    Event.PIPELINE_RUN_STARTED: _Anonymizer.pipeline_run_started,
+    Event.PIPELINE_SAVED: _Anonymizer.pipeline_saved,
+    Event.ENVIRONMENT_BUILD_STARTED: _Anonymizer.environment_build_started,
+}
 
 
 def _anonymize_service_definition(definition: dict) -> dict:
