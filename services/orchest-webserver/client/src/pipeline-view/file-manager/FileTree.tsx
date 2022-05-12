@@ -174,7 +174,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   const openNotebook = useOpenNoteBook();
 
   const onOpen = React.useCallback(
-    (filePath) => {
+    (filePath: string) => {
       if (isWithinDataFolder(filePath)) {
         setAlert(
           "Notice",

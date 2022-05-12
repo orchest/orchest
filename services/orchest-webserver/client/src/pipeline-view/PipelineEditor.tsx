@@ -309,7 +309,7 @@ export const PipelineEditor = () => {
     (pipelineCwd: string, stepUUID: string) => {
       return collapseDoubleDots(
         `${pipelineCwd}${eventVars.steps[stepUUID].file_path}`
-      ).slice(1);
+      );
     },
     [eventVars.steps]
   );
