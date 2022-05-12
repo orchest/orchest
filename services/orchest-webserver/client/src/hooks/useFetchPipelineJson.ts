@@ -56,21 +56,29 @@ export const fetchPipelineJson = (
       pipelineObj.services = {};
     }
 
-    let maxOrder = 0;
     const sortedServices = Object.entries(pipelineObj.services).sort((a, b) => {
       if (!hasValue(a[1].order) && !hasValue(b[1].order))
         return a[1].name.localeCompare(b[1].name); // If both services have no order value, sort them by name.
-      if (!hasValue(a[1].order)) return -1;
+      if (!hasValue(a[1].order)) return -1; // move all undefined item to the tail.
       if (!hasValue(b[1].order)) return 1;
-      maxOrder = Math.max(maxOrder, a[1].order, b[1].order);
       return a[1].order - b[1].order;
     });
-    // Add `order` if it's undefined
+    // Ensure that order value is unique, and assign a valid value to `order` if it's undefined
+    let maxOrder = -1;
     for (let sorted of sortedServices) {
-      if (!hasValue(pipelineObj.services[sorted[0]].order)) {
-        pipelineObj.services[sorted[0]].order = maxOrder + 1;
-        maxOrder += 1;
+      const targetServiceOrder = pipelineObj.services[sorted[0]].order;
+      if (hasValue(targetServiceOrder)) {
+        const orderValue =
+          maxOrder === targetServiceOrder // Order value is duplicated.
+            ? targetServiceOrder + 1
+            : targetServiceOrder;
+        pipelineObj.services[sorted[0]].order = orderValue;
+        maxOrder = orderValue;
+        continue;
       }
+
+      pipelineObj.services[sorted[0]].order = maxOrder + 1;
+      maxOrder += 1;
     }
 
     return pipelineObj;

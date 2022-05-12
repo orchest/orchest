@@ -128,7 +128,7 @@ export const useFetchPipelineSettings = ({
     // use temporary uuid for easier FE manipulation, will be cleaned up when saving
     initialValue: pipelineJson?.services
       ? (Object.values(pipelineJson?.services).reduce((all, curr) => {
-          return { ...all, [uuidv4()]: curr };
+          return { ...all, [curr.order]: curr };
         }, {}) as Record<string, Service>)
       : undefined,
     hash,

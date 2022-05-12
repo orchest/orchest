@@ -5,8 +5,9 @@ import cloneDeep from "lodash.clonedeep";
 
 export const instantiateNewService = (
   allNames: Set<string>,
-  service: ServiceTemplate["config"]
-) => {
+  service: ServiceTemplate["config"],
+  order: number
+): Service => {
   let clonedService = cloneDeep(service);
 
   let count = 0;
@@ -19,7 +20,7 @@ export const instantiateNewService = (
     }
     count += 1;
   }
-  return clonedService;
+  return { ...clonedService, order };
 };
 
 export function parseJsonString<T = Json>(str: string | undefined) {
@@ -59,7 +60,6 @@ export const generatePipelineJsonForSaving = ({
 }): PipelineJson => {
   const parameters = parseJsonString<Json>(inputParameters);
 
-  // Remove order property from services
   return cleanPipelineJson({
     ...pipelineJson,
     name: pipelineName || "",

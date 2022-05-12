@@ -48,7 +48,7 @@ import {
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
-import { fetcher, hasValue, HEADER, uuidv4 } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -180,10 +180,11 @@ const PipelineSettingsView: React.FC = () => {
   // If the component has loaded, attach the resize listener
   useOverflowListener(hasLoaded);
 
+  // Service['order'] acts as the serial number of a service
   const onChangeService = React.useCallback(
-    (uuid: string, service: Service) => {
+    (order: string, service: Service) => {
       setServices((current) => {
-        return { ...current, [uuid]: service };
+        return { ...current, [order]: service };
       });
 
       setServicesChanged(true);
@@ -407,23 +408,23 @@ const PipelineSettingsView: React.FC = () => {
       }
     });
 
-    return sortedServices.map(([uuid, service]) => {
+    return sortedServices.map(([order, service]) => {
       return {
-        uuid,
+        uuid: order,
         name: service.name,
         scope: service.scope
           .map((scopeAsString) => scopeMap[scopeAsString])
           .join(", "),
         exposed: service.exposed ? "Yes" : "No",
         authenticationRequired: service.requires_authentication ? "Yes" : "No",
-        remove: uuid,
+        remove: order,
         details: (
           <ServiceForm
-            key={uuid}
+            key={order}
             service={service}
             services={services}
             disabled={isReadOnly}
-            updateService={(updated) => onChangeService(uuid, updated)}
+            updateService={(updated) => onChangeService(order, updated)}
           />
         ),
       };
@@ -658,11 +659,14 @@ const PipelineSettingsView: React.FC = () => {
                   {!isReadOnly && (
                     <ServiceTemplatesDialog
                       onSelection={(template) => {
+                        const newOrder =
+                          parseInt(serviceRows.slice(-1)[0]?.uuid || "0") + 1;
                         const newService = instantiateNewService(
                           allServiceNames,
-                          template
+                          template,
+                          newOrder
                         );
-                        onChangeService(uuidv4(), newService);
+                        onChangeService(newOrder.toString(), newService);
                       }}
                     >
                       {(openServiceTemplatesDialog) => (
