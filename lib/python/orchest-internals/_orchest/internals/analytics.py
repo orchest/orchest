@@ -166,7 +166,7 @@ def send_event(
         sent to the telemetry service. False otherwise.
 
     """
-    if app.config["TELEMETRY_DISABLED"]:
+    if app.config.get("TELEMETRY_DISABLED", True):
         return False
 
     telemetry_uuid = app.config.get("TELEMETRY_UUID")
