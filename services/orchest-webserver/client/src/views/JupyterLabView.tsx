@@ -94,6 +94,7 @@ const JupyterLabView: React.FC = () => {
   }, [session, hasEnvironmentCheckCompleted]);
 
   const checkEnvironmentGate = () => {
+    if (!projectUuid) return;
     makeCancelable(checkGate(projectUuid))
       .then(() => {
         setHasEnvironmentCheckCompleted(true);
@@ -127,13 +128,13 @@ const JupyterLabView: React.FC = () => {
 
   useInterval(
     () => {
-      if (window.orchest.jupyter.isJupyterLoaded() && pipelineJson) {
+      if (window.orchest.jupyter?.isJupyterLoaded() && pipelineJson) {
         for (let stepUUID in pipelineJson.steps) {
           let step = pipelineJson.steps[stepUUID];
 
           if (step.file_path.length > 0 && step.environment.length > 0) {
-            window.orchest.jupyter.setNotebookKernel(
-              collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
+            window.orchest.jupyter?.setNotebookKernel(
+              collapseDoubleDots(`${pipelineCwd}${step.file_path}`),
               `orchest-kernel-${step.environment}`
             );
           }
@@ -178,7 +179,7 @@ const JupyterLabView: React.FC = () => {
   const updateJupyterInstance = () => {
     if (session?.base_url) {
       let baseAddress = "//" + window.location.host + session.base_url;
-      window.orchest.jupyter.updateJupyterInstance(baseAddress);
+      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
     }
   };
 

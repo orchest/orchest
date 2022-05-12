@@ -4,11 +4,11 @@ import { tryUntilTrue } from "../utils/webserver-utils";
 
 class Jupyter {
   jupyterHolder: JQuery<HTMLElement>;
-  iframe: any;
+  iframe: HTMLIFrameElement | undefined;
   baseAddress: string;
   reloadOnShow: boolean;
   showCheckInterval: number;
-  pendingKernelChanges: any;
+  pendingKernelChanges: Record<string, boolean>;
   iframeHasLoaded: boolean;
   setConfirm: ConfirmDispatcher;
 
@@ -47,7 +47,7 @@ class Jupyter {
 
     // make sure the baseAddress has loaded
 
-    if (!this.iframe.contentWindow.location.href.includes(this.baseAddress)) {
+    if (!this.iframe?.contentWindow?.location.href.includes(this.baseAddress)) {
       this._setJupyterAddress(this.baseAddress + "/lab");
     }
 
@@ -81,7 +81,7 @@ class Jupyter {
 
   _setJupyterAddress(url: string) {
     this.iframeHasLoaded = false;
-    this.iframe.contentWindow.location.replace(url);
+    this.iframe?.contentWindow?.location.replace(url);
   }
 
   reloadFilesFromDisk() {
@@ -125,7 +125,9 @@ class Jupyter {
   isJupyterPage() {
     try {
       if (
-        this.iframe.contentWindow.document.getElementById("jupyter-config-data")
+        this.iframe?.contentWindow?.document.getElementById(
+          "jupyter-config-data"
+        )
       ) {
         return true;
       }
@@ -182,18 +184,18 @@ class Jupyter {
 
   reloadIframe() {
     this.iframeHasLoaded = false;
-    this.iframe.contentWindow.location.reload();
+    this.iframe?.contentWindow?.location.reload();
   }
 
-  isKernelChangePending(notebook, kernel) {
-    return this.pendingKernelChanges[`${notebook}-${kernel}`] === true;
+  isKernelChangePending(notebook: string, kernel: string) {
+    return this.pendingKernelChanges[`${notebook}-${kernel}`];
   }
 
-  setKernelChangePending(notebook: string, kernel: string, value) {
+  setKernelChangePending(notebook: string, kernel: string, value: boolean) {
     this.pendingKernelChanges[`${notebook}-${kernel}`] = value;
   }
 
-  setNotebookKernel(notebook, kernel) {
+  setNotebookKernel(notebook: string, kernel: string) {
     /**
      *   @param {string} notebook relative path to the Jupyter file from the
      *   perspective of the root of the project directory.
@@ -222,7 +224,6 @@ class Jupyter {
           if (sessionContext.session.kernel.name !== kernel) {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
-              // @ts-ignore
               this.setConfirm("Warning", warningMessage, async (resolve) => {
                 try {
                   await sessionContext.changeKernel({ name: kernel });
@@ -247,7 +248,6 @@ class Jupyter {
               if (notebookSession.kernel.name !== kernel) {
                 if (!this.isKernelChangePending(notebook, kernel)) {
                   this.setKernelChangePending(notebook, kernel, true);
-                  // @ts-ignore
                   this.setConfirm(
                     "Warning",
                     warningMessage,
@@ -324,11 +324,8 @@ class Jupyter {
     this.iframeHasLoaded = false;
     this.iframe.onload = this._loadIframe.bind(this);
 
-    // @ts-ignore
     $(this.iframe).attr("width", "100%");
-    // @ts-ignore
     $(this.iframe).attr("height", "100%");
-    // @ts-ignore
     $(this.iframe).attr("data-test-id", "jupyterlab-iframe");
 
     this.jupyterHolder.append(this.iframe);

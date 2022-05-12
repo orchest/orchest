@@ -90,14 +90,12 @@ export const StepDetailsProperties = ({
           step.uuid,
           false
         );
-      }
-      if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
-        let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
-
-        window.orchest.jupyter?.setNotebookKernel(
-          collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
-          kernelName
-        );
+        if (updatedEnvironmentUUID.length > 0 && step.file_path.length > 0) {
+          window.orchest.jupyter?.setNotebookKernel(
+            collapseDoubleDots(`${pipelineCwd}${step.file_path}`),
+            `orchest-kernel-${updatedEnvironmentUUID}`
+          );
+        }
       }
     },
     [onSave, pipelineCwd, step]
