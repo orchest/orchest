@@ -35,8 +35,6 @@ class Event(Enum):
     HEARTBEAT_TRIGGER = "heartbeat-trigger"
     JOB_DUPLICATED = "job:duplicated"
     JOB_UPDATED = "job:updated"
-    JUPYTER_BUILD_STARTED = "jupyter-build:started"
-    JUPYTER_BUILD_CANCELLED = "jupyter-build:cancelled"
     PIPELINE_RUN_CANCELLED = "pipeline-run:cancelled"
     PIPELINE_RUN_STARTED = "pipeline-run:started"
     PIPELINE_SAVED = "pipeline:saved"
@@ -46,6 +44,13 @@ class Event(Enum):
 
     # Sent by the orchest-api.
     DEBUG_PING = "debug-ping"
+
+    JUPYTER_IMAGE_BUILD_CREATED = "jupyter:image-build:created"
+    JUPYTER_IMAGE_BUILD_STARTED = "jupyter:image-build:started"
+    JUPYTER_IMAGE_BUILD_CANCELLED = "jupyter:image-build:cancelled"
+    JUPYTER_IMAGE_BUILD_FAILED = "jupyter:image-build:failed"
+    JUPYTER_IMAGE_BUILD_SUCCEEDED = "jupyter:image-build:succeeded"
+
     ONE_OFF_JOB_CREATED = "project:one-off-job:created"
     ONE_OFF_JOB_STARTED = "project:one-off-job:started"
     ONE_OFF_JOB_DELETED = "project:one-off-job:deleted"

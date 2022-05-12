@@ -172,7 +172,6 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jupyter-builds/",
         )
-        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_STARTED, {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds/<build_uuid>", methods=["DELETE"])
@@ -182,7 +181,6 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/jupyter-builds/%s" % build_uuid,
         )
-        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_CANCELLED, {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(

@@ -1075,6 +1075,7 @@ class EventType(BaseModel):
     - services/orchest-api/app/migrations/versions/410e08270de4_.py
     - services/orchest-api/app/migrations/versions/814961a3d525_.py
     - services/orchest-api/app/migrations/versions/92dcc9963a9c_.py
+    - services/orchest-api/app/migrations/versions/ad0b4cda3e50_.py
 
     To add more types, add an empty revision with
     `bash scripts/migration_manager.sh orchest-api revision`, then
@@ -1118,6 +1119,10 @@ class Event(BaseModel):
     __mapper_args__ = {
         "polymorphic_on": case(
             [
+                (
+                    type.startswith("jupyter:image-build:"),
+                    "jupyter_image_build_event",
+                ),
                 (
                     type.startswith("project:cron-job:run:pipeline-run:"),
                     "cron_job_run_pipeline_run_event",
@@ -1452,6 +1457,31 @@ Index(
     CronJobRunEvent.job_uuid,
     CronJobRunEvent.run_index,
 )
+
+
+class JupyterImageBuildEvent(Event):
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "jupyter_image_build_event"}
+
+    build_uuid = db.Column(
+        db.String(36), db.ForeignKey("jupyter_image_builds.uuid", ondelete="CASCADE")
+    )
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["jupyter"] = {}
+        build = JupyterImageBuild.query.filter(
+            JupyterImageBuild.uuid == self.build_uuid
+        ).first()
+        if build is not None:
+            payload["jupyter"]["image_build"] = build.as_dict()
+            for k, v in payload["jupyter"]["image_build"].items():
+                if isinstance(v, datetime.datetime):
+                    payload["jupyter"]["image_build"][k] = str(v)
+        return payload
 
 
 class CronJobRunPipelineRunEvent(CronJobRunEvent):

@@ -15,6 +15,10 @@ _logger = utils.get_logger()
 
 
 def _register_event(ev: models.Event) -> None:
+    # So that any FK created in the same transaction and referenced by
+    # the event is visible to the event.
+    db.session.flush()
+
     db.session.add(ev)
     _logger.info(ev)
 
@@ -26,6 +30,7 @@ def _register_event(ev: models.Event) -> None:
     if isinstance(ev, models.JobEvent):
         job_uuid = ev.job_uuid
 
+    # So that the event.uuid is generated and visible as a FK.
     db.session.flush()
 
     subscribers = notifications.get_subscribers_subscribed_to_event(
@@ -378,3 +383,28 @@ def register_job_pipeline_run_succeeded(
             job_uuid,
             pipeline_run_uuid,
         )
+
+
+def _register_jupyter_image_build_event(type: str, build_uuid: str) -> None:
+    ev = models.JupyterImageBuildEvent(type=type, build_uuid=build_uuid)
+    _register_event(ev)
+
+
+def register_jupyter_image_build_created(build_uuid: str) -> None:
+    _register_jupyter_image_build_event("jupyter:image-build:created", build_uuid)
+
+
+def register_jupyter_image_build_started(build_uuid: str) -> None:
+    _register_jupyter_image_build_event("jupyter:image-build:started", build_uuid)
+
+
+def register_jupyter_image_build_cancelled(build_uuid: str) -> None:
+    _register_jupyter_image_build_event("jupyter:image-build:cancelled", build_uuid)
+
+
+def register_jupyter_image_build_failed(build_uuid: str) -> None:
+    _register_jupyter_image_build_event("jupyter:image-build:failed", build_uuid)
+
+
+def register_jupyter_image_build_succeeded(build_uuid: str) -> None:
+    _register_jupyter_image_build_event("jupyter:image-build:succeeded", build_uuid)
