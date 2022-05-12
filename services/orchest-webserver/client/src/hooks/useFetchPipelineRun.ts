@@ -8,6 +8,7 @@ type FetchPipelineRunProps = {
   jobUuid: string | undefined;
   runUuid: string | undefined;
   clearCacheOnUnmount?: boolean;
+  revalidateOnFocus?: boolean;
 };
 
 export const fetchPipelineRun = (
@@ -19,14 +20,16 @@ export const fetchPipelineRun = (
     : undefined;
 
 export const useFetchPipelineRun = (props: FetchPipelineRunProps | null) => {
-  const { jobUuid, runUuid, clearCacheOnUnmount } = props || {};
+  const { jobUuid, runUuid, clearCacheOnUnmount, revalidateOnFocus = true } =
+    props || {};
 
   const cacheKey =
     jobUuid && runUuid ? `/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}` : "";
 
   const { data, error, isValidating, mutate } = useSWR<PipelineRun | undefined>(
     cacheKey || null,
-    () => fetchPipelineRun(jobUuid, runUuid)
+    () => fetchPipelineRun(jobUuid, runUuid),
+    { revalidateOnFocus }
   );
 
   const setPipelineRun = React.useCallback(

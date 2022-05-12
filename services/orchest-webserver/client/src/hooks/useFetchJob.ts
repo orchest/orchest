@@ -10,10 +10,12 @@ export const useFetchJob = ({
   jobUuid,
   runStatuses,
   clearCacheOnUnmount,
+  revalidateOnFocus = true,
 }: {
   jobUuid?: string;
   runStatuses?: boolean;
   clearCacheOnUnmount?: boolean;
+  revalidateOnFocus?: boolean;
 }) => {
   const { setAlert } = useAppContext();
 
@@ -25,7 +27,8 @@ export const useFetchJob = ({
 
   const { data: job, mutate, error, isValidating } = useSWR<Job>(
     cacheKey || null,
-    fetcher
+    fetcher,
+    { revalidateOnFocus }
   );
 
   const setJob = React.useCallback(

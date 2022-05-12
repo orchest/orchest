@@ -8,15 +8,18 @@ export const fetchProject = (projectUuid: string, isFullPath = false) =>
 export function useFetchProject<T = Project>({
   projectUuid,
   selector = (p) => (p as unknown) as T,
+  revalidateOnFocus = true,
 }: {
   projectUuid?: string;
   selector?: (project: Project) => T;
+  revalidateOnFocus?: boolean;
 }) {
   const cacheKey = projectUuid ? `/async/projects/${projectUuid}` : "";
   const { data, error, isValidating, mutate } = useSWR<T>(
     cacheKey || null,
     (url: string) =>
-      fetchProject(url, true).then((response) => selector(response))
+      fetchProject(url, true).then((response) => selector(response)),
+    { revalidateOnFocus }
   );
 
   return {

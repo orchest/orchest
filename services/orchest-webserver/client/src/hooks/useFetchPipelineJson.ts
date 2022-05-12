@@ -11,6 +11,7 @@ type FetchPipelineJsonProps = {
   pipelineUuid: string | undefined;
   projectUuid: string | undefined;
   clearCacheOnUnmount?: boolean;
+  revalidateOnFocus?: boolean;
 };
 
 export const fetchPipelineJson = (
@@ -80,8 +81,14 @@ export const useFetchPipelineJson = (
   props: FetchPipelineJsonProps | undefined
 ) => {
   const { cache } = useSWRConfig();
-  const { pipelineUuid, projectUuid, jobUuid, runUuid, clearCacheOnUnmount } =
-    props || {};
+  const {
+    pipelineUuid,
+    projectUuid,
+    jobUuid,
+    runUuid,
+    clearCacheOnUnmount,
+    revalidateOnFocus = true,
+  } = props || {};
 
   const cacheKey = getPipelineJSONEndpoint({
     pipelineUuid,
@@ -92,13 +99,16 @@ export const useFetchPipelineJson = (
 
   const { data, error, isValidating, mutate } = useSWR<
     PipelineJson | undefined
-  >(cacheKey || null, () =>
-    fetchPipelineJson({
-      pipelineUuid,
-      projectUuid,
-      jobUuid,
-      runUuid,
-    })
+  >(
+    cacheKey || null,
+    () =>
+      fetchPipelineJson({
+        pipelineUuid,
+        projectUuid,
+        jobUuid,
+        runUuid,
+      }),
+    { revalidateOnFocus }
   );
 
   const setPipelineJson = React.useCallback(
