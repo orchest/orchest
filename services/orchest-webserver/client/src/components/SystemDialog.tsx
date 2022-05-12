@@ -56,9 +56,11 @@ const DelayedFocusButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 export const SystemDialog: React.FC = () => {
-  const { state, deletePromptMessage } = useAppContext();
-  const promptMessage =
-    state.promptMessages.length > 0 ? state.promptMessages[0] : null;
+  const {
+    state: { promptMessages },
+    deletePromptMessage,
+  } = useAppContext();
+  const promptMessage = promptMessages.length > 0 ? promptMessages[0] : null;
 
   const sendEvent = useSendAnalyticEvent();
 

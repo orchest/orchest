@@ -43,7 +43,7 @@ export const useInteractiveRuns = () => {
         // Jupyter instance
 
         if (window.orchest.jupyter)
-          window.orchest.jupyter.reloadFilesFromDisk();
+          window.orchest.jupyter?.reloadFilesFromDisk();
 
         setPipelineRunning(false);
         setIsCancellingRun(false);

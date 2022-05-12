@@ -67,7 +67,7 @@ const JupyterLabView: React.FC = () => {
     // unmount
     return () => {
       if (window.orchest.jupyter) {
-        window.orchest.jupyter.hide();
+        window.orchest.jupyter?.hide();
       }
 
       setVerifyKernelsInterval(undefined);
@@ -168,10 +168,10 @@ const JupyterLabView: React.FC = () => {
   const conditionalRenderingOfJupyterLab = () => {
     if (window.orchest.jupyter) {
       if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
-        window.orchest.jupyter.show();
-        if (filePath) window.orchest.jupyter.navigateTo(filePath);
+        window.orchest.jupyter?.show();
+        if (filePath) window.orchest.jupyter?.navigateTo(filePath);
       } else {
-        window.orchest.jupyter.hide();
+        window.orchest.jupyter?.hide();
       }
     }
   };

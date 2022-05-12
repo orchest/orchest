@@ -95,7 +95,7 @@ For example, to make changes on the ``orchest-api`` service, do the following:
     eval $(minikube -p minikube docker-env)
 
     # Save the Orchest version in use
-    export TAG=$(orchest version --json | jq -r .cluster_version)
+    export TAG=$(orchest version --json | jq -r .version)
 
     # Build the desired image
     scripts/build_container.sh -i orchest-api -t $TAG -o $TAG
