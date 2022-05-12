@@ -7,7 +7,6 @@ import subprocess
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests
-from flask import safe_join
 from werkzeug.serving import is_running_from_reloader as _irfr
 
 logger = logging.getLogger(__name__)
@@ -321,7 +320,7 @@ def get_directory_size(path: str, skip_dirs: Optional[Iterable] = None):
     size = 0
     for root, dirs, files in os.walk(path):
         for file_name in files:
-            file_path = safe_join(root, file_name)
+            file_path = os.path.join(root, file_name)
             if os.path.islink(file_path):
                 continue
             size += os.path.getsize(file_path)
