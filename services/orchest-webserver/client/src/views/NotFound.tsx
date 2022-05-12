@@ -7,7 +7,7 @@ import { useLocation } from "react-router-dom";
 // atm, wrong path will simply redirect back to ProjectsView
 
 const NotFound: React.FC = () => {
-  useSendAnalyticEvent("view load", { name: siteMap.notFound.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.notFound.path });
 
   let location = useLocation();
 

@@ -9,7 +9,7 @@ import JobList from "./JobList";
 const JobsView: React.FC = () => {
   const { projectUuid } = useCustomRoute();
 
-  useSendAnalyticEvent("view load", { name: siteMap.jobs.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.jobs.path });
 
   return (
     <Layout>

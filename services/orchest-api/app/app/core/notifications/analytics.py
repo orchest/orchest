@@ -64,40 +64,6 @@ def send_test_ping_delivery() -> bool:
     return analytics.send_event(current_app, analytics.Event.DEBUG_PING, {})
 
 
-# The ones mapped to DEBUG_PING are events which are not currently
-# defined in analytics, to be later expanded in a future commit.
-_event_type_to_analytics_event_enum = {
-    "project:one-off-job:created": analytics.Event.JOB_CREATE,
-    "project:one-off-job:started": analytics.Event.DEBUG_PING,
-    "project:one-off-job:deleted": analytics.Event.JOB_DELETE,
-    "project:one-off-job:cancelled": analytics.Event.JOB_CANCEL,
-    "project:one-off-job:failed": analytics.Event.DEBUG_PING,
-    "project:one-off-job:succeeded": analytics.Event.DEBUG_PING,
-    "project:one-off-job:pipeline-run:created": analytics.Event.DEBUG_PING,
-    "project:one-off-job:pipeline-run:started": analytics.Event.DEBUG_PING,
-    "project:one-off-job:pipeline-run:cancelled": analytics.Event.JOB_PIPELINE_RUN_CANCEL,  # noqa
-    "project:one-off-job:pipeline-run:failed": analytics.Event.DEBUG_PING,
-    "project:one-off-job:pipeline-run:deleted": analytics.Event.JOB_PIPELINE_RUN_DELETE,
-    "project:one-off-job:pipeline-run:succeeded": analytics.Event.DEBUG_PING,
-    "project:cron-job:created": analytics.Event.JOB_CREATE,
-    "project:cron-job:started": analytics.Event.DEBUG_PING,
-    "project:cron-job:deleted": analytics.Event.JOB_DELETE,
-    "project:cron-job:cancelled": analytics.Event.JOB_CANCEL,
-    "project:cron-job:failed": analytics.Event.DEBUG_PING,
-    "project:cron-job:paused": analytics.Event.CRONJOB_PAUSE,
-    "project:cron-job:unpaused": analytics.Event.CRONJOB_RESUME,
-    "project:cron-job:run:started": analytics.Event.DEBUG_PING,
-    "project:cron-job:run:succeeded": analytics.Event.DEBUG_PING,
-    "project:cron-job:run:failed": analytics.Event.DEBUG_PING,
-    "project:cron-job:run:pipeline-run:created": analytics.Event.DEBUG_PING,
-    "project:cron-job:run:pipeline-run:started": analytics.Event.DEBUG_PING,
-    "project:cron-job:run:pipeline-run:cancelled": analytics.Event.JOB_PIPELINE_RUN_CANCEL,  # noqa
-    "project:cron-job:run:pipeline-run:failed": analytics.Event.DEBUG_PING,
-    "project:cron-job:run:pipeline-run:deleted": analytics.Event.JOB_PIPELINE_RUN_DELETE,  # noqa
-    "project:cron-job:run:pipeline-run:succeeded": analytics.Event.DEBUG_PING,
-}
-
-
 def generate_payload_for_analytics(event: models.Event) -> dict:
     """Creates an analytics module compatible payload.
 
@@ -126,15 +92,16 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
         job: models.Job = models.Job.query.filter(
             models.Job.project_uuid == analytics_payload["project"]["uuid"],
             models.Job.uuid == analytics_payload["job"]["uuid"],
-        ).one()
-        analytics_payload["job_definition"] = {
-            "parameters": job.parameters,
-            "project_uuid": job.project_uuid,
-            "pipeline_uuid": job.pipeline_uuid,
-            "draft": True,
-            "uuid": job.uuid,
-            "pipeline_run_spec": {"run_type": "full", "uuids": []},
-        }
+        ).first()
+        if job is not None:
+            analytics_payload["job_definition"] = {
+                "parameters": job.parameters,
+                "project_uuid": job.project_uuid,
+                "pipeline_uuid": job.pipeline_uuid,
+                "draft": True,
+                "uuid": job.uuid,
+                "pipeline_run_spec": {"run_type": "full", "uuids": []},
+            }
 
     return analytics_payload
 
@@ -204,13 +171,9 @@ def deliver(delivery_uuid: str) -> None:
 
     try:
         payload = delivery.notification_payload
-        analytics_event_type = _event_type_to_analytics_event_enum.get(
-            payload["type"], analytics.Event.DEBUG_PING
-        )
-
         _augment_payload(payload)
 
-        if analytics.send_event(current_app, analytics_event_type, payload):
+        if analytics.send_event(current_app, analytics.Event(payload["type"]), payload):
             delivery.set_delivered()
             db.session.delete(delivery)
     except Exception as e:

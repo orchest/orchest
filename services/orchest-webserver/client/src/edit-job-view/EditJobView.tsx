@@ -211,7 +211,7 @@ type JobUpdatePayload = {
 const EditJobView: React.FC = () => {
   // global states
   const { config, setAlert, setAsSaved } = useAppContext();
-  useSendAnalyticEvent("view load", { name: siteMap.editJob.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.editJob.path });
 
   // data from route
   const { projectUuid, jobUuid, navigateTo } = useCustomRoute();

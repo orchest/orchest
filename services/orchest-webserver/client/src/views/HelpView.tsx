@@ -48,7 +48,7 @@ const HelpItem: React.FC<{
 const HelpView: React.FC = () => {
   const { config } = useAppContext();
 
-  useSendAnalyticEvent("view load", { name: siteMap.help.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.help.path });
   const { setIsOnboardingDialogOpen } = useOnboardingDialog();
 
   useCheckUpdate();

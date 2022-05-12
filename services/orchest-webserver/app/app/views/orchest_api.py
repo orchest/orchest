@@ -96,7 +96,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            analytics.Event.ENVIRONMENT_BUILD_CANCEL,
+            analytics.Event.ENVIRONMENT_BUILD_CANCELLED,
             {
                 "project_uuid": project_uuid,
                 "environment_uuid": environment_uuid,
@@ -141,7 +141,7 @@ def register_orchest_api_views(app, db):
             env = get_environment(environment_uuid, project_uuid)
             analytics.send_event(
                 app,
-                analytics.Event.ENVIRONMENT_BUILD_START,
+                analytics.Event.ENVIRONMENT_BUILD_STARTED,
                 {
                     "environment_uuid": environment_uuid,
                     "project_uuid": project_uuid,
@@ -172,7 +172,7 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jupyter-builds/",
         )
-        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_START, {})
+        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_STARTED, {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds/<build_uuid>", methods=["DELETE"])
@@ -182,7 +182,7 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/jupyter-builds/%s" % build_uuid,
         )
-        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_CANCEL, {})
+        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_CANCELLED, {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -279,7 +279,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            analytics.Event.JOB_DUPLICATE,
+            analytics.Event.JOB_DUPLICATED,
             {
                 "job_definition": job_spec,
                 "duplicate_from": json_obj["job_uuid"],
@@ -314,7 +314,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            analytics.Event.SESSION_STOP,
+            analytics.Event.SESSION_STOPPED,
             {"project_uuid": project_uuid, "pipeline_uuid": pipeline_uuid},
         )
         return resp.content, resp.status_code, resp.headers.items()
@@ -365,7 +365,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            analytics.Event.SESSION_START,
+            analytics.Event.SESSION_STARTED,
             {
                 "project_uuid": project_uuid,
                 "pipeline_uuid": pipeline_uuid,
@@ -398,7 +398,7 @@ def register_orchest_api_views(app, db):
             if active_runs:
                 analytics.send_event(
                     app,
-                    analytics.Event.SESSION_RESTART,
+                    analytics.Event.SESSION_RESTARTED,
                     {
                         "project_uuid": project_uuid,
                         "pipeline_uuid": pipeline_uuid,
@@ -426,7 +426,7 @@ def register_orchest_api_views(app, db):
 
                 analytics.send_event(
                     app,
-                    analytics.Event.SESSION_RESTART,
+                    analytics.Event.SESSION_RESTARTED,
                     {
                         "project_uuid": project_uuid,
                         "pipeline_uuid": pipeline_uuid,
@@ -469,7 +469,7 @@ def register_orchest_api_views(app, db):
 
             analytics.send_event(
                 app,
-                analytics.Event.PIPELINE_RUN_START,
+                analytics.Event.PIPELINE_RUN_STARTED,
                 {
                     "run_uuid": resp.json().get("uuid"),
                     "run_type": "interactive",
@@ -514,7 +514,7 @@ def register_orchest_api_views(app, db):
 
             analytics.send_event(
                 app,
-                analytics.Event.PIPELINE_RUN_CANCEL,
+                analytics.Event.PIPELINE_RUN_CANCELLED,
                 {"run_uuid": run_uuid, "run_type": "interactive"},
             )
             return resp.content, resp.status_code, resp.headers.items()
@@ -560,7 +560,7 @@ def register_orchest_api_views(app, db):
 
         analytics.send_event(
             app,
-            analytics.Event.JOB_UPDATE,
+            analytics.Event.JOB_UPDATED,
             {"job_uuid": job_uuid, "job_definition": request.json},
         )
         return resp.content, resp.status_code, resp.headers.items()

@@ -22,34 +22,63 @@ class AnalyticsServiceError(Exception):
 
 
 class Event(Enum):
-    # NOTE: values must follow the regex r'[a-z\-]+ [a-z]+' and have
-    # names like: "[noun] [verb]", e.g. "movie played" or
-    # "movie updated".
-    ALERT_SHOW = "alert show"
-    BUILD_REQUEST = "build request"
-    CONFIRM_SHOW = "confirm show"
-    CRONJOB_PAUSE = "cron-job pause"
-    CRONJOB_RESUME = "cron-job resume"
-    DEBUG_PING = "debug ping"
-    ENVIRONMENT_BUILD_CANCEL = "environment-build cancel"
-    ENVIRONMENT_BUILD_START = "environment-build start"
-    HEARTBEAT_TRIGGER = "heartbeat trigger"
-    JOB_CANCEL = "job cancel"
-    JOB_CREATE = "job create"
-    JOB_DELETE = "job delete"
-    JOB_DUPLICATE = "job duplicate"
-    JOB_PIPELINE_RUN_CANCEL = "job pipeline-run cancel"
-    JOB_PIPELINE_RUN_DELETE = "job pipeline-run delete"
-    JOB_UPDATE = "job update"
-    JUPYTER_BUILD_START = "jupyter-build start"
-    JUPYTER_BUILD_CANCEL = "jupyter-build cancel"
-    PIPELINE_RUN_CANCEL = "pipeline-run cancel"
-    PIPELINE_RUN_START = "pipeline-run start"
-    PIPELINE_SAVE = "pipeline save"
-    SESSION_RESTART = "session restart"
-    SESSION_START = "session start"
-    SESSION_STOP = "session stop"
-    VIEW_LOAD = "view load"
+
+    # Sent by the FE by POSTing a json to the webserver to /analytics.
+    ALERT_SHOW = "alert:shown"
+    CONFIRM_SHOW = "confirm:shown"
+    VIEW_LOAD = "view:loaded"
+
+    # Sent by orchest-webserver. Try to minimize these events, in favour
+    # of moving them to the orchest-api.
+    BUILD_REQUESTED = "build:requested"
+    ENVIRONMENT_BUILD_CANCELLED = "environment-build:cancelled"
+    ENVIRONMENT_BUILD_STARTED = "environment-build:started"
+    HEARTBEAT_TRIGGER = "heartbeat-trigger"
+    JOB_DUPLICATED = "job:duplicated"
+    JOB_UPDATED = "job:updated"
+    JUPYTER_BUILD_STARTED = "jupyter-build:started"
+    JUPYTER_BUILD_CANCELLED = "jupyter-build:cancelled"
+    PIPELINE_RUN_CANCELLED = "pipeline-run:cancelled"
+    PIPELINE_RUN_STARTED = "pipeline-run:started"
+    PIPELINE_SAVED = "pipeline:saved"
+    SESSION_RESTARTED = "session:restarted"
+    SESSION_STARTED = "session:started"
+    SESSION_STOPPED = "session:stopped"
+
+    # Sent by the orchest-api.
+    DEBUG_PING = "debug-ping"
+    ONE_OFF_JOB_CREATED = "project:one-off-job:created"
+    ONE_OFF_JOB_STARTED = "project:one-off-job:started"
+    ONE_OFF_JOB_DELETED = "project:one-off-job:deleted"
+    ONE_OFF_JOB_CANCELLED = "project:one-off-job:cancelled"
+    ONE_OFF_JOB_FAILED = "project:one-off-job:failed"
+    ONE_OFF_JOB_SUCCEEDED = "project:one-off-job:succeeded"
+
+    ONE_OFF_JOB_PIPELINE_RUN_CREATED = "project:one-off-job:pipeline-run:created"
+    ONE_OFF_JOB_PIPELINE_RUN_STARTED = "project:one-off-job:pipeline-run:started"
+    ONE_OFF_JOB_PIPELINE_RUN_CANCELLED = "project:one-off-job:pipeline-run:cancelled"
+    ONE_OFF_JOB_PIPELINE_RUN_FAILED = "project:one-off-job:pipeline-run:failed"
+    ONE_OFF_JOB_PIPELINE_RUN_DELETED = "project:one-off-job:pipeline-run:deleted"
+    ONE_OFF_JOB_PIPELINE_RUN_SUCCEEDED = "project:one-off-job:pipeline-run:succeeded"
+
+    CRON_JOB_CREATED = "project:cron-job:created"
+    CRON_JOB_STARTED = "project:cron-job:started"
+    CRON_JOB_DELETED = "project:cron-job:deleted"
+    CRON_JOB_CANCELLED = "project:cron-job:cancelled"
+    CRON_JOB_FAILED = "project:cron-job:failed"
+    CRON_JOB_PAUSED = "project:cron-job:paused"
+    CRON_JOB_UNPAUSED = "project:cron-job:unpaused"
+
+    CRON_JOB_RUN_STARTED = "project:cron-job:run:started"
+    CRON_JOB_RUN_SUCCEEDED = "project:cron-job:run:succeeded"
+    CRON_JOB_RUN_FAILED = "project:cron-job:run:failed"
+
+    CRON_JOB_RUN_PIPELINE_RUN_CREATED = "project:cron-job:run:pipeline-run:created"
+    CRON_JOB_RUN_PIPELINE_RUN_STARTED = "project:cron-job:run:pipeline-run:started"
+    CRON_JOB_RUN_PIPELINE_RUN_CANCELLED = "project:cron-job:run:pipeline-run:cancelled"
+    CRON_JOB_RUN_PIPELINE_RUN_FAILED = "project:cron-job:run:pipeline-run:failed"
+    CRON_JOB_RUN_PIPELINE_RUN_DELETED = "project:cron-job:run:pipeline-run:deleted"
+    CRON_JOB_RUN_PIPELINE_RUN_SUCCEEDED = "project:cron-job:run:pipeline-run:succeeded"
 
     def anonymize(self, event_properties: dict) -> dict:
         """Anonymizes the given properties in place.
@@ -84,7 +113,7 @@ class Event(Enum):
         """
         try:
             anonimization_func = getattr(
-                _Anonymizer, self.value.replace(" ", "_").replace("-", "_")
+                _Anonymizer, self.value.replace(":", "_").replace("-", "_")
             )
         except AttributeError:
             # No need to anonymize the event.
@@ -220,7 +249,7 @@ class _Anonymizer:
     """
 
     @staticmethod
-    def job_create(event_properties: dict) -> dict:
+    def _job_created(event_properties: dict) -> dict:
         job_def = event_properties["job_definition"]
         job_def.pop("name", None)
         job_def.pop("pipeline_name", None)
@@ -236,11 +265,19 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def job_duplicate(event_properties: dict) -> dict:
+    def project_one_off_job_created(event_properties: dict) -> dict:
+        return _Anonymizer._job_created(event_properties)
+
+    @staticmethod
+    def project_cron_job_created(event_properties: dict) -> dict:
+        return _Anonymizer._job_created(event_properties)
+
+    @staticmethod
+    def job_duplicated(event_properties: dict) -> dict:
         return _Anonymizer.job_create(event_properties)
 
     @staticmethod
-    def job_update(event_properties: dict) -> dict:
+    def job_updated(event_properties: dict) -> dict:
         job_def = event_properties["job_definition"]
         job_def.pop("strategy_json", None)
 
@@ -252,7 +289,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def session_start(event_properties: dict) -> dict:
+    def session_started(event_properties: dict) -> dict:
         derived_properties = {"services": {}}
         for sname, sdef in event_properties.get("services", {}).items():
             derived_properties["services"][sname] = _anonymize_service_definition(sdef)
@@ -260,7 +297,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def pipeline_run_start(event_properties: dict) -> dict:
+    def pipeline_run_started(event_properties: dict) -> dict:
         pdef = event_properties["pipeline_definition"]
         derived_properties = {
             "pipeline_definition": _anonymize_pipeline_definition(pdef),
@@ -268,7 +305,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def pipeline_save(event_properties: dict) -> dict:
+    def pipeline_saved(event_properties: dict) -> dict:
         pdef = event_properties["pipeline_definition"]
         derived_properties = {
             "pipeline_definition": _anonymize_pipeline_definition(pdef),
@@ -276,7 +313,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def environment_image_build_start(event_properties: dict) -> dict:
+    def environment_build_started(event_properties: dict) -> dict:
         base_image = event_properties.pop("base_image", None)
         derived_properties = {}
         if isinstance(base_image, str):
