@@ -320,7 +320,11 @@ def get_directory_size(path: str, skip_dirs: Optional[Iterable] = None):
 
     size = 0
     for root, dirs, files in os.walk(path):
-        size += sum(os.path.getsize(safe_join(root, name)) for name in files)
+        for file_name in files:
+            file_path = safe_join(root, file_name)
+            if os.path.islink(file_path):
+                continue
+            size += os.path.getsize(file_path)
 
         for skip_dir in skip_dirs:
             if skip_dir in dirs:
