@@ -356,12 +356,16 @@ export const FileTree = React.memo(function FileTreeComponent({
       try {
         await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
 
+        const isMovingPipelineFile = isFileByExtension(
+          ["orchest"],
+          params.newPath
+        );
+
         // Moving a pipeline file from /data to /project-dir is equivalent to create new pipeline out of the .orchest file.
         // Thus, fire a fetch pipelines request to force BE to dicover the .orchest file.
         // and then update ProjectsContext and reload.
         const shouldReloadImmediately =
-          isFileByExtension(["orchest"], params.newPath) &&
-          params.newRoot === "/project-dir";
+          isMovingPipelineFile && params.newRoot === "/project-dir";
 
         if (shouldReloadImmediately) {
           const updatedPipelines = await fetchPipelines(projectUuid);
@@ -372,28 +376,41 @@ export const FileTree = React.memo(function FileTreeComponent({
 
         // If `.orchest` file is moved into `/data`, the pipeline cannot be opened.
         const shouldRemovePipeline =
-          isFileByExtension(["orchest"], params.newPath) &&
-          params.newRoot === "/data";
+          isMovingPipelineFile && params.newRoot === "/data";
 
-        const pipelineFilePath = cleanFilePath(params.newPath);
-        dispatch((current) => {
-          const currentPipelines = current.pipelines || [];
+        if (shouldRemovePipeline) {
+          const pipelineFilePath = cleanFilePath(params.newPath);
+          dispatch((current) => {
+            const currentPipelines = current.pipelines || [];
 
-          const payload = shouldRemovePipeline
-            ? currentPipelines.filter((pipeline) => {
-                return pipeline.uuid !== pipelineUuid;
-              })
-            : currentPipelines.map((pipeline) => {
-                return pipeline.uuid === pipelineUuid
-                  ? { ...pipeline, path: pipelineFilePath }
-                  : pipeline;
-              });
+            const payload = shouldRemovePipeline
+              ? currentPipelines.filter((pipeline) => {
+                  return pipeline.uuid !== pipelineUuid;
+                })
+              : currentPipelines.map((pipeline) => {
+                  return pipeline.uuid === pipelineUuid
+                    ? { ...pipeline, path: pipelineFilePath }
+                    : pipeline;
+                });
 
-          return {
-            type: "SET_PIPELINES",
-            payload,
-          };
-        });
+            return {
+              type: "SET_PIPELINES",
+              payload,
+            };
+          });
+        }
+
+        const isEditingCurrentPipelineFile =
+          pipelineUuid &&
+          pipeline &&
+          cleanFilePath(oldFilePath) === pipeline.path;
+
+        if (isEditingCurrentPipelineFile) {
+          dispatch({
+            type: "UPDATE_PIPELINE",
+            payload: { uuid: pipelineUuid, path: cleanFilePath(newFilePath) },
+          });
+        }
 
         onRename(oldFilePath, newFilePath);
 
@@ -411,7 +428,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
       }
     },
-    [onRename, dispatch, reload, setAlert, projectUuid]
+    [onRename, dispatch, reload, setAlert, projectUuid, pipeline]
   );
 
   const startRename = React.useCallback(
@@ -422,8 +439,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       if (!isSafeToProceed || !pipeline) return;
 
-      const projectFilePathRelativeToProjectDir = cleanFilePath(pipeline.path);
-      const foundPipeline = pipelineDics[projectFilePathRelativeToProjectDir];
+      const foundPipeline = pipelineDics[pipeline.path];
 
       await handleChangeFilePath({
         oldFilePath,
@@ -431,18 +447,9 @@ export const FileTree = React.memo(function FileTreeComponent({
         skipReload,
         pipelineUuid: foundPipeline.uuid,
       });
-
-      if (foundPipeline.uuid === pipelineUuid) {
-        dispatch({
-          type: "UPDATE_PIPELINE",
-          payload: { uuid: pipelineUuid, path: cleanFilePath(newFilePath) },
-        });
-      }
     },
     [
-      dispatch,
       pipeline,
-      pipelineUuid,
       pipelineDics,
       handleChangeFilePath,
       checkSessionForMovingPipelineFiles,
