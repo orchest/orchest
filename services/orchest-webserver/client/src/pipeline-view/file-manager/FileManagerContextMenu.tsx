@@ -5,7 +5,11 @@ import { siteMap } from "@/routingConfig";
 import { Position } from "@/types";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
+import {
+  ALLOWED_STEP_EXTENSIONS,
+  collapseDoubleDots,
+  hasValue,
+} from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
@@ -37,6 +41,7 @@ export const FileManagerContextMenu: React.FC<{
     isReadOnly,
     pipelineJson,
     runUuid,
+    pipelineCwd,
   } = usePipelineEditorContext();
 
   const openNotebook = useOpenNoteBook();
@@ -88,7 +93,7 @@ export const FileManagerContextMenu: React.FC<{
 
     const foundStep = Object.values(pipelineJson.steps).find((step) => {
       return (
-        step.file_path.replace(/^\.\//, "") ===
+        collapseDoubleDots(`${pipelineCwd}${step.file_path}`) ===
         cleanFilePath(contextMenuCombinedPath)
       );
     });
@@ -121,6 +126,7 @@ export const FileManagerContextMenu: React.FC<{
     isReadOnly,
     jobRunQueryArgs,
     navigateTo,
+    pipelineCwd,
     pipelineJson?.steps,
     pipelineUuid,
     projectUuid,
