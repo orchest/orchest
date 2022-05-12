@@ -136,6 +136,13 @@ service = Model(
                 "without authentication requirements."
             ),
         ),
+        "order": fields.Integer(
+            required=False,
+            description=(
+                "Acts as the serial number of a service, "
+                "which should be unique within a pipeline."
+            ),
+        ),
     },
 )
 
