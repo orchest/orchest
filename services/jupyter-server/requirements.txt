@@ -102,7 +102,7 @@ jupyter-server==1.16.0
     #   notebook-shim
 jupyter-server-mathjax==0.2.5
     # via nbdime
-jupyterlab==3.4.0
+jupyterlab==3.4.2
     # via -r requirements.in
 jupyterlab-git==0.34.2
     # via -r requirements.in
