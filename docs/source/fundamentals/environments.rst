@@ -19,6 +19,23 @@ Lastly, environments are part of a single project and included when versioning. 
 you can get started immediately when importing an existing project without having to recreate the
 same environment.
 
+Choosing a programming language
+-------------------------------
+
+An environment is always specifically used for one programming language. This avoids bloating
+the container image of the environment to include dependencies for multiple languages.
+
+
+Orchest has built in support for environments with the languages:
+
+* Python
+* R
+* JavaScript
+* Julia
+
+Each environment supports ``Bash`` scripts. This can also be used to invoke any other language indirectly.
+Like Java, Scala, Go or C++ based steps.
+
 Important paths inside environments
 -----------------------------------
 Whenever code is executed in an environment a number of paths are mounted to the container that you
