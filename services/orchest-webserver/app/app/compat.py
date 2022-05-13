@@ -104,7 +104,7 @@ __migration_functions = set(
 assert len(_version_to_migration_function) == len(__migration_functions)
 
 
-def ensure_unique_order(sorted_service_list: List[Tuple[str, Dict[str, Any]]]):
+def _ensure_unique_order(sorted_service_list: List[Tuple[str, Dict[str, Any]]]) -> int:
     max_order: int = -1
     for (key, service) in sorted_service_list:
         service_order = service.get("order")
@@ -114,10 +114,12 @@ def ensure_unique_order(sorted_service_list: List[Tuple[str, Dict[str, Any]]]):
             service["order"] = service_order + 1
         max_order = service["order"]
 
-    return (sorted_service_list, max_order)
+    return max_order
 
 
-def sort_service_key_function(service: Dict[str, Any], ordered_dict: Dict[str, int]):
+def _sort_service_key_function(
+    service: Dict[str, Any], ordered_dict: Dict[str, int]
+) -> int:
     service_name = service.get("name")
     service_order: Optional[int] = service.get("order")
     if service_order is not None:
@@ -127,16 +129,16 @@ def sort_service_key_function(service: Dict[str, Any], ordered_dict: Dict[str, i
         return 0
 
 
-def fill_missing_order(services: Dict[str, Dict[str, Any]]):
+def _fill_missing_order(services: Dict[str, Dict[str, Any]]) -> None:
     service_list = services.items()
     ordered_dict: Dict[str, int] = {}
 
     service_list = sorted(
         service_list,
-        key=lambda service: sort_service_key_function(service[1], ordered_dict),
+        key=lambda service: _sort_service_key_function(service[1], ordered_dict),
     )
 
-    service_list, max_order = ensure_unique_order(service_list)
+    max_order = _ensure_unique_order(service_list)
 
     to_be_ordered_list: list[str] = []
 
@@ -153,8 +155,6 @@ def fill_missing_order(services: Dict[str, Dict[str, Any]]):
         max_order += 1
         services[key]["order"] = max_order
 
-    return services
-
 
 def migrate_pipeline(pipeline: dict):
     """Migrates a pipeline in place to the latest version."""
@@ -169,4 +169,4 @@ def migrate_pipeline(pipeline: dict):
         migration_func(pipeline)
         pipeline["version"] = migrate_to_version
 
-    fill_missing_order(pipeline.get("services"))
+    _fill_missing_order(pipeline.get("services"))
