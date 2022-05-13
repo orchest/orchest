@@ -24,10 +24,6 @@ type Action =
       payload: PipelineMetaData;
     }
   | {
-      type: "SET_HAS_LOADED_PIPELINES";
-      payload: boolean;
-    }
-  | {
       type: "SET_PIPELINES";
       payload: PipelineMetaData[];
     }
@@ -105,9 +101,6 @@ const reducer = (
     case "LOAD_PIPELINES": {
       return { ...state, pipelines: action.payload };
     }
-    case "SET_HAS_LOADED_PIPELINES": {
-      return { ...state, hasLoadedPipelinesInPipelineEditor: action.payload };
-    }
     case "SET_PIPELINES": {
       const isPipelineRemoved = !action.payload.some(
         (pipeline) => state.pipeline?.path === pipeline.path
@@ -117,6 +110,7 @@ const reducer = (
         ...state,
         pipelines: action.payload,
         pipeline: isPipelineRemoved ? action.payload[0] : state.pipeline,
+        hasLoadedPipelinesInPipelineEditor: true,
       };
     }
     case "SET_PIPELINE_SAVE_STATUS":

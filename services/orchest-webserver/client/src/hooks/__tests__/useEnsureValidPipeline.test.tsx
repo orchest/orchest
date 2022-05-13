@@ -97,6 +97,7 @@ describe("useEnsureValidPipeline", () => {
   });
 
   beforeEach(async () => {
+    localStorage.clear();
     resetMock();
 
     rerender({ projectUuid: undefined, pipelineUuid: undefined });
@@ -202,5 +203,38 @@ describe("useEnsureValidPipeline", () => {
         },
       },
     ]);
+  });
+
+  it("should navigate to the last-seen pipeline if pipelineUuid is undefined", async () => {
+    // Load project1Pipelines[1], which is NOT the first pipeline in the list
+    rerender({
+      projectUuid: mockData.project1Uuid,
+      pipelineUuid: mockData.project1Pipelines[1].uuid,
+    });
+
+    await waitForNextUpdate();
+
+    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
+    expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
+    expect(result.current.state.pipeline).toEqual(
+      mockData.project1Pipelines[1]
+    );
+
+    // Test case starts.
+
+    rerender({
+      projectUuid: mockData.project1Uuid,
+      pipelineUuid: undefined,
+    });
+
+    // `pipelineUuid` is undefined
+    // If there were no last-seen pipeline, it would have loaded the first pipeline (project1Pipelines[0]).
+    // Because now project1Pipelines[1] is persisted, project1Pipelines[1] should be loaded.
+
+    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
+    expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
+    expect(result.current.state.pipeline).toEqual(
+      mockData.project1Pipelines[1]
+    );
   });
 });
