@@ -176,12 +176,3 @@ To skip a cell during pipeline runs:
 
 The cells with the *skip* tag are still runnable through JupyterLab, but when executing these
 notebooks as part of pipelines in Orchest they will not be run.
-
-Migrate to Kubernetes
----------------------
-The moment we have moved to a Kubernetes backed Orchest version (and deprecated the Docker based
-version), we will update this section of the documentation to include steps on how to migrate your
-current deployment to a Kubernetes based one.
-
-Just know that we are super excited to make the Kubernetes version available part of the open core
-and we are invested to provide a smooth migration experience 🔥

@@ -8,6 +8,7 @@ type FetchPipelineProps = {
   projectUuid: string | undefined;
   pipelineUuid: string | undefined;
   clearCacheOnUnmount?: boolean;
+  revalidateOnFocus?: boolean;
 };
 
 export const fetchPipeline = (
@@ -19,12 +20,22 @@ export const fetchPipeline = (
     : undefined;
 
 export const useFetchPipeline = (props: FetchPipelineProps | null) => {
-  const { projectUuid, pipelineUuid, clearCacheOnUnmount } = props || {};
-  const { data, error, isValidating, mutate } = useSWR<Pipeline | undefined>(
+  const {
+    projectUuid,
+    pipelineUuid,
+    clearCacheOnUnmount,
+    revalidateOnFocus = true,
+  } = props || {};
+
+  const cacheKey =
     projectUuid && pipelineUuid
       ? `/async/pipelines/${projectUuid}/${pipelineUuid}`
-      : null,
-    () => fetchPipeline(projectUuid, pipelineUuid)
+      : "";
+
+  const { data, error, isValidating, mutate } = useSWR<Pipeline | undefined>(
+    cacheKey || null,
+    () => fetchPipeline(projectUuid, pipelineUuid),
+    { revalidateOnFocus }
   );
 
   const setPipeline = React.useCallback(

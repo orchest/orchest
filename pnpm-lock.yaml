@@ -2640,8 +2640,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_b31e2e930191052696b5daf8df9af787
-      '@emotion/styled': 11.6.0_0a99bf3499149946574f430ef37a741d
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       '@mui/base': 5.0.0-alpha.59_ba191c0052acfa37659f3ba04a2d9405
       '@mui/system': 5.2.3_98944ee4dd5f6cfd31442cef9ca2b57e
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -2707,8 +2707,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_b31e2e930191052696b5daf8df9af787
-      '@emotion/styled': 11.6.0_0a99bf3499149946574f430ef37a741d
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -2751,8 +2751,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_b31e2e930191052696b5daf8df9af787
-      '@emotion/styled': 11.6.0_0a99bf3499149946574f430ef37a741d
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       '@mui/private-theming': 5.2.3_@types+react@17.0.3+react@17.0.2
       '@mui/styled-engine': 5.2.0_3ca9f49da28f3590cbe49aab51aa421d
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -10207,7 +10207,7 @@ packages:
       react: ^16.0.0
       react-dom: ^16.0.0
     dependencies:
-      prop-types: 15.7.2
+      prop-types: 15.8.1
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
       xterm: 4.15.0

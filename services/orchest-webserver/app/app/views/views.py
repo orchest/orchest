@@ -843,18 +843,9 @@ def register_views(app, db):
 
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
-
-                is_project_file = is_valid_pipeline_relative_path(
-                    project_uuid, pipeline_uuid, step["file_path"]
-                )
-
-                is_data_file = is_valid_data_path(step["file_path"])
-
-                if not (is_project_file or is_data_file):
-                    raise app_error.OutOfAllowedDirectoryError(
-                        "File is neither in the project, nor in the data directory."
-                    )
-
+                # No need to check if step file_path is within the
+                # project folder. Otherwise, user cannot save anything
+                # before they got all file paths correct.
                 if not step["file_path"].startswith("/"):
                     step["file_path"] = normalize_project_relative_path(
                         step["file_path"]

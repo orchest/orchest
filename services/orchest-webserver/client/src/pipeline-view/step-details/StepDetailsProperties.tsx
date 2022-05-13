@@ -49,6 +49,7 @@ const KERNEL_OPTIONS = [
   { value: "python", label: "Python" },
   { value: "r", label: "R" },
   { value: "julia", label: "Julia" },
+  { value: "javascript", label: "JavaScript" },
 ];
 
 export const StepDetailsProperties = ({

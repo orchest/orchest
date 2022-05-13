@@ -11,7 +11,9 @@ export const usePipelineEnvVariables = (
   const { setAsSaved } = useAppContext();
 
   // Environment variables are fetched either from 1) pipeline 2) pipeline run
-  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
+  const [envVariables, _setEnvVariables] = React.useState<
+    EnvVarPair[] | undefined
+  >([]);
 
   const fetchedEnvVariables = React.useMemo(() => {
     if (pipeline || pipelineRun) {
@@ -32,7 +34,7 @@ export const usePipelineEnvVariables = (
   }, [fetchedEnvVariables]);
 
   const setEnvVariables = React.useCallback(
-    (data: React.SetStateAction<EnvVarPair[]>) => {
+    (data: React.SetStateAction<EnvVarPair[] | undefined>) => {
       _setEnvVariables(data);
       setAsSaved(false);
     },

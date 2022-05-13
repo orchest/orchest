@@ -18,11 +18,13 @@ export const useFetchPipelineSettings = ({
   pipelineUuid,
   jobUuid,
   runUuid,
+  isBrowserTabFocused,
 }: {
   projectUuid: string | undefined;
   pipelineUuid: string | undefined;
   jobUuid: string | undefined;
   runUuid: string | undefined;
+  isBrowserTabFocused: boolean;
 }) => {
   const {
     state: { hasUnsavedChanges },
@@ -33,8 +35,10 @@ export const useFetchPipelineSettings = ({
    * hooks for fetching data for initialization
    */
 
-  const { job } = useFetchJob({ jobUuid });
-  const { pipelineRun } = useFetchPipelineRun(
+  const { job, fetchJob } = useFetchJob({
+    jobUuid,
+  });
+  const { pipelineRun, fetchPipelineRun } = useFetchPipelineRun(
     jobUuid && runUuid ? { jobUuid, runUuid } : null
   );
 
@@ -62,12 +66,6 @@ export const useFetchPipelineSettings = ({
     selector: (project) => envVariablesDictToArray(project.env_variables),
   });
 
-  const refetch = React.useCallback(() => {
-    fetchPipelineJson();
-    fetchPipeline();
-    fetchProject();
-  }, [fetchPipelineJson, fetchPipeline, fetchProject]);
-
   /**
    * hooks for persisting local mutations without changing the initial data
    */
@@ -80,44 +78,65 @@ export const useFetchPipelineSettings = ({
   // ? Question: why not clear the cache?
   // Beacuse `SWR` cache is not scoped. If we clear cashe here, it might break all the other components using the same fetch hook.
 
-  const [updateHash, setUpdateHash] = React.useState(uuidv4());
+  const [hash, updateHash] = React.useReducer(() => uuidv4(), uuidv4());
+
+  const refetch = React.useCallback(() => {
+    return Promise.allSettled([
+      fetchPipelineJson(),
+      fetchPipeline(),
+      fetchProject(),
+      fetchPipelineRun(),
+      fetchJob(),
+    ]);
+  }, [
+    fetchPipelineJson,
+    fetchPipeline,
+    fetchProject,
+    fetchPipelineRun,
+    fetchJob,
+  ]);
+
+  const reinitialize = React.useCallback(async () => {
+    await refetch();
+    updateHash();
+  }, [refetch, updateHash]);
 
   React.useEffect(() => {
-    // Only update if there is no change.
+    // Only reinitialize if there is no change.
     // Otherwise, user would lose all of their progress when switching browser tabs.
-    if (!hasUnsavedChanges) setUpdateHash(uuidv4());
-  }, [hasUnsavedChanges, job, pipeline, pipelineJson, pipelineRun]);
+    if (isBrowserTabFocused && !hasUnsavedChanges) reinitialize();
+  }, [hasUnsavedChanges, isBrowserTabFocused, reinitialize]);
 
   const [inputParameters = "{}", setInputParameters] = usePipelineProperty({
     initialValue: pipelineJson?.parameters
       ? JSON.stringify(pipelineJson.parameters || {})
       : undefined,
-    updateHash,
+    hash,
   });
 
   const [pipelineName, setPipelineName] = usePipelineProperty({
     initialValue: job?.pipeline_name || pipelineJson?.name,
-    updateHash,
+    hash,
   });
   const [pipelinePath, setPipelinePath] = usePipelineProperty({
     initialValue:
       job?.pipeline_run_spec.run_config.pipeline_path || pipeline?.path,
-    updateHash,
+    hash,
   });
 
   const [services = {}, setServices] = usePipelineProperty({
     // use temporary uuid for easier FE manipulation, will be cleaned up when saving
     initialValue: pipelineJson?.services
       ? (Object.values(pipelineJson?.services).reduce((all, curr) => {
-          return { ...all, [uuidv4()]: curr };
+          return { ...all, [curr.order]: curr };
         }, {}) as Record<string, Service>)
       : undefined,
-    updateHash,
+    hash,
   });
 
   const [settings = {}, setSettings] = usePipelineProperty({
     initialValue: pipelineJson?.settings,
-    updateHash,
+    hash,
   });
 
   const { envVariables, setEnvVariables } = usePipelineEnvVariables(
@@ -159,6 +178,5 @@ export const useFetchPipelineSettings = ({
     setPipelineJson,
     inputParameters,
     setInputParameters,
-    refetch,
   };
 };

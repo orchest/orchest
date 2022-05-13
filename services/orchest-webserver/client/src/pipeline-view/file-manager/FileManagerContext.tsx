@@ -21,10 +21,10 @@ export type FilePathChange = {
 export type FileManagerContextType = {
   selectedFiles: string[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>;
-  dragFile: DragFile;
+  dragFile: DragFile | undefined;
   setDragFile: React.Dispatch<React.SetStateAction<DragFile | undefined>>;
-  hoveredPath: string;
-  setHoveredPath: React.Dispatch<React.SetStateAction<string>>;
+  hoveredPath: string | undefined;
+  setHoveredPath: React.Dispatch<React.SetStateAction<string | undefined>>;
   isDragging: boolean;
   setIsDragging: React.Dispatch<React.SetStateAction<boolean>>;
   resetMove: () => void;
@@ -35,7 +35,7 @@ export type FileManagerContextType = {
 };
 
 export const FileManagerContext = React.createContext<FileManagerContextType>(
-  null
+  {} as FileManagerContextType
 );
 
 export const useFileManagerContext = () => React.useContext(FileManagerContext);
@@ -60,10 +60,8 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
   const [dragFile, setDragFile] = React.useState<{
     labelText: string;
     path: string;
-  }>(undefined);
-  const [hoveredPath, setHoveredPath] = React.useState<string | undefined>(
-    undefined
-  );
+  }>();
+  const [hoveredPath, setHoveredPath] = React.useState<string>();
   const [isDragging, setIsDragging] = React.useState(false);
 
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
@@ -80,6 +78,7 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
 
   const fetchFileTrees = React.useCallback(
     async (depth?: number) => {
+      if (!projectUuid) return;
       if (depth) {
         fileTreeDepth.current = Math.max(fileTreeDepth.current, depth);
       }

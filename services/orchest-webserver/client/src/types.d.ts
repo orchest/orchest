@@ -148,7 +148,7 @@ export type Project = {
   session_count?: number;
 };
 
-export type Language = "python" | "r" | "julia";
+export type Language = "python" | "r" | "julia" | "javascript";
 
 export type Environment = {
   base_image: string;
@@ -329,7 +329,7 @@ export type Service = {
   env_variables_inherit?: any[];
   exposed: boolean;
   requires_authentication?: boolean;
-  order?: number;
+  order: number;
 };
 
 export type FileTree = {
