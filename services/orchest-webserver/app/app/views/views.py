@@ -763,7 +763,10 @@ def register_views(app, db):
                 if step_file_path.startswith("/"):
                     file_path = resolve_absolute_path(step_file_path)
                 else:
-                    file_path = safe_join(pipeline_dir, step_file_path)
+                    # It's safe to use `os.path.join` here
+                    # because `is_valid_pipeline_relative_path`
+                    # has guarded the case.
+                    file_path = os.path.join(pipeline_dir, step_file_path)
 
                 filename = pipeline_json["steps"][step_uuid]["file_path"]
                 step_title = pipeline_json["steps"][step_uuid]["title"]
