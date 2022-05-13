@@ -383,9 +383,16 @@ export const FileTree = React.memo(function FileTreeComponent({
           dispatch((current) => {
             const currentPipelines = current.pipelines || [];
 
+            // Find the to-be-removed pipeline via path
+            const pipelineToRemove = shouldRemovePipeline
+              ? currentPipelines.find(
+                  (p) => p.path === params.oldPath.replace(/^\//, "")
+                )
+              : undefined;
+
             const payload = shouldRemovePipeline
               ? currentPipelines.filter((pipeline) => {
-                  return pipeline.uuid !== pipelineUuid;
+                  return pipeline.uuid !== pipelineToRemove?.uuid;
                 })
               : currentPipelines.map((pipeline) => {
                   return pipeline.uuid === pipelineUuid
