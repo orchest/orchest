@@ -1,0 +1,26 @@
+{
+  "cells": [
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "JavaScript on Docker",
+      "language": "javascript",
+      "name": "{kernel_name}"
+    },
+    "language_info": {
+      "file_extension": ".js",
+      "mimetype": "application/javascript",
+      "name": "javascript",
+      "version": "16.14.0"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 4
+}

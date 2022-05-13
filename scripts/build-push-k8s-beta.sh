@@ -1,6 +1,7 @@
 to_build=(
 	auth-server
 	base-kernel-julia
+	base-kernel-javascript
 	base-kernel-py
 	base-kernel-py-gpu
 	base-kernel-r

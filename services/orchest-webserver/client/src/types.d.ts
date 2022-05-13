@@ -148,7 +148,7 @@ export type Project = {
   session_count?: number;
 };
 
-export type Language = "python" | "r" | "julia";
+export type Language = "python" | "r" | "julia" | "javascript";
 
 export type Environment = {
   base_image: string;
