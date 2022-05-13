@@ -408,3 +408,52 @@ def register_jupyter_image_build_failed(build_uuid: str) -> None:
 
 def register_jupyter_image_build_succeeded(build_uuid: str) -> None:
     _register_jupyter_image_build_event("jupyter:image-build:succeeded", build_uuid)
+
+
+def _register_interactive_session_event(
+    type: str, project_uuid: str, pipeline_uuid: str
+) -> None:
+    ev = models.InteractiveSessionEvent(
+        type=type,
+        project_uuid=project_uuid,
+        pipeline_uuid=pipeline_uuid,
+    )
+    _register_event(ev)
+
+
+def _register_interactive_session_started(
+    project_uuid: str, pipeline_uuid: str
+) -> None:
+    _register_interactive_session_event(
+        "project:interactive-session:started", project_uuid, pipeline_uuid
+    )
+
+
+def _register_interactive_session_stopped(
+    project_uuid: str, pipeline_uuid: str
+) -> None:
+    _register_interactive_session_event(
+        "project:interactive-session:stopped", project_uuid, pipeline_uuid
+    )
+
+
+def _register_interactive_session_failed(project_uuid: str, pipeline_uuid: str) -> None:
+    _register_interactive_session_event(
+        "project:interactive-session:failed", project_uuid, pipeline_uuid
+    )
+
+
+def _register_interactive_session_service_restarted(
+    project_uuid: str, pipeline_uuid: str
+) -> None:
+    _register_interactive_session_event(
+        "project:interactive-session:service-restarted", project_uuid, pipeline_uuid
+    )
+
+
+def _register_interactive_session_service_succeeded(
+    project_uuid: str, pipeline_uuid: str
+) -> None:
+    _register_interactive_session_event(
+        "project:interactive-session:succeeded", project_uuid, pipeline_uuid
+    )

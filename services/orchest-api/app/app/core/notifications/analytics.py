@@ -64,6 +64,38 @@ def send_test_ping_delivery() -> bool:
     return analytics.send_event(current_app, analytics.Event.DEBUG_PING, {})
 
 
+def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -> dict:
+    if not event.type.startswith("project:interactive-session:"):
+        raise ValueError
+
+    payload = event.to_notification_payload()
+
+    payload["project_uuid"] = payload["project"]["uuid"]
+    payload["pipeline_uuid"] = payload["project"]["session"]["pipeline_uuid"]
+
+    if event.type == "project:interactive-session:started":
+        user_services = None
+        session = models.InteractiveSession.query.filter(
+            models.InteractiveSession.project_uuid == event.project_uuid,
+            models.InteractiveSession.pipeline_uuid == event.pipeline_uuid,
+        ).first()
+        if session is not None:
+            user_services = session.user_services
+        payload["project"]["session"]["user_services"] = user_services
+    elif event.type == "project:interactive-session:service-started":
+        active_runs = db.session.query(
+            db.session.query(models.InteractivePipelineRun)
+            .filter(
+                models.InteractivePipelineRun.project_uuid == event.project_uuid,
+                models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
+            )
+            .exists()
+        ).scalar()
+        payload["project"]["session"]["active_runs"] = active_runs
+
+    return payload
+
+
 def generate_payload_for_analytics(event: models.Event) -> dict:
     """Creates an analytics module compatible payload.
 
@@ -73,6 +105,9 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     """
 
     analytics_payload = event.to_notification_payload()
+    if event.type.startswith("project:interactive-session:"):
+        return _generate_session_analytics_payload(event)
+
     event_type = analytics_payload["type"]
 
     if event_type.startswith("project:cron-job:") or event_type.startswith(

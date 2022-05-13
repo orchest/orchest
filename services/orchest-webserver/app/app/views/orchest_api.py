@@ -310,11 +310,6 @@ def register_orchest_api_views(app, db):
             + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
         )
 
-        analytics.send_event(
-            app,
-            analytics.Event.SESSION_STOPPED,
-            {"project_uuid": project_uuid, "pipeline_uuid": pipeline_uuid},
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
@@ -361,15 +356,6 @@ def register_orchest_api_views(app, db):
             json=session_config,
         )
 
-        analytics.send_event(
-            app,
-            analytics.Event.SESSION_STARTED,
-            {
-                "project_uuid": project_uuid,
-                "pipeline_uuid": pipeline_uuid,
-                "services": services,
-            },
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -394,16 +380,6 @@ def register_orchest_api_views(app, db):
                     active_runs = True
 
             if active_runs:
-                analytics.send_event(
-                    app,
-                    analytics.Event.SESSION_RESTARTED,
-                    {
-                        "project_uuid": project_uuid,
-                        "pipeline_uuid": pipeline_uuid,
-                        "active_runs": True,
-                    },
-                )
-
                 return (
                     jsonify(
                         {
@@ -422,15 +398,6 @@ def register_orchest_api_views(app, db):
                     + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
                 )
 
-                analytics.send_event(
-                    app,
-                    analytics.Event.SESSION_RESTARTED,
-                    {
-                        "project_uuid": project_uuid,
-                        "pipeline_uuid": pipeline_uuid,
-                        "active_runs": False,
-                    },
-                )
                 return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
             app.logger.error(

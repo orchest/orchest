@@ -1144,6 +1144,10 @@ class Event(BaseModel):
                     ),
                     "job_event",
                 ),
+                (
+                    type.startswith("project:interactive-session:"),
+                    "interactive_session_event",
+                ),
                 (type.startswith("project:"), "project_event"),
             ],
             else_="event",
@@ -1194,6 +1198,33 @@ class ProjectEvent(Event):
             f"<ProjectEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}>"
         )
+
+
+class InteractiveSessionEvent(ProjectEvent):
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "interactive_session_event"}
+
+    @declared_attr
+    def pipeline_uuid(cls):
+        return Event.__table__.c.get("pipeline_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        session_payload = {
+            "pipeline_uuid": self.pipeline_uuid,
+        }
+        payload["project"]["session"] = session_payload
+        return payload
+
+
+ForeignKeyConstraint(
+    [InteractiveSessionEvent.project_uuid, InteractiveSessionEvent.pipeline_uuid],
+    [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
+    ondelete="CASCADE",
+)
 
 
 class JobEvent(ProjectEvent):

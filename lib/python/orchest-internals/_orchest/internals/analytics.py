@@ -38,9 +38,6 @@ class Event(Enum):
     PIPELINE_RUN_CANCELLED = "pipeline-run:cancelled"
     PIPELINE_RUN_STARTED = "pipeline-run:started"
     PIPELINE_SAVED = "pipeline:saved"
-    SESSION_RESTARTED = "session:restarted"
-    SESSION_STARTED = "session:started"
-    SESSION_STOPPED = "session:stopped"
 
     # Sent by the orchest-api.
     DEBUG_PING = "debug-ping"
@@ -83,6 +80,12 @@ class Event(Enum):
     CRON_JOB_RUN_PIPELINE_RUN_FAILED = "project:cron-job:run:pipeline-run:failed"
     CRON_JOB_RUN_PIPELINE_RUN_DELETED = "project:cron-job:run:pipeline-run:deleted"
     CRON_JOB_RUN_PIPELINE_RUN_SUCCEEDED = "project:cron-job:run:pipeline-run:succeeded"
+
+    SESSION_STARTED = "project:interactive-session:started"
+    SESSION_STOPPED = "project:interactive-session:stopped"
+    SESSION_FAILED = "project:interactive-session:failed"
+    SESSION_SERVICE_RESTARTED = "project:interactive-session:service-restarted"
+    SESSION_SUCCEEDED = "project:interactive-session:succeeded"
 
     def anonymize(self, event_properties: dict) -> dict:
         """Anonymizes the given properties in place.
@@ -312,9 +315,17 @@ class _Anonymizer:
 
     @staticmethod
     def session_started(event_properties: dict) -> dict:
-        derived_properties = {"services": {}}
-        for sname, sdef in event_properties.get("services", {}).items():
-            derived_properties["services"][sname] = _anonymize_service_definition(sdef)
+        derived_properties = {"user_services": {}}
+        user_services = event_properties["project"]["session"]["user_services"]
+        for service_name, service_def in user_services.items():
+            derived_properties["user_services"][
+                service_name
+            ] = _anonymize_service_definition(service_def)
+
+        event_properties["project"]["session"].pop("user_services")
+
+        # To not break the analytics schema, deprecated.
+        derived_properties["services"] = derived_properties["user_services"]
 
         return derived_properties
 
