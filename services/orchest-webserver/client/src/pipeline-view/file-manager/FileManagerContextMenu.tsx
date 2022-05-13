@@ -7,8 +7,8 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import {
   ALLOWED_STEP_EXTENSIONS,
-  collapseDoubleDots,
   hasValue,
+  joinRelativePaths,
 } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
@@ -89,13 +89,11 @@ export const FileManagerContextMenu: React.FC<{
   const handleContextView = React.useCallback(() => {
     handleClose();
 
-    if (!pipelineUuid) return;
+    if (!pipelineUuid || !pipelineCwd) return;
 
     const foundStep = Object.values(pipelineJson.steps).find((step) => {
-      return (
-        collapseDoubleDots(`${pipelineCwd}${step.file_path}`) ===
-        cleanFilePath(contextMenuCombinedPath)
-      );
+      const filePath = joinRelativePaths(pipelineCwd, step.file_path);
+      return filePath === cleanFilePath(contextMenuCombinedPath);
     });
 
     if (!foundStep) {

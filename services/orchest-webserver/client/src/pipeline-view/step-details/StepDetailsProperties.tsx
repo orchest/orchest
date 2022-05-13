@@ -11,8 +11,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
-  collapseDoubleDots,
   extensionFromFilename,
+  joinRelativePaths,
   kernelNameToLanguage,
   RefManager,
 } from "@orchest/lib-utils";
@@ -90,9 +90,13 @@ export const StepDetailsProperties = ({
           step.uuid,
           false
         );
-        if (updatedEnvironmentUUID.length > 0 && step.file_path.length > 0) {
+        if (
+          pipelineCwd &&
+          updatedEnvironmentUUID.length > 0 &&
+          step.file_path.length > 0
+        ) {
           window.orchest.jupyter?.setNotebookKernel(
-            collapseDoubleDots(`${pipelineCwd}${step.file_path}`),
+            joinRelativePaths(pipelineCwd, step.file_path),
             `orchest-kernel-${updatedEnvironmentUUID}`
           );
         }

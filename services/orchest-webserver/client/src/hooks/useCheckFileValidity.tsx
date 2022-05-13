@@ -41,9 +41,9 @@ export const isValidFile = async (
 
 /**
  * checks if a file exists with the given path, poll per 1000 ms
- * @param project_uuid
- * @param pipeline_uuid
- * @param path
+ * @param project_uuid {string|undefined}
+ * @param pipeline_uuid {string|undefined}
+ * @param path {string|undefined}
  * @returns boolean
  */
 export const useCheckFileValidity = (

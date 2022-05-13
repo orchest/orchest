@@ -21,7 +21,7 @@ import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { collapseDoubleDots } from "@orchest/lib-utils";
+import { joinRelativePaths } from "@orchest/lib-utils";
 import React from "react";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
@@ -132,9 +132,13 @@ const JupyterLabView: React.FC = () => {
         for (let stepUUID in pipelineJson.steps) {
           let step = pipelineJson.steps[stepUUID];
 
-          if (step.file_path.length > 0 && step.environment.length > 0) {
+          if (
+            pipelineCwd &&
+            step.file_path.length > 0 &&
+            step.environment.length > 0
+          ) {
             window.orchest.jupyter?.setNotebookKernel(
-              collapseDoubleDots(`${pipelineCwd}${step.file_path}`),
+              joinRelativePaths(pipelineCwd, step.file_path),
               `orchest-kernel-${step.environment}`
             );
           }

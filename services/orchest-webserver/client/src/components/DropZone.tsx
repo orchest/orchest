@@ -15,8 +15,8 @@ export type FileWithValidPath = FileWithPath & { readonly path: string };
 /**
  * this function determines if the given file is a file uploaded via useDropzone
  * if true, the file has a property "path"
- * @param file File | FileWithPath
- * @returns boolean
+ * @param file {File | FileWithPath}
+ * @returns {boolean}
  */
 export function isUploadedViaDropzone(
   file: File | FileWithPath

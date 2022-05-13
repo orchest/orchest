@@ -219,8 +219,8 @@ export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
 
 /**
  * remove leading "./" of a file path
- * @param filePath string
- * @returns string
+ * @param filePath {string}
+ * @returns {string}
  */
 export const removeLeadingSymbols = (filePath: string) =>
   filePath.replace(/^\.\//, "");
@@ -431,8 +431,8 @@ const isAncester = (ancesterPath: string, childPath: string) =>
 /**
  * This function removes the child path if its ancester path already appears in the list.
  * e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed.
- * @param list :string[]
- * @returns string[]
+ * @param list {string[]}
+ * @returns {string[]}
  */
 export const filterRedundantChildPaths = (list: string[]) => {
   // ancestor will be processed first
