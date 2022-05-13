@@ -48,6 +48,9 @@ type Action =
       payload: boolean;
     }
   | {
+      type: "UNSET_PIPELINE";
+    }
+  | {
       type: "UPDATE_PIPELINE";
       payload: { uuid: string } & Partial<PipelineMetaData>;
     };
@@ -76,15 +79,17 @@ const reducer = (
         pipeline: action.payload,
       };
     }
+    case "UNSET_PIPELINE": {
+      return { ...state, pipeline: undefined };
+    }
     case "UPDATE_PIPELINE": {
       const { uuid, ...changes } = action.payload;
       const currentPipelines = state.pipelines || [];
 
       // Always look up `state.pipelines`.
       const targetPipeline =
-        currentPipelines.find(
-          (pipeline) => pipeline.uuid === action.payload.uuid
-        ) || currentPipelines[0];
+        currentPipelines.find((pipeline) => pipeline.uuid === uuid) ||
+        currentPipelines[0];
 
       if (!targetPipeline) return state;
 

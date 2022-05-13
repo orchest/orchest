@@ -27,6 +27,14 @@ export const useEnsureValidPipelineBase = (
     state: { pipelines, pipeline, hasLoadedPipelinesInPipelineEditor },
     dispatch,
   } = useProjectsContext();
+
+  React.useEffect(() => {
+    // When user switching pipelines, state.pipeline is already loaded.
+    // In order to force loading with the new pipeline_uuid, unset state.pipeline
+    // when useEnsureValidPipelineBase is just mounted.
+    dispatch({ type: "UNSET_PIPELINE" });
+  }, [dispatch]);
+
   useAutoFetchPipelines();
 
   const [lastSeenPipeline, setlastSeenPipelineString] = useLastSeenPipeline();
