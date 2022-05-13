@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import subprocess
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import requests
 from werkzeug.serving import is_running_from_reloader as _irfr
@@ -141,26 +141,14 @@ def is_service_name_valid(service_name: str) -> bool:
     return bool(re.match(r"^[0-9a-zA-Z\-]{1,36}$", service_name))
 
 
-def is_service_order_valid(
-    service_order: Any, existing_service_orders: list[int]
-) -> bool:
-    # service_order acts as a serial number of a service
-    if isinstance(service_order, int) and service_order not in existing_service_orders:
-        existing_service_orders.append(service_order)
-        return True
-    return False
-
-
-def is_service_definition_valid(
-    service: Dict[str, Any], existing_service_orders: list[int]
-) -> bool:
+def is_service_definition_valid(service: Dict[str, Any]) -> bool:
     return (
         isinstance(service, dict)
         and is_service_name_valid(service["name"])
         and isinstance(service["image"], str)
         and service["image"]
         and isinstance(service["scope"], list)
-        and is_service_order_valid(service.get("order", 0), existing_service_orders)
+        and isinstance(service.get("order"), int)
         and isinstance(service.get("preserve_base_path", False), bool)
         and
         # Allowed scopes.
@@ -194,14 +182,21 @@ def is_service_definition_valid(
 
 
 def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
-    existing_service_orders = []
-    return isinstance(services, dict) and all(
-        [
-            is_service_definition_valid(service, existing_service_orders)
-            and sname == service["name"]
-            for sname, service in services.items()
-        ]
-    )
+    if not isinstance(services, dict):
+        return False
+
+    existing_orders: Set[int] = set()
+
+    for sname, service in services.items():
+        if (
+            not is_service_definition_valid(service)
+            or sname != service["name"]
+            or service["order"] in existing_orders
+        ):
+            return False
+
+        existing_orders.add(service["order"])
+        return True
 
 
 def rmtree(path, ignore_errors=False) -> None:

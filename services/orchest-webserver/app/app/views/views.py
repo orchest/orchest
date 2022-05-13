@@ -841,7 +841,7 @@ def register_views(app, db):
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
                 # No need to check if step file_path is within the
-                # project folder. Ohterwise, user cannot save anything
+                # project folder. Otherwise, user cannot save anything
                 # before they got all file paths correct.
                 if not step["file_path"].startswith("/"):
                     step["file_path"] = normalize_project_relative_path(

@@ -87,11 +87,16 @@ def _migrate_1_1_0(pipeline: dict) -> None:
         )
 
 
+def _migrate_1_2_0(pipeline: dict) -> None:
+    """Fill the missing order property for services"""
+    _fill_missing_order(pipeline.get("services"))
+
+
 # version: (migration function, version to which it's migrated)
 _version_to_migration_function = {
     "1.0.0": (_migrate_1_0_0, "1.1.0"),
     "1.1.0": (_migrate_1_1_0, "1.2.0"),
-    "1.2.0": (_migrate_1_1_0, "1.2.1"),
+    "1.2.0": (_migrate_1_2_0, "1.2.1"),
 }
 
 # Make sure no forward version is repeated.
@@ -129,7 +134,10 @@ def _sort_service_key_function(
         return 0
 
 
-def _fill_missing_order(services: Dict[str, Dict[str, Any]]) -> None:
+def _fill_missing_order(services: Optional[Dict[str, Dict[str, Any]]]) -> None:
+    if services is None:
+        return
+
     service_list = services.items()
     ordered_dict: Dict[str, int] = {}
 
@@ -156,7 +164,7 @@ def _fill_missing_order(services: Dict[str, Dict[str, Any]]) -> None:
         services[key]["order"] = max_order
 
 
-def migrate_pipeline(pipeline: dict):
+def migrate_pipeline(pipeline: dict) -> None:
     """Migrates a pipeline in place to the latest version."""
 
     if not pipeline.get("version", ""):
@@ -168,5 +176,3 @@ def migrate_pipeline(pipeline: dict):
         ]
         migration_func(pipeline)
         pipeline["version"] = migrate_to_version
-
-    _fill_missing_order(pipeline.get("services"))

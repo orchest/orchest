@@ -56,6 +56,11 @@ export const fetchPipelineJson = (
       pipelineObj.services = {};
     }
 
+    // Previously `order` was managed via localstorage, meaning that `order` could be incorrect.
+    // Currently, `order` has become mandatory, which should be guaranteed by BE.
+    // To prevent user provides a JSON file with services with wrong order value,
+    // we keep the precautions here, and ensure that FE uses and saves the right data.
+
     const sortedServices = Object.entries(pipelineObj.services).sort((a, b) => {
       if (!hasValue(a[1].order) && !hasValue(b[1].order))
         return a[1].name.localeCompare(b[1].name); // If both services have no order value, sort them by name.

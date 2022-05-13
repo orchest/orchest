@@ -34,8 +34,8 @@ export type FileManagerContextType = {
   fileTreeDepth: React.MutableRefObject<number>;
 };
 
-export const FileManagerContext = React.createContext<FileManagerContextType | null>(
-  null
+export const FileManagerContext = React.createContext<FileManagerContextType>(
+  {} as FileManagerContextType
 );
 
 export const useFileManagerContext = () => React.useContext(FileManagerContext);

@@ -436,14 +436,13 @@ const PipelineSettingsView: React.FC = () => {
   );
 
   const prettifyInputParameters = () => {
-    setInputParameters((current) => {
-      try {
-        if (!current) return current;
-        return JSON.stringify(JSON.parse(current));
-      } catch (error) {
-        return current;
-      }
-    });
+    let newValue: string | undefined;
+    try {
+      const parsedValue = JSON.stringify(JSON.parse(inputParameters));
+      newValue = parsedValue !== inputParameters ? parsedValue : undefined;
+    } catch (error) {}
+
+    if (newValue) setInputParameters(newValue);
   };
 
   const inputParametersError = React.useMemo(() => {
