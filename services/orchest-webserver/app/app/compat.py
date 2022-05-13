@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 """Provides a simple migration layer for pipeline jsons.
 
@@ -91,6 +91,7 @@ def _migrate_1_1_0(pipeline: dict) -> None:
 _version_to_migration_function = {
     "1.0.0": (_migrate_1_0_0, "1.1.0"),
     "1.1.0": (_migrate_1_1_0, "1.2.0"),
+    "1.2.0": (_migrate_1_1_0, "1.2.1"),
 }
 
 # Make sure no forward version is repeated.
@@ -103,17 +104,17 @@ __migration_functions = set(
 assert len(_version_to_migration_function) == len(__migration_functions)
 
 
-def ensure_unique_order(sorted_service_list: Tuple[str, Dict[str, Any]]):
-    anchor = -1
-    for key, service in sorted_service_list:
-        service_order = service.get("order", -1)
-        if service_order == -1:
+def ensure_unique_order(sorted_service_list: List[Tuple[str, Dict[str, Any]]]):
+    max_order: int = -1
+    for (key, service) in sorted_service_list:
+        service_order = service.get("order")
+        if service_order is None:
             continue
-        if anchor == service_order:
+        if max_order == service_order:
             service["order"] = service_order + 1
-        anchor = service["order"]
+        max_order = service["order"]
 
-    return (sorted_service_list, anchor)
+    return (sorted_service_list, max_order)
 
 
 def sort_service_key_function(service: Dict[str, Any], ordered_dict: Dict[str, int]):
