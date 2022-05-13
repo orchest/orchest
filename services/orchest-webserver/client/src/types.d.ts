@@ -329,7 +329,7 @@ export type Service = {
   env_variables_inherit?: any[];
   exposed: boolean;
   requires_authentication?: boolean;
-  order?: number;
+  order: number;
 };
 
 export type FileTree = {
