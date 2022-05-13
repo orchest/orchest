@@ -40,17 +40,22 @@ export const useEnsureValidPipelineBase = (
 
   React.useEffect(() => {
     // This check should only happens if user enter the URL by hand.
-    // Otherwise, this alert will appear when changing projects.
-
-    if (pipelines) {
+    // Otherwise, "Pipeline not found" alert will appear when changing projects.
+    if (pipelines && !hasLoadedPipelinesInPipelineEditor) {
       dispatch({ type: "SET_HAS_LOADED_PIPELINES", payload: true });
     }
-  }, [pipelines, dispatch]);
+  }, [pipelines, dispatch, hasLoadedPipelinesInPipelineEditor]);
 
   React.useEffect(() => {
     const pipelineToOpen = foundPipelineByUuid || pipelines?.find(Boolean);
 
-    if (pipelineToOpen && pipelineToOpen?.uuid !== pipelineUuid) {
+    /**
+     * Redirect only when pipeline is not yet loaded:
+     * - app is just loaded
+     * - switching project in pipeline editor
+     * - enter from non-project to project-related views, e.g. settings -> pipeline
+     */
+    if (pipelineToOpen && pipelineToOpen?.uuid !== pipelineUuid && !pipeline) {
       // Navigate to a valid pipelineUuid.
       navigateTo(siteMap.pipeline.path, {
         query: {
@@ -77,6 +82,7 @@ export const useEnsureValidPipelineBase = (
     pipelines,
     navigateTo,
     projectUuidFromRoute,
+    pipeline,
   ]);
 
   return (
@@ -109,8 +115,6 @@ export const useEnsureValidPipeline = () => {
   );
 
   React.useEffect(() => {
-    // This check should only happens if user enter the URL by hand.
-    // Otherwise, this alert will appear when changing projects.
     if (shouldShowAlert) {
       setAlert(
         "Pipeline not found",

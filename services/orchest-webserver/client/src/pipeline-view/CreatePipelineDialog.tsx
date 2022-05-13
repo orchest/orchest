@@ -60,16 +60,14 @@ export const CreatePipelineDialog = ({
   }, [status]);
 
   const navigateToPipeline = React.useCallback(
-    async (pipelineUuid: string, e?: React.MouseEvent) => {
+    async (pipelineUuid: string) => {
+      if (!projectUuid) return;
+
       const goToPipeline = (isReadOnly: boolean) => {
-        navigateTo(
-          siteMap.pipeline.path,
-          {
-            query: { projectUuid, pipelineUuid },
-            state: { isReadOnly },
-          },
-          e
-        );
+        navigateTo(siteMap.pipeline.path, {
+          query: { projectUuid, pipelineUuid },
+          state: { isReadOnly },
+        });
       };
       try {
         await checkGate(projectUuid);
