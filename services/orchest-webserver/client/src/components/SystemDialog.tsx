@@ -5,7 +5,7 @@ import {
   useAppContext,
 } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import Button from "@mui/material/Button";
+import Button, { ButtonProps } from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -15,18 +15,52 @@ import React from "react";
 
 type CancellableMessage = Extract<PromptMessage, Confirm>;
 type CancellableType = Extract<PromptMessageType, "confirm">;
-const cancellableTypes: CancellableType[] = ["confirm"];
-// use type guard to ensure the promptMessage is cancellable
+const cancelableTypes: CancellableType[] = ["confirm"];
+// use type guard to ensure the promptMessage is cancelable
 const checkCancellable = (
   message: PromptMessage
 ): message is CancellableMessage => {
-  return typedIncludes(cancellableTypes, message.type);
+  return typedIncludes(cancelableTypes, message.type);
 };
 
+// If the trigger of the Dialog is also a keydown, setting the default prop `autoFocus` to `true` will also trigger the button click.
+// We intentionally break it with eventloop.
+const DelayedFocusButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  //eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function DelayedFocusButtonComponent({ autoFocus, ...props }, ref) {
+    const localRef = React.useRef<HTMLButtonElement>();
+
+    React.useEffect(() => {
+      const timeout = window.setTimeout(() => {
+        if (localRef.current) {
+          localRef.current.focus();
+        }
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }, []);
+
+    return (
+      <Button
+        ref={(node: HTMLButtonElement) => {
+          localRef.current = node;
+          if (typeof ref === "function") {
+            ref(node);
+          } else if (ref) {
+            ref.current = node;
+          }
+        }}
+        {...props}
+      />
+    );
+  }
+);
+
 export const SystemDialog: React.FC = () => {
-  const { state, deletePromptMessage } = useAppContext();
-  const promptMessage =
-    state.promptMessages.length > 0 ? state.promptMessages[0] : null;
+  const {
+    state: { promptMessages },
+    deletePromptMessage,
+  } = useAppContext();
+  const promptMessage = promptMessages.length > 0 ? promptMessages[0] : null;
 
   const sendEvent = useSendAnalyticEvent();
 
@@ -54,14 +88,14 @@ export const SystemDialog: React.FC = () => {
 
   // handles when user click away the dialog
   const dialogOnClose = () => {
-    // if the prompt message is cancellable, we cancel it and do nothing
+    // if the prompt message is cancelable, we cancel it and do nothing
     if (isCancellable) {
       cancel();
       return;
     }
     // below we handle click-away behavior case by case
     // ==============================================================================
-    // alert is not cancellable, when user click away, it's seen as "confirm"
+    // alert is not cancelable, when user click away, it's seen as "confirm"
     if (promptMessage.type === "alert") confirm();
   };
 
@@ -79,19 +113,18 @@ export const SystemDialog: React.FC = () => {
         <DialogContent>{promptMessage.content}</DialogContent>
         <DialogActions>
           {isCancellable && (
-            <Button color="secondary" onClick={cancel}>
+            <Button color="secondary" onClick={cancel} tabIndex={-1}>
               {promptMessage.cancelLabel || "Cancel"}
             </Button>
           )}
-          <Button
+          <DelayedFocusButton
             type="submit"
-            autoFocus
             form={`${promptMessage.type}-form`}
             variant="contained"
             data-test-id="confirm-dialog-ok"
           >
             {promptMessage.confirmLabel || "Confirm"}
-          </Button>
+          </DelayedFocusButton>
         </DialogActions>
       </form>
     </Dialog>

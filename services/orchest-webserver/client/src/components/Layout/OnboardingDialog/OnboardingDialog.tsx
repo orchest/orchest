@@ -1,6 +1,6 @@
 import { IconButton } from "@/components/common/IconButton";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -105,16 +105,20 @@ export const OnboardingDialog: React.FC = () => {
     setSlide,
   } = useOnboardingDialogCarousel();
 
-  const onClose = (loadQuickstart = false) => {
+  const onCompleteOnboarding = () => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide({ index: 0, direction: 0 });
-      if (loadQuickstart && hasQuickstart) {
-        navigateTo(siteMap.pipeline.path, {
-          query: {
-            projectUuid: quickstart.project_uuid,
-            pipelineUuid: quickstart.pipeline_uuid,
-          },
-        });
+      if (!hasImportUrl) {
+        if (hasQuickstart) {
+          navigateTo(siteMap.pipeline.path, {
+            query: {
+              projectUuid: quickstart.project_uuid,
+              pipelineUuid: quickstart.pipeline_uuid,
+            },
+          });
+          return;
+        }
+        navigateTo(siteMap.projects.path);
       }
     });
   };
@@ -223,7 +227,7 @@ export const OnboardingDialog: React.FC = () => {
                             </CodeHeader>
                             <CodeWindow>
                               <CodeList role="list">
-                                {item.code.lines.map((line, i) => (
+                                {item.code.lines.map((line) => (
                                   <CodeListItem key={line}>{line}</CodeListItem>
                                 ))}
                               </CodeList>
@@ -287,7 +291,7 @@ export const OnboardingDialog: React.FC = () => {
                         : "Get Started",
                       variant: "contained",
                       color: "primary",
-                      onClick: () => onClose(hasQuickstart),
+                      onClick: onCompleteOnboarding,
                       "data-test-id": hasQuickstart
                         ? "onboarding-complete-with-quickstart"
                         : "onboarding-complete-without-quickstart",

@@ -1,14 +1,20 @@
-import argparse
+import json
 import logging
 import os
 import re
-import socketserver
+import signal
+import sys
+import time
 import uuid
+from multiprocessing.pool import ThreadPool
+from typing import List
+
+from kubernetes import client, config, watch
 
 from config import Config
 
 
-def get_log_dir_path():
+def get_log_dir_path() -> str:
     return os.path.join(
         Config.PROJECT_DIR,
         Config.LOGS_PATH.format(
@@ -17,108 +23,90 @@ def get_log_dir_path():
     )
 
 
-def get_service_log_file_path(service):
+def get_service_log_file_path(service) -> str:
     return os.path.join(get_log_dir_path(), f"{service}.log")
 
 
-def create_log_dir():
+def create_log_dir() -> None:
     log_dir_path = get_log_dir_path()
     os.makedirs(log_dir_path, exist_ok=True)
 
 
-def get_service_name_from_log(log_line):
-    metadata_regex = r"-metadata-end\[\d+\]"
-    # NOTE: if the message is malformed this will cause an exception,
-    # which is ok since we wouldn't know what service the logs belong
-    # to.
-    name_end = re.search(metadata_regex, log_line).start()
-    prefix = "user-service-"
-    name_start = log_line.find(prefix) + len(prefix)
-    return log_line[name_start:name_end]
+def get_services_to_follow() -> List[str]:
+    services_to_follow = []
+    with open(Config.PIPELINE_FILE_PATH) as pipeline:
+        data = json.load(pipeline)
+        for service in data.get("services", {}).values():
+            if Config.SESSION_TYPE in service.get("scope", []):
+                services_to_follow.append(service["name"])
+    return services_to_follow
 
 
-class TCPHandler(socketserver.StreamRequestHandler):
-    def handle(self):
-        # A new container has started logging, we can write instead of
-        # append since the TCP connection is opened on container start
-        # and closed on container end.
+def follow_service_logs(service):
+    config.load_incluster_config()
+    k8s_core_api = client.CoreV1Api()
 
-        # Use the first metadata to get the service name.
-        logging.info(f"Received connection: {self.connection}")
-        data = self.rfile.readline()
-        if data == b"":
-            logging.info(
-                "Received empty data from container, this can be caused by "
-                "the container not emitting any output and docker emitting an "
-                "empty output on container termination."
+    logging.info(f"Initiating logs file for service {service}.")
+    with open(get_service_log_file_path(service), "w") as log_file:
+        # Used by the log_streamer.py to infer that a new session
+        # has started, i.e. the previous logs can be discarded.  The
+        # file streamer has this contract to understand that some
+        # logs belong to a different session, i.e. different UUID
+        # implies different session.
+        log_file.write("%s\n" % str(uuid.uuid4()))
+        log_file.flush()
+
+        while True:
+            pods = k8s_core_api.list_namespaced_pod(
+                namespace=Config.NAMESPACE,
+                label_selector=f"session_uuid={Config.SESSION_UUID},app={service}",
             )
-            return
+            if not pods.items:
+                logging.info(f"{service} is not up yet.")
+                continue
 
-        service_name = get_service_name_from_log(bytes.decode(data))
-        logging.info(f"{service_name} sent its first data.")
+            # Note: this means that the session sidecar makes use of the
+            # fact that user services are single pod.
+            pod = pods.items[0]
 
-        with open(get_service_log_file_path(service_name), "w") as log_file:
-            # Used by the log_streamer.py to infer that a new session
-            # has started, i.e. the previous logs can be discarded.
-            # The file streamer has this contract to understand that
-            # some logs belong to a different session, i.e. different
-            # UUID implies different session.
-            log_file.write("%s\n" % str(uuid.uuid4()))
-            log_file.flush()
-
-            while data != b"":
-                data = bytes.decode(data)
-                # Docker will split messages past this size into
-                # multiple messages.  Every message has a newline
-                # appended, and if the message already ends with a
-                # newline no newline will be appended. This means that
-                # the only way to know if the ending newline is "real"
-                # or not is to check the length, note that there could
-                # be a false positive if a message with a newline has
-                # exactly this length.
-                if len(data) == 16456 and data[-1] == "\n":
-                    data = data[:-1]
-                # Remove syslog metadata. Note: this is faster than
-                # using a regex but less safe. TODO: decide what to
-                # use.
-                anchor_index = data.find("]: ")
-                if anchor_index == -1:
-                    data = "Malformed log message.\n"
-                else:
-                    data = data[anchor_index + 3 :]
-                log_file.write(data)
+            phase = pod.status.phase
+            logging.info(f"{service} phase is {phase}.")
+            if phase in ["Failed", "Running", "Succeeded"]:
+                break
+            elif phase == "Unknown":
+                log_file.write("Unknown service issue.")
                 log_file.flush()
-                data = self.rfile.readline()
+                return
+            else:  # Pending
+                logging.info(f"{service} is pending.")
+                # Based on the state of the service it may return an
+                # object without a get apparently.
+                if hasattr(pod, "get"):
+                    msg = pod.get("message", "")
+                    if "ImagePullBackOff" in msg or "ErrImagePull" in msg:
+                        logging.info(f"{service} image pull failed.")
+                        log_file.write("Image pull failed.")
+                        log_file.flush()
+                        return
+            time.sleep(1)
 
-        logging.info(f"{service_name} disconnected.")
-
-
-def get_command_line_args():
-    parser = argparse.ArgumentParser(description="Start session sidecar.")
-    parser.add_argument(
-        "-d", "--project_dir", type=str, required=False, default=Config.PROJECT_DIR
-    )
-    parser.add_argument(
-        "-l",
-        "--logs_path",
-        type=str,
-        required=False,
-        default=Config.LOGS_PATH,
-    )
-    parser.add_argument(
-        "-p", "--port", type=int, required=False, default=Config.LISTEN_PORT
-    )
-
-    args = parser.parse_args()
-    return args
+        logging.info(f"Getting logs from service {service}, pod {pod.metadata.name}.")
+        w = watch.Watch()
+        for event in w.stream(
+            k8s_core_api.read_namespaced_pod_log,
+            name=pod.metadata.name,
+            container=f"{service}-{Config.SESSION_UUID}",
+            namespace=Config.NAMESPACE,
+            follow=True,
+        ):
+            log_file.write(event)
+            log_file.write("\n")
+            log_file.flush()
+        logging.info(f"No more logs for {service}.")
 
 
 if __name__ == "__main__":
-    args = get_command_line_args()
-    Config.PROJECT_DIR = args.project_dir
-    Config.LOGS_PATH = args.logs_path
-    Config.LISTEN_PORT = args.port
-
+    signal.signal(signal.SIGTERM, lambda *args, **kwargs: sys.exit(0))
     logging.getLogger().setLevel(logging.INFO)
 
     # Needs to be here since the logs directory does not exists for
@@ -141,11 +129,11 @@ if __name__ == "__main__":
             os.remove(path)
 
     logs_path = get_service_log_file_path("<service>")
-    logging.info(f"Storing logs in {logs_path}")
+    logging.info(f"Storing logs in {logs_path}.")
 
-    HOST = "0.0.0.0"
-    PORT = Config.LISTEN_PORT
-    logging.info(f"Listening on {HOST}:{PORT}")
-    with socketserver.ThreadingTCPServer((HOST, PORT), TCPHandler) as server:
-        server.request_queue_size = 1000
-        server.serve_forever()
+    services_to_follow = get_services_to_follow()
+    logging.info(
+        f"Following services: {services_to_follow} for {Config.SESSION_TYPE} session."
+    )
+    pool = ThreadPool(len(services_to_follow))
+    pool.map(follow_service_logs, services_to_follow)

@@ -3,17 +3,20 @@ import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
 import { DesignProvider, OrchestProvider } from "./contexts/Providers";
+import Jupyter from "./jupyter/Jupyter";
 
 declare global {
   interface Document {
-    fonts: any;
+    fonts: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
+
+  interface WheelEvent {
+    wheelDeltaY?: number;
   }
 
   interface Window {
-    /** @deprecated please don't use jQuery */
-    $: any;
-    orchest: any;
-    Intercom: any;
+    orchest: { jupyter: Jupyter | null };
+    Intercom: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 }
 

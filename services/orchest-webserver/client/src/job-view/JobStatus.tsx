@@ -71,7 +71,8 @@ const statusTitleMapping: Partial<Record<RenderedJobStatus, string>> = {
 export const JobStatus: React.FC<
   { totalCount?: number } & Pick<Job, "status" | "pipeline_run_status_counts">
 > = ({ status, totalCount, pipeline_run_status_counts: count }) => {
-  const isJobDone = status === "SUCCESS" || status === "ABORTED";
+  const isJobDone =
+    status === "SUCCESS" || status === "ABORTED" || status === "FAILURE";
   const totalPendingCount = getSummedCount(count, ["PENDING", "STARTED"]);
   const totalFailureCount = getSummedCount(count, ["ABORTED", "FAILURE"]);
   const totalSuccessCount = getSummedCount(count, ["SUCCESS"]);

@@ -1,8 +1,12 @@
 """API endpoints for unspecified orchest-api level information."""
+from datetime import datetime, timezone
+
+from flask import current_app
 from flask_restx import Namespace, Resource
 
 from app import models, schema, utils
 from app.connections import db
+from app.core import sessions
 
 api = Namespace("info", description="Orchest-api information.")
 api = utils.register_schema(api)
@@ -28,7 +32,7 @@ class IdleCheck(Resource):
             state is reported by JupyterLab, and reflects the fact that
             a kernel is not actively doing some compute.
         """
-        idleness_data = utils.is_orchest_idle()
+        idleness_data = is_orchest_idle()
         return idleness_data, 200
 
 
@@ -51,3 +55,57 @@ class ClientHeartBeat(Resource):
         db.session.commit()
 
         return "", 200
+
+
+def is_orchest_idle() -> dict:
+    """Checks if the orchest-api is idle.
+
+    Returns:
+        See schema.idleness_check_result for details.
+    """
+    data = {}
+
+    # Active clients.
+    threshold = (
+        datetime.now(timezone.utc)
+        - current_app.config["CLIENT_HEARTBEATS_IDLENESS_THRESHOLD"]
+    )
+    data["active_clients"] = db.session.query(
+        db.session.query(models.ClientHeartbeat)
+        .filter(models.ClientHeartbeat.timestamp > threshold)
+        .exists()
+    ).scalar()
+
+    # Find busy kernels.
+    data["busy_kernels"] = False
+    isessions = models.InteractiveSession.query.filter(
+        models.InteractiveSession.status.in_(["RUNNING"])
+    ).all()
+    for session in isessions:
+        if sessions.has_busy_kernels(
+            session.project_uuid[:18] + session.pipeline_uuid[:18]
+        ):
+            data["busy_kernels"] = True
+            break
+
+    # Assumes the model has a uuid field and its lifecycle contains the
+    # PENDING and STARTED statuses. NOTE: we could be stopping earlier
+    # on truthy values since we already know the orchest-api is idle at
+    # this point, but providing all details might allow to further build
+    # on this "feature" in the future without fragmenting users due to
+    # different versions.
+    for name, model in [
+        ("ongoing_environment_image_builds", models.EnvironmentImageBuild),
+        ("ongoing_jupyterlab_builds", models.JupyterImageBuild),
+        ("ongoing_interactive_runs", models.InteractivePipelineRun),
+        ("ongoing_job_runs", models.NonInteractivePipelineRun),
+    ]:
+        data[name] = db.session.query(
+            db.session.query(model)
+            .filter(model.status.in_(["PENDING", "STARTED"]))
+            .exists()
+        ).scalar()
+
+    result = {"details": data}
+    result["idle"] = not any(data.values())
+    return result

@@ -2,13 +2,24 @@ import os
 
 # TODO: add notice that some of these values have effect on the sdk!.
 
-# General.
-TEMP_DIRECTORY_PATH = "/tmp/orchest"
-TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
+ORCHEST_MAINTAINER_LABEL = "Orchest B.V. https://www.orchest.io"
+
+# Orchest directories that need to exist in the userdir.
+USERDIR_DATA = "/userdir/data"
+USERDIR_JOBS = "/userdir/jobs"
+USERDIR_PROJECTS = "/userdir/projects"
+USERDIR_ENV_IMG_BUILDS = "/userdir/.orchest/env-img-builds"
+USERDIR_JUPYTER_IMG_BUILDS = "/userdir/.orchest/jupyter-img-builds"
+USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
+
+ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl", "js"]
+
+DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
 CLOUD = os.environ.get("CLOUD") == "True"
+ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN")
 GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # This represents a container priority w.r.t. CPU time. By default,
 # containers run with a value of 1024. User code/containers such as
@@ -16,9 +27,10 @@ GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # lower value so that in conditions of high cpu contention core Orchest
 # services have priority, which helps in being responsive under high
 # load. This is only enforced when CPU cycles are constrained. For more
-# information, see
-# https://docs.docker.com/config/containers/resource_constraints/.
-USER_CONTAINERS_CPU_SHARES = 500
+# information, see the k8s docs about CPU SHARES.
+USER_CONTAINERS_CPU_SHARES = "500m"
+REGISTRY = "docker-registry"
+REGISTRY_FQDN = "docker-registry.orchest.svc.cluster.local"
 
 # Databases
 database_naming_convention = {
@@ -57,8 +69,6 @@ KERNEL_NAME = "orchest-kernel-{environment_uuid}"
 
 # Containers
 PIPELINE_STEP_CONTAINER_NAME = "orchest-step-{run_uuid}-{step_uuid}"
-JUPYTER_SERVER_NAME = "jupyter-server-{project_uuid}-{pipeline_uuid}"
-JUPYTER_EG_SERVER_NAME = "jupyter-EG-{project_uuid}-{pipeline_uuid}"
 JUPYTER_USER_CONFIG = ".orchest/user-configurations/jupyterlab"
 JUPYTER_SETUP_SCRIPT = f"{JUPYTER_USER_CONFIG}/setup_script.sh"
 JUPYTER_IMAGE_NAME = "orchest-jupyter-server-user-configured"
@@ -80,17 +90,18 @@ WEBSERVER_LOGS = "/orchest/services/orchest-webserver/app/orchest-webserver.log"
 # Networking
 ORCHEST_API_ADDRESS = "orchest-api"
 ORCHEST_SOCKETIO_SERVER_ADDRESS = "http://orchest-webserver"
-ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE = "/environment_builds"
-ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE = "/jupyter_builds"
+ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE = "/environment_image_builds"
+ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE = "/jupyter_image_builds"
 
 
 ENV_SETUP_SCRIPT_FILE_NAME = "setup_script.sh"
 
 DEFAULT_SETUP_SCRIPT = """#!/bin/bash
 
-# Install any dependencies you have in this shell script.
+# Install any dependencies you have in this shell script,
+# see https://docs.orchest.io/en/latest/fundamentals/environments.html#install-packages
 
-# E.g. pip install tensorflow
+# E.g. mamba install -y tensorflow
 
 """
 
@@ -99,23 +110,19 @@ DEFAULT_SETUP_SCRIPT = """#!/bin/bash
 DEFAULT_ENVIRONMENTS = [
     {
         "name": "Python 3",
-        "base_image": "orchest/base-kernel-py",
+        "base_image": f'orchest/base-kernel-py:{os.getenv("ORCHEST_VERSION")}',
         "language": "python",
         "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,
     },
 ]
 
-DOCKER_NETWORK = "orchest"
-
 # memory-server
-MEMORY_SERVER_SOCK_PATH = TEMP_DIRECTORY_PATH
+MEMORY_SERVER_SOCK_PATH = os.path.join(PROJECT_DIR, ".orchest")
 
 SIDECAR_PORT = 1111
 
-# update-server
-
-# This is used to force docker to flush the logs buffer, which won't
-# happen without a newline. This way the update server knows when a
-# newline is "genuine" vs a newline being put there to flush the buffer.
-DOCKER_LOGS_BUFFER_FLUSH_FLAG = "F|!!!|\n"
+ORCHEST_NAMESPACE = "orchest"
+ORCHEST_UPDATE_INFO_URL = (
+    "https://update-info.orchest.io/api/orchest/update-info/v3?version={version}"
+)

@@ -19,6 +19,23 @@ Lastly, environments are part of a single project and included when versioning. 
 you can get started immediately when importing an existing project without having to recreate the
 same environment.
 
+Choosing a programming language
+-------------------------------
+
+An environment is always specifically used for one programming language. This avoids bloating
+the container image of the environment to include dependencies for multiple languages.
+
+
+Orchest has built in support for environments with the languages:
+
+* Python
+* R
+* JavaScript
+* Julia
+
+Each environment supports ``Bash`` scripts. This can also be used to invoke any other language indirectly.
+Like Java, Scala, Go or C++ based steps.
+
 Important paths inside environments
 -----------------------------------
 Whenever code is executed in an environment a number of paths are mounted to the container that you
@@ -65,17 +82,25 @@ includes the packages you need, simply follow the steps in the previous section.
 .. code-block:: bash
 
    #!/bin/bash
-   pip install tensorflow
 
-   # Get system level dependency for one of your packages.
+   # Get system level dependencies for one of your packages
    sudo apt-get install -y default-libmysqlclient-dev
 
+   # Install any dependency using mamba or conda
+   mamba install -y spacy -c conda-forge
+
+   # Or, alternatively, install Python dependencies using pip
+   pip install black
+
 .. note::
-   💡 The environments Orchest provides are based on the  `Jupyter Docker Stacks
-   <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_ and come with a number of
-   `pre-installed packages
-   <https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html>`_. However, the
-   JupyterLab kernel needs to be restarted if it was already running.
+   💡 `mamba <https://mamba.readthedocs.io/>`_ is a drop-in replacement to conda
+   that is more user friendly and faster. Installing packages with conda is also supported,
+   but conda might need a long time to solve the environment.
+
+.. note::
+   💡 ``Pip``, ``mamba`` and ``conda`` caches are persisted across builds for quicker iterations.
+   Said cache can be ignored or removed using the respective flags (e.g. ``pip install --no-cache``)
+   or commands.
 
 Installing packages from a ``requirements.txt``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -99,23 +124,23 @@ Using a different Python version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 It might be the case that your code requires another Python version than we are offering. Luckily
 with environments it is easy to set up the Python version you require. Below follows an example of
-how to setup an environment to use Python 3.8 using conda:
+how to setup an environment to use Python 3.10 using mamba:
 
 .. code-block:: bash
 
    #!/bin/bash
-   # Install Python3.8 and get minimum set of dependencies.
-   conda create -y -n py38 python=3.8 future
-   conda install -y -n py38 ipykernel jupyter_client ipython_genutils pycryptodomex future
-   conda run -n py38 pip install orchest
+   # Install Python 3.10 and get minimum set of dependencies
+   mamba create -y -n py310 python=3.10 future
+   mamba install -y -n py310 ipykernel jupyter_client ipython_genutils pycryptodomex future "pyarrow<=4.0.0"
+   mamba run -n py310 pip install orchest
 
    # Set environment variables so that the new Python version is
    # used when executing the pipeline and inside kernels. The variables
    # are set here so that they are isolated within the environment.
    # NOTE: We are first overwriting the `.bashrc` file to make sure the
    # environment variables are unaffected by existing code in the file.
-   echo "export JUPYTER_PATH=/opt/conda/envs/py38/share/jupyter" > /home/jovyan/.bashrc
-   echo "export CONDA_ENV=py38" >> /home/jovyan/.bashrc
+   echo "export JUPYTER_PATH=/opt/conda/envs/py310/share/jupyter" > /home/jovyan/.bashrc
+   echo "export CONDA_ENV=py310" >> /home/jovyan/.bashrc
 
 Lastly, you need to set a project (or pipeline) :ref:`environment variable <environment variables>`
 to make sure that the ``.bashrc`` is actually sourced.

@@ -1,10 +1,8 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
-import CloseIcon from "@mui/icons-material/Close";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -52,7 +50,7 @@ export const CreateProjectDialog = ({
       );
 
       dispatch((state) => ({
-        type: "projectsSet",
+        type: "SET_PROJECTS",
         payload: [
           ...state.projects,
           {
@@ -68,7 +66,9 @@ export const CreateProjectDialog = ({
         ],
       }));
 
-      navigateTo(siteMap.pipelines.path, {
+      dispatch({ type: "SET_PROJECT", payload: project_uuid });
+
+      navigateTo(siteMap.pipeline.path, {
         query: { projectUuid: project_uuid },
       });
     } catch (error) {
@@ -97,7 +97,7 @@ export const CreateProjectDialog = ({
             sx={{ marginTop: (theme) => theme.spacing(2) }}
             label="Project name"
             error={validation.length > 0}
-            helperText={validation}
+            helperText={validation || " "}
             value={projectName}
             onChange={(e) =>
               setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
@@ -106,16 +106,11 @@ export const CreateProjectDialog = ({
           />
         </DialogContent>
         <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            color="secondary"
-            onClick={closeDialog}
-          >
+          <Button color="secondary" tabIndex={-1} onClick={closeDialog}>
             Cancel
           </Button>
           <Button
             variant="contained"
-            startIcon={<FormatListBulletedIcon />}
             type="submit"
             form="create-project"
             disabled={!isFormValid}

@@ -6,9 +6,10 @@ import uuid
 from typing import Optional
 
 import requests
-from flask.globals import current_app
+from flask import current_app, safe_join
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from _orchest.internals.utils import rmtree
 from app import error
 from app.connections import db
 from app.core.pipelines import AddPipelineFromFS, DeletePipeline
@@ -22,9 +23,8 @@ from app.utils import (
     populate_default_environments,
     project_uuid_to_path,
     remove_project_jobs_directories,
-    rmtree,
 )
-from app.views.orchest_api import api_proxy_environment_builds
+from app.views.orchest_api import api_proxy_environment_image_builds
 
 
 class CreateProject(TwoPhaseFunction):
@@ -39,6 +39,11 @@ class CreateProject(TwoPhaseFunction):
         Returns:
             UUID of the newly initialized project.
         """
+        if len(project_path) > 255:
+            raise error.InvalidProjectName(
+                "Project name can't be longer than 255 characters."
+            )
+
         # The collateral effect will later make use of this.
         project_uuid = str(uuid.uuid4())
         new_project = Project(
@@ -64,9 +69,7 @@ class CreateProject(TwoPhaseFunction):
             FileExistsError:
             NotADirectoryError:
         """
-        full_project_path = os.path.join(
-            current_app.config["PROJECTS_DIR"], project_path
-        )
+        full_project_path = safe_join(current_app.config["PROJECTS_DIR"], project_path)
         # exist_ok=True is there so that this function can be used both
         # when initializing a project that was discovered through the
         # filesystem or initializing a project from scratch.
@@ -74,14 +77,14 @@ class CreateProject(TwoPhaseFunction):
 
         # Create top-level `.gitignore` file with sane defaults, in case
         # it not already exists.
-        root_gitignore = os.path.join(full_project_path, ".gitignore")
+        root_gitignore = safe_join(full_project_path, ".gitignore")
         if not os.path.exists(root_gitignore):
             with open(root_gitignore, "w") as f:
                 f.write("\n".join(current_app.config["GIT_IGNORE_PROJECT_ROOT"]))
 
         # This would actually be created as a collateral effect when
         # populating with default environments, do not rely on that.
-        expected_internal_dir = os.path.join(full_project_path, ".orchest")
+        expected_internal_dir = safe_join(full_project_path, ".orchest")
         if os.path.isfile(expected_internal_dir):
             raise NotADirectoryError(
                 "The expected internal directory (.orchest) is a file."
@@ -94,7 +97,7 @@ class CreateProject(TwoPhaseFunction):
         # `.orchest/` directory because an existing project might be
         # added to Orchest and already contain a root-level
         # `.gitignore`, which we don't want to inject ourselves in.
-        expected_git_ignore_file = os.path.join(
+        expected_git_ignore_file = safe_join(
             full_project_path, ".orchest", ".gitignore"
         )
         if os.path.isdir(expected_git_ignore_file):
@@ -107,7 +110,7 @@ class CreateProject(TwoPhaseFunction):
 
         # Initialize with default environments only if the project has
         # no environments directory.
-        expected_env_dir = os.path.join(full_project_path, ".orchest", "environments")
+        expected_env_dir = safe_join(full_project_path, ".orchest", "environments")
         if os.path.isfile(expected_env_dir):
             raise NotADirectoryError(
                 "The expected environments directory (.orchest/environments) "
@@ -117,7 +120,7 @@ class CreateProject(TwoPhaseFunction):
             populate_default_environments(project_uuid)
 
         # Initialize .git directory
-        expected_git_dir = os.path.join(full_project_path, ".git")
+        expected_git_dir = safe_join(full_project_path, ".git")
 
         # If no git directory exists initialize git repo
         if not os.path.exists(expected_git_dir):
@@ -131,7 +134,7 @@ class CreateProject(TwoPhaseFunction):
 
         resp = requests.post(
             f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/projects/',
-            json={"uuid": project_uuid},
+            json={"uuid": project_uuid, "name": project_path},
         )
         if resp.status_code != 201:
             raise Exception("Orchest-api project creation failed.")
@@ -175,9 +178,7 @@ class DeleteProject(TwoPhaseFunction):
         # The project has been deleted by a concurrent deletion request.
         if project_path is None:
             return
-        full_project_path = os.path.join(
-            current_app.config["PROJECTS_DIR"], project_path
-        )
+        full_project_path = safe_join(current_app.config["PROJECTS_DIR"], project_path)
         rmtree(full_project_path)
 
         # Remove jobs directories related to project.
@@ -208,6 +209,10 @@ class RenameProject(TwoPhaseFunction):
     """
 
     def _transaction(self, project_uuid: str, new_name: str):
+        if len(new_name) > 255:
+            raise error.InvalidProjectName(
+                "Project name can't be longer than 255 characters."
+            )
 
         project = (
             Project.query.with_for_update()
@@ -249,8 +254,8 @@ class RenameProject(TwoPhaseFunction):
     ):
         """Move a project to another path, i.e. rename it."""
 
-        old_path = os.path.join(current_app.config["PROJECTS_DIR"], old_name)
-        new_path = os.path.join(current_app.config["PROJECTS_DIR"], new_name)
+        old_path = safe_join(current_app.config["PROJECTS_DIR"], old_name)
+        new_path = safe_join(current_app.config["PROJECTS_DIR"], new_name)
 
         os.rename(old_path, new_path)
         # So that the moving can be reverted in case of failure of the
@@ -260,14 +265,24 @@ class RenameProject(TwoPhaseFunction):
         Project.query.filter_by(uuid=project_uuid).update({"status": "READY"})
         db.session.commit()
 
+        resp = requests.put(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/projects'
+                f"/{project_uuid}"
+            ),
+            json={"name": new_name},
+        )
+        if resp.status_code != 200:
+            raise Exception("Orchest-api project name change failed.")
+
     def _revert(self):
         # Move it back if necessary. This avoids the project being
         # discovered as a new one.
         if self.collateral_kwargs.get("moved", False):
-            old_path = os.path.join(
+            old_path = safe_join(
                 current_app.config["PROJECTS_DIR"], self.collateral_kwargs["old_name"]
             )
-            new_path = os.path.join(
+            new_path = safe_join(
                 current_app.config["PROJECTS_DIR"], self.collateral_kwargs["new_name"]
             )
             try:
@@ -301,7 +316,7 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
         """
 
         project_path = project_uuid_to_path(project_uuid)
-        project_dir = os.path.join(
+        project_dir = safe_join(
             current_app.config["USER_DIR"], "projects", project_path
         )
 
@@ -407,7 +422,7 @@ class ImportGitProject(TwoPhaseFunction):
 def build_environments(environment_uuids, project_uuid):
     project_path = project_uuid_to_path(project_uuid)
 
-    environment_build_requests = [
+    environment_image_build_requests = [
         {
             "project_uuid": project_uuid,
             "project_path": project_path,
@@ -416,13 +431,20 @@ def build_environments(environment_uuids, project_uuid):
         for environment_uuid in environment_uuids
     ]
 
-    return api_proxy_environment_builds(
-        environment_build_requests, current_app.config["ORCHEST_API_ADDRESS"]
+    return api_proxy_environment_image_builds(
+        environment_image_build_requests, current_app.config["ORCHEST_API_ADDRESS"]
     )
 
 
 def build_environments_for_project(project_uuid):
     environments = get_environments(project_uuid)
+
+    for env in environments:
+        url = (
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+            f"/api/environments/{project_uuid}"
+        )
+        requests.post(url, json={"uuid": env.uuid})
 
     return build_environments(
         [environment.uuid for environment in environments], project_uuid

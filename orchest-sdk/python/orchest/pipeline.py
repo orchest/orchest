@@ -8,23 +8,46 @@ class TypedDict(dict):
     pass
 
 
-# TODO: this class is not extensive yet. The Other Dicts can be typed
-#       with a TypedDict also.
 class PipelineStepProperties(TypedDict):
-    name: str
-    uuid: str
-    incoming_connections: List[str]  # list of UUIDs
-    file_path: str
     environment: str
-    parameters: dict
-    meta_data: Dict[str, List[int]]
+    file_path: str
+    incoming_connections: List[str]  # list of UUIDs
+    kernel: Dict[str, Any]
+    meta_data: Dict[str, List[int]]  # Related to GUI displaying.
+    parameters: Dict[str, Any]
+    title: str
+    uuid: str
+
+
+class PipelineSettings(TypedDict):
+    auto_eviction: bool
+    data_passing_memory_size: str  # 1GB and similar.
+
+
+class ServiceDefinition(TypedDict):
+    binds: Optional[Dict[str, Any]]  # "/project-dir", "/data" to path
+    command: Optional[str]
+    args: Optional[str]
+    env_variables: Optional[Dict[str, str]]
+    env_variables_inherit: Optional[List[str]]
+    image: str
+    name: str
+    ports: Optional[List[int]]
+    preserve_base_path: Optional[str]
+    scope: List[str]  # interactive, noninteractive
+    exposed: bool
+    requires_authentication: bool
+    order: int
 
 
 class PipelineDefinition(TypedDict):
     name: str
-    uuid: str
-    steps: Dict[str, PipelineStepProperties]
     parameters: Dict[str, Any]
+    services: Dict[str, ServiceDefinition]
+    settings: PipelineSettings
+    steps: Dict[str, PipelineStepProperties]
+    uuid: str
+    version: str
 
 
 class PipelineStep:

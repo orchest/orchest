@@ -1,0 +1,26 @@
+APScheduler
+Flask-Cors
+Flask-SQLAlchemy
+Flask<2
+Jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
+PyYAML
+SQLAlchemy-Utils
+Werkzeug<2.1.0  # Newer versions are broken with old Flask
+aiohttp
+amqp
+celery
+croniter
+eventlet
+flask-migrate
+flask-restx
+flask-script
+itsdangerous
+kubernetes
+psycopg2-binary
+python-engineio
+python-socketio[client]
+requests
+validators
+six>=1.13.0
+-e file:../../lib/python/orchest-internals
+-e file:../../orchest-cli

@@ -28,6 +28,7 @@ const ImportSuccessDialog: React.FC<{
         </Button>
         <Button
           variant="contained"
+          autoFocus
           onClick={goToPipelines}
           onAuxClick={goToPipelines}
         >

@@ -8,7 +8,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { Job } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -48,10 +48,10 @@ const JobView: React.FC = () => {
   const { navigateTo, jobUuid } = useCustomRoute();
 
   // data states
-  const { job, setJob, fetchJob, envVariables, isFetchingJob } = useFetchJob(
+  const { job, setJob, fetchJob, envVariables, isFetchingJob } = useFetchJob({
     jobUuid,
-    true
-  );
+    runStatuses: true,
+  });
 
   // monitor if there's any operations ongoing, if so, disable action buttons
   const { run, status } = useAsync<void>();
@@ -209,7 +209,7 @@ const JobView: React.FC = () => {
     ) : null;
 
   return (
-    <Layout fullHeight>
+    <Layout>
       <>
         {!job ? (
           <LinearProgress />

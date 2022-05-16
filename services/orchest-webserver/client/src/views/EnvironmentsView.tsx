@@ -3,7 +3,7 @@ import { Layout } from "@/components/Layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import React from "react";
 
 const EnvironmentsView: React.FC = () => {
@@ -12,7 +12,7 @@ const EnvironmentsView: React.FC = () => {
 
   return (
     <Layout>
-      <ProjectBasedView projectUuid={projectUuid}>
+      <ProjectBasedView>
         <EnvironmentList projectUuid={projectUuid} />
       </ProjectBasedView>
     </Layout>

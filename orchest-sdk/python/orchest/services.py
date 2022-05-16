@@ -36,16 +36,12 @@ def _get_interactive_session_services_specs() -> Dict[str, Any]:
     pp_uuid = Config.PIPELINE_UUID
 
     resp = requests.get(
-        "http://"
-        + Config.ORCHEST_API_ADDRESS
-        + f"/api/sessions/?project_uuid={proj_uuid}&pipeline_uuid={pp_uuid}"
+        "http://" + Config.ORCHEST_API_ADDRESS + f"/api/sessions/{proj_uuid}/{pp_uuid}"
     )
 
-    sessions = resp.json()
-    if not sessions.get("sessions", []):
+    if resp.status_code == 404:
         raise SessionNotFound()
-
-    return sessions["sessions"][0].get("user_services", {})
+    return resp.json().get("user_services", {})
 
 
 def _generate_urls(service) -> Dict[str, Any]:
@@ -55,27 +51,19 @@ def _generate_urls(service) -> Dict[str, Any]:
     service = copy.deepcopy(service)
     service.pop("scope", None)
 
-    container_name = (
-        ("internal-" if not service.get("ports", []) else "")
-        + "service-"
-        + service["name"]
-        + "-"
-        + Config.PROJECT_UUID.split("-")[0]
-        + "-"
-        + session_uuid.split("-")[0]
-    )
+    service_name = service["name"] + "-" + session_uuid
 
     external_urls = {}
     base_paths = {}
     for port in service.get("ports", []):
         pbp = "pbp-" if service.get("preserve_base_path", False) else ""
-        base_path = f"/{pbp}{container_name}_{port}"
-        external_url = f"http://{{host_name}}:{{port}}{base_path}/"
+        base_path = f"/{pbp}service-{service_name}_{port}"
+        external_url = f"http://{{host_name}}:{{port}}{base_path}"
 
         base_paths[port] = base_path
         external_urls[port] = external_url
 
-    service["internal_hostname"] = container_name
+    service["internal_hostname"] = service_name
     service["external_urls"] = external_urls
     service["base_paths"] = base_paths
 

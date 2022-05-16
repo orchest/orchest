@@ -4,4 +4,6 @@ venv/
 .venvs/
 npm_modules/
 dist/
+services/orchest-controller/deploy/
+services/orchest-controller/deploy-controller/
 pnpm-lock.yaml

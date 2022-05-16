@@ -1,30 +1,9 @@
 import React from "react";
-import EditJobView from "./edit-job-view/EditJobView";
-import JobView from "./job-view/JobView";
-import JobsView from "./jobs-view/JobsView";
-import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
-import LogsView from "./pipeline-view/LogsView";
-import PipelineView from "./pipeline-view/PipelineView";
-import PipelinesView from "./pipelines-view/PipelinesView";
-import ExamplesView from "./projects-view/ExamplesView";
-import ProjectsView from "./projects-view/ProjectsView";
-import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
-import EnvironmentEditView from "./views/EnvironmentEditView";
-import EnvironmentsView from "./views/EnvironmentsView";
-import FileManagerView from "./views/FileManagerView";
-import FilePreviewView from "./views/FilePreviewView";
-import HelpView from "./views/HelpView";
-import JupyterLabView from "./views/JupyterLabView";
-import ManageUsersView from "./views/ManageUsersView";
-import ProjectSettingsView from "./views/ProjectSettingsView";
-import SettingsView from "./views/SettingsView";
-import UpdateView from "./views/UpdateView";
 
-type RouteName =
+export type RouteName =
   | "projects"
   | "examples"
   | "projectSettings"
-  | "pipelines"
   | "pipeline"
   | "jupyterLab"
   | "pipelineSettings"
@@ -34,6 +13,10 @@ type RouteName =
   | "environment"
   | "jobs"
   | "job"
+  | "jobRun"
+  | "jobRunPipelineSettings"
+  | "jobRunLogs"
+  | "jobRunFilePreview"
   | "pipelineReadonly"
   | "editJob"
   | "fileManager"
@@ -44,7 +27,7 @@ type RouteName =
   | "help"
   | "notFound";
 
-type RouteData = {
+export type RouteData = {
   path: string;
   root?: string;
   component: React.FunctionComponent;
@@ -57,143 +40,133 @@ const _getTitle = (pageTitle: string) => `${pageTitle} · Orchest`;
 // to add new route, you would also need to add the route name to RouteName.
 // NOTE: the order of the routes matters, react-router loads the first route that matches the given path
 
-export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
-  if (getTitle === undefined) {
-    getTitle = _getTitle;
-  }
+export const getOrderedRoutes = (getTitle = _getTitle) => {
   return [
     {
       name: "projects",
       path: "/projects",
       title: getTitle("Projects"),
-      component: ProjectsView,
     },
     {
       name: "examples",
       path: "/examples",
       root: "/projects",
       title: getTitle("Examples"),
-      component: ExamplesView,
     },
     {
       name: "projectSettings",
       path: "/project-settings",
       root: "/projects",
       title: getTitle("Project Settings"),
-      component: ProjectSettingsView,
-    },
-    {
-      name: "pipelines",
-      path: "/pipelines",
-      title: getTitle("Pipelines"),
-      component: PipelinesView,
     },
     {
       name: "pipeline",
       path: "/pipeline",
-      root: "/pipelines",
       title: getTitle("Pipeline"),
-      component: PipelineView,
     },
     {
       name: "jupyterLab",
       path: "/jupyter-lab",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("JupyterLab"),
-      component: JupyterLabView,
     },
     {
       name: "pipelineSettings",
       path: "/pipeline-settings",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Pipeline Settings"),
-      component: PipelineSettingsView,
     },
     {
       name: "filePreview",
       path: "/file-preview",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Step File Preview"),
-      component: FilePreviewView,
     },
     {
       name: "logs",
       path: "/logs",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Logs"),
-      component: LogsView,
     },
     {
       name: "environments",
       path: "/environments",
       title: getTitle("Environments"),
-      component: EnvironmentsView,
     },
     {
       name: "environment",
       path: "/environment",
       root: "/environments",
       title: getTitle("Environment"),
-      component: EnvironmentEditView,
     },
     {
       name: "jobs",
       path: "/jobs",
       title: getTitle("Jobs"),
-      component: JobsView,
     },
     {
       name: "job",
       path: "/job",
       root: "/jobs",
       title: getTitle("Job"),
-      component: JobView,
+    },
+    {
+      name: "jobRun",
+      path: "/job-run",
+      root: "/jobs",
+      title: getTitle("Job Run"),
+    },
+    {
+      name: "jobRunPipelineSettings",
+      path: "/job-run/pipeline-settings",
+      root: "/jobs",
+      title: getTitle("Job Run Pipeline Settings"),
+    },
+    {
+      name: "jobRunLogs",
+      path: "/job-run/logs",
+      root: "/jobs",
+      title: getTitle("Job Run Logs"),
+    },
+    {
+      name: "jobRunFilePreview",
+      path: "/job-run/file-preview",
+      root: "/jobs",
+      title: getTitle("Job Run Step File Preview"),
     },
     {
       name: "editJob",
       path: "/edit-job",
       root: "/jobs",
       title: getTitle("Edit Job"),
-      component: EditJobView,
-    },
-    {
-      name: "fileManager",
-      path: "/file-manager",
-      title: getTitle("File Manager"),
-      component: FileManagerView,
     },
     {
       name: "settings",
       path: "/settings",
       title: getTitle("Settings"),
-      component: SettingsView,
     },
     {
       name: "configureJupyterLab",
       path: "/configure-jupyter-lab",
       root: "/settings",
       title: getTitle("Configure JupyterLab"),
-      component: ConfigureJupyterLabView,
     },
     {
       name: "update",
       path: "/update",
       root: "/settings",
       title: getTitle("Update"),
-      component: UpdateView,
     },
     {
       name: "manageUsers",
       path: "/manage-users",
       root: "/settings",
       title: getTitle("Manage Users"),
-      component: ManageUsersView,
     },
     {
       name: "help",
       path: "/help",
       title: getTitle("Help"),
-      component: HelpView,
     },
     // TODO: we need a proper PageNotFound page, atm we redirect back to ProjectsView
     // // will always be the last one as a fallback
@@ -201,7 +174,6 @@ export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
     //   name: "notFound",
     //   path: "*",
     //   title: getTitle("Page Not Found"),
-    //   component: NotFound,
     // },
   ];
 };
@@ -212,42 +184,38 @@ export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
     [curr.name]: {
       path: curr.path,
       root: curr.root,
-      component: curr.component,
       order: i,
     } as RouteData,
   }),
   {} as Record<RouteName, RouteData>
 );
 
-const snakeCase = (str: string, divider = "_") =>
-  str
-    .split(/(?=[A-Z])/)
-    .join(divider)
-    .toLowerCase();
+export const projectRootPaths = [
+  siteMap.jobs.path,
+  siteMap.environments.path,
+  siteMap.pipeline.path,
+];
 
-export const toQueryString = <T extends string>(
-  query: Record<T, string | number | boolean | undefined | null>
-) => {
-  const isObject =
-    typeof query === "object" &&
-    query !== null &&
-    typeof query !== "function" &&
-    !Array.isArray(query);
-  return isObject
-    ? Object.entries<string | number | boolean | undefined | null>(query)
-        .reduce((str, entry) => {
-          const [key, value] = entry;
-          const encodedValue =
-            value && value !== "null" && value !== "undefined" // we don't pass along null or undefined since it doesn't mean much to the receiver
-              ? encodeURIComponent(value.toString().toLowerCase())
-              : null;
-          return encodedValue
-            ? `${str}${snakeCase(key)}=${encodedValue}&`
-            : str;
-        }, "?")
-        .slice(0, -1) // remove the trailing '&' or '?'.
-    : "";
-};
+export const withinProjectPaths = getOrderedRoutes().reduce<
+  Pick<RouteData, "path" | "root">[]
+>((all, curr) => {
+  // only include within-project paths
+  // i.e. if the context involves multiple projects, it should be excluded
+  if (
+    projectRootPaths.includes(curr.path) ||
+    projectRootPaths.includes(curr.root || "") ||
+    curr.path === "/project"
+  ) {
+    return [
+      ...all,
+      {
+        path: curr.path,
+        root: curr.root,
+      },
+    ];
+  }
+  return all;
+}, [] as Pick<RouteData, "path" | "root">[]);
 
 export const generatePathFromRoute = <T extends string>(
   route: string,
@@ -262,3 +230,27 @@ export const generatePathFromRoute = <T extends string>(
     return str.replace(`:${key}`, isValueValid ? value.toString() : "");
   }, route);
 };
+
+// Exclude detail views
+const excludedPaths = [
+  siteMap.pipeline.path,
+  siteMap.environment.path,
+  siteMap.pipelineSettings.path,
+  siteMap.projectSettings.path,
+  siteMap.jupyterLab.path,
+  siteMap.filePreview.path,
+  siteMap.logs.path,
+  siteMap.job.path,
+  siteMap.editJob.path,
+];
+
+// used in CommandPalette
+export const pageCommands = getOrderedRoutes((title: string) => title)
+  .filter((route) => !excludedPaths.includes(route.path))
+  .map((route) => {
+    return {
+      title: "Page: " + route.title,
+      action: "openPage",
+      data: { path: route.path, query: {} },
+    };
+  });

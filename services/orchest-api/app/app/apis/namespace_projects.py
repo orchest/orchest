@@ -11,7 +11,7 @@ import app.models as models
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
-from app.apis.namespace_environment_images import DeleteProjectEnvironmentImages
+from app.apis.namespace_environments import DeleteEnvironment
 from app.apis.namespace_jobs import DeleteJob
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
@@ -38,6 +38,15 @@ class ProjectList(Resource):
     def post(self):
         """Create a new project."""
         project = request.get_json()
+
+        if len(project["name"]) > 255:
+            return {
+                "message": (
+                    "The provided project name exceeds the maximum length of 255 "
+                    "characters."
+                )
+            }, 400
+
         project["env_variables"] = project.get("env_variables", {})
         if not _utils.are_environment_variables_valid(project["env_variables"]):
             return {"message": ("Invalid environment variables definition.")}, 400
@@ -72,9 +81,14 @@ class Project(Resource):
     def put(self, project_uuid):
         """Update a project."""
         update = request.get_json()
+
+        if len(update["name"]) > 255:
+            return {}, 400
+
         update = models.Project.keep_column_entries(update)
         if not _utils.are_environment_variables_valid(update.get("env_variables", {})):
             return {"message": ("Invalid environment variables definition.")}, 400
+
         if update:
             try:
                 models.Project.query.filter_by(uuid=project_uuid).update(update)
@@ -143,7 +157,7 @@ class DeleteProject(TwoPhaseFunction):
         for session in sessions:
             # Stop any interactive session related to the pipeline.
             StopInteractiveSession(self.tpe).transaction(
-                project_uuid, session.pipeline_uuid
+                project_uuid, session.pipeline_uuid, async_mode=True
             )
 
         # Any job related to the pipeline is stopped if necessary
@@ -158,8 +172,11 @@ class DeleteProject(TwoPhaseFunction):
         for job in jobs:
             DeleteJob(self.tpe).transaction(job.uuid)
 
-        # Remove images related to the project.
-        DeleteProjectEnvironmentImages(self.tpe).transaction(project_uuid)
+        environments = models.Environment.query.filter_by(
+            project_uuid=project_uuid,
+        ).all()
+        for environment in environments:
+            DeleteEnvironment(self.tpe)._transaction(project_uuid, environment.uuid)
 
         models.Project.query.filter_by(uuid=project_uuid).delete()
 

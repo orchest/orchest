@@ -2,6 +2,10 @@ import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
+import {
+  useCancelableFetch,
+  useCancelablePromise,
+} from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
@@ -9,26 +13,24 @@ import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import {
-  checkHeartbeat,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { checkHeartbeat, fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 const UpdateView: React.FC = () => {
   const { setConfirm, setAlert } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.update.path });
 
+  const { cancelableFetch } = useCancelableFetch();
+  const { makeCancelable } = useCancelablePromise();
+
   const [state, setState] = React.useState((prevState) => ({
     ...prevState,
     updating: false,
-    updateOutput: "",
+    updateOutput: [],
   }));
-  const [updatePollInterval, setUpdatePollInterval] = React.useState(null);
-
-  const [promiseManager] = React.useState(new PromiseManager());
+  const [updatePollInterval, setUpdatePollInterval] = React.useState<
+    number | null
+  >(null);
 
   const startUpdateTrigger = () => {
     return setConfirm(
@@ -37,28 +39,58 @@ const UpdateView: React.FC = () => {
       async (resolve) => {
         setState({
           updating: true,
-          updateOutput: "",
+          updateOutput: [],
         });
+        console.log("Starting update.");
 
         try {
-          await makeRequest("GET", "/async/spawn-update-server", {});
-          console.log("Spawned update-server, start polling update-server.");
+          fetcher<{ token: string }>("/async/start-update", {
+            method: "POST",
+          })
+            .then((json) => {
+              setState((prevState) => ({
+                ...prevState,
+              }));
+              console.log("Update started, polling controller.");
 
-          checkHeartbeat("/update-server/heartbeat")
-            .then(() => {
-              resolve(true);
-              requestUpdate();
+              // TODO: hardcoded namespace and cluster name values.
+              makeCancelable(
+                checkHeartbeat(
+                  "/controller/namespaces/orchest/clusters/cluster-1/status"
+                )
+              )
+                .then(() => {
+                  console.log("Heartbeat successful.");
+                  resolve(true);
+                  startUpdatePolling();
+                })
+                .catch((retries) => {
+                  console.error(
+                    "Controller heartbeat checking timed out after " +
+                      retries +
+                      " retries."
+                  );
+                });
             })
-            .catch((retries) => {
-              console.error(
-                "Update service heartbeat checking timed out after " +
-                  retries +
-                  " retries."
-              );
+            .catch((error) => {
+              // This is a form of technical debt since we can't
+              // distinguish if an update fails because there is no
+              // newer version of a "real" failure.
+              setState((prevState) => ({
+                ...prevState,
+                updating: false,
+              }));
+              resolve(false);
+              setAlert("Error", "Orchest is already at the latest version.");
+              console.error("Failed to trigger update", error);
             });
 
           return true;
         } catch (error) {
+          setState((prevState) => ({
+            ...prevState,
+            updating: false,
+          }));
           resolve(false);
           setAlert("Error", "Failed to trigger update");
           console.error("Failed to trigger update", error);
@@ -72,45 +104,31 @@ const UpdateView: React.FC = () => {
     setUpdatePollInterval(1000);
   };
 
-  const requestUpdate = () => {
-    let updateUrl = "/update-server/update";
-
-    let updatePromise = makeCancelable(
-      makeRequest("POST", updateUrl),
-      promiseManager
-    );
-    updatePromise.promise
-      .then(() => {
-        startUpdatePolling();
-      })
-      .catch((e) => {
-        console.error(e);
-      });
-  };
-
   useInterval(() => {
-    let updateStatusPromise = makeCancelable(
-      makeRequest("GET", "/update-server/update-status"),
-      promiseManager,
-      // @ts-ignore
-      undefined,
-      2000
-    );
-
-    updateStatusPromise.promise
-      .then((response) => {
-        let json = JSON.parse(response);
-        if (json.updating === false) {
+    cancelableFetch<{
+      state: string;
+      conditions: { lastHeartbeatTime: string }[];
+    }>(`/controller/namespaces/orchest/clusters/cluster-1/status`)
+      .then((json) => {
+        if (json.state === "Running") {
           setState((prevState) => ({
             ...prevState,
             updating: false,
           }));
           setUpdatePollInterval(null);
+        } else {
+          setState((prevState) => ({
+            ...prevState,
+            updateOutput: json.conditions.sort(function (a, b) {
+              let dateA = new Date(a.lastHeartbeatTime);
+              let dateB = new Date(b.lastHeartbeatTime);
+              // sort in reversed order
+              if (dateA < dateB) return 1;
+              if (dateA > dateB) return -1;
+              return 0;
+            }),
+          }));
         }
-        setState((prevState) => ({
-          ...prevState,
-          updateOutput: json.update_output,
-        }));
       })
       .catch((e) => {
         if (!e.isCanceled) {
@@ -119,13 +137,10 @@ const UpdateView: React.FC = () => {
       });
   }, updatePollInterval);
 
-  React.useEffect(() => {
-    return () => promiseManager.cancelCancelablePromises();
-  }, []);
-
-  let updateOutputLines = state.updateOutput.split("\n").reverse();
-  updateOutputLines =
-    updateOutputLines[0] == "" ? updateOutputLines.slice(1) : updateOutputLines;
+  let updateOutputLines = [];
+  state.updateOutput.forEach((element) =>
+    updateOutputLines.push(element.event)
+  );
 
   return (
     <Layout>

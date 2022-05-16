@@ -1,23 +1,27 @@
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
+import {
+  useCancelableFetch,
+  useCancelablePromise,
+} from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
+import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
-import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import { siteMap } from "@/routingConfig";
+import type {
+  Pipeline,
+  PipelineJson,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
+import { checkGate } from "@/utils/webserver-utils";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import {
-  collapseDoubleDots,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { joinRelativePaths } from "@orchest/lib-utils";
 import React from "react";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
@@ -26,9 +30,11 @@ export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
 
 const JupyterLabView: React.FC = () => {
   // global states
-  const { dispatch } = useProjectsContext();
   const { requestBuild } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
+  const { makeCancelable } = useCancelablePromise();
+  const { cancelableFetch } = useCancelableFetch();
+  useEnsureValidPipeline();
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
@@ -36,11 +42,11 @@ const JupyterLabView: React.FC = () => {
   const { getSession, toggleSession, state } = useSessionsContext();
 
   // local states
-  const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
-    1000
-  );
-  const [pipeline, setPipeline] = React.useState(null);
-  const [pipelineCwd, setPipelineCwd] = React.useState(undefined);
+  const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState<
+    number | undefined
+  >(1000);
+  const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
+  const [pipelineCwd, setPipelineCwd] = React.useState<string>();
   const [
     hasEnvironmentCheckCompleted,
     setHasEnvironmentCheckCompleted,
@@ -55,24 +61,22 @@ const JupyterLabView: React.FC = () => {
     [pipelineUuid, projectUuid, getSession]
   );
 
-  const [promiseManager] = React.useState(new PromiseManager());
-
   React.useEffect(() => {
     // mount
     checkEnvironmentGate();
     // unmount
     return () => {
       if (window.orchest.jupyter) {
-        window.orchest.jupyter.hide();
+        window.orchest.jupyter?.hide();
       }
-      promiseManager.cancelCancelablePromises();
-      setVerifyKernelsInterval(null);
+
+      setVerifyKernelsInterval(undefined);
     };
   }, []);
 
   // Launch the session if it doesn't exist
   React.useEffect(() => {
-    if (!state.sessionsIsLoading && !session) {
+    if (!state.sessionsIsLoading && !session && pipelineUuid && projectUuid) {
       toggleSession({ pipelineUuid, projectUuid });
     }
   }, [session, toggleSession, state, pipelineUuid, projectUuid]);
@@ -83,19 +87,15 @@ const JupyterLabView: React.FC = () => {
     conditionalRenderingOfJupyterLab();
 
     if (session?.status === "STOPPING") {
-      navigateTo(siteMap.pipelines.path, {
+      navigateTo(siteMap.pipeline.path, {
         query: { projectUuid },
       });
     }
   }, [session, hasEnvironmentCheckCompleted]);
 
   const checkEnvironmentGate = () => {
-    let gateCancelablePromise = makeCancelable(
-      checkGate(projectUuid),
-      promiseManager
-    );
-
-    gateCancelablePromise.promise
+    if (!projectUuid) return;
+    makeCancelable(checkGate(projectUuid))
       .then(() => {
         setHasEnvironmentCheckCompleted(true);
         conditionalRenderingOfJupyterLab();
@@ -119,111 +119,76 @@ const JupyterLabView: React.FC = () => {
             },
             () => {
               // back to pipelines view
-              navigateTo(siteMap.pipelines.path, {
-                query: { projectUuid },
-              });
+              navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
             }
           );
         }
       });
   };
 
-  const verifyKernelsCallback = (pipeline) => setPipeline(pipeline);
-
   useInterval(
     () => {
-      if (window.orchest.jupyter.isJupyterLoaded()) {
-        for (let stepUUID in pipeline.steps) {
-          let step = pipeline.steps[stepUUID];
+      if (window.orchest.jupyter?.isJupyterLoaded() && pipelineJson) {
+        for (let stepUUID in pipelineJson.steps) {
+          let step = pipelineJson.steps[stepUUID];
 
-          if (step.file_path.length > 0 && step.environment.length > 0) {
-            window.orchest.jupyter.setNotebookKernel(
-              collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
+          if (
+            pipelineCwd &&
+            step.file_path.length > 0 &&
+            step.environment.length > 0
+          ) {
+            window.orchest.jupyter?.setNotebookKernel(
+              joinRelativePaths(pipelineCwd, step.file_path),
               `orchest-kernel-${step.environment}`
             );
           }
         }
 
-        setVerifyKernelsInterval(null);
+        setVerifyKernelsInterval(undefined);
       }
     },
-    pipeline ? verifyKernelsInterval : null
+    pipelineJson ? verifyKernelsInterval : undefined
   );
 
-  const fetchPipeline = () => {
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      pipelineUuid,
-      projectUuid
-    );
+  const fetchPipeline = async () => {
+    if (!pipelineUuid || !projectUuid) return;
 
-    let fetchPipelinePromise = makeCancelable(
-      makeRequest("GET", pipelineJSONEndpoint),
-      promiseManager
-    );
+    try {
+      const [fetchedPipelineJson, pipeline] = await Promise.all([
+        makeCancelable(fetchPipelineJson({ pipelineUuid, projectUuid })),
+        cancelableFetch<Pipeline>(
+          `/async/pipelines/${projectUuid}/${pipelineUuid}`
+        ),
+      ]);
 
-    // fetch pipeline cwd
-    let cwdFetchPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
-      ),
-      promiseManager
-    );
-
-    Promise.all([cwdFetchPromise.promise, fetchPipelinePromise.promise]).then(
-      ([fetchCwdResult, fetchPipelinePromiseResult]) => {
-        // relativeToAbsolutePath expects trailing / for directories
-        let cwd = JSON.parse(fetchCwdResult)["cwd"] + "/";
-        setPipelineCwd(cwd);
-
-        let result = JSON.parse(fetchPipelinePromiseResult);
-        if (result.success) {
-          let pipeline = JSON.parse(result.pipeline_json);
-          verifyKernelsCallback(pipeline);
-
-          dispatch({
-            type: "pipelineSet",
-            payload: {
-              pipelineUuid,
-              projectUuid,
-              pipelineName: pipeline.name,
-            },
-          });
-        } else {
-          console.error("Could not load pipeline.json");
-          console.error(result);
-        }
-      }
-    );
+      setPipelineJson(fetchedPipelineJson);
+      setPipelineCwd(pipeline.path.replace(/\/?[^\/]*.orchest$/, "/"));
+    } catch (error) {
+      console.error("Could not load pipeline.json");
+      console.error(error);
+    }
   };
 
   const conditionalRenderingOfJupyterLab = () => {
     if (window.orchest.jupyter) {
       if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
-        window.orchest.jupyter.show();
-        if (filePath) window.orchest.jupyter.navigateTo(filePath);
+        window.orchest.jupyter?.show();
+        if (filePath) window.orchest.jupyter?.navigateTo(filePath);
       } else {
-        window.orchest.jupyter.hide();
+        window.orchest.jupyter?.hide();
       }
     }
   };
 
   const updateJupyterInstance = () => {
-    if (session?.notebook_server_info) {
-      let baseAddress =
-        "//" + window.location.host + session.notebook_server_info?.base_url;
-      window.orchest.jupyter.updateJupyterInstance(baseAddress);
+    if (session?.base_url) {
+      let baseAddress = "//" + window.location.host + session.base_url;
+      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
     }
   };
 
   return (
-    <Layout
-      disablePadding
-      sx={{
-        overflowY: "auto",
-        height: "100%",
-      }}
-    >
+    <Layout disablePadding>
       <Stack
         justifyContent="center"
         alignItems="center"

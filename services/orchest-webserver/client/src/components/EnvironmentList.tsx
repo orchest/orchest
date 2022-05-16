@@ -1,17 +1,19 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMounted } from "@/hooks/useMounted";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
+import { IOrchestSession } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import LensIcon from "@mui/icons-material/Lens";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { BoldText } from "./common/BoldText";
+import { PageTitle } from "./common/PageTitle";
 import { DataTable, DataTableColumn } from "./DataTable";
 import { TStatus } from "./Status";
 
@@ -29,7 +31,7 @@ type Environment = {
   uuid: string;
 };
 
-type EnvironmentBuild = {
+type EnvironmentImageBuild = {
   environment_uuid: string;
   finished_time: string;
   project_path: string;
@@ -86,9 +88,27 @@ const doRemoveEnvironment = (
   }).then(() => callback && callback(environment_uuid));
 };
 
+const getNewEnvironmentName = (
+  defaultName: string,
+  environments: Environment[]
+) => {
+  let count = 0;
+  let finalName = defaultName;
+  const allNames = new Set(environments.map((e) => e.name));
+  while (count < 100) {
+    const newName = `${finalName}${count === 0 ? "" : ` (${count})`}`;
+    if (!allNames.has(newName)) {
+      finalName = newName;
+      break;
+    }
+    count += 1;
+  }
+  return finalName;
+};
+
 const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
-  const { setAlert, setConfirm } = useAppContext();
+  const { setAlert, setConfirm, config } = useAppContext();
   const mounted = useMounted();
 
   const {
@@ -103,17 +123,18 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
 
   const removeFetchedEnvironment = (uuid: string) => {
     setFetchedEnvironments(
-      (current) => current.filter((current) => current.uuid !== uuid),
+      (current) =>
+        current ? current.filter((current) => current.uuid !== uuid) : current,
       false
     );
   };
 
   React.useEffect(() => {
-    if (mounted && fetchEnvironmentsError) {
+    if (mounted.current && fetchEnvironmentsError) {
       setAlert("Error", "Error fetching Environments");
       navigateTo(siteMap.projects.path);
     }
-  }, [fetchEnvironmentsError]);
+  }, [mounted, fetchEnvironmentsError, navigateTo, setAlert]);
 
   const {
     data: environmentBuilds = [],
@@ -123,19 +144,19 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
       ? `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}`
       : null,
     (url: string) =>
-      fetcher<{ environment_builds: EnvironmentBuild[] }>(url).then(
-        (response) => response.environment_builds
+      fetcher<{ environment_image_builds: EnvironmentImageBuild[] }>(url).then(
+        (response) => response.environment_image_builds
       ),
     { refreshInterval: BUILD_POLL_FREQUENCY }
   );
 
   React.useEffect(() => {
-    if (mounted && fetchBuildsError)
+    if (mounted.current && fetchBuildsError)
       setAlert(
         "Error",
         "Failed to fetch the latests build of the environment."
       );
-  }, [fetchBuildsError]);
+  }, [mounted, fetchBuildsError, setAlert]);
 
   const environmentRows = React.useMemo(() => {
     const statusObject = environmentBuilds.reduce((obj, build) => {
@@ -158,13 +179,46 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     );
   };
 
-  const onCreateClick = (e: React.MouseEvent) => {
-    // TODO: check how current implementation of create environment
-    navigateTo(
-      siteMap.environment.path,
-      { query: { projectUuid, environmentUuid: "create" } },
-      e
-    );
+  const [isCreatingEnvironment, setIsCreatingEnvironment] = React.useState(
+    false
+  );
+
+  const onCreateClick = async (e: React.MouseEvent) => {
+    if (isCreatingEnvironment || !config?.ENVIRONMENT_DEFAULTS) return;
+    try {
+      setIsCreatingEnvironment(true);
+      const defaultEnvironments = config?.ENVIRONMENT_DEFAULTS;
+      const response = await fetcher<Environment>(
+        `/store/environments/${projectUuid}/new`,
+        {
+          method: "POST",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
+            environment: {
+              ...defaultEnvironments,
+              uuid: "new",
+              name: getNewEnvironmentName(
+                defaultEnvironments.name,
+                fetchedEnvironments
+              ),
+            },
+          }),
+        }
+      );
+      navigateTo(
+        siteMap.environment.path,
+        {
+          query: {
+            projectUuid,
+            environmentUuid: response.uuid,
+          },
+        },
+        e
+      );
+      setIsCreatingEnvironment(false);
+    } catch (error) {
+      setAlert("Error", `Failed to create new environment. ${error}`);
+    }
   };
 
   const removeEnvironment = async (
@@ -173,14 +227,16 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     environmentName: string
   ) => {
     if (!projectUuid) return false;
-    const sessionData = await fetcher<{ sessions: any[] }>(
+    const sessionData = await fetcher<{ sessions: IOrchestSession[] }>(
       `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
     );
     if (sessionData.sessions.length > 0) {
-      const buildData = await fetcher<{ environment_builds: any[] }>(
+      const buildData = await fetcher<{ environment_image_builds: any[] }>(
         `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environmentUuid}`
       );
-      if (buildData.environment_builds.some((x) => x.status == "SUCCESS")) {
+      if (
+        buildData.environment_image_builds.some((x) => x.status == "SUCCESS")
+      ) {
         setAlert(
           "Error",
           <>
@@ -199,7 +255,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     }
 
     const imageData = await fetcher<{ in_use: boolean }>(
-      `/catch/api-proxy/api/environment-images/in-use/${projectUuid}/${environmentUuid}`
+      `/catch/api-proxy/api/environments/in-use/${projectUuid}/${environmentUuid}`
     );
 
     if (imageData.in_use) {
@@ -245,30 +301,32 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         const environmentsDict = fetchedEnvironments.reduce((all, curr) => {
           return { ...all, [curr.uuid]: curr };
         }, {});
-
-        Promise.all(
-          environmentUuids.map((environmentUuid) => {
-            const { project_uuid, uuid, name } = environmentsDict[
-              environmentUuid
-            ] as Environment;
-            return removeEnvironment(project_uuid, uuid, name);
-          })
-        )
-          .then(() => {
-            resolve(true);
-          })
-          .catch(() => {
-            resolve(false); // no need to setAlert here, will be handled by removeEnvironment
-          });
-
-        return true;
+        try {
+          Promise.all(
+            environmentUuids.map((environmentUuid) => {
+              const { project_uuid, uuid, name } = environmentsDict[
+                environmentUuid
+              ] as Environment;
+              return removeEnvironment(project_uuid, uuid, name);
+            })
+          )
+            .then(() => {
+              resolve(true);
+            })
+            .catch(() => {
+              resolve(false); // no need to setAlert here, will be handled by removeEnvironment
+            });
+          return true;
+        } catch (error) {
+          return false;
+        }
       }
     );
   };
 
   return (
     <div className={"environments-page"}>
-      <h2>Environments</h2>
+      <PageTitle>Environments</PageTitle>
       {!fetchedEnvironments ? (
         <LinearProgress />
       ) : (
@@ -279,6 +337,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
               startIcon={<AddIcon />}
               onClick={onCreateClick}
               onAuxClick={onCreateClick}
+              disabled={isCreatingEnvironment}
               data-test-id="environments-create"
             >
               Create environment

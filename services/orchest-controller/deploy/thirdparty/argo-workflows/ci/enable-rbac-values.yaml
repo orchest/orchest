@@ -1,0 +1,5 @@
+workflow:
+  serviceAccount:
+    create: true # Specifies whether a service account should be created
+  rbac:
+    create: true # adds Role and RoleBinding for the above specified service account to be able to run workflows

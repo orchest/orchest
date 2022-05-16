@@ -1,0 +1,3 @@
+aiodocker
+aiohttp
+-e file:../../lib/python/orchest-internals

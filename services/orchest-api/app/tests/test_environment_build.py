@@ -113,7 +113,7 @@ def test_environment_build(
             raise_exception_function(docker.errors.ImageNotFound("error")),
         )
 
-    monkeypatch.setattr(app.core.docker_utils, "docker_client", MockedDockerClient())
+    monkeypatch.setattr(app.core.image_utils, "docker_client", MockedDockerClient())
 
     socketio_data = {
         "output_logs": [],

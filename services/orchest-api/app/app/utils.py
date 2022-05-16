@@ -1,24 +1,39 @@
 import logging
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set
+import uuid
+from collections import ChainMap
+from copy import deepcopy
+from datetime import datetime
+from typing import Container, Dict, Iterable, List, Optional, Tuple, Union
 
-import requests
 from celery.utils.log import get_task_logger
-from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
-from sqlalchemy import or_, text
+from kubernetes import client as k8s_client
+from sqlalchemy import and_, desc, or_, text
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import query, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
-from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
+from _orchest.internals import errors as _errors
 from app import errors as self_errors
 from app import schema
-from app.connections import db, docker_client
-from app.core import sessions
+from app.celery_app import make_celery
+from app.connections import db, k8s_core_api
+from config import CONFIG_CLASS
+
+
+def get_logger() -> logging.Logger:
+    try:
+        return current_app.logger
+    except Exception:
+        pass
+    return get_task_logger(__name__)
+
+
+logger = get_logger()
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -35,53 +50,9 @@ def register_schema(api: Namespace) -> Namespace:
     return api
 
 
-def shutdown_jupyter_server(url: str) -> bool:
-    """Shuts down the Jupyter server via an authenticated POST request.
-
-    Sends an authenticated DELETE request to:
-        "url"/api/kernels/<kernel.id>
-    for every running kernel. And then shuts down the Jupyter server
-    itself via an authenticated POST request to:
-        "url"/api/shutdown
-
-    Args:
-        connection_file: path to the connection_file that contains the
-            server information needed to connect to the Jupyter server.
-        url: the url at which the Jupyter server is running.
-
-    Returns:
-        False if no Jupyter server is running. True otherwise.
-    """
-
-    current_app.logger.info("Shutting down Jupyter Server at url: %s" % url)
-
-    # Shutdown the server, such that it also shuts down all related
-    # kernels.
-    # NOTE: Do not use /api/shutdown to gracefully shut down all kernels
-    # as it is non-blocking, causing container based kernels to persist!
-    r = requests.get(f"{url}api/kernels")
-
-    kernels_json = r.json()
-
-    # In case there are connection issue with the Gateway, then the
-    # "kernels_json" will be a dictionary:
-    # {'message': "Connection refused from Gateway server url, ...}
-    # Thus we first check whether we can indeed start shutting down
-    # kernels.
-    if isinstance(kernels_json, list):
-        for kernel in kernels_json:
-            requests.delete(f'{url}api/kernels/{kernel.get("id")}')
-
-    # Now that all kernels all shut down, also shut down the Jupyter
-    # server itself.
-    r = requests.post(f"{url}api/shutdown")
-
-    return True
-
-
 def update_status_db(
     status_update: Dict[str, str], model: Model, filter_by: Dict[str, str]
-) -> None:
+) -> bool:
     """Updates the status attribute of particular entry in the database.
 
     An entity that has already reached an end state, i.e. FAILURE,
@@ -133,433 +104,6 @@ def update_status_db(
     return bool(res)
 
 
-def get_environment_image_docker_id(name_or_id: str):
-    try:
-        return docker_client.images.get(name_or_id).id
-    except errors.ImageNotFound:
-        return None
-
-
-def get_env_uuids_missing_image(project_uuid: str, env_uuids: str) -> List[str]:
-    env_uuid_docker_id_mappings = {
-        env_uuid: get_environment_image_docker_id(
-            _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=project_uuid, environment_uuid=env_uuid
-            )
-        )
-        for env_uuid in env_uuids
-    }
-    envs_missing_image = [
-        env_uuid
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-        if docker_id is None
-    ]
-    return envs_missing_image
-
-
-def get_env_uuids_to_docker_id_mappings(
-    project_uuid: str, env_uuids: Set[str]
-) -> Dict[str, str]:
-    """Map each environment uuid to its current image docker id.
-
-    Args:
-        project_uuid: UUID of the project to which the environments
-         belong
-        env_uuids: Set of environment uuids.
-
-    Returns:
-        Dict[env_uuid] = docker_id
-
-    """
-    env_uuid_docker_id_mappings = {}
-    for env_uuid in env_uuids:
-        if env_uuid == "":
-            raise self_errors.PipelineDefinitionNotValid("Undefined environment.")
-
-        env_uuid_docker_id_mappings[env_uuid] = get_environment_image_docker_id(
-            _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=project_uuid, environment_uuid=env_uuid
-            )
-        )
-
-    envs_missing_image = [
-        env_uuid
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-        if docker_id is None
-    ]
-    if len(envs_missing_image) > 0:
-        raise errors.ImageNotFound(", ".join(envs_missing_image))
-
-    return env_uuid_docker_id_mappings
-
-
-def lock_environment_images_for_run(
-    run_id: str, project_uuid: str, environment_uuids: Set[str]
-) -> Dict[str, str]:
-    """Retrieve the docker ids to use for a pipeline run.
-
-    Locks a set of environment images by making it so that they will
-    not be deleted by the attempt cleanup that follows an environment
-    build.
-
-    This is done by adding some entries to the db that will signal the
-    fact that the image will be used by a run, as long as the run is
-    PENDING or STARTED.
-
-    In order to avoid a race condition that happens between reading the
-    docker ids of the used environment and actually writing to db, some
-    logic needs to take place, such logic constitutes the bulk of this
-    function.
-
-    As a collateral effect, new entries for interactive or non
-    interactive image mappings will be added, which is at the same time
-    the mechanism through which we "lock" the images, or, protect them
-    from deletion as long as they are needed.
-
-    About the race condition:
-        between the read of the images docker ids and the commit to the
-        db of the mappings a new environment could have been built, an
-        image could have become nameless and be subsequently removed
-        because the image mappings were not in the db yet, and we would
-        end up with  mappings that are pointing to an image that does
-        not exist.  If we would only check for the existence of the img
-        we could still be in a race condition, so we must act on the
-        image becoming nameless, not deleted.
-
-    Args:
-        run_id:
-        project_uuid:
-        environment_uuids:
-
-    Returns:
-        A dictionary mapping environment uuids to the docker id
-        of the image, so that the run steps can make use of those
-        images knowingly that the images won't be deleted, even
-        if they become outdated.
-
-    """
-    model = models.PipelineRunImageMapping
-
-    # Read the current docker image ids of each env.
-    env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
-        project_uuid, environment_uuids
-    )
-
-    # Write to the db the image_uuids and docker ids the run uses this
-    # is our first lock attempt.
-    run_image_mappings = [
-        model(
-            **{
-                "run_uuid": run_id,
-                "orchest_environment_uuid": env_uuid,
-                "docker_img_id": docker_id,
-            }
-        )
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-    ]
-    db.session.bulk_save_objects(run_image_mappings)
-    # Note that the commit(s) in this function are necessary to be able
-    # to "lock" the images, i.e. we need to have the data in the db
-    # ASAP.
-    db.session.commit()
-
-    # If the mappings have changed it means that at least 1 image that
-    # we are using has become nameless and it is outdated, and might be
-    # deleted if we did not lock in time, i.e. if we got on the base
-    # side of the race condition.
-    env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
-        project_uuid, environment_uuids
-    )
-    while set(env_uuid_docker_id_mappings.values()) != set(
-        env_uuid_docker_id_mappings2.values()
-    ):
-        # Get which environment images have been updated between the
-        # moment we read the docker id and the commit to db, this is a
-        # lock attempt.
-        mappings_to_update = set(env_uuid_docker_id_mappings2.items()) - set(
-            env_uuid_docker_id_mappings.items()
-        )
-        for env_uuid, docker_id in mappings_to_update:
-            model.query.filter(
-                # Same task.
-                model.run_uuid == run_id,
-                # Same environment.
-                model.orchest_environment_uuid == env_uuid
-                # Update docker id to which the run will point to.
-            ).update({"docker_img_id": docker_id})
-        db.session.commit()
-
-        env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
-
-        # The next time we check for equality, if they are equal that
-        # means that we know that we are pointing to images that won't
-        # be deleted because the run is already in the db as PENDING.
-        env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
-            project_uuid, environment_uuids
-        )
-    return env_uuid_docker_id_mappings
-
-
-def lock_environment_images_for_session(
-    project_uuid: str, pipeline_uuid: str, environment_uuids: Set[str]
-) -> Dict[str, str]:
-    """Retrieve the docker ids to use for the services of a session.
-
-    See lock_environment_images_for_run for more details.
-    This is only necessary for services which used orchest environments.
-
-    Args:
-        project_uuid:
-        pipeline_uuid:
-        environment_uuids:
-
-    Returns:
-        A dictionary mapping environment uuids to the docker id of the
-        image, so that the session can make use of those images
-        knowingly that the images won't be deleted, even if they become
-        outdated.
-
-    """
-    model = models.InteractiveSessionImageMapping
-
-    env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
-        project_uuid, environment_uuids
-    )
-
-    session_image_mappings = [
-        model(
-            **{
-                "project_uuid": project_uuid,
-                "pipeline_uuid": pipeline_uuid,
-                "orchest_environment_uuid": env_uuid,
-                "docker_img_id": docker_id,
-            }
-        )
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-    ]
-    db.session.bulk_save_objects(session_image_mappings)
-    db.session.commit()
-
-    env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
-        project_uuid, environment_uuids
-    )
-    while set(env_uuid_docker_id_mappings.values()) != set(
-        env_uuid_docker_id_mappings2.values()
-    ):
-        mappings_to_update = set(env_uuid_docker_id_mappings2.items()) - set(
-            env_uuid_docker_id_mappings.items()
-        )
-        for env_uuid, docker_id in mappings_to_update:
-            model.query.filter(
-                model.project_uuid == project_uuid,
-                model.pipeline_uuid == pipeline_uuid,
-                model.orchest_environment_uuid == env_uuid,
-            ).update({"docker_img_id": docker_id})
-        db.session.commit()
-
-        env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
-
-        env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
-            project_uuid, environment_uuids
-        )
-    return env_uuid_docker_id_mappings
-
-
-def lock_environment_images_for_job(
-    job_uuid: str, project_uuid: str, environment_uuids: Set[str]
-) -> Dict[str, str]:
-    """Retrieve the docker ids to use for the runs of a job.
-
-    See lock_environment_images_for_run for more details.
-
-    Args:
-        job_uuid:
-        project_uuid:
-        environment_uuids:
-
-    Returns:
-        A dictionary mapping environment uuids to the docker id of the
-        image, so that a job can make use of those images knowingly that
-        the images won't be deleted, even if they become outdated.
-
-    """
-    model = models.JobImageMapping
-
-    env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
-        project_uuid, environment_uuids
-    )
-
-    job_image_mappings = [
-        model(
-            **{
-                "job_uuid": job_uuid,
-                "orchest_environment_uuid": env_uuid,
-                "docker_img_id": docker_id,
-            }
-        )
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-    ]
-    db.session.bulk_save_objects(job_image_mappings)
-    db.session.commit()
-
-    env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
-        project_uuid, environment_uuids
-    )
-    while set(env_uuid_docker_id_mappings.values()) != set(
-        env_uuid_docker_id_mappings2.values()
-    ):
-        mappings_to_update = set(env_uuid_docker_id_mappings2.items()) - set(
-            env_uuid_docker_id_mappings.items()
-        )
-        for env_uuid, docker_id in mappings_to_update:
-            model.query.filter(
-                model.job_uuid == job_uuid,
-                model.orchest_environment_uuid == env_uuid,
-            ).update({"docker_img_id": docker_id})
-        db.session.commit()
-
-        env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
-
-        env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
-            project_uuid, environment_uuids
-        )
-    return env_uuid_docker_id_mappings
-
-
-def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
-    """Get the list of interactive runs using a given environment.
-
-    Args:
-        project_uuid:
-        env_uuid:
-
-    Returns:
-    """
-    return models.InteractivePipelineRun.query.filter(
-        models.InteractivePipelineRun.project_uuid == project_uuid,
-        models.InteractivePipelineRun.image_mappings.any(
-            orchest_environment_uuid=env_uuid
-        ),
-        models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
-    ).all()
-
-
-def interactive_sessions_using_environment(project_uuid: str, env_uuid: str):
-    """Get the list of interactive sessions using a given environment.
-
-    Args:
-        project_uuid:
-        env_uuid:
-
-    Returns:
-    """
-    return models.InteractiveSession.query.filter(
-        models.InteractiveSession.project_uuid == project_uuid,
-        models.InteractiveSession.image_mappings.any(orchest_environment_uuid=env_uuid),
-    ).all()
-
-
-def jobs_using_environment(project_uuid: str, env_uuid: str):
-    """Get the list of jobs using a given environment.
-
-    Args:
-        project_uuid:
-        env_uuid:
-
-    Returns:
-    """
-
-    return models.Job.query.filter(
-        models.Job.project_uuid == project_uuid,
-        models.Job.image_mappings.any(orchest_environment_uuid=env_uuid),
-        models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]),
-    ).all()
-
-
-def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
-    """True if the environment is or will be in use by a run/job
-
-    Args:
-        env_uuid:
-
-    Returns:
-        bool:
-    """
-
-    int_sess = interactive_sessions_using_environment(project_uuid, env_uuid)
-    int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
-    jobs = jobs_using_environment(project_uuid, env_uuid)
-    return len(int_runs) > 0 or len(int_sess) > 0 or len(jobs) > 0
-
-
-def is_docker_image_in_use(img_id: str) -> bool:
-    """True if the image is or will be in use by a run/job
-
-    Args:
-        img_id:
-
-    Returns:
-        bool:
-    """
-
-    int_runs = models.PipelineRun.query.filter(
-        models.PipelineRun.image_mappings.any(docker_img_id=img_id),
-        models.PipelineRun.status.in_(["PENDING", "STARTED"]),
-    ).all()
-
-    int_sessions = models.InteractiveSession.query.filter(
-        models.InteractiveSession.image_mappings.any(docker_img_id=img_id),
-        models.InteractiveSession.status.in_(["LAUNCHING", "RUNNING"]),
-    ).all()
-
-    jobs = models.Job.query.filter(
-        models.Job.image_mappings.any(docker_img_id=img_id),
-        models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]),
-    ).all()
-
-    return bool(int_runs) or bool(int_sessions) or bool(jobs)
-
-
-def remove_if_dangling(img) -> bool:
-    """Remove an image if its dangling.
-
-    A dangling image is an image that is nameless and tag-less,
-    and for which no runs exist that are PENDING or STARTED and that
-    are going to use this image in one of their steps.
-
-    Args:
-        img:
-
-    Returns:
-        True if the image was successfully removed.
-        False if not, e.g. if it is not nameless or if it is being used
-        or will be used by a run.
-
-    """
-    # nameless image
-    if len(img.attrs["RepoTags"]) == 0 and not is_docker_image_in_use(img.id):
-        # need to check multiple times because of a race condition
-        # given by the fact that cleaning up a project will
-        # stop runs and jobs, then cleanup images and dangling
-        # images, it might be that the celery worker running the task
-        # still has to shut down the containers
-        tries = 10
-        while tries > 0:
-            try:
-                docker_client.images.remove(img.id)
-                return True
-            except errors.ImageNotFound:
-                return False
-            except Exception as e:
-                current_app.logger.warning(
-                    f"exception during removal of image {img.id}:\n{e}"
-                )
-                pass
-            time.sleep(1)
-            tries -= 1
-    return False
-
-
 def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[str, str]:
     """
 
@@ -587,199 +131,6 @@ def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[st
     return {**project_env_vars, **pipeline_env_vars}
 
 
-def get_logger() -> logging.Logger:
-    try:
-        return current_app.logger
-    except Exception:
-        pass
-    return get_task_logger(__name__)
-
-
-def process_stale_environment_images(
-    project_uuid: Optional[str] = None, only_marked_for_removal: bool = True
-) -> None:
-    """Makes stale environments unavailable to the user.
-
-    Args:
-        project_uuid: If specified, only this project environment images
-            will be processed.
-        only_marked_for_removal: Only consider images that have been
-            marked for removal. Setting this to False allows the caller
-            to, essentially, cleanup environments that are no longer in
-            use.
-
-    After an update, all environment images are invalidated to avoid the
-    user having an environment with an SDK not compatible with the
-    latest version of Orchest. At the same time, we need to maintain
-    environment images that are in use by jobs. Environment images that
-    are stale and are not in use by any job get deleted.  Orchest-ctl
-    marks all environment images as "stale" on update, by adding a new
-    name/tag to them. This function goes through all environments
-    images, looking for images that have been marked as stale. Stale
-    images have their "real" name, orchest-env-<proj_uuid>-<env_uuid>
-    removed, so that the environment will have to be rebuilt to be
-    available to the user for new runs.  The invalidation semantics are
-    tied with the semantics of the validation module, which considers an
-    environment as existing based on the existence of the orchest-env-*
-    name.
-
-    """
-    filters = {"label": ["_orchest_env_build_is_intermediate=0"]}
-    if project_uuid is not None:
-        filters["label"].append(f"_orchest_project_uuid={project_uuid}")
-
-    env_imgs = docker_images_list_safe(docker_client, filters=filters)
-    for img in env_imgs:
-        _process_stale_environment_image(img, only_marked_for_removal)
-
-
-def _process_stale_environment_image(img, only_marked_for_removal) -> None:
-    pr_uuid = img.labels.get("_orchest_project_uuid")
-    env_uuid = img.labels.get("_orchest_environment_uuid")
-    build_uuid = img.labels.get("_orchest_env_build_task_uuid")
-
-    env_name = _config.ENVIRONMENT_IMAGE_NAME.format(
-        project_uuid=pr_uuid, environment_uuid=env_uuid
-    )
-
-    removal_name = _config.ENVIRONMENT_IMAGE_REMOVAL_NAME.format(
-        project_uuid=pr_uuid, environment_uuid=env_uuid, build_uuid=build_uuid
-    )
-
-    if (
-        pr_uuid is None
-        or env_uuid is None
-        or build_uuid is None
-        or
-        # The image has not been marked for removal. This will happen
-        # everytime Orchest is started except for a start which is
-        # following an update.
-        (f"{removal_name}:latest" not in img.tags and only_marked_for_removal)
-        # Note that we can't check for env_name:latest not being in
-        # img.tags because it might not be there if the image has
-        # "survived" two updates in a row because a job is still using
-        # that.
-    ):
-        return
-
-    has_env_name = f"{env_name}:latest" in img.tags
-    if has_env_name:
-        if only_marked_for_removal:
-            # This will just remove the orchest-env-* name/tag from the
-            # image, the image will still be available for jobs that are
-            # making use of that because the image still has the
-            # <removal_name>.
-            docker_images_rm_safe(docker_client, env_name)
-        else:
-            # The image is not dangling, e.g. it has not been
-            # substituted by a more up to date version of the same
-            # environment.
-            return
-
-    if not is_docker_image_in_use(img.id):
-        # Delete through id, hence deleting the image regardless of the
-        # fact that it has other tags. force=True is used to delete
-        # regardless of the existence of stopped containers, this is
-        # required because pipeline runs PUT to the orchest-api their
-        # finished state before deleting their stopped containers.
-        docker_images_rm_safe(docker_client, img.id, attempt_count=20, force=True)
-
-
-def delete_dangling_orchest_images() -> None:
-    """Deletes dangling Orchest images.
-
-    After an update there could be old Orchest images dangling, for two
-    reasons:
-    - running containers during update, e.g. when running in "web" mode.
-    - existing environmens making use of those images.
-
-    After an update, all services are restarted, and at the start of
-    this service, all user environment images coming from a previous
-    Orchest version are deleted, which means those dangling images can
-    now be deleted.
-
-    """
-    filters = {
-        "label": ["maintainer=Orchest B.V. https://www.orchest.io"],
-        # Note: a dangling image has no tags and no dependent child
-        # images. A base image with no tags which is being used by an
-        # environment, even a dangling one, will not be removed.
-        "dangling": True,
-    }
-    env_imgs = docker_images_list_safe(docker_client, filters=filters, attempt_count=1)
-    for img in env_imgs:
-        # Since environment images might be built using Orchest base
-        # images, make sure to not delete environment images by mistake
-        # because of the filtering.
-        env_uuid = img.labels.get("_orchest_environment_uuid")
-        if env_uuid is None:
-            docker_images_rm_safe(docker_client, img.id, attempt_count=1)
-
-
-def is_orchest_idle() -> dict:
-    """Checks if the orchest-api is idle.
-
-    Returns:
-        See schema.idleness_check_result for details.
-    """
-    data = {}
-
-    # Active clients.
-    threshold = (
-        datetime.now(timezone.utc)
-        - current_app.config["CLIENT_HEARTBEATS_IDLENESS_THRESHOLD"]
-    )
-    data["active_clients"] = db.session.query(
-        db.session.query(models.ClientHeartbeat)
-        .filter(models.ClientHeartbeat.timestamp > threshold)
-        .exists()
-    ).scalar()
-
-    # Find busy kernels.
-    data["busy_kernels"] = False
-    isessions = models.InteractiveSession.query.filter(
-        models.InteractiveSession.status.in_(["RUNNING"])
-    ).all()
-    for session in isessions:
-        session_obj = sessions.InteractiveSession.from_container_IDs(
-            docker_client,
-            container_IDs=session.container_ids,
-            network=_config.DOCKER_NETWORK,
-            notebook_server_info=session.notebook_server_info,
-        )
-        session_has_busy_kernels = session_obj.has_busy_kernels(
-            {
-                "project_uuid": session.project_uuid,
-                "pipeline_uuid": session.pipeline_uuid,
-            }
-        )
-        if session_has_busy_kernels:
-            data["busy_kernels"] = True
-            break
-
-    # Assumes the model has a uuid field and its lifecycle contains the
-    # PENDING and STARTED statuses. NOTE: we could be stopping earlier
-    # on truthy values since we already know the orchest-api is idle at
-    # this point, but providing all details might allow to further build
-    # on this "feature" in the future without fragmenting users due to
-    # different versions.
-    for name, model in [
-        ("ongoing_environment_builds", models.EnvironmentBuild),
-        ("ongoing_jupyterlab_builds", models.JupyterBuild),
-        ("ongoing_interactive_runs", models.InteractivePipelineRun),
-        ("ongoing_job_runs", models.NonInteractivePipelineRun),
-    ]:
-        data[name] = db.session.query(
-            db.session.query(model)
-            .filter(model.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar()
-
-    result = {"details": data}
-    result["idle"] = not any(data.values())
-    return result
-
-
 def page_to_pagination_data(pagination: Pagination) -> dict:
     """Pagination to a dictionary containing data of interest.
 
@@ -795,6 +146,50 @@ def page_to_pagination_data(pagination: Pagination) -> dict:
         "total_items": pagination.total,
         "total_pages": pagination.pages,
     }
+
+
+def wait_for_pod_status(
+    name: str,
+    namespace: str,
+    expected_statuses: Union[Container[str], Iterable[str]],
+    max_retries: Optional[int] = 100,
+) -> None:
+    """Waits for a pod to get to one of the expected statuses.
+
+    Safe to use when the pod doesn't exist yet, e.g. because it's being
+    created.
+
+    Args:
+        name: name of the pod
+        namespace: namespace of the pod
+        expected_statuses: One of the statuses that the pod is expected
+            to reach. Upon reaching one of these statuses the function
+            will return. Possiblie entries are: Pending, Running,
+            Succeeded, Failed, Unknown, which are the possible values
+            of pod.status.phase.
+        max_retries: Max number of times to poll, 1 second per retry. If
+            None, the function will poll indefinitely.
+
+    Raises:
+        PodNeverReachedExpectedStatusError:
+
+    """
+
+    while max_retries is None or max_retries > 0:
+        max_retries = max_retries - 1
+        try:
+            resp = k8s_core_api.read_namespaced_pod(name=name, namespace=namespace)
+        except k8s_client.ApiException as e:
+            if e.status != 404:
+                raise
+            time.sleep(1)
+        else:
+            status = resp.status.phase
+            if status in expected_statuses:
+                break
+        time.sleep(1)
+    else:
+        raise self_errors.PodNeverReachedExpectedStatusError()
 
 
 def fuzzy_filter_non_interactive_pipeline_runs(
@@ -821,3 +216,450 @@ def fuzzy_filter_non_interactive_pipeline_runs(
     query = query.filter(or_(*filters))
 
     return query
+
+
+def get_active_custom_jupyter_images() -> List[models.JupyterImage]:
+    """Returns the list of active jupyter images, sorted by tag DESC."""
+    custom_image = (
+        models.JupyterImage.query.filter(
+            models.JupyterImage.marked_for_removal.is_(False),
+            # Only allow an image that matches this orchest cluster
+            # version.
+            models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
+        )
+        .order_by(desc(models.JupyterImage.tag))
+        .all()
+    )
+    return custom_image
+
+
+def get_jupyter_server_image_to_use() -> str:
+    active_custom_images = get_active_custom_jupyter_images()
+    if active_custom_images:
+        custom_image = active_custom_images[0]
+        # K8S_TODO
+        registry_ip = k8s_core_api.read_namespaced_service(
+            _config.REGISTRY, _config.ORCHEST_NAMESPACE
+        ).spec.cluster_ip
+        return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{custom_image.tag}"
+    else:
+        return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+
+
+def _set_celery_worker_parallelism_at_runtime(
+    worker: str, current_parallelism: int, new_parallelism: int
+) -> bool:
+    """Set the parallelism of a celery worker at runtime.
+
+    Args:
+        worker: Name of the worker.
+        current_parallelism: Current parallelism level.
+        new_parallelism: New parallelism level.
+
+    Returns:
+        True if the parallelism level could be changed, False otherwise.
+        Only allows to increase parallelism, the reason is that celery
+        won't gracefully decrease the parallelism level if it's not
+        possible because processes are busy with a task.
+    """
+    if current_parallelism is None or new_parallelism is None:
+        return False
+    if new_parallelism < current_parallelism:
+        return False
+    if current_parallelism == new_parallelism:
+        return True
+
+    # We don't query the celery-worker and rely on arguments because the
+    # worker might take some time to spawn new processes, leading to
+    # race conditions.
+    celery = make_celery(current_app)
+    worker = f"celery@{worker}"
+    celery.control.pool_grow(new_parallelism - current_parallelism, [worker])
+    return True
+
+
+def _get_worker_parallelism(worker: str) -> int:
+    celery = make_celery(current_app)
+    worker = f"celery@{worker}"
+    stats = celery.control.inspect([worker]).stats()
+    return len(stats[worker]["pool"]["processes"])
+
+
+def _set_job_runs_parallelism_at_runtime(
+    current_parallellism: int, new_parallelism: int
+) -> bool:
+    return _set_celery_worker_parallelism_at_runtime(
+        "worker-jobs",
+        current_parallellism,
+        new_parallelism,
+    )
+
+
+def _set_interactive_runs_parallelism_at_runtime(
+    current_parallelism: int, new_parallelism: int
+) -> bool:
+    return _set_celery_worker_parallelism_at_runtime(
+        "worker-interactive",
+        current_parallelism,
+        new_parallelism,
+    )
+
+
+class OrchestSettings:
+    _cloud = _config.CLOUD
+
+    # Defines default values for all supported configuration options.
+    _config_values = {
+        "MAX_JOB_RUNS_PARALLELISM": {
+            "default": 1,
+            "type": int,
+            "condition": lambda x: 0 < x <= 25,
+            "condition-msg": "within the range [1, 25]",
+            # Will return True if it could apply changes on the fly,
+            # False otherwise.
+            "apply-runtime-changes-function": _set_job_runs_parallelism_at_runtime,
+        },
+        "MAX_INTERACTIVE_RUNS_PARALLELISM": {
+            "default": 1,
+            "type": int,
+            "condition": lambda x: 0 < x <= 25,
+            "condition-msg": "within the range [1, 25]",
+            "apply-runtime-changes-function": _set_interactive_runs_parallelism_at_runtime,  # noqa
+        },
+        "AUTH_ENABLED": {
+            "default": False,
+            "type": bool,
+            "condition": None,
+            "apply-runtime-changes-function": lambda prev, new: False,
+        },
+        "TELEMETRY_DISABLED": {
+            "default": False,
+            "type": bool,
+            "condition": None,
+            "apply-runtime-changes-function": lambda prev, new: False,
+        },
+        "TELEMETRY_UUID": {
+            "default": str(uuid.uuid4()),
+            "type": str,
+            "requires-restart": True,
+            "condition": None,
+            "apply-runtime-changes-function": lambda prev, new: False,
+        },
+        "INTERCOM_USER_EMAIL": {
+            "default": "johndoe@example.org",
+            "type": str,
+            "condition": None,
+            "apply-runtime-changes-function": lambda prev, new: False,
+        },
+    }
+    _cloud_unmodifiable_config_opts = [
+        "TELEMETRY_UUID",
+        "TELEMETRY_DISABLED",
+        "AUTH_ENABLED",
+        "INTERCOM_USER_EMAIL",
+    ]
+
+    def __init__(self) -> None:
+        """Manages the user orchest settings.
+
+        Uses a collections.ChainMap under the hood to provide fallback
+        to default values where needed. And when running with `--cloud`,
+        it won't allow you to update config values of the keys defined
+        in `self._cloud_unmodifiable_config_opts`.
+
+        Example:
+            >>> config = OrchestSettings()
+            >>> # Set the current config to a new one.
+            >>> config.set(new_config)
+            >>> # Save the updated (and automatically validated) config
+            >>> # to disk.
+            >>> requires_orchest_restart = config.save(flask_app=app)
+            >>> # Just an example output.
+            >>> requres_orchest_restart
+            ... ["MAX_INTERACTIVE_RUNS_PARALLELISM"]
+
+        """
+        unmodifiable_config, current_config = self._get_current_configs()
+        defaults = {k: val["default"] for k, val in self._config_values.items()}
+
+        self._values = ChainMap(unmodifiable_config, current_config, defaults)
+
+    def as_dict(self) -> dict:
+        # Flatten into regular dictionary.
+        return dict(self._values)
+
+    def save(self, flask_app=None) -> Optional[List[str]]:
+        """Saves the state to the database.
+
+        Args:
+            flask_app (flask.Flask): Uses the `flask_app.config` to
+                determine whether Orchest needs to be restarted for the
+                global config changes to take effect or if some settings
+                can be updated at runtime.
+
+        Returns:
+            * `None` if no `flask_app` is given.
+            * List of changed config options that require an Orchest
+              restart to take effect.
+            * Empty list otherwise.
+
+        """
+        settings_as_dict = self.as_dict()
+
+        # Upsert entries.
+        stmt = insert(models.Setting).values(
+            [dict(name=k, value={"value": v}) for k, v in settings_as_dict.items()]
+        )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[models.Setting.name], set_=dict(value=stmt.excluded.value)
+        )
+        db.session.execute(stmt)
+
+        # Delete settings that are not part of the new configuration.
+        models.Setting.query.filter(
+            models.Setting.name.not_in(list(settings_as_dict.keys()))
+        ).delete()
+
+        db.session.commit()
+
+        if flask_app is None:
+            return
+
+        return self._apply_runtime_changes(flask_app, settings_as_dict)
+
+    def update(self, d: dict) -> None:
+        """Updates the current config values.
+
+        Under the hood it just calls `dict.update` on the current config
+        dict.
+
+        Raises:
+            TypeError: The values of the dictionary that correspond to
+                supported config values have incorrect types.
+            ValueError: The values of the dictionary that correspond to
+                supported config values have incorrect values. E.g.
+                maximum parallelism has to be greater or equal to one.
+
+        """
+        try:
+            self._validate_dict(d)
+        except (TypeError, ValueError) as e:
+            current_app.logger.error(
+                "Tried to update global Orchest config with incorrect types or values."
+            )
+            raise e
+        else:
+            self._values.maps[1].update(d)
+
+    def set(self, d: dict) -> None:
+        """Overwrites the current config with the given dict.
+
+        Raises:
+            TypeError: The values of the dictionary that correspond to
+                supported config values have incorrect types.
+            ValueError: The values of the dictionary that correspond to
+                supported config values have incorrect values. E.g.
+                maximum parallelism has to be greater or equal to one.
+
+        """
+        try:
+            self._validate_dict(d)
+        except (TypeError, ValueError) as e:
+            current_app.logger.error(
+                "Tried to update global Orchest config with incorrect types or values."
+            )
+            raise e
+        else:
+            self._values.maps[1] = d
+
+    def __getitem__(self, key):
+        return self._values[key]
+
+    def _apply_runtime_changes(self, flask_app, new: dict) -> List[str]:
+        """Updates settings at runtime when possible.
+
+        Changes that can be updated dynamically and do not require a
+        restart are applied.
+
+        Args:
+            flask_app (flask.Flask): The `flask_app.config` will be
+                updated if changing the settings at runtime was
+                possible.
+            new: Dictionary reflecting the new settings to be applied.
+
+        Returns:
+            A list of strings representing the changed configuration
+            options that require a restart of Orchest to take effect.
+
+        """
+        settings_requiring_restart = []
+        for k, val in self._config_values.items():
+            # Changes to unmodifiable config options won't take effect
+            # anyways and so they should not account towards requiring
+            # a restart yes or no.
+            if self._cloud and k in self._cloud_unmodifiable_config_opts:
+                continue
+
+            apply_f = val["apply-runtime-changes-function"]
+
+            current_val = flask_app.config.get(k)
+            new_val = new.get(k)
+            if new_val is not None and new_val != current_val:
+                could_update = apply_f(current_val, new_val)
+                if could_update:
+                    flask_app.config[k] = new_val
+                else:
+                    settings_requiring_restart.append(k)
+
+        return settings_requiring_restart
+
+    def _validate_dict(self, d: dict, migrate=False) -> None:
+        """Validates the types and values of the values of the dict.
+
+        Validates whether the types of the values of the given dict
+        equal the types of the respective key's values of the
+        `self._config_values` and additional key specific rules are
+        satisfied, e.g. parallelism > 0.
+
+        Args:
+            d: The dictionary to validate the types and values of.
+            migrate: If `True`, then the options for which the type
+                and/or value are invalidated get assigned their default
+                value. However, `self._cloud_unmodifiable_config_opts`
+                are never migrated if `self._cloud==True` as that could
+                cause authentication to get disabled.
+
+        Note:
+            Keys in the given dict that are not in the
+            `self._config_values` are not checked.
+
+        """
+        for k, val in self._config_values.items():
+            try:
+                given_val = d[k]
+            except KeyError:
+                # We let it pass silently because it won't break the
+                # application in any way as we will later fall back on
+                # default values.
+                current_app.logger.debug(
+                    f"Missing value for required config option: {k}."
+                )
+                continue
+
+            if type(given_val) is not val["type"]:
+                not_allowed_to_migrate = (
+                    self._cloud and k in self._cloud_unmodifiable_config_opts
+                )
+                if not migrate or not_allowed_to_migrate:
+                    given_val_type = type(given_val).__name__
+                    correct_val_type = val["type"].__name__
+                    raise TypeError(
+                        f'{k} has to be a "{correct_val_type}" but "{given_val_type}"'
+                        " was given."
+                    )
+
+                d[k] = val["default"]
+
+            if val["condition"] is not None and not val["condition"].__call__(
+                given_val
+            ):
+                not_allowed_to_migrate = (
+                    self._cloud and k in self._cloud_unmodifiable_config_opts
+                )
+                if not migrate or not_allowed_to_migrate:
+                    raise ValueError(f"{k} has to be {val['condition-msg']}.")
+
+                d[k] = val["default"]
+
+    def _get_current_configs(self) -> Tuple[dict, dict]:
+        """Gets the dicts needed to initialize this class.
+
+        Returns:
+            (unmodifiable_config, current_config): The first being
+                populated in case `self._cloud==True` and taking the
+                values of the respective `current_config` values.
+
+        """
+        current_config = self._fetch_settings_from_db()
+
+        try:
+            # Make sure invalid values are migrated to default values,
+            # because the application can not start with invalid values.
+            self._validate_dict(current_config, migrate=True)
+        except (TypeError, ValueError):
+            raise _errors.CorruptedFileError(
+                f'Option(s) defined in the global user config ("{self._path}") has'
+                + " incorrect type and/or value."
+            )
+
+        unmodifiable_config = {}
+        if self._cloud:
+            for k in self._cloud_unmodifiable_config_opts:
+                try:
+                    unmodifiable_config[k] = deepcopy(current_config[k])
+                except KeyError:
+                    # Fall back on default values.
+                    ...
+
+        return unmodifiable_config, current_config
+
+    def _fetch_settings_from_db(self) -> dict:
+        """Fetches the settings from the database."""
+
+        stored_settings = models.Setting.query.all()
+        settings = {}
+        for setting in stored_settings:
+            settings[setting.name] = setting.value["value"]
+
+        return settings
+
+
+def mark_custom_jupyter_images_to_be_removed() -> None:
+    """Marks custom jupyter images to be removed.
+
+    The JupyterImage.marked_for_removal flag is set to True, based on
+    this, said image won't be considered as active and thus won't be
+    used to start a jupyter server, and will be deleted by both nodes
+    and the registry.
+
+    Note: this function does not commit, it's responsibility of the
+    caller to do so.
+
+    """
+    logger.info("Marking custom jupyter images for removal.")
+    images_to_be_removed = models.JupyterImage.query.with_for_update().filter(
+        models.JupyterImage.marked_for_removal.is_(False)
+    )
+
+    # Only consider the latest valid image as active. This is because
+    # to build a jupyter server image you need to stop all sessions, so
+    # we know that only the latest could be in use.
+    latest_custom_image = (
+        models.JupyterImage.query.filter(
+            models.JupyterImage.marked_for_removal.is_(False),
+            # Only allow an image that matches this orchest cluster
+            # version.
+            models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
+        )
+        .order_by(desc(models.JupyterImage.tag))
+        .first()
+    )
+    if latest_custom_image is not None:
+        images_to_be_removed = images_to_be_removed.filter(
+            or_(
+                and_(
+                    # Don't remove the latest valid image.
+                    models.JupyterImage.tag < latest_custom_image.tag,
+                    # Can't delete an image from the registry if it has
+                    # the same digest of an active image.
+                    models.JupyterImage.digest != latest_custom_image.digest,
+                ),
+                models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION,
+            )
+        )
+    else:
+        images_to_be_removed = images_to_be_removed.filter(
+            models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION
+        )
+
+    images_to_be_removed.update({"marked_for_removal": True})

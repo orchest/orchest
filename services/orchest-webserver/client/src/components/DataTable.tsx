@@ -1,6 +1,8 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useForceUpdate } from "@/hooks/useForceUpdate";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMounted } from "@/hooks/useMounted";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -225,10 +227,11 @@ const CellContainer: React.FC<{
 };
 
 export function renderCell<T>(
-  column: DataTableColumn<T>,
+  column: DataTableColumn<T> | undefined,
   row: DataTableRow<T>,
   disabled: boolean
 ) {
+  if (!column) return null;
   return column.render ? column.render(row, disabled) : row[column.id];
 }
 
@@ -317,7 +320,7 @@ function Row<T>({
         <TableCell component="th" align="left" id={labelId} scope="row">
           <CellContainer
             isLoading={isLoading}
-            sx={columns[0].sx}
+            sx={columns[0]?.sx}
             onAuxClick={handleClickRow}
           >
             {renderCell(columns[0], data, disabled)}
@@ -424,7 +427,10 @@ function generateLoadingRows<T>(
   rowCount: number,
   columns: DataTableColumn<T>[]
 ) {
-  return [...Array(rowCount).keys()].map((key) => {
+  // rendering large amount of table rows with skeleton is causing performance issue
+  // We limit it to 25, which should suffice for most users' viewport.
+  const renderedRowCount = Math.min(25, rowCount);
+  return [...Array(renderedRowCount).keys()].map((key) => {
     return columns.reduce((all, col) => {
       // add isLoading: true signifies this row is a loading row (i.e. will be filled by Skeleton).
       // thus, the data ([col.id]) doesn't matter, we just fill an empty string.
@@ -473,6 +479,8 @@ export const DataTable = <T extends Record<string, any>>({
   footnote,
   ...props
 }: DataTableProps<T>) => {
+  const { setAlert } = useAppContext();
+
   const mounted = useMounted();
   const [searchTerm, setSearchTerm] = React.useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, debounceTime);
@@ -493,13 +501,18 @@ export const DataTable = <T extends Record<string, any>>({
   const { run, status, error, data, setData } = useAsync<
     DataTableFetcherResponse<T>
   >({ caching: true });
-  const fetchData = React.useCallback(() => {
+  const fetchData = React.useCallback(async () => {
     if (fetcher) {
-      fetcher({ run, page, rowsPerPage, searchTerm: debouncedSearchTerm });
+      return fetcher({
+        run,
+        page,
+        rowsPerPage,
+        searchTerm: debouncedSearchTerm,
+      });
     }
   }, [run, fetcher, debouncedSearchTerm, page, rowsPerPage]);
 
-  const [shouldUpdate, forceUpdate] = React.useReducer((x: number) => x + 1, 0);
+  const [shouldUpdate, forceUpdate] = useForceUpdate();
 
   React.useEffect(() => {
     setPage((current) => {
@@ -528,17 +541,16 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   const selected = selectedRows || localSelected;
-  const setSelected = React.useCallback(
-    (action: string[] | ((current: string[]) => string[])) => {
-      const dispatcher = setSelectedRows || setLocalSelected;
-      dispatcher((current) => {
-        const value = action instanceof Function ? action(current) : action;
-        if (onChangeSelection && mounted) onChangeSelection(value);
-        return value;
-      });
-    },
-    [mounted, setSelectedRows, onChangeSelection]
-  );
+  const setSelected = (
+    action: string[] | ((current: string[]) => string[])
+  ) => {
+    const dispatcher = setSelectedRows || setLocalSelected;
+    dispatcher((current) => {
+      const value = action instanceof Function ? action(current) : action;
+      if (onChangeSelection && mounted.current) onChangeSelection(value);
+      return value;
+    });
+  };
 
   const sortedRows = React.useMemo(() => {
     const originalRows = originalRowsFromProp || data?.rows || [];
@@ -596,7 +608,7 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   React.useEffect(() => {
-    if (mounted) {
+    if (mounted.current) {
       setSelected((currentSelected) => {
         return currentSelected.filter((selectedRowUuid) =>
           rows.some((row) => row.uuid === selectedRowUuid)
@@ -604,7 +616,7 @@ export const DataTable = <T extends Record<string, any>>({
       });
     }
     // we only want to filter selected when row is updated
-  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mounted, rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -686,15 +698,27 @@ export const DataTable = <T extends Record<string, any>>({
   };
 
   const handleDeleteSelectedRows = async () => {
-    if (deleteSelectedRows) {
-      setIsDeleting(true);
-      const success = await deleteSelectedRows(selected);
-      setIsDeleting(false);
-      if (success) setSelected([]);
+    try {
+      if (deleteSelectedRows) {
+        setIsDeleting(true);
+        const success = await deleteSelectedRows(selected);
+        if (success) setSelected([]);
+        setIsDeleting(false);
 
-      // if fetcher is not provided (i.e. you feed rows in the props)
-      // you should also re-fetch from the parent as well.
-      if (!useClientSideSearchAndPagination) fetchData();
+        // if fetcher is not provided (i.e. you feed rows in the props)
+        // you should also re-fetch from the parent as well.
+        if (!useClientSideSearchAndPagination) fetchData();
+      }
+    } catch (deleteRowsError) {
+      // Preferably the promise of deleteSelectedRows should handle error itself
+      // although it's okay to let DataTable handle the error for deleting selected rows.
+      const errorMessage = `Failed to delete selected items. ${deleteRowsError}`;
+      console.error(`[DataTable] ${errorMessage}`);
+      setAlert("Error", errorMessage);
+      // If error bubbles up to this function, we set isDeleting to false, and fetch data to ensure data correctness
+      // !NOTE: if `fetcher` is not provided, fetchData won't do anything, deleteSelectedRows should refetch in its try/catch.
+      setIsDeleting(false);
+      fetchData();
     }
   };
 
@@ -843,7 +867,7 @@ export const DataTable = <T extends Record<string, any>>({
           </Stack>
           <TablePagination
             sx={{ flex: 1 }}
-            rowsPerPageOptions={[5, 10, 25]}
+            rowsPerPageOptions={[5, 10, 25, 100]}
             component="div"
             count={totalCount}
             rowsPerPage={rowsPerPage}

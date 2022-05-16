@@ -53,7 +53,7 @@ start_jupyterlab(){
     release_lock
     # Don't release the lock again on exit.
     trap - EXIT
-    jupyter lab --collaborative --LabApp.app_dir="$userdir_path" "$@"
+    jupyter lab --LabApp.app_dir="$userdir_path" "$@"
 }
 
 acquire_lock
@@ -94,6 +94,13 @@ if test -f "$build_config"; then
 fi
 
 # Get installed extensions.
+# NOTE: These commands take about 1s each because Jupyter starts a
+# full App. To speed things up we can postpone getting the extension
+# versions until after we have done a check of
+#   build_version == userdir_version && Orchest was not updated
+# because if Orchest wasn't updated, then it is a very small edge
+# case that our extensions have updated (it would mean a user did
+# so manually through the JLab setup script).
 ext_orchest=$(jupyter labextension list \
                      --BaseExtensionApp.app_dir="$build_path" 2>&1)
 ext_userdir=$(jupyter labextension list \
@@ -109,8 +116,6 @@ else
     equal_ext_versions=true
 fi
 
-# If JupyterLab was updated then we always need to update the
-# configuration from the userdir.
 build_version=$(jq .jupyterlab.version "$build_path/static/package.json")
 
 # Add new extension tarballs to `extensions/` that are
@@ -119,6 +124,13 @@ build_version=$(jq .jupyterlab.version "$build_path/static/package.json")
 # Note: new extensions should trigger a build automatically.
 cp -rnT "$build_path/extensions" "$userdir_path/extensions"
 
+# Both the JupyterLab version and the extension versions of the build
+# and userdir need to be equal. Because:
+# - We could have updated the extensions without having updated
+#   JupyterLab. However, these updated extensions could be required for
+#   JupyterLab to work correctly inside Orchest.
+# - If the build version is not the same, then we can't guarantee
+#   anything about compatibility.
 if [ "$build_version" = "$userdir_version" ] && $equal_ext_versions; then
     # We don't have to do anything.
     start_jupyterlab "$@"

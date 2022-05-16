@@ -3,16 +3,16 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import uuid
 from datetime import datetime
 from typing import Optional
 
 import requests
-from flask import current_app
+from flask import current_app, safe_join
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import is_services_definition_valid
+from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
+from app import error
 from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
@@ -25,14 +25,11 @@ def get_pipeline_path(
     project_uuid,
     job_uuid=None,
     pipeline_run_uuid=None,
-    host_path=False,
     pipeline_path=None,
 ):
     """Returns path to pipeline definition file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
     if pipeline_path is None:
         pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid)
@@ -40,32 +37,30 @@ def get_pipeline_path(
     project_path = project_uuid_to_path(project_uuid)
 
     if pipeline_run_uuid is None and job_uuid is None:
-        return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
+        return safe_join(USER_DIR, "projects", project_path, pipeline_path)
     elif pipeline_run_uuid is not None and job_uuid is not None:
-        return os.path.join(
-            get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path),
+        return safe_join(
+            get_job_directory(pipeline_uuid, project_uuid, job_uuid),
             pipeline_run_uuid,
             pipeline_path,
         )
     elif job_uuid is not None:
-        return os.path.join(
-            get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path),
+        return safe_join(
+            get_job_directory(pipeline_uuid, project_uuid, job_uuid),
             "snapshot",
             pipeline_path,
         )
 
 
-def get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path=False):
+def get_job_directory(pipeline_uuid, project_uuid, job_uuid):
     """Job directory contains:
     snapshot/
     <pipeline_run_uuid>/<project copy>
     """
 
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
-    return os.path.join(USER_DIR, "jobs", project_uuid, pipeline_uuid, job_uuid)
+    return safe_join(USER_DIR, "jobs", project_uuid, pipeline_uuid, job_uuid)
 
 
 def get_pipeline_directory(
@@ -73,7 +68,6 @@ def get_pipeline_directory(
     project_uuid,
     job_uuid=None,
     pipeline_run_uuid=None,
-    host_path=False,
 ):
     """Returns path to directory with the pipeline definition file."""
 
@@ -83,26 +77,27 @@ def get_pipeline_directory(
             project_uuid,
             job_uuid,
             pipeline_run_uuid,
-            host_path,
         )
     )[0]
 
 
-def get_project_directory(project_uuid, host_path=False):
+def get_project_directory(project_uuid):
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
-    return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
+    return safe_join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
 
-def get_project_snapshot_size(project_uuid, host_path=False):
+def get_project_snapshot_size(project_uuid):
     """Returns the snapshot size for a project in MB."""
 
     def get_size(path, skip_dirs):
         size = 0
         for root, dirs, files in os.walk(path):
-            size += sum(os.path.getsize(os.path.join(root, name)) for name in files)
+            for name in files:
+                file_path = safe_join(root, name)
+                if os.path.islink(file_path):
+                    continue
+                size += os.path.getsize(file_path)
 
             for skip_dir in skip_dirs:
                 if skip_dir in dirs:
@@ -110,7 +105,7 @@ def get_project_snapshot_size(project_uuid, host_path=False):
 
         return size
 
-    project_dir = get_project_directory(project_uuid, host_path=host_path)
+    project_dir = get_project_directory(project_uuid)
 
     # This does not count towards size for snapshots.
     # NOTE: For optimization purposes we might have to also ignore the
@@ -120,7 +115,7 @@ def get_project_snapshot_size(project_uuid, host_path=False):
     skip_dirs = [".orchest"]
 
     # Convert bytes to megabytes.
-    return get_size(project_dir, skip_dirs) / (1024 ** 2)
+    return get_size(project_dir, skip_dirs) / (1024**2)
 
 
 def project_exists(project_uuid):
@@ -129,9 +124,9 @@ def project_exists(project_uuid):
     ).count() == 0 or not os.path.isdir(get_project_directory(project_uuid))
 
 
-def get_environment_directory(environment_uuid, project_uuid, host_path=False):
-    return os.path.join(
-        get_project_directory(project_uuid, host_path),
+def get_environment_directory(environment_uuid, project_uuid):
+    return safe_join(
+        get_project_directory(project_uuid),
         ".orchest",
         "environments",
         environment_uuid,
@@ -150,12 +145,12 @@ def get_environments(project_uuid, language=None):
 
     environments = []
     project_dir = get_project_directory(project_uuid)
-    environments_dir = os.path.join(project_dir, ".orchest", "environments")
+    environments_dir = safe_join(project_dir, ".orchest", "environments")
 
     try:
         for path in os.listdir(environments_dir):
 
-            environment_dir = os.path.join(environments_dir, path)
+            environment_dir = safe_join(environments_dir, path)
 
             if os.path.isdir(environment_dir):
                 env = read_environment_from_disk(environment_dir, project_uuid)
@@ -185,12 +180,23 @@ def get_environments(project_uuid, language=None):
     return environments
 
 
+def preprocess_script(script):
+    """
+    This preprocesses bash scripts
+    that come from the client.
+
+    Make sure it only contains UNIX style line endings to make
+    sure the script can run without issues.
+    """
+    return script.replace("\r\n", "\n")
+
+
 def serialize_environment_to_disk(environment, env_directory):
 
     environment_schema = EnvironmentSchema()
 
     # treat setup_script separately
-    with open(os.path.join(env_directory, "properties.json"), "w") as file:
+    with open(safe_join(env_directory, "properties.json"), "w") as file:
 
         environmentDICT = environment_schema.dump(environment)
 
@@ -203,19 +209,19 @@ def serialize_environment_to_disk(environment, env_directory):
 
     # write setup_script
     with open(
-        os.path.join(env_directory, _config.ENV_SETUP_SCRIPT_FILE_NAME), "w"
+        safe_join(env_directory, _config.ENV_SETUP_SCRIPT_FILE_NAME), "w"
     ) as file:
         file.write(environment.setup_script)
 
 
-def read_environment_from_disk(env_directory, project_uuid):
+def read_environment_from_disk(env_directory, project_uuid) -> Optional[Environment]:
 
     try:
-        with open(os.path.join(env_directory, "properties.json"), "r") as file:
+        with open(safe_join(env_directory, "properties.json"), "r") as file:
             env_dat = json.load(file)
 
         with open(
-            os.path.join(env_directory, _config.ENV_SETUP_SCRIPT_FILE_NAME), "r"
+            safe_join(env_directory, _config.ENV_SETUP_SCRIPT_FILE_NAME), "r"
         ) as file:
             setup_script = file.read()
 
@@ -234,8 +240,6 @@ def read_environment_from_disk(env_directory, project_uuid):
 def delete_environment(app, project_uuid, environment_uuid):
     """Delete an environment from disk and from the runtime environment
 
-    The only runtime environment for now is Docker.
-
     Args:
         project_uuid:
         environment_uuid:
@@ -245,7 +249,7 @@ def delete_environment(app, project_uuid, environment_uuid):
     """
     url = (
         f"http://{app.config['ORCHEST_API_ADDRESS']}"
-        f"/api/environment-images/{project_uuid}/{environment_uuid}"
+        f"/api/environments/{project_uuid}/{environment_uuid}"
     )
     app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
@@ -287,7 +291,7 @@ def get_pipeline_json(pipeline_uuid, project_uuid):
             pipeline_json = json.load(json_file)
 
             # Apply pipeline migrations
-            pipeline_json = migrate_pipeline(pipeline_json)
+            migrate_pipeline(pipeline_json)
 
             return pipeline_json
     except Exception as e:
@@ -313,7 +317,7 @@ def get_repo_tag():
 def clear_folder(folder):
     try:
         for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
+            file_path = safe_join(folder, filename)
             try:
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     os.unlink(file_path)
@@ -446,7 +450,7 @@ def find_pipelines_in_dir(path, relative_to=None):
                     # detecting pipelines that were deleted through the
                     # file system in SyncProjectPipelinesDBState, i.e.
                     # to avoid false positives.
-                    pipelines.append(os.path.normpath(os.path.join(root, fName)))
+                    pipelines.append(os.path.normpath(safe_join(root, fName)))
 
     return pipelines
 
@@ -483,78 +487,25 @@ def write_config(app, key, value):
 
 def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
 
-    snapshot_path = os.path.join(
+    snapshot_path = safe_join(
         get_job_directory(pipeline_uuid, project_uuid, job_uuid),
         "snapshot",
     )
 
     os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
 
-    project_dir = os.path.join(
+    project_dir = safe_join(
         current_app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
     )
 
-    copytree(project_dir, snapshot_path)
-
-
-def rmtree(path, ignore_errors=False):
-    """A wrapped rm -rf.
-
-    If eventlet is being used and it's either patching all modules or
-    patchng subprocess, this function is not going to block the thread.
-
-    Raises:
-        OSError if it failed to copy.
-
-    """
-    exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
-    if exit_code != 0 and not ignore_errors:
-        raise OSError(f"Failed to rm {path}: {exit_code}.")
-
-
-def copytree(source: str, target: str):
-    """Copies content from source to target.
-
-    As part of the copying process it ignores patterns from the
-    top-level `.gitignore` in `source`.
-
-    If eventlet is being used and it's either patching all modules or
-    patchng subprocess, this function is not going to block the thread.
-
-    Raises:
-        OSError if it failed to copy.
-
-    """
-    # With a trailing `/` rsync copies the content of the directory
-    # instead of the directory itself.
-    if not source.endswith("/"):
-        source += "/"
-
-    # Construct copy command.
-    # Using rsync with `-W` copies files as a whole which drastically
-    # improves its performance, making it almost as fast as the `cp`
-    # command. The other options (`-aHAX`) are to preserve all kinds
-    # of attributes, e.g. symlinks, `-a` also automatically copies
-    # recursively.
-    copy_cmd = ["rsync", "-aWHAX"]
-    if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
-        copy_cmd += [f"--exclude-from={source}.gitignore"]
-    copy_cmd += [f"{source} {target}"]
-
-    exit_code = subprocess.call(
-        " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
-    )
-    if exit_code != 0:
-        raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
+    copytree(project_dir, snapshot_path, use_gitignore=True)
 
 
 def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
 
-    job_project_path = os.path.join(
-        current_app.config["USER_DIR"], "jobs", project_uuid
-    )
-    job_pipeline_path = os.path.join(job_project_path, pipeline_uuid)
-    job_path = os.path.join(job_pipeline_path, job_uuid)
+    job_project_path = safe_join(current_app.config["USER_DIR"], "jobs", project_uuid)
+    job_pipeline_path = safe_join(job_project_path, pipeline_uuid)
+    job_path = safe_join(job_pipeline_path, job_uuid)
 
     if os.path.isdir(job_path):
         rmtree(job_path, ignore_errors=True)
@@ -567,12 +518,10 @@ def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
 
 def remove_job_pipeline_run_directory(run_uuid, job_uuid, pipeline_uuid, project_uuid):
 
-    job_project_path = os.path.join(
-        current_app.config["USER_DIR"], "jobs", project_uuid
-    )
-    job_pipeline_path = os.path.join(job_project_path, pipeline_uuid)
-    job_path = os.path.join(job_pipeline_path, job_uuid)
-    job_pipeline_run_path = os.path.join(job_path, run_uuid)
+    job_project_path = safe_join(current_app.config["USER_DIR"], "jobs", project_uuid)
+    job_pipeline_path = safe_join(job_project_path, pipeline_uuid)
+    job_path = safe_join(job_pipeline_path, job_uuid)
+    job_pipeline_run_path = safe_join(job_path, run_uuid)
 
     if os.path.isdir(job_pipeline_run_path):
         rmtree(job_pipeline_run_path, ignore_errors=True)
@@ -580,9 +529,7 @@ def remove_job_pipeline_run_directory(run_uuid, job_uuid, pipeline_uuid, project
 
 def remove_project_jobs_directories(project_uuid):
 
-    project_jobs_path = os.path.join(
-        current_app.config["USER_DIR"], "jobs", project_uuid
-    )
+    project_jobs_path = safe_join(current_app.config["USER_DIR"], "jobs", project_uuid)
 
     if os.path.isdir(project_jobs_path):
         rmtree(project_jobs_path, ignore_errors=True)
@@ -593,6 +540,7 @@ def get_ipynb_template(language: str):
     language_to_template = {
         "python": "ipynb_template.json",
         "julia": "ipynb_template_julia.json",
+        "javascript": "ipynb_template_javascript.json",
         "r": "ipynb_template_r.json",
     }
 
@@ -601,7 +549,7 @@ def get_ipynb_template(language: str):
 
     template_json = json.load(
         open(
-            os.path.join(
+            safe_join(
                 current_app.config["RESOURCE_DIR"], language_to_template[language]
             ),
             "r",
@@ -610,52 +558,46 @@ def get_ipynb_template(language: str):
     return template_json
 
 
-def generate_ipynb_from_template(step, project_uuid):
+def generate_ipynb_from_template(kernel_name: str):
 
-    template_json = get_ipynb_template(step["kernel"]["name"].lower())
-    template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
-        "display_name"
-    ]
-    template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-        step["environment"]
-    )
+    template_json = get_ipynb_template(kernel_name)
 
     return json.dumps(template_json, indent=4)
 
 
-def create_pipeline_file(
-    file_path, pipeline_json, pipeline_directory, project_uuid, step_uuid
-):
+def create_empty_file(file_path: str, kernel_name: Optional[str] = "python"):
     """
-    Note: this function does not assume that step['file_path']
-    holds the value of file_path!
+    This function creates an empty file with the given `file_path`.
+    `kernel_name` is optional. It is  only applicable if `file_path`
+    ends with `.ipynb`.
+
+    Note: this function does not update pipeline JSON file. Therefore it
+    does not assume that step['file_path'] holds the value of
+    `file_path`.
     """
 
-    step = pipeline_json["steps"][step_uuid]
-
-    full_file_path = os.path.join(pipeline_directory, file_path)
     file_path_split = file_path.split(".")
     file_path_without_ext = ".".join(file_path_split[:-1])
     ext = file_path_split[-1]
 
     file_content = None
 
-    if not os.path.isfile(full_file_path):
+    if not os.path.isfile(file_path):
 
         if len(file_path_without_ext) > 0:
             file_content = ""
 
         if ext == "ipynb":
-            file_content = generate_ipynb_from_template(step, project_uuid)
+            file_content = generate_ipynb_from_template(kernel_name)
 
     elif ext == "ipynb":
         # Check for empty .ipynb, for which we also generate a
         # template notebook.
-        if os.stat(full_file_path).st_size == 0:
-            file_content = generate_ipynb_from_template(step, project_uuid)
+        if os.stat(file_path).st_size == 0:
+            file_content = generate_ipynb_from_template(kernel_name)
 
     if file_content is not None:
-        with open(full_file_path, "w") as file:
+        with open(file_path, "w") as file:
             file.write(file_content)
 
 
@@ -688,6 +630,13 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
         if "ipynb" == step["file_path"].split(".")[-1]:
 
             notebook_path = os.path.join(pipeline_directory, step["file_path"])
+
+            if not is_valid_pipeline_relative_path(
+                project_uuid, pipeline_json["uuid"], step["file_path"]
+            ):
+                raise error.OutOfProjectError(
+                    "Step path points outside of the project directory."
+                )
 
             if os.path.isfile(notebook_path):
 
@@ -792,7 +741,7 @@ def normalize_project_relative_path(path: str) -> str:
     return os.path.normpath(path)
 
 
-def is_valid_project_relative_path(project_uuid, path: str) -> str:
+def is_valid_project_relative_path(project_uuid, path: str) -> bool:
     project_path = os.path.abspath(
         os.path.normpath(get_project_directory(project_uuid))
     )
@@ -805,6 +754,48 @@ def is_valid_project_relative_path(project_uuid, path: str) -> str:
         )
     )
     return new_path_abs.startswith(project_path)
+
+
+def is_valid_pipeline_relative_path(
+    project_uuid: str, pipeline_uuid: str, path: str
+) -> bool:
+    project_path = os.path.abspath(
+        os.path.normpath(get_project_directory(project_uuid))
+    )
+    pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
+    abs_path = os.path.abspath(
+        os.path.normpath(os.path.join(os.path.split(pipeline_path)[0], path))
+    )
+    return abs_path.startswith(project_path)
+
+
+def is_valid_data_path(path: str, is_absolute=False):
+    if not is_absolute and not path.startswith("/data/"):
+        return False
+    absolute_data_path = path if is_absolute else resolve_absolute_path(path)
+    return os.path.abspath(os.path.normpath(absolute_data_path)).startswith(
+        _config.USERDIR_DATA
+    )
+
+
+def resolve_absolute_path(abs_path: str) -> Optional[str]:
+    """Resolves an absolute path to the FS-layout of the webserver.
+
+    Note:
+        Currently only /data is supported.
+    """
+    prefix_map = {"/data": _config.USERDIR_DATA}
+
+    for prefix, fs_prefix in prefix_map.items():
+        if abs_path.startswith(prefix):
+            matched_prefix = prefix
+            resolved_prefix = fs_prefix
+            break
+    else:
+        return
+
+    file_path = abs_path[len(matched_prefix) :]
+    return resolved_prefix + file_path
 
 
 _DEFAULT_ORCHEST_EXAMPLES_JSON = {

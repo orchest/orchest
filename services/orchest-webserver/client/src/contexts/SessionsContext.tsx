@@ -1,8 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
-import { fetcher } from "@/utils/fetcher";
 import { checkGate } from "@/utils/webserver-utils";
-import { hasValue, HEADER } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
 
@@ -40,30 +39,28 @@ type Session = {
   pipelineUuid?: string;
 };
 
-const getSessionValue = (session: Session | null) => {
-  return (
-    session && {
-      projectUuid: session.projectUuid || session.project_uuid,
-      pipelineUuid: session.pipelineUuid || session.pipeline_uuid,
-    }
-  );
+const getSessionValue = (session: Session) => {
+  return {
+    projectUuid: session.projectUuid || session.project_uuid,
+    pipelineUuid: session.pipelineUuid || session.pipeline_uuid,
+  };
 };
 
 // because project_uuid and pipeline_uuid can either be snake_case or camelCase,
-// isSession function should be able to compare either case.
-export const isSession = (a: Session, b: Session) => {
+// isSameSession function should be able to compare either case.
+export function isSameSession(a: Session, b: Session) {
   if (!a || !b) return false;
   const sessionA = getSessionValue(a);
   const sessionB = getSessionValue(b);
 
   return !Object.keys(sessionA).some((key) => sessionA[key] !== sessionB[key]);
-};
+}
 
 /* Matchers
   =========================================== */
 
 const isStoppable = (status: TSessionStatus) =>
-  ["RUNNING", "LAUNCHING"].includes(status);
+  ["RUNNING", "LAUNCHING"].includes(status || "");
 
 /* Fetchers
   =========================================== */
@@ -79,8 +76,8 @@ const stopSession = ({ pipelineUuid, projectUuid }: IOrchestSessionUuid) =>
  */
 
 type SessionsContextState = {
-  sessions?: IOrchestSession[];
-  sessionsIsLoading?: boolean;
+  sessions: IOrchestSession[] | undefined;
+  sessionsIsLoading: boolean;
   sessionsKillAllInProgress?: boolean;
 };
 
@@ -100,10 +97,11 @@ type SessionsContextAction = Action | ActionCallback;
 type SessionsContext = {
   state: SessionsContextState;
   dispatch: React.Dispatch<SessionsContextAction>;
-  getSession: (
-    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
-  ) => IOrchestSession | undefined;
-  toggleSession: (payload: IOrchestSessionUuid) => Promise<void>;
+  getSession: (session: Session) => IOrchestSession | undefined;
+  toggleSession: (
+    payload: IOrchestSessionUuid,
+    shouldStart?: boolean
+  ) => Promise<void>;
   deleteAllSessions: () => Promise<void>;
 };
 
@@ -117,8 +115,6 @@ const reducer = (
 ) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
-  if (process.env.NODE_ENV === "development")
-    console.log("(Dev Mode) useUserContext: action ", action);
   switch (action.type) {
     case "SET_SESSIONS": {
       const { sessionsIsLoading, sessions } = action.payload;
@@ -142,7 +138,7 @@ const reducer = (
 };
 
 const initialState: SessionsContextState = {
-  sessions: [],
+  sessions: undefined,
   sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
 };
@@ -156,8 +152,10 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
   const getSession = React.useCallback(
-    (session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">) =>
-      state.sessions.find((stateSession) => isSession(session, stateSession)),
+    (session: Session) =>
+      state.sessions?.find((stateSession) =>
+        isSameSession(session, stateSession)
+      ),
     [state]
   );
 
@@ -165,12 +163,12 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
    * a wrapper of SET_SESSIONS action dispatcher, used for updating single session
    */
   const setSession = React.useCallback(
-    (newSessionData?: Partial<IOrchestSession>) => {
+    (newSessionData?: IOrchestSession) => {
       if (!newSessionData) return;
       dispatch((currentState) => {
         let found = false;
-        const newSessions = currentState.sessions.map((sessionData) => {
-          const isMatching = isSession(newSessionData, sessionData);
+        const newSessions = (currentState.sessions || []).map((sessionData) => {
+          const isMatching = isSameSession(newSessionData, sessionData);
           if (isMatching) found = true;
 
           return isMatching
@@ -179,12 +177,9 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         });
 
         // not found, insert newSessionData as the temporary session
-        const outcome = (found
+        const outcome: IOrchestSession[] = found
           ? newSessions
-          : [
-              ...newSessions,
-              { ...newSessionData, status: "LAUNCHING" },
-            ]) as IOrchestSession[];
+          : [...newSessions, { ...newSessionData, status: "LAUNCHING" }];
 
         return {
           type: "SET_SESSIONS",
@@ -198,27 +193,25 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
   );
 
   const startSession = React.useCallback(
-    (payload: IOrchestSessionUuid) => {
+    async (payload: IOrchestSessionUuid) => {
       setSession({ ...payload, status: "LAUNCHING" });
-      fetcher(ENDPOINT, {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify({
-          pipeline_uuid: payload.pipelineUuid,
-          project_uuid: payload.projectUuid,
-        }),
-      })
-        .then((sessionDetails) => setSession(sessionDetails))
-        .catch((err) => {
-          if (err?.message) {
-            setAlert(
-              "Error",
-              `Error while starting the session: ${err.message}`
-            );
-          }
-
-          console.error(err);
+      try {
+        const sessionDetails = await fetcher<IOrchestSession>(ENDPOINT, {
+          method: "POST",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
+            pipeline_uuid: payload.pipelineUuid,
+            project_uuid: payload.projectUuid,
+          }),
         });
+        setSession(sessionDetails);
+      } catch (err) {
+        if (err?.message) {
+          setAlert("Error", `Error while starting the session: ${err.message}`);
+        }
+
+        console.error(err);
+      }
     },
     [setSession, setAlert]
   );
@@ -226,9 +219,9 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
   // NOTE: launch/delete session is an async operation from BE
   // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
   const toggleSession = React.useCallback(
-    async (payload: IOrchestSessionUuid) => {
-      const foundSession = state.sessions.find((session) =>
-        isSession(session, payload)
+    async (payload: IOrchestSessionUuid, shouldStart?: boolean | undefined) => {
+      const foundSession = state.sessions?.find((session) =>
+        isSameSession(session, payload)
       );
 
       /* use the cashed session from useSWR or create a temporary one out of previous one */
@@ -237,13 +230,21 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         "pipeline_uuid",
       ]);
 
-      const isWorking = ["LAUNCHING", "STOPPING"].includes(session?.status);
-      if (isWorking) return;
+      const isOperating =
+        session?.status && ["STOPPING"].includes(session.status);
+      if (isOperating) return;
 
-      // both "RUNNING", "LAUNCHING" are stoppable
-      // but we only allow RUNNING to be stopped here
-      if (session?.status === "RUNNING") {
-        setSession({ ...session, status: "STOPPING" });
+      const desiredState: IOrchestSession["status"] =
+        shouldStart !== undefined
+          ? shouldStart
+            ? "LAUNCHING"
+            : "STOPPING"
+          : ["LAUNCHING", "RUNNING"].includes(session?.status || "")
+          ? "STOPPING"
+          : "LAUNCHING";
+
+      if (hasValue(session) && desiredState === "STOPPING") {
+        setSession({ ...session, status: desiredState });
         try {
           await stopSession(session);
         } catch (error) {
@@ -254,27 +255,23 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
       }
 
       // session is undefined, launching a new session
-      let checkGatePromise = checkGate(payload.projectUuid);
-      checkGatePromise
-        .then(() => {
+      try {
+        await checkGate(payload.projectUuid); // Ensure that environments are built.
+        startSession(payload);
+      } catch (error) {
+        requestBuild(payload.projectUuid, error.data, "Pipelines", () => {
           startSession(payload);
-        })
-        .catch((result) => {
-          if (result.reason === "gate-failed") {
-            requestBuild(payload.projectUuid, result.data, "Pipelines", () => {
-              startSession(payload);
-            });
-          }
         });
+      }
     },
-    [setAlert, setSession, state, startSession]
+    [setAlert, setSession, state, startSession, requestBuild]
   );
 
   const deleteAllSessions = React.useCallback(async () => {
     dispatch({ type: "SET_IS_KILLING_ALL_SESSIONS", payload: true });
     try {
       await Promise.all(
-        state.sessions
+        (state.sessions || [])
           .map((sessionValue) => {
             const shouldStop = isStoppable(sessionValue.status);
             return shouldStop ? stopSession(sessionValue) : null;

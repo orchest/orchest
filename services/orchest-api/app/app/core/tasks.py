@@ -3,20 +3,26 @@ import copy
 import json
 import os
 import shutil
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
 
+from _orchest.internals import config as _config
+from _orchest.internals.utils import copytree
 from app import create_app
+from app import errors as self_errors
+from app import utils
 from app.celery_app import make_celery
-from app.connections import docker_client
-from app.core.environment_builds import build_environment_task
-from app.core.jupyter_builds import build_jupyter_task
-from app.core.pipelines import Pipeline, PipelineDefinition
+from app.connections import k8s_custom_obj_api
+from app.core import environments, notifications, registry
+from app.core.environment_image_builds import build_environment_image_task
+from app.core.jupyter_image_builds import build_jupyter_image_task
+from app.core.pipelines import Pipeline, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
+from app.types import PipelineDefinition, RunConfig
 from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)
@@ -25,7 +31,8 @@ logger = get_task_logger(__name__)
 # databases) is called twice, which means celery-worker needs the
 # /userdir bind to access the DB which is probably not a good idea.
 # create_all should only be called once per app right?
-celery = make_celery(create_app(CONFIG_CLASS, use_db=False), use_backend_db=True)
+application = create_app(CONFIG_CLASS, use_db=True, register_api=False)
+celery = make_celery(application, use_backend_db=True)
 
 
 # This will not work yet, because Celery does not yet support asyncio
@@ -66,73 +73,26 @@ class APITask(Task):
         return self._session
 
 
-async def get_run_status(
-    task_id: str,
-    type: str,
-    run_endpoint: str,
-    uuid: Optional[str] = None,
-) -> Any:
-
-    base_url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_endpoint}/{task_id}"
-
-    if type == "step":
-        url = f"{base_url}/{uuid}"
-
-    elif type == "pipeline":
-        url = base_url
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.json()
-
-
-# Periodically check whether task has been aborted, if it has been, kill
-# all running containers to short-circuit pipeline run.
-async def check_pipeline_run_task_status(run_config, pipeline, task_id):
-
-    while True:
-
-        # check status every second
-        await asyncio.sleep(1)
-
-        aborted = AbortableAsyncResult(task_id).is_aborted()
-        run_status = await get_run_status(
-            task_id, "pipeline", run_config["run_endpoint"]
-        )
-
-        # might be missing if the record has been removed, i.e.
-        # due to a cleanup that might happen if the project has been
-        # removed
-        aborted = aborted or "status" not in run_status
-        ready = run_status.get("status", "FAILURE") in ["SUCCESS", "FAILURE"]
-
-        if aborted:
-            pipeline.kill_all_running_steps(
-                task_id, "docker", {"docker_client": docker_client}
-            )
-        if ready or aborted:
-            break
-
-
-async def run_pipeline_async(run_config, pipeline, task_id):
+async def run_pipeline_async(
+    session_uuid: str, run_config: RunConfig, pipeline: Pipeline, task_id: str
+):
     try:
-        await asyncio.gather(
-            *[
-                asyncio.create_task(pipeline.run(task_id, run_config=run_config)),
-                asyncio.create_task(
-                    check_pipeline_run_task_status(run_config, pipeline, task_id)
-                ),
-            ]
+        await run_pipeline_workflow(
+            session_uuid, task_id, pipeline, run_config=run_config
         )
-    # Make sure to cleanup containers in any case.
+    except Exception as e:
+        logger.error(e)
+        raise
     finally:
-        # Any code that depends on the fact that both pipeline.run and
-        # check_pipeline_run_task_status have terminated should be here.
-        # for example, pipeline.run  PUTs the state of the run when it
-        # ends, so any code dependant on the status being set cannot be
-        # run in check_pipeline_run_task_status.
-        run_config["docker_client"] = docker_client
-        pipeline.remove_containerization_resources(task_id, "docker", run_config)
+        # We get here either because the task was successful or was
+        # aborted, in any case, delete the workflow.
+        k8s_custom_obj_api.delete_namespaced_custom_object(
+            "argoproj.io",
+            "v1alpha1",
+            _config.ORCHEST_NAMESPACE,
+            "workflows",
+            f"pipeline-run-task-{task_id}",
+        )
 
     # The celery task has completed successfully. This is not
     # related to the success or failure of the pipeline itself.
@@ -143,8 +103,8 @@ async def run_pipeline_async(run_config, pipeline, task_id):
 def run_pipeline(
     self,
     pipeline_definition: PipelineDefinition,
-    project_uuid: str,
-    run_config: Dict[str, Union[str, Dict[str, str]]],
+    run_config: RunConfig,
+    session_uuid: str,
     task_id: Optional[str] = None,
 ) -> str:
     """Runs a pipeline partially.
@@ -156,24 +116,11 @@ def run_pipeline(
     Args:
         pipeline_definition: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
-            Example: {
-                'session_uuid' : 'uuid',
-                'session_type' : 'interactive',
-                'run_endpoint': 'runs',
-                'project_dir': '/home/../pipelines/uuid',
-                'env_uuid_docker_id_mappings': {
-                    'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
-                        'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
-                }
-            }
 
     Returns:
         Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
-    run_config["pipeline_uuid"] = pipeline_definition["uuid"]
-    run_config["project_uuid"] = project_uuid
-
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_definition)
 
@@ -190,7 +137,7 @@ def run_pipeline(
     # failed. Although the run did complete successfully from a task
     # scheduler perspective.
     # https://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
-    return asyncio.run(run_pipeline_async(run_config, pipeline, task_id))
+    return asyncio.run(run_pipeline_async(session_uuid, run_config, pipeline, task_id))
 
 
 @celery.task(bind=True, base=AbortableTask)
@@ -211,9 +158,9 @@ def start_non_interactive_pipeline_run(
         pipeline_definition: A json description of the pipeline.
         run_config: Configuration of the run for the compute backend.
             Example: {
-                'host_user_dir': '/home/../userdir',
-                'project_dir': '/home/../pipelines/uuid',
-                'env_uuid_docker_id_mappings': {
+                'userdir_pvc': 'userdir-pvc',
+                'project_dir': 'pipelines/uuid',
+                'env_uuid_to_image': {
                     'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
                         'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
                 }
@@ -230,29 +177,25 @@ def start_non_interactive_pipeline_run(
     run_dir = os.path.join(job_dir, self.request.id)
 
     # Copy the contents of `snapshot_dir` to the new (not yet existing
-    # folder) `run_dir` (that will then be created by `copytree`).
-    # copytree(snapshot_dir, run_dir)
-    os.system('cp -R "%s" "%s"' % (snapshot_dir, run_dir))
+    # folder) `run_dir`. No need to use_gitignore since the snapshot
+    # was copied with use_gitignore=True.
+    copytree(snapshot_dir, run_dir, use_gitignore=False)
 
     # Update the `run_config` for the interactive pipeline run. The
     # pipeline run should execute on the `run_dir` as its
     # `project_dir`. Note that the `project_dir` inside the
-    # `run_config` has to be the abs path w.r.t. the host because it is
-    # used by the `docker.sock` when mounting the dir to the container
-    # of a step.
-    host_userdir = run_config["host_user_dir"]
-    host_base_user_dir = os.path.split(host_userdir)[0]
+    # `run_config` has to be relative to userdir_pvc as it is used
+    # by k8s as a subpath of userdir_pvc
+    userdir_pvc = run_config["userdir_pvc"]
 
     # For non interactive runs the session uuid is equal to the task
-    # uuid.
+    # uuid, which is actually the pipeline run uuid.
     session_uuid = self.request.id
     run_config["session_uuid"] = session_uuid
     run_config["session_type"] = "noninteractive"
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
-    # To join the paths, the `run_dir` cannot start with `/userdir/...`
-    # but should start as `userdir/...`
-    run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
+    run_config["project_dir"] = run_dir
     run_config["run_endpoint"] = f"jobs/{job_uuid}"
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
@@ -265,21 +208,22 @@ def start_non_interactive_pipeline_run(
     # Note that run_config contains user_env_variables, which is of
     # interest for the session_config.
     session_config = copy.deepcopy(run_config)
-    session_config.pop("env_uuid_docker_id_mappings")
+    session_config.pop("env_uuid_to_image")
     session_config.pop("run_endpoint")
-    session_config["host_userdir"] = host_userdir
+    session_config["userdir_pvc"] = userdir_pvc
     session_config["services"] = pipeline_definition.get("services", {})
-    session_config["env_uuid_docker_id_mappings"] = run_config[
-        "env_uuid_docker_id_mappings"
-    ]
+    session_config["env_uuid_to_image"] = run_config["env_uuid_to_image"]
 
     with launch_noninteractive_session(
-        docker_client,
         session_uuid,
         session_config,
+        lambda: AbortableAsyncResult(session_uuid).is_aborted(),
     ):
         status = run_pipeline(
-            pipeline_definition, project_uuid, run_config, task_id=self.request.id
+            pipeline_definition,
+            run_config,
+            session_uuid,
+            task_id=self.request.id,
         )
 
     return status
@@ -289,13 +233,14 @@ def start_non_interactive_pipeline_run(
 # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
-def build_environment(
+def build_environment_image(
     self,
-    project_uuid,
-    environment_uuid,
+    project_uuid: str,
+    environment_uuid: str,
+    image_tag: str,
     project_path,
 ) -> str:
-    """Builds an environment, producing a new image in the docker env.
+    """Builds an environment, pushing a new image to the registry.
 
     Args:
         project_uuid: UUID of the project.
@@ -307,8 +252,8 @@ def build_environment(
 
     """
 
-    return build_environment_task(
-        self.request.id, project_uuid, environment_uuid, project_path
+    return build_environment_image_task(
+        self.request.id, project_uuid, environment_uuid, image_tag, project_path
     )
 
 
@@ -316,17 +261,15 @@ def build_environment(
 # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
-def build_jupyter(
-    self,
-) -> str:
-    """Builds Jupyter image, producing a new image in the docker env.
+def build_jupyter_image(self, image_tag: str) -> str:
+    """Builds Jupyter image, pushing a new image to the registry.
 
     Returns:
         Status of the environment build.
 
     """
 
-    return build_jupyter_task(self.request.id)
+    return build_jupyter_image_task(self.request.id, image_tag)
 
 
 @celery.task(bind=True, base=AbortableTask)
@@ -342,4 +285,82 @@ def delete_job_pipeline_run_directories(
     for uuid in pipeline_run_uuids:
         shutil.rmtree(os.path.join(job_dir, uuid), ignore_errors=True)
 
+    return "SUCCESS"
+
+
+@celery.task(bind=True, base=AbortableTask)
+def registry_garbage_collection(self) -> None:
+    """Runs the registry garbage collection task.
+
+    Images that are to be removed are removed from the registry and
+    registry garbage collection is run if necessary.
+    """
+    with application.app_context():
+        has_deleted_images = False
+        repositories_to_gc = []
+        repos = registry.get_list_of_repositories()
+
+        # Env images + custom Jupyter images.
+        repos_of_interest = [
+            repo
+            for repo in repos
+            if repo.startswith("orchest-env")
+            or repo.startswith(_config.JUPYTER_IMAGE_NAME)
+        ]
+        active_env_images = environments.get_active_environment_images()
+        active_env_image_names = set(
+            _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
+            )
+            + f":{img.tag}"
+            for img in active_env_images
+        )
+        active_custom_jupyter_images = utils.get_active_custom_jupyter_images()
+        active_custom_jupyter_image_names = set(
+            f"{_config.JUPYTER_IMAGE_NAME}:{img.tag}"
+            for img in active_custom_jupyter_images
+        )
+
+        active_image_names = active_env_image_names.union(
+            active_custom_jupyter_image_names
+        )
+
+        # Go through all env image repos, for every tag, check if the
+        # image is in the active images, if not, delete it. If the
+        # image is not among the actives it means that it's either in
+        # the set of images where marked_for_removal = True, or the
+        # image isn't there at all, i.e. the project or environment has
+        # been deleted.
+        for repo in repos_of_interest:
+            tags = registry.get_tags_of_repository(repo)
+
+            all_tags_removed = True
+            for tag in tags:
+                name = f"{repo}:{tag}"
+                if name not in active_image_names:
+                    logger.info(f"Deleting {name} from the registry.")
+                    has_deleted_images = True
+                    digest = registry.get_manifest_digest(repo, tag)
+                    try:
+                        registry.delete_image_by_digest(
+                            repo, digest, run_garbage_collection=False
+                        )
+                    except self_errors.ImageRegistryDeletionError as e:
+                        logger.warning(e)
+                else:
+                    all_tags_removed = False
+                    logger.info(f"Not deleting {name} from the registry.")
+
+            if all_tags_removed:
+                repositories_to_gc.append(repo)
+
+        if has_deleted_images or repositories_to_gc:
+            registry.run_registry_garbage_collection(repositories_to_gc)
+        return "SUCCESS"
+
+
+@celery.task(bind=True, base=AbortableTask)
+def process_notifications_deliveries(self):
+    with application.app_context():
+        notifications.process_notifications_deliveries_task()
     return "SUCCESS"

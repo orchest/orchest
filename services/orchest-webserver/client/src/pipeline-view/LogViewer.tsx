@@ -1,61 +1,74 @@
 import { useInterval } from "@/hooks/use-interval";
-import { RefManager, uuidv4 } from "@orchest/lib-utils";
-import * as React from "react";
+import { LogType } from "@/types";
+import Box from "@mui/material/Box";
+import { uuidv4 } from "@orchest/lib-utils";
+import React from "react";
 import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
+import { useSocketIO } from "./hooks/useSocketIO";
 
 const HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
 
 export interface ILogViewerProps {
-  sio: Record<"on" | "off" | "emit", any>;
-  stepUuid?: string;
-  pipelineUuid: string;
-  projectUuid: string;
-  jobUuid: string;
-  runUuid: string;
-  serviceName?: string;
+  pipelineUuid: string | undefined;
+  projectUuid: string | undefined;
+  jobUuid: string | undefined | null;
+  runUuid: string | undefined | null;
+  type: LogType;
+  logId: string;
 }
 
-const LogViewer: React.FC<ILogViewerProps> = (props) => {
-  const [sessionUuid, setSessionUuid] = React.useState(null);
-  const [heartbeatInterval, setHeartbeatInterval] = React.useState(null);
+export const LogViewer = ({
+  jobUuid,
+  logId,
+  pipelineUuid,
+  projectUuid,
+  runUuid,
+  type,
+}: ILogViewerProps) => {
+  const sessionUuid = React.useMemo<string>(() => uuidv4(), []);
+  const [heartbeatInterval, setHeartbeatInterval] = React.useState<
+    number | null
+  >(null);
 
-  const [refManager] = React.useState(new RefManager());
-  const [fitAddon] = React.useState(new FitAddon());
+  const socket = useSocketIO("/pty");
+  const xtermRef = React.useRef<XTerm | null>(null);
+  const fitAddon = React.useMemo(() => new FitAddon(), []);
 
-  const generateSessionUuid = () => setSessionUuid(uuidv4());
-
-  const onPtyOutputHandler = (data) => {
-    if (data.session_uuid == sessionUuid) {
-      let lines = data.output.split("\n");
-      for (let x = 0; x < lines.length; x++) {
-        if (x == lines.length - 1) {
-          refManager.refs.term.terminal.write(lines[x]);
-        } else {
-          refManager.refs.term.terminal.write(lines[x] + "\n\r");
+  const onPtyOutputHandler = React.useCallback(
+    (data) => {
+      if (data.session_uuid == sessionUuid && xtermRef.current) {
+        let lines = data.output.split("\n");
+        for (let x = 0; x < lines.length; x++) {
+          if (x == lines.length - 1) {
+            xtermRef.current.terminal.write(lines[x]);
+          } else {
+            xtermRef.current.terminal.write(lines[x] + "\n\r");
+          }
         }
       }
-    }
-  };
+    },
+    [sessionUuid]
+  );
 
-  const onPtyReset = (data) => {
-    if (data.session_uuid == sessionUuid) {
-      refManager.refs.term.terminal.reset();
-    }
-  };
+  const onPtyReset = React.useCallback(
+    (data: { session_uuid: string }) => {
+      if (data.session_uuid === sessionUuid) {
+        xtermRef.current?.terminal.reset();
+      }
+    },
+    [sessionUuid]
+  );
 
-  const initializeSocketIOListener = () => {
-    props.sio.on("pty-output", onPtyOutputHandler);
-    props.sio.on("pty-reset", onPtyReset);
+  const initializeSocketIOListener = React.useCallback(() => {
+    socket.on("pty-output", onPtyOutputHandler);
+    socket.on("pty-reset", onPtyReset);
 
     setHeartbeatInterval(HEARTBEAT_INTERVAL);
-  };
+  }, [onPtyOutputHandler, onPtyReset, socket]);
 
-  const fitTerminal = () => {
-    if (
-      refManager.refs.term &&
-      refManager.refs.term.terminal.element.offsetParent != null
-    ) {
+  const fitTerminal = React.useCallback(() => {
+    if (xtermRef.current?.terminal.element?.offsetParent !== null) {
       setTimeout(() => {
         try {
           fitAddon.fit();
@@ -66,41 +79,44 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
         }
       });
     }
-  };
+  }, [fitAddon]);
 
-  const stopLog = () => {
-    props.sio.emit("pty-log-manager", {
-      action: "stop-logs",
-      session_uuid: sessionUuid,
-    });
-  };
-
-  const startLogSession = () => {
+  const startLogSession = React.useCallback(() => {
+    if (!projectUuid || !pipelineUuid) return;
     let data = {
       action: "fetch-logs",
       session_uuid: sessionUuid,
-      pipeline_uuid: props.pipelineUuid,
-      project_uuid: props.projectUuid,
+      pipeline_uuid: pipelineUuid,
+      project_uuid: projectUuid,
     };
 
     // LogViewer supports either a step_uuid or a service_name, never both.
-    if (props.stepUuid) {
-      data["step_uuid"] = props.stepUuid;
-    } else if (props.serviceName) {
-      data["service_name"] = props.serviceName;
+    if (type === "step") {
+      data["step_uuid"] = logId;
+    } else if (type === "service") {
+      data["service_name"] = logId;
     }
 
-    if (props.runUuid && props.jobUuid) {
-      data["pipeline_run_uuid"] = props.runUuid;
-      data["job_uuid"] = props.jobUuid;
+    if (runUuid && jobUuid) {
+      data["pipeline_run_uuid"] = runUuid;
+      data["job_uuid"] = jobUuid;
     }
 
-    props.sio.emit("pty-log-manager", data);
-  };
+    socket.emit("pty-log-manager", data);
+  }, [
+    jobUuid,
+    logId,
+    pipelineUuid,
+    projectUuid,
+    runUuid,
+    sessionUuid,
+    socket,
+    type,
+  ]);
 
   useInterval(() => {
     if (sessionUuid) {
-      props.sio.emit("pty-log-manager", {
+      socket.emit("pty-log-manager", {
         action: "heartbeat",
         session_uuid: sessionUuid,
       });
@@ -110,35 +126,49 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
   }, heartbeatInterval);
 
   React.useEffect(() => {
-    generateSessionUuid();
-    // intialize socket.io listener
+    // initialize socket.io listener
     initializeSocketIOListener();
     startLogSession();
 
-    window.addEventListener("resize", fitTerminal);
     fitTerminal();
+    window.addEventListener("resize", fitTerminal);
 
     return () => {
-      stopLog();
+      // stop logging
+      socket.emit("pty-log-manager", {
+        action: "stop-logs",
+        session_uuid: sessionUuid,
+      });
 
-      props.sio.off("pty-output", onPtyOutputHandler);
-      props.sio.off("pty-reset", onPtyReset);
+      socket.off("pty-output", onPtyOutputHandler);
+      socket.off("pty-reset", onPtyReset);
 
       window.removeEventListener("resize", fitTerminal);
     };
-  }, []);
-
-  React.useEffect(() => fitTerminal());
-
-  React.useEffect(() => {
-    generateSessionUuid();
-  }, [props]);
+  }, [
+    fitTerminal,
+    initializeSocketIOListener,
+    onPtyOutputHandler,
+    onPtyReset,
+    sessionUuid,
+    socket,
+    startLogSession,
+  ]);
 
   return (
-    <div className="log-content xterm-holder">
-      <XTerm addons={[fitAddon]} ref={refManager.nrefs.term} />
-    </div>
+    <Box
+      sx={{
+        height: "100%",
+        backgroundColor: (theme) => theme.palette.common.black,
+        padding: (theme) => theme.spacing(1, 0, 1, 1),
+        overflow: "hidden",
+        // root of XTerm is a div without any class name
+        "> div": {
+          height: "100%",
+        },
+      }}
+    >
+      <XTerm addons={[fitAddon]} ref={xtermRef} />
+    </Box>
   );
 };
-
-export default LogViewer;

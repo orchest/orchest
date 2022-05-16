@@ -44,7 +44,7 @@ Interactive session
     inside the pipeline editor, or in the list pipelines. A session is automatically started for you
     when opening up a pipeline.
 
-    * Automatically boots and manages: JupyterLab, jupyter-enterprise-gateway and ``memory-server``.
+    * Automatically boots and manages: JupyterLab and jupyter-enterprise-gateway.
     * Required in order to start an :ref:`interactive pipeline run <interactive pipeline run>`.
 
 .. _pipeline run:

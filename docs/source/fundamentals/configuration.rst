@@ -7,10 +7,8 @@ Configuration
 
 Orchest settings
 ----------------
-Orchest stores a global configuration file at ``~/.config/orchest/config.json`` (or at
-``$XDG_CONFIG_HOME/orchest/config.json`` if defined) that configures the Orchest application. The
-content of the file can be changed from within in the UI through *Settings* and requires Orchest to
-be restarted for the changes to take effect.
+Orchest is configured through a number of settings that can be changed from within the UI through
+*Settings*. Some settings will require Orchest to be restarted for changes to take effect.
 
 Example content:
 
@@ -67,40 +65,6 @@ Explanation of possible configuration settings:
        <https://github.com/orchest/orchest/blob/master/services/orchest-webserver/app/app/analytics.py>`_.
        All telemetry is completely anonymized through your ``TELEMETRY_UUID``, and we do not store
        any IP information either on our servers.
-
-.. _pipeline settings:
-
-Pipeline settings
------------------
-There are also configuration options per pipeline that can be set through the UI by opening a
-pipeline and going to its *Settings* in the top right corner. This will add a JSON block
-to the corresponding pipeline definition, for example:
-
-.. code-block:: text
-
-   "settings": {
-     "auto_eviction": true,
-     "data_passing_memory_size": "1GB"
-   }
-
-``auto_eviction``
-    Possible values: ``true`` or ``false``.
-
-    When sending data between pipeline steps through memory all the data is by default kept in
-    memory, only overwriting an object if the same pipeline step passes data again. To free memory
-    you can either *Clear memory* through the pipeline settings or enable auto eviction. Auto
-    eviction will make sure objects are evicted once all depending steps have obtained the data.
-
-    .. note::
-       Auto eviction is always enabled for *jobs*.
-
-``data_passing_memory_size``
-    Values have to be strings formatted as floats with a unit of ``GB``, ``MB`` or ``KB``, e.g.
-    ``"5.4GB"``.
-
-    The size of the memory store for data passing. All objects that are passed between steps are by
-    default stored in memory (unless you explicitly use :meth:`orchest.transfer.output_to_disk`)
-    and thus it is recommended to choose an appropriate size for your pipeline.
 
 .. _configuration jupyterlab:
 

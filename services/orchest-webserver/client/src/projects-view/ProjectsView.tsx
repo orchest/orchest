@@ -1,20 +1,20 @@
 import { IconButton } from "@/components/common/IconButton";
+import { PageTitle } from "@/components/common/PageTitle";
 import {
   DataTable,
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
+import { defaultOverlaySx, DropZone } from "@/components/DropZone";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
-import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
-import { BackgroundTask } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import InputIcon from "@mui/icons-material/Input";
@@ -23,11 +23,11 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { makeRequest } from "@orchest/lib-utils";
+import { hasValue, makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectPathDialog } from "./EditProjectPathDialog";
-import { useFetchProjects } from "./hooks/useFetchProjects";
+import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
 
 type ProjectRow = Pick<
@@ -47,19 +47,17 @@ const ProjectsView: React.FC = () => {
 
   const {
     dispatch,
-    state: { projectUuid },
+    state: { projectUuid, projects },
   } = useProjectsContext();
   const { navigateTo } = useCustomRoute();
 
-  const [projectName, setProjectName] = React.useState<string>();
-  const [projectPath, setProjectPath] = React.useState<string | undefined>();
   const [projectUuidOnEdit, setProjectUuidOnEdit] = React.useState<
     string | undefined
   >();
 
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
-  const [isImporting, setIsImporting] = React.useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
 
   useCheckUpdate();
 
@@ -75,12 +73,8 @@ const ProjectsView: React.FC = () => {
         e
       );
     };
-    const onEditProjectName = (
-      projectUUID: string,
-      projectPathToBeEdited: string
-    ) => {
+    const onEditProjectName = (projectUUID: string) => {
       setProjectUuidOnEdit(projectUUID);
-      setProjectPath(projectPathToBeEdited);
     };
     return [
       {
@@ -110,7 +104,7 @@ const ProjectsView: React.FC = () => {
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  onEditProjectName(row.uuid, row.path);
+                  onEditProjectName(row.uuid);
                 }}
                 onAuxClick={(e) => {
                   e.stopPropagation();
@@ -147,35 +141,17 @@ const ProjectsView: React.FC = () => {
         },
       },
     ];
-  }, [setProjectPath, navigateTo]);
+  }, [navigateTo]);
 
   const onCloseEditProjectPathModal = () => {
     setProjectUuidOnEdit(undefined);
   };
 
   const {
-    projects,
     fetchProjects,
     setProjects,
-    fetchProjectsError,
     isFetchingProjects,
-  } = useFetchProjects({ sessionCounts: true, jobCounts: true });
-
-  const mounted = useMounted();
-
-  React.useEffect(() => {
-    if (mounted && fetchProjectsError)
-      setAlert("Error", "Error fetching projects");
-  }, [fetchProjectsError, setAlert, mounted]);
-
-  React.useEffect(() => {
-    if (mounted && !isFetchingProjects && !fetchProjectsError && projects) {
-      dispatch({
-        type: "projectsSet",
-        payload: projects,
-      });
-    }
-  }, [projects, mounted, isFetchingProjects, fetchProjectsError, dispatch]);
+  } = useFetchProjectsForProjectsView();
 
   const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
     return projects.map((project) => {
@@ -187,7 +163,7 @@ const ProjectsView: React.FC = () => {
   }, [projects]);
 
   const onRowClick = (e: React.MouseEvent, projectUuid: string) => {
-    navigateTo(siteMap.pipelines.path, { query: { projectUuid } }, e);
+    navigateTo(siteMap.pipeline.path, { query: { projectUuid } }, e);
   };
 
   const deleteSelectedRows = async (projectUuids: string[]) => {
@@ -209,11 +185,13 @@ const ProjectsView: React.FC = () => {
           projectUuids.map((projectUuid) => deleteProjectRequest(projectUuid))
         )
           .then(() => {
-            fetchProjects();
             resolve(true); // 2. this is resolved later, and this resolves the Promise returned by setConfirm, and thereafter resolved in DataTable
           })
           .catch(() => {
             resolve(false);
+          })
+          .finally(() => {
+            fetchProjects();
           });
         return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
       }
@@ -222,10 +200,7 @@ const ProjectsView: React.FC = () => {
 
   const deleteProjectRequest = (toBeDeletedId: string) => {
     if (projectUuid === toBeDeletedId) {
-      dispatch({
-        type: "projectSet",
-        payload: undefined,
-      });
+      dispatch({ type: "SET_PROJECT", payload: undefined });
     }
 
     let deletePromise = makeRequest("DELETE", "/async/projects", {
@@ -261,15 +236,13 @@ const ProjectsView: React.FC = () => {
   };
 
   const onImport = () => {
-    setIsImporting(true);
+    setIsImportDialogOpen(true);
   };
 
-  const onImportComplete = (result: BackgroundTask) => {
-    if (result.status === "SUCCESS") {
-      navigateTo(siteMap.pipelines.path, {
-        query: { projectUuid: result.result },
-      });
-    }
+  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
+    navigateTo(siteMap.pipeline.path, {
+      query: { projectUuid: newProject.uuid },
+    });
   };
 
   const [importUrl, setImportUrl] = useImportUrl();
@@ -277,21 +250,58 @@ const ProjectsView: React.FC = () => {
   // we prompt them directly with the import modal
   React.useEffect(() => {
     if (state.hasCompletedOnboarding && importUrl !== "") {
-      setIsImporting(true);
+      setIsImportDialogOpen(true);
     }
   }, [importUrl, state.hasCompletedOnboarding]);
 
+  const [filesToUpload, setFilesToUpload] = React.useState<
+    FileList | File[] | undefined
+  >();
+
+  const dropFilesToCreateProject = React.useCallback(
+    (files: FileList | File[]) => {
+      setFilesToUpload(files);
+      setIsImportDialogOpen(true);
+    },
+    []
+  );
+
   return (
     <Layout>
-      <div className={"view-page projects-view"}>
+      <DropZone
+        className="view-page projects-view"
+        uploadFiles={dropFilesToCreateProject}
+        disabled={
+          isImportDialogOpen ||
+          isShowingCreateModal ||
+          hasValue(projectUuidOnEdit) ||
+          (projectRows.length === 0 && isFetchingProjects)
+        }
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100%",
+          width: "100%",
+        }}
+        overlayProps={{
+          sx: {
+            ...defaultOverlaySx,
+            margin: (theme) => theme.spacing(-4),
+            top: (theme) => theme.spacing(12.125),
+            width: "100%",
+            height: (theme) => `calc(100% - ${theme.spacing(8.125)})`,
+            border: (theme) => `2px solid ${theme.palette.primary.main}`,
+          },
+        }}
+      >
         <ImportDialog
-          projectName={projectName}
-          setProjectName={setProjectName}
           onImportComplete={onImportComplete}
           importUrl={importUrl}
           setImportUrl={setImportUrl}
-          open={isImporting}
-          onClose={() => setIsImporting(false)}
+          open={isImportDialogOpen}
+          onClose={() => setIsImportDialogOpen(false)}
+          filesToUpload={filesToUpload}
+          confirmButtonLabel={`Save & view`}
         />
         <EditProjectPathDialog
           projects={projects}
@@ -304,7 +314,7 @@ const ProjectsView: React.FC = () => {
           isOpen={isShowingCreateModal}
           onClose={onCloseCreateProjectModal}
         />
-        <h2>Projects</h2>
+        <PageTitle>Projects</PageTitle>
         {projectRows.length === 0 && isFetchingProjects ? (
           <LinearProgress />
         ) : (
@@ -316,6 +326,7 @@ const ProjectsView: React.FC = () => {
             >
               <Button
                 variant="contained"
+                autoFocus
                 startIcon={<AddIcon />}
                 onClick={onCreateClick}
                 data-test-id="add-project"
@@ -355,7 +366,7 @@ const ProjectsView: React.FC = () => {
             />
           </>
         )}
-      </div>
+      </DropZone>
     </Layout>
   );
 };

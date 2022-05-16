@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/common/BackButton";
 import { Code } from "@/components/common/Code";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
@@ -9,12 +10,13 @@ import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
-import { siteMap } from "@/Routes";
-import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
+import { siteMap } from "@/routingConfig";
+import type { Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -49,7 +51,6 @@ import { fetcher, HEADER } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
-import useSWR from "swr";
 import {
   flattenStrategyJson,
   generatePipelineRunParamCombinations,
@@ -87,7 +88,7 @@ const generateJobParameters = (
 };
 
 const findParameterization = (
-  parameterization: Record<string, any>,
+  parameterization: Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
   parameters: Record<string, Json>[]
 ) => {
   let JSONstring = JSON.stringify(parameterization);
@@ -196,10 +197,20 @@ const generateStrategyJson = (pipeline: PipelineJson, reservedKey: string) => {
   return strategyJSON;
 };
 
+type JobUpdatePayload = {
+  name: string;
+  confirm_draft: boolean;
+  strategy_json: StrategyJson | undefined;
+  parameters: Record<string, Json>[];
+  env_variables: Record<string, unknown>;
+  max_retained_pipeline_runs: number;
+  next_scheduled_time?: string;
+  cron_schedule?: string;
+};
+
 const EditJobView: React.FC = () => {
   // global states
-  const appContext = useAppContext();
-  const { setAlert, setAsSaved } = appContext;
+  const { config, setAlert, setAsSaved } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.editJob.path });
 
   // data from route
@@ -232,15 +243,7 @@ const EditJobView: React.FC = () => {
 
   const [runJobLoading, setRunJobLoading] = React.useState(false);
 
-  const {
-    data: job,
-    error: fetchJobError,
-    isValidating: isFetchingJob,
-    mutate: setJob,
-  } = useSWR<Job>(
-    jobUuid ? `/catch/api-proxy/api/jobs/${jobUuid}` : null,
-    fetcher
-  );
+  const { setJob, job, isFetchingJob } = useFetchJob({ jobUuid });
 
   const { pipelineJson, isFetchingPipelineJson } = useFetchPipelineJson(
     projectUuid && job
@@ -259,7 +262,9 @@ const EditJobView: React.FC = () => {
 
   const isLoading = isFetchingJob || isFetchingPipelineJson;
 
-  const [strategyJson, setStrategyJson] = React.useState<StrategyJson>(null);
+  const [strategyJson, setStrategyJson] = React.useState<
+    StrategyJson | undefined
+  >(undefined);
 
   React.useEffect(() => {
     if (job) {
@@ -279,8 +284,7 @@ const EditJobView: React.FC = () => {
     if (job && pipelineJson) {
       // Do not generate another strategy_json if it has been defined
       // already.
-      const reserveKey =
-        appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+      const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
       const generatedStrategyJson =
         job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
           ? generateStrategyJson(pipelineJson, reserveKey)
@@ -305,14 +309,10 @@ const EditJobView: React.FC = () => {
       setPipelineRuns(newPipelineRuns);
       setPipelineRunRows(newPipelineRunRows);
     }
-  }, [
-    job,
-    pipelineJson,
-    appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
-  ]);
+  }, [job, pipelineJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY]);
 
   const handleJobNameChange = (name: string) => {
-    setJob((prev) => (prev ? { ...prev, name } : prev), false);
+    setJob((prev) => (prev ? { ...prev, name } : prev));
     setAsSaved(false);
   };
 
@@ -358,7 +358,7 @@ const EditJobView: React.FC = () => {
     if (validation.pass === true) {
       runJob(e);
     } else {
-      setAlert("Error", validation.reason);
+      setAlert("Error", validation.reason || "Invalid job configuration");
       if (validation.selectView !== undefined) {
         setTabIndex(validation.selectView);
       }
@@ -398,7 +398,7 @@ const EditJobView: React.FC = () => {
       return;
     }
 
-    let jobPUTData = {
+    let jobPUTData: JobUpdatePayload = {
       name: job.name,
       confirm_draft: true,
       strategy_json: strategyJson,
@@ -406,7 +406,7 @@ const EditJobView: React.FC = () => {
       env_variables: updatedEnvVariables.value,
       max_retained_pipeline_runs: isAutoCleanUpEnabled
         ? numberOfRetainedRuns
-        : undefined,
+        : -1,
     };
 
     if (scheduleOption === "scheduled") {
@@ -421,10 +421,8 @@ const EditJobView: React.FC = () => {
         );
       }
 
-      // @ts-ignore
       jobPUTData.next_scheduled_time = formValueScheduledStart;
     } else if (scheduleOption === "cron") {
-      // @ts-ignore
       jobPUTData.cron_schedule = cronString;
     }
     // Else: both entries are undefined, the run is considered to be
@@ -481,7 +479,7 @@ const EditJobView: React.FC = () => {
             env_variables: updatedEnvVariables.value,
             max_retained_pipeline_runs: isAutoCleanUpEnabled
               ? numberOfRetainedRuns
-              : undefined,
+              : -1,
           }),
         }).then(() => {
           navigateTo(
@@ -492,7 +490,7 @@ const EditJobView: React.FC = () => {
         })
       );
     } else {
-      setAlert("Error", validation.reason);
+      setAlert("Error", validation.reason || "Invalid job configuration");
       if (validation.selectView !== undefined) {
         setTabIndex(validation.selectView);
       }
@@ -543,7 +541,9 @@ const EditJobView: React.FC = () => {
   }, [selectedRuns, pipelineRuns.length]);
 
   return (
-    <Layout fullHeight>
+    <Layout
+      toolbarElements={<BackButton onClick={cancel}>Back to jobs</BackButton>}
+    >
       <Stack direction="column" sx={{ height: "100%" }}>
         <Typography variant="h5">Edit job</Typography>
         {job && pipelineJson ? (
@@ -562,6 +562,7 @@ const EditJobView: React.FC = () => {
               >
                 <TextField
                   required
+                  autoFocus
                   label="Job name"
                   value={job.name}
                   sx={{ width: "50%" }}
@@ -624,13 +625,13 @@ const EditJobView: React.FC = () => {
                     <FormControlLabel
                       value="scheduled"
                       control={<Radio />}
-                      label="Scheduled"
+                      label="Later"
                       data-test-id="job-edit-schedule-date"
                     />
                     <FormControlLabel
                       value="cron"
                       control={<Radio />}
-                      label="Cron job"
+                      label="Recurring"
                       data-test-id="job-edit-schedule-cronjob"
                     />
                   </RadioGroup>

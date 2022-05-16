@@ -4,6 +4,7 @@ import { DesignSystemProvider } from "@orchest/design-system";
 import { domMax, LazyMotion } from "framer-motion";
 import React from "react";
 import { AppContextProvider } from "./AppContext";
+import { Intercom } from "./Intercom";
 import { ProjectsContextProvider } from "./ProjectsContext";
 import { SessionsContextProvider } from "./SessionsContext";
 
@@ -29,9 +30,11 @@ export const DesignProvider: React.FC = ({ children }) => {
 export const OrchestProvider: React.FC = ({ children }) => {
   return (
     <AppContextProvider>
-      <SessionsContextProvider>
-        <ProjectsContextProvider>{children}</ProjectsContextProvider>
-      </SessionsContextProvider>
+      <Intercom>
+        <SessionsContextProvider>
+          <ProjectsContextProvider>{children}</ProjectsContextProvider>
+        </SessionsContextProvider>
+      </Intercom>
     </AppContextProvider>
   );
 };

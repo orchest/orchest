@@ -1,10 +1,16 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson } from "@/types";
+import { PipelineJson, PipelineStepState, Service, Step } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
-import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
+import {
+  extensionFromFilename,
+  fetcher,
+  hasValue,
+  HEADER,
+} from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
+import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 
@@ -19,11 +25,15 @@ export function isValidEnvironmentVariableName(name: string) {
 }
 
 export function validatePipeline(pipelineJson: PipelineJson) {
-  let errors = [];
+  let errors: string[] = [];
 
   let valid = pipelineValidator(pipelineJson);
   if (!valid) {
-    errors.concat(pipelineValidator.errors);
+    errors.concat(
+      (pipelineValidator.errors || []).map(
+        (error) => error.message || "Unknown error"
+      )
+    );
   }
 
   // Check for non schema validation
@@ -58,6 +68,13 @@ export function validatePipeline(pipelineJson: PipelineJson) {
             "."
         );
       }
+      if (pipelineJson.services[serviceName].ports.length == 0) {
+        errors.push(
+          "Services require at least one port to be defined. Please check service: " +
+            serviceName +
+            "."
+        );
+      }
     }
   }
 
@@ -75,7 +92,9 @@ export function validatePipeline(pipelineJson: PipelineJson) {
 
         if (otherStep.file_path === step.file_path) {
           errors.push(
-            `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across pipeline steps.`
+            `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}).` +
+              `Assigning the same Notebook file to multiple steps is not supported.` +
+              `Please convert them to scripts in order to reuse the code, e.g. .sh, .py,.R, or .jl.`
           );
 
           // found an error, stop checking
@@ -85,79 +104,85 @@ export function validatePipeline(pipelineJson: PipelineJson) {
     }
   }
 
-  return { valid: errors.length == 0, errors };
+  return { valid: errors.length === 0, errors };
 }
 
 export function filterServices(
-  services: Record<string, any>,
+  services: Record<string, Partial<Service>>,
   scope: "noninteractive" | "interactive"
 ) {
   let servicesCopy = cloneDeep(services);
   for (let serviceName in services) {
-    if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
+    if (
+      hasValue(servicesCopy[serviceName]?.scope) &&
+      !servicesCopy[serviceName]?.scope?.includes(scope)
+    ) {
       delete servicesCopy[serviceName];
     }
   }
   return servicesCopy;
 }
 
-export function addOutgoingConnections(
-  steps: Record<
+/**
+ * Augment incoming_connections with outgoing_connections to be able
+ * to traverse from root nodes. Reset outgoing_connections state.
+ * Note: this function mutates the original steps object
+ * @param steps
+ * @returns stepsWithOutgoingConnections
+ */
+export function addOutgoingConnections<
+  T extends Record<
     string,
-    { incoming_connections: string[]; outgoing_connections?: string[] }
+    Pick<PipelineStepState, "incoming_connections" | "outgoing_connections">
   >
-) {
-  /* Augment incoming_connections with outgoing_connections to be able
-  to traverse from root nodes. Reset outgoing_connections state.
-  Notes: modifies 'steps' object that's passed in
-  */
-
+>(steps: T) {
   Object.keys(steps).forEach((stepUuid) => {
     // Every step NEEDs to have an `.outgoing_connections` defined.
     steps[stepUuid].outgoing_connections =
       steps[stepUuid].outgoing_connections || [];
 
     steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
-      if (!steps[incomingConnectionUuid].outgoing_connections) {
-        steps[incomingConnectionUuid].outgoing_connections = [];
-      }
-      steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
+      const outgoingConnections = new Set(
+        steps[incomingConnectionUuid].outgoing_connections || []
+      );
+      outgoingConnections.add(stepUuid);
+      steps[incomingConnectionUuid].outgoing_connections = [
+        ...outgoingConnections,
+      ];
     });
   });
+  return steps;
 }
 
-export function clearOutgoingConnections(steps: {
-  [stepUuid: string]: {
-    outgoing_connections?: string[];
-  };
-}) {
-  // Notes: modifies 'steps' object that's passed in
-  for (let stepUuid in steps) {
-    if (steps[stepUuid] && steps[stepUuid].outgoing_connections !== undefined) {
-      delete steps[stepUuid].outgoing_connections;
-    }
-  }
+export function clearOutgoingConnections<
+  T,
+  K extends Omit<T, "outgoing_connections">
+>(steps: T): K {
+  return Object.entries(steps).reduce((newObj, [stepUuid, step]) => {
+    const { outgoing_connections, ...cleanStep } = step; // eslint-disable-line @typescript-eslint/no-unused-vars
+
+    return { ...newObj, [stepUuid]: cleanStep };
+  }, {} as K);
 }
 
 export function getServiceURLs(
-  service: {
-    ports: number[];
-    preserve_base_path: string;
-    name: string;
-  },
+  service: Partial<Service>,
   projectUuid: string,
   pipelineUuid: string,
-  runUuid: string
+  runUuid: string | undefined
 ): string[] {
   if (service.ports === undefined) {
     return [];
   }
 
-  let serviceUuid = runUuid || pipelineUuid;
-
   let pbpPrefix = "";
   if (service.preserve_base_path) {
     pbpPrefix = "pbp-";
+  }
+
+  let sessionUuid = runUuid;
+  if (!sessionUuid) {
+    sessionUuid = projectUuid.slice(0, 18) + pipelineUuid.slice(0, 18);
   }
 
   return service.ports.map(
@@ -168,9 +193,7 @@ export function getServiceURLs(
       "service-" +
       service.name +
       "-" +
-      projectUuid.split("-")[0] +
-      "-" +
-      serviceUuid.split("-")[0] +
+      sessionUuid +
       "_" +
       port +
       "/"
@@ -178,32 +201,28 @@ export function getServiceURLs(
 }
 
 export function checkGate(project_uuid: string) {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     // we validate whether all environments have been built on the server
-    makeRequest("POST", `/catch/api-proxy/api/validations/environments`, {
-      type: "json",
-      content: { project_uuid },
-    })
-      .then((response: string) => {
-        try {
-          let json = JSON.parse(response);
-          if (json.validation === "pass") {
-            resolve(undefined);
-          } else {
-            reject({ reason: "gate-failed", data: json });
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      })
-      .catch((error) => {
-        reject({ reason: "request-failed", error: error });
-      });
+    fetcher<{ actions: string[]; validation: "pass" | "fail" }>(
+      `/catch/api-proxy/api/validations/environments`,
+      {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify({ project_uuid }),
+      }
+    ).then((response) => {
+      if (response.validation === "pass") {
+        resolve();
+      } else {
+        reject({ reason: "gate-failed", data: response });
+      }
+    });
   });
 }
 
 export class OverflowListener {
-  triggerOverflow: any;
+  private observer: ResizeObserver | undefined;
+  private triggerOverflow: HTMLElement | undefined;
 
   constructor() {} // eslint-disable-line @typescript-eslint/no-empty-function
 
@@ -214,19 +233,25 @@ export class OverflowListener {
 
       let triggerOverflow = $(".trigger-overflow").first()[0];
       if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
-        new ResizeObserver(() => {
-          if (triggerOverflow) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            if ($(triggerOverflow).overflowing()) {
-              $(".observe-overflow").addClass("overflowing");
-            } else {
-              $(".observe-overflow").removeClass("overflowing");
-            }
-          }
-        }).observe(triggerOverflow);
         this.triggerOverflow = triggerOverflow;
+        this.observer = new ResizeObserver(() => {
+          if (!this.triggerOverflow) return;
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          if ($(this.triggerOverflow).overflowing()) {
+            $(".observe-overflow").addClass("overflowing");
+          } else {
+            $(".observe-overflow").removeClass("overflowing");
+          }
+        });
+        this.observer.observe(this.triggerOverflow);
       }
+    }
+  }
+
+  detach() {
+    if (this.observer && this.triggerOverflow) {
+      this.observer.unobserve(this.triggerOverflow);
     }
   }
 }
@@ -235,11 +260,17 @@ export type CreateProjectError =
   | "project move failed"
   | "project name contains illegal character";
 
-export type BackgroundTask = {
-  uuid: string;
-  status: "SUCCESS" | "FAILURE" | "PENDING";
-  result: CreateProjectError | string | null;
-};
+export type BackgroundTask =
+  | {
+      uuid: string;
+      status: "SUCCESS" | "FAILURE";
+      result: CreateProjectError | string;
+    }
+  | {
+      uuid: string;
+      status: "PENDING";
+      result: null;
+    };
 
 export class BackgroundTaskPoller {
   private END_STATUSES: string[];
@@ -286,22 +317,21 @@ export class BackgroundTaskPoller {
     this.activeTasks = {};
   }
 
-  requestStatus(taskUuid: string) {
-    makeRequest("GET", `/async/background-tasks/${taskUuid}`).then(
-      (response: string) => {
-        try {
-          let data: BackgroundTask = JSON.parse(response);
-          if (this.END_STATUSES.includes(data.status)) {
-            this.taskCallbacks[taskUuid](data);
-            this.removeTask(taskUuid);
-          } else {
-            this.executeDelayedRequest(taskUuid);
-          }
-        } catch (error) {
-          console.error(error);
-        }
+  async requestStatus(taskUuid: string) {
+    try {
+      const data = await fetcher<BackgroundTask>(
+        `/async/background-tasks/${taskUuid}`
+      );
+
+      if (this.END_STATUSES.includes(data.status)) {
+        this.taskCallbacks[taskUuid](data);
+        this.removeTask(taskUuid);
+      } else {
+        this.executeDelayedRequest(taskUuid);
       }
-    );
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
 
@@ -318,10 +348,15 @@ export function getScrollLineHeight() {
 export function formatServerDateTime(
   serverDateTimeString: string | null | undefined
 ) {
-  if (!serverDateTimeString) return "";
+  const serverTimeAsDate = hasValue(serverDateTimeString)
+    ? serverTimeToDate(serverDateTimeString)
+    : undefined;
+
   // Keep this pattern and the one used in fuzzy DB search in sync, see
   // fuzzy_filter_non_interactive_pipeline_runs.
-  return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
+  return hasValue(serverTimeAsDate)
+    ? format(serverTimeAsDate, "LLL d',' yyyy p")
+    : "";
 }
 
 export function serverTimeToDate(serverDateTimeString: string | undefined) {
@@ -336,30 +371,44 @@ export function cleanServerDateTime(dateTimeString) {
   return dateTimeString.replace(regex, subst);
 }
 
-export function getPipelineJSONEndpoint(
-  pipeline_uuid: string,
-  project_uuid: string,
-  job_uuid?: string | null,
-  pipeline_run_uuid?: string | null
-) {
-  if (!pipeline_uuid || !project_uuid) return "";
-  let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
+export function getPipelineJSONEndpoint({
+  pipelineUuid,
+  jobUuid,
+  projectUuid,
+  runUuid,
+}: {
+  pipelineUuid: string | undefined;
+  projectUuid: string | undefined;
+  jobUuid?: string | undefined;
+  runUuid?: string | undefined;
+}) {
+  if (!pipelineUuid || !projectUuid) return "";
+  let pipelineURL = `/async/pipelines/json/${projectUuid}/${pipelineUuid}`;
 
-  if (job_uuid) {
-    pipelineURL += `?job_uuid=${job_uuid}`;
-  }
+  const queryArgs = { job_uuid: jobUuid, pipeline_run_uuid: runUuid };
+  // NOTE: pipeline_run_uuid only makes sense if job_uuid is given
+  // i.e. a job run requires both uuid's
+  const queryString = jobUuid
+    ? Object.entries(queryArgs)
+        .map(([key, value]) => {
+          if (!value) return null;
+          return `${key}=${value}`;
+        })
+        .filter((value) => hasValue(value))
+        .join("&")
+    : "";
 
-  if (pipeline_run_uuid) {
-    pipelineURL += `&pipeline_run_uuid=${pipeline_run_uuid}`;
-  }
-  return pipelineURL;
+  return queryString ? `${pipelineURL}?${queryString}` : pipelineURL;
 }
 
-export function getPipelineStepParents(stepUUID: string, pipelineJSON) {
-  let incomingConnections = [];
-  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
-    if ((step as any).uuid == stepUUID) {
-      incomingConnections = (step as any).incoming_connections;
+export function getPipelineStepParents(
+  stepUUID: string,
+  pipelineJSON: PipelineJson
+) {
+  let incomingConnections: string[] = [];
+  for (let step of Object.values(pipelineJSON.steps)) {
+    if (step.uuid === stepUUID) {
+      incomingConnections = step.incoming_connections;
       break;
     }
   }
@@ -369,11 +418,14 @@ export function getPipelineStepParents(stepUUID: string, pipelineJSON) {
   );
 }
 
-export function getPipelineStepChildren(stepUUID, pipelineJSON) {
-  let childSteps = [];
+export function getPipelineStepChildren(
+  stepUUID: string,
+  pipelineJSON: PipelineJson
+) {
+  let childSteps: Step[] = [];
 
-  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
-    if ((step as any).incoming_connections.indexOf(stepUUID) !== -1) {
+  for (let step of Object.values(pipelineJSON.steps)) {
+    if (step.incoming_connections.includes(stepUUID)) {
       childSteps.push(step);
     }
   }
@@ -431,7 +483,7 @@ export function tryUntilTrue(action, retries, delay, interval?) {
 
 // Will return undefined if the envVariables are ill defined.
 export function envVariablesArrayToDict(
-  envVariables: EnvVarPair[]
+  envVariables: EnvVarPair[] = []
 ):
   | { status: "resolved"; value: Record<string, unknown> }
   | { status: "rejected"; error: string } {
@@ -490,3 +542,13 @@ export function pascalCaseToCapitalized(viewName) {
   const subst = ` $1`;
   return viewName.replace(regex, subst).trim();
 }
+
+export function isNumber(value: unknown): value is number {
+  return !isNaN(Number(value));
+}
+
+export const withPlural = (
+  value: number,
+  unit: string,
+  toPlural = (singular: string) => `${singular}s`
+) => `${value} ${value > 1 ? toPlural(unit) : unit}`;

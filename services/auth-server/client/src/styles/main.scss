@@ -65,6 +65,7 @@ a.button {
     }
 
     .box {
+      max-width: 380px;
       padding: $generalPadding * 3 $generalPadding * 2;
       box-shadow: 0 15px 30px 8px rgba(0, 0, 0, 0.08);
       display: inline-block;

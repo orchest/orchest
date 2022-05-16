@@ -1,12 +1,11 @@
 import copy
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
-from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal, reqparse
 from sqlalchemy import desc, func
@@ -20,14 +19,12 @@ from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
 from app.connections import db
+from app.core import environments, events
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
     fuzzy_filter_non_interactive_pipeline_runs,
-    get_env_uuids_missing_image,
     get_proj_pip_env_variables,
-    lock_environment_images_for_job,
     page_to_pagination_data,
-    process_stale_environment_images,
     register_schema,
     update_status_db,
 )
@@ -63,10 +60,10 @@ class JobList(Resource):
 
         The environment images used by a job across its entire lifetime,
         and thus its runs, will be the same. This is done by locking the
-        actual resource (docker image) that is backing the environment,
-        so that a new build of the environment will not affect the job.
-        To actually queue the job you need to issue a PUT request for
-        the DRAFT job you create here. The PUT needs to contain the
+        actual resource (image) that is backing the environment, so that
+        a new build of the environment will not affect the job.  To
+        actually queue the job you need to issue a PUT request for the
+        DRAFT job you create here. The PUT needs to contain the
         `confirm_draft` key.
 
         """
@@ -298,7 +295,6 @@ class PipelineRunsList(Resource):
         job_runs_query = (
             models.NonInteractivePipelineRun.query.options(
                 noload(models.NonInteractivePipelineRun.pipeline_steps),
-                noload(models.NonInteractivePipelineRun.image_mappings),
                 undefer(models.NonInteractivePipelineRun.env_variables),
             )
             .filter_by(
@@ -724,6 +720,12 @@ class RunJob(TwoPhaseFunction):
         # thus we need to update that.
         if job.status == "PENDING":
             job.status = "STARTED"
+            events.register_job_started(job.project_uuid, job.uuid)
+
+        if job.schedule is not None:
+            events.register_cron_job_run_started(
+                job.project_uuid, job.uuid, job.total_scheduled_executions
+            )
 
         # To be later used by the collateral effect function.
         tasks_to_launch = []
@@ -776,6 +778,10 @@ class RunJob(TwoPhaseFunction):
             # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
             db.session.flush()
 
+            events.register_job_pipeline_run_created(
+                job.project_uuid, job.uuid, task_id
+            )
+
             # TODO: this code is also in `namespace_runs`. Could
             #       potentially be put in a function for modularity.
             # Set an initial value for the status of the pipeline
@@ -801,12 +807,17 @@ class RunJob(TwoPhaseFunction):
         # Prepare data for _collateral.
         self.collateral_kwargs["job"] = job.as_dict()
 
-        mappings = {
-            mapping.orchest_environment_uuid: mapping.docker_img_id
-            for mapping in job.image_mappings
-        }
+        env_uuid_to_image = {}
+        for a in job.images_in_use:
+            env_uuid_to_image[a.environment_uuid] = (
+                _config.ENVIRONMENT_IMAGE_NAME.format(
+                    project_uuid=a.project_uuid, environment_uuid=a.environment_uuid
+                )
+                + f":{a.environment_image_tag}"
+            )
+
         run_config = job.pipeline_run_spec["run_config"]
-        run_config["env_uuid_docker_id_mappings"] = mappings
+        run_config["env_uuid_to_image"] = env_uuid_to_image
         run_config["user_env_variables"] = job.env_variables
         self.collateral_kwargs["run_config"] = run_config
 
@@ -854,6 +865,7 @@ class RunJob(TwoPhaseFunction):
         # Jobs that run only once are considered as entirely failed.
         if job["schedule"] is None:
             models.Job.query.filter_by(uuid=job["uuid"]).update({"status": "FAILURE"})
+            events.register_job_failed(job["project_uuid"], job["uuid"])
 
         tasks_ids = [task[0] for task in self.collateral_kwargs["tasks_to_launch"]]
 
@@ -861,6 +873,16 @@ class RunJob(TwoPhaseFunction):
         models.PipelineRunStep.query.filter(
             models.PipelineRunStep.run_uuid.in_(tasks_ids)
         ).update({"status": "FAILURE"}, synchronize_session=False)
+
+        for task_id in tasks_ids:
+            events.register_job_pipeline_run_failed(
+                job["project_uuid"], job["uuid"], task_id
+            )
+
+        if job.get("schedule") is not None:
+            events.register_cron_job_run_failed(
+                job["project_uuid"], job["uuid"], job["total_scheduled_executions"] - 1
+            )
 
         models.NonInteractivePipelineRun.query.filter(
             models.PipelineRun.uuid.in_(tasks_ids)
@@ -912,11 +934,14 @@ class AbortJob(TwoPhaseFunction):
             filter_by = {"uuid": run_uuid}
             status_update = {"status": "ABORTED"}
 
-            update_status_db(
+            if update_status_db(
                 status_update,
                 model=models.NonInteractivePipelineRun,
                 filter_by=filter_by,
-            )
+            ):
+                events.register_job_pipeline_run_cancelled(
+                    job.project_uuid, job.uuid, run_uuid
+                )
 
             filter_by = {"run_uuid": run_uuid}
             status_update = {"status": "ABORTED"}
@@ -924,6 +949,8 @@ class AbortJob(TwoPhaseFunction):
             update_status_db(
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
+
+        events.register_job_cancelled(job.project_uuid, job.uuid)
 
         return True
 
@@ -938,11 +965,6 @@ class AbortJob(TwoPhaseFunction):
             # It is responsibility of the task to terminate by reading
             # its aborted status.
             res.abort()
-
-        if project_uuid is not None:
-            process_stale_environment_images(
-                project_uuid, only_marked_for_removal=False
-            )
 
 
 class CreateJob(TwoPhaseFunction):
@@ -1011,21 +1033,23 @@ class CreateJob(TwoPhaseFunction):
         }
         db.session.add(models.Job(**job))
 
-        self.collateral_kwargs["project_uuid"] = job_spec["project_uuid"]
-        self.collateral_kwargs["job_uuid"] = job_spec["uuid"]
         spec = copy.deepcopy(job_spec["pipeline_run_spec"])
         spec["pipeline_definition"] = job_spec["pipeline_definition"]
         pipeline = construct_pipeline(**spec)
-        self.collateral_kwargs["environment_uuids"] = pipeline.get_environments()
-        return job
 
-    def _collateral(
-        self, project_uuid: str, job_uuid: str, environment_uuids: Set[str]
-    ):
         # This way all runs of a job will use the same environments. The
         # images to use will be retrieved through the JobImageMapping
         # model.
-        lock_environment_images_for_job(job_uuid, project_uuid, environment_uuids)
+        environments.lock_environment_images_for_job(
+            job_spec["uuid"], job_spec["project_uuid"], pipeline.get_environments()
+        )
+
+        self.collateral_kwargs["job_uuid"] = job_spec["uuid"]
+        events.register_job_created(job["project_uuid"], job["uuid"])
+        return job
+
+    def _collateral(self, job_uuid: str):
+        pass
 
     def _revert(self):
         models.Job.query.filter_by(
@@ -1167,22 +1191,14 @@ class UpdateJob(TwoPhaseFunction):
             # Make sure all environments still exist, that is, the
             # pipeline is not referring non-existing environments.
             pipeline_def = job.pipeline_definition
-            environment_uuids = set(
-                [step["environment"] for step in pipeline_def["steps"].values()]
+            pipeline_def_environment_uuids = [
+                step["environment"] for step in pipeline_def["steps"].values()
+            ]
+            # Implicitly make use of this to raise an exception if some
+            # environment is lacking an image.
+            environments.get_env_uuids_to_image_mappings(
+                job.project_uuid, set(pipeline_def_environment_uuids)
             )
-            env_uuids_missing_image = get_env_uuids_missing_image(
-                job.project_uuid, environment_uuids
-            )
-            if env_uuids_missing_image:
-                env_uuids_missing_image = ", ".join(env_uuids_missing_image)
-                msg = (
-                    "Pipeline references environments that do not exist in the"
-                    f" project. The following environments do not exist:"
-                    f" [{env_uuids_missing_image}].\n\n Please make sure all"
-                    " pipeline steps are assigned an environment that exists"
-                    " in the project."
-                )
-                raise errors.ImageNotFound(msg)
 
             if job.schedule is None:
                 job.status = "PENDING"
@@ -1205,6 +1221,7 @@ class UpdateJob(TwoPhaseFunction):
             else:
                 job.last_scheduled_time = job.next_scheduled_time
                 job.status = "STARTED"
+                events.register_job_started(job.project_uuid, job.uuid)
 
     def _collateral(self):
         pass
@@ -1223,6 +1240,8 @@ class DeleteJob(TwoPhaseFunction):
         # Abort the job, won't do anything if the job is not running.
         AbortJob(self.tpe).transaction(job_uuid)
 
+        events.register_job_deleted(job.project_uuid, job.uuid)
+
         # Deletes cascade to: job -> non interactive run
         # non interactive runs -> non interactive run image mapping
         # non interactive runs -> pipeline run step
@@ -1230,10 +1249,7 @@ class DeleteJob(TwoPhaseFunction):
         return True
 
     def _collateral(self, project_uuid: str):
-        if project_uuid is not None:
-            process_stale_environment_images(
-                project_uuid, only_marked_for_removal=False
-            )
+        pass
 
 
 class DeleteJobPipelineRun(TwoPhaseFunction):
@@ -1267,6 +1283,8 @@ class DeleteJobPipelineRun(TwoPhaseFunction):
         # This will take care of updating the job status thus freeing
         # locked env images, and processing stale ones.
         AbortJobPipelineRun(self.tpe).transaction(job_uuid, run_uuid)
+
+        events.register_job_pipeline_run_deleted(job.project_uuid, job_uuid, run_uuid)
 
         # Deletes cascade to: non interactive runs -> non interactive
         # run image mapping, non interactive runs -> pipeline run step.
@@ -1302,85 +1320,164 @@ class DeleteJobPipelineRun(TwoPhaseFunction):
 class UpdateJobPipelineRun(TwoPhaseFunction):
     """Update a pipeline run of a job."""
 
-    def _transaction(self, job_uuid: str, run_uuid: str, status_update: Dict[str, Any]):
+    def _transaction(
+        self, job_uuid: str, pipeline_run_uuid: str, status_update: Dict[str, Any]
+    ):
         """Set the status of a pipeline run."""
-        # Setup for collateral/revert.
-        self.collateral_kwargs["project_uuid"] = None
-        self.collateral_kwargs["completed"] = False
 
         filter_by = {
             "job_uuid": job_uuid,
-            "uuid": run_uuid,
+            "uuid": pipeline_run_uuid,
         }
 
-        update_status_db(
+        job = (
+            db.session.query(
+                models.Job.project_uuid,
+                models.Job.schedule,
+            )
+            .filter_by(uuid=job_uuid)
+            .one()
+        )
+
+        if update_status_db(
             status_update,
             model=models.NonInteractivePipelineRun,
             filter_by=filter_by,
-        )
+        ):
+            {
+                "SUCCESS": events.register_job_pipeline_run_succeeded,
+                "FAILURE": events.register_job_pipeline_run_failed,
+                "ABORTED": events.register_job_pipeline_run_cancelled,
+                "STARTED": events.register_job_pipeline_run_started,
+            }[status_update["status"]](
+                job.project_uuid,
+                job_uuid,
+                pipeline_run_uuid,
+            )
 
         # See if the job is done running (all its runs are done).
         if status_update["status"] in ["SUCCESS", "FAILURE", "ABORTED"]:
 
-            # The job has 1 run for every parameters set.
-            job = (
-                db.session.query(
-                    models.Job.project_uuid,
-                    models.Job.schedule,
-                    func.jsonb_array_length(models.Job.parameters),
-                )
-                .filter_by(uuid=job_uuid)
-                .one()
-            )
-            self.collateral_kwargs["project_uuid"] = job.project_uuid
-            DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
-
             # Only non recurring jobs terminate to SUCCESS.
             if job.schedule is None:
-                # Avoid a race condition where the last runs would
-                # concurrently update their status, leading to
-                # runs_to_complete never being == 0.
-                models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
-
-                # Check how many runs still need to get to an end state.
-                # Checking this way is necessary because a run could
-                # have been deleted by the DB through the
-                # DeleteJobPipelineRun 2PF, so we can't rely on how many
-                # runs have finished. Note that this is possible because
-                # one off jobs create all their runs in a batch.
-                runs_to_complete = (
-                    models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
-                    .filter(
-                        models.NonInteractivePipelineRun.status.in_(
-                            ["PENDING", "STARTED"]
-                        )
-                    )
-                    .count()
-                )
-                current_app.logger.info(
-                    (
-                        f"Non recurring job {job_uuid} has completed "
-                        f"{job[2] - runs_to_complete}/{job[2]} runs."
-                    )
+                self._update_one_off_job(job_uuid)
+            else:
+                self._update_cron_job_run(
+                    job_uuid, pipeline_run_uuid, status_update["status"]
                 )
 
-                if runs_to_complete == 0:
-                    models.Job.query.filter_by(uuid=job_uuid).filter(
-                        # This is needed because aborted runs that are
-                        # running will report reaching an end state,
-                        # which will trigger a call to this 2PF.
-                        models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
-                    ).update({"status": "SUCCESS"})
-                    # The job is completed.
-                    self.collateral_kwargs["completed"] = True
+            DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
 
         return {"message": "Status was updated successfully"}, 200
 
-    def _collateral(self, project_uuid: str, completed: bool):
-        if completed and project_uuid is not None:
-            process_stale_environment_images(
-                project_uuid, only_marked_for_removal=False
+    def _update_cron_job_run(
+        self, job_uuid: str, pipeline_run_uuid: str, run_status: str
+    ) -> None:
+        # Avoid a race condition where the last runs would concurrently
+        # update their status.
+        job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+
+        run_index = (
+            db.session.query(models.NonInteractivePipelineRun.job_run_index)
+            .filter(
+                models.NonInteractivePipelineRun.job_uuid == job_uuid,
+                models.NonInteractivePipelineRun.uuid == pipeline_run_uuid,
             )
+            .one()
+        ).job_run_index
+
+        if run_status == "FAILURE":
+            event = models.CronJobRunEvent.query.filter(
+                models.CronJobRunEvent.type == "project:cron-job:run:failed",
+                models.CronJobRunEvent.project_uuid == job.project_uuid,
+                models.CronJobRunEvent.job_uuid == job.uuid,
+                models.CronJobRunEvent.run_index == run_index,
+            ).first()
+            if event is None:
+                events.register_cron_job_run_failed(
+                    job.project_uuid, job.uuid, run_index
+                )
+        elif run_status in ["SUCCESS", "ABORTED"]:
+            runs_to_complete = models.NonInteractivePipelineRun.query.filter(
+                models.NonInteractivePipelineRun.job_uuid == job.uuid,
+                models.NonInteractivePipelineRun.job_run_index == run_index,
+                models.NonInteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
+            ).count()
+            failed_runs = models.NonInteractivePipelineRun.query.filter(
+                models.NonInteractivePipelineRun.job_uuid == job.uuid,
+                models.NonInteractivePipelineRun.job_run_index == run_index,
+                models.NonInteractivePipelineRun.status == "FAILURE",
+            ).count()
+            if runs_to_complete == 0 and failed_runs == 0:
+                events.register_cron_job_run_succeeded(
+                    job.project_uuid, job.uuid, run_index
+                )
+
+    def _update_one_off_job(self, job_uuid: str) -> None:
+        # Avoid a race condition where the last runs would
+        # concurrently update their status, leading to
+        # runs_to_complete never being == 0.
+        models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+
+        job = (
+            db.session.query(
+                models.Job.project_uuid,
+                models.Job.schedule,
+                # The job has 1 run for every parameters set, this value
+                # tells us how many pipeline runs are in every job run.
+                func.jsonb_array_length(models.Job.parameters),
+            )
+            .filter_by(uuid=job_uuid)
+            .one()
+        )
+
+        # Check how many runs still need to get to an end state.
+        # Checking this way is necessary because a run could
+        # have been deleted by the DB through the
+        # DeleteJobPipelineRun 2PF, so we can't rely on how many
+        # runs have finished. Note that this is possible because
+        # one off jobs create all their runs in a batch.
+        runs_to_complete = (
+            models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+            .filter(models.NonInteractivePipelineRun.status.in_(["PENDING", "STARTED"]))
+            .count()
+        )
+        current_app.logger.info(
+            (
+                f"Non recurring job {job_uuid} has completed "
+                f"{job[2] - runs_to_complete}/{job[2]} runs."
+            )
+        )
+
+        if runs_to_complete == 0:
+            status = "SUCCESS"
+
+            if (
+                models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+                .filter(models.NonInteractivePipelineRun.status == "FAILURE")
+                .count()
+            ) > 0:
+                status = "FAILURE"
+
+            if (
+                models.Job.query.filter_by(uuid=job_uuid)
+                .filter(
+                    # This is needed because aborted runs that
+                    # are running will report reaching an end
+                    # state, which will trigger a call to this
+                    # 2PF.
+                    models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
+                )
+                .update({"status": status})
+                > 0
+            ):
+                if status == "SUCCESS":
+                    events.register_job_succeeded(job.project_uuid, job_uuid)
+                else:
+                    events.register_job_failed(job.project_uuid, job_uuid)
+
+    def _collateral(self):
+        pass
 
 
 class AbortJobPipelineRun(TwoPhaseFunction):
@@ -1416,6 +1513,7 @@ class PauseCronJob(TwoPhaseFunction):
             return False
         job.status = "PAUSED"
         job.next_scheduled_time = None
+        events.register_cron_job_paused(job.project_uuid, job.uuid)
         return True
 
     def _collateral(self):
@@ -1438,6 +1536,7 @@ class ResumeCronJob(TwoPhaseFunction):
         job.next_scheduled_time = croniter(
             job.schedule, datetime.now(timezone.utc)
         ).get_next(datetime)
+        events.register_cron_job_unpaused(job.project_uuid, job.uuid)
         return str(job.next_scheduled_time)
 
     def _collateral(self):

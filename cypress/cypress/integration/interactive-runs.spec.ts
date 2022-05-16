@@ -47,9 +47,12 @@ describe("interactive runs", () => {
       cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
       // Select the step. Assumes unique step names.
+      cy.intercept("POST", /async\/project-files\/exists/).as("fileExists");
       cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
         .scrollIntoView()
         .click({ force: true });
+      cy.wait("@fileExists");
+      cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).should("exist");
       cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
         "not.exist"
       );
@@ -137,9 +140,11 @@ describe("interactive runs", () => {
         cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
         // Select the step. Assumes unique step names.
+        cy.intercept("POST", /async\/project-files\/exists/).as("fileExists");
         cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .click({ force: true });
+        cy.wait("@fileExists");
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
           "not.exist"
         );
@@ -194,9 +199,11 @@ describe("interactive runs", () => {
         cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
         // Select the step. Assumes unique step names.
+        cy.intercept("POST", /async\/project-files\/exists/).as("fileExists");
         cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .click({ force: true });
+        cy.wait("@fileExists");
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
           "not.exist"
         );

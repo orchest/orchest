@@ -1,3 +1,5 @@
+import { useAsync } from "@/hooks/useAsync";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   BuildRequest,
   EnvironmentValidationData,
@@ -7,7 +9,6 @@ import {
 } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { IntercomProvider } from "react-use-intercom";
 
 /** Utility functions
  =====================================================
@@ -81,13 +82,10 @@ type PromptMessageConverter<T extends PromptMessage> = T extends Alert
   : never;
 
 type AppContextState = {
-  config?: OrchestConfig;
-  user_config?: OrchestUserConfig;
-  isLoaded: boolean;
   promptMessages: PromptMessage[];
   buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
-  isCommandPaletteOpen: boolean;
+  isShowingOnboarding: boolean;
   // we already store hasCompletedOnboarding in localstorage, which is enough for most cases,
   // but when first-time user already wants to import a project, we want to
   // 1. show onboarding dialog (at the root level)
@@ -100,6 +98,10 @@ type AppContextState = {
 
 type Action =
   | {
+      type: "SET_IS_SHOWING_ONBOARDING";
+      payload: boolean;
+    }
+  | {
       type: "SET_PROMPT_MESSAGES";
       payload: PromptMessage[];
     }
@@ -108,15 +110,7 @@ type Action =
       payload: BuildRequest | undefined;
     }
   | {
-      type: "SET_SERVER_CONFIG";
-      payload: OrchestServerConfig;
-    }
-  | {
       type: "SET_HAS_UNSAVED_CHANGES";
-      payload: boolean;
-    }
-  | {
-      type: "SET_IS_COMMAND_PALETTE_OPEN";
       payload: boolean;
     }
   | {
@@ -174,6 +168,10 @@ type AppContext = {
   requestBuild: RequestBuildDispatcher;
   deletePromptMessage: () => void;
   setAsSaved: (value?: boolean) => void;
+  isDrawerOpen: boolean;
+  setIsDrawerOpen: (value: boolean | ((value: boolean) => boolean)) => void;
+  config: OrchestConfig | undefined;
+  user_config: OrchestUserConfig | undefined;
 };
 
 const Context = React.createContext<AppContext | null>(null);
@@ -183,6 +181,9 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
   switch (action.type) {
+    case "SET_IS_SHOWING_ONBOARDING": {
+      return { ...state, isShowingOnboarding: action.payload };
+    }
     case "SET_PROMPT_MESSAGES": {
       return { ...state, promptMessages: action.payload };
     }
@@ -191,27 +192,10 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
       return { ...state, buildRequest: action.payload };
     }
 
-    case "SET_SERVER_CONFIG": {
-      const { config, user_config } = action.payload;
-      return {
-        ...state,
-        isLoaded: true,
-        user_config,
-        config,
-      };
-    }
-
     case "SET_HAS_UNSAVED_CHANGES": {
       return {
         ...state,
         hasUnsavedChanges: action.payload,
-      };
-    }
-
-    case "SET_IS_COMMAND_PALETTE_OPEN": {
-      return {
-        ...state,
-        isCommandPaletteOpen: action.payload,
       };
     }
 
@@ -231,10 +215,9 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
 
 const initialState: AppContextState = {
   promptMessages: [],
-  isLoaded: false,
   hasUnsavedChanges: false,
-  isCommandPaletteOpen: false,
   hasCompletedOnboarding: false,
+  isShowingOnboarding: false,
 };
 
 type ConfirmHandler = (
@@ -245,8 +228,14 @@ type CancelHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
 ) => Promise<boolean | void> | void | boolean;
 
-const defaultOnConfirm: ConfirmHandler = () => true;
-const defaultOnCancel: CancelHandler = () => false;
+const defaultOnConfirm: ConfirmHandler = (resolve) => {
+  resolve(true);
+  return true;
+};
+const defaultOnCancel: CancelHandler = (resolve) => {
+  resolve(false);
+  return false;
+};
 
 const withPromptMessageDispatcher = function <T extends PromptMessage>(
   dispatch: (value: AppContextAction) => void,
@@ -270,24 +259,28 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   ) => {
     // NOTE: consumer could either provide a callback function for onConfirm (for most use cases), or provide an object for more detailed config
     return new Promise<boolean>((resolve) => {
-      const confirmHandler = !callbackOrParams
+      const hasCustomOnConfirm =
+        callbackOrParams instanceof Function || callbackOrParams?.onConfirm;
+
+      const confirmHandler = !hasCustomOnConfirm
         ? () => defaultOnConfirm(resolve)
         : callbackOrParams instanceof Function
         ? () => callbackOrParams(resolve)
         : () => callbackOrParams.onConfirm(resolve);
 
-      const cancelHandler =
-        !callbackOrParams || callbackOrParams instanceof Function
-          ? () => defaultOnCancel(resolve)
-          : () => callbackOrParams.onCancel(resolve);
+      const hasCustomOnCancel =
+        !(callbackOrParams instanceof Function) && callbackOrParams?.onCancel;
+      const cancelHandler = !hasCustomOnCancel
+        ? () => defaultOnCancel(resolve)
+        : () => callbackOrParams.onCancel && callbackOrParams.onCancel(resolve);
 
       const confirmLabel =
-        callbackOrParams instanceof Function
+        !callbackOrParams || callbackOrParams instanceof Function
           ? "Confirm"
           : callbackOrParams?.confirmLabel || "Confirm";
 
       const cancelLabel =
-        callbackOrParams instanceof Function
+        !callbackOrParams || callbackOrParams instanceof Function
           ? "Cancel"
           : callbackOrParams?.cancelLabel || "Cancel";
 
@@ -346,41 +339,40 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
   };
 };
 
-export const AppContextProvider: React.FC = ({ children }) => {
+const useFetchSystemConfig = (shouldStart: boolean) => {
+  const { data, run } = useAsync<OrchestServerConfig>();
+  React.useEffect(() => {
+    if (shouldStart) run(fetcher("/async/server-config"));
+  }, [run, shouldStart]);
+  return (data || {}) as {
+    config?: OrchestConfig;
+    user_config?: OrchestUserConfig;
+  };
+};
+
+// `shouldStart` is only useful when running tests.
+// Use it to control the side effects within AppContext when mocking.
+export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
+  children,
+  shouldStart = true,
+}) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
+  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+
+  const { config, user_config } = useFetchSystemConfig(shouldStart);
 
   /**
    * =========================== side effects
    */
-  /**
-   * Complete loading once config has been provided and local storage values
-   * have been achieved
-   */
-  React.useEffect(() => {
-    const fetchServerConfig = async () => {
-      try {
-        const serverConfig = await fetcher<OrchestServerConfig>(
-          "/async/server-config"
-        );
-        dispatch({ type: "SET_SERVER_CONFIG", payload: serverConfig });
-      } catch (error) {
-        console.error(
-          `Failed to fetch server config: ${JSON.stringify(error)}`
-        );
-      }
-    };
-    fetchServerConfig();
-  }, []);
 
-  /**
-   * Handle Unsaved Changes prompt
-   */
+  // Handle Unsaved Changes prompt
   React.useEffect(() => {
     window.onbeforeunload = state.hasUnsavedChanges ? () => true : null;
   }, [state.hasUnsavedChanges]);
 
-  /* Action dispatchers
-  =========================== */
+  /**
+   * =========================== Action dispatchers
+   */
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const setAlert = React.useCallback(
@@ -431,20 +423,22 @@ export const AppContextProvider: React.FC = ({ children }) => {
   );
 
   return (
-    <IntercomProvider appId={state.config?.INTERCOM_APP_ID}>
-      <Context.Provider
-        value={{
-          state,
-          dispatch,
-          setAlert,
-          setConfirm,
-          requestBuild,
-          deletePromptMessage,
-          setAsSaved,
-        }}
-      >
-        {state.isLoaded ? children : null}
-      </Context.Provider>
-    </IntercomProvider>
+    <Context.Provider
+      value={{
+        config,
+        user_config,
+        state,
+        dispatch,
+        setAlert,
+        setConfirm,
+        requestBuild,
+        deletePromptMessage,
+        setAsSaved,
+        isDrawerOpen,
+        setIsDrawerOpen,
+      }}
+    >
+      {children}
+    </Context.Provider>
   );
 };

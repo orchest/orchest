@@ -11,20 +11,22 @@ import base64
 import contextlib
 import logging
 import os
+import signal
 import subprocess
+import sys
 from logging.config import dictConfig
 from pprint import pformat
 from subprocess import Popen
 
 import posthog
+import requests
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, safe_join, send_from_directory
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
 from _orchest.internals import config as _config
-from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from app import config
 from app.connections import db, ma
@@ -61,6 +63,7 @@ def create_app(to_migrate_db=False):
     Returns:
         Flask.app
     """
+    signal.signal(signal.SIGTERM, lambda *args, **kwargs: sys.exit(0))
     app = Flask(__name__)
     app.config.from_object(config.CONFIG_CLASS)
 
@@ -72,16 +75,11 @@ def create_app(to_migrate_db=False):
 
     socketio = SocketIO(app, cors_allowed_origins="*")
 
-    # Read directory mount based config into Flask config.
-    try:
-        global_orchest_config = _utils.GlobalOrchestConfig()
-    except _errors.CorruptedFileError:
-        app.logger.error("Failed to load global orchest config file.", exc_info=True)
-    else:
-        app.config.update(global_orchest_config.as_dict())
-        # Initialize the config file. Needed in case the config file has
-        # been deleted or if Orchest has just been installed.
-        global_orchest_config.save(app)
+    if not to_migrate_db:
+        orchest_config = requests.get(
+            f"http://{config.CONFIG_CLASS.ORCHEST_API_ADDRESS}/api/ctl/orchest-settings"
+        ).json()
+        app.config.update(orchest_config)
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 
@@ -167,7 +165,7 @@ def create_app(to_migrate_db=False):
     @app.route("/", defaults={"path": ""}, methods=["GET"])
     @app.route("/<path:path>", methods=["GET"])
     def index(path):
-        file_path = os.path.join(app.config["STATIC_DIR"], path)
+        file_path = safe_join(app.config["STATIC_DIR"], path)
         if os.path.isfile(file_path):
             return send_from_directory(app.config["STATIC_DIR"], path)
         else:

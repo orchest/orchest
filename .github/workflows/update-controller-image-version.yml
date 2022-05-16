@@ -1,0 +1,47 @@
+name: Update controller image version
+
+on:
+  pull_request:
+    branches:
+      - master
+    types: [opened, reopened]
+
+jobs:
+  update_controller_image_version:
+    if: ${{ startsWith(github.head_ref, 'release/') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Install yq dependency
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/download/v4.25.1/yq_linux_amd64 \
+            -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+
+      # Can't do string manipulation in GHA expressions yet.
+      - name: Get release version
+        id: release_version
+        run: |
+          export release_version=$(echo ${{ github.head_ref }} | sed 's/release\///g')
+          echo ::set-output name=release_version::$release_version
+
+      - name: Update controller image version
+        run: |
+          export IMAGE_NAME="orchest/orchest-controller:${RELEASE_VERSION}"
+          echo "Using controller: ${IMAGE_NAME}"
+          yq -i '.spec.template.spec.containers[0].image = strenv(IMAGE_NAME)' \
+            services/orchest-controller/deploy-controller/deployment.yaml
+        env:
+          RELEASE_VERSION: ${{steps.release_version.outputs.release_version}}
+
+      - name: Commit and push changes
+        # Note: --allow-empty so that a pull reopen or, for whatever
+        # reason, doing the same release again will not lead to issues.
+        run: |
+          git config --global user.name "orchest"
+          git config --global user.email "support@orchest.io"
+          git commit -a -m "Update controller image version (automated)" --allow-empty
+          git push

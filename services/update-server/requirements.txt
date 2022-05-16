@@ -1,5 +1,0 @@
-Flask==1.1.1
-docker
-six>=1.13.0
-requests
--e ../../lib/python/orchest-internals

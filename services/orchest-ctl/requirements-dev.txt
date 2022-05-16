@@ -1,6 +1,0 @@
-typer
-docker
-six>=1.13.0
-aiodocker==0.21.0
-tqdm==4.53.0
--e ../../lib/python/orchest-internals

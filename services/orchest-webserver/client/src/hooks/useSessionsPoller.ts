@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { siteMap } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { IOrchestSession } from "@/types";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
@@ -40,13 +40,14 @@ export const useSessionsPoller = () => {
   const { dispatch } = useSessionsContext();
   const { setAlert } = useAppContext();
   const {
-    state: { pipelineUuid, pipelineIsReadOnly },
+    state: { pipeline, pipelineIsReadOnly },
   } = useProjectsContext();
 
   const location = useLocation();
+
+  // add the view paths that requires polling sessions
   const matchRooViews = matchPath(location.pathname, [
     siteMap.configureJupyterLab.path,
-    siteMap.pipelines.path,
   ]);
   const matchPipelineViews = matchPath(location.pathname, [
     siteMap.pipelineSettings.path,
@@ -56,13 +57,11 @@ export const useSessionsPoller = () => {
   ]);
 
   // sessions are only needed when both conditions are met
-  // 1. in the PipelinesView or ConfigureJupyterLabView (they are root views without a pipeline_uuid)
+  // 1. in the ConfigureJupyterLabView (they are root views without a pipeline_uuid)
   // 2. in the above views AND pipelineUuid is given AND is not read-only
   const shouldPoll =
     matchRooViews?.isExact ||
-    (!pipelineIsReadOnly &&
-      hasValue(pipelineUuid) &&
-      matchPipelineViews?.isExact);
+    (!pipelineIsReadOnly && hasValue(pipeline) && matchPipelineViews?.isExact);
 
   const { cache } = useSWRConfig();
 
@@ -94,13 +93,11 @@ export const useSessionsPoller = () => {
     }
   }, [error, setAlert]);
 
-  const sessions: IOrchestSession[] = React.useMemo(() => {
+  const sessions: IOrchestSession[] | undefined = React.useMemo(() => {
     return (
       data?.sessions.map((session) =>
         convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-      ) ||
-      cache.get(ENDPOINT)?.sessions || // in case sessions are needed when polling is not active
-      []
+      ) || cache.get(ENDPOINT)?.sessions // in case sessions are needed when polling is not active
     );
   }, [data, cache]);
 

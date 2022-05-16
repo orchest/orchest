@@ -14,7 +14,7 @@ class Config:
 
     USER_DIR = os.path.join("/userdir")
     PROJECTS_DIR = os.path.join(USER_DIR, "projects")
-    HOST_USER_DIR = os.environ.get("HOST_USER_DIR")
+    USERDIR_PVC = os.environ.get("USERDIR_PVC", "userdir-pvc")
     WEBSERVER_LOGS = _config.WEBSERVER_LOGS
     STATIC_DIR = os.path.join(dir_path, "..", "..", "client", "dist")
 
@@ -25,11 +25,11 @@ class Config:
     POSTHOG_HOST = "https://analytics.orchest.io"
 
     POLL_ORCHEST_EXAMPLES_JSON = True
-    ORCHEST_EXAMPLES_JSON_PATH = "orchest_examples_data.json"
+    ORCHEST_EXAMPLES_JSON_PATH = "/userdir/.orchest/orchest_examples_data.json"
     ORCHEST_EXAMPLES_JSON_POLL_INTERVAL = 60
 
     POLL_ORCHEST_UPDATE_INFO_JSON = True
-    ORCHEST_UPDATE_INFO_JSON_PATH = "orchest_update_info.json"
+    ORCHEST_UPDATE_INFO_JSON_PATH = "/userdir/.orchest/orchest_update_info.json"
     ORCHEST_UPDATE_INFO_JSON_POLL_INTERVAL = 60
 
     # TODO: point readthedocs to stable instead of latest once stable
@@ -48,8 +48,7 @@ class Config:
             "orchest_examples_data.json"
         ),
         "orchest_update_info_json": (
-            "https://update-info.orchest.io/api/orchest/update-info/v1"
-            f'?version={os.getenv("ORCHEST_VERSION")}'
+            _config.ORCHEST_UPDATE_INFO_URL.format(version=os.getenv("ORCHEST_VERSION"))
         ),
     }
 
@@ -64,7 +63,11 @@ class Config:
     # Content for `.orchest/.gitignore` in project dir.
     # `pipelines/*/logs/` excludes `logs/` directories that are two
     # levels below the `.pipelines/` directory.
-    GIT_IGNORE_PROJECT_HIDDEN_ORCHEST = ["pipelines/*/logs/", "pipelines/*/data/"]
+    GIT_IGNORE_PROJECT_HIDDEN_ORCHEST = [
+        "pipelines/*/logs/",
+        "pipelines/*/data/",
+        "plasma.sock",
+    ]
     # On project creation through Orchest, we want the patterns from the
     # `.orchest/.gitignore` to be present in the root-level `.gitignore`
     # so that when creating a new job the files are not copied to the
@@ -79,8 +82,6 @@ class Config:
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
 
-    # The port nginx will listen on. Necessary for a proper restart.
-    ORCHEST_PORT = os.getenv("ORCHEST_PORT", 8000)
     CLOUD = _config.CLOUD
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE

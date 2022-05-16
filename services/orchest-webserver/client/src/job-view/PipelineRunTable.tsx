@@ -7,8 +7,9 @@ import { NoParameterAlert } from "@/components/ParamTree";
 import { StatusInline } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap, toQueryString } from "@/Routes";
+import { siteMap } from "@/routingConfig";
 import { Pagination, PipelineRun } from "@/types";
+import { toQueryString } from "@/utils/routing";
 import { ellipsis } from "@/utils/styles";
 import { formatServerDateTime } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
@@ -160,7 +161,7 @@ export const PipelineRunTable: React.FC<{
     }
 
     navigateTo(
-      siteMap.pipeline.path,
+      siteMap.jobRun.path,
       {
         query: {
           projectUuid: pipelineRun.project_uuid,

@@ -1,24 +1,20 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { pathsToModuleNameMapper } = require("ts-jest/utils");
+const { pathsToModuleNameMapper } = require("ts-jest");
 const { compilerOptions } = require("./tsconfig");
 
 module.exports = {
   verbose: true,
   preset: "ts-jest",
-  testEnvironment: "node",
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: "<rootDir>/",
   }),
+  transformIgnorePatterns: ["node_modules/(?!xterm-for-react)"],
+  testMatch: [
+    "**/tests/**/*.+(ts|tsx|js)",
+    "**/?(*.)+(spec|test).+(ts|tsx|js)",
+  ],
   transform: {
-    "^.+\\.[t|j]sx?$": [
-      "esbuild-jest",
-      {
-        sourcemap: true,
-        loaders: {
-          ".test.ts": "tsx",
-        },
-      },
-    ],
+    "^.+\\.[t|j]sx?$": "<rootDir>/customTransformer.js",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   coverageDirectory: "<rootDir>/reports",
@@ -30,7 +26,6 @@ module.exports = {
       {
         suiteName: "jest tests",
         suiteNameTemplate: "{filepath}",
-        // output: "<rootDir>/reports/junit.xml",
         outputDirectory: "reports",
         classNameTemplate: "{filename}",
         titleTemplate: "{title}",
@@ -38,6 +33,8 @@ module.exports = {
       },
     ],
   ],
-  collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}"],
-  modulePathIgnorePatterns: ["__mocks__"],
+  collectCoverageFrom: ["<rootDir>/**/*.{js,jsx,ts,tsx}"],
+  modulePathIgnorePatterns: ["<rootDir>/*/__mocks__/*.mock.{js,jsx,ts,tsx}"],
+  testEnvironment: "jsdom",
+  testURL: "http://localhost:8080",
 };

@@ -15,7 +15,8 @@
 
 ## Build data pipelines, the easy way 🙌
 
-No frameworks. No YAML. Just write Python and R code in Notebooks.
+No frameworks. No YAML. Just write your data processing code directly in **Python**, **R** or
+**Julia**.
 
 <p align="center">
 <a target="_blank" href="https://vimeo.com/589879082"><img src="https://user-images.githubusercontent.com/1309307/111806797-a2c10300-88d2-11eb-9f21-bf1544f95b34.gif" width="868px" alt="orchest-0.3.0-demo" /></a/></p>
@@ -54,33 +55,16 @@ Want to skip the installation and jump right in? Then try out our managed servic
 
 [![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
-### Linux and macOS
-
-Requirements:
-
-- [Docker](https://docs.docker.com/get-docker/) 🐳 ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` – run `docker version` to check).
-
-Installation:
-
-```bash
-git clone https://github.com/orchest/orchest.git && cd orchest
-./orchest install
-
-# Start Orchest.
-./orchest start
-```
-
-### Windows, GPU & more
-
-For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
+For instructions on how to deploy a self-hosted version, check out our [installation
 docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 ## License
 
 The software in this repository is licensed as follows:
 
-- All content residing under the "orchest-sdk/" directory of this repository is licensed under the
-  "Apache-2.0" license as defined in "orchest-sdk/LICENSE".
+- All content residing under the "orchest-sdk/" and "orchest-cli/" directories of this repository
+  are licensed under the "Apache-2.0" license as defined in "orchest-sdk/LICENSE" and
+  "orchest-cli/LICENSE" respectively.
 - Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
 
 ## Slack Community
@@ -125,3 +109,5 @@ An example badge to import our [quickstart](https://github.com/orchest/quickstar
 <a href="https://github.com/iannbing"><img src="https://avatars.githubusercontent.com/u/627607?v=4" title="iannbing" width="50" height="50"></a>
 <a href="https://github.com/andtheWings"><img src="https://avatars.githubusercontent.com/u/5892089?v=4" title="andtheWings" width="50" height="50"></a>
 <a href="https://github.com/jacobodeharo"><img src="https://avatars.githubusercontent.com/jacobodeharo?v=4" title="jacobodeharo" width="50" height="50"></a>
+<a href="https://github.com/nhaghighat"><img src="https://avatars.githubusercontent.com/u/3792293?v=4" title="nhaghighat" width="50" height="50"></a>
+<a href="https://github.com/porcupineyhairs"><img src="https://avatars.githubusercontent.com/u/61983466?v=4" title="porcupineyhairs" width="50" height="50"></a>

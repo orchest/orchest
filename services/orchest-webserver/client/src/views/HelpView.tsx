@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useOnboardingDialog } from "@/components/Layout/OnboardingDialog";
 import { useAppContext } from "@/contexts/AppContext";
@@ -9,6 +10,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 const HelpItem: React.FC<{
@@ -44,23 +46,21 @@ const HelpItem: React.FC<{
 };
 
 const HelpView: React.FC = () => {
-  const {
-    state: {
-      config: {
-        ORCHEST_WEB_URLS: { readthedocs, website, slack, github },
-      },
-    },
-  } = useAppContext();
+  const { config } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.help.path });
   const { setIsOnboardingDialogOpen } = useOnboardingDialog();
 
   useCheckUpdate();
 
+  const {
+    ORCHEST_WEB_URLS: { readthedocs, website, slack, github },
+  } = config || { ORCHEST_WEB_URLS: {} };
+
   return (
     <Layout>
       <div className="view-page help-list">
-        <h2>Looking for help, or want to know more?</h2>
+        <PageTitle>Looking for help, or want to know more?</PageTitle>
         <p className="push-down">
           The documentation should get you up to speed, but feel free to get in
           touch through Slack or GitHub for any questions or suggestions.
@@ -72,43 +72,56 @@ const HelpView: React.FC = () => {
           alignItems="flex-start"
           sx={{ marginLeft: (theme) => theme.spacing(3) }}
         >
-          <HelpItem
-            link={`${readthedocs}/getting_started/quickstart.html`}
-            image="/image/readthedocs.png"
-            imageStyle={{ width: "18px", margin: "0 auto" }}
-          >
-            Quickstart
-          </HelpItem>
-          <HelpItem
-            link={readthedocs}
-            image="/image/readthedocs.png"
-            imageStyle={{ width: "18px", margin: "0 auto" }}
-          >
-            Documentation
-          </HelpItem>
-          <HelpItem
-            link={`${website}/video-tutorials`}
-            image="/image/logo.svg"
-            imageStyle={{ minWidth: "28px", marginLeft: "-2px" }}
-          >
-            Video tutorials
-          </HelpItem>
-          <HelpItem link={slack} image="/image/slack.png">
-            Slack
-          </HelpItem>
-          <HelpItem link={github} image="/image/github.png">
-            GitHub
-          </HelpItem>
-          <HelpItem
-            link={website}
-            image="/image/logo.svg"
-            imageStyle={{ minWidth: "28px", marginLeft: "-2px" }}
-          >
-            Website
-          </HelpItem>
+          {hasValue(readthedocs) && (
+            <>
+              <HelpItem
+                link={`${readthedocs}/getting_started/quickstart.html`}
+                image="/image/readthedocs.png"
+                imageStyle={{ width: "18px", margin: "0 auto" }}
+              >
+                Quickstart
+              </HelpItem>
+              <HelpItem
+                link={readthedocs}
+                image="/image/readthedocs.png"
+                imageStyle={{ width: "18px", margin: "0 auto" }}
+              >
+                Documentation
+              </HelpItem>
+            </>
+          )}
+          {hasValue(website) && (
+            <HelpItem
+              link={`${website}/video-tutorials`}
+              image="/image/logo.svg"
+              imageStyle={{ minWidth: "28px", marginLeft: "-2px" }}
+            >
+              Video tutorials
+            </HelpItem>
+          )}
+          {hasValue(slack) && (
+            <HelpItem link={slack} image="/image/slack.png">
+              Slack
+            </HelpItem>
+          )}
+          {hasValue(github) && (
+            <HelpItem link={github} image="/image/github.png">
+              GitHub
+            </HelpItem>
+          )}
+          {hasValue(website) && (
+            <HelpItem
+              link={website}
+              image="/image/logo.svg"
+              imageStyle={{ minWidth: "28px", marginLeft: "-2px" }}
+            >
+              Website
+            </HelpItem>
+          )}
         </Stack>
-
-        <h2 className="push-up">Introduction</h2>
+        <PageTitle sx={{ marginTop: (theme) => theme.spacing(3) }}>
+          Introduction
+        </PageTitle>
         <Button
           data-test-id="onboarding-open"
           onClick={() => setIsOnboardingDialogOpen(true)}

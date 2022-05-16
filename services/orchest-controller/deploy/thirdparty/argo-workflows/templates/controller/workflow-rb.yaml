@@ -1,0 +1,20 @@
+{{- if .Values.workflow.rbac.create -}}
+  {{- range $namespace := or .Values.singleNamespace false | ternary (list "") (append .Values.controller.workflowNamespaces (coalesce .Values.workflow.namespace .Release.Namespace) | uniq)  }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ template "argo-workflows.fullname" $ }}-workflow
+  namespace: {{ $namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ template "argo-workflows.fullname" $ }}-workflow
+subjects:
+  - kind: ServiceAccount
+    name: {{ $.Values.workflow.serviceAccount.name }}
+    {{- with $namespace }}
+    namespace: {{ . }}
+    {{- end }}
+  {{- end }}
+{{- end }}

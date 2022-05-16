@@ -52,7 +52,9 @@ export type TMultiSelectProps = {
   disabled?: boolean;
 } & Pick<TMultiSelectContext, "items" | "required" | "type">;
 
-const MultiSelectContext = React.createContext<TMultiSelectContext>(null);
+const MultiSelectContext = React.createContext<TMultiSelectContext | null>(
+  null
+);
 
 const useMultiSelect = () => React.useContext(MultiSelectContext);
 
@@ -65,7 +67,7 @@ export const MultiSelect: React.FC<TMultiSelectProps> = ({
   disabled = false,
   ...props
 }) => {
-  const [error, setError] = React.useState<string>(null);
+  const [error, setError] = React.useState<string | null>(null);
   const [inputValue, setInputValue] = React.useState("");
   const [items, setItems] = React.useState(initialItems);
 

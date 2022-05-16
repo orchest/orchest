@@ -16,7 +16,11 @@ export type EnvVarPair = {
 
 export const EnvVarList: React.FC<{
   value: EnvVarPair[];
-  setValue?: (callback: (currentValue: EnvVarPair[]) => EnvVarPair[]) => void;
+  setValue?: (
+    callback: (
+      currentValue: EnvVarPair[] | undefined
+    ) => EnvVarPair[] | undefined
+  ) => void;
   readOnly?: boolean;
   ["data-test-id"]?: string;
 }> = ({
@@ -26,7 +30,9 @@ export const EnvVarList: React.FC<{
   ["data-test-id"]: testId = "",
 }) => {
   const onChange = (payload: string, index: number, type: "name" | "value") => {
+    if (!setValue) return;
     setValue((current) => {
+      if (!current) return current;
       const found = current[index];
       const updated = { ...found, [type]: payload };
       return [...current.slice(0, index), updated, ...current.slice(index + 1)];
@@ -34,11 +40,14 @@ export const EnvVarList: React.FC<{
   };
 
   const onAdd = () => {
-    setValue((current) => [...current, { name: "", value: "" }]);
+    if (!setValue) return;
+    setValue((current) => [...(current || []), { name: "", value: "" }]);
   };
 
   const remove = (index: number) => {
+    if (!setValue) return;
     setValue((current) => {
+      if (!current) return [];
       if (index < 0 || index >= current.length) return current;
       return [...current.slice(0, index), ...current.slice(index + 1)];
     });

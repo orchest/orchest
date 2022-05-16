@@ -76,7 +76,7 @@ export const CronScheduleInput: React.FC<{
         value={value}
         onChange={onChangeCronString}
         data-test-id={dataTestId}
-        helperText={!cronDescription ? "Invalid cron string." : ""}
+        helperText={!cronDescription ? "Invalid cron string." : " "}
         sx={{
           marginBottom: (theme) => theme.spacing(4),
           width: (theme) => theme.spacing(20),

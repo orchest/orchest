@@ -8,6 +8,9 @@ TODO:
 
 """
 import copy
+import datetime
+import enum
+import uuid
 from typing import Any, Dict
 
 from sqlalchemy import (
@@ -16,12 +19,14 @@ from sqlalchemy import (
     UniqueConstraint,
     case,
     cast,
+    event,
     func,
+    or_,
     text,
 )
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
-from sqlalchemy.orm import deferred
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
+from sqlalchemy.orm import declared_attr, deferred
 
 from app.connections import db
 
@@ -48,8 +53,48 @@ class BaseModel(db.Model):
         return ans
 
 
+class Setting(BaseModel):
+    """The settings of Orchest."""
+
+    __tablename__ = "settings"
+
+    name = db.Column(db.String(50), primary_key=True, nullable=False)
+
+    # We store the value as a JSON object {"value": <actual value>} to
+    # be able to preserve types while storing 1 setting as 1 record.
+    value = db.Column(JSONB, nullable=False)
+
+
+class SchedulerJob(BaseModel):
+    """Latest run of a job assigned to a Scheduler."""
+
+    __tablename__ = "scheduler_jobs"
+
+    type = db.Column(db.String(50), primary_key=True)
+
+    # Used to make sure different instances of the Scheduler (due to
+    # multiple gunicorn workers) don't cause a job to be executed
+    # multiple times.
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    def __repr__(self):
+        return f"<SchedulerJob: {self.type}>"
+
+
 class Project(BaseModel):
     __tablename__ = "projects"
+
+    name = db.Column(
+        db.String(255),
+        unique=False,
+        nullable=False,
+        # For migrating old projects.
+        server_default=text("'Project'"),
+    )
 
     uuid = db.Column(db.String(36), primary_key=True, nullable=False)
     env_variables = deferred(db.Column(JSONB, nullable=False, server_default="{}"))
@@ -58,8 +103,8 @@ class Project(BaseModel):
     pipelines = db.relationship(
         "Pipeline", lazy="select", passive_deletes=True, cascade="all, delete"
     )
-    environment_builds = db.relationship(
-        "EnvironmentBuild", lazy="select", passive_deletes=True, cascade="all, delete"
+    environments = db.relationship(
+        "Environment", lazy="select", passive_deletes=True, cascade="all, delete"
     )
     interactive_sessions = db.relationship(
         "InteractiveSession", lazy="select", passive_deletes=True, cascade="all, delete"
@@ -115,41 +160,181 @@ class Pipeline(BaseModel):
     )
 
 
-class EnvironmentBuild(BaseModel):
-    """State of environment builds.
+class Environment(BaseModel):
+    __tablename__ = "environments"
 
-    Table meant to store the state of the build task of an environment,
-    i.e. when we need to build an image starting from a base image plus
-    optional sh code. This is not related to keeping track of
-    environments or images to decide if a project or pipeline can be
-    run.
-
-    """
-
-    __tablename__ = "environment_builds"
-    __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
-
-    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
-    uuid = db.Column(db.String(36), primary_key=True, nullable=False)
     project_uuid = db.Column(
         db.String(36),
         db.ForeignKey("projects.uuid", ondelete="CASCADE"),
         primary_key=True,
+    )
+    uuid = db.Column(db.String(36), primary_key=True)
+
+    images = db.relationship(
+        "EnvironmentImage", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+
+    def __repr__(self):
+        return f"<Environment: {self.project_uuid}-{self.environment_uuid}>"
+
+
+class EnvironmentImageBuild(BaseModel):
+    """State of environment image builds.
+
+    There is a 1:1 mapping between an EnvironmentImage and an
+    EnvironmentImageBuild.
+    """
+
+    __tablename__ = "environment_image_builds"
+
+    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
+    project_uuid = db.Column(
+        db.String(36),
+        primary_key=True,
         index=True,
     )
-    environment_uuid = db.Column(db.String(36), nullable=False, index=True)
+    environment_uuid = db.Column(
+        db.String(36), nullable=False, index=True, primary_key=True
+    )
+    image_tag = db.Column(db.Integer, nullable=False, index=True, primary_key=True)
+    # To be able to cancel the task.
+    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
+    celery_task_uuid = db.Column(db.String(36), primary_key=False, nullable=False)
+
     project_path = db.Column(db.String(4096), nullable=False, index=True)
     requested_time = db.Column(db.DateTime, unique=False, nullable=False)
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
 
+    __table_args__ = (
+        Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),
+        # To find the latest tag.
+        Index(None, "project_uuid", "environment_uuid", image_tag.desc()),
+    )
+
     def __repr__(self):
-        return f"<EnvironmentBuildTask: {self.uuid}>"
+        return (
+            f"<EnvironmentImageBuild: {self.project_uuid}-"
+            f"{self.environment_uuid}-{self.image_tag}>"
+        )
 
 
-class JupyterBuild(BaseModel):
-    """State of Jupyter builds.
+ForeignKeyConstraint(
+    [
+        EnvironmentImageBuild.project_uuid,
+        EnvironmentImageBuild.environment_uuid,
+    ],
+    [
+        Environment.project_uuid,
+        Environment.uuid,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class EnvironmentImage(BaseModel):
+    __tablename__ = "environment_images"
+
+    project_uuid = db.Column(
+        db.String(36),
+        nullable=False,
+        primary_key=True,
+        # To find all images of a project.
+        index=True,
+    )
+    environment_uuid = db.Column(
+        db.String(36),
+        nullable=False,
+        primary_key=True,
+    )
+    # A new environment image record with a given tag will be created
+    # everytime an environment build is started, the tag only
+    # increments.
+    tag = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
+
+    # sha256:<digest>
+    digest = db.Column(
+        db.String(71),
+        nullable=False,
+        index=True,
+        # To migrate existing entries.
+        server_default="Undefined",
+    )
+
+    # A way to tell us if a particular env image is to be considered
+    # inactive and has already been put in the deletion outbox, to avoid
+    # doing that again.
+    marked_for_removal = db.Column(
+        db.Boolean(),
+        index=True,
+        nullable=False,
+        # To migrate existing entries.
+        server_default="False",
+    )
+
+    __table_args__ = (
+        # To find all images of the environment of a project.
+        Index(None, "project_uuid", "environment_uuid"),
+        # To find the latest tag.
+        Index(None, "project_uuid", "environment_uuid", tag.desc()),
+    )
+
+    sessions_using_image = db.relationship(
+        "InteractiveSessionInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
+    jobs_using_image = db.relationship(
+        "JobInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
+    runs_using_image = db.relationship(
+        "PipelineRunInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
+    def __repr__(self):
+        return (
+            "<EnvironmentImage: "
+            f"{self.project_uuid}-{self.environment_uuid}-{self.tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [EnvironmentImage.project_uuid, EnvironmentImage.environment_uuid],
+    [Environment.project_uuid, Environment.uuid],
+    ondelete="CASCADE",
+)
+
+
+ForeignKeyConstraint(
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    [
+        EnvironmentImageBuild.project_uuid,
+        EnvironmentImageBuild.environment_uuid,
+        EnvironmentImageBuild.image_tag,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class JupyterImageBuild(BaseModel):
+    """State of Jupyter image builds.
 
     Table meant to store the state of the build task of a
     Jupyter image, i.e. when a user wants to install a server side
@@ -157,7 +342,7 @@ class JupyterBuild(BaseModel):
 
     """
 
-    __tablename__ = "jupyter_builds"
+    __tablename__ = "jupyter_image_builds"
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
     uuid = db.Column(db.String(36), primary_key=True, nullable=False)
@@ -165,9 +350,47 @@ class JupyterBuild(BaseModel):
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
+    # Nullable to migrate existing values.
+    image_tag = db.Column(db.Integer, nullable=True, index=True, unique=True)
 
     def __repr__(self):
-        return f"<JupyterBuildTask: {self.uuid}>"
+        return f"<JupyterEnvironmentBuildTask: {self.uuid}>"
+
+
+class JupyterImage(BaseModel):
+    __tablename__ = "jupyter_images"
+
+    # A new image record with a given tag will be created everytime a
+    # jupyter build is started, the tag only increments.
+    tag = db.Column(
+        db.Integer,
+        db.ForeignKey("jupyter_image_builds.image_tag", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    # sha256:<digest>
+    digest = db.Column(
+        db.String(71),
+        nullable=False,
+        index=True,
+    )
+
+    # The image was built with a given Orchest version, this field is
+    # used to invalidate a jupyter image after an update.
+    base_image_version = db.Column(db.String(), nullable=False)
+
+    # A way to tell us if a particular env image is to be considered
+    # inactive and has already been put in the deletion outbox, to avoid
+    # doing that again.
+    marked_for_removal = db.Column(
+        db.Boolean(),
+        index=True,
+        nullable=False,
+        server_default="False",
+    )
+
+    def __repr__(self):
+        return f"<JupyterImage: {self.tag}>"
 
 
 class InteractiveSession(BaseModel):
@@ -187,28 +410,10 @@ class InteractiveSession(BaseModel):
         index=True,
     )
     pipeline_uuid = db.Column(db.String(36), primary_key=True, index=True)
+
     status = db.Column(
         db.String(10),
         primary_key=False,
-    )
-    # Used to connect to Jupyter notebook server.
-    jupyter_server_ip = db.Column(
-        db.String(15),
-        unique=True,
-        nullable=True,
-    )  # IPv4
-    # Used to connect to Jupyter notebook server.
-    notebook_server_info = db.Column(
-        JSONB,
-        unique=True,
-        nullable=True,
-    )
-    # Docker container IDs. Used internally to identify the resources of
-    # a specific session.
-    container_ids = db.Column(
-        JSONB,
-        unique=False,
-        nullable=True,
     )
 
     # Services defined by the user.
@@ -221,10 +426,9 @@ class InteractiveSession(BaseModel):
         server_default="{}",
     )
 
-    # Orchest environments used as services.
-    image_mappings = db.relationship(
-        "InteractiveSessionImageMapping",
-        lazy="joined",
+    images_in_use = db.relationship(
+        "InteractiveSessionInUseImage",
+        lazy="select",
         passive_deletes=True,
         cascade="all, delete",
     )
@@ -372,13 +576,6 @@ class Job(BaseModel):
         ),
     )
 
-    image_mappings = db.relationship(
-        "JobImageMapping",
-        lazy="select",
-        passive_deletes=True,
-        cascade="all, delete",
-    )
-
     # The status of a job can be DRAFT, PENDING, STARTED, PAUSED
     # SUCCESS, ABORTED, FAILURE. Only recurring jobs can be PAUSED. Jobs
     # start as DRAFT, this indicates that the job has been created but
@@ -435,6 +632,13 @@ class Job(BaseModel):
         db.Integer, nullable=False, server_default=text("-1")
     )
 
+    images_in_use = db.relationship(
+        "JobInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
     def __repr__(self):
         return f"<Job: {self.uuid}>"
 
@@ -469,12 +673,6 @@ class PipelineRun(BaseModel):
 
     pipeline_steps = db.relationship(
         "PipelineRunStep",
-        lazy="joined",
-        passive_deletes=True,
-        cascade="all, delete",
-    )
-    image_mappings = db.relationship(
-        "PipelineRunImageMapping",
         lazy="joined",
         passive_deletes=True,
         cascade="all, delete",
@@ -527,7 +725,7 @@ class NonInteractivePipelineRun(PipelineRun):
     # sqlalchemy has 3 kinds of inheritance: joined table, single table,
     # concrete.
     #
-    # Concrete is, essentially, not recommended unsless you have a
+    # Concrete is, essentially, not recommended unless you have a
     # reason to use it. Will also lead to FKs issues if the base table
     # is abstract.
     #
@@ -662,95 +860,39 @@ class InteractivePipelineRun(PipelineRun):
         "polymorphic_identity": "InteractivePipelineRun",
     }
 
-
-class PipelineRunImageMapping(BaseModel):
-    """Stores mappings between a pipeline run and the environment
-     images it uses.
-
-    Used to understand if an image can be removed from the docker
-    environment if it's not used by a run which is PENDING or STARTED.
-    Currently, this only references interactive runs.
-
-    """
-
-    __tablename__ = "pipeline_run_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("run_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("run_uuid", "docker_img_id"),
+    images_in_use = db.relationship(
+        "PipelineRunInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
     )
 
-    run_uuid = db.Column(
-        db.ForeignKey(PipelineRun.uuid, ondelete="CASCADE"),
-        unique=False,
+
+class ClientHeartbeat(BaseModel):
+    """Clients heartbeat for idle checking."""
+
+    __tablename__ = "client_heartbeats"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
         nullable=False,
         index=True,
-        primary_key=True,
-    )
-    orchest_environment_uuid = db.Column(
-        db.String(36), unique=False, nullable=False, primary_key=True, index=True
-    )
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
+        server_default=func.now(),
     )
 
-    def __repr__(self):
-        return (
-            f"<PipelineRunImageMapping: {self.run_uuid} | "
-            f"{self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
-        )
 
-
-class JobImageMapping(BaseModel):
-    """Stores mappings between a job and the environment images it uses.
-
-    Used to understand if an image can be removed from the docker
-    environment if it's not used by a job which is PENDING or STARTED.
-
-    """
-
-    __tablename__ = "job_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("job_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("job_uuid", "docker_img_id"),
-    )
-
-    job_uuid = db.Column(
-        db.ForeignKey(Job.uuid, ondelete="CASCADE"),
-        unique=False,
-        nullable=False,
-        index=True,
-        primary_key=True,
-    )
-    orchest_environment_uuid = db.Column(
-        db.String(36), unique=False, nullable=False, primary_key=True, index=True
-    )
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
-    )
-
-    def __repr__(self):
-        return (
-            f"<JobImageMapping: {self.run_uuid} | "
-            f"{self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
-        )
-
-
-class InteractiveSessionImageMapping(BaseModel):
+class InteractiveSessionInUseImage(BaseModel):
     """Mappings between an interactive session and environment images.
 
-    Used to understand if an image can be removed from the docker
+    Used to understand if an image can be removed from the registry
     environment if it's not used by an interactive session. This could
     be the case when an interactive session is using an orchest
     environment as a service.
     """
 
-    __tablename__ = "interactive_session_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("project_uuid", "pipeline_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("project_uuid", "pipeline_uuid", "docker_img_id"),
-    )
+    __tablename__ = "interactive_session_in_use_images"
 
     project_uuid = db.Column(
         db.String(36),
@@ -768,42 +910,792 @@ class InteractiveSessionImageMapping(BaseModel):
         primary_key=True,
     )
 
-    orchest_environment_uuid = db.Column(
+    environment_uuid = db.Column(
         db.String(36), unique=False, nullable=False, primary_key=True, index=True
     )
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
     )
 
     def __repr__(self):
         return (
-            f"<InteractiveSessionImageMapping: {self.project_uuid}-"
-            f"{self.pipeline_uuid} | {self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
+            f"<InteractiveSessionInUseImage: {self.project_uuid}-"
+            f"{self.pipeline_uuid} | {self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
         )
 
 
-# Necessary to have a single FK path from session to image mapping.
 ForeignKeyConstraint(
     [
-        InteractiveSessionImageMapping.project_uuid,
-        InteractiveSessionImageMapping.pipeline_uuid,
+        InteractiveSessionInUseImage.project_uuid,
+        InteractiveSessionInUseImage.pipeline_uuid,
     ],
     [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
     ondelete="CASCADE",
 )
+ForeignKeyConstraint(
+    [
+        InteractiveSessionInUseImage.project_uuid,
+        InteractiveSessionInUseImage.environment_uuid,
+        InteractiveSessionInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
 
 
-class ClientHeartbeat(BaseModel):
-    """Clients heartbeat for idle checking."""
+class JobInUseImage(BaseModel):
+    """Stores mappings between a job and the environment images it uses.
 
-    __tablename__ = "client_heartbeats"
+    Used to understand if an image can be removed from the registry if
+    it's not used by a job which is PENDING or STARTED.
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    """
+
+    __tablename__ = "job_in_use_images"
+
+    job_uuid = db.Column(
+        db.ForeignKey(Job.uuid, ondelete="CASCADE"),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<JobInUseImage: {self.job_uuid} | "
+            f"{self.project_uuid} | "
+            f"{self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [
+        JobInUseImage.project_uuid,
+        JobInUseImage.environment_uuid,
+        JobInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class PipelineRunInUseImage(BaseModel):
+    """Mappings between a pipeline run and environment images it uses.
+
+    Used to understand if an image can be removed from the registry if
+    it's not used by a run which is PENDING or STARTED.  Currently, this
+    only references interactive runs.
+
+    """
+
+    __tablename__ = "pipeline_run_in_use_images"
+
+    run_uuid = db.Column(
+        db.ForeignKey(PipelineRun.uuid, ondelete="CASCADE"),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<PipelineRunInUseImage: {self.run_uuid} | "
+            f"{self.project_uuid} | "
+            f"{self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [
+        PipelineRunInUseImage.project_uuid,
+        PipelineRunInUseImage.environment_uuid,
+        PipelineRunInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class EventType(BaseModel):
+    """Type of events recorded by the orchest-api.
+
+    The table has been pre-populated in the schema migration that
+    created it, if you need to add more types add another schema
+    migration. Migrations that have added event types:
+    - services/orchest-api/app/migrations/versions/410e08270de4_.py
+    - services/orchest-api/app/migrations/versions/814961a3d525_.py
+    - services/orchest-api/app/migrations/versions/92dcc9963a9c_.py
+
+    To add more types, add an empty revision with
+    `bash scripts/migration_manager.sh orchest-api revision`, then
+    add the statements to add more types to the event_types table in the
+    revision, take a look at the existing migrations for that.
+    """
+
+    __tablename__ = "event_types"
+
+    name = db.Column(db.String(50), primary_key=True)
+
+    def __repr__(self):
+        return f"<EventType: {self.name}>"
+
+
+class Event(BaseModel):
+    """Events that happen in the orchest-api
+
+    See EventType for what events are currently covered.
+
+    """
+
+    __tablename__ = "events"
+
+    # as_uuid=False to be consistent with what already happens with
+    # other uuids in the db.
+    uuid = db.Column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+
+    type = db.Column(
+        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE"), index=True
+    )
 
     timestamp = db.Column(
         TIMESTAMP(timezone=True),
         nullable=False,
-        index=True,
         server_default=func.now(),
     )
+
+    __mapper_args__ = {
+        "polymorphic_on": case(
+            [
+                (
+                    type.startswith("project:cron-job:run:pipeline-run:"),
+                    "cron_job_run_pipeline_run_event",
+                ),
+                (
+                    type.startswith("project:cron-job:run:"),
+                    "cron_job_run_event",
+                ),
+                (type.startswith("project:cron-job:"), "cron_job_event"),
+                (
+                    type.startswith("project:one-off-job:pipeline-run:"),
+                    "one_off_job_pipeline_run_event",
+                ),
+                (type.startswith("project:one-off-job:"), "one_off_job_event"),
+                (
+                    or_(
+                        type.startswith("project:one-off-job:"),
+                        type.startswith("project:cron-job:"),
+                    ),
+                    "job_event",
+                ),
+                (type.startswith("project:"), "project_event"),
+            ],
+            else_="event",
+        ),
+        "polymorphic_identity": "event",
+        # Load all subclass columns, see
+        # https://docs.sqlalchemy.org/en/14/orm/inheritance_loading.html
+        "with_polymorphic": "*",
+    }
+
+    def to_notification_payload(self) -> dict:
+        payload = {
+            "uuid": self.uuid,
+            "type": self.type,
+            "timestamp": str(self.timestamp),
+        }
+        return payload
+
+    def __repr__(self):
+        return f"<Event: {self.uuid}, {self.type}, {self.timestamp}>"
+
+
+class ProjectEvent(Event):
+    """Project events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    project_uuid = db.Column(
+        db.String(36), db.ForeignKey("projects.uuid", ondelete="CASCADE")
+    )
+
+    __mapper_args__ = {"polymorphic_identity": "project_event"}
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        project_payload = {"uuid": self.project_uuid, "name": None}
+        payload["project"] = project_payload
+
+        proj = Project.query.filter(Project.uuid == self.project_uuid).first()
+        if proj is not None:
+            project_payload["name"] = proj.name
+
+        return payload
+
+    def __repr__(self):
+        return (
+            f"<ProjectEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}>"
+        )
+
+
+class JobEvent(ProjectEvent):
+    """Job events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    job_uuid = db.Column(db.String(36), db.ForeignKey("jobs.uuid", ondelete="CASCADE"))
+
+    __mapper_args__ = {"polymorphic_identity": "job_event"}
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        job_payload = {
+            "uuid": self.job_uuid,
+            "name": None,
+            "status": None,
+            "pipeline_name": None,
+        }
+        payload["job"] = job_payload
+
+        job = Job.query.filter(Job.uuid == self.job_uuid).first()
+        if job is None:
+            return payload
+
+        job_payload["name"] = job.name
+        job_payload["status"] = job.status
+        job_payload["pipeline_name"] = job.pipeline_name
+        job_payload[
+            "url_path"
+        ] = f"/job?project_uuid={job.project_uuid}&job_uuid={job.uuid}"
+
+        return payload
+
+    def __repr__(self):
+        return (
+            f"<JobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
+
+
+class OneOffJobEvent(JobEvent):
+    """One-off job events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_event"}
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+
+        payload["job"]["total_runs"] = None
+
+        job = Job.query.filter(Job.uuid == self.job_uuid).first()
+        if job is None:
+            return payload
+
+        payload["job"]["total_runs"] = len(job.parameters)
+
+        return payload
+
+    def __repr__(self):
+        return (
+            f"<OneOffJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
+
+
+def _prepare_parameters_payload(
+    pipeline_definition: dict, run_parameters: dict
+) -> dict:
+    parameters_payload = {}
+    for k, v in run_parameters.items():
+        if k == "pipeline_parameters":
+            parameters_payload[k] = v
+        else:
+            step_name = pipeline_definition.get("steps").get(k, {}).get("title")
+            if step_name is None:
+                step_name = "untitled"
+            parameters_payload[f"step-{step_name}-{k}"] = v
+    return parameters_payload
+
+
+def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> dict:
+    payload = {
+        "uuid": pipeline_run_uuid,
+        "parameters": None,
+        "status": None,
+    }
+
+    job = Job.query.filter(Job.uuid == job_uuid).first()
+    if job is None:
+        return payload
+
+    pipeline_run = NonInteractivePipelineRun.query.filter(
+        NonInteractivePipelineRun.job_uuid == job_uuid,
+        NonInteractivePipelineRun.uuid == pipeline_run_uuid,
+    ).first()
+    if pipeline_run is None:
+        return payload
+
+    payload["number"] = pipeline_run.pipeline_run_index
+    if job.schedule is not None:
+        payload["number_in_run"] = pipeline_run.job_run_pipeline_run_index
+
+    payload["status"] = pipeline_run.status
+    payload["parameters"] = _prepare_parameters_payload(
+        job.pipeline_definition, pipeline_run.parameters
+    )
+    payload["url_path"] = (
+        f"/job-run?project_uuid={job.project_uuid}&pipeline_uuid={job.pipeline_uuid}&"
+        f"job_uuid={job.uuid}&run_uuid={pipeline_run.uuid}"
+    )
+
+    if pipeline_run.status == "FAILURE":
+        failed_steps_payload = []
+        failed_steps = PipelineRunStep.query.filter(
+            PipelineRunStep.run_uuid == pipeline_run_uuid,
+            PipelineRunStep.status == "FAILURE",
+        ).all()
+        for step in failed_steps:
+            step_name = (
+                job.pipeline_definition.get("steps")
+                .get(step.step_uuid, {})
+                .get("title")
+            )
+            failed_steps_payload.append(f"step-{step_name}-{step.step_uuid}")
+            payload["failed_steps"] = failed_steps_payload
+
+    return payload
+
+
+class OneOffJobPipelineRunEvent(OneOffJobEvent):
+    """OneOffJob ppl runs events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    # See
+    # https://docs.sqlalchemy.org/en/14/orm/inheritance.html#resolving-column-conflicts
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_pipeline_run_event"}
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
+            self.job_uuid, self.pipeline_run_uuid
+        )
+
+        return payload
+
+    def __repr__(self):
+        return (
+            f"<OneOffJobPipelineRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}, {self.pipeline_run_uuid}>"
+        )
+
+
+ForeignKeyConstraint(
+    [OneOffJobPipelineRunEvent.pipeline_run_uuid],
+    [NonInteractivePipelineRun.uuid],
+    ondelete="CASCADE",
+)
+
+
+class CronJobEvent(JobEvent):
+    """Cron Job events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cron_job_event"}
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["job"]["schedule"] = None
+        payload["job"]["next_scheduled_time"] = None
+
+        job = Job.query.filter(Job.uuid == self.job_uuid).first()
+        if job is None:
+            return payload
+        payload["job"]["schedule"] = job.schedule
+        payload["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
+        return payload
+
+    def __repr__(self):
+        return (
+            f"<CronJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
+
+
+class CronJobRunEvent(CronJobEvent):
+    """Cron Job run events that happen in the orchest-api.
+
+    A recurring run is an instance of a recurring job being triggered,
+    i.e. a batch of runs.
+    """
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cron_job_run_event"}
+
+    run_index = db.Column(db.Integer)
+
+    total_pipeline_runs = db.Column(db.Integer)
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+
+        # Covers case of models inheriting from this.
+        job_run_events = (
+            db.session.query(CronJobRunEvent.type).filter(
+                CronJobRunEvent.type.in_(
+                    [
+                        "project:cron-job:run:started",
+                        "project:cron-job:run:succeeded",
+                        "project:cron-job:run:failed",
+                    ]
+                ),
+                CronJobRunEvent.project_uuid == self.project_uuid,
+                CronJobRunEvent.job_uuid == self.job_uuid,
+                CronJobRunEvent.run_index == self.run_index,
+            )
+        ).all()
+        job_run_events = [ev.type for ev in job_run_events]
+
+        if "project:cron-job:run:succeeded" in job_run_events:
+            status = "SUCCESS"
+        elif "project:cron-job:run:failed" in job_run_events:
+            status = "FAILURE"
+        elif "project:cron-job:run:started" in job_run_events:
+            status = "STARTED"
+        else:
+            status = None
+
+        payload["job"]["run"] = {}
+        payload["job"]["run"]["status"] = status
+        payload["job"]["run"]["number"] = self.run_index
+        payload["job"]["run"]["total_pipeline_runs"] = self.total_pipeline_runs
+
+        return payload
+
+    def __repr__(self):
+        return (
+            f"<CronJobRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}, {self.run_index}>"
+        )
+
+
+Index(
+    None,
+    CronJobRunEvent.type,
+    CronJobRunEvent.project_uuid,
+    CronJobRunEvent.job_uuid,
+    CronJobRunEvent.run_index,
+)
+
+
+class CronJobRunPipelineRunEvent(CronJobRunEvent):
+    """CronJob ppl runs events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cron_job_run_pipeline_run_event"}
+
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["job"]["run"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
+            self.job_uuid, self.pipeline_run_uuid
+        )
+
+        return payload
+
+    def __repr__(self):
+        return (
+            f"<CronJobRunPipelineRunEvent: {self.uuid}, {self.type}, "
+            f"{self.timestamp} {self.project_uuid}, {self.job_uuid}, {self.run_index}, "
+            f"{self.pipeline_run_uuid}>"
+        )
+
+
+class Subscriber(BaseModel):
+    __tablename__ = "subscribers"
+
+    uuid = db.Column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+
+    type = db.Column(db.String(50), nullable=False)
+
+    subscriptions = db.relationship(
+        "Subscription",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
+    __mapper_args__ = {
+        "polymorphic_on": "type",
+        "polymorphic_identity": "subscriber",
+        "with_polymorphic": "*",
+    }
+
+
+class Webhook(Subscriber):
+    class ContentType(enum.Enum):
+        JSON = "application/json"
+        URLENCODED = "application/x-www-form-urlencoded"
+
+    __tablename__ = None
+
+    url = db.Column(db.String(), nullable=False)
+
+    name = db.Column(db.String(100), nullable=False)
+
+    verify_ssl = db.Column(db.Boolean(), nullable=False)
+
+    # Used to calculate the HMAC digest of the payload and sign it.
+    secret = deferred(db.Column(db.String(), nullable=False))
+
+    content_type = db.Column(db.String(50), nullable=False)
+
+    def is_slack_webhook(self) -> bool:
+        return self.url.startswith("https://hooks.slack.com/")
+
+    def is_discord_webhook(self) -> bool:
+        return self.url.startswith("https://discord.com/api/webhooks/")
+
+    def is_teams_webhook(self) -> bool:
+        return "webhook.office.com" in self.url
+
+    __mapper_args__ = {
+        "polymorphic_identity": "webhook",
+    }
+
+
+class Subscription(BaseModel):
+    __tablename__ = "subscriptions"
+
+    uuid = db.Column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+
+    subscriber_uuid = db.Column(
+        UUID(as_uuid=False),
+        db.ForeignKey("subscribers.uuid", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    event_type = db.Column(
+        db.String(50),
+        db.ForeignKey("event_types.name", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    type = db.Column(db.String(50), nullable=False)
+
+    __mapper_args__ = {
+        "polymorphic_on": "type",
+        "polymorphic_identity": "globally_scoped_subscription",
+        # Load all subclass columns, see
+        # https://docs.sqlalchemy.org/en/14/orm/inheritance_loading.html
+        "with_polymorphic": "*",
+    }
+
+
+class ProjectSpecificSubscription(Subscription):
+    """Subscripions to events of a specific project."""
+
+    __tablename__ = None
+
+    project_uuid = db.Column(
+        db.String(36), db.ForeignKey("projects.uuid", ondelete="CASCADE")
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "project_specific_subscription",
+    }
+
+    @staticmethod
+    def check_constraints(mapper, connection, target):
+        if not target.event_type.startswith("project:"):
+            raise ValueError(
+                "ProjectSpecificSubscription only allows to subscribe to 'project:*' "
+                "event types."
+            )
+
+
+event.listen(
+    ProjectSpecificSubscription,
+    "before_insert",
+    ProjectSpecificSubscription.check_constraints,
+)
+
+
+class ProjectJobSpecificSubscription(ProjectSpecificSubscription):
+    """Subscripions to events of a specific job of project."""
+
+    __tablename__ = None
+
+    __mapper_args__ = {
+        "polymorphic_identity": "project_job_specific_subscription",
+    }
+
+    job_uuid = db.Column(db.String(36), db.ForeignKey("jobs.uuid", ondelete="CASCADE"))
+
+    @staticmethod
+    def check_constraints(mapper, connection, target):
+        if not target.event_type.startswith(
+            "project:job"
+        ) and not target.event_type.startswith("project:cronjob:"):
+            raise ValueError(
+                "ProjectJobSpecificSubscription only allows to subscribe to "
+                "'project:one-off-job:*' or 'project:cron-job:*' event types."
+            )
+
+
+event.listen(
+    ProjectJobSpecificSubscription,
+    "before_insert",
+    ProjectJobSpecificSubscription.check_constraints,
+)
+
+
+class Delivery(BaseModel):
+    """Essentially, a transactional outbox for notifications.
+
+    Extend this class if you need to keep track of information that
+    depends on the deliveree, like response status code etc.
+    """
+
+    __tablename__ = "deliveries"
+
+    uuid = db.Column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+
+    # The event which the delivery is about.
+    event = db.Column(
+        UUID(as_uuid=False),
+        # Allow deletion of parent entities of an event (like a pipeline
+        # run) while retaining the delivery.
+        db.ForeignKey("events.uuid", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # The information content of the notification. The payload is
+    # created in the same transaction where the event that triggered
+    # this delivery is created, this way we can cover edge cases like
+    # max_retained_pipeline_runs leading to the deletion of failed runs,
+    # which would make it impossible to construct such a payload.
+    notification_payload = db.Column(
+        JSONB,
+        nullable=False,
+    )
+
+    # The subscriber that subscribed to the event.
+    deliveree = db.Column(
+        UUID(as_uuid=False),
+        db.ForeignKey("subscribers.uuid", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # SCHEDULED, RESCHEDULED, DELIVERED
+    status = db.Column(db.String(15), nullable=False)
+
+    # Used for capped exponential backoff of retries in combination with
+    # scheduled_at.
+    n_delivery_attempts = db.Column(db.Integer, nullable=False, default=0)
+
+    scheduled_at = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    delivered_at = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=True,
+    )
+
+    def reschedule(self) -> None:
+        self.status = "RESCHEDULED"
+        self.n_delivery_attempts = self.n_delivery_attempts + 1
+        backoff = min(2 ** (self.n_delivery_attempts), 3600)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        self.scheduled_at = now + datetime.timedelta(seconds=backoff)
+
+    def set_delivered(self) -> None:
+        self.status = "DELIVERED"
+        self.delivered_at = datetime.datetime.now(datetime.timezone.utc)
+
+
+Index(
+    None,
+    Delivery.status,
+    Delivery.scheduled_at,
+)

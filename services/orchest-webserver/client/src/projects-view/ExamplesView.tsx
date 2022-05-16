@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/common/BackButton";
 import { LogoIcon } from "@/components/common/icons/LogoIcon";
 import { TabLabel, Tabs } from "@/components/common/Tabs";
 import { Layout } from "@/components/Layout";
@@ -6,11 +7,8 @@ import { useImportUrl } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useTransition } from "@/hooks/useTransition";
 import { siteMap } from "@/routingConfig";
-import { Example } from "@/types";
-import { BackgroundTask } from "@/utils/webserver-utils";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { Example, Project } from "@/types";
 import GroupIcon from "@mui/icons-material/Group";
-import Button from "@mui/material/Button";
 import Tab from "@mui/material/Tab";
 import React from "react";
 import { CommunityWarning } from "./CommunityWarning";
@@ -54,7 +52,7 @@ const ExamplesView: React.FC = () => {
   const { data } = useFetchExamples();
 
   // local states
-  const [projectName, setProjectName] = React.useState<string>();
+  const [projectName, setProjectName] = React.useState<string>("");
   const [projectUuid, setProjectUuid] = React.useState<string>();
   const [importingState, setImportingState] = React.useState<ImportingState>(
     "READY"
@@ -84,7 +82,7 @@ const ExamplesView: React.FC = () => {
         categorized[tabIndex].push(example);
         return categorized;
       },
-      [[], []]
+      [[], []] as [Example[], Example[]]
     );
   }, [data]);
 
@@ -93,7 +91,7 @@ const ExamplesView: React.FC = () => {
   };
 
   const goToSelectedProject = (e: React.MouseEvent) => {
-    navigateTo(siteMap.pipelines.path, { query: { projectUuid } }, e);
+    navigateTo(siteMap.pipeline.path, { query: { projectUuid } }, e);
   };
 
   const changeTabByIndex = (
@@ -108,11 +106,10 @@ const ExamplesView: React.FC = () => {
     setImportingState("IMPORTING");
   };
 
-  const onImportComplete = (result: BackgroundTask) => {
-    if (result.status === "SUCCESS") {
-      setImportingState("DONE");
-      setProjectUuid(result.result);
-    }
+  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
+    setProjectUuid(newProject.uuid);
+    setProjectName(newProject.path);
+    setImportingState("DONE");
   };
 
   const closeDialog = () => {
@@ -122,16 +119,20 @@ const ExamplesView: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <Layout
+      toolbarElements={
+        <BackButton onClick={goToProjects}>Back to projects</BackButton>
+      }
+    >
       <div className="view-page examples-view">
         <ImportDialog
-          projectName={projectName}
-          setProjectName={setProjectName}
           onClose={closeDialog}
           open={importingState === "IMPORTING"}
           importUrl={importUrl}
           setImportUrl={setImportUrl}
           onImportComplete={onImportComplete}
+          hideUploadOption
+          hideProjectMetadata
         />
         <ImportSuccessDialog
           projectName={projectName}
@@ -139,15 +140,6 @@ const ExamplesView: React.FC = () => {
           onClose={closeDialog}
           goToPipelines={goToSelectedProject}
         />
-        <div className="push-down">
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={goToProjects}
-            onAuxClick={goToProjects}
-          >
-            Back to projects
-          </Button>
-        </div>
         <div className="examples-view-heading-section">
           <div className="examples-view-heading-section_main">
             <h2 className="examples-view-title">{pageHeaderText}</h2>

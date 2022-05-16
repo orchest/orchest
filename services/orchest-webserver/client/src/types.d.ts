@@ -1,6 +1,14 @@
 import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
 
+declare module "react" {
+  interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
+    // extends React's HTMLAttributes
+    directory?: string;
+    webkitdirectory?: string;
+  }
+}
+
 export type Json =
   | string
   | number
@@ -54,7 +62,7 @@ export type OrchestConfig = {
   ENVIRONMENT_DEFAULTS: {
     base_image: string;
     gpu_support: boolean;
-    language: string;
+    language: Language;
     name: string;
     setup_script: string;
   };
@@ -62,13 +70,14 @@ export type OrchestConfig = {
   GPU_ENABLED_INSTANCE: boolean;
   INTERCOM_APP_ID: string;
   INTERCOM_DEFAULT_SIGNUP_DATE: string;
-  ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE: string;
-  ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE: string;
+  ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE: string;
+  ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE: string;
   ORCHEST_WEB_URLS: {
     github: string;
     readthedocs: string;
     slack: string;
     website: string;
+    orchest_update_info_json: string;
     orchest_examples_repo: string;
     orchest_examples_json: string;
   };
@@ -97,11 +106,7 @@ export interface IOrchestSessionUuid {
 
 export interface IOrchestSession extends IOrchestSessionUuid {
   status?: "RUNNING" | "LAUNCHING" | "STOPPING";
-  jupyter_server_ip?: string;
-  notebook_server_info?: {
-    port: number;
-    base_url: string;
-  };
+  base_url?: string;
   user_services?: {
     [key: string]: {
       name: string;
@@ -135,7 +140,7 @@ export type Project = {
   path: string;
   uuid: string;
   pipeline_count: number;
-  job_count: number;
+  job_count: number | undefined;
   environment_count: number;
   project_snapshot_size: number;
   env_variables: Record<string, string>;
@@ -143,25 +148,34 @@ export type Project = {
   session_count?: number;
 };
 
+export type Language = "python" | "r" | "julia" | "javascript";
+
 export type Environment = {
   base_image: string;
   gpu_support: boolean;
-  language: string;
+  language: Language;
   name: string;
   project_uuid: string;
   setup_script: string;
   uuid: string;
 };
 
-export type EnvironmentBuild = {
+export type CustomImage = Pick<
+  Environment,
+  "base_image" | "language" | "gpu_support"
+>;
+
+export type EnvironmentImageBuild = {
+  uuid: string;
   environment_uuid: string;
   finished_time: string;
   project_path: string;
   project_uuid: string;
+  image_tag: string;
   requested_time: string;
   started_time: string;
   status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
-  uuid: string;
+  celery_task_uuid: string;
 };
 
 export type PipelineStepStatus =
@@ -178,6 +192,7 @@ export type JobStatus =
   | "PAUSED"
   | "SUCCESS"
   | "ABORTED"
+  | "FAILURE"
   | "DRAFT";
 
 export type PipelineRun = {
@@ -224,6 +239,7 @@ export type Job = {
     uuid: string;
     steps: Record<string, Step>;
     version: string;
+    services: Record<string, Service>;
   };
   next_scheduled_time: string;
   last_scheduled_time: string;
@@ -236,7 +252,7 @@ export type Job = {
     run_config: {
       project_dir: string;
       pipeline_path: string;
-      host_user_dir: string;
+      userdir_pvc: string;
     };
     scheduled_start: string;
   };
@@ -251,45 +267,79 @@ export type Job = {
 };
 
 export type Step = {
+  uuid: string;
+  title: string;
+  incoming_connections: string[];
   environment: string;
   file_path: string;
-  incoming_connections: string[];
-  kernel: { display_name: string; name: string };
+  kernel: {
+    display_name?: string;
+    name?: string;
+  };
   meta_data: { hidden: boolean; position: [number, number] };
   parameters: Record<string, any>;
-  title: string;
-  uuid: string;
 };
 
-export type IPipelineStepState = Step & {
-  outgoing_connections?: string[];
-  meta_data: {
-    hidden: boolean;
-    position: [number, number];
-    _drag_count: number;
-    _dragged: boolean;
-  };
+export type MouseTracker = {
+  client: Position;
+  prev: Position;
+  delta: Position;
+  unscaledPrev: Position;
+  unscaledDelta: Position;
 };
+
+export type Connection = {
+  startNodeUUID: string;
+  endNodeUUID?: string;
+};
+
+export type NewConnection = Connection & {
+  xEnd?: number;
+  yEnd?: number;
+};
+
+export type Position = { x: number; y: number };
+
+export type LogType = "step" | "service";
+
+export type PipelineStepMetaData = {
+  hidden: boolean;
+  position: [number, number];
+};
+
+export type PipelineStepState = Step & {
+  outgoing_connections?: string[];
+  meta_data?: PipelineStepMetaData;
+};
+
+export type StepsDict = Record<string, PipelineStepState>;
+
+export type Offset = { top: number; left: number };
 
 export type Service = {
   image: string;
   name: string;
   scope: ("interactive" | "noninteractive")[];
-  entrypoint?: string;
+  args?: string;
   binds?: Record<string, string>;
-  ports?: number[];
-  command: string;
+  ports: number[];
+  command?: string;
   preserve_base_path?: boolean;
   env_variables?: Record<string, string>;
   env_variables_inherit?: any[];
+  exposed: boolean;
   requires_authentication?: boolean;
-  order?: number;
+  order: number;
 };
 
 export type FileTree = {
   type: "directory" | "file";
   name: string;
   root?: boolean;
+  // Absolute path against the root, e.g. /folder/sub/file.py, will need to check if its root is `/project-dir:/ or `/data:/`;
+  // therefore, the complete absolute path would be `/project-dir:/folder/sub/file.py`
+  path?: string;
+  depth?: number;
   children: FileTree[];
 };
 
@@ -303,17 +353,19 @@ export type Pipeline = {
 
 export type PipelineMetaData = {
   uuid: string;
-  path: string;
+  path: string; // Note that this path is relative to `/project-dir:`, i.e. it doesn't have a leading slash
   name: string;
+};
+
+export type PipelineSettings = {
+  auto_eviction?: boolean;
+  data_passing_memory_size?: string;
 };
 
 export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
-  settings: {
-    auto_eviction?: boolean;
-    data_passing_memory_size?: string;
-  };
+  settings: PipelineSettings;
   steps: Record<string, Step>;
   uuid: string;
   version: string;
@@ -360,5 +412,5 @@ export type UpdateInfo = {
 };
 
 export type OrchestVersion = {
-  version: string | null;
+  version: string | null | undefined;
 };

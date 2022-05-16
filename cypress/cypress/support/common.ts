@@ -47,7 +47,6 @@ export enum TEST_ID {
   ENVIRONMENTS_ROW_CHECKBOX = "environments-row-checkbox",
   ENVIRONMENTS_SAVE = "environments-save",
   ENVIRONMENT_START_BUILD = "environment-start-build",
-  ENVIRONMENT_TAB_BUILD = "environment-build-tab",
   ENVIRONMENT_TAB_PROPERTIES = "environment-properties-tab",
   ENVIRONMENTS_TOGGLE_ALL_ROWS = "environment-list-toggle-all-rows",
   FILE_PICKER_FILE_PATH_TEXTFIELD = "file-picker-file-path-textfield",
@@ -88,7 +87,6 @@ export enum TEST_ID {
   JUPYTERLAB_IFRAME = "jupyterlab-iframe",
   MANAGE_USERS = "manage-users",
   MENU_ENVIRONMENTS = "menu-environments",
-  MENU_FILE_MANAGER = "menu-file-manager",
   MENU_JOBS = "menu-jobs",
   MENU_PIPELINE = "menu-pipelines",
   MENU_PROJECTS = "menu-projects",
@@ -273,8 +271,8 @@ export const PROJECTS = {
 // cypress commands that does not have retry-ability when following
 // assertions fail.
 /**
- * @param {expected}  p1 - Expected number of environment images.
- * @param {retries} p2 - How many times to retry if expected != value.
+ * @param expected {number} Expected number of environment images.
+ * @param retries {number} How many times to retry if expected != value.
  */
 export function assertTotalEnvironmentImages(expected: number, retries = 50) {
   cy.log(`Asserting that the number of environment images is ${expected}.`);
@@ -308,12 +306,14 @@ export function getJobProjectDirPath(
   return r;
 }
 
-export function setStepParameters(stepTitle, params) {
-  cy.intercept("POST", /.*/).as("allPosts");
+export function setStepParameters(stepTitle: string, params) {
+  cy.intercept("POST", /async\/project-files\/exists/).as("fileExists");
   cy.get(`[data-test-title=${stepTitle}]`)
     .scrollIntoView()
     .click({ force: true });
+  cy.wait("@fileExists");
 
+  cy.intercept("POST", /.*/).as("allPosts");
   // Delete the current content.
   cy.get(".CodeMirror-line")
     .first()
@@ -384,7 +384,7 @@ export function reloadUntilElementsLoaded(
         );
       } else {
         throw new Error(
-          `Projects are not loaded. (expected: ${numberOfElements}, actual: ${listLength} )`
+          `${testId} are not loaded. (expected: ${numberOfElements}, actual: ${listLength} )`
         );
       }
     } else {
@@ -492,11 +492,10 @@ export function assertEnvIsBuilt() {
   // Make sure the environment is built.
   cy.goToMenu("environments");
   cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
-  cy.findAllByTestId(TEST_ID.ENVIRONMENT_TAB_BUILD).click();
   cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
     .scrollIntoView()
     .should("be.visible")
-    .contains("SUCCESS", { timeout: 20000 });
+    .contains("Build successfully completed!", { timeout: 20000 });
 
   cy.goToMenu("pipelines");
 }

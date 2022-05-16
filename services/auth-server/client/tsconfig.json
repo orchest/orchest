@@ -1,9 +1,20 @@
 {
   "extends": "../../../tsconfig.json",
-  "exclude": ["node_modules"],
-  "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"],
+  "include": ["src/**/*"],
   "compilerOptions": {
-    "types": ["jest", "@emotion/react/types/css-prop"],
-    "baseUrl": "."
+    "types": ["jest", "node", "@emotion/react/types/css-prop"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strictBindCallApply": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noFallthroughCasesInSwitch": true,
+    "downlevelIteration": true
   }
 }

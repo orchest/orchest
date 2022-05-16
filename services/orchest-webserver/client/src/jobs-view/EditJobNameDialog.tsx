@@ -53,7 +53,7 @@ export const EditJobNameDialog = ({
             helperText={
               hasOnlySpaces
                 ? "Should contain at least one non-whitespace letter"
-                : ""
+                : " "
             }
             value={jobName}
             label="Job name"

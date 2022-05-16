@@ -1,0 +1,26 @@
+APScheduler
+Flask-Cors
+Flask-SQLAlchemy
+Flask
+Jinja2
+SQLAlchemy-Utils
+Werkzeug
+aiohttp
+amqp
+celery
+croniter
+eventlet
+flask-migrate
+flask-restx
+flask-script
+itsdangerous
+kubernetes
+psycopg2-binary
+pytest-mock
+python-engineio
+python-socketio[client]
+requests
+six>=1.13.0
+-e file:../../lib/python/orchest-internals
+-e file:../../orchest-cli
+

@@ -147,15 +147,16 @@ def register_views(app):
             return redirect_response(redirect_url, redirect_type)
 
         if request.method == "POST":
-
             username = request.form.get("username")
             password = request.form.get("password")
             token = request.form.get("token")
 
+            # Check whether the given user exists.
             user = User.query.filter(User.username == username).first()
 
+            invalid_login_msg = "Username password combination does not exist."
             if user is None:
-                return jsonify({"error": "User does not exist."}), 401
+                return jsonify({"error": invalid_login_msg}), 401
             else:
                 if password is not None:
                     can_login = check_password_hash(user.password_hash, password)
@@ -181,7 +182,7 @@ def register_views(app):
                     return resp
 
                 else:
-                    return jsonify({"error": "Invalid credentials."}), 401
+                    return jsonify({"error": invalid_login_msg}), 401
 
     @app.route("/login/users", methods=["DELETE"])
     def delete_user():

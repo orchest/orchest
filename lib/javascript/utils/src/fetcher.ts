@@ -1,10 +1,15 @@
 export type FetchError = {
-  status: number;
+  status?: number;
   message: string;
+  body?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
-export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
-  const response = await window.fetch(url, params);
+const getExactUrl = (url: string) => `${__BASE_URL__}${url}`;
+
+export const fetcher = async <T>(url: string, params?: RequestInit) => {
+  const targetUrl = getExactUrl(url);
+
+  const response = await window.fetch(targetUrl, params);
   const responseAsString = await response.text();
   const jsonResponse =
     responseAsString === "" ? {} : JSON.parse(responseAsString);
@@ -21,6 +26,14 @@ export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
   return jsonResponse as Promise<T>;
 };
 
+export type Fetcher<T = void> = (
+  url: string,
+  params?: RequestInit | undefined
+) => Promise<T>;
+
 export const HEADER = {
   JSON: { "Content-Type": "application/json; charset=UTF-8" },
+  FORM: {
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  },
 };

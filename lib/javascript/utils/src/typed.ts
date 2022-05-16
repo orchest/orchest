@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 // used in orchest-webserver and mdc-components only
 export function uuidv4() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -9,86 +7,8 @@ export function uuidv4() {
   });
 }
 
-type CancelablePromise = {
-  cancel: () => void;
-  promise: Promise<string>;
-};
-
 // used in orchest-webserver only
-export class PromiseManager<T> {
-  cancelablePromises: CancelablePromise<T>[];
-
-  constructor() {
-    this.cancelablePromises = [];
-  }
-
-  appendCancelablePromise(cancelablePromise: CancelablePromise<T>) {
-    this.cancelablePromises.push(cancelablePromise);
-  }
-
-  cancelCancelablePromises() {
-    for (let cancelablePromise of this.cancelablePromises) {
-      cancelablePromise.cancel();
-    }
-  }
-
-  clearCancelablePromise(cancelablePromise: CancelablePromise<T>) {
-    let index = this.cancelablePromises.indexOf(cancelablePromise);
-    this.cancelablePromises.splice(index, 1);
-  }
-}
-
-// used in orchest-webserver only
-export function makeCancelable<T>(
-  promise: Promise<T>,
-  promiseManager: PromiseManager<T>
-) {
-  let hasCanceled_ = false;
-
-  let cancelablePromise: CancelablePromise<T> = {
-    cancel() {
-      hasCanceled_ = true;
-    },
-    promise: new Promise<T>((resolve, reject) => {
-      promise.then(
-        (val) => {
-          hasCanceled_ ? reject({ isCanceled: true }) : resolve(val);
-
-          promiseManager.clearCancelablePromise(cancelablePromise);
-        },
-        (error) => {
-          hasCanceled_ ? reject({ isCanceled: true }) : reject(error);
-
-          promiseManager.clearCancelablePromise(cancelablePromise);
-        }
-      );
-    }),
-  };
-
-  promiseManager.appendCancelablePromise(cancelablePromise);
-
-  return cancelablePromise;
-}
-
-// used in orchest-webserver only
-export const LANGUAGE_MAP = {
-  python: "Python",
-  r: "R",
-  julia: "Julia",
-};
-
-// used in orchest-webserver only
-// Related to the analytics.py module, "environment_build_start" event,
-// which checks for the base image to start with "orchest/".
-export const DEFAULT_BASE_IMAGES = [
-  "orchest/base-kernel-py",
-  "orchest/base-kernel-py-gpu",
-  "orchest/base-kernel-r",
-  "orchest/base-kernel-julia",
-];
-
-// used in orchest-webserver only
-export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
+export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl", "js"];
 
 // used in orchest-webserver only
 export function collapseDoubleDots(path: string) {
@@ -101,12 +21,12 @@ export function collapseDoubleDots(path: string) {
    * */
 
   let pathComponents = path.split("/");
-  let newPathComponents = [];
+  let newPathComponents = [] as string[];
   let skipCount = 0;
 
   // traverse in reverse
   for (let x = pathComponents.length - 1; x >= 0; x--) {
-    if (pathComponents[x] == "..") {
+    if (pathComponents[x] === "..") {
       // skip path that follows
       skipCount += 1;
     } else if (skipCount > 0) {
@@ -118,6 +38,16 @@ export function collapseDoubleDots(path: string) {
 
   return newPathComponents.join("/");
 }
+
+/**
+ * Join multiple relative paths to generate a relative path to the first path.
+ * @param cwd {string} A relative path from current working directory to root.
+ * @param path {string} A relative path based on cwd.
+ */
+export const joinRelativePaths = (...args: string[]) => {
+  // if cwd is at the root, `cwd` could be "/".
+  return collapseDoubleDots(args.join("")).replace(/^\//, "");
+};
 
 // used in orchest-webserver only
 export function absoluteToRelativePath(path: string, cwd: string) {
@@ -177,11 +107,7 @@ export function someParentHasClass(element, classname) {
 }
 
 // used in mdc-components only
-export function checkHeartbeat(url, retries?) {
-  if (retries === undefined) {
-    retries = 250;
-  }
-
+export function checkHeartbeat(url: string, retries = 250) {
   let tries = 0;
 
   let requestLambda = (resolve, reject) => {
@@ -232,16 +158,18 @@ export function activeElementIsInput() {
 }
 
 // used in orchest-webserver only
-export function validURL(string) {
-  let url;
-
+export function validURL(
+  url: string | undefined,
+  skipHttpsChecking = false
+): url is string {
+  if (!url) return false;
   try {
-    url = new URL(string);
+    new URL(url);
   } catch (_) {
     return false;
   }
 
-  return true;
+  return skipHttpsChecking || url.startsWith("https://");
 }
 
 // used in orchest-webserver only
