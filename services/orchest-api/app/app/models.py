@@ -1077,6 +1077,7 @@ class EventType(BaseModel):
     - services/orchest-api/app/migrations/versions/92dcc9963a9c_.py
     - services/orchest-api/app/migrations/versions/ad0b4cda3e50_.py
     - services/orchest-api/app/migrations/versions/849b7b154ef6_.py
+    - services/orchest-api/app/migrations/versions/637920f5715f_.py
 
     To add more types, add an empty revision with
     `bash scripts/migration_manager.sh orchest-api revision`, then
@@ -1086,7 +1087,7 @@ class EventType(BaseModel):
 
     __tablename__ = "event_types"
 
-    name = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(100), primary_key=True)
 
     def __repr__(self):
         return f"<EventType: {self.name}>"
@@ -1108,7 +1109,9 @@ class Event(BaseModel):
     )
 
     type = db.Column(
-        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE"), index=True
+        db.String(100),
+        db.ForeignKey("event_types.name", ondelete="CASCADE"),
+        index=True,
     )
 
     timestamp = db.Column(
@@ -1675,7 +1678,7 @@ class Subscription(BaseModel):
     )
 
     event_type = db.Column(
-        db.String(50),
+        db.String(100),
         db.ForeignKey("event_types.name", ondelete="CASCADE"),
         nullable=False,
     )

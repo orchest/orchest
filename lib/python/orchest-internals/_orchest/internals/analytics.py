@@ -35,8 +35,6 @@ class Event(Enum):
     HEARTBEAT_TRIGGER = "heartbeat-trigger"
     JOB_DUPLICATED = "job:duplicated"
     JOB_UPDATED = "job:updated"
-    PIPELINE_RUN_CANCELLED = "pipeline-run:cancelled"
-    PIPELINE_RUN_STARTED = "pipeline-run:started"
     PIPELINE_SAVED = "pipeline:saved"
 
     # Sent by the orchest-api.
@@ -47,6 +45,20 @@ class Event(Enum):
     JUPYTER_IMAGE_BUILD_CANCELLED = "jupyter:image-build:cancelled"
     JUPYTER_IMAGE_BUILD_FAILED = "jupyter:image-build:failed"
     JUPYTER_IMAGE_BUILD_SUCCEEDED = "jupyter:image-build:succeeded"
+
+    INTERACTIVE_PIPELINE_RUN_CREATED = (
+        "project:pipeline:interactive-pipeline-run:created"
+    )
+    INTERACTIVE_PIPELINE_RUN_STARTED = (
+        "project:pipeline:interactive-pipeline-run:started"
+    )
+    INTERACTIVE_PIPELINE_RUN_CANCELLED = (
+        "project:pipeline:interactive-pipeline-run:cancelled"
+    )
+    INTERACTIVE_PIPELINE_RUN_FAILED = "project:pipeline:interactive-pipeline-run:failed"
+    INTERACTIVE_PIPELINE_RUN_SUCCEEDED = (
+        "project:pipeline:interactive-pipeline-run:succeeded"
+    )
 
     ONE_OFF_JOB_CREATED = "project:one-off-job:created"
     ONE_OFF_JOB_STARTED = "project:one-off-job:started"
@@ -330,7 +342,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def pipeline_run_started(event_properties: dict) -> dict:
+    def interactive_pipeline_run_created(event_properties: dict) -> dict:
         pdef = event_properties["pipeline_definition"]
         derived_properties = {
             "pipeline_definition": _anonymize_pipeline_definition(pdef),
@@ -384,7 +396,7 @@ _ANONYMIZATION_MAPPINGS = {
     Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
     Event.JOB_UPDATED: _Anonymizer.job_updated,
     Event.SESSION_STARTED: _Anonymizer.session_started,
-    Event.PIPELINE_RUN_STARTED: _Anonymizer.pipeline_run_started,
+    Event.INTERACTIVE_PIPELINE_RUN_CREATED: _Anonymizer.interactive_pipeline_run_created,  # noqa
     Event.PIPELINE_SAVED: _Anonymizer.pipeline_saved,
     Event.ENVIRONMENT_BUILD_STARTED: _Anonymizer.environment_build_started,
     Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created,
