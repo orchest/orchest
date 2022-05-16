@@ -12,6 +12,7 @@ import {
   getPipelineMedadatas,
   mockProjects,
 } from "@/__mocks__/mockProjects.mock";
+import { server } from "@/__mocks__/server.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
 import { SWRConfig } from "swr";
@@ -82,12 +83,11 @@ describe("useEnsureValidPipeline", () => {
     {
       state: IProjectsContextState;
       dispatch: (value: ProjectsContextAction) => void;
+      shouldShowAlert: boolean;
     }
   >(({ pipelineUuid }) => useTestHook(pipelineUuid), {
     wrapper,
-    initialProps: {
-      pipelineUuid: undefined,
-    },
+    initialProps: { pipelineUuid: undefined },
   });
 
   const loadProject1AfterMounted = async () => {
@@ -101,6 +101,7 @@ describe("useEnsureValidPipeline", () => {
     expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
     expect(result.current.state.pipelines).toEqual(undefined);
     expect(result.current.state.pipeline).toEqual(undefined);
+    expect(result.current.shouldShowAlert).toEqual(false);
 
     await waitForNextUpdate();
 
@@ -148,7 +149,7 @@ describe("useEnsureValidPipeline", () => {
     await loadProject1AfterMounted();
   });
 
-  it("should navigate to the first pipeline from the pipelines if pipelineUuid is invalid", async () => {
+  it("should navigate to the first pipeline from the pipelines with an alert if pipelineUuid is invalid", async () => {
     await loadProject1AfterMounted();
     rerender({ pipelineUuid: "invalid-pipeline-uuid" });
     expect(navigateToMock.mock.calls.length).toEqual(2);
@@ -161,6 +162,44 @@ describe("useEnsureValidPipeline", () => {
         },
       },
     ]);
+    expect(result.current.shouldShowAlert).toEqual(true);
+  });
+
+  it("should navigate to the new pipeline without an alert after creating a new pipeline", async () => {
+    await loadProject1AfterMounted();
+    // create a new pipeline for project 1
+    const newPipelineUuid = chance.guid();
+    mockProjects.get(mockData.project1Uuid).pipelines.get(newPipelineUuid);
+
+    server.resetHandlers();
+
+    act(() => {
+      result.current.dispatch({
+        type: "ADD_PIPELINE",
+        payload: mockProjects
+          .get(mockData.project1Uuid)
+          .pipelines.get(newPipelineUuid).metadata,
+      });
+      result.current.dispatch({
+        type: "SET_PROJECT",
+        payload: mockData.project1Uuid,
+      });
+    });
+
+    await waitForNextUpdate();
+
+    rerender({ pipelineUuid: newPipelineUuid });
+
+    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
+    expect(result.current.state.pipelines).toEqual(
+      getPipelineMedadatas(mockData.project1Uuid)
+    );
+    expect(result.current.state.pipeline).toEqual(
+      mockProjects.get(mockData.project1Uuid).pipelines.get(newPipelineUuid)
+        .metadata
+    );
+    expect(result.current.state.newPipelineUuid).toEqual(newPipelineUuid);
+    expect(result.current.shouldShowAlert).toEqual(false);
   });
 
   it("should refetch pipelines when switching projects", async () => {
@@ -199,6 +238,7 @@ describe("useEnsureValidPipeline", () => {
         },
       },
     ]);
+    expect(result.current.shouldShowAlert).toEqual(false);
   });
 
   it("should navigate to the last-seen pipeline if pipelineUuid is undefined", async () => {
@@ -256,6 +296,7 @@ describe("useEnsureValidPipeline", () => {
         },
       },
     ]);
+    expect(result.current.shouldShowAlert).toEqual(false);
 
     await waitForNextUpdate();
 
@@ -278,5 +319,6 @@ describe("useEnsureValidPipeline", () => {
         },
       },
     ]);
+    expect(result.current.shouldShowAlert).toEqual(false);
   });
 });
