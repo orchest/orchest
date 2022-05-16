@@ -14,6 +14,7 @@ export type IProjectsContextState = {
   projects: Project[];
   hasLoadedProjects: boolean;
   hasLoadedPipelinesInPipelineEditor: boolean;
+  newPipelineUuid: string | undefined;
 };
 
 export const useProjectsContext = () => React.useContext(ProjectsContext);
@@ -77,6 +78,7 @@ const reducer = (
           ? [...state.pipelines, action.payload]
           : [action.payload],
         pipeline: action.payload,
+        newPipelineUuid: action.payload.uuid,
       };
     }
     case "UNSET_PIPELINE": {
@@ -161,6 +163,7 @@ const initialState: IProjectsContextState = {
   projects: [],
   hasLoadedProjects: false,
   hasLoadedPipelinesInPipelineEditor: false,
+  newPipelineUuid: undefined,
 };
 
 export const ProjectsContextProvider: React.FC = ({ children }) => {

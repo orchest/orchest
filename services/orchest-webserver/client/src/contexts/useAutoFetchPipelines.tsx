@@ -1,5 +1,6 @@
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { useHasChanged } from "@/hooks/useHasChanged";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectsContext } from "./ProjectsContext";
 
@@ -26,9 +27,11 @@ export const useAutoFetchPipelines = () => {
     if (hasPipelineCleanedUp) fetchPipelines();
   }, [fetchPipelines, hasPipelineCleanedUp]);
 
+  const hasFetched = !isFetchingPipelines && !error && hasValue(pipelines);
+
   React.useEffect(() => {
-    if (!isFetchingPipelines && !error && pipelines) {
+    if (hasFetched) {
       dispatch({ type: "LOAD_PIPELINES", payload: pipelines });
     }
-  }, [dispatch, pipelines, isFetchingPipelines, error]);
+  }, [dispatch, pipelines, hasFetched]);
 };

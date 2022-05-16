@@ -28,6 +28,7 @@ export const useEnsureValidPipelineBase = (
       projectUuid,
       pipeline,
       hasLoadedPipelinesInPipelineEditor,
+      newPipelineUuid,
     },
     dispatch,
   } = useProjectsContext();
@@ -124,6 +125,7 @@ export const useEnsureValidPipelineBase = (
   return (
     !hasLoadedPipelinesInPipelineEditor &&
     isTryingToFindByUuid &&
+    pipelineUuid !== newPipelineUuid && // No need to show alert if pipelineUuid is a new pipeline
     !foundPipelineByRouteUuid
   );
 };

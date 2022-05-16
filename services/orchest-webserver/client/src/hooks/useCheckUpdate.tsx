@@ -112,7 +112,7 @@ export const useCheckUpdate = () => {
     (
       localVersion: OrchestVersion["version"],
       versionToUpdate: UpdateInfo["latest_version"],
-      skipVersion: string | null,
+      skipVersion: string | null | undefined,
       shouldPromptNoUpdate: boolean
     ) => {
       if (!localVersion || !versionToUpdate) return;
