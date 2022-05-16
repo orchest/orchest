@@ -1239,6 +1239,64 @@ ForeignKeyConstraint(
 )
 
 
+def _prepare_interactive_run_parameters_payload(pipeline_definition: dict) -> dict:
+    parameters_payload = {}
+    for k, v in pipeline_definition["steps"].items():
+        step_name = pipeline_definition.get("steps").get(k, {}).get("title", "untitled")
+        parameters_payload[f"step-{step_name}-{k}"] = v.get("parameters", {})
+    parameters_payload["pipeline_parameters"] = pipeline_definition.get(
+        "parameters", {}
+    )
+    return parameters_payload
+
+
+def _prepare_interactive_pipeline_run_payload(
+    project_uuid: str, pipeline_uuid: str, pipeline_run_uuid: str
+) -> dict:
+    payload = {
+        "uuid": pipeline_run_uuid,
+        "parameters": None,
+        "status": None,
+        "steps": None,
+    }
+
+    pipeline_run = InteractivePipelineRun.query.filter(
+        InteractivePipelineRun.project_uuid == project_uuid,
+        InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
+        InteractivePipelineRun.uuid == pipeline_run_uuid,
+    ).first()
+    if pipeline_run is None:
+        return payload
+
+    payload["status"] = pipeline_run.status
+    payload["parameters"] = _prepare_interactive_run_parameters_payload(
+        pipeline_run.pipeline_definition
+    )
+    payload[
+        "url_path"
+    ] = f"/pipeline?project_uuid={project_uuid}&pipeline_uuid={pipeline_uuid}"
+    payload["steps"] = []
+    failed_steps = []
+    steps = PipelineRunStep.query.filter(
+        PipelineRunStep.run_uuid == pipeline_run_uuid,
+    ).all()
+    for step in steps:
+        step_name = (
+            pipeline_run.pipeline_definition.get("steps")
+            .get(step.step_uuid, {})
+            .get("title", "untitled")
+        )
+        step_name = f"step-{step_name}-{step.step_uuid}"
+        payload["steps"].append(step_name)
+        if step.status == "FAILURE":
+            failed_steps.append(step_name)
+
+    if failed_steps:
+        payload["failed_steps"] = failed_steps
+
+    return payload
+
+
 class InteractivePipelineRunEvent(PipelineEvent):
 
     __tablename__ = None
@@ -1251,9 +1309,11 @@ class InteractivePipelineRunEvent(PipelineEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["project"]["pipeline"]["pipeline_run"] = {
-            "uuid": self.pipeline_run_uuid
-        }
+        payload["project"]["pipeline"][
+            "pipeline_run"
+        ] = _prepare_interactive_pipeline_run_payload(
+            self.project_uuid, self.pipeline_uuid, self.pipeline_run_uuid
+        )
         return payload
 
 
@@ -1359,7 +1419,7 @@ class OneOffJobEvent(JobEvent):
         )
 
 
-def _prepare_parameters_payload(
+def _prepare_job_pipeline_run_parameters_payload(
     pipeline_definition: dict, run_parameters: dict
 ) -> dict:
     parameters_payload = {}
@@ -1397,7 +1457,7 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
         payload["number_in_run"] = pipeline_run.job_run_pipeline_run_index
 
     payload["status"] = pipeline_run.status
-    payload["parameters"] = _prepare_parameters_payload(
+    payload["parameters"] = _prepare_job_pipeline_run_parameters_payload(
         job.pipeline_definition, pipeline_run.parameters
     )
     payload["url_path"] = (
@@ -1415,7 +1475,7 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
             step_name = (
                 job.pipeline_definition.get("steps")
                 .get(step.step_uuid, {})
-                .get("title")
+                .get("title", "untitled")
             )
             failed_steps_payload.append(f"step-{step_name}-{step.step_uuid}")
             payload["failed_steps"] = failed_steps_payload
