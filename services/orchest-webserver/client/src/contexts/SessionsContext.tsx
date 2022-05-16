@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
 import { checkGate } from "@/utils/webserver-utils";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
@@ -148,6 +149,7 @@ const initialState: SessionsContextState = {
 
 export const SessionsContextProvider: React.FC = ({ children }) => {
   const { setAlert, requestBuild } = useAppContext();
+  const projectsContext = useProjectsContext();
 
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
@@ -216,6 +218,16 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
     [setSession, setAlert]
   );
 
+  const setReadOnly = React.useCallback(
+    (value: boolean) => {
+      projectsContext.dispatch({
+        type: "SET_PIPELINE_IS_READONLY",
+        payload: value,
+      });
+    },
+    [projectsContext]
+  );
+
   // NOTE: launch/delete session is an async operation from BE
   // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
   const toggleSession = React.useCallback(
@@ -259,12 +271,14 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         await checkGate(payload.projectUuid); // Ensure that environments are built.
         startSession(payload);
       } catch (error) {
+        setReadOnly(true);
         requestBuild(payload.projectUuid, error.data, "Pipelines", () => {
           startSession(payload);
+          setReadOnly(false);
         });
       }
     },
-    [setAlert, setSession, state, startSession, requestBuild]
+    [setAlert, setSession, state, startSession, requestBuild, setReadOnly]
   );
 
   const deleteAllSessions = React.useCallback(async () => {
