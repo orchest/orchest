@@ -8,7 +8,7 @@ export function uuidv4() {
 }
 
 // used in orchest-webserver only
-export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
+export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl", "js"];
 
 // used in orchest-webserver only
 export function collapseDoubleDots(path: string) {

@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Optional, Tuple
+
 """Provides a simple migration layer for pipeline jsons.
 
 Given a pipeline version, a mapping will be used to establish if the
@@ -85,10 +87,16 @@ def _migrate_1_1_0(pipeline: dict) -> None:
         )
 
 
+def _migrate_1_2_0(pipeline: dict) -> None:
+    """Fill the missing order property for services"""
+    _fill_missing_order(pipeline.get("services"))
+
+
 # version: (migration function, version to which it's migrated)
 _version_to_migration_function = {
     "1.0.0": (_migrate_1_0_0, "1.1.0"),
     "1.1.0": (_migrate_1_1_0, "1.2.0"),
+    "1.2.0": (_migrate_1_2_0, "1.2.1"),
 }
 
 # Make sure no forward version is repeated.
@@ -101,7 +109,62 @@ __migration_functions = set(
 assert len(_version_to_migration_function) == len(__migration_functions)
 
 
-def migrate_pipeline(pipeline: dict):
+def _ensure_unique_order(sorted_service_list: List[Tuple[str, Dict[str, Any]]]) -> int:
+    max_order: int = -1
+    for (key, service) in sorted_service_list:
+        service_order = service.get("order")
+        if service_order is None:
+            continue
+        if max_order == service_order:
+            service["order"] = service_order + 1
+        max_order = service["order"]
+
+    return max_order
+
+
+def _sort_service_key_function(
+    service: Dict[str, Any], ordered_dict: Dict[str, int]
+) -> int:
+    service_name = service.get("name")
+    service_order: Optional[int] = service.get("order")
+    if service_order is not None:
+        ordered_dict[service_name] = service_order
+        return service_order
+    else:
+        return 0
+
+
+def _fill_missing_order(services: Optional[Dict[str, Dict[str, Any]]]) -> None:
+    if services is None:
+        return
+
+    service_list = services.items()
+    ordered_dict: Dict[str, int] = {}
+
+    service_list = sorted(
+        service_list,
+        key=lambda service: _sort_service_key_function(service[1], ordered_dict),
+    )
+
+    max_order = _ensure_unique_order(service_list)
+
+    to_be_ordered_list: list[str] = []
+
+    for key, service in service_list:
+        service_order: Optional[int] = service.get("order")
+        if service_order is None:
+            to_be_ordered_list.append(key)
+        else:
+            ordered_dict[key] = service_order
+
+    to_be_ordered_list = sorted(to_be_ordered_list)
+
+    for key in to_be_ordered_list:
+        max_order += 1
+        services[key]["order"] = max_order
+
+
+def migrate_pipeline(pipeline: dict) -> None:
     """Migrates a pipeline in place to the latest version."""
 
     if not pipeline.get("version", ""):

@@ -226,8 +226,9 @@ class Jupyter {
               this.setKernelChangePending(notebook, kernel, true);
               this.setConfirm("Warning", warningMessage, async (resolve) => {
                 try {
-                  await sessionContext.changeKernel({ name: kernel });
-                  this.setKernelChangePending(notebook, kernel, false);
+                  sessionContext.changeKernel({ name: kernel }).then(() => {
+                    this.setKernelChangePending(notebook, kernel, false);
+                  });
                   resolve(true);
                   return true;
                 } catch (error) {
@@ -253,11 +254,15 @@ class Jupyter {
                     warningMessage,
                     async (resolve) => {
                       try {
-                        await docManager.services.sessions.shutdown(
-                          notebookSession.id
-                        );
-
-                        this.setKernelChangePending(notebook, kernel, false);
+                        docManager.services.sessions
+                          .shutdown(notebookSession.id)
+                          .then(() => {
+                            this.setKernelChangePending(
+                              notebook,
+                              kernel,
+                              false
+                            );
+                          });
                         resolve(true);
                         return true;
                       } catch (error) {

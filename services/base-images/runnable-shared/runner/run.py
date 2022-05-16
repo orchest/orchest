@@ -49,7 +49,7 @@ def main():
         nr = NotebookRunner(pipeline_uuid, step_uuid, working_dir)
         nr.run(file_path)
 
-    elif file_extension in ["py", "r", "sh", "jl", ""]:
+    elif file_extension in ["py", "r", "sh", "jl", "js", ""]:
 
         # Explicitely use the Python that contains the user dependencies
         # (otherwise Popen could resolve to the Python inside the
@@ -68,6 +68,7 @@ def main():
             # strict sh.
             "sh": "bash",
             "jl": "julia",
+            "js": "node",
             "": "bash",
         }
 
