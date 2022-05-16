@@ -1076,6 +1076,7 @@ class EventType(BaseModel):
     - services/orchest-api/app/migrations/versions/814961a3d525_.py
     - services/orchest-api/app/migrations/versions/92dcc9963a9c_.py
     - services/orchest-api/app/migrations/versions/ad0b4cda3e50_.py
+    - services/orchest-api/app/migrations/versions/849b7b154ef6_.py
 
     To add more types, add an empty revision with
     `bash scripts/migration_manager.sh orchest-api revision`, then
@@ -1148,6 +1149,11 @@ class Event(BaseModel):
                     type.startswith("project:interactive-session:"),
                     "interactive_session_event",
                 ),
+                (
+                    type.startswith("project:pipeline:interactive-pipeline-run:"),
+                    "interactive_pipeline_run_event",
+                ),
+                (type.startswith("project:pipeline:"), "pipeline_event"),
                 (type.startswith("project:"), "project_event"),
             ],
             else_="event",
@@ -1198,6 +1204,54 @@ class ProjectEvent(Event):
             f"<ProjectEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}>"
         )
+
+
+class PipelineEvent(ProjectEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "pipeline_event"}
+
+    @declared_attr
+    def pipeline_uuid(cls):
+        return Event.__table__.c.get("pipeline_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["pipeline"] = {"uuid": self.pipeline_uuid}
+        return payload
+
+
+ForeignKeyConstraint(
+    [PipelineEvent.project_uuid, PipelineEvent.pipeline_uuid],
+    [Pipeline.project_uuid, Pipeline.uuid],
+    ondelete="CASCADE",
+)
+
+
+class InteractivePipelineRunEvent(PipelineEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "interactive_pipeline_run_event"}
+
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["pipeline"]["pipeline_run"] = {
+            "uuid": self.pipeline_run_uuid
+        }
+        return payload
+
+
+ForeignKeyConstraint(
+    [InteractivePipelineRunEvent.pipeline_run_uuid],
+    [InteractivePipelineRun.uuid],
+    ondelete="CASCADE",
+)
 
 
 class InteractiveSessionEvent(ProjectEvent):
