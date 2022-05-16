@@ -5,12 +5,33 @@ import { useLocalStorage } from "./useLocalStorage";
 
 export const useLastSeenPipeline = () => {
   const {
-    state: { pipelines, projectUuid },
+    state: { pipelines, projectUuid, projects, hasLoadedProjects },
   } = useProjectsContext();
 
   const [lastSeenPipelines, setlastSeenPipelines] = useLocalStorage<
     Record<string, string>
   >("pipelineEditor.lastSeenPipeline", {});
+
+  const currentProjectUuids = React.useMemo(() => {
+    return new Set(projects.map((project) => project.uuid));
+  }, [projects]);
+
+  React.useEffect(() => {
+    if (hasLoadedProjects) {
+      setlastSeenPipelines((current) => {
+        if (!current) return {};
+
+        return Object.entries(current).reduce(
+          (all, [persistedProjectUuid, persistedPipelineUuid]) => {
+            return currentProjectUuids.has(persistedProjectUuid)
+              ? { ...all, [persistedProjectUuid]: persistedPipelineUuid }
+              : all;
+          },
+          {} as Record<string, string>
+        );
+      });
+    }
+  }, [hasLoadedProjects, projects, setlastSeenPipelines, currentProjectUuids]);
 
   const lastSeenPipelineUuid = React.useMemo<string | undefined>(() => {
     if (!projectUuid || !lastSeenPipelines) return undefined;
@@ -23,12 +44,7 @@ export const useLastSeenPipeline = () => {
       (pipeline) => pipeline.uuid === pipelineUuidToLoad
     );
     return lastSeenPipeline?.uuid;
-  }, [
-    JSON.stringify(lastSeenPipelines),
-    projectUuid,
-    pipelines,
-    // lastSeenPipelines,
-  ]);
+  }, [projectUuid, pipelines, lastSeenPipelines]);
 
   return [lastSeenPipelineUuid, setlastSeenPipelines] as const;
 };
