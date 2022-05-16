@@ -26,7 +26,7 @@ const RenameField = ({
     fileRenameNewName,
     setFileRenameNewName,
   } = useFileManagerLocalContext();
-  const textFieldRef = React.useRef(null);
+  const textFieldRef = React.useRef<HTMLInputElement>(null);
   const theme = useTheme();
 
   React.useEffect(() => {
@@ -110,7 +110,7 @@ export const TreeRow = ({
             if (node.type === "file") draft.files.push(node);
           });
         },
-        { directories: [], files: [] }
+        { directories: [] as TreeNode[], files: [] as TreeNode[] }
       ),
     [treeNodes]
   );

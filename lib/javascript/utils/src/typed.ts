@@ -39,6 +39,16 @@ export function collapseDoubleDots(path: string) {
   return newPathComponents.join("/");
 }
 
+/**
+ * Join multiple relative paths to generate a relative path to the first path.
+ * @param cwd {string} A relative path from current working directory to root.
+ * @param path {string} A relative path based on cwd.
+ */
+export const joinRelativePaths = (...args: string[]) => {
+  // if cwd is at the root, `cwd` could be "/".
+  return collapseDoubleDots(args.join("")).replace(/^\//, "");
+};
+
 // used in orchest-webserver only
 export function absoluteToRelativePath(path: string, cwd: string) {
   // to simplify algorithm, path always end with a '/' (also for files)

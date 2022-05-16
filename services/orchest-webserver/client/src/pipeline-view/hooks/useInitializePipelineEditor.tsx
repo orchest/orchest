@@ -23,6 +23,7 @@ export const useInitializePipelineEditor = (
   const {
     navigateTo,
     projectUuid: projectUuidFromRoute,
+    pipelineUuid: pipelineuuidFromRoute,
     jobUuid,
   } = useCustomRoute();
 
@@ -81,13 +82,25 @@ export const useInitializePipelineEditor = (
   // initialize eventVars.steps
   const initialized = React.useRef(false);
   React.useEffect(() => {
-    if (!isFetchingPipelineJson && pipelineJson && !initialized.current) {
+    if (
+      !isFetchingPipelineJson &&
+      pipelineJson &&
+      !initialized.current &&
+      // Only start to initialize if the uuid in pipelineJson is correct.
+      // Because pipelineJson will be cached by SWR, initialization should only starts when uuid matches.
+      pipelineuuidFromRoute === pipelineJson.uuid
+    ) {
       initialized.current = true;
 
       let newSteps = extractStepsFromPipelineJson(pipelineJson);
       initializeEventVars(newSteps);
     }
-  }, [isFetchingPipelineJson, pipelineJson, initializeEventVars]);
+  }, [
+    isFetchingPipelineJson,
+    pipelineJson,
+    initializeEventVars,
+    pipelineuuidFromRoute,
+  ]);
 
   const { environments = [] } = useFetchEnvironments(
     !isReadOnly ? projectUuid : undefined

@@ -23,9 +23,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import {
   activeElementIsInput,
-  collapseDoubleDots,
   fetcher,
   hasValue,
+  joinRelativePaths,
 } from "@orchest/lib-utils";
 import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
@@ -307,9 +307,10 @@ export const PipelineEditor = () => {
 
   const notebookFilePath = React.useCallback(
     (pipelineCwd: string, stepUUID: string) => {
-      return collapseDoubleDots(
-        `${pipelineCwd}${eventVars.steps[stepUUID].file_path}`
-      ).slice(1);
+      return joinRelativePaths(
+        pipelineCwd,
+        eventVars.steps[stepUUID].file_path
+      );
     },
     [eventVars.steps]
   );
