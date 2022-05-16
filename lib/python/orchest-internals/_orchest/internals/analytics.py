@@ -327,17 +327,21 @@ class _Anonymizer:
 
     @staticmethod
     def session_started(event_properties: dict) -> dict:
-        derived_properties = {"user_services": {}}
+        derived_user_services = {}
         user_services = event_properties["project"]["session"]["user_services"]
         for service_name, service_def in user_services.items():
-            derived_properties["user_services"][
-                service_name
-            ] = _anonymize_service_definition(service_def)
+            derived_user_services[service_name] = _anonymize_service_definition(
+                service_def
+            )
 
         event_properties["project"]["session"].pop("user_services")
 
+        derived_properties = {}
+        derived_properties["project"] = {
+            "session": {"user_services": derived_user_services}
+        }
         # To not break the analytics schema, deprecated.
-        derived_properties["services"] = derived_properties["user_services"]
+        derived_properties["services"] = derived_user_services
 
         return derived_properties
 
