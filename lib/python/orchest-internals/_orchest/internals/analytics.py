@@ -337,6 +337,9 @@ class _Anonymizer:
         event_properties["project"]["session"].pop("user_services")
 
         derived_properties = {}
+        derived_properties["project"] = _anonymize_project_properties(
+            event_properties["project"]
+        )
         derived_properties["project"] = {
             "session": {"user_services": derived_user_services}
         }
@@ -346,11 +349,22 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def interactive_pipeline_run_created(event_properties: dict) -> dict:
-        pdef = event_properties["pipeline_definition"]
-        derived_properties = {
-            "pipeline_definition": _anonymize_pipeline_definition(pdef),
+    def interactive_pipeline_run(event_properties: dict) -> dict:
+        pipeline_run = event_properties["project"]["pipeline"]["pipeline_run"]
+
+        derived_properties = {}
+        derived_properties["project"] = _anonymize_project_properties(
+            event_properties["project"]
+        )
+        derived_properties["project"]["pipeline"] = {
+            "pipeline_run": _anonymize_pipeline_run_properties(pipeline_run)
         }
+        # To not break the analytics schema, deprecated.
+        derived_properties["pipeline_definition"] = pipeline_run["pipeline_definition"]
+        event_properties["run_uuid"] = pipeline_run["uuid"]
+        event_properties["run_type"] = "interactive"
+        event_properties["step_uuids_to_execute"] = pipeline_run["steps"]
+
         return derived_properties
 
     @staticmethod
@@ -400,7 +414,11 @@ _ANONYMIZATION_MAPPINGS = {
     Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
     Event.JOB_UPDATED: _Anonymizer.job_updated,
     Event.SESSION_STARTED: _Anonymizer.session_started,
-    Event.INTERACTIVE_PIPELINE_RUN_CREATED: _Anonymizer.interactive_pipeline_run_created,  # noqa
+    Event.INTERACTIVE_PIPELINE_RUN_CREATED: _Anonymizer.interactive_pipeline_run,
+    Event.INTERACTIVE_PIPELINE_RUN_STARTED: _Anonymizer.interactive_pipeline_run,
+    Event.INTERACTIVE_PIPELINE_RUN_CANCELLED: _Anonymizer.interactive_pipeline_run,
+    Event.INTERACTIVE_PIPELINE_RUN_FAILED: _Anonymizer.interactive_pipeline_run,
+    Event.INTERACTIVE_PIPELINE_RUN_SUCCEEDED: _Anonymizer.interactive_pipeline_run,
     Event.PIPELINE_SAVED: _Anonymizer.pipeline_saved,
     Event.ENVIRONMENT_BUILD_STARTED: _Anonymizer.environment_build_started,
     Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created,
@@ -473,6 +491,18 @@ def _anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
         else:
             step_uuid = k[-36:]
             derived_params[f"step_{step_uuid}_parameters_count"] = len(v)
+
+    if "steps" in pipeline_run:
+        pipeline_run["steps"] = [
+            # Only keep the uuid.
+            step[-36:]
+            for step in pipeline_run["steps"]
+        ]
+
+    if "pipeline_definition" in pipeline_run:
+        pipeline_run["pipeline_definition"] = _anonymize_pipeline_definition(
+            pipeline_run["pipeline_definition"]
+        )
     return derived_properties
 
 

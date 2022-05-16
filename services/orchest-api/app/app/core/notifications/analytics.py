@@ -66,7 +66,7 @@ def send_test_ping_delivery() -> bool:
 
 def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -> dict:
     if not event.type.startswith("project:interactive-session:"):
-        raise ValueError
+        raise ValueError()
 
     payload = event.to_notification_payload()
 
@@ -96,6 +96,25 @@ def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -
     return payload
 
 
+def _generate_interactive_pipeline_run_payload(
+    event: models.InteractivePipelineRunEvent,
+) -> dict:
+    if not event.type.startswith("project:pipeline:interactive-pipeline-run:"):
+        raise ValueError()
+
+    payload = event.to_notification_payload()
+    pipeline_run = models.InteractivePipelineRun.query.filter(
+        models.InteractivePipelineRun.project_uuid == event.project_uuid,
+        models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
+        models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
+    ).one()
+    payload["project"]["pipeline"]["pipeline_run"][
+        "pipeline_definition"
+    ] = pipeline_run.pipeline_definition
+
+    return payload
+
+
 def generate_payload_for_analytics(event: models.Event) -> dict:
     """Creates an analytics module compatible payload.
 
@@ -107,6 +126,9 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     analytics_payload = event.to_notification_payload()
     if event.type.startswith("project:interactive-session:"):
         return _generate_session_analytics_payload(event)
+
+    if event.type.startswith("project:pipeline:interactive-pipeline-run:"):
+        return _generate_interactive_pipeline_run_payload(event)
 
     event_type = analytics_payload["type"]
 
