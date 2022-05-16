@@ -253,6 +253,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
             "pipeline_uuid": pipeline.properties["uuid"],
             "project_uuid": project_uuid,
             "status": "PENDING",
+            "pipeline_definition": pipeline.to_dict(),
         }
         db.session.add(models.InteractivePipelineRun(**run))
         # need to flush because otherwise the bulk insertion of pipeline

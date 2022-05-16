@@ -867,6 +867,13 @@ class InteractivePipelineRun(PipelineRun):
         cascade="all, delete",
     )
 
+    pipeline_definition = db.Column(
+        JSONB,
+        nullable=False,
+        # To migrate old entries.
+        server_default="{}",
+    )
+
 
 class ClientHeartbeat(BaseModel):
     """Clients heartbeat for idle checking."""
