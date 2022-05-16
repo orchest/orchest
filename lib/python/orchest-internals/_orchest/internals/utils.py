@@ -187,6 +187,10 @@ def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
 
     existing_orders: Set[int] = set()
 
+    # Empty services dict is allowed
+    if len(services.keys()) == 0:
+        return True
+
     for sname, service in services.items():
         if (
             not is_service_definition_valid(service)
