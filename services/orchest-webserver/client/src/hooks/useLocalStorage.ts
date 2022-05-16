@@ -1,33 +1,42 @@
 import React from "react";
 
+type LocalStorageValue<T> = T | null | undefined;
+
 function parseLocalStorageString<T>(
   itemAsString: string | null,
   defaultValue?: T
-) {
-  // never saved before
-  if (itemAsString === null && defaultValue !== undefined) return defaultValue;
-  // it was saved before as undefined, so we take the saved value
-  if (itemAsString === "undefined") return undefined;
-  return JSON.parse(itemAsString); // including null
+): T | null | undefined {
+  try {
+    // never saved before
+    if (itemAsString === null && defaultValue !== undefined)
+      return defaultValue;
+    // it was saved before as undefined, so we take the saved value
+    if (itemAsString === "undefined") return undefined;
+    return itemAsString === null ? null : JSON.parse(itemAsString);
+  } catch (error) {
+    console.log(error);
+    return defaultValue;
+  }
 }
 
 export const useLocalStorage = <T>(key: string, defaultValue: T) => {
   const privateKey = `orchest.${key}`;
 
-  const cachedItemString = React.useRef<string>();
-  const [storedValue, setStoredValue] = React.useState<T>(() => {
-    try {
+  const cachedItemString = React.useRef<string | null>();
+  const [storedValue, setStoredValue] = React.useState<LocalStorageValue<T>>(
+    () => {
       const item = window.localStorage.getItem(privateKey);
       cachedItemString.current = item;
       return parseLocalStorageString<T>(item, defaultValue);
-    } catch (error) {
-      console.log(error);
-      return defaultValue;
     }
-  });
+  );
 
   const setValue = React.useCallback(
-    (value: T | ((value: T) => T)) => {
+    (
+      value:
+        | LocalStorageValue<T>
+        | ((value: LocalStorageValue<T>) => LocalStorageValue<T>)
+    ) => {
       try {
         setStoredValue((current) => {
           const valueToStore =

@@ -14,21 +14,17 @@ export const useAutoFetchPipelines = () => {
 
   const hasPipelinesChanged = useHasChanged(state.pipelines);
 
+  const hasPipelineCleanedUp =
+    !isFetchingPipelines && hasPipelinesChanged && !state.pipelines;
+
   React.useEffect(() => {
     // When switching projects, state.pipelines will be cleaned up.
     // then we need to refetch.
     // Note that we don't want to trigger this when page is just loaded.
     // because useFetchPipelines will do the inital request.
-    const hasPipelineCleanedUp =
-      !isFetchingPipelines && hasPipelinesChanged && !state.pipelines;
 
     if (hasPipelineCleanedUp) fetchPipelines();
-  }, [
-    isFetchingPipelines,
-    state.pipelines,
-    hasPipelinesChanged,
-    fetchPipelines,
-  ]);
+  }, [fetchPipelines, hasPipelineCleanedUp]);
 
   React.useEffect(() => {
     if (!isFetchingPipelines && !error && pipelines) {

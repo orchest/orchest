@@ -134,7 +134,7 @@ const reducer = (
       // Ensure that projectUuid is valid in the state.
       // So that we could show proper warnings in case user provides
       // an invalid projectUuid from the route args.
-      const foundProject = state.projects?.find(
+      const foundProject = state.projects.find(
         (project) => project.uuid === action.payload
       );
       if (!foundProject) return state;

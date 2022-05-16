@@ -8,22 +8,27 @@ export const useLastSeenPipeline = () => {
     state: { pipelines, projectUuid },
   } = useProjectsContext();
 
-  const [lastSeenPipelineString, setlastSeenPipelineString] = useLocalStorage(
-    "pipelineEditor.lastSeenPipeline",
-    ":"
-  );
+  const [lastSeenPipelines, setlastSeenPipelines] = useLocalStorage<
+    Record<string, string>
+  >("pipelineEditor.lastSeenPipeline", {});
 
-  const [lastSeenProjectUuid, lastSeenPipelineUuid] = React.useMemo(() => {
-    return lastSeenPipelineString.split(":") as [string, string];
-  }, [lastSeenPipelineString]);
+  const lastSeenPipelineUuid = React.useMemo<string | undefined>(() => {
+    if (!projectUuid || !lastSeenPipelines) return undefined;
 
-  const foundLastSeenPipeline = React.useMemo(() => {
-    const pipelineUuidToLoad =
-      lastSeenProjectUuid === projectUuid ? lastSeenPipelineUuid : undefined;
+    const pipelineUuidToLoad = lastSeenPipelines[projectUuid];
 
     if (!hasValue(pipelines) || !hasValue(pipelineUuidToLoad)) return undefined;
-    return pipelines.find((pipeline) => pipeline.uuid === pipelineUuidToLoad);
-  }, [lastSeenProjectUuid, projectUuid, lastSeenPipelineUuid, pipelines]);
 
-  return [foundLastSeenPipeline, setlastSeenPipelineString] as const;
+    const lastSeenPipeline = pipelines.find(
+      (pipeline) => pipeline.uuid === pipelineUuidToLoad
+    );
+    return lastSeenPipeline?.uuid;
+  }, [
+    JSON.stringify(lastSeenPipelines),
+    projectUuid,
+    pipelines,
+    // lastSeenPipelines,
+  ]);
+
+  return [lastSeenPipelineUuid, setlastSeenPipelines] as const;
 };

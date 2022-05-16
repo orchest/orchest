@@ -20,11 +20,15 @@ export const useEnsureValidPipelineBase = (
     params?: NavigateParams | undefined,
     e?: React.MouseEvent<Element, MouseEvent> | undefined
   ) => void,
-  projectUuidFromRoute: string | undefined,
   pipelineUuid: string | undefined
 ) => {
   const {
-    state: { pipelines, pipeline, hasLoadedPipelinesInPipelineEditor },
+    state: {
+      pipelines,
+      projectUuid,
+      pipeline,
+      hasLoadedPipelinesInPipelineEditor,
+    },
     dispatch,
   } = useProjectsContext();
 
@@ -37,63 +41,84 @@ export const useEnsureValidPipelineBase = (
 
   useAutoFetchPipelines();
 
-  const [lastSeenPipeline, setlastSeenPipelineString] = useLastSeenPipeline();
+  const [lastSeenPipelineUuid, setlastSeenPipelines] = useLastSeenPipeline();
 
   const isTryingToFindByUuid = hasValue(pipelines) && hasValue(pipelineUuid);
 
-  const foundPipelineByRouteUuid = React.useMemo(
-    () =>
-      isTryingToFindByUuid
-        ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)
-        : undefined,
-    [isTryingToFindByUuid, pipelineUuid, pipelines]
-  );
+  const foundPipelineByRouteUuid = React.useMemo(() => {
+    const found = isTryingToFindByUuid
+      ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)
+      : undefined;
+    return found?.uuid;
+  }, [isTryingToFindByUuid, pipelineUuid, pipelines]);
 
-  const pipelineToOpen = React.useMemo(() => {
+  const pipelineUuidToOpen = React.useMemo(() => {
     return (
-      foundPipelineByRouteUuid || lastSeenPipeline || pipelines?.find(Boolean)
+      foundPipelineByRouteUuid ||
+      lastSeenPipelineUuid ||
+      pipelines?.find(Boolean)?.uuid
     );
-  }, [foundPipelineByRouteUuid, lastSeenPipeline, pipelines]);
+  }, [foundPipelineByRouteUuid, lastSeenPipelineUuid, pipelines]);
+
+  /**
+   * Redirect only when
+   * - state.pipeline is not yet loaded.
+   * - pipelineUuid is invalid (undefined or is different from pipelineUuidToOpen)
+   * And the above conditions are met usually when
+   * - switching projects (because pipelineUuid is undefined)
+   * - enter from non-project to project-related views, e.g. settings -> pipeline, because pipelineUuid is undefined.
+   * - the current pipeline is deleted, then the given pipelineUuid doesn't exist anymore
+   */
+  const shouldRedirect = React.useMemo(() => {
+    return (
+      hasValue(projectUuid) &&
+      hasValue(pipelineUuidToOpen) &&
+      pipelineUuidToOpen !== pipelineUuid &&
+      !pipeline
+    );
+  }, [pipeline, projectUuid, pipelineUuid, pipelineUuidToOpen]);
+
+  const shouldPersistPipelineUUid = React.useMemo(() => {
+    // Has pipelineUuid and no longer need to redirect, meaning that `pipelineUuid` is valid.
+    // pipelineUuid is valid, but not yet propogated to external state.
+    return (
+      !shouldRedirect &&
+      hasValue(pipelines) &&
+      hasValue(pipelineUuid) &&
+      pipeline?.uuid !== pipelineUuid
+    );
+  }, [shouldRedirect, pipeline, pipelineUuid, pipelines]);
 
   React.useEffect(() => {
-    /**
-     * Redirect only when pipeline is not yet loaded:
-     * - app is just loaded
-     * - switching project in pipeline editor
-     * - enter from non-project to project-related views, e.g. settings -> pipeline
-     */
-    const shouldRedirect =
-      pipelineToOpen && pipelineToOpen?.uuid !== pipelineUuid && !pipeline;
-
     if (shouldRedirect) {
       // Navigate to a valid pipelineUuid.
       navigateTo(siteMap.pipeline.path, {
         query: {
-          projectUuid: projectUuidFromRoute,
-          pipelineUuid: pipelineToOpen.uuid,
+          projectUuid: projectUuid,
+          pipelineUuid: pipelineUuidToOpen,
         },
       });
+      return;
     }
-    // Has pipelineUuid and no longer need to redirect, meaning that `pipelineUuid` is valid.
-    const hasValidPipelineUuid = !shouldRedirect && pipelineUuid;
-    // pipelineUuid is valid, but not yet propogated to external state.
-    const shouldPersistPipelineUUid =
-      hasValidPipelineUuid && pipeline?.uuid !== pipelineUuid;
-    if (shouldPersistPipelineUUid) {
+    if (shouldPersistPipelineUUid && pipelineUuid) {
       dispatch({
         type: "UPDATE_PIPELINE",
         payload: { uuid: pipelineUuid },
       });
-      setlastSeenPipelineString(`${projectUuidFromRoute}:${pipelineUuid}`);
+      setlastSeenPipelines((current) => {
+        if (!projectUuid || !current) return current;
+        return { ...current, [projectUuid]: pipelineUuid };
+      });
     }
   }, [
     dispatch,
     pipelineUuid,
-    projectUuidFromRoute,
-    setlastSeenPipelineString,
+    projectUuid,
+    setlastSeenPipelines,
     navigateTo,
-    pipeline,
-    pipelineToOpen,
+    pipelineUuidToOpen,
+    shouldRedirect,
+    shouldPersistPipelineUUid,
   ]);
 
   return (
@@ -113,17 +138,9 @@ export const useEnsureValidPipelineBase = (
  */
 export const useEnsureValidPipeline = () => {
   const { setAlert } = useAppContext();
-  const {
-    navigateTo,
-    projectUuid: projectUuidFromRoute,
-    pipelineUuid,
-  } = useCustomRoute();
+  const { navigateTo, pipelineUuid } = useCustomRoute();
 
-  const shouldShowAlert = useEnsureValidPipelineBase(
-    navigateTo,
-    projectUuidFromRoute,
-    pipelineUuid
-  );
+  const shouldShowAlert = useEnsureValidPipelineBase(navigateTo, pipelineUuid);
 
   React.useEffect(() => {
     if (shouldShowAlert) {
