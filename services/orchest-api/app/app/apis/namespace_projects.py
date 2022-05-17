@@ -3,7 +3,7 @@
 Despite the fact that the orchest api has no model related to a
 project, a good amount of other models depend on such a concept.
 """
-from flask import abort, current_app, request
+from flask import abort, current_app, jsonify, request
 from flask_restx import Namespace, Resource
 from sqlalchemy.orm import undefer
 
@@ -82,8 +82,13 @@ class Project(Resource):
         """Update a project."""
         update = request.get_json()
 
-        if len(update["name"]) > 255:
-            return {}, 400
+        # Note that when updating project env vars, "name" is not
+        # passed along.
+        if len(update.get("name", "")) > 255:
+            return (
+                jsonify({"message": "'name' cannot be longer than 255 characters."}),
+                400,
+            )
 
         update = models.Project.keep_column_entries(update)
         if not _utils.are_environment_variables_valid(update.get("env_variables", {})):
