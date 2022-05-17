@@ -1,3 +1,4 @@
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
@@ -95,14 +96,20 @@ type ActionCallback = (previousState: SessionsContextState) => Action;
 
 type SessionsContextAction = Action | ActionCallback;
 
+type ToggleSessionFunction = (
+  payload: IOrchestSessionUuid & {
+    shouldStart?: boolean;
+    requestedFromView?: BUILD_IMAGE_SOLUTION_VIEW;
+    onBuildComplete?: () => void;
+    onCancelBuild?: () => void;
+  }
+) => Promise<void>;
+
 type SessionsContext = {
   state: SessionsContextState;
   dispatch: React.Dispatch<SessionsContextAction>;
   getSession: (session: Session) => IOrchestSession | undefined;
-  toggleSession: (
-    payload: IOrchestSessionUuid,
-    shouldStart?: boolean
-  ) => Promise<void>;
+  toggleSession: ToggleSessionFunction;
   deleteAllSessions: () => Promise<void>;
 };
 
@@ -230,8 +237,15 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
 
   // NOTE: launch/delete session is an async operation from BE
   // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
-  const toggleSession = React.useCallback(
-    async (payload: IOrchestSessionUuid, shouldStart?: boolean | undefined) => {
+  const toggleSession: ToggleSessionFunction = React.useCallback(
+    async (props) => {
+      const {
+        shouldStart,
+        onBuildComplete,
+        onCancelBuild,
+        requestedFromView,
+        ...payload
+      } = props;
       const foundSession = state.sessions?.find((session) =>
         isSameSession(session, payload)
       );
@@ -272,10 +286,17 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         startSession(payload);
       } catch (error) {
         setReadOnly(true);
-        requestBuild(payload.projectUuid, error.data, "Pipelines", () => {
-          startSession(payload);
-          setReadOnly(false);
-        });
+        requestBuild(
+          payload.projectUuid,
+          error.data,
+          requestedFromView || "",
+          () => {
+            startSession(payload);
+            setReadOnly(false);
+            if (onBuildComplete) onBuildComplete();
+          },
+          onCancelBuild
+        );
       }
     },
     [setAlert, setSession, state, startSession, requestBuild, setReadOnly]

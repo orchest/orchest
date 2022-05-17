@@ -1,3 +1,4 @@
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
@@ -16,7 +17,6 @@ import type {
   PipelineJson,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
-import { checkGate } from "@/utils/webserver-utils";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
@@ -62,9 +62,6 @@ const JupyterLabView: React.FC = () => {
   );
 
   React.useEffect(() => {
-    // mount
-    checkEnvironmentGate();
-    // unmount
     return () => {
       if (window.orchest.jupyter) {
         window.orchest.jupyter?.hide();
@@ -77,9 +74,23 @@ const JupyterLabView: React.FC = () => {
   // Launch the session if it doesn't exist
   React.useEffect(() => {
     if (!state.sessionsIsLoading && !session && pipelineUuid && projectUuid) {
-      toggleSession({ pipelineUuid, projectUuid });
+      toggleSession({
+        pipelineUuid,
+        projectUuid,
+        requestedFromView: BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB,
+        onBuildComplete: () => {
+          // Force reloading the view.
+          navigateTo(siteMap.jupyterLab.path, {
+            query: { projectUuid, pipelineUuid },
+          });
+        },
+        onCancelBuild: () => {
+          // If user decides to cancel building the image, navigate back to Pipeline Editor.
+          navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+        },
+      });
     }
-  }, [session, toggleSession, state, pipelineUuid, projectUuid]);
+  }, [session, toggleSession, state, pipelineUuid, projectUuid, navigateTo]);
 
   // On any session change
   React.useEffect(() => {
@@ -92,39 +103,6 @@ const JupyterLabView: React.FC = () => {
       });
     }
   }, [session, hasEnvironmentCheckCompleted]);
-
-  const checkEnvironmentGate = () => {
-    if (!projectUuid) return;
-    makeCancelable(checkGate(projectUuid))
-      .then(() => {
-        setHasEnvironmentCheckCompleted(true);
-        conditionalRenderingOfJupyterLab();
-        fetchPipeline();
-      })
-      .catch((result) => {
-        if (result.isCanceled) {
-          // Do nothing when the promise is canceled
-          return;
-        }
-        if (result.reason === "gate-failed") {
-          requestBuild(
-            projectUuid,
-            result.data,
-            "JupyterLab",
-            () => {
-              // force view reload
-              navigateTo(siteMap.jupyterLab.path, {
-                query: { projectUuid, pipelineUuid },
-              });
-            },
-            () => {
-              // back to pipelines view
-              navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
-            }
-          );
-        }
-      });
-  };
 
   useInterval(
     () => {

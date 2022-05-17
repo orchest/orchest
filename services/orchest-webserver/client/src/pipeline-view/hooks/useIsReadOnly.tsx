@@ -1,6 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { checkGate } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
@@ -13,7 +11,6 @@ export const useIsReadOnly = (
     dispatch,
     state: { pipelineIsReadOnly },
   } = useProjectsContext();
-  const { requestBuild } = useAppContext();
 
   const setIsReadOnly = React.useCallback(
     (value: boolean) => {
@@ -30,24 +27,6 @@ export const useIsReadOnly = (
   React.useEffect(() => {
     if (hasActiveRun) setIsReadOnly(true);
   }, [hasActiveRun, setIsReadOnly]);
-
-  React.useEffect(() => {
-    if (!hasActiveRun && hasValue(projectUuid)) {
-      // for non pipelineRun - read only check gate
-      checkGate(projectUuid)
-        .then(() => {
-          setIsReadOnly(false);
-        })
-        .catch((result) => {
-          if (result.reason === "gate-failed") {
-            setIsReadOnly(true);
-            requestBuild(projectUuid, result.data, "Pipeline", () => {
-              setIsReadOnly(false);
-            });
-          }
-        });
-    }
-  }, [hasActiveRun, projectUuid, requestBuild, setIsReadOnly]);
 
   return pipelineIsReadOnly;
 };
