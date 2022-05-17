@@ -18,7 +18,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -86,6 +86,7 @@ const ProjectSettingsView: React.FC = () => {
     // perform PUT to update; don't cancel this PUT request
     fetcher(`/async/projects/${projectUuid}`, {
       method: "PUT",
+      headers: HEADER.JSON,
       body: JSON.stringify({ env_variables: envVariablesObj.value }),
     })
       .then(() => {
