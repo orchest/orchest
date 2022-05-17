@@ -115,6 +115,28 @@ def _generate_interactive_pipeline_run_payload(
     return payload
 
 
+def _generate_project_created_deleted_payload(event: models.ProjectEvent):
+    if event.type not in ["project:created", "project:deleted"]:
+        raise ValueError()
+
+    payload = event.to_notification_payload()
+    payload["project"]["project_count"] = models.Project.query.count()
+    return payload
+
+
+def _generate_pipeline_created_deleted_payload(event: models.ProjectEvent):
+    if event.type not in ["project:pipeline:created", "project:pipeline:deleted"]:
+        raise ValueError()
+
+    payload = event.to_notification_payload()
+    payload["project"]["pipeline"][
+        "project_pipelines_count"
+    ] = models.Pipeline.query.filter(
+        models.Pipeline.project_uuid == event.project_uuid
+    ).count()
+    return payload
+
+
 def generate_payload_for_analytics(event: models.Event) -> dict:
     """Creates an analytics module compatible payload.
 
@@ -129,6 +151,12 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
 
     if event.type.startswith("project:pipeline:interactive-pipeline-run:"):
         return _generate_interactive_pipeline_run_payload(event)
+
+    if event.type in ["project:created", "project:deleted"]:
+        return _generate_project_created_deleted_payload(event)
+
+    if event.type in ["project:pipeline:created", "project:pipeline:deleted"]:
+        return _generate_pipeline_created_deleted_payload(event)
 
     event_type = analytics_payload["type"]
 

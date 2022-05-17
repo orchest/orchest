@@ -90,3 +90,27 @@ class InteractiveSessionConfig(SessionConfig):
 class NonInteractiveSessionConfig(SessionConfig):
     # Env variables defined for the job.
     user_env_variables: Dict[str, str]
+
+
+# Used for some event payloads. The "str" mixing makes it json
+# serializable.
+class ChangeType(str, Enum):
+    CREATED = "CREATED"
+    UPDATED = "UPDATED"
+    DELETED = "DELETED"
+
+
+class Change(TypedDict):
+    type: ChangeType
+    # What has changed, i.e. an env var, a given job property, etc.
+    changed_object: str
+    # Set them to None or don't include them at all if not applicable or
+    # if you don't want to expose their value. Values should not contain
+    # any sensitive data, they will be exposed to both notifications and
+    # analytics.
+    old_value: Optional[str]
+    new_value: Optional[str]
+
+
+class EntityUpdate(TypedDict):
+    changes: List[Change]

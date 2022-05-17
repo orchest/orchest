@@ -40,6 +40,14 @@ class Event(Enum):
     # Sent by the orchest-api.
     DEBUG_PING = "debug-ping"
 
+    PROJECT_CREATED = "project:created"
+    PROJECT_UPDATED = "project:updated"
+    PROJECT_DELETED = "project:deleted"
+
+    PIPELINE_CREATED = "project:pipeline:created"
+    PIPELINE_UPDATED = "project:pipeline:updated"
+    PIPELINE_DELETED = "project:pipeline:deleted"
+
     JUPYTER_IMAGE_BUILD_CREATED = "jupyter:image-build:created"
     JUPYTER_IMAGE_BUILD_STARTED = "jupyter:image-build:started"
     JUPYTER_IMAGE_BUILD_CANCELLED = "jupyter:image-build:cancelled"
@@ -265,6 +273,25 @@ class _Anonymizer:
     """
 
     @staticmethod
+    def project_event(event_properties: dict) -> dict:
+        derived_properties = {}
+        derived_properties["project"] = _anonymize_project_properties(
+            event_properties["project"]
+        )
+        return derived_properties
+
+    @staticmethod
+    def pipeline_event(event_properties: dict) -> dict:
+        derived_properties = {}
+        derived_properties["project"] = _anonymize_project_properties(
+            event_properties["project"]
+        )
+        derived_properties["project"]["pipeline"] = _anonymize_pipeline_properties(
+            event_properties["project"]["pipeline"]
+        )
+        return derived_properties
+
+    @staticmethod
     def _deprecated_job_created(event_properties: dict) -> dict:
         """To not introduce breaking changes in the analytics schema."""
 
@@ -409,6 +436,12 @@ class _Anonymizer:
 
 
 _ANONYMIZATION_MAPPINGS = {
+    Event.PROJECT_CREATED: _Anonymizer.project_event,
+    Event.PROJECT_UPDATED: _Anonymizer.project_event,
+    Event.PROJECT_DELETED: _Anonymizer.project_event,
+    Event.PIPELINE_CREATED: _Anonymizer.pipeline_event,
+    Event.PIPELINE_UPDATED: _Anonymizer.pipeline_event,
+    Event.PIPELINE_DELETED: _Anonymizer.pipeline_event,
     Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created,
     Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created,
     Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
@@ -454,6 +487,11 @@ _ANONYMIZATION_MAPPINGS = {
 
 def _anonymize_project_properties(project: dict) -> dict:
     project.pop("name", None)
+    return {}
+
+
+def _anonymize_pipeline_properties(pipeline: dict) -> dict:
+    pipeline.pop("name", None)
     return {}
 
 

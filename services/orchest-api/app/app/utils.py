@@ -21,6 +21,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from app import errors as self_errors
 from app import schema
+from app import types as app_types
 from app.celery_app import make_celery
 from app.connections import db, k8s_core_api
 from config import CONFIG_CLASS
@@ -680,3 +681,35 @@ def get_job_run_dir_path(
 ) -> str:
     job_dir = get_job_dir_path(project_uuid, pipeline_uuid, job_uuid)
     return os.path.join(job_dir, run_uuid)
+
+
+def get_env_vars_update(
+    old_env_vars: Dict[str, str], new_env_vars: Dict[str, str]
+) -> List[app_types.Change]:
+    """Gets a list of changes relate to env vars, values excluded."""
+    changes = []
+    for env_var_name, env_var_value in old_env_vars.items():
+        new_value = new_env_vars.get(env_var_name)
+        if new_value is None:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.DELETED,
+                    changed_object="environment_variable",
+                )
+            )
+        elif env_var_value != new_value:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.UPDATED,
+                    changed_object="environment_variable",
+                )
+            )
+    for env_var_name in new_env_vars:
+        if env_var_name not in old_env_vars:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.CREATED,
+                    changed_object="environment_variable",
+                )
+            )
+    return changes
