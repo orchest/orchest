@@ -94,6 +94,8 @@ class Pipeline(Resource):
         # Keep mutable job pipeline name entry up to date so that the
         # job views reflect the newest name.
         if "name" in update:
+            if len(update["name"]) > 255:
+                return {}, 400
             try:
                 models.Job.query.filter_by(
                     project_uuid=project_uuid, pipeline_uuid=pipeline_uuid

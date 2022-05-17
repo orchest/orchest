@@ -94,7 +94,7 @@ class Project(Resource):
 
         update = request.get_json()
 
-        if len(update["name"]) > 255:
+        if len(update["name"], "") > 255:
             return {}, 400
 
         update = models.Project.keep_column_entries(update)

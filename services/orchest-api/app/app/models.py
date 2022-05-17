@@ -120,6 +120,14 @@ class Project(BaseModel):
 class Pipeline(BaseModel):
     __tablename__ = "pipelines"
 
+    name = db.Column(
+        db.String(255),
+        unique=False,
+        nullable=False,
+        # For migrating old pipelines.
+        server_default=text("'Pipeline'"),
+    )
+
     project_uuid = db.Column(
         db.String(36),
         db.ForeignKey("projects.uuid", ondelete="CASCADE"),
