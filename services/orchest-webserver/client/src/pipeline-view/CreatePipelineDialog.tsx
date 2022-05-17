@@ -51,7 +51,7 @@ export const CreatePipelineDialog = ({
     state: { pipelines = [] },
   } = useProjectsContext();
   const { projectUuid, navigateTo } = useCustomRoute();
-  const { run, status } = useAsync<void>();
+  const { run, status } = useAsync<{ pipeline_uuid: string }>();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const onCreateClick = () => setIsOpen(true);
@@ -65,7 +65,7 @@ export const CreatePipelineDialog = ({
 
       const goToPipeline = (isReadOnly: boolean) => {
         navigateTo(siteMap.pipeline.path, {
-          query: { projectUuid, pipelineUuid },
+          query: { projectUuid, pipelineUuid: pipelineUuid },
           state: { isReadOnly },
         });
       };
@@ -80,35 +80,34 @@ export const CreatePipelineDialog = ({
   );
   const createPipeline = React.useCallback(
     async ({ name, path }: { name: string; path: string }) => {
-      await run(
-        fetcher<{ pipeline_uuid: string }>(
-          `/async/pipelines/create/${projectUuid}`,
-          {
-            method: "POST",
-            headers: HEADER.JSON,
-            body: JSON.stringify({ name, pipeline_path: path }),
-          }
-        )
-          .then(({ pipeline_uuid }) => {
-            dispatch({
-              type: "ADD_PIPELINE",
-              payload: {
-                uuid: pipeline_uuid,
-                name,
-                path,
-              },
-            });
-            navigateToPipeline(pipeline_uuid);
-          })
-          .catch((error) => {
-            setAlert(
-              "Error",
-              `Could not create pipeline. ${error.message || "Reason unknown."}`
-            );
-          })
-      );
-
-      onClose();
+      try {
+        const { pipeline_uuid } = await run(
+          fetcher<{ pipeline_uuid: string }>(
+            `/async/pipelines/create/${projectUuid}`,
+            {
+              method: "POST",
+              headers: HEADER.JSON,
+              body: JSON.stringify({ name, pipeline_path: path }),
+            }
+          )
+        );
+        onClose();
+        dispatch({
+          type: "ADD_PIPELINE",
+          payload: {
+            uuid: pipeline_uuid,
+            name,
+            path,
+          },
+        });
+        navigateToPipeline(pipeline_uuid);
+      } catch (error) {
+        onClose();
+        setAlert(
+          "Error",
+          `Could not create pipeline. ${error.message || "Reason unknown."}`
+        );
+      }
     },
     [run, dispatch, projectUuid, setAlert, navigateToPipeline, onClose]
   );
