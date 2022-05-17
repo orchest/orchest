@@ -3,7 +3,7 @@
 Despite the fact that the orchest api has no model related to a
 project, a good amount of other models depend on such a concept.
 """
-from flask import abort, current_app, jsonify, request
+from flask import abort, current_app, request
 from flask_restx import Namespace, Resource
 from sqlalchemy.orm import undefer
 
@@ -86,7 +86,7 @@ class Project(Resource):
         # passed along.
         if len(update.get("name", "")) > 255:
             return (
-                jsonify({"message": "'name' cannot be longer than 255 characters."}),
+                {"message": "'name' cannot be longer than 255 characters."},
                 400,
             )
 
