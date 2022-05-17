@@ -60,7 +60,6 @@ const UpdateView: React.FC = () => {
               }));
               console.log("Update started, polling controller.");
 
-              // TODO: hardcoded namespace and cluster name values.
               const namespace = json.namespace;
               const clusterName = json.cluster_name;
               makeCancelable(
