@@ -21,15 +21,19 @@ jobs:
       matrix:
         image:
           [
-            -i orchest-api -i orchest-webserver -i auth-server,
+            -i orchest-api,
+            -i orchest-webserver,
+            -i auth-server,
             -i jupyter-server,
             -i jupyter-enterprise-gateway,
-            -i base-kernel-py -i base-kernel-r,
+            -i base-kernel-py,
+            -i base-kernel-r,
             -i base-kernel-julia,
             -i base-kernel-javascript,
             -i node-agent,
             -i orchest-controller,
-            -i celery-worker -i memory-server -i session-sidecar,
+            -i celery-worker,
+            -i session-sidecar,
           ]
 
     steps:
