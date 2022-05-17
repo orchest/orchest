@@ -1,1 +1,4 @@
+.orchest/pipelines/*/logs/
+.orchest/pipelines/*/data/
+.orchest/plasma.sock
 .ipynb_checkpoints/
