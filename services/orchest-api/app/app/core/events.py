@@ -571,7 +571,7 @@ def register_pipeline_updated_event(
     project_uuid: str, pipeline_uuid: str, update: app_types.EntityUpdate
 ):
     ev = models.PipelineUpdateEvent(
-        type="project:updated",
+        type="project:pipeline:updated",
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
         update=update,

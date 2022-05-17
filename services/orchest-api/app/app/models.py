@@ -1393,7 +1393,7 @@ class InteractiveSessionEvent(ProjectEvent):
 
 ForeignKeyConstraint(
     [InteractiveSessionEvent.project_uuid, InteractiveSessionEvent.pipeline_uuid],
-    [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
+    [Pipeline.project_uuid, Pipeline.uuid],
     ondelete="CASCADE",
 )
 
