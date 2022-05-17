@@ -73,11 +73,12 @@ const JupyterLabView: React.FC = () => {
 
   // Launch the session if it doesn't exist
   React.useEffect(() => {
-    if (!state.sessionsIsLoading && !session && pipelineUuid && projectUuid) {
+    if (!state.sessionsIsLoading && pipelineUuid && projectUuid) {
       toggleSession({
         pipelineUuid,
         projectUuid,
         requestedFromView: BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB,
+        shouldStart: true,
         onBuildComplete: () => {
           // Force reloading the view.
           navigateTo(siteMap.jupyterLab.path, {
@@ -88,6 +89,10 @@ const JupyterLabView: React.FC = () => {
           // If user decides to cancel building the image, navigate back to Pipeline Editor.
           navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
         },
+      }).then(() => {
+        setHasEnvironmentCheckCompleted(true);
+        conditionalRenderingOfJupyterLab();
+        fetchPipeline();
       });
     }
   }, [session, toggleSession, state, pipelineUuid, projectUuid, navigateTo]);

@@ -258,7 +258,9 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
 
       const isOperating =
         session?.status && ["STOPPING"].includes(session.status);
-      if (isOperating) return;
+      const isAlreadyStopped = shouldStart === false && !session;
+
+      if (isOperating || isAlreadyStopped) return;
 
       const desiredState: IOrchestSession["status"] =
         shouldStart !== undefined
@@ -268,6 +270,26 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
           : ["LAUNCHING", "RUNNING"].includes(session?.status || "")
           ? "STOPPING"
           : "LAUNCHING";
+
+      if (desiredState !== "STOPPING") {
+        try {
+          await checkGate(payload.projectUuid); // Ensure that environments are built.
+        } catch (error) {
+          setReadOnly(true);
+          requestBuild(
+            payload.projectUuid,
+            error.data,
+            requestedFromView || "",
+            () => {
+              startSession(payload);
+              setReadOnly(false);
+              if (onBuildComplete) onBuildComplete();
+            },
+            onCancelBuild
+          );
+          return;
+        }
+      }
 
       if (hasValue(session) && desiredState === "STOPPING") {
         setSession({ ...session, status: desiredState });
@@ -280,23 +302,8 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         return;
       }
 
-      // session is undefined, launching a new session
-      try {
-        await checkGate(payload.projectUuid); // Ensure that environments are built.
+      if (!["LAUNCHING", "RUNNING"].includes(session?.status || "")) {
         startSession(payload);
-      } catch (error) {
-        setReadOnly(true);
-        requestBuild(
-          payload.projectUuid,
-          error.data,
-          requestedFromView || "",
-          () => {
-            startSession(payload);
-            setReadOnly(false);
-            if (onBuildComplete) onBuildComplete();
-          },
-          onCancelBuild
-        );
       }
     },
     [setAlert, setSession, state, startSession, requestBuild, setReadOnly]

@@ -31,7 +31,9 @@ export const useIsReadOnly = (
     if (hasActiveRun) setIsReadOnly(true);
   }, [hasActiveRun, setIsReadOnly]);
 
-  // Check gate is needed whenever user enters Pipeline Editor.
+  // Check gate is needed whenever user enters Pipeline Editor,
+  // `useAutoStartSession` only cares about the "current" pipeline that is opened in the Pipeline Editor,
+  // but it's needed to check ALL sessions in the project.
   React.useEffect(() => {
     if (!hasActiveRun && hasValue(projectUuid)) {
       // for non pipelineRun - read only check gate
