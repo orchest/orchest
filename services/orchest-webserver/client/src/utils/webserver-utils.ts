@@ -1,5 +1,11 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson, PipelineStepState, Service, Step } from "@/types";
+import {
+  EnvironmentValidationData,
+  PipelineJson,
+  PipelineStepState,
+  Service,
+  Step,
+} from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import {
   extensionFromFilename,
@@ -203,7 +209,7 @@ export function getServiceURLs(
 export function checkGate(project_uuid: string) {
   return new Promise<void>((resolve, reject) => {
     // we validate whether all environments have been built on the server
-    fetcher<{ actions: string[]; validation: "pass" | "fail" }>(
+    fetcher<EnvironmentValidationData>(
       `/catch/api-proxy/api/validations/environments`,
       {
         method: "POST",
@@ -214,7 +220,10 @@ export function checkGate(project_uuid: string) {
       if (response.validation === "pass") {
         resolve();
       } else {
-        reject({ reason: "gate-failed", data: response });
+        reject({
+          reason: "gate-failed",
+          data: response as EnvironmentValidationData,
+        });
       }
     });
   });

@@ -386,6 +386,8 @@ export type EnvironmentAction = "BUILD" | "WAIT" | "RETRY";
 export type EnvironmentValidationData = {
   actions: EnvironmentAction[];
   fail: string[];
+  pass: string[];
+  validation: "fail" | "pass";
 };
 
 export type BuildRequest = {
