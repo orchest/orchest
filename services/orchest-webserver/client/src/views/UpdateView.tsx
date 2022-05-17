@@ -27,6 +27,8 @@ const UpdateView: React.FC = () => {
     ...prevState,
     updating: false,
     updateOutput: [],
+    clusterName: undefined,
+    namespace: undefined,
   }));
   const [updatePollInterval, setUpdatePollInterval] = React.useState<
     number | null
@@ -44,19 +46,25 @@ const UpdateView: React.FC = () => {
         console.log("Starting update.");
 
         try {
-          fetcher<{ token: string }>("/async/start-update", {
-            method: "POST",
-          })
+          fetcher<{ namespace: string; cluster_name: string }>(
+            "/async/start-update",
+            {
+              method: "POST",
+            }
+          )
             .then((json) => {
               setState((prevState) => ({
                 ...prevState,
+                clusterName: json.cluster_name,
+                namespace: json.namespace,
               }));
               console.log("Update started, polling controller.");
 
-              // TODO: hardcoded namespace and cluster name values.
+              const namespace = json.namespace;
+              const clusterName = json.cluster_name;
               makeCancelable(
                 checkHeartbeat(
-                  "/controller/namespaces/orchest/clusters/cluster-1/status"
+                  `/controller/namespaces/${namespace}/clusters/${clusterName}/status`
                 )
               )
                 .then(() => {
@@ -108,7 +116,9 @@ const UpdateView: React.FC = () => {
     cancelableFetch<{
       state: string;
       conditions: { lastHeartbeatTime: string }[];
-    }>(`/controller/namespaces/orchest/clusters/cluster-1/status`)
+    }>(
+      `/controller/namespaces/${state.namespace}/clusters/${state.clusterName}/status`
+    )
       .then((json) => {
         if (json.state === "Running") {
           setState((prevState) => ({

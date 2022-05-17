@@ -3,6 +3,7 @@ from flask import current_app, request
 from flask_restx import Namespace, Resource
 from orchestcli import cmds
 
+from _orchest.internals import config as _config
 from app import schema, utils
 from config import CONFIG_CLASS
 
@@ -14,7 +15,7 @@ api = utils.register_schema(ns)
 class StartUpdate(Resource):
     @api.doc("orchest_api_start_update")
     @api.marshal_with(
-        schema.dictionary,
+        schema.update_started_response,
         code=201,
         description="Update Orchest.",
     )
@@ -25,10 +26,13 @@ class StartUpdate(Resource):
                 controller_deploy_name="orchest-controller",
                 controller_pod_label_selector="app=orchest-controller",
                 watch_flag=False,
-                namespace="orchest",
-                cluster_name="cluster-1",
+                namespace=_config.ORCHEST_NAMESPACE,
+                cluster_name=_config.ORCHEST_CLUSTER,
             )
-            return {}, 201
+            return {
+                "namespace": _config.ORCHEST_NAMESPACE,
+                "cluster_name": _config.ORCHEST_CLUSTER,
+            }, 201
         # This is a form of technical debt since we can't distinguish if
         # an update fails because there is no newer version of a "real"
         # failure.
@@ -42,7 +46,11 @@ class Restart(Resource):
     @ns.response(code=500, model=schema.dictionary, description="Invalid request")
     def post(self):
         try:
-            cmds.restart(False, namespace="orchest", cluster_name="cluster-1")
+            cmds.restart(
+                False,
+                namespace=_config.ORCHEST_NAMESPACE,
+                cluster_name=_config.ORCHEST_CLUSTER,
+            )
             return {}, 201
         except SystemExit:
             return {"message": "Failed to restart."}, 500

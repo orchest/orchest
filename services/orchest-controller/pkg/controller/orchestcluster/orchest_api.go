@@ -44,6 +44,7 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 	image := orchest.Spec.Orchest.OrchestApi.Image
 
 	envMap := utils.GetMapFromEnvVar(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.OrchestApi.Env)
+
 	env := utils.GetEnvVarFromMap(envMap)
 
 	volumes := []corev1.Volume{

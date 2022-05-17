@@ -14,6 +14,14 @@ from app import models
 
 dictionary = Model("Dictionary", {})
 
+update_started_response = Model(
+    "UpdateStartedResponse",
+    {
+        "namespace": fields.String(required=True, description="Namespace"),
+        "cluster_name": fields.String(required=True, description="Cluster name"),
+    },
+)
+
 settings_update_response = Model(
     "SettingsUpdateResponse",
     {
