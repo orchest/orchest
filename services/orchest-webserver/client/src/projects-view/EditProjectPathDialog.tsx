@@ -48,7 +48,7 @@ export const EditProjectPathDialog = ({
   }, [projectUuid, projects, setProjectName]);
 
   const isFormValid =
-    (projectName.length > 0 && validation && validation.length === 0) ||
+    (projectName.length > 0 && validation.length === 0) ||
     isUpdatingProjectPath;
 
   const closeDialog = () => {
@@ -116,7 +116,7 @@ export const EditProjectPathDialog = ({
             value={projectName}
             label="Project name"
             helperText={validation || " "}
-            error={hasValue(validation) && validation.length > 0}
+            error={validation.length > 0}
             disabled={isUpdatingProjectPath}
             onChange={(e) => {
               setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));

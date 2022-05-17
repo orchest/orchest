@@ -122,9 +122,9 @@ const UpdateView: React.FC = () => {
             updateOutput: json.conditions.sort(function (a, b) {
               let dateA = new Date(a.lastHeartbeatTime);
               let dateB = new Date(b.lastHeartbeatTime);
-              // sort in reversed order
-              if (dateA < dateB) return 1;
-              if (dateA > dateB) return -1;
+              // sort in descending order -> most recent messages first
+              if (dateA < dateB) return -1;
+              if (dateA > dateB) return 1;
               return 0;
             }),
           }));

@@ -196,7 +196,8 @@ def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
             return False
 
         existing_orders.add(service["order"])
-        return True
+
+    return True
 
 
 def rmtree(path, ignore_errors=False) -> None:

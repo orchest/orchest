@@ -1,3 +1,4 @@
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -46,7 +47,11 @@ export const useAutoStartSession = ({
   React.useEffect(() => {
     if (shouldCheckIfAutoStartIsNeeded && isAutoStartAllowed.current) {
       isAutoStartAllowed.current = false;
-      toggleSession(toggleSessionPayload, true);
+      toggleSession({
+        ...toggleSessionPayload,
+        shouldStart: true,
+        requestedFromView: BUILD_IMAGE_SOLUTION_VIEW.PIPELINE,
+      });
     }
   }, [
     toggleSessionPayload,
