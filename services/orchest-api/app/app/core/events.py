@@ -5,6 +5,7 @@ accordingly based on any subscribers subscribed to the event type that
 happened.
 """
 from app import models
+from app import types as app_types
 from app import utils
 from app import utils as app_utils
 from app.connections import db
@@ -524,3 +525,55 @@ def register_interactive_pipeline_run_succeeded(
         pipeline_uuid=pipeline_uuid,
         pipeline_run_uuid=pipeline_run_uuid,
     )
+
+
+def _register_project_event(type: str, project_uuid: str) -> None:
+    ev = models.ProjectEvent(
+        type=type,
+        project_uuid=project_uuid,
+    )
+    _register_event(ev)
+
+
+def register_project_created_event(project_uuid: str):
+    _register_project_event("project:created", project_uuid)
+
+
+def register_project_deleted_event(project_uuid: str):
+    _register_project_event("project:deleted", project_uuid)
+
+
+def register_project_updated_event(project_uuid: str, update: app_types.EntityUpdate):
+    ev = models.ProjectUpdateEvent(
+        type="project:updated", project_uuid=project_uuid, update=update
+    )
+    _register_event(ev)
+
+
+def _register_pipeline_event(type: str, project_uuid: str, pipeline_uuid: str) -> None:
+    ev = models.PipelineEvent(
+        type=type,
+        project_uuid=project_uuid,
+        pipeline_uuid=pipeline_uuid,
+    )
+    _register_event(ev)
+
+
+def register_pipeline_created_event(project_uuid: str, pipeline_uuid: str):
+    _register_pipeline_event("project:pipeline:created", project_uuid, pipeline_uuid)
+
+
+def register_pipeline_deleted_event(project_uuid: str, pipeline_uuid: str):
+    _register_pipeline_event("project:pipeline:deleted", project_uuid, pipeline_uuid)
+
+
+def register_pipeline_updated_event(
+    project_uuid: str, pipeline_uuid: str, update: app_types.EntityUpdate
+):
+    ev = models.PipelineUpdateEvent(
+        type="project:updated",
+        project_uuid=project_uuid,
+        pipeline_uuid=pipeline_uuid,
+        update=update,
+    )
+    _register_event(ev)
