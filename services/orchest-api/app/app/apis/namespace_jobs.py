@@ -16,6 +16,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
+from app import types as app_types
 from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
 from app.connections import db
@@ -1074,6 +1075,7 @@ class UpdateJob(TwoPhaseFunction):
         confirm_draft,
     ):
         job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+        changes = []
 
         if name is not None:
             job.name = name
@@ -1222,6 +1224,10 @@ class UpdateJob(TwoPhaseFunction):
                 job.last_scheduled_time = job.next_scheduled_time
                 job.status = "STARTED"
                 events.register_job_started(job.project_uuid, job.uuid)
+
+        events.register_job_updated(
+            job.project_uuid, job_uuid, update=app_types.EntityUpdate(changes=changes)
+        )
 
     def _collateral(self):
         pass

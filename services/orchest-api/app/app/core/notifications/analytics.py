@@ -172,8 +172,12 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     elif event_type.startswith("project:one-off-job:pipeline-run:"):
         analytics_payload["run_uuid"] = analytics_payload["job"]["pipeline_run"]["uuid"]
 
-    if event_type in ["project:cron-job:created", "project:one-off-job:created"]:
-        analytics_payload["snapshot_size"] = None
+    if event_type in [
+        "project:cron-job:created",
+        "project:cron-job:updated",
+        "project:one-off-job:created",
+        "project:one-off-job:updated",
+    ]:
         job: models.Job = models.Job.query.filter(
             models.Job.project_uuid == analytics_payload["project"]["uuid"],
             models.Job.uuid == analytics_payload["job"]["uuid"],

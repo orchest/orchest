@@ -21,7 +21,6 @@ def _register_event(ev: models.Event) -> None:
     db.session.flush()
 
     db.session.add(ev)
-    _logger.info(ev)
 
     project_uuid = None
     job_uuid = None
@@ -33,6 +32,7 @@ def _register_event(ev: models.Event) -> None:
 
     # So that the event.uuid is generated and visible as a FK.
     db.session.flush()
+    _logger.info(ev)
 
     subscribers = notifications.get_subscribers_subscribed_to_event(
         ev.type, project_uuid=project_uuid, job_uuid=job_uuid
@@ -130,6 +130,28 @@ def register_job_failed(project_uuid: str, job_uuid: str) -> None:
         _register_one_off_job_event(
             "project:one-off-job:failed", project_uuid, job_uuid
         )
+
+
+def register_job_updated(
+    project_uuid: str, job_uuid: str, update: app_types.EntityUpdate
+) -> None:
+    """Adds a job update event to the db, does not commit."""
+    if _is_cron_job(job_uuid):
+        ev = models.CronJobUpdateEvent(
+            type="project:cron-job:updated",
+            project_uuid=project_uuid,
+            job_uuid=job_uuid,
+            update=update,
+        )
+        _register_event(ev)
+    else:
+        ev = models.OneOffJobUpdateEvent(
+            type="project:one-off-job:updated",
+            project_uuid=project_uuid,
+            job_uuid=job_uuid,
+            update=update,
+        )
+        _register_event(ev)
 
 
 def register_job_succeeded(project_uuid: str, job_uuid: str) -> None:

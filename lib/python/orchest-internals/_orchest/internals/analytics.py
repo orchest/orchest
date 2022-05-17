@@ -34,7 +34,6 @@ class Event(Enum):
     ENVIRONMENT_BUILD_STARTED = "environment-build:started"
     HEARTBEAT_TRIGGER = "heartbeat-trigger"
     JOB_DUPLICATED = "job:duplicated"
-    JOB_UPDATED = "job:updated"
     PIPELINE_SAVED = "pipeline:saved"
 
     # Sent by the orchest-api.
@@ -73,6 +72,7 @@ class Event(Enum):
     ONE_OFF_JOB_DELETED = "project:one-off-job:deleted"
     ONE_OFF_JOB_CANCELLED = "project:one-off-job:cancelled"
     ONE_OFF_JOB_FAILED = "project:one-off-job:failed"
+    ONE_OFF_JOB_UPDATED = "project:one-off-job:updated"
     ONE_OFF_JOB_SUCCEEDED = "project:one-off-job:succeeded"
 
     ONE_OFF_JOB_PIPELINE_RUN_CREATED = "project:one-off-job:pipeline-run:created"
@@ -87,6 +87,7 @@ class Event(Enum):
     CRON_JOB_DELETED = "project:cron-job:deleted"
     CRON_JOB_CANCELLED = "project:cron-job:cancelled"
     CRON_JOB_FAILED = "project:cron-job:failed"
+    CRON_JOB_UPDATED = "project:cron-job:updated"
     CRON_JOB_PAUSED = "project:cron-job:paused"
     CRON_JOB_UNPAUSED = "project:cron-job:unpaused"
 
@@ -445,7 +446,8 @@ _ANONYMIZATION_MAPPINGS = {
     Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created,
     Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created,
     Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
-    Event.JOB_UPDATED: _Anonymizer.job_updated,
+    Event.CRON_JOB_UPDATED: _Anonymizer.job_updated,
+    Event.ONE_OFF_JOB_UPDATED: _Anonymizer.job_updated,
     Event.SESSION_STARTED: _Anonymizer.session_started,
     Event.INTERACTIVE_PIPELINE_RUN_CREATED: _Anonymizer.interactive_pipeline_run,
     Event.INTERACTIVE_PIPELINE_RUN_STARTED: _Anonymizer.interactive_pipeline_run,
