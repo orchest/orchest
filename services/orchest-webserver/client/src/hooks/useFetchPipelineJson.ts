@@ -2,8 +2,9 @@ import { PipelineJson } from "@/types";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import useSWR, { useSWRConfig } from "swr";
-import { MutatorCallback } from "swr/dist/types";
+import { useAsync } from "./useAsync";
+import { useFocusBrowserTab } from "./useFocusBrowserTab";
+import { useHasChanged } from "./useHasChanged";
 
 type FetchPipelineJsonProps = {
   jobUuid?: string | undefined;
@@ -90,68 +91,57 @@ export const fetchPipelineJson = (
   });
 };
 
+// `useSWR` has a unexpected behavior when cache key costantly changes.
+// Sometimes it doesn't refetch, and also doesn't update its data based on the cache key.
+// Using our custom `useAsync` could achieve most things except caching, but it gives more stability.
+
 export const useFetchPipelineJson = (
   props: FetchPipelineJsonProps | undefined
 ) => {
-  const { cache } = useSWRConfig();
   const {
     pipelineUuid,
     projectUuid,
     jobUuid,
     runUuid,
-    clearCacheOnUnmount,
     revalidateOnFocus = true,
   } = props || {};
 
-  const cacheKey = getPipelineJSONEndpoint({
+  const { run, data, setData, status, error } = useAsync<PipelineJson>();
+
+  const url = getPipelineJSONEndpoint({
     pipelineUuid,
     projectUuid,
     jobUuid,
     runUuid,
   });
 
-  const { data, error, isValidating, mutate } = useSWR<
-    PipelineJson | undefined
-  >(
-    cacheKey || null,
-    () =>
-      fetchPipelineJson({
-        pipelineUuid,
-        projectUuid,
-        jobUuid,
-        runUuid,
-      }),
-    { revalidateOnFocus }
-  );
+  const makeRequest = React.useCallback(() => {
+    return run(fetchPipelineJson(url));
+  }, [run, url]);
 
-  const setPipelineJson = React.useCallback(
-    (
-      data?:
-        | PipelineJson
-        | undefined
-        | Promise<PipelineJson | undefined>
-        | MutatorCallback<PipelineJson | undefined>
-    ) => mutate(data, false),
-    [mutate]
-  );
+  const isFocused = useFocusBrowserTab();
+  const hasBrowserFocusChanged = useHasChanged(isFocused);
+  const shouldRefetch =
+    revalidateOnFocus && hasBrowserFocusChanged && isFocused;
+
+  const hasFetchedOnMount = React.useRef(false);
 
   React.useEffect(() => {
-    return () => {
-      if (clearCacheOnUnmount) {
-        setPipelineJson(undefined);
-      }
-    };
-  }, [clearCacheOnUnmount, setPipelineJson]);
+    hasFetchedOnMount.current = false;
+  }, [url]);
 
-  // Note that pipelineJson should be assumed
-  // to be immutable (due to SWR).
-  const pipelineJson = data || (cache.get(cacheKey) as PipelineJson);
+  React.useEffect(() => {
+    if (url && (!hasFetchedOnMount.current || shouldRefetch)) {
+      hasFetchedOnMount.current = true;
+      makeRequest();
+    }
+  }, [shouldRefetch, makeRequest, url]);
 
   return {
-    pipelineJson,
+    pipelineJson: data,
     error,
-    isFetchingPipelineJson: isValidating,
-    fetchPipelineJson: mutate,
-    setPipelineJson,
+    isFetchingPipelineJson: status === "PENDING",
+    fetchPipelineJson: makeRequest,
+    setPipelineJson: setData,
   };
 };

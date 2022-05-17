@@ -2,7 +2,7 @@ import React from "react";
 
 export function useHasChanged<T>(
   value: T,
-  isUpdated = (prev: T, curr: T) => prev !== curr
+  isUpdated = (prev: T | undefined, curr: T) => prev !== curr
 ) {
   const previousValue = usePrevious<T>(value);
   return isUpdated(previousValue, value);

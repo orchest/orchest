@@ -6,16 +6,13 @@ import { mockProjects } from "@/__mocks__/mockProjects.mock";
 import { server } from "@/__mocks__/server.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
-import { SWRConfig } from "swr";
 import { useFetchPipelineSettings } from "../useFetchPipelineSettings";
 
 const wrapper = ({ children = null, shouldStart }) => {
   return (
-    <SWRConfig value={{ provider: () => new Map() }}>
-      <AppContextProvider shouldStart={shouldStart}>
-        <ProjectsContextProvider>{children}</ProjectsContextProvider>;
-      </AppContextProvider>
-    </SWRConfig>
+    <AppContextProvider shouldStart={shouldStart}>
+      <ProjectsContextProvider>{children}</ProjectsContextProvider>;
+    </AppContextProvider>
   );
 };
 
