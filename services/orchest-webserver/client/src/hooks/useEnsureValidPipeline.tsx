@@ -20,46 +20,34 @@ export const useEnsureValidPipelineBase = (
     params?: NavigateParams | undefined,
     e?: React.MouseEvent<Element, MouseEvent> | undefined
   ) => void,
+  projectUuid: string | undefined,
   pipelineUuid: string | undefined
 ) => {
   const {
-    state: {
-      pipelines,
-      projectUuid,
-      pipeline,
-      hasLoadedPipelinesInPipelineEditor,
-      newPipelineUuid,
-    },
+    state: { pipelines, pipeline, newPipelineUuid },
     dispatch,
   } = useProjectsContext();
 
-  React.useEffect(() => {
-    // When user switching pipelines, state.pipeline is already loaded.
-    // In order to force loading with the new pipeline_uuid, unset state.pipeline
-    // when useEnsureValidPipelineBase is just mounted.
-    dispatch({ type: "UNSET_PIPELINE" });
-  }, [dispatch]);
-
-  useAutoFetchPipelines();
+  const fetchedPipelines = useAutoFetchPipelines(projectUuid, pipelineUuid);
 
   const [lastSeenPipelineUuid, setlastSeenPipelines] = useLastSeenPipeline();
 
-  const isTryingToFindByUuid = hasValue(pipelines) && hasValue(pipelineUuid);
+  const foundPipelineUuidFromRoute = React.useMemo(() => {
+    if (!pipelines) return undefined;
+    return (pipelines || []).find((pipeline) => pipelineUuid === pipeline.uuid)
+      ?.uuid;
+  }, [pipelines, pipelineUuid]);
 
-  const foundPipelineByRouteUuid = React.useMemo(() => {
-    const found = isTryingToFindByUuid
-      ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)
-      : undefined;
-    return found?.uuid;
-  }, [isTryingToFindByUuid, pipelineUuid, pipelines]);
+  const validPipelineUuid = React.useMemo(() => {
+    if (foundPipelineUuidFromRoute) return foundPipelineUuidFromRoute;
 
-  const pipelineUuidToOpen = React.useMemo(() => {
-    return (
-      foundPipelineByRouteUuid ||
-      lastSeenPipelineUuid ||
-      pipelines?.find(Boolean)?.uuid
-    );
-  }, [foundPipelineByRouteUuid, lastSeenPipelineUuid, pipelines]);
+    return (pipelines || []).find(
+      (pipeline) => lastSeenPipelineUuid === pipeline.uuid
+    )?.uuid;
+  }, [pipelines, lastSeenPipelineUuid, foundPipelineUuidFromRoute]);
+
+  const pipelineUuidToOpen =
+    validPipelineUuid || pipelines?.find(Boolean)?.uuid;
 
   /**
    * Redirect only when
@@ -72,62 +60,57 @@ export const useEnsureValidPipelineBase = (
    */
   const shouldRedirect = React.useMemo(() => {
     return (
+      !pipeline &&
+      hasValue(pipelines) &&
       hasValue(projectUuid) &&
       hasValue(pipelineUuidToOpen) &&
-      pipelineUuidToOpen !== pipelineUuid &&
-      !pipeline
+      pipelineUuidToOpen !== pipelineUuid
     );
-  }, [pipeline, projectUuid, pipelineUuid, pipelineUuidToOpen]);
-
-  const shouldPersistPipelineUUid = React.useMemo(() => {
-    // Has pipelineUuid and no longer need to redirect, meaning that `pipelineUuid` is valid.
-    // pipelineUuid is valid, but not yet propogated to external state.
-    return (
-      !shouldRedirect &&
-      hasValue(pipelines) &&
-      hasValue(pipelineUuid) &&
-      pipeline?.uuid !== pipelineUuid
-    );
-  }, [shouldRedirect, pipeline, pipelineUuid, pipelines]);
+  }, [pipelines, projectUuid, pipelineUuid, pipelineUuidToOpen, pipeline]);
 
   React.useEffect(() => {
     if (shouldRedirect) {
       // Navigate to a valid pipelineUuid.
       navigateTo(siteMap.pipeline.path, {
         query: {
-          projectUuid: projectUuid,
+          projectUuid,
           pipelineUuid: pipelineUuidToOpen,
         },
+        replace: !foundPipelineUuidFromRoute || !validPipelineUuid,
       });
       return;
     }
-    if (shouldPersistPipelineUUid && pipelineUuid) {
+    if (validPipelineUuid) {
       dispatch({
         type: "UPDATE_PIPELINE",
-        payload: { uuid: pipelineUuid },
+        payload: { uuid: validPipelineUuid },
       });
+    }
+    if (validPipelineUuid && validPipelineUuid !== lastSeenPipelineUuid) {
       setlastSeenPipelines((current) => {
         if (!projectUuid || !current) return current;
-        return { ...current, [projectUuid]: pipelineUuid };
+        return { ...current, [projectUuid]: validPipelineUuid };
       });
     }
   }, [
     dispatch,
-    pipelineUuid,
     projectUuid,
     setlastSeenPipelines,
     navigateTo,
     pipelineUuidToOpen,
     shouldRedirect,
-    shouldPersistPipelineUUid,
+    validPipelineUuid,
+    lastSeenPipelineUuid,
+    foundPipelineUuidFromRoute,
   ]);
 
-  return (
-    !hasLoadedPipelinesInPipelineEditor &&
-    isTryingToFindByUuid &&
-    pipelineUuid !== newPipelineUuid && // No need to show alert if pipelineUuid is a new pipeline
-    !foundPipelineByRouteUuid
-  );
+  const shouldShowAlert =
+    hasValue(fetchedPipelines) &&
+    hasValue(pipelineUuid) &&
+    fetchedPipelines?.every((p) => p.uuid !== pipelineUuid) &&
+    pipelineUuid !== newPipelineUuid; // No need to show alert if pipelineUuid is a new pipeline
+
+  return shouldShowAlert;
 };
 
 /**
@@ -140,9 +123,13 @@ export const useEnsureValidPipelineBase = (
  */
 export const useEnsureValidPipeline = () => {
   const { setAlert } = useAppContext();
-  const { navigateTo, pipelineUuid } = useCustomRoute();
+  const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
 
-  const shouldShowAlert = useEnsureValidPipelineBase(navigateTo, pipelineUuid);
+  const shouldShowAlert = useEnsureValidPipelineBase(
+    navigateTo,
+    projectUuid,
+    pipelineUuid
+  );
 
   React.useEffect(() => {
     if (shouldShowAlert) {

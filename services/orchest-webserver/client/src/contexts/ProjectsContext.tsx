@@ -26,7 +26,7 @@ type Action =
     }
   | {
       type: "SET_PIPELINES";
-      payload: PipelineMetaData[];
+      payload: PipelineMetaData[] | undefined;
     }
   | {
       type: "LOAD_PIPELINES";
@@ -47,9 +47,6 @@ type Action =
   | {
       type: "SET_PIPELINE_IS_READONLY";
       payload: boolean;
-    }
-  | {
-      type: "UNSET_PIPELINE";
     }
   | {
       type: "UPDATE_PIPELINE";
@@ -81,19 +78,16 @@ const reducer = (
         newPipelineUuid: action.payload.uuid,
       };
     }
-    case "UNSET_PIPELINE": {
-      return { ...state, pipeline: undefined };
-    }
     case "UPDATE_PIPELINE": {
       const { uuid, ...changes } = action.payload;
       const currentPipelines = state.pipelines || [];
 
       // Always look up `state.pipelines`.
-      const targetPipeline =
-        currentPipelines.find((pipeline) => pipeline.uuid === uuid) ||
-        currentPipelines[0];
+      const targetPipeline = currentPipelines.find(
+        (pipeline) => pipeline.uuid === uuid
+      );
 
-      if (!targetPipeline) return state;
+      if (!targetPipeline) return { ...state, pipeline: undefined };
 
       const updatedPipeline = { ...targetPipeline, ...changes };
       const updatedPipelines = (state.pipelines || []).map((pipeline) =>
@@ -106,9 +100,22 @@ const reducer = (
       };
     }
     case "LOAD_PIPELINES": {
-      return { ...state, pipelines: action.payload };
+      return {
+        ...state,
+        pipelines: action.payload,
+        pipeline: undefined,
+        hasLoadedPipelinesInPipelineEditor: true,
+      };
     }
     case "SET_PIPELINES": {
+      if (!action.payload)
+        return {
+          ...state,
+          pipelines: undefined,
+          pipeline: undefined,
+          hasLoadedPipelinesInPipelineEditor: false,
+        };
+
       const isPipelineRemoved = !action.payload.some(
         (pipeline) => state.pipeline?.path === pipeline.path
       );
@@ -131,6 +138,7 @@ const reducer = (
           projectUuid: undefined,
           pipelines: undefined,
           pipeline: undefined,
+          hasLoadedPipelinesInPipelineEditor: false,
         };
       }
       // Ensure that projectUuid is valid in the state.
@@ -145,6 +153,7 @@ const reducer = (
         projectUuid: foundProject.uuid,
         pipelines: undefined,
         pipeline: undefined,
+        hasLoadedPipelinesInPipelineEditor: false,
       };
     }
     case "SET_PROJECTS":

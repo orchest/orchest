@@ -1,37 +1,26 @@
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
-import { useHasChanged } from "@/hooks/useHasChanged";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectsContext } from "./ProjectsContext";
 
-export const useAutoFetchPipelines = () => {
+export const useAutoFetchPipelines = (
+  projectUuid: string | undefined,
+  pipelineUuid: string | undefined
+) => {
   const { state, dispatch } = useProjectsContext();
-  const {
-    pipelines,
-    isFetchingPipelines,
-    error,
-    fetchPipelines,
-  } = useFetchPipelines(state.projectUuid);
+  const shouldFetch =
+    !state.hasLoadedPipelinesInPipelineEditor ||
+    !pipelineUuid ||
+    !(state.pipelines || []).find((pipeline) => pipelineUuid === pipeline.uuid);
 
-  const hasPipelinesChanged = useHasChanged(state.pipelines);
-
-  const hasPipelineCleanedUp =
-    !isFetchingPipelines && hasPipelinesChanged && !state.pipelines;
+  const { pipelines, status } = useFetchPipelines(
+    shouldFetch ? projectUuid : undefined
+  );
 
   React.useEffect(() => {
-    // When switching projects, state.pipelines will be cleaned up.
-    // then we need to refetch.
-    // Note that we don't want to trigger this when page is just loaded.
-    // because useFetchPipelines will do the inital request.
-
-    if (hasPipelineCleanedUp) fetchPipelines();
-  }, [fetchPipelines, hasPipelineCleanedUp]);
-
-  const hasFetched = !isFetchingPipelines && !error && hasValue(pipelines);
-
-  React.useEffect(() => {
-    if (hasFetched) {
+    if (status === "RESOLVED" && pipelines && !state.pipelines) {
       dispatch({ type: "LOAD_PIPELINES", payload: pipelines });
     }
-  }, [dispatch, pipelines, hasFetched]);
+  }, [dispatch, status, pipelines, state.pipelines]);
+
+  return status === "RESOLVED" ? pipelines : undefined;
 };
