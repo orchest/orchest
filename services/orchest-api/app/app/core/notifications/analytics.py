@@ -189,6 +189,7 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
                 "pipeline_uuid": job.pipeline_uuid,
                 "draft": True,
                 "uuid": job.uuid,
+                "env_variables": job.env_variables,
                 "pipeline_run_spec": {"run_type": "full", "uuids": []},
             }
 

@@ -1187,6 +1187,7 @@ class UpdateJob(TwoPhaseFunction):
 
             job.max_retained_pipeline_runs = max_retained_pipeline_runs
 
+        update_already_registered = False
         if confirm_draft:
             if job.status != "DRAFT":
                 raise ValueError("Failed update operation. The job is not a draft.")
@@ -1211,6 +1212,8 @@ class UpdateJob(TwoPhaseFunction):
                 # a next_scheduled_time.
                 if job.next_scheduled_time is None:
                     job.last_scheduled_time = datetime.now(timezone.utc)
+                    UpdateJob._register_job_updated_event(old_job, job.as_dict())
+                    update_already_registered = True
                     RunJob(self.tpe).transaction(job.uuid)
                 else:
                     job.last_scheduled_time = job.next_scheduled_time
@@ -1224,9 +1227,12 @@ class UpdateJob(TwoPhaseFunction):
             else:
                 job.last_scheduled_time = job.next_scheduled_time
                 job.status = "STARTED"
+                UpdateJob._register_job_updated_event(old_job, job.as_dict())
+                update_already_registered = True
                 events.register_job_started(job.project_uuid, job.uuid)
 
-        UpdateJob._register_job_updated_event(old_job, job.as_dict())
+        if not update_already_registered:
+            UpdateJob._register_job_updated_event(old_job, job.as_dict())
 
     def _collateral(self):
         pass

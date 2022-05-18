@@ -308,50 +308,27 @@ class _Anonymizer:
         derived_properties = {"job_definition": {}}
         derived_properties["job_definition"] = {
             "parameterized_runs_count": len(job_def.pop("parameters", [])),
+            "env_variables_count": len(job_def.pop("env_variables", {})),
         }
         return derived_properties
 
     @staticmethod
-    def project_one_off_job_created(event_properties: dict) -> dict:
-        derived_properties = {}
-        derived_properties["project"] = _anonymize_project_properties(
-            event_properties["project"]
-        )
-        derived_job_properties = _anonymize_one_off_job_properties(
-            event_properties["job"]
-        )
-        derived_properties["job"] = derived_job_properties
+    def project_one_off_job_created_updated(event_properties: dict) -> dict:
+        derived_properties = _Anonymizer.project_one_off_job(event_properties)
         deprecated_derived = _Anonymizer._deprecated_job_created(event_properties)
         derived_properties = {**deprecated_derived, **derived_properties}
         return derived_properties
 
     @staticmethod
-    def project_cron_job_created(event_properties: dict) -> dict:
-        derived_properties = {}
-        derived_properties["project"] = _anonymize_project_properties(
-            event_properties["project"]
-        )
-        derived_job_properties = _anonymize_cron_job_properties(event_properties["job"])
-        derived_properties["job"] = derived_job_properties
+    def project_cron_job_created_updated(event_properties: dict) -> dict:
+        derived_properties = _Anonymizer.project_cron_job(event_properties)
         deprecated_derived = _Anonymizer._deprecated_job_created(event_properties)
         derived_properties = {**deprecated_derived, **derived_properties}
-        return derived_job_properties
+        return derived_properties
 
     @staticmethod
     def job_duplicated(event_properties: dict) -> dict:
         return _Anonymizer._deprecated_job_created(event_properties)
-
-    @staticmethod
-    def job_updated(event_properties: dict) -> dict:
-        job_def = event_properties["job_definition"]
-        job_def.pop("strategy_json", None)
-
-        derived_properties = {"job_definition": {}}
-        derived_properties["job_definition"] = {
-            "env_variables_count": len(job_def.pop("env_variables", {})),
-            "parameterized_runs_count": len(job_def.pop("parameters", [])),
-        }
-        return derived_properties
 
     @staticmethod
     def session_started(event_properties: dict) -> dict:
@@ -443,11 +420,7 @@ _ANONYMIZATION_MAPPINGS = {
     Event.PIPELINE_CREATED: _Anonymizer.pipeline_event,
     Event.PIPELINE_UPDATED: _Anonymizer.pipeline_event,
     Event.PIPELINE_DELETED: _Anonymizer.pipeline_event,
-    Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created,
-    Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created,
     Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
-    Event.CRON_JOB_UPDATED: _Anonymizer.job_updated,
-    Event.ONE_OFF_JOB_UPDATED: _Anonymizer.job_updated,
     Event.SESSION_STARTED: _Anonymizer.session_started,
     Event.INTERACTIVE_PIPELINE_RUN_CREATED: _Anonymizer.interactive_pipeline_run,
     Event.INTERACTIVE_PIPELINE_RUN_STARTED: _Anonymizer.interactive_pipeline_run,
@@ -456,7 +429,8 @@ _ANONYMIZATION_MAPPINGS = {
     Event.INTERACTIVE_PIPELINE_RUN_SUCCEEDED: _Anonymizer.interactive_pipeline_run,
     Event.PIPELINE_SAVED: _Anonymizer.pipeline_saved,
     Event.ENVIRONMENT_BUILD_STARTED: _Anonymizer.environment_build_started,
-    Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created,
+    Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created_updated,
+    Event.ONE_OFF_JOB_UPDATED: _Anonymizer.project_one_off_job_created_updated,
     Event.ONE_OFF_JOB_STARTED: _Anonymizer.project_one_off_job,
     Event.ONE_OFF_JOB_DELETED: _Anonymizer.project_one_off_job,
     Event.ONE_OFF_JOB_CANCELLED: _Anonymizer.project_one_off_job,
@@ -468,7 +442,8 @@ _ANONYMIZATION_MAPPINGS = {
     Event.ONE_OFF_JOB_PIPELINE_RUN_FAILED: _Anonymizer.project_one_off_job,
     Event.ONE_OFF_JOB_PIPELINE_RUN_DELETED: _Anonymizer.project_one_off_job,
     Event.ONE_OFF_JOB_PIPELINE_RUN_SUCCEEDED: _Anonymizer.project_one_off_job,
-    Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created,
+    Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created_updated,
+    Event.CRON_JOB_UPDATED: _Anonymizer.project_cron_job_created_updated,
     Event.CRON_JOB_STARTED: _Anonymizer.project_cron_job,
     Event.CRON_JOB_DELETED: _Anonymizer.project_cron_job,
     Event.CRON_JOB_CANCELLED: _Anonymizer.project_cron_job,
