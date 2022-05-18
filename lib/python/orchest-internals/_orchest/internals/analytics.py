@@ -43,6 +43,9 @@ class Event(Enum):
     PROJECT_UPDATED = "project:updated"
     PROJECT_DELETED = "project:deleted"
 
+    ENVIRONMENT_CREATED = "project:environment:created"
+    ENVIRONMENT_DELETED = "project:environment:deleted"
+
     PIPELINE_CREATED = "project:pipeline:created"
     PIPELINE_UPDATED = "project:pipeline:updated"
     PIPELINE_DELETED = "project:pipeline:deleted"
@@ -282,6 +285,12 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
+    def environment_event(event_properties: dict) -> dict:
+        derived_properties = _Anonymizer.project_event(event_properties)
+        derived_properties["project"]["environment"] = {}
+        return derived_properties
+
+    @staticmethod
     def pipeline_event(event_properties: dict) -> dict:
         derived_properties = {}
         derived_properties["project"] = _anonymize_project_properties(
@@ -417,6 +426,8 @@ _ANONYMIZATION_MAPPINGS = {
     Event.PROJECT_CREATED: _Anonymizer.project_event,
     Event.PROJECT_UPDATED: _Anonymizer.project_event,
     Event.PROJECT_DELETED: _Anonymizer.project_event,
+    Event.ENVIRONMENT_CREATED: _Anonymizer.environment_event,
+    Event.ENVIRONMENT_DELETED: _Anonymizer.environment_event,
     Event.PIPELINE_CREATED: _Anonymizer.pipeline_event,
     Event.PIPELINE_UPDATED: _Anonymizer.pipeline_event,
     Event.PIPELINE_DELETED: _Anonymizer.pipeline_event,
