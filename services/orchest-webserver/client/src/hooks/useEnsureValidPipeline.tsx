@@ -1,12 +1,7 @@
-import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAutoFetchPipelines } from "@/contexts/useAutoFetchPipelines";
-import type { NavigateParams } from "@/hooks/useCustomRoute";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useLastSeenPipeline } from "./useLastSeenPipeline";
@@ -15,18 +10,12 @@ import { useLastSeenPipeline } from "./useLastSeenPipeline";
 // as we want to separate it from the global contexts: `useCustomRoute` and `useAppContext`.
 // This hook should NOT be used alone except in jest tests.
 export const useEnsureValidPipelineBase = (
-  navigateTo: (
-    path: string,
-    params?: NavigateParams | undefined,
-    e?: React.MouseEvent<Element, MouseEvent> | undefined
-  ) => void,
-  projectUuid: string | undefined,
+  navigateToPipeline: (pipelineUuid: string, replace: boolean) => void,
   pipelineUuid: string | undefined
 ) => {
-  const {
-    state: { pipelines, pipeline, newPipelineUuid },
-    dispatch,
-  } = useProjectsContext();
+  const { state, dispatch } = useProjectsContext();
+
+  const { pipelines, pipeline, newPipelineUuid, projectUuid } = state;
 
   const fetchedPipelines = useAutoFetchPipelines(projectUuid, pipelineUuid);
 
@@ -60,43 +49,42 @@ export const useEnsureValidPipelineBase = (
    */
   const shouldRedirect = React.useMemo(() => {
     return (
-      !pipeline &&
       hasValue(pipelines) &&
       hasValue(projectUuid) &&
       hasValue(pipelineUuidToOpen) &&
-      pipelineUuidToOpen !== pipelineUuid
+      (pipelineUuidToOpen !== pipelineUuid || !pipelineUuid)
     );
-  }, [pipelines, projectUuid, pipelineUuid, pipelineUuidToOpen, pipeline]);
+  }, [pipelines, projectUuid, pipelineUuid, pipelineUuidToOpen]);
 
+  const hasRedirected = React.useRef(false);
   React.useEffect(() => {
-    if (shouldRedirect) {
-      // Navigate to a valid pipelineUuid.
-      navigateTo(siteMap.pipeline.path, {
-        query: {
-          projectUuid,
-          pipelineUuid: pipelineUuidToOpen,
-        },
-        replace: !foundPipelineUuidFromRoute || !validPipelineUuid,
-      });
-      return;
-    }
-    if (validPipelineUuid) {
+    if (pipelineUuidToOpen && pipelineUuidToOpen !== pipeline?.uuid) {
       dispatch({
         type: "UPDATE_PIPELINE",
-        payload: { uuid: validPipelineUuid },
+        payload: { uuid: pipelineUuidToOpen },
       });
     }
-    if (validPipelineUuid && validPipelineUuid !== lastSeenPipelineUuid) {
+    if (pipelineUuidToOpen && pipelineUuidToOpen !== lastSeenPipelineUuid) {
       setlastSeenPipelines((current) => {
         if (!projectUuid || !current) return current;
-        return { ...current, [projectUuid]: validPipelineUuid };
+        return { ...current, [projectUuid]: pipelineUuidToOpen };
       });
+    }
+
+    if (shouldRedirect && pipelineUuidToOpen && !hasRedirected.current) {
+      // Navigate to a valid pipelineUuid.
+      hasRedirected.current = true;
+      navigateToPipeline(
+        pipelineUuidToOpen,
+        !foundPipelineUuidFromRoute || !validPipelineUuid
+      );
     }
   }, [
     dispatch,
     projectUuid,
+    pipeline?.uuid,
     setlastSeenPipelines,
-    navigateTo,
+    navigateToPipeline,
     pipelineUuidToOpen,
     shouldRedirect,
     validPipelineUuid,
@@ -104,6 +92,9 @@ export const useEnsureValidPipelineBase = (
     foundPipelineUuidFromRoute,
   ]);
 
+  // Note that `fetchedPipelines` is used here instead of `state.pipelines`.
+  // In order to determine if the given pipeline UUID is valid,
+  // it is only possible to check pipelineUuid and the response before redirect happens.
   const shouldShowAlert =
     hasValue(fetchedPipelines) &&
     hasValue(pipelineUuid) &&
@@ -122,28 +113,16 @@ export const useEnsureValidPipelineBase = (
  * `PipelineEditor`, `PipelineSettingsView`, `LogsView`, and `JupyterLabView`.
  */
 export const useEnsureValidPipeline = () => {
-  const { setAlert } = useAppContext();
   const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
 
-  const shouldShowAlert = useEnsureValidPipelineBase(
-    navigateTo,
-    projectUuid,
-    pipelineUuid
+  const navigateToPipeline = React.useCallback(
+    (pipelineUuid: string, replace: boolean) => {
+      navigateTo(siteMap.pipeline.path, {
+        query: { projectUuid, pipelineUuid },
+        replace,
+      });
+    },
+    [projectUuid, navigateTo]
   );
-
-  React.useEffect(() => {
-    if (shouldShowAlert) {
-      setAlert(
-        "Pipeline not found",
-        <Stack direction="column" spacing={2}>
-          <Box>
-            {`Couldn't find pipeline `}
-            <Code>{pipelineUuid}</Code>
-            {` . The pipeline might have been deleted, or you might have had a wrong URL.`}
-          </Box>
-          <Box>Will try to load another pipeline in this project.</Box>
-        </Stack>
-      );
-    }
-  }, [pipelineUuid, setAlert, shouldShowAlert]);
+  useEnsureValidPipelineBase(navigateToPipeline, pipelineUuid);
 };

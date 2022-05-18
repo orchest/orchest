@@ -89,7 +89,9 @@ export type NavigateParams = {
 const useCustomRoute = () => {
   const history = useHistory();
 
-  const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
+  const [isReadOnly, prevPathname] = useLocationState<
+    [boolean, string, boolean]
+  >(["isReadOnly", "prevPathname"]);
   const valueArray = useLocationQuery([
     "job_uuid",
     "run_uuid",
@@ -139,7 +141,7 @@ const useCustomRoute = () => {
         mutateHistory({
           pathname,
           search: queryString,
-          state,
+          state: { ...state, prevPathname: pathname },
         });
       }
     },
@@ -167,6 +169,7 @@ const useCustomRoute = () => {
     runUuid,
     filePath,
     initialTab,
+    prevPathname,
   };
 };
 
