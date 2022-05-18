@@ -24,6 +24,7 @@ from app.core import environments, events
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
     fuzzy_filter_non_interactive_pipeline_runs,
+    get_env_vars_update,
     get_proj_pip_env_variables,
     page_to_pagination_data,
     register_schema,
@@ -1075,7 +1076,7 @@ class UpdateJob(TwoPhaseFunction):
         confirm_draft,
     ):
         job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
-        changes = []
+        old_job = job.as_dict()
 
         if name is not None:
             job.name = name
@@ -1225,12 +1226,57 @@ class UpdateJob(TwoPhaseFunction):
                 job.status = "STARTED"
                 events.register_job_started(job.project_uuid, job.uuid)
 
-        events.register_job_updated(
-            job.project_uuid, job_uuid, update=app_types.EntityUpdate(changes=changes)
-        )
+        UpdateJob._register_job_updated_event(old_job, job.as_dict())
 
     def _collateral(self):
         pass
+
+    @staticmethod
+    def _register_job_updated_event(
+        old_job: Dict[str, Any], new_job: Dict[str, Any]
+    ) -> None:
+        """Register the job_updated_event along with the changes.
+
+        Note that we are banking on the fact that the logic before the
+        call to this function will catch invalid updates.
+        """
+        changes = []
+        changes.extend(
+            get_env_vars_update(old_job["env_variables"], new_job["env_variables"])
+        )
+        # (field name, if values should be recorded) for notifications.
+        # Don't record sensitive values.
+        to_compare = [
+            ("name", False),
+            ("schedule", True),
+            ("parameters", False),
+            ("strategy_json", False),
+            ("max_retained_pipeline_runs", True),
+            ("next_scheduled_time", True),
+            ("status", True),
+        ]
+        for field, record_values in to_compare:
+            old_value = old_job[field]
+            new_value = new_job[field]
+            if old_value == new_value:
+                continue
+
+            change = app_types.Change(
+                type=app_types.ChangeType.UPDATED,
+                changed_object=field,
+            )
+            if record_values:
+                change["old_value"] = str(old_value)
+                change["new_value"] = str(new_value)
+            changes.append(change)
+
+        if changes:
+            events.register_job_updated(
+                old_job["schedule"],
+                new_job["project_uuid"],
+                new_job["uuid"],
+                update=app_types.EntityUpdate(changes=changes),
+            )
 
 
 class DeleteJob(TwoPhaseFunction):

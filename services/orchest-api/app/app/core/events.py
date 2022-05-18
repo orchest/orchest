@@ -133,10 +133,21 @@ def register_job_failed(project_uuid: str, job_uuid: str) -> None:
 
 
 def register_job_updated(
-    project_uuid: str, job_uuid: str, update: app_types.EntityUpdate
+    was_cron_job: bool, project_uuid: str, job_uuid: str, update: app_types.EntityUpdate
 ) -> None:
-    """Adds a job update event to the db, does not commit."""
-    if _is_cron_job(job_uuid):
+    """Adds a job update event to the db, does not commit.
+
+    Args:
+        was_cron_job: Necessary because an update might make a non
+            cron-job into a cron-job, and we are interested in the
+            status of the job pre-change. I.e. adding a schedule and
+            thus making a one off job into a cronjob should lead to a
+            OneOffJobUpdateEvent, not a CronJobUpdateEvent.
+        project_uuid:
+        job_uuid:
+        update:
+    """
+    if was_cron_job:
         ev = models.CronJobUpdateEvent(
             type="project:cron-job:updated",
             project_uuid=project_uuid,
