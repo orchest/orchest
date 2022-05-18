@@ -13,7 +13,7 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
-from app.core import registry
+from app.core import events, registry
 from app.utils import register_schema, update_status_db
 
 api = Namespace("environment-builds", description="Managing environment builds")
@@ -139,11 +139,13 @@ class EnvironmentImageBuild(Resource):
             "image_tag": int(image_tag),
         }
         try:
-            update_status_db(
+            if not update_status_db(
                 status_update,
                 model=models.EnvironmentImageBuild,
                 filter_by=filter_by,
-            )
+            ):
+                return
+
             if status_update["status"] == "SUCCESS":
                 digest = registry.get_manifest_digest(
                     _config.ENVIRONMENT_IMAGE_NAME.format(
@@ -158,6 +160,17 @@ class EnvironmentImageBuild(Resource):
                         tag=int(image_tag),
                         digest=digest,
                     )
+                )
+                events.register_environment_image_build_succeeded_event(
+                    project_uuid, environment_uuid, int(image_tag)
+                )
+            elif status_update["status"] == "FAILURE":
+                events.register_environment_image_build_failed_event(
+                    project_uuid, environment_uuid, int(image_tag)
+                )
+            elif status_update["status"] == "STARTED":
+                events.register_environment_image_build_started_event(
+                    project_uuid, environment_uuid, int(image_tag)
                 )
             db.session.commit()
         except Exception:
@@ -323,6 +336,10 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
         }
         db.session.add(models.EnvironmentImageBuild(**environment_image_build))
 
+        events.register_environment_image_build_created_event(
+            build_request["project_uuid"], build_request["environment_uuid"], image_tag
+        )
+
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["project_uuid"] = build_request["project_uuid"]
         self.collateral_kwargs["environment_uuid"] = build_request["environment_uuid"]
@@ -356,6 +373,11 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
         models.EnvironmentImageBuild.query.filter_by(
             uuid=self.collateral_kwargs["task_id"]
         ).update({"status": "FAILURE"})
+        events.register_environment_image_build_failed_event(
+            self.collateral_kwargs["project_uuid"],
+            self.collateral_kwargs["environment_uuid"],
+            int(self.collateral_kwargs["image_tag"]),
+        )
         db.session.commit()
 
 
@@ -380,6 +402,10 @@ class AbortEnvironmentImageBuild(TwoPhaseFunction):
         if abortable:
             env_build = models.EnvironmentImageBuild.query.filter_by(**filter_by).one()
             self.collateral_kwargs["celery_task_uuid"] = env_build.celery_task_uuid
+
+            events.register_environment_image_build_cancelled_event(
+                project_uuid, environment_uuid, int(image_tag)
+            )
         return abortable
 
     def _collateral(self, celery_task_uuid: Optional[str]):
