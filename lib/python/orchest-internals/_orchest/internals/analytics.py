@@ -296,6 +296,9 @@ class _Anonymizer:
     @staticmethod
     def environment_image_build_event(event_properties: dict) -> dict:
         derived_properties = _Anonymizer.environment_event(event_properties)
+        event_properties["project"]["environment"]["image_build"].pop(
+            "project_path", None
+        )
         derived_properties["project"]["environment"]["image_build"] = {}
         return derived_properties
 
@@ -313,6 +316,15 @@ class _Anonymizer:
             image_build_derived_props[
                 "uses_orchest_base_image"
             ] = base_image.startswith("orchest/")
+            # Deprecated.
+            derived_properties["uses_orchest_base_image"] = image_build_derived_props[
+                "uses_orchest_base_image"
+            ]
+        if not derived_properties.get("uses_orchest_base_image", False):
+            event_properties["project"]["environment"]["image_build"].pop(
+                base_image, None
+            )
+
         return derived_properties
 
     @staticmethod

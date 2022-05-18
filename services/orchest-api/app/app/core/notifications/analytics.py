@@ -7,6 +7,7 @@ in the code base since currently the analytics module is shared across
 multiple services.
 
 """
+import json
 import os
 
 from flask import current_app
@@ -212,6 +213,54 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     return analytics_payload
 
 
+def _augment_job_created_payload(payload: dict) -> None:
+    job = models.Job.query.filter(
+        models.Job.project_uuid == payload["project"]["uuid"],
+        models.Job.uuid == payload["job"]["uuid"],
+    ).first()
+    if job is None:
+        return
+
+    snapshot_path = app_utils.get_job_snapshot_path(
+        job.project_uuid,
+        job.pipeline_uuid,
+        job.uuid,
+    )
+    if os.path.exists(snapshot_path):
+        payload["snapshot_size"] = _utils.get_directory_size(
+            snapshot_path
+            # In MBs.
+        ) / (1024**2)
+
+
+def _augment_env_image_build_created_payload(payload: dict) -> None:
+    build = models.EnvironmentImageBuild.query.filter(
+        models.EnvironmentImageBuild.project_uuid == payload["project"]["uuid"],
+        models.EnvironmentImageBuild.environment_uuid
+        == payload["project"]["environment"]["uuid"],
+        models.EnvironmentImageBuild.image_tag
+        == payload["project"]["environment"]["image_build"]["image_tag"],
+    ).first()
+    if build is None:
+        return
+
+    env_dir_path = app_utils.get_environment_directory_path(
+        build.project_path, build.environment_uuid
+    )
+    env_properties_path = os.path.join(env_dir_path, "properties.json")
+    if os.path.exists(env_properties_path):
+        with open(env_properties_path, "r") as env_props_file:
+            env_dict = json.load(env_props_file)
+            build_properties = payload["project"]["environment"]["image_build"]
+            build_properties["base_image"] = env_dict["base_image"]
+            build_properties["gpu_support"] = env_dict["gpu_support"]
+            build_properties["language"] = env_dict["language"]
+
+            # Deprecated.
+            payload["gpu_support"] = build_properties["gpu_support"]
+            payload["language"] = build_properties["language"]
+
+
 def _augment_payload(payload: dict) -> None:
     """Last minute augmentations of an analytics payload.
 
@@ -220,23 +269,9 @@ def _augment_payload(payload: dict) -> None:
     system.
     """
     if payload["type"] in ["project:one-off-job:created", "project:cron-job:created"]:
-        job = models.Job.query.filter(
-            models.Job.project_uuid == payload["project"]["uuid"],
-            models.Job.uuid == payload["job"]["uuid"],
-        ).first()
-        if job is None:
-            return
-
-        snapshot_path = app_utils.get_job_snapshot_path(
-            job.project_uuid,
-            job.pipeline_uuid,
-            job.uuid,
-        )
-        if os.path.exists(snapshot_path):
-            payload["snapshot_size"] = _utils.get_directory_size(
-                snapshot_path
-                # In MBs.
-            ) / (1024**2)
+        _augment_job_created_payload(payload)
+    elif payload["type"] == "project:environment:image-build:created":
+        _augment_env_image_build_created_payload(payload)
 
 
 def deliver(delivery_uuid: str) -> None:

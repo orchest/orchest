@@ -1430,7 +1430,13 @@ class EnvironmentEvent(ProjectEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["project"]["environment"] = {"uuid": self.environment_uuid}
+        payload["project"]["environment"] = {
+            "uuid": self.environment_uuid,
+            "url_path": (
+                f"/environment?project_uuid={self.project_uuid}&environment_uuid="
+                f"{self.environment_uuid}"
+            ),
+        }
         return payload
 
 
