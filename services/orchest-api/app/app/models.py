@@ -1181,6 +1181,7 @@ class Event(BaseModel):
                 (type.startswith("project:pipeline:updated"), "pipeline_update_event"),
                 (type.startswith("project:pipeline:"), "pipeline_event"),
                 (type.startswith("project:updated"), "project_update_event"),
+                (type.startswith("project:environment:"), "environment_event"),
                 (type.startswith("project:"), "project_event"),
             ],
             else_="event",
@@ -1408,6 +1409,28 @@ class InteractiveSessionEvent(ProjectEvent):
 ForeignKeyConstraint(
     [InteractiveSessionEvent.project_uuid, InteractiveSessionEvent.pipeline_uuid],
     [Pipeline.project_uuid, Pipeline.uuid],
+    ondelete="CASCADE",
+)
+
+
+class EnvironmentEvent(ProjectEvent):
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "environment_event"}
+
+    environment_uuid = db.Column(db.String(36))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["environment"] = {"uuid": self.uuid}
+        return payload
+
+
+ForeignKeyConstraint(
+    [EnvironmentEvent.project_uuid, EnvironmentEvent.environment_uuid],
+    [Environment.project_uuid, Environment.uuid],
     ondelete="CASCADE",
 )
 

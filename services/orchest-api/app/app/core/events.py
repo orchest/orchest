@@ -576,6 +576,27 @@ def register_project_deleted_event(project_uuid: str):
     _register_project_event("project:deleted", project_uuid)
 
 
+def _register_environment_event(
+    type: str, project_uuid: str, environment_uuid: str
+) -> None:
+    ev = models.EnvironmentEvent(
+        type=type, project_uuid=project_uuid, environment_uuid=environment_uuid
+    )
+    _register_event(ev)
+
+
+def register_environment_created_event(project_uuid: str, environment_uuid: str):
+    _register_environment_event(
+        "project:environment:created", project_uuid, environment_uuid
+    )
+
+
+def register_environment_deleted_event(project_uuid: str, environment_uuid: str):
+    _register_environment_event(
+        "project:environment:deleted", project_uuid, environment_uuid
+    )
+
+
 def register_project_updated_event(project_uuid: str, update: app_types.EntityUpdate):
     ev = models.ProjectUpdateEvent(
         type="project:updated", project_uuid=project_uuid, update=update
