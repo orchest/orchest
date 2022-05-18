@@ -30,8 +30,6 @@ class Event(Enum):
 
     # Sent by orchest-webserver. Try to minimize these events, in favour
     # of moving them to the orchest-api.
-    ENVIRONMENT_BUILD_CANCELLED = "environment-build:cancelled"
-    ENVIRONMENT_BUILD_STARTED = "environment-build:started"
     HEARTBEAT_TRIGGER = "heartbeat-trigger"
     JOB_DUPLICATED = "job:duplicated"
     PIPELINE_SAVED = "pipeline:saved"
@@ -45,6 +43,11 @@ class Event(Enum):
 
     ENVIRONMENT_CREATED = "project:environment:created"
     ENVIRONMENT_DELETED = "project:environment:deleted"
+    ENVIRONMENT_IMAGE_BUILD_CREATED = "project:environment:image-build:created"
+    ENVIRONMENT_IMAGE_BUILD_STARTED = "project:environment:image-build:started"
+    ENVIRONMENT_IMAGE_BUILD_CANCELLED = "project:environment:image-build:cancelled"
+    ENVIRONMENT_IMAGE_BUILD_FAILED = "project:environment:image-build:failed"
+    ENVIRONMENT_IMAGE_BUILD_SUCCEEDED = "project:environment:image-build:succeeded"
 
     PIPELINE_CREATED = "project:pipeline:created"
     PIPELINE_UPDATED = "project:pipeline:updated"
@@ -291,6 +294,28 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
+    def environment_image_build_event(event_properties: dict) -> dict:
+        derived_properties = _Anonymizer.environment_event(event_properties)
+        derived_properties["project"]["environment"]["image_build"] = {}
+        return derived_properties
+
+    @staticmethod
+    def environment_image_build_created_event(event_properties: dict) -> dict:
+        derived_properties = _Anonymizer.environment_image_build_event(event_properties)
+        image_build_derived_props = derived_properties["project"]["environment"][
+            "image_build"
+        ]
+
+        base_image = event_properties["project"]["environment"]["image_build"].get(
+            "base_image"
+        )
+        if isinstance(base_image, str):
+            image_build_derived_props[
+                "uses_orchest_base_image"
+            ] = base_image.startswith("orchest/")
+        return derived_properties
+
+    @staticmethod
     def pipeline_event(event_properties: dict) -> dict:
         derived_properties = {}
         derived_properties["project"] = _anonymize_project_properties(
@@ -390,16 +415,6 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def environment_build_started(event_properties: dict) -> dict:
-        base_image = event_properties.pop("base_image", None)
-        derived_properties = {}
-        if isinstance(base_image, str):
-            derived_properties["uses_orchest_base_image"] = base_image.startswith(
-                "orchest/"
-            )
-        return derived_properties
-
-    @staticmethod
     def project_one_off_job(event_properties: dict) -> dict:
         derived_properties = {}
         derived_properties["project"] = _anonymize_project_properties(
@@ -428,6 +443,11 @@ _ANONYMIZATION_MAPPINGS = {
     Event.PROJECT_DELETED: _Anonymizer.project_event,
     Event.ENVIRONMENT_CREATED: _Anonymizer.environment_event,
     Event.ENVIRONMENT_DELETED: _Anonymizer.environment_event,
+    Event.ENVIRONMENT_IMAGE_BUILD_CREATED: _Anonymizer.environment_image_build_created_event,  # noqa
+    Event.ENVIRONMENT_IMAGE_BUILD_STARTED: _Anonymizer.environment_image_build_event,
+    Event.ENVIRONMENT_IMAGE_BUILD_FAILED: _Anonymizer.environment_image_build_event,
+    Event.ENVIRONMENT_IMAGE_BUILD_CANCELLED: _Anonymizer.environment_image_build_event,
+    Event.ENVIRONMENT_IMAGE_BUILD_SUCCEEDED: _Anonymizer.environment_image_build_event,
     Event.PIPELINE_CREATED: _Anonymizer.pipeline_event,
     Event.PIPELINE_UPDATED: _Anonymizer.pipeline_event,
     Event.PIPELINE_DELETED: _Anonymizer.pipeline_event,
@@ -439,7 +459,6 @@ _ANONYMIZATION_MAPPINGS = {
     Event.INTERACTIVE_PIPELINE_RUN_FAILED: _Anonymizer.interactive_pipeline_run,
     Event.INTERACTIVE_PIPELINE_RUN_SUCCEEDED: _Anonymizer.interactive_pipeline_run,
     Event.PIPELINE_SAVED: _Anonymizer.pipeline_saved,
-    Event.ENVIRONMENT_BUILD_STARTED: _Anonymizer.environment_build_started,
     Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created_updated,
     Event.ONE_OFF_JOB_UPDATED: _Anonymizer.project_one_off_job_created_updated,
     Event.ONE_OFF_JOB_STARTED: _Anonymizer.project_one_off_job,

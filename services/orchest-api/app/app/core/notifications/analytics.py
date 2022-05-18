@@ -137,6 +137,19 @@ def _generate_pipeline_created_deleted_payload(event: models.ProjectEvent):
     return payload
 
 
+def _generate_environment_image_build_payload(event: models.ProjectEvent):
+    if not event.type.startswith("project:environment:image-build:"):
+        raise ValueError()
+
+    payload = event.to_notification_payload()
+
+    # Deprecated.
+    payload["project_uuid"] = payload["project"]["uuid"]
+    payload["environment_uuid"] = payload["project"]["environment"]["uuid"]
+    payload["image_tag"] = payload["project"]["environment"]["image_build"]["image_tag"]
+    return payload
+
+
 def generate_payload_for_analytics(event: models.Event) -> dict:
     """Creates an analytics module compatible payload.
 
@@ -157,6 +170,9 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
 
     if event.type in ["project:pipeline:created", "project:pipeline:deleted"]:
         return _generate_pipeline_created_deleted_payload(event)
+
+    if event.type.startswith("project:environment:image-build:"):
+        return _generate_environment_image_build_payload(event)
 
     event_type = analytics_payload["type"]
 
