@@ -17,10 +17,10 @@ export const useAutoFetchPipelines = (
   );
 
   React.useEffect(() => {
-    if (status === "RESOLVED" && pipelines && !state.pipelines) {
+    if (status === "RESOLVED" && pipelines && shouldFetch) {
       dispatch({ type: "LOAD_PIPELINES", payload: pipelines });
     }
-  }, [dispatch, status, pipelines, state.pipelines]);
+  }, [dispatch, status, pipelines, shouldFetch]);
 
   return status === "RESOLVED" ? pipelines : undefined;
 };
