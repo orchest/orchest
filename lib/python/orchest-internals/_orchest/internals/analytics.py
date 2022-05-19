@@ -298,7 +298,7 @@ def _anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
         step.pop("title", None)
 
     if "pipeline_definition" in pipeline_run:
-        pipeline_run["pipeline_definition"] = _anonymize_pipeline_definition(
+        pipeline_run["pipeline_definition"] = anonymize_pipeline_definition(
             pipeline_run["pipeline_definition"]
         )
     return derived_properties
@@ -316,7 +316,7 @@ def _anonymize_service_definition(definition: dict) -> dict:
     return derived_properties
 
 
-def _anonymize_pipeline_definition(definition: dict) -> dict:
+def anonymize_pipeline_definition(definition: dict) -> dict:
     """Anonymizes the given pipeline definition.
 
     We send the anonymized pipeline definition to understand the

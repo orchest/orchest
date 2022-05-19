@@ -252,11 +252,16 @@ def register_orchest_api_views(app, db):
         analytics.send_event(
             app,
             analytics.Event.JOB_DUPLICATED,
-            {
-                "job_definition": job_spec,
-                "duplicate_from": json_obj["job_uuid"],
-                "snapshot_size": None,
-            },
+            analytics.TelemetryData(
+                event_properties={
+                    "duplicate_from": json_obj["job_uuid"],
+                    # Deprecated fields, kept to not break the analytics
+                    # BE schema.
+                    "job_definition": None,
+                    "snapshot_size": None,
+                },
+                derived_properties={},
+            ),
         )
         return resp.content, resp.status_code, resp.headers.items()
 

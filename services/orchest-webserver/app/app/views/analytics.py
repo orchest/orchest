@@ -15,7 +15,12 @@ def register_analytics_views(app, db):
             )
             return "Invalid analytics event name.", 500
 
-        success = analytics.send_event(app, analytics_event, request.json["properties"])
+        data = analytics.TelemetryData(
+            event_properties=request.json["properties"],
+            # TODO: will the FE ever have derived properties?
+            derived_properties={},
+        )
+        success = analytics.send_event(app, analytics_event, data)
 
         if success:
             return ""

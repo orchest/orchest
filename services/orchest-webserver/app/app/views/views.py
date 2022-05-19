@@ -902,10 +902,16 @@ def register_views(app, db):
                     )
 
             # Analytics call.
+            derived_props = analytics.anonymize_pipeline_definition(pipeline_json)
             analytics.send_event(
                 app,
                 analytics.Event.PIPELINE_SAVED,
-                {"pipeline_definition": pipeline_json},
+                analytics.TelemetryData(
+                    event_properties={
+                        "pipeline_definition": pipeline_json,
+                    },
+                    derived_properties=derived_props,
+                ),
             )
             return jsonify({"success": True, "message": "Successfully saved pipeline."})
 
