@@ -1,3 +1,5 @@
+import { useInterval } from "@/hooks/use-interval";
+import { useAsync } from "@/hooks/useAsync";
 import { useSocketIO } from "@/pipeline-view/hooks/useSocketIO";
 import { EnvironmentImageBuild } from "@/types";
 import Box from "@mui/material/Box";
@@ -5,12 +7,39 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
 import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
 import { ImageBuildStatus } from "./ImageBuildStatus";
 
-const BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
+const useFetchEnvironmentBuild = ({
+  url,
+  buildsKey,
+  buildFetchHash,
+  refreshInterval,
+}: {
+  url: string;
+  buildsKey: string;
+  buildFetchHash: string;
+  refreshInterval: number;
+}): EnvironmentImageBuild | undefined => {
+  const { run, data = [] } = useAsync<EnvironmentImageBuild[]>();
+
+  const fetchData = React.useCallback(() => {
+    return run(
+      fetcher<Record<string, EnvironmentImageBuild[]>>(url).then(
+        (response) => response[buildsKey] || Promise.reject()
+      )
+    );
+  }, [url, buildsKey, run]);
+
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData, buildFetchHash]);
+
+  useInterval(fetchData, refreshInterval);
+
+  return data[0]; // Return the latest build.
+};
 
 export const ImageBuildLog = ({
   onUpdateBuild,
@@ -36,24 +65,17 @@ export const ImageBuildLog = ({
   const [fitAddon] = React.useState(new FitAddon());
   const xtermRef = React.useRef<XTerm | null>(null);
 
-  const { data: builds, mutate } = useSWR<EnvironmentImageBuild[]>(
-    buildRequestEndpoint,
-    (url) =>
-      fetcher<Record<string, EnvironmentImageBuild[]>>(url).then(
-        (response) => response[buildsKey]
-      ),
-    { refreshInterval: BUILD_POLL_FREQUENCY[build ? 1 : 0] }
-  );
+  const fetchedBuild = useFetchEnvironmentBuild({
+    url: buildRequestEndpoint,
+    buildsKey,
+    buildFetchHash,
+    refreshInterval:
+      build && ["PENDING", "STARTED"].includes(build.status) ? 1000 : 5000, // poll more frequently during build
+  });
 
   React.useEffect(() => {
-    mutate();
-  }, [buildFetchHash, mutate]);
-
-  React.useEffect(() => {
-    if (builds && builds.length > 0) {
-      onUpdateBuild(builds[0]);
-    }
-  }, [builds, onUpdateBuild]);
+    if (fetchedBuild) onUpdateBuild(fetchedBuild);
+  }, [fetchedBuild, onUpdateBuild]);
 
   const fitTerminal = React.useCallback(() => {
     if (xtermRef.current?.terminal.element?.offsetParent !== null) {
