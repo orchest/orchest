@@ -432,17 +432,6 @@ def register_orchest_api_views(app, db):
                 json=json_obj,
             )
 
-            analytics.send_event(
-                app,
-                analytics.Event.PIPELINE_RUN_STARTED,
-                {
-                    "run_uuid": resp.json().get("uuid"),
-                    "run_type": "interactive",
-                    "pipeline_definition": json_obj["pipeline_definition"],
-                    "step_uuids_to_execute": json_obj["uuids"],
-                },
-            )
-
             return resp.content, resp.status_code, resp.headers.items()
 
         elif request.method == "GET":
@@ -477,11 +466,6 @@ def register_orchest_api_views(app, db):
                 + "/api/runs/%s" % run_uuid,
             )
 
-            analytics.send_event(
-                app,
-                analytics.Event.PIPELINE_RUN_CANCELLED,
-                {"run_uuid": run_uuid, "run_type": "interactive"},
-            )
             return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["DELETE"])
@@ -523,11 +507,6 @@ def register_orchest_api_views(app, db):
             json=request.json,
         )
 
-        analytics.send_event(
-            app,
-            analytics.Event.JOB_UPDATED,
-            {"job_uuid": job_uuid, "job_definition": request.json},
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])

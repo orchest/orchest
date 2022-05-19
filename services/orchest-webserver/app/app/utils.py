@@ -694,6 +694,9 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
 def check_pipeline_correctness(pipeline_json):
     invalid_entries = {}
 
+    if len(pipeline_json["name"]) > 255:
+        invalid_entries["name"] = "invalid_value"
+
     mem_size = pipeline_json["settings"].get("data_passing_memory_size")
     if mem_size is None:
         invalid_entries["data_passing_memory_size"] = "missing"

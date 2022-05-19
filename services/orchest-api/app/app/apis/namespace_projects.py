@@ -11,11 +11,14 @@ import app.models as models
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
+from app import types as app_types
+from app import utils as app_utils
 from app.apis.namespace_environments import DeleteEnvironment
 from app.apis.namespace_jobs import DeleteJob
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
+from app.core import events
 from app.utils import register_schema
 
 api = Namespace("projects", description="Managing Projects")
@@ -52,6 +55,7 @@ class ProjectList(Resource):
             return {"message": ("Invalid environment variables definition.")}, 400
         try:
             db.session.add(models.Project(**project))
+            events.register_project_created_event(project["uuid"])
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -80,9 +84,17 @@ class Project(Resource):
     @api.doc("update_project")
     def put(self, project_uuid):
         """Update a project."""
+        project = (
+            models.Project.query.options(undefer(models.Project.env_variables))
+            .filter(models.Project.uuid == project_uuid)
+            .one_or_none()
+        )
+        if project is None:
+            abort(404, "Project not found.")
+
         update = request.get_json()
 
-        if len(update["name"]) > 255:
+        if len(update["name"], "") > 255:
             return {}, 400
 
         update = models.Project.keep_column_entries(update)
@@ -91,7 +103,25 @@ class Project(Resource):
 
         if update:
             try:
+                changes = []
+                if "env_variables" in update:
+                    changes.extend(
+                        app_utils.get_env_vars_update(
+                            project.env_variables, update["env_variables"]
+                        )
+                    )
+                if "name" in update and project.name != update["name"]:
+                    changes.append(
+                        app_types.Change(
+                            type=app_types.ChangeType.UPDATED, changed_object="name"
+                        )
+                    )
+
                 models.Project.query.filter_by(uuid=project_uuid).update(update)
+                if changes:
+                    events.register_project_updated_event(
+                        project_uuid, app_types.EntityUpdate(changes=changes)
+                    )
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -178,6 +208,7 @@ class DeleteProject(TwoPhaseFunction):
         for environment in environments:
             DeleteEnvironment(self.tpe)._transaction(project_uuid, environment.uuid)
 
+        events.register_project_deleted_event(project_uuid)
         models.Project.query.filter_by(uuid=project_uuid).delete()
 
     def _collateral(self):
