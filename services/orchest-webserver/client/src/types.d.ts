@@ -170,7 +170,7 @@ export type EnvironmentImageBuild = {
   image_tag: string;
   requested_time: string;
   started_time: string;
-  status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
+  status: TStatus;
   celery_task_uuid: string;
 };
 

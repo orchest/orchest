@@ -1,22 +1,25 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
-import { usePoller } from "@/hooks/usePoller";
 import { siteMap } from "@/routingConfig";
-import { DefaultEnvironment, IOrchestSession } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import LensIcon from "@mui/icons-material/Lens";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { BoldText } from "./common/BoldText";
-import { PageTitle } from "./common/PageTitle";
-import { DataTable, DataTableColumn } from "./DataTable";
-import { TStatus } from "./Status";
+import { BoldText } from "../components/common/BoldText";
+import { PageTitle } from "../components/common/PageTitle";
+import { DataTable, DataTableColumn } from "../components/DataTable";
+import {
+  fetchSessionsInProject,
+  getNewEnvironmentName,
+  hasSuccessfulBuild,
+  requestToCreateEnvironment,
+  requestToRemoveEnvironment,
+} from "./common";
+import { useEnvironmentList } from "./hooks/useEnvironmentList";
 
 export interface IEnvironmentListProps {
   projectUuid: string | undefined;
@@ -29,17 +32,6 @@ type Environment = {
   name: string;
   project_uuid: string;
   setup_script: string;
-  uuid: string;
-};
-
-type EnvironmentImageBuild = {
-  environment_uuid: string;
-  finished_time: string;
-  project_path: string;
-  project_uuid: string;
-  requested_time: string;
-  started_time: string;
-  status: TStatus;
   uuid: string;
 };
 
@@ -76,176 +68,6 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
   { id: "status", label: "Build status" },
 ];
 
-const BUILD_POLL_FREQUENCY = 3000;
-
-const requestToRemoveEnvironment = (
-  projectUuid: string | undefined,
-  environmentUuid: string | undefined
-) => {
-  if (!projectUuid || !environmentUuid) return Promise.reject();
-  // ultimately remove Image
-  return fetcher<void>(
-    `/store/environments/${projectUuid}/${environmentUuid}`,
-    { method: "DELETE" }
-  );
-};
-
-const fetchSessionsInProject = async (projectUuid: string) => {
-  const sessionData = await fetcher<{ sessions: IOrchestSession[] }>(
-    `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
-  );
-  return sessionData.sessions;
-};
-
-const fetchMostRecentEnvironmentBuilds = async (
-  projectUuid: string,
-  environmentUuid?: string
-) => {
-  const buildData = await fetcher<{
-    environment_image_builds: EnvironmentImageBuild[];
-  }>(
-    `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}${
-      environmentUuid ? `/${environmentUuid}` : ""
-    }`
-  );
-  const { environment_image_builds } = buildData;
-  return environment_image_builds;
-};
-
-const hasSuccessfulBuild = async (
-  projectUuid: string,
-  environmentUuid: string
-) => {
-  const builds = await fetchMostRecentEnvironmentBuilds(
-    projectUuid,
-    environmentUuid
-  );
-  // No successful build; safe to remove this environment.
-  return builds.some((x) => x.status === "SUCCESS");
-};
-
-const getNewEnvironmentName = (
-  defaultName: string,
-  environments: Environment[]
-) => {
-  let count = 0;
-  let finalName = defaultName;
-  const allNames = new Set(environments.map((e) => e.name));
-  while (count < 100) {
-    const newName = `${finalName}${count === 0 ? "" : ` (${count})`}`;
-    if (!allNames.has(newName)) {
-      finalName = newName;
-      break;
-    }
-    count += 1;
-  }
-  return finalName;
-};
-
-const requestToCreateEnvironment = (
-  projectUuid: string,
-  environmentName: string,
-  defaultEnvironments: DefaultEnvironment
-) =>
-  fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
-    method: "POST",
-    headers: HEADER.JSON,
-    body: JSON.stringify({
-      environment: {
-        ...defaultEnvironments,
-        uuid: "new",
-        name: environmentName,
-      },
-    }),
-  });
-
-const useMostRecentEnvironmentBuilds = ({
-  projectUuid,
-  environmentUuid,
-  refreshInterval,
-}: {
-  projectUuid: string | undefined;
-  environmentUuid?: string | undefined;
-  refreshInterval?: undefined | number;
-}) => {
-  const { run, data, error } = useAsync<EnvironmentImageBuild[]>();
-
-  const sendRequest = React.useCallback(() => {
-    if (!projectUuid) return Promise.reject();
-    return run(fetchMostRecentEnvironmentBuilds(projectUuid, environmentUuid));
-  }, [environmentUuid, projectUuid, run]);
-
-  usePoller(sendRequest, refreshInterval);
-
-  React.useEffect(() => {
-    sendRequest();
-  }, [sendRequest]);
-
-  return {
-    environmentBuilds: data,
-    error,
-  };
-};
-
-const useEnvironmentList = (
-  projectUuid: string | undefined,
-  navigateToProject: () => void
-) => {
-  const { setAlert } = useAppContext();
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const memoizedNavigateToProject = React.useCallback(navigateToProject, []);
-
-  const {
-    environments = [],
-    isFetchingEnvironments,
-    setEnvironments,
-    error: fetchEnvironmentsError,
-  } = useFetchEnvironments(projectUuid);
-
-  React.useEffect(() => {
-    if (fetchEnvironmentsError) {
-      setAlert("Error", "Error fetching Environments");
-      memoizedNavigateToProject();
-    }
-  }, [fetchEnvironmentsError, memoizedNavigateToProject, setAlert]);
-  const {
-    environmentBuilds = [],
-    error: fetchBuildsError,
-  } = useMostRecentEnvironmentBuilds({
-    projectUuid,
-    refreshInterval: BUILD_POLL_FREQUENCY,
-  });
-
-  React.useEffect(() => {
-    if (fetchBuildsError)
-      setAlert(
-        "Error",
-        "Failed to fetch the latests build of the environment."
-      );
-  }, [fetchBuildsError, setAlert]);
-
-  const environmentRows = React.useMemo(() => {
-    const statusObject = environmentBuilds.reduce((obj, build) => {
-      return {
-        ...obj,
-        [`${build.project_uuid}-${build.environment_uuid}`]: build.status,
-      };
-    }, {} as Record<string, TStatus>);
-    return environments.map((env) => ({
-      ...env,
-      status: statusObject[`${env.project_uuid}-${env.uuid}`] || "NOT BUILT",
-    }));
-  }, [environments, environmentBuilds]);
-
-  return {
-    environmentRows,
-    environments,
-    isFetchingEnvironments,
-    setEnvironments,
-  };
-};
-
 const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm, config } = useAppContext();
@@ -257,16 +79,6 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     environments,
     isFetchingEnvironments,
   } = useEnvironmentList(projectUuid, navigateToProject);
-
-  const doRemoveEnvironment = async (environmentUuid: string) => {
-    if (!projectUuid) return Promise.reject();
-    await requestToRemoveEnvironment(projectUuid, environmentUuid);
-    setEnvironments((current) =>
-      current
-        ? current.filter((current) => current.uuid !== environmentUuid)
-        : current
-    );
-  };
 
   const onRowClick = (e: React.MouseEvent, environmentUuid: string) => {
     navigateTo(
@@ -305,6 +117,16 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     } catch (error) {
       setAlert("Error", `Failed to create new environment. ${error}`);
     }
+  };
+
+  const doRemoveEnvironment = async (environmentUuid: string) => {
+    if (!projectUuid) return Promise.reject();
+    await requestToRemoveEnvironment(projectUuid, environmentUuid);
+    setEnvironments((current) =>
+      current
+        ? current.filter((current) => current.uuid !== environmentUuid)
+        : current
+    );
   };
 
   const removeEnvironment = async (
@@ -369,15 +191,19 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
       async (resolve) => {
         const environmentsDict = environments.reduce((all, curr) => {
           return { ...all, [curr.uuid]: curr };
-        }, {});
+        }, {} as Record<string, Environment>);
         try {
           Promise.all(
-            environmentUuids.map((environmentUuid) => {
-              const { project_uuid, uuid, name } = environmentsDict[
-                environmentUuid
-              ] as Environment;
-              return removeEnvironment(project_uuid, uuid, name);
-            })
+            environmentUuids
+              .map((environmentUuid) => {
+                if (!environmentsDict[environmentUuid]) return null;
+                const { project_uuid, uuid, name } = environmentsDict[
+                  environmentUuid
+                ];
+
+                return removeEnvironment(project_uuid, uuid, name);
+              })
+              .filter((value) => value)
           )
             .then(() => {
               resolve(true);
