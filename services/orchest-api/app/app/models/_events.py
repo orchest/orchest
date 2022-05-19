@@ -2,12 +2,14 @@
 import datetime
 import enum
 import uuid
+from typing import Tuple
 
 from sqlalchemy import ForeignKeyConstraint, Index, case, event, func, or_
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
 from sqlalchemy.orm import declared_attr, deferred
 
 import app.models._core as _core_models
+from _orchest.internals import analytics
 from app.connections import db
 
 
@@ -46,6 +48,31 @@ class Event(_core_models.BaseModel):
     """Events that happen in the orchest-api
 
     See EventType for what events are currently covered.
+
+    When implementing an Event, i.e. subclassing this class, you have
+    the option to implement: to_notification_payload (1) and
+    to_telemetry_payload (2). 1 represents data that will be exposed to
+    users as is, e.g. for webhooks, or on which other kind of
+    notifications will be based on, e.g. emails. 2 represents data that
+    will get to our analytics backend. This data *must* be anonymized,
+    meaning that you, the implementor, must anonymize it.
+
+    To be DRY, the current pattern is used across the models:
+    - 1 is implemented
+    - 2 is implemented by calling 1, then removing undesired entries,
+      i.e.  sensitive data.
+    - a class hierarchy is used, where children call 1/2 of the parent
+      class to have a complete payload and to rely on the existence of
+      some fields. The produced data is a nested dictionary where every
+      layer (i.e. class implementing 1 or 2) relies on the previous
+      layers, and incrementally adds its own data by further nesting
+      of the dictionary.
+    - the methods to fill in the current layer data are static to avoid
+      the risk of them being overriden, i.e. to maintain correct
+      behaviour.
+
+    If you implement 1 you must also implement 2 if you have added
+    any sensitive data.
 
     """
 
@@ -130,13 +157,29 @@ class Event(_core_models.BaseModel):
         "with_polymorphic": "*",
     }
 
-    def to_notification_payload(self) -> dict:
+    @staticmethod
+    def _current_layer_notification_data(event) -> dict:
+        # Staticmethod to make sure it's not overriden accidentally.
         payload = {
-            "uuid": self.uuid,
-            "type": self.type,
-            "timestamp": str(self.timestamp),
+            "uuid": event.uuid,
+            "type": event.type,
+            "timestamp": str(event.timestamp),
         }
         return payload
+
+    @staticmethod
+    def _current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        # Staticmethod to make sure it's not overriden accidentally.
+        event_properties = Event._current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
+    def to_notification_payload(self) -> dict:
+        return Event._current_layer_notification_data(self)
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        ev, deriv = Event._current_layer_telemetry_data(self)
+        return analytics.TelemetryData(event_properties=ev, derived_properties=deriv)
 
     def __repr__(self):
         return f"<Event: {self.uuid}, {self.type}, {self.timestamp}>"
@@ -154,17 +197,36 @@ class ProjectEvent(Event):
         db.String(36), db.ForeignKey("projects.uuid", ondelete="CASCADE")
     )
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        project_payload = {"uuid": event.project_uuid, "name": None}
+        proj = _core_models.Project.query.filter(
+            _core_models.Project.uuid == event.project_uuid
+        ).one()
+        project_payload["name"] = proj.name
+        return project_payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = ProjectEvent.current_layer_notification_data(event)
+        event_properties.pop("name", None)
+        derived_properties = {}
+
+        if event.type in ["project:created", "project:deleted"]:
+            derived_properties["projects_count"] = _core_models.Project.query.count()
+
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        project_payload = {"uuid": self.project_uuid, "name": None}
-        payload["project"] = project_payload
+        payload["project"] = ProjectEvent.current_layer_notification_data(self)
+        return payload
 
-        proj = _core_models.Project.query.filter(
-            _core_models.Project.uuid == self.project_uuid
-        ).first()
-        if proj is not None:
-            project_payload["name"] = proj.name
-
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = ProjectEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"] = ev
+        payload["derived_properties"]["project"] = der
         return payload
 
     def __repr__(self):
@@ -191,11 +253,29 @@ class ProjectUpdateEvent(ProjectEvent):
     def update(cls):
         return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = event.update
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = ProjectUpdateEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        if self.update is not None:
-            payload["project"]["update"] = self.update
+        payload["project"][
+            "update"
+        ] = ProjectUpdateEvent.current_layer_notification_data(self)
+        return payload
 
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = ProjectUpdateEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["update"] = ev
+        payload["derived_properties"]["project"]["update"] = der
         return payload
 
 
