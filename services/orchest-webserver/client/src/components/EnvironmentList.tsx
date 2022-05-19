@@ -1,8 +1,10 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useMounted } from "@/hooks/useMounted";
+import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
+import { usePoller } from "@/hooks/usePoller";
 import { siteMap } from "@/routingConfig";
-import { IOrchestSession } from "@/types";
+import { DefaultEnvironment, IOrchestSession } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import LensIcon from "@mui/icons-material/Lens";
 import Box from "@mui/material/Box";
@@ -11,14 +13,13 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
 import { BoldText } from "./common/BoldText";
 import { PageTitle } from "./common/PageTitle";
 import { DataTable, DataTableColumn } from "./DataTable";
 import { TStatus } from "./Status";
 
 export interface IEnvironmentListProps {
-  projectUuid: string;
+  projectUuid: string | undefined;
 }
 
 type Environment = {
@@ -77,15 +78,50 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
 
 const BUILD_POLL_FREQUENCY = 3000;
 
-const doRemoveEnvironment = (
-  project_uuid: string,
-  environment_uuid: string,
-  callback?: (environmentUuid: string) => void
+const requestToRemoveEnvironment = (
+  projectUuid: string | undefined,
+  environmentUuid: string | undefined
 ) => {
+  if (!projectUuid || !environmentUuid) return Promise.reject();
   // ultimately remove Image
-  return fetcher(`/store/environments/${project_uuid}/${environment_uuid}`, {
-    method: "DELETE",
-  }).then(() => callback && callback(environment_uuid));
+  return fetcher<void>(
+    `/store/environments/${projectUuid}/${environmentUuid}`,
+    { method: "DELETE" }
+  );
+};
+
+const fetchSessionsInProject = async (projectUuid: string) => {
+  const sessionData = await fetcher<{ sessions: IOrchestSession[] }>(
+    `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
+  );
+  return sessionData.sessions;
+};
+
+const fetchMostRecentEnvironmentBuilds = async (
+  projectUuid: string,
+  environmentUuid?: string
+) => {
+  const buildData = await fetcher<{
+    environment_image_builds: EnvironmentImageBuild[];
+  }>(
+    `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}${
+      environmentUuid ? `/${environmentUuid}` : ""
+    }`
+  );
+  const { environment_image_builds } = buildData;
+  return environment_image_builds;
+};
+
+const hasSuccessfulBuild = async (
+  projectUuid: string,
+  environmentUuid: string
+) => {
+  const builds = await fetchMostRecentEnvironmentBuilds(
+    projectUuid,
+    environmentUuid
+  );
+  // No successful build; safe to remove this environment.
+  return builds.some((x) => x.status === "SUCCESS");
 };
 
 const getNewEnvironmentName = (
@@ -106,57 +142,88 @@ const getNewEnvironmentName = (
   return finalName;
 };
 
-const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
-  const { navigateTo } = useCustomRoute();
-  const { setAlert, setConfirm, config } = useAppContext();
-  const mounted = useMounted();
+const requestToCreateEnvironment = (
+  projectUuid: string,
+  environmentName: string,
+  defaultEnvironments: DefaultEnvironment
+) =>
+  fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
+    method: "POST",
+    headers: HEADER.JSON,
+    body: JSON.stringify({
+      environment: {
+        ...defaultEnvironments,
+        uuid: "new",
+        name: environmentName,
+      },
+    }),
+  });
 
-  const {
-    data: fetchedEnvironments = [],
-    error: fetchEnvironmentsError,
-    isValidating,
-    mutate: setFetchedEnvironments,
-  } = useSWR<Environment[]>(
-    projectUuid ? `/store/environments/${projectUuid}` : null,
-    fetcher
-  );
+const useMostRecentEnvironmentBuilds = ({
+  projectUuid,
+  environmentUuid,
+  refreshInterval,
+}: {
+  projectUuid: string | undefined;
+  environmentUuid?: string | undefined;
+  refreshInterval?: undefined | number;
+}) => {
+  const { run, data, error } = useAsync<EnvironmentImageBuild[]>();
 
-  const removeFetchedEnvironment = (uuid: string) => {
-    setFetchedEnvironments(
-      (current) =>
-        current ? current.filter((current) => current.uuid !== uuid) : current,
-      false
-    );
+  const sendRequest = React.useCallback(() => {
+    if (!projectUuid) return Promise.reject();
+    return run(fetchMostRecentEnvironmentBuilds(projectUuid, environmentUuid));
+  }, [environmentUuid, projectUuid, run]);
+
+  usePoller(sendRequest, refreshInterval);
+
+  React.useEffect(() => {
+    sendRequest();
+  }, [sendRequest]);
+
+  return {
+    environmentBuilds: data,
+    error,
   };
+};
 
-  React.useEffect(() => {
-    if (mounted.current && fetchEnvironmentsError) {
-      setAlert("Error", "Error fetching Environments");
-      navigateTo(siteMap.projects.path);
-    }
-  }, [mounted, fetchEnvironmentsError, navigateTo, setAlert]);
+const useEnvironmentList = (
+  projectUuid: string | undefined,
+  navigateToProject: () => void
+) => {
+  const { setAlert } = useAppContext();
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const memoizedNavigateToProject = React.useCallback(navigateToProject, []);
 
   const {
-    data: environmentBuilds = [],
-    error: fetchBuildsError,
-  } = useSWR(
-    projectUuid
-      ? `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}`
-      : null,
-    (url: string) =>
-      fetcher<{ environment_image_builds: EnvironmentImageBuild[] }>(url).then(
-        (response) => response.environment_image_builds
-      ),
-    { refreshInterval: BUILD_POLL_FREQUENCY }
-  );
+    environments = [],
+    isFetchingEnvironments,
+    setEnvironments,
+    error: fetchEnvironmentsError,
+  } = useFetchEnvironments(projectUuid);
 
   React.useEffect(() => {
-    if (mounted.current && fetchBuildsError)
+    if (fetchEnvironmentsError) {
+      setAlert("Error", "Error fetching Environments");
+      memoizedNavigateToProject();
+    }
+  }, [fetchEnvironmentsError, memoizedNavigateToProject, setAlert]);
+  const {
+    environmentBuilds = [],
+    error: fetchBuildsError,
+  } = useMostRecentEnvironmentBuilds({
+    projectUuid,
+    refreshInterval: BUILD_POLL_FREQUENCY,
+  });
+
+  React.useEffect(() => {
+    if (fetchBuildsError)
       setAlert(
         "Error",
         "Failed to fetch the latests build of the environment."
       );
-  }, [mounted, fetchBuildsError, setAlert]);
+  }, [fetchBuildsError, setAlert]);
 
   const environmentRows = React.useMemo(() => {
     const statusObject = environmentBuilds.reduce((obj, build) => {
@@ -165,11 +232,41 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         [`${build.project_uuid}-${build.environment_uuid}`]: build.status,
       };
     }, {} as Record<string, TStatus>);
-    return fetchedEnvironments.map((env) => ({
+    return environments.map((env) => ({
       ...env,
       status: statusObject[`${env.project_uuid}-${env.uuid}`] || "NOT BUILT",
     }));
-  }, [fetchedEnvironments, environmentBuilds]);
+  }, [environments, environmentBuilds]);
+
+  return {
+    environmentRows,
+    environments,
+    isFetchingEnvironments,
+    setEnvironments,
+  };
+};
+
+const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
+  const { navigateTo } = useCustomRoute();
+  const { setAlert, setConfirm, config } = useAppContext();
+
+  const navigateToProject = () => navigateTo(siteMap.projects.path);
+  const {
+    setEnvironments,
+    environmentRows,
+    environments,
+    isFetchingEnvironments,
+  } = useEnvironmentList(projectUuid, navigateToProject);
+
+  const doRemoveEnvironment = async (environmentUuid: string) => {
+    if (!projectUuid) return Promise.reject();
+    await requestToRemoveEnvironment(projectUuid, environmentUuid);
+    setEnvironments((current) =>
+      current
+        ? current.filter((current) => current.uuid !== environmentUuid)
+        : current
+    );
+  };
 
   const onRowClick = (e: React.MouseEvent, environmentUuid: string) => {
     navigateTo(
@@ -184,26 +281,15 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   );
 
   const onCreateClick = async (e: React.MouseEvent) => {
-    if (isCreatingEnvironment || !config?.ENVIRONMENT_DEFAULTS) return;
+    if (isCreatingEnvironment || !config?.ENVIRONMENT_DEFAULTS || !projectUuid)
+      return;
     try {
       setIsCreatingEnvironment(true);
       const defaultEnvironments = config?.ENVIRONMENT_DEFAULTS;
-      const response = await fetcher<Environment>(
-        `/store/environments/${projectUuid}/new`,
-        {
-          method: "POST",
-          headers: HEADER.JSON,
-          body: JSON.stringify({
-            environment: {
-              ...defaultEnvironments,
-              uuid: "new",
-              name: getNewEnvironmentName(
-                defaultEnvironments.name,
-                fetchedEnvironments
-              ),
-            },
-          }),
-        }
+      const response = await requestToCreateEnvironment(
+        projectUuid,
+        getNewEnvironmentName(defaultEnvironments.name, environments),
+        defaultEnvironments
       );
       navigateTo(
         siteMap.environment.path,
@@ -227,16 +313,10 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     environmentName: string
   ) => {
     if (!projectUuid) return false;
-    const sessionData = await fetcher<{ sessions: IOrchestSession[] }>(
-      `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
-    );
-    if (sessionData.sessions.length > 0) {
-      const buildData = await fetcher<{ environment_image_builds: any[] }>(
-        `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environmentUuid}`
-      );
-      if (
-        buildData.environment_image_builds.some((x) => x.status == "SUCCESS")
-      ) {
+
+    const sessions = await fetchSessionsInProject(projectUuid);
+    if (sessions.length > 0) {
+      if (await hasSuccessfulBuild(projectUuid, environmentUuid)) {
         setAlert(
           "Error",
           <>
@@ -247,11 +327,8 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         );
         return false;
       }
-      return doRemoveEnvironment(
-        projectUuid,
-        environmentUuid,
-        removeFetchedEnvironment
-      );
+
+      return doRemoveEnvironment(environmentUuid);
     }
 
     const imageData = await fetcher<{ in_use: boolean }>(
@@ -267,11 +344,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
           {` ) is in use. Are you sure you want to delete it? This will abort all jobs that are using it.`}
         </>,
         async (resolve) => {
-          doRemoveEnvironment(
-            projectUuid,
-            environmentUuid,
-            removeFetchedEnvironment
-          )
+          doRemoveEnvironment(environmentUuid)
             .then(() => {
               resolve(true);
             })
@@ -286,11 +359,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         }
       );
     }
-    return doRemoveEnvironment(
-      projectUuid,
-      environmentUuid,
-      removeFetchedEnvironment
-    );
+    return doRemoveEnvironment(environmentUuid);
   };
 
   const onDeleteClick = async (environmentUuids: string[]) => {
@@ -298,7 +367,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
       "Warning",
       "Are you certain that you want to delete the selected environments?",
       async (resolve) => {
-        const environmentsDict = fetchedEnvironments.reduce((all, curr) => {
+        const environmentsDict = environments.reduce((all, curr) => {
           return { ...all, [curr.uuid]: curr };
         }, {});
         try {
@@ -327,7 +396,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   return (
     <div className={"environments-page"}>
       <PageTitle>Environments</PageTitle>
-      {!fetchedEnvironments ? (
+      {!environments ? (
         <LinearProgress />
       ) : (
         <>
@@ -346,7 +415,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
           <DataTable<EnvironmentRow>
             selectable
             hideSearch
-            isLoading={isValidating}
+            isLoading={isFetchingEnvironments}
             id="environment-list"
             columns={columns}
             rows={environmentRows}
