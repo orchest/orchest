@@ -59,6 +59,9 @@ crds: $(CONTROLLER_GEN) $(YQ)
 	$(CONTROLLER_GEN) crd paths=./pkg/apis/... output:dir=.cache
 	@$(YQ) read .cache/orchest.io_orchestclusters.yaml >> deploy-controller/crds.yaml
 	@rm -f .cache/orchest.io_orchestclusters.yaml
+	@echo "---" >> deploy-controller/crds.yaml
+	@$(YQ) read .cache/orchest.io_orchestcomponents.yaml >> deploy-controller/crds.yaml
+	@rm -f .cache/orchest.io_orchestcomponents.yaml
 
 .PHONY: codegen
 codegen:
