@@ -172,7 +172,6 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jupyter-builds/",
         )
-        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_STARTED, {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds/<build_uuid>", methods=["DELETE"])
@@ -182,7 +181,6 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/jupyter-builds/%s" % build_uuid,
         )
-        analytics.send_event(app, analytics.Event.JUPYTER_BUILD_CANCELLED, {})
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -312,11 +310,6 @@ def register_orchest_api_views(app, db):
             + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
         )
 
-        analytics.send_event(
-            app,
-            analytics.Event.SESSION_STOPPED,
-            {"project_uuid": project_uuid, "pipeline_uuid": pipeline_uuid},
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
@@ -363,15 +356,6 @@ def register_orchest_api_views(app, db):
             json=session_config,
         )
 
-        analytics.send_event(
-            app,
-            analytics.Event.SESSION_STARTED,
-            {
-                "project_uuid": project_uuid,
-                "pipeline_uuid": pipeline_uuid,
-                "services": services,
-            },
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
@@ -396,16 +380,6 @@ def register_orchest_api_views(app, db):
                     active_runs = True
 
             if active_runs:
-                analytics.send_event(
-                    app,
-                    analytics.Event.SESSION_RESTARTED,
-                    {
-                        "project_uuid": project_uuid,
-                        "pipeline_uuid": pipeline_uuid,
-                        "active_runs": True,
-                    },
-                )
-
                 return (
                     jsonify(
                         {
@@ -424,15 +398,6 @@ def register_orchest_api_views(app, db):
                     + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
                 )
 
-                analytics.send_event(
-                    app,
-                    analytics.Event.SESSION_RESTARTED,
-                    {
-                        "project_uuid": project_uuid,
-                        "pipeline_uuid": pipeline_uuid,
-                        "active_runs": False,
-                    },
-                )
                 return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
             app.logger.error(
@@ -465,17 +430,6 @@ def register_orchest_api_views(app, db):
             resp = requests.post(
                 "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
                 json=json_obj,
-            )
-
-            analytics.send_event(
-                app,
-                analytics.Event.PIPELINE_RUN_STARTED,
-                {
-                    "run_uuid": resp.json().get("uuid"),
-                    "run_type": "interactive",
-                    "pipeline_definition": json_obj["pipeline_definition"],
-                    "step_uuids_to_execute": json_obj["uuids"],
-                },
             )
 
             return resp.content, resp.status_code, resp.headers.items()
@@ -512,11 +466,6 @@ def register_orchest_api_views(app, db):
                 + "/api/runs/%s" % run_uuid,
             )
 
-            analytics.send_event(
-                app,
-                analytics.Event.PIPELINE_RUN_CANCELLED,
-                {"run_uuid": run_uuid, "run_type": "interactive"},
-            )
             return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["DELETE"])
@@ -558,11 +507,6 @@ def register_orchest_api_views(app, db):
             json=request.json,
         )
 
-        analytics.send_event(
-            app,
-            analytics.Event.JOB_UPDATED,
-            {"job_uuid": job_uuid, "job_definition": request.json},
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])

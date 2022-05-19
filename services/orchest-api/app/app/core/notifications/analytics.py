@@ -64,6 +64,79 @@ def send_test_ping_delivery() -> bool:
     return analytics.send_event(current_app, analytics.Event.DEBUG_PING, {})
 
 
+def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -> dict:
+    if not event.type.startswith("project:pipeline:interactive-session:"):
+        raise ValueError()
+
+    payload = event.to_notification_payload()
+
+    payload["project_uuid"] = payload["project"]["uuid"]
+    payload["pipeline_uuid"] = payload["project"]["pipeline"]["uuid"]
+
+    if event.type == "project:pipeline:interactive-session:started":
+        user_services = None
+        session = models.InteractiveSession.query.filter(
+            models.InteractiveSession.project_uuid == event.project_uuid,
+            models.InteractiveSession.pipeline_uuid == event.pipeline_uuid,
+        ).first()
+        if session is not None:
+            user_services = session.user_services
+        payload["project"]["pipeline"]["session"]["user_services"] = user_services
+    elif event.type == "project:pipeline:interactive-session:service-started":
+        active_runs = db.session.query(
+            db.session.query(models.InteractivePipelineRun)
+            .filter(
+                models.InteractivePipelineRun.project_uuid == event.project_uuid,
+                models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
+            )
+            .exists()
+        ).scalar()
+        payload["project"]["pipeline"]["session"]["active_runs"] = active_runs
+
+    return payload
+
+
+def _generate_interactive_pipeline_run_payload(
+    event: models.InteractivePipelineRunEvent,
+) -> dict:
+    if not event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
+        raise ValueError()
+
+    payload = event.to_notification_payload()
+    pipeline_run = models.InteractivePipelineRun.query.filter(
+        models.InteractivePipelineRun.project_uuid == event.project_uuid,
+        models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
+        models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
+    ).one()
+    payload["project"]["pipeline"]["session"]["pipeline_run"][
+        "pipeline_definition"
+    ] = pipeline_run.pipeline_definition
+
+    return payload
+
+
+def _generate_project_created_deleted_payload(event: models.ProjectEvent):
+    if event.type not in ["project:created", "project:deleted"]:
+        raise ValueError()
+
+    payload = event.to_notification_payload()
+    payload["project"]["project_count"] = models.Project.query.count()
+    return payload
+
+
+def _generate_pipeline_created_deleted_payload(event: models.ProjectEvent):
+    if event.type not in ["project:pipeline:created", "project:pipeline:deleted"]:
+        raise ValueError()
+
+    payload = event.to_notification_payload()
+    payload["project"]["pipeline"][
+        "project_pipelines_count"
+    ] = models.Pipeline.query.filter(
+        models.Pipeline.project_uuid == event.project_uuid
+    ).count()
+    return payload
+
+
 def generate_payload_for_analytics(event: models.Event) -> dict:
     """Creates an analytics module compatible payload.
 
@@ -73,6 +146,18 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     """
 
     analytics_payload = event.to_notification_payload()
+    if event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
+        return _generate_interactive_pipeline_run_payload(event)
+
+    if event.type.startswith("project:pipeline:interactive-session:"):
+        return _generate_session_analytics_payload(event)
+
+    if event.type in ["project:created", "project:deleted"]:
+        return _generate_project_created_deleted_payload(event)
+
+    if event.type in ["project:pipeline:created", "project:pipeline:deleted"]:
+        return _generate_pipeline_created_deleted_payload(event)
+
     event_type = analytics_payload["type"]
 
     if event_type.startswith("project:cron-job:") or event_type.startswith(
@@ -87,8 +172,12 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     elif event_type.startswith("project:one-off-job:pipeline-run:"):
         analytics_payload["run_uuid"] = analytics_payload["job"]["pipeline_run"]["uuid"]
 
-    if event_type in ["project:cron-job:created", "project:one-off-job:created"]:
-        analytics_payload["snapshot_size"] = None
+    if event_type in [
+        "project:cron-job:created",
+        "project:cron-job:updated",
+        "project:one-off-job:created",
+        "project:one-off-job:updated",
+    ]:
         job: models.Job = models.Job.query.filter(
             models.Job.project_uuid == analytics_payload["project"]["uuid"],
             models.Job.uuid == analytics_payload["job"]["uuid"],
@@ -100,6 +189,7 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
                 "pipeline_uuid": job.pipeline_uuid,
                 "draft": True,
                 "uuid": job.uuid,
+                "env_variables": job.env_variables,
                 "pipeline_run_spec": {"run_type": "full", "uuids": []},
             }
 
