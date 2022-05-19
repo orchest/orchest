@@ -507,11 +507,6 @@ def register_orchest_api_views(app, db):
             json=request.json,
         )
 
-        analytics.send_event(
-            app,
-            analytics.Event.JOB_UPDATED,
-            {"job_uuid": job_uuid, "job_definition": request.json},
-        )
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])
