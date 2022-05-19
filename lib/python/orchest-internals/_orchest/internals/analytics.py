@@ -1,10 +1,28 @@
+"""Module to send telemetry data to the telemetry back-end.
+
+This module provides the following:
+- An enumeration that represents the possible events that are sent.
+- A send_event function to send telemetry events along with already
+    anonymized data.
+- A number of already defined anonymization functions for data which
+    schema is already defined globally, i.e. across all Orchest
+    services.  These functions always do the following: modify the
+    passed, non already anonymized object in place to remove sensitive
+    data, and construct a dictionary of derived_properties which
+    constitutes the return value. If you are implementing such
+    functions, follow this behaviour.
+
+# TODO: delete this comment.
+Note: this is a work in progress, later commits will shift the
+anonymization logic to the callers of this module.
+
+"""
 import base64
 import collections
-import copy
 import logging
 import os
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional, TypedDict
 
 import posthog
 from flask.app import Flask
@@ -116,49 +134,6 @@ class Event(Enum):
     SESSION_SERVICE_RESTARTED = "project:pipeline:interactive-session:service-restarted"
     SESSION_SUCCEEDED = "project:pipeline:interactive-session:succeeded"
 
-    def anonymize(self, event_properties: dict) -> dict:
-        """Anonymizes the given properties in place.
-
-        To determine how the properties need to be anonymized
-        `self.value` is used.
-
-        Args:
-            event_properties: The properties that describe the event.
-                The exact properties that need to be anonymized are then
-                cherry-picked. The passed object will be modified in
-                order to anonymize it, as needed.
-
-        Returns:
-            Optionally returns derived properties from the anonymized
-            properties, e.g. returning the number of step parameters
-            instead of the actual parameter names, and indicates the
-            property it was derived from. Example::
-
-                {
-                    "job_definition": {
-                        "parameterized_runs_count": ...
-                    },
-                }
-
-            where the `"parameterized_runs_count"` was derived from an
-            attribute in the `"job_definition"`.
-
-            If no properties are derived, then an empty dict is
-            returned.
-
-        """
-        anonymization_func = _ANONYMIZATION_MAPPINGS.get(self)
-        if anonymization_func is None:
-            logger.debug(f"Analytics event '{self}' does not need anonymization.")
-            return {}
-
-        try:
-            return anonymization_func(event_properties)
-        except Exception:
-            raise RuntimeError(
-                f"Unexpected error while anonymizing event data for '{self}'."
-            )
-
 
 _posthog_initialized = False
 
@@ -171,20 +146,31 @@ def _initialize_posthog() -> None:
     _posthog_initialized = True
 
 
-def send_event(
-    app: Flask, event: Event, event_properties: Optional[dict] = None
-) -> bool:
-    """Sends an anonymized telemetry event.
+class TelemetryData(TypedDict):
+    event_properties: Any
+    derived_properties: Any
 
-    The telemetry data is send to our self-hosted telemetry service and
-    is always in the format::
+
+def send_event(
+    app: Flask, event: Event, event_data: Optional[TelemetryData] = None
+) -> bool:
+    """Sends a telemetry event. !!! The data must already be anonymized.
+
+    The telemetry data is sent to our self-hosted telemetry service and
+    must follow the format:
 
         {
             "event_properties": ...  # anonymized event properties
             "derived_properties": ...  # derived from removed properties
+        }
+
+    Two entries are added to said data before being sent out:
+        {
+            ...,
             "app_properties": ...  # Orchest application properties
             "system_properties": ...  # System Properties, e.g. OS type.
         }
+
 
     Args:
         app: The Flask application that received the event. The app is
@@ -192,17 +178,26 @@ def send_event(
             following: TELEMETRY_UUID, MAX_JOB_RUNS_PARALLELISM,
             MAX_INTERACTIVE_RUNS_PARALLELISM. TODO: can we do away with
             passing the flask app to this module?
-
         event: The event to send.
-        event_properties: Any information that describes the event. This
-            information will be anonymized and sent to the telemetry
-            service.
+        event_data: Information that describes the event. Must follow
+            the TelemetryData schema and must already be anonymized,
+            that is, anonymizing is responsibility of the caller.
+
+    Raises:
+        ValueError: If event_data doesn't have the right schema.
 
     Returns:
         True if the event (including its information) was successfully
         sent to the telemetry service. False otherwise.
 
     """
+    if event_data is not None and (
+        "event_properties" not in event_data
+        or "derived_properties" not in event_data
+        or len(event_data) != 2
+    ):
+        raise ValueError("event_data should be of type TelemetryData")
+
     if app.config.get("TELEMETRY_DISABLED", True):
         return False
 
@@ -213,23 +208,6 @@ def send_event(
 
     if not _posthog_initialized:
         _initialize_posthog()
-
-    if event_properties is None:
-        event_data = {"event_properties": {}}
-    else:
-        event_data = {"event_properties": copy.deepcopy(event_properties)}
-
-    try:
-        event_data["derived_properties"] = event.anonymize(
-            event_data["event_properties"]
-        )
-    except RuntimeError:
-        app.logger.error(
-            f"Failed to anonymize analytics event data for '{event}'.",
-            exc_info=True,
-        )
-        # We only want to send anonymized data.
-        return False
 
     _add_app_properties(event_data, app)
     _add_system_properties(event_data)
@@ -270,244 +248,6 @@ def _add_system_properties(data: dict) -> None:
         "host_os": os.environ.get("HOST_OS"),
         "gpu_enabled_instance": _config.GPU_ENABLED_INSTANCE,
     }
-
-
-class _Anonymizer:
-    """Anonymizes the event properties of the given event.
-
-    !Note: if you are implementing a function to anonymize some event
-    properties be aware that you are in charge of modifying the passed
-    `event_properties` object to anonymize it. After implementing a
-    function, add it to Event._ANONYMIZATION_MAPPINGS.
-    """
-
-    @staticmethod
-    def project_event(event_properties: dict) -> dict:
-        derived_properties = {}
-        derived_properties["project"] = _anonymize_project_properties(
-            event_properties["project"]
-        )
-        return derived_properties
-
-    @staticmethod
-    def environment_event(event_properties: dict) -> dict:
-        derived_properties = _Anonymizer.project_event(event_properties)
-        derived_properties["project"]["environment"] = {}
-        return derived_properties
-
-    @staticmethod
-    def environment_image_build_event(event_properties: dict) -> dict:
-        derived_properties = _Anonymizer.environment_event(event_properties)
-        event_properties["project"]["environment"]["image_build"].pop(
-            "project_path", None
-        )
-        derived_properties["project"]["environment"]["image_build"] = {}
-        return derived_properties
-
-    @staticmethod
-    def environment_image_build_created_event(event_properties: dict) -> dict:
-        derived_properties = _Anonymizer.environment_image_build_event(event_properties)
-        image_build_derived_props = derived_properties["project"]["environment"][
-            "image_build"
-        ]
-
-        base_image = event_properties["project"]["environment"]["image_build"].get(
-            "base_image"
-        )
-        if isinstance(base_image, str):
-            image_build_derived_props[
-                "uses_orchest_base_image"
-            ] = base_image.startswith("orchest/")
-            # Deprecated.
-            derived_properties["uses_orchest_base_image"] = image_build_derived_props[
-                "uses_orchest_base_image"
-            ]
-        if not derived_properties.get("uses_orchest_base_image", False):
-            event_properties["project"]["environment"]["image_build"].pop(
-                base_image, None
-            )
-
-        return derived_properties
-
-    @staticmethod
-    def pipeline_event(event_properties: dict) -> dict:
-        derived_properties = {}
-        derived_properties["project"] = _anonymize_project_properties(
-            event_properties["project"]
-        )
-        derived_properties["project"]["pipeline"] = _anonymize_pipeline_properties(
-            event_properties["project"]["pipeline"]
-        )
-        return derived_properties
-
-    @staticmethod
-    def _deprecated_job_created(event_properties: dict) -> dict:
-        """To not introduce breaking changes in the analytics schema."""
-
-        job_def = event_properties["job_definition"]
-        job_def.pop("name", None)
-        job_def.pop("pipeline_name", None)
-        job_def.pop("strategy_json", None)
-        # TODO: Could also send an anonymized version of the pipeline
-        # definition.
-        job_def.pop("pipeline_definition", None)
-        job_def["pipeline_run_spec"].pop("run_config", None)
-
-        derived_properties = {"job_definition": {}}
-        derived_properties["job_definition"] = {
-            "parameterized_runs_count": len(job_def.pop("parameters", [])),
-            "env_variables_count": len(job_def.pop("env_variables", {})),
-        }
-        return derived_properties
-
-    @staticmethod
-    def project_one_off_job_created_updated(event_properties: dict) -> dict:
-        derived_properties = _Anonymizer.project_one_off_job(event_properties)
-        deprecated_derived = _Anonymizer._deprecated_job_created(event_properties)
-        derived_properties = {**deprecated_derived, **derived_properties}
-        return derived_properties
-
-    @staticmethod
-    def project_cron_job_created_updated(event_properties: dict) -> dict:
-        derived_properties = _Anonymizer.project_cron_job(event_properties)
-        deprecated_derived = _Anonymizer._deprecated_job_created(event_properties)
-        derived_properties = {**deprecated_derived, **derived_properties}
-        return derived_properties
-
-    @staticmethod
-    def session_started(event_properties: dict) -> dict:
-        derived_user_services = {}
-        user_services = event_properties["project"]["pipeline"]["session"][
-            "user_services"
-        ]
-        for service_name, service_def in user_services.items():
-            derived_user_services[service_name] = _anonymize_service_definition(
-                service_def
-            )
-
-        event_properties["project"]["pipeline"]["session"].pop("user_services")
-
-        derived_properties = {}
-        derived_properties["project"] = _anonymize_project_properties(
-            event_properties["project"]
-        )
-        derived_properties["project"] = {
-            "session": {"user_services": derived_user_services}
-        }
-        # To not break the analytics schema, deprecated.
-        derived_properties["services"] = derived_user_services
-
-        return derived_properties
-
-    @staticmethod
-    def interactive_pipeline_run(event_properties: dict) -> dict:
-        pipeline_run = event_properties["project"]["pipeline"]["session"][
-            "pipeline_run"
-        ]
-
-        derived_properties = {}
-        derived_properties["project"] = _anonymize_project_properties(
-            event_properties["project"]
-        )
-        derived_properties["project"]["pipeline"] = {
-            "session": {
-                "pipeline_run": _anonymize_pipeline_run_properties(pipeline_run)
-            }
-        }
-
-        # To not break the analytics schema, deprecated.
-        derived_properties["pipeline_definition"] = pipeline_run["pipeline_definition"]
-        event_properties["run_uuid"] = pipeline_run["uuid"]
-        event_properties["run_type"] = "interactive"
-        event_properties["step_uuids_to_execute"] = pipeline_run["steps"]
-
-        return derived_properties
-
-    @staticmethod
-    def pipeline_saved(event_properties: dict) -> dict:
-        pdef = event_properties["pipeline_definition"]
-        derived_properties = {
-            "pipeline_definition": _anonymize_pipeline_definition(pdef),
-        }
-        return derived_properties
-
-    @staticmethod
-    def project_one_off_job(event_properties: dict) -> dict:
-        derived_properties = {}
-        derived_properties["project"] = _anonymize_project_properties(
-            event_properties["project"]
-        )
-        derived_job_properties = _anonymize_one_off_job_properties(
-            event_properties["project"]["job"]
-        )
-        derived_properties["project"]["job"] = derived_job_properties
-        return derived_properties
-
-    @staticmethod
-    def project_cron_job(event_properties: dict) -> dict:
-        derived_properties = {}
-        derived_properties["project"] = _anonymize_project_properties(
-            event_properties["project"]
-        )
-        derived_job_properties = _anonymize_cron_job_properties(
-            event_properties["project"]["job"]
-        )
-        derived_properties["project"]["job"] = derived_job_properties
-        return derived_properties
-
-
-_ANONYMIZATION_MAPPINGS = {
-    Event.CRON_JOB_CANCELLED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created_updated,
-    Event.CRON_JOB_DELETED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_FAILED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_PAUSED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_FAILED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_CANCELLED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_CREATED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_DELETED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_FAILED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_STARTED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_SUCCEEDED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_STARTED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_SUCCEEDED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_STARTED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_UNPAUSED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_UPDATED: _Anonymizer.project_cron_job_created_updated,
-    Event.ENVIRONMENT_CREATED: _Anonymizer.environment_event,
-    Event.ENVIRONMENT_DELETED: _Anonymizer.environment_event,
-    Event.ENVIRONMENT_IMAGE_BUILD_CANCELLED: _Anonymizer.environment_image_build_event,
-    Event.ENVIRONMENT_IMAGE_BUILD_CREATED: _Anonymizer.environment_image_build_created_event,  # noqa
-    Event.ENVIRONMENT_IMAGE_BUILD_FAILED: _Anonymizer.environment_image_build_event,
-    Event.ENVIRONMENT_IMAGE_BUILD_STARTED: _Anonymizer.environment_image_build_event,
-    Event.ENVIRONMENT_IMAGE_BUILD_SUCCEEDED: _Anonymizer.environment_image_build_event,
-    Event.INTERACTIVE_PIPELINE_RUN_CANCELLED: _Anonymizer.interactive_pipeline_run,
-    Event.INTERACTIVE_PIPELINE_RUN_CREATED: _Anonymizer.interactive_pipeline_run,
-    Event.INTERACTIVE_PIPELINE_RUN_FAILED: _Anonymizer.interactive_pipeline_run,
-    Event.INTERACTIVE_PIPELINE_RUN_STARTED: _Anonymizer.interactive_pipeline_run,
-    Event.INTERACTIVE_PIPELINE_RUN_SUCCEEDED: _Anonymizer.interactive_pipeline_run,
-    Event.ONE_OFF_JOB_CANCELLED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created_updated,
-    Event.ONE_OFF_JOB_DELETED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_FAILED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_CANCELLED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_CREATED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_DELETED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_FAILED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_STARTED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_SUCCEEDED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_STARTED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_SUCCEEDED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_UPDATED: _Anonymizer.project_one_off_job_created_updated,
-    Event.PIPELINE_CREATED: _Anonymizer.pipeline_event,
-    Event.PIPELINE_DELETED: _Anonymizer.pipeline_event,
-    Event.PIPELINE_SAVED: _Anonymizer.pipeline_saved,
-    Event.PIPELINE_UPDATED: _Anonymizer.pipeline_event,
-    Event.PROJECT_CREATED: _Anonymizer.project_event,
-    Event.PROJECT_DELETED: _Anonymizer.project_event,
-    Event.PROJECT_UPDATED: _Anonymizer.project_event,
-    Event.SESSION_STARTED: _Anonymizer.session_started,
-}
 
 
 def _anonymize_project_properties(project: dict) -> dict:
