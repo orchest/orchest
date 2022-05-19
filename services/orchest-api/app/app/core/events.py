@@ -459,7 +459,7 @@ def _register_interactive_session_started(
     project_uuid: str, pipeline_uuid: str
 ) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:started", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:started", project_uuid, pipeline_uuid
     )
 
 
@@ -467,13 +467,13 @@ def _register_interactive_session_stopped(
     project_uuid: str, pipeline_uuid: str
 ) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:stopped", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:stopped", project_uuid, pipeline_uuid
     )
 
 
 def _register_interactive_session_failed(project_uuid: str, pipeline_uuid: str) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:failed", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:failed", project_uuid, pipeline_uuid
     )
 
 
@@ -481,7 +481,9 @@ def _register_interactive_session_service_restarted(
     project_uuid: str, pipeline_uuid: str
 ) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:service-restarted", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:service-restarted",
+        project_uuid,
+        pipeline_uuid,
     )
 
 
@@ -489,7 +491,7 @@ def _register_interactive_session_service_succeeded(
     project_uuid: str, pipeline_uuid: str
 ) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:succeeded", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:succeeded", project_uuid, pipeline_uuid
     )
 
 

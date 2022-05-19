@@ -105,11 +105,11 @@ class Event(Enum):
     CRON_JOB_RUN_PIPELINE_RUN_DELETED = "project:cron-job:run:pipeline-run:deleted"
     CRON_JOB_RUN_PIPELINE_RUN_SUCCEEDED = "project:cron-job:run:pipeline-run:succeeded"
 
-    SESSION_STARTED = "project:interactive-session:started"
-    SESSION_STOPPED = "project:interactive-session:stopped"
-    SESSION_FAILED = "project:interactive-session:failed"
-    SESSION_SERVICE_RESTARTED = "project:interactive-session:service-restarted"
-    SESSION_SUCCEEDED = "project:interactive-session:succeeded"
+    SESSION_STARTED = "project:pipeline:interactive-session:started"
+    SESSION_STOPPED = "project:pipeline:interactive-session:stopped"
+    SESSION_FAILED = "project:pipeline:interactive-session:failed"
+    SESSION_SERVICE_RESTARTED = "project:pipeline:interactive-session:service-restarted"
+    SESSION_SUCCEEDED = "project:pipeline:interactive-session:succeeded"
 
     def anonymize(self, event_properties: dict) -> dict:
         """Anonymizes the given properties in place.

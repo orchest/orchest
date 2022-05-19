@@ -19,11 +19,11 @@ def upgrade():
     op.execute(
         """
         INSERT INTO event_types (name) values
-        ('project:interactive-session:started'),
-        ('project:interactive-session:stopped'),
-        ('project:interactive-session:service-restarted'),
-        ('project:interactive-session:failed'),
-        ('project:interactive-session:succeeded')
+        ('project:pipeline:interactive-session:started'),
+        ('project:pipeline:interactive-session:stopped'),
+        ('project:pipeline:interactive-session:service-restarted'),
+        ('project:pipeline:interactive-session:failed'),
+        ('project:pipeline:interactive-session:succeeded')
         ;
         """
     )

@@ -1171,7 +1171,7 @@ class Event(BaseModel):
                     "job_event",
                 ),
                 (
-                    type.startswith("project:interactive-session:"),
+                    type.startswith("project:pipeline:interactive-session:"),
                     "interactive_session_event",
                 ),
                 (
@@ -1397,7 +1397,7 @@ ForeignKeyConstraint(
 )
 
 
-class InteractiveSessionEvent(ProjectEvent):
+class InteractiveSessionEvent(PipelineEvent):
 
     # Single table inheritance.
     __tablename__ = None
@@ -1413,7 +1413,7 @@ class InteractiveSessionEvent(ProjectEvent):
         session_payload = {
             "pipeline_uuid": self.pipeline_uuid,
         }
-        payload["project"]["session"] = session_payload
+        payload["project"]["pipeline"]["session"] = session_payload
         return payload
 
 
