@@ -2,18 +2,10 @@ import { TStatus } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import React from "react";
-import { BUILD_POLL_FREQUENCY } from "../common";
+import { BUILD_POLL_FREQUENCY, requestToRemoveEnvironment } from "../common";
 import { useMostRecentEnvironmentBuilds } from "./useMostRecentEnvironmentBuilds";
 
-export const useEnvironmentList = (
-  projectUuid: string | undefined,
-  navigateToProject: () => void
-) => {
-  const { setAlert } = useAppContext();
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const memoizedNavigateToProject = React.useCallback(navigateToProject, []);
-
+export const useEnvironmentListBase = (projectUuid: string | undefined) => {
   const {
     environments = [],
     isFetchingEnvironments,
@@ -21,12 +13,6 @@ export const useEnvironmentList = (
     error: fetchEnvironmentsError,
   } = useFetchEnvironments(projectUuid);
 
-  React.useEffect(() => {
-    if (fetchEnvironmentsError) {
-      setAlert("Error", "Error fetching Environments");
-      memoizedNavigateToProject();
-    }
-  }, [fetchEnvironmentsError, memoizedNavigateToProject, setAlert]);
   const {
     environmentBuilds = [],
     error: fetchBuildsError,
@@ -34,14 +20,6 @@ export const useEnvironmentList = (
     projectUuid,
     refreshInterval: BUILD_POLL_FREQUENCY,
   });
-
-  React.useEffect(() => {
-    if (fetchBuildsError)
-      setAlert(
-        "Error",
-        "Failed to fetch the latests build of the environment."
-      );
-  }, [fetchBuildsError, setAlert]);
 
   const environmentRows = React.useMemo(() => {
     const statusObject = environmentBuilds.reduce((obj, build) => {
@@ -56,10 +34,65 @@ export const useEnvironmentList = (
     }));
   }, [environments, environmentBuilds]);
 
+  const doRemoveEnvironment = React.useCallback(
+    async (environmentUuid: string) => {
+      if (!projectUuid) return Promise.reject();
+      await requestToRemoveEnvironment(projectUuid, environmentUuid);
+      setEnvironments((current) =>
+        current
+          ? current.filter((current) => current.uuid !== environmentUuid)
+          : current
+      );
+    },
+    [projectUuid, setEnvironments]
+  );
+
   return {
     environmentRows,
     environments,
     isFetchingEnvironments,
-    setEnvironments,
+    fetchEnvironmentsError,
+    fetchBuildsError,
+    doRemoveEnvironment,
+  };
+};
+
+export const useEnvironmentList = (
+  projectUuid: string | undefined,
+  navigateToProject: () => void
+) => {
+  const { setAlert } = useAppContext();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const memoizedNavigateToProject = React.useCallback(navigateToProject, []);
+
+  const {
+    fetchEnvironmentsError,
+    fetchBuildsError,
+    environmentRows,
+    environments,
+    isFetchingEnvironments,
+    doRemoveEnvironment,
+  } = useEnvironmentListBase(projectUuid);
+
+  React.useEffect(() => {
+    if (fetchEnvironmentsError) {
+      setAlert("Error", "Error fetching Environments");
+      memoizedNavigateToProject();
+    }
+  }, [fetchEnvironmentsError, memoizedNavigateToProject, setAlert]);
+
+  React.useEffect(() => {
+    if (fetchBuildsError)
+      setAlert(
+        "Error",
+        "Failed to fetch the latests build of the environment."
+      );
+  }, [fetchBuildsError, setAlert]);
+
+  return {
+    environmentRows,
+    environments,
+    isFetchingEnvironments,
+    doRemoveEnvironment,
   };
 };

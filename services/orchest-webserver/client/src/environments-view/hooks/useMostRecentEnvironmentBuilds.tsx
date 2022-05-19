@@ -1,5 +1,5 @@
+import { useInterval } from "@/hooks/use-interval";
 import { useAsync } from "@/hooks/useAsync";
-import { usePoller } from "@/hooks/usePoller";
 import { EnvironmentImageBuild } from "@/types";
 import React from "react";
 import { fetchMostRecentEnvironmentBuilds } from "../common";
@@ -20,7 +20,7 @@ export const useMostRecentEnvironmentBuilds = ({
     return run(fetchMostRecentEnvironmentBuilds(projectUuid, environmentUuid));
   }, [environmentUuid, projectUuid, run]);
 
-  usePoller(sendRequest, refreshInterval);
+  useInterval(sendRequest, refreshInterval);
 
   React.useEffect(() => {
     sendRequest();

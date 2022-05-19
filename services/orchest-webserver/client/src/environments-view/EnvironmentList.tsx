@@ -17,7 +17,6 @@ import {
   getNewEnvironmentName,
   hasSuccessfulBuild,
   requestToCreateEnvironment,
-  requestToRemoveEnvironment,
 } from "./common";
 import { useEnvironmentList } from "./hooks/useEnvironmentList";
 
@@ -74,10 +73,10 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
 
   const navigateToProject = () => navigateTo(siteMap.projects.path);
   const {
-    setEnvironments,
     environmentRows,
     environments,
     isFetchingEnvironments,
+    doRemoveEnvironment,
   } = useEnvironmentList(projectUuid, navigateToProject);
 
   const onRowClick = (e: React.MouseEvent, environmentUuid: string) => {
@@ -105,28 +104,13 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
       );
       navigateTo(
         siteMap.environment.path,
-        {
-          query: {
-            projectUuid,
-            environmentUuid: response.uuid,
-          },
-        },
+        { query: { projectUuid, environmentUuid: response.uuid } },
         e
       );
       setIsCreatingEnvironment(false);
     } catch (error) {
       setAlert("Error", `Failed to create new environment. ${error}`);
     }
-  };
-
-  const doRemoveEnvironment = async (environmentUuid: string) => {
-    if (!projectUuid) return Promise.reject();
-    await requestToRemoveEnvironment(projectUuid, environmentUuid);
-    setEnvironments((current) =>
-      current
-        ? current.filter((current) => current.uuid !== environmentUuid)
-        : current
-    );
   };
 
   const removeEnvironment = async (
