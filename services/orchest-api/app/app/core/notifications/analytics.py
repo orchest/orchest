@@ -71,7 +71,7 @@ def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -
     payload = event.to_notification_payload()
 
     payload["project_uuid"] = payload["project"]["uuid"]
-    payload["pipeline_uuid"] = payload["project"]["session"]["pipeline_uuid"]
+    payload["pipeline_uuid"] = payload["project"]["pipeline"]["uuid"]
 
     if event.type == "project:pipeline:interactive-session:started":
         user_services = None
@@ -81,7 +81,7 @@ def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -
         ).first()
         if session is not None:
             user_services = session.user_services
-        payload["project"]["session"]["user_services"] = user_services
+        payload["project"]["pipeline"]["session"]["user_services"] = user_services
     elif event.type == "project:pipeline:interactive-session:service-started":
         active_runs = db.session.query(
             db.session.query(models.InteractivePipelineRun)
@@ -91,7 +91,7 @@ def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -
             )
             .exists()
         ).scalar()
-        payload["project"]["session"]["active_runs"] = active_runs
+        payload["project"]["pipeline"]["session"]["active_runs"] = active_runs
 
     return payload
 
@@ -146,11 +146,11 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     """
 
     analytics_payload = event.to_notification_payload()
-    if event.type.startswith("project:pipeline:interactive-session:"):
-        return _generate_session_analytics_payload(event)
-
     if event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
         return _generate_interactive_pipeline_run_payload(event)
+
+    if event.type.startswith("project:pipeline:interactive-session:"):
+        return _generate_session_analytics_payload(event)
 
     if event.type in ["project:created", "project:deleted"]:
         return _generate_project_created_deleted_payload(event)

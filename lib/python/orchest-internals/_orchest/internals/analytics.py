@@ -344,13 +344,15 @@ class _Anonymizer:
     @staticmethod
     def session_started(event_properties: dict) -> dict:
         derived_user_services = {}
-        user_services = event_properties["project"]["session"]["user_services"]
+        user_services = event_properties["project"]["pipeline"]["session"][
+            "user_services"
+        ]
         for service_name, service_def in user_services.items():
             derived_user_services[service_name] = _anonymize_service_definition(
                 service_def
             )
 
-        event_properties["project"]["session"].pop("user_services")
+        event_properties["project"]["pipeline"]["session"].pop("user_services")
 
         derived_properties = {}
         derived_properties["project"] = _anonymize_project_properties(
@@ -375,8 +377,11 @@ class _Anonymizer:
             event_properties["project"]
         )
         derived_properties["project"]["pipeline"] = {
-            "pipeline_run": _anonymize_pipeline_run_properties(pipeline_run)
+            "session": {
+                "pipeline_run": _anonymize_pipeline_run_properties(pipeline_run)
+            }
         }
+
         # To not break the analytics schema, deprecated.
         derived_properties["pipeline_definition"] = pipeline_run["pipeline_definition"]
         event_properties["run_uuid"] = pipeline_run["uuid"]
