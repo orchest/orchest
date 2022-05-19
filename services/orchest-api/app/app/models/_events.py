@@ -452,10 +452,76 @@ class InteractiveSessionEvent(PipelineEvent):
     def pipeline_uuid(cls):
         return Event.__table__.c.get("pipeline_uuid", db.Column(db.String(36)))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        return {}
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = InteractiveSessionEvent.current_layer_notification_data(
+            event
+        )
+
+        # Information about user services.
+        sess = _core_models.InteractiveSession.query.filter(
+            _core_models.InteractiveSession.project_uuid == event.project_uuid,
+            _core_models.InteractiveSession.pipeline_uuid == event.pipeline_uuid,
+        ).one()
+        event_properties["user_services"] = sess.user_services
+
+        derived_properties = {}
+        derived_user_services = {}
+        for s_name, s_def in event_properties["user_services"].items():
+            derived_user_services[s_name] = analytics.anonymize_service_definition(
+                s_def
+            )
+        derived_properties["user_services"] = derived_user_services
+
+        # Any active runs during a service restart?
+        if event.type == "project:pipeline:interactive-session:service-restarted":
+            active_runs = db.session.query(
+                db.session.query(_core_models.InteractivePipelineRun)
+                .filter(
+                    _core_models.InteractivePipelineRun.project_uuid
+                    == event.project_uuid,
+                    _core_models.InteractivePipelineRun.pipeline_uuid
+                    == event.pipeline_uuid,
+                )
+                .exists()
+            ).scalar()
+            event_properties["active_runs"] = active_runs
+
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        session_payload = {}
-        payload["project"]["pipeline"]["session"] = session_payload
+        payload["project"]["pipeline"][
+            "session"
+        ] = InteractiveSessionEvent.current_layer_notification_data(self)
+        return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = InteractiveSessionEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["pipeline"]["session"] = ev
+        payload["derived_properties"]["project"]["pipeline"]["session"] = der
+
+        # Deprecated.
+        p_ev = payload["event_properties"]
+        p_ev["project_uuid"] = p_ev["project"]["uuid"]
+        p_ev["pipeline_uuid"] = p_ev["project"]["pipeline"]["uuid"]
+        if "deprecated" not in p_ev:
+            p_ev["deprecated"] = []
+        p_ev["deprecated"].extend(["project_uuid", "pipeline_uuid"])
+        if "active_runs" in ev:
+            p_ev["active_runs"] = ev["active_runs"]
+            p_ev["deprecated"].append("active_runs")
+
+        p_der = payload["derived_properties"]
+        p_der["services"] = der["user_services"]
+        if "deprecated" not in p_der:
+            p_der["deprecated"] = []
+        p_der["deprecated"].append("services")
         return payload
 
 

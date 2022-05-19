@@ -304,7 +304,7 @@ def _anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
     return derived_properties
 
 
-def _anonymize_service_definition(definition: dict) -> dict:
+def anonymize_service_definition(definition: dict) -> dict:
     definition.pop("command", None)
     definition.pop("args", None)
     definition.pop("env_variables", None)
@@ -374,6 +374,6 @@ def anonymize_pipeline_definition(definition: dict) -> dict:
 
     services = definition.get("services", {})
     for sname, sdef in services.items():
-        derived_properties["services"][sname] = _anonymize_service_definition(sdef)
+        derived_properties["services"][sname] = anonymize_service_definition(sdef)
 
     return derived_properties
