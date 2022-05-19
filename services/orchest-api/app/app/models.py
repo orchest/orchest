@@ -1171,12 +1171,14 @@ class Event(BaseModel):
                     "job_event",
                 ),
                 (
-                    type.startswith("project:pipeline:interactive-session:"),
-                    "interactive_session_event",
+                    type.startswith(
+                        "project:pipeline:interactive-session:pipeline-run:"
+                    ),
+                    "interactive_pipeline_run_event",
                 ),
                 (
-                    type.startswith("project:pipeline:interactive-pipeline-run:"),
-                    "interactive_pipeline_run_event",
+                    type.startswith("project:pipeline:interactive-session:"),
+                    "interactive_session_event",
                 ),
                 (type.startswith("project:pipeline:updated"), "pipeline_update_event"),
                 (type.startswith("project:pipeline:"), "pipeline_event"),
@@ -1370,33 +1372,6 @@ def _prepare_interactive_pipeline_run_payload(
     return payload
 
 
-class InteractivePipelineRunEvent(PipelineEvent):
-
-    __tablename__ = None
-
-    __mapper_args__ = {"polymorphic_identity": "interactive_pipeline_run_event"}
-
-    @declared_attr
-    def pipeline_run_uuid(cls):
-        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
-
-    def to_notification_payload(self) -> dict:
-        payload = super().to_notification_payload()
-        payload["project"]["pipeline"][
-            "pipeline_run"
-        ] = _prepare_interactive_pipeline_run_payload(
-            self.project_uuid, self.pipeline_uuid, self.pipeline_run_uuid
-        )
-        return payload
-
-
-ForeignKeyConstraint(
-    [InteractivePipelineRunEvent.pipeline_run_uuid],
-    [InteractivePipelineRun.uuid],
-    ondelete="CASCADE",
-)
-
-
 class InteractiveSessionEvent(PipelineEvent):
 
     # Single table inheritance.
@@ -1410,9 +1385,7 @@ class InteractiveSessionEvent(PipelineEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        session_payload = {
-            "pipeline_uuid": self.pipeline_uuid,
-        }
+        session_payload = {}
         payload["project"]["pipeline"]["session"] = session_payload
         return payload
 
@@ -1420,6 +1393,33 @@ class InteractiveSessionEvent(PipelineEvent):
 ForeignKeyConstraint(
     [InteractiveSessionEvent.project_uuid, InteractiveSessionEvent.pipeline_uuid],
     [Pipeline.project_uuid, Pipeline.uuid],
+    ondelete="CASCADE",
+)
+
+
+class InteractivePipelineRunEvent(InteractiveSessionEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "interactive_pipeline_run_event"}
+
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["pipeline"]["session"][
+            "pipeline_run"
+        ] = _prepare_interactive_pipeline_run_payload(
+            self.project_uuid, self.pipeline_uuid, self.pipeline_run_uuid
+        )
+        return payload
+
+
+ForeignKeyConstraint(
+    [InteractivePipelineRunEvent.pipeline_run_uuid],
+    [InteractivePipelineRun.uuid],
     ondelete="CASCADE",
 )
 

@@ -99,7 +99,7 @@ def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -
 def _generate_interactive_pipeline_run_payload(
     event: models.InteractivePipelineRunEvent,
 ) -> dict:
-    if not event.type.startswith("project:pipeline:interactive-pipeline-run:"):
+    if not event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
         raise ValueError()
 
     payload = event.to_notification_payload()
@@ -108,7 +108,7 @@ def _generate_interactive_pipeline_run_payload(
         models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
         models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
     ).one()
-    payload["project"]["pipeline"]["pipeline_run"][
+    payload["project"]["pipeline"]["session"]["pipeline_run"][
         "pipeline_definition"
     ] = pipeline_run.pipeline_definition
 
@@ -149,7 +149,7 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     if event.type.startswith("project:pipeline:interactive-session:"):
         return _generate_session_analytics_payload(event)
 
-    if event.type.startswith("project:pipeline:interactive-pipeline-run:"):
+    if event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
         return _generate_interactive_pipeline_run_payload(event)
 
     if event.type in ["project:created", "project:deleted"]:

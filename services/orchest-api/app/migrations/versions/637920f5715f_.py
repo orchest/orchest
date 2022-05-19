@@ -26,11 +26,11 @@ def upgrade():
     op.execute(
         """
         INSERT INTO event_types (name) values
-        ('project:pipeline:interactive-pipeline-run:created'),
-        ('project:pipeline:interactive-pipeline-run:started'),
-        ('project:pipeline:interactive-pipeline-run:cancelled'),
-        ('project:pipeline:interactive-pipeline-run:failed'),
-        ('project:pipeline:interactive-pipeline-run:succeeded')
+        ('project:pipeline:interactive-session:pipeline-run:created'),
+        ('project:pipeline:interactive-session:pipeline-run:started'),
+        ('project:pipeline:interactive-session:pipeline-run:cancelled'),
+        ('project:pipeline:interactive-session:pipeline-run:failed'),
+        ('project:pipeline:interactive-session:pipeline-run:succeeded')
         ;
         """
     )

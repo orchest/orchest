@@ -57,17 +57,19 @@ class Event(Enum):
     JUPYTER_IMAGE_BUILD_SUCCEEDED = "jupyter:image-build:succeeded"
 
     INTERACTIVE_PIPELINE_RUN_CREATED = (
-        "project:pipeline:interactive-pipeline-run:created"
+        "project:pipeline:interactive-session:pipeline-run:created"
     )
     INTERACTIVE_PIPELINE_RUN_STARTED = (
-        "project:pipeline:interactive-pipeline-run:started"
+        "project:pipeline:interactive-session:pipeline-run:started"
     )
     INTERACTIVE_PIPELINE_RUN_CANCELLED = (
-        "project:pipeline:interactive-pipeline-run:cancelled"
+        "project:pipeline:interactive-session:pipeline-run:cancelled"
     )
-    INTERACTIVE_PIPELINE_RUN_FAILED = "project:pipeline:interactive-pipeline-run:failed"
+    INTERACTIVE_PIPELINE_RUN_FAILED = (
+        "project:pipeline:interactive-session:pipeline-run:failed"
+    )
     INTERACTIVE_PIPELINE_RUN_SUCCEEDED = (
-        "project:pipeline:interactive-pipeline-run:succeeded"
+        "project:pipeline:interactive-session:pipeline-run:succeeded"
     )
 
     ONE_OFF_JOB_CREATED = "project:one-off-job:created"
@@ -364,7 +366,9 @@ class _Anonymizer:
 
     @staticmethod
     def interactive_pipeline_run(event_properties: dict) -> dict:
-        pipeline_run = event_properties["project"]["pipeline"]["pipeline_run"]
+        pipeline_run = event_properties["project"]["pipeline"]["session"][
+            "pipeline_run"
+        ]
 
         derived_properties = {}
         derived_properties["project"] = _anonymize_project_properties(
