@@ -289,9 +289,42 @@ class PipelineEvent(ProjectEvent):
     def pipeline_uuid(cls):
         return Event.__table__.c.get("pipeline_uuid", db.Column(db.String(36)))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = {"uuid": event.uuid}
+        ppl = _core_models.Pipeline.query.filter(
+            _core_models.Pipeline.project_uuid == event.project_uuid,
+            _core_models.Pipeline.uuid == event.pipeline_uuid,
+        ).one()
+        payload["name"] = ppl.name
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = PipelineEvent.current_layer_notification_data(event)
+        event_properties.pop("name", None)
+        derived_properties = {}
+
+        if event.type in ["project:pipeline:created", "project:pipeline:deleted"]:
+            derived_properties[
+                "project_pipelines_count"
+            ] = _core_models.Pipeline.query.filter(
+                _core_models.Pipeline.project_uuid == event.project_uuid
+            ).count()
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["project"]["pipeline"] = {"uuid": self.pipeline_uuid}
+        payload["project"]["pipeline"] = PipelineEvent.current_layer_notification_data(
+            self
+        )
+        return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = PipelineEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["pipeline"] = ev
+        payload["derived_properties"]["project"]["pipeline"] = der
         return payload
 
 
@@ -313,11 +346,29 @@ class PipelineUpdateEvent(PipelineEvent):
     def update(cls):
         return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = event.update
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = PipelineUpdateEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        if self.update is not None:
-            payload["project"]["pipeline"]["update"] = self.update
+        payload["project"]["pipeline"][
+            "update"
+        ] = PipelineUpdateEvent.current_layer_notification_data(self)
+        return payload
 
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = PipelineUpdateEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["pipeline"]["update"] = ev
+        payload["derived_properties"]["project"]["pipeline"]["update"] = der
         return payload
 
 
