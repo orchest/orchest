@@ -8,7 +8,8 @@ import {
   fetcher,
   hasValue,
 } from "@orchest/lib-utils";
-import useSWR from "swr";
+import React from "react";
+import { useAsync } from "./useAsync";
 
 export const pathValidator = (value: string) => {
   if (!hasValue(value)) return false;
@@ -54,19 +55,19 @@ export const useCheckFileValidity = (
   const isQueryArgsComplete =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
-  const cacheKey = isQueryArgsComplete
-    ? `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
-        projectUuid,
-        pipelineUuid,
-        path,
-      })}`
-    : null;
+  const { run, data = false, status } = useAsync();
 
-  const { data = false } = useSWR(
-    cacheKey,
-    () => isQueryArgsComplete && isValidFile(projectUuid, pipelineUuid, path),
-    { refreshInterval: 1000 }
-  );
+  const sendRequest = React.useCallback(() => {
+    return run(
+      isQueryArgsComplete
+        ? isValidFile(projectUuid, pipelineUuid, path)
+        : Promise.reject()
+    );
+  }, [projectUuid, pipelineUuid, path, isQueryArgsComplete, run]);
 
-  return data;
+  React.useEffect(() => {
+    sendRequest();
+  }, [sendRequest]);
+
+  return [data, status === "PENDING"] as const;
 };

@@ -1,5 +1,5 @@
 import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
-import { PipelineStepState, Step } from "@/types";
+import { Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -22,6 +22,7 @@ import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { SelectEnvironment } from "./SelectEnvironment";
+import { useStepDetailsContext } from "./StepDetailsContext";
 
 export type ConnectionDict = Record<
   string,
@@ -55,18 +56,15 @@ const KERNEL_OPTIONS = [
 export const StepDetailsProperties = ({
   pipelineCwd,
   readOnly,
-  connections,
-  step,
   onSave,
   menuMaxWidth,
 }: {
   pipelineCwd: string | undefined;
   readOnly: boolean;
-  connections: ConnectionDict;
-  step: PipelineStepState;
   onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
 }) => {
+  const { step, connections } = useStepDetailsContext();
   // Allows user to edit JSON while typing the text will not be valid JSON.
   const [editableParameters, setEditableParameters] = React.useState(
     JSON.stringify(step.parameters, null, 2)
