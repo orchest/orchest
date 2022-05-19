@@ -45,7 +45,7 @@ const fetchLatestVersion = () =>
     (response) => response.latest_version
   );
 
-const checkVersions = async () => {
+const requestToCheckVersions = async () => {
   const [orchestVersion, latestVersion] = await Promise.all([
     fetchOrchestVersion(),
     fetchLatestVersion(),
@@ -54,13 +54,31 @@ const checkVersions = async () => {
   return [orchestVersion, latestVersion] as const;
 };
 
-const useVersionsPoller = () => {
-  const { data, run } = useAsync<Awaited<ReturnType<typeof checkVersions>>>();
+export const useOrchestVersion = () => {
+  const { data, run } = useAsync<OrchestVersion["version"]>();
+  React.useEffect(() => {
+    run(fetchOrchestVersion());
+  }, [run]);
+  return data;
+};
+
+const useVersionsPoller = (checkNow = false) => {
+  const { data, run } = useAsync<
+    Awaited<ReturnType<typeof requestToCheckVersions>>
+  >();
+
+  const checkVersions = React.useCallback(() => {
+    run(requestToCheckVersions());
+  }, [run]);
+
+  React.useEffect(() => {
+    if (checkNow) checkVersions();
+  }, [checkNow, checkVersions]);
 
   // Only make requests every hour, because the latest Orchest version gets
   // fetched once per hour.
   useInterval(() => {
-    run(checkVersions());
+    checkVersions();
   }, 3600000);
 
   const [orchestVersion, latestVersion] = data || [];
@@ -147,14 +165,14 @@ export const useCheckUpdate = () => {
 
   const { makeCancelable } = useCancelablePromise();
 
-  const checkUpdateNow = React.useCallback(async () => {
+  const checkUpdate = React.useCallback(async () => {
     // Use fetcher directly instead of mutate function from the SWR
     // calls to prevent updating the values which would trigger the
     // useEffect and thereby prompting the user twice. In addition,
     // we want to be able to tell the user that no update is available
     // if this function is invoked.
     const [fetchedOrchestVersion, fetchedLatestVersion] = await makeCancelable(
-      checkVersions()
+      requestToCheckVersions()
     );
 
     if (fetchedOrchestVersion && fetchedLatestVersion) {
@@ -168,5 +186,5 @@ export const useCheckUpdate = () => {
     }
   }, [orchestVersion, latestVersion, skipVersion, handlePrompt]);
 
-  return checkUpdateNow;
+  return checkUpdate;
 };

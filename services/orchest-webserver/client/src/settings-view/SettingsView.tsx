@@ -2,7 +2,7 @@ import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useCheckUpdate } from "@/hooks/useCheckUpdate";
+import { useCheckUpdate, useOrchestVersion } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
@@ -25,7 +25,6 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import { useHostInfo } from "./hooks/useHostInfo";
 import { useOrchestStatus } from "./hooks/useOrchestStatus";
 import { useOrchestUserConfig } from "./hooks/useOrchestUserConfig";
-import { useOrchestVersion } from "./hooks/useOrchestVersion";
 
 // TODO: remove this when Orchest supports changing disk size.
 const shouldShowHostInfo = false;
