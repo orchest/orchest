@@ -127,4 +127,5 @@ ORCHEST_CLUSTER = os.environ["ORCHEST_CLUSTER"]
 
 ORCHEST_UPDATE_INFO_URL = (
     "https://update-info.orchest.io/api/orchest/update-info/v3?version={version}"
+    f"&is_cloud={CLOUD}"
 )

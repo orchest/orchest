@@ -277,10 +277,12 @@ def update(
                 return True
         return True
 
-    def fetch_latest_available_version(curr_version: str) -> t.Optional[str]:
+    def fetch_latest_available_version(
+        curr_version: str, is_cloud: bool
+    ) -> t.Optional[str]:
         url = (
             "https://update-info.orchest.io/api/orchest/"
-            f"update-info/v3?version={curr_version}"
+            f"update-info/v3?version={curr_version}&is_cloud={is_cloud}"
         )
         resp = requests.get(url, timeout=5)
 
@@ -293,11 +295,14 @@ def update(
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     try:
+        fetching = "version"
         curr_version = _get_orchest_cluster_version(ns, cluster_name)
+        fetching = "cloud mode"
+        is_cloud_mode = _get_orchest_cloud_mode(ns, cluster_name)
 
     except CRObjectNotFound as e:
         echo(
-            "Failed to fetch current Orchest Cluster version to make"
+            f"Failed to fetch current Orchest Cluster {fetching} to make"
             " sure the cluster isn't downgraded.",
             err=True,
         )
@@ -306,7 +311,7 @@ def update(
 
     except KeyError:
         echo(
-            "Failed to fetch current Orchest Cluster version to make"
+            f"Failed to fetch current Orchest Cluster {fetching} to make"
             " sure the cluster isn't downgraded.",
             err=True,
         )
@@ -318,7 +323,7 @@ def update(
         sys.exit(1)
 
     if version is None:
-        version = fetch_latest_available_version(curr_version)
+        version = fetch_latest_available_version(curr_version, is_cloud_mode)
         if version is None:
             echo("Failed to fetch latest available version to update to.", err=True)
             sys.exit(1)
@@ -1111,6 +1116,25 @@ def _get_orchest_cluster_version(ns: str, cluster_name: str) -> str:
     """
     custom_object = _get_namespaced_custom_object(ns, cluster_name)
     return custom_object["spec"]["orchest"]["version"]  # type: ignore
+
+
+def _get_orchest_cloud_mode(ns: str, cluster_name: str) -> bool:
+    """Gets if the cluster is running in cloud mode or not.
+
+    Raises:
+        CRObjectNotFound: If the Orchest Cluster CR Object couldn't be
+            found.
+        KeyError: If the `version` entry couldn't be accessed from the
+            CR Object.
+
+    """
+    custom_object = _get_namespaced_custom_object(ns, cluster_name)
+    env = custom_object["spec"]["orchest"]["orchestWebServer"]["env"]  # type: ignore
+    for env_var in env:
+        if env_var["name"] == "CLOUD":
+            if env_var["value"] in ["True", "TRUE", "true"]:
+                return True
+    return False
 
 
 def _is_calver_version(version: str) -> bool:
