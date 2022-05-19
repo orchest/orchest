@@ -1239,14 +1239,25 @@ ForeignKeyConstraint(
 )
 
 
+def _prepare_step_payload(uuid: str, title: str) -> dict:
+    return {
+        "uuid": uuid,
+        "title": title,
+    }
+
+
 def _prepare_interactive_run_parameters_payload(pipeline_definition: dict) -> dict:
     parameters_payload = {}
     for k, v in pipeline_definition["steps"].items():
         step_name = pipeline_definition.get("steps").get(k, {}).get("title", "untitled")
-        parameters_payload[f"step-{step_name}-{k}"] = v.get("parameters", {})
-    parameters_payload["pipeline_parameters"] = pipeline_definition.get(
-        "parameters", {}
-    )
+        step_payload = _prepare_step_payload(k, step_name)
+        parameters_payload[k] = {
+            "step": step_payload,
+            "parameters": v.get("parameters", {}),
+        }
+    parameters_payload["pipeline_parameters"] = {
+        "parameters": pipeline_definition.get("parameters", {})
+    }
     return parameters_payload
 
 
@@ -1286,10 +1297,10 @@ def _prepare_interactive_pipeline_run_payload(
             .get(step.step_uuid, {})
             .get("title", "untitled")
         )
-        step_name = f"step-{step_name}-{step.step_uuid}"
-        payload["steps"].append(step_name)
+        step_payload = _prepare_step_payload(step.step_uuid, step_name)
+        payload["steps"].append(step_payload)
         if step.status == "FAILURE":
-            failed_steps.append(step_name)
+            failed_steps.append(step_payload)
 
     if failed_steps:
         payload["failed_steps"] = failed_steps
@@ -1425,12 +1436,11 @@ def _prepare_job_pipeline_run_parameters_payload(
     parameters_payload = {}
     for k, v in run_parameters.items():
         if k == "pipeline_parameters":
-            parameters_payload[k] = v
+            parameters_payload["pipeline_parameters"] = {"parameters": v}
         else:
             step_name = pipeline_definition.get("steps").get(k, {}).get("title")
-            if step_name is None:
-                step_name = "untitled"
-            parameters_payload[f"step-{step_name}-{k}"] = v
+            step_payload = _prepare_step_payload(k, step_name)
+            parameters_payload[k] = {"step": step_payload, "parameters": v}
     return parameters_payload
 
 
@@ -1477,7 +1487,9 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
                 .get(step.step_uuid, {})
                 .get("title", "untitled")
             )
-            failed_steps_payload.append(f"step-{step_name}-{step.step_uuid}")
+            failed_steps_payload.append(
+                _prepare_step_payload(step.step_uuid, step_name)
+            )
             payload["failed_steps"] = failed_steps_payload
 
     return payload

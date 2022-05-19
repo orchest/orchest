@@ -487,17 +487,12 @@ def _anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
     derived_properties["parameters"] = derived_params
     for k, v in pipeline_run.pop("parameters", {}).items():
         if k == "pipeline_parameters":
-            derived_params[f"{k}_count"] = len(v)
+            derived_params[f"{k}_count"] = len(v["parameters"])
         else:
-            step_uuid = k[-36:]
-            derived_params[f"step_{step_uuid}_parameters_count"] = len(v)
+            derived_params[f"{k}_parameters_count"] = len(v["parameters"])
 
-    if "steps" in pipeline_run:
-        pipeline_run["steps"] = [
-            # Only keep the uuid.
-            step[-36:]
-            for step in pipeline_run["steps"]
-        ]
+    for step in pipeline_run.get("steps", []):
+        step.pop("title", None)
 
     if "pipeline_definition" in pipeline_run:
         pipeline_run["pipeline_definition"] = _anonymize_pipeline_definition(
