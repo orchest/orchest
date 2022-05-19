@@ -18,13 +18,6 @@ depends_on = None
 def upgrade():
     op.execute(
         """
-        alter table event_types alter column name type character varying(100);
-        alter table events alter column type type character varying(100);
-        alter table subscriptions alter column event_type type character varying(100);
-        """
-    )
-    op.execute(
-        """
         INSERT INTO event_types (name) values
         ('project:pipeline:interactive-session:pipeline-run:created'),
         ('project:pipeline:interactive-session:pipeline-run:started'),
