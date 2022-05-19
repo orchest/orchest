@@ -1173,12 +1173,14 @@ class Event(BaseModel):
                     "job_event",
                 ),
                 (
-                    type.startswith("project:interactive-session:"),
-                    "interactive_session_event",
+                    type.startswith(
+                        "project:pipeline:interactive-session:pipeline-run:"
+                    ),
+                    "interactive_pipeline_run_event",
                 ),
                 (
-                    type.startswith("project:pipeline:interactive-pipeline-run:"),
-                    "interactive_pipeline_run_event",
+                    type.startswith("project:pipeline:interactive-session:"),
+                    "interactive_session_event",
                 ),
                 (type.startswith("project:pipeline:updated"), "pipeline_update_event"),
                 (type.startswith("project:pipeline:"), "pipeline_event"),
@@ -1307,14 +1309,25 @@ class PipelineUpdateEvent(PipelineEvent):
         return payload
 
 
+def _prepare_step_payload(uuid: str, title: str) -> dict:
+    return {
+        "uuid": uuid,
+        "title": title,
+    }
+
+
 def _prepare_interactive_run_parameters_payload(pipeline_definition: dict) -> dict:
     parameters_payload = {}
     for k, v in pipeline_definition["steps"].items():
         step_name = pipeline_definition.get("steps").get(k, {}).get("title", "untitled")
-        parameters_payload[f"step-{step_name}-{k}"] = v.get("parameters", {})
-    parameters_payload["pipeline_parameters"] = pipeline_definition.get(
-        "parameters", {}
-    )
+        step_payload = _prepare_step_payload(k, step_name)
+        parameters_payload[k] = {
+            "step": step_payload,
+            "parameters": v.get("parameters", {}),
+        }
+    parameters_payload["pipeline_parameters"] = {
+        "parameters": pipeline_definition.get("parameters", {})
+    }
     return parameters_payload
 
 
@@ -1354,10 +1367,10 @@ def _prepare_interactive_pipeline_run_payload(
             .get(step.step_uuid, {})
             .get("title", "untitled")
         )
-        step_name = f"step-{step_name}-{step.step_uuid}"
-        payload["steps"].append(step_name)
+        step_payload = _prepare_step_payload(step.step_uuid, step_name)
+        payload["steps"].append(step_payload)
         if step.status == "FAILURE":
-            failed_steps.append(step_name)
+            failed_steps.append(step_payload)
 
     if failed_steps:
         payload["failed_steps"] = failed_steps
@@ -1365,34 +1378,7 @@ def _prepare_interactive_pipeline_run_payload(
     return payload
 
 
-class InteractivePipelineRunEvent(PipelineEvent):
-
-    __tablename__ = None
-
-    __mapper_args__ = {"polymorphic_identity": "interactive_pipeline_run_event"}
-
-    @declared_attr
-    def pipeline_run_uuid(cls):
-        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
-
-    def to_notification_payload(self) -> dict:
-        payload = super().to_notification_payload()
-        payload["project"]["pipeline"][
-            "pipeline_run"
-        ] = _prepare_interactive_pipeline_run_payload(
-            self.project_uuid, self.pipeline_uuid, self.pipeline_run_uuid
-        )
-        return payload
-
-
-ForeignKeyConstraint(
-    [InteractivePipelineRunEvent.pipeline_run_uuid],
-    [InteractivePipelineRun.uuid],
-    ondelete="CASCADE",
-)
-
-
-class InteractiveSessionEvent(ProjectEvent):
+class InteractiveSessionEvent(PipelineEvent):
 
     # Single table inheritance.
     __tablename__ = None
@@ -1405,16 +1391,41 @@ class InteractiveSessionEvent(ProjectEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        session_payload = {
-            "pipeline_uuid": self.pipeline_uuid,
-        }
-        payload["project"]["session"] = session_payload
+        session_payload = {}
+        payload["project"]["pipeline"]["session"] = session_payload
         return payload
 
 
 ForeignKeyConstraint(
     [InteractiveSessionEvent.project_uuid, InteractiveSessionEvent.pipeline_uuid],
     [Pipeline.project_uuid, Pipeline.uuid],
+    ondelete="CASCADE",
+)
+
+
+class InteractivePipelineRunEvent(InteractiveSessionEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "interactive_pipeline_run_event"}
+
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["pipeline"]["session"][
+            "pipeline_run"
+        ] = _prepare_interactive_pipeline_run_payload(
+            self.project_uuid, self.pipeline_uuid, self.pipeline_run_uuid
+        )
+        return payload
+
+
+ForeignKeyConstraint(
+    [InteractivePipelineRunEvent.pipeline_run_uuid],
+    [InteractivePipelineRun.uuid],
     ondelete="CASCADE",
 )
 
@@ -1505,7 +1516,7 @@ class JobEvent(ProjectEvent):
             "status": None,
             "pipeline_name": None,
         }
-        payload["job"] = job_payload
+        payload["project"]["job"] = job_payload
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
@@ -1538,13 +1549,13 @@ class OneOffJobEvent(JobEvent):
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
 
-        payload["job"]["total_runs"] = None
+        payload["project"]["job"]["total_runs"] = None
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
             return payload
 
-        payload["job"]["total_runs"] = len(job.parameters)
+        payload["project"]["job"]["total_runs"] = len(job.parameters)
 
         return payload
 
@@ -1569,7 +1580,7 @@ class OneOffJobUpdateEvent(OneOffJobEvent):
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
         if self.update is not None:
-            payload["job"]["update"] = self.update
+            payload["project"]["job"]["update"] = self.update
 
         return payload
 
@@ -1580,12 +1591,11 @@ def _prepare_job_pipeline_run_parameters_payload(
     parameters_payload = {}
     for k, v in run_parameters.items():
         if k == "pipeline_parameters":
-            parameters_payload[k] = v
+            parameters_payload["pipeline_parameters"] = {"parameters": v}
         else:
             step_name = pipeline_definition.get("steps").get(k, {}).get("title")
-            if step_name is None:
-                step_name = "untitled"
-            parameters_payload[f"step-{step_name}-{k}"] = v
+            step_payload = _prepare_step_payload(k, step_name)
+            parameters_payload[k] = {"step": step_payload, "parameters": v}
     return parameters_payload
 
 
@@ -1632,7 +1642,9 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
                 .get(step.step_uuid, {})
                 .get("title", "untitled")
             )
-            failed_steps_payload.append(f"step-{step_name}-{step.step_uuid}")
+            failed_steps_payload.append(
+                _prepare_step_payload(step.step_uuid, step_name)
+            )
             payload["failed_steps"] = failed_steps_payload
 
     return payload
@@ -1654,7 +1666,7 @@ class OneOffJobPipelineRunEvent(OneOffJobEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
+        payload["project"]["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
             self.job_uuid, self.pipeline_run_uuid
         )
 
@@ -1684,14 +1696,14 @@ class CronJobEvent(JobEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["schedule"] = None
-        payload["job"]["next_scheduled_time"] = None
+        payload["project"]["job"]["schedule"] = None
+        payload["project"]["job"]["next_scheduled_time"] = None
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
             return payload
-        payload["job"]["schedule"] = job.schedule
-        payload["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
+        payload["project"]["job"]["schedule"] = job.schedule
+        payload["project"]["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
         return payload
 
     def __repr__(self):
@@ -1715,7 +1727,7 @@ class CronJobUpdateEvent(CronJobEvent):
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
         if self.update is not None:
-            payload["job"]["update"] = self.update
+            payload["project"]["job"]["update"] = self.update
 
         return payload
 
@@ -1765,10 +1777,12 @@ class CronJobRunEvent(CronJobEvent):
         else:
             status = None
 
-        payload["job"]["run"] = {}
-        payload["job"]["run"]["status"] = status
-        payload["job"]["run"]["number"] = self.run_index
-        payload["job"]["run"]["total_pipeline_runs"] = self.total_pipeline_runs
+        payload["project"]["job"]["run"] = {}
+        payload["project"]["job"]["run"]["status"] = status
+        payload["project"]["job"]["run"]["number"] = self.run_index
+        payload["project"]["job"]["run"][
+            "total_pipeline_runs"
+        ] = self.total_pipeline_runs
 
         return payload
 
@@ -1829,9 +1843,9 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["run"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
-            self.job_uuid, self.pipeline_run_uuid
-        )
+        payload["project"]["job"]["run"][
+            "pipeline_run"
+        ] = _prepare_job_pipeline_run_payload(self.job_uuid, self.pipeline_run_uuid)
 
         return payload
 

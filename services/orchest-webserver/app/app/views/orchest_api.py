@@ -9,7 +9,6 @@ from app.utils import (
     get_environments,
     get_pipeline_json,
     get_project_directory,
-    get_project_snapshot_size,
     pipeline_uuid_to_path,
     project_uuid_to_path,
     remove_job_directory,
@@ -256,7 +255,7 @@ def register_orchest_api_views(app, db):
             {
                 "job_definition": job_spec,
                 "duplicate_from": json_obj["job_uuid"],
-                "snapshot_size": get_project_snapshot_size(job_spec["project_uuid"]),
+                "snapshot_size": None,
             },
         )
         return resp.content, resp.status_code, resp.headers.items()

@@ -60,17 +60,19 @@ class Event(Enum):
     JUPYTER_IMAGE_BUILD_SUCCEEDED = "jupyter:image-build:succeeded"
 
     INTERACTIVE_PIPELINE_RUN_CREATED = (
-        "project:pipeline:interactive-pipeline-run:created"
+        "project:pipeline:interactive-session:pipeline-run:created"
     )
     INTERACTIVE_PIPELINE_RUN_STARTED = (
-        "project:pipeline:interactive-pipeline-run:started"
+        "project:pipeline:interactive-session:pipeline-run:started"
     )
     INTERACTIVE_PIPELINE_RUN_CANCELLED = (
-        "project:pipeline:interactive-pipeline-run:cancelled"
+        "project:pipeline:interactive-session:pipeline-run:cancelled"
     )
-    INTERACTIVE_PIPELINE_RUN_FAILED = "project:pipeline:interactive-pipeline-run:failed"
+    INTERACTIVE_PIPELINE_RUN_FAILED = (
+        "project:pipeline:interactive-session:pipeline-run:failed"
+    )
     INTERACTIVE_PIPELINE_RUN_SUCCEEDED = (
-        "project:pipeline:interactive-pipeline-run:succeeded"
+        "project:pipeline:interactive-session:pipeline-run:succeeded"
     )
 
     ONE_OFF_JOB_CREATED = "project:one-off-job:created"
@@ -108,11 +110,11 @@ class Event(Enum):
     CRON_JOB_RUN_PIPELINE_RUN_DELETED = "project:cron-job:run:pipeline-run:deleted"
     CRON_JOB_RUN_PIPELINE_RUN_SUCCEEDED = "project:cron-job:run:pipeline-run:succeeded"
 
-    SESSION_STARTED = "project:interactive-session:started"
-    SESSION_STOPPED = "project:interactive-session:stopped"
-    SESSION_FAILED = "project:interactive-session:failed"
-    SESSION_SERVICE_RESTARTED = "project:interactive-session:service-restarted"
-    SESSION_SUCCEEDED = "project:interactive-session:succeeded"
+    SESSION_STARTED = "project:pipeline:interactive-session:started"
+    SESSION_STOPPED = "project:pipeline:interactive-session:stopped"
+    SESSION_FAILED = "project:pipeline:interactive-session:failed"
+    SESSION_SERVICE_RESTARTED = "project:pipeline:interactive-session:service-restarted"
+    SESSION_SUCCEEDED = "project:pipeline:interactive-session:succeeded"
 
     def anonymize(self, event_properties: dict) -> dict:
         """Anonymizes the given properties in place.
@@ -379,13 +381,15 @@ class _Anonymizer:
     @staticmethod
     def session_started(event_properties: dict) -> dict:
         derived_user_services = {}
-        user_services = event_properties["project"]["session"]["user_services"]
+        user_services = event_properties["project"]["pipeline"]["session"][
+            "user_services"
+        ]
         for service_name, service_def in user_services.items():
             derived_user_services[service_name] = _anonymize_service_definition(
                 service_def
             )
 
-        event_properties["project"]["session"].pop("user_services")
+        event_properties["project"]["pipeline"]["session"].pop("user_services")
 
         derived_properties = {}
         derived_properties["project"] = _anonymize_project_properties(
@@ -401,15 +405,20 @@ class _Anonymizer:
 
     @staticmethod
     def interactive_pipeline_run(event_properties: dict) -> dict:
-        pipeline_run = event_properties["project"]["pipeline"]["pipeline_run"]
+        pipeline_run = event_properties["project"]["pipeline"]["session"][
+            "pipeline_run"
+        ]
 
         derived_properties = {}
         derived_properties["project"] = _anonymize_project_properties(
             event_properties["project"]
         )
         derived_properties["project"]["pipeline"] = {
-            "pipeline_run": _anonymize_pipeline_run_properties(pipeline_run)
+            "session": {
+                "pipeline_run": _anonymize_pipeline_run_properties(pipeline_run)
+            }
         }
+
         # To not break the analytics schema, deprecated.
         derived_properties["pipeline_definition"] = pipeline_run["pipeline_definition"]
         event_properties["run_uuid"] = pipeline_run["uuid"]
@@ -433,9 +442,9 @@ class _Anonymizer:
             event_properties["project"]
         )
         derived_job_properties = _anonymize_one_off_job_properties(
-            event_properties["job"]
+            event_properties["project"]["job"]
         )
-        derived_properties["job"] = derived_job_properties
+        derived_properties["project"]["job"] = derived_job_properties
         return derived_properties
 
     @staticmethod
@@ -444,63 +453,65 @@ class _Anonymizer:
         derived_properties["project"] = _anonymize_project_properties(
             event_properties["project"]
         )
-        derived_job_properties = _anonymize_cron_job_properties(event_properties["job"])
-        derived_properties["job"] = derived_job_properties
+        derived_job_properties = _anonymize_cron_job_properties(
+            event_properties["project"]["job"]
+        )
+        derived_properties["project"]["job"] = derived_job_properties
         return derived_properties
 
 
 _ANONYMIZATION_MAPPINGS = {
-    Event.PROJECT_CREATED: _Anonymizer.project_event,
-    Event.PROJECT_UPDATED: _Anonymizer.project_event,
-    Event.PROJECT_DELETED: _Anonymizer.project_event,
-    Event.ENVIRONMENT_CREATED: _Anonymizer.environment_event,
-    Event.ENVIRONMENT_DELETED: _Anonymizer.environment_event,
-    Event.ENVIRONMENT_IMAGE_BUILD_CREATED: _Anonymizer.environment_image_build_created_event,  # noqa
-    Event.ENVIRONMENT_IMAGE_BUILD_STARTED: _Anonymizer.environment_image_build_event,
-    Event.ENVIRONMENT_IMAGE_BUILD_FAILED: _Anonymizer.environment_image_build_event,
-    Event.ENVIRONMENT_IMAGE_BUILD_CANCELLED: _Anonymizer.environment_image_build_event,
-    Event.ENVIRONMENT_IMAGE_BUILD_SUCCEEDED: _Anonymizer.environment_image_build_event,
-    Event.PIPELINE_CREATED: _Anonymizer.pipeline_event,
-    Event.PIPELINE_UPDATED: _Anonymizer.pipeline_event,
-    Event.PIPELINE_DELETED: _Anonymizer.pipeline_event,
-    Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
-    Event.SESSION_STARTED: _Anonymizer.session_started,
-    Event.INTERACTIVE_PIPELINE_RUN_CREATED: _Anonymizer.interactive_pipeline_run,
-    Event.INTERACTIVE_PIPELINE_RUN_STARTED: _Anonymizer.interactive_pipeline_run,
-    Event.INTERACTIVE_PIPELINE_RUN_CANCELLED: _Anonymizer.interactive_pipeline_run,
-    Event.INTERACTIVE_PIPELINE_RUN_FAILED: _Anonymizer.interactive_pipeline_run,
-    Event.INTERACTIVE_PIPELINE_RUN_SUCCEEDED: _Anonymizer.interactive_pipeline_run,
-    Event.PIPELINE_SAVED: _Anonymizer.pipeline_saved,
-    Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created_updated,
-    Event.ONE_OFF_JOB_UPDATED: _Anonymizer.project_one_off_job_created_updated,
-    Event.ONE_OFF_JOB_STARTED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_DELETED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_CANCELLED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_FAILED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_SUCCEEDED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_CREATED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_STARTED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_CANCELLED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_FAILED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_DELETED: _Anonymizer.project_one_off_job,
-    Event.ONE_OFF_JOB_PIPELINE_RUN_SUCCEEDED: _Anonymizer.project_one_off_job,
-    Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created_updated,
-    Event.CRON_JOB_UPDATED: _Anonymizer.project_cron_job_created_updated,
-    Event.CRON_JOB_STARTED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_DELETED: _Anonymizer.project_cron_job,
     Event.CRON_JOB_CANCELLED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_CREATED: _Anonymizer.project_cron_job_created_updated,
+    Event.CRON_JOB_DELETED: _Anonymizer.project_cron_job,
     Event.CRON_JOB_FAILED: _Anonymizer.project_cron_job,
     Event.CRON_JOB_PAUSED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_UNPAUSED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_RUN_FAILED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_RUN_PIPELINE_RUN_CANCELLED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_RUN_PIPELINE_RUN_CREATED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_RUN_PIPELINE_RUN_DELETED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_RUN_PIPELINE_RUN_FAILED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_RUN_PIPELINE_RUN_STARTED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_RUN_PIPELINE_RUN_SUCCEEDED: _Anonymizer.project_cron_job,
     Event.CRON_JOB_RUN_STARTED: _Anonymizer.project_cron_job,
     Event.CRON_JOB_RUN_SUCCEEDED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_FAILED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_CREATED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_STARTED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_CANCELLED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_FAILED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_DELETED: _Anonymizer.project_cron_job,
-    Event.CRON_JOB_RUN_PIPELINE_RUN_SUCCEEDED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_STARTED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_UNPAUSED: _Anonymizer.project_cron_job,
+    Event.CRON_JOB_UPDATED: _Anonymizer.project_cron_job_created_updated,
+    Event.ENVIRONMENT_CREATED: _Anonymizer.environment_event,
+    Event.ENVIRONMENT_DELETED: _Anonymizer.environment_event,
+    Event.ENVIRONMENT_IMAGE_BUILD_CANCELLED: _Anonymizer.environment_image_build_event,
+    Event.ENVIRONMENT_IMAGE_BUILD_CREATED: _Anonymizer.environment_image_build_created_event,  # noqa
+    Event.ENVIRONMENT_IMAGE_BUILD_FAILED: _Anonymizer.environment_image_build_event,
+    Event.ENVIRONMENT_IMAGE_BUILD_STARTED: _Anonymizer.environment_image_build_event,
+    Event.ENVIRONMENT_IMAGE_BUILD_SUCCEEDED: _Anonymizer.environment_image_build_event,
+    Event.INTERACTIVE_PIPELINE_RUN_CANCELLED: _Anonymizer.interactive_pipeline_run,
+    Event.INTERACTIVE_PIPELINE_RUN_CREATED: _Anonymizer.interactive_pipeline_run,
+    Event.INTERACTIVE_PIPELINE_RUN_FAILED: _Anonymizer.interactive_pipeline_run,
+    Event.INTERACTIVE_PIPELINE_RUN_STARTED: _Anonymizer.interactive_pipeline_run,
+    Event.INTERACTIVE_PIPELINE_RUN_SUCCEEDED: _Anonymizer.interactive_pipeline_run,
+    Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
+    Event.ONE_OFF_JOB_CANCELLED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created_updated,
+    Event.ONE_OFF_JOB_DELETED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_FAILED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_PIPELINE_RUN_CANCELLED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_PIPELINE_RUN_CREATED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_PIPELINE_RUN_DELETED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_PIPELINE_RUN_FAILED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_PIPELINE_RUN_STARTED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_PIPELINE_RUN_SUCCEEDED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_STARTED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_SUCCEEDED: _Anonymizer.project_one_off_job,
+    Event.ONE_OFF_JOB_UPDATED: _Anonymizer.project_one_off_job_created_updated,
+    Event.PIPELINE_CREATED: _Anonymizer.pipeline_event,
+    Event.PIPELINE_DELETED: _Anonymizer.pipeline_event,
+    Event.PIPELINE_SAVED: _Anonymizer.pipeline_saved,
+    Event.PIPELINE_UPDATED: _Anonymizer.pipeline_event,
+    Event.PROJECT_CREATED: _Anonymizer.project_event,
+    Event.PROJECT_DELETED: _Anonymizer.project_event,
+    Event.PROJECT_UPDATED: _Anonymizer.project_event,
+    Event.SESSION_STARTED: _Anonymizer.session_started,
 }
 
 
@@ -544,17 +555,12 @@ def _anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
     derived_properties["parameters"] = derived_params
     for k, v in pipeline_run.pop("parameters", {}).items():
         if k == "pipeline_parameters":
-            derived_params[f"{k}_count"] = len(v)
+            derived_params[f"{k}_count"] = len(v["parameters"])
         else:
-            step_uuid = k[-36:]
-            derived_params[f"step_{step_uuid}_parameters_count"] = len(v)
+            derived_params[f"{k}_parameters_count"] = len(v["parameters"])
 
-    if "steps" in pipeline_run:
-        pipeline_run["steps"] = [
-            # Only keep the uuid.
-            step[-36:]
-            for step in pipeline_run["steps"]
-        ]
+    for step in pipeline_run.get("steps", []):
+        step.pop("title", None)
 
     if "pipeline_definition" in pipeline_run:
         pipeline_run["pipeline_definition"] = _anonymize_pipeline_definition(

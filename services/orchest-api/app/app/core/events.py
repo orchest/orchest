@@ -6,13 +6,12 @@ happened.
 """
 from app import models
 from app import types as app_types
-from app import utils
 from app import utils as app_utils
 from app.connections import db
 from app.core import notifications
 from app.core.notifications import analytics as api_analytics
 
-_logger = utils.get_logger()
+_logger = app_utils.get_logger()
 
 
 def _register_event(ev: models.Event) -> None:
@@ -459,7 +458,7 @@ def _register_interactive_session_started(
     project_uuid: str, pipeline_uuid: str
 ) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:started", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:started", project_uuid, pipeline_uuid
     )
 
 
@@ -467,13 +466,13 @@ def _register_interactive_session_stopped(
     project_uuid: str, pipeline_uuid: str
 ) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:stopped", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:stopped", project_uuid, pipeline_uuid
     )
 
 
 def _register_interactive_session_failed(project_uuid: str, pipeline_uuid: str) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:failed", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:failed", project_uuid, pipeline_uuid
     )
 
 
@@ -481,7 +480,9 @@ def _register_interactive_session_service_restarted(
     project_uuid: str, pipeline_uuid: str
 ) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:service-restarted", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:service-restarted",
+        project_uuid,
+        pipeline_uuid,
     )
 
 
@@ -489,7 +490,7 @@ def _register_interactive_session_service_succeeded(
     project_uuid: str, pipeline_uuid: str
 ) -> None:
     _register_interactive_session_event(
-        "project:interactive-session:succeeded", project_uuid, pipeline_uuid
+        "project:pipeline:interactive-session:succeeded", project_uuid, pipeline_uuid
     )
 
 
@@ -509,7 +510,7 @@ def register_interactive_pipeline_run_created(
     project_uuid: str, pipeline_uuid: str, pipeline_run_uuid: str
 ) -> None:
     _register_interactive_pipeline_run_event(
-        "project:pipeline:interactive-pipeline-run:created",
+        "project:pipeline:interactive-session:pipeline-run:created",
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
         pipeline_run_uuid=pipeline_run_uuid,
@@ -520,7 +521,7 @@ def register_interactive_pipeline_run_started(
     project_uuid: str, pipeline_uuid: str, pipeline_run_uuid: str
 ) -> None:
     _register_interactive_pipeline_run_event(
-        "project:pipeline:interactive-pipeline-run:started",
+        "project:pipeline:interactive-session:pipeline-run:started",
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
         pipeline_run_uuid=pipeline_run_uuid,
@@ -531,7 +532,7 @@ def register_interactive_pipeline_run_cancelled(
     project_uuid: str, pipeline_uuid: str, pipeline_run_uuid: str
 ) -> None:
     _register_interactive_pipeline_run_event(
-        "project:pipeline:interactive-pipeline-run:cancelled",
+        "project:pipeline:interactive-session:pipeline-run:cancelled",
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
         pipeline_run_uuid=pipeline_run_uuid,
@@ -542,7 +543,7 @@ def register_interactive_pipeline_run_failed(
     project_uuid: str, pipeline_uuid: str, pipeline_run_uuid: str
 ) -> None:
     _register_interactive_pipeline_run_event(
-        "project:pipeline:interactive-pipeline-run:failed",
+        "project:pipeline:interactive-session:pipeline-run:failed",
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
         pipeline_run_uuid=pipeline_run_uuid,
@@ -553,7 +554,7 @@ def register_interactive_pipeline_run_succeeded(
     project_uuid: str, pipeline_uuid: str, pipeline_run_uuid: str
 ) -> None:
     _register_interactive_pipeline_run_event(
-        "project:pipeline:interactive-pipeline-run:succeeded",
+        "project:pipeline:interactive-session:pipeline-run:succeeded",
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
         pipeline_run_uuid=pipeline_run_uuid,
