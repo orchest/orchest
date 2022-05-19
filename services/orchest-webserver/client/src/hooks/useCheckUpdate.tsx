@@ -7,7 +7,8 @@ import { OrchestVersion, UpdateInfo } from "@/types";
 import Typography from "@mui/material/Typography";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import useSWRImmutable from "swr/immutable";
+import { useInterval } from "./use-interval";
+import { useAsync } from "./useAsync";
 import { useCancelablePromise } from "./useCancelablePromise";
 
 const isVersionLTE = (oldVersion: string, newVersion: string) => {
@@ -44,6 +45,29 @@ const fetchLatestVersion = () =>
     (response) => response.latest_version
   );
 
+const checkVersions = async () => {
+  const [orchestVersion, latestVersion] = await Promise.all([
+    fetchOrchestVersion(),
+    fetchLatestVersion(),
+  ]);
+
+  return [orchestVersion, latestVersion] as const;
+};
+
+const useVersionsPoller = () => {
+  const { data, run } = useAsync<Awaited<ReturnType<typeof checkVersions>>>();
+
+  // Only make requests every hour, because the latest Orchest version gets
+  // fetched once per hour.
+  useInterval(() => {
+    run(checkVersions());
+  }, 3600000);
+
+  const [orchestVersion, latestVersion] = data || [];
+
+  return { orchestVersion, latestVersion };
+};
+
 // To limit the number of api calls and make sure only one prompt is shown,
 // it is best to place this hook in top-level components (i.e. the ones
 // defined in the routingConfig.tsx).
@@ -56,20 +80,7 @@ export const useCheckUpdate = () => {
     null
   );
 
-  // Only make requests every hour, because the latest Orchest version gets
-  // fetched once per hour. Use `useSWRImmutable` to disable all kinds of
-  // automatic revalidation; just serve from cache and refresh cache
-  // once per hour.
-  const { data: orchestVersion } = useSWRImmutable(
-    true ? null : "/async/version",
-    fetchOrchestVersion,
-    { refreshInterval: 3600000 }
-  );
-  const { data: latestVersion } = useSWRImmutable(
-    true ? null : "/async/orchest-update-info",
-    fetchLatestVersion,
-    { refreshInterval: 3600000 }
-  );
+  const { orchestVersion, latestVersion } = useVersionsPoller();
 
   const promptUpdate = React.useCallback(
     (localVersion: string, versionToUpdate: string) => {
@@ -143,7 +154,7 @@ export const useCheckUpdate = () => {
     // we want to be able to tell the user that no update is available
     // if this function is invoked.
     const [fetchedOrchestVersion, fetchedLatestVersion] = await makeCancelable(
-      Promise.all([fetchOrchestVersion(), fetchLatestVersion()])
+      checkVersions()
     );
 
     if (fetchedOrchestVersion && fetchedLatestVersion) {
