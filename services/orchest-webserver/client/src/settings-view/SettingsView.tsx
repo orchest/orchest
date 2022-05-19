@@ -42,7 +42,7 @@ const SettingsView: React.FC = () => {
 
   const checkUpdate = useCheckUpdate();
 
-  useSendAnalyticEvent("view load", { name: siteMap.settings.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.settings.path });
 
   const [status, setStatus] = useOrchestStatus();
 

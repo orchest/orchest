@@ -38,7 +38,7 @@ const FilePreviewView: React.FC = () => {
   // global states
   const { setAlert } = useAppContext();
   const { state: projectsState, dispatch } = useProjectsContext();
-  useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.filePreview.path });
   const { cancelableFetch } = useCancelableFetch();
   const { makeCancelable } = useCancelablePromise();
 

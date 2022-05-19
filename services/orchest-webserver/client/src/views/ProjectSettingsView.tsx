@@ -32,7 +32,7 @@ const ProjectSettingsView: React.FC = () => {
     setAsSaved,
     state: { hasUnsavedChanges },
   } = useAppContext();
-  useSendAnalyticEvent("view load", { name: siteMap.projectSettings.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.projectSettings.path });
   const { cancelableFetch } = useCancelableFetch();
 
   // data from route

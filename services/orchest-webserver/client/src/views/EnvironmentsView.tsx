@@ -8,7 +8,7 @@ import React from "react";
 
 const EnvironmentsView: React.FC = () => {
   const { projectUuid } = useCustomRoute();
-  useSendAnalyticEvent("view load", { name: siteMap.environments.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
 
   return (
     <Layout>

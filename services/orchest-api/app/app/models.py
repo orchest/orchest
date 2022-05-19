@@ -120,6 +120,14 @@ class Project(BaseModel):
 class Pipeline(BaseModel):
     __tablename__ = "pipelines"
 
+    name = db.Column(
+        db.String(255),
+        unique=False,
+        nullable=False,
+        # For migrating old pipelines.
+        server_default=text("'Pipeline'"),
+    )
+
     project_uuid = db.Column(
         db.String(36),
         db.ForeignKey("projects.uuid", ondelete="CASCADE"),
@@ -867,6 +875,13 @@ class InteractivePipelineRun(PipelineRun):
         cascade="all, delete",
     )
 
+    pipeline_definition = db.Column(
+        JSONB,
+        nullable=False,
+        # To migrate old entries.
+        server_default="{}",
+    )
+
 
 class ClientHeartbeat(BaseModel):
     """Clients heartbeat for idle checking."""
@@ -1075,6 +1090,11 @@ class EventType(BaseModel):
     - services/orchest-api/app/migrations/versions/410e08270de4_.py
     - services/orchest-api/app/migrations/versions/814961a3d525_.py
     - services/orchest-api/app/migrations/versions/92dcc9963a9c_.py
+    - services/orchest-api/app/migrations/versions/ad0b4cda3e50_.py
+    - services/orchest-api/app/migrations/versions/849b7b154ef6_.py
+    - services/orchest-api/app/migrations/versions/637920f5715f_.py
+    - services/orchest-api/app/migrations/versions/637920f5715f_.py
+    - services/orchest-api/app/migrations/versions/a4b1f48ddab5.py
 
     To add more types, add an empty revision with
     `bash scripts/migration_manager.sh orchest-api revision`, then
@@ -1084,7 +1104,7 @@ class EventType(BaseModel):
 
     __tablename__ = "event_types"
 
-    name = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(100), primary_key=True)
 
     def __repr__(self):
         return f"<EventType: {self.name}>"
@@ -1106,7 +1126,9 @@ class Event(BaseModel):
     )
 
     type = db.Column(
-        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE"), index=True
+        db.String(100),
+        db.ForeignKey("event_types.name", ondelete="CASCADE"),
+        index=True,
     )
 
     timestamp = db.Column(
@@ -1119,6 +1141,10 @@ class Event(BaseModel):
         "polymorphic_on": case(
             [
                 (
+                    type.startswith("jupyter:image-build:"),
+                    "jupyter_image_build_event",
+                ),
+                (
                     type.startswith("project:cron-job:run:pipeline-run:"),
                     "cron_job_run_pipeline_run_event",
                 ),
@@ -1126,10 +1152,15 @@ class Event(BaseModel):
                     type.startswith("project:cron-job:run:"),
                     "cron_job_run_event",
                 ),
+                (type.startswith("project:cron-job:updated"), "cron_job_update_event"),
                 (type.startswith("project:cron-job:"), "cron_job_event"),
                 (
                     type.startswith("project:one-off-job:pipeline-run:"),
                     "one_off_job_pipeline_run_event",
+                ),
+                (
+                    type.startswith("project:one-off-job:updated"),
+                    "one_off_job_update_event",
                 ),
                 (type.startswith("project:one-off-job:"), "one_off_job_event"),
                 (
@@ -1139,6 +1170,20 @@ class Event(BaseModel):
                     ),
                     "job_event",
                 ),
+                (
+                    type.startswith(
+                        "project:pipeline:interactive-session:pipeline-run:"
+                    ),
+                    "interactive_pipeline_run_event",
+                ),
+                (
+                    type.startswith("project:pipeline:interactive-session:"),
+                    "interactive_session_event",
+                ),
+                (type.startswith("project:pipeline:updated"), "pipeline_update_event"),
+                (type.startswith("project:pipeline:"), "pipeline_event"),
+                (type.startswith("project:updated"), "project_update_event"),
+                (type.startswith("project:environment:"), "environment_event"),
                 (type.startswith("project:"), "project_event"),
             ],
             else_="event",
@@ -1167,11 +1212,11 @@ class ProjectEvent(Event):
     # Single table inheritance.
     __tablename__ = None
 
+    __mapper_args__ = {"polymorphic_identity": "project_event"}
+
     project_uuid = db.Column(
         db.String(36), db.ForeignKey("projects.uuid", ondelete="CASCADE")
     )
-
-    __mapper_args__ = {"polymorphic_identity": "project_event"}
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
@@ -1189,6 +1234,216 @@ class ProjectEvent(Event):
             f"<ProjectEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}>"
         )
+
+
+class ProjectUpdateEvent(ProjectEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "project_update_event"}
+
+    # Changes that the event led to, i.e. a project PUT. It's a
+    # dictionary given the nature of the content and the fact that other
+    # kind of events might have such a column as well.
+    # Note that the event payload will contain the changes AS IS, i.e.
+    # no transformation is done to the content of the column, so no
+    # sensitive data should be added. The update must follow the
+    # "EntityUpdate" TypedDict schema.
+    @declared_attr
+    def update(cls):
+        return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        if self.update is not None:
+            payload["project"]["update"] = self.update
+
+        return payload
+
+
+class PipelineEvent(ProjectEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "pipeline_event"}
+
+    @declared_attr
+    def pipeline_uuid(cls):
+        return Event.__table__.c.get("pipeline_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["pipeline"] = {"uuid": self.pipeline_uuid}
+        return payload
+
+
+ForeignKeyConstraint(
+    [PipelineEvent.project_uuid, PipelineEvent.pipeline_uuid],
+    [Pipeline.project_uuid, Pipeline.uuid],
+    ondelete="CASCADE",
+)
+
+
+class PipelineUpdateEvent(PipelineEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "pipeline_update_event"}
+
+    # See ProjectUpdateEvent.update for info.
+    @declared_attr
+    def update(cls):
+        return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        if self.update is not None:
+            payload["project"]["pipeline"]["update"] = self.update
+
+        return payload
+
+
+def _prepare_step_payload(uuid: str, title: str) -> dict:
+    return {
+        "uuid": uuid,
+        "title": title,
+    }
+
+
+def _prepare_interactive_run_parameters_payload(pipeline_definition: dict) -> dict:
+    parameters_payload = {}
+    for k, v in pipeline_definition["steps"].items():
+        step_name = pipeline_definition.get("steps").get(k, {}).get("title", "untitled")
+        step_payload = _prepare_step_payload(k, step_name)
+        parameters_payload[k] = {
+            "step": step_payload,
+            "parameters": v.get("parameters", {}),
+        }
+    parameters_payload["pipeline_parameters"] = {
+        "parameters": pipeline_definition.get("parameters", {})
+    }
+    return parameters_payload
+
+
+def _prepare_interactive_pipeline_run_payload(
+    project_uuid: str, pipeline_uuid: str, pipeline_run_uuid: str
+) -> dict:
+    payload = {
+        "uuid": pipeline_run_uuid,
+        "parameters": None,
+        "status": None,
+        "steps": None,
+    }
+
+    pipeline_run = InteractivePipelineRun.query.filter(
+        InteractivePipelineRun.project_uuid == project_uuid,
+        InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
+        InteractivePipelineRun.uuid == pipeline_run_uuid,
+    ).first()
+    if pipeline_run is None:
+        return payload
+
+    payload["status"] = pipeline_run.status
+    payload["parameters"] = _prepare_interactive_run_parameters_payload(
+        pipeline_run.pipeline_definition
+    )
+    payload[
+        "url_path"
+    ] = f"/pipeline?project_uuid={project_uuid}&pipeline_uuid={pipeline_uuid}"
+    payload["steps"] = []
+    failed_steps = []
+    steps = PipelineRunStep.query.filter(
+        PipelineRunStep.run_uuid == pipeline_run_uuid,
+    ).all()
+    for step in steps:
+        step_name = (
+            pipeline_run.pipeline_definition.get("steps")
+            .get(step.step_uuid, {})
+            .get("title", "untitled")
+        )
+        step_payload = _prepare_step_payload(step.step_uuid, step_name)
+        payload["steps"].append(step_payload)
+        if step.status == "FAILURE":
+            failed_steps.append(step_payload)
+
+    if failed_steps:
+        payload["failed_steps"] = failed_steps
+
+    return payload
+
+
+class InteractiveSessionEvent(PipelineEvent):
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "interactive_session_event"}
+
+    @declared_attr
+    def pipeline_uuid(cls):
+        return Event.__table__.c.get("pipeline_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        session_payload = {}
+        payload["project"]["pipeline"]["session"] = session_payload
+        return payload
+
+
+ForeignKeyConstraint(
+    [InteractiveSessionEvent.project_uuid, InteractiveSessionEvent.pipeline_uuid],
+    [Pipeline.project_uuid, Pipeline.uuid],
+    ondelete="CASCADE",
+)
+
+
+class InteractivePipelineRunEvent(InteractiveSessionEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "interactive_pipeline_run_event"}
+
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["pipeline"]["session"][
+            "pipeline_run"
+        ] = _prepare_interactive_pipeline_run_payload(
+            self.project_uuid, self.pipeline_uuid, self.pipeline_run_uuid
+        )
+        return payload
+
+
+ForeignKeyConstraint(
+    [InteractivePipelineRunEvent.pipeline_run_uuid],
+    [InteractivePipelineRun.uuid],
+    ondelete="CASCADE",
+)
+
+
+class EnvironmentEvent(ProjectEvent):
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "environment_event"}
+
+    environment_uuid = db.Column(db.String(36))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["environment"] = {"uuid": self.uuid}
+        return payload
+
+
+ForeignKeyConstraint(
+    [EnvironmentEvent.project_uuid, EnvironmentEvent.environment_uuid],
+    [Environment.project_uuid, Environment.uuid],
+    ondelete="CASCADE",
+)
 
 
 class JobEvent(ProjectEvent):
@@ -1209,7 +1464,7 @@ class JobEvent(ProjectEvent):
             "status": None,
             "pipeline_name": None,
         }
-        payload["job"] = job_payload
+        payload["project"]["job"] = job_payload
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
@@ -1242,13 +1497,13 @@ class OneOffJobEvent(JobEvent):
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
 
-        payload["job"]["total_runs"] = None
+        payload["project"]["job"]["total_runs"] = None
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
             return payload
 
-        payload["job"]["total_runs"] = len(job.parameters)
+        payload["project"]["job"]["total_runs"] = len(job.parameters)
 
         return payload
 
@@ -1259,18 +1514,36 @@ class OneOffJobEvent(JobEvent):
         )
 
 
-def _prepare_parameters_payload(
+class OneOffJobUpdateEvent(OneOffJobEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_update_event"}
+
+    # See ProjectUpdateEvent.update for info.
+    @declared_attr
+    def update(cls):
+        return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        if self.update is not None:
+            payload["project"]["job"]["update"] = self.update
+
+        return payload
+
+
+def _prepare_job_pipeline_run_parameters_payload(
     pipeline_definition: dict, run_parameters: dict
 ) -> dict:
     parameters_payload = {}
     for k, v in run_parameters.items():
         if k == "pipeline_parameters":
-            parameters_payload[k] = v
+            parameters_payload["pipeline_parameters"] = {"parameters": v}
         else:
             step_name = pipeline_definition.get("steps").get(k, {}).get("title")
-            if step_name is None:
-                step_name = "untitled"
-            parameters_payload[f"step-{step_name}-{k}"] = v
+            step_payload = _prepare_step_payload(k, step_name)
+            parameters_payload[k] = {"step": step_payload, "parameters": v}
     return parameters_payload
 
 
@@ -1297,7 +1570,7 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
         payload["number_in_run"] = pipeline_run.job_run_pipeline_run_index
 
     payload["status"] = pipeline_run.status
-    payload["parameters"] = _prepare_parameters_payload(
+    payload["parameters"] = _prepare_job_pipeline_run_parameters_payload(
         job.pipeline_definition, pipeline_run.parameters
     )
     payload["url_path"] = (
@@ -1315,9 +1588,11 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
             step_name = (
                 job.pipeline_definition.get("steps")
                 .get(step.step_uuid, {})
-                .get("title")
+                .get("title", "untitled")
             )
-            failed_steps_payload.append(f"step-{step_name}-{step.step_uuid}")
+            failed_steps_payload.append(
+                _prepare_step_payload(step.step_uuid, step_name)
+            )
             payload["failed_steps"] = failed_steps_payload
 
     return payload
@@ -1339,7 +1614,7 @@ class OneOffJobPipelineRunEvent(OneOffJobEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
+        payload["project"]["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
             self.job_uuid, self.pipeline_run_uuid
         )
 
@@ -1369,14 +1644,14 @@ class CronJobEvent(JobEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["schedule"] = None
-        payload["job"]["next_scheduled_time"] = None
+        payload["project"]["job"]["schedule"] = None
+        payload["project"]["job"]["next_scheduled_time"] = None
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
             return payload
-        payload["job"]["schedule"] = job.schedule
-        payload["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
+        payload["project"]["job"]["schedule"] = job.schedule
+        payload["project"]["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
         return payload
 
     def __repr__(self):
@@ -1384,6 +1659,25 @@ class CronJobEvent(JobEvent):
             f"<CronJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}, {self.job_uuid}>"
         )
+
+
+class CronJobUpdateEvent(CronJobEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cron_job_update_event"}
+
+    # See ProjectUpdateEvent.update for info.
+    @declared_attr
+    def update(cls):
+        return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        if self.update is not None:
+            payload["project"]["job"]["update"] = self.update
+
+        return payload
 
 
 class CronJobRunEvent(CronJobEvent):
@@ -1431,10 +1725,12 @@ class CronJobRunEvent(CronJobEvent):
         else:
             status = None
 
-        payload["job"]["run"] = {}
-        payload["job"]["run"]["status"] = status
-        payload["job"]["run"]["number"] = self.run_index
-        payload["job"]["run"]["total_pipeline_runs"] = self.total_pipeline_runs
+        payload["project"]["job"]["run"] = {}
+        payload["project"]["job"]["run"]["status"] = status
+        payload["project"]["job"]["run"]["number"] = self.run_index
+        payload["project"]["job"]["run"][
+            "total_pipeline_runs"
+        ] = self.total_pipeline_runs
 
         return payload
 
@@ -1454,6 +1750,31 @@ Index(
 )
 
 
+class JupyterImageBuildEvent(Event):
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "jupyter_image_build_event"}
+
+    build_uuid = db.Column(
+        db.String(36), db.ForeignKey("jupyter_image_builds.uuid", ondelete="CASCADE")
+    )
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["jupyter"] = {}
+        build = JupyterImageBuild.query.filter(
+            JupyterImageBuild.uuid == self.build_uuid
+        ).first()
+        if build is not None:
+            payload["jupyter"]["image_build"] = build.as_dict()
+            for k, v in payload["jupyter"]["image_build"].items():
+                if isinstance(v, datetime.datetime):
+                    payload["jupyter"]["image_build"][k] = str(v)
+        return payload
+
+
 class CronJobRunPipelineRunEvent(CronJobRunEvent):
     """CronJob ppl runs events that happen in the orchest-api."""
 
@@ -1468,9 +1789,9 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["run"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
-            self.job_uuid, self.pipeline_run_uuid
-        )
+        payload["project"]["job"]["run"][
+            "pipeline_run"
+        ] = _prepare_job_pipeline_run_payload(self.job_uuid, self.pipeline_run_uuid)
 
         return payload
 
@@ -1512,16 +1833,16 @@ class Webhook(Subscriber):
 
     __tablename__ = None
 
-    url = db.Column(db.String(), nullable=False)
+    url = db.Column(db.String(), nullable=True)
 
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), nullable=True)
 
-    verify_ssl = db.Column(db.Boolean(), nullable=False)
+    verify_ssl = db.Column(db.Boolean(), nullable=True)
 
     # Used to calculate the HMAC digest of the payload and sign it.
-    secret = deferred(db.Column(db.String(), nullable=False))
+    secret = deferred(db.Column(db.String(), nullable=True))
 
-    content_type = db.Column(db.String(50), nullable=False)
+    content_type = db.Column(db.String(50), nullable=True)
 
     def is_slack_webhook(self) -> bool:
         return self.url.startswith("https://hooks.slack.com/")
@@ -1534,6 +1855,15 @@ class Webhook(Subscriber):
 
     __mapper_args__ = {
         "polymorphic_identity": "webhook",
+    }
+
+
+class AnalyticsSubscriber(Subscriber):
+
+    __tablename__ = None
+
+    __mapper_args__ = {
+        "polymorphic_identity": "analytics",
     }
 
 
@@ -1551,7 +1881,7 @@ class Subscription(BaseModel):
     )
 
     event_type = db.Column(
-        db.String(50),
+        db.String(100),
         db.ForeignKey("event_types.name", ondelete="CASCADE"),
         nullable=False,
     )

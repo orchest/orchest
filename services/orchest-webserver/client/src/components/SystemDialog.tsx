@@ -68,7 +68,7 @@ export const SystemDialog: React.FC = () => {
     if (promptMessage) {
       // Analytics call
       const { title, content } = promptMessage;
-      sendEvent(`${promptMessage.type} show`, { title, content });
+      sendEvent(`${promptMessage.type}:shown`, { title, content });
     }
   }, [sendEvent, promptMessage]);
 

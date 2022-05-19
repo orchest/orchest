@@ -31,7 +31,7 @@ export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
 const JupyterLabView: React.FC = () => {
   // global states
   const { requestBuild } = useAppContext();
-  useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.jupyterLab.path });
   const { makeCancelable } = useCancelablePromise();
   const { cancelableFetch } = useCancelableFetch();
   useEnsureValidPipeline();
