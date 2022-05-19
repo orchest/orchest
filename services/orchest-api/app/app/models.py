@@ -1094,6 +1094,7 @@ class EventType(BaseModel):
     - services/orchest-api/app/migrations/versions/849b7b154ef6_.py
     - services/orchest-api/app/migrations/versions/637920f5715f_.py
     - services/orchest-api/app/migrations/versions/637920f5715f_.py
+    - services/orchest-api/app/migrations/versions/a4b1f48ddab5.py
 
     To add more types, add an empty revision with
     `bash scripts/migration_manager.sh orchest-api revision`, then
@@ -1151,10 +1152,15 @@ class Event(BaseModel):
                     type.startswith("project:cron-job:run:"),
                     "cron_job_run_event",
                 ),
+                (type.startswith("project:cron-job:updated"), "cron_job_update_event"),
                 (type.startswith("project:cron-job:"), "cron_job_event"),
                 (
                     type.startswith("project:one-off-job:pipeline-run:"),
                     "one_off_job_pipeline_run_event",
+                ),
+                (
+                    type.startswith("project:one-off-job:updated"),
+                    "one_off_job_update_event",
                 ),
                 (type.startswith("project:one-off-job:"), "one_off_job_event"),
                 (
@@ -1175,6 +1181,7 @@ class Event(BaseModel):
                 (type.startswith("project:pipeline:updated"), "pipeline_update_event"),
                 (type.startswith("project:pipeline:"), "pipeline_event"),
                 (type.startswith("project:updated"), "project_update_event"),
+                (type.startswith("project:environment:"), "environment_event"),
                 (type.startswith("project:"), "project_event"),
             ],
             else_="event",
@@ -1406,6 +1413,28 @@ ForeignKeyConstraint(
 )
 
 
+class EnvironmentEvent(ProjectEvent):
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "environment_event"}
+
+    environment_uuid = db.Column(db.String(36))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["environment"] = {"uuid": self.uuid}
+        return payload
+
+
+ForeignKeyConstraint(
+    [EnvironmentEvent.project_uuid, EnvironmentEvent.environment_uuid],
+    [Environment.project_uuid, Environment.uuid],
+    ondelete="CASCADE",
+)
+
+
 class JobEvent(ProjectEvent):
     """Job events that happen in the orchest-api."""
 
@@ -1472,6 +1501,25 @@ class OneOffJobEvent(JobEvent):
             f"<OneOffJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}, {self.job_uuid}>"
         )
+
+
+class OneOffJobUpdateEvent(OneOffJobEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_update_event"}
+
+    # See ProjectUpdateEvent.update for info.
+    @declared_attr
+    def update(cls):
+        return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        if self.update is not None:
+            payload["job"]["update"] = self.update
+
+        return payload
 
 
 def _prepare_job_pipeline_run_parameters_payload(
@@ -1599,6 +1647,25 @@ class CronJobEvent(JobEvent):
             f"<CronJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}, {self.job_uuid}>"
         )
+
+
+class CronJobUpdateEvent(CronJobEvent):
+
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cron_job_update_event"}
+
+    # See ProjectUpdateEvent.update for info.
+    @declared_attr
+    def update(cls):
+        return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        if self.update is not None:
+            payload["job"]["update"] = self.update
+
+        return payload
 
 
 class CronJobRunEvent(CronJobEvent):

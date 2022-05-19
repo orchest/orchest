@@ -21,7 +21,6 @@ def _register_event(ev: models.Event) -> None:
     db.session.flush()
 
     db.session.add(ev)
-    _logger.info(ev)
 
     project_uuid = None
     job_uuid = None
@@ -33,6 +32,7 @@ def _register_event(ev: models.Event) -> None:
 
     # So that the event.uuid is generated and visible as a FK.
     db.session.flush()
+    _logger.info(ev)
 
     subscribers = notifications.get_subscribers_subscribed_to_event(
         ev.type, project_uuid=project_uuid, job_uuid=job_uuid
@@ -130,6 +130,39 @@ def register_job_failed(project_uuid: str, job_uuid: str) -> None:
         _register_one_off_job_event(
             "project:one-off-job:failed", project_uuid, job_uuid
         )
+
+
+def register_job_updated(
+    was_cron_job: bool, project_uuid: str, job_uuid: str, update: app_types.EntityUpdate
+) -> None:
+    """Adds a job update event to the db, does not commit.
+
+    Args:
+        was_cron_job: Necessary because an update might make a non
+            cron-job into a cron-job, and we are interested in the
+            status of the job pre-change. I.e. adding a schedule and
+            thus making a one off job into a cronjob should lead to a
+            OneOffJobUpdateEvent, not a CronJobUpdateEvent.
+        project_uuid:
+        job_uuid:
+        update:
+    """
+    if was_cron_job:
+        ev = models.CronJobUpdateEvent(
+            type="project:cron-job:updated",
+            project_uuid=project_uuid,
+            job_uuid=job_uuid,
+            update=update,
+        )
+        _register_event(ev)
+    else:
+        ev = models.OneOffJobUpdateEvent(
+            type="project:one-off-job:updated",
+            project_uuid=project_uuid,
+            job_uuid=job_uuid,
+            update=update,
+        )
+        _register_event(ev)
 
 
 def register_job_succeeded(project_uuid: str, job_uuid: str) -> None:
@@ -541,6 +574,27 @@ def register_project_created_event(project_uuid: str):
 
 def register_project_deleted_event(project_uuid: str):
     _register_project_event("project:deleted", project_uuid)
+
+
+def _register_environment_event(
+    type: str, project_uuid: str, environment_uuid: str
+) -> None:
+    ev = models.EnvironmentEvent(
+        type=type, project_uuid=project_uuid, environment_uuid=environment_uuid
+    )
+    _register_event(ev)
+
+
+def register_environment_created_event(project_uuid: str, environment_uuid: str):
+    _register_environment_event(
+        "project:environment:created", project_uuid, environment_uuid
+    )
+
+
+def register_environment_deleted_event(project_uuid: str, environment_uuid: str):
+    _register_environment_event(
+        "project:environment:deleted", project_uuid, environment_uuid
+    )
 
 
 def register_project_updated_event(project_uuid: str, update: app_types.EntityUpdate):
