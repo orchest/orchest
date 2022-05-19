@@ -375,10 +375,6 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def job_duplicated(event_properties: dict) -> dict:
-        return _Anonymizer._deprecated_job_created(event_properties)
-
-    @staticmethod
     def session_started(event_properties: dict) -> dict:
         derived_user_services = {}
         user_services = event_properties["project"]["pipeline"]["session"][
@@ -490,7 +486,6 @@ _ANONYMIZATION_MAPPINGS = {
     Event.INTERACTIVE_PIPELINE_RUN_FAILED: _Anonymizer.interactive_pipeline_run,
     Event.INTERACTIVE_PIPELINE_RUN_STARTED: _Anonymizer.interactive_pipeline_run,
     Event.INTERACTIVE_PIPELINE_RUN_SUCCEEDED: _Anonymizer.interactive_pipeline_run,
-    Event.JOB_DUPLICATED: _Anonymizer.job_duplicated,
     Event.ONE_OFF_JOB_CANCELLED: _Anonymizer.project_one_off_job,
     Event.ONE_OFF_JOB_CREATED: _Anonymizer.project_one_off_job_created_updated,
     Event.ONE_OFF_JOB_DELETED: _Anonymizer.project_one_off_job,
