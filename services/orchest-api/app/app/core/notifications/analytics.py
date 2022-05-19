@@ -65,25 +65,6 @@ def send_test_ping_delivery() -> bool:
     return analytics.send_event(current_app, analytics.Event.DEBUG_PING, {})
 
 
-def _generate_interactive_pipeline_run_payload(
-    event: models.InteractivePipelineRunEvent,
-) -> dict:
-    if not event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
-        raise ValueError()
-
-    payload = event.to_notification_payload()
-    pipeline_run = models.InteractivePipelineRun.query.filter(
-        models.InteractivePipelineRun.project_uuid == event.project_uuid,
-        models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
-        models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
-    ).one()
-    payload["project"]["pipeline"]["session"]["pipeline_run"][
-        "pipeline_definition"
-    ] = pipeline_run.pipeline_definition
-
-    return payload
-
-
 def _generate_environment_image_build_payload(event: models.ProjectEvent):
     if not event.type.startswith("project:environment:image-build:"):
         raise ValueError()
@@ -106,8 +87,6 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     """
 
     analytics_payload = event.to_notification_payload()
-    if event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
-        return _generate_interactive_pipeline_run_payload(event)
 
     if event.type.startswith("project:environment:image-build:"):
         return _generate_environment_image_build_payload(event)

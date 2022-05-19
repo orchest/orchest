@@ -394,53 +394,6 @@ def _prepare_interactive_run_parameters_payload(pipeline_definition: dict) -> di
     return parameters_payload
 
 
-def _prepare_interactive_pipeline_run_payload(
-    project_uuid: str, pipeline_uuid: str, pipeline_run_uuid: str
-) -> dict:
-    payload = {
-        "uuid": pipeline_run_uuid,
-        "parameters": None,
-        "status": None,
-        "steps": None,
-    }
-
-    pipeline_run = _core_models.InteractivePipelineRun.query.filter(
-        _core_models.InteractivePipelineRun.project_uuid == project_uuid,
-        _core_models.InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
-        _core_models.InteractivePipelineRun.uuid == pipeline_run_uuid,
-    ).first()
-    if pipeline_run is None:
-        return payload
-
-    payload["status"] = pipeline_run.status
-    payload["parameters"] = _prepare_interactive_run_parameters_payload(
-        pipeline_run.pipeline_definition
-    )
-    payload[
-        "url_path"
-    ] = f"/pipeline?project_uuid={project_uuid}&pipeline_uuid={pipeline_uuid}"
-    payload["steps"] = []
-    failed_steps = []
-    steps = _core_models.PipelineRunStep.query.filter(
-        _core_models.PipelineRunStep.run_uuid == pipeline_run_uuid,
-    ).all()
-    for step in steps:
-        step_name = (
-            pipeline_run.pipeline_definition.get("steps")
-            .get(step.step_uuid, {})
-            .get("title", "untitled")
-        )
-        step_payload = _prepare_step_payload(step.step_uuid, step_name)
-        payload["steps"].append(step_payload)
-        if step.status == "FAILURE":
-            failed_steps.append(step_payload)
-
-    if failed_steps:
-        payload["failed_steps"] = failed_steps
-
-    return payload
-
-
 class InteractiveSessionEvent(PipelineEvent):
 
     # Single table inheritance.
@@ -542,13 +495,96 @@ class InteractivePipelineRunEvent(InteractiveSessionEvent):
     def pipeline_run_uuid(cls):
         return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        pipeline_run = _core_models.InteractivePipelineRun.query.filter(
+            _core_models.InteractivePipelineRun.project_uuid == event.project_uuid,
+            _core_models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
+            _core_models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
+        ).one()
+
+        payload = {
+            "uuid": event.pipeline_run_uuid,
+            "url_path": (
+                f"/pipeline?project_uuid={event.project_uuid}&pipeline_uuid"
+                f"={event.pipeline_uuid}"
+            ),
+            "steps": [],
+            "parameters": _prepare_interactive_run_parameters_payload(
+                pipeline_run.pipeline_definition
+            ),
+        }
+
+        steps = _core_models.PipelineRunStep.query.filter(
+            _core_models.PipelineRunStep.run_uuid == event.pipeline_run_uuid,
+        ).all()
+        failed_steps = []
+        for step in steps:
+            step_name = (
+                pipeline_run.pipeline_definition.get("steps")
+                .get(step.step_uuid, {})
+                .get("title")
+            )
+            step_payload = _prepare_step_payload(step.step_uuid, step_name)
+            payload["steps"].append(step_payload)
+            if step.status == "FAILURE":
+                failed_steps.append(step_payload)
+
+        if failed_steps:
+            payload["failed_steps"] = failed_steps
+
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = InteractivePipelineRunEvent.current_layer_notification_data(
+            event
+        )
+
+        pipeline_run = _core_models.InteractivePipelineRun.query.filter(
+            _core_models.InteractivePipelineRun.project_uuid == event.project_uuid,
+            _core_models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
+            _core_models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
+        ).one()
+        event_properties["pipeline_definition"] = pipeline_run.pipeline_definition
+        derived_properties = analytics.anonymize_pipeline_run_properties(
+            event_properties
+        )
+
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
         payload["project"]["pipeline"]["session"][
             "pipeline_run"
-        ] = _prepare_interactive_pipeline_run_payload(
-            self.project_uuid, self.pipeline_uuid, self.pipeline_run_uuid
-        )
+        ] = InteractivePipelineRunEvent.current_layer_notification_data(self)
+        return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = InteractivePipelineRunEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["pipeline"]["session"][
+            "pipeline_run"
+        ] = ev
+        payload["derived_properties"]["project"]["pipeline"]["session"][
+            "pipeline_run"
+        ] = der
+
+        # Deprecated.
+        p_ev = payload["event_properties"]
+        p_ev["run_uuid"] = ev["uuid"]
+        p_ev["run_type"] = "interactive"
+        p_ev["step_uuids_to_execute"] = [step["uuid"] for step in ev["steps"]]
+        if "deprecated" not in p_ev:
+            p_ev["deprecated"] = []
+        p_ev["deprecated"].extend(["run_uuid", "run_type", "step_uuids_to_execute"])
+
+        p_der = payload["derived_properties"]
+        p_der["pipeline_definition"] = der["pipeline_definition"]
+        if "deprecated" not in p_der:
+            p_der["deprecated"] = []
+        p_der["deprecated"].append("pipeline_definition")
+
         return payload
 
 

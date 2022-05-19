@@ -265,7 +265,7 @@ def _anonymize_one_off_job_properties(job: dict) -> dict:
     job.pop("name", None)
     derived_properties = {}
     if "pipeline_run" in job:
-        run_derived_properties = _anonymize_pipeline_run_properties(job["pipeline_run"])
+        run_derived_properties = anonymize_pipeline_run_properties(job["pipeline_run"])
         derived_properties["pipeline_run"] = run_derived_properties
     return derived_properties
 
@@ -275,7 +275,7 @@ def _anonymize_cron_job_properties(job: dict) -> dict:
     job.pop("name", None)
     derived_properties = {}
     if "pipeline_run" in job.get("run", {}):
-        run_derived_properties = _anonymize_pipeline_run_properties(
+        run_derived_properties = anonymize_pipeline_run_properties(
             job["run"]["pipeline_run"]
         )
         derived_properties["run"] = {}
@@ -283,7 +283,7 @@ def _anonymize_cron_job_properties(job: dict) -> dict:
     return derived_properties
 
 
-def _anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
+def anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
     derived_properties = {}
     derived_properties["failed_steps_count"] = len(pipeline_run.pop("failed_steps", []))
     derived_params = {}
@@ -298,7 +298,7 @@ def _anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
         step.pop("title", None)
 
     if "pipeline_definition" in pipeline_run:
-        pipeline_run["pipeline_definition"] = anonymize_pipeline_definition(
+        derived_properties["pipeline_definition"] = anonymize_pipeline_definition(
             pipeline_run["pipeline_definition"]
         )
     return derived_properties
