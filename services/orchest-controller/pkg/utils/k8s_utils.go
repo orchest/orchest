@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -16,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -26,6 +24,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/informers"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	netsinformers "k8s.io/client-go/informers/networking/v1"
+	rbacinformers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -119,9 +120,45 @@ func NewOrchestClusterInformer(ocClient versioned.Interface) orchestinformers.Or
 	return orchestInformerFactory.Orchest().V1alpha1().OrchestClusters()
 }
 
-func NewDeploymentInformer(client kubernetes.Interface) appsinformers.DeploymentInformer {
-	appsInformerFactory := informers.NewSharedInformerFactoryWithOptions(client, time.Second*30)
-	return appsInformerFactory.Apps().V1().Deployments()
+func NewOrchestComponentInformer(ocClient versioned.Interface) orchestinformers.OrchestComponentInformer {
+	orchestInformerFactory := ocinformersfactory.NewSharedInformerFactory(ocClient, time.Second*30)
+	return orchestInformerFactory.Orchest().V1alpha1().OrchestComponents()
+}
+
+func NewInformerFactory(client kubernetes.Interface) informers.SharedInformerFactory {
+	return informers.NewSharedInformerFactoryWithOptions(client, time.Second*30)
+}
+
+func NewDeploymentInformer(factory informers.SharedInformerFactory) appsinformers.DeploymentInformer {
+	return factory.Apps().V1().Deployments()
+}
+
+func NewHistoryInformer(factory informers.SharedInformerFactory) appsinformers.ControllerRevisionInformer {
+	return factory.Apps().V1().ControllerRevisions()
+}
+
+func NewDaemonSetInformer(factory informers.SharedInformerFactory) appsinformers.DaemonSetInformer {
+	return factory.Apps().V1().DaemonSets()
+}
+
+func NewIngressInformer(factory informers.SharedInformerFactory) netsinformers.IngressInformer {
+	return factory.Networking().V1().Ingresses()
+}
+
+func NewServiceInformer(factory informers.SharedInformerFactory) coreinformers.ServiceInformer {
+	return factory.Core().V1().Services()
+}
+
+func NewServiceAccountInformer(factory informers.SharedInformerFactory) coreinformers.ServiceAccountInformer {
+	return factory.Core().V1().ServiceAccounts()
+}
+
+func NewrClusterRoleInformer(factory informers.SharedInformerFactory) rbacinformers.ClusterRoleInformer {
+	return factory.Rbac().V1().ClusterRoles()
+}
+
+func NewClusterRoleBindingInformer(factory informers.SharedInformerFactory) rbacinformers.ClusterRoleBindingInformer {
+	return factory.Rbac().V1().ClusterRoleBindings()
 }
 
 // IsDeploymentReady checks if the number of required replicas is equal to number of created replicas
@@ -174,8 +211,8 @@ func IsPodActive(ctx context.Context, client kubernetes.Interface, name, namespa
 		return false
 	}
 
-	return v1.PodSucceeded != pod.Status.Phase &&
-		v1.PodFailed != pod.Status.Phase
+	return corev1.PodSucceeded != pod.Status.Phase &&
+		corev1.PodFailed != pod.Status.Phase
 }
 
 func GetFullImageName(registry, imageName, tag string) string {
@@ -213,6 +250,8 @@ func GetInstanceOfObj(obj interface{}) client.Object {
 		return &corev1.ServiceAccount{}
 	case *appsv1.Deployment:
 		return &appsv1.Deployment{}
+	case *appsv1.DaemonSet:
+		return &appsv1.DaemonSet{}
 	case *rbacv1.ClusterRole:
 		return &rbacv1.ClusterRole{}
 	case *rbacv1.ClusterRoleBinding:
@@ -229,10 +268,6 @@ func GetEnvVarFromMap(envVars map[string]string) []corev1.EnvVar {
 	for name, value := range envVars {
 		result = append(result, corev1.EnvVar{Name: name, Value: value})
 	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Name < result[j].Name
-	})
 
 	return result
 }
@@ -275,6 +310,38 @@ func UpsertEnvVariable(envVarList *[]corev1.EnvVar, defaultEnvVarMap map[string]
 	}
 
 	return changed
+}
+
+func CloneLabel(labels map[string]string) map[string]string {
+
+	// Clone labels
+	newLabels := map[string]string{}
+	for key, value := range labels {
+		newLabels[key] = value
+	}
+
+	return newLabels
+}
+
+func AddLabel(labels, addLabels map[string]string) {
+
+	// Clone labels
+	// Add labels
+	for key, value := range addLabels {
+		labels[key] = value
+	}
+}
+
+func CloneAndAddLabel(labels, addLabels map[string]string) map[string]string {
+	if len(addLabels) == 0 {
+		return labels
+	}
+
+	newLabels := CloneLabel(labels)
+
+	AddLabel(newLabels, addLabels)
+
+	return newLabels
 }
 
 // This function is borrowed from projectcountour
