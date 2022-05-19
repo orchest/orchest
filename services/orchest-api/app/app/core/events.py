@@ -6,13 +6,12 @@ happened.
 """
 from app import models
 from app import types as app_types
-from app import utils
 from app import utils as app_utils
 from app.connections import db
 from app.core import notifications
 from app.core.notifications import analytics as api_analytics
 
-_logger = utils.get_logger()
+_logger = app_utils.get_logger()
 
 
 def _register_event(ev: models.Event) -> None:
