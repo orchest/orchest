@@ -1464,7 +1464,7 @@ class JobEvent(ProjectEvent):
             "status": None,
             "pipeline_name": None,
         }
-        payload["job"] = job_payload
+        payload["project"]["job"] = job_payload
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
@@ -1497,13 +1497,13 @@ class OneOffJobEvent(JobEvent):
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
 
-        payload["job"]["total_runs"] = None
+        payload["project"]["job"]["total_runs"] = None
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
             return payload
 
-        payload["job"]["total_runs"] = len(job.parameters)
+        payload["project"]["job"]["total_runs"] = len(job.parameters)
 
         return payload
 
@@ -1528,7 +1528,7 @@ class OneOffJobUpdateEvent(OneOffJobEvent):
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
         if self.update is not None:
-            payload["job"]["update"] = self.update
+            payload["project"]["job"]["update"] = self.update
 
         return payload
 
@@ -1614,7 +1614,7 @@ class OneOffJobPipelineRunEvent(OneOffJobEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
+        payload["project"]["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
             self.job_uuid, self.pipeline_run_uuid
         )
 
@@ -1644,14 +1644,14 @@ class CronJobEvent(JobEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["schedule"] = None
-        payload["job"]["next_scheduled_time"] = None
+        payload["project"]["job"]["schedule"] = None
+        payload["project"]["job"]["next_scheduled_time"] = None
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
         if job is None:
             return payload
-        payload["job"]["schedule"] = job.schedule
-        payload["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
+        payload["project"]["job"]["schedule"] = job.schedule
+        payload["project"]["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
         return payload
 
     def __repr__(self):
@@ -1675,7 +1675,7 @@ class CronJobUpdateEvent(CronJobEvent):
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
         if self.update is not None:
-            payload["job"]["update"] = self.update
+            payload["project"]["job"]["update"] = self.update
 
         return payload
 
@@ -1725,10 +1725,12 @@ class CronJobRunEvent(CronJobEvent):
         else:
             status = None
 
-        payload["job"]["run"] = {}
-        payload["job"]["run"]["status"] = status
-        payload["job"]["run"]["number"] = self.run_index
-        payload["job"]["run"]["total_pipeline_runs"] = self.total_pipeline_runs
+        payload["project"]["job"]["run"] = {}
+        payload["project"]["job"]["run"]["status"] = status
+        payload["project"]["job"]["run"]["number"] = self.run_index
+        payload["project"]["job"]["run"][
+            "total_pipeline_runs"
+        ] = self.total_pipeline_runs
 
         return payload
 
@@ -1787,9 +1789,9 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["run"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
-            self.job_uuid, self.pipeline_run_uuid
-        )
+        payload["project"]["job"]["run"][
+            "pipeline_run"
+        ] = _prepare_job_pipeline_run_payload(self.job_uuid, self.pipeline_run_uuid)
 
         return payload
 

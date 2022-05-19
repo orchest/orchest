@@ -415,9 +415,9 @@ class _Anonymizer:
             event_properties["project"]
         )
         derived_job_properties = _anonymize_one_off_job_properties(
-            event_properties["job"]
+            event_properties["project"]["job"]
         )
-        derived_properties["job"] = derived_job_properties
+        derived_properties["project"]["job"] = derived_job_properties
         return derived_properties
 
     @staticmethod
@@ -426,8 +426,10 @@ class _Anonymizer:
         derived_properties["project"] = _anonymize_project_properties(
             event_properties["project"]
         )
-        derived_job_properties = _anonymize_cron_job_properties(event_properties["job"])
-        derived_properties["job"] = derived_job_properties
+        derived_job_properties = _anonymize_cron_job_properties(
+            event_properties["project"]["job"]
+        )
+        derived_properties["project"]["job"] = derived_job_properties
         return derived_properties
 
 

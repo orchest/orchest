@@ -163,14 +163,16 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     if event_type.startswith("project:cron-job:") or event_type.startswith(
         "project:one-off-job:"
     ):
-        analytics_payload["job_uuid"] = analytics_payload["job"]["uuid"]
+        analytics_payload["job_uuid"] = analytics_payload["project"]["job"]["uuid"]
 
     if event_type.startswith("project:cron-job:run:pipeline-run:"):
-        analytics_payload["run_uuid"] = analytics_payload["job"]["run"]["pipeline_run"][
-            "uuid"
-        ]
+        analytics_payload["run_uuid"] = analytics_payload["project"]["job"]["run"][
+            "pipeline_run"
+        ]["uuid"]
     elif event_type.startswith("project:one-off-job:pipeline-run:"):
-        analytics_payload["run_uuid"] = analytics_payload["job"]["pipeline_run"]["uuid"]
+        analytics_payload["run_uuid"] = analytics_payload["project"]["job"][
+            "pipeline_run"
+        ]["uuid"]
 
     if event_type in [
         "project:cron-job:created",
@@ -180,7 +182,7 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     ]:
         job: models.Job = models.Job.query.filter(
             models.Job.project_uuid == analytics_payload["project"]["uuid"],
-            models.Job.uuid == analytics_payload["job"]["uuid"],
+            models.Job.uuid == analytics_payload["project"]["job"]["uuid"],
         ).first()
         if job is not None:
             analytics_payload["job_definition"] = {
@@ -206,7 +208,7 @@ def _augment_payload(payload: dict) -> None:
     if payload["type"] in ["project:one-off-job:created", "project:cron-job:created"]:
         job = models.Job.query.filter(
             models.Job.project_uuid == payload["project"]["uuid"],
-            models.Job.uuid == payload["job"]["uuid"],
+            models.Job.uuid == payload["project"]["job"]["uuid"],
         ).first()
         if job is None:
             return
