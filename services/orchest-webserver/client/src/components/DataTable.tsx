@@ -205,7 +205,7 @@ const CellContainer: React.FC<{
   const auxClickHandler = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onAuxClick) onAuxClick(e);
+    onAuxClick?.(e);
   };
   return (
     <>
