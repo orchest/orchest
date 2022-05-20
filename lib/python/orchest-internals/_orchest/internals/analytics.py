@@ -250,39 +250,6 @@ def _add_system_properties(data: dict) -> None:
     }
 
 
-def _anonymize_project_properties(project: dict) -> dict:
-    project.pop("name", None)
-    return {}
-
-
-def _anonymize_pipeline_properties(pipeline: dict) -> dict:
-    pipeline.pop("name", None)
-    return {}
-
-
-def _anonymize_one_off_job_properties(job: dict) -> dict:
-    job.pop("pipeline_name", None)
-    job.pop("name", None)
-    derived_properties = {}
-    if "pipeline_run" in job:
-        run_derived_properties = anonymize_pipeline_run_properties(job["pipeline_run"])
-        derived_properties["pipeline_run"] = run_derived_properties
-    return derived_properties
-
-
-def _anonymize_cron_job_properties(job: dict) -> dict:
-    job.pop("pipeline_name", None)
-    job.pop("name", None)
-    derived_properties = {}
-    if "pipeline_run" in job.get("run", {}):
-        run_derived_properties = anonymize_pipeline_run_properties(
-            job["run"]["pipeline_run"]
-        )
-        derived_properties["run"] = {}
-        derived_properties["run"]["pipeline_run"] = run_derived_properties
-    return derived_properties
-
-
 def anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
     derived_properties = {}
     derived_properties["failed_steps_count"] = len(pipeline_run.pop("failed_steps", []))

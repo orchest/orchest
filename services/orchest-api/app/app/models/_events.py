@@ -1,4 +1,5 @@
 """Events models for the orchest-api."""
+import copy
 import datetime
 import enum
 import uuid
@@ -546,7 +547,9 @@ class InteractivePipelineRunEvent(InteractiveSessionEvent):
             _core_models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
             _core_models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
         ).one()
-        event_properties["pipeline_definition"] = pipeline_run.pipeline_definition
+        event_properties["pipeline_definition"] = copy.deepcopy(
+            pipeline_run.pipeline_definition
+        )
         derived_properties = analytics.anonymize_pipeline_run_properties(
             event_properties
         )
@@ -727,29 +730,76 @@ class JobEvent(ProjectEvent):
 
     __mapper_args__ = {"polymorphic_identity": "job_event"}
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        job = _core_models.Job.query.filter(
+            _core_models.Job.uuid == event.job_uuid
+        ).one()
+        payload = {
+            "uuid": event.job_uuid,
+            "name": job.name,
+            "status": job.status,
+            "pipeline_name": job.pipeline_name,
+            "url_path": f"/job?project_uuid={job.project_uuid}&job_uuid={job.uuid}",
+        }
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = JobEvent.current_layer_notification_data(event)
+        event_properties.pop("name")
+        event_properties.pop("pipeline_name")
+        derived_properties = {}
+
+        if event.type in [
+            "project:cron-job:created",
+            "project:cron-job:updated",
+            "project:one-off-job:created",
+            "project:one-off-job:updated",
+        ]:
+            job = _core_models.Job.query.filter(
+                _core_models.Job.project_uuid == event.project_uuid,
+                _core_models.Job.uuid == event.job_uuid,
+            ).one()
+            # Copy otherwise the job entry will be modified.
+            ppl_def = copy.deepcopy(job.pipeline_definition)
+            event_properties["definition"] = {
+                "draft": True,
+                # Note that the ppl_def is anonymized a few lines later.
+                "pipeline_definition": ppl_def,
+                # Deprecated fields.
+                "uuid": job.uuid,
+                "project_uuid": job.project_uuid,
+                "pipeline_uuid": job.pipeline_uuid,
+                "pipeline_run_spec": {"run_type": "full", "uuids": []},
+            }
+            derived_properties["definition"] = {
+                "parameterized_runs_count": len(job.parameters),
+                "env_variables_count": len(job.env_variables),
+                "pipeline_definition": analytics.anonymize_pipeline_definition(ppl_def),
+            }
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        job_payload = {
-            "uuid": self.job_uuid,
-            "name": None,
-            "status": None,
-            "pipeline_name": None,
-        }
-        payload["project"]["job"] = job_payload
+        payload["project"]["job"] = JobEvent.current_layer_notification_data(self)
+        return payload
 
-        job = _core_models.Job.query.filter(
-            _core_models.Job.uuid == self.job_uuid
-        ).first()
-        if job is None:
-            return payload
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = JobEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"] = ev
+        payload["derived_properties"]["project"]["job"] = der
 
-        job_payload["name"] = job.name
-        job_payload["status"] = job.status
-        job_payload["pipeline_name"] = job.pipeline_name
-        job_payload[
-            "url_path"
-        ] = f"/job?project_uuid={job.project_uuid}&job_uuid={job.uuid}"
-
+        # Deprecated.
+        p_ev = payload["event_properties"]
+        p_ev["job_uuid"] = p_ev["project"]["job"]["uuid"]
+        if "deprecated" not in p_ev:
+            p_ev["deprecated"] = []
+        p_ev["deprecated"].append("job_uuid")
+        if "definition" in p_ev["project"]["job"]:
+            p_ev["job_definition"] = p_ev["project"]["job"]["definition"]
+            p_ev["deprecated"].append("job_definition")
         return payload
 
     def __repr__(self):
@@ -767,19 +817,42 @@ class OneOffJobEvent(JobEvent):
 
     __mapper_args__ = {"polymorphic_identity": "one_off_job_event"}
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        job = _core_models.Job.query.filter(
+            _core_models.Job.uuid == event.job_uuid
+        ).one()
+        payload = {"total_runs": len(job.parameters)}
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = OneOffJobEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
+        # Here we just modify the current layer (i.e. `job` entry) in
+        # place.
+        payload["project"]["job"] = {
+            **payload["project"]["job"]
+            ** OneOffJobEvent.current_layer_notification_data(self),
+        }
 
-        payload["project"]["job"]["total_runs"] = None
+        return payload
 
-        job = _core_models.Job.query.filter(
-            _core_models.Job.uuid == self.job_uuid
-        ).first()
-        if job is None:
-            return payload
-
-        payload["project"]["job"]["total_runs"] = len(job.parameters)
-
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = OneOffJobEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"] = {
+            **payload["event_properties"]["project"]["job"],
+            **ev,
+        }
+        payload["derived_properties"]["project"]["job"] = {
+            **payload["derived_properties"]["project"]["job"],
+            **der,
+        }
         return payload
 
     def __repr__(self):
@@ -800,11 +873,29 @@ class OneOffJobUpdateEvent(OneOffJobEvent):
     def update(cls):
         return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = {"update": event.update}
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = OneOffJobUpdateEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        if self.update is not None:
-            payload["project"]["job"]["update"] = self.update
+        payload["project"]["job"][
+            "update"
+        ] = OneOffJobUpdateEvent.current_layer_notification_data(self)
+        return payload
 
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = OneOffJobUpdateEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"]["update"] = ev
+        payload["derived_properties"]["project"]["job"]["update"] = der
         return payload
 
 
@@ -917,18 +1008,44 @@ class CronJobEvent(JobEvent):
 
     __mapper_args__ = {"polymorphic_identity": "cron_job_event"}
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        job = _core_models.Job.query.filter(
+            _core_models.Job.uuid == event.job_uuid
+        ).one()
+        payload = {
+            "schedule": job.schedule,
+            "next_scheduled_time": job.next_scheduled_time,
+        }
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = OneOffJobEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["project"]["job"]["schedule"] = None
-        payload["project"]["job"]["next_scheduled_time"] = None
+        # Here we just modify the current layer (i.e. `job` entry) in
+        # place.
+        payload["project"]["job"] = {
+            **payload["project"]["job"]
+            ** OneOffJobEvent.current_layer_notification_data(self),
+        }
+        return payload
 
-        job = _core_models.Job.query.filter(
-            _core_models.Job.uuid == self.job_uuid
-        ).first()
-        if job is None:
-            return payload
-        payload["project"]["job"]["schedule"] = job.schedule
-        payload["project"]["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = OneOffJobEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"] = {
+            **payload["event_properties"]["project"]["job"],
+            **ev,
+        }
+        payload["derived_properties"]["project"]["job"] = {
+            **payload["derived_properties"]["project"]["job"],
+            **der,
+        }
         return payload
 
     def __repr__(self):
@@ -949,11 +1066,29 @@ class CronJobUpdateEvent(CronJobEvent):
     def update(cls):
         return Event.__table__.c.get("update", db.Column(JSONB, nullable=True))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = {"update": event.update}
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = CronJobUpdateEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        if self.update is not None:
-            payload["project"]["job"]["update"] = self.update
+        payload["project"]["job"][
+            "update"
+        ] = CronJobUpdateEvent.current_layer_notification_data(self)
+        return payload
 
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = CronJobUpdateEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"]["update"] = ev
+        payload["derived_properties"]["project"]["job"]["update"] = der
         return payload
 
 

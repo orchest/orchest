@@ -77,11 +77,6 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
 
     event_type = analytics_payload["type"]
 
-    if event_type.startswith("project:cron-job:") or event_type.startswith(
-        "project:one-off-job:"
-    ):
-        analytics_payload["job_uuid"] = analytics_payload["project"]["job"]["uuid"]
-
     if event_type.startswith("project:cron-job:run:pipeline-run:"):
         analytics_payload["run_uuid"] = analytics_payload["project"]["job"]["run"][
             "pipeline_run"
@@ -91,34 +86,13 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
             "pipeline_run"
         ]["uuid"]
 
-    if event_type in [
-        "project:cron-job:created",
-        "project:cron-job:updated",
-        "project:one-off-job:created",
-        "project:one-off-job:updated",
-    ]:
-        job: models.Job = models.Job.query.filter(
-            models.Job.project_uuid == analytics_payload["project"]["uuid"],
-            models.Job.uuid == analytics_payload["project"]["job"]["uuid"],
-        ).first()
-        if job is not None:
-            analytics_payload["job_definition"] = {
-                "parameters": job.parameters,
-                "project_uuid": job.project_uuid,
-                "pipeline_uuid": job.pipeline_uuid,
-                "draft": True,
-                "uuid": job.uuid,
-                "env_variables": job.env_variables,
-                "pipeline_run_spec": {"run_type": "full", "uuids": []},
-            }
-
     return analytics_payload
 
 
 def _augment_job_created_payload(payload: dict) -> None:
     job = models.Job.query.filter(
         models.Job.project_uuid == payload["event_properties"]["project"]["uuid"],
-        models.Job.uuid == payload["event_properties"]["job"]["uuid"],
+        models.Job.uuid == payload["event_properties"]["project"]["job"]["uuid"],
     ).first()
     if job is None:
         return
@@ -129,10 +103,15 @@ def _augment_job_created_payload(payload: dict) -> None:
         job.uuid,
     )
     if os.path.exists(snapshot_path):
-        payload["event_properties"]["snapshot_size"] = _utils.get_directory_size(
-            snapshot_path
-            # In MBs.
-        ) / (1024**2)
+        snapshot_size = _utils.get_directory_size(snapshot_path) / (
+            1024**2
+        )  # In MBs.
+        payload["derived_properties"]["project"]["job"]["snapshot_size"] = snapshot_size
+        # Deprecated.
+        payload["event_properties"]["snapshot_size"] = snapshot_size
+        if "deprecated" not in payload["event_properties"]:
+            payload["event_properties"]["deprecated"] = []
+        payload["event_properties"]["deprecated"].append("snapshot_size")
 
 
 def _augment_env_image_build_created_payload(payload: dict) -> None:

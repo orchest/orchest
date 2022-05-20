@@ -1,3 +1,4 @@
+import copy
 import io
 import json
 import os
@@ -901,8 +902,12 @@ def register_views(app, db):
                         resp.status_code,
                     )
 
-            # Analytics call.
-            derived_props = analytics.anonymize_pipeline_definition(pipeline_json)
+            # Analytics call.  Copy otherwise the json will be modified.
+            # Currently it's not an issue since this is the last call of
+            # the endpoint.
+            derived_props = analytics.anonymize_pipeline_definition(
+                copy.deepcopy(pipeline_json)
+            )
             analytics.send_event(
                 app,
                 analytics.Event.PIPELINE_SAVED,
