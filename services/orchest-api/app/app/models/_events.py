@@ -568,9 +568,8 @@ class InteractivePipelineRunEvent(InteractiveSessionEvent):
             _core_models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
             _core_models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
         ).one()
-        event_properties["pipeline_definition"] = copy.deepcopy(
-            pipeline_run.pipeline_definition
-        )
+        event_properties["pipeline_definition"] = pipeline_run.pipeline_definition
+        event_properties = copy.deepcopy(event_properties)
         derived_properties = anonymize_pipeline_run_properties(event_properties)
 
         return event_properties, derived_properties
@@ -1003,9 +1002,8 @@ class OneOffJobPipelineRunEvent(OneOffJobEvent):
         event_properties = OneOffJobPipelineRunEvent.current_layer_notification_data(
             event
         )
-        derived_properties = anonymize_pipeline_run_properties(
-            copy.deepcopy(event_properties)
-        )
+        event_properties = copy.deepcopy(event_properties)
+        derived_properties = anonymize_pipeline_run_properties(event_properties)
         return event_properties, derived_properties
 
     def to_notification_payload(self) -> dict:
@@ -1286,9 +1284,8 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
         event_properties = CronJobRunPipelineRunEvent.current_layer_notification_data(
             event
         )
-        derived_properties = anonymize_pipeline_run_properties(
-            copy.deepcopy(event_properties)
-        )
+        event_properties = copy.deepcopy(event_properties)
+        derived_properties = anonymize_pipeline_run_properties(event_properties)
         return event_properties, derived_properties
 
     def to_notification_payload(self) -> dict:
