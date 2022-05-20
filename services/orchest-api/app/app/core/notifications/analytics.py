@@ -65,19 +65,6 @@ def send_test_ping_delivery() -> bool:
     return analytics.send_event(current_app, analytics.Event.DEBUG_PING, {})
 
 
-def _generate_environment_image_build_payload(event: models.ProjectEvent):
-    if not event.type.startswith("project:environment:image-build:"):
-        raise ValueError()
-
-    payload = event.to_notification_payload()
-
-    # Deprecated.
-    payload["project_uuid"] = payload["project"]["uuid"]
-    payload["environment_uuid"] = payload["project"]["environment"]["uuid"]
-    payload["image_tag"] = payload["project"]["environment"]["image_build"]["image_tag"]
-    return payload
-
-
 def generate_payload_for_analytics(event: models.Event) -> dict:
     """Creates an analytics module compatible payload.
 
@@ -87,9 +74,6 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     """
 
     analytics_payload = event.to_notification_payload()
-
-    if event.type.startswith("project:environment:image-build:"):
-        return _generate_environment_image_build_payload(event)
 
     event_type = analytics_payload["type"]
 
@@ -152,13 +136,17 @@ def _augment_job_created_payload(payload: dict) -> None:
 
 
 def _augment_env_image_build_created_payload(payload: dict) -> None:
-    ev_props = payload["event_properties"]
+    event_properties, derived_props = (
+        payload["event_properties"],
+        payload["derived_properties"],
+    )
     build = models.EnvironmentImageBuild.query.filter(
-        models.EnvironmentImageBuild.project_uuid == ev_props["project"]["uuid"],
+        models.EnvironmentImageBuild.project_uuid
+        == event_properties["project"]["uuid"],
         models.EnvironmentImageBuild.environment_uuid
-        == ev_props["project"]["environment"]["uuid"],
+        == event_properties["project"]["environment"]["uuid"],
         models.EnvironmentImageBuild.image_tag
-        == ev_props["project"]["environment"]["image_build"]["image_tag"],
+        == event_properties["project"]["environment"]["image_build"]["image_tag"],
     ).first()
     if build is None:
         return
@@ -170,14 +158,25 @@ def _augment_env_image_build_created_payload(payload: dict) -> None:
     if os.path.exists(env_properties_path):
         with open(env_properties_path, "r") as env_props_file:
             env_dict = json.load(env_props_file)
-            build_properties = ev_props["project"]["environment"]["image_build"]
-            build_properties["base_image"] = env_dict["base_image"]
+
+            base_image = env_dict["base_image"]
+            uses_orchest_base_image = base_image.startswith("orchest/")
+
+            build_properties = event_properties["project"]["environment"]["image_build"]
             build_properties["gpu_support"] = env_dict["gpu_support"]
             build_properties["language"] = env_dict["language"]
+            derived_props["project"]["environment"]["image_build"][
+                "uses_orchest_base_image"
+            ] = uses_orchest_base_image
+            if uses_orchest_base_image:
+                build_properties["base_image"] = base_image
 
             # Deprecated.
-            ev_props["gpu_support"] = build_properties["gpu_support"]
-            ev_props["language"] = build_properties["language"]
+            event_properties["gpu_support"] = build_properties["gpu_support"]
+            event_properties["language"] = build_properties["language"]
+            derived_props["uses_orchest_base_image"] = uses_orchest_base_image
+            if uses_orchest_base_image:
+                event_properties["base_image"] = base_image
 
 
 def _augment_payload(payload: dict) -> None:

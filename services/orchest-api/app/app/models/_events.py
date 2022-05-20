@@ -652,20 +652,53 @@ class EnvironmentImageBuildEvent(EnvironmentEvent):
 
     image_tag = db.Column(db.Integer, nullable=True)
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = {}
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = EnvironmentImageBuildEvent.current_layer_notification_data(
+            event
+        )
+        build = _core_models.EnvironmentImageBuild.query.filter(
+            _core_models.EnvironmentImageBuild.project_uuid == event.project_uuid,
+            _core_models.EnvironmentImageBuild.environment_uuid
+            == event.environment_uuid,
+            _core_models.EnvironmentImageBuild.image_tag == event.image_tag,
+        ).one()
+        event_properties["image_tag"] = build.image_tag
+        event_properties["requested_time"] = str(build.requested_time)
+        event_properties["started_time"] = str(build.started_time)
+        event_properties["finished_time"] = str(build.finished_time)
+        derived_properties = {}
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        build = _core_models.EnvironmentImageBuild.query.filter(
-            _core_models.EnvironmentImageBuild.project_uuid == self.project_uuid,
-            _core_models.EnvironmentImageBuild.environment_uuid
-            == self.environment_uuid,
-            _core_models.EnvironmentImageBuild.image_tag == self.image_tag,
-        ).first()
-        if build is not None:
-            build = build.as_dict()
-            for k, v in build.items():
-                if isinstance(v, datetime.datetime):
-                    build[k] = str(v)
-            payload["project"]["environment"]["image_build"] = build
+        payload["project"]["environment"][
+            "image_build"
+        ] = EnvironmentImageBuildEvent.current_layer_notification_data(self)
+        return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = EnvironmentImageBuildEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["environment"]["image_build"] = ev
+        payload["derived_properties"]["project"]["environment"]["image_build"] = der
+
+        # Deprecated.
+        p_ev = payload["event_properties"]
+        if "deprecated" not in p_ev:
+            p_ev["deprecated"] = []
+        if "project_uuid" not in p_ev:
+            p_ev["project_uuid"] = p_ev["project"]["uuid"]
+            p_ev["deprecated"].append("project_uuid")
+        p_ev["environment_uuid"] = p_ev["project"]["environment"]["uuid"]
+        p_ev["image_tag"] = p_ev["project"]["environment"]["image_build"]["image_tag"]
+        p_ev["deprecated"].extend(["environment_uuid", "image_tag"])
+
         return payload
 
 
