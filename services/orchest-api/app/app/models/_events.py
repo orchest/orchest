@@ -383,7 +383,7 @@ def _prepare_step_payload(uuid: str, title: str) -> dict:
 def _prepare_interactive_run_parameters_payload(pipeline_definition: dict) -> dict:
     parameters_payload = {}
     for k, v in pipeline_definition["steps"].items():
-        step_name = pipeline_definition.get("steps").get(k, {}).get("title", "untitled")
+        step_name = pipeline_definition.get("steps").get(k, {}).get("title")
         step_payload = _prepare_step_payload(k, step_name)
         parameters_payload[k] = {
             "step": step_payload,
@@ -920,16 +920,12 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
         "status": None,
     }
 
-    job = _core_models.Job.query.filter(_core_models.Job.uuid == job_uuid).first()
-    if job is None:
-        return payload
+    job = _core_models.Job.query.filter(_core_models.Job.uuid == job_uuid).one()
 
     pipeline_run = _core_models.NonInteractivePipelineRun.query.filter(
         _core_models.NonInteractivePipelineRun.job_uuid == job_uuid,
         _core_models.NonInteractivePipelineRun.uuid == pipeline_run_uuid,
-    ).first()
-    if pipeline_run is None:
-        return payload
+    ).one()
 
     payload["number"] = pipeline_run.pipeline_run_index
     if job.schedule is not None:
@@ -954,7 +950,7 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
             step_name = (
                 job.pipeline_definition.get("steps")
                 .get(step.step_uuid, {})
-                .get("title", "untitled")
+                .get("title")
             )
             failed_steps_payload.append(
                 _prepare_step_payload(step.step_uuid, step_name)
@@ -976,15 +972,38 @@ class OneOffJobPipelineRunEvent(OneOffJobEvent):
     def pipeline_run_uuid(cls):
         return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
 
-    __mapper_args__ = {"polymorphic_identity": "one_off_job_pipeline_run_event"}
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = _prepare_job_pipeline_run_payload(
+            event.job_uuid, event.pipeline_run_uuid
+        )
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = OneOffJobPipelineRunEvent.current_layer_notification_data(
+            event
+        )
+        derived_properties = analytics.anonymize_pipeline_run_properties(
+            copy.deepcopy(event_properties)
+        )
+        return event_properties, derived_properties
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["project"]["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
-            self.job_uuid, self.pipeline_run_uuid
-        )
-
+        payload["project"]["job"][
+            "pipeline_run"
+        ] = OneOffJobPipelineRunEvent.current_layer_notification_data(self)
         return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = OneOffJobPipelineRunEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"]["pipeline_run"] = ev
+        payload["derived_properties"]["project"]["job"]["pipeline_run"] = der
+        return payload
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_pipeline_run_event"}
 
     def __repr__(self):
         return (
