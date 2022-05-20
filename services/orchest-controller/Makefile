@@ -1,6 +1,6 @@
 
-
-TAG ?= $(if $(TAGNAME),$orchest/orchest-controller:(TAGNAME),"orchest/orchest-controller:latest")
+TAGNAME := $(if $(TAGNAME),$(TAGNAME),"latest")
+TAG := orchest/orchest-controller:(TAGNAME)
 
 TOOLS_DIR := $(PWD)/.cache/tools
 
@@ -11,6 +11,8 @@ GO_PROJECT=github.com/orchest/orchest/services/orchest-controller
 
 # inject the version number into the golang version package
 LDFLAGS := ${if ${ORCHEST_VERSION},-X $(GO_PROJECT)/pkg/version.Version=$(ORCHEST_VERSION),}
+
+NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest-system}
 
 .PHONY: docker
 docker:
@@ -66,3 +68,7 @@ crds: $(CONTROLLER_GEN) $(YQ)
 .PHONY: codegen
 codegen:
 	@./hack/update-codegen.sh
+
+.PHONY: manifestgen
+manifestgen:
+	@helm template --create-namespace --namespace ${NAMESPACE} --set orchest-controller.images.tag=${TAGNAME} ./deploy/helm > deploy/k8s/orchest-controller.yaml

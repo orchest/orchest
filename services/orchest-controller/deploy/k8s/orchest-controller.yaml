@@ -1,0 +1,128 @@
+---
+# Source: orchest-controller/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  namespace: orchest-system
+---
+# Source: orchest-controller/templates/rbac.yaml
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: orchest-controller
+  namespace: orchest-system
+---
+# Source: orchest-controller/templates/rbac.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: orchest-controller
+  labels:
+    app.kubernetes.io/part-of: orchest
+    app.kubernetes.io/release: release-name
+    app.kubernetes.io/name: orchest-controller
+rules:
+  - apiGroups: 
+      - "*"
+    resources:
+      - "*"
+    verbs:
+      - "*"
+---
+# Source: orchest-controller/templates/rbac.yaml
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: orchest-controller
+subjects:
+  - kind: ServiceAccount
+    name: orchest-controller
+    namespace: orchest-system
+roleRef:
+  kind: ClusterRole
+  name: orchest-controller
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: orchest-controller/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+    name: orchest-controller
+    namespace: orchest-system
+    labels:
+        app.kubernetes.io/part-of: orchest
+        app.kubernetes.io/release: release-name
+        app.kubernetes.io/name: orchest-controller
+        app.kubernetes.io/generated-by: helm
+        helm.sh/chart: "orchest-controller-0.0.1"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    app.kubernetes.io/part-of: orchest
+    app.kubernetes.io/release: release-name
+    app.kubernetes.io/name: orchest-controller
+---
+# Source: orchest-controller/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: orchest-controller
+    namespace: orchest-system
+    labels:
+        app.kubernetes.io/part-of: orchest
+        app.kubernetes.io/release: release-name
+        app.kubernetes.io/name: orchest-controller
+        app.kubernetes.io/generated-by: helm
+        helm.sh/chart: "orchest-controller-0.0.1"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+        app.kubernetes.io/part-of: orchest
+        app.kubernetes.io/release: release-name
+        app.kubernetes.io/name: orchest-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: orchest
+        app.kubernetes.io/release: release-name
+        app.kubernetes.io/name: orchest-controller
+    spec:
+      serviceAccountName: orchest-controller
+      containers:
+      - name: orchest-controller
+        image: "docker.io/orchest/orchest-controller:latest"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+---
+# Source: orchest-controller/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orchest-controller
+  namespace: orchest-system
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+    
+    - http:
+    
+        paths:
+          - path: /controller(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: orchest-controller
+                port:
+                  number: 80
