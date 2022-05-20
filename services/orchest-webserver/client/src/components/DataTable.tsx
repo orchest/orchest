@@ -197,7 +197,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
 // and by default, we limit height to ensure consistent rowHeight
 // it could be overwritten with sx if needed.
 const CellContainer: React.FC<{
-  isLoading: boolean;
+  isLoading: boolean | undefined;
   sx?: SxProps<Theme>;
   skeletonSx?: SxProps<Theme>;
   onAuxClick?: (e: React.MouseEvent) => void;
@@ -205,7 +205,7 @@ const CellContainer: React.FC<{
   const auxClickHandler = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onAuxClick(e);
+    onAuxClick?.(e);
   };
   return (
     <>
@@ -271,7 +271,7 @@ function Row<T>({
   const handleClickRow = (e: React.MouseEvent) => {
     if (!disabled) {
       setIsOpen((current) => {
-        onRowClick(e, data.uuid, !current);
+        if (onRowClick) onRowClick(e, data.uuid, !current);
         return !current;
       });
     }

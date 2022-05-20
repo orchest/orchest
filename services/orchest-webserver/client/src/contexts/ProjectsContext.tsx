@@ -14,6 +14,7 @@ export type IProjectsContextState = {
   projects: Project[];
   hasLoadedProjects: boolean;
   hasLoadedPipelinesInPipelineEditor: boolean;
+  newPipelineUuid: string | undefined;
 };
 
 export const useProjectsContext = () => React.useContext(ProjectsContext);
@@ -24,12 +25,8 @@ type Action =
       payload: PipelineMetaData;
     }
   | {
-      type: "SET_HAS_LOADED_PIPELINES";
-      payload: boolean;
-    }
-  | {
       type: "SET_PIPELINES";
-      payload: PipelineMetaData[];
+      payload: PipelineMetaData[] | undefined;
     }
   | {
       type: "LOAD_PIPELINES";
@@ -78,6 +75,7 @@ const reducer = (
           ? [...state.pipelines, action.payload]
           : [action.payload],
         pipeline: action.payload,
+        newPipelineUuid: action.payload.uuid,
       };
     }
     case "UPDATE_PIPELINE": {
@@ -85,12 +83,11 @@ const reducer = (
       const currentPipelines = state.pipelines || [];
 
       // Always look up `state.pipelines`.
-      const targetPipeline =
-        currentPipelines.find(
-          (pipeline) => pipeline.uuid === action.payload.uuid
-        ) || currentPipelines[0];
+      const targetPipeline = currentPipelines.find(
+        (pipeline) => pipeline.uuid === uuid
+      );
 
-      if (!targetPipeline) return state;
+      if (!targetPipeline) return { ...state, pipeline: undefined };
 
       const updatedPipeline = { ...targetPipeline, ...changes };
       const updatedPipelines = (state.pipelines || []).map((pipeline) =>
@@ -103,12 +100,22 @@ const reducer = (
       };
     }
     case "LOAD_PIPELINES": {
-      return { ...state, pipelines: action.payload };
-    }
-    case "SET_HAS_LOADED_PIPELINES": {
-      return { ...state, hasLoadedPipelinesInPipelineEditor: action.payload };
+      return {
+        ...state,
+        pipelines: action.payload,
+        pipeline: undefined,
+        hasLoadedPipelinesInPipelineEditor: true,
+      };
     }
     case "SET_PIPELINES": {
+      if (!action.payload)
+        return {
+          ...state,
+          pipelines: undefined,
+          pipeline: undefined,
+          hasLoadedPipelinesInPipelineEditor: false,
+        };
+
       const isPipelineRemoved = !action.payload.some(
         (pipeline) => state.pipeline?.path === pipeline.path
       );
@@ -117,6 +124,7 @@ const reducer = (
         ...state,
         pipelines: action.payload,
         pipeline: isPipelineRemoved ? action.payload[0] : state.pipeline,
+        hasLoadedPipelinesInPipelineEditor: true,
       };
     }
     case "SET_PIPELINE_SAVE_STATUS":
@@ -130,12 +138,13 @@ const reducer = (
           projectUuid: undefined,
           pipelines: undefined,
           pipeline: undefined,
+          hasLoadedPipelinesInPipelineEditor: false,
         };
       }
       // Ensure that projectUuid is valid in the state.
       // So that we could show proper warnings in case user provides
       // an invalid projectUuid from the route args.
-      const foundProject = state.projects?.find(
+      const foundProject = state.projects.find(
         (project) => project.uuid === action.payload
       );
       if (!foundProject) return state;
@@ -144,6 +153,7 @@ const reducer = (
         projectUuid: foundProject.uuid,
         pipelines: undefined,
         pipeline: undefined,
+        hasLoadedPipelinesInPipelineEditor: false,
       };
     }
     case "SET_PROJECTS":
@@ -162,6 +172,7 @@ const initialState: IProjectsContextState = {
   projects: [],
   hasLoadedProjects: false,
   hasLoadedPipelinesInPipelineEditor: false,
+  newPipelineUuid: undefined,
 };
 
 export const ProjectsContextProvider: React.FC = ({ children }) => {

@@ -80,6 +80,7 @@ const useHistoryListener = <T>({
 export type NavigateParams = {
   query?: Record<string, string | number | boolean | undefined | null>;
   state?: Record<string, string | number | boolean | undefined | null>;
+  replace?: boolean;
 };
 
 // these are common use cases that are all over the place
@@ -88,7 +89,9 @@ export type NavigateParams = {
 const useCustomRoute = () => {
   const history = useHistory();
 
-  const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
+  const [isReadOnly, prevPathname] = useLocationState<
+    [boolean, string, boolean]
+  >(["isReadOnly", "prevPathname"]);
   const valueArray = useLocationQuery([
     "job_uuid",
     "run_uuid",
@@ -122,7 +125,7 @@ const useCustomRoute = () => {
       e?: React.MouseEvent
     ) => {
       const [pathname, existingQueryString] = path.split("?");
-      const { query = {}, state = {} } = params || {};
+      const { query = {}, state = {}, replace = false } = params || {};
 
       const isMouseMiddleClick = e?.nativeEvent && e.nativeEvent.button === 1;
       const shouldOpenNewTab = e?.ctrlKey || e?.metaKey || isMouseMiddleClick;
@@ -134,10 +137,11 @@ const useCustomRoute = () => {
       if (shouldOpenNewTab) {
         openInNewTab(`${window.location.origin}${pathname}${queryString}`);
       } else {
-        history.push({
+        const mutateHistory = replace ? history.replace : history.push;
+        mutateHistory({
           pathname,
           search: queryString,
-          state,
+          state: { ...state, prevPathname: pathname },
         });
       }
     },
@@ -165,6 +169,7 @@ const useCustomRoute = () => {
     runUuid,
     filePath,
     initialTab,
+    prevPathname,
   };
 };
 
