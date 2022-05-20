@@ -94,18 +94,22 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 	// The current phase of the cluster
 	curPhase := orchest.Status.Phase
 
-	if *orchest.Spec.Orchest.Pause && curPhase != orchestv1alpha1.Paused {
+	if !orchest.GetDeletionTimestamp().IsZero() {
+		// If the cluster is removed, we enter deleting phase
+		nextPhase = orchestv1alpha1.Deleting
+	}
+	if *orchest.Spec.Orchest.Pause && curPhase != orchestv1alpha1.Stopped {
 		// If the cluster needs to be paused but not paused yet
 
-		nextPhase = orchestv1alpha1.Pausing
+		nextPhase = orchestv1alpha1.Stopping
 
-		endPhase = orchestv1alpha1.Paused
+		endPhase = orchestv1alpha1.Stopped
 
-	} else if *orchest.Spec.Orchest.Pause && curPhase == orchestv1alpha1.Paused {
+	} else if *orchest.Spec.Orchest.Pause && curPhase == orchestv1alpha1.Stopped {
 		// If the cluster needs to be paused and already paused
-		nextPhase = orchestv1alpha1.Paused
+		nextPhase = orchestv1alpha1.Stopped
 
-		endPhase = orchestv1alpha1.Paused
+		endPhase = orchestv1alpha1.Stopped
 
 	} else if curPhase == orchestv1alpha1.DeployingThirdParties {
 		// If the cluster is deploying third parties, it continue deploying, and
@@ -122,11 +126,11 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 
 	} else if _, ok := orchest.GetAnnotations()[controller.RestartAnnotationKey]; ok {
 		// If restart annotation is present, cluster enters pausing phase then running
-		nextPhase = orchestv1alpha1.Pausing
+		nextPhase = orchestv1alpha1.Stopping
 
-		endPhase = orchestv1alpha1.Paused
+		endPhase = orchestv1alpha1.Stopped
 
-	} else if curPhase == orchestv1alpha1.Pausing {
+	} else if curPhase == orchestv1alpha1.Stopping {
 		// If we are here the restart annotation is removed so we need to enter starting phase
 		nextPhase = orchestv1alpha1.Starting
 

@@ -267,7 +267,7 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 
 	if !orchest.GetDeletionTimestamp().IsZero() {
 		// The cluster is deleted, we need to stop it first, then remove the finalizer
-		stopped, err := occ.pauseOrchest(ctx, orchest)
+		stopped, err := occ.stopOrchest(ctx, orchest)
 		if err != nil {
 			return nil
 		}
@@ -593,8 +593,8 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 	}
 
 	// If endPhase is Paused or nextPhase is Pausing the cluster should be paused first
-	if endPhase == orchestv1alpha1.Paused || nextPhase == orchestv1alpha1.Pausing {
-		stopped, err = occ.pauseOrchest(ctx, orchest)
+	if endPhase == orchestv1alpha1.Stopped || nextPhase == orchestv1alpha1.Stopping {
+		stopped, err = occ.stopOrchest(ctx, orchest)
 		return err
 	}
 
@@ -658,7 +658,7 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 	return err
 }
 
-func (occ *OrchestClusterController) pauseOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
+func (occ *OrchestClusterController) stopOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
 
 	stopped := false
 
@@ -773,7 +773,7 @@ func (occ *OrchestClusterController) updatePhase(ctx context.Context,
 	}
 
 	if orchest.Status.Phase == orchestv1alpha1.Running ||
-		orchest.Status.Phase == orchestv1alpha1.Paused {
+		orchest.Status.Phase == orchestv1alpha1.Stopped {
 		orchest.Status.ObservedGeneration = orchest.Generation
 		orchest.Status.ObservedHash = controller.ComputeHash(&orchest.Spec)
 	}
