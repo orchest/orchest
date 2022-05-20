@@ -66,8 +66,8 @@ describe("useAutoFetchPipelines", () => {
   const { result, waitForNextUpdate, rerender, unmount } = renderHook<
     {
       children?: null;
-      projectUuid?: string | undefined;
-      pipelineUuid?: string | undefined;
+      projectUuid?: string;
+      pipelineUuid?: string;
     },
     {
       state: IProjectsContextState;
