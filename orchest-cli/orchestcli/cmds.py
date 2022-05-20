@@ -544,7 +544,7 @@ def patch(
             "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
         },
         "orchestApi": {
-            "env": [env for env in [env_var_dev] if env is not None],
+            "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
         },
         "env": [env for env in [env_var_log_level] if env is not None],
     }
