@@ -17,9 +17,9 @@ send, e.g. ``project:created``.
 
 If you are tasked with adding new telemetry events, you should:
 
-- find when the event takes place and when to send the telemetry event, i.e. synchronously
-  or asynchronously.
-- decide the name of the event, see the ``analytics`` module for examples.
+- find when the event takes place and when to send the telemetry event
+- decide the type/name of the event, see the ``analytics`` module for examples. The event
+  type must be defined in that module to be sent.
 - decide what data to include in the payload.
 - send the event.
 - if you have access to it, check out our internal analytics backend to make sure the event arrived
@@ -52,7 +52,7 @@ Telemetry events from the **front-end client**
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The client sends telemetry events by using the ``orchest-webserver`` as a relay, essentially,
 the ``orchest-webserver`` exposes the ``/analytics`` endpoint (``services/orchest-webserver/app/app/views/analytics.py``)
-which allows the client to send events as long as the event types exists in the shared ``analytics``
+which allows the client to send events as long as the event type exists in the shared ``analytics``
 module. The payload should look like the following:
 
 .. code-block:: python
