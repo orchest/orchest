@@ -1175,17 +1175,36 @@ class JupyterImageBuildEvent(Event):
         nullable=True,
     )
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = {}
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        build = _core_models.JupyterImageBuild.query.filter(
+            _core_models.JupyterImageBuild.uuid == event.build_uuid
+        ).one()
+        event_properties = JupyterImageBuildEvent.current_layer_notification_data(event)
+        event_properties["image_tag"] = build.image_tag
+        event_properties["requested_time"] = str(build.requested_time)
+        event_properties["started_time"] = str(build.started_time)
+        event_properties["finished_time"] = str(build.finished_time)
+        derived_properties = {}
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["jupyter"] = {}
-        build = _core_models.JupyterImageBuild.query.filter(
-            _core_models.JupyterImageBuild.uuid == self.build_uuid
-        ).first()
-        if build is not None:
-            payload["jupyter"]["image_build"] = build.as_dict()
-            for k, v in payload["jupyter"]["image_build"].items():
-                if isinstance(v, datetime.datetime):
-                    payload["jupyter"]["image_build"][k] = str(v)
+        payload["jupyter"] = {
+            "image_build": JupyterImageBuildEvent.current_layer_notification_data(self)
+        }
+        return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = JupyterImageBuildEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["jupyter"] = {"image_build": ev}
+        payload["derived_properties"]["jupyter"] = {"image_build": der}
         return payload
 
 
