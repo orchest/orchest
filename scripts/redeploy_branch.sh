@@ -56,10 +56,10 @@ minikube kubectl -- exec -it -n orchest deploy/orchest-database -- dropdb -U pos
 set -e
 
 
+orchest patch --cloud &
 # The shutdown cleanup operation will fail, that's okay.
 orchest stop
 
 orchest start
-orchest patch --cloud
 
 orchest status
