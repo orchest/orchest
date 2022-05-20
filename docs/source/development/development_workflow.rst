@@ -47,7 +47,7 @@ which allows redeploying services and :ref:`incremental development <incremental
      --mount-string="$(pwd):/orchest-dev-repo" --mount
 
 After the minikube cluster is created, follow the steps of a
-:ref:`regular installation <regular installation>`.
+regular installation.
 
 .. include:: ../fragments/regular-installation.rst
 
