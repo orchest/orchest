@@ -604,15 +604,35 @@ class EnvironmentEvent(ProjectEvent):
 
     environment_uuid = db.Column(db.String(36), nullable=True)
 
-    def to_notification_payload(self) -> dict:
-        payload = super().to_notification_payload()
-        payload["project"]["environment"] = {
-            "uuid": self.environment_uuid,
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = {
+            "uuid": event.environment_uuid,
             "url_path": (
-                f"/environment?project_uuid={self.project_uuid}&environment_uuid="
-                f"{self.environment_uuid}"
+                f"/environment?project_uuid={event.project_uuid}&environment_uuid="
+                f"{event.environment_uuid}"
             ),
         }
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = EnvironmentEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"][
+            "environment"
+        ] = EnvironmentEvent.current_layer_notification_data(self)
+        return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = EnvironmentEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["environment"] = ev
+        payload["derived_properties"]["project"]["environment"] = der
         return payload
 
 
