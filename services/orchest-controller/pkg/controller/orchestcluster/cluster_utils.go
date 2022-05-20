@@ -197,6 +197,10 @@ func getOrchestComponent(name, hash string,
 	orchest *orchestv1alpha1.OrchestCluster) *orchestv1alpha1.OrchestComponent {
 
 	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
+
+	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, template.Env)
+	template.Env = env
+
 	return &orchestv1alpha1.OrchestComponent{
 		ObjectMeta: metadata,
 		Spec: orchestv1alpha1.OrchestComponentSpec{
