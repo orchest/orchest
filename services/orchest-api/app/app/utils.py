@@ -327,7 +327,7 @@ class OrchestSettings:
             "apply-runtime-changes-function": _set_interactive_runs_parallelism_at_runtime,  # noqa
         },
         "AUTH_ENABLED": {
-            "default": False,
+            "default": _config.CLOUD,
             "type": bool,
             "condition": None,
             "apply-runtime-changes-function": lambda prev, new: False,
