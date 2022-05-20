@@ -1274,12 +1274,35 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
     def pipeline_run_uuid(cls):
         return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = _prepare_job_pipeline_run_payload(
+            event.job_uuid, event.pipeline_run_uuid
+        )
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = CronJobRunPipelineRunEvent.current_layer_notification_data(
+            event
+        )
+        derived_properties = anonymize_pipeline_run_properties(
+            copy.deepcopy(event_properties)
+        )
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
         payload["project"]["job"]["run"][
             "pipeline_run"
-        ] = _prepare_job_pipeline_run_payload(self.job_uuid, self.pipeline_run_uuid)
+        ] = CronJobRunPipelineRunEvent.current_layer_notification_data(self)
+        return payload
 
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = CronJobRunPipelineRunEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"]["run"]["pipeline_run"] = ev
+        payload["derived_properties"]["project"]["job"]["run"]["pipeline_run"] = der
         return payload
 
     def __repr__(self):
