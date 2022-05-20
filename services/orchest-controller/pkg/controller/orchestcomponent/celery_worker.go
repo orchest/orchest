@@ -31,14 +31,14 @@ func (reconciler *CeleryWorkerReconciler) Reconcile(ctx context.Context, compone
 	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			_, err = reconciler.kClient.AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
+			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
 			return err
 		}
 		return err
 	}
 
 	if !isDeploymentUpdated(newDep, oldDep) {
-		_, err := reconciler.kClient.AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
+		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
 		return err
 	}
 

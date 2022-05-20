@@ -64,8 +64,8 @@ func NewDefaultControllerConfig() ControllerConfig {
 		OrchestApiImageName:       "orchest/orchest-api",
 		OrchestWebserverImageName: "orchest/orchest-webserver",
 		AuthServerImageName:       "orchest/auth-server",
-		UserdirDefaultVolumeSize:  "999Ti",
-		BuilddirDefaultVolumeSize: "999Ti",
+		UserdirDefaultVolumeSize:  "50Gi",
+		BuilddirDefaultVolumeSize: "25Gi",
 		OrchestDefaultEnvVars: map[string]string{
 			"PYTHONUNBUFFERED":  "TRUE",
 			"ORCHEST_LOG_LEVEL": "INFO",
@@ -108,8 +108,6 @@ func NewDefaultControllerConfig() ControllerConfig {
 type OrchestClusterController struct {
 	*controller.Controller[*orchestv1alpha1.OrchestCluster]
 
-	kClient kubernetes.Interface
-
 	oClient versioned.Interface
 
 	gClient client.Client
@@ -140,11 +138,11 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	ctrl := controller.NewController[*orchestv1alpha1.OrchestCluster](
 		"orchest-cluster",
 		1,
+		kClient,
 		OrchestClusterKind,
 	)
 
 	occ := OrchestClusterController{
-		kClient: kClient,
 		oClient: oClient,
 		gClient: gClient,
 		scheme:  scheme,
@@ -324,7 +322,7 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 
 	var err error
 	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
-		_, err := occ.kClient.StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.StorageClassName, metav1.GetOptions{})
+		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.StorageClassName, metav1.GetOptions{})
 		if err != nil && kerrors.IsNotFound(err) {
 			return false, nil
 		}
@@ -537,7 +535,7 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			return err
 		}
 
-		err = registryCertgen(ctx, occ.kClient, orchest)
+		err = registryCertgen(ctx, occ.Client(), orchest)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -678,11 +676,11 @@ func (occ *OrchestClusterController) pauseOrchest(ctx context.Context, orchest *
 func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, name, size string, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// Retrive the created pvcs
-	oldPvc, err := occ.kClient.CoreV1().PersistentVolumeClaims(orchest.Namespace).Get(ctx, name, metav1.GetOptions{})
+	oldPvc, err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Get(ctx, name, metav1.GetOptions{})
 	newPvc := getPersistentVolumeClaim(name, size, curHash, orchest)
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
-		_, err := occ.kClient.CoreV1().PersistentVolumeClaims(orchest.Namespace).Create(ctx, newPvc, metav1.CreateOptions{})
+		_, err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Create(ctx, newPvc, metav1.CreateOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "failed to create %s pvc", name)
 		}
@@ -699,7 +697,7 @@ func (occ *OrchestClusterController) adoptPVC(ctx context.Context, oldPvc, newPv
 
 	if !reflect.DeepEqual(oldPvc.OwnerReferences[0], newPvc.OwnerReferences[0]) {
 		oldPvc.OwnerReferences = newPvc.OwnerReferences
-		_, err := occ.kClient.CoreV1().PersistentVolumeClaims(oldPvc.Namespace).Update(ctx, oldPvc, metav1.UpdateOptions{})
+		_, err := occ.Client().CoreV1().PersistentVolumeClaims(oldPvc.Namespace).Update(ctx, oldPvc, metav1.UpdateOptions{})
 		return err
 	}
 	return nil

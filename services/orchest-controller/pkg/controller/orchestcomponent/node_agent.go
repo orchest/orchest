@@ -31,7 +31,7 @@ func (reconciler *NodeAgentReconciler) Reconcile(ctx context.Context, component 
 	_, err := reconciler.dsLister.DaemonSets(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			_, err = reconciler.kClient.AppsV1().DaemonSets(component.Namespace).Create(ctx, newDs, metav1.CreateOptions{})
+			_, err = reconciler.Client().AppsV1().DaemonSets(component.Namespace).Create(ctx, newDs, metav1.CreateOptions{})
 			return err
 		}
 		return err

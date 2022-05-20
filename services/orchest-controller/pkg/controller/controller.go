@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
@@ -28,6 +29,9 @@ type SyncHandlerFunction func(ctx context.Context, key string) error
 type Controller[Object client.Object] struct {
 	// name of this Controller
 	name string
+
+	// the kubernetes client
+	kubeClient kubernetes.Interface
 
 	// GroupVersionKind of the object this controller handles
 	gvk schema.GroupVersionKind
@@ -50,9 +54,11 @@ type Controller[Object client.Object] struct {
 }
 
 func NewController[Object client.Object](name string, threadiness int,
+	kubeClient kubernetes.Interface,
 	gvk schema.GroupVersionKind) *Controller[Object] {
 	controller := &Controller[Object]{
 		name:        name,
+		kubeClient:  kubeClient,
 		threadiness: threadiness,
 		gvk:         gvk,
 		queue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
@@ -150,6 +156,10 @@ func (c *Controller[Object]) EnqueueAfter(obj Object) {
 
 	// TODO: make it configurable
 	c.queue.AddAfter(key, time.Second*5)
+}
+
+func (c *Controller[Object]) Client() kubernetes.Interface {
+	return c.kubeClient
 }
 
 func (c *Controller[Object]) handleErr(err error, key interface{}) {

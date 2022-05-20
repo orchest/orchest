@@ -32,14 +32,14 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			_, err = reconciler.kClient.AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
+			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
 			return err
 		}
 		return err
 	}
 
 	if !isDeploymentUpdated(newDep, oldDep) {
-		_, err := reconciler.kClient.AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
+		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
 		return err
 	}
 
@@ -47,13 +47,13 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			svc = getServiceManifest(metadata, matchLabels, 5432, component)
-			_, err = reconciler.kClient.CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
 			return err
 		}
 		return err
 	}
 
-	if isServiceReady(ctx, reconciler.kClient, svc) && isDeploymentReady(oldDep) {
+	if isServiceReady(ctx, reconciler.Client(), svc) && isDeploymentReady(oldDep) {
 		return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
 	}
 

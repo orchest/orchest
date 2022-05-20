@@ -44,8 +44,6 @@ type OrchestComponentReconciler interface {
 type OrchestComponentController struct {
 	*controller.Controller[*orchestv1alpha1.OrchestComponent]
 
-	kClient kubernetes.Interface
-
 	oClient versioned.Interface
 
 	gClient client.Client
@@ -83,11 +81,11 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 	ctrl := controller.NewController[*orchestv1alpha1.OrchestComponent](
 		"orchest-component",
 		1,
+		kClient,
 		OrchestComponentKind,
 	)
 
 	occ := OrchestComponentController{
-		kClient:     kClient,
 		oClient:     oClient,
 		gClient:     gClient,
 		scheme:      scheme,
