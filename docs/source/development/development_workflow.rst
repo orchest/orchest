@@ -37,6 +37,9 @@ which allows redeploying services and :ref:`incremental development <incremental
 
 .. code-block:: bash
 
+   # Delete any existing cluster
+   minikube delete
+
    # Start minikube with the repository mounted in the required place.
    # Run this command while you are in the Orchest repository directory.
    minikube start \
@@ -44,11 +47,9 @@ which allows redeploying services and :ref:`incremental development <incremental
      --mount-string="$(pwd):/orchest-dev-repo" --mount
 
 After the minikube cluster is created, follow the steps of a
-:ref:`regular installation <regular installation>`.
+regular installation.
 
-.. warning::
-   If you have an existing minikube cluster, you will have to delete it
-   by calling ``minikube delete``.
+.. include:: ../fragments/regular-installation.rst
 
 Installing Orchest for development
 ----------------------------------
