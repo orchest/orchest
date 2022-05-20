@@ -1,6 +1,6 @@
 
-TAGNAME := $(if $(TAGNAME),$(TAGNAME),"latest")
-TAG := orchest/orchest-controller:(TAGNAME)
+TAGNAME:=$(if $(TAGNAME),$(TAGNAME),"latest")
+TAG:=orchest/orchest-controller:$(TAGNAME)
 
 TOOLS_DIR := $(PWD)/.cache/tools
 
@@ -59,7 +59,7 @@ $(YQ):
 crds: $(CONTROLLER_GEN) $(YQ)
 	@echo Updating CRD manifests
 	$(CONTROLLER_GEN) crd paths=./pkg/apis/... output:dir=.cache
-	@$(YQ) read .cache/orchest.io_orchestclusters.yaml > deploy/helm/templates/crds.yaml
+	@$(YQ) read .cache/orchest.io_orchestclusters.yaml >> deploy/helm/templates/crds.yaml
 	@rm -f .cache/orchest.io_orchestclusters.yaml
 	@echo "---" >> deploy/helm/templates/crds.yaml
 	@$(YQ) read .cache/orchest.io_orchestcomponents.yaml >> deploy/helm/templates/crds.yaml
