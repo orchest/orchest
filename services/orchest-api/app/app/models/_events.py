@@ -1146,9 +1146,8 @@ class CronJobRunEvent(CronJobEvent):
 
     total_pipeline_runs = db.Column(db.Integer)
 
-    def to_notification_payload(self) -> dict:
-        payload = super().to_notification_payload()
-
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
         # Covers case of models inheriting from this.
         job_run_events = (
             db.session.query(CronJobRunEvent.type).filter(
@@ -1159,9 +1158,9 @@ class CronJobRunEvent(CronJobEvent):
                         "project:cron-job:run:failed",
                     ]
                 ),
-                CronJobRunEvent.project_uuid == self.project_uuid,
-                CronJobRunEvent.job_uuid == self.job_uuid,
-                CronJobRunEvent.run_index == self.run_index,
+                CronJobRunEvent.project_uuid == event.project_uuid,
+                CronJobRunEvent.job_uuid == event.job_uuid,
+                CronJobRunEvent.run_index == event.run_index,
             )
         ).all()
         job_run_events = [ev.type for ev in job_run_events]
@@ -1175,13 +1174,30 @@ class CronJobRunEvent(CronJobEvent):
         else:
             status = None
 
-        payload["project"]["job"]["run"] = {}
-        payload["project"]["job"]["run"]["status"] = status
-        payload["project"]["job"]["run"]["number"] = self.run_index
-        payload["project"]["job"]["run"][
-            "total_pipeline_runs"
-        ] = self.total_pipeline_runs
+        payload = {}
+        payload["status"] = status
+        payload["number"] = event.run_index
+        payload["total_pipeline_runs"] = event.total_pipeline_runs
+        return payload
 
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = CronJobRunEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["job"][
+            "run"
+        ] = CronJobRunEvent.current_layer_notification_data(self)
+        return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = CronJobRunEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"]["run"] = ev
+        payload["derived_properties"]["project"]["job"]["run"] = der
         return payload
 
     def __repr__(self):
