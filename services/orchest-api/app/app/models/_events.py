@@ -486,6 +486,27 @@ ForeignKeyConstraint(
 )
 
 
+def anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
+    derived_properties = {}
+    derived_properties["failed_steps_count"] = len(pipeline_run.pop("failed_steps", []))
+    derived_params = {}
+    derived_properties["parameters"] = derived_params
+    for k, v in pipeline_run.pop("parameters", {}).items():
+        if k == "pipeline_parameters":
+            derived_params[f"{k}_count"] = len(v["parameters"])
+        else:
+            derived_params[f"{k}_parameters_count"] = len(v["parameters"])
+
+    for step in pipeline_run.get("steps", []):
+        step.pop("title", None)
+
+    if "pipeline_definition" in pipeline_run:
+        derived_properties[
+            "pipeline_definition"
+        ] = analytics.anonymize_pipeline_definition(pipeline_run["pipeline_definition"])
+    return derived_properties
+
+
 class InteractivePipelineRunEvent(InteractiveSessionEvent):
 
     __tablename__ = None
@@ -550,9 +571,7 @@ class InteractivePipelineRunEvent(InteractiveSessionEvent):
         event_properties["pipeline_definition"] = copy.deepcopy(
             pipeline_run.pipeline_definition
         )
-        derived_properties = analytics.anonymize_pipeline_run_properties(
-            event_properties
-        )
+        derived_properties = anonymize_pipeline_run_properties(event_properties)
 
         return event_properties, derived_properties
 
@@ -984,7 +1003,7 @@ class OneOffJobPipelineRunEvent(OneOffJobEvent):
         event_properties = OneOffJobPipelineRunEvent.current_layer_notification_data(
             event
         )
-        derived_properties = analytics.anonymize_pipeline_run_properties(
+        derived_properties = anonymize_pipeline_run_properties(
             copy.deepcopy(event_properties)
         )
         return event_properties, derived_properties

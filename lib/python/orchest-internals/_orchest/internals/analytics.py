@@ -250,27 +250,6 @@ def _add_system_properties(data: dict) -> None:
     }
 
 
-def anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
-    derived_properties = {}
-    derived_properties["failed_steps_count"] = len(pipeline_run.pop("failed_steps", []))
-    derived_params = {}
-    derived_properties["parameters"] = derived_params
-    for k, v in pipeline_run.pop("parameters", {}).items():
-        if k == "pipeline_parameters":
-            derived_params[f"{k}_count"] = len(v["parameters"])
-        else:
-            derived_params[f"{k}_parameters_count"] = len(v["parameters"])
-
-    for step in pipeline_run.get("steps", []):
-        step.pop("title", None)
-
-    if "pipeline_definition" in pipeline_run:
-        derived_properties["pipeline_definition"] = anonymize_pipeline_definition(
-            pipeline_run["pipeline_definition"]
-        )
-    return derived_properties
-
-
 def anonymize_service_definition(definition: dict) -> dict:
     definition.pop("command", None)
     definition.pop("args", None)
