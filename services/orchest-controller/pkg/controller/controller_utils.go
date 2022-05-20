@@ -87,7 +87,7 @@ func AddFinalizerIfNotPresent(ctx context.Context,
 }
 
 // RemoveFinalizers removes finalizersfrom object
-func RemoveFinalizerIfNotPresent(ctx context.Context,
+func RemoveFinalizerIfPresent(ctx context.Context,
 	generalClient client.Client,
 	object client.Object,
 	finalizer string) (bool, error) {

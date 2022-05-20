@@ -44,19 +44,15 @@ func (reconciler *CeleryWorkerReconciler) Reconcile(ctx context.Context, compone
 
 	if isDeploymentReady(oldDep) {
 		err = reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
+	} else {
+		err = reconciler.updatePhase(ctx, component, orchestv1alpha1.OrchestPhase(orchestv1alpha1.DeployingCeleryWorker))
 	}
-	/*
-		else {
-			err = reconciler.updatePhase(ctx, component, orchestv1alpha1.OrchestPhase(orchestv1alpha1.DeployingCeleryWorker))
-		}
-	*/
 
 	return err
 }
 
 func (reconciler *CeleryWorkerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
-
-	return nil
+	return reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 }
 
 func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,

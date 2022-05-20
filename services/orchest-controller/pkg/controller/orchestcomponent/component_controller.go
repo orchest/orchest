@@ -234,7 +234,13 @@ func (occ *OrchestComponentController) syncOrchestComponent(ctx context.Context,
 
 	if !component.GetDeletionTimestamp().IsZero() {
 		// The cluster is deleted, delete it
-		//return occ.deleteOrchestCluster(ctx, key)
+		err = occ.uninstallOrchestComponent(ctx, component)
+		if err != nil {
+			return err
+		}
+
+		_, err = controller.RemoveFinalizerIfPresent(ctx, occ.gClient, component, orchestv1alpha1.Finalizer)
+		return err
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
@@ -256,6 +262,18 @@ func (occ *OrchestComponentController) manageOrchestComponent(ctx context.Contex
 	}
 
 	return reconciler.Reconcile(ctx, component)
+}
+
+// Uninstall
+func (occ *OrchestComponentController) uninstallOrchestComponent(ctx context.Context,
+	component *orchestv1alpha1.OrchestComponent) (err error) {
+
+	reconciler, ok := occ.reconcilers[component.Name]
+	if !ok {
+		return errors.Errorf("unrecognized component reconciler name : %s", component.Name)
+	}
+
+	return reconciler.Uninstall(ctx, component)
 }
 
 func (occ *OrchestComponentController) updatePhase(ctx context.Context,

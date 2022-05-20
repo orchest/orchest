@@ -43,7 +43,7 @@ func (reconciler *NodeAgentReconciler) Reconcile(ctx context.Context, component 
 
 func (reconciler *NodeAgentReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
 
-	return nil
+	return reconciler.Client().AppsV1().DaemonSets(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 }
 
 func getNodeAgentDaemonset(metadata metav1.ObjectMeta,

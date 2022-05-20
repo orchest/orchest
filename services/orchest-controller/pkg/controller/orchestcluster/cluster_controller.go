@@ -266,8 +266,16 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 	}
 
 	if !orchest.GetDeletionTimestamp().IsZero() {
-		// The cluster is deleted, delete it
-		//return occ.deleteOrchestCluster(ctx, key)
+		// The cluster is deleted, we need to stop it first, then remove the finalizer
+		stopped, err := occ.pauseOrchest(ctx, orchest)
+		if err != nil {
+			return nil
+		}
+
+		if stopped {
+			_, err = controller.RemoveFinalizerIfPresent(ctx, occ.gClient, orchest, orchestv1alpha1.Finalizer)
+			return err
+		}
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
@@ -560,14 +568,14 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 // Installs deployer if the config is changed
 func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (err error) {
 
-	phaseFinished := false
+	stopped := false
 	nextPhase, endPhase := determineNextPhase(orchest)
 	if nextPhase == endPhase {
 		return
 	}
 	err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, nextPhase, "")
 	defer func() {
-		if err == nil && phaseFinished {
+		if err == nil && stopped {
 			err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, endPhase, "")
 		}
 	}()
@@ -577,8 +585,8 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 
 	// If endPhase is Paused or nextPhase is Pausing the cluster should be paused first
 	if endPhase == orchestv1alpha1.Paused || nextPhase == orchestv1alpha1.Pausing {
-		phaseFinished = true
-		return occ.pauseOrchest(ctx, orchest)
+		stopped, err = occ.pauseOrchest(ctx, orchest)
+		return err
 	}
 
 	generation := fmt.Sprint(orchest.Generation)
@@ -637,16 +645,18 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 		}
 	}
 
-	phaseFinished = true
+	stopped = true
 	return err
 }
 
-func (occ *OrchestClusterController) pauseOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+func (occ *OrchestClusterController) pauseOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
+
+	stopped := false
 
 	// Get the current Components
 	components, err := GetOrchetComponents(ctx, orchest, occ.oComponentLister)
 	if err != nil {
-		return err
+		return stopped, err
 	}
 
 	if len(components) > 0 {
@@ -659,10 +669,11 @@ func (occ *OrchestClusterController) pauseOrchest(ctx context.Context, orchest *
 				// and we requeue the OrchestCluster for continution
 				if component.GetDeletionTimestamp() != nil {
 					occ.EnqueueAfter(orchest)
-					return nil
+					return stopped, nil
 				} else {
 					// The Component is not deleted, we will delete it
-					return occ.oClient.OrchestV1alpha1().OrchestComponents(orchest.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+					return stopped, occ.oClient.OrchestV1alpha1().OrchestComponents(orchest.Namespace).
+						Delete(ctx, component.Name, metav1.DeleteOptions{})
 				}
 			}
 		}
@@ -670,7 +681,8 @@ func (occ *OrchestClusterController) pauseOrchest(ctx context.Context, orchest *
 	// The cluster is paused, remove the restart annotation if present
 	_, err = controller.RemoveAnnotation(ctx, occ.gClient, orchest, controller.RestartAnnotationKey)
 
-	return err
+	stopped = true
+	return stopped, err
 }
 
 func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, name, size string, orchest *orchestv1alpha1.OrchestCluster) error {

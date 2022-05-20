@@ -61,6 +61,15 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 }
 
 func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+
+	err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
