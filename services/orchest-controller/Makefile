@@ -59,10 +59,10 @@ $(YQ):
 crds: $(CONTROLLER_GEN) $(YQ)
 	@echo Updating CRD manifests
 	$(CONTROLLER_GEN) crd paths=./pkg/apis/... output:dir=.cache
-	@$(YQ) read .cache/orchest.io_orchestclusters.yaml >> deploy-controller/crds.yaml
+	@$(YQ) read .cache/orchest.io_orchestclusters.yaml > deploy/helm/templates/crds.yaml
 	@rm -f .cache/orchest.io_orchestclusters.yaml
-	@echo "---" >> deploy-controller/crds.yaml
-	@$(YQ) read .cache/orchest.io_orchestcomponents.yaml >> deploy-controller/crds.yaml
+	@echo "---" >> deploy/helm/templates/crds.yaml
+	@$(YQ) read .cache/orchest.io_orchestcomponents.yaml >> deploy/helm/templates/crds.yaml
 	@rm -f .cache/orchest.io_orchestcomponents.yaml
 
 .PHONY: codegen
@@ -70,5 +70,5 @@ codegen:
 	@./hack/update-codegen.sh
 
 .PHONY: manifestgen
-manifestgen:
+manifestgen: crds
 	@helm template --create-namespace --namespace ${NAMESPACE} --set orchest-controller.images.tag=${TAGNAME} ./deploy/helm > deploy/k8s/orchest-controller.yaml
