@@ -112,6 +112,8 @@ type OrchestComponentStatus struct {
 }
 
 type OrchestComponentSpec struct {
+	ReconcilerName string `json:"reconcilerName,omitempty"`
+
 	OrchestHost *string `json:"orchestHost,omitempty"`
 
 	Template OrchestComponentTemplate `json:"template,omitempty"`

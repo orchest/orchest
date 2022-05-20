@@ -901,6 +901,8 @@ spec:
               properties:
                 orchestHost:
                   type: string
+                reconcilerName:
+                  type: string
                 template:
                   properties:
                     env:
