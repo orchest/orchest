@@ -1,5 +1,6 @@
+import { useAsync } from "@/hooks/useAsync";
 import { fetcher } from "@orchest/lib-utils";
-import useSWR from "swr";
+import React from "react";
 
 type HostInfo = {
   disk_info: {
@@ -10,9 +11,11 @@ type HostInfo = {
 };
 
 export const useHostInfo = (shouldFetch?: boolean) => {
-  const { data } = useSWR<HostInfo>(
-    shouldFetch ? "/async/host-info" : null,
-    fetcher
-  );
+  const { run, data } = useAsync<HostInfo>();
+
+  React.useEffect(() => {
+    if (shouldFetch) run(fetcher("/async/host-info"));
+  }, [run, shouldFetch]);
+
   return data;
 };
