@@ -25,6 +25,9 @@ If you are tasked with adding new telemetry events, you should:
 - if you have access to it, check out our internal analytics backend to make sure the event arrived
   as expected.
 
+If you are looking for a **list of telemetry events that are sent out**, see the ``Event``
+enumeration in the shared ``analytics`` module.
+
 Telemetry events from the ``orchest-webserver``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
