@@ -60,5 +60,6 @@ set -e
 orchest stop
 
 orchest start
+orchest patch --cloud
 
 orchest status
