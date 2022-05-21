@@ -58,9 +58,10 @@ export const useFetchPipelineSettings = ({
   const { job, fetchJob } = useFetchJob({
     jobUuid,
   });
-  const { pipelineRun, fetchPipelineRun } = useFetchPipelineRun(
-    jobUuid && runUuid ? { jobUuid, runUuid } : null
-  );
+  const { pipelineRun, fetchPipelineRun } = useFetchPipelineRun({
+    jobUuid,
+    runUuid,
+  });
 
   const {
     pipelineJson,

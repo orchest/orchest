@@ -20,7 +20,7 @@ export const fetchPipeline = (
 export const useFetchPipeline = (props: FetchPipelineProps | undefined) => {
   const { projectUuid, pipelineUuid } = props || {};
 
-  const { data, error, status, fetchData, setData } = useFetcher(
+  const { data, error, status, fetchData, setData } = useFetcher<Pipeline>(
     projectUuid && pipelineUuid
       ? `/async/pipelines/${projectUuid}/${pipelineUuid}`
       : undefined
