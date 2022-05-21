@@ -74,7 +74,7 @@ export const useFetchPipelineSettings = ({
   });
 
   const { pipeline, fetchPipeline } = useFetchPipeline(
-    !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : null
+    !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : undefined
   );
 
   // fetch project env vars only if it's not a job or a pipeline run
