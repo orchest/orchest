@@ -6,7 +6,7 @@ import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchProject } from "@/hooks/useFetchProject";
+import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type { Job } from "@/types";
@@ -200,16 +200,11 @@ const JobView: React.FC = () => {
 
   // we only need to check snapshot size if necessary (i.e. job is not done, and auto clean-up is not enabled)
   // because we need to show the warning to user if their snapshot size is too big
-  const { data: projectSnapshotSize = 0 } = useFetchProject<number>({
-    projectUuid:
-      !isJobDone &&
-      job &&
-      job.max_retained_pipeline_runs < 0 &&
-      job.project_uuid
-        ? job.project_uuid
-        : undefined,
-    selector: (project) => project.project_snapshot_size,
-  });
+  const projectSnapshotSize = useFetchProjectSnapshotSize(
+    !isJobDone && job && job.max_retained_pipeline_runs < 0 && job.project_uuid
+      ? job.project_uuid
+      : undefined
+  );
 
   const footnote = !job ? null : job.max_retained_pipeline_runs > 0 ? (
     `Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`

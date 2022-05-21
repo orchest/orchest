@@ -3,7 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJobs } from "@/hooks/useFetchJobs";
-import { useFetchProject } from "@/hooks/useFetchProject";
+import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { siteMap } from "@/routingConfig";
 import { EnvironmentValidationData, Job, JobStatus } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
@@ -141,10 +141,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     string | undefined
   >();
 
-  const { data: projectSnapshotSize = 0 } = useFetchProject({
-    projectUuid,
-    selector: (project) => project.project_snapshot_size,
-  });
+  const projectSnapshotSize = useFetchProjectSnapshotSize(projectUuid);
 
   React.useEffect(() => {
     if (fetchJobsError)
