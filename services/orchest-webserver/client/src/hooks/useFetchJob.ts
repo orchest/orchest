@@ -1,7 +1,5 @@
 import { Job } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
-import React from "react";
-import { useAsync } from "./useAsync";
+import { useFetcher } from "./useFetcher";
 
 export function useFetchJob({
   jobUuid,
@@ -10,28 +8,19 @@ export function useFetchJob({
   jobUuid: string | undefined;
   runStatuses?: boolean;
 }) {
-  const { run, data, setData, error, status } = useAsync<Job>();
-
-  const fetchJob = React.useCallback(() => {
-    if (!jobUuid) return;
-    return run(
-      fetcher(
-        `/catch/api-proxy/api/jobs/${jobUuid}${
+  const { fetchData, data, setData, error, status } = useFetcher<Job>(
+    jobUuid
+      ? `/catch/api-proxy/api/jobs/${jobUuid}${
           runStatuses ? "?aggregate_run_statuses=true" : ""
         }`
-      )
-    );
-  }, [run, jobUuid, runStatuses]);
-
-  React.useEffect(() => {
-    fetchJob();
-  }, [fetchJob]);
+      : undefined
+  );
 
   return {
     job: data,
     error,
     isFetchingJob: status === "PENDING",
-    fetchJob,
+    fetchJob: fetchData,
     setJob: setData,
   };
 }

@@ -1,8 +1,6 @@
 import { Project } from "@/types";
 import { toQueryString } from "@/utils/routing";
-import { fetcher } from "@orchest/lib-utils";
-import React from "react";
-import { useAsync } from "./useAsync";
+import { useFetcher } from "./useFetcher";
 
 export const useFetchProjects = (params: {
   shouldFetch?: boolean;
@@ -10,24 +8,18 @@ export const useFetchProjects = (params: {
   jobCounts?: boolean;
   skipDiscovery?: boolean;
 }) => {
-  const { run, data, setData, error, status } = useAsync<Project[]>();
   const { shouldFetch = true, ...restParams } = params;
   const queryString = toQueryString(restParams);
 
-  const fetchProjects = React.useCallback(() => {
-    if (!shouldFetch) return;
-    return run(fetcher(`/async/projects${queryString}`));
-  }, [run, shouldFetch, queryString]);
-
-  React.useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+  const { fetchData, data, setData, error, status } = useFetcher<Project[]>(
+    shouldFetch ? `/async/projects${queryString}` : undefined
+  );
 
   return {
     projects: data,
     error,
     isFetchingProjects: status === "PENDING",
-    fetchProjects,
+    fetchProjects: fetchData,
     setProjects: setData,
   };
 };

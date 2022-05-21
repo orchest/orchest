@@ -1,28 +1,19 @@
 import { Environment } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
-import React from "react";
-import { useAsync } from "./useAsync";
+import { useFetcher } from "./useFetcher";
 
 export function useFetchEnvironments(
   projectUuid: string | undefined,
   queryString = ""
 ) {
-  const { run, data, setData, error, status } = useAsync<Environment[]>();
-
-  const fetchEnvironments = React.useCallback(() => {
-    if (!projectUuid) return;
-    return run(fetcher(`/store/environments/${projectUuid}${queryString}`));
-  }, [run, projectUuid, queryString]);
-
-  React.useEffect(() => {
-    fetchEnvironments();
-  }, [fetchEnvironments]);
+  const { fetchData, data, setData, error, status } = useFetcher<Environment[]>(
+    projectUuid ? `/store/environments/${projectUuid}${queryString}` : undefined
+  );
 
   return {
     environments: data,
     error,
     isFetchingEnvironments: status === "PENDING",
-    fetchEnvironments,
+    fetchEnvironments: fetchData,
     setEnvironments: setData,
   };
 }
