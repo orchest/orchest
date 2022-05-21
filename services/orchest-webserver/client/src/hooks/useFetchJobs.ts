@@ -1,29 +1,27 @@
 import { Job } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
-import { MutatorCallback } from "swr/dist/types";
+import { useAsync } from "./useAsync";
 
 export function useFetchJobs(projectUuid: string | undefined) {
-  const { data, error, isValidating, mutate } = useSWR<Job[]>(
-    projectUuid
-      ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
-      : null,
-    (url: string) =>
-      fetcher<{ jobs: Job[] }>(url).then((response) => response.jobs)
-  );
+  const { run, data, setData, error, status } = useAsync<Job[]>();
 
-  const setJobs = React.useCallback(
-    (data?: Job[] | Promise<Job[]> | MutatorCallback<Job[]>) =>
-      mutate(data, false),
-    [mutate]
-  );
+  const fetchJobs = React.useCallback(() => {
+    if (!projectUuid) return;
+    return run(
+      fetcher(`/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`)
+    );
+  }, [run, projectUuid]);
+
+  React.useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
   return {
-    data,
+    jobs: data,
     error,
-    isFetchingJobs: isValidating,
-    fetchJobs: mutate,
-    setJobs,
+    isFetchingJobs: status === "PENDING",
+    fetchJobs,
+    setJobs: setData,
   };
 }
