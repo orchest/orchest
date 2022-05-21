@@ -1,63 +1,37 @@
-import { useAppContext } from "@/contexts/AppContext";
 import { Job } from "@/types";
-import { envVariablesDictToArray } from "@/utils/webserver-utils";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
-import { MutatorCallback } from "swr/dist/types";
+import { useAsync } from "./useAsync";
 
-export const useFetchJob = ({
+export function useFetchJob({
   jobUuid,
   runStatuses,
-  clearCacheOnUnmount,
-  revalidateOnFocus = true,
 }: {
-  jobUuid?: string;
+  jobUuid: string | undefined;
   runStatuses?: boolean;
-  clearCacheOnUnmount?: boolean;
-  revalidateOnFocus?: boolean;
-}) => {
-  const { setAlert } = useAppContext();
+}) {
+  const { run, data, setData, error, status } = useAsync<Job>();
 
-  const cacheKey = jobUuid
-    ? `/catch/api-proxy/api/jobs/${jobUuid}${
-        runStatuses ? "?aggregate_run_statuses=true" : ""
-      }`
-    : "";
-
-  const { data: job, mutate, error, isValidating } = useSWR<Job>(
-    cacheKey || null,
-    fetcher,
-    { revalidateOnFocus }
-  );
-
-  const setJob = React.useCallback(
-    (data?: Job | Promise<Job> | MutatorCallback<Job>) => mutate(data, false),
-    [mutate]
-  );
+  const fetchJob = React.useCallback(() => {
+    if (!jobUuid) return;
+    return run(
+      fetcher(
+        `/catch/api-proxy/api/jobs/${jobUuid}${
+          runStatuses ? "?aggregate_run_statuses=true" : ""
+        }`
+      )
+    );
+  }, [run, jobUuid, runStatuses]);
 
   React.useEffect(() => {
-    if (error) setAlert("Error", error.message);
-  }, [error, setAlert]);
-
-  React.useEffect(() => {
-    return () => {
-      if (clearCacheOnUnmount) {
-        setJob(undefined);
-      }
-    };
-  }, [clearCacheOnUnmount, setJob]);
-
-  const envVariables: { name: string; value: string }[] = React.useMemo(() => {
-    return job ? envVariablesDictToArray(job.env_variables) : [];
-  }, [job]);
+    fetchJob();
+  }, [fetchJob]);
 
   return {
-    job,
-    setJob,
-    envVariables,
-    fetchJob: mutate,
-    fetchJobError: error,
-    isFetchingJob: isValidating,
+    job: data,
+    error,
+    isFetchingJob: status === "PENDING",
+    fetchJob,
+    setJob: setData,
   };
-};
+}
