@@ -100,7 +100,6 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 	}
 	if *orchest.Spec.Orchest.Pause && curPhase != orchestv1alpha1.Stopped {
 		// If the cluster needs to be paused but not paused yet
-
 		nextPhase = orchestv1alpha1.Stopping
 
 		endPhase = orchestv1alpha1.Stopped
@@ -111,6 +110,18 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 
 		endPhase = orchestv1alpha1.Stopped
 
+	} else if !*orchest.Spec.Orchest.Pause && curPhase == orchestv1alpha1.Stopped {
+		// If cluster is stopped but the pause is false
+		nextPhase = orchestv1alpha1.Starting
+
+		endPhase = orchestv1alpha1.Running
+
+	} else if (curPhase == orchestv1alpha1.Starting || curPhase == orchestv1alpha1.DeployingOrchest) &&
+		(orchest.Status.ObservedHash == controller.ComputeHash(&orchest.Spec)) {
+		// If cluster is starting, and the hash is not changed, then the next phase would be Starting again
+		nextPhase = curPhase
+
+		endPhase = orchestv1alpha1.Running
 	} else if curPhase == orchestv1alpha1.DeployingThirdParties {
 		// If the cluster is deploying third parties, it continue deploying, and
 		// will enter deployed once finished
@@ -118,7 +129,11 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 
 		endPhase = orchestv1alpha1.DeployedThirdParties
 
-	} else if orchest.Status.ObservedHash != controller.ComputeHash(&orchest.Spec) {
+	} else if curPhase == orchestv1alpha1.DeployedThirdParties {
+		nextPhase = orchestv1alpha1.DeployingOrchest
+
+		endPhase = orchestv1alpha1.Running
+	} else if orchest.Status.ObservedGeneration != orchest.Generation {
 		// If the hash is changed, the cluster enters upgrading state and then running
 		nextPhase = orchestv1alpha1.Updating
 

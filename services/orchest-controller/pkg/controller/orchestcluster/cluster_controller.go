@@ -578,6 +578,9 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 // Installs deployer if the config is changed
 func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (err error) {
 
+	if orchest.Status == nil || orchest.Status.Phase == orchestv1alpha1.Initializing {
+		return errors.Errorf("status object is not initialzed yet %s", orchest.Name)
+	}
 	stopped := false
 	nextPhase, endPhase := determineNextPhase(orchest)
 	if nextPhase == endPhase {
@@ -774,9 +777,16 @@ func (occ *OrchestClusterController) updatePhase(ctx context.Context,
 	}
 
 	if orchest.Status.Phase == orchestv1alpha1.Running ||
+		orchest.Status.Phase == orchestv1alpha1.Starting ||
+		orchest.Status.Phase == orchestv1alpha1.DeployingOrchest ||
 		orchest.Status.Phase == orchestv1alpha1.Stopped {
-		orchest.Status.ObservedGeneration = orchest.Generation
+
 		orchest.Status.ObservedHash = controller.ComputeHash(&orchest.Spec)
+
+		if orchest.Status.Phase != orchestv1alpha1.Starting &&
+			orchest.Status.Phase != orchestv1alpha1.DeployingOrchest {
+			orchest.Status.ObservedGeneration = orchest.Generation
+		}
 	}
 
 	_, err = occ.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).UpdateStatus(ctx, orchest, metav1.UpdateOptions{})
