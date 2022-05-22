@@ -33,6 +33,7 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
@@ -40,6 +41,7 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 
 	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
+		reconciler.EnqueueAfter(component)
 		return err
 	}
 
@@ -48,47 +50,71 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 		if !kerrors.IsAlreadyExists(err) {
 			svc = getServiceManifest(metadata, matchLabels, 80, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
 	}
 
-	oldIng, err := reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
+	_, err = reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			ing := getIngressManifest(metadata, "/orchest-api", true, false, component)
 			_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Create(ctx, ing, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
 	}
 
 	if isServiceReady(ctx, reconciler.Client(), svc) &&
-		isDeploymentReady(oldDep) && isIngressReady(oldIng) {
+		isDeploymentReady(oldDep) {
 		return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
 	}
 
 	return nil
 }
 
-func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
 	err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
 	err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
-	return nil
+	// Get the cleanup pod
+	pod, err := reconciler.Client().CoreV1().Pods(component.Namespace).Get(ctx, controller.OrchestApiCleanup, metav1.GetOptions{})
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
+	} else if kerrors.IsNotFound(err) {
+		// Cleanup pod is not found, we should create it
+		hash := controller.ComputeHash(component)
+		matchLabels := controller.GetResourceMatchLables(controller.OrchestApiCleanup, component)
+		metadata := controller.GetMetadata(controller.OrchestApiCleanup, hash, component, OrchestComponentKind)
+		cleanupPod := getCleanupPod(metadata, matchLabels, component)
+
+		_, err = reconciler.Client().CoreV1().Pods(component.Namespace).Create(ctx, cleanupPod, metav1.CreateOptions{})
+		reconciler.EnqueueAfter(component)
+		return false, err
+	}
+
+	if !utils.IsPodActive(ctx, reconciler.Client(), pod) {
+		// we won't delete the pod, the cleanup pod will be garbage collected once the OrchestComponent resource deleted
+		return true, nil
+	} else {
+		return false, nil
+	}
+
 }
 
 func getOrchetApiDeployment(metadata metav1.ObjectMeta,
@@ -199,4 +225,31 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 	})
 
 	return deployment
+}
+
+func getCleanupPod(metadata metav1.ObjectMeta,
+	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *corev1.Pod {
+
+	pod := &corev1.Pod{
+		ObjectMeta: metadata,
+		Spec: corev1.PodSpec{
+			RestartPolicy:      corev1.RestartPolicyNever,
+			ServiceAccountName: controller.OrchestApi,
+			Containers: []corev1.Container{
+				{
+					Name: metadata.Name,
+					Command: []string{
+						"/bin/sh", "-c",
+					},
+					Args: []string{
+						"python migration_manager.py db migrate && python cleanup.py",
+					},
+					Image: component.Spec.Template.Image,
+					Env:   component.Spec.Template.Env,
+				},
+			},
+		},
+	}
+
+	return pod
 }

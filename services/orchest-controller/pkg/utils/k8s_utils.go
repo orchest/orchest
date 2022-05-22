@@ -116,12 +116,12 @@ func GetEnvOrDefault(key, defaultValue string) string {
 }
 
 func NewOrchestClusterInformer(ocClient versioned.Interface) orchestinformers.OrchestClusterInformer {
-	orchestInformerFactory := ocinformersfactory.NewSharedInformerFactory(ocClient, time.Second*30)
+	orchestInformerFactory := ocinformersfactory.NewSharedInformerFactory(ocClient, time.Second)
 	return orchestInformerFactory.Orchest().V1alpha1().OrchestClusters()
 }
 
 func NewOrchestComponentInformer(ocClient versioned.Interface) orchestinformers.OrchestComponentInformer {
-	orchestInformerFactory := ocinformersfactory.NewSharedInformerFactory(ocClient, time.Second*30)
+	orchestInformerFactory := ocinformersfactory.NewSharedInformerFactory(ocClient, time.Second)
 	return orchestInformerFactory.Orchest().V1alpha1().OrchestComponents()
 }
 
@@ -201,16 +201,7 @@ func IsDeploymentPaused(ctx context.Context, client kubernetes.Interface, name, 
 	return *deployment.Spec.Replicas == deployment.Status.ReadyReplicas
 }
 
-func IsPodActive(ctx context.Context, client kubernetes.Interface, name, namespace string) bool {
-
-	pod, err := client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			klog.V(2).Info("pod %s resource not found.", name)
-		}
-		return false
-	}
-
+func IsPodActive(ctx context.Context, client kubernetes.Interface, pod *corev1.Pod) bool {
 	return corev1.PodSucceeded != pod.Status.Phase &&
 		corev1.PodFailed != pod.Status.Phase
 }
