@@ -9,6 +9,42 @@ on:
     types: [closed]
 
 jobs:
+  build_manifests:
+    # On a successful merge of a release branch into the master branch.
+    # NOTE: In github action expressions you need to use single quotes.
+    if: ${{ github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/') }}
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.release_version.outputs.release_version }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
+
+      - name: Get release version
+        id: release_version
+        run: |
+          export RELEASE_VERSION=$(echo ${{ github.head_ref }} | sed 's/release\///g')
+          echo ::set-output name=release_version::$RELEASE_VERSION
+
+      - name: Build release
+        id: build
+        run: |
+          TAGNAME=${RELEASE_VERSION} make -C ./services/orchest-controller manifestgen
+        env:
+          RELEASE_VERSION: ${{steps.release_version.outputs.release_version}}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: manifests
+          path: ./services/orchest-controller/deploy/k8s/orchest-controller.yaml
+
   trigger_release:
     # On a successful merge of a release branch into the master branch.
     # NOTE: In github action expressions you need to use single quotes.
@@ -17,12 +53,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: actions/download-artifact@v3
+
       - name: Create new release with auto-generated release notes
-        uses: actions/github-script@v5.1.0
-        with:
-          github-token: ${{ secrets.WORKFLOW_TOKEN }}
-          script: |
-            await github.request(`POST /repos/${{ github.repository }}/releases`, {
-              tag_name: "${{ github.head_ref }}".replace("release/", ""),
-              generate_release_notes: true
-            });
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.build_manifests.outputs.release_version }}
+          DEBUG: api
+        run: |
+          gh release create ${RELEASE_VERSION} --generate-notes ./manifests/*
