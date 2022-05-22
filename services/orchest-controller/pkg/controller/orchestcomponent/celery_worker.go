@@ -32,6 +32,7 @@ func (reconciler *CeleryWorkerReconciler) Reconcile(ctx context.Context, compone
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
@@ -39,6 +40,7 @@ func (reconciler *CeleryWorkerReconciler) Reconcile(ctx context.Context, compone
 
 	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
+		reconciler.EnqueueAfter(component)
 		return err
 	}
 
@@ -51,8 +53,13 @@ func (reconciler *CeleryWorkerReconciler) Reconcile(ctx context.Context, compone
 	return err
 }
 
-func (reconciler *CeleryWorkerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
-	return reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+func (reconciler *CeleryWorkerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,

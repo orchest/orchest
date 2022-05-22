@@ -32,6 +32,7 @@ func (reconciler *AuthServerReconciler) Reconcile(ctx context.Context, component
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
@@ -39,6 +40,7 @@ func (reconciler *AuthServerReconciler) Reconcile(ctx context.Context, component
 
 	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
+		reconciler.EnqueueAfter(component)
 		return err
 	}
 
@@ -47,47 +49,49 @@ func (reconciler *AuthServerReconciler) Reconcile(ctx context.Context, component
 		if !kerrors.IsAlreadyExists(err) {
 			svc = getServiceManifest(metadata, matchLabels, 80, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
 	}
 
-	oldIng, err := reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
+	_, err = reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			ing := getIngressManifest(metadata, "/login", false, false, component)
 			_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Create(ctx, ing, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
 	}
 
 	if isServiceReady(ctx, reconciler.Client(), svc) &&
-		isDeploymentReady(oldDep) && isIngressReady(oldIng) {
+		isDeploymentReady(oldDep) {
 		return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
 	}
 
 	return nil
 }
 
-func (reconciler *AuthServerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *AuthServerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
 	err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
 	err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
 func getAuthServerDeployment(metadata metav1.ObjectMeta,

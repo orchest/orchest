@@ -33,6 +33,7 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
@@ -40,6 +41,7 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 
 	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
+		reconciler.EnqueueAfter(component)
 		return err
 	}
 
@@ -48,6 +50,7 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 		if !kerrors.IsAlreadyExists(err) {
 			svc = getServiceManifest(metadata, matchLabels, 5432, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
@@ -60,18 +63,18 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 	return nil
 }
 
-func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
 	err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
 func getOrchetDatabaseDeployment(metadata metav1.ObjectMeta,

@@ -54,13 +54,13 @@ var (
 	OrchestIngressClassName = "nginx"
 
 	// Labels and Annotations
-	ControllerRevisionHashLabelKey = "controller-revision-hash"
-	DeploymentHashLabelKey         = "orchest.io/deployment-hash"
-	GenerationKey                  = "contoller.orchest.io/generation"
-	ControllerLabelKey             = "controller.orchest.io"
-	ControllerPartOfLabel          = "contoller.orchest.io/part-of"
-	ResourceLabelKey               = "contoller.orchest.io/resource"
-	RestartAnnotationKey           = "orchest.io/restart"
+	OrchestHashLabelKey    = "orchest.io/orchest-hash"
+	DeploymentHashLabelKey = "orchest.io/deployment-hash"
+	GenerationKey          = "contoller.orchest.io/generation"
+	ControllerLabelKey     = "controller.orchest.io"
+	ControllerPartOfLabel  = "contoller.orchest.io/part-of"
+	ResourceLabelKey       = "contoller.orchest.io/resource"
+	RestartAnnotationKey   = "orchest.io/restart"
 )
 
 // AddFinalizer adds specified finalizer string to object
@@ -209,7 +209,7 @@ func GetResourceLables(resourceName, hash string,
 	labels := GetResourceMatchLables(resourceName, object)
 
 	utils.AddLabel(labels, map[string]string{
-		ControllerRevisionHashLabelKey: hash,
+		OrchestHashLabelKey: hash,
 	})
 
 	return labels

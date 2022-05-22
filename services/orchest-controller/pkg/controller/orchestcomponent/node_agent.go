@@ -3,7 +3,6 @@ package orchestcomponent
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +31,7 @@ func (reconciler *NodeAgentReconciler) Reconcile(ctx context.Context, component 
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			_, err = reconciler.Client().AppsV1().DaemonSets(component.Namespace).Create(ctx, newDs, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
@@ -41,9 +41,14 @@ func (reconciler *NodeAgentReconciler) Reconcile(ctx context.Context, component 
 
 }
 
-func (reconciler *NodeAgentReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *NodeAgentReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
-	return reconciler.Client().AppsV1().DaemonSets(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+	err := reconciler.Client().AppsV1().DaemonSets(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
@@ -106,10 +111,6 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 			Template: template,
 		},
 	}
-
-	daemonSet.Labels = utils.CloneAndAddLabel(metadata.Labels, map[string]string{
-		controller.DeploymentHashLabelKey: controller.ComputeHash(&daemonSet.Spec),
-	})
 
 	return daemonSet
 

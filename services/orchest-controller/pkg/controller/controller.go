@@ -155,7 +155,7 @@ func (c *Controller[Object]) EnqueueAfter(obj Object) {
 	}
 
 	// TODO: make it configurable
-	c.queue.AddAfter(key, time.Second*5)
+	c.queue.AddAfter(key, time.Second)
 }
 
 func (c *Controller[Object]) Client() kubernetes.Interface {

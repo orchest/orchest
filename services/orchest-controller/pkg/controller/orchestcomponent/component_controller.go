@@ -37,7 +37,7 @@ var (
 type OrchestComponentReconciler interface {
 	Reconcile(context.Context, *orchestv1alpha1.OrchestComponent) error
 
-	Uninstall(context.Context, *orchestv1alpha1.OrchestComponent) error
+	Uninstall(context.Context, *orchestv1alpha1.OrchestComponent) (bool, error)
 }
 
 // OrchestComponentController reconciles OrchestComponent CRD.
@@ -153,7 +153,7 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 	occ.reconcilers[controller.Rabbitmq] = NewRabbitmqServerReconciler(&occ)
 	occ.reconcilers[controller.CeleryWorker] = NewCeleryWorkerReconciler(&occ)
 	occ.reconcilers[controller.AuthServer] = NewAuthServerReconciler(&occ)
-	occ.reconcilers[controller.OrchestWebserver] = NewOrchestApiReconciler(&occ)
+	occ.reconcilers[controller.OrchestWebserver] = NewOrchestWebServerReconciler(&occ)
 	occ.reconcilers[controller.NodeAgent] = NewNodeAgentReconciler(&occ)
 
 	return &occ
@@ -234,12 +234,16 @@ func (occ *OrchestComponentController) syncOrchestComponent(ctx context.Context,
 
 	if !component.GetDeletionTimestamp().IsZero() {
 		// The cluster is deleted, delete it
-		err = occ.uninstallOrchestComponent(ctx, component)
+		success, err := occ.uninstallOrchestComponent(ctx, component)
 		if err != nil {
 			return err
 		}
 
-		_, err = controller.RemoveFinalizerIfPresent(ctx, occ.gClient, component, orchestv1alpha1.Finalizer)
+		if success {
+			_, err = controller.RemoveFinalizerIfPresent(ctx, occ.gClient, component, orchestv1alpha1.Finalizer)
+			return err
+		}
+
 		return err
 	}
 
@@ -266,11 +270,11 @@ func (occ *OrchestComponentController) manageOrchestComponent(ctx context.Contex
 
 // Uninstall
 func (occ *OrchestComponentController) uninstallOrchestComponent(ctx context.Context,
-	component *orchestv1alpha1.OrchestComponent) (err error) {
+	component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	reconciler, ok := occ.reconcilers[component.Name]
 	if !ok {
-		return errors.Errorf("unrecognized component reconciler name : %s", component.Name)
+		return false, errors.Errorf("unrecognized component reconciler name : %s", component.Name)
 	}
 
 	return reconciler.Uninstall(ctx, component)

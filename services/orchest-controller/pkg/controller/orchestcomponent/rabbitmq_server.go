@@ -32,6 +32,7 @@ func (reconciler *RabbitmqServerReconciler) Reconcile(ctx context.Context, compo
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
@@ -39,6 +40,7 @@ func (reconciler *RabbitmqServerReconciler) Reconcile(ctx context.Context, compo
 
 	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
+		reconciler.EnqueueAfter(component)
 		return err
 	}
 
@@ -47,6 +49,7 @@ func (reconciler *RabbitmqServerReconciler) Reconcile(ctx context.Context, compo
 		if !kerrors.IsAlreadyExists(err) {
 			svc = getServiceManifest(metadata, matchLabels, 5672, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+			reconciler.EnqueueAfter(component)
 			return err
 		}
 		return err
@@ -59,18 +62,18 @@ func (reconciler *RabbitmqServerReconciler) Reconcile(ctx context.Context, compo
 	return nil
 }
 
-func (reconciler *RabbitmqServerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *RabbitmqServerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
 	err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
 func getRabbitMqDeployment(metadata metav1.ObjectMeta,

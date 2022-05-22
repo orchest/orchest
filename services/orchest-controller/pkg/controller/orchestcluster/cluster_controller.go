@@ -255,7 +255,7 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 		return err
 	}
 
-	orchest, err := occ.oClusterLister.OrchestClusters(namespace).Get(name)
+	orchest, err := occ.oClient.OrchestV1alpha1().OrchestClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			klog.V(2).Info("OrchestCluster %s resource not found.", key)
@@ -276,6 +276,7 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 			_, err = controller.RemoveFinalizerIfPresent(ctx, occ.gClient, orchest, orchestv1alpha1.Finalizer)
 			return err
 		}
+		return nil
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
@@ -676,7 +677,7 @@ func (occ *OrchestClusterController) stopOrchest(ctx context.Context, orchest *o
 			if ok {
 				// If component is already deleted we wait for OrchestComponentController to gracefully delete it
 				// and we requeue the OrchestCluster for continution
-				if component.GetDeletionTimestamp() != nil {
+				if !component.GetDeletionTimestamp().IsZero() {
 					occ.EnqueueAfter(orchest)
 					return stopped, nil
 				} else {
