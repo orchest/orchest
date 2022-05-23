@@ -97,6 +97,27 @@ information by running ``orchest -h``):
    # installation was successful.
    orchest version
 
+Run Orchest Controller locally
+------------------------------
+For easier debugging it is possible to run ``orchest-controller`` locally.
+to do so you first need to deploy crds:
+
+.. code-block:: bash
+
+  # Asuming you are in the root of orchest git repository
+  cd services/orchest-controller
+
+  kubectl apply -f deploy/helm/templates/crds.yaml
+
+Then you can build the ``orchest-controller`` binary via ``Makefile`` or you favorite IDE.
+and run the ``orchest-controller`` by passing following command line arguments.
+
+.. code-block:: bash
+  
+  # Asuming you have built the controller via "make controller" command
+  ./bin/controller --inCluster=false --defaultVersion=v2022.05.3 \
+  --endpoint=:5000 --deployDir=./deploy
+
 
 Use Orchest shortcuts like a pro
 --------------------------------
