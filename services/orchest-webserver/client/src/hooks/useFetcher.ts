@@ -34,8 +34,10 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
 
   const isFocused = useFocusBrowserTab();
   const hasBrowserFocusChanged = useHasChanged(isFocused);
+  const hasUrlChanged = useHasChanged(url);
+
   const shouldRefetch =
-    revalidateOnFocus && hasBrowserFocusChanged && isFocused;
+    hasUrlChanged || (revalidateOnFocus && hasBrowserFocusChanged && isFocused);
 
   const fetchData = React.useCallback(() => {
     if (!url) return;
@@ -45,14 +47,13 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
   }, [run, url]);
 
   const hasFetchedOnMount = React.useRef(false);
-  const hasUrlChanged = useHasChanged(url);
 
   React.useEffect(() => {
-    if (hasUrlChanged || !hasFetchedOnMount.current || shouldRefetch) {
+    if (!hasFetchedOnMount.current || shouldRefetch) {
       hasFetchedOnMount.current = true;
       fetchData();
     }
-  }, [fetchData, shouldRefetch, hasUrlChanged]);
+  }, [fetchData, shouldRefetch]);
 
   return { data, setData, error, status, fetchData };
 }
