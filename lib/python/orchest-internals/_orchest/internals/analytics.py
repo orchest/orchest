@@ -49,7 +49,8 @@ class Event(Enum):
     # Sent by orchest-webserver. Try to minimize these events, in favour
     # of moving them to the orchest-api.
     HEARTBEAT_TRIGGER = "heartbeat-trigger"
-    JOB_DUPLICATED = "job:duplicated"
+    ONE_OFF_JOB_DUPLICATED = "project:one-off-job:duplicated"
+    CRON_JOB_DUPLICATED = "project:cron-job:duplicated"
     PIPELINE_SAVED = "project:pipeline:saved"
 
     # Sent by the orchest-api.
