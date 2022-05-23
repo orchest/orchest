@@ -27,7 +27,7 @@ import {
   fetcher,
   hasValue,
 } from "@orchest/lib-utils";
-import React from "react";
+import React, { useState } from "react";
 import { BackToJobButton } from "./BackToJobButton";
 import {
   getNodeCenter,
@@ -395,6 +395,8 @@ export const PipelineEditor = () => {
     setPipelineJson((value) => value, true);
   }, [setPipelineJson]);
 
+  const contextMenuState = useState(false);
+
   const autoLayoutPipeline = () => {
     const spacingFactor = 0.7;
     const gridMargin = 20;
@@ -650,6 +652,9 @@ export const PipelineEditor = () => {
         <PipelineViewport
           ref={pipelineViewportRef}
           canvasFuncRef={canvasFuncRef}
+          executeRun={executeRun}
+          autoLayoutPipeline={autoLayoutPipeline}
+          contextMenuState={contextMenuState}
         >
           {connections.map((connection) => {
             if (!connection) return null;
@@ -760,6 +765,9 @@ export const PipelineEditor = () => {
               <PipelineStep
                 key={`${step.uuid}-${hash.current}`}
                 data={step}
+                executeRun={executeRun}
+                onOpenFilePreviewView={onOpenFilePreviewView}
+                onOpenNotebook={onOpenNotebook}
                 selected={selected}
                 savePositions={savePositions}
                 movedToTop={movedToTop}
@@ -770,6 +778,7 @@ export const PipelineEditor = () => {
                 interactiveConnections={interactiveConnections}
                 onDoubleClick={onDoubleClickStep}
                 getPosition={getPosition}
+                contextMenuState={contextMenuState}
               >
                 <ConnectionDot
                   incoming
