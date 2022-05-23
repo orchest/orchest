@@ -11,7 +11,7 @@ BUILD_TAG="latest"
 ORCHEST_VERSION=$(git describe --tags)
 
 # Read flags.
-while getopts "s:i:t:no:vem" opt; do
+while getopts "s:i:t:no:vemM" opt; do
   case $opt in
     e)
       # 'e' for encryption
@@ -36,7 +36,19 @@ while getopts "s:i:t:no:vem" opt; do
       SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
       SKIP_IMGS+=("base-kernel-javascript")
-      SKIP_IMGS+=("base-kernel-r") 
+      SKIP_IMGS+=("base-kernel-r")
+      ;;
+    M)
+      # Build absolute minimal set of images.
+      SKIP_IMGS+=("base-kernel-py")
+      SKIP_IMGS+=("base-kernel-py-gpu")
+      SKIP_IMGS+=("base-kernel-julia")
+      SKIP_IMGS+=("base-kernel-javascript")
+      SKIP_IMGS+=("base-kernel-r")
+      SKIP_IMGS+=("jupyter-server")
+      SKIP_IMGS+=("jupyter-enterprise-gateway")
+      SKIP_IMGS+=("memory-server")
+      SKIP_IMGS+=("session-sidecar")
       ;;
     t)
       BUILD_TAG="$OPTARG"
