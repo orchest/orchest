@@ -95,7 +95,7 @@ func NewControllerCommand() *cobra.Command {
 		"endpoint", serverConfig.Endpoint, "The endpoint of Http Server")
 
 	cmd.PersistentFlags().BoolVar(&inCluster,
-		"inCluster", false, "In/Out cluster indicator")
+		"inCluster", true, "In/Out cluster indicator")
 
 	return cmd
 }
