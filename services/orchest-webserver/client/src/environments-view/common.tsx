@@ -27,18 +27,28 @@ export const fetchSessionsInProject = async (projectUuid: string) => {
   return sessionData.sessions;
 };
 
-export const fetchMostRecentEnvironmentBuilds = async (
+export function getMostRecentEnvironmentBuildsUrl(
+  projectUuid: string | undefined,
+  environmentUuid?: string
+) {
+  return projectUuid
+    ? `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}${
+        environmentUuid ? `/${environmentUuid}` : ""
+      }`
+    : undefined;
+}
+
+const fetchMostRecentEnvironmentBuilds = async (
   projectUuid: string,
   environmentUuid?: string
 ) => {
-  const buildData = await fetcher<{
+  const url = getMostRecentEnvironmentBuildsUrl(projectUuid, environmentUuid);
+  if (!url) return Promise.reject("Invalid URL");
+
+  const { environment_image_builds } = await fetcher<{
     environment_image_builds: EnvironmentImageBuild[];
-  }>(
-    `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}${
-      environmentUuid ? `/${environmentUuid}` : ""
-    }`
-  );
-  const { environment_image_builds } = buildData;
+  }>(url);
+
   return environment_image_builds;
 };
 

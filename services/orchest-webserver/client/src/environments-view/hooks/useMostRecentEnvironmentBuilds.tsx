@@ -1,8 +1,7 @@
 import { useInterval } from "@/hooks/use-interval";
-import { useAsync } from "@/hooks/useAsync";
+import { useFetcher } from "@/hooks/useFetcher";
 import { EnvironmentImageBuild } from "@/types";
-import React from "react";
-import { fetchMostRecentEnvironmentBuilds } from "../common";
+import { getMostRecentEnvironmentBuildsUrl } from "../common";
 
 export const useMostRecentEnvironmentBuilds = ({
   projectUuid,
@@ -13,18 +12,14 @@ export const useMostRecentEnvironmentBuilds = ({
   environmentUuid?: string | undefined;
   refreshInterval?: undefined | number;
 }) => {
-  const { run, data, error } = useAsync<EnvironmentImageBuild[]>();
+  const { fetchData, data, error } = useFetcher<
+    { environment_image_builds: EnvironmentImageBuild[] },
+    EnvironmentImageBuild[]
+  >(getMostRecentEnvironmentBuildsUrl(projectUuid, environmentUuid), {
+    transform: (data) => data.environment_image_builds,
+  });
 
-  const sendRequest = React.useCallback(() => {
-    if (!projectUuid) return Promise.reject();
-    return run(fetchMostRecentEnvironmentBuilds(projectUuid, environmentUuid));
-  }, [environmentUuid, projectUuid, run]);
-
-  useInterval(sendRequest, refreshInterval);
-
-  React.useEffect(() => {
-    sendRequest();
-  }, [sendRequest]);
+  useInterval(fetchData, refreshInterval);
 
   return {
     environmentBuilds: data,
