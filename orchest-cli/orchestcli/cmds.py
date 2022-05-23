@@ -16,7 +16,8 @@ from functools import partial
 
 import click
 import requests
-from kubernetes import client, config, stream, watch
+import yaml
+from kubernetes import client, config, stream, utils, watch
 
 # Only when running a type checker, e.g. mypy, would we do the following
 # imports. Apart from type checking these imports are not needed.
@@ -28,9 +29,12 @@ try:
 except config.config_exception.ConfigException:
     config.load_incluster_config()
 
-CUSTOM_OBJECT_API = client.CustomObjectsApi()
-CORE_API = client.CoreV1Api()
+API_CLIENT = client.ApiClient()
 APPS_API = client.AppsV1Api()
+CORE_API = client.CoreV1Api()
+CUSTOM_OBJECT_API = client.CustomObjectsApi()
+EXT_API = client.ApiextensionsV1Api()
+RBAC_API = client.RbacAuthorizationV1Api()
 
 get_namespaced_custom_object = partial(
     CUSTOM_OBJECT_API.get_namespaced_custom_object,
@@ -141,6 +145,62 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
+    try:
+        CORE_API.create_namespace(client.V1Namespace(metadata={"name": ns}))
+    except client.ApiException as e:
+        if e.reason == "Conflict":
+            echo(f"Installing into existing namespace: {ns}.")
+
+    # TODO: the create from yaml only does create, we want patch/replace
+    # as well.
+    # CUSTOM_OBJECT_API.replace_namespaced_custom_object
+    # CUSTOM_OBJECT_API.patch_namespaced_custom_object
+
+    # Deploy the `orchest-controller` and the resources it needs.
+    with open(
+        "/home/yannick/Documents/Orchest/orchest/services/orchest-controller"
+        "/deploy/k8s/orchest-controller.yaml"
+    ) as f:
+        yml_deploy_controller = yaml.safe_load_all(f)
+
+        try:
+            utils.create_from_yaml(
+                k8s_client=API_CLIENT,
+                yaml_objects=yml_deploy_controller,
+            )
+        except utils.FailToCreateError as e:
+            conflicting_resources = []
+            for exc in e.api_exceptions:
+                if exc.status != 409:  # conflict/already exists
+                    raise e
+                else:
+                    conflicting_resources.append(json.loads(exc.body)["details"])
+
+            conflicting_resources_msg = "\n".join(
+                [json.dumps(resource) for resource in conflicting_resources]
+            )
+
+            echo(
+                "In case you are trying to install additional 'orchestclusters'"
+                " then please note that this is not yet supported. On update the"
+                " cluster-level resources of one 'orchestcluster' could become"
+                " incompatible with another 'orchestcluster'.",
+                err=True,
+            )
+            echo(
+                "Orchest seems to have been installed before and was incorrectly"
+                " uninstalled, leaving dangling state. Please ensure you are on"
+                " a compatible 'orchest-cli' version and run:\n\torchest uninstall",
+                err=True,
+            )
+            echo(
+                "If uninstalling doesn't work, then please try to remove the"
+                " following resources manually before installing again:"
+                f"\n{conflicting_resources_msg}",
+                err=True,
+            )
+            sys.exit(1)
+
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
         "kind": "OrchestCluster",
@@ -243,6 +303,14 @@ def uninstall(**kwargs) -> None:
     # controller has successfully taken care of the removal.
     echo("Removing 'orchest-system' namespace...")
     CORE_API.delete_namespace("orchest-system")
+
+    # Delete cluster level resources.
+    echo("Removing Orchest's cluster-level resources...")
+    RBAC_API.delete_cluster_role(name="orchest-controller")
+    RBAC_API.delete_cluster_role_binding(name="orchest-controller")
+    EXT_API.delete_custom_resource_definition(name="orchestclusters.orchest.io")
+    EXT_API.delete_custom_resource_definition(name="orchestcomponents.orchest.io")
+
     echo("\nSuccessfully uninstalled Orchest.")
 
 
