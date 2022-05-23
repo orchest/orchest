@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	inCluster        bool
+	inCluster        = true
 	controllerConfig = orchestcluster.NewDefaultControllerConfig()
 	serverConfig     = server.NewDefaultServerConfig()
 )
