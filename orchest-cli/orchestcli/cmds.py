@@ -196,23 +196,38 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
 
 def uninstall(**kwargs) -> None:
     """Uninstalls Orchest."""
+
+    def _remove_custom_objects(ns: str) -> None:
+        custom_objects = list_namespaced_custom_object(
+            namespace=ns,
+        )
+        for custom_object in custom_objects["items"]:
+            delete_namespaced_custom_object(
+                namespace=ns,
+                name=custom_object["metadata"]["name"],
+            )
+
     ns = kwargs["namespace"]
 
     echo("Uninstalling Orchest...")
 
-    # Remove all orchestcluster resources in the namespace. Otherwise
-    # the namespace can't be removed due to the configured finalizers
-    # on the orchestcluster resources.
+    # Remove all orchest related custom resources in the namespace.
+    # Otherwise the namespace can't be removed due to the configured
+    # finalizers on the orchestcluster resources.
     echo("Removing all Orchest Clusters...")
-    custom_objects = list_namespaced_custom_object(namespace=ns)
-    for custom_object in custom_objects["items"]:
-        delete_namespaced_custom_object(
-            namespace=ns,
-            name=custom_object["metadata"]["name"],
-        )
+    _remove_custom_objects(ns)
 
-    # Remove namespace, which will also remove all resources contained
-    # in it.
+    # Wait until the custom objects are removed to ensure a correct
+    # removal (which is handled by the `orchest-controller`).
+    while True:
+        custom_objects = list_namespaced_custom_object(
+            namespace=ns,
+        )
+        if not custom_objects["items"]:
+            break
+
+    # Removing the namespace will also remove all resources contained in
+    # it.
     echo(f"Removing '{ns}' namespace...")
     CORE_API.delete_namespace(ns)
     while True:
@@ -220,10 +235,15 @@ def uninstall(**kwargs) -> None:
             CORE_API.read_namespace(ns)
         except client.ApiException as e:
             if e.status == 404:
-                echo("\nSuccessfully uninstalled Orchest.")
-                return
+                break
             raise e
         time.sleep(1)
+
+    # Delete `orchest-system` namespace last to ensure that the
+    # controller has successfully taken care of the removal.
+    echo("Removing 'orchest-system' namespace...")
+    CORE_API.delete_namespace("orchest-system")
+    echo("\nSuccessfully uninstalled Orchest.")
 
 
 # TODO:
