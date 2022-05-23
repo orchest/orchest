@@ -8,8 +8,8 @@ import {
   fetcher,
   hasValue,
 } from "@orchest/lib-utils";
-import React from "react";
-import { useAsync } from "./useAsync";
+import { useDebounce } from "./useDebounce";
+import { useFetcher } from "./useFetcher";
 
 export const pathValidator = (value: string) => {
   if (!hasValue(value)) return false;
@@ -55,19 +55,20 @@ export const useCheckFileValidity = (
   const isQueryArgsComplete =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
-  const { run, data = false, status } = useAsync();
+  const isValidPathPattern = isQueryArgsComplete && pathValidator(path);
 
-  const sendRequest = React.useCallback(() => {
-    return run(
-      isQueryArgsComplete
-        ? isValidFile(projectUuid, pipelineUuid, path)
-        : Promise.reject()
-    );
-  }, [projectUuid, pipelineUuid, path, isQueryArgsComplete, run]);
+  const delayedPath = useDebounce(path, 250);
 
-  React.useEffect(() => {
-    sendRequest();
-  }, [sendRequest]);
+  const { data = false, status } = useFetcher<{ message: string }, boolean>(
+    isValidPathPattern
+      ? `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
+          projectUuid,
+          pipelineUuid,
+          path: delayedPath || path,
+        })}`
+      : undefined,
+    { transform: () => true }
+  );
 
-  return [data, status === "PENDING"] as const;
+  return [isValidPathPattern && data, status === "PENDING"] as const;
 };

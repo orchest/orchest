@@ -45,13 +45,14 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
   }, [run, url]);
 
   const hasFetchedOnMount = React.useRef(false);
+  const hasUrlChanged = useHasChanged(url);
 
   React.useEffect(() => {
-    if (!hasFetchedOnMount.current || shouldRefetch) {
+    if (hasUrlChanged || !hasFetchedOnMount.current || shouldRefetch) {
       hasFetchedOnMount.current = true;
       fetchData();
     }
-  }, [fetchData, shouldRefetch]);
+  }, [fetchData, shouldRefetch, hasUrlChanged]);
 
   return { data, setData, error, status, fetchData };
 }
