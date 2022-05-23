@@ -209,6 +209,9 @@ def send_event(
     if not _posthog_initialized:
         _initialize_posthog()
 
+    if event_data is not None:
+        event_data.get("event_properties", {})["type"] = event.value
+
     _add_app_properties(event_data, app)
     _add_system_properties(event_data)
 
