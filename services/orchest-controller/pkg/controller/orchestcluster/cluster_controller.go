@@ -179,6 +179,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	return &occ
 }
 
+// Initialzes the third-party deployers.
 func (occ *OrchestClusterController) intiDeployerManager() {
 	occ.deployerManager = deployer.NewDeployerManager()
 

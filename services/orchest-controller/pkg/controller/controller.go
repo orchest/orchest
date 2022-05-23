@@ -96,7 +96,7 @@ func (c *Controller[Object]) resolveControllerRef(namespace string, controllerRe
 }
 
 // Run will not return until stopCh is closed. workers determines how many
-// endpoints will be handled in parallel.
+// objects will be handled in parallel.
 func (c *Controller[Object]) Run(stopCh <-chan struct{}) {
 
 	klog.Infof("Starting %s controller", c.name)
@@ -124,6 +124,7 @@ func (c *Controller[Object]) worker(ctx context.Context) {
 	}
 }
 
+// processNextWorkItem deals with one key off the queue.  It returns false when it's time to quit.
 func (c *Controller[Object]) processNextWorkItem(ctx context.Context) bool {
 	eKey, quit := c.queue.Get()
 	if quit {
