@@ -108,12 +108,14 @@ export const ContainerImagesRadioGroup = ({
       )
     );
     if (foundDefaultImage) {
-      // Always return a versioned image.
-      // So user uses the latest environment version
-      const defaultImageToSave = `${foundDefaultImage.base_image}:${orchestVersion}`;
-      onChange({ ...foundDefaultImage, base_image: defaultImageToSave });
+      // Always return a un-versioned image, and let BE fill the version.
+      onChange({
+        ...foundDefaultImage,
+        base_image: foundDefaultImage.base_image,
+      });
     }
   };
+
   return (
     <RadioGroup value={value} onChange={(e, value) => onChangeSelection(value)}>
       <Box>
@@ -144,7 +146,7 @@ export const ContainerImagesRadioGroup = ({
             <Grid item sm={6} key={base_image}>
               <ImageOption
                 title={isUnavailable ? "Temporarily unavailable" : base_image}
-                value={`${base_image}:${orchestVersion}`}
+                value={base_image}
                 disabled={isUnavailable || disabled}
                 supportGpu={gpu_support}
               >

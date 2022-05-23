@@ -2,7 +2,6 @@ import type { CustomImage, Environment } from "@/types";
 import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
-import { DEFAULT_BASE_IMAGES } from "./common";
 
 /**
  * according to the fetched environment, extract custom image (if any), and load it into the state `customImage`
@@ -11,6 +10,7 @@ import { DEFAULT_BASE_IMAGES } from "./common";
  */
 export const useCustomImage = (
   environment: Environment | undefined,
+  defaultImageInUse: (CustomImage & { img_src: string }) | undefined,
   orchestVersion: string | undefined
 ) => {
   const [customImage, setCustomImage] = React.useState<CustomImage>();
@@ -21,15 +21,9 @@ export const useCustomImage = (
       // This means that from the BE perspective, `orchest/base-kernel-py` means latest, equivalent to `orchest/base-kernel-py:${current_orchest_version}`.
       // User could still choose to use an older version of the Orchest default image, e.g. `orchest/base-kernel-py:v2022.05.1`.
       // Then this is considered as a custom image, because user choose to specify an image themselves, so do the other non-Orchest images.
-      const isUsingDefaultImage = DEFAULT_BASE_IMAGES.some((image) => {
-        return [
-          `${image.base_image}:${orchestVersion}`,
-          image.base_image,
-        ].includes(environment.base_image);
-      });
-      setCustomImage(!isUsingDefaultImage ? environment : undefined);
+      setCustomImage(!defaultImageInUse ? environment : undefined);
     }
-  }, [environment, customImage]);
+  }, [environment, defaultImageInUse, orchestVersion, customImage]);
 
   return [customImage, setCustomImage] as const;
 };

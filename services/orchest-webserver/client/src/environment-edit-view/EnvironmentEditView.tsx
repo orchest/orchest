@@ -28,6 +28,7 @@ import "codemirror/theme/dracula.css";
 import { useFormik } from "formik";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import { DEFAULT_BASE_IMAGES } from "./common";
 import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
 import { CustomImageDialog } from "./CustomImageDialog";
 import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
@@ -84,17 +85,25 @@ const EnvironmentEditView: React.FC = () => {
   } = useFetchEnvironment(
     environmentUuid === "new" // if environmentUuid is "new", no need to fetch data.
       ? undefined
-      : {
-          projectUuid,
-          environmentUuid,
-          ...config?.ENVIRONMENT_DEFAULTS,
-        }
+      : { projectUuid, environmentUuid }
   );
 
   const orchestVersion = useOrchestVersion();
 
+  const defaultImageInUse = React.useMemo(() => {
+    return environment?.base_image
+      ? DEFAULT_BASE_IMAGES.find((image) => {
+          const versionedImage = `${image.base_image}:${orchestVersion}`;
+          return [versionedImage, image.base_image].includes(
+            environment.base_image
+          );
+        })
+      : undefined;
+  }, [environment?.base_image, orchestVersion]);
+
   const [customImage, setCustomImage] = useCustomImage(
     environment,
+    defaultImageInUse,
     orchestVersion
   );
 
@@ -322,6 +331,10 @@ const EnvironmentEditView: React.FC = () => {
     }
   };
 
+  const selectedImage = !isFetchingEnvironment
+    ? defaultImageInUse?.base_image || environment?.base_image
+    : undefined;
+
   return (
     <Layout
       toolbarElements={
@@ -386,7 +399,7 @@ const EnvironmentEditView: React.FC = () => {
                     <ContainerImagesRadioGroup
                       disabled={building}
                       orchestVersion={orchestVersion}
-                      value={!isFetchingEnvironment && environment?.base_image}
+                      value={selectedImage}
                       onChange={onChangeEnvironment}
                       customImage={customImage}
                       onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}

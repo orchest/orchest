@@ -1,3 +1,4 @@
+import { Environment } from "@/types";
 import { useFetcher } from "./useFetcher";
 
 export const useFetchEnvironment = (
@@ -6,7 +7,7 @@ export const useFetchEnvironment = (
     | undefined
 ) => {
   const { projectUuid, environmentUuid } = props || {};
-  const { data, setData, error, status, fetchData } = useFetcher(
+  const { data, setData, error, status, fetchData } = useFetcher<Environment>(
     projectUuid && environmentUuid
       ? `/store/environments/${projectUuid}/${environmentUuid}`
       : undefined
