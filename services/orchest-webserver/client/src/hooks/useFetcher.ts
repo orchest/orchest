@@ -34,8 +34,10 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
 
   const isFocused = useFocusBrowserTab();
   const hasBrowserFocusChanged = useHasChanged(isFocused);
+  const hasUrlChanged = useHasChanged(url);
+
   const shouldRefetch =
-    revalidateOnFocus && hasBrowserFocusChanged && isFocused;
+    hasUrlChanged || (revalidateOnFocus && hasBrowserFocusChanged && isFocused);
 
   const fetchData = React.useCallback(() => {
     if (!url) return;
