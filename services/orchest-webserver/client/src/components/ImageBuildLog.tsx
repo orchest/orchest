@@ -1,11 +1,10 @@
 import { useInterval } from "@/hooks/use-interval";
-import { useAsync } from "@/hooks/useAsync";
+import { useFetcher } from "@/hooks/useFetcher";
 import { useSocketIO } from "@/pipeline-view/hooks/useSocketIO";
 import { EnvironmentImageBuild } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
@@ -14,7 +13,7 @@ import { ImageBuildStatus } from "./ImageBuildStatus";
 const useFetchEnvironmentBuild = ({
   url,
   buildsKey,
-  buildFetchHash,
+  buildFetchHash, // This allows external components to fire fetchData.
   refreshInterval,
 }: {
   url: string;
@@ -22,18 +21,24 @@ const useFetchEnvironmentBuild = ({
   buildFetchHash: string;
   refreshInterval: number;
 }): EnvironmentImageBuild | undefined => {
-  const { run, data = [] } = useAsync<EnvironmentImageBuild[]>();
+  const { data = [], fetchData, status } = useFetcher<
+    Record<string, EnvironmentImageBuild[]>,
+    EnvironmentImageBuild[]
+  >(url, { transform: (data) => data[buildsKey] || Promise.reject() });
 
-  const fetchData = React.useCallback(() => {
-    return run(
-      fetcher<Record<string, EnvironmentImageBuild[]>>(url).then(
-        (response) => response[buildsKey] || Promise.reject()
-      )
-    );
-  }, [url, buildsKey, run]);
+  const shouldReFetch = React.useRef(false);
 
   React.useEffect(() => {
-    fetchData();
+    // Only re-fetch if a previous request has taken place.
+    if (status === "REJECTED" || status === "RESOLVED")
+      shouldReFetch.current = true;
+  }, [status]);
+
+  React.useEffect(() => {
+    if (shouldReFetch.current) {
+      shouldReFetch.current = false;
+      fetchData();
+    }
   }, [fetchData, buildFetchHash]);
 
   useInterval(fetchData, refreshInterval);
