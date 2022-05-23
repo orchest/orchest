@@ -50,7 +50,7 @@ class Event(Enum):
     # of moving them to the orchest-api.
     HEARTBEAT_TRIGGER = "heartbeat-trigger"
     JOB_DUPLICATED = "job:duplicated"
-    PIPELINE_SAVED = "pipeline:saved"
+    PIPELINE_SAVED = "project:pipeline:saved"
 
     # Sent by the orchest-api.
     DEBUG_PING = "debug-ping"
