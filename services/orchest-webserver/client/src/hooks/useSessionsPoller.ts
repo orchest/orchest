@@ -3,14 +3,22 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { siteMap } from "@/routingConfig";
 import { IOrchestSession } from "@/types";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
 import { matchPath, useLocation } from "react-router-dom";
 import { useInterval } from "./use-interval";
-import { useAsync } from "./useAsync";
+import { useFetcher } from "./useFetcher";
 
 type TSessionStatus = IOrchestSession["status"];
+
+type FetchSessionResponse = {
+  sessions: (IOrchestSession & {
+    project_uuid: string;
+    pipeline_uuid: string;
+  })[];
+  status: TSessionStatus;
+};
 
 const lowerCaseFirstLetter = (str: string) =>
   str.charAt(0).toLowerCase() + str.slice(1);
@@ -30,19 +38,6 @@ function convertKeyToCamelCase<T>(data: T, keys?: string[]): T {
     };
   }, {}) as T;
 }
-
-const requestToFetchSessions = () =>
-  fetcher<{
-    sessions: (IOrchestSession & {
-      project_uuid: string;
-      pipeline_uuid: string;
-    })[];
-    status: TSessionStatus;
-  }>("/catch/api-proxy/api/sessions/").then((response) => {
-    return response.sessions.map((session) =>
-      convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-    );
-  });
 
 /**
  * NOTE: useSessionsPoller should only be placed in HeaderBar
@@ -74,13 +69,17 @@ export const useSessionsPoller = () => {
     matchRooViews?.isExact ||
     (!pipelineIsReadOnly && hasValue(pipeline) && matchPipelineViews?.isExact);
 
-  const { data: sessions, run, error } = useAsync<IOrchestSession[]>({
+  const { data: sessions, error, fetchData: fetchSessions } = useFetcher<
+    FetchSessionResponse,
+    FetchSessionResponse["sessions"]
+  >("/catch/api-proxy/api/sessions/", {
+    disableFetchOnMount: true,
+    transform: (data) =>
+      data.sessions.map((session) =>
+        convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
+      ),
     caching: true,
   });
-
-  const fetchSessions = React.useCallback(() => {
-    run(requestToFetchSessions());
-  }, [run]);
 
   // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING
   // the reason is that Orchest session is not a user session, but a session of a pipeline.
@@ -91,7 +90,7 @@ export const useSessionsPoller = () => {
 
   React.useEffect(() => {
     if (shouldPoll) fetchSessions();
-  }, [location, shouldPoll, fetchSessions]);
+  }, [shouldPoll, fetchSessions]);
 
   const isLoading = !sessions && !error;
 
