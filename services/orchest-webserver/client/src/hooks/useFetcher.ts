@@ -7,11 +7,13 @@ import { useHasChanged } from "./useHasChanged";
 export function useFetcher<FetchedValue, Data = FetchedValue>(
   url: string | undefined,
   params?: RequestInit & {
+    disableFetchOnMount?: boolean;
     revalidateOnFocus?: boolean;
     transform?: (data: FetchedValue) => Data;
   }
 ) {
   const {
+    disableFetchOnMount = false,
     revalidateOnFocus = false,
     transform = (fetchedValue: FetchedValue) =>
       (fetchedValue as unknown) as Data,
@@ -46,7 +48,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     );
   }, [run, url]);
 
-  const hasFetchedOnMount = React.useRef(false);
+  const hasFetchedOnMount = React.useRef(disableFetchOnMount);
 
   React.useEffect(() => {
     if (!hasFetchedOnMount.current || shouldRefetch) {

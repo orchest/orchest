@@ -8,8 +8,9 @@ import Typography from "@mui/material/Typography";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useInterval } from "./use-interval";
-import { useAsync } from "./useAsync";
 import { useCancelablePromise } from "./useCancelablePromise";
+import { useFetcher } from "./useFetcher";
+import { useMatchRoutePaths } from "./useMatchProjectRoot";
 
 const isVersionLTE = (oldVersion: string, newVersion: string) => {
   const [oldYear, oldMonth, oldPatch] = oldVersion.split(".");
@@ -54,34 +55,33 @@ const requestToCheckVersions = async () => {
   return [orchestVersion, latestVersion] as const;
 };
 
-export const useOrchestVersion = () => {
-  const { data, run } = useAsync<OrchestVersion["version"]>();
-  React.useEffect(() => {
-    run(fetchOrchestVersion());
-  }, [run]);
-  return data;
+const useOrchestVersion = () => {
+  const { data, fetchData } = useFetcher<
+    OrchestVersion,
+    string | null | undefined
+  >("/async/version", { transform: (data) => data.version });
+
+  return { orchestVersion: data, fetchOrchestVersion: fetchData };
 };
 
-const useVersionsPoller = (checkNow = false) => {
-  const { data, run } = useAsync<
-    Awaited<ReturnType<typeof requestToCheckVersions>>
-  >();
+const useLatestVersion = () => {
+  const { data, fetchData } = useFetcher<UpdateInfo, string | null>(
+    "/async/orchest-update-info",
+    { transform: (data) => data.latest_version }
+  );
 
-  const checkVersions = React.useCallback(() => {
-    run(requestToCheckVersions());
-  }, [run]);
+  return { latestVersion: data, fetchLatestVersion: fetchData };
+};
 
-  React.useEffect(() => {
-    if (checkNow) checkVersions();
-  }, [checkNow, checkVersions]);
+const useVersionsPoller = () => {
+  const { orchestVersion } = useOrchestVersion();
+  const { latestVersion, fetchLatestVersion } = useLatestVersion();
 
-  // Only make requests every hour, because the latest Orchest version gets
+  // Only check the latest version every hour, because the latest Orchest version gets
   // fetched once per hour.
   useInterval(() => {
-    checkVersions();
+    fetchLatestVersion();
   }, 3600000);
-
-  const [orchestVersion, latestVersion] = data || [];
 
   return { orchestVersion, latestVersion };
 };
@@ -91,13 +91,19 @@ const useVersionsPoller = (checkNow = false) => {
 // defined in the routingConfig.tsx).
 export const useCheckUpdate = () => {
   const { setConfirm, setAlert } = useAppContext();
-  const { navigateTo } = useCustomRoute();
+  const { navigateTo, location } = useCustomRoute();
 
   const [skipVersion, setSkipVersion] = useLocalStorage<string | null>(
     "skip_version",
     null
   );
 
+  // Only check update on mount if the route path matches the following:
+  const match = useMatchRoutePaths([
+    siteMap.projects,
+    siteMap.settings,
+    siteMap.help,
+  ]);
   const { orchestVersion, latestVersion } = useVersionsPoller();
 
   const promptUpdate = React.useCallback(
@@ -181,10 +187,18 @@ export const useCheckUpdate = () => {
   }, [handlePrompt, makeCancelable]);
 
   React.useEffect(() => {
-    if (orchestVersion && latestVersion) {
+    // When location is changed (i.e. user is navigating), check if match is valid and then execute handlePrompt.
+    if (orchestVersion && latestVersion && match) {
       handlePrompt(orchestVersion, latestVersion, skipVersion, false);
     }
-  }, [orchestVersion, latestVersion, skipVersion, handlePrompt]);
+  }, [
+    orchestVersion,
+    latestVersion,
+    skipVersion,
+    handlePrompt,
+    match,
+    location,
+  ]);
 
-  return checkUpdate;
+  return { orchestVersion, checkUpdate };
 };
