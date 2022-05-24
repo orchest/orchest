@@ -7,6 +7,10 @@ Installation
    Orchest is in beta.
 
 .. tip::
+   👉 A convenience end to end installation script for a minikube deployment is provided
+   in ``scripts/convenience_install.sh``.
+
+.. tip::
    👉 Get a fully configured Orchest instance out of the box on our `Orchest Cloud
    <https://cloud.orchest.io/signup>`_, for free!
 
