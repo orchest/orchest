@@ -154,10 +154,7 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
 
     # TODO: Use release assets on latest version instead.
     # Deploy the `orchest-controller` and the resources it needs.
-    with open(
-        "/home/yannick/Documents/Orchest/orchest/services/orchest-controller"
-        "/deploy/k8s/orchest-controller.yaml"
-    ) as f:
+    with open("services/orchest-controller/deploy/k8s/orchest-controller.yaml") as f:
         yml_deploy_controller = yaml.safe_load_all(f)
 
         try:
@@ -437,10 +434,7 @@ def update(
 
     # TODO:
     # - Get manifest from release assets
-    with open(
-        "/home/yannick/Documents/Orchest/orchest/services/orchest-controller"
-        "/deploy/k8s/orchest-controller.yaml"
-    ) as f:
+    with open("services/orchest-controller/deploy/k8s/orchest-controller.yaml") as f:
         yml_deploy_controller = yaml.safe_load_all(f)
 
         try:
