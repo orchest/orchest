@@ -23,8 +23,6 @@ class StartUpdate(Resource):
         try:
             cmds.update(
                 version=None,
-                controller_deploy_name="orchest-controller",
-                controller_pod_label_selector="app=orchest-controller",
                 watch_flag=False,
                 namespace=_config.ORCHEST_NAMESPACE,
                 cluster_name=_config.ORCHEST_CLUSTER,

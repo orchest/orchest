@@ -17,7 +17,8 @@ from functools import partial
 import click
 import requests
 import yaml
-from kubernetes import client, config, stream, utils, watch
+from kubernetes import client, config, stream, watch
+from orchestcli import utils
 
 # Only when running a type checker, e.g. mypy, would we do the following
 # imports. Apart from type checking these imports are not needed.
@@ -151,11 +152,7 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
         if e.reason == "Conflict":
             echo(f"Installing into existing namespace: {ns}.")
 
-    # TODO: the create from yaml only does create, we want patch/replace
-    # as well.
-    # CUSTOM_OBJECT_API.replace_namespaced_custom_object
-    # CUSTOM_OBJECT_API.patch_namespaced_custom_object
-
+    # TODO: Use release assets on latest version instead.
     # Deploy the `orchest-controller` and the resources it needs.
     with open(
         "/home/yannick/Documents/Orchest/orchest/services/orchest-controller"
@@ -164,7 +161,9 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
         yml_deploy_controller = yaml.safe_load_all(f)
 
         try:
-            utils.create_from_yaml(
+            # TODO: needs to be utils.create_from_yaml. It is like this
+            # to ease testing.
+            utils.replace_from_yaml(
                 k8s_client=API_CLIENT,
                 yaml_objects=yml_deploy_controller,
             )
@@ -314,26 +313,24 @@ def uninstall(**kwargs) -> None:
     echo("\nSuccessfully uninstalled Orchest.")
 
 
-# TODO:
-# - It can be possible that users need to apply a new CRD. This needs
-#   to be included somewhere.
-# - Provide ready to go templates to deploy the orchest-controller.
+# NOTE:
+# Issues preventing a `kubectl apply` equivalent in Python:
+# https://github.com/kubernetes-client/python/pull/959
+# https://github.com/kubernetes-client/python/issues/1093#issuecomment-611773280
+# That is why we have built similar behavior ourselves. There are some
+# other issues when it comes to applying the `orchest-controller.yaml`
+# manifest that we can't solve:
+# - Deleting resources from the controller.yaml will not be picked up
+#   by update.
+# - All resources in the `orchest-controller.yaml` must have a name,
+#   because it is used to identify the object and search for its
+#   existence in the cluster. If not found, a new object is created.
 def update(
     version: t.Optional[str],
-    controller_deploy_name: str,
-    controller_pod_label_selector: str,
     watch_flag: bool,
     **kwargs,
 ) -> None:
-    """Updates Orchest.
-
-    Note:
-        The arguments `controller_deploy_name` and
-        `controller_pod_label_selector` need to be explicitly provided
-        given that everyone could have applied a custom
-        orchest-controller deployment.
-
-    """
+    """Updates Orchest."""
 
     def lte(old: str, new: str) -> bool:
         """Returns `old <= new`, i.e. less than or equal.
@@ -382,15 +379,15 @@ def update(
 
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
+    tmp_fetching = "version"
     try:
-        fetching = "version"
         curr_version = _get_orchest_cluster_version(ns, cluster_name)
-        fetching = "cloud mode"
-        is_cloud_mode = _get_orchest_cloud_mode(ns, cluster_name)
+        tmp_fetching = "running mode"
+        is_cloud_mode = _is_orchest_in_cloud_mode(ns, cluster_name)
 
     except CRObjectNotFound as e:
         echo(
-            f"Failed to fetch current Orchest Cluster {fetching} to make"
+            f"Failed to fetch current Orchest Cluster {tmp_fetching} to make"
             " sure the cluster isn't downgraded.",
             err=True,
         )
@@ -399,7 +396,7 @@ def update(
 
     except KeyError:
         echo(
-            f"Failed to fetch current Orchest Cluster {fetching} to make"
+            f"Failed to fetch current Orchest Cluster {tmp_fetching} to make"
             " sure the cluster isn't downgraded.",
             err=True,
         )
@@ -438,51 +435,84 @@ def update(
         )
         sys.exit(1)
 
-    # NOTE: It is possible that the `orchest-controller` updated, but
-    # the CR Object can't be updated. Thus we need to make sure that
-    # `orchest update` can be invoked again even though the controller
-    # is already updated.
+    # TODO:
+    # - Get manifest from release assets
+    with open(
+        "/home/yannick/Documents/Orchest/orchest/services/orchest-controller"
+        "/deploy/k8s/orchest-controller.yaml"
+    ) as f:
+        yml_deploy_controller = yaml.safe_load_all(f)
 
-    # NOTE: It is possible the update of orchest-controller needs more
-    # than updating the image. for example some environment variables
-    # are added or CRD definitions are changed. we should come up with a
-    # solotion to update even in those scenarios, for example receiving
-    # the updated version of manifests from a URL and apply it.
-    echo("Updating the Orchest Controller...")
-    APPS_API.patch_namespaced_deployment(
-        name=controller_deploy_name,
-        namespace=ns,  # controller is currently deployed in same ns
-        body={
-            "spec": {
-                "template": {
-                    "spec": {
-                        "containers": [
-                            {
-                                "name": "controller",
-                                "image": f"orchest/orchest-controller:{version}",
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        field_manager="StrategicMergePatch",
-    )
+        try:
+            utils.replace_from_yaml(
+                k8s_client=API_CLIENT,
+                yaml_objects=yml_deploy_controller,
+            )
+        except utils.FailToCreateError:
+            # TODO: let's link to the yaml in the assets
+            echo("Failed to update Orchest. Could not apply ...", err=True)
+            sys.exit(1)
+
+    # Returns an iterator so we need to init it again to get the
+    # `namespace` and `labels` of the `orchest-controller` deployment
+    # for the next step.
+    with open(
+        "/home/yannick/Documents/Orchest/orchest/services/orchest-controller"
+        "/deploy/k8s/orchest-controller.yaml"
+    ) as f:
+        yml_deploy_controller = yaml.safe_load_all(f)
+        while True:
+            try:
+                obj = next(yml_deploy_controller)
+
+                if (
+                    obj is not None
+                    and obj["kind"] == "Deployment"
+                    # NOTE: We need to assume something to not change
+                    # in the controller deployment to be able to
+                    # distinguish it from other defined deployments in
+                    # the yaml file.
+                    and obj["metadata"]["name"] == "orchest-controller"
+                ):
+                    controller_namespace = obj["metadata"]["namespace"]
+                    controller_pod_labels = obj["spec"]["selector"]["matchLabels"]
+                    break
+            except StopIteration:
+                echo(
+                    "Aborting update. No deployment manifest is defined for the"
+                    " 'orchest-controller'.",
+                    err=True,
+                )
+                sys.exit(1)
 
     # Wait until the `orchest-controller` is successfully updated. We
     # don't accidentally want the old `orchest-controller` to initiate
     # the update process.
+    # NOTE: It is possible that the `orchest-controller` updated, but
+    # the CR Object can't be updated. Thus we need to make sure that
+    # `orchest update` can be invoked again even though the controller
+    # is already updated.
+    # NOTE: Don't use a `label_selector` for the pod specifically
+    # because it could take a long time for the pod to be listed and
+    # thus leading to a timeout. Instead just list all pods and filter
+    # for the one we are interested in.
     w = watch.Watch()
     for event in w.stream(
         CORE_API.list_namespaced_pod,
-        namespace=ns,
-        label_selector=(controller_pod_label_selector),
-        timeout_seconds=60,
+        namespace=controller_namespace,
+        timeout_seconds=20,
     ):
-        curr_img = event["object"].spec.containers[0].image  # type: ignore
-        if curr_img == f"orchest/orchest-controller:{version}":
-            if event["object"].status.phase == "Running":  # type: ignore
-                w.stop()
+        breakpoint()
+        if event["object"].metadata.labels == controller_pod_labels:  # type: ignore
+            for container in event["object"].spec.containers:  # type: ignore
+                # NOTE: Assume that the `orchest-controller` deployment
+                # only defines Orchest owned images. This way we can
+                # infer what the version of the image should be.
+                if not container.image.endswith(f":{version}"):
+                    break
+            else:
+                if event["object"].status.phase == "Running":  # type: ignore
+                    w.stop()
 
     echo("Updating the Orchest Cluster...")
     try:
@@ -783,11 +813,12 @@ def restart(watch: bool, **kwargs) -> None:
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     echo("Restarting the Orchest Cluster.")
+    # TODO: This logic should be inside the controller, not here.
+    # Because kubectl users would not mimic this.
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
     except CRObjectNotFound as e:
         return False, str(e)
-
     if status == ClusterStatus.PAUSED:
         start(watch, **kwargs)
         return
@@ -1206,14 +1237,14 @@ def _get_orchest_cluster_version(ns: str, cluster_name: str) -> str:
     return custom_object["spec"]["orchest"]["version"]  # type: ignore
 
 
-def _get_orchest_cloud_mode(ns: str, cluster_name: str) -> bool:
-    """Gets if the cluster is running in cloud mode or not.
+def _is_orchest_in_cloud_mode(ns: str, cluster_name: str) -> bool:
+    """Answers whether Orchest is running in cloud mode or not.
 
     Raises:
-        CRObjectNotFound: If the Orchest Cluster CR Object couldn't be
-            found.
-        KeyError: If the `version` entry couldn't be accessed from the
-            CR Object.
+        CRObjectNotFound: If the Orchest Cluster CR Object couldn't
+            be found.
+        KeyError: If the returned custom object has an unexpected
+            format.
 
     """
     custom_object = _get_namespaced_custom_object(ns, cluster_name)
