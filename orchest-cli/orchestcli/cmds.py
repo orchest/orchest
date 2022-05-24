@@ -1137,8 +1137,8 @@ def _display_spinner(
     click_ctx = click.get_current_context(silent=True)
     assert click_ctx is not None, "Can only display spinner through CLI invocation."
 
-    ns = click_ctx.params.get("namespace")
-    cluster_name = click_ctx.params.get("cluster_name")
+    ns = t.cast(str, click_ctx.params.get("namespace"))
+    cluster_name = t.cast(str, click_ctx.params.get("cluster_name"))
 
     # NOTE: Assumes the `orchest-controller` changes the status of the
     # Orchest Cluster based on the management command within 10s and the
