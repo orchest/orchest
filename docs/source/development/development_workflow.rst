@@ -401,3 +401,54 @@ branches respectively. Therefore, we require PRs to be merged into ``dev`` inste
 
 When opening the PR a checklist will automatically appear to guide you to successfully completing
 your PR 🏁
+
+.. _environment base images changes:
+
+Testing environment base image changes
+--------------------------------------
+
+By default, the image builder will pull a base image from Docker Hub based on the version of the
+cluster. For example, when building an environment image using the provided "python" base image, the
+builder will pull ``docker.io/orchest/base-kernel-py:<cluster version>``. This makes it difficult to
+test changes to environment base images.
+
+When running Orchest in development mode (``orchest patch --dev``), the docker socket
+**of the cluster node** will be exposed to the builder. When that's the case, it's
+possible to instruct the builder to pull from the local daemon by specifying a custom base image in
+the environment build page, the image must have the form ``registry:docker-daemon:<your image>``,
+e.g. ``registry:docker-daemon:orchest/base-kernel-py``.
+
+Example:
+
+- ``orchest patch --dev``
+- ``eval $(minikube -p minikube docker-env)``
+- ``bash scripts/build_container.sh -i base-kernel-py -o v2022.05.3 -t v2022.05.3``
+- specify ``registry:docker-daemon:orchest/base-kernel-py`` as the custom base image
+  and build
+
+.. note::
+    As you rebuild, the image builder will pull the newest image.
+
+.. note::
+    You can specify the image tag to avoid the back-end making assumptions for you.
+
+
+Testing jupyter base image changes
+----------------------------------
+
+Required reading: :ref:`testing environment base image changes <environment base images changes>`.
+
+Orchest does not allow to specify custom jupyter base images, which makes it slightly more difficult
+to tell the back-end that you want to use an image which was built locally. To do so, simply add
+``# LOCAL`` to the first line of the custom build script.
+
+Example:
+
+- ``orchest patch --dev``
+- ``eval $(minikube -p minikube docker-env)``
+- ``bash scripts/build_container.sh -i jupyter-server -o v2022.05.3 -t v2022.05.3``
+- add ``# LOCAL`` to the first line of the custom build script and build
+
+.. note::
+    It's currently not possible to specify a custom tag, the back-end will always
+    try to pull an image with a tag equal to the cluster version.
