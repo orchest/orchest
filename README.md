@@ -44,10 +44,15 @@ No frameworks. No YAML. Just write your data processing code directly in **Pytho
 [docs](https://docs.orchest.io/en/stable/getting_started/when_to_use_orchest.html).
 
 👉 Get started with our
-[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial,
-check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
-users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
-explaining some of Orchest's core concepts.
+[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial or have a look at our [video tutorials](https://www.orchest.io/video-tutorials) explaining some of Orchest's core concepts.
+
+## Examples
+Get started with an example project:
+- [Train and compare 3 regression models](https://github.com/orchest/quickstart)
+- [Connecting to an external database using SQLAlchemy](https://github.com/astrojuanlu/orchest-sqlalchemy)
+- [Run dbt in Orchest for a dbt + Python transform pipeline](https://github.com/ricklamers/orchest-dbt)
+
+👉 Check out the full list of [example projects](https://github.com/orchest/orchest-examples).
 
 ## Installation
 
