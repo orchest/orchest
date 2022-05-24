@@ -14,12 +14,18 @@ LDFLAGS := ${if ${ORCHEST_VERSION},-X $(GO_PROJECT)/pkg/version.Version=$(ORCHES
 
 NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest-system}
 
+SOURCE_DIRS = cmd pkg
+
 .PHONY: docker
 docker:
 	@docker build --rm -t $(TAG) . -f Dockerfile
 
+.PHONY: fmt
+fmt: ## Run go fmt and modify files in place
+	@gofmt -s -w ${SOURCE_DIRS}
+
 .PHONY: controller
-controller:
+controller: fmt
 	CGO_ENABLED=0 GOOS=linux go build -ldflags="$(LDFLAGS)" -o bin/controller ./cmd/controller
 
 .SECONDARY: $(CONTROLLER_GEN)
