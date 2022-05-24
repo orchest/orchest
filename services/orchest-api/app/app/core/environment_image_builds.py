@@ -241,11 +241,12 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
             f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
         )
 
-        base_image = environment_properties["base_image"]
+        base_image: str = environment_properties["base_image"]
         # Temporary workaround for common.tsx not using the orchest
         # version.
-        if ":" not in base_image and "orchest/" in base_image:
-            base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
+        if "orchest/" in base_image:
+            if ":" not in base_image.split("orchest/")[1]:
+                base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
         write_environment_dockerfile(
             base_image,
             project_uuid,

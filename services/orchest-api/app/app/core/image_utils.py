@@ -170,6 +170,26 @@ def _get_buildah_image_build_workflow_manifest(
             ],
         },
     }
+
+    # TODO: based on dev mode, post controller PR.
+    # Mount docker.sock to pull from local docker daemon to enable
+    # pulling base images of the form docker-daemon:<image>.
+    if True:
+        manifest["spec"]["volumes"].append(
+            {
+                "name": "dockersock",
+                "hostPath": {"path": "/var/run/docker.sock", "type": ""},
+            }
+        )
+        container = manifest["spec"]["templates"][0]["container"]
+        container["volumeMounts"].append(
+            {"name": "dockersock", "mountPath": "/var/run/docker.sock"}
+        )
+        container["args"][0] = container["args"][0].replace(
+            "buildah build",
+            # Check if there is a newer image, if so, pull it.
+            "buildah build --pull=true",
+        )
     return manifest
 
 
