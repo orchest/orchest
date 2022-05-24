@@ -13,7 +13,6 @@ import {
 import { getOffset } from "@/utils/jquery-replacement";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { MutatorCallback } from "swr";
 import { getScaleCorrectedPosition } from "../common";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import {
@@ -45,10 +44,9 @@ export type PipelineEditorContextType = {
   setPipelineJson: (
     data?:
       | PipelineJson
-      | undefined
-      | Promise<PipelineJson | undefined>
-      | MutatorCallback<PipelineJson | undefined>,
-    flushPage?: boolean
+      | ((currentValue: PipelineJson | undefined) => PipelineJson | undefined)
+      | undefined,
+    flushPage?: boolean | undefined
   ) => void;
   hash: React.MutableRefObject<string>;
   fetchDataError: any; // eslint-disable-line @typescript-eslint/no-explicit-any

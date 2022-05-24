@@ -417,9 +417,8 @@ export const PipelineEditor = () => {
 
       const updated = updatePipelineJson(current, updatedSteps);
 
-      // reset eventVars.steps, this will trigger saving
-      dispatch({ type: "SET_STEPS", payload: updated.steps });
-      saveSteps(updated.steps); // normally SET_STEPS won't trigger save
+      // Save `eventVars.steps`.
+      dispatch({ type: "SAVE_STEPS", payload: updated.steps });
       return updated;
     }, true); // flush page, re-instantiate all UI elements with new local state for dragging
     // the rendering of connection lines depend on the positions of the steps
@@ -653,8 +652,6 @@ export const PipelineEditor = () => {
           canvasFuncRef={canvasFuncRef}
         >
           {connections.map((connection) => {
-            if (!connection) return null;
-
             const { startNodeUUID, endNodeUUID } = connection;
             const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
             const endNode = endNodeUUID

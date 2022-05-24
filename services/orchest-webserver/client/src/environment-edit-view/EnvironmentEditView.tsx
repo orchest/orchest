@@ -5,13 +5,13 @@ import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { ImageBuildStatus } from "@/components/ImageBuildStatus";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { useOrchestVersion } from "@/settings-view/hooks/useOrchestVersion";
 import type { CustomImage, Environment, EnvironmentImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
@@ -63,6 +63,7 @@ const ENVIRONMENT_BUILDS_BASE_ENDPOINT =
 const EnvironmentEditView: React.FC = () => {
   // global states
   const { setAlert, setAsSaved, config } = useAppContext();
+  const { orchestVersion } = useAppInnerContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.environment.path });
 
@@ -87,8 +88,6 @@ const EnvironmentEditView: React.FC = () => {
       ? undefined
       : { projectUuid, environmentUuid }
   );
-
-  const orchestVersion = useOrchestVersion();
 
   const defaultImageInUse = React.useMemo(() => {
     return environment?.base_image

@@ -90,7 +90,7 @@ export const ContainerImagesRadioGroup = ({
   disabled,
 }: {
   value: string | undefined;
-  orchestVersion: string | undefined;
+  orchestVersion: string | null | undefined;
   onChange: (newImage: CustomImage) => void;
   onOpenCustomBaseImageDialog: () => void;
   customImage: CustomImage | undefined;

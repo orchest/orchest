@@ -11,7 +11,7 @@ import React from "react";
 export const useCustomImage = (
   environment: Environment | undefined,
   defaultImageInUse: (CustomImage & { img_src: string }) | undefined,
-  orchestVersion: string | undefined
+  orchestVersion: string | null | undefined
 ) => {
   const [customImage, setCustomImage] = React.useState<CustomImage>();
 
