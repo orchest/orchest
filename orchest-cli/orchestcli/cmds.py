@@ -813,28 +813,23 @@ def restart(watch: bool, **kwargs) -> None:
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     echo("Restarting the Orchest Cluster.")
-    # TODO: This logic should be inside the controller, not here.
-    # Because kubectl users would not mimic this.
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
-    except CRObjectNotFound as e:
-        return False, str(e)
-    if status == ClusterStatus.PAUSED:
-        start(watch, **kwargs)
-        return
-
-    try:
-        patch_namespaced_custom_object(
-            name=cluster_name,
-            namespace=ns,
-            # NOTE: strategic merge does work on the annotations in the
-            # metadata.
-            # `RestartAnnotationKey` in the `orchest-controller`.
-            body={"metadata": {"annotations": {"orchest.io/restart": "true"}}},
-            # Don't replace the annotations instead merge with existing
-            # keys.
-            field_manager="StrategicMergePatch",
-        )
+        if status == ClusterStatus.PAUSED:
+            start(**kwargs)
+        else:
+            status = ClusterStatus.RUNNING
+            patch_namespaced_custom_object(
+                name=cluster_name,
+                namespace=ns,
+                # NOTE: strategic merge does work on the annotations in
+                # the metadata.
+                # `RestartAnnotationKey` in the `orchest-controller`.
+                body={"metadata": {"annotations": {"orchest.io/restart": "true"}}},
+                # Don't replace the annotations instead merge with
+                # existing keys.
+                field_manager="StrategicMergePatch",
+            )
     except client.ApiException as e:
         echo("Failed to restart the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
@@ -848,7 +843,7 @@ def restart(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
+        _display_spinner(status, ClusterStatus.RUNNING)
         echo("Successfully restarted Orchest.")
 
 

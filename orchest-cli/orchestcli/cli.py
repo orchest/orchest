@@ -352,11 +352,16 @@ def start(watch: bool, **common_options) -> None:
 def restart(watch: bool, **common_options) -> None:
     """Restart Orchest.
 
+    \b
+    Behavior:
+        Stop -> Start   if the cluster is not stopped,
+        Start           if the cluster is stopped.
+
     Useful to reinitialize the Orchest application for config changes to
     take effect.
 
     \b
-    Equivalent `kubectl` command:
+    Equivalent `kubectl` command if the cluster is stopped:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' \\
         \t-p='{"metadata": {"annotations": {"orchest.io/restart": "true"}}}'
 
