@@ -39,7 +39,7 @@ def update_jupyter_image_build_status(
         return response.json()
 
 
-def write_jupyter_dockerfile(work_dir, bash_script, path):
+def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
     """Write a custom dockerfile with the given specifications.
 
     This dockerfile is built in an ad-hoc way to later be able to only
@@ -56,9 +56,14 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
 
     """
     statements = []
-    statements.append(
-        f"FROM docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
-    )
+
+    custom_registry_prefix = "registry:"
+    if base_image.startswith(custom_registry_prefix):
+        full_basename = base_image[len(custom_registry_prefix) :]
+    else:
+        full_basename = f"docker.io/{base_image}"
+
+    statements.append(f"FROM {full_basename}")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     statements.append("COPY . .")
@@ -102,7 +107,7 @@ def prepare_build_context(task_uuid):
         Path to the prepared context.
 
     """
-    # the project path we receive is relative to the projects directory
+    # The project path we receive is relative to the projects directory.
     jupyterlab_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
     jupyter_image_builds_dir = _config.USERDIR_JUPYTER_IMG_BUILDS
     snapshot_path = f"{jupyter_image_builds_dir}/{task_uuid}"
@@ -114,30 +119,41 @@ def prepare_build_context(task_uuid):
 
     dockerfile_name = ".orchest-reserved-jupyter-dockerfile"
     bash_script_name = ".orchest-reserved-jupyter-setup.sh"
+
+    snapshot_setup_script_path = os.path.join(snapshot_path, bash_script_name)
+    if os.path.isfile(jupyterlab_setup_script):
+        # Move the setup_script to the context.
+        os.system(
+            'cp "%s" "%s"' % (jupyterlab_setup_script, snapshot_setup_script_path)
+        )
+    else:
+        # Create empty shell script if no setup_script exists.
+        os.system(f'touch "{snapshot_setup_script_path}"')
+
+    base_image = f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+    # TODO: based on dev mode, post controller PR.
+    if True:
+        # Use image from local daemon if instructed to do so.
+        with open(snapshot_setup_script_path, "r") as script_file:
+            first_line = script_file.readline()
+            if "# LOCAL" in first_line:
+                base_image = f"registry:docker-daemon:{base_image}"
+                logger.info(f"Using {base_image}.")
+
     write_jupyter_dockerfile(
+        base_image,
         "tmp/jupyter",
         bash_script_name,
         os.path.join(snapshot_path, dockerfile_name),
     )
 
-    if os.path.isfile(jupyterlab_setup_script):
-        # move the setup_script to the context
-        os.system(
-            'cp "%s" "%s"'
-            % (
-                jupyterlab_setup_script,
-                os.path.join(snapshot_path, bash_script_name),
-            )
-        )
-    else:
-        # create empty shell script if no setup_script exists
-        os.system('touch "%s"' % os.path.join(snapshot_path, bash_script_name))
-
-    return {
+    res = {
         "snapshot_path": snapshot_path,
-        "base_image": f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}",
+        "base_image": base_image,
         "dockerfile_path": dockerfile_name,
     }
+
+    return res
 
 
 def build_jupyter_image_task(task_uuid: str, image_tag: str):
