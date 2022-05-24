@@ -88,6 +88,7 @@ export type NavigateParams = {
 // better make use of useLocationQuery and useLocationState
 const useCustomRoute = () => {
   const history = useHistory();
+  const location = useLocation();
 
   const [isReadOnly, prevPathname] = useLocationState<
     [boolean, string, boolean]
@@ -169,6 +170,7 @@ const useCustomRoute = () => {
     runUuid,
     filePath,
     initialTab,
+    location,
     prevPathname,
   };
 };
