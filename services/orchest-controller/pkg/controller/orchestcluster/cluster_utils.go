@@ -18,8 +18,8 @@ import (
 var (
 	orderOfDeployment = []string{
 		controller.OrchestDatabase,
-		controller.OrchestApi,
 		controller.Rabbitmq,
+		controller.OrchestApi,
 		controller.CeleryWorker,
 		controller.AuthServer,
 		controller.OrchestWebserver,
