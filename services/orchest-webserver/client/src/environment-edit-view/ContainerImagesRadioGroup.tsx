@@ -83,12 +83,14 @@ const Image = styled("img")({ maxHeight: "70px" });
 
 export const ContainerImagesRadioGroup = ({
   value,
+  orchestVersion,
   onChange,
   onOpenCustomBaseImageDialog,
   customImage,
   disabled,
 }: {
   value: string | undefined;
+  orchestVersion: string | undefined;
   onChange: (newImage: CustomImage) => void;
   onOpenCustomBaseImageDialog: () => void;
   customImage: CustomImage | undefined;
@@ -100,11 +102,20 @@ export const ContainerImagesRadioGroup = ({
       onChange(customImage);
       return;
     }
-    const foundDefaultImage = DEFAULT_BASE_IMAGES.find(
-      (image) => image.base_image === baseImage
+    const foundDefaultImage = DEFAULT_BASE_IMAGES.find((image) =>
+      [image.base_image, `${image.base_image}:${orchestVersion}`].includes(
+        baseImage
+      )
     );
-    if (foundDefaultImage) onChange(foundDefaultImage);
+    if (foundDefaultImage) {
+      // Always return a un-versioned image, and let BE fill the version.
+      onChange({
+        ...foundDefaultImage,
+        base_image: foundDefaultImage.base_image,
+      });
+    }
   };
+
   return (
     <RadioGroup value={value} onChange={(e, value) => onChangeSelection(value)}>
       <Box>
@@ -149,7 +160,7 @@ export const ContainerImagesRadioGroup = ({
             </Grid>
           );
         })}
-        {!customImage && (
+        {!customImage ? (
           <Button
             startIcon={<AddCircleIcon />}
             fullWidth
@@ -161,8 +172,7 @@ export const ContainerImagesRadioGroup = ({
           >
             Add custom base image
           </Button>
-        )}
-        {customImage && (
+        ) : (
           <Grid item sm={12}>
             <ImageOption
               value={customImage.base_image}
