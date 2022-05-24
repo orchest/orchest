@@ -154,15 +154,26 @@ def cli():
     help="Run in cloud mode after install.",
 )
 @click.option(
+    "--dev/--no-dev",
+    "dev_mode",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Run install in dev mode.",
+)
+@click.option(
     "--fqdn",
     default=None,
     show_default=True,
     help="Fully Qualified Domain Name that Orchest listens on.",
 )
 @cli.command(cls=ClickCommonOptionsCmd)
-def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
+def install(
+    cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **common_options
+) -> None:
     """Install Orchest."""
-    cmds.install(cloud, fqdn, **common_options)
+    cmds.install(cloud, dev_mode, fqdn, **common_options)
 
 
 # TODO: Should be improved to remove the provided Orchest Cluster,
@@ -190,10 +201,20 @@ def uninstall(**common_options) -> None:
     show_default=True,
     help="Watch cluster status changes.",
 )
+@click.option(
+    "--dev/--no-dev",
+    "dev_mode",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Run update in dev mode.",
+)
 @cli.command(cls=ClickCommonOptionsCmd)
 def update(
     version: t.Optional[str],
     watch_flag: bool,
+    dev_mode: bool,
     **common_options,
 ) -> None:
     """Update Orchest.
@@ -213,6 +234,7 @@ def update(
     cmds.update(
         version,
         watch_flag,
+        dev_mode,
         **common_options,
     )
 

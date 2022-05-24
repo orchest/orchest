@@ -142,7 +142,7 @@ class ClusterStatus(enum.Enum):
     DELETING = "Deleting"
 
 
-def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
+def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
@@ -152,50 +152,68 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
         if e.reason == "Conflict":
             echo(f"Installing into existing namespace: {ns}.")
 
-    # TODO: Use release assets on latest version instead.
-    # Deploy the `orchest-controller` and the resources it needs.
-    with open("services/orchest-controller/deploy/k8s/orchest-controller.yaml") as f:
-        yml_deploy_controller = yaml.safe_load_all(f)
-
-        try:
-            # TODO: needs to be utils.create_from_yaml. It is like this
-            # to ease testing.
-            utils.replace_from_yaml(
-                k8s_client=API_CLIENT,
-                yaml_objects=yml_deploy_controller,
-            )
-        except utils.FailToCreateError as e:
-            conflicting_resources = []
-            for exc in e.api_exceptions:
-                if exc.status != 409:  # conflict/already exists
-                    raise e
-                else:
-                    conflicting_resources.append(json.loads(exc.body)["details"])
-
-            conflicting_resources_msg = "\n".join(
-                [json.dumps(resource) for resource in conflicting_resources]
-            )
-
+    if dev_mode:
+        # NOTE: orchest-cli commands to be invoked in Orchest directory
+        # root for relative path to work.
+        with open(
+            "services/orchest-controller/deploy/k8s/orchest-controller.yaml"
+        ) as f:
+            txt_deploy_controller = f.read()
+    else:
+        version = _fetch_latest_available_version(curr_version=None, is_cloud=cloud)
+        if version is None:
             echo(
-                "In case you are trying to install additional 'orchestclusters'"
-                " then please note that this is not yet supported. On update the"
-                " cluster-level resources of one 'orchestcluster' could become"
-                " incompatible with another 'orchestcluster'.",
-                err=True,
-            )
-            echo(
-                "Orchest seems to have been installed before and was incorrectly"
-                " uninstalled, leaving dangling state. Please ensure you are on"
-                " a compatible 'orchest-cli' version and run:\n\torchest uninstall",
-                err=True,
-            )
-            echo(
-                "If uninstalling doesn't work, then please try to remove the"
-                " following resources manually before installing again:"
-                f"\n{conflicting_resources_msg}",
+                "Failed to fetch latest available version. Without the version"
+                " the Orchest Controller can't be installed. Please try again"
+                " in a short moment.",
                 err=True,
             )
             sys.exit(1)
+        try:
+            txt_deploy_controller = _fetch_orchest_controller_manifests(version)
+        except RuntimeError as e:
+            echo(f"{e}", err=True)
+            sys.exit(1)
+
+    # Deploy the `orchest-controller` and the resources it needs.
+    yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
+    try:
+        utils.create_from_yaml(
+            k8s_client=API_CLIENT,
+            yaml_objects=yml_deploy_controller,
+        )
+    except utils.FailToCreateError as e:
+        conflicting_resources = []
+        for exc in e.api_exceptions:
+            if exc.status != 409:  # conflict/already exists
+                raise e
+            else:
+                conflicting_resources.append(json.loads(exc.body)["details"])
+
+        conflicting_resources_msg = "\n".join(
+            [json.dumps(resource) for resource in conflicting_resources]
+        )
+
+        echo(
+            "In case you are trying to install additional 'orchestclusters'"
+            " then please note that this is not yet supported. On update the"
+            " cluster-level resources of one 'orchestcluster' could become"
+            " incompatible with another 'orchestcluster'.",
+            err=True,
+        )
+        echo(
+            "Orchest seems to have been installed before and was incorrectly"
+            " uninstalled, leaving dangling state. Please ensure you are on"
+            " a compatible 'orchest-cli' version and run:\n\torchest uninstall",
+            err=True,
+        )
+        echo(
+            "If uninstalling doesn't work, then please try to remove the"
+            " following resources manually before installing again:"
+            f"\n{conflicting_resources_msg}",
+            err=True,
+        )
+        sys.exit(1)
 
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
@@ -325,6 +343,7 @@ def uninstall(**kwargs) -> None:
 def update(
     version: t.Optional[str],
     watch_flag: bool,
+    dev_mode: bool,
     **kwargs,
 ) -> None:
     """Updates Orchest."""
@@ -359,21 +378,6 @@ def update(
                 return True
         return True
 
-    def fetch_latest_available_version(
-        curr_version: str, is_cloud: bool
-    ) -> t.Optional[str]:
-        url = (
-            "https://update-info.orchest.io/api/orchest/"
-            f"update-info/v3?version={curr_version}&is_cloud={is_cloud}"
-        )
-        resp = requests.get(url, timeout=5)
-
-        if resp.status_code == 200:
-            data = resp.json()
-            return data["latest_version"]
-        else:
-            return None
-
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     tmp_fetching = "version"
@@ -405,7 +409,7 @@ def update(
         sys.exit(1)
 
     if version is None:
-        version = fetch_latest_available_version(curr_version, is_cloud_mode)
+        version = _fetch_latest_available_version(curr_version, is_cloud_mode)
         if version is None:
             echo("Failed to fetch latest available version to update to.", err=True)
             sys.exit(1)
@@ -432,52 +436,61 @@ def update(
         )
         sys.exit(1)
 
-    # TODO:
-    # - Get manifest from release assets
-    with open("services/orchest-controller/deploy/k8s/orchest-controller.yaml") as f:
-        yml_deploy_controller = yaml.safe_load_all(f)
-
+    if dev_mode:
+        # NOTE: orchest-cli commands to be invoked in Orchest directory
+        # root for relative path to work.
+        with open(
+            "services/orchest-controller/deploy/k8s/orchest-controller.yaml"
+        ) as f:
+            txt_deploy_controller = f.read()
+    else:
         try:
-            utils.replace_from_yaml(
-                k8s_client=API_CLIENT,
-                yaml_objects=yml_deploy_controller,
-            )
-        except utils.FailToCreateError:
-            # TODO: let's link to the yaml in the assets
-            echo("Failed to update Orchest. Could not apply ...", err=True)
+            txt_deploy_controller = _fetch_orchest_controller_manifests(version)
+        except RuntimeError as e:
+            echo(f"{e}", err=True)
             sys.exit(1)
+
+    yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
+    try:
+        utils.replace_from_yaml(
+            k8s_client=API_CLIENT,
+            yaml_objects=yml_deploy_controller,
+        )
+    except utils.FailToCreateError:
+        echo(
+            "Failed to update Orchest. Could not apply 'orchest-controller'"
+            " manifests.",
+            err=True,
+        )
+        sys.exit(1)
 
     # Returns an iterator so we need to init it again to get the
     # `namespace` and `labels` of the `orchest-controller` deployment
     # for the next step.
-    with open(
-        "/home/yannick/Documents/Orchest/orchest/services/orchest-controller"
-        "/deploy/k8s/orchest-controller.yaml"
-    ) as f:
-        yml_deploy_controller = yaml.safe_load_all(f)
-        while True:
-            try:
-                obj = next(yml_deploy_controller)
+    yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
+    while True:
+        try:
+            obj = next(yml_deploy_controller)
 
-                if (
-                    obj is not None
-                    and obj["kind"] == "Deployment"
-                    # NOTE: We need to assume something to not change
-                    # in the controller deployment to be able to
-                    # distinguish it from other defined deployments in
-                    # the yaml file.
-                    and obj["metadata"]["name"] == "orchest-controller"
-                ):
-                    controller_namespace = obj["metadata"]["namespace"]
-                    controller_pod_labels = obj["spec"]["selector"]["matchLabels"]
-                    break
-            except StopIteration:
-                echo(
-                    "Aborting update. No deployment manifest is defined for the"
-                    " 'orchest-controller'.",
-                    err=True,
-                )
-                sys.exit(1)
+            if (
+                obj is not None
+                and obj["kind"] == "Deployment"
+                # NOTE: We need to assume something to not change
+                # in the controller deployment to be able to
+                # distinguish it from other defined deployments in
+                # the yaml file.
+                and obj["metadata"]["name"] == "orchest-controller"
+            ):
+                controller_namespace = obj["metadata"]["namespace"]
+                controller_pod_labels = obj["spec"]["selector"]["matchLabels"]
+                break
+        except StopIteration:
+            echo(
+                "Aborting update. No deployment manifest is defined for the"
+                " 'orchest-controller'.",
+                err=True,
+            )
+            sys.exit(1)
 
     # Wait until the `orchest-controller` is successfully updated. We
     # don't accidentally want the old `orchest-controller` to initiate
@@ -496,7 +509,6 @@ def update(
         namespace=controller_namespace,
         timeout_seconds=20,
     ):
-        breakpoint()
         if event["object"].metadata.labels == controller_pod_labels:  # type: ignore
             for container in event["object"].spec.containers:  # type: ignore
                 # NOTE: Assume that the `orchest-controller` deployment
@@ -1261,3 +1273,36 @@ def _is_calver_version(version: str) -> bool:
         return False
 
     return True
+
+
+def _fetch_latest_available_version(
+    curr_version: t.Optional[str], is_cloud: bool
+) -> t.Optional[str]:
+    url = (
+        "https://update-info.orchest.io/api/orchest/"
+        f"update-info/v3?version={curr_version}&is_cloud={is_cloud}"
+    )
+    resp = requests.get(url, timeout=5)
+
+    if resp.status_code == 200:
+        data = resp.json()
+        return data["latest_version"]
+    else:
+        return None
+
+
+def _fetch_orchest_controller_manifests(version: t.Optional[str]) -> str:
+    url = (
+        "https://github.com/orchest/orchest"
+        f"/releases/download/{version}/orchest-controller.yaml"
+    )
+    resp = requests.get(url, timeout=10)
+    if resp.status_code != 200:
+        raise RuntimeError(
+            f"Failed to fetch 'orchest-controller' manifest at:\n{url}"
+            "\nPlease try again in a short moment."
+        )
+    else:
+        txt_deploy_controller = resp.text
+
+    return txt_deploy_controller
