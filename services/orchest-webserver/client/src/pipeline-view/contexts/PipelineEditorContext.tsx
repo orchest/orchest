@@ -40,7 +40,7 @@ export type PipelineEditorContextType = {
   mouseTracker: React.MutableRefObject<MouseTracker>;
   metadataPositions: React.MutableRefObject<Record<string, [number, number]>>;
   pipelineCwd: string | undefined;
-  pipelineJson: PipelineJson;
+  pipelineJson: PipelineJson | undefined;
   environments: Environment[];
   setPipelineJson: (
     data?:
@@ -52,13 +52,7 @@ export type PipelineEditorContextType = {
   ) => void;
   hash: React.MutableRefObject<string>;
   fetchDataError: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  setRunUuid: (
-    data?:
-      | string
-      | Promise<string | undefined>
-      | MutatorCallback<string | undefined>
-      | undefined
-  ) => Promise<string | undefined>;
+  setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   zIndexMax: React.MutableRefObject<number>;
   isReadOnly: boolean;
   instantiateConnection: (

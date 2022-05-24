@@ -237,7 +237,7 @@ export type Job = {
     version: string;
     services: Record<string, Service>;
   };
-  next_scheduled_time: string;
+  next_scheduled_time: string | undefined;
   last_scheduled_time: string;
   parameters: Record<string, Json>[];
   schedule: string;
