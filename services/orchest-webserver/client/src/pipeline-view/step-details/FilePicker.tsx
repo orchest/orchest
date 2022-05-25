@@ -184,6 +184,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
+  const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
   useClickOutside(menuRef, () => setIsDropdownOpen(false));
 
   const {
@@ -235,6 +236,13 @@ const FilePicker: React.FC<FilePickerProps> = ({
     }
   };
 
+  const onTextFieldKeyUp = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      isBlurAllowed.current = false;
+      menuFirstItemRef.current?.focus();
+    }
+  };
+
   return (
     <Box sx={{ position: "relative" }}>
       <TextField
@@ -242,6 +250,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
         onFocusCapture={onFocusTextField}
         onBlur={onBlurTextField}
         onChange={(e) => onChangeValue(e.target.value)}
+        onKeyUp={onTextFieldKeyUp}
         value={value}
         label="File path"
         fullWidth
@@ -270,7 +279,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
             {options && (
               <>
                 {!isRootNode && (
-                  <MenuItem onClick={onNavigateUp}>
+                  <MenuItem onClick={onNavigateUp} ref={menuFirstItemRef}>
                     <ListItemIcon>
                       <TurnLeftOutlinedIcon fontSize="small" />
                     </ListItemIcon>
