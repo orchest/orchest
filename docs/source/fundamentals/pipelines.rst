@@ -43,7 +43,21 @@ Interactive runs are a great way to rapidly prototype your Pipeline. When using 
 Data passing
 ------------
 
-Pipelines can pass data between steps. For example, in an ETL pipeline, data can be passed between individual extract, transform and load steps. See more in :ref:`data passing <data passing>`.
+Pipelines can pass data between steps. For example, in an ETL pipeline, data can be passed between individual extract, transform and load steps. 
+
+Data is passed using the :ref:`Orchest SDK <orchest sdk>`:
+
+.. code-block:: python
+
+   import orchest
+   # Get data from incoming steps.
+   input_data = orchest.get_inputs()
+   # Some code that transforms the `input_data`.
+   res = ...
+   # Output the data.
+   orchest.output(res, name="transformed-data")
+   
+See more in :ref:`data passing <data passing>`.
 
 Storing data locally
 --------------------
