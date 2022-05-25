@@ -720,7 +720,6 @@ def register_orchest_api_views(app, db):
     def catch_api_proxy_notifications(path):
         # Note: doesn't preserve query args atm.
         req_json = request.get_json() if request.is_json else None
-        current_app.logger.error(request.path)
         resp = requests.request(
             method=request.method,
             url=(
