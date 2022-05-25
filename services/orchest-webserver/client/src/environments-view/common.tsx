@@ -6,7 +6,7 @@ import {
 } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 
-export const BUILD_POLL_FREQUENCY = 3000;
+export const BUILD_POLL_FREQUENCY = 1000;
 
 export const requestToRemoveEnvironment = (
   projectUuid: string | undefined,

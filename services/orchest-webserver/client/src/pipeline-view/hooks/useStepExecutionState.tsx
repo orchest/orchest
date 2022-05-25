@@ -5,7 +5,7 @@ import type { PipelineRun } from "@/types";
 import { serverTimeToDate } from "@/utils/webserver-utils";
 import { ExecutionState } from "../PipelineStep";
 
-const STATUS_POLL_FREQUENCY = 1000;
+const STATUS_POLL_FREQUENCY = 500;
 
 type StepExecutionStateObj = Record<string, ExecutionState>;
 
