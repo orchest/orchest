@@ -17,7 +17,7 @@ from functools import partial
 import click
 import requests
 import yaml
-from kubernetes import client, config, stream, watch
+from kubernetes import client, config, stream
 from orchestcli import utils
 
 # Only when running a type checker, e.g. mypy, would we do the following
@@ -495,30 +495,41 @@ def update(
     # Wait until the `orchest-controller` is successfully updated. We
     # don't accidentally want the old `orchest-controller` to initiate
     # the update process.
-    # NOTE: It is possible that the `orchest-controller` updated, but
-    # the CR Object can't be updated. Thus we need to make sure that
-    # `orchest update` can be invoked again even though the controller
-    # is already updated.
-    # NOTE: Don't use a `label_selector` for the pod specifically
-    # because it could take a long time for the pod to be listed and
-    # thus leading to a timeout. Instead just list all pods and filter
-    # for the one we are interested in.
-    w = watch.Watch()
-    for event in w.stream(
-        CORE_API.list_namespaced_pod,
-        namespace=controller_namespace,
-        timeout_seconds=20,
-    ):
-        if event["object"].metadata.labels == controller_pod_labels:  # type: ignore
-            for container in event["object"].spec.containers:  # type: ignore
-                # NOTE: Assume that the `orchest-controller` deployment
-                # only defines Orchest owned images. This way we can
-                # infer what the version of the image should be.
-                if not container.image.endswith(f":{version}"):
-                    break
-            else:
-                if event["object"].status.phase == "Running":  # type: ignore
-                    w.stop()
+    # NOTE: use a while instead of watch command because the watch
+    # could time out due to us changing labels in versions and thus the
+    # watch command not returning anything.
+    label_selector = ",".join(
+        [f"{key}={value}" for key, value in controller_pod_labels.items()]
+    )
+    while True:
+        resp = CORE_API.list_namespaced_pod(
+            namespace=controller_namespace,
+            label_selector=label_selector,
+        )
+        if resp is None or not resp.items:
+            time.sleep(1)
+            continue
+
+        if len(resp.items) > 1:
+            echo(
+                "Aborting update. Multiple 'orchest-controller' pods found, whilst"
+                "expecting only 1.",
+                err=True,
+            )
+            sys.exit(1)
+
+        controller_pod = resp.items[0]
+        for container in controller_pod.spec.containers:
+            # NOTE: Assume that the `orchest-controller` deployment
+            # only defines Orchest owned images. This way we can
+            # infer what the version of the image should be.
+            if not container.image.endswith(f":{version}"):
+                break
+        else:
+            if controller_pod.status.phase == "Running":  # type: ignore
+                break
+
+        time.sleep(1)
 
     echo("Updating the Orchest Cluster...")
     try:
