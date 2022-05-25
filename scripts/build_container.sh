@@ -390,6 +390,9 @@ do
             -f $DIR/../services/orchest-controller/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
+
+        # on orchest-controller build we generate the orchest-controller build manifests
+        TAGNAME=$ORCHEST_VERSION make -C ./services/orchest-controller manifestgen    
     fi
 
     # installs orchest-sdk
