@@ -39,6 +39,7 @@ export const useStepExecutionState = (
       callback(data.status);
       return convertStepsToObject(data);
     },
+    caching: true,
   });
 
   useInterval(() => {
