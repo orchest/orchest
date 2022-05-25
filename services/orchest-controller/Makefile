@@ -78,4 +78,5 @@ codegen:
 
 .PHONY: manifestgen
 manifestgen: crds
-	helm template --create-namespace --namespace ${NAMESPACE} --set images.tag=${TAGNAME} ./deploy/helm > deploy/k8s/orchest-controller.yaml
+	@mkdir -p deploy/k8s
+	@helm template --create-namespace --namespace ${NAMESPACE} --set images.tag=${TAGNAME} ./deploy/helm > deploy/k8s/orchest-controller.yaml
