@@ -311,10 +311,14 @@ def uninstall(**kwargs) -> None:
     # Removing the namespace will also remove all resources contained in
     # it.
     echo(f"Removing '{ns}' namespace...")
-    CORE_API.delete_namespace(ns)
+    delete_issued = False
     while True:
         try:
-            CORE_API.read_namespace(ns)
+            if not delete_issued:
+                CORE_API.delete_namespace(ns)
+                delete_issued = True
+            else:
+                CORE_API.read_namespace(ns)
         except client.ApiException as e:
             if e.status == 404:
                 break
