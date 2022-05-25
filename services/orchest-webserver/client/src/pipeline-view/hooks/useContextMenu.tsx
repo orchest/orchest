@@ -6,7 +6,7 @@ import React from "react";
 type MenuItemAction = {
   type: "item";
   title: string;
-  action: (e: React.MouseEvent, item?: string) => void;
+  action: (e: React.MouseEvent, itemId?: string) => void;
 };
 
 type MenuItemSeparator = {

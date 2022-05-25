@@ -19,7 +19,6 @@ import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
 import { MenuItem, useContextMenu } from "./hooks/useContextMenu";
-import { useEventVars } from "./hooks/useEventVars";
 import { RunStepsType } from "./hooks/useInteractiveRuns";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
@@ -127,7 +126,10 @@ const PipelineStepComponent = React.forwardRef<
     onDoubleClick: (stepUUID: string) => void;
     interactiveConnections: Connection[];
     getPosition: (node: HTMLElement | undefined | null) => Position | null;
-    contextMenuState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
+    isContextMenuOpenState: [
+      boolean,
+      React.Dispatch<React.SetStateAction<boolean>>
+    ];
     children: React.ReactNode;
   }
 >(function PipelineStep(
@@ -144,7 +146,7 @@ const PipelineStepComponent = React.forwardRef<
     // the cursor-controlled step also renders all the interactive connections, to ensure the precision of the positions
     interactiveConnections,
     getPosition,
-    contextMenuState,
+    isContextMenuOpenState,
     children, // expose children, so that children doesn't re-render when step is being dragged
   },
   ref
@@ -287,7 +289,7 @@ const PipelineStepComponent = React.forwardRef<
   const onMouseDown = React.useCallback(
     (e: React.MouseEvent) => {
       // user is panning the canvas or context menu is open
-      if (keysDown.has("Space") || contextMenuState[0]) return;
+      if (keysDown.has("Space") || isContextMenuOpenState[0]) return;
 
       e.stopPropagation();
       e.preventDefault();
@@ -296,17 +298,12 @@ const PipelineStepComponent = React.forwardRef<
         forceUpdate();
       }
     },
-    [forceUpdate, keysDown]
+    [forceUpdate, keysDown, isContextMenuOpenState]
   );
-
-  const [contextMenu, setContextMenu] = React.useState<{
-    mouseX: number;
-    mouseY: number;
-  } | null>(null);
 
   const onClick = async (e: React.MouseEvent) => {
     // user is panning the canvas or context menu is open
-    if (keysDown.has("Space") || contextMenuState[0]) return;
+    if (keysDown.has("Space") || isContextMenuOpenState[0]) return;
 
     e.stopPropagation();
     e.preventDefault();
@@ -454,40 +451,46 @@ const PipelineStepComponent = React.forwardRef<
     setIsHovering(false);
   };
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     {
       type: "item",
       title: "Duplicate",
-      action: (e: React.MouseEvent, itemId: string) => {
-        dispatch({ type: "DUPLICATE_STEPS", payload: [itemId] });
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          dispatch({ type: "DUPLICATE_STEPS", payload: [itemId] });
+        }
       },
     },
     {
       type: "item",
       title: "Delete",
-      action: (e: React.MouseEvent, itemId: string) => {
-        dispatch({ type: "REMOVE_STEPS", payload: [itemId] });
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          dispatch({ type: "REMOVE_STEPS", payload: [itemId] });
+        }
       },
     },
     {
       type: "item",
       title: "Properties",
-      action: (e: React.MouseEvent, itemId: string) => {
+      action: (e: React.MouseEvent, _itemId?: string) => {
         dispatch({ type: "SELECT_SUB_VIEW", payload: 0 });
       },
     },
     {
       type: "item",
       title: "Open in JupyterLab",
-      action: (e: React.MouseEvent, itemId: string) => {
+      action: (e: React.MouseEvent, _itemId?: string) => {
         onOpenNotebook(e);
       },
     },
     {
       type: "item",
       title: "Open in File Viewer",
-      action: (e: React.MouseEvent, itemId: string) => {
-        onOpenFilePreviewView(e, itemId);
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          onOpenFilePreviewView(e, itemId);
+        }
       },
     },
     {
@@ -496,33 +499,36 @@ const PipelineStepComponent = React.forwardRef<
     {
       type: "item",
       title: "Run this step",
-      action: (e: React.MouseEvent, itemId: string) => {
-        console.log(itemId);
-        executeRun([itemId], "selection");
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          executeRun([itemId], "selection");
+        }
       },
     },
     {
       type: "item",
       title: "Run incoming",
-      action: (e: React.MouseEvent, itemId: string) => {
-        executeRun([itemId], "incoming");
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          executeRun([itemId], "incoming");
+        }
       },
     },
     {
       type: "item",
       title: "Run incoming and this step",
-      action: (e: React.MouseEvent, itemId: string) => {
-        executeRun([itemId], "incoming");
-        executeRun([itemId], "selection");
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          executeRun([itemId], "incoming");
+          executeRun([itemId], "selection");
+        }
       },
     },
-  ] as MenuItem[];
-
-  const { eventVars } = useEventVars();
+  ];
 
   const { handleContextMenu, menu } = useContextMenu(
     menuItems,
-    contextMenuState,
+    isContextMenuOpenState,
     uuid
   );
 

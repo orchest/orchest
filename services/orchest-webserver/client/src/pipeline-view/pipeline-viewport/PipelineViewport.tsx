@@ -13,7 +13,6 @@ import {
 } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { getFilePathForRelativeToProject } from "../file-manager/common";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { MenuItem, useContextMenu } from "../hooks/useContextMenu";
@@ -56,7 +55,10 @@ export const PipelineViewport = React.forwardRef<
     canvasFuncRef: React.MutableRefObject<CanvasFunctions | undefined>;
     executeRun: (uuids: string[], type: RunStepsType) => Promise<void>;
     autoLayoutPipeline;
-    contextMenuState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
+    isContextMenuOpenState: [
+      boolean,
+      React.Dispatch<React.SetStateAction<boolean>>
+    ];
   }
 >(function PipelineViewportComponent(
   {
@@ -65,7 +67,7 @@ export const PipelineViewport = React.forwardRef<
     canvasFuncRef,
     executeRun,
     autoLayoutPipeline,
-    contextMenuState,
+    isContextMenuOpenState,
     style,
     ...props
   },
@@ -185,7 +187,7 @@ export const PipelineViewport = React.forwardRef<
   }, [resizeCanvas, localRef]);
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if (disabled || contextMenuState[0]) return;
+    if (disabled || isContextMenuOpenState[0]) return;
     if (eventVars.selectedConnection) {
       dispatch({ type: "DESELECT_CONNECTION" });
     }
@@ -201,7 +203,7 @@ export const PipelineViewport = React.forwardRef<
   };
 
   const onMouseUp = (e: React.MouseEvent) => {
-    if (disabled || contextMenuState[0]) return;
+    if (disabled || isContextMenuOpenState[0]) return;
     if (e.button === 0) {
       if (eventVars.stepSelector.active) {
         dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
@@ -233,13 +235,7 @@ export const PipelineViewport = React.forwardRef<
       const environment = environments.length > 0 ? environments[0] : null;
 
       allowed.forEach((filePath) => {
-        dispatch(
-          createStepAction(
-            environment,
-            dropPosition,
-            getFilePathForRelativeToProject(filePath, pipelineCwd)
-          )
-        );
+        dispatch(createStepAction(environment, dropPosition));
       });
     },
     [dispatch, pipelineCwd, environments, getApplicableStepFiles]
@@ -269,7 +265,7 @@ export const PipelineViewport = React.forwardRef<
 
   useGestureOnViewport(localRef, pipelineSetHolderOrigin);
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     {
       type: "item",
       title: "Create new step",
@@ -306,7 +302,7 @@ export const PipelineViewport = React.forwardRef<
       type: "item",
       title: "Center view",
       action: () => {
-        dispatch({ type: "CENTER_VIEW" });
+        centerView();
       },
     },
     {
@@ -336,11 +332,11 @@ export const PipelineViewport = React.forwardRef<
         });
       },
     },
-  ] as MenuItem[];
+  ];
 
   const { handleContextMenu, menu } = useContextMenu(
     menuItems,
-    contextMenuState
+    isContextMenuOpenState
   );
 
   return (

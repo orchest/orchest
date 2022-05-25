@@ -27,7 +27,7 @@ import {
   fetcher,
   hasValue,
 } from "@orchest/lib-utils";
-import React, { useState } from "react";
+import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
 import {
   getNodeCenter,
@@ -395,7 +395,7 @@ export const PipelineEditor = () => {
     setPipelineJson((value) => value, true);
   }, [setPipelineJson]);
 
-  const contextMenuState = useState(false);
+  const isContextMenuOpenState = React.useState(false);
 
   const autoLayoutPipeline = () => {
     const spacingFactor = 0.7;
@@ -654,7 +654,7 @@ export const PipelineEditor = () => {
           canvasFuncRef={canvasFuncRef}
           executeRun={executeRun}
           autoLayoutPipeline={autoLayoutPipeline}
-          contextMenuState={contextMenuState}
+          isContextMenuOpenState={isContextMenuOpenState}
         >
           {connections.map((connection) => {
             if (!connection) return null;
@@ -778,7 +778,7 @@ export const PipelineEditor = () => {
                 interactiveConnections={interactiveConnections}
                 onDoubleClick={onDoubleClickStep}
                 getPosition={getPosition}
-                contextMenuState={contextMenuState}
+                isContextMenuOpenState={isContextMenuOpenState}
               >
                 <ConnectionDot
                   incoming
