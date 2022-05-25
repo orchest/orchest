@@ -31,7 +31,7 @@ class StartUpdate(Resource):
                     version=None,
                     watch_flag=False,
                     dev_mode=True,
-                    namespace="orchest-system",
+                    namespace=_config.ORCHEST_NAMESPACE,
                     cluster_name=_config.ORCHEST_CLUSTER,
                 )
             else:
