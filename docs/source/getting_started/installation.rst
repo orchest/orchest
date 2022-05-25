@@ -82,6 +82,9 @@ Next, make Orchest reachable through your FQDN reachable from the browser:
 Install ``orchest`` via ``kubectl``
 -----------------------------------
 
+.. tip::
+   We recommend using the ``orchest-cli`` for installing and managing your Orchest Clusters.
+
 .. code-block:: bash
 
    # Get the latest available Orchest version
