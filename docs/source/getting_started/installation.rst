@@ -7,8 +7,13 @@ Installation
    Orchest is in beta.
 
 .. tip::
-   👉 A convenience end to end installation script for a minikube deployment is provided
-   in ``scripts/convenience_install.sh``.
+   A convenience end to end installation script for a minikube deployment is provided,
+   it can be run with
+
+   .. code-block:: bash
+
+      curl -fsSL https://raw.githubusercontent.com/orchest/orchest/master/scripts/convenience_install.sh > convenience_install.sh
+      bash convenience_install.sh
 
 .. tip::
    👉 Get a fully configured Orchest instance out of the box on our `Orchest Cloud
