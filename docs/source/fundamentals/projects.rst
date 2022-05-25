@@ -21,7 +21,7 @@ A project is basically just a ``git`` repository. For example, a Project might b
 
 Projects also contain :ref:`jobs <jobs>`, however, these are not stored in the project's filesystem.
 
-You can access Project files in your code running inside :ref:`environments <environments>`) using relative paths. For absolute paths, all files of a project are mounted to the ``/project-dir`` directory.
+You can access Project files in your code running inside :ref:`environments <environments>` using relative paths. For absolute paths, all files of a project are mounted to the ``/project-dir`` directory.
 
 Getting started
 ---------------
