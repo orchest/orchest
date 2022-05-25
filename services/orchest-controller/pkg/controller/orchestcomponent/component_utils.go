@@ -64,6 +64,12 @@ func getDevVolumes(service string, mountApp, mountClient, mountInternalLib bool)
 			MountPath: fmt.Sprintf("/orchest/services/%s/client", service),
 			SubPath:   fmt.Sprintf("services/%s/client", service),
 		})
+	} else {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "orchest-dev-repo",
+			MountPath: "/orchest/orchest-cli",
+			SubPath:   "orchest-cli",
+		})
 	}
 
 	if mountInternalLib {
