@@ -30,3 +30,9 @@ Install ``orchest`` via ``orchest-cli``
 
    # Install orchest
    orchest install
+
+.. note::
+   The third-party components of orchest (docker-registry and argo-workflow) are
+   managed by ``helm`` and not ``orchest-controller``.
+
+

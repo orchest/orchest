@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcluster"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcomponent"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/server"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/version"
@@ -14,6 +15,7 @@ import (
 )
 
 var (
+	inCluster        = true
 	controllerConfig = orchestcluster.NewDefaultControllerConfig()
 	serverConfig     = server.NewDefaultServerConfig()
 )
@@ -92,8 +94,8 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&serverConfig.Endpoint,
 		"endpoint", serverConfig.Endpoint, "The endpoint of Http Server")
 
-	cmd.PersistentFlags().BoolVar(&controllerConfig.InCluster,
-		"inCluster", controllerConfig.InCluster, "In/Out cluster indicator")
+	cmd.PersistentFlags().BoolVar(&inCluster,
+		"inCluster", true, "In/Out cluster indicator")
 
 	return cmd
 }
@@ -108,23 +110,58 @@ func runControllerCmd() error {
 	scheme := utils.GetScheme()
 
 	// Initialize clients
-	kClient, oClient, gClient := utils.GetClientsOrDie(controllerConfig.InCluster, scheme)
+	kClient, oClient, gClient := utils.GetClientsOrDie(inCluster, scheme)
+	// Create Shared Informer Factory
+	informerFactory := utils.NewInformerFactory(kClient)
+	// Create Service Informer
+	svcInformer := utils.NewServiceInformer(informerFactory)
+	// Create Deployment Informer
+	depInformer := utils.NewDeploymentInformer(informerFactory)
+	// Create Daemonset Informer
+	dsInformer := utils.NewDaemonSetInformer(informerFactory)
+	// Create Ingress Informer
+	ingInformer := utils.NewIngressInformer(informerFactory)
 
-	depInformer := utils.NewDeploymentInformer(kClient)
-	ocInformer := utils.NewOrchestClusterInformer(oClient)
-	orchestController := orchestcluster.NewOrchestClusterController(kClient,
+	oClusterInformer := utils.NewOrchestClusterInformer(oClient)
+
+	//Create OrchestCluster Informer
+	oComponentInformer := utils.NewOrchestComponentInformer(oClient)
+
+	oClusterController := orchestcluster.NewOrchestClusterController(kClient,
 		oClient,
 		gClient,
 		scheme,
 		controllerConfig,
-		ocInformer,
-		depInformer)
+		oClusterInformer,
+		oComponentInformer)
 
-	server := server.NewServer(serverConfig, ocInformer)
+	oComponentController := orchestcomponent.NewOrchestComponentController(kClient,
+		oClient,
+		gClient,
+		scheme,
+		oComponentInformer,
+		svcInformer,
+		depInformer,
+		dsInformer,
+		ingInformer)
 
-	go orchestController.Run(stopCh)
-	go ocInformer.Informer().Run(stopCh)
+	server := server.NewServer(serverConfig, oClusterInformer)
+
+	// Start Orchest Controllers
+	go oClusterController.Run(stopCh)
+	go oComponentController.Run(stopCh)
+
+	// Start Orchest Objests Informer
+	go oClusterInformer.Informer().Run(stopCh)
+	go oComponentInformer.Informer().Run(stopCh)
+
+	// Start Kubernetes Objects Informers
 	go depInformer.Informer().Run(stopCh)
+	go dsInformer.Informer().Run(stopCh)
+	go svcInformer.Informer().Run(stopCh)
+	go ingInformer.Informer().Run(stopCh)
+
+	// Start webserver
 	go server.Run(stopCh)
 
 	sigterm := make(chan os.Signal, 1)

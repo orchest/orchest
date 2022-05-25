@@ -1,4 +1,7 @@
 """API endpoints for unspecified orchest-api level information."""
+import os
+import subprocess
+
 from flask import current_app, request
 from flask_restx import Namespace, Resource
 from orchestcli import cmds
@@ -21,14 +24,18 @@ class StartUpdate(Resource):
     )
     def post(self):
         try:
-            cmds.update(
-                version=None,
-                controller_deploy_name="orchest-controller",
-                controller_pod_label_selector="app=orchest-controller",
-                watch_flag=False,
-                namespace=_config.ORCHEST_NAMESPACE,
-                cluster_name=_config.ORCHEST_CLUSTER,
-            )
+            if os.getenv("FLASK_ENV") == "development":
+                # use the local orchest-cli because it should be
+                # mounted using "pip install -e"
+                cmds.update(
+                    version=None,
+                    watch_flag=False,
+                    dev_mode=True,
+                    namespace="orchest-system",
+                    cluster_name=_config.ORCHEST_CLUSTER,
+                )
+            else:
+                _run_update_in_venv()
             return {
                 "namespace": _config.ORCHEST_NAMESPACE,
                 "cluster_name": _config.ORCHEST_CLUSTER,
@@ -127,3 +134,52 @@ class OrchestSettings(Resource):
         requires_restart = config.save(current_app)
         resp = {"requires_restart": requires_restart, "user_config": config.as_dict()}
         return resp, 200
+
+
+def _run_update_in_venv():
+    # This function creates a python virtual env and installs
+    # orchest_cli within it.
+    venv_cmds = """
+    rm -rf venv
+    python3 -m venv venv && source venv/bin/activate
+    pip install orchest-cli
+    """
+
+    run_update = """
+    python3 -m venv venv && source venv/bin/activate
+    orchest update
+    """
+
+    env = os.environ.copy()
+
+    def run_cmds(cmds: str, fail_if_std_err):
+        """Executes the provided commands.
+        Args:
+            cmds: commands to execute.
+            fail_if_std_err: If True raises SystemExit if stderr if
+                not None.
+
+        Raises:
+            SystemExit: If `returncode` of the cmds execution is not
+                zero or fail_if_std_err is `True` and stderr is non
+                None.
+        """
+        process = subprocess.Popen(
+            "/bin/bash",
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            env=env,
+        )
+
+        _, err = process.communicate(cmds.encode("utf-8"))
+
+        if process.returncode != 0 or (fail_if_std_err and err is not None):
+            raise SystemExit(1)
+
+    # Create virtual envirement and update
+    run_cmds(venv_cmds, False)
+
+    # Run update withing venv
+    run_cmds(run_update, True)

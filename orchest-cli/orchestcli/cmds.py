@@ -16,7 +16,9 @@ from functools import partial
 
 import click
 import requests
-from kubernetes import client, config, stream, watch
+import yaml
+from kubernetes import client, config, stream
+from orchestcli import utils
 
 # Only when running a type checker, e.g. mypy, would we do the following
 # imports. Apart from type checking these imports are not needed.
@@ -28,9 +30,12 @@ try:
 except config.config_exception.ConfigException:
     config.load_incluster_config()
 
-CUSTOM_OBJECT_API = client.CustomObjectsApi()
-CORE_API = client.CoreV1Api()
+API_CLIENT = client.ApiClient()
 APPS_API = client.AppsV1Api()
+CORE_API = client.CoreV1Api()
+CUSTOM_OBJECT_API = client.CustomObjectsApi()
+EXT_API = client.ApiextensionsV1Api()
+RBAC_API = client.RbacAuthorizationV1Api()
 
 get_namespaced_custom_object = partial(
     CUSTOM_OBJECT_API.get_namespaced_custom_object,
@@ -128,8 +133,9 @@ class ClusterStatus(enum.Enum):
     RESTARTING = "Restarting"
     STARTING = "Starting"
     RUNNING = "Running"
-    PAUSING = "Pausing"
-    PAUSED = "Paused"
+    STOPPING = "Stopping"
+    CLEANUP = "Cleanup"
+    STOPPED = "Stopped"
     UPDATING = "Updating"
     ERROR = "Error"
     UNKNOWN = "Unknown"
@@ -137,9 +143,78 @@ class ClusterStatus(enum.Enum):
     DELETING = "Deleting"
 
 
-def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
+def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
+
+    try:
+        CORE_API.create_namespace(client.V1Namespace(metadata={"name": ns}))
+    except client.ApiException as e:
+        if e.reason == "Conflict":
+            echo(f"Installing into existing namespace: {ns}.")
+
+    if dev_mode:
+        # NOTE: orchest-cli commands to be invoked in Orchest directory
+        # root for relative path to work.
+        with open(
+            "services/orchest-controller/deploy/k8s/orchest-controller.yaml"
+        ) as f:
+            txt_deploy_controller = f.read()
+    else:
+        version = _fetch_latest_available_version(curr_version=None, is_cloud=cloud)
+        if version is None:
+            echo(
+                "Failed to fetch latest available version. Without the version"
+                " the Orchest Controller can't be installed. Please try again"
+                " in a short moment.",
+                err=True,
+            )
+            sys.exit(1)
+        try:
+            txt_deploy_controller = _fetch_orchest_controller_manifests(version)
+        except RuntimeError as e:
+            echo(f"{e}", err=True)
+            sys.exit(1)
+
+    # Deploy the `orchest-controller` and the resources it needs.
+    yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
+    try:
+        utils.create_from_yaml(
+            k8s_client=API_CLIENT,
+            yaml_objects=yml_deploy_controller,
+        )
+    except utils.FailToCreateError as e:
+        conflicting_resources = []
+        for exc in e.api_exceptions:
+            if exc.status != 409:  # conflict/already exists
+                raise e
+            else:
+                conflicting_resources.append(json.loads(exc.body)["details"])
+
+        conflicting_resources_msg = "\n".join(
+            [json.dumps(resource) for resource in conflicting_resources]
+        )
+
+        echo(
+            "In case you are trying to install additional 'orchestclusters'"
+            " then please note that this is not yet supported. On update the"
+            " cluster-level resources of one 'orchestcluster' could become"
+            " incompatible with another 'orchestcluster'.",
+            err=True,
+        )
+        echo(
+            "Orchest seems to have been installed before and was incorrectly"
+            " uninstalled, leaving dangling state. Please ensure you are on"
+            " a compatible 'orchest-cli' version and run:\n\torchest uninstall",
+            err=True,
+        )
+        echo(
+            "If uninstalling doesn't work, then please try to remove the"
+            " following resources manually before installing again:"
+            f"\n{conflicting_resources_msg}",
+            err=True,
+        )
+        sys.exit(1)
 
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
@@ -196,23 +271,38 @@ def install(cloud: bool, fqdn: t.Optional[str], **kwargs) -> None:
 
 def uninstall(**kwargs) -> None:
     """Uninstalls Orchest."""
+
+    def _remove_custom_objects(ns: str) -> None:
+        custom_objects = list_namespaced_custom_object(
+            namespace=ns,
+        )
+        for custom_object in custom_objects["items"]:
+            delete_namespaced_custom_object(
+                namespace=ns,
+                name=custom_object["metadata"]["name"],
+            )
+
     ns = kwargs["namespace"]
 
     echo("Uninstalling Orchest...")
 
-    # Remove all orchestcluster resources in the namespace. Otherwise
-    # the namespace can't be removed due to the configured finalizers
-    # on the orchestcluster resources.
+    # Remove all orchest related custom resources in the namespace.
+    # Otherwise the namespace can't be removed due to the configured
+    # finalizers on the orchestcluster resources.
     echo("Removing all Orchest Clusters...")
-    custom_objects = list_namespaced_custom_object(namespace=ns)
-    for custom_object in custom_objects["items"]:
-        delete_namespaced_custom_object(
-            namespace=ns,
-            name=custom_object["metadata"]["name"],
-        )
+    _remove_custom_objects(ns)
 
-    # Remove namespace, which will also remove all resources contained
-    # in it.
+    # Wait until the custom objects are removed to ensure a correct
+    # removal (which is handled by the `orchest-controller`).
+    while True:
+        custom_objects = list_namespaced_custom_object(
+            namespace=ns,
+        )
+        if not custom_objects["items"]:
+            break
+
+    # Removing the namespace will also remove all resources contained in
+    # it.
     echo(f"Removing '{ns}' namespace...")
     CORE_API.delete_namespace(ns)
     while True:
@@ -220,32 +310,44 @@ def uninstall(**kwargs) -> None:
             CORE_API.read_namespace(ns)
         except client.ApiException as e:
             if e.status == 404:
-                echo("\nSuccessfully uninstalled Orchest.")
-                return
+                break
             raise e
         time.sleep(1)
 
+    # Delete `orchest-system` namespace last to ensure that the
+    # controller has successfully taken care of the removal.
+    echo("Removing 'orchest-system' namespace...")
+    CORE_API.delete_namespace("orchest-system")
 
-# TODO:
-# - It can be possible that users need to apply a new CRD. This needs
-#   to be included somewhere.
-# - Provide ready to go templates to deploy the orchest-controller.
+    # Delete cluster level resources.
+    echo("Removing Orchest's cluster-level resources...")
+    RBAC_API.delete_cluster_role(name="orchest-controller")
+    RBAC_API.delete_cluster_role_binding(name="orchest-controller")
+    EXT_API.delete_custom_resource_definition(name="orchestclusters.orchest.io")
+    EXT_API.delete_custom_resource_definition(name="orchestcomponents.orchest.io")
+
+    echo("\nSuccessfully uninstalled Orchest.")
+
+
+# NOTE:
+# Issues preventing a `kubectl apply` equivalent in Python:
+# https://github.com/kubernetes-client/python/pull/959
+# https://github.com/kubernetes-client/python/issues/1093#issuecomment-611773280
+# That is why we have built similar behavior ourselves. There are some
+# other issues when it comes to applying the `orchest-controller.yaml`
+# manifest that we can't solve:
+# - Deleting resources from the controller.yaml will not be picked up
+#   by update.
+# - All resources in the `orchest-controller.yaml` must have a name,
+#   because it is used to identify the object and search for its
+#   existence in the cluster. If not found, a new object is created.
 def update(
     version: t.Optional[str],
-    controller_deploy_name: str,
-    controller_pod_label_selector: str,
     watch_flag: bool,
+    dev_mode: bool,
     **kwargs,
 ) -> None:
-    """Updates Orchest.
-
-    Note:
-        The arguments `controller_deploy_name` and
-        `controller_pod_label_selector` need to be explicitly provided
-        given that everyone could have applied a custom
-        orchest-controller deployment.
-
-    """
+    """Updates Orchest."""
 
     def lte(old: str, new: str) -> bool:
         """Returns `old <= new`, i.e. less than or equal.
@@ -277,32 +379,17 @@ def update(
                 return True
         return True
 
-    def fetch_latest_available_version(
-        curr_version: str, is_cloud: bool
-    ) -> t.Optional[str]:
-        url = (
-            "https://update-info.orchest.io/api/orchest/"
-            f"update-info/v3?version={curr_version}&is_cloud={is_cloud}"
-        )
-        resp = requests.get(url, timeout=5)
-
-        if resp.status_code == 200:
-            data = resp.json()
-            return data["latest_version"]
-        else:
-            return None
-
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
+    tmp_fetching = "version"
     try:
-        fetching = "version"
         curr_version = _get_orchest_cluster_version(ns, cluster_name)
-        fetching = "cloud mode"
-        is_cloud_mode = _get_orchest_cloud_mode(ns, cluster_name)
+        tmp_fetching = "running mode"
+        is_cloud_mode = _is_orchest_in_cloud_mode(ns, cluster_name)
 
     except CRObjectNotFound as e:
         echo(
-            f"Failed to fetch current Orchest Cluster {fetching} to make"
+            f"Failed to fetch current Orchest Cluster {tmp_fetching} to make"
             " sure the cluster isn't downgraded.",
             err=True,
         )
@@ -311,7 +398,7 @@ def update(
 
     except KeyError:
         echo(
-            f"Failed to fetch current Orchest Cluster {fetching} to make"
+            f"Failed to fetch current Orchest Cluster {tmp_fetching} to make"
             " sure the cluster isn't downgraded.",
             err=True,
         )
@@ -323,7 +410,7 @@ def update(
         sys.exit(1)
 
     if version is None:
-        version = fetch_latest_available_version(curr_version, is_cloud_mode)
+        version = _fetch_latest_available_version(curr_version, is_cloud_mode)
         if version is None:
             echo("Failed to fetch latest available version to update to.", err=True)
             sys.exit(1)
@@ -350,51 +437,100 @@ def update(
         )
         sys.exit(1)
 
-    # NOTE: It is possible that the `orchest-controller` updated, but
-    # the CR Object can't be updated. Thus we need to make sure that
-    # `orchest update` can be invoked again even though the controller
-    # is already updated.
+    if dev_mode:
+        # NOTE: orchest-cli commands to be invoked in Orchest directory
+        # root for relative path to work.
+        with open(
+            "services/orchest-controller/deploy/k8s/orchest-controller.yaml"
+        ) as f:
+            txt_deploy_controller = f.read()
+    else:
+        try:
+            txt_deploy_controller = _fetch_orchest_controller_manifests(version)
+        except RuntimeError as e:
+            echo(f"{e}", err=True)
+            sys.exit(1)
 
-    # NOTE: It is possible the update of orchest-controller needs more
-    # than updating the image. for example some environment variables
-    # are added or CRD definitions are changed. we should come up with a
-    # solotion to update even in those scenarios, for example receiving
-    # the updated version of manifests from a URL and apply it.
-    echo("Updating the Orchest Controller...")
-    APPS_API.patch_namespaced_deployment(
-        name=controller_deploy_name,
-        namespace=ns,  # controller is currently deployed in same ns
-        body={
-            "spec": {
-                "template": {
-                    "spec": {
-                        "containers": [
-                            {
-                                "name": "controller",
-                                "image": f"orchest/orchest-controller:{version}",
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        field_manager="StrategicMergePatch",
-    )
+    yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
+    try:
+        utils.replace_from_yaml(
+            k8s_client=API_CLIENT,
+            yaml_objects=yml_deploy_controller,
+        )
+    except utils.FailToCreateError:
+        echo(
+            "Failed to update Orchest. Could not apply 'orchest-controller'"
+            " manifests.",
+            err=True,
+        )
+        sys.exit(1)
+
+    # Returns an iterator so we need to init it again to get the
+    # `namespace` and `labels` of the `orchest-controller` deployment
+    # for the next step.
+    yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
+    while True:
+        try:
+            obj = next(yml_deploy_controller)
+
+            if (
+                obj is not None
+                and obj["kind"] == "Deployment"
+                # NOTE: We need to assume something to not change
+                # in the controller deployment to be able to
+                # distinguish it from other defined deployments in
+                # the yaml file.
+                and obj["metadata"]["name"] == "orchest-controller"
+            ):
+                controller_namespace = obj["metadata"]["namespace"]
+                controller_pod_labels = obj["spec"]["selector"]["matchLabels"]
+                break
+        except StopIteration:
+            echo(
+                "Aborting update. No deployment manifest is defined for the"
+                " 'orchest-controller'.",
+                err=True,
+            )
+            sys.exit(1)
 
     # Wait until the `orchest-controller` is successfully updated. We
     # don't accidentally want the old `orchest-controller` to initiate
     # the update process.
-    w = watch.Watch()
-    for event in w.stream(
-        CORE_API.list_namespaced_pod,
-        namespace=ns,
-        label_selector=(controller_pod_label_selector),
-        timeout_seconds=60,
-    ):
-        curr_img = event["object"].spec.containers[0].image  # type: ignore
-        if curr_img == f"orchest/orchest-controller:{version}":
-            if event["object"].status.phase == "Running":  # type: ignore
-                w.stop()
+    # NOTE: use a while instead of watch command because the watch
+    # could time out due to us changing labels in versions and thus the
+    # watch command not returning anything.
+    label_selector = ",".join(
+        [f"{key}={value}" for key, value in controller_pod_labels.items()]
+    )
+    while True:
+        resp = CORE_API.list_namespaced_pod(
+            namespace=controller_namespace,
+            label_selector=label_selector,
+        )
+        if resp is None or not resp.items:
+            time.sleep(1)
+            continue
+
+        if len(resp.items) > 1:
+            echo(
+                "Aborting update. Multiple 'orchest-controller' pods found, whilst"
+                "expecting only 1.",
+                err=True,
+            )
+            sys.exit(1)
+
+        controller_pod = resp.items[0]
+        for container in controller_pod.spec.containers:
+            # NOTE: Assume that the `orchest-controller` deployment
+            # only defines Orchest owned images. This way we can
+            # infer what the version of the image should be.
+            if not container.image.endswith(f":{version}"):
+                break
+        else:
+            if controller_pod.status.phase == "Running":  # type: ignore
+                break
+
+        time.sleep(1)
 
     echo("Updating the Orchest Cluster...")
     try:
@@ -646,7 +782,7 @@ def stop(watch: bool, **kwargs) -> None:
             body={"spec": {"orchest": {"pause": True}}},
         )
     except client.ApiException as e:
-        echo("Failed to pause the Orchest Cluster.", err=True)
+        echo("Failed to stop the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
             echo(
                 f"The Orchest Cluster named '{cluster_name}' in namespace"
@@ -658,7 +794,7 @@ def stop(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
+        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.STOPPED)
         echo("Successfully stopped Orchest.")
 
 
@@ -674,7 +810,7 @@ def start(watch: bool, **kwargs) -> None:
             body={"spec": {"orchest": {"pause": False}}},
         )
     except client.ApiException as e:
-        echo("Failed to unpause the Orchest Cluster.", err=True)
+        echo("Failed to start the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
             echo(
                 f"The Orchest Cluster named '{cluster_name}' in namespace"
@@ -686,7 +822,7 @@ def start(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
+        _display_spinner(ClusterStatus.STOPPED, ClusterStatus.RUNNING)
         echo("Successfully started Orchest.")
 
 
@@ -697,25 +833,21 @@ def restart(watch: bool, **kwargs) -> None:
     echo("Restarting the Orchest Cluster.")
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
-    except CRObjectNotFound as e:
-        return False, str(e)
-
-    if status == ClusterStatus.PAUSED:
-        start(watch, **kwargs)
-        return
-
-    try:
-        patch_namespaced_custom_object(
-            name=cluster_name,
-            namespace=ns,
-            # NOTE: strategic merge does work on the annotations in the
-            # metadata.
-            # `RestartAnnotationKey` in the `orchest-controller`.
-            body={"metadata": {"annotations": {"orchest.io/restart": "true"}}},
-            # Don't replace the annotations instead merge with existing
-            # keys.
-            field_manager="StrategicMergePatch",
-        )
+        if status == ClusterStatus.STOPPED:
+            start(**kwargs)
+        else:
+            status = ClusterStatus.RUNNING
+            patch_namespaced_custom_object(
+                name=cluster_name,
+                namespace=ns,
+                # NOTE: strategic merge does work on the annotations in
+                # the metadata.
+                # `RestartAnnotationKey` in the `orchest-controller`.
+                body={"metadata": {"annotations": {"orchest.io/restart": "true"}}},
+                # Don't replace the annotations instead merge with
+                # existing keys.
+                field_manager="StrategicMergePatch",
+            )
     except client.ApiException as e:
         echo("Failed to restart the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
@@ -729,7 +861,7 @@ def restart(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
+        _display_spinner(status, ClusterStatus.RUNNING)
         echo("Successfully restarted Orchest.")
 
 
@@ -1029,8 +1161,8 @@ def _display_spinner(
     click_ctx = click.get_current_context(silent=True)
     assert click_ctx is not None, "Can only display spinner through CLI invocation."
 
-    ns = click_ctx.params.get("namespace")
-    cluster_name = click_ctx.params.get("cluster_name")
+    ns = t.cast(str, click_ctx.params.get("namespace"))
+    cluster_name = t.cast(str, click_ctx.params.get("cluster_name"))
 
     # NOTE: Assumes the `orchest-controller` changes the status of the
     # Orchest Cluster based on the management command within 10s and the
@@ -1118,14 +1250,14 @@ def _get_orchest_cluster_version(ns: str, cluster_name: str) -> str:
     return custom_object["spec"]["orchest"]["version"]  # type: ignore
 
 
-def _get_orchest_cloud_mode(ns: str, cluster_name: str) -> bool:
-    """Gets if the cluster is running in cloud mode or not.
+def _is_orchest_in_cloud_mode(ns: str, cluster_name: str) -> bool:
+    """Answers whether Orchest is running in cloud mode or not.
 
     Raises:
-        CRObjectNotFound: If the Orchest Cluster CR Object couldn't be
-            found.
-        KeyError: If the `version` entry couldn't be accessed from the
-            CR Object.
+        CRObjectNotFound: If the Orchest Cluster CR Object couldn't
+            be found.
+        KeyError: If the returned custom object has an unexpected
+            format.
 
     """
     custom_object = _get_namespaced_custom_object(ns, cluster_name)
@@ -1153,3 +1285,36 @@ def _is_calver_version(version: str) -> bool:
         return False
 
     return True
+
+
+def _fetch_latest_available_version(
+    curr_version: t.Optional[str], is_cloud: bool
+) -> t.Optional[str]:
+    url = (
+        "https://update-info.orchest.io/api/orchest/"
+        f"update-info/v3?version={curr_version}&is_cloud={is_cloud}"
+    )
+    resp = requests.get(url, timeout=5)
+
+    if resp.status_code == 200:
+        data = resp.json()
+        return data["latest_version"]
+    else:
+        return None
+
+
+def _fetch_orchest_controller_manifests(version: t.Optional[str]) -> str:
+    url = (
+        "https://github.com/orchest/orchest"
+        f"/releases/download/{version}/orchest-controller.yaml"
+    )
+    resp = requests.get(url, timeout=10)
+    if resp.status_code != 200:
+        raise RuntimeError(
+            f"Failed to fetch 'orchest-controller' manifest at:\n{url}"
+            "\nPlease try again in a short moment."
+        )
+    else:
+        txt_deploy_controller = resp.text
+
+    return txt_deploy_controller

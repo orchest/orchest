@@ -1,6 +1,6 @@
 
-
-TAG ?= $(if $(TAGNAME),$orchest/orchest-controller:(TAGNAME),"orchest/orchest-controller:latest")
+TAGNAME:=$(if $(TAGNAME),$(TAGNAME),"latest")
+TAG:=orchest/orchest-controller:$(TAGNAME)
 
 TOOLS_DIR := $(PWD)/.cache/tools
 
@@ -12,12 +12,20 @@ GO_PROJECT=github.com/orchest/orchest/services/orchest-controller
 # inject the version number into the golang version package
 LDFLAGS := ${if ${ORCHEST_VERSION},-X $(GO_PROJECT)/pkg/version.Version=$(ORCHEST_VERSION),}
 
+NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest-system}
+
+SOURCE_DIRS = cmd pkg
+
 .PHONY: docker
 docker:
 	@docker build --rm -t $(TAG) . -f Dockerfile
 
+.PHONY: fmt
+fmt: ## Run go fmt and modify files in place
+	@gofmt -s -w ${SOURCE_DIRS}
+
 .PHONY: controller
-controller:
+controller: fmt
 	CGO_ENABLED=0 GOOS=linux go build -ldflags="$(LDFLAGS)" -o bin/controller ./cmd/controller
 
 .SECONDARY: $(CONTROLLER_GEN)
@@ -56,10 +64,19 @@ $(YQ):
 .PHONY: crds
 crds: $(CONTROLLER_GEN) $(YQ)
 	@echo Updating CRD manifests
+	@rm -rf deploy/helm/templates/crds.yaml
 	$(CONTROLLER_GEN) crd paths=./pkg/apis/... output:dir=.cache
-	@$(YQ) read .cache/orchest.io_orchestclusters.yaml >> deploy-controller/crds.yaml
+	@$(YQ) read .cache/orchest.io_orchestclusters.yaml >> deploy/helm/templates/crds.yaml
 	@rm -f .cache/orchest.io_orchestclusters.yaml
+	@echo "---" >> deploy/helm/templates/crds.yaml
+	@$(YQ) read .cache/orchest.io_orchestcomponents.yaml >> deploy/helm/templates/crds.yaml
+	@rm -f .cache/orchest.io_orchestcomponents.yaml
 
 .PHONY: codegen
 codegen:
 	@./hack/update-codegen.sh
+
+.PHONY: manifestgen
+manifestgen: crds
+	@mkdir -p deploy/k8s
+	@helm template --create-namespace --namespace ${NAMESPACE} --set images.tag=${TAGNAME} ./deploy/helm > deploy/k8s/orchest-controller.yaml

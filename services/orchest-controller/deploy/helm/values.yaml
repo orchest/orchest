@@ -1,0 +1,9 @@
+
+service:
+  port: 80
+
+images:
+  pullPolicy: IfNotPresent
+  registry: docker.io
+  name: orchest/orchest-controller
+  tag: latest
