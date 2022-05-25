@@ -7,7 +7,7 @@ import React from "react";
 import useSWR, { MutatorCallback, useSWRConfig } from "swr";
 import { ExecutionState } from "../PipelineStep";
 
-const STATUS_POLL_FREQUENCY = 1000;
+const STATUS_POLL_FREQUENCY = 500;
 
 type StepExecutionStateObj = Record<string, ExecutionState>;
 
