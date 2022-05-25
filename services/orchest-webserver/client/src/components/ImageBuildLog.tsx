@@ -98,6 +98,11 @@ export const ImageBuildLog = ({
 
   const socket = useSocketIO(socketIONamespace);
   const hasRegisteredSocketIO = React.useRef(false);
+  
+  React.useEffect(() => {
+    hasRegisteredSocketIO.current = false;
+  }, [socket]);
+
   React.useEffect(() => {
     if (!hasRegisteredSocketIO.current) {
       hasRegisteredSocketIO.current = true;
