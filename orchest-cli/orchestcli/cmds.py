@@ -445,6 +445,7 @@ def update(
         )
         sys.exit(1)
 
+    echo("Updating the Orchest Controller deployment requirements...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
@@ -507,6 +508,7 @@ def update(
     # NOTE: use a while instead of watch command because the watch
     # could time out due to us changing labels in versions and thus the
     # watch command not returning anything.
+    echo("Updating the Orchest Controller deployment...")
     label_selector = ",".join(
         [f"{key}={value}" for key, value in controller_pod_labels.items()]
     )
