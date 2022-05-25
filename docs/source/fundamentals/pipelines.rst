@@ -22,7 +22,7 @@ Pipelines are edited visually and stored in JSON format in the :ref:`pipeline de
 Parameterizing pipelines
 ------------------------
 
-Pipelines take parameters as input (e.g. the data source connection URL) to vary what they output. :ref:`Jobs <jobs>` can use different parameters to iterate through multiple runs of the same pipeline. Parameters can be set in the visual pipeline editor.
+Pipelines take parameters as input (e.g. the data source connection URL) to vary their behaviour. :ref:`Jobs <jobs>` can use different parameters to iterate through multiple runs of the same pipeline. Parameters can be set in the visual pipeline editor.
 
 .. tip::
    👉 For secrets, use :ref:`environment variables <environment variables>` since parameters are versioned.
@@ -38,7 +38,7 @@ Once set up, you can run your pipeline in two ways:
 * Interactive runs inside the pipeline editor.
 * Job runs (see :ref:`job <jobs>`).
 
-Interactive runs are a great way to rapidly prototype your Pipeline. When using Jupyter Notebook ``.ipynb`` files, Pipeline steps are actively changed as if running individual cells in JupyterLab. Pipeline run data are stored in memory as part of an :ref:`session <interactive session>`. This lets you just run parts of your Pipeline rather than the entire thing. You can access this data directly from within the JupyterLab cells.
+Interactive runs are a great way to rapidly prototype your Pipeline. When using Jupyter Notebook ``.ipynb`` files, Pipeline steps are actively changed as if running individual cells in JupyterLab. The output of pipeline steps is stored when you run a step as part of an :ref:session <interactive session>. This lets you run just the parts of the Pipeline that you're working rather than the entirety. You can access these outputs directly from within the JupyterLab kernel for notebook based steps.
 
 Data passing
 ------------
@@ -48,7 +48,7 @@ Pipelines can pass data between steps. For example, in an ETL pipeline, data can
 Storing data locally
 --------------------
 
-Pipeline steps can write to the ``/data`` directory which will be stored locally on disk. The ``/data`` directory is accessible from every Pipeline across all Projects (even inside Jobs). For example:
+Pipeline steps can read and write from and to the ``/data`` directory. For example:
 
 .. code-block:: python
 
