@@ -448,11 +448,9 @@ export function setWithRetry<T>(
   getter: () => T,
   retries: number,
   delay: number,
-  intervalId?: number
 ) {
   if (retries == 0) {
     console.warn("Failed to set with retry for setter (timeout):", setter);
-    clearInterval(intervalId);
     return;
   }
   try {
@@ -462,20 +460,15 @@ export function setWithRetry<T>(
   }
   try {
     if (value === getter()) {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
       return;
     }
   } catch (error) {
     console.warn("Getter produced an error.", getter, error);
   }
-  if (intervalId === undefined) {
-    return setInterval(() => {
-      retries -= 1;
-      setWithRetry(value, setter, getter, retries, delay, intervalId);
-    }, delay);
-  }
+  return setTimeout(() => {
+    retries -= 1;
+    setWithRetry(value, setter, getter, retries, delay);
+  }, delay);
 }
 
 export function tryUntilTrue(
@@ -494,7 +487,6 @@ export function tryUntilTrue(
     () => hasWorked,
     retries,
     delay,
-    interval
   );
 }
 
