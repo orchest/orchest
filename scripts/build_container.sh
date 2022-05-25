@@ -401,7 +401,7 @@ do
             $build_ctx)
 
         # on orchest-controller build we generate the orchest-controller build manifests
-        verbose_command_wrapper bash -c "TAGNAME=$ORCHEST_VERSION; make -C ./services/orchest-controller manifestgen"
+        verbose_command_wrapper bash -c "TAGNAME=$ORCHEST_VERSION make -C ./services/orchest-controller manifestgen"
     fi
 
     # installs orchest-sdk
