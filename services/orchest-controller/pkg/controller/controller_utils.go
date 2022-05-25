@@ -56,10 +56,10 @@ var (
 	// Labels and Annotations
 	OrchestHashLabelKey    = "orchest.io/orchest-hash"
 	DeploymentHashLabelKey = "orchest.io/deployment-hash"
-	GenerationKey          = "contoller.orchest.io/generation"
+	GenerationKey          = "controller.orchest.io/generation"
 	OwnerLabelKey          = "controller.orchest.io/owner"
-	ControllerPartOfLabel  = "contoller.orchest.io/part-of"
-	ComponentLabelKey      = "contoller.orchest.io/component"
+	ControllerPartOfLabel  = "controller.orchest.io/part-of"
+	ComponentLabelKey      = "controller.orchest.io/component"
 	RestartAnnotationKey   = "orchest.io/restart"
 )
 
