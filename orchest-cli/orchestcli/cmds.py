@@ -318,6 +318,14 @@ def uninstall(**kwargs) -> None:
     # controller has successfully taken care of the removal.
     echo("Removing 'orchest-system' namespace...")
     CORE_API.delete_namespace("orchest-system")
+    while True:
+        try:
+            CORE_API.read_namespace("orchest-system")
+        except client.ApiException as e:
+            if e.status == 404:
+                break
+            raise e
+        time.sleep(1)
 
     # Delete cluster level resources.
     echo("Removing Orchest's cluster-level resources...")
@@ -437,6 +445,7 @@ def update(
         )
         sys.exit(1)
 
+    echo("Updating the Orchest Controller deployment requirements...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
@@ -499,6 +508,7 @@ def update(
     # NOTE: use a while instead of watch command because the watch
     # could time out due to us changing labels in versions and thus the
     # watch command not returning anything.
+    echo("Updating the Orchest Controller deployment...")
     label_selector = ",".join(
         [f"{key}={value}" for key, value in controller_pod_labels.items()]
     )
@@ -994,12 +1004,12 @@ def _run_pod_exec(
     pods = CORE_API.list_namespaced_pod(
         ns,
         label_selector=(
-            f"{orchest_service}={orchest_service},"
-            "contoller.orchest.io/part-of=orchest,"
-            f"controller.orchest.io={cluster_name}"
+            f"controller.orchest.io/component={orchest_service},"
+            "controller.orchest.io/part-of=orchest,"
+            f"controller.orchest.io/owner={orchest_service}"
         ),
     )
-    if not pods:
+    if not pods.items:
         raise RuntimeError(
             f"Orchest Cluster is in an invalid state: no '{orchest_service}' found."
         )

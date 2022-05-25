@@ -24,7 +24,8 @@ locally using `minikube
 
 .. note::
    💡 We recommend to install Orchest on a clean cluster to prevent it clashing with existing
-   cluster-level resources.
+   cluster-level resources. Do make sure that, no matter the cluster you choose, the ingress
+   controller is configured.
 
 Setting up a ``minikube`` cluster
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,6 +81,9 @@ Next, make Orchest reachable through your FQDN reachable from the browser:
 
 Install ``orchest`` via ``kubectl``
 -----------------------------------
+
+.. tip::
+   We recommend using the ``orchest-cli`` for installing and managing your Orchest Clusters.
 
 .. code-block:: bash
 
