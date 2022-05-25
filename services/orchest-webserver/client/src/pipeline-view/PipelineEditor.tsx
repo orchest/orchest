@@ -507,7 +507,7 @@ export const PipelineEditor = () => {
     executeRun(uuids, type);
   };
 
-  const hasSelectedSteps = eventVars.selectedSteps.length > 1;
+  const hasSelectedSteps = eventVars.selectedSteps.length > 0;
 
   const onSaveDetails = React.useCallback(
     (stepChanges: Partial<Step>, uuid: string, replace = false) => {
