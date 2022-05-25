@@ -12,6 +12,7 @@ import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SaveIcon from "@mui/icons-material/Save";
 import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
 import TuneIcon from "@mui/icons-material/Tune";
+import WebhookIcon from "@mui/icons-material/Webhook";
 import { Typography } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -66,6 +67,10 @@ const SettingsView: React.FC = () => {
 
   const onClickManageUsers = (e: React.MouseEvent) => {
     navigateTo(siteMap.manageUsers.path, undefined, e);
+  };
+
+  const loadNotificationSettings = (e: React.MouseEvent) => {
+    navigateTo(siteMap.notificationSettings.path, undefined, e);
   };
 
   const loadConfigureJupyterLab = (e: React.MouseEvent) => {
@@ -220,6 +225,25 @@ const SettingsView: React.FC = () => {
             <div className="clear"></div>
           </>
         )}
+
+        <h3>Notification settings</h3>
+        <div className="columns">
+          <div className="column">
+            <p>Configure web hooks to get notified about specific events.</p>
+          </div>
+          <div className="column">
+            <StyledButtonOutlined
+              variant="outlined"
+              color="secondary"
+              startIcon={<WebhookIcon />}
+              onClick={loadNotificationSettings}
+              onAuxClick={loadNotificationSettings}
+            >
+              Notification settings
+            </StyledButtonOutlined>
+          </div>
+          <div className="clear"></div>
+        </div>
 
         <h3>JupyterLab configuration</h3>
         <div className="columns">
