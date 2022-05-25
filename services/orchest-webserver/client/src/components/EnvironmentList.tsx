@@ -75,7 +75,7 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
   { id: "status", label: "Build status" },
 ];
 
-const BUILD_POLL_FREQUENCY = 3000;
+const BUILD_POLL_FREQUENCY = 1000;
 
 const doRemoveEnvironment = (
   project_uuid: string,
