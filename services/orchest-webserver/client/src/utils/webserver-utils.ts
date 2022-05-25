@@ -447,7 +447,7 @@ export function setWithRetry<T>(
   setter: (value: T) => void,
   getter: () => T,
   retries: number,
-  delay: number,
+  delay: number
 ) {
   if (retries == 0) {
     console.warn("Failed to set with retry for setter (timeout):", setter);
@@ -474,7 +474,7 @@ export function setWithRetry<T>(
 export function tryUntilTrue(
   action: () => boolean,
   retries: number,
-  delay: number,
+  delay: number
 ) {
   let hasWorked = false;
 
@@ -485,7 +485,7 @@ export function tryUntilTrue(
     },
     () => hasWorked,
     retries,
-    delay,
+    delay
   );
 }
 
