@@ -137,10 +137,14 @@ containsElement () {
 }
 
 run_build () {
-
+    unset build
+    unset build_ctx
+    
     image=$1
-    build=$2
-    build_ctx=$3
+    build_ctx=$2
+    shift
+    shift
+    build="$@"
 
     echo [Building] $image
 
@@ -169,20 +173,25 @@ run_build () {
     fi
     # copy end
 
-    if $VERBOSE; then
-        ${build[@]}
-    else
-        output=$("${build[@]}" 2>&1)
-    fi
+    verbose_command_wrapper "$@"
 
     if [ $? = 0 ]; then
         echo [Building] $1 succeeded.
     else
         echo [Building] $1 failed.
-        echo "$output"
     fi
 
+}
 
+verbose_command_wrapper () {
+    if $VERBOSE; then
+        "$@"
+    else
+        output=$("$@" 2>&1)
+        if ! [ $? = 0 ]; then
+            echo "$output"
+        fi
+    fi
 }
 
 function cleanup() {
@@ -392,7 +401,7 @@ do
             $build_ctx)
 
         # on orchest-controller build we generate the orchest-controller build manifests
-        TAGNAME=$ORCHEST_VERSION make -C ./services/orchest-controller manifestgen    
+        verbose_command_wrapper bash -c "TAGNAME=$ORCHEST_VERSION make -C ./services/orchest-controller manifestgen"
     fi
 
     # installs orchest-sdk
@@ -422,9 +431,9 @@ do
         CLEANUP_IMAGES+=($IMG)
 
         if $VERBOSE; then
-            run_build $IMG $build $build_ctx
+            run_build $IMG $build_ctx "${build[@]}"
         else
-            run_build $IMG $build $build_ctx &
+            run_build $IMG $build_ctx "${build[@]}" &
         fi
     fi
 
