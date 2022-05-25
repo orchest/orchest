@@ -70,6 +70,10 @@ class Jupyter {
     }, 10);
   }
 
+  isShowing (){
+    return this.isJupyterPage() && this.isJupyterLoaded() && !this.jupyterHolder.hasClass("hidden")
+  }
+
   hide() {
     this.jupyterHolder.addClass("hidden");
     window.clearInterval(this.showCheckInterval);
