@@ -15,8 +15,15 @@ set -e
 OS="linux"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  echo "Detected macos"
+  echo "Detected macOS"
   OS="darwin"
+fi
+
+if ! [ -x "$(command -v pip)" ]; then
+    echo "This script requires 'pip' in order to install the orchest-cli package."
+    echo "Couldn't find pip, you can install it by following the recommended process:"
+    echo "https://pip.pypa.io/en/stable/installation/"
+    exit 1
 fi
 
 if ! [ -x "$(command -v minikube)" ]; then
