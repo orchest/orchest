@@ -994,12 +994,12 @@ def _run_pod_exec(
     pods = CORE_API.list_namespaced_pod(
         ns,
         label_selector=(
-            f"{orchest_service}={orchest_service},"
-            "contoller.orchest.io/part-of=orchest,"
-            f"controller.orchest.io={cluster_name}"
+            f"controller.orchest.io/component={orchest_service},"
+            "controller.orchest.io/part-of=orchest,"
+            f"controller.orchest.io/owner={orchest_service}"
         ),
     )
-    if not pods:
+    if not pods.items:
         raise RuntimeError(
             f"Orchest Cluster is in an invalid state: no '{orchest_service}' found."
         )
