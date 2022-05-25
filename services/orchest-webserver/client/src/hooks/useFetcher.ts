@@ -9,7 +9,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
   params?: RequestInit & {
     disableFetchOnMount?: boolean;
     revalidateOnFocus?: boolean;
-    transform?: (data: FetchedValue) => Data;
+    transform?: (data: FetchedValue) => Data | Promise<Data>;
     caching?: boolean;
   }
 ) {
