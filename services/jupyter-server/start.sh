@@ -91,6 +91,7 @@ if test -f "$build_config"; then
     echo "Clearing uninstalled_core_extensions $build_config"
     jq ".uninstalled_core_extensions = []" $build_config > $build_config.tmp
     mv -f $build_config.tmp $build_config
+    echo "Cleared complete."
 fi
 
 # Get installed extensions.
