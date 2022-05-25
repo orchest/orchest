@@ -318,6 +318,14 @@ def uninstall(**kwargs) -> None:
     # controller has successfully taken care of the removal.
     echo("Removing 'orchest-system' namespace...")
     CORE_API.delete_namespace("orchest-system")
+    while True:
+        try:
+            CORE_API.read_namespace("orchest-system")
+        except client.ApiException as e:
+            if e.status == 404:
+                break
+            raise e
+        time.sleep(1)
 
     # Delete cluster level resources.
     echo("Removing Orchest's cluster-level resources...")
