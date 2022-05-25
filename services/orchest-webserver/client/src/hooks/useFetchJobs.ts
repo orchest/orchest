@@ -2,10 +2,14 @@ import { Job } from "@/types";
 import { useFetcher } from "./useFetcher";
 
 export function useFetchJobs(projectUuid: string | undefined) {
-  const { fetchData, data, setData, error, status } = useFetcher<Job[]>(
+  const { fetchData, data, setData, error, status } = useFetcher<
+    { jobs: Job[] },
+    Job[]
+  >(
     projectUuid
       ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
-      : undefined
+      : undefined,
+    { transform: (data) => data.jobs }
   );
 
   return {

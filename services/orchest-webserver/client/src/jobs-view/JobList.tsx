@@ -104,12 +104,12 @@ const doCreateJob = async (
   });
 };
 
-const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
-  const { navigateTo } = useCustomRoute();
+const JobList = () => {
+  const { navigateTo, projectUuid } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
 
   const {
-    data: jobs = [],
+    jobs = [],
     error: fetchJobsError,
     isFetchingJobs,
     fetchJobs,
@@ -186,6 +186,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const createJob = React.useCallback(
     async (newJobName: string, pipelineUuid: string) => {
+      if (!projectUuid) return;
       setJobName(newJobName);
       // TODO: in this part of the flow copy the pipeline directory to make
       // sure the pipeline no longer changes
@@ -214,7 +215,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   );
 
   React.useEffect(() => {
-    if (createJobError) {
+    if (projectUuid && createJobError) {
       setIsCreateDialogOpen(false);
 
       if (createJobError.reason === "gate-failed" && selectedPipeline) {
@@ -226,7 +227,15 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       }
       setAlert("Error", `Failed to create job. ${createJobError.message}`);
     }
-  }, [createJobError, setAlert, requestBuild, createJob]);
+  }, [
+    createJobError,
+    setAlert,
+    requestBuild,
+    createJob,
+    projectUuid,
+    jobName,
+    selectedPipeline,
+  ]);
 
   const onRowClick = (e: React.MouseEvent, uuid: string) => {
     const foundJob = jobs.find((job) => job.uuid === uuid);
