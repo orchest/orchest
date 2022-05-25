@@ -176,9 +176,9 @@ run_build () {
     verbose_command_wrapper "$@"
 
     if [ $? = 0 ]; then
-        echo [Building] $1 succeeded.
+        echo [Building] $image succeeded.
     else
-        echo [Building] $1 failed.
+        echo [Building] $image failed.
     fi
 
 }
