@@ -442,10 +442,17 @@ export function getPipelineStepChildren(
   return childSteps;
 }
 
-export function setWithRetry(value, setter, getter, retries, delay, interval?) {
+export function setWithRetry<T>(
+  value: T,
+  setter: (value: T) => void,
+  getter: () => T,
+  retries: number,
+  delay: number,
+  intervalId?: number
+) {
   if (retries == 0) {
     console.warn("Failed to set with retry for setter (timeout):", setter);
-    clearInterval(interval);
+    clearInterval(intervalId);
     return;
   }
   try {
@@ -454,26 +461,29 @@ export function setWithRetry(value, setter, getter, retries, delay, interval?) {
     console.warn("Setter produced an error.", setter, error);
   }
   try {
-    if (value == getter()) {
-      if (interval) {
-        clearInterval(interval);
+    if (value === getter()) {
+      if (intervalId) {
+        clearInterval(intervalId);
       }
       return;
     }
   } catch (error) {
     console.warn("Getter produced an error.", getter, error);
   }
-  if (interval === undefined) {
-    interval = setInterval(() => {
+  if (intervalId === undefined) {
+    return setInterval(() => {
       retries -= 1;
-      setWithRetry(value, setter, getter, retries, delay, interval);
+      setWithRetry(value, setter, getter, retries, delay, intervalId);
     }, delay);
-
-    return interval;
   }
 }
 
-export function tryUntilTrue(action, retries, delay, interval?) {
+export function tryUntilTrue(
+  action: () => boolean,
+  retries: number,
+  delay: number,
+  interval?: number
+) {
   let hasWorked = false;
 
   setWithRetry(
@@ -481,9 +491,7 @@ export function tryUntilTrue(action, retries, delay, interval?) {
     () => {
       hasWorked = action();
     },
-    () => {
-      return hasWorked;
-    },
+    () => hasWorked,
     retries,
     delay,
     interval
