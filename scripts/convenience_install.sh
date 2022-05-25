@@ -2,9 +2,7 @@
 # This is a convenience installation script  that takes care of:
 # - installing minikube
 # - making sure the minikube cluster is started
-# - creating the 'orchest' namespace
-# - creating the Orchest controller
-# - installing the orchest-cli package from the repository
+# - installing the orchest-cli through pip
 # - installing Orchest using the orchest-cli
 # - enabling the ingress addon
 # Each one of these steps is idempotent, so in the event of a random
@@ -42,20 +40,7 @@ if ! minikube status | grep "host" | grep "Running" > /dev/null ; then
     minikube start --cpus 6 --memory 8g --disk-size 50g 
 fi
 
-if ! minikube kubectl -- get namespaces | grep "orchest " ; then
-    echo "Creating 'orchest' namespace..."
-    minikube kubectl -- create ns orchest
-fi
-
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
-echo "Setting up the Orchest controller..."
-minikube kubectl -- apply -f "${DIR}/../services/orchest-controller/deploy-controller" > /dev/null
-minikube kubectl -- wait --timeout=15m --for=condition=available -n orchest \
-    deployment/orchest-controller > /dev/null
-
-echo "Installing the orchest-cli from this repository..."
-pip install "${DIR}/../orchest-cli" > /dev/null
+pip install orchest-cli --upgrade
 
 orchest install
 
