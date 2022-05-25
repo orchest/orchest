@@ -1,6 +1,8 @@
 """API endpoints for unspecified orchest-api level information."""
 import os
+import shlex
 import subprocess
+from typing import List
 
 from flask import current_app, request
 from flask_restx import Namespace, Resource
@@ -24,27 +26,21 @@ class StartUpdate(Resource):
     )
     def post(self):
         try:
-            if os.getenv("FLASK_ENV") == "development":
-                # use the local orchest-cli because it should be
-                # mounted using "pip install -e"
-                cmds.update(
-                    version=None,
-                    watch_flag=False,
-                    dev_mode=True,
-                    namespace=_config.ORCHEST_NAMESPACE,
-                    cluster_name=_config.ORCHEST_CLUSTER,
-                )
-            else:
-                _run_update_in_venv()
-            return {
-                "namespace": _config.ORCHEST_NAMESPACE,
-                "cluster_name": _config.ORCHEST_CLUSTER,
-            }, 201
-        # This is a form of technical debt since we can't distinguish if
-        # an update fails because there is no newer version of a "real"
-        # failure.
+            _run_update_in_venv(
+                namespace=_config.ORCHEST_NAMESPACE,
+                cluster_name=_config.ORCHEST_CLUSTER,
+                dev_mode=(os.getenv("FLASK_ENV") == "development"),
+            )
         except SystemExit:
+            # This is a form of technical debt since we can't
+            # distinguish if an update fails because there is no newer
+            # version or a "real" failure.
             return {"message": "Failed to update."}, 500
+
+        return {
+            "namespace": _config.ORCHEST_NAMESPACE,
+            "cluster_name": _config.ORCHEST_CLUSTER,
+        }, 201
 
 
 @api.route("/restart")
@@ -136,50 +132,89 @@ class OrchestSettings(Resource):
         return resp, 200
 
 
-def _run_update_in_venv():
-    # This function creates a python virtual env and installs
-    # orchest_cli within it.
-    venv_cmds = """
-    rm -rf venv
-    python3 -m venv venv && source venv/bin/activate
-    pip install orchest-cli
-    """
+def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
+    """Runs `orchest update` in a virtualenv."""
 
-    run_update = """
-    python3 -m venv venv && source venv/bin/activate
-    orchest update
-    """
-
-    env = os.environ.copy()
-
-    def run_cmds(cmds: str, fail_if_std_err):
+    def run_cmds(cmd: List[str], cwd=None):
         """Executes the provided commands.
+
         Args:
             cmds: commands to execute.
-            fail_if_std_err: If True raises SystemExit if stderr if
+            fail_if_std_err: If True raises SystemExit if stderr is
                 not None.
 
         Raises:
             SystemExit: If `returncode` of the cmds execution is not
-                zero or fail_if_std_err is `True` and stderr is non
+                zero or fail_if_std_err is `True` and stderr is not
                 None.
         """
-        process = subprocess.Popen(
-            "/bin/bash",
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=True,
-            env=env,
-        )
+        process = subprocess.Popen(cmd, cwd=cwd)
 
-        _, err = process.communicate(cmds.encode("utf-8"))
-
-        if process.returncode != 0 or (fail_if_std_err and err is not None):
+        if process.wait() != 0:
             raise SystemExit(1)
 
-    # Create virtual envirement and update
-    run_cmds(venv_cmds, False)
+    if not dev_mode:
+        install_cmd = "&&".join(
+            [
+                "rm -rf /tmp/venv",
+                "python3 -m venv /tmp/venv",
+                "/tmp/venv/bin/pip install --upgrade orchest-cli",
+            ]
+        )
+        install_cmd = shlex.split(install_cmd)
+        run_cmds(install_cmd)
 
-    # Run update withing venv
-    run_cmds(run_update, True)
+    if dev_mode:
+        import yaml  # installed by orchest-cli
+
+        # Read the version to update to from the manifest. Without
+        # it you can't update in dev mode.
+        controller_deploy_path = (
+            "/orchest/services/orchest-controller/deploy/k8s/orchest-controller.yaml"
+        )
+        with open(controller_deploy_path, "r") as f:
+            txt_deploy_controller = f.read()
+
+        version = None
+        yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
+        while True:
+            try:
+                obj = next(yml_deploy_controller)
+
+                if (
+                    obj is not None
+                    and obj["kind"] == "Deployment"
+                    # NOTE: We need to assume something to not change
+                    # in the controller deployment to be able to
+                    # distinguish it from other defined deployments in
+                    # the yaml file.
+                    and obj["metadata"]["name"] == "orchest-controller"
+                ):
+                    containers = obj["spec"]["template"]["spec"]["containers"]
+                    for container in containers:
+                        if container["name"] == "orchest-controller":
+                            version = container["image"].split(":")[-1]
+                    break
+            except StopIteration:
+                current_app.logger.error("Could not infer version to update to.")
+                raise SystemExit(1)
+
+        if version is None:
+            current_app.logger.error("Could not infer version to update to.")
+            raise SystemExit(1)
+
+        update_cmd = (
+            f"orchest update --dev --version={version}"
+            f" --no-watch --namespace={namespace} --cluster-name={cluster_name}"
+        )
+
+        # `orchest update --dev` only works inside root level
+        # orchest folder
+        run_cmds(shlex.split(update_cmd), cwd="/orchest")
+    else:
+        update_cmd = (
+            "/tmp/venv/bin/orchest update"
+            f" --no-watch --namespace={namespace} --cluster-name={cluster_name}"
+        )
+
+        run_cmds(shlex.split(update_cmd))

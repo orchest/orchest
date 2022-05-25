@@ -83,7 +83,7 @@ const UpdateView: React.FC = () => {
             .catch((error) => {
               // This is a form of technical debt since we can't
               // distinguish if an update fails because there is no
-              // newer version of a "real" failure.
+              // newer version or a "real" failure.
               setState((prevState) => ({
                 ...prevState,
                 updating: false,

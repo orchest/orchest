@@ -70,6 +70,12 @@ func getDevVolumes(service string, mountApp, mountClient, mountInternalLib bool)
 			MountPath: "/orchest/orchest-cli",
 			SubPath:   "orchest-cli",
 		})
+		// Needed to test `orchest update` invoked through the UI
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "orchest-dev-repo",
+			MountPath: "/orchest/services/orchest-controller/deploy",
+			SubPath:   "services/orchest-controller/deploy",
+		})
 	}
 
 	if mountInternalLib {
