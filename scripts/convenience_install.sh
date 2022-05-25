@@ -40,11 +40,11 @@ if ! minikube status | grep "host" | grep "Running" > /dev/null ; then
     minikube start --cpus 6 --memory 8g --disk-size 50g 
 fi
 
-pip install orchest-cli --upgrade
-
-orchest install
-
 if ! minikube addons list | grep "ingress " | grep "enabled" > /dev/null ; then
     echo "Enabling ingress addon..."
     minikube addons enable ingress
 fi
+
+pip install orchest-cli --upgrade
+
+orchest install
