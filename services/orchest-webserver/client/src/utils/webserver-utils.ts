@@ -475,7 +475,6 @@ export function tryUntilTrue(
   action: () => boolean,
   retries: number,
   delay: number,
-  interval?: number
 ) {
   let hasWorked = false;
 
