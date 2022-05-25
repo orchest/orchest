@@ -44,6 +44,10 @@ jobs:
         with:
           name: manifests
           path: ./services/orchest-controller/deploy/k8s/orchest-controller.yaml
+      - uses: actions/upload-artifact@v3
+        with:
+          name: examples
+          path: ./services/orchest-controller/deploy/examples/example-orchestcluster.yaml
 
   trigger_release:
     # On a successful merge of a release branch into the master branch.
@@ -61,4 +65,4 @@ jobs:
           RELEASE_VERSION: ${{ needs.build_manifests.outputs.release_version }}
           DEBUG: api
         run: |
-          gh release create ${RELEASE_VERSION} --generate-notes ./manifests/*
+          gh release create ${RELEASE_VERSION} --generate-notes ./manifests/* ./examples/*
