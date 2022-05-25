@@ -6,69 +6,102 @@ Installation
 .. note::
    Orchest is in beta.
 
-.. tip::
-   👉 Get a fully configured Orchest instance out of the box on our `Orchest Cloud
-   <https://cloud.orchest.io/signup>`_, for free!
+We provide three installation paths, installation through:
+
+* `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_, or
+* our Python based CLI `orchest-cli <https://pypi.org/project/orchest-cli/>`_, or
+* `our Cloud offering <https://cloud.orchest.io/signup>`_ which comes with a free, fully configured
+  Orchest instance.
 
 Prerequisites
 -------------
 
-* `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_
-* `git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
-* `pip <https://pip.pypa.io/en/stable/installation/>`_
+To use Orchest you will need a `Kubernetes (k8s) cluster <https://kubernetes.io/docs/setup/>`_. Any
+cluster should work, you can either pick a managed service by one of the certified `cloud platforms
+<https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/>`_ or create a cluster
+locally using `minikube
+<https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/cluster-intro/>`_.
 
-Kubernetes cluster
-~~~~~~~~~~~~~~~~~~
-You need `a Kubernetes (k8s) cluster <https://kubernetes.io/docs/setup/>`_ to run Orchest:
-you can either pick a managed service by `one of their certified cloud
-platforms <https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/>`_,
-or `create one locally using
-minikube <https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/cluster-intro/>`_:
+.. note::
+   💡 We recommend to install Orchest on a clean cluster to prevent it clashing with existing
+   cluster-level resources.
+
+Setting up a ``minikube`` cluster
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+First, make sure you `install minikube <https://minikube.sigs.k8s.io/docs/start/>`_. Next, create
+your cluster:
 
 .. code-block:: bash
 
-   # Start a minikube cluster with profile "minikube".
+   # Create a minikube cluster.
    minikube start --cpus=4
 
-   # Enable ingress addon
+   # Enable the ingress addon
    minikube addons enable ingress
 
 .. _regular installation:
 
-.. include:: ../fragments/regular-installation.rst
+Install ``orchest`` via ``orchest-cli``
+---------------------------------------
 
-Now the cluster can be reached the IP returned by:
+.. code-block:: bash
+
+   pip install orchest-cli
+   orchest install
+
+Now the cluster can be reached on the IP returned by:
 
 .. code-block:: bash
 
    minikube ip
-
-.. note::
-   We recommend to install Orchest on a clean cluster (a non-existing cluster) because it is 
-   hard to play well with other software already installed on the cluster, e.g, argo, etc.
-
-.. note::
-   Authentication is disabled in default installation.
 
 .. tip::
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
    <quickstart>`.
 
 Installing using an FQDN
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 If you would rather reach Orchest using a Fully Qualified Domain Name (FQDN) instead of using the
-cluster IP directly, you can install Orchest using:
+cluster's IP directly, you can install Orchest using:
 
 .. code-block:: bash
 
    orchest install --fqdn="localorchest.io"
 
+.. or, if you have already installed Orchest but would like to set up an FQDN
+
+Next, make Orchest reachable through your FQDN reachable from the browser:
+
+.. code-block:: bash
+
    # Set up the default Fully Qualified Domain Name (FQDN) in your
    # /etc/hosts so that you can reach Orchest locally.
    echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
 
-.. _installation gpu support:
+Install ``orchest`` via ``kubectl``
+-----------------------------------
 
-GPU support
------------
-Currently GPU support is not yet available. Coming soon!
+.. code-block:: bash
+
+   # Get the latest available Orchest version
+   export VERSION=$(curl \
+      "https://update-info.orchest.io/api/orchest/update-info/v3?version=None&is_cloud=False" \
+      | grep -oP "v\d+\.\d+\.\d+")
+
+   # Deploy the Orchest Operator
+   kubectl apply \
+     -f "https://github.com/orchest/orchest/releases/download/${VERSION}/orchest-controller.yaml"
+
+   # Create the namespace you want to install Orchest in
+   kubectl create ns orchest
+
+   # Apply an OrchestCluster Custom Resource
+   kubectl apply \
+     -f "https://github.com/orchest/orchest/releases/download/${VERSION}/example-orchestcluster.yaml"
+
+In case you want to configure the Orchest Cluster, you can patch the created ``OrchestCluster``
+
+Closing notes
+-------------
+Authentication is disabled by default after installation. Check out the :ref:`Orchest settings
+<orchest settings>` to learn how to enable it.
