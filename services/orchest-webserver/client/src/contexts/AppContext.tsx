@@ -357,7 +357,11 @@ export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
   shouldStart = true,
 }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
-  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+
+  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage<boolean>(
+    "drawer",
+    true
+  );
 
   const { config, user_config } = useFetchSystemConfig(shouldStart);
 

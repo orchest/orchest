@@ -1,33 +1,19 @@
 import { Environment } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
-import React from "react";
-import useSWR from "swr";
-import { MutatorCallback } from "swr/dist/types";
+import { useFetcher } from "./useFetcher";
 
 export function useFetchEnvironments(
   projectUuid: string | undefined,
   queryString = ""
 ) {
-  const { data, error, isValidating, mutate } = useSWR<Environment[]>(
-    projectUuid ? `/store/environments/${projectUuid}${queryString}` : null,
-    fetcher
-  );
-
-  const setEnvironments = React.useCallback(
-    (
-      data?:
-        | Environment[]
-        | Promise<Environment[]>
-        | MutatorCallback<Environment[]>
-    ) => mutate(data, false),
-    [mutate]
+  const { fetchData, data, setData, error, status } = useFetcher<Environment[]>(
+    projectUuid ? `/store/environments/${projectUuid}${queryString}` : undefined
   );
 
   return {
     environments: data,
     error,
-    isFetchingEnvironments: isValidating,
-    fetchEnvironments: mutate,
-    setEnvironments,
+    isFetchingEnvironments: status === "PENDING",
+    fetchEnvironments: fetchData,
+    setEnvironments: setData,
   };
 }

@@ -12,7 +12,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
-import { useFetchProject } from "@/hooks/useFetchProject";
+import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
 import { siteMap } from "@/routingConfig";
@@ -225,8 +225,12 @@ const EditJobView: React.FC = () => {
     "now"
   );
 
-  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
-  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+  const [envVariables, _setEnvVariables] = React.useState<
+    EnvVarPair[] | undefined
+  >([]);
+  const setEnvVariables = (
+    value: React.SetStateAction<EnvVarPair[] | undefined>
+  ) => {
     _setEnvVariables(value);
     setAsSaved(false);
   };
@@ -255,10 +259,7 @@ const EditJobView: React.FC = () => {
       : undefined
   );
 
-  const { data: projectSnapshotSize = 0 } = useFetchProject({
-    projectUuid,
-    selector: (project) => project.project_snapshot_size,
-  });
+  const projectSnapshotSize = useFetchProjectSnapshotSize(projectUuid);
 
   const isLoading = isFetchingJob || isFetchingPipelineJson;
 
@@ -339,7 +340,7 @@ const EditJobView: React.FC = () => {
     }
 
     // Valid environment variables
-    for (let envPair of envVariables) {
+    for (let envPair of envVariables || []) {
       if (!isValidEnvironmentVariableName(envPair.name)) {
         return {
           pass: false,
@@ -701,7 +702,7 @@ const EditJobView: React.FC = () => {
                 Override any project or pipeline environment variables here.
               </p>
               <EnvVarList
-                value={envVariables}
+                value={envVariables || []}
                 setValue={setEnvVariables}
                 data-test-id="job-edit"
               />
