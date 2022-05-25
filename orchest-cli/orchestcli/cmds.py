@@ -782,7 +782,7 @@ def stop(watch: bool, **kwargs) -> None:
             body={"spec": {"orchest": {"pause": True}}},
         )
     except client.ApiException as e:
-        echo("Failed to pause the Orchest Cluster.", err=True)
+        echo("Failed to stop the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
             echo(
                 f"The Orchest Cluster named '{cluster_name}' in namespace"
@@ -794,7 +794,7 @@ def stop(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
+        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.STOPPED)
         echo("Successfully stopped Orchest.")
 
 
@@ -810,7 +810,7 @@ def start(watch: bool, **kwargs) -> None:
             body={"spec": {"orchest": {"pause": False}}},
         )
     except client.ApiException as e:
-        echo("Failed to unpause the Orchest Cluster.", err=True)
+        echo("Failed to start the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
             echo(
                 f"The Orchest Cluster named '{cluster_name}' in namespace"
@@ -822,7 +822,7 @@ def start(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
+        _display_spinner(ClusterStatus.STOPPED, ClusterStatus.RUNNING)
         echo("Successfully started Orchest.")
 
 
@@ -833,7 +833,7 @@ def restart(watch: bool, **kwargs) -> None:
     echo("Restarting the Orchest Cluster.")
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
-        if status == ClusterStatus.PAUSED:
+        if status == ClusterStatus.STOPPED:
             start(**kwargs)
         else:
             status = ClusterStatus.RUNNING
