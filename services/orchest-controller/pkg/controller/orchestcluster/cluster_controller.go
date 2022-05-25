@@ -623,7 +623,7 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 	}
 
 	// Deploy and Update
-	components, err := GetOrchetComponents(ctx, orchest, occ.oComponentLister)
+	components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
 	if err != nil {
 		return err
 	}
@@ -668,7 +668,7 @@ func (occ *OrchestClusterController) stopOrchest(ctx context.Context, orchest *o
 	stopped := false
 
 	// Get the current Components
-	components, err := GetOrchetComponents(ctx, orchest, occ.oComponentLister)
+	components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
 	if err != nil {
 		return stopped, err
 	}

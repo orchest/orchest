@@ -159,8 +159,8 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 	return nextPhase, endPhase
 }
 
-// GetOrchetComponents returns all the components of the OrchestCluster
-func GetOrchetComponents(ctx context.Context,
+// GetOrchestComponents returns all the components of the OrchestCluster
+func GetOrchestComponents(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster,
 	lister orchestlisters.OrchestComponentLister) (
 	map[string]*orchestv1alpha1.OrchestComponent, error) {

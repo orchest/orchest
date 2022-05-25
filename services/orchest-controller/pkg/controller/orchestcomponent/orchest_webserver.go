@@ -26,7 +26,7 @@ func (reconciler *OrchestWebServerReconciler) Reconcile(ctx context.Context, com
 	hash := controller.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestWebserver, component)
 	metadata := controller.GetMetadata(controller.OrchestWebserver, hash, component, OrchestComponentKind)
-	newDep := getOrchetWebserverDeployment(metadata, matchLabels, component)
+	newDep := getOrchestWebserverDeployment(metadata, matchLabels, component)
 
 	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
@@ -93,7 +93,7 @@ func (reconciler *OrchestWebServerReconciler) Uninstall(ctx context.Context, com
 	return true, nil
 }
 
-func getOrchetWebserverDeployment(metadata metav1.ObjectMeta,
+func getOrchestWebserverDeployment(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *appsv1.Deployment {
 
 	image := component.Spec.Template.Image

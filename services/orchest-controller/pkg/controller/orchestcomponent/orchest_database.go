@@ -27,7 +27,7 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 	hash := controller.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestDatabase, component)
 	metadata := controller.GetMetadata(controller.OrchestDatabase, hash, component, OrchestComponentKind)
-	newDep := getOrchetDatabaseDeployment(metadata, matchLabels, component)
+	newDep := getOrchestDatabaseDeployment(metadata, matchLabels, component)
 
 	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
@@ -77,7 +77,7 @@ func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, comp
 	return true, nil
 }
 
-func getOrchetDatabaseDeployment(metadata metav1.ObjectMeta,
+func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *appsv1.Deployment {
 
 	template := corev1.PodTemplateSpec{

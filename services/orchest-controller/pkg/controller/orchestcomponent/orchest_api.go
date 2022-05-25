@@ -27,7 +27,7 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 	hash := controller.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestApi, component)
 	metadata := controller.GetMetadata(controller.OrchestApi, hash, component, OrchestComponentKind)
-	newDep := getOrchetApiDeployment(metadata, matchLabels, component)
+	newDep := getOrchestApiDeployment(metadata, matchLabels, component)
 
 	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
@@ -117,7 +117,7 @@ func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component
 
 }
 
-func getOrchetApiDeployment(metadata metav1.ObjectMeta,
+func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *appsv1.Deployment {
 
 	image := component.Spec.Template.Image
