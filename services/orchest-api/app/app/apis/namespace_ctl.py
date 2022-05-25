@@ -24,7 +24,18 @@ class StartUpdate(Resource):
     )
     def post(self):
         try:
-            _run_update_in_venv()
+            if os.getenv("FLASK_ENV") == "development":
+                # use the local orchest-cli because it should be
+                # mounted using "pip install -e"
+                cmds.update(
+                    version=None,
+                    watch_flag=False,
+                    dev_mode=True,
+                    namespace="orchest-system",
+                    cluster_name=_config.ORCHEST_CLUSTER,
+                )
+            else:
+                _run_update_in_venv()
             return {
                 "namespace": _config.ORCHEST_NAMESPACE,
                 "cluster_name": _config.ORCHEST_CLUSTER,
