@@ -153,6 +153,7 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
         if e.reason == "Conflict":
             echo(f"Installing into existing namespace: {ns}.")
 
+    echo("Installing the Orchest Controller to manage the Orchest Cluster...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
@@ -290,16 +291,22 @@ def uninstall(**kwargs) -> None:
     # Otherwise the namespace can't be removed due to the configured
     # finalizers on the orchestcluster resources.
     echo("Removing all Orchest Clusters...")
-    _remove_custom_objects(ns)
-
-    # Wait until the custom objects are removed to ensure a correct
-    # removal (which is handled by the `orchest-controller`).
-    while True:
-        custom_objects = list_namespaced_custom_object(
-            namespace=ns,
-        )
-        if not custom_objects["items"]:
-            break
+    try:
+        _remove_custom_objects(ns)
+    except client.ApiException as e:
+        if e.status == 404:
+            echo("No Orchest Clusters found to delete.", err=True)
+        else:
+            raise
+    else:
+        # Wait until the custom objects are removed to ensure a correct
+        # removal (which is handled by the `orchest-controller`).
+        while True:
+            custom_objects = list_namespaced_custom_object(
+                namespace=ns,
+            )
+            if not custom_objects["items"]:
+                break
 
     # Removing the namespace will also remove all resources contained in
     # it.
