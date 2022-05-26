@@ -62,7 +62,7 @@ jobs:
 
       - name: Create new release with auto-generated release notes
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
           RELEASE_VERSION: ${{ needs.build_manifests.outputs.release_version }}
           DEBUG: api
         run: |
