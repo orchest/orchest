@@ -85,6 +85,10 @@ Install ``orchest`` via ``kubectl``
 .. tip::
    We recommend using the ``orchest-cli`` for installing and managing your Orchest Clusters.
 
+The code snippet below will install Orchest in the ``orchest`` namespace. In case you want to
+install in another namespace you can use tools like `yq <https://github.com/mikefarah/yq>`_ to
+change the specified namespace in ``orchest-controller.yaml``.
+
 .. code-block:: bash
 
    # Get the latest available Orchest version
@@ -96,14 +100,11 @@ Install ``orchest`` via ``kubectl``
    kubectl apply \
      -f "https://github.com/orchest/orchest/releases/download/${VERSION}/orchest-controller.yaml"
 
-   # Create the namespace you want to install Orchest in
-   kubectl create ns orchest
-
    # Apply an OrchestCluster Custom Resource
    kubectl apply \
      -f "https://github.com/orchest/orchest/releases/download/${VERSION}/example-orchestcluster.yaml"
 
-In case you want to configure the Orchest Cluster, you can patch the created ``OrchestCluster``
+In case you want to configure the Orchest Cluster, you can patch the created ``OrchestCluster``.
 
 Closing notes
 -------------
