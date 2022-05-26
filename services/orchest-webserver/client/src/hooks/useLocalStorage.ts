@@ -1,42 +1,36 @@
 import React from "react";
 
-type LocalStorageValue<T> = T | null | undefined;
-
 function parseLocalStorageString<T>(
   itemAsString: string | null,
-  defaultValue?: T
-): T | null | undefined {
+  defaultValue: T
+): T {
   try {
     // never saved before
-    if (itemAsString === null && defaultValue !== undefined)
-      return defaultValue;
+    if (itemAsString === null) return defaultValue;
     // it was saved before as undefined, so we take the saved value
-    if (itemAsString === "undefined") return undefined;
-    return itemAsString === null ? null : JSON.parse(itemAsString);
+    if (itemAsString === "undefined") return defaultValue;
+    return JSON.parse(itemAsString) as T;
   } catch (error) {
     console.log(error);
     return defaultValue;
   }
 }
 
+/**
+ * useLocalStorage reads and writes to localstorage
+ */
 export const useLocalStorage = <T>(key: string, defaultValue: T) => {
   const privateKey = `orchest.${key}`;
 
   const cachedItemString = React.useRef<string | null>();
-  const [storedValue, setStoredValue] = React.useState<LocalStorageValue<T>>(
-    () => {
-      const item = window.localStorage.getItem(privateKey);
-      cachedItemString.current = item;
-      return parseLocalStorageString<T>(item, defaultValue);
-    }
-  );
+  const [storedValue, setStoredValue] = React.useState<T>(() => {
+    const item = window.localStorage.getItem(privateKey);
+    cachedItemString.current = item;
+    return parseLocalStorageString<T>(item, defaultValue);
+  });
 
   const setValue = React.useCallback(
-    (
-      value:
-        | LocalStorageValue<T>
-        | ((value: LocalStorageValue<T>) => LocalStorageValue<T>)
-    ) => {
+    (value: T | ((value: T) => T)) => {
       try {
         setStoredValue((current) => {
           const valueToStore =
@@ -61,14 +55,14 @@ export const useLocalStorage = <T>(key: string, defaultValue: T) => {
         e.newValue !== cachedItemString.current
       ) {
         cachedItemString.current = e.newValue;
-        setStoredValue(parseLocalStorageString(e.newValue));
+        setStoredValue(parseLocalStorageString(e.newValue, defaultValue));
       }
     };
 
     window.addEventListener("storage", onStorage);
 
     return () => window.removeEventListener("storage", onStorage);
-  }, [privateKey]);
+  }, [privateKey, defaultValue]);
 
   return [storedValue, setValue] as const;
 };

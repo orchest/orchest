@@ -1,22 +1,15 @@
-import type { STATUS } from "@/hooks/useAsync";
+import { useFetcher } from "@/hooks/useFetcher";
 import { Example } from "@/types";
-import { fetcher } from "@/utils/fetcher";
-import useSWR from "swr";
 
 const useFetchExamples = (shouldFetch = true) => {
-  const { data, error, isValidating } = useSWR<{
-    creation_time: string;
-    entries: Example[];
-  }>(shouldFetch ? "/async/orchest-examples" : null, fetcher);
-  const status: STATUS = !shouldFetch
-    ? "IDLE"
-    : isValidating
-    ? "PENDING"
-    : error
-    ? "REJECTED"
-    : "RESOLVED";
+  const { data, status, error } = useFetcher<
+    { creation_time: string; entries: Example[] },
+    Example[]
+  >(shouldFetch ? "/async/orchest-examples" : undefined, {
+    transform: (data) => data.entries,
+  });
 
-  return { data: data ? data.entries : null, status, error };
+  return { data, status, error };
 };
 
 export { useFetchExamples };

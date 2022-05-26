@@ -1,5 +1,4 @@
-import { fetcher } from "@orchest/lib-utils";
-import useSWR from "swr";
+import { useFetcher } from "@/hooks/useFetcher";
 
 type HostInfo = {
   disk_info: {
@@ -10,9 +9,9 @@ type HostInfo = {
 };
 
 export const useHostInfo = (shouldFetch?: boolean) => {
-  const { data } = useSWR<HostInfo>(
-    shouldFetch ? "/async/host-info" : null,
-    fetcher
+  const { data } = useFetcher<HostInfo>(
+    shouldFetch ? "/async/host-info" : undefined
   );
+
   return data;
 };

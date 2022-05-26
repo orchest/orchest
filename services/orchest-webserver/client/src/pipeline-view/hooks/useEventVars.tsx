@@ -49,6 +49,10 @@ type Action =
       payload: StepsDict;
     }
   | {
+      type: "SAVE_STEPS";
+      payload: StepsDict;
+    }
+  | {
       type: "CREATE_STEP";
       payload: PipelineStepState;
     }
@@ -359,6 +363,9 @@ export const useEventVars = () => {
         }
         case "SET_STEPS": {
           return { ...state, steps: action.payload };
+        }
+        case "SAVE_STEPS": {
+          return withTimestamp({ ...state, steps: action.payload });
         }
         case "CREATE_STEP": {
           const newStep = action.payload;

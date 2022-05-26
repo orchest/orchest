@@ -1,5 +1,3 @@
-import React from "react";
-
 export type RouteName =
   | "projects"
   | "examples"
@@ -30,7 +28,6 @@ export type RouteName =
 export type RouteData = {
   path: string;
   root?: string;
-  component: React.FunctionComponent;
   order: number;
 };
 
