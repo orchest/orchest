@@ -491,8 +491,11 @@ const PipelineStepComponent = React.forwardRef<
     {
       type: "item",
       title: "Open in JupyterLab",
-      action: (e: React.MouseEvent, _itemId?: string) => {
-        onOpenNotebook(e);
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          dispatch({ type: "SET_OPENED_STEP", payload: itemId });
+          onOpenNotebook(e);
+        }
       },
     },
     {
