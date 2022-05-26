@@ -5,6 +5,7 @@ import type {
   NewConnection,
   Offset,
   PipelineStepState,
+  ReducerActionWithCallback,
   Step,
   StepsDict,
 } from "@/types";
@@ -135,9 +136,9 @@ type Action =
       payload: number;
     };
 
-type ActionCallback = (previousState: EventVars) => Action | void;
-
-export type EventVarsAction = Action | ActionCallback | undefined;
+export type EventVarsAction =
+  | ReducerActionWithCallback<EventVars, Action>
+  | undefined;
 
 const DEFAULT_SCALE_FACTOR = 1;
 
