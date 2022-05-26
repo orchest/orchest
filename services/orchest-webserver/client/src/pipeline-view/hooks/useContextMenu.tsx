@@ -6,6 +6,7 @@ import React from "react";
 type MenuItemAction = {
   type: "item";
   title: string;
+  disabled?: boolean;
   action: (e: React.MouseEvent, itemId?: string) => void;
 };
 
@@ -75,7 +76,10 @@ export function useContextMenu(
         switch (i.type) {
           case "item":
             return (
-              <MenuItem onClick={(e) => handleClicked(e, i)}>
+              <MenuItem
+                onClick={(e) => handleClicked(e, i)}
+                disabled={i.disabled}
+              >
                 {i.title}
               </MenuItem>
             );

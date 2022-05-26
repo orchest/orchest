@@ -291,6 +291,7 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Run selected steps",
+      disabled: eventVars.selectedSteps.length === 0,
       action: () => {
         executeRun(eventVars.selectedSteps, "selection");
       },
