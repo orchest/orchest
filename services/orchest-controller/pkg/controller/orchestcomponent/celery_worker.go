@@ -61,11 +61,11 @@ func (reconciler *CeleryWorkerReconciler) Uninstall(ctx context.Context, compone
 			return true, nil
 		}
 
-	} else {
-		if !dep.GetDeletionTimestamp().IsZero() {
-			return false, nil
-		}
-		err = reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+	} else if dep.GetDeletionTimestamp().IsZero() {
+		DeletePropagationForeground := metav1.DeletionPropagation("Foreground")
+		err = reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{
+			PropagationPolicy: &DeletePropagationForeground,
+		})
 	}
 
 	return false, err
