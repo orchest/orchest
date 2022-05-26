@@ -389,6 +389,9 @@ def update(
 
     tmp_fetching = "version"
     try:
+        # NOTE: Important! Getting the cluster version will fail if the
+        # update is invoked with a `ns` in which Orchest is not
+        # installed. This is exactly what we want.
         curr_version = _get_orchest_cluster_version(ns, cluster_name)
         tmp_fetching = "running mode"
         is_cloud_mode = _is_orchest_in_cloud_mode(ns, cluster_name)
