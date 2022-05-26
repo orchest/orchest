@@ -147,12 +147,6 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
-    try:
-        CORE_API.create_namespace(client.V1Namespace(metadata={"name": ns}))
-    except client.ApiException as e:
-        if e.reason == "Conflict":
-            echo(f"Installing into existing namespace: {ns}.")
-
     echo("Installing the Orchest Controller to manage the Orchest Cluster...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
