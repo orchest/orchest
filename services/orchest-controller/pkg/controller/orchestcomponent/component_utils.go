@@ -13,6 +13,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var (
+	DeletePropagationForeground = metav1.DeletionPropagation("Foreground")
+)
+
 func getServiceManifest(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, port int,
 	component *orchestv1alpha1.OrchestComponent) *corev1.Service {
