@@ -9,6 +9,7 @@ Object defining the Orchest Cluster to trigger actions in the
 """
 import enum
 import json
+import re
 import sys
 import time
 import typing as t
@@ -29,6 +30,8 @@ try:
     config.load_kube_config()
 except config.config_exception.ConfigException:
     config.load_incluster_config()
+
+ORCHEST_NAMESPACE = re.compile("(namespace: )([-a-z]+)")
 
 API_CLIENT = client.ApiClient()
 APPS_API = client.AppsV1Api()
@@ -147,6 +150,12 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
+    try:
+        CORE_API.create_namespace(client.V1Namespace(metadata={"name": ns}))
+    except client.ApiException as e:
+        if e.reason == "Conflict":
+            echo(f"Installing into existing namespace: {ns}.")
+
     echo("Installing the Orchest Controller to manage the Orchest Cluster...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
@@ -170,6 +179,9 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
         except RuntimeError as e:
             echo(f"{e}", err=True)
             sys.exit(1)
+
+    # Makes the namespace configurable.
+    txt_deploy_controller = _subst_namespace(subst=ns, string=txt_deploy_controller)
 
     # Deploy the `orchest-controller` and the resources it needs.
     yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
@@ -454,6 +466,10 @@ def update(
         except RuntimeError as e:
             echo(f"{e}", err=True)
             sys.exit(1)
+
+    # The namespace to install the controller in should be the same as
+    # the namespace in which Orchest is currently installed.
+    txt_deploy_controller = _subst_namespace(subst=ns, string=txt_deploy_controller)
 
     yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
     try:
@@ -1323,3 +1339,8 @@ def _fetch_orchest_controller_manifests(version: t.Optional[str]) -> str:
         txt_deploy_controller = resp.text
 
     return txt_deploy_controller
+
+
+def _subst_namespace(subst: str, string: str) -> str:
+    """Substitutes `namespace: [a-z]+` with `subst` in `string`."""
+    return ORCHEST_NAMESPACE.sub(rf"\1{subst}", string)

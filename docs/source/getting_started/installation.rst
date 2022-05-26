@@ -96,6 +96,9 @@ change the specified namespace in ``orchest-controller.yaml``.
       "https://update-info.orchest.io/api/orchest/update-info/v3?version=None&is_cloud=False" \
       | grep -oP "v\d+\.\d+\.\d+")
 
+   # Create the namespace to install Orchest in
+   kubectl create ns orchest
+
    # Deploy the Orchest Operator
    kubectl apply \
      -f "https://github.com/orchest/orchest/releases/download/${VERSION}/orchest-controller.yaml"
