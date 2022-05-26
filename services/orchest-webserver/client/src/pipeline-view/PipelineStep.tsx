@@ -301,6 +301,17 @@ const PipelineStepComponent = React.forwardRef<
     [forceUpdate, keysDown, isContextMenuOpenState]
   );
 
+  const onContextMenu = async (e: React.MouseEvent) => {
+    const ctrlKeyPressed = e.ctrlKey || e.metaKey;
+    if (!selected) {
+      dispatch({
+        type: "SELECT_STEPS",
+        payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
+      });
+    }
+    handleContextMenu(e);
+  };
+
   const onClick = async (e: React.MouseEvent) => {
     // user is panning the canvas or context menu is open
     if (keysDown.has("Space") || isContextMenuOpenState[0]) return;
@@ -547,7 +558,7 @@ const PipelineStepComponent = React.forwardRef<
           isStartNodeOfNewConnection && "creating-connection"
         )}
         style={{ transform, zIndex }}
-        onContextMenu={handleContextMenu}
+        onContextMenu={onContextMenu}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
         onMouseOver={onMouseOverContainer}
