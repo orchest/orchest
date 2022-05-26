@@ -114,6 +114,22 @@ func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 							SubPath:   controller.DBSubPath,
 						},
 					},
+					ReadinessProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{
+									"pg_isready",
+									"--username",
+									"postgres",
+								},
+							},
+						},
+						InitialDelaySeconds: 1,
+						PeriodSeconds:       4,
+						TimeoutSeconds:      5,
+						SuccessThreshold:    1,
+						FailureThreshold:    10,
+					},
 				},
 			},
 		},
