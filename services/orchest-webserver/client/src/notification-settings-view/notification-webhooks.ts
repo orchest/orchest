@@ -1,9 +1,5 @@
 import { fetcher, HEADER } from "@orchest/lib-utils";
-
-export type NotificationEventType = {
-  name: string;
-  optional_filters: string[][];
-};
+import { NOTIFICATION_END_POINT } from "./common";
 
 type NotificationSubscription = {
   uuid: string;
@@ -13,33 +9,52 @@ type NotificationSubscription = {
   job_uuid: string;
 };
 
-type NotificationSubscriptionPayload = Partial<
-  Omit<NotificationSubscription, "uuid" | "subscriber_uuid">
-> & { event_type: string };
-
-type NotificationWebhookResponse = {
-  uuid: string;
-  type: "webhook";
-  subscriptions: NotificationSubscription[];
-  url: string;
-  name: string;
-  verify_ssl: true;
-  content_type: "application/json";
-  secret: string;
+export type NotificationEventType = {
+  name: NotificationSubscription["event_type"];
+  optional_filters: ("project_uuid" | "job_uuid")[][];
 };
 
+type NotificationSubscriptionPayload = Pick<
+  NotificationSubscription,
+  "event_type"
+> &
+  Partial<Pick<NotificationSubscription, "project_uuid" | "job_uuid">>;
+
+type NotificationSubscriberBase = {
+  uuid: string;
+  subscriptions: NotificationSubscription[];
+};
+
+export type NotificationSubscriber =
+  | (NotificationSubscriberBase & {
+      type: "webhook";
+      url: string;
+      name: string;
+      verify_ssl: true;
+      content_type: "application/json";
+      secret: string;
+    })
+  | (NotificationSubscriberBase & {
+      type: "subscriber";
+    });
+
+export type NotificationWebhookSubscriber = Extract<
+  NotificationSubscriber,
+  { type: "webhook" }
+>;
+
 export const createWebhook = (
-  payload: Pick<NotificationWebhookResponse, "url" | "name" | "secret"> & {
-    subscription: NotificationSubscriptionPayload[];
+  subscriber: Pick<NotificationWebhookSubscriber, "url" | "name" | "secret"> & {
+    subscriptions: NotificationSubscriptionPayload[];
   }
 ) => {
-  fetcher<NotificationWebhookResponse>(
-    "/catch/api-proxy/api/notifications/subscribers/webhooks",
+  fetcher<NotificationWebhookSubscriber>(
+    `${NOTIFICATION_END_POINT}/subscribers/webhooks`,
     {
       method: "POST",
       headers: HEADER.JSON,
       body: JSON.stringify({
-        ...payload,
+        ...subscriber,
         verify_ssl: true,
         content_type: "application/json",
       }),

@@ -1,15 +1,14 @@
 import { useFetcher } from "@/hooks/useFetcher";
+import { NOTIFICATION_END_POINT } from "./common";
 import { NotificationEventType } from "./notification-webhooks";
 
 export const useFetchNotificationEventTypes = () => {
-  const { data, error } = useFetcher<
+  const { data } = useFetcher<
     { events: NotificationEventType[] },
     NotificationEventType[]
-  >("/catch/api-proxy/api/notifications/subscribable-events", {
-    // headers: HEADER.JSON,
+  >(`${NOTIFICATION_END_POINT}/subscribable-events`, {
     transform: (response) => response.events,
   });
 
-  if (data) console.log("DEV data: ", data);
-  if (error) console.log("DEV error: ", error);
+  return { notificationEventTypes: data };
 };

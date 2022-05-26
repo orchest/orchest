@@ -7,12 +7,12 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import PeopleIcon from "@mui/icons-material/People";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SaveIcon from "@mui/icons-material/Save";
 import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
 import TuneIcon from "@mui/icons-material/Tune";
-import WebhookIcon from "@mui/icons-material/Webhook";
 import { Typography } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -235,7 +235,7 @@ const SettingsView: React.FC = () => {
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"
-              startIcon={<WebhookIcon />}
+              startIcon={<NotificationsNoneIcon />}
               onClick={loadNotificationSettings}
               onAuxClick={loadNotificationSettings}
             >

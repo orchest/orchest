@@ -7,7 +7,11 @@ export const SectionTitle: React.FC<{ sx?: SxProps<Theme> }> = ({
   sx,
 }) => {
   return (
-    <Typography component="h3" variant="h6" sx={sx}>
+    <Typography
+      component="h3"
+      variant="h6"
+      sx={{ margin: (theme) => theme.spacing(1, 0), ...sx }}
+    >
       {children}
     </Typography>
   );

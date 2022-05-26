@@ -5,11 +5,12 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { useFetchNotificationEventTypes } from "./useFetchNotificationEventTypes";
+import { NotificationEventsForm } from "./NotificationEventsForm";
+import { WebhooksForm } from "./WebhooksForm";
 
 const ReturnToJobsAlert = () => {
   const { navigateTo, prevPathname } = useCustomRoute();
@@ -28,7 +29,7 @@ const ReturnToJobsAlert = () => {
           Return to Jobs
         </Button>
       }
-      sx={{ margin: (theme) => theme.spacing(2, 0) }}
+      sx={{ marginBottom: (theme) => theme.spacing(2), width: "100%" }}
     >
       A valid Webhook URL is required for notifications to be enabled
     </Alert>
@@ -42,11 +43,13 @@ export const NotificationSettingsView = () => {
     navigateTo(siteMap.settings.path);
   };
 
-  useFetchNotificationEventTypes();
-
   return (
     <Layout>
-      <Box sx={{ maxWidth: "1200px" }}>
+      <Stack
+        direction="column"
+        alignItems="flex-start"
+        sx={{ maxWidth: "1200px" }}
+      >
         <Button
           color="secondary"
           startIcon={<ArrowBackIcon />}
@@ -65,10 +68,14 @@ export const NotificationSettingsView = () => {
 
         <Typography>Choose where you want to get notified</Typography>
 
+        <WebhooksForm />
+
         <SectionTitle>Events</SectionTitle>
 
         <Typography>Choose when you want to get notified</Typography>
-      </Box>
+
+        <NotificationEventsForm />
+      </Stack>
     </Layout>
   );
 };
