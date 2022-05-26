@@ -222,6 +222,10 @@ func GetResourceMatchLables(resourceName string, object client.Object) map[strin
 		ComponentLabelKey: resourceName,
 	})
 
+	if _, ok := labels[OrchestHashLabelKey]; ok {
+		delete(labels, OrchestHashLabelKey)
+	}
+
 	return labels
 }
 

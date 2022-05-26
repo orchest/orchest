@@ -49,7 +49,6 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			svc = getServiceManifest(metadata, matchLabels, 5432, component)
-			svc.OwnerReferences = nil
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
 			return err
@@ -71,17 +70,6 @@ func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, comp
 	if err != nil && !kerrors.IsNotFound(err) {
 		return false, err
 	}
-
-	// Do not delete the service! Whenever the service needs to be
-	// started again, the orchest-database takes very long to be
-	// reachable again. Preventing the orchest-api from starting and
-	// hogging the entire startup process of Orchest. We are talking
-	// about minutes here. So until we properly understand why, it
-	// is best to stick with not deleting the service.
-	//err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	//if err != nil && !kerrors.IsNotFound(err) {
-	//	return false, err
-	//}
 
 	return true, nil
 }

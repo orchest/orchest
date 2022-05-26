@@ -21,8 +21,11 @@ func getServiceManifest(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, port int,
 	component *orchestv1alpha1.OrchestComponent) *corev1.Service {
 
+	objectMeta := metadata.DeepCopy()
+	objectMeta.OwnerReferences = component.OwnerReferences
+
 	service := &corev1.Service{
-		ObjectMeta: metadata,
+		ObjectMeta: *objectMeta,
 		Spec: corev1.ServiceSpec{
 			Selector: matchLabels,
 			Ports: []corev1.ServicePort{
