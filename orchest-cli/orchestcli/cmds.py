@@ -301,7 +301,7 @@ def uninstall(**kwargs) -> None:
         _remove_custom_objects(ns)
     except client.ApiException as e:
         if e.status == 404:
-            echo("No Orchest Clusters found to delete.", err=True)
+            echo(f"No Orchest Clusters found to delete in namespace: '{ns}'.", err=True)
         else:
             raise
     else:
