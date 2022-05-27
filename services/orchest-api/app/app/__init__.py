@@ -39,6 +39,7 @@ from app.models import (
     Job,
     JupyterImageBuild,
     NonInteractivePipelineRun,
+    Setting,
 )
 from config import CONFIG_CLASS
 
@@ -315,6 +316,18 @@ def register_teardown_request(app):
         return response
 
     return app
+
+
+def register_orchest_stop():
+    app = create_app(
+        config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
+    )
+    app.logger.info("Orchest is being stopped")
+
+    with app.app_context():
+        app.logger.info("Updating Settings.")
+        Setting.query.update(dict(requires_restart=False))
+        db.session.commit()
 
 
 def cleanup():
