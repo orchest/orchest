@@ -388,7 +388,7 @@ class OrchestSettings:
         # Flatten into regular dictionary.
         return dict(self._values)
 
-    def save(self, flask_app=None) -> Optional[List[str]]:
+    def save(self, flask_app) -> List[str]:
         """Saves the state to the database.
 
         Args:
@@ -398,7 +398,6 @@ class OrchestSettings:
                 can be updated at runtime.
 
         Returns:
-            * `None` if no `flask_app` is given.
             * List of changed config options that require an Orchest
               restart to take effect.
             * Empty list otherwise.
@@ -421,9 +420,6 @@ class OrchestSettings:
         ).delete()
 
         db.session.commit()
-
-        if flask_app is None:
-            return
 
         return self._apply_runtime_changes(flask_app, settings_as_dict)
 
