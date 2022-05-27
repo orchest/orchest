@@ -198,7 +198,7 @@ def register_views(app):
                 if user.is_admin:
                     return jsonify({"error": "Admins cannot be deleted."}), 500
                 elif self_username == to_delete_username:
-                    return jsonify({"error": "Deleting own user is not allowed."}), 500
+                    return jsonify({"error": "Deleting own user is not allowed."}), 405
                 else:
                     db.session.delete(user)
                     db.session.commit()
