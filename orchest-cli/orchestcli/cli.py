@@ -58,8 +58,6 @@ from orchestcli import cmds
 
 NAMESPACE = "orchest"
 ORCHEST_CLUSTER_NAME = "cluster-1"
-ORCHEST_CONTROLLER_DEPLOY_NAME = "orchest-controller"
-ORCHEST_CONTROLLER_POD_LABEL_SELECTOR = "app=orchest-controller"
 # Application commands are displayed separately from management commands
 # in the help menu.
 APPLICATION_CMDS = ["adduser"]
@@ -156,15 +154,26 @@ def cli():
     help="Run in cloud mode after install.",
 )
 @click.option(
+    "--dev/--no-dev",
+    "dev_mode",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Run install in dev mode.",
+)
+@click.option(
     "--fqdn",
     default=None,
     show_default=True,
     help="Fully Qualified Domain Name that Orchest listens on.",
 )
 @cli.command(cls=ClickCommonOptionsCmd)
-def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
+def install(
+    cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **common_options
+) -> None:
     """Install Orchest."""
-    cmds.install(cloud, fqdn, **common_options)
+    cmds.install(cloud, dev_mode, fqdn, **common_options)
 
 
 # TODO: Should be improved to remove the provided Orchest Cluster,
@@ -185,18 +194,6 @@ def uninstall(**common_options) -> None:
     help="Version to update the Orchest Cluster to.",
 )
 @click.option(
-    "--controller-deploy-name",
-    default=ORCHEST_CONTROLLER_DEPLOY_NAME,
-    show_default=True,
-    help="Deployment name of the controller managing the Orchest Cluster.",
-)
-@click.option(
-    "--controller-pod-label-selector",
-    default=ORCHEST_CONTROLLER_POD_LABEL_SELECTOR,
-    show_default=True,
-    help="Label selector of the controller pod managing the Orchest Cluster.",
-)
-@click.option(
     "--watch/--no-watch",
     "watch_flag",  # name for arg
     is_flag=True,
@@ -204,12 +201,20 @@ def uninstall(**common_options) -> None:
     show_default=True,
     help="Watch cluster status changes.",
 )
+@click.option(
+    "--dev/--no-dev",
+    "dev_mode",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Run update in dev mode.",
+)
 @cli.command(cls=ClickCommonOptionsCmd)
 def update(
     version: t.Optional[str],
-    controller_deploy_name: str,
-    controller_pod_label_selector: str,
     watch_flag: bool,
+    dev_mode: bool,
     **common_options,
 ) -> None:
     """Update Orchest.
@@ -228,9 +233,8 @@ def update(
     """
     cmds.update(
         version,
-        controller_deploy_name,
-        controller_pod_label_selector,
         watch_flag,
+        dev_mode,
         **common_options,
     )
 
@@ -370,11 +374,16 @@ def start(watch: bool, **common_options) -> None:
 def restart(watch: bool, **common_options) -> None:
     """Restart Orchest.
 
+    \b
+    Behavior:
+        Stop -> Start   if the cluster is not stopped,
+        Start           if the cluster is stopped.
+
     Useful to reinitialize the Orchest application for config changes to
     take effect.
 
     \b
-    Equivalent `kubectl` command:
+    Equivalent `kubectl` command if the cluster is stopped:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' \\
         \t-p='{"metadata": {"annotations": {"orchest.io/restart": "true"}}}'
 

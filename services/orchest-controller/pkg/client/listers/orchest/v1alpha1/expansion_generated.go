@@ -13,3 +13,11 @@ type OrchestClusterListerExpansion interface{}
 // OrchestClusterNamespaceListerExpansion allows custom methods to be added to
 // OrchestClusterNamespaceLister.
 type OrchestClusterNamespaceListerExpansion interface{}
+
+// OrchestComponentListerExpansion allows custom methods to be added to
+// OrchestComponentLister.
+type OrchestComponentListerExpansion interface{}
+
+// OrchestComponentNamespaceListerExpansion allows custom methods to be added to
+// OrchestComponentNamespaceLister.
+type OrchestComponentNamespaceListerExpansion interface{}

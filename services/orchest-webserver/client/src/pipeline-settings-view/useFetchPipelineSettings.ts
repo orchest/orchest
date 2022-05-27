@@ -13,6 +13,26 @@ import React from "react";
 import { usePipelineEnvVariables } from "./usePipelineEnvVariables";
 import { usePipelineProperty } from "./usePipelineProperty";
 
+const useFetchProjectEnvVars = ({
+  projectUuid,
+  jobUuid,
+  runUuid,
+}: {
+  projectUuid: string | undefined;
+  jobUuid: string | undefined;
+  runUuid: string | undefined;
+}) => {
+  const { project, fetchProject } = useFetchProject(
+    !jobUuid && !runUuid && projectUuid ? projectUuid : undefined
+  );
+  const projectEnvVariables = React.useMemo<EnvVarPair[]>(() => {
+    if (!project) return [];
+    return envVariablesDictToArray(project.env_variables);
+  }, [project]);
+
+  return { projectEnvVariables, fetchProjectEnvVars: fetchProject };
+};
+
 export const useFetchPipelineSettings = ({
   projectUuid,
   pipelineUuid,
@@ -38,9 +58,10 @@ export const useFetchPipelineSettings = ({
   const { job, fetchJob } = useFetchJob({
     jobUuid,
   });
-  const { pipelineRun, fetchPipelineRun } = useFetchPipelineRun(
-    jobUuid && runUuid ? { jobUuid, runUuid } : null
-  );
+  const { pipelineRun, fetchPipelineRun } = useFetchPipelineRun({
+    jobUuid,
+    runUuid,
+  });
 
   const {
     pipelineJson,
@@ -54,16 +75,15 @@ export const useFetchPipelineSettings = ({
   });
 
   const { pipeline, fetchPipeline } = useFetchPipeline(
-    !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : null
+    !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : undefined
   );
 
   // fetch project env vars only if it's not a job or a pipeline run
   // NOTE: project env var only makes sense for pipelines, because jobs and runs make an copy of all the effective variables
-  const { data: projectEnvVariables = [], fetchProject } = useFetchProject<
-    EnvVarPair[]
-  >({
-    projectUuid: !jobUuid && !runUuid && projectUuid ? projectUuid : undefined,
-    selector: (project) => envVariablesDictToArray(project.env_variables),
+  const { projectEnvVariables, fetchProjectEnvVars } = useFetchProjectEnvVars({
+    projectUuid,
+    jobUuid,
+    runUuid,
   });
 
   /**
@@ -84,14 +104,14 @@ export const useFetchPipelineSettings = ({
     return Promise.allSettled([
       fetchPipelineJson(),
       fetchPipeline(),
-      fetchProject(),
+      fetchProjectEnvVars(),
       fetchPipelineRun(),
       fetchJob(),
     ]);
   }, [
     fetchPipelineJson,
     fetchPipeline,
-    fetchProject,
+    fetchProjectEnvVars,
     fetchPipelineRun,
     fetchJob,
   ]);

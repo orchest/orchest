@@ -44,10 +44,17 @@ No frameworks. No YAML. Just write your data processing code directly in **Pytho
 [docs](https://docs.orchest.io/en/stable/getting_started/when_to_use_orchest.html).
 
 👉 Get started with our
-[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial,
-check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
-users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
-explaining some of Orchest's core concepts.
+[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial or have a look at our [video tutorials](https://www.orchest.io/video-tutorials) explaining some of Orchest's core concepts.
+
+## Examples
+
+Get started with an example project:
+
+- [Train and compare 3 regression models](https://github.com/orchest/quickstart)
+- [Connecting to an external database using SQLAlchemy](https://github.com/astrojuanlu/orchest-sqlalchemy)
+- [Run dbt in Orchest for a dbt + Python transform pipeline](https://github.com/ricklamers/orchest-dbt)
+
+👉 Check out the full list of [example projects](https://github.com/orchest/orchest-examples).
 
 ## Installation
 
@@ -111,3 +118,4 @@ An example badge to import our [quickstart](https://github.com/orchest/quickstar
 <a href="https://github.com/jacobodeharo"><img src="https://avatars.githubusercontent.com/jacobodeharo?v=4" title="jacobodeharo" width="50" height="50"></a>
 <a href="https://github.com/nhaghighat"><img src="https://avatars.githubusercontent.com/u/3792293?v=4" title="nhaghighat" width="50" height="50"></a>
 <a href="https://github.com/porcupineyhairs"><img src="https://avatars.githubusercontent.com/u/61983466?v=4" title="porcupineyhairs" width="50" height="50"></a>
+<a href="https://github.com/ncspost"><img src="https://avatars.githubusercontent.com/ncspost?v=4" title="ncspost" width="50" height="50"></a>

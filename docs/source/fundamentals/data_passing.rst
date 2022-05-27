@@ -128,7 +128,6 @@ Populating the ``unnamed`` key with the all outputted values without a name.
 
 Ordering unnamed data
 ~~~~~~~~~~~~~~~~~~~~~
-
 The visual pipeline editor can order data passing. This is written to the pipeline definition file.
 :meth:`orchest.transfer.get_inputs` then infers order from the pipeline definition file.
 

@@ -32,7 +32,7 @@ export const useInteractiveRuns = () => {
     : PIPELINE_RUN_STATUS_ENDPOINT;
 
   const { stepExecutionState, setStepExecutionState } = useStepExecutionState(
-    runUuid ? `${runStatusEndpoint}/${runUuid}` : null,
+    runUuid ? `${runStatusEndpoint}/${runUuid}` : undefined,
     (runStatus) => {
       if (["PENDING", "STARTED"].includes(runStatus)) {
         setPipelineRunning(true);
