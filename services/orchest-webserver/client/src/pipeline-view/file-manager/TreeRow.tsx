@@ -94,7 +94,7 @@ export const TreeRow = ({
   handleRename: (oldPath: string, newPath: string) => void;
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   root: string;
-  hoveredPath: string;
+  hoveredPath: string | undefined;
   onOpen: (filePath: string) => void;
 }) => {
   const {
