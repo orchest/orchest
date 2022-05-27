@@ -37,7 +37,7 @@ class ImagePuller(object):
                 `IfNotPresent` the set of pulled image names is first
                 checked for existance, and pulls otherwise.
             image_puller_log_level (str): The log level of the component
-            orchest_api_host (str): The orchet-api url to be used for
+            orchest_api_host (str): The orchest-api url to be used for
                 fetching image names
         """
 

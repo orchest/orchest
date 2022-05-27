@@ -149,7 +149,7 @@ sometimes you would rather use a list than a dictionary to store your data.
 Order of unnamed data
 ~~~~~~~~~~~~~~~~~~~~~
 .. note::
-   💡 :meth:`orchet.transfer.get_inputs` actually infers the order via the pipeline definition. The
+   💡 :meth:`orchest.transfer.get_inputs` actually infers the order via the pipeline definition. The
    UI simply stores the order in the pipeline definition file and provides a visual handle to it.
 
 The image below is a screenshot from the properties pane in the UI of step-3 from the example above.

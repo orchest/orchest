@@ -1,6 +1,7 @@
 import os
 
-# TODO: add notice that some of these values have effect on the sdk!.
+ORCHEST_NAMESPACE = os.environ["ORCHEST_NAMESPACE"]
+ORCHEST_CLUSTER = os.environ["ORCHEST_CLUSTER"]
 
 ORCHEST_MAINTAINER_LABEL = "Orchest B.V. https://www.orchest.io"
 
@@ -30,7 +31,7 @@ GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # information, see the k8s docs about CPU SHARES.
 USER_CONTAINERS_CPU_SHARES = "500m"
 REGISTRY = "docker-registry"
-REGISTRY_FQDN = "docker-registry.orchest.svc.cluster.local"
+REGISTRY_FQDN = f"docker-registry.{ORCHEST_NAMESPACE}.svc.cluster.local"
 
 # Databases
 database_naming_convention = {
@@ -121,9 +122,6 @@ DEFAULT_ENVIRONMENTS = [
 MEMORY_SERVER_SOCK_PATH = os.path.join(PROJECT_DIR, ".orchest")
 
 SIDECAR_PORT = 1111
-
-ORCHEST_NAMESPACE = os.environ["ORCHEST_NAMESPACE"]
-ORCHEST_CLUSTER = os.environ["ORCHEST_CLUSTER"]
 
 ORCHEST_UPDATE_INFO_URL = (
     "https://update-info.orchest.io/api/orchest/update-info/v3?version={version}"

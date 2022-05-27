@@ -97,7 +97,6 @@ information by running ``orchest -h``):
    # installation was successful.
    orchest version
 
-
 Use Orchest shortcuts like a pro
 --------------------------------
 

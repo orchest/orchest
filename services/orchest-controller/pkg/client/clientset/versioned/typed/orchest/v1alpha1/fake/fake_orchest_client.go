@@ -20,6 +20,10 @@ func (c *FakeOrchestV1alpha1) OrchestClusters(namespace string) v1alpha1.Orchest
 	return &FakeOrchestClusters{c, namespace}
 }
 
+func (c *FakeOrchestV1alpha1) OrchestComponents(namespace string) v1alpha1.OrchestComponentInterface {
+	return &FakeOrchestComponents{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeOrchestV1alpha1) RESTClient() rest.Interface {
