@@ -175,6 +175,14 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const onOpen = React.useCallback(
     (filePath: string) => {
+      if (pipelines.length === 0) {
+        setAlert(
+          "Notice",
+          "In order to open a file in JupyterLab, you need to create a pipeline first."
+        );
+        return;
+      }
+
       if (isWithinDataFolder(filePath)) {
         setAlert(
           "Notice",
