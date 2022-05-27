@@ -9,12 +9,15 @@ from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
+from app import utils as app_utils
 from app.connections import k8s_custom_obj_api
 from app.core.image_utils import build_image
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
 __ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_image_builds_logs"
+
+_logger = app_utils.get_logger()
 
 
 def update_environment_image_build_status(
@@ -247,6 +250,13 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         if "orchest/" in base_image:
             if ":" not in base_image.split("orchest/")[1]:
                 base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
+
+        if (
+            base_image.startswith("registry:docker-daemon:")
+            and not CONFIG_CLASS.DEV_MODE
+        ):
+            raise ValueError("Can't use local daemon base image when not in dev mode.")
+
         write_environment_dockerfile(
             base_image,
             project_uuid,
@@ -357,6 +367,7 @@ def build_environment_image_task(
         # Catch all exceptions because we need to make sure to set the
         # build state to failed.
         except Exception as e:
+            _logger.error(e)
             update_environment_image_build_status(
                 "FAILURE", session, project_uuid, environment_uuid, image_tag
             )
