@@ -131,8 +131,7 @@ def prepare_build_context(task_uuid):
         os.system(f'touch "{snapshot_setup_script_path}"')
 
     base_image = f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
-    # TODO: based on dev mode, post controller PR.
-    if True:
+    if CONFIG_CLASS.DEV_MODE:
         # Use image from local daemon if instructed to do so.
         with open(snapshot_setup_script_path, "r") as script_file:
             first_line = script_file.readline()

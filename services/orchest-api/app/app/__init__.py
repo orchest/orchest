@@ -77,7 +77,7 @@ def create_app(
     init_logging()
 
     # In development we want more verbose logging of every request.
-    if os.getenv("FLASK_ENV") == "development":
+    if app.config["DEV_MODE"]:
         app = register_teardown_request(app)
 
     # Cross-origin resource sharing. Allow API to be requested from the
@@ -121,12 +121,12 @@ def create_app(
                 # Infinite amount of grace time, so that if a task
                 # cannot be instantly executed (e.g. if the webserver is
                 # busy) then it will eventually be.
-                "misfire_grace_time": 2 ** 31,
+                "misfire_grace_time": 2**31,
                 "coalesce": False,
                 # So that the same job can be in the queue an infinite
                 # amount of times, e.g. for concurrent requests issuing
                 # the same tasks.
-                "max_instances": 2 ** 31,
+                "max_instances": 2**31,
             },
         )
 

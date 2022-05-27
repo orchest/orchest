@@ -171,10 +171,9 @@ def _get_buildah_image_build_workflow_manifest(
         },
     }
 
-    # TODO: based on dev mode, post controller PR.
     # Mount docker.sock to pull from local docker daemon to enable
     # pulling base images of the form docker-daemon:<image>.
-    if True:
+    if CONFIG_CLASS.DEV_MODE:
         manifest["spec"]["volumes"].append(
             {
                 "name": "dockersock",
