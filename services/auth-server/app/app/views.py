@@ -189,13 +189,16 @@ def register_views(app):
         if not is_authenticated(request):
             return "", 401
 
+        self_username = request.cookies.get("auth_username")
         if "username" in request.form:
-            username = request.form.get("username")
+            to_delete_username = request.form.get("username")
 
-            user = User.query.filter(User.username == username).first()
+            user = User.query.filter(User.username == to_delete_username).first()
             if user is not None:
                 if user.is_admin:
                     return jsonify({"error": "Admins cannot be deleted."}), 500
+                elif self_username == to_delete_username:
+                    return jsonify({"error": "Deleting own user is not allowed."}), 500
                 else:
                     db.session.delete(user)
                     db.session.commit()
