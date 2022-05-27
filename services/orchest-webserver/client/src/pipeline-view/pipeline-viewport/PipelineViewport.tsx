@@ -80,6 +80,7 @@ export const PipelineViewport = React.forwardRef<
     trackMouseMovement,
     dispatch,
     pipelineCwd,
+    isReadOnly,
     newConnection,
     environments,
     pipelineCanvasRef,
@@ -269,6 +270,7 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Create new step",
+      disabled: isReadOnly,
       action: () => {
         const environment = environments.length > 0 ? environments[0] : null;
         const canvasPosition = getOnCanvasPosition({
@@ -281,6 +283,7 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Select all steps",
+      disabled: isReadOnly,
       action: () => {
         dispatch({
           type: "SELECT_STEPS",
@@ -291,7 +294,7 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Run selected steps",
-      disabled: eventVars.selectedSteps.length === 0,
+      disabled: isReadOnly || eventVars.selectedSteps.length === 0,
       action: () => {
         executeRun(eventVars.selectedSteps, "selection");
       },
@@ -309,6 +312,7 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Auto layout pipeline",
+      disabled: isReadOnly,
       action: () => {
         autoLayoutPipeline();
       },
@@ -319,7 +323,7 @@ export const PipelineViewport = React.forwardRef<
       action: () => {
         dispatch({
           type: "SET_SCALE_FACTOR",
-          payload: eventVars.scaleFactor + 0.1,
+          payload: eventVars.scaleFactor + 0.25,
         });
       },
     },
@@ -329,7 +333,7 @@ export const PipelineViewport = React.forwardRef<
       action: () => {
         dispatch({
           type: "SET_SCALE_FACTOR",
-          payload: eventVars.scaleFactor - 0.1,
+          payload: eventVars.scaleFactor - 0.25,
         });
       },
     },
