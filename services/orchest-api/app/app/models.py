@@ -64,6 +64,15 @@ class Setting(BaseModel):
     # be able to preserve types while storing 1 setting as 1 record.
     value = db.Column(JSONB, nullable=False)
 
+    # Requires Orchest to be restarted in order to apply the setting.
+    requires_restart = db.Column(
+        db.Boolean(),
+        nullable=False,
+        default=False,
+        # To migrate existing entries.
+        server_default="False",
+    )
+
 
 class SchedulerJob(BaseModel):
     """Latest run of a job assigned to a Scheduler."""
