@@ -394,6 +394,9 @@ export const useEventVars = () => {
             let newStep = {
               ...state.steps[step],
               uuid: uuidv4(),
+              file_path: state.steps[step].file_path.endsWith(".ipynb")
+                ? ""
+                : state.steps[step].file_path,
               meta_data: {
                 ...state.steps[step].meta_data,
                 position: getNewStepPosition(
