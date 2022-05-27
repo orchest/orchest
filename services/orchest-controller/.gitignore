@@ -156,3 +156,6 @@ project.fragment.lock.json
 
 # SonarQube files
 .scannerwork
+
+# Kubernetes generated manifests
+deploy/k8s/

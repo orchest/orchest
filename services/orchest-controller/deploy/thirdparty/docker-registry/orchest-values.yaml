@@ -33,7 +33,7 @@ resources: {}
 persistence:
   accessMode: 'ReadWriteOnce'
   enabled: true
-  size: 999Ti
+  size: 25Gi
   # storageClass: '-'
 
 # set the type of filesystem to use: filesystem, s3

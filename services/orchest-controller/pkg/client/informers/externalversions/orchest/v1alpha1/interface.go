@@ -14,6 +14,8 @@ import (
 type Interface interface {
 	// OrchestClusters returns a OrchestClusterInformer.
 	OrchestClusters() OrchestClusterInformer
+	// OrchestComponents returns a OrchestComponentInformer.
+	OrchestComponents() OrchestComponentInformer
 }
 
 type version struct {
@@ -30,4 +32,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // OrchestClusters returns a OrchestClusterInformer.
 func (v *version) OrchestClusters() OrchestClusterInformer {
 	return &orchestClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// OrchestComponents returns a OrchestComponentInformer.
+func (v *version) OrchestComponents() OrchestComponentInformer {
+	return &orchestComponentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

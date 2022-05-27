@@ -1,0 +1,13 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      serviceAccountName: {{ template "library.metadata.name" . }}
+      containers:
+      - name: orchest-controller
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        ports:
+        - containerPort: 80

@@ -26,7 +26,7 @@ const UpdateView: React.FC = () => {
   const [state, setState] = React.useState((prevState) => ({
     ...prevState,
     updating: false,
-    updateOutput: [],
+    updateOutputLines: [],
     clusterName: undefined,
     namespace: undefined,
   }));
@@ -41,7 +41,7 @@ const UpdateView: React.FC = () => {
       async (resolve) => {
         setState({
           updating: true,
-          updateOutput: [],
+          updateOutputLines: [],
         });
         console.log("Starting update.");
 
@@ -83,7 +83,7 @@ const UpdateView: React.FC = () => {
             .catch((error) => {
               // This is a form of technical debt since we can't
               // distinguish if an update fails because there is no
-              // newer version of a "real" failure.
+              // newer version or a "real" failure.
               setState((prevState) => ({
                 ...prevState,
                 updating: false,
@@ -109,7 +109,7 @@ const UpdateView: React.FC = () => {
   };
 
   const startUpdatePolling = () => {
-    setUpdatePollInterval(1000);
+    setUpdatePollInterval(2000);
   };
 
   useInterval(() => {
@@ -129,14 +129,7 @@ const UpdateView: React.FC = () => {
         } else {
           setState((prevState) => ({
             ...prevState,
-            updateOutput: json.conditions.sort(function (a, b) {
-              let dateA = new Date(a.lastHeartbeatTime);
-              let dateB = new Date(b.lastHeartbeatTime);
-              // sort in descending order -> most recent messages first
-              if (dateA < dateB) return -1;
-              if (dateA > dateB) return 1;
-              return 0;
-            }),
+            updateOutputLines: [...prevState.updateOutputLines, json.state],
           }));
         }
       })
@@ -146,11 +139,6 @@ const UpdateView: React.FC = () => {
         }
       });
   }, updatePollInterval);
-
-  let updateOutputLines = [];
-  state.updateOutput.forEach((element) =>
-    updateOutputLines.push(element.event)
-  );
 
   return (
     <Layout>
@@ -173,8 +161,8 @@ const UpdateView: React.FC = () => {
           Start update
         </Button>
         {state.updating && <LinearProgress sx={{ marginBottom: 3 }} />}
-        {state.updateOutput.length > 0 && (
-          <ConsoleOutput>{updateOutputLines.join("\n")}</ConsoleOutput>
+        {state.updateOutputLines.length > 0 && (
+          <ConsoleOutput>{state.updateOutputLines.join("\n")}</ConsoleOutput>
         )}
       </Paper>
     </Layout>

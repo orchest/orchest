@@ -7,3 +7,5 @@ Copyright 2022 The orchest Authors.
 package v1alpha1
 
 type OrchestClusterExpansion interface{}
+
+type OrchestComponentExpansion interface{}

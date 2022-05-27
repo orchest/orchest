@@ -1,6 +1,6 @@
-########################################################################################################################
+##########################
 # Compile stage
-FROM golang:1.17.8 AS build-env
+FROM golang:1.18.2 AS build-env
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 RUN apt-get update && \
@@ -16,7 +16,7 @@ WORKDIR /go/src/github.com/orchest/orchest/services/orchest-controller
 ADD . .
 
 RUN	make controller
-########################################################################################################################
+##########################
 # Final stage
 FROM alpine:3.14.6
 
