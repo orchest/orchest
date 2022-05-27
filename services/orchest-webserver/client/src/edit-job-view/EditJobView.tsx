@@ -751,14 +751,13 @@ const EditJobView: React.FC = () => {
                           sx={{ marginBottom: (theme) => theme.spacing(1) }}
                         >
                           Retain the last finished pipeline runs and
-                          automatically remove the oldest runs. This frees up
-                          disk space to enhance the reliability while executing
-                          large amount of pipeline runs.
+                          automatically remove the oldest runs. This reduces
+                          disk space usage.
                         </Typography>
                         <Typography variant="body2">
-                          Enable this carefully if your pipeline produces
-                          artifacts that are stored on disk. You might want to
-                          backup the results to external sources or the{" "}
+                          If your pipeline produces artifacts that are stored in
+                          the project directory, then you might want to backup
+                          the artifacts to external sources or the{" "}
                           <Code>/data</Code> directory.
                         </Typography>
                       </>
