@@ -3,12 +3,19 @@ import { useCancelablePromise } from "./useCancelablePromise";
 
 export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
-export type Action<T, E> = {
+export type Action<T, E = Error> = {
   type: STATUS;
   data?: T;
   error?: E;
   caching?: boolean;
 };
+
+export type SetStateAction<T> =
+  | T
+  | undefined
+  | ((currentValue: T | undefined) => T | undefined);
+
+export type StateDispatcher<T> = (setStateAction: SetStateAction<T>) => void;
 
 type State<T, E> = {
   status: STATUS;
@@ -77,11 +84,12 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
     [dispatch, caching, makeCancelable]
   );
 
-  const setData = React.useCallback(
-    (
-      action: T | undefined | ((currentValue: T | undefined) => T | undefined)
-    ) => {
-      const newData = action instanceof Function ? action(data) : action;
+  const setData: StateDispatcher<T> = React.useCallback(
+    (setStateAction: SetStateAction<T>) => {
+      const newData =
+        setStateAction instanceof Function
+          ? setStateAction(data)
+          : setStateAction;
       dispatch({ type: "RESOLVED", data: newData });
     },
     [dispatch, data]

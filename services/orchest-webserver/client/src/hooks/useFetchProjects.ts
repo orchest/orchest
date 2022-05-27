@@ -1,39 +1,25 @@
 import { Project } from "@/types";
 import { toQueryString } from "@/utils/routing";
-import { fetcher, hasValue } from "@orchest/lib-utils";
-import React from "react";
-import useSWR, { MutatorCallback } from "swr";
+import { useFetcher } from "./useFetcher";
 
-export const useFetchProjects = (params?: {
+export const useFetchProjects = (params: {
   shouldFetch?: boolean;
   sessionCounts?: boolean;
   jobCounts?: boolean;
   skipDiscovery?: boolean;
 }) => {
-  const { shouldFetch, ...restParams } = hasValue(params)
-    ? { shouldFetch: true, ...params }
-    : { shouldFetch: true };
+  const { shouldFetch = true, ...restParams } = params;
+  const queryString = toQueryString(restParams);
 
-  const cacheKey = `/async/projects${toQueryString(restParams)}`;
-
-  const {
-    data,
-    mutate,
-    error: fetchProjectsError,
-    isValidating: isFetchingProjects,
-  } = useSWR<Project[]>(shouldFetch ? cacheKey : null, fetcher);
-
-  const setProjects = React.useCallback(
-    (data?: Project[] | Promise<Project[]> | MutatorCallback<Project[]>) =>
-      mutate(data, false),
-    [mutate]
+  const { fetchData, data, setData, error, status } = useFetcher<Project[]>(
+    shouldFetch ? `/async/projects${queryString}` : undefined
   );
 
   return {
     projects: data,
-    fetchProjectsError,
-    isFetchingProjects,
-    fetchProjects: mutate,
-    setProjects,
+    error,
+    isFetchingProjects: status === "PENDING",
+    fetchProjects: fetchData,
+    setProjects: setData,
   };
 };

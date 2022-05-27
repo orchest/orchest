@@ -46,6 +46,7 @@ which allows redeploying services and :ref:`incremental development <incremental
      --cpus 6 \
      --mount-string="$(pwd):/orchest-dev-repo" --mount
 
+   # Without ingress enabled Orchest won't install
    minikube addons enable ingress
 
 After the minikube cluster is created, follow the steps of a :ref:`regular installation <regular

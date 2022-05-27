@@ -8,7 +8,7 @@ import React from "react";
 
 export const JobViewTabs: React.FC<{
   job: Job;
-  totalRunCount: number;
+  totalRunCount: number | undefined;
   children: (tabIndex: number) => React.ReactNode;
 }> = ({ job, totalRunCount, children }) => {
   const [tabIndex, setTabIndex] = React.useState(0);
@@ -20,7 +20,9 @@ export const JobViewTabs: React.FC<{
     : [
         {
           id: "pipeline-runs",
-          label: `Pipeline runs (${totalRunCount}/${job.total_scheduled_pipeline_runs})`,
+          label: `Pipeline runs (${totalRunCount || " "}/${
+            job.total_scheduled_pipeline_runs
+          })`,
           icon: <ListIcon />,
         },
         {
