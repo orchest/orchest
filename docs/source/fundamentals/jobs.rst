@@ -9,7 +9,7 @@ Jobs
     * `Adding parameters to a pipeline <https://app.tella.tv/story/cknrahyn9000409kyf4s2d3xm>`_
     * `Running a pipeline as a job <https://app.tella.tv/story/cknr9nq1u000609kz9h0advvk>`_
 
-Jobs are a way to schedule one off or recurring :ref:`pipelines <pipeline>` runs. 
+Jobs are a way to schedule one off or recurring :ref:`pipelines <pipeline>` runs.
 
 A Job can run multiple iterations of the same pipeline over time or by using different parameters as inputs. For example, you could create a Job which uses the same ETL pipeline but extracts data from a different data source for each pipeline run.
 
@@ -23,8 +23,8 @@ Different pipeline runs that are part of the same job are completely isolated fr
 .. _parametrize pipeline section:
 
 Parameterizing pipelines and steps
----------------------------------
-Jobs run a specific pipeline for a given set of parameters. If you define multiple values for the same parameter, then the job will run the pipeline once for every combination of parameter values. 
+----------------------------------
+Jobs run a specific pipeline for a given set of parameters. If you define multiple values for the same parameter, then the job will run the pipeline once for every combination of parameter values.
 
 .. note::
    💡 Unlike :ref:`environment variables <environment variables>`, you can define
