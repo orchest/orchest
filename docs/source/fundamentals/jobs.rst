@@ -9,22 +9,30 @@ Jobs
     * `Adding parameters to a pipeline <https://app.tella.tv/story/cknrahyn9000409kyf4s2d3xm>`_
     * `Running a pipeline as a job <https://app.tella.tv/story/cknr9nq1u000609kz9h0advvk>`_
 
-Jobs are a way to schedule one off or recurring :ref:`pipelines <pipeline>` runs. 
+Jobs are a way to schedule one off or recurring :ref:`pipelines <pipeline>` runs.
 
-A Job can run multiple iterations of the same pipeline over time or by using different parameters as inputs. For example, you could create a Job which uses the same ETL pipeline but extracts data from a different data source for each pipeline run.
+A Job can run multiple iterations of the same pipeline over time or by using different parameters as
+inputs. For example, you could create a Job which uses the same ETL pipeline but extracts data from
+a different data source for each pipeline run.
 
-Jobs take a snapshot of your project directory when they are created. Each of the job’s pipeline runs copy the project directory snapshot and execute the files without changing the original snapshot. This means Jobs run consistently throughout their entire lifetime.
+Jobs take a snapshot of your project directory when they are created. Each of the job’s pipeline
+runs copy the project directory snapshot and execute the files without changing the original
+snapshot. This means Jobs run consistently throughout their entire lifetime.
 
-Different pipeline runs that are part of the same job are completely isolated from a scheduling perspective and do not affect each others' state.
+Different pipeline runs that are part of the same job are completely isolated from a scheduling
+perspective and do not affect each others' state.
 
 .. note::
-   💡 Write data and large artifacts to the ``/data`` directory. This helps to save disk space by not including them in the project directory snapshot. Alternatively, you can add the artifacts to ``.gitignore`` as the ignored patterns are not copied to the snapshot.
+   💡 Write data and large artifacts to the ``/data`` directory. This helps to save disk space by
+   not including them in the project directory snapshot. Alternatively, you can add the artifacts to
+   ``.gitignore`` as the ignored patterns are not copied to the snapshot.
 
 .. _parametrize pipeline section:
 
 Parameterizing pipelines and steps
----------------------------------
-Jobs run a specific pipeline for a given set of parameters. If you define multiple values for the same parameter, then the job will run the pipeline once for every combination of parameter values. 
+----------------------------------
+Jobs run a specific pipeline for a given set of parameters. If you define multiple values for the
+same parameter, then the job will run the pipeline once for every combination of parameter values.
 
 .. note::
    💡 Unlike :ref:`environment variables <environment variables>`, you can define
@@ -32,6 +40,7 @@ Jobs run a specific pipeline for a given set of parameters. If you define multip
    the other, you can access both values.
 
 You can define pipeline parameters at two levels:
+
 * Pipelines: The parameters and their values will be available across every pipeline step.
 * Pipeline steps: The parameters will only be available in which they are defined.
 
@@ -106,8 +115,8 @@ combinations of values for different parameters. To run a job:
    deselect them through the *Pipeline runs* option.
 7. Press *Run job*.
 
-To inspect the result of your job; click on the job you just created, choose a specific
-pipeline run (the one you want to inspect) and click on *View pipeline*. The pipeline is now opened in
+To inspect the result of your job; click on the job you just created, choose a specific pipeline run
+(the one you want to inspect) and click on *View pipeline*. The pipeline is now opened in
 :ref:`read-only mode <read-only mode>` giving you the opportunity to check the logs or to open the
 HTML version of you notebooks.
 
