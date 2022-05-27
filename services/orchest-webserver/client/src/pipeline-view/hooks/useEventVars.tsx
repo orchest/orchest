@@ -10,7 +10,7 @@ import type {
   StepsDict,
 } from "@/types";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
-import { hasValue, intersectRect } from "@orchest/lib-utils";
+import { hasValue, intersectRect, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
 import merge from "lodash.merge";
 import React from "react";
@@ -44,7 +44,7 @@ export type EventVars = {
   subViewIndex: number;
 };
 
-type Action =
+export type Action =
   | {
       type: "SET_STEPS";
       payload: StepsDict;
@@ -56,6 +56,10 @@ type Action =
   | {
       type: "CREATE_STEP";
       payload: PipelineStepState;
+    }
+  | {
+      type: "DUPLICATE_STEPS";
+      payload: string[];
     }
   | {
       type: "ASSIGN_FILE_TO_STEP";
@@ -390,6 +394,37 @@ export const useEventVars = () => {
             openedStep: newStep.uuid,
             subViewIndex: 0,
             ...selectSteps([newStep.uuid]),
+          });
+        }
+
+        case "DUPLICATE_STEPS": {
+          const newSteps = action.payload.map((step) => {
+            let newStep = {
+              ...state.steps[step],
+              uuid: uuidv4(),
+              file_path: state.steps[step].file_path.endsWith(".ipynb")
+                ? ""
+                : state.steps[step].file_path,
+              meta_data: {
+                ...state.steps[step].meta_data,
+                position: getNewStepPosition(
+                  state.steps[step].meta_data.position
+                ),
+              },
+            };
+
+            return newStep;
+          });
+          const updated = produce(state, (draft) => {
+            newSteps.forEach((step) => {
+              draft.steps[step.uuid] = step;
+            });
+          });
+
+          return withTimestamp({
+            ...state,
+            ...updated,
+            ...selectSteps(newSteps.map((s) => s.uuid)),
           });
         }
 

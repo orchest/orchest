@@ -18,6 +18,8 @@ import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
+import { MenuItem, useContextMenu } from "./hooks/useContextMenu";
+import { RunStepsType } from "./hooks/useInteractiveRuns";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
@@ -115,18 +117,28 @@ const PipelineStepComponent = React.forwardRef<
   {
     data: PipelineStepState;
     selected: boolean;
+    executeRun: (uuids: string[], type: RunStepsType) => Promise<void>;
+    onOpenNotebook: (e: React.MouseEvent) => void;
+    onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
     movedToTop: boolean;
     isStartNodeOfNewConnection: boolean;
     savePositions: () => void;
     onDoubleClick: (stepUUID: string) => void;
     interactiveConnections: Connection[];
     getPosition: (node: HTMLElement | undefined | null) => Position | null;
+    isContextMenuOpenState: [
+      boolean,
+      React.Dispatch<React.SetStateAction<boolean>>
+    ];
     children: React.ReactNode;
   }
 >(function PipelineStep(
   {
     data,
     selected,
+    executeRun,
+    onOpenNotebook,
+    onOpenFilePreviewView,
     movedToTop,
     isStartNodeOfNewConnection,
     savePositions,
@@ -134,6 +146,7 @@ const PipelineStepComponent = React.forwardRef<
     // the cursor-controlled step also renders all the interactive connections, to ensure the precision of the positions
     interactiveConnections,
     getPosition,
+    isContextMenuOpenState,
     children, // expose children, so that children doesn't re-render when step is being dragged
   },
   ref
@@ -275,8 +288,8 @@ const PipelineStepComponent = React.forwardRef<
 
   const onMouseDown = React.useCallback(
     (e: React.MouseEvent) => {
-      // user is panning the canvas
-      if (keysDown.has("Space")) return;
+      // user is panning the canvas or context menu is open
+      if (keysDown.has("Space") || isContextMenuOpenState[0]) return;
 
       e.stopPropagation();
       e.preventDefault();
@@ -285,15 +298,27 @@ const PipelineStepComponent = React.forwardRef<
         forceUpdate();
       }
     },
-    [forceUpdate, keysDown]
+    [forceUpdate, keysDown, isContextMenuOpenState]
   );
 
+  const onContextMenu = async (e: React.MouseEvent) => {
+    const ctrlKeyPressed = e.ctrlKey || e.metaKey;
+    if (!selected) {
+      dispatch({
+        type: "SELECT_STEPS",
+        payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
+      });
+    }
+    handleContextMenu(e);
+  };
+
   const onClick = async (e: React.MouseEvent) => {
-    // user is panning the canvas
-    if (keysDown.has("Space")) return;
+    // user is panning the canvas or context menu is open
+    if (keysDown.has("Space") || isContextMenuOpenState[0]) return;
 
     e.stopPropagation();
     e.preventDefault();
+
     if (e.detail === 1) {
       // even user is actually dragging, React still sees it as a click
       // maybe because cursor remains on the same position over the DOM
@@ -437,6 +462,90 @@ const PipelineStepComponent = React.forwardRef<
     setIsHovering(false);
   };
 
+  const menuItems: MenuItem[] = [
+    {
+      type: "item",
+      title: "Duplicate",
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          dispatch({ type: "DUPLICATE_STEPS", payload: [itemId] });
+        }
+      },
+    },
+    {
+      type: "item",
+      title: "Delete",
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          dispatch({ type: "REMOVE_STEPS", payload: [itemId] });
+        }
+      },
+    },
+    {
+      type: "item",
+      title: "Properties",
+      action: (e: React.MouseEvent, _itemId?: string) => {
+        dispatch({ type: "SELECT_SUB_VIEW", payload: 0 });
+      },
+    },
+    {
+      type: "item",
+      title: "Open in JupyterLab",
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          dispatch({ type: "SET_OPENED_STEP", payload: itemId });
+          onOpenNotebook(e);
+        }
+      },
+    },
+    {
+      type: "item",
+      title: "Open in File Viewer",
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          onOpenFilePreviewView(e, itemId);
+        }
+      },
+    },
+    {
+      type: "separator",
+    },
+    {
+      type: "item",
+      title: "Run this step",
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          executeRun([itemId], "selection");
+        }
+      },
+    },
+    {
+      type: "item",
+      title: "Run incoming",
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          executeRun([itemId], "incoming");
+        }
+      },
+    },
+    {
+      type: "item",
+      title: "Run incoming and this step",
+      action: (e: React.MouseEvent, itemId?: string) => {
+        if (itemId) {
+          executeRun([itemId], "incoming");
+          executeRun([itemId], "selection");
+        }
+      },
+    },
+  ];
+
+  const { handleContextMenu, menu } = useContextMenu(
+    menuItems,
+    isContextMenuOpenState,
+    uuid
+  );
+
   return (
     <>
       <Box
@@ -452,18 +561,16 @@ const PipelineStepComponent = React.forwardRef<
           isStartNodeOfNewConnection && "creating-connection"
         )}
         style={{ transform, zIndex }}
+        onContextMenu={onContextMenu}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
         onMouseOver={onMouseOverContainer}
         onMouseOut={onMouseOutContainer}
-        onContextMenu={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
         onClick={onClick}
       >
         {children}
       </Box>
+      {menu}
       {isCursorControlled && // the cursor-controlled step also renders all the interactive connections
         interactiveConnections.map((connection) => {
           if (!connection) return null;
