@@ -215,7 +215,10 @@ controller:
     timeoutSeconds: 30
 
   # -- Extra environment variables to provide to the controller container
-  extraEnv: []
+  extraEnv:
+    - name: DEFAULT_REQUEUE_TIME
+      value: "1s"
+
     # - name: FOO
     #   value: "bar"
 
