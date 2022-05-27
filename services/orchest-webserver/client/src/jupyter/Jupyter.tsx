@@ -2,6 +2,17 @@ import { ConfirmDispatcher } from "@/contexts/AppContext";
 import { tryUntilTrue } from "@/utils/webserver-utils";
 import $ from "jquery";
 
+// This is to enable using hotkeys to open CommandPalette.
+// Proxy all the keydown events in the iframe to the hosting document object.
+const passKeyboardEvent = (event: KeyboardEvent) => {
+  const keyboardEvent = new KeyboardEvent(event.type, {
+    key: event.key,
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+  });
+  document.dispatchEvent(keyboardEvent);
+};
+
 class Jupyter {
   jupyterHolder: JQuery<HTMLElement>;
   iframe: HTMLIFrameElement | undefined;
@@ -25,7 +36,7 @@ class Jupyter {
     this.initializeJupyter();
   }
 
-  updateJupyterInstance(baseAddress) {
+  updateJupyterInstance(baseAddress: string) {
     if (this.baseAddress != baseAddress) {
       // when a new baseAddress is set, unload iframe since it is no longer valid
       this.unload();
@@ -37,6 +48,10 @@ class Jupyter {
   _unhide() {
     // this method should only be called directly from main.js
     this.jupyterHolder.removeClass("hidden");
+    this.iframe?.contentWindow?.document?.addEventListener(
+      "keydown",
+      passKeyboardEvent
+    );
   }
 
   show() {
@@ -81,6 +96,10 @@ class Jupyter {
   hide() {
     this.jupyterHolder.addClass("hidden");
     window.clearInterval(this.showCheckInterval);
+    this.iframe?.contentWindow?.document?.removeEventListener(
+      "keydown",
+      passKeyboardEvent
+    );
   }
 
   unload() {
