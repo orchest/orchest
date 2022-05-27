@@ -503,6 +503,11 @@ class OrchestSettings:
 
         """
         settings_requiring_restart = []
+
+        settings_db_entries = {}
+        for setting_db_entry in models.Setting().query.all():
+            settings_db_entries[setting_db_entry.name] = setting_db_entry
+
         for k, val in self._config_values.items():
             # Changes to unmodifiable config options won't take effect
             # anyways and so they should not account towards requiring
@@ -510,12 +515,25 @@ class OrchestSettings:
             if self._cloud and k in self._cloud_unmodifiable_config_opts:
                 continue
 
-            apply_f = val["apply-runtime-changes-function"]
-
-            current_val = flask_app.config.get(k)
             new_val = new.get(k)
-            if new_val is not None and new_val != current_val:
-                could_update = apply_f(current_val, new_val)
+            if new_val is None:
+                continue
+
+            setting_db_entry_value = None
+            setting_db_entry_requires_restart = False
+            setting_db_entry = settings_db_entries.get(k)
+            if setting_db_entry is not None:
+                setting_db_entry_value = setting_db_entry.value["value"]
+                setting_db_entry_requires_restart = setting_db_entry.requires_restart
+
+            if new_val == setting_db_entry_value:
+                if setting_db_entry_requires_restart:
+                    settings_requiring_restart.append(k)
+                else:
+                    flask_app.config[k] = new_val
+            else:
+                apply_f = val["apply-runtime-changes-function"]
+                could_update = apply_f(setting_db_entry_value, new_val)
                 if could_update:
                     flask_app.config[k] = new_val
                 else:
