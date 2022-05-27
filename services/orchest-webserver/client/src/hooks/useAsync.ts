@@ -1,3 +1,4 @@
+import { ReducerActionWithCallback } from "@/types";
 import React from "react";
 import { useCancelablePromise } from "./useCancelablePromise";
 
@@ -23,10 +24,16 @@ type State<T, E> = {
   error: E | undefined;
 };
 
+type AsyncReducerAction<T, E> = ReducerActionWithCallback<
+  State<T, E>,
+  Action<T, E>
+>;
+
 const asyncReducer = <T, E>(
   state: State<T, E>,
-  action: Action<T, E>
+  _action: AsyncReducerAction<T, E>
 ): State<T, E> => {
+  const action = _action instanceof Function ? _action(state) : _action;
   switch (action.type) {
     case "PENDING": {
       const payload = action.caching ? state.data : undefined;
@@ -56,7 +63,7 @@ type AsyncParams<T> = {
 const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
   const { initialState, caching = false } = params || {};
   const [state, dispatch] = React.useReducer<
-    (state: State<T, E>, action: Action<T, E>) => State<T, E>
+    (state: State<T, E>, action: AsyncReducerAction<T, E>) => State<T, E>
   >(asyncReducer, {
     status: "IDLE",
     data: undefined,
@@ -86,13 +93,15 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
 
   const setData: StateDispatcher<T> = React.useCallback(
     (setStateAction: SetStateAction<T>) => {
-      const newData =
-        setStateAction instanceof Function
-          ? setStateAction(data)
-          : setStateAction;
-      dispatch({ type: "RESOLVED", data: newData });
+      dispatch((prevState) => {
+        const newData =
+          setStateAction instanceof Function
+            ? setStateAction(prevState.data)
+            : setStateAction;
+        return { type: "RESOLVED", data: newData };
+      });
     },
-    [dispatch, data]
+    [dispatch]
   );
   const setError = React.useCallback(
     (error) => dispatch({ type: "REJECTED", error }),

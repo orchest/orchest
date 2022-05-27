@@ -33,6 +33,12 @@ type CommonColorScales =
   | "A400"
   | "A700";
 
+export type ExtractStringLiteralType<T, U extends T> = U;
+
+export type ReducerActionWithCallback<ReducerState, ActionType> =
+  | ActionType
+  | ((previousState: ReducerState) => ActionType);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type PartialRecord<K extends keyof any, T> = {
   [P in K]?: T;

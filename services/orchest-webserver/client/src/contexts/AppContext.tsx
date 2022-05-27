@@ -6,6 +6,7 @@ import {
   OrchestConfig,
   OrchestServerConfig,
   OrchestUserConfig,
+  ReducerActionWithCallback,
 } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
@@ -118,9 +119,7 @@ type Action =
       payload: boolean;
     };
 
-type ActionCallback = (previousState: AppContextState) => Action;
-
-type AppContextAction = Action | ActionCallback;
+type AppContextAction = ReducerActionWithCallback<AppContextState, Action>;
 
 export type AlertDispatcher = (
   title: string,
