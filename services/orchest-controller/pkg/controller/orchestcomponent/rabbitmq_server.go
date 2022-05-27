@@ -68,11 +68,6 @@ func (reconciler *RabbitmqServerReconciler) Uninstall(ctx context.Context, compo
 		return false, err
 	}
 
-	err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		return false, err
-	}
-
 	return true, nil
 }
 

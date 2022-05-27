@@ -13,12 +13,19 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var (
+	DeletePropagationForeground = metav1.DeletionPropagation("Foreground")
+)
+
 func getServiceManifest(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, port int,
 	component *orchestv1alpha1.OrchestComponent) *corev1.Service {
 
+	objectMeta := metadata.DeepCopy()
+	objectMeta.OwnerReferences = component.OwnerReferences
+
 	service := &corev1.Service{
-		ObjectMeta: metadata,
+		ObjectMeta: *objectMeta,
 		Spec: corev1.ServiceSpec{
 			Selector: matchLabels,
 			Ports: []corev1.ServicePort{
@@ -63,6 +70,18 @@ func getDevVolumes(service string, mountApp, mountClient, mountInternalLib bool)
 			Name:      "orchest-dev-repo",
 			MountPath: fmt.Sprintf("/orchest/services/%s/client", service),
 			SubPath:   fmt.Sprintf("services/%s/client", service),
+		})
+	} else {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "orchest-dev-repo",
+			MountPath: "/orchest/orchest-cli",
+			SubPath:   "orchest-cli",
+		})
+		// Needed to test `orchest update` invoked through the UI
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "orchest-dev-repo",
+			MountPath: "/orchest/services/orchest-controller/deploy",
+			SubPath:   "services/orchest-controller/deploy",
 		})
 	}
 

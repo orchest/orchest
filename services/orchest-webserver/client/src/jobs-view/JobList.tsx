@@ -3,7 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJobs } from "@/hooks/useFetchJobs";
-import { useFetchProject } from "@/hooks/useFetchProject";
+import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { siteMap } from "@/routingConfig";
 import { EnvironmentValidationData, Job, JobStatus } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
@@ -104,12 +104,12 @@ const doCreateJob = async (
   });
 };
 
-const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
-  const { navigateTo } = useCustomRoute();
+const JobList = () => {
+  const { navigateTo, projectUuid } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
 
   const {
-    data: jobs = [],
+    jobs = [],
     error: fetchJobsError,
     isFetchingJobs,
     fetchJobs,
@@ -141,10 +141,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     string | undefined
   >();
 
-  const { data: projectSnapshotSize = 0 } = useFetchProject({
-    projectUuid,
-    selector: (project) => project.project_snapshot_size,
-  });
+  const projectSnapshotSize = useFetchProjectSnapshotSize(projectUuid);
 
   React.useEffect(() => {
     if (fetchJobsError)
@@ -189,6 +186,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const createJob = React.useCallback(
     async (newJobName: string, pipelineUuid: string) => {
+      if (!projectUuid) return;
       setJobName(newJobName);
       // TODO: in this part of the flow copy the pipeline directory to make
       // sure the pipeline no longer changes
@@ -217,7 +215,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   );
 
   React.useEffect(() => {
-    if (createJobError) {
+    if (projectUuid && createJobError) {
       setIsCreateDialogOpen(false);
 
       if (createJobError.reason === "gate-failed" && selectedPipeline) {
@@ -229,7 +227,15 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       }
       setAlert("Error", `Failed to create job. ${createJobError.message}`);
     }
-  }, [createJobError, setAlert, requestBuild, createJob]);
+  }, [
+    createJobError,
+    setAlert,
+    requestBuild,
+    createJob,
+    projectUuid,
+    jobName,
+    selectedPipeline,
+  ]);
 
   const onRowClick = (e: React.MouseEvent, uuid: string) => {
     const foundJob = jobs.find((job) => job.uuid === uuid);

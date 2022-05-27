@@ -1,12 +1,12 @@
-import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { FileTree } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningIcon from "@mui/icons-material/Warning";
+import CircularProgress from "@mui/material/CircularProgress";
 import { collapseDoubleDots } from "@orchest/lib-utils";
 import React from "react";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import FilePicker, { FilePickerProps, validatePathInTree } from "./FilePicker";
+import { useStepDetailsContext } from "./StepDetailsContext";
 
 const getFolderPath = (filePath: string) =>
   filePath.split("/").slice(0, -1).join("/") + "/";
@@ -41,15 +41,10 @@ const ProjectFilePicker: React.FC<{
   onChange: (value: string) => void;
   menuMaxWidth?: string;
 }> = ({ onChange, pipelineCwd, value, menuMaxWidth }) => {
-  const { projectUuid, pipelineUuid } = useCustomRoute();
   // ProjectFilePicker uses the same endpoint for fetching FileTree
   const { fileTrees, fetchFileTrees } = useFileManagerContext();
 
-  const selectedFileExists = useCheckFileValidity(
-    projectUuid,
-    pipelineUuid,
-    value
-  );
+  const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
 
   const tree = React.useMemo<FileTree>(() => {
     return {
@@ -95,14 +90,16 @@ const ProjectFilePicker: React.FC<{
           value={value}
           absoluteCwd={absoluteCwd}
           icon={
-            selectedFileExists ? (
+            isCheckingFileValidity ? (
+              <CircularProgress size={24} />
+            ) : doesStepFileExist ? (
               <CheckIcon color="success" />
             ) : (
               <WarningIcon color="warning" />
             )
           }
           helperText={
-            selectedFileExists
+            doesStepFileExist
               ? "File exists in the project directory."
               : "Warning: this file wasn't found in the project directory."
           }

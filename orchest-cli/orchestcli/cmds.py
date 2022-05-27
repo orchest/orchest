@@ -9,6 +9,7 @@ Object defining the Orchest Cluster to trigger actions in the
 """
 import enum
 import json
+import re
 import sys
 import time
 import typing as t
@@ -29,6 +30,8 @@ try:
     config.load_kube_config()
 except config.config_exception.ConfigException:
     config.load_incluster_config()
+
+ORCHEST_NAMESPACE = re.compile("(namespace: )([-a-z]+)")
 
 API_CLIENT = client.ApiClient()
 APPS_API = client.AppsV1Api()
@@ -153,6 +156,7 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
         if e.reason == "Conflict":
             echo(f"Installing into existing namespace: {ns}.")
 
+    echo("Installing the Orchest Controller to manage the Orchest Cluster...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
@@ -175,6 +179,9 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
         except RuntimeError as e:
             echo(f"{e}", err=True)
             sys.exit(1)
+
+    # Makes the namespace configurable.
+    txt_deploy_controller = _subst_namespace(subst=ns, string=txt_deploy_controller)
 
     # Deploy the `orchest-controller` and the resources it needs.
     yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
@@ -290,34 +297,39 @@ def uninstall(**kwargs) -> None:
     # Otherwise the namespace can't be removed due to the configured
     # finalizers on the orchestcluster resources.
     echo("Removing all Orchest Clusters...")
-    _remove_custom_objects(ns)
-
-    # Wait until the custom objects are removed to ensure a correct
-    # removal (which is handled by the `orchest-controller`).
-    while True:
-        custom_objects = list_namespaced_custom_object(
-            namespace=ns,
-        )
-        if not custom_objects["items"]:
-            break
+    try:
+        _remove_custom_objects(ns)
+    except client.ApiException as e:
+        if e.status == 404:
+            echo(f"No Orchest Clusters found to delete in namespace: '{ns}'.", err=True)
+        else:
+            raise
+    else:
+        # Wait until the custom objects are removed to ensure a correct
+        # removal (which is handled by the `orchest-controller`).
+        while True:
+            custom_objects = list_namespaced_custom_object(
+                namespace=ns,
+            )
+            if not custom_objects["items"]:
+                break
 
     # Removing the namespace will also remove all resources contained in
     # it.
     echo(f"Removing '{ns}' namespace...")
-    CORE_API.delete_namespace(ns)
+    delete_issued = False
     while True:
         try:
-            CORE_API.read_namespace(ns)
+            if not delete_issued:
+                CORE_API.delete_namespace(ns)
+                delete_issued = True
+            else:
+                CORE_API.read_namespace(ns)
         except client.ApiException as e:
             if e.status == 404:
                 break
             raise e
         time.sleep(1)
-
-    # Delete `orchest-system` namespace last to ensure that the
-    # controller has successfully taken care of the removal.
-    echo("Removing 'orchest-system' namespace...")
-    CORE_API.delete_namespace("orchest-system")
 
     # Delete cluster level resources.
     echo("Removing Orchest's cluster-level resources...")
@@ -383,6 +395,9 @@ def update(
 
     tmp_fetching = "version"
     try:
+        # NOTE: Important! Getting the cluster version will fail if the
+        # update is invoked with a `ns` in which Orchest is not
+        # installed. This is exactly what we want.
         curr_version = _get_orchest_cluster_version(ns, cluster_name)
         tmp_fetching = "running mode"
         is_cloud_mode = _is_orchest_in_cloud_mode(ns, cluster_name)
@@ -437,6 +452,7 @@ def update(
         )
         sys.exit(1)
 
+    echo("Updating the Orchest Controller deployment requirements...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
@@ -450,6 +466,10 @@ def update(
         except RuntimeError as e:
             echo(f"{e}", err=True)
             sys.exit(1)
+
+    # The namespace to install the controller in should be the same as
+    # the namespace in which Orchest is currently installed.
+    txt_deploy_controller = _subst_namespace(subst=ns, string=txt_deploy_controller)
 
     yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
     try:
@@ -499,6 +519,7 @@ def update(
     # NOTE: use a while instead of watch command because the watch
     # could time out due to us changing labels in versions and thus the
     # watch command not returning anything.
+    echo("Updating the Orchest Controller deployment...")
     label_selector = ",".join(
         [f"{key}={value}" for key, value in controller_pod_labels.items()]
     )
@@ -994,12 +1015,12 @@ def _run_pod_exec(
     pods = CORE_API.list_namespaced_pod(
         ns,
         label_selector=(
-            f"{orchest_service}={orchest_service},"
-            "contoller.orchest.io/part-of=orchest,"
-            f"controller.orchest.io={cluster_name}"
+            f"controller.orchest.io/component={orchest_service},"
+            "controller.orchest.io/part-of=orchest,"
+            f"controller.orchest.io/owner={orchest_service}"
         ),
     )
-    if not pods:
+    if not pods.items:
         raise RuntimeError(
             f"Orchest Cluster is in an invalid state: no '{orchest_service}' found."
         )
@@ -1318,3 +1339,8 @@ def _fetch_orchest_controller_manifests(version: t.Optional[str]) -> str:
         txt_deploy_controller = resp.text
 
     return txt_deploy_controller
+
+
+def _subst_namespace(subst: str, string: str) -> str:
+    """Substitutes `namespace: [a-z]+` with `subst` in `string`."""
+    return ORCHEST_NAMESPACE.sub(rf"\1{subst}", string)

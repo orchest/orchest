@@ -12,7 +12,7 @@ GO_PROJECT=github.com/orchest/orchest/services/orchest-controller
 # inject the version number into the golang version package
 LDFLAGS := ${if ${ORCHEST_VERSION},-X $(GO_PROJECT)/pkg/version.Version=$(ORCHEST_VERSION),}
 
-NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest-system}
+NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest}
 
 SOURCE_DIRS = cmd pkg
 

@@ -27,7 +27,7 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 	hash := controller.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestApi, component)
 	metadata := controller.GetMetadata(controller.OrchestApi, hash, component, OrchestComponentKind)
-	newDep := getOrchetApiDeployment(metadata, matchLabels, component)
+	newDep := getOrchestApiDeployment(metadata, matchLabels, component)
 
 	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
@@ -77,12 +77,9 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 
 func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
-	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		return false, err
-	}
-
-	err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{
+		PropagationPolicy: &DeletePropagationForeground,
+	})
 	if err != nil && !kerrors.IsNotFound(err) {
 		return false, err
 	}
@@ -117,7 +114,7 @@ func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component
 
 }
 
-func getOrchetApiDeployment(metadata metav1.ObjectMeta,
+func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *appsv1.Deployment {
 
 	image := component.Spec.Template.Image
@@ -197,10 +194,10 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 								Scheme: corev1.URISchemeHTTP,
 							},
 						},
-						PeriodSeconds:    2,
-						TimeoutSeconds:   1,
-						SuccessThreshold: 2,
-						FailureThreshold: 2,
+						PeriodSeconds:    5,
+						TimeoutSeconds:   2,
+						SuccessThreshold: 1,
+						FailureThreshold: 1,
 					},
 				},
 			},

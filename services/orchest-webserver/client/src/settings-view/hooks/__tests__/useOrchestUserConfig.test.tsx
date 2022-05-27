@@ -2,15 +2,10 @@ import { OrchestConfig } from "@/types";
 import { mockConfig } from "@/__mocks__/mockConfig.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
-import { SWRConfig } from "swr";
 import { useOrchestUserConfig } from "../useOrchestUserConfig";
 
 const wrapper = ({ children = null }) => {
-  return (
-    <SWRConfig value={{ revalidateOnMount: true, provider: () => new Map() }}>
-      {children}
-    </SWRConfig>
-  );
+  return <>{children}</>;
 };
 
 const setAsSaved = jest.fn((value?: boolean | undefined) => undefined);

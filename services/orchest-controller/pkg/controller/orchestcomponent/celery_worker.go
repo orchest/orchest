@@ -54,12 +54,21 @@ func (reconciler *CeleryWorkerReconciler) Reconcile(ctx context.Context, compone
 }
 
 func (reconciler *CeleryWorkerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
-	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		return false, err
+
+	dep, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return true, nil
+		}
+
+	} else if dep.GetDeletionTimestamp().IsZero() {
+		DeletePropagationForeground := metav1.DeletionPropagation("Foreground")
+		err = reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{
+			PropagationPolicy: &DeletePropagationForeground,
+		})
 	}
 
-	return true, nil
+	return false, err
 }
 
 func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,

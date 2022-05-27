@@ -56,10 +56,10 @@ var (
 	// Labels and Annotations
 	OrchestHashLabelKey    = "orchest.io/orchest-hash"
 	DeploymentHashLabelKey = "orchest.io/deployment-hash"
-	GenerationKey          = "contoller.orchest.io/generation"
-	ControllerLabelKey     = "controller.orchest.io"
-	ControllerPartOfLabel  = "contoller.orchest.io/part-of"
-	ResourceLabelKey       = "contoller.orchest.io/resource"
+	GenerationKey          = "controller.orchest.io/generation"
+	OwnerLabelKey          = "controller.orchest.io/owner"
+	ControllerPartOfLabel  = "controller.orchest.io/part-of"
+	ComponentLabelKey      = "controller.orchest.io/component"
 	RestartAnnotationKey   = "orchest.io/restart"
 )
 
@@ -219,15 +219,19 @@ func GetResourceMatchLables(resourceName string, object client.Object) map[strin
 	labels := GetOrchestMatchLabels(object)
 
 	utils.AddLabel(labels, map[string]string{
-		ResourceLabelKey: resourceName,
+		ComponentLabelKey: resourceName,
 	})
+
+	if _, ok := labels[OrchestHashLabelKey]; ok {
+		delete(labels, OrchestHashLabelKey)
+	}
 
 	return labels
 }
 
 func GetOrchestMatchLabels(object client.Object) map[string]string {
 	labels := utils.CloneAndAddLabel(object.GetLabels(), map[string]string{
-		ControllerLabelKey:    object.GetName(),
+		OwnerLabelKey:         object.GetName(),
 		ControllerPartOfLabel: "orchest",
 	})
 	return labels

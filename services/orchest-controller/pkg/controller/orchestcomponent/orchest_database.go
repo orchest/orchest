@@ -27,7 +27,7 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 	hash := controller.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestDatabase, component)
 	metadata := controller.GetMetadata(controller.OrchestDatabase, hash, component, OrchestComponentKind)
-	newDep := getOrchetDatabaseDeployment(metadata, matchLabels, component)
+	newDep := getOrchestDatabaseDeployment(metadata, matchLabels, component)
 
 	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
@@ -64,12 +64,9 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 }
 
 func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
-	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		return false, err
-	}
-
-	err = reconciler.Client().CoreV1().Services(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
+	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{
+		PropagationPolicy: &DeletePropagationForeground,
+	})
 	if err != nil && !kerrors.IsNotFound(err) {
 		return false, err
 	}
@@ -77,7 +74,7 @@ func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, comp
 	return true, nil
 }
 
-func getOrchetDatabaseDeployment(metadata metav1.ObjectMeta,
+func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *appsv1.Deployment {
 
 	template := corev1.PodTemplateSpec{
@@ -113,6 +110,22 @@ func getOrchetDatabaseDeployment(metadata metav1.ObjectMeta,
 							MountPath: controller.DBMountPath,
 							SubPath:   controller.DBSubPath,
 						},
+					},
+					ReadinessProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{
+									"pg_isready",
+									"--username",
+									"postgres",
+								},
+							},
+						},
+						InitialDelaySeconds: 1,
+						PeriodSeconds:       4,
+						TimeoutSeconds:      5,
+						SuccessThreshold:    1,
+						FailureThreshold:    10,
 					},
 				},
 			},

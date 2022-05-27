@@ -137,7 +137,7 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 		// If the hash is changed, the cluster enters upgrading state and then running
 		nextPhase = orchestv1alpha1.Updating
 
-		endPhase = orchestv1alpha1.Running
+		endPhase = orchestv1alpha1.Stopped
 
 	} else if _, ok := orchest.GetAnnotations()[controller.RestartAnnotationKey]; ok {
 		// If restart annotation is present, cluster enters pausing phase then running
@@ -159,8 +159,8 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 	return nextPhase, endPhase
 }
 
-// GetOrchetComponents returns all the components of the OrchestCluster
-func GetOrchetComponents(ctx context.Context,
+// GetOrchestComponents returns all the components of the OrchestCluster
+func GetOrchestComponents(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster,
 	lister orchestlisters.OrchestComponentLister) (
 	map[string]*orchestv1alpha1.OrchestComponent, error) {
