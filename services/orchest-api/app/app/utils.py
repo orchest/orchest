@@ -405,12 +405,27 @@ class OrchestSettings:
         """
         settings_as_dict = self.as_dict()
 
+        settings_requiring_restart = self._apply_runtime_changes(
+            flask_app, settings_as_dict
+        )
+
         # Upsert entries.
         stmt = insert(models.Setting).values(
-            [dict(name=k, value={"value": v}) for k, v in settings_as_dict.items()]
+            [
+                dict(
+                    name=k,
+                    value={"value": v},
+                    requires_restart=k in settings_requiring_restart,
+                )
+                for k, v in settings_as_dict.items()
+            ]
         )
         stmt = stmt.on_conflict_do_update(
-            index_elements=[models.Setting.name], set_=dict(value=stmt.excluded.value)
+            index_elements=[models.Setting.name],
+            set_=dict(
+                value=stmt.excluded.value,
+                requires_restart=stmt.excluded.requires_restart,
+            ),
         )
         db.session.execute(stmt)
 
@@ -420,8 +435,7 @@ class OrchestSettings:
         ).delete()
 
         db.session.commit()
-
-        return self._apply_runtime_changes(flask_app, settings_as_dict)
+        return settings_requiring_restart
 
     def update(self, d: dict) -> None:
         """Updates the current config values.
