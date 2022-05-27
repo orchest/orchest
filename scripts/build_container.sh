@@ -11,7 +11,7 @@ BUILD_TAG="latest"
 ORCHEST_VERSION=$(git describe --tags)
 
 # Read flags.
-while getopts "s:i:t:no:vem" opt; do
+while getopts "s:i:t:no:vemM" opt; do
   case $opt in
     e)
       # 'e' for encryption
@@ -36,7 +36,19 @@ while getopts "s:i:t:no:vem" opt; do
       SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
       SKIP_IMGS+=("base-kernel-javascript")
-      SKIP_IMGS+=("base-kernel-r") 
+      SKIP_IMGS+=("base-kernel-r")
+      ;;
+    M)
+      # Build absolute minimal set of images.
+      SKIP_IMGS+=("base-kernel-py")
+      SKIP_IMGS+=("base-kernel-py-gpu")
+      SKIP_IMGS+=("base-kernel-julia")
+      SKIP_IMGS+=("base-kernel-javascript")
+      SKIP_IMGS+=("base-kernel-r")
+      SKIP_IMGS+=("jupyter-server")
+      SKIP_IMGS+=("jupyter-enterprise-gateway")
+      SKIP_IMGS+=("memory-server")
+      SKIP_IMGS+=("session-sidecar")
       ;;
     t)
       BUILD_TAG="$OPTARG"
@@ -125,10 +137,14 @@ containsElement () {
 }
 
 run_build () {
+    unset build
+    unset build_ctx
 
     image=$1
-    build=$2
-    build_ctx=$3
+    build_ctx=$2
+    shift
+    shift
+    build="$@"
 
     echo [Building] $image
 
@@ -157,20 +173,25 @@ run_build () {
     fi
     # copy end
 
-    if $VERBOSE; then
-        ${build[@]}
-    else
-        output=$("${build[@]}" 2>&1)
-    fi
+    verbose_command_wrapper "$@"
 
     if [ $? = 0 ]; then
-        echo [Building] $1 succeeded.
+        echo [Building] $image succeeded.
     else
-        echo [Building] $1 failed.
-        echo "$output"
+        echo [Building] $image failed.
     fi
 
+}
 
+verbose_command_wrapper () {
+    if $VERBOSE; then
+        "$@"
+    else
+        output=$("$@" 2>&1)
+        if ! [ $? = 0 ]; then
+            echo "$output"
+        fi
+    fi
 }
 
 function cleanup() {
@@ -378,6 +399,9 @@ do
             -f $DIR/../services/orchest-controller/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
+
+        # on orchest-controller build we generate the orchest-controller build manifests
+        verbose_command_wrapper bash -c "TAGNAME=$ORCHEST_VERSION make -C ./services/orchest-controller manifestgen"
     fi
 
     # installs orchest-sdk
@@ -407,9 +431,9 @@ do
         CLEANUP_IMAGES+=($IMG)
 
         if $VERBOSE; then
-            run_build $IMG $build $build_ctx
+            run_build $IMG $build_ctx "${build[@]}"
         else
-            run_build $IMG $build $build_ctx &
+            run_build $IMG $build_ctx "${build[@]}" &
         fi
     fi
 

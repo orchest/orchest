@@ -17,6 +17,7 @@ import (
 type OrchestV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	OrchestClustersGetter
+	OrchestComponentsGetter
 }
 
 // OrchestV1alpha1Client is used to interact with features provided by the orchest.io group.
@@ -26,6 +27,10 @@ type OrchestV1alpha1Client struct {
 
 func (c *OrchestV1alpha1Client) OrchestClusters(namespace string) OrchestClusterInterface {
 	return newOrchestClusters(c, namespace)
+}
+
+func (c *OrchestV1alpha1Client) OrchestComponents(namespace string) OrchestComponentInterface {
+	return newOrchestComponents(c, namespace)
 }
 
 // NewForConfig creates a new OrchestV1alpha1Client for the given config.

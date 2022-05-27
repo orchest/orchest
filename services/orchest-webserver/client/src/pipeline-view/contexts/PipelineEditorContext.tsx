@@ -13,7 +13,6 @@ import {
 import { getOffset } from "@/utils/jquery-replacement";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { MutatorCallback } from "swr";
 import { getScaleCorrectedPosition } from "../common";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import {
@@ -40,25 +39,18 @@ export type PipelineEditorContextType = {
   mouseTracker: React.MutableRefObject<MouseTracker>;
   metadataPositions: React.MutableRefObject<Record<string, [number, number]>>;
   pipelineCwd: string | undefined;
-  pipelineJson: PipelineJson;
+  pipelineJson: PipelineJson | undefined;
   environments: Environment[];
   setPipelineJson: (
     data?:
       | PipelineJson
-      | undefined
-      | Promise<PipelineJson | undefined>
-      | MutatorCallback<PipelineJson | undefined>,
-    flushPage?: boolean
+      | ((currentValue: PipelineJson | undefined) => PipelineJson | undefined)
+      | undefined,
+    flushPage?: boolean | undefined
   ) => void;
   hash: React.MutableRefObject<string>;
   fetchDataError: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  setRunUuid: (
-    data?:
-      | string
-      | Promise<string | undefined>
-      | MutatorCallback<string | undefined>
-      | undefined
-  ) => Promise<string | undefined>;
+  setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   zIndexMax: React.MutableRefObject<number>;
   isReadOnly: boolean;
   instantiateConnection: (

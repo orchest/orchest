@@ -6,6 +6,7 @@ import {
   OrchestConfig,
   OrchestServerConfig,
   OrchestUserConfig,
+  ReducerActionWithCallback,
 } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
@@ -118,9 +119,7 @@ type Action =
       payload: boolean;
     };
 
-type ActionCallback = (previousState: AppContextState) => Action;
-
-type AppContextAction = Action | ActionCallback;
+type AppContextAction = ReducerActionWithCallback<AppContextState, Action>;
 
 export type AlertDispatcher = (
   title: string,
@@ -357,7 +356,11 @@ export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
   shouldStart = true,
 }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
-  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+
+  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage<boolean>(
+    "drawer",
+    true
+  );
 
   const { config, user_config } = useFetchSystemConfig(shouldStart);
 

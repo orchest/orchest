@@ -11,7 +11,7 @@ export const useFetchProjectsForProjectsView = () => {
     projects: fetchedProjects = [],
     fetchProjects,
     setProjects,
-    fetchProjectsError,
+    error: fetchProjectsError,
     isFetchingProjects,
   } = useFetchProjects({ sessionCounts: true, jobCounts: true });
 

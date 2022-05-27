@@ -1,4 +1,8 @@
-import type { PipelineMetaData, Project } from "@/types";
+import type {
+  PipelineMetaData,
+  Project,
+  ReducerActionWithCallback,
+} from "@/types";
 import React from "react";
 
 const ProjectsContext = React.createContext<IProjectsContext>(
@@ -53,8 +57,10 @@ type Action =
       payload: { uuid: string } & Partial<PipelineMetaData>;
     };
 
-type ActionCallback = (currentState: IProjectsContextState) => Action;
-export type ProjectsContextAction = Action | ActionCallback;
+export type ProjectsContextAction = ReducerActionWithCallback<
+  IProjectsContextState,
+  Action
+>;
 
 export interface IProjectsContext {
   state: IProjectsContextState;

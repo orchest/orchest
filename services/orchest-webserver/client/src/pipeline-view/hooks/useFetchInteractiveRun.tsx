@@ -1,7 +1,7 @@
+import { useFetcher } from "@/hooks/useFetcher";
 import { PipelineRun } from "@/types";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import useSWR, { MutatorCallback } from "swr";
 import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
 
 export const useFetchInteractiveRun = (
@@ -13,33 +13,28 @@ export const useFetchInteractiveRun = (
   const shouldFetchRunUuid =
     !runUuidFromRoute && hasValue(projectUuid) && hasValue(pipelineUuid);
 
-  const {
-    data: fetchedRunUuid,
-    mutate: mutateRunUuid,
-    error: fetchRunUuidError,
-    isValidating: isFetchingRunUuid,
-  } = useSWR<string | undefined>(
+  const { data, error: fetchRunUuidError, status } = useFetcher<{
+    runs: PipelineRun[];
+  }>(
     shouldFetchRunUuid
       ? `${PIPELINE_RUN_STATUS_ENDPOINT}/?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
-      : null,
-    (url) =>
-      fetcher<{ runs: PipelineRun[] }>(url).then((result) => {
-        return result.runs.length > 0 ? result.runs[0].uuid : undefined;
-      })
+      : undefined
   );
 
-  const runUuid = shouldFetchRunUuid ? fetchedRunUuid : runUuidFromRoute;
-
-  const setRunUuid = React.useCallback(
-    (
-      data?:
-        | string
-        | undefined
-        | Promise<string | undefined>
-        | MutatorCallback<string | undefined>
-    ) => mutateRunUuid(data, false),
-    [mutateRunUuid]
+  const [runUuid, setRunUuid] = React.useState<string | undefined>(
+    !shouldFetchRunUuid ? runUuidFromRoute : undefined
   );
 
-  return { runUuid, setRunUuid, fetchRunUuidError, isFetchingRunUuid };
+  React.useEffect(() => {
+    if (!runUuid && data) {
+      setRunUuid(data.runs[0]?.uuid || runUuidFromRoute);
+    }
+  }, [runUuid, data, runUuidFromRoute]);
+
+  return {
+    runUuid,
+    setRunUuid,
+    fetchRunUuidError,
+    isFetchingRunUuid: status === "PENDING",
+  };
 };

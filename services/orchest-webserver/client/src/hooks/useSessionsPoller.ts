@@ -3,21 +3,27 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { siteMap } from "@/routingConfig";
 import { IOrchestSession } from "@/types";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
 import { matchPath, useLocation } from "react-router-dom";
-import useSWR, { useSWRConfig } from "swr";
+import { useInterval } from "./use-interval";
+import { useFetcher } from "./useFetcher";
 
 type TSessionStatus = IOrchestSession["status"];
 
-const ENDPOINT = "/catch/api-proxy/api/sessions/";
+type FetchSessionResponse = {
+  sessions: (IOrchestSession & {
+    project_uuid: string;
+    pipeline_uuid: string;
+  })[];
+  status: TSessionStatus;
+};
 
 const lowerCaseFirstLetter = (str: string) =>
   str.charAt(0).toLowerCase() + str.slice(1);
 
-function convertKeyToCamelCase<T>(data: T | undefined, keys?: string[]) {
-  if (!data) return data;
+function convertKeyToCamelCase<T>(data: T, keys?: string[]): T {
   if (keys) {
     for (const key of keys) {
       data[lowerCaseFirstLetter(pascalcase(key))] = data[key];
@@ -63,28 +69,30 @@ export const useSessionsPoller = () => {
     matchRooViews?.isExact ||
     (!pipelineIsReadOnly && hasValue(pipeline) && matchPipelineViews?.isExact);
 
-  const { cache } = useSWRConfig();
-
-  const { data, error, mutate } = useSWR<{
-    sessions: (IOrchestSession & {
-      project_uuid: string;
-      pipeline_uuid: string;
-    })[];
-    status: TSessionStatus;
-  }>(shouldPoll ? ENDPOINT : null, fetcher, {
-    // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING
-    // the reason is that Orchest session is not a user session, but a session of a pipeline.
-    // and Orchest sessions are not bound to a single user, therefore
-    // this session (i.e. pipeline session) is used by potentially multiple users
-    // in order to facilitate multiple users working at the same time, FE needs to check pipeline sessions at all times
-    refreshInterval: 1000,
+  const { data: sessions, error, fetchData: fetchSessions } = useFetcher<
+    FetchSessionResponse,
+    FetchSessionResponse["sessions"]
+  >("/catch/api-proxy/api/sessions/", {
+    disableFetchOnMount: true,
+    transform: (data) =>
+      data.sessions.map((session) =>
+        convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
+      ),
+    caching: true,
   });
 
-  React.useEffect(() => {
-    if (shouldPoll) mutate();
-  }, [location, shouldPoll, mutate]);
+  // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING
+  // the reason is that Orchest session is not a user session, but a session of a pipeline.
+  // and Orchest sessions are not bound to a single user, therefore
+  // this session (i.e. pipeline session) is used by potentially multiple users
+  // in order to facilitate multiple users working at the same time, FE needs to check pipeline sessions at all times
+  useInterval(() => fetchSessions(), shouldPoll ? 1000 : undefined);
 
-  const isLoading = !data && !error;
+  React.useEffect(() => {
+    if (shouldPoll) fetchSessions();
+  }, [shouldPoll, fetchSessions]);
+
+  const isLoading = !sessions && !error;
 
   React.useEffect(() => {
     if (error) {
@@ -92,14 +100,6 @@ export const useSessionsPoller = () => {
       console.error("Unable to fetch sessions", error);
     }
   }, [error, setAlert]);
-
-  const sessions: IOrchestSession[] | undefined = React.useMemo(() => {
-    return (
-      data?.sessions.map((session) =>
-        convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-      ) || cache.get(ENDPOINT)?.sessions // in case sessions are needed when polling is not active
-    );
-  }, [data, cache]);
 
   React.useEffect(() => {
     dispatch({

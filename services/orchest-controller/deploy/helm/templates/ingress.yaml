@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ template "library.metadata.name" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+    {{- $ingress := .Values.ingress | default dict }}
+    {{ if $ingress.host }}
+    - host: {{ $ingress.host }}
+      http:  
+    {{ else }}
+    - http:
+    {{ end }}
+        paths:
+          - path: /controller(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ template "library.metadata.name" . }}
+                port:
+                  number: {{ template "library.service.port" . }}
