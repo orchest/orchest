@@ -181,3 +181,19 @@ per :ref:`setting up minikube for development <cluster mount>`).
    ...
 
    # And repeat if you like.
+
+Can't log-in to authentication enabled instance
+-----------------------------------------------
+Open ``k9s`` and open a shell (``s`` shortcut) on the ``orchest-database`` pod.
+
+.. code-block:: bash
+
+   # Log into the DB
+   psql -U postgres -d orchest_api
+
+   UPDATE settings
+   SET value = '{"value": false}'
+   WHERE name='AUTH_ENABLED';
+
+Next you need to ``orchest restart`` on your host for the changes to take affect. Or kill the
+appropriate pods so that they restart.
