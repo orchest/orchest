@@ -1,6 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
-import { useAsync } from "@/hooks/useAsync";
+import { StateDispatcher, useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -29,6 +29,7 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { IconButton } from "./common/IconButton";
 
@@ -386,13 +387,7 @@ type DataTableProps<T> = {
   // this prop is useful when `rows` is not given, and the data is fetched from within via `fetcher`
   composeRow?: (
     row: T & { uuid: string },
-    setData: (
-      action:
-        | DataTableFetcherResponse<T>
-        | ((
-            currentValue: DataTableFetcherResponse<T>
-          ) => DataTableFetcherResponse<T>)
-    ) => void,
+    setData: StateDispatcher<DataTableFetcherResponse<T>>,
     fetchData: () => void
   ) => DataTableRow<T>;
   id: string;
@@ -417,6 +412,7 @@ type DataTableProps<T> = {
   hideSearch?: boolean;
   isLoading?: boolean;
   disabled?: boolean;
+  disablePagination?: boolean;
   dense?: boolean;
   containerSx?: SxProps<Theme>;
   retainSelectionsOnPageChange?: boolean;
@@ -470,10 +466,11 @@ export const DataTable = <T extends Record<string, any>>({
   onChangeSelection,
   fetcher,
   isLoading,
-  initialRowsPerPage,
+  initialRowsPerPage = 10,
   containerSx,
   dense,
   disabled,
+  disablePagination = false,
   refreshInterval = null,
   retainSelectionsOnPageChange,
   footnote,
@@ -494,8 +491,8 @@ export const DataTable = <T extends Record<string, any>>({
   // page is one-indexed
   const [page, setPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = useLocalStorage(
-    `${id}-table-page-size`,
-    initialRowsPerPage || 10
+    disablePagination ? undefined : `${id}-table-page-size`,
+    disablePagination ? null : initialRowsPerPage
   );
 
   const { run, status, error, data, setData } = useAsync<
@@ -506,7 +503,7 @@ export const DataTable = <T extends Record<string, any>>({
       return fetcher({
         run,
         page,
-        rowsPerPage,
+        ...(rowsPerPage ? { rowsPerPage } : null),
         searchTerm: debouncedSearchTerm,
       });
     }
@@ -519,7 +516,7 @@ export const DataTable = <T extends Record<string, any>>({
       if (current === 1) forceUpdate(); // if page is already 1, it won't trigger re-render
       return 1;
     });
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, forceUpdate]);
 
   // when user change searchTerm, page, and rowsPerPage, it should re-fetch data, however
   // if we simply subscribe to debouncedSearchTerm, page, and rowsPerPage, an extra request will occur when page !== 1 and searchTerm is changing
@@ -583,6 +580,7 @@ export const DataTable = <T extends Record<string, any>>({
     : data?.totalCount || rows.length;
 
   const rowsInPage = React.useMemo(() => {
+    if (!hasValue(rowsPerPage)) return rows;
     const startIndex = Math.max(page - 1, 0) * rowsPerPage;
     const slicedRows = useClientSideSearchAndPagination
       ? rows.slice(startIndex, startIndex + rowsPerPage)
@@ -731,7 +729,11 @@ export const DataTable = <T extends Record<string, any>>({
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;
 
   // Avoid a layout jump when reaching the last page with empty rows.
-  const emptyRows = page > 1 ? Math.max(0, page * rowsPerPage - totalCount) : 0;
+  const emptyRows = !hasValue(rowsPerPage)
+    ? 0
+    : page > 1
+    ? Math.max(0, page * rowsPerPage - totalCount)
+    : 0;
 
   const tableTitleId = `${id}-title`;
 
@@ -865,18 +867,20 @@ export const DataTable = <T extends Record<string, any>>({
               </IconButton>
             )}
           </Stack>
-          <TablePagination
-            sx={{ flex: 1 }}
-            rowsPerPageOptions={[5, 10, 25, 100]}
-            component="div"
-            count={totalCount}
-            rowsPerPage={rowsPerPage}
-            page={page - 1} // NOTE: this is zero-indexed
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            size={dense ? "small" : "medium"} // this doesn't make a difference, need to report a bug to MUI
-            data-test-id={`${id}-pagination`}
-          />
+          {rowsPerPage && (
+            <TablePagination
+              sx={{ flex: 1 }}
+              rowsPerPageOptions={[5, 10, 25, 100]}
+              component="div"
+              count={totalCount}
+              rowsPerPage={rowsPerPage}
+              page={page - 1} // NOTE: this is zero-indexed
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              size={dense ? "small" : "medium"} // this doesn't make a difference, need to report a bug to MUI
+              data-test-id={`${id}-pagination`}
+            />
+          )}
         </Stack>
       </Paper>
     </Box>
