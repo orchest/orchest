@@ -64,6 +64,9 @@ RUN python -m venv /home/$NB_USER/venv \
     && pip install -r requirements.txt --no-cache \
     && deactivate
 
+# Empty configuration file for kernel initialization
+RUN touch /home/jovyan/.orchestrc
+
 # Copy application files as late as possible to avoid cache busting.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
 
