@@ -125,22 +125,9 @@ Using a different Python version
 It might be the case that your code requires another Python version than we are offering. Luckily
 with environments it is easy to set up the Python version you require.
 
-First, add a project or pipeline :ref:`environment variable <environment variables>` ``BASH_ENV``
-so that the file ``/home/jovyan/.orchestrc`` is sourced on startup:
-
-.. list-table::
-   :widths: 25 25
-   :header-rows: 1
-   :align: left
-
-   * - Name
-     - Value
-
-   * - ``BASH_ENV``
-     - ``/home/jovyan/.orchestrc``
-
-Next, create the new conda environment in your setup script with your desired Python version
-and store the relevant environment variables in ``/home/jovyan/.orchestrc``.
+To do this, create the new conda environment in your setup script with your desired Python version
+and store the relevant environment variables in ``/home/jovyan/.orchestrc``,
+which will be sourced on startup.
 For example, to configure an environment with Python 3.10 using mamba, add these commands:
 
 .. code-block:: bash

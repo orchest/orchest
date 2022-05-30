@@ -55,6 +55,7 @@ COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runn
 # and end up using the wrong executable to start the kernel.
 ENV JUPYTER_PATH=/opt/conda/share/jupyter
 ENV HOME=/home/$NB_USER
+ENV BASH_ENV=/home/jovyan/.orchestrc
 
 # Environment variable that can be set to specify the conda environment
 # to use to start Jupyter kernels.
