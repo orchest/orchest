@@ -74,6 +74,7 @@ COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runn
 # Jupyter will search inside the orchestdependencies environment first
 # and end up using the wrong executable to start the kernel.
 ENV JUPYTER_PATH=/opt/conda/share/jupyter
+ENV HOME=/home/$NB_USER
 
 # Orchest related environment variable that can be set to specify the
 # conda environment to use to start Jupyter kernels.
