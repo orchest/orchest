@@ -67,7 +67,11 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
+function descendingComparator(
+  a: Record<string, string | number>,
+  b: Record<string, string | number>,
+  orderBy: string | number
+) {
   if (b[orderBy] < a[orderBy]) {
     return -1;
   }
@@ -79,22 +83,21 @@ function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
 
 type Order = "asc" | "desc";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getComparator<Key extends keyof any>(
+function getComparator(
   order: Order,
-  orderBy: Key
+  orderBy: string
 ): (
-  a: { [key in Key]: number | string },
-  b: { [key in Key]: number | string }
+  a: Record<string, number | string>,
+  b: Record<string, number | string>
 ) => number {
   return order === "desc"
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-export type DataTableColumn<T> = {
+export type DataTableColumn<T, C> = {
   disablePadding?: boolean;
-  id: keyof T;
+  id: keyof C;
   label: string;
   numeric?: boolean;
   sortable?: boolean;
@@ -111,20 +114,20 @@ export type DataTableRow<T> = T & {
   details?: React.ReactNode;
 };
 
-type EnhancedTableProps<T> = {
+type EnhancedTableProps<T, C> = {
   tableId: string;
   numSelected: number;
-  onRequestSort: (event: React.MouseEvent<unknown>, property: keyof T) => void;
+  onRequestSort: (event: React.MouseEvent<unknown>, property: string) => void;
   onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
   order: Order;
-  orderBy: keyof T | "";
+  orderBy: keyof C | "";
   rowCount: number;
-  data: DataTableColumn<T>[];
+  data: DataTableColumn<T, C>[];
   selectable: boolean;
   disabled: boolean;
 };
 
-function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
+function EnhancedTableHead<T, C>(props: EnhancedTableProps<T, C>) {
   const {
     tableId,
     onSelectAllClick,
@@ -137,7 +140,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
     disabled,
     data,
   } = props;
-  const createSortHandler = (property: keyof T) => (
+  const createSortHandler = (property: string) => (
     event: React.MouseEvent<unknown>
   ) => {
     onRequestSort(event, property);
@@ -172,7 +175,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
                   active={orderBy === headCell.id}
                   direction={orderBy === headCell.id ? order : "asc"}
                   disabled={disabled}
-                  onClick={createSortHandler(headCell.id)}
+                  onClick={createSortHandler(headCell.id.toString())}
                 >
                   {headCell.label}
                   {orderBy === headCell.id ? (
@@ -227,16 +230,18 @@ const CellContainer: React.FC<{
   );
 };
 
-export function renderCell<T>(
-  column: DataTableColumn<T> | undefined,
+export function renderCell<T, C>(
+  column: DataTableColumn<T, C> | undefined,
   row: DataTableRow<T>,
   disabled: boolean
 ) {
   if (!column) return null;
-  return column.render ? column.render(row, disabled) : row[column.id];
+  return column.render
+    ? column.render(row, disabled)
+    : row[column.id.toString()] || null;
 }
 
-function Row<T>({
+function Row<T, C>({
   isLoading,
   disabled,
   tableId,
@@ -252,7 +257,7 @@ function Row<T>({
   isLoading?: boolean;
   disabled: boolean;
   tableId: string;
-  columns: DataTableColumn<T>[];
+  columns: DataTableColumn<T, C>[];
   data: DataTableRow<T>;
   onClickCheckbox: (
     e: React.MouseEvent<HTMLButtonElement>,
@@ -380,8 +385,8 @@ type DataTableFetcher<T> = (props: {
   ) => Promise<void | DataTableFetcherResponse<T>>;
 }) => void;
 
-type DataTableProps<T> = {
-  columns: DataTableColumn<T>[];
+type DataTableProps<T, C = T> = {
+  columns: DataTableColumn<T, C>[];
   fetcher?: DataTableFetcher<T>;
   rows?: (T & { uuid: string })[];
   // this prop is useful when `rows` is not given, and the data is fetched from within via `fetcher`
@@ -398,7 +403,7 @@ type DataTableProps<T> = {
   ) => void;
   onChangeSelection?: (rowUuids: string[]) => void;
   selectable?: boolean;
-  initialOrderBy?: keyof T;
+  initialOrderBy?: string;
   initialOrder?: Order;
   initialRowsPerPage?: number;
   deleteSelectedRows?: (rowUuids: string[]) => Promise<boolean>;
@@ -417,11 +422,12 @@ type DataTableProps<T> = {
   containerSx?: SxProps<Theme>;
   retainSelectionsOnPageChange?: boolean;
   footnote?: React.ReactNode;
+  tableContainerElevation?: number;
 } & BoxProps;
 
-function generateLoadingRows<T>(
+function generateLoadingRows<T, C>(
   rowCount: number,
-  columns: DataTableColumn<T>[]
+  columns: DataTableColumn<T, C>[]
 ) {
   // rendering large amount of table rows with skeleton is causing performance issue
   // We limit it to 25, which should suffice for most users' viewport.
@@ -447,7 +453,7 @@ enum FIXED_ROW_HEIGHT {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const DataTable = <T extends Record<string, any>>({
+export const DataTable = <T extends Record<string, any>, C extends T>({
   id,
   columns,
   rows: originalRowsFromProp,
@@ -474,17 +480,16 @@ export const DataTable = <T extends Record<string, any>>({
   refreshInterval = null,
   retainSelectionsOnPageChange,
   footnote,
+  tableContainerElevation = 1,
   ...props
-}: DataTableProps<T>) => {
+}: DataTableProps<T, C>) => {
   const { setAlert } = useAppContext();
 
   const mounted = useMounted();
   const [searchTerm, setSearchTerm] = React.useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, debounceTime);
   const [order, setOrder] = React.useState<Order>(initialOrder || "asc");
-  const [orderBy, setOrderBy] = React.useState<keyof T | "">(
-    initialOrderBy || ""
-  );
+  const [orderBy, setOrderBy] = React.useState<string>(initialOrderBy || "");
   const [isDeleting, setIsDeleting] = React.useState(false);
   const isTableDisabled = disabled || isDeleting;
 
@@ -565,7 +570,7 @@ export const DataTable = <T extends Record<string, any>>({
       ? sortedRows
       : sortedRows.filter((unfilteredRow) => {
           return columns.some((column) => {
-            const value = `${unfilteredRow[column.id]}${
+            const value = `${unfilteredRow[column.id.toString()]}${
               unfilteredRow.searchIndex || ""
             }`;
             return value
@@ -579,7 +584,11 @@ export const DataTable = <T extends Record<string, any>>({
     ? rows.length
     : data?.totalCount || rows.length;
 
-  const rowsInPage = React.useMemo(() => {
+  const rowsInPage = React.useMemo<
+    (T & {
+      uuid: string;
+    })[]
+  >(() => {
     if (!hasValue(rowsPerPage)) return rows;
     const startIndex = Math.max(page - 1, 0) * rowsPerPage;
     const slicedRows = useClientSideSearchAndPagination
@@ -618,7 +627,7 @@ export const DataTable = <T extends Record<string, any>>({
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
-    property: keyof T
+    property: string
   ) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
@@ -761,7 +770,10 @@ export const DataTable = <T extends Record<string, any>>({
           />
         </SearchContainer>
       )}
-      <Paper sx={{ width: "100%", marginBottom: 2 }}>
+      <Paper
+        elevation={tableContainerElevation}
+        sx={{ width: "100%", marginBottom: 2 }}
+      >
         <TableContainer sx={containerSx}>
           <Table
             sx={{ minWidth: 750 }}
@@ -771,7 +783,7 @@ export const DataTable = <T extends Record<string, any>>({
             id={id}
             data-test-id={id}
           >
-            <EnhancedTableHead
+            <EnhancedTableHead<T, C>
               tableId={id}
               selectable={selectable}
               numSelected={selected.length}
@@ -788,7 +800,7 @@ export const DataTable = <T extends Record<string, any>>({
                 rowsInPage.map((row: DataTableRow<T>) => {
                   const isItemSelected = isSelected(row.uuid);
                   return (
-                    <Row<T>
+                    <Row<T, C>
                       isLoading={isFetchingData}
                       disabled={isTableDisabled}
                       tableId={id}
