@@ -43,7 +43,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       RUNNING: "Stop session",
     }[status] || "Start session";
 
-  const handleEvent = (e: React.MouseEvent) => {
+  const handleEvent = (e: React.MouseEvent | React.ChangeEvent) => {
     e.preventDefault();
     e.stopPropagation();
     toggleSession({
@@ -58,12 +58,6 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
     <>
       {isSwitch ? (
         <FormControlLabel
-          onClick={handleEvent}
-          onAuxClick={(e) => {
-            // middle click on this button shouldn't open new tab
-            e.stopPropagation();
-            e.preventDefault();
-          }}
           disableTypography
           control={
             <Switch
@@ -75,6 +69,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
               sx={{ margin: (theme) => theme.spacing(0, 1) }}
               className={className}
               checked={isSessionAlive}
+              onChange={handleEvent}
             />
           }
           label={label || statusLabel}

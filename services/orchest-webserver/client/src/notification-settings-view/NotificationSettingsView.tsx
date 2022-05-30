@@ -10,7 +10,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { NotificationEventsForm } from "./NotificationEventsForm";
-import { WebhooksForm } from "./WebhooksForm";
+import { NotificationSettingsContextProvider } from "./NotificationSettingsContext";
+import { WebhookList } from "./WebhookList";
 
 const ReturnToJobsAlert = () => {
   const { navigateTo, prevPathname } = useCustomRoute();
@@ -48,33 +49,35 @@ export const NotificationSettingsView = () => {
       <Stack
         direction="column"
         alignItems="flex-start"
-        sx={{ maxWidth: "1200px" }}
+        sx={{ maxWidth: "990px", margin: "0 auto" }}
       >
-        <Button
-          color="secondary"
-          startIcon={<ArrowBackIcon />}
-          onAuxClick={returnToSettings}
-          onClick={returnToSettings}
-        >
-          Back to settings
-        </Button>
-        <PageTitle sx={{ marginTop: (theme) => theme.spacing(2.5) }}>
-          Notification settings
-        </PageTitle>
+        <NotificationSettingsContextProvider>
+          <Button
+            color="secondary"
+            startIcon={<ArrowBackIcon />}
+            onAuxClick={returnToSettings}
+            onClick={returnToSettings}
+          >
+            Back to settings
+          </Button>
+          <PageTitle sx={{ marginTop: (theme) => theme.spacing(2.5) }}>
+            Notification settings
+          </PageTitle>
 
-        <ReturnToJobsAlert />
+          <ReturnToJobsAlert />
 
-        <SectionTitle>Channels</SectionTitle>
+          <SectionTitle>Channels</SectionTitle>
 
-        <Typography>Choose where you want to get notified</Typography>
+          <Typography>Choose where you want to get notified</Typography>
 
-        <WebhooksForm />
+          <WebhookList />
 
-        <SectionTitle>Events</SectionTitle>
+          <SectionTitle>Events</SectionTitle>
 
-        <Typography>Choose when you want to get notified</Typography>
+          <Typography>Choose when you want to get notified</Typography>
 
-        <NotificationEventsForm />
+          <NotificationEventsForm />
+        </NotificationSettingsContextProvider>
       </Stack>
     </Layout>
   );

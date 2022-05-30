@@ -43,7 +43,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
   const shouldRefetch =
     hasUrlChanged || (revalidateOnFocus && hasBrowserFocusChanged && isFocused);
 
-  const fetchData = React.useCallback(() => {
+  const fetchData = React.useCallback((): Promise<Data> | void => {
     if (!url) return;
     return run(
       fetcher<FetchedValue>(url, paramsRef.current).then(transformRef.current)
@@ -53,7 +53,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
   const hasFetchedOnMount = React.useRef(disableFetchOnMount);
 
   React.useEffect(() => {
-    if (!hasFetchedOnMount.current || shouldRefetch) {
+    if (!hasFetchedOnMount.current && shouldRefetch) {
       hasFetchedOnMount.current = true;
       fetchData();
     }

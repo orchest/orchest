@@ -1,10 +1,10 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
-import { useFetchNotificationEventTypes } from "./useFetchNotificationEventTypes";
+import { useNotificationSettingsContext } from "./NotificationSettingsContext";
 
 export const NotificationEventsForm = () => {
-  const { notificationEventTypes = [] } = useFetchNotificationEventTypes();
+  const { notificationEventTypes } = useNotificationSettingsContext();
 
   return (
     <Box>

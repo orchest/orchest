@@ -1,4 +1,4 @@
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { ContentType, fetcher } from "@orchest/lib-utils";
 import { NOTIFICATION_END_POINT } from "./common";
 
 type NotificationSubscription = {
@@ -14,7 +14,7 @@ export type NotificationEventType = {
   optional_filters: ("project_uuid" | "job_uuid")[][];
 };
 
-type NotificationSubscriptionPayload = Pick<
+export type NotificationSubscriptionPayload = Pick<
   NotificationSubscription,
   "event_type"
 > &
@@ -30,8 +30,8 @@ export type NotificationSubscriber =
       type: "webhook";
       url: string;
       name: string;
-      verify_ssl: true;
-      content_type: "application/json";
+      verify_ssl: boolean;
+      content_type: ContentType;
       secret: string;
     })
   | (NotificationSubscriberBase & {
@@ -43,21 +43,9 @@ export type NotificationWebhookSubscriber = Extract<
   { type: "webhook" }
 >;
 
-export const createWebhook = (
-  subscriber: Pick<NotificationWebhookSubscriber, "url" | "name" | "secret"> & {
-    subscriptions: NotificationSubscriptionPayload[];
-  }
-) => {
-  fetcher<NotificationWebhookSubscriber>(
-    `${NOTIFICATION_END_POINT}/subscribers/webhooks`,
-    {
-      method: "POST",
-      headers: HEADER.JSON,
-      body: JSON.stringify({
-        ...subscriber,
-        verify_ssl: true,
-        content_type: "application/json",
-      }),
-    }
+export const deleteSuscriber = (uuid: string) => {
+  return fetcher<NotificationWebhookSubscriber>(
+    `${NOTIFICATION_END_POINT}/subscribers/${uuid}`,
+    { method: "DELETE" }
   );
 };

@@ -1,5 +1,4 @@
 import { STATUS } from "@/hooks/useAsync";
-import { useFetcher } from "@/hooks/useFetcher";
 import { ExtractStringLiteralType } from "@/types";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -7,14 +6,14 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Tooltip from "@mui/material/Tooltip";
 import React from "react";
-import { NOTIFICATION_END_POINT } from "./common";
+import { useVerifyWebhook } from "./useVerifyWebhook";
 
 type StatusMessageKey = ExtractStringLiteralType<
   STATUS,
   "PENDING" | "RESOLVED" | "REJECTED"
 >;
 
-const statusMessage: Record<
+export const webhookStatusMessage: Record<
   StatusMessageKey,
   { message: string; component: React.ReactElement }
 > = {
@@ -37,13 +36,11 @@ export const WebhookVerifiedCheck = ({
 }: {
   subscriberUuid: string;
 }) => {
-  const url = `${NOTIFICATION_END_POINT}/subscribers/test-ping-delivery/${subscriberUuid}`;
+  const { status } = useVerifyWebhook(subscriberUuid);
+  const { message, component = null } = webhookStatusMessage[status] || {};
 
-  const { status } = useFetcher(url);
-  const { message, component = null } = statusMessage[status] || {};
-  console.log("DEV message: ", message);
   return (
-    <Tooltip title={message} open={!message ? false : undefined}>
+    <Tooltip title={message}>
       <Box
         sx={{
           display: "inline-block",

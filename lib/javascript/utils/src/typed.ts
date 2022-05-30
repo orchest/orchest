@@ -163,13 +163,13 @@ export function validURL(
   skipHttpsChecking = false
 ): url is string {
   if (!url) return false;
+  const regex = new RegExp(`^https${skipHttpsChecking ? "?" : ""}:\/\/`);
   try {
     new URL(url);
-  } catch (_) {
+    return regex.test(url);
+  } catch (e) {
     return false;
   }
-
-  return skipHttpsChecking || url.startsWith("https://");
 }
 
 // used in orchest-webserver only
