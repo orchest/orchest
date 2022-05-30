@@ -21,14 +21,19 @@ jobs:
       matrix:
         image:
           [
-            -i orchest-api -i orchest-webserver -i auth-server,
+            -i orchest-api,
+            -i orchest-webserver,
+            -i auth-server,
             -i jupyter-server,
             -i jupyter-enterprise-gateway,
-            -i base-kernel-py -i base-kernel-r,
+            -i base-kernel-py,
+            -i base-kernel-r,
             -i base-kernel-julia,
+            -i base-kernel-javascript,
             -i node-agent,
             -i orchest-controller,
-            -i celery-worker -i memory-server -i session-sidecar,
+            -i celery-worker,
+            -i session-sidecar,
           ]
 
     steps:
@@ -70,6 +75,12 @@ jobs:
         env:
           DOCKERHUB_REPOSITORY: orchest/base-kernel-julia
           README_FILEPATH: services/base-images/base-kernel-julia/README.md
+
+      - name: Push README files to DockerHub base-kernel-javascript
+        uses: peter-evans/dockerhub-description@v2
+        env:
+          DOCKERHUB_REPOSITORY: orchest/base-kernel-javascript
+          README_FILEPATH: services/base-images/base-kernel-javascript/README.md
 
       - name: Push README files to DockerHub base-kernel-py
         uses: peter-evans/dockerhub-description@v2

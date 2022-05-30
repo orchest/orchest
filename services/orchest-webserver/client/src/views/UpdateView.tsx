@@ -26,7 +26,9 @@ const UpdateView: React.FC = () => {
   const [state, setState] = React.useState((prevState) => ({
     ...prevState,
     updating: false,
-    updateOutput: [],
+    updateOutputLines: [],
+    clusterName: undefined,
+    namespace: undefined,
   }));
   const [updatePollInterval, setUpdatePollInterval] = React.useState<
     number | null
@@ -39,41 +41,64 @@ const UpdateView: React.FC = () => {
       async (resolve) => {
         setState({
           updating: true,
-          updateOutput: [],
+          updateOutputLines: [],
         });
         console.log("Starting update.");
 
         try {
-          fetcher<{ token: string }>("/async/start-update", {
-            method: "POST",
-          }).then((json) => {
-            setState((prevState) => ({
-              ...prevState,
-            }));
-            console.log("Update started, polling controller.");
+          fetcher<{ namespace: string; cluster_name: string }>(
+            "/async/start-update",
+            {
+              method: "POST",
+            }
+          )
+            .then((json) => {
+              setState((prevState) => ({
+                ...prevState,
+                clusterName: json.cluster_name,
+                namespace: json.namespace,
+              }));
+              console.log("Update started, polling controller.");
 
-            // TODO: hardcoded namespace and cluster name values.
-            makeCancelable(
-              checkHeartbeat(
-                "/controller/namespaces/orchest/clusters/cluster-1/status"
+              const namespace = json.namespace;
+              const clusterName = json.cluster_name;
+              makeCancelable(
+                checkHeartbeat(
+                  `/controller/namespaces/${namespace}/clusters/${clusterName}/status`
+                )
               )
-            )
-              .then(() => {
-                console.log("Heartbeat successful.");
-                resolve(true);
-                startUpdatePolling();
-              })
-              .catch((retries) => {
-                console.error(
-                  "Controller heartbeat checking timed out after " +
-                    retries +
-                    " retries."
-                );
-              });
-          });
+                .then(() => {
+                  console.log("Heartbeat successful.");
+                  resolve(true);
+                  startUpdatePolling();
+                })
+                .catch((retries) => {
+                  console.error(
+                    "Controller heartbeat checking timed out after " +
+                      retries +
+                      " retries."
+                  );
+                });
+            })
+            .catch((error) => {
+              // This is a form of technical debt since we can't
+              // distinguish if an update fails because there is no
+              // newer version or a "real" failure.
+              setState((prevState) => ({
+                ...prevState,
+                updating: false,
+              }));
+              resolve(false);
+              setAlert("Error", "Orchest is already at the latest version.");
+              console.error("Failed to trigger update", error);
+            });
 
           return true;
         } catch (error) {
+          setState((prevState) => ({
+            ...prevState,
+            updating: false,
+          }));
           resolve(false);
           setAlert("Error", "Failed to trigger update");
           console.error("Failed to trigger update", error);
@@ -84,14 +109,16 @@ const UpdateView: React.FC = () => {
   };
 
   const startUpdatePolling = () => {
-    setUpdatePollInterval(1000);
+    setUpdatePollInterval(2000);
   };
 
   useInterval(() => {
     cancelableFetch<{
       state: string;
       conditions: { lastHeartbeatTime: string }[];
-    }>(`/controller/namespaces/orchest/clusters/cluster-1/status`)
+    }>(
+      `/controller/namespaces/${state.namespace}/clusters/${state.clusterName}/status`
+    )
       .then((json) => {
         if (json.state === "Running") {
           setState((prevState) => ({
@@ -102,14 +129,7 @@ const UpdateView: React.FC = () => {
         } else {
           setState((prevState) => ({
             ...prevState,
-            updateOutput: json.conditions.sort(function (a, b) {
-              let dateA = new Date(a.lastHeartbeatTime);
-              let dateB = new Date(b.lastHeartbeatTime);
-              // sort in reversed order
-              if (dateA < dateB) return 1;
-              if (dateA > dateB) return -1;
-              return 0;
-            }),
+            updateOutputLines: [...prevState.updateOutputLines, json.state],
           }));
         }
       })
@@ -119,11 +139,6 @@ const UpdateView: React.FC = () => {
         }
       });
   }, updatePollInterval);
-
-  let updateOutputLines = [];
-  state.updateOutput.forEach((element) =>
-    updateOutputLines.push(element.event)
-  );
 
   return (
     <Layout>
@@ -146,8 +161,8 @@ const UpdateView: React.FC = () => {
           Start update
         </Button>
         {state.updating && <LinearProgress sx={{ marginBottom: 3 }} />}
-        {state.updateOutput.length > 0 && (
-          <ConsoleOutput>{updateOutputLines.join("\n")}</ConsoleOutput>
+        {state.updateOutputLines.length > 0 && (
+          <ConsoleOutput>{state.updateOutputLines.join("\n")}</ConsoleOutput>
         )}
       </Paper>
     </Layout>

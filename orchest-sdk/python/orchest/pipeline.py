@@ -37,6 +37,7 @@ class ServiceDefinition(TypedDict):
     scope: List[str]  # interactive, noninteractive
     exposed: bool
     requires_authentication: bool
+    order: int
 
 
 class PipelineDefinition(TypedDict):

@@ -180,6 +180,7 @@ importers:
       jest: ^27.4.5
       jest-fetch-mock: ^3.0.3
       jest-junit: ^13.0.0
+      jest-localstorage-mock: ^2.4.21
       jquery: ^3.5.1
       lodash.clonedeep: ^4.5.0
       lodash.isstring: ^4.0.1
@@ -197,7 +198,6 @@ importers:
       sass-bin: ^1.43.2
       seti-icons: ^0.0.4
       socket.io-client: ^2.3.0
-      swr: 1.1.2
       ts-jest: ^27.1.2
       typescript: 4.5.4
       xterm: ^4.0.0
@@ -241,7 +241,6 @@ importers:
       react-use-intercom: 1.4.0_react-dom@17.0.2+react@17.0.2
       seti-icons: 0.0.4
       socket.io-client: 2.4.0
-      swr: 1.1.2_react@17.0.2
       xterm: 4.15.0
       xterm-addon-fit: 0.4.0_xterm@4.15.0
       xterm-for-react: 1.0.4_react-dom@17.0.2+react@17.0.2
@@ -274,6 +273,7 @@ importers:
       jest: 27.4.5
       jest-fetch-mock: 3.0.3
       jest-junit: 13.0.0
+      jest-localstorage-mock: 2.4.21
       msw: 0.39.2
       sass-bin: 1.43.2
       ts-jest: 27.1.2_98206f0327a8ec11bfada1f493c91185
@@ -7114,6 +7114,11 @@ packages:
       pretty-format: 27.4.2
     dev: true
 
+  /jest-localstorage-mock/2.4.21:
+    resolution: {integrity: sha512-IBXPBufnfPyr4VkoQeJ+zlfWlG84P0KbL4ejcV9j3xNI0v6OWznQlH6Ke9xjSarleR11090oSeWADSUow0PmFw==}
+    engines: {node: '>=6.16.0'}
+    dev: true
+
   /jest-matcher-utils/27.4.2:
     resolution: {integrity: sha512-jyP28er3RRtMv+fmYC/PKG8wvAmfGcSNproVTW2Y0P/OY7/hWUOmsPfxN1jOhM+0u2xU984u2yEagGivz9OBGQ==}
     engines: {node: ^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0}
@@ -9518,14 +9523,6 @@ packages:
       util.promisify: 1.0.1
     dev: false
 
-  /swr/1.1.2_react@17.0.2:
-    resolution: {integrity: sha512-UsM0eo5T+kRPyWFZtWRx2XR5qzohs/LS4lDC0GCyLpCYFmsfTk28UCVDbOE9+KtoXY4FnwHYiF+ZYEU3hnJ1lQ==}
-    peerDependencies:
-      react: ^16.11.0 || ^17.0.0 || ^18.0.0
-    dependencies:
-      react: 17.0.2
-    dev: false
-
   /symbol-tree/3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
     dev: true
@@ -10207,7 +10204,7 @@ packages:
       react: ^16.0.0
       react-dom: ^16.0.0
     dependencies:
-      prop-types: 15.7.2
+      prop-types: 15.8.1
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
       xterm: 4.15.0

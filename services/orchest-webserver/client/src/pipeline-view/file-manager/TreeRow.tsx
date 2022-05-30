@@ -26,7 +26,7 @@ const RenameField = ({
     fileRenameNewName,
     setFileRenameNewName,
   } = useFileManagerLocalContext();
-  const textFieldRef = React.useRef(null);
+  const textFieldRef = React.useRef<HTMLInputElement>(null);
   const theme = useTheme();
 
   React.useEffect(() => {
@@ -94,7 +94,7 @@ export const TreeRow = ({
   handleRename: (oldPath: string, newPath: string) => void;
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   root: string;
-  hoveredPath: string;
+  hoveredPath: string | undefined;
   onOpen: (filePath: string) => void;
 }) => {
   const {
@@ -110,7 +110,7 @@ export const TreeRow = ({
             if (node.type === "file") draft.files.push(node);
           });
         },
-        { directories: [], files: [] }
+        { directories: [] as TreeNode[], files: [] as TreeNode[] }
       ),
     [treeNodes]
   );

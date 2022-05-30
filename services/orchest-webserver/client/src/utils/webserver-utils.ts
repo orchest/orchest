@@ -1,5 +1,11 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson, PipelineStepState, Service, Step } from "@/types";
+import {
+  EnvironmentValidationData,
+  PipelineJson,
+  PipelineStepState,
+  Service,
+  Step,
+} from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import {
   extensionFromFilename,
@@ -203,7 +209,7 @@ export function getServiceURLs(
 export function checkGate(project_uuid: string) {
   return new Promise<void>((resolve, reject) => {
     // we validate whether all environments have been built on the server
-    fetcher<{ actions: string[]; validation: "pass" | "fail" }>(
+    fetcher<EnvironmentValidationData>(
       `/catch/api-proxy/api/validations/environments`,
       {
         method: "POST",
@@ -214,7 +220,10 @@ export function checkGate(project_uuid: string) {
       if (response.validation === "pass") {
         resolve();
       } else {
-        reject({ reason: "gate-failed", data: response });
+        reject({
+          reason: "gate-failed",
+          data: response as EnvironmentValidationData,
+        });
       }
     });
   });
@@ -433,10 +442,15 @@ export function getPipelineStepChildren(
   return childSteps;
 }
 
-export function setWithRetry(value, setter, getter, retries, delay, interval?) {
+export function setWithRetry<T>(
+  value: T,
+  setter: (value: T) => void,
+  getter: () => T,
+  retries: number,
+  delay: number
+) {
   if (retries == 0) {
     console.warn("Failed to set with retry for setter (timeout):", setter);
-    clearInterval(interval);
     return;
   }
   try {
@@ -445,26 +459,23 @@ export function setWithRetry(value, setter, getter, retries, delay, interval?) {
     console.warn("Setter produced an error.", setter, error);
   }
   try {
-    if (value == getter()) {
-      if (interval) {
-        clearInterval(interval);
-      }
+    if (value === getter()) {
       return;
     }
   } catch (error) {
     console.warn("Getter produced an error.", getter, error);
   }
-  if (interval === undefined) {
-    interval = setInterval(() => {
-      retries -= 1;
-      setWithRetry(value, setter, getter, retries, delay, interval);
-    }, delay);
-
-    return interval;
-  }
+  return setTimeout(() => {
+    retries -= 1;
+    setWithRetry(value, setter, getter, retries, delay);
+  }, delay);
 }
 
-export function tryUntilTrue(action, retries, delay, interval?) {
+export function tryUntilTrue(
+  action: () => boolean,
+  retries: number,
+  delay: number
+) {
   let hasWorked = false;
 
   setWithRetry(
@@ -472,18 +483,15 @@ export function tryUntilTrue(action, retries, delay, interval?) {
     () => {
       hasWorked = action();
     },
-    () => {
-      return hasWorked;
-    },
+    () => hasWorked,
     retries,
-    delay,
-    interval
+    delay
   );
 }
 
 // Will return undefined if the envVariables are ill defined.
 export function envVariablesArrayToDict(
-  envVariables: EnvVarPair[]
+  envVariables: EnvVarPair[] = []
 ):
   | { status: "resolved"; value: Record<string, unknown> }
   | { status: "rejected"; error: string } {

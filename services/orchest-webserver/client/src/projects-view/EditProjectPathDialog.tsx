@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { StateDispatcher } from "@/hooks/useAsync";
 import { Project } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
@@ -10,7 +11,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import { MutatorCallback } from "swr";
 import { useProjectName } from "./hooks/useProjectName";
 
 export const EditProjectPathDialog = ({
@@ -21,13 +21,7 @@ export const EditProjectPathDialog = ({
 }: {
   projectUuid: string | undefined;
   onClose: () => void;
-  setProjects: (
-    data?:
-      | Project[]
-      | Promise<Project[]>
-      | MutatorCallback<Project[]>
-      | undefined
-  ) => Promise<Project[] | undefined>;
+  setProjects: StateDispatcher<Project[]>;
   projects: Project[];
 }) => {
   const { setAlert } = useAppContext();
@@ -48,7 +42,7 @@ export const EditProjectPathDialog = ({
   }, [projectUuid, projects, setProjectName]);
 
   const isFormValid =
-    (projectName.length > 0 && validation && validation.length === 0) ||
+    (projectName.length > 0 && validation.length === 0) ||
     isUpdatingProjectPath;
 
   const closeDialog = () => {
@@ -116,7 +110,7 @@ export const EditProjectPathDialog = ({
             value={projectName}
             label="Project name"
             helperText={validation || " "}
-            error={hasValue(validation) && validation.length > 0}
+            error={validation.length > 0}
             disabled={isUpdatingProjectPath}
             onChange={(e) => {
               setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));

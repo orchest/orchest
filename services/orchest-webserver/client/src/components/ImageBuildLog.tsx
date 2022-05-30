@@ -1,16 +1,50 @@
+import { useInterval } from "@/hooks/use-interval";
+import { useFetcher } from "@/hooks/useFetcher";
 import { useSocketIO } from "@/pipeline-view/hooks/useSocketIO";
 import { EnvironmentImageBuild } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
 import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
 import { ImageBuildStatus } from "./ImageBuildStatus";
 
-const BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
+const useFetchEnvironmentBuild = ({
+  url,
+  buildsKey,
+  buildFetchHash, // This allows external components to fire fetchData.
+  refreshInterval,
+}: {
+  url: string;
+  buildsKey: string;
+  buildFetchHash: string;
+  refreshInterval: number;
+}): EnvironmentImageBuild | undefined => {
+  const { data = [], fetchData, status } = useFetcher<
+    Record<string, EnvironmentImageBuild[]>,
+    EnvironmentImageBuild[]
+  >(url, { transform: (data) => data[buildsKey] || Promise.reject() });
+
+  const shouldReFetch = React.useRef(false);
+
+  React.useEffect(() => {
+    // Only re-fetch if a previous request has taken place.
+    if (status === "REJECTED" || status === "RESOLVED")
+      shouldReFetch.current = true;
+  }, [status]);
+
+  React.useEffect(() => {
+    if (shouldReFetch.current) {
+      shouldReFetch.current = false;
+      fetchData();
+    }
+  }, [fetchData, buildFetchHash]);
+
+  useInterval(fetchData, refreshInterval);
+
+  return data[0]; // Return the latest build.
+};
 
 export const ImageBuildLog = ({
   onUpdateBuild,
@@ -36,26 +70,17 @@ export const ImageBuildLog = ({
   const [fitAddon] = React.useState(new FitAddon());
   const xtermRef = React.useRef<XTerm | null>(null);
 
-  const { data: builds, mutate } = useSWR<EnvironmentImageBuild[]>(
-    buildRequestEndpoint,
-    (url) =>
-      fetcher<Record<string, EnvironmentImageBuild[]>>(url).then(
-        (response) => response[buildsKey]
-      ),
-    {
-      refreshInterval: BUILD_POLL_FREQUENCY[build ? 1 : 0],
-    }
-  );
+  const fetchedBuild = useFetchEnvironmentBuild({
+    url: buildRequestEndpoint,
+    buildsKey,
+    buildFetchHash,
+    refreshInterval:
+      build && ["PENDING", "STARTED"].includes(build.status) ? 1000 : 5000, // poll more frequently during build
+  });
 
   React.useEffect(() => {
-    mutate();
-  }, [buildFetchHash, mutate]);
-
-  React.useEffect(() => {
-    if (builds && builds.length > 0) {
-      onUpdateBuild(builds[0]);
-    }
-  }, [builds, onUpdateBuild]);
+    if (fetchedBuild) onUpdateBuild(fetchedBuild);
+  }, [fetchedBuild, onUpdateBuild]);
 
   const fitTerminal = React.useCallback(() => {
     if (xtermRef.current?.terminal.element?.offsetParent !== null) {
@@ -72,35 +97,43 @@ export const ImageBuildLog = ({
   }, [fitAddon, xtermRef]);
 
   const socket = useSocketIO(socketIONamespace);
+  const hasRegisteredSocketIO = React.useRef(false);
 
   React.useEffect(() => {
-    socket.on(
-      "sio_streamed_task_data",
-      (data: { action: string; identity: string; output?: string }) => {
-        // ignore terminal outputs from other builds
+    hasRegisteredSocketIO.current = false;
+  }, [socket]);
 
-        if (data.identity == streamIdentity) {
-          if (
-            data.action === "sio_streamed_task_output" &&
-            !ignoreIncomingLogs
-          ) {
-            let lines = (data.output || "").split("\n");
-            for (let x = 0; x < lines.length; x++) {
-              if (x == lines.length - 1) {
-                xtermRef.current?.terminal.write(lines[x]);
-              } else {
-                xtermRef.current?.terminal.write(lines[x] + "\n\r");
+  React.useEffect(() => {
+    if (!hasRegisteredSocketIO.current) {
+      hasRegisteredSocketIO.current = true;
+      socket.on(
+        "sio_streamed_task_data",
+        (data: { action: string; identity: string; output?: string }) => {
+          // ignore terminal outputs from other builds
+
+          if (data.identity === streamIdentity) {
+            if (
+              data.action === "sio_streamed_task_output" &&
+              !ignoreIncomingLogs
+            ) {
+              let lines = (data.output || "").split("\n");
+              for (let x = 0; x < lines.length; x++) {
+                if (x == lines.length - 1) {
+                  xtermRef.current?.terminal.write(lines[x]);
+                } else {
+                  xtermRef.current?.terminal.write(lines[x] + "\n\r");
+                }
               }
+            } else if (data["action"] == "sio_streamed_task_started") {
+              // This blocking mechanism makes sure old build logs are
+              // not displayed after the user has started a build
+              // during an ongoing build.
+              xtermRef.current?.terminal.reset();
             }
-          } else if (data["action"] == "sio_streamed_task_started") {
-            // This blocking mechanism makes sure old build logs are
-            // not displayed after the user has started a build
-            // during an ongoing build.
-            xtermRef.current?.terminal.reset();
           }
         }
-      }
-    );
+      );
+    }
   }, [socket, xtermRef, ignoreIncomingLogs, streamIdentity]);
 
   React.useEffect(() => {

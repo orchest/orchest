@@ -18,6 +18,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18.0"
+
       - uses: actions/checkout@v2
         # NOTE: This will fetch the entire git history which is needed for the
         # `github.event.before`.

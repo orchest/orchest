@@ -252,7 +252,8 @@ def register_views(app, db):
 
         if request.method == "POST":
             # Updated config, from client.
-            config = request.form.get("config")
+            request_body = request.get_json()
+            config = request_body.get("config", None)
 
             if config is None:
                 return {"message": "No config was given."}, 400
@@ -307,7 +308,7 @@ def register_views(app, db):
             }
         }
 
-        return host_info
+        return jsonify(host_info)
 
     @app.route("/async/jupyter-setup-script", methods=["GET", "POST"])
     def jupyter_setup_script():
@@ -762,7 +763,10 @@ def register_views(app, db):
                 if step_file_path.startswith("/"):
                     file_path = resolve_absolute_path(step_file_path)
                 else:
-                    file_path = safe_join(pipeline_dir, step_file_path)
+                    # It's safe to use `os.path.join` here
+                    # because `is_valid_pipeline_relative_path`
+                    # has guarded the case.
+                    file_path = os.path.join(pipeline_dir, step_file_path)
 
                 filename = pipeline_json["steps"][step_uuid]["file_path"]
                 step_title = pipeline_json["steps"][step_uuid]["title"]
@@ -839,18 +843,9 @@ def register_views(app, db):
 
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
-
-                is_project_file = is_valid_pipeline_relative_path(
-                    project_uuid, pipeline_uuid, step["file_path"]
-                )
-
-                is_data_file = is_valid_data_path(step["file_path"])
-
-                if not (is_project_file or is_data_file):
-                    raise app_error.OutOfAllowedDirectoryError(
-                        "File is neither in the project, nor in the data directory."
-                    )
-
+                # No need to check if step file_path is within the
+                # project folder. Otherwise, user cannot save anything
+                # before they got all file paths correct.
                 if not step["file_path"].startswith("/"):
                     step["file_path"] = normalize_project_relative_path(
                         step["file_path"]

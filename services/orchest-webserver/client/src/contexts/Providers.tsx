@@ -31,9 +31,9 @@ export const OrchestProvider: React.FC = ({ children }) => {
   return (
     <AppContextProvider>
       <Intercom>
-        <SessionsContextProvider>
-          <ProjectsContextProvider>{children}</ProjectsContextProvider>
-        </SessionsContextProvider>
+        <ProjectsContextProvider>
+          <SessionsContextProvider>{children}</SessionsContextProvider>
+        </ProjectsContextProvider>
       </Intercom>
     </AppContextProvider>
   );

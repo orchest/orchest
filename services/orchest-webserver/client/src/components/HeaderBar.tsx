@@ -37,7 +37,7 @@ export const HeaderBar = ({
   const {
     state: { projectUuid, pipeline, pipelineSaveStatus, pipelineIsReadOnly },
   } = useProjectsContext();
-  const appContext = useAppContext();
+  const { user_config } = useAppContext();
   useSessionsPoller();
 
   const matchPipeline = useRouteMatch({
@@ -158,7 +158,7 @@ export const HeaderBar = ({
                     <CheckCircleIcon />
                   </Tooltip>
                 ) : (
-                  <CircularProgress />
+                  <CircularProgress size={20} />
                 )}
                 <Typography
                   variant="h6"
@@ -231,7 +231,7 @@ export const HeaderBar = ({
             direction="row"
             sx={{ paddingLeft: (theme) => theme.spacing(1) }}
           >
-            {appContext.state.user_config?.AUTH_ENABLED && (
+            {user_config?.AUTH_ENABLED && (
               <IconButton
                 title="Logout"
                 onClick={logoutHandler}

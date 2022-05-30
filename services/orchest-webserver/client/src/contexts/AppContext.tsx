@@ -1,4 +1,4 @@
-import { useCancelableFetch } from "@/hooks/useCancelablePromise";
+import { useAsync } from "@/hooks/useAsync";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   BuildRequest,
@@ -6,7 +6,9 @@ import {
   OrchestConfig,
   OrchestServerConfig,
   OrchestUserConfig,
+  ReducerActionWithCallback,
 } from "@/types";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 /** Utility functions
@@ -81,9 +83,6 @@ type PromptMessageConverter<T extends PromptMessage> = T extends Alert
   : never;
 
 type AppContextState = {
-  config?: OrchestConfig;
-  user_config?: OrchestUserConfig;
-  isLoaded: boolean;
   promptMessages: PromptMessage[];
   buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
@@ -112,10 +111,6 @@ type Action =
       payload: BuildRequest | undefined;
     }
   | {
-      type: "SET_SERVER_CONFIG";
-      payload: OrchestServerConfig;
-    }
-  | {
       type: "SET_HAS_UNSAVED_CHANGES";
       payload: boolean;
     }
@@ -124,9 +119,7 @@ type Action =
       payload: boolean;
     };
 
-type ActionCallback = (previousState: AppContextState) => Action;
-
-type AppContextAction = Action | ActionCallback;
+type AppContextAction = ReducerActionWithCallback<AppContextState, Action>;
 
 export type AlertDispatcher = (
   title: string,
@@ -176,6 +169,8 @@ type AppContext = {
   setAsSaved: (value?: boolean) => void;
   isDrawerOpen: boolean;
   setIsDrawerOpen: (value: boolean | ((value: boolean) => boolean)) => void;
+  config: OrchestConfig | undefined;
+  user_config: OrchestUserConfig | undefined;
 };
 
 const Context = React.createContext<AppContext | null>(null);
@@ -194,16 +189,6 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
 
     case "SET_BUILD_REQUEST": {
       return { ...state, buildRequest: action.payload };
-    }
-
-    case "SET_SERVER_CONFIG": {
-      const { config, user_config } = action.payload;
-      return {
-        ...state,
-        isLoaded: true,
-        user_config,
-        config,
-      };
     }
 
     case "SET_HAS_UNSAVED_CHANGES": {
@@ -229,7 +214,6 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
 
 const initialState: AppContextState = {
   promptMessages: [],
-  isLoaded: false,
   hasUnsavedChanges: false,
   hasCompletedOnboarding: false,
   isShowingOnboarding: false,
@@ -354,32 +338,35 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
   };
 };
 
-export const AppContextProvider: React.FC = ({ children }) => {
+const useFetchSystemConfig = (shouldStart: boolean) => {
+  const { data, run } = useAsync<OrchestServerConfig>();
+  React.useEffect(() => {
+    if (shouldStart) run(fetcher("/async/server-config"));
+  }, [run, shouldStart]);
+  return (data || {}) as {
+    config?: OrchestConfig;
+    user_config?: OrchestUserConfig;
+  };
+};
+
+// `shouldStart` is only useful when running tests.
+// Use it to control the side effects within AppContext when mocking.
+export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
+  children,
+  shouldStart = true,
+}) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
-  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
-  const { cancelableFetch } = useCancelableFetch();
+
+  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage<boolean>(
+    "drawer",
+    true
+  );
+
+  const { config, user_config } = useFetchSystemConfig(shouldStart);
 
   /**
    * =========================== side effects
    */
-
-  // Complete loading once config has been provided and local storage values
-  // have been achieved
-  React.useEffect(() => {
-    const fetchServerConfig = async () => {
-      try {
-        const serverConfig = await cancelableFetch<OrchestServerConfig>(
-          "/async/server-config"
-        );
-        dispatch({ type: "SET_SERVER_CONFIG", payload: serverConfig });
-      } catch (error) {
-        console.error(
-          `Failed to fetch server config: ${JSON.stringify(error)}`
-        );
-      }
-    };
-    fetchServerConfig();
-  }, []);
 
   // Handle Unsaved Changes prompt
   React.useEffect(() => {
@@ -441,6 +428,8 @@ export const AppContextProvider: React.FC = ({ children }) => {
   return (
     <Context.Provider
       value={{
+        config,
+        user_config,
         state,
         dispatch,
         setAlert,
@@ -452,7 +441,7 @@ export const AppContextProvider: React.FC = ({ children }) => {
         setIsDrawerOpen,
       }}
     >
-      {state.isLoaded ? children : null}
+      {children}
     </Context.Provider>
   );
 };

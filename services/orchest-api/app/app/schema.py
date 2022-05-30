@@ -14,6 +14,14 @@ from app import models
 
 dictionary = Model("Dictionary", {})
 
+update_started_response = Model(
+    "UpdateStartedResponse",
+    {
+        "namespace": fields.String(required=True, description="Namespace"),
+        "cluster_name": fields.String(required=True, description="Cluster name"),
+    },
+)
+
 settings_update_response = Model(
     "SettingsUpdateResponse",
     {
@@ -134,6 +142,13 @@ service = Model(
             description=(
                 "Can be set to False to expose the service "
                 "without authentication requirements."
+            ),
+        ),
+        "order": fields.Integer(
+            required=False,
+            description=(
+                "Acts as the serial number of a service, "
+                "which should be unique within a pipeline."
             ),
         ),
     },

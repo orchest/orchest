@@ -1,7 +1,13 @@
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { useAppContext } from "@/contexts/AppContext";
-import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
-import { fetcher } from "@/utils/fetcher";
-import { hasValue, HEADER } from "@orchest/lib-utils";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import type {
+  IOrchestSession,
+  IOrchestSessionUuid,
+  ReducerActionWithCallback,
+} from "@/types";
+import { checkGate } from "@/utils/webserver-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
 
@@ -90,18 +96,25 @@ type Action =
     }
   | { type: "SET_IS_KILLING_ALL_SESSIONS"; payload: boolean };
 
-type ActionCallback = (previousState: SessionsContextState) => Action;
+type SessionsContextAction = ReducerActionWithCallback<
+  SessionsContextState,
+  Action
+>;
 
-type SessionsContextAction = Action | ActionCallback;
+type ToggleSessionFunction = (
+  payload: IOrchestSessionUuid & {
+    shouldStart?: boolean;
+    requestedFromView?: BUILD_IMAGE_SOLUTION_VIEW;
+    onBuildComplete?: () => void;
+    onCancelBuild?: () => void;
+  }
+) => Promise<void>;
 
 type SessionsContext = {
   state: SessionsContextState;
   dispatch: React.Dispatch<SessionsContextAction>;
   getSession: (session: Session) => IOrchestSession | undefined;
-  toggleSession: (
-    payload: IOrchestSessionUuid,
-    shouldStart?: boolean
-  ) => Promise<void>;
+  toggleSession: ToggleSessionFunction;
   deleteAllSessions: () => Promise<void>;
 };
 
@@ -147,7 +160,8 @@ const initialState: SessionsContextState = {
   =========================================== */
 
 export const SessionsContextProvider: React.FC = ({ children }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert, requestBuild } = useAppContext();
+  const projectsContext = useProjectsContext();
 
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
@@ -192,10 +206,51 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
     [dispatch]
   );
 
+  const startSession = React.useCallback(
+    async (payload: IOrchestSessionUuid) => {
+      setSession({ ...payload, status: "LAUNCHING" });
+      try {
+        const sessionDetails = await fetcher<IOrchestSession>(ENDPOINT, {
+          method: "POST",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
+            pipeline_uuid: payload.pipelineUuid,
+            project_uuid: payload.projectUuid,
+          }),
+        });
+        setSession(sessionDetails);
+      } catch (err) {
+        if (err?.message) {
+          setAlert("Error", `Error while starting the session: ${err.message}`);
+        }
+
+        console.error(err);
+      }
+    },
+    [setSession, setAlert]
+  );
+
+  const setReadOnly = React.useCallback(
+    (value: boolean) => {
+      projectsContext.dispatch({
+        type: "SET_PIPELINE_IS_READONLY",
+        payload: value,
+      });
+    },
+    [projectsContext]
+  );
+
   // NOTE: launch/delete session is an async operation from BE
   // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
-  const toggleSession = React.useCallback(
-    async (payload: IOrchestSessionUuid, shouldStart?: boolean | undefined) => {
+  const toggleSession: ToggleSessionFunction = React.useCallback(
+    async (props) => {
+      const {
+        shouldStart,
+        onBuildComplete,
+        onCancelBuild,
+        requestedFromView,
+        ...payload
+      } = props;
       const foundSession = state.sessions?.find((session) =>
         isSameSession(session, payload)
       );
@@ -208,7 +263,9 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
 
       const isOperating =
         session?.status && ["STOPPING"].includes(session.status);
-      if (isOperating) return;
+      const isAlreadyStopped = shouldStart === false && !session;
+
+      if (isOperating || isAlreadyStopped) return;
 
       const desiredState: IOrchestSession["status"] =
         shouldStart !== undefined
@@ -218,6 +275,26 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
           : ["LAUNCHING", "RUNNING"].includes(session?.status || "")
           ? "STOPPING"
           : "LAUNCHING";
+
+      if (desiredState !== "STOPPING") {
+        try {
+          await checkGate(payload.projectUuid); // Ensure that environments are built.
+        } catch (error) {
+          setReadOnly(true);
+          requestBuild(
+            payload.projectUuid,
+            error.data,
+            requestedFromView || "",
+            () => {
+              startSession(payload);
+              setReadOnly(false);
+              if (onBuildComplete) onBuildComplete();
+            },
+            onCancelBuild
+          );
+          return;
+        }
+      }
 
       if (hasValue(session) && desiredState === "STOPPING") {
         setSession({ ...session, status: desiredState });
@@ -230,29 +307,11 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         return;
       }
 
-      // `session` is undefined, launching a new session
-      setSession({ ...payload, status: "LAUNCHING" });
-      await fetcher(ENDPOINT, {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify({
-          project_uuid: payload.projectUuid,
-          pipeline_uuid: payload.pipelineUuid,
-        }),
-      })
-        .then((sessionDetails) => setSession(sessionDetails))
-        .catch((err) => {
-          if (err?.message) {
-            setAlert(
-              "Error",
-              `Error while starting the session: ${err.message}`
-            );
-          }
-
-          console.error(err);
-        });
+      if (!["LAUNCHING", "RUNNING"].includes(session?.status || "")) {
+        startSession(payload);
+      }
     },
-    [setAlert, setSession, state]
+    [setAlert, setSession, state, startSession, requestBuild, setReadOnly]
   );
 
   const deleteAllSessions = React.useCallback(async () => {

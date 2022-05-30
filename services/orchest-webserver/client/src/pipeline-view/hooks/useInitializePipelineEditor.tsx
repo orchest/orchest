@@ -8,7 +8,6 @@ import { siteMap } from "@/routingConfig";
 import { PipelineJson, StepsDict } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
-import { MutatorCallback } from "swr";
 import { extractStepsFromPipelineJson } from "../common";
 
 export const useInitializePipelineEditor = (
@@ -23,6 +22,7 @@ export const useInitializePipelineEditor = (
   const {
     navigateTo,
     projectUuid: projectUuidFromRoute,
+    pipelineUuid: pipelineuuidFromRoute,
     jobUuid,
   } = useCustomRoute();
 
@@ -47,9 +47,8 @@ export const useInitializePipelineEditor = (
     (
       data?:
         | PipelineJson
-        | undefined
-        | Promise<PipelineJson | undefined>
-        | MutatorCallback<PipelineJson | undefined>,
+        | ((currentValue: PipelineJson | undefined) => PipelineJson | undefined)
+        | undefined,
       flushPage?: boolean
     ) => {
       // in case you want to re-initialize all components according to the new PipelineJson
@@ -78,16 +77,23 @@ export const useInitializePipelineEditor = (
     }
   }, [error, setAlert, pipeline, navigateTo, projectUuidFromRoute]);
 
-  // initialize eventVars.steps
   const initialized = React.useRef(false);
-  React.useEffect(() => {
-    if (!isFetchingPipelineJson && pipelineJson && !initialized.current) {
-      initialized.current = true;
 
+  // Only start to initialize if the uuid in pipelineJson is correct.
+  // Because pipelineJson will be cached by SWR, initialization should only starts when uuid matches.
+  const shouldInitialize =
+    !isFetchingPipelineJson &&
+    pipelineuuidFromRoute &&
+    pipelineuuidFromRoute === pipelineJson?.uuid;
+
+  // initialize eventVars.steps
+  React.useEffect(() => {
+    if (shouldInitialize && !initialized.current) {
+      initialized.current = true;
       let newSteps = extractStepsFromPipelineJson(pipelineJson);
       initializeEventVars(newSteps);
     }
-  }, [isFetchingPipelineJson, pipelineJson, initializeEventVars]);
+  }, [shouldInitialize, pipelineJson, initializeEventVars]);
 
   const { environments = [] } = useFetchEnvironments(
     !isReadOnly ? projectUuid : undefined

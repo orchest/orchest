@@ -4,63 +4,56 @@ Jobs
 ====
 
 .. tip::
-    👉 Would you rather watch short video tutorials? Check them out here:
+    👉 Check out our short video tutorials:
 
     * `Adding parameters to a pipeline <https://app.tella.tv/story/cknrahyn9000409kyf4s2d3xm>`_
     * `Running a pipeline as a job <https://app.tella.tv/story/cknr9nq1u000609kz9h0advvk>`_
 
-Jobs are essentially just a set of :ref:`pipelines <pipelines>` that run now, in the future or
-periodically. Since pipelines take parameters as an input, a job can schedule multiple runs of the
-same pipeline each with other input values. For example, you want to use the exact same ETL pipeline
-you've build but for every pipeline run use a different data source to extract data from.
+Jobs are a way to schedule one off or recurring :ref:`pipelines <pipeline>` runs.
 
-The moment you create a new job a snapshot of your (versioned) project directory is created. For
-every pipeline run that is part of the job, the snapshot is copied and the files are executed (this
-means that Notebooks are changed in place without affecting the snapshot). Thanks to this snapshot
-the job will run the same code throughout its lifetime and therefore produce the expected results.
+A Job can run multiple iterations of the same pipeline over time or by using different parameters as
+inputs. For example, you could create a Job which uses the same ETL pipeline but extracts data from
+a different data source for each pipeline run.
+
+Jobs take a snapshot of your project directory when they are created. Each of the job’s pipeline
+runs copy the project directory snapshot and execute the files without changing the original
+snapshot. This means Jobs run consistently throughout their entire lifetime.
+
+Different pipeline runs that are part of the same job are completely isolated from a scheduling
+perspective and do not affect each others' state.
 
 .. note::
-   💡 Write data and large artifacts to the special ``/data`` directory as they would otherwise be
-   included in the snapshot, taking up unnessecary space. Alternatively, you can include the
-   artifacts in your ``.gitignore`` as the ignored patterns are not copied to the snapshot.
+   💡 Write data and large artifacts to the ``/data`` directory. This helps to save disk space by
+   not including them in the project directory snapshot. Alternatively, you can add the artifacts to
+   ``.gitignore`` as the ignored patterns are not copied to the snapshot.
 
 .. _parametrize pipeline section:
 
-Parametrizing pipelines and steps
----------------------------------
-Before we get into jobs, it is good to first cover the notion of parametrizing your pipeline and
-your pipeline steps. A job runs a specific pipeline for a given set of parameters. If you define
-multiple values for the same parameter, then the job will run the pipeline once for every
-combination of parameter values. First you need to define the possible parameters that your pipeline
-can take for inputs. We allow you to define parameters for:
-
-* Pipelines. The parameters and corresponding values will be available in every step of the
-  pipeline.
-* Pipeline steps. The parameters will only be accessible by the step they are defined for.
-
-Different pipeline runs that are part of the same job are completely isolated from a scheduling
-perspective and do not affect each others state.
+Parameterizing pipelines and steps
+----------------------------------
+Jobs run a specific pipeline for a given set of parameters. If you define multiple values for the
+same parameter, then the job will run the pipeline once for every combination of parameter values.
 
 .. note::
-   💡 Unlike :ref:`environment variables <environment variables>`, name collisions between pipeline
-   and step level parameters do not result in overwrite behavior. In other words, you can define
+   💡 Unlike :ref:`environment variables <environment variables>`, you can define
    pipeline and step level parameters with the same name without one (automatically) overwritting
    the other, you can access both values.
 
+You can define pipeline parameters at two levels:
+
+* Pipelines: The parameters and their values will be available across every pipeline step.
+* Pipeline steps: The parameters will only be available in which they are defined.
+
 Editing pipeline parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-You can edit your pipeline parameters through the pipeline settings:
-
 1. Open a pipeline via the *Pipelines* option in the left menu pane.
 2. Click on *SETTINGS* in the top right corner.
 3. Towards the top you will find the *Pipeline parameters* section.
 4. Input some JSON like :code:`{"my-param": <param-value>}`.
-5. Make sure to press the black *Save* button towards the bottom of your screen.
+5. Make sure to *Save* at the bottom of your screen.
 
 Editing pipeline step parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To edit the parameters of the steps of a pipeline:
-
 1. Open a pipeline via the *Pipelines* option in the left menu pane.
 2. Click on a pipeline step to open its *Properties*.
 3. Towards the bottom you will find the *Parameters* section.
@@ -71,7 +64,7 @@ To edit the parameters of the steps of a pipeline:
 Interacting with parameters through code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 After you have set parameters for your pipeline and/or steps you can use their values inside your
-scripts (check out the :ref:`parameters API reference <api parameters>`).
+scripts (see :ref:`parameters API reference <api parameters>`).
 
 Let's say you have set the following parameters on your pipeline:
 
@@ -122,8 +115,8 @@ combinations of values for different parameters. To run a job:
    deselect them through the *Pipeline runs* option.
 7. Press *Run job*.
 
-To inspect the result of your job, simply click on the job you just created, choose a specific
-pipeline run (the one you want to inspect) and open *View pipeline*. The pipeline is now opened in
+To inspect the result of your job; click on the job you just created, choose a specific pipeline run
+(the one you want to inspect) and click on *View pipeline*. The pipeline is now opened in
 :ref:`read-only mode <read-only mode>` giving you the opportunity to check the logs or to open the
 HTML version of you notebooks.
 

@@ -2,28 +2,31 @@ import React from "react";
 
 function parseLocalStorageString<T>(
   itemAsString: string | null,
-  defaultValue?: T
-) {
-  // never saved before
-  if (itemAsString === null && defaultValue !== undefined) return defaultValue;
-  // it was saved before as undefined, so we take the saved value
-  if (itemAsString === "undefined") return undefined;
-  return JSON.parse(itemAsString); // including null
+  defaultValue: T
+): T {
+  try {
+    // never saved before
+    if (itemAsString === null) return defaultValue;
+    // it was saved before as undefined, so we take the saved value
+    if (itemAsString === "undefined") return defaultValue;
+    return JSON.parse(itemAsString) as T;
+  } catch (error) {
+    console.log(error);
+    return defaultValue;
+  }
 }
 
+/**
+ * useLocalStorage reads and writes to localstorage
+ */
 export const useLocalStorage = <T>(key: string, defaultValue: T) => {
   const privateKey = `orchest.${key}`;
 
-  const cachedItemString = React.useRef<string>();
+  const cachedItemString = React.useRef<string | null>();
   const [storedValue, setStoredValue] = React.useState<T>(() => {
-    try {
-      const item = window.localStorage.getItem(privateKey);
-      cachedItemString.current = item;
-      return parseLocalStorageString<T>(item, defaultValue);
-    } catch (error) {
-      console.log(error);
-      return defaultValue;
-    }
+    const item = window.localStorage.getItem(privateKey);
+    cachedItemString.current = item;
+    return parseLocalStorageString<T>(item, defaultValue);
   });
 
   const setValue = React.useCallback(
@@ -52,14 +55,14 @@ export const useLocalStorage = <T>(key: string, defaultValue: T) => {
         e.newValue !== cachedItemString.current
       ) {
         cachedItemString.current = e.newValue;
-        setStoredValue(parseLocalStorageString(e.newValue));
+        setStoredValue(parseLocalStorageString(e.newValue, defaultValue));
       }
     };
 
     window.addEventListener("storage", onStorage);
 
     return () => window.removeEventListener("storage", onStorage);
-  }, [privateKey]);
+  }, [privateKey, defaultValue]);
 
   return [storedValue, setValue] as const;
 };

@@ -22,23 +22,26 @@ import { getOrderedRoutes, siteMap } from "../routingConfig";
 
 type ItemData = { label: string; icon: JSX.Element; path: string };
 
-const getProjectMenuItems = (projectUuid: string): ItemData[] => [
-  {
-    label: "Pipelines",
-    icon: <DeviceHubIcon />,
-    path: `${siteMap.pipeline.path}${toQueryString({ projectUuid })}`,
-  },
-  {
-    label: "Jobs",
-    icon: <PendingActionsIcon />,
-    path: `${siteMap.jobs.path}${toQueryString({ projectUuid })}`,
-  },
-  {
-    label: "Environments",
-    icon: <ViewComfyIcon />,
-    path: `${siteMap.environments.path}${toQueryString({ projectUuid })}`,
-  },
-];
+const getProjectMenuItems = (projectUuid: string | undefined): ItemData[] => {
+  const queryString = projectUuid ? toQueryString({ projectUuid }) : "";
+  return [
+    {
+      label: "Pipelines",
+      icon: <DeviceHubIcon />,
+      path: `${siteMap.pipeline.path}${queryString}`,
+    },
+    {
+      label: "Jobs",
+      icon: <PendingActionsIcon />,
+      path: `${siteMap.jobs.path}${queryString}`,
+    },
+    {
+      label: "Environments",
+      icon: <ViewComfyIcon />,
+      path: `${siteMap.environments.path}${queryString}`,
+    },
+  ];
+};
 
 const rootMenuItems: ItemData[] = [
   {
@@ -116,7 +119,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
   const {
     state: { projectUuid },
   } = useProjectsContext();
-  const appContext = useAppContext();
+  const { config } = useAppContext();
   const location = useLocation();
   const pathname = location.pathname;
 
@@ -125,13 +128,13 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
   const projectMenuItems = getProjectMenuItems(projectUuid);
 
   React.useEffect(() => {
-    if (appContext.state.config?.CLOUD && window.Intercom !== undefined) {
+    if (config?.CLOUD && window.Intercom !== undefined) {
       // show Intercom widget
       window.Intercom("update", {
         hide_default_launcher: !isOpen,
       });
     }
-  }, [isOpen]);
+  }, [isOpen, config]);
 
   const isSelected = (path: string, exact = false) => {
     const route = routes.find((route) => route.path === pathname);

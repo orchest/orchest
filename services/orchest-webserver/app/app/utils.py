@@ -93,7 +93,11 @@ def get_project_snapshot_size(project_uuid):
     def get_size(path, skip_dirs):
         size = 0
         for root, dirs, files in os.walk(path):
-            size += sum(os.path.getsize(safe_join(root, name)) for name in files)
+            for name in files:
+                file_path = safe_join(root, name)
+                if os.path.islink(file_path):
+                    continue
+                size += os.path.getsize(file_path)
 
             for skip_dir in skip_dirs:
                 if skip_dir in dirs:
@@ -111,7 +115,7 @@ def get_project_snapshot_size(project_uuid):
     skip_dirs = [".orchest"]
 
     # Convert bytes to megabytes.
-    return get_size(project_dir, skip_dirs) / (1024 ** 2)
+    return get_size(project_dir, skip_dirs) / (1024**2)
 
 
 def project_exists(project_uuid):
@@ -536,6 +540,7 @@ def get_ipynb_template(language: str):
     language_to_template = {
         "python": "ipynb_template.json",
         "julia": "ipynb_template_julia.json",
+        "javascript": "ipynb_template_javascript.json",
         "r": "ipynb_template_r.json",
     }
 

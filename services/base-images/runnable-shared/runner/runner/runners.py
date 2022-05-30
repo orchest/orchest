@@ -94,7 +94,12 @@ class NotebookRunner(Runner):
         super().run()
 
         # TODO: extend this mapping
-        kernel_mapping = {"python": "python3", "r": "ir", "julia": "julia-1.7"}
+        kernel_mapping = {
+            "python": "python3",
+            "r": "ir",
+            "julia": "julia-1.7",
+            "javascript": "javascript",
+        }
 
         with open(file_path) as f:
             nb = nbformat.read(f, as_version=4)

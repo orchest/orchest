@@ -15,7 +15,7 @@ class Config:
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
     CLOUD_URL = "https://cloud.orchest.io"
     GITHUB_URL = "https://github.com/orchest/orchest"
-    DOCUMENTATION_URL = "https://www.orchest.io/docs"
+    DOCUMENTATION_URL = "https://docs.orchest.io"
     VIDEOS_URL = "https://www.orchest.io/video-tutorials"
     ORCHEST_CLOUD_RESERVED_USER = "orchest_cloud_reserved_admin"
 

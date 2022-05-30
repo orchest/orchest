@@ -6,12 +6,18 @@ export const useOpenNoteBook = () => {
   const { navigateTo, pipelineUuid, projectUuid } = useCustomRoute();
 
   const openNotebook = React.useCallback(
-    (e: React.MouseEvent | undefined, filePath: string) => {
+    (e: React.MouseEvent | undefined, filePathRelativeToRoot: string) => {
       // JupyterLabView will start the session automatically,
       // so no need to check if there's a running session.
       navigateTo(
         siteMap.jupyterLab.path,
-        { query: { projectUuid, pipelineUuid, filePath } },
+        {
+          query: {
+            projectUuid,
+            pipelineUuid,
+            filePath: filePathRelativeToRoot,
+          },
+        },
         e
       );
     },

@@ -2,38 +2,26 @@
 
 Data passing
 ============
-.. tip::
-   👉 Check out the full :ref:`data passing API reference <api transfer>`.
 
-To pass data between the different pipeline steps, across different languages, we make use of the
-`Apache Arrow <https://github.com/apache/arrow>`_ project. The :ref:`Orchest SDK` provides a
-convenience wrapper of the project to be used within Orchest.
+We use `Apache Arrow <https://github.com/apache/arrow>`_ to pass data between Pipeline steps and
+across different languages. The :ref:`Orchest SDK` wraps `Apache Arrow
+<https://github.com/apache/arrow>`_ so that it can be used in Orchest.
 
-We will start with an example to illustrate how to pass data between pipeline steps before diving
-into more detail.
+See the full :ref:`data passing API reference <api transfer>` for more information.
 
 Python example
 --------------
-.. note::
-   💡 Orchest also supports data passing for other languages than Python. For example, check out
-   the :ref:`Orchest SDK` section on :ref:`R <r>`.
 
-.. The SDK manages the target and source of the data, leaving you only with the decision what data to
-.. pass. The target and source of the data are inferred through the :ref:`pipeline definition <pipeline
-.. definition>`.
+In this example, we show how to pass data between different pipeline steps using Python.
 
-In this example we will use Python to illustrate how to pass data between different pipeline steps.
-Let the pipeline be defined as follows:
+Using the following pipeline:
 
 .. figure:: ../img/pipeline.png
    :width: 400
    :alt: Pipeline defined as: step-1, step-2 --> step-3
    :align: center
 
-   An example pipeline.
-
-In both steps 1 and 2 we will create some data and pass it to step 3 under specific names so that we
-can later use those names to get the data.
+We will create and name data in steps 1 and 2, and pass it to step 3.
 
 .. code-block:: python
 
@@ -55,11 +43,8 @@ can later use those names to get the data.
    # Output the data so that step-3 can retrieve it.
    orchest.output(data, name="my_list")
 
-When outputting the data in steps 1 and 2 the data is actually copied to another location in shared
-memory so that other steps can access it. This explains why you can access the data from inside
-JupyterLab as well!
-
-Now that data is in memory, step-3 can be executed and get the data for further processing.
+The output data from steps 1 and 2 is copied to shared memory so that step 3 can access it. This
+also lets us access the data in JupyterLab.
 
 .. code-block:: python
 
@@ -71,10 +56,9 @@ Now that data is in memory, step-3 can be executed and get the data for further 
 
 .. warning::
    🚨 Only call :meth:`orchest.transfer.get_inputs` and :meth:`orchest.transfer.output` once.
-   Otherwise your code will break in :ref:`jobs <jobs>` and cause data to get overwritten
-   respectively.
+   Otherwise your code will break in :ref:`jobs <jobs>` and overwrite data.
 
-The ``input_data`` in step-3 will be as follows:
+Step 3's ``input_data`` will be:
 
 .. code-block:: json
 
@@ -84,14 +68,20 @@ The ``input_data`` in step-3 will be as follows:
     "unnamed": []
    }
 
-You can see both ``my_string`` and ``my_list``, the output data from steps 1 and 2 respectively, are
-in the received input data. But what is the ``unnamed``? We will answer this in the next section.
+We will discuss ``unnamed`` in the next section.
 
 Passing data without a name
 ---------------------------
-As you could see in the previous example, step-3 received input data with a special key called
-``unnamed``. When passing data it is not necessary to give the data you are outputting a name, for
-example we could change what step-1 is outputting:
+
+It's best practice to pass data with a name in most cases. However, sometimes you may want to use a
+list rather than a dictionary to store your data. Therefore, it's not necessary to give outputted
+data a name.
+
+When passing unnamed data, the receiving step treats the values as an ordered collection (see
+:ref:`order of unnamed data <unnamed order>`). In the previous example, step 3 receives input data
+with a special key called ``unnamed``.
+
+If we change the output of step 1 to:
 
 .. code-block:: python
 
@@ -104,7 +94,7 @@ example we could change what step-1 is outputting:
    # But this time, don't give a name.
    orchest.output(data, name=None)
 
-The ``input_data`` in step-3 will now be equal to:
+The ``input_data`` in step 3 would then be equal to:
 
 .. code-block:: json
 
@@ -113,10 +103,7 @@ The ``input_data`` in step-3 will now be equal to:
     "unnamed": ["Hello, World!"]
    }
 
-Populating the list of the ``unnamed`` key with the values of the steps that outputted data without
-a name.
-
-For example, we could change the code of step-2 to:
+If we change the step 2 to:
 
 .. code-block:: python
 
@@ -127,7 +114,7 @@ For example, we could change the code of step-2 to:
 
    orchest.output(data, name=None)
 
-Making the ``input_data`` in step-3 equal to:
+The ``input_data`` in step 3 would be:
 
 .. code-block:: json
 
@@ -135,32 +122,23 @@ Making the ``input_data`` in step-3 equal to:
     "unnamed": ["Hello, World!", [3, 1, 4]]
    }
 
-But how exactly is this useful?
-
-By outputting data without a name the receiving step can treat the values as a collection (it is
-even an ordered collection, see :ref:`order of unnamed data <unnamed order>`). Just like in regular programming,
-sometimes you would rather use a list than a dictionary to store your data.
-
-.. tip::
-   👉 For the majority of cases passing data with a name is the way to go!
+Populating the ``unnamed`` key with the all outputted values without a name.
 
 .. _unnamed order:
 
-Order of unnamed data
+Ordering unnamed data
 ~~~~~~~~~~~~~~~~~~~~~
-.. note::
-   💡 :meth:`orchet.transfer.get_inputs` actually infers the order via the pipeline definition. The
-   UI simply stores the order in the pipeline definition file and provides a visual handle to it.
+The visual pipeline editor can order data passing. This is written to the pipeline definition file.
+:meth:`orchest.transfer.get_inputs` then infers order from the pipeline definition file.
 
-The image below is a screenshot from the properties pane in the UI of step-3 from the example above.
-The order of the list in the screenshot can be changed with a simple drag and drop.
+Below is a screenshot of step 3's properties from the example above. The list can be reordered with
+drag and drop.
 
 .. image:: ../img/step-connections.png
   :width: 300
   :align: center
 
-Having the above order of connections, the ``input_data`` in step-3 becomes (note how the order of
-the data in ``unnamed`` has changed!):
+Having the above order of connections, step 3's ``input_data`` becomes:
 
 .. code-block:: json
 
@@ -168,4 +146,4 @@ the data in ``unnamed`` has changed!):
     "unnamed": [[3, 1, 4], "Hello, World!"]
    }
 
-Top-to-bottom in the UI corresponds with left-to-right in ``unnamed``.
+Top-to-bottom in the visual editor corresponds to left-to-right in ``unnamed``.

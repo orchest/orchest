@@ -1,3 +1,4 @@
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import { IOrchestSession } from "@/types";
@@ -45,7 +46,11 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
   const handleEvent = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleSession({ pipelineUuid, projectUuid });
+    toggleSession({
+      pipelineUuid,
+      projectUuid,
+      requestedFromView: BUILD_IMAGE_SOLUTION_VIEW.PIPELINE,
+    });
   };
   const isSessionAlive = status === "RUNNING";
 

@@ -23,9 +23,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import {
   activeElementIsInput,
-  collapseDoubleDots,
   fetcher,
   hasValue,
+  joinRelativePaths,
 } from "@orchest/lib-utils";
 import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
@@ -307,9 +307,10 @@ export const PipelineEditor = () => {
 
   const notebookFilePath = React.useCallback(
     (pipelineCwd: string, stepUUID: string) => {
-      return collapseDoubleDots(
-        `${pipelineCwd}${eventVars.steps[stepUUID].file_path}`
-      ).slice(1);
+      return joinRelativePaths(
+        pipelineCwd,
+        eventVars.steps[stepUUID].file_path
+      );
     },
     [eventVars.steps]
   );
@@ -395,6 +396,8 @@ export const PipelineEditor = () => {
     setPipelineJson((value) => value, true);
   }, [setPipelineJson]);
 
+  const isContextMenuOpenState = React.useState(false);
+
   const autoLayoutPipeline = () => {
     const spacingFactor = 0.7;
     const gridMargin = 20;
@@ -416,9 +419,8 @@ export const PipelineEditor = () => {
 
       const updated = updatePipelineJson(current, updatedSteps);
 
-      // reset eventVars.steps, this will trigger saving
-      dispatch({ type: "SET_STEPS", payload: updated.steps });
-      saveSteps(updated.steps); // normally SET_STEPS won't trigger save
+      // Save `eventVars.steps`.
+      dispatch({ type: "SAVE_STEPS", payload: updated.steps });
       return updated;
     }, true); // flush page, re-instantiate all UI elements with new local state for dragging
     // the rendering of connection lines depend on the positions of the steps
@@ -507,7 +509,7 @@ export const PipelineEditor = () => {
     executeRun(uuids, type);
   };
 
-  const hasSelectedSteps = eventVars.selectedSteps.length > 1;
+  const hasSelectedSteps = eventVars.selectedSteps.length > 0;
 
   const onSaveDetails = React.useCallback(
     (stepChanges: Partial<Step>, uuid: string, replace = false) => {
@@ -650,10 +652,11 @@ export const PipelineEditor = () => {
         <PipelineViewport
           ref={pipelineViewportRef}
           canvasFuncRef={canvasFuncRef}
+          executeRun={executeRun}
+          autoLayoutPipeline={autoLayoutPipeline}
+          isContextMenuOpenState={isContextMenuOpenState}
         >
           {connections.map((connection) => {
-            if (!connection) return null;
-
             const { startNodeUUID, endNodeUUID } = connection;
             const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
             const endNode = endNodeUUID
@@ -760,6 +763,9 @@ export const PipelineEditor = () => {
               <PipelineStep
                 key={`${step.uuid}-${hash.current}`}
                 data={step}
+                executeRun={executeRun}
+                onOpenFilePreviewView={onOpenFilePreviewView}
+                onOpenNotebook={onOpenNotebook}
                 selected={selected}
                 savePositions={savePositions}
                 movedToTop={movedToTop}
@@ -770,6 +776,7 @@ export const PipelineEditor = () => {
                 interactiveConnections={interactiveConnections}
                 onDoubleClick={onDoubleClickStep}
                 getPosition={getPosition}
+                isContextMenuOpenState={isContextMenuOpenState}
               >
                 <ConnectionDot
                   incoming

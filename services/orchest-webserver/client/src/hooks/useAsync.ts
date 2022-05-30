@@ -1,14 +1,22 @@
+import { ReducerActionWithCallback } from "@/types";
 import React from "react";
 import { useCancelablePromise } from "./useCancelablePromise";
 
 export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
-export type Action<T, E> = {
+export type Action<T, E = Error> = {
   type: STATUS;
   data?: T;
   error?: E;
   caching?: boolean;
 };
+
+export type SetStateAction<T> =
+  | T
+  | undefined
+  | ((currentValue: T | undefined) => T | undefined);
+
+export type StateDispatcher<T> = (setStateAction: SetStateAction<T>) => void;
 
 type State<T, E> = {
   status: STATUS;
@@ -16,10 +24,16 @@ type State<T, E> = {
   error: E | undefined;
 };
 
+type AsyncReducerAction<T, E> = ReducerActionWithCallback<
+  State<T, E>,
+  Action<T, E>
+>;
+
 const asyncReducer = <T, E>(
   state: State<T, E>,
-  action: Action<T, E>
+  _action: AsyncReducerAction<T, E>
 ): State<T, E> => {
+  const action = _action instanceof Function ? _action(state) : _action;
   switch (action.type) {
     case "PENDING": {
       const payload = action.caching ? state.data : undefined;
@@ -49,7 +63,7 @@ type AsyncParams<T> = {
 const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
   const { initialState, caching = false } = params || {};
   const [state, dispatch] = React.useReducer<
-    (state: State<T, E>, action: Action<T, E>) => State<T, E>
+    (state: State<T, E>, action: AsyncReducerAction<T, E>) => State<T, E>
   >(asyncReducer, {
     status: "IDLE",
     data: undefined,
@@ -61,7 +75,7 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
   const { makeCancelable } = useCancelablePromise();
 
   const run = React.useCallback(
-    (promise: Promise<T>) => {
+    (promise: Promise<T>): Promise<T> => {
       dispatch({ type: "PENDING", caching });
       return makeCancelable(promise).then(
         (data) => {
@@ -70,21 +84,24 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
         },
         (error) => {
           dispatch({ type: "REJECTED", error });
-          return;
+          return error;
         }
       );
     },
     [dispatch, caching, makeCancelable]
   );
 
-  const setData = React.useCallback(
-    (
-      action: T | undefined | ((currentValue: T | undefined) => T | undefined)
-    ) => {
-      const newData = action instanceof Function ? action(data) : action;
-      dispatch({ type: "RESOLVED", data: newData });
+  const setData: StateDispatcher<T> = React.useCallback(
+    (setStateAction: SetStateAction<T>) => {
+      dispatch((prevState) => {
+        const newData =
+          setStateAction instanceof Function
+            ? setStateAction(prevState.data)
+            : setStateAction;
+        return { type: "RESOLVED", data: newData };
+      });
     },
-    [dispatch, data]
+    [dispatch]
   );
   const setError = React.useCallback(
     (error) => dispatch({ type: "REJECTED", error }),

@@ -25,7 +25,7 @@ const UserList: React.FC<{
       });
       onDelete(username);
     } catch (error) {
-      onFailedToDelete(error.body.error);
+      onFailedToDelete(error.error);
     }
   };
 

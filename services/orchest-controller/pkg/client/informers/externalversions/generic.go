@@ -43,6 +43,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=orchest.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("orchestclusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Orchest().V1alpha1().OrchestClusters().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("orchestcomponents"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Orchest().V1alpha1().OrchestComponents().Informer()}, nil
 
 	}
 

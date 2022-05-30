@@ -13,6 +13,7 @@ import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
 import { AppDrawer } from "./components/MainDrawer";
 import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
+import { AppInnerContextProvider } from "./contexts/AppInnerContext";
 import Jupyter from "./jupyter/Jupyter";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -34,7 +35,7 @@ $.fn.overflowing = function () {
 };
 
 const App = () => {
-  const [jupyter, setJupyter] = React.useState<Jupyter>(null);
+  const [jupyter, setJupyter] = React.useState<Jupyter | null>(null);
   const { boot } = useIntercom();
   const { setConfirm, isDrawerOpen, setIsDrawerOpen } = useAppContext();
 
@@ -42,8 +43,10 @@ const App = () => {
 
   // load server side config populated by flask template
   const {
-    state: { config, user_config, hasUnsavedChanges },
+    state: { hasUnsavedChanges },
     setAsSaved,
+    config,
+    user_config,
   } = useAppContext();
 
   const jupyterRef = React.useRef<HTMLDivElement>(null);
@@ -72,7 +75,8 @@ const App = () => {
   }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
-    setJupyter(new Jupyter(jupyterRef.current, setConfirm));
+    if (jupyterRef.current)
+      setJupyter(new Jupyter(jupyterRef.current, setConfirm));
   }, [setConfirm]);
 
   window.orchest = {
@@ -98,31 +102,33 @@ const App = () => {
         }
       }}
     >
-      <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
-        <AppDrawer isOpen={isDrawerOpen} />
-        <Box
-          component="main"
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            position: "relative",
-            minHeight: 0,
-            display: "flex",
-            flexDirection: "column",
-          }}
-          id="main-content"
-          data-test-id="app"
-        >
-          <Routes />
-          <div ref={jupyterRef} className="persistent-view jupyter hidden" />
+      <AppInnerContextProvider>
+        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
+          <AppDrawer isOpen={isDrawerOpen} />
+          <Box
+            component="main"
+            sx={{
+              flex: 1,
+              overflow: "hidden",
+              position: "relative",
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+            id="main-content"
+            data-test-id="app"
+          >
+            <Routes />
+            <div ref={jupyterRef} className="persistent-view jupyter hidden" />
+          </Box>
         </Box>
-      </Box>
-      <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
-      <SystemDialog />
-      <BuildPendingDialog />
-      <OnboardingDialog />
-      <CommandPalette />
+        <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
+        <SystemDialog />
+        <BuildPendingDialog />
+        <OnboardingDialog />
+        <CommandPalette />
+      </AppInnerContextProvider>
     </Router>
   );
 };

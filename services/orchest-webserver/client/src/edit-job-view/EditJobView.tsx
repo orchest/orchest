@@ -12,7 +12,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
-import { useFetchProject } from "@/hooks/useFetchProject";
+import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
 import { siteMap } from "@/routingConfig";
@@ -210,8 +210,7 @@ type JobUpdatePayload = {
 
 const EditJobView: React.FC = () => {
   // global states
-  const appContext = useAppContext();
-  const { setAlert, setAsSaved } = appContext;
+  const { config, setAlert, setAsSaved } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.editJob.path });
 
   // data from route
@@ -226,8 +225,12 @@ const EditJobView: React.FC = () => {
     "now"
   );
 
-  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
-  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+  const [envVariables, _setEnvVariables] = React.useState<
+    EnvVarPair[] | undefined
+  >([]);
+  const setEnvVariables = (
+    value: React.SetStateAction<EnvVarPair[] | undefined>
+  ) => {
     _setEnvVariables(value);
     setAsSaved(false);
   };
@@ -256,10 +259,7 @@ const EditJobView: React.FC = () => {
       : undefined
   );
 
-  const { data: projectSnapshotSize = 0 } = useFetchProject({
-    projectUuid,
-    selector: (project) => project.project_snapshot_size,
-  });
+  const projectSnapshotSize = useFetchProjectSnapshotSize(projectUuid);
 
   const isLoading = isFetchingJob || isFetchingPipelineJson;
 
@@ -285,8 +285,7 @@ const EditJobView: React.FC = () => {
     if (job && pipelineJson) {
       // Do not generate another strategy_json if it has been defined
       // already.
-      const reserveKey =
-        appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+      const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
       const generatedStrategyJson =
         job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
           ? generateStrategyJson(pipelineJson, reserveKey)
@@ -311,11 +310,7 @@ const EditJobView: React.FC = () => {
       setPipelineRuns(newPipelineRuns);
       setPipelineRunRows(newPipelineRunRows);
     }
-  }, [
-    job,
-    pipelineJson,
-    appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
-  ]);
+  }, [job, pipelineJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY]);
 
   const handleJobNameChange = (name: string) => {
     setJob((prev) => (prev ? { ...prev, name } : prev));
@@ -345,7 +340,7 @@ const EditJobView: React.FC = () => {
     }
 
     // Valid environment variables
-    for (let envPair of envVariables) {
+    for (let envPair of envVariables || []) {
       if (!isValidEnvironmentVariableName(envPair.name)) {
         return {
           pass: false,
@@ -707,7 +702,7 @@ const EditJobView: React.FC = () => {
                 Override any project or pipeline environment variables here.
               </p>
               <EnvVarList
-                value={envVariables}
+                value={envVariables || []}
                 setValue={setEnvVariables}
                 data-test-id="job-edit"
               />
@@ -756,14 +751,13 @@ const EditJobView: React.FC = () => {
                           sx={{ marginBottom: (theme) => theme.spacing(1) }}
                         >
                           Retain the last finished pipeline runs and
-                          automatically remove the oldest runs. This frees up
-                          disk space to enhance the reliability while executing
-                          large amount of pipeline runs.
+                          automatically remove the oldest runs. This reduces
+                          disk space usage.
                         </Typography>
                         <Typography variant="body2">
-                          Enable this carefully if your pipeline produces
-                          artifacts that are stored on disk. You might want to
-                          backup the results to external sources or the{" "}
+                          If your pipeline produces artifacts that are stored in
+                          the project directory, then you might want to backup
+                          the artifacts to external sources or the{" "}
                           <Code>/data</Code> directory.
                         </Typography>
                       </>

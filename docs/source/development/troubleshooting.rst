@@ -1,15 +1,15 @@
 Troubleshooting
 ===============
 
-When running against issues it can be helpful to increase the verbosity when starting Orchest and
+When running against issues it can be helpful to increase the verbosity of Orchest and
 changing the log level of all Orchest's containers. You can do this using:
 
 .. code-block:: sh
 
-   ./orchest start --log-level=DEBUG
+   orchest patch --log-level=DEBUG
 
 
-Some other Docker commands that can be useful when debugging Orchest:
+Some other kubectl commands that can be useful when debugging Orchest:
 
 .. code-block:: sh
 
@@ -124,3 +124,76 @@ Error: Multiple head revisions
     migrations then the head will diverge, similar to git now having two different branches which
     point to different commits. Once these branches get merged, the alembic revision heads need to
     be merged as well.
+
+Dev mode not working
+--------------------
+* Make sure you started the cluster with the Orchest repository mounted, see :ref:`here <cluster mount>`.
+* If you have changed some dependencies (i.e. requirements.txt files) you have to rebuild the image and
+  kill the pod to get it redeployed.
+
+Test updating Orchest
+---------------------
+Through the CLI
+~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   orchest uninstall
+   scripts/build_container.sh -M -t "v2022.04.4" -o "v2022.04.4"
+   orchest install --dev
+   scripts/build_container.sh -M -t "v2022.04.5" -o "v2022.04.5"
+   orchest update --dev --version=v2022.04.5
+   scripts/build_container.sh -M -t "v2022.04.6" -o "v2022.04.6"
+   orchest update --dev --version=v2022.04.6
+
+Through the UI
+~~~~~~~~~~~~~~
+For this to work you need to be running in dev mode and have the ``orchest-dev-repo`` mounted (as
+per :ref:`setting up minikube for development <cluster mount>`).
+
+.. code-block:: bash
+
+   # Start from a clean slate so that we know what version we are on
+   # before invoking the update.
+   orchest uninstall
+
+   # Build whatever version you like! In case you want to test out
+   # the product after the update, build the X-1 latest release
+   # tag.
+   scripts/build_container.sh -m -t "v2022.04.4" -o "v2022.04.4"
+
+   # Installing and making sure running in dev.
+   orchest install --dev
+   orchest patch --dev
+   pnpm run dev
+
+   # Build the version to update to
+   scripts/build_container.sh -M -t "v2022.04.5" -o "v2022.04.5"
+
+   # Invoke the update through the UI go to:
+   # http://localorchest.io/update
+   ...
+
+   # In case you want to test it again
+   scripts/build_container.sh -M -t "v2022.04.6" -o "v2022.04.6"
+   # Invoke the update through the UI go to:
+   # http://localorchest.io/update
+   ...
+
+   # And repeat if you like.
+
+Can't log-in to authentication enabled instance
+-----------------------------------------------
+Open ``k9s`` and open a shell (``s`` shortcut) on the ``orchest-database`` pod.
+
+.. code-block:: bash
+
+   # Log into the DB
+   psql -U postgres -d orchest_api
+
+   UPDATE settings
+   SET value = '{"value": false}'
+   WHERE name='AUTH_ENABLED';
+
+Next you need to ``orchest restart`` on your host for the changes to take affect. Or kill the
+appropriate pods so that they restart.

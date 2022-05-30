@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/extend-expect";
 import "jest-fetch-mock";
+import "jest-localstorage-mock";
 import { server } from "./src/__mocks__/server.mock";
 
 // Establish API mocking before all tests.
