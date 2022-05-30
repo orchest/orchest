@@ -1,10 +1,4 @@
-import {
-  IconPostgreSQL,
-  IconRedis,
-  IconStreamlit,
-  IconTensorBoard,
-  IconVSCode,
-} from "@/icons";
+import { IconRedis, IconStreamlit, IconTensorBoard, IconVSCode } from "@/icons";
 import { Service } from "@/types";
 import { IconDraftOutline } from "@orchest/design-system";
 import React from "react";
@@ -74,21 +68,6 @@ export const templates: ServiceTemplates = {
       name: "vscode",
       ports: [8080],
       scope: ["interactive"],
-    },
-  },
-  postgressql: {
-    label: "PostgresSQL",
-    icon: <IconPostgreSQL />,
-    config: {
-      env_variables: {
-        POSTGRES_HOST_AUTH_METHOD: "trust",
-      },
-      exposed: false,
-      requires_authentication: true,
-      image: "postgres",
-      name: "postgres",
-      ports: [5432],
-      scope: ["interactive", "noninteractive"],
     },
   },
   redis: {
