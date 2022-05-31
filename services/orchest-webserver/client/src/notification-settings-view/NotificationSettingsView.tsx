@@ -1,6 +1,7 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import { SectionTitle } from "@/components/common/SectionTitle";
 import { Layout } from "@/components/Layout";
+import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -9,15 +10,12 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { NotificationEventsForm } from "./NotificationEventsForm";
-import {
-  NotificationSettingsContextProvider,
-  useNotificationSettingsContext,
-} from "./NotificationSettingsContext";
+import { NotificationSettingsContextProvider } from "./NotificationSettingsContext";
 import { WebhookList } from "./WebhookList";
 
 const ReturnToJobsAlert = () => {
   const { navigateTo, prevPathname } = useCustomRoute();
-  const { webhooks } = useNotificationSettingsContext();
+  const { webhooks } = useAppInnerContext();
 
   const firstSuccess = webhooks.length === 1;
 

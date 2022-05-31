@@ -1,6 +1,7 @@
 import { IconButton } from "@/components/common/IconButton";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -17,7 +18,6 @@ import {
   deleteSuscriber,
   NotificationWebhookSubscriber,
 } from "./notification-webhooks";
-import { useNotificationSettingsContext } from "./NotificationSettingsContext";
 import { WebhookVerifiedCheck } from "./WebhookVerifiedCheck";
 
 type WebhookRow = Pick<
@@ -32,7 +32,7 @@ type WebhookColumn = WebhookRow & {
 
 export const WebhookList = () => {
   const { setConfirm } = useAppContext();
-  const { webhooks, setWebhooks } = useNotificationSettingsContext();
+  const { webhooks, setWebhooks } = useAppInnerContext();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const onClose = React.useCallback(() => setIsOpen(false), []);

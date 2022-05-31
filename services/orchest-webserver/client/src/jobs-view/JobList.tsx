@@ -1,14 +1,18 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJobs } from "@/hooks/useFetchJobs";
 import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { siteMap } from "@/routingConfig";
 import { EnvironmentValidationData, Job, JobStatus } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -107,6 +111,11 @@ const doCreateJob = async (
 const JobList = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
+  const { webhooks } = useAppInnerContext();
+
+  const goToNotificationSettings = () => {
+    navigateTo(siteMap.notificationSettings.path);
+  };
 
   const {
     jobs = [],
@@ -286,6 +295,16 @@ const JobList = () => {
     }
   };
 
+  const [shouldHideWebhookHint, setShouldHideWebhookHint] = useLocalStorage(
+    "hide_webhook_hint",
+    false
+  );
+
+  const shouldShowWebhookHint =
+    !shouldHideWebhookHint && webhooks.length === 0 && jobs.length > 0;
+
+  console.log("DEV webhooks: ", webhooks, shouldShowWebhookHint);
+
   return (
     <div className={"jobs-page"}>
       <PageTitle>Jobs</PageTitle>
@@ -317,6 +336,27 @@ const JobList = () => {
               Create job
             </Button>
           </Box>
+          {shouldShowWebhookHint && (
+            <Alert
+              severity="info"
+              action={
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    color="inherit"
+                    size="small"
+                    onClick={goToNotificationSettings}
+                  >
+                    New webhook
+                  </Button>
+                  <IconButton onClick={() => setShouldHideWebhookHint(true)}>
+                    <CloseIcon />
+                  </IconButton>
+                </Stack>
+              }
+            >
+              Use webhooks to get notified when pipeline runs fail
+            </Alert>
+          )}
           <DataTable<DisplayedJob>
             id="job-list"
             isLoading={isFetchingJobs}
