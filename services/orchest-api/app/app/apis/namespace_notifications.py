@@ -36,7 +36,11 @@ class SubscriberList(Resource):
         marshalled = []
         for subscriber in subscribers:
             if isinstance(subscriber, models.Webhook):
-                marshalled.append(marshal(subscriber, schema.webhook))
+                webhook = marshal(subscriber, schema.webhook)
+                # Some URL contains secret. Only expose
+                # domain name for security reasons.
+                webhook["url"] = utils.extract_domain_name(webhook["url"])
+                marshalled.append(webhook)
             else:
                 marshalled.append(marshal(subscriber, schema.subscriber))
         return {"subscribers": marshalled}, 200

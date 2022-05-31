@@ -5,6 +5,7 @@ from collections import ChainMap
 from copy import deepcopy
 from datetime import datetime
 from typing import Container, Dict, Iterable, List, Optional, Tuple, Union
+from urllib.parse import urlparse
 
 from celery.utils.log import get_task_logger
 from flask import current_app
@@ -663,3 +664,8 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
         )
 
     images_to_be_removed.update({"marked_for_removal": True})
+
+
+def extract_domain_name(url: str):
+    parsed_url = urlparse(url)
+    return f"{parsed_url.scheme}://{parsed_url.netloc}"
