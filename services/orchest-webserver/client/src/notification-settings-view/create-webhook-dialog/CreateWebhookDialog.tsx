@@ -18,6 +18,7 @@ import Typography from "@mui/material/Typography";
 import { ContentType } from "@orchest/lib-utils";
 import React from "react";
 import { useNotificationSettingsContext } from "../NotificationSettingsContext";
+import { WebhookDocLink } from "../WebhookDocLink";
 import { useCreateWebhook } from "./useCreateWebhook";
 import { useVerifyWebhookUrl } from "./useVerifyWebhookUrl";
 import { WebhookUrlField } from "./WebhookUrlField";
@@ -99,7 +100,16 @@ export const CreateWebhookDialog: React.FC<{
             onClickCreateWebhook();
           }}
         >
-          <DialogTitle>New webhook</DialogTitle>
+          <DialogTitle
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "baseline",
+            }}
+          >
+            New webhook
+            <WebhookDocLink>Docs</WebhookDocLink>
+          </DialogTitle>
           <DialogContent>
             <Stack direction="column" spacing={2}>
               <WebhookUrlField

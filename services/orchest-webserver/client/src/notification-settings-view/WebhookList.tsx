@@ -4,12 +4,10 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import WebhookIcon from "@mui/icons-material/Webhook";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -18,6 +16,7 @@ import {
   deleteSuscriber,
   NotificationWebhookSubscriber,
 } from "./notification-webhooks";
+import { WebhookDocLink } from "./WebhookDocLink";
 import { WebhookVerifiedCheck } from "./WebhookVerifiedCheck";
 
 type WebhookRow = Pick<
@@ -131,23 +130,7 @@ export const WebhookList = () => {
           <Typography variant="body2">
             {`Webhooks let you receive HTTP push notifications to a URL.`}
           </Typography>
-          <Link
-            variant="body2"
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              margin: (theme) => theme.spacing(0, 1),
-            }}
-          >
-            {`Webhook docs `}
-            <OpenInNewIcon
-              sx={{
-                fontSize: (theme) => theme.spacing(2),
-                marginLeft: (theme) => theme.spacing(1),
-              }}
-            />
-          </Link>
+          <WebhookDocLink>Webhook docs</WebhookDocLink>
         </Stack>
         <DataTable<WebhookRow, WebhookColumn>
           id="webhook-list"
