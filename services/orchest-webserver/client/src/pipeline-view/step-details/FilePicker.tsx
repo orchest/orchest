@@ -182,6 +182,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
   onSelectMenuItem,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [keyboardIsActive, setKeyboardIsActive] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
@@ -203,14 +204,19 @@ const FilePicker: React.FC<FilePickerProps> = ({
   };
   const onMouseLeaveMenu = () => {
     isBlurAllowed.current = true;
+    setKeyboardIsActive(false);
   };
 
   const onFocusTextField = () => {
     setIsDropdownOpen(true);
+    setKeyboardIsActive(false);
   };
 
   const onBlurTextField = () => {
-    if (isBlurAllowed.current) setIsDropdownOpen(false);
+    if (isBlurAllowed.current) {
+      setIsDropdownOpen(false);
+      setKeyboardIsActive(false);
+    }
   };
 
   const onSelectListItem = (selectedNode: FileTree) => {
@@ -236,9 +242,15 @@ const FilePicker: React.FC<FilePickerProps> = ({
     }
   };
 
+  React.useEffect(() => {
+    if (isDropdownOpen && keyboardIsActive) menuFirstItemRef.current?.focus();
+    console.log("use");
+  }, [options, isDropdownOpen, keyboardIsActive]);
+
   const onTextFieldKeyUp = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       isBlurAllowed.current = false;
+      setKeyboardIsActive(true);
       menuFirstItemRef.current?.focus();
     }
   };
@@ -286,12 +298,15 @@ const FilePicker: React.FC<FilePickerProps> = ({
                     <ListItemText>Navigate up</ListItemText>
                   </MenuItem>
                 )}
-                {options.map((childNode) => {
+                {options.map((childNode, index) => {
                   const nodeName = childNode.name;
                   return (
                     <MenuItem
                       key={childNode.name}
                       onClick={() => onSelectListItem(childNode)}
+                      ref={
+                        isRootNode && index === 0 ? menuFirstItemRef : undefined
+                      }
                     >
                       {childNode.type === "directory" && (
                         <ListItemIcon>
