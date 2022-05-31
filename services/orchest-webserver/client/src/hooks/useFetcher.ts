@@ -1,4 +1,4 @@
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useAsync } from "./useAsync";
 import { useFocusBrowserTab } from "./useFocusBrowserTab";
@@ -38,10 +38,6 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
 
   const isFocused = useFocusBrowserTab();
   const hasBrowserFocusChanged = useHasChanged(isFocused);
-  const hasUrlChanged = useHasChanged(url);
-
-  const shouldFetchOnUrlChanges =
-    !disableFetchOnMount && hasUrlChanged && url !== "";
 
   const shouldReFetch =
     revalidateOnFocus && hasBrowserFocusChanged && isFocused;
@@ -53,16 +49,23 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     );
   }, [run, url]);
 
+  const urlRef = React.useRef<string>();
+
   React.useEffect(() => {
-    // Either URL changed or browser tab focused should fire fetch.
-    // Note that `shouldFetchOnUrlChanges || shouldReFetch` will fire an unnecessary request.
-    if (
-      (shouldFetchOnUrlChanges && !shouldReFetch) ||
-      (!shouldFetchOnUrlChanges && shouldReFetch)
-    ) {
+    const isMounting =
+      !disableFetchOnMount &&
+      url &&
+      url.length > 0 &&
+      urlRef.current === undefined;
+    const isUrlChanged = hasValue(urlRef.current) && urlRef.current !== url;
+    const isRefetching =
+      shouldReFetch && hasValue(urlRef.current) && urlRef.current === url;
+
+    if (isMounting || isUrlChanged || isRefetching) {
+      urlRef.current = url;
       fetchData();
     }
-  }, [fetchData, shouldFetchOnUrlChanges, shouldReFetch]);
+  }, [fetchData, url, disableFetchOnMount, shouldReFetch]);
 
   return { data, setData, error, status, fetchData };
 }

@@ -95,7 +95,7 @@ function getComparator(
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-export type DataTableColumn<T, C> = {
+export type DataTableColumn<T, C = T> = {
   disablePadding?: boolean;
   id: keyof C;
   label: string;
@@ -235,10 +235,10 @@ export function renderCell<T, C>(
   row: DataTableRow<T>,
   disabled: boolean
 ) {
-  if (!column) return null;
+  if (!hasValue(column)) return null;
   return column.render
     ? column.render(row, disabled)
-    : row[column.id.toString()] || null;
+    : row[column.id.toString()] ?? null;
 }
 
 function Row<T, C>({
@@ -453,7 +453,7 @@ enum FIXED_ROW_HEIGHT {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const DataTable = <T extends Record<string, any>, C extends T>({
+export const DataTable = <T extends Record<string, any>, C = T>({
   id,
   columns,
   rows: originalRowsFromProp,
@@ -788,7 +788,7 @@ export const DataTable = <T extends Record<string, any>, C extends T>({
               selectable={selectable}
               numSelected={selected.length}
               order={order}
-              orderBy={orderBy}
+              orderBy={orderBy as keyof C}
               disabled={isTableDisabled}
               onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}

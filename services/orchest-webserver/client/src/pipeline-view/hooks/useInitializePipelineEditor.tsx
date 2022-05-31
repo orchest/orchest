@@ -28,6 +28,12 @@ export const useInitializePipelineEditor = (
 
   useEnsureValidPipeline();
 
+  // Because `useEnsureValidPipeline` will auto-redirect if pipelineuuidFromRoute is invalid,
+  // `pipelineUuid` is only valid until `pipeline?.uuid === pipelineuuidFromRoute`,
+  // During the transition, it shouldn't fetch pipelineJson.
+  const pipelineUuid =
+    pipeline?.uuid === pipelineuuidFromRoute ? pipeline?.uuid : undefined;
+
   const {
     pipelineJson,
     setPipelineJson: originalSetPipelineJson,
@@ -37,7 +43,7 @@ export const useInitializePipelineEditor = (
     // This `projectUuid` cannot be from route. It has to be from ProjectsContext, aligned with `pipeline?.uuid`.
     // Otherwise, when user switch to another project, pipeline?.uuid does not exist.
     projectUuid,
-    pipelineUuid: pipeline?.uuid,
+    pipelineUuid,
     jobUuid,
     runUuid,
   });
