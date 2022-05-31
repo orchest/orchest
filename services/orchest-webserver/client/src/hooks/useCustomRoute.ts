@@ -142,7 +142,7 @@ const useCustomRoute = () => {
         mutateHistory({
           pathname,
           search: queryString,
-          state: { ...state, prevPathname: pathname },
+          state: { ...state, prevPathname: history.location.pathname },
         });
       }
     },

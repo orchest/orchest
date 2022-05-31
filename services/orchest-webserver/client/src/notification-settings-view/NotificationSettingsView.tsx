@@ -15,14 +15,12 @@ import { WebhookList } from "./WebhookList";
 
 const ReturnToJobsAlert = () => {
   const { navigateTo, prevPathname } = useCustomRoute();
+
   const returnToJobs = () => {
     navigateTo(siteMap.jobs.path);
   };
-  // TODO: uncomment this
-  //   const showReturnToJobsAlert = prevPathname === siteMap.jobs.path;
-  const showReturnToJobsAlert = true;
 
-  return showReturnToJobsAlert ? (
+  return siteMap.jobs.path === prevPathname ? (
     <Alert
       severity="warning"
       action={
