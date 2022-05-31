@@ -3,7 +3,9 @@ import { ExtractStringLiteralType } from "@/types";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 import { useVerifyWebhook } from "./useVerifyWebhook";
@@ -36,20 +38,20 @@ export const WebhookVerifiedCheck = ({
 }: {
   subscriberUuid: string;
 }) => {
-  const { status } = useVerifyWebhook(subscriberUuid);
+  const { status, verify } = useVerifyWebhook(subscriberUuid);
   const { message, component = null } = webhookStatusMessage[status] || {};
 
   return (
-    <Tooltip title={message}>
+    <Stack direction="row" alignItems="center" spacing={2}>
+      <Button onClick={verify}>Test</Button>
       <Box
         sx={{
-          display: "inline-block",
           width: (theme) => theme.spacing(3),
           height: (theme) => theme.spacing(3),
         }}
       >
-        {component}
+        {component && <Tooltip title={message}>{component}</Tooltip>}
       </Box>
-    </Tooltip>
+    </Stack>
   );
 };

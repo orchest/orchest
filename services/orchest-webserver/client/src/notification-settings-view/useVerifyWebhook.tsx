@@ -6,7 +6,7 @@ export const useVerifyWebhook = (subscriberUuid: string) => {
     subscriberUuid
       ? `${NOTIFICATION_END_POINT}/subscribers/test-ping-delivery/${subscriberUuid}`
       : undefined,
-    { transform: () => true }
+    { transform: () => true, disableFetchOnMount: true }
   );
 
   return {
