@@ -43,7 +43,7 @@ export const WebhookList = () => {
       id: "url",
       label: "URL",
       align: "left",
-      render: (row) => {
+      render: function renderUrl(row) {
         return (
           <Stack direction="row" alignItems="center">
             {row.url}
@@ -62,12 +62,14 @@ export const WebhookList = () => {
       id: "verified",
       label: "Connection",
       align: "left",
-      render: (row) => <WebhookVerifiedCheck subscriberUuid={row.uuid} />,
+      render: function renderVerified(row) {
+        return <WebhookVerifiedCheck subscriberUuid={row.uuid} />;
+      },
     },
     {
       id: "delete",
       label: " ",
-      render: (row) => {
+      render: function renderDelete(row) {
         return (
           <IconButton
             title="Delete"
