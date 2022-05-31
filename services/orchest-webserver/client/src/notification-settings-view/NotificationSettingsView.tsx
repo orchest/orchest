@@ -54,7 +54,7 @@ export const NotificationSettingsView = () => {
       <Stack
         direction="column"
         alignItems="flex-start"
-        sx={{ maxWidth: "990px", margin: "0 auto" }}
+        sx={{ maxWidth: "1200px" }}
       >
         <NotificationSettingsContextProvider>
           <Button
