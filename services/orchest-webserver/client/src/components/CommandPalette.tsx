@@ -340,6 +340,7 @@ export const CommandPalette: React.FC = () => {
         event.key === "k"
       ) {
         event.preventDefault();
+        event.stopPropagation();
         showCommandPalette();
       }
     };
