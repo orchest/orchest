@@ -149,7 +149,7 @@ export const CreateWebhookDialog: React.FC<{
                   "Generate secret and paste here and use this secret to verify the incoming notification"
                 }
                 disabled={isCreating}
-                value={webhookName}
+                value={secret}
                 onChange={(e) => setSecret(e.target.value)}
               />
               <FormControlLabel

@@ -7,14 +7,19 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import React from "react";
 import { NotificationEventsForm } from "./NotificationEventsForm";
-import { NotificationSettingsContextProvider } from "./NotificationSettingsContext";
+import {
+  NotificationSettingsContextProvider,
+  useNotificationSettingsContext,
+} from "./NotificationSettingsContext";
 import { WebhookList } from "./WebhookList";
 
 const ReturnToJobsAlert = () => {
   const { navigateTo, prevPathname } = useCustomRoute();
+  const { webhooks } = useNotificationSettingsContext();
+
+  const firstSuccess = webhooks.length === 1;
 
   const returnToJobs = () => {
     navigateTo(siteMap.jobs.path);
@@ -22,7 +27,7 @@ const ReturnToJobsAlert = () => {
 
   return siteMap.jobs.path === prevPathname ? (
     <Alert
-      severity="warning"
+      severity={firstSuccess ? "success" : "info"}
       action={
         <Button color="inherit" size="small" onClick={returnToJobs}>
           Return to Jobs
@@ -30,7 +35,11 @@ const ReturnToJobsAlert = () => {
       }
       sx={{ marginBottom: (theme) => theme.spacing(2), width: "100%" }}
     >
-      A valid Webhook URL is required for notifications to be enabled
+      {firstSuccess
+        ? `You have successfully configured your first webhook!`
+        : webhooks.length > 1
+        ? "Webhooks are enabled"
+        : "A valid Webhook URL is required for notifications to be enabled"}
     </Alert>
   ) : null;
 };
@@ -61,19 +70,10 @@ export const NotificationSettingsView = () => {
           <PageTitle sx={{ marginTop: (theme) => theme.spacing(2.5) }}>
             Notification settings
           </PageTitle>
-
           <ReturnToJobsAlert />
-
           <SectionTitle>Channels</SectionTitle>
-
-          <Typography>Choose where you want to get notified</Typography>
-
           <WebhookList />
-
           <SectionTitle>Events</SectionTitle>
-
-          <Typography>Choose when you want to get notified</Typography>
-
           <NotificationEventsForm />
         </NotificationSettingsContextProvider>
       </Stack>

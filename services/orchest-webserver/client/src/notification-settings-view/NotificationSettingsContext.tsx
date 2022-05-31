@@ -26,7 +26,6 @@ export const NotificationSettingsContextProvider: React.FC = ({ children }) => {
   const {
     subscribers: webhooks = [],
     setSubscribers: setWebhooks,
-    status,
     fetchNotificationSubscribers: fetchWebhooks,
   } = useFetchNotificationSubscribers<NotificationWebhookSubscriber[]>(
     (subscribers) =>
