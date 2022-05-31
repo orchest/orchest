@@ -10,6 +10,11 @@ reachable from your browser.
 To add a service to your Orchest pipeline, go to the `pipeline settings` and check out the
 `services` tab.
 
+.. warning::
+   Since the services lifetime span the interactive session,
+   every time it stops all the state of the services is deleted.
+   If you need to store persistent data, use an external database.
+
 .. _services templates:
 
 Ready to go templates
