@@ -244,7 +244,6 @@ const FilePicker: React.FC<FilePickerProps> = ({
 
   React.useEffect(() => {
     if (isDropdownOpen && keyboardIsActive) menuFirstItemRef.current?.focus();
-    console.log("use");
   }, [options, isDropdownOpen, keyboardIsActive]);
 
   const onTextFieldKeyUp = (e: React.KeyboardEvent) => {
@@ -252,6 +251,14 @@ const FilePicker: React.FC<FilePickerProps> = ({
       isBlurAllowed.current = false;
       setKeyboardIsActive(true);
       menuFirstItemRef.current?.focus();
+    }
+  };
+
+  const onMenuItemKeyUp = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      isBlurAllowed.current = true;
+      setKeyboardIsActive(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -291,7 +298,11 @@ const FilePicker: React.FC<FilePickerProps> = ({
             {options && (
               <>
                 {!isRootNode && (
-                  <MenuItem onClick={onNavigateUp} ref={menuFirstItemRef}>
+                  <MenuItem
+                    onClick={onNavigateUp}
+                    ref={menuFirstItemRef}
+                    onKeyUp={onMenuItemKeyUp}
+                  >
                     <ListItemIcon>
                       <TurnLeftOutlinedIcon fontSize="small" />
                     </ListItemIcon>
@@ -304,6 +315,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
                     <MenuItem
                       key={childNode.name}
                       onClick={() => onSelectListItem(childNode)}
+                      onKeyUp={onMenuItemKeyUp}
                       ref={
                         isRootNode && index === 0 ? menuFirstItemRef : undefined
                       }
