@@ -5,6 +5,8 @@ import $ from "jquery";
 // This is to enable using hotkeys to open CommandPalette.
 // Proxy all the keydown events in the iframe to the hosting document object.
 const passKeyboardEvent = (event: KeyboardEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
   const keyboardEvent = new KeyboardEvent(event.type, {
     key: event.key,
     ctrlKey: event.ctrlKey,
