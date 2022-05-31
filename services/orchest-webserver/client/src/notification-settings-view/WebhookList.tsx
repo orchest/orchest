@@ -32,7 +32,7 @@ type WebhookColumn = WebhookRow & {
 
 export const WebhookList = () => {
   const { setConfirm } = useAppContext();
-  const { webhooks } = useNotificationSettingsContext();
+  const { webhooks, setWebhooks } = useNotificationSettingsContext();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const onClose = React.useCallback(() => setIsOpen(false), []);
@@ -74,10 +74,19 @@ export const WebhookList = () => {
           <IconButton
             title="Delete"
             onClick={() => {
-              setConfirm("Notice", "", async (resolve) => {
-                deleteSuscriber(row.uuid).then(() => resolve(true));
-                return true;
-              });
+              setConfirm(
+                "Notice",
+                "Are you certain that you want to delete this webhook?",
+                async (resolve) => {
+                  deleteSuscriber(row.uuid).then(() => {
+                    setWebhooks((current) =>
+                      (current || []).filter((hook) => hook.uuid !== row.uuid)
+                    );
+                    resolve(true);
+                  });
+                  return true;
+                }
+              );
             }}
           >
             <DeleteOutlineIcon />

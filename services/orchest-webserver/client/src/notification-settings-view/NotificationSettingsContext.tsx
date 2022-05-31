@@ -1,3 +1,4 @@
+import { StateDispatcher } from "@/hooks/useAsync";
 import React from "react";
 import {
   NotificationEventType,
@@ -8,6 +9,7 @@ import { useFetchNotificationSubscribers } from "./useFetchNotificationSubscribe
 
 export type NotificationSettingsContextType = {
   webhooks: NotificationWebhookSubscriber[];
+  setWebhooks: StateDispatcher<NotificationWebhookSubscriber[]>;
   fetchWebhooks: () => void | Promise<NotificationWebhookSubscriber[]>;
   notificationEventTypes: NotificationEventType[];
 };
@@ -38,6 +40,7 @@ export const NotificationSettingsContextProvider: React.FC = ({ children }) => {
     <NotificationSettingsContext.Provider
       value={{
         webhooks,
+        setWebhooks,
         fetchWebhooks,
         notificationEventTypes,
       }}
