@@ -14,7 +14,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
   }
 ) {
   const {
-    disableFetchOnMount = false,
+    disableFetchOnMount,
     revalidateOnFocus = false,
     transform = (fetchedValue: FetchedValue) =>
       (fetchedValue as unknown) as Data,
@@ -40,8 +40,11 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
   const hasBrowserFocusChanged = useHasChanged(isFocused);
   const hasUrlChanged = useHasChanged(url);
 
-  const shouldRefetch =
-    hasUrlChanged || (revalidateOnFocus && hasBrowserFocusChanged && isFocused);
+  const shouldFetchOnUrlChanges =
+    !disableFetchOnMount && hasUrlChanged && url !== "";
+
+  const shouldReFetch =
+    revalidateOnFocus && hasBrowserFocusChanged && isFocused;
 
   const fetchData = React.useCallback((): Promise<Data> | void => {
     if (!url) return;
@@ -50,14 +53,16 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     );
   }, [run, url]);
 
-  const hasFetchedOnMount = React.useRef(disableFetchOnMount);
-
   React.useEffect(() => {
-    if (!hasFetchedOnMount.current && shouldRefetch) {
-      hasFetchedOnMount.current = true;
+    // Either URL changed or browser tab focused should fire fetch.
+    // Note that `shouldFetchOnUrlChanges || shouldReFetch` will fire an unnecessary request.
+    if (
+      (shouldFetchOnUrlChanges && !shouldReFetch) ||
+      (!shouldFetchOnUrlChanges && shouldReFetch)
+    ) {
       fetchData();
     }
-  }, [fetchData, shouldRefetch]);
+  }, [fetchData, shouldFetchOnUrlChanges, shouldReFetch]);
 
   return { data, setData, error, status, fetchData };
 }
