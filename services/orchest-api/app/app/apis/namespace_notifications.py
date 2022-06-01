@@ -98,6 +98,33 @@ class Subscriber(Resource):
         return {"message": ""}, 201
 
 
+@api.route("/subscribers/test-ping-before-creation")
+class SendSubscriberTestPingBeforeCreation(Resource):
+    @api.doc("/subscribers/test-ping-before-creation")
+    @api.response(200, "Success")
+    @api.response(500, "Failure")
+    def post(self):
+        """Forward a test ping to test a webhook URL.
+
+        This endpoint forwards the testing ping as is, so that
+        user could validate the webhook URL before creation. This
+        endpoint is created specifically for FE in order to bypass CORS.
+
+        The endpoint will return a 200 if the response obtained from the
+        deliveree is to be considered successfull, 500 otherwise.
+
+        """
+        response = webhooks.send_test_ping_before_creation(request.get_json())
+        if (
+            response is not None
+            and response.status_code >= 200
+            and response.status_code <= 299
+        ):
+            return {"message": "success"}, 200
+        else:
+            return {"message": "failure"}, 500
+
+
 @api.route("/subscribers/test-ping-delivery/<string:uuid>")
 class SendSubscriberTestPingDelivery(Resource):
     @api.doc("subscribers/test-ping-delivery")

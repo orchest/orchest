@@ -135,6 +135,15 @@ def _prepare_request(
     return request
 
 
+def send_test_ping_before_creation(request_body: dict) -> Optional[requests.Response]:
+    res = requests.post(
+        request_body["url"],
+        headers={"Content-type": request_body["content_type"]},
+        data=request_body["payload"],
+    )
+    return res
+
+
 def send_test_ping_delivery(deliveree_uuid: str) -> Optional[requests.Response]:
     webhook = (
         models.Webhook.query.options(noload(models.Subscriber.subscriptions))
