@@ -28,7 +28,7 @@ export const AppInnerContextProvider: React.FC = ({ children }) => {
     (subscribers) =>
       subscribers.filter(
         (subscriber): subscriber is NotificationWebhookSubscriber =>
-          subscriber.type === "webhook"
+          subscriber.type === "webhook" && subscriber.subscriptions.length === 0 // Filter subscribers that subscribe to a specific job.
       )
   );
 
