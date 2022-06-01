@@ -57,7 +57,7 @@ Install ``orchest`` via ``orchest-cli``
 
 .. code-block:: bash
 
-   pip install orchest-cli
+   pip install --upgrade orchest-cli
    orchest install
 
 Now the cluster can be reached on the IP returned by:
