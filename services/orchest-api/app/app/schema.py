@@ -904,6 +904,28 @@ webhook_spec = subscriber_spec.inherit(
     },
 )
 
+webhook_mutation = subscriber_spec.inherit(
+    "WebhookMutation",
+    {
+        "url": fields.String(required=False, description="URL of the webhook."),
+        "name": fields.String(required=False, description="Name of the webhook."),
+        "verify_ssl": fields.Boolean(
+            required=False, description="If https certificate should be verified."
+        ),
+        "secret": fields.String(
+            required=False, description="Secret used for HMAC signing the payload."
+        ),
+        "content_type": fields.String(
+            required=False,
+            description="Content type of the payload, e.g. json, urlencoded, etc.",
+            enum=[
+                models.Webhook.ContentType.JSON.value,
+                models.Webhook.ContentType.URLENCODED.value,
+            ],
+        ),
+    },
+)
+
 subscription = Model(
     "Subscription",
     {

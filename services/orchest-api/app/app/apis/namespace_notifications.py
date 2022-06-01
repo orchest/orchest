@@ -50,15 +50,15 @@ class SubscriberList(Resource):
 class WebhookList(Resource):
     @api.doc("create_webhook")
     @api.expect(schema.webhook_spec, validate=True)
-    @api.response(201, "Success", schema.webhook_with_secret)
+    @api.response(201, "Success", schema.webhook)
     def post(self):
         """Creates a webhook with the given subscriptions.
 
         Repeated subscription entries are ignored. If no secret is
         passed a secret will be generated through the BE. This endpoint
-        returns a model with said secret, all other endpoints do not,
-        meaning that it's not possible to get back a secret from the BE
-        once the webhook has been created, for security reasons.
+        returns a model without the secret. All other endpoints also do
+        not return the secret, meaning that it's not possible to get
+        back a secret from the BE, for security reasons.
         """
         try:
             webhook = webhooks.create_webhook(request.get_json())
@@ -70,6 +70,32 @@ class WebhookList(Resource):
 
         db.session.commit()
         return marshal(webhook, schema.webhook), 201
+
+    @api.doc("update_webhook")
+    @api.expect(schema.webhook_mutation, validate=True)
+    @api.response(200, "Success", schema.webhook)
+    def put(self, uuid: str):
+        """Updates a webhook, including its subscriptions.
+
+        The mutation only contains the values of a webhook to be
+        changed. The original value will remain unchanged if not
+        mentioned in the mutation.
+        """
+        subscriber = (
+            models.Subscriber.query.options(joinedload(models.Subscriber.subscriptions))
+            .filter(models.Subscriber.uuid == uuid)
+            .first()
+        )
+        if subscriber is None or not isinstance(subscriber, models.Webhook):
+            return {"message": f"Webhook {uuid} does not exist."}, 404
+
+        try:
+            subscriber = webhooks.update_webhook(subscriber, request.get_json())
+        except Exception as e:
+            return {"message": f"Invalid webhook changes: {e}"}, 400
+
+        db.session.commit()
+        return marshal(subscriber, schema.webhook), 200
 
 
 @api.route("/subscribers/webhooks/pre-creation-test-ping-delivery")
@@ -133,25 +159,6 @@ class Subscriber(Resource):
             subscriber = marshal(subscriber, schema.webhook)
         else:
             subscriber = marshal(subscriber, schema.subscriber)
-
-        return subscriber, 200
-
-    def put(self, uuid: str):
-        """Updates a subscriber, including its subscriptions."""
-        subscriber = (
-            models.Subscriber.query.options(joinedload(models.Subscriber.subscriptions))
-            .filter(models.Subscriber.uuid == uuid)
-            .first()
-        )
-        if subscriber is None:
-            return {"message": f"Subscriber {uuid} does not exist."}, 404
-
-        if isinstance(subscriber, models.Webhook):
-            subscriber = marshal(subscriber, schema.webhook)
-            subscriber = webhooks.update_webhook(subscriber, request.get_json())
-        else:
-            subscriber = marshal(subscriber, schema.subscriber)
-            # To be implemented.
 
         return subscriber, 200
 
