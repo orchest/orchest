@@ -136,6 +136,25 @@ class Subscriber(Resource):
 
         return subscriber, 200
 
+    def put(self, uuid: str):
+        """Updates a subscriber, including its subscriptions."""
+        subscriber = (
+            models.Subscriber.query.options(joinedload(models.Subscriber.subscriptions))
+            .filter(models.Subscriber.uuid == uuid)
+            .first()
+        )
+        if subscriber is None:
+            return {"message": f"Subscriber {uuid} does not exist."}, 404
+
+        if isinstance(subscriber, models.Webhook):
+            subscriber = marshal(subscriber, schema.webhook)
+            subscriber = webhooks.update_webhook(subscriber, request.get_json())
+        else:
+            subscriber = marshal(subscriber, schema.subscriber)
+            # To be implemented.
+
+        return subscriber, 200
+
     @api.doc("delete_subscriber")
     def delete(self, uuid: str):
         models.Subscriber.query.filter(models.Subscriber.uuid == uuid).delete()

@@ -60,6 +60,32 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
     return webhook
 
 
+def update_webhook(webhook: models.Webhook, mutation: dict) -> models.Webhook:
+    """Update a Webhook.
+
+    Args:
+        mutation: Mutations to update; should be part of webhook_spec
+
+    """
+
+    if mutation["url"] is not None and not validators.url(mutation["url"]):
+        raise ValueError(f'Invalid url: {mutation["url"]}.')
+
+    if mutation["subscriptions"] is not None:
+        subs = notification_utils.subscription_specs_to_subscriptions(
+            webhook.uuid, mutation["subscriptions"]
+        )
+        db.session.bulk_save_objects(subs)
+
+    for key in mutation:
+        if key != "subscriptions" and webhook[key] is not None:
+            webhook[key] = mutation[key]
+
+    db.session.commit()
+
+    return webhook
+
+
 def _create_delivery_payload(delivery: models.Delivery) -> dict:
 
     webhook = (
