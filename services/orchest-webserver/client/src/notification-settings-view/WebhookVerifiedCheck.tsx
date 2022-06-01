@@ -50,11 +50,26 @@ export const webhookStatusMessage: Record<
 
 export const WebhookVerifiedCheck = ({
   subscriberUuid,
+  webhooksVerifiedStatusRef,
 }: {
   subscriberUuid: string;
+  webhooksVerifiedStatusRef: React.MutableRefObject<Record<string, STATUS>>;
 }) => {
   const { status, verify } = useVerifyWebhook(subscriberUuid);
-  const { message, component = null } = webhookStatusMessage[status] || {};
+
+  React.useEffect(() => {
+    // if user clicks on "TEST" button, update the persisted status.
+    if (status !== "IDLE")
+      webhooksVerifiedStatusRef.current[subscriberUuid] = status;
+  }, [subscriberUuid, status, webhooksVerifiedStatusRef]);
+
+  const latestStatus =
+    status === "IDLE"
+      ? webhooksVerifiedStatusRef.current[subscriberUuid]
+      : status;
+
+  const { message, component = null } =
+    webhookStatusMessage[latestStatus] || {};
 
   return (
     <Stack direction="row" alignItems="center" spacing={2}>

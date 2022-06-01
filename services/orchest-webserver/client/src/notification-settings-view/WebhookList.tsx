@@ -2,6 +2,7 @@ import { IconButton } from "@/components/common/IconButton";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { STATUS } from "@/hooks/useAsync";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import WebhookIcon from "@mui/icons-material/Webhook";
@@ -36,6 +37,16 @@ export const WebhookList = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const onClose = React.useCallback(() => setIsOpen(false), []);
 
+  const webhooksVerifiedStatusRef = React.useRef<Record<string, STATUS>>({});
+
+  React.useEffect(() => {
+    webhooks.forEach((hook) => {
+      if (webhooksVerifiedStatusRef.current[hook.uuid] !== "RESOLVED") {
+        webhooksVerifiedStatusRef.current[hook.uuid] = "IDLE";
+      }
+    });
+  }, [webhooks]);
+
   const columns: DataTableColumn<WebhookRow, WebhookColumn>[] = [
     { id: "name", label: "Name", render: (row) => row.name || "-" },
     {
@@ -62,7 +73,12 @@ export const WebhookList = () => {
       label: "Connection",
       align: "left",
       render: function renderVerified(row) {
-        return <WebhookVerifiedCheck subscriberUuid={row.uuid} />;
+        return (
+          <WebhookVerifiedCheck
+            subscriberUuid={row.uuid}
+            webhooksVerifiedStatusRef={webhooksVerifiedStatusRef}
+          />
+        );
       },
     },
     {

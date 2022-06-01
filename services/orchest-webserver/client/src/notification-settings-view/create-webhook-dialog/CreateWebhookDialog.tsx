@@ -86,7 +86,7 @@ export const CreateWebhookDialog: React.FC<{
     } catch (error) {
       setAlert("Error", `Failed to create webhook. ${error.message || ""}`);
     }
-    onClose();
+    closeDialog();
   };
 
   return (
