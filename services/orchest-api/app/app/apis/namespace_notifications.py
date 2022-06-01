@@ -69,6 +69,48 @@ class WebhookList(Resource):
         return marshal(webhook, schema.webhook_with_secret), 201
 
 
+@api.route("/subscribers/webhooks/pre-creation-test-ping-delivery")
+class WebhookPreCreationTestPingDelivery(Resource):
+    @api.doc("pre_creation_test_ping")
+    @api.expect(schema.webhook_spec, validate=True)
+    @api.response(200, "Success")
+    @api.response(500, "Failure")
+    def post(self):
+        """Send a test ping delivery to a webhook before creating it.
+
+        This endpoint allows to send a test ping delivery to a given
+        webhook spec, to allow testing delivery before creating the
+        webhook.
+
+        The endpoint will return a 200 if the response obtained from the
+        deliveree is to be considered successful, 500 otherwise.
+
+        """
+        try:
+            webhook_spec = request.get_json()
+            # This is just a precaution in case things go *very* wrong.
+            webhook_spec["subscriptions"] = []
+
+            webhook = webhooks.create_webhook(webhook_spec)
+            response = webhooks.send_test_ping_delivery(webhook.uuid)
+            if (
+                response is not None
+                and response.status_code >= 200
+                and response.status_code <= 299
+            ):
+                return {"message": "success"}, 200
+            else:
+                if response is not None:
+                    logger.info(response.status_code)
+                    logger.info(response.text)
+                return {"message": "failure"}, 500
+        except (ValueError, sqlalchemy.exc.IntegrityError) as e:
+            return {"message": str(e)}, 400
+        finally:
+            # Do not store the webhook in the database.
+            db.session.rollback()
+
+
 @api.route("/subscribers/<string:uuid>")
 class Subscriber(Resource):
     @api.doc("subscriber")
