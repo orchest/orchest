@@ -21,15 +21,30 @@ export const webhookStatusMessage: Record<
 > = {
   PENDING: {
     message: "Checking...",
-    component: <CircularProgress size={24} />,
+    component: (
+      <CircularProgress
+        size={24}
+        sx={{ marginLeft: (theme) => theme.spacing(0.5) }}
+      />
+    ),
   },
   RESOLVED: {
     message: "Connected",
-    component: <CheckCircleOutlineIcon color="success" />,
+    component: (
+      <CheckCircleOutlineIcon
+        color="success"
+        sx={{ marginLeft: (theme) => theme.spacing(0.5) }}
+      />
+    ),
   },
   REJECTED: {
     message: "Failed",
-    component: <ErrorOutlineIcon color="error" />,
+    component: (
+      <ErrorOutlineIcon
+        color="error"
+        sx={{ marginLeft: (theme) => theme.spacing(0.5) }}
+      />
+    ),
   },
 };
 

@@ -7,7 +7,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import FormHelperText from "@mui/material/FormHelperText";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -111,7 +110,7 @@ export const CreateWebhookDialog: React.FC<{
             <WebhookDocLink>Docs</WebhookDocLink>
           </DialogTitle>
           <DialogContent>
-            <Stack direction="column" spacing={2}>
+            <Stack direction="column" spacing={3}>
               <WebhookUrlField
                 value={webhookUrl}
                 onChange={setWebhookUrl}
@@ -137,9 +136,7 @@ export const CreateWebhookDialog: React.FC<{
                     </MenuItem>
                   ))}
                 </Select>
-                <FormHelperText>
-                  Content type of the notification
-                </FormHelperText>
+                {/* <FormHelperText> </FormHelperText> */}
               </FormControl>
               <TextField
                 fullWidth
