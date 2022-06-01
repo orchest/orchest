@@ -7,7 +7,7 @@ import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
 import BuildPendingDialog from "./components/BuildPendingDialog";
-import CommandPalette from "./components/CommandPalette";
+import { CommandPalette } from "./components/CommandPalette";
 import HeaderBar from "./components/HeaderBar";
 import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
 import { AppDrawer } from "./components/MainDrawer";
