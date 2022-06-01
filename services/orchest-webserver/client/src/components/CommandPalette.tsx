@@ -27,22 +27,32 @@ type Command = {
   };
 };
 
-const fetcherCreator = () => {
-  return function <T>(path: string, attribute?: string) {
-    return new Promise<T[]>((resolve, reject) => {
-      fetcher(path)
-        .then((response) => {
-          resolve(attribute ? response[attribute] : response);
-        })
-        .catch((e) => {
-          console.error(e);
-          reject([]);
-        })
-        .finally(() => {
-          resolve([]);
-        });
-    });
-  };
+function fetchObjects<T>(path: string, attribute?: string) {
+  return new Promise<T[]>((resolve, reject) => {
+    fetcher<Record<string, T[]> | T[]>(path)
+      .then((response) => {
+        resolve(attribute ? response[attribute] : response);
+      })
+      .catch((e) => {
+        console.error(e);
+        reject([]);
+      })
+      .finally(() => {
+        resolve([]);
+      });
+  });
+}
+
+const fetchPipelines = () => {
+  return fetchObjects<Pipeline>("/async/pipelines", "result");
+};
+
+const fetchProjects = () => {
+  return fetchObjects<Project>("/async/projects");
+};
+
+const fetchJobs = () => {
+  return fetchObjects<Job>("/catch/api-proxy/api/jobs/", "jobs");
 };
 
 type ProjectObject = { list: Command[]; paths: Record<string, string> };
@@ -150,7 +160,18 @@ const commandsFromJob = (projectPaths: Record<string, string>, job: Job) => {
   };
 };
 
-const CommandPalette: React.FC = () => {
+const isVisible = (el: HTMLLIElement, holder: HTMLDivElement) => {
+  let { top, bottom, height } = el.getBoundingClientRect();
+
+  height = 0; // Show at least full element
+  const holderRect = holder.getBoundingClientRect();
+
+  return top <= holderRect.top
+    ? [holderRect.top - top <= height, "top"]
+    : [bottom - holderRect.bottom <= height, "bottom"];
+};
+
+export const CommandPalette: React.FC = () => {
   // global states
   const { navigateTo } = useCustomRoute();
 
@@ -162,27 +183,13 @@ const CommandPalette: React.FC = () => {
   const [selectedCommandIndex, setSelectedCommandIndex] = React.useState(0);
   const [commands, setCommands] = React.useState<Command[]>([]);
 
-  const commandListRef = React.useRef<HTMLDivElement>();
+  const commandListRef = React.useRef<HTMLDivElement | null>(null);
 
   const filteredCommands = React.useMemo(() => {
     return (commands || []).filter((command) =>
       command.title.toLowerCase().includes(query.toLowerCase())
     );
   }, [commands, query]);
-
-  const localFetcher = React.useMemo(() => fetcherCreator(), []);
-
-  const fetchPipelines = React.useCallback(() => {
-    return localFetcher<Pipeline>("/async/pipelines", "result");
-  }, [localFetcher]);
-
-  const fetchProjects = React.useCallback(() => {
-    return localFetcher<Project>("/async/projects");
-  }, [localFetcher]);
-
-  const fetchJobs = React.useCallback(() => {
-    return localFetcher<Job>("/catch/api-proxy/api/jobs/", "jobs");
-  }, [localFetcher]);
 
   const refreshCache = React.useCallback(async () => {
     try {
@@ -228,7 +235,7 @@ const CommandPalette: React.FC = () => {
       // handle failure silently because this is done in the background
       console.error(`Failed to fetch for command palette: ${error}`);
     }
-  }, [fetchJobs, fetchPipelines, fetchProjects]);
+  }, []);
 
   const onQueryChange = (
     e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
@@ -242,12 +249,14 @@ const CommandPalette: React.FC = () => {
 
     switch (command.action) {
       case "openPage": {
-        hideCommandPalette();
-        navigateTo(command.data.path, { query: command.data.query });
+        if (command.data) {
+          hideCommandPalette();
+          navigateTo(command.data.path, { query: command.data.query });
+        }
         break;
       }
       case "openList":
-        setCommands(command.children);
+        if (command.children) setCommands(command.children);
         break;
     }
   };
@@ -255,17 +264,6 @@ const CommandPalette: React.FC = () => {
   const handleIndexScrollContainer = (index: number) => {
     // Set scroll position to make sure the selected element is in view
     if (commandListRef.current) {
-      const isVisible = (el, holder) => {
-        let { top, bottom, height } = el.getBoundingClientRect();
-
-        height = 0; // Show at least full element
-        const holderRect = holder.getBoundingClientRect();
-
-        return top <= holderRect.top
-          ? [holderRect.top - top <= height, "top"]
-          : [bottom - holderRect.bottom <= height, "bottom"];
-      };
-
       let listEl = commandListRef.current.querySelectorAll("li")[index];
 
       if (listEl) {
@@ -283,12 +281,6 @@ const CommandPalette: React.FC = () => {
 
   const { setScope } = useHotKeys(
     {
-      all: {
-        "ctrl+k, command+k": (event) => {
-          event.preventDefault();
-          showCommandPalette();
-        },
-      },
       command: {
         "up, down, pageup, pagedown, escape, enter": (e, hotKeyEvent) => {
           if (hotKeyEvent.key === "escape") hideCommandPalette();
@@ -331,19 +323,42 @@ const CommandPalette: React.FC = () => {
     setScope("command");
   }, [setScope]);
 
+  const showCommandPalette = React.useCallback(() => {
+    setIsOpen(true);
+    enableCommandMode();
+  }, [enableCommandMode]);
+
+  React.useEffect(() => {
+    // `Jupyter` passes its the keyboard events in the JupyterLab iframe to the current document object.
+    // However, hotkeys is unable to intercept this keyboard event, therefore we need to add event listener manually.
+    // We can consider getting rid of hotkeys-js since we don't have complex hotkeys.
+    const eventListener = (event: KeyboardEvent) => {
+      if (
+        !event.altKey &&
+        !event.shiftKey &&
+        (event.ctrlKey || event.metaKey) &&
+        event.key === "k"
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        showCommandPalette();
+      }
+    };
+    document.addEventListener("keydown", eventListener);
+    return () => {
+      document.removeEventListener("keydown", eventListener);
+    };
+  }, [showCommandPalette]);
+
   const disableCommandMode = React.useCallback(() => {
     setScope("all");
   }, [setScope]);
 
   React.useEffect(() => {
     refreshCache();
+    disableCommandMode();
     return () => disableCommandMode();
-  }, [refreshCache, disableCommandMode]);
-
-  const showCommandPalette = () => {
-    setIsOpen(true);
-    enableCommandMode();
-  };
+  }, [disableCommandMode, refreshCache]);
 
   const hideCommandPalette = () => {
     setIsOpen(false);
@@ -396,5 +411,3 @@ const CommandPalette: React.FC = () => {
     </div>
   );
 };
-
-export default CommandPalette;

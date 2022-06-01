@@ -236,7 +236,7 @@ export const PipelineViewport = React.forwardRef<
       const environment = environments.length > 0 ? environments[0] : null;
 
       allowed.forEach((filePath) => {
-        dispatch(createStepAction(environment, dropPosition));
+        dispatch(createStepAction(environment, dropPosition, filePath));
       });
     },
     [dispatch, pipelineCwd, environments, getApplicableStepFiles]

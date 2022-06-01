@@ -24,25 +24,29 @@ export function useHotKeys<Scope extends string>(
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unbindAll = React.useCallback(() => {
-    Object.entries(memoizedConfig).forEach(([scope, keyActionPairs]) => {
-      Object.keys(keyActionPairs).forEach((key) => {
-        hotkeys.unbind(key, scope);
-      });
-    });
+    Object.entries<KeyActionPairs | undefined>(memoizedConfig).forEach(
+      ([scope, keyActionPairs]) => {
+        Object.keys(keyActionPairs || {}).forEach((key) => {
+          hotkeys.unbind(key, scope);
+        });
+      }
+    );
   }, [memoizedConfig]);
 
   const bindConfig = React.useCallback(() => {
     unbindAll();
 
-    Object.entries(memoizedConfig).forEach(([scope, keyActionPairs]) => {
-      Object.entries(keyActionPairs).forEach(([key, action]) => {
-        if (scope === "all") {
-          hotkeys(key, action);
-        } else {
-          hotkeys(key, scope, action);
-        }
-      });
-    });
+    Object.entries<KeyActionPairs | undefined>(memoizedConfig).forEach(
+      ([scope, keyActionPairs]) => {
+        Object.entries(keyActionPairs || {}).forEach(([key, action]) => {
+          if (scope === "all") {
+            hotkeys(key, action);
+          } else {
+            hotkeys(key, scope, action);
+          }
+        });
+      }
+    );
   }, [memoizedConfig, unbindAll]);
 
   const mounted = useMounted();
