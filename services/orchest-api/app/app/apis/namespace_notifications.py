@@ -62,11 +62,14 @@ class WebhookList(Resource):
         """
         try:
             webhook = webhooks.create_webhook(request.get_json())
+            webhook.url = utils.extract_domain_name(
+                webhook.url
+            )  # Leave out the secret in the URL.
         except (ValueError, sqlalchemy.exc.IntegrityError) as e:
             return {"message": str(e)}, 400
 
         db.session.commit()
-        return marshal(webhook, schema.webhook_with_secret), 201
+        return marshal(webhook, schema.webhook), 201
 
 
 @api.route("/subscribers/webhooks/pre-creation-test-ping-delivery")

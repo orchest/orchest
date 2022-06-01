@@ -31,7 +31,7 @@ export const CreateWebhookDialog: React.FC<{
   isOpen: boolean;
   onClose: () => void;
 }> = ({ isOpen, onClose, children }) => {
-  const { fetchWebhooks } = useAppInnerContext();
+  const { setWebhooks, fetchWebhooks } = useAppInnerContext();
   const { notificationEventTypes } = useNotificationSettingsContext();
   const { setAlert } = useAppContext();
 
@@ -81,8 +81,14 @@ export const CreateWebhookDialog: React.FC<{
 
   const onClickCreateWebhook = async () => {
     try {
-      await createWebhook();
-      fetchWebhooks();
+      const newWebhook = await createWebhook();
+      if (!newWebhook) {
+        fetchWebhooks();
+        return;
+      }
+      setWebhooks((current) =>
+        current ? [...current, newWebhook] : [newWebhook]
+      );
     } catch (error) {
       setAlert("Error", `Failed to create webhook. ${error.message || ""}`);
     }

@@ -14,7 +14,7 @@ export type SubscriberPayload = Pick<
 };
 
 export const useCreateWebhook = (subscriber: SubscriberPayload) => {
-  const { fetchData, status } = useFetcher(
+  const { fetchData, status } = useFetcher<NotificationWebhookSubscriber>(
     `${NOTIFICATION_END_POINT}/subscribers/webhooks`,
     {
       method: "POST",
