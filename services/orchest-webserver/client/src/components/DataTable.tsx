@@ -244,6 +244,7 @@ export function renderCell<T, C>(
 function Row<T, C>({
   isLoading,
   disabled,
+  hover = false,
   tableId,
   columns,
   data,
@@ -256,6 +257,7 @@ function Row<T, C>({
 }: {
   isLoading?: boolean;
   disabled: boolean;
+  hover?: boolean;
   tableId: string;
   columns: DataTableColumn<T, C>[];
   data: DataTableRow<T>;
@@ -288,7 +290,7 @@ function Row<T, C>({
   return (
     <>
       <TableRow
-        hover={!isLoading && !disabled}
+        hover={hover && !isLoading && !disabled}
         onClick={handleClickRow}
         role="checkbox"
         aria-checked={isSelected}
