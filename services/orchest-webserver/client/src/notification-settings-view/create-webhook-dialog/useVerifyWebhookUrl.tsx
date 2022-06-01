@@ -1,32 +1,26 @@
 import { useFetcher } from "@/hooks/useFetcher";
-import { ContentType, validURL } from "@orchest/lib-utils";
+import { HEADER, validURL } from "@orchest/lib-utils";
 import React from "react";
+import { NOTIFICATION_END_POINT } from "../common";
+import { SubscriberPayload } from "./useCreateWebhook";
 
-const generateRequestBody = (
-  body: Record<string, string>,
-  contentType: ContentType
+export const useVerifyWebhookUrl = (
+  subscriberPayload: Omit<SubscriberPayload, "url">
 ) => {
-  if (contentType === "application/x-www-form-urlencoded")
-    return new URLSearchParams(body);
-  if (contentType === "application/json") return JSON.stringify(body);
-  console.error("Unsupported content type.");
-};
-
-export const useVerifyWebhookUrl = (contentType: ContentType) => {
   const [webhookUrl, setWebhookUrl] = React.useState("");
 
   const { data = false, status, fetchData, error } = useFetcher(
-    validURL(webhookUrl, true) ? webhookUrl : undefined,
+    validURL(webhookUrl, true)
+      ? `${NOTIFICATION_END_POINT}/subscribers/webhooks/pre-creation-test-ping-delivery`
+      : undefined,
     {
       transform: () => true,
       method: "POST",
-      headers: { "Content-Type": contentType },
-      // Normally notification is only sent by BE. This testing is temporarily done on FE. It's okay to set "no-cors"
-      mode: "no-cors",
-      body: generateRequestBody(
-        { text: "A testing notification from Orchest" },
-        contentType
-      ),
+      headers: HEADER.JSON,
+      body: JSON.stringify({
+        ...subscriberPayload,
+        url: webhookUrl,
+      }),
       disableFetchOnMount: true,
     }
   );

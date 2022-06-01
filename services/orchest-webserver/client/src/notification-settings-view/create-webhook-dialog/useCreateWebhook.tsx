@@ -6,7 +6,7 @@ import {
   NotificationWebhookSubscriber,
 } from "../notification-webhooks";
 
-type SubscriberPayload = Pick<
+export type SubscriberPayload = Pick<
   NotificationWebhookSubscriber,
   "url" | "name" | "secret" | "verify_ssl" | "content_type"
 > & {

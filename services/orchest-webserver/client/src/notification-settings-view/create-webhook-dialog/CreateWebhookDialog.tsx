@@ -18,7 +18,7 @@ import { ContentType } from "@orchest/lib-utils";
 import React from "react";
 import { useNotificationSettingsContext } from "../NotificationSettingsContext";
 import { WebhookDocLink } from "../WebhookDocLink";
-import { useCreateWebhook } from "./useCreateWebhook";
+import { SubscriberPayload, useCreateWebhook } from "./useCreateWebhook";
 import { useVerifyWebhookUrl } from "./useVerifyWebhookUrl";
 import { WebhookUrlField } from "./WebhookUrlField";
 
@@ -38,8 +38,22 @@ export const CreateWebhookDialog: React.FC<{
   const [webhookName, setWebhookName] = React.useState("");
   const [secret, setSecret] = React.useState("");
   const [contentType, setContentType] = React.useState<ContentType>(
-    "application/x-www-form-urlencoded"
+    "application/json"
   );
+
+  const [isSslEnabled, setIsSslEnabled] = React.useState(false);
+
+  const webhookPayload = React.useMemo<Omit<SubscriberPayload, "url">>(() => {
+    return {
+      name: webhookName,
+      secret,
+      content_type: contentType,
+      verify_ssl: isSslEnabled,
+      subscriptions: notificationEventTypes.map((type) => ({
+        event_type: type.name,
+      })),
+    };
+  }, [notificationEventTypes, contentType, isSslEnabled, secret, webhookName]);
 
   const {
     webhookUrl,
@@ -47,9 +61,7 @@ export const CreateWebhookDialog: React.FC<{
     status,
     verifyUrl,
     isSslAllowed,
-  } = useVerifyWebhookUrl(contentType);
-
-  const [isSslEnabled, setIsSslEnabled] = React.useState(false);
+  } = useVerifyWebhookUrl(webhookPayload);
 
   React.useEffect(() => {
     setIsSslEnabled(isSslAllowed);
@@ -61,14 +73,8 @@ export const CreateWebhookDialog: React.FC<{
   };
 
   const { createWebhook, status: createHookStatus } = useCreateWebhook({
+    ...webhookPayload,
     url: webhookUrl,
-    name: webhookName,
-    secret,
-    content_type: contentType,
-    verify_ssl: isSslEnabled,
-    subscriptions: notificationEventTypes.map((type) => ({
-      event_type: type.name,
-    })),
   });
 
   const isCreating = createHookStatus === "PENDING";
