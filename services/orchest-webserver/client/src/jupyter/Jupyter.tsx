@@ -5,8 +5,18 @@ import $ from "jquery";
 // This is to enable using hotkeys to open CommandPalette.
 // Proxy all the keydown events in the iframe to the hosting document object.
 const passKeyboardEvent = (event: KeyboardEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
+  // Intercept Ctrl/Cmd + k. It's a reserved combination in Firefox
+  // https://support.mozilla.org/en-US/kb/keyboard-shortcuts-perform-firefox-tasks-quickly
+  if (
+    !event.altKey &&
+    !event.shiftKey &&
+    (event.ctrlKey || event.metaKey) &&
+    event.key === "k"
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   const keyboardEvent = new KeyboardEvent(event.type, {
     key: event.key,
     ctrlKey: event.ctrlKey,
