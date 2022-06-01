@@ -229,7 +229,7 @@ const SettingsView: React.FC = () => {
         <h3>Notification settings</h3>
         <div className="columns">
           <div className="column">
-            <p>Configure web hooks to get notified about specific events.</p>
+            <p>Get notified about specific events in Orchest.</p>
           </div>
           <div className="column">
             <StyledButtonOutlined

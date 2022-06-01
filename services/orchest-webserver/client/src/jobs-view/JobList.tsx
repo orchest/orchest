@@ -345,10 +345,14 @@ const JobList = () => {
                     color="inherit"
                     size="small"
                     onClick={goToNotificationSettings}
+                    sx={{ height: "30px" }}
                   >
                     New webhook
                   </Button>
-                  <IconButton onClick={() => setShouldHideWebhookHint(true)}>
+                  <IconButton
+                    onClick={() => setShouldHideWebhookHint(true)}
+                    sx={{ height: "30px", width: "30px" }}
+                  >
                     <CloseIcon />
                   </IconButton>
                 </Stack>
