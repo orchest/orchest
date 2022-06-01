@@ -303,6 +303,8 @@ const JobList = () => {
   const shouldShowWebhookHint =
     !shouldHideWebhookHint && webhooks.length === 0 && jobs.length > 0;
 
+  console.log("DEV webhooks: ", webhooks, shouldShowWebhookHint);
+
   return (
     <div className={"jobs-page"}>
       <PageTitle>Jobs</PageTitle>

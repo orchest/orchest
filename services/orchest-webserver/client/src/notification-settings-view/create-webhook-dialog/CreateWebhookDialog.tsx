@@ -39,7 +39,7 @@ export const CreateWebhookDialog: React.FC<{
   const [webhookName, setWebhookName] = React.useState("");
   const [secret, setSecret] = React.useState("");
   const [contentType, setContentType] = React.useState<ContentType>(
-    "application/json"
+    "application/x-www-form-urlencoded"
   );
 
   const {
