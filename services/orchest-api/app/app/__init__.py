@@ -78,7 +78,7 @@ def create_app(
     init_logging()
 
     # In development we want more verbose logging of every request.
-    if os.getenv("FLASK_ENV") == "development":
+    if app.config["DEV_MODE"]:
         app = register_teardown_request(app)
 
     # Cross-origin resource sharing. Allow API to be requested from the
