@@ -1093,8 +1093,10 @@ class EventType(BaseModel):
     - services/orchest-api/app/migrations/versions/ad0b4cda3e50_.py
     - services/orchest-api/app/migrations/versions/849b7b154ef6_.py
     - services/orchest-api/app/migrations/versions/637920f5715f_.py
-    - services/orchest-api/app/migrations/versions/637920f5715f_.py
+    - services/orchest-api/app/migrations/versions/2b573339900f_.py
     - services/orchest-api/app/migrations/versions/a4b1f48ddab5.py
+    - services/orchest-api/app/migrations/versions/19ce7297c194_.py
+    - services/orchest-api/app/migrations/versions/0eaf40410361_.py
 
     To add more types, add an empty revision with
     `bash scripts/migration_manager.sh orchest-api revision`, then
@@ -1183,6 +1185,10 @@ class Event(BaseModel):
                 (type.startswith("project:pipeline:updated"), "pipeline_update_event"),
                 (type.startswith("project:pipeline:"), "pipeline_event"),
                 (type.startswith("project:updated"), "project_update_event"),
+                (
+                    type.startswith("project:environment:image-build:"),
+                    "environment_image_build_event",
+                ),
                 (type.startswith("project:environment:"), "environment_event"),
                 (type.startswith("project:"), "project_event"),
             ],
@@ -1431,17 +1437,63 @@ class EnvironmentEvent(ProjectEvent):
 
     __mapper_args__ = {"polymorphic_identity": "environment_event"}
 
-    environment_uuid = db.Column(db.String(36))
+    environment_uuid = db.Column(db.String(36), nullable=True)
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["project"]["environment"] = {"uuid": self.uuid}
+        payload["project"]["environment"] = {
+            "uuid": self.environment_uuid,
+            "url_path": (
+                f"/environment?project_uuid={self.project_uuid}&environment_uuid="
+                f"{self.environment_uuid}"
+            ),
+        }
         return payload
 
 
 ForeignKeyConstraint(
     [EnvironmentEvent.project_uuid, EnvironmentEvent.environment_uuid],
     [Environment.project_uuid, Environment.uuid],
+    ondelete="CASCADE",
+)
+
+
+class EnvironmentImageBuildEvent(EnvironmentEvent):
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "environment_image_build_event"}
+
+    image_tag = db.Column(db.Integer, nullable=True)
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        build = EnvironmentImageBuild.query.filter(
+            EnvironmentImageBuild.project_uuid == self.project_uuid,
+            EnvironmentImageBuild.environment_uuid == self.environment_uuid,
+            EnvironmentImageBuild.image_tag == self.image_tag,
+        ).first()
+        if build is not None:
+            build = build.as_dict()
+            for k, v in build.items():
+                if isinstance(v, datetime.datetime):
+                    build[k] = str(v)
+            payload["project"]["environment"]["image_build"] = build
+        return payload
+
+
+ForeignKeyConstraint(
+    [
+        EnvironmentImageBuildEvent.project_uuid,
+        EnvironmentImageBuildEvent.environment_uuid,
+        EnvironmentImageBuildEvent.image_tag,
+    ],
+    [
+        EnvironmentImageBuild.project_uuid,
+        EnvironmentImageBuild.environment_uuid,
+        EnvironmentImageBuild.image_tag,
+    ],
     ondelete="CASCADE",
 )
 
@@ -1758,7 +1810,9 @@ class JupyterImageBuildEvent(Event):
     __mapper_args__ = {"polymorphic_identity": "jupyter_image_build_event"}
 
     build_uuid = db.Column(
-        db.String(36), db.ForeignKey("jupyter_image_builds.uuid", ondelete="CASCADE")
+        db.String(36),
+        db.ForeignKey("jupyter_image_builds.uuid", ondelete="CASCADE"),
+        nullable=True,
     )
 
     def to_notification_payload(self) -> dict:

@@ -667,6 +667,17 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
     images_to_be_removed.update({"marked_for_removal": True})
 
 
+def get_environment_directory_path(project_path: str, environment_uuid: str) -> str:
+    return os.path.join(
+        "/userdir",
+        "projects",
+        project_path,
+        ".orchest",
+        "environments",
+        environment_uuid,
+    )
+
+
 def get_job_dir_path(project_uuid: str, pipeline_uuid: str, job_uuid: str) -> str:
     return os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
 

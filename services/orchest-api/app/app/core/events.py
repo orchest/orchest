@@ -605,6 +605,73 @@ def register_project_updated_event(project_uuid: str, update: app_types.EntityUp
     _register_event(ev)
 
 
+def _register_environment_image_build_event(
+    type: str, project_uuid: str, environment_uuid: str, image_tag: str
+) -> None:
+    ev = models.EnvironmentImageBuildEvent(
+        type=type,
+        project_uuid=project_uuid,
+        environment_uuid=environment_uuid,
+        image_tag=image_tag,
+    )
+    _register_event(ev)
+
+
+def register_environment_image_build_created_event(
+    project_uuid: str, environment_uuid: str, image_tag: str
+):
+    _register_environment_image_build_event(
+        "project:environment:image-build:created",
+        project_uuid,
+        environment_uuid,
+        image_tag,
+    )
+
+
+def register_environment_image_build_started_event(
+    project_uuid: str, environment_uuid: str, image_tag: str
+):
+    _register_environment_image_build_event(
+        "project:environment:image-build:started",
+        project_uuid,
+        environment_uuid,
+        image_tag,
+    )
+
+
+def register_environment_image_build_cancelled_event(
+    project_uuid: str, environment_uuid: str, image_tag: str
+):
+    _register_environment_image_build_event(
+        "project:environment:image-build:cancelled",
+        project_uuid,
+        environment_uuid,
+        image_tag,
+    )
+
+
+def register_environment_image_build_failed_event(
+    project_uuid: str, environment_uuid: str, image_tag: str
+):
+    _register_environment_image_build_event(
+        "project:environment:image-build:failed",
+        project_uuid,
+        environment_uuid,
+        image_tag,
+    )
+
+
+def register_environment_image_build_succeeded_event(
+    project_uuid: str, environment_uuid: str, image_tag: str
+):
+    _register_environment_image_build_event(
+        "project:environment:image-build:succeeded",
+        project_uuid,
+        environment_uuid,
+        image_tag,
+    )
+
+
 def _register_pipeline_event(type: str, project_uuid: str, pipeline_uuid: str) -> None:
     ev = models.PipelineEvent(
         type=type,
