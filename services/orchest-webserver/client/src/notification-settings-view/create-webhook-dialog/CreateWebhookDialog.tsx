@@ -14,7 +14,7 @@ import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { ContentType } from "@orchest/lib-utils";
+import { ContentType, hasValue, validURL } from "@orchest/lib-utils";
 import React from "react";
 import { useNotificationSettingsContext } from "../NotificationSettingsContext";
 import { WebhookDocLink } from "../WebhookDocLink";
@@ -95,6 +95,12 @@ export const CreateWebhookDialog: React.FC<{
     closeDialog();
   };
 
+  const webhookUrlValidation = React.useMemo(() => {
+    if (webhookUrl.length === 0) return "URL is required";
+    if (!validURL(webhookUrl, true)) return "Invalid URL";
+    return undefined;
+  }, [webhookUrl]);
+
   return (
     <>
       {children}
@@ -126,6 +132,7 @@ export const CreateWebhookDialog: React.FC<{
               <WebhookUrlField
                 value={webhookUrl}
                 onChange={setWebhookUrl}
+                validation={webhookUrlValidation}
                 isVerifiedStatus={status}
                 verifyUrl={verifyUrl}
                 disabled={isCreating}
@@ -171,9 +178,6 @@ export const CreateWebhookDialog: React.FC<{
                 onChange={(e) => setSecret(e.target.value)}
               />
               <FormControlLabel
-                onClick={() => {
-                  // if (isSslAllowed) setIsSslEnabled((value) => !value);
-                }}
                 disableTypography
                 control={
                   <Switch
@@ -210,7 +214,7 @@ export const CreateWebhookDialog: React.FC<{
               variant="contained"
               type="submit"
               form="create-webhook"
-              disabled={isCreating}
+              disabled={isCreating || hasValue(webhookUrlValidation)}
             >
               Save webhook
             </Button>
