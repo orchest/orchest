@@ -19,7 +19,7 @@ from typing import Optional
 import requests
 import validators
 from flask_restx import marshal
-from sqlalchemy.orm import noload
+from sqlalchemy.orm import joinedload, noload
 
 from app import errors as self_errors
 from app import models, schema
@@ -65,30 +65,47 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
     return webhook
 
 
-def update_webhook(webhook: models.Webhook, mutation: dict) -> models.Webhook:
+def update_webhook(uuid: str, mutation: dict) -> None:
     """Update a Webhook, does not commit.
 
     Args:
+        uuid: UUID of a webhook
         mutation: Same as webhook_spec, but all fields are optional.
 
     """
 
-    if mutation["url"] is not None and not validators.url(mutation["url"]):
-        raise ValueError(f'Invalid url: {mutation["url"]}.')
+    try:
+        webhook = (
+            models.Webhook.query.options(joinedload(models.Webhook.subscriptions))
+            .filter(models.Webhook.uuid == uuid)
+            .one_or_none()
+        )
+    except Exception as e:
+        raise ValueError(f"Multiple webhooks with UUID {uuid} exist: {e}")
 
-    for key in mutation:
-        if webhook[key] is None:
-            raise ValueError(f"Invalid property: {key}")
+    if webhook is None:
+        raise ValueError(f"Webhook with UUID {uuid} not found.")
+
+    webhook.with_for_update()
+
+    marshalled_mutation = marshal(mutation, schema.webhook_mutation)
+
+    for key in marshalled_mutation:
+        value = marshalled_mutation.get(key)
+
+        if value is None:
+            raise ValueError(f"Invalid value for '{key}'.")
+
+        if key == "url" and not validators.url(value):
+            raise ValueError(f"Invalid url: {value}.")
 
         if key != "subscriptions":
-            webhook[key] = mutation[key]
+            webhook.update({key: value})
         else:
             subs = notification_utils.subscription_specs_to_subscriptions(
                 webhook.uuid, mutation[key]
             )
             db.session.bulk_save_objects(subs)
-
-    return webhook
 
 
 def _create_delivery_payload(delivery: models.Delivery) -> dict:

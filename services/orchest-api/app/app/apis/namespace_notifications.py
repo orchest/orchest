@@ -85,21 +85,12 @@ class Webhook(Resource):
         mentioned in the mutation.
         """
         try:
-            webhook = (
-                models.Webhook.query.options(joinedload(models.Webhook.subscriptions))
-                .filter(models.Webhook.uuid == uuid)
-                .one_or_none()
-            )
+            webhooks.update_webhook(uuid, request.get_json())
         except Exception as e:
-            return {"message": f"Webhook {uuid} does not exist. {e}"}, 404
-
-        try:
-            webhook = webhooks.update_webhook(webhook, request.get_json())
-        except Exception as e:
-            return {"message": f"Invalid webhook changes: {e}"}, 400
+            return {"message": f"Failed to update webhook. {e}"}, 400
 
         db.session.commit()
-        return marshal(webhook, schema.webhook), 200
+        return {"message": f"Webhook {uuid} has been updated."}, 200
 
 
 @api.route("/subscribers/webhooks/pre-creation-test-ping-delivery")
