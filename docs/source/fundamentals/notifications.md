@@ -35,16 +35,18 @@ This is an example payload:
 
 ```json
 {
-  "subscriptions": [
-    {
-      "event_type": "project:cron-job:run:pipeline-run:failed"
-    }
-  ],
-  "url": "<my url>",
-  "name": "name of the webhook",
-  "verify_ssl": true,
-  "secret": "to compute the payload signature",
-  "content_type": "application/json"
+  "delivered_for": {
+    "name": "Test webhook",
+    "verify_ssl": false,
+    "content_type": "application/json",
+    "uuid": "a1edb89c-1cfb-4086-8f75-ab073612c5bf",
+    "type": "webhook"
+  },
+  "event": {
+    "type": "ping",
+    "uuid": "08bd2a31-9b17-4d1b-83ba-b4538a970dee",
+    "timestamp": "2022-06-02 16:12:25.242592+00:00"
+  }
 }
 ```
 
