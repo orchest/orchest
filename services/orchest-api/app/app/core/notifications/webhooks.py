@@ -108,7 +108,7 @@ def _inject_headers(
 ) -> None:
     headers["X-Orchest-Event"] = event_type
     headers["X-Orchest-Delivery"] = delivery_uuid
-    headers["X-Orchest-Signature"] = signature
+    headers["X-Hub-Signature"] = signature
     headers["User-Agent"] = "Orchest"
 
 
@@ -197,8 +197,9 @@ def deliver(delivery_uuid: str) -> None:
     with the following headers:
         X-Orchest-Event: event type that triggered the delivery
         X-Orchest-Delivery: uuid of the deliery
-        X-Orchest-Signature: hmac signature computed with the webhook
-            secret and sha256.
+        X-Hub-Signature: hmac signature computed with the webhook
+            secret and sha256. Standardizes name as per:
+            https://www.w3.org/TR/websub/#conformance-classes
         User-Agent: Orchest
 
     Args:
