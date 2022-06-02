@@ -1,4 +1,4 @@
-package deployer
+package addons
 
 import (
 	"context"
@@ -15,7 +15,7 @@ type HelmDeployer struct {
 	valuesPath string
 }
 
-func NewHelmDeployer(name, deployDir string, valuesPath string) Deployer {
+func NewHelmDeployer(name, deployDir string, valuesPath string) Addon {
 	return &HelmDeployer{
 		name:       name,
 		deployDir:  deployDir,
@@ -24,7 +24,7 @@ func NewHelmDeployer(name, deployDir string, valuesPath string) Deployer {
 }
 
 // Installs deployer if the config is changed
-func (d *HelmDeployer) InstallIfChanged(ctx context.Context, namespace string,
+func (d *HelmDeployer) Enable(ctx context.Context, namespace string,
 	orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// First we need to check if there is already a release

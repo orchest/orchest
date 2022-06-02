@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcluster"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcomponent"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/server"
@@ -18,6 +19,7 @@ var (
 	inCluster        = true
 	controllerConfig = orchestcluster.NewDefaultControllerConfig()
 	serverConfig     = server.NewDefaultServerConfig()
+	addonsConfig     = addons.NewDefaultAddonsConfig()
 )
 
 func NewControllerCommand() *cobra.Command {
@@ -33,9 +35,6 @@ func NewControllerCommand() *cobra.Command {
 			}
 		},
 	}
-
-	cmd.PersistentFlags().StringVar(&controllerConfig.DeployDir,
-		"deployDir", controllerConfig.DeployDir, "The directory which holds the deployment folders")
 
 	cmd.PersistentFlags().StringVar(&controllerConfig.PostgresDefaultImage,
 		"postgresImage", controllerConfig.PostgresDefaultImage, "The default postgres image if not provided in CR")
@@ -94,6 +93,12 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&serverConfig.Endpoint,
 		"endpoint", serverConfig.Endpoint, "The endpoint of Http Server")
 
+	cmd.PersistentFlags().StringSliceVar(&addonsConfig.Addons, "addons", addonsConfig.Addons,
+		"the default addons to enable on controller deployment")
+
+	cmd.PersistentFlags().StringVar(&addonsConfig.AssetDir,
+		"assetDir", addonsConfig.AssetDir, "The directory of assets")
+
 	cmd.PersistentFlags().BoolVar(&inCluster,
 		"inCluster", true, "In/Out cluster indicator")
 
@@ -127,13 +132,16 @@ func runControllerCmd() error {
 	//Create OrchestCluster Informer
 	oComponentInformer := utils.NewOrchestComponentInformer(oClient)
 
+	addonManager := addons.NewAddonManager(addonsConfig)
+
 	oClusterController := orchestcluster.NewOrchestClusterController(kClient,
 		oClient,
 		gClient,
 		scheme,
 		controllerConfig,
 		oClusterInformer,
-		oComponentInformer)
+		oComponentInformer,
+		addonManager)
 
 	oComponentController := orchestcomponent.NewOrchestComponentController(kClient,
 		oClient,
@@ -146,6 +154,9 @@ func runControllerCmd() error {
 		ingInformer)
 
 	server := server.NewServer(serverConfig, oClusterInformer)
+
+	// Start the addon manager
+	go addonManager.Run(stopCh)
 
 	// Start Orchest Controllers
 	go oClusterController.Run(stopCh)

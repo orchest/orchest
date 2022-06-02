@@ -1,4 +1,4 @@
-package deployer
+package addons
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ type PathDeployer struct {
 	gClient client.Client
 }
 
-func NewPathDeployer(name, root string, gClient client.Client, scheme *runtime.Scheme) Deployer {
+func NewPathDeployer(name, root string, gClient client.Client, scheme *runtime.Scheme) Addon {
 
 	files := make([]*os.File, 0, 0)
 
@@ -109,7 +109,7 @@ func NewPathDeployer(name, root string, gClient client.Client, scheme *runtime.S
 }
 
 // Installs deployer if the config is changed
-func (d *PathDeployer) InstallIfChanged(ctx context.Context, namespace string, orchest *orchestv1alpha1.OrchestCluster) error {
+func (d *PathDeployer) Enable(ctx context.Context, namespace string, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	for _, obj := range d.objects {
 		err := d.gClient.Create(ctx, obj, &client.CreateOptions{})

@@ -2,16 +2,15 @@ package orchestcluster
 
 import (
 	"fmt"
-	"path"
 	"reflect"
 	"time"
 
+	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/version"
 	"github.com/pkg/errors"
@@ -32,7 +31,6 @@ var (
 )
 
 type ControllerConfig struct {
-	DeployDir                      string
 	PostgresDefaultImage           string
 	RabbitmqDefaultImage           string
 	OrchestDefaultVersion          string
@@ -56,7 +54,6 @@ type ControllerConfig struct {
 
 func NewDefaultControllerConfig() ControllerConfig {
 	return ControllerConfig{
-		DeployDir:                 "/deploy",
 		PostgresDefaultImage:      "postgres:13.1",
 		RabbitmqDefaultImage:      "rabbitmq:3",
 		OrchestDefaultVersion:     version.Version,
@@ -120,7 +117,7 @@ type OrchestClusterController struct {
 
 	oComponentLister orchestlisters.OrchestComponentLister
 
-	deployerManager *deployer.DeployerManager
+	addonManager *addons.AddonManager
 }
 
 // NewOrchestClusterController returns a new *OrchestClusterController.
@@ -131,6 +128,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	config ControllerConfig,
 	oClusterInformer orchestinformers.OrchestClusterInformer,
 	oComponentInformer orchestinformers.OrchestComponentInformer,
+	addonManager *addons.AddonManager,
 ) *OrchestClusterController {
 
 	informerSyncedList := make([]cache.InformerSynced, 0, 0)
@@ -143,10 +141,11 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	)
 
 	occ := OrchestClusterController{
-		oClient: oClient,
-		gClient: gClient,
-		scheme:  scheme,
-		config:  config,
+		oClient:      oClient,
+		gClient:      gClient,
+		scheme:       scheme,
+		config:       config,
+		addonManager: addonManager,
 	}
 
 	// OrchestCluster event handlers
@@ -174,24 +173,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 
 	occ.Controller = ctrl
 
-	occ.intiDeployerManager()
-
 	return &occ
-}
-
-// Initialzes the third-party deployers.
-func (occ *OrchestClusterController) intiDeployerManager() {
-	occ.deployerManager = deployer.NewDeployerManager()
-
-	occ.deployerManager.AddDeployer("argo",
-		deployer.NewHelmDeployer("argo",
-			path.Join(occ.config.DeployDir, "thirdparty/argo-workflows"),
-			path.Join(occ.config.DeployDir, "thirdparty/argo-workflows/orchest-values.yaml")))
-
-	occ.deployerManager.AddDeployer("registry",
-		deployer.NewHelmDeployer("registry",
-			path.Join(occ.config.DeployDir, "thirdparty/docker-registry/helm"),
-			path.Join(occ.config.DeployDir, "thirdparty/docker-registry/orchest-values.yaml")))
 }
 
 func (occ *OrchestClusterController) addOrchestCluster(obj interface{}) {
@@ -543,12 +525,6 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			}
 		}()
 
-		err = occ.deployerManager.Get("argo").InstallIfChanged(ctx, orchest.Namespace, nil)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
 		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
 		if err != nil {
 			klog.Error(err)
@@ -567,7 +543,7 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			return err
 		}
 
-		err = occ.deployerManager.Get("registry").InstallIfChanged(ctx, orchest.Namespace, nil)
+		err = occ.addonManager.Get("registry").Enable(ctx, orchest.Namespace, nil)
 		if err != nil {
 			klog.Error(err)
 			return err
