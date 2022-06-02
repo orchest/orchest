@@ -58,10 +58,10 @@ module. The payload should look like the following:
 .. code-block:: python
 
   {
-    "event": "my event type"
-  #  Must not contain any sensitive data, i.e. already anonymized.
+    "event": "my event type",  # e.g. "project:created".
+    # Must not contain any sensitive data, i.e. already anonymized.
     "properties": {
-      "hello": "world"
+      "hello": "world" 
     }
   }
 
