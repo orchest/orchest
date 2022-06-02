@@ -235,52 +235,48 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     # Build the docker file and move it to the context.
     with open(os.path.join(environment_path, "properties.json")) as json_file:
         environment_properties = json.load(json_file)
-
-        # use the task_uuid to avoid clashing with user stuff
-        dockerfile_name = (
-            f".orchest-reserved-env-dockerfile-{project_uuid}-{environment_uuid}"
-        )
-        bash_script_name = (
-            f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
-        )
-
         base_image: str = environment_properties["base_image"]
-        # Temporary workaround for common.tsx not using the orchest
-        # version.
+        # Workaround for common.tsx not using the orchest version.
         if "orchest/" in base_image:
             if ":" not in base_image.split("orchest/")[1]:
                 base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
 
-        if CONFIG_CLASS.DEV_MODE:
-            # Don't set it two times.
-            if not base_image.startswith("registry:docker-daemon:"):
-                # Use image from local daemon if instructed to do so.
-                snapshot_setup_script_path = os.path.join(
-                    snapshot_path, bash_script_name
-                )
-                with open(snapshot_setup_script_path, "r") as script_file:
-                    first_line = script_file.readline()
-                    if "# LOCAL IMAGE" in first_line:
-                        base_image = f"registry:docker-daemon:{base_image}"
-                        _logger.info(f"Using {base_image}.")
-
-        write_environment_dockerfile(
-            base_image,
-            project_uuid,
-            environment_uuid,
-            _config.PROJECT_DIR,
-            bash_script_name,
-            os.path.join(snapshot_path, dockerfile_name),
+    # Use the task_uuid to avoid clashing with user stuff.
+    bash_script_name = (
+        f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
+    )
+    snapshot_setup_script_path = os.path.join(snapshot_path, bash_script_name)
+    # Move the startup script to the context.
+    os.system(
+        'cp "%s" "%s"'
+        % (
+            os.path.join(environment_path, _config.ENV_SETUP_SCRIPT_FILE_NAME),
+            snapshot_setup_script_path,
         )
+    )
 
-        # Move the startup script to the context.
-        os.system(
-            'cp "%s" "%s"'
-            % (
-                os.path.join(environment_path, _config.ENV_SETUP_SCRIPT_FILE_NAME),
-                os.path.join(snapshot_path, bash_script_name),
-            )
-        )
+    if CONFIG_CLASS.DEV_MODE:
+        # Don't set it two times.
+        if not base_image.startswith("registry:docker-daemon:"):
+            # Use image from local daemon if instructed to do so.
+            with open(snapshot_setup_script_path, "r") as script_file:
+                first_line = script_file.readline()
+                if "# LOCAL IMAGE" in first_line:
+                    base_image = f"registry:docker-daemon:{base_image}"
+                    _logger.info(f"Using {base_image}.")
+
+    dockerfile_name = (
+        f".orchest-reserved-env-dockerfile-{project_uuid}-{environment_uuid}"
+    )
+
+    write_environment_dockerfile(
+        base_image,
+        project_uuid,
+        environment_uuid,
+        _config.PROJECT_DIR,
+        bash_script_name,
+        os.path.join(snapshot_path, dockerfile_name),
+    )
 
     # hide stuff from the user
     with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
