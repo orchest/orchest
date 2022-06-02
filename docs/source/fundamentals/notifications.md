@@ -79,7 +79,8 @@ import os
 
 def verify_signature(payload, request_headers):
     """
-    Verify that the signature of payload is the same as the one coming from request_headers.
+    Verify that the signature of payload is the same
+    as the one expected from the stored webhook secret.
     """
     if not isinstance(body, bytes):
         body = body.encode("utf-8")
