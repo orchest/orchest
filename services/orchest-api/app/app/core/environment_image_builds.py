@@ -9,12 +9,15 @@ from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
+from app import utils as app_utils
 from app.connections import k8s_custom_obj_api
 from app.core.image_utils import build_image
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
 __ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_image_builds_logs"
+
+_logger = app_utils.get_logger()
 
 
 def update_environment_image_build_status(
@@ -232,37 +235,48 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     # Build the docker file and move it to the context.
     with open(os.path.join(environment_path, "properties.json")) as json_file:
         environment_properties = json.load(json_file)
+        base_image: str = environment_properties["base_image"]
+        # Workaround for common.tsx not using the orchest version.
+        if "orchest/" in base_image:
+            if ":" not in base_image.split("orchest/")[1]:
+                base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
 
-        # use the task_uuid to avoid clashing with user stuff
-        dockerfile_name = (
-            f".orchest-reserved-env-dockerfile-{project_uuid}-{environment_uuid}"
+    # Use the task_uuid to avoid clashing with user stuff.
+    bash_script_name = (
+        f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
+    )
+    snapshot_setup_script_path = os.path.join(snapshot_path, bash_script_name)
+    # Move the startup script to the context.
+    os.system(
+        'cp "%s" "%s"'
+        % (
+            os.path.join(environment_path, _config.ENV_SETUP_SCRIPT_FILE_NAME),
+            snapshot_setup_script_path,
         )
-        bash_script_name = (
-            f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
-        )
+    )
 
-        base_image = environment_properties["base_image"]
-        # Temporary workaround for common.tsx not using the orchest
-        # version.
-        if ":" not in base_image and "orchest/" in base_image:
-            base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
-        write_environment_dockerfile(
-            base_image,
-            project_uuid,
-            environment_uuid,
-            _config.PROJECT_DIR,
-            bash_script_name,
-            os.path.join(snapshot_path, dockerfile_name),
-        )
+    if CONFIG_CLASS.DEV_MODE:
+        # Don't set it two times.
+        if not base_image.startswith("registry:docker-daemon:"):
+            # Use image from local daemon if instructed to do so.
+            with open(snapshot_setup_script_path, "r") as script_file:
+                first_line = script_file.readline()
+                if "# LOCAL IMAGE" in first_line:
+                    base_image = f"registry:docker-daemon:{base_image}"
+                    _logger.info(f"Using {base_image}.")
 
-        # Move the startup script to the context.
-        os.system(
-            'cp "%s" "%s"'
-            % (
-                os.path.join(environment_path, _config.ENV_SETUP_SCRIPT_FILE_NAME),
-                os.path.join(snapshot_path, bash_script_name),
-            )
-        )
+    dockerfile_name = (
+        f".orchest-reserved-env-dockerfile-{project_uuid}-{environment_uuid}"
+    )
+
+    write_environment_dockerfile(
+        base_image,
+        project_uuid,
+        environment_uuid,
+        _config.PROJECT_DIR,
+        bash_script_name,
+        os.path.join(snapshot_path, dockerfile_name),
+    )
 
     # hide stuff from the user
     with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
@@ -356,6 +370,7 @@ def build_environment_image_task(
         # Catch all exceptions because we need to make sure to set the
         # build state to failed.
         except Exception as e:
+            _logger.error(e)
             update_environment_image_build_status(
                 "FAILURE", session, project_uuid, environment_uuid, image_tag
             )

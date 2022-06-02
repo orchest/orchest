@@ -42,11 +42,16 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
     if not validators.url(webhook_spec["url"]):
         raise ValueError(f'Invalid url: {webhook_spec["url"]}.')
 
+    secret = webhook_spec.get("secret")
+    # Replace None and "".
+    if secret is None or not secret:
+        secret = secrets.token_hex(64)
+
     webhook = models.Webhook(
         url=webhook_spec["url"],
         name=webhook_spec["name"],
         verify_ssl=webhook_spec["verify_ssl"],
-        secret=webhook_spec.get("secret", secrets.token_hex(64)),
+        secret=secret,
         content_type=webhook_spec["content_type"],
     )
     db.session.add(webhook)
