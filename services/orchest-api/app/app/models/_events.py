@@ -383,7 +383,7 @@ def _prepare_step_payload(uuid: str, title: str) -> dict:
 def _prepare_interactive_run_parameters_payload(pipeline_definition: dict) -> dict:
     parameters_payload = {}
     for k, v in pipeline_definition["steps"].items():
-        step_name = pipeline_definition.get("steps").get(k, {}).get("title", "untitled")
+        step_name = pipeline_definition.get("steps").get(k, {}).get("title")
         step_payload = _prepare_step_payload(k, step_name)
         parameters_payload[k] = {
             "step": step_payload,
@@ -486,6 +486,27 @@ ForeignKeyConstraint(
 )
 
 
+def anonymize_pipeline_run_properties(pipeline_run: dict) -> dict:
+    derived_properties = {}
+    derived_properties["failed_steps_count"] = len(pipeline_run.pop("failed_steps", []))
+    derived_params = {}
+    derived_properties["parameters"] = derived_params
+    for k, v in pipeline_run.pop("parameters", {}).items():
+        if k == "pipeline_parameters":
+            derived_params[f"{k}_count"] = len(v["parameters"])
+        else:
+            derived_params[f"{k}_parameters_count"] = len(v["parameters"])
+
+    for step in pipeline_run.get("steps", []):
+        step.pop("title", None)
+
+    if "pipeline_definition" in pipeline_run:
+        derived_properties[
+            "pipeline_definition"
+        ] = analytics.anonymize_pipeline_definition(pipeline_run["pipeline_definition"])
+    return derived_properties
+
+
 class InteractivePipelineRunEvent(InteractiveSessionEvent):
 
     __tablename__ = None
@@ -547,12 +568,9 @@ class InteractivePipelineRunEvent(InteractiveSessionEvent):
             _core_models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
             _core_models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
         ).one()
-        event_properties["pipeline_definition"] = copy.deepcopy(
-            pipeline_run.pipeline_definition
-        )
-        derived_properties = analytics.anonymize_pipeline_run_properties(
-            event_properties
-        )
+        event_properties["pipeline_definition"] = pipeline_run.pipeline_definition
+        event_properties = copy.deepcopy(event_properties)
+        derived_properties = anonymize_pipeline_run_properties(event_properties)
 
         return event_properties, derived_properties
 
@@ -920,16 +938,12 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
         "status": None,
     }
 
-    job = _core_models.Job.query.filter(_core_models.Job.uuid == job_uuid).first()
-    if job is None:
-        return payload
+    job = _core_models.Job.query.filter(_core_models.Job.uuid == job_uuid).one()
 
     pipeline_run = _core_models.NonInteractivePipelineRun.query.filter(
         _core_models.NonInteractivePipelineRun.job_uuid == job_uuid,
         _core_models.NonInteractivePipelineRun.uuid == pipeline_run_uuid,
-    ).first()
-    if pipeline_run is None:
-        return payload
+    ).one()
 
     payload["number"] = pipeline_run.pipeline_run_index
     if job.schedule is not None:
@@ -954,7 +968,7 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
             step_name = (
                 job.pipeline_definition.get("steps")
                 .get(step.step_uuid, {})
-                .get("title", "untitled")
+                .get("title")
             )
             failed_steps_payload.append(
                 _prepare_step_payload(step.step_uuid, step_name)
@@ -976,15 +990,37 @@ class OneOffJobPipelineRunEvent(OneOffJobEvent):
     def pipeline_run_uuid(cls):
         return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
 
-    __mapper_args__ = {"polymorphic_identity": "one_off_job_pipeline_run_event"}
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = _prepare_job_pipeline_run_payload(
+            event.job_uuid, event.pipeline_run_uuid
+        )
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = OneOffJobPipelineRunEvent.current_layer_notification_data(
+            event
+        )
+        event_properties = copy.deepcopy(event_properties)
+        derived_properties = anonymize_pipeline_run_properties(event_properties)
+        return event_properties, derived_properties
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["project"]["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
-            self.job_uuid, self.pipeline_run_uuid
-        )
-
+        payload["project"]["job"][
+            "pipeline_run"
+        ] = OneOffJobPipelineRunEvent.current_layer_notification_data(self)
         return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = OneOffJobPipelineRunEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"]["pipeline_run"] = ev
+        payload["derived_properties"]["project"]["job"]["pipeline_run"] = der
+        return payload
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_pipeline_run_event"}
 
     def __repr__(self):
         return (
@@ -1108,9 +1144,8 @@ class CronJobRunEvent(CronJobEvent):
 
     total_pipeline_runs = db.Column(db.Integer)
 
-    def to_notification_payload(self) -> dict:
-        payload = super().to_notification_payload()
-
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
         # Covers case of models inheriting from this.
         job_run_events = (
             db.session.query(CronJobRunEvent.type).filter(
@@ -1121,9 +1156,9 @@ class CronJobRunEvent(CronJobEvent):
                         "project:cron-job:run:failed",
                     ]
                 ),
-                CronJobRunEvent.project_uuid == self.project_uuid,
-                CronJobRunEvent.job_uuid == self.job_uuid,
-                CronJobRunEvent.run_index == self.run_index,
+                CronJobRunEvent.project_uuid == event.project_uuid,
+                CronJobRunEvent.job_uuid == event.job_uuid,
+                CronJobRunEvent.run_index == event.run_index,
             )
         ).all()
         job_run_events = [ev.type for ev in job_run_events]
@@ -1137,13 +1172,30 @@ class CronJobRunEvent(CronJobEvent):
         else:
             status = None
 
-        payload["project"]["job"]["run"] = {}
-        payload["project"]["job"]["run"]["status"] = status
-        payload["project"]["job"]["run"]["number"] = self.run_index
-        payload["project"]["job"]["run"][
-            "total_pipeline_runs"
-        ] = self.total_pipeline_runs
+        payload = {}
+        payload["status"] = status
+        payload["number"] = event.run_index
+        payload["total_pipeline_runs"] = event.total_pipeline_runs
+        return payload
 
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = CronJobRunEvent.current_layer_notification_data(event)
+        derived_properties = {}
+        return event_properties, derived_properties
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["project"]["job"][
+            "run"
+        ] = CronJobRunEvent.current_layer_notification_data(self)
+        return payload
+
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = CronJobRunEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"]["run"] = ev
+        payload["derived_properties"]["project"]["job"]["run"] = der
         return payload
 
     def __repr__(self):
@@ -1220,12 +1272,34 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
     def pipeline_run_uuid(cls):
         return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
 
+    @staticmethod
+    def current_layer_notification_data(event) -> dict:
+        payload = _prepare_job_pipeline_run_payload(
+            event.job_uuid, event.pipeline_run_uuid
+        )
+        return payload
+
+    @staticmethod
+    def current_layer_telemetry_data(event) -> Tuple[dict, dict]:
+        event_properties = CronJobRunPipelineRunEvent.current_layer_notification_data(
+            event
+        )
+        event_properties = copy.deepcopy(event_properties)
+        derived_properties = anonymize_pipeline_run_properties(event_properties)
+        return event_properties, derived_properties
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
         payload["project"]["job"]["run"][
             "pipeline_run"
-        ] = _prepare_job_pipeline_run_payload(self.job_uuid, self.pipeline_run_uuid)
+        ] = CronJobRunPipelineRunEvent.current_layer_notification_data(self)
+        return payload
 
+    def to_telemetry_payload(self) -> analytics.TelemetryData:
+        payload = super().to_telemetry_payload()
+        ev, der = CronJobRunPipelineRunEvent.current_layer_telemetry_data(self)
+        payload["event_properties"]["project"]["job"]["run"]["pipeline_run"] = ev
+        payload["derived_properties"]["project"]["job"]["run"]["pipeline_run"] = der
         return payload
 
     def __repr__(self):
