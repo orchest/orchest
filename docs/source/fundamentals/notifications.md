@@ -69,7 +69,7 @@ that you can use to verify that the webhook is coming from Orchest.
 : SHA-256 HMAC digest of the payload.
 
 This is some sample code that verifies that the signature of the payload
-is the same as the one coming from :
+is the same as the one expected from the webhook secret you specified:
 
 ```python
 import hashlib
