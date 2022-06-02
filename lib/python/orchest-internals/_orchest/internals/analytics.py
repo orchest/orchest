@@ -49,8 +49,9 @@ class Event(Enum):
     # Sent by orchest-webserver. Try to minimize these events, in favour
     # of moving them to the orchest-api.
     HEARTBEAT_TRIGGER = "heartbeat-trigger"
-    JOB_DUPLICATED = "job:duplicated"
-    PIPELINE_SAVED = "pipeline:saved"
+    ONE_OFF_JOB_DUPLICATED = "project:one-off-job:duplicated"
+    CRON_JOB_DUPLICATED = "project:cron-job:duplicated"
+    PIPELINE_SAVED = "project:pipeline:saved"
 
     # Sent by the orchest-api.
     DEBUG_PING = "debug-ping"
@@ -208,6 +209,9 @@ def send_event(
 
     if not _posthog_initialized:
         _initialize_posthog()
+
+    if event_data is not None:
+        event_data.get("event_properties", {})["type"] = event.value
 
     _add_app_properties(event_data, app)
     _add_system_properties(event_data)
