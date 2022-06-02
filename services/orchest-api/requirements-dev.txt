@@ -38,9 +38,9 @@ certifi==2021.10.8
     #   kubernetes
     #   requests
 chardet==3.0.4
-    # via
-    #   aiohttp
-    #   requests
+    # via aiohttp
+charset-normalizer==2.0.12
+    # via requests
 click==8.1.0
     # via
     #   celery
@@ -163,11 +163,14 @@ pytz==2022.1
     #   flask-restx
     #   tzlocal
 pyyaml==6.0
-    # via kubernetes
-requests==2.22.0
+    # via
+    #   kubernetes
+    #   orchest-cli
+requests==2.27.1
     # via
     #   -r requirements-dev.in
     #   kubernetes
+    #   orchest-cli
     #   orchest-internals
     #   python-socketio
     #   requests-oauthlib
@@ -202,7 +205,7 @@ typing-extensions==4.1.1
     # via aiohttp
 tzlocal==2.1
     # via apscheduler
-urllib3==1.25.11
+urllib3==1.26.9
     # via
     #   kubernetes
     #   requests
