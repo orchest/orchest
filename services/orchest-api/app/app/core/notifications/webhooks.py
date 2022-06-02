@@ -102,10 +102,54 @@ def update_webhook(uuid: str, mutation: dict) -> None:
         if key != "subscriptions":
             webhook.update({key: value})
         else:
-            subs = notification_utils.subscription_specs_to_subscriptions(
-                webhook.uuid, mutation[key]
+            sub_specs = value
+
+            subs_keys = set()
+            sub_specs_to_add = []
+
+            subs = models.Subscription.query.filter_by(
+                models.Subscription.subscriber_uuid == uuid
             )
-            db.session.bulk_save_objects(subs)
+            project_specific_subs = models.ProjectSpecificSubscription.query.filter_by(
+                models.ProjectSpecificSubscription.subscriber_uuid == uuid
+            )
+
+            for sub_spec in sub_specs:
+                key = "|".join(
+                    [f"{key}:{sub_spec[key]}" for key in sorted(sub_spec.keys())]
+                )
+                if key not in subs_keys:
+                    subs_keys.add(key)
+
+                    project_uuid = sub_spec.get("project_uuid")
+                    job_uuid = sub_spec.get("job_uuid")
+                    event_type = sub_spec.get("event_type")
+
+                    if project_uuid is not None:
+                        project_specific_sub = project_specific_subs.filter(
+                            models.ProjectSpecificSubscription.project_uuid
+                            == project_uuid,
+                            models.ProjectSpecificSubscription.job_uuid == job_uuid,
+                            models.ProjectSpecificSubscription.event_type == event_type,
+                        ).one_or_none()
+
+                        if project_specific_sub is not None:
+                            continue
+
+                    sub = subs.filter(
+                        models.Subscription.event_type == event_type
+                    ).one_or_none()
+
+                    if sub is not None:
+                        continue
+
+                    sub_specs_to_add.append(sub_spec)
+
+            # Add new subscriptions.
+            new_subs = notification_utils.subscription_specs_to_subscriptions(
+                webhook.uuid, sub_specs_to_add
+            )
+            db.session.bulk_save_objects(new_subs)
 
 
 def _create_delivery_payload(delivery: models.Delivery) -> dict:
