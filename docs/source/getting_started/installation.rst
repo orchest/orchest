@@ -40,6 +40,16 @@ your cluster:
    # Enable the ingress addon
    minikube addons enable ingress
 
+.. tip::
+   We provide a convenienent end-to-end installation script for a complete minikube deployment.
+   Taking care of installing minikube, installing the orchest-cli and installing Orchest, run it
+   with:
+
+   .. code-block:: bash
+
+      curl -fsSL https://raw.githubusercontent.com/orchest/orchest/master/scripts/convenience_install.sh > convenience_install.sh
+      bash convenience_install.sh
+
 .. _regular installation:
 
 Install ``orchest`` via ``orchest-cli``
@@ -47,7 +57,7 @@ Install ``orchest`` via ``orchest-cli``
 
 .. code-block:: bash
 
-   pip install orchest-cli
+   pip install --upgrade orchest-cli
    orchest install
 
 Now the cluster can be reached on the IP returned by:

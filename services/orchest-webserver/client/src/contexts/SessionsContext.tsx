@@ -1,7 +1,11 @@
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
+import type {
+  IOrchestSession,
+  IOrchestSessionUuid,
+  ReducerActionWithCallback,
+} from "@/types";
 import { checkGate } from "@/utils/webserver-utils";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
@@ -92,9 +96,10 @@ type Action =
     }
   | { type: "SET_IS_KILLING_ALL_SESSIONS"; payload: boolean };
 
-type ActionCallback = (previousState: SessionsContextState) => Action;
-
-type SessionsContextAction = Action | ActionCallback;
+type SessionsContextAction = ReducerActionWithCallback<
+  SessionsContextState,
+  Action
+>;
 
 type ToggleSessionFunction = (
   payload: IOrchestSessionUuid & {

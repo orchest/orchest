@@ -51,7 +51,6 @@
     "react-use-intercom": "^1.4.0",
     "seti-icons": "^0.0.4",
     "socket.io-client": "^2.3.0",
-    "swr": "1.1.2",
     "xterm": "^4.0.0",
     "xterm-addon-fit": "^0.4.0",
     "xterm-for-react": "^1.0.4"

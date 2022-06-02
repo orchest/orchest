@@ -10,6 +10,11 @@ reachable from your browser.
 To add a service to your Orchest pipeline, go to the `pipeline settings` and check out the
 `services` tab.
 
+.. warning::
+   Since the services lifetime span the interactive session,
+   every time it stops all the state of the services is deleted.
+   If you need to store persistent data, use an external database.
+
 .. _services templates:
 
 Ready to go templates
@@ -22,16 +27,16 @@ For ease of use, we provide some commonly used services as templates:
 
 Tensorboard, Streamlit and VSCode are set up to be reachable from your browser, the link will be
 available both in the pipeline editor under `services` and in the service configuration settings.
-Postgres and Redis will only be reachable from within Orchest, i.e. from pipeline steps, notebooks
+Redis will only be reachable from within Orchest, i.e. from pipeline steps, notebooks
 and other services.
 
-After adding Redis or Postgres as services, you can use the following snippets of code to verify
-connectivity.
+Connectivity
+~~~~~~~~~~~~
 
-Redis
-~~~~~
-Assumes ``redis-py`` has been installed in the environment used by the step (see the
-:ref:`environments <environments>` section):
+Connection details for configured services can be obtained using the
+:py:meth:`orchest.services.get_service` function. For example, after adding Redis as service,
+you can use the following snippets of code to verify connectivity, assuming ``redis-py`` has been
+installed in the environment used by the step (see the :ref:`environments <environments>` section):
 
 .. code-block:: python
 
@@ -42,25 +47,6 @@ Assumes ``redis-py`` has been installed in the environment used by the step (see
    redis_client = redis.Redis(host=redis_host, port=6379, db=0)
    redis_client.set("hello", "there")
    redis_client.get("hello")
-
-Postgres
-~~~~~~~~
-
-Assumes ``psycopg2`` has been installed in the environment used by the step:
-
-.. code-block:: python
-
-   import orchest
-   import psycopg2
-
-   postgres_host = orchest.get_service("postgres")["internal_hostname"]
-   conn = psycopg2.connect(dbname="postgres", user="postgres", host=postgres_host)
-   cur = conn.cursor()
-   cur.execute("CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);")
-   cur.execute("INSERT INTO test (num, data) VALUES (%s, %s)", (1337, "hello"))
-   cur.execute("SELECT * FROM test;")
-   cur.fetchone()
-
 
 .. _logs:
 

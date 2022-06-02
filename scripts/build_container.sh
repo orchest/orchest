@@ -401,7 +401,15 @@ do
             $build_ctx)
 
         # on orchest-controller build we generate the orchest-controller build manifests
-        verbose_command_wrapper bash -c "TAGNAME=$ORCHEST_VERSION make -C ./services/orchest-controller manifestgen"
+        if [ -x "$(command -v helm)" ] && [ -x "$(command -v make)" ] && [ -x "$(command -v go)" ]; then
+            verbose_command_wrapper bash -c \
+                "TAGNAME=$ORCHEST_VERSION make -C ./services/orchest-controller manifestgen"
+        else
+            # NOTE: Don't fail! Because that would break the Docker CI
+            # on release. The requirement is only needed for development.
+            echo "To develop Orchest you need to satisfy the prerequisites listed at:"
+            echo "https://docs.orchest.io/en/latest/development/development_workflow.html#prerequisites"
+        fi
     fi
 
     # installs orchest-sdk

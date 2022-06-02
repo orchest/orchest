@@ -75,7 +75,7 @@ def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
     flag = CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
-        f"RUN echo {flag} && bash < {bash_script} "
+        f"RUN bash < {bash_script} "
         "&& build_path_ext=/jupyterlab-orchest-build/extensions "
         "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions "
         "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "

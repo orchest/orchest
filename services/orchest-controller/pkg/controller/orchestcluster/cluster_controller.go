@@ -186,7 +186,8 @@ func (occ *OrchestClusterController) intiDeployerManager() {
 
 	occ.deployerManager.AddDeployer("argo",
 		deployer.NewHelmDeployer("argo",
-			path.Join(occ.config.DeployDir, "thirdparty/argo-workflows"), ""))
+			path.Join(occ.config.DeployDir, "thirdparty/argo-workflows"),
+			path.Join(occ.config.DeployDir, "thirdparty/argo-workflows/orchest-values.yaml")))
 
 	occ.deployerManager.AddDeployer("registry",
 		deployer.NewHelmDeployer("registry",

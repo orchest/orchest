@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import AddIcon from "@mui/icons-material/Add";
-import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
+import { createStepAction } from "./action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { PipelineActionButton } from "./PipelineActionButton";
@@ -39,30 +39,12 @@ export const CreateNextStepButton = ({
         pipelineOffsetY,
       ] = pipelineCanvasState.pipelineOffset;
 
-      const position = [
-        -pipelineOffsetX + clientWidth / 2 - STEP_WIDTH / 2,
-        -pipelineOffsetY + clientHeight / 2 - STEP_HEIGHT / 2,
-      ] as [number, number];
+      const position = {
+        x: -pipelineOffsetX + clientWidth / 2 - STEP_WIDTH / 2,
+        y: -pipelineOffsetY + clientHeight / 2 - STEP_HEIGHT / 2,
+      };
 
-      dispatch({
-        type: "CREATE_STEP",
-        payload: {
-          title: "",
-          uuid: uuidv4(),
-          incoming_connections: [],
-          file_path: "",
-          kernel: {
-            name: environment?.language || "python",
-            display_name: environment?.name || "Python",
-          },
-          environment: environment?.uuid || "",
-          parameters: {},
-          meta_data: {
-            position,
-            hidden: false,
-          },
-        },
-      });
+      dispatch(createStepAction(environment, position));
     } catch (error) {
       setAlert("Error", `Unable to create a new step. ${error}`);
     }

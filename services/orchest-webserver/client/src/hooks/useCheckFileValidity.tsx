@@ -8,7 +8,8 @@ import {
   fetcher,
   hasValue,
 } from "@orchest/lib-utils";
-import useSWR from "swr";
+import { useDebounce } from "./useDebounce";
+import { useFetcher } from "./useFetcher";
 
 export const pathValidator = (value: string) => {
   if (!hasValue(value)) return false;
@@ -54,19 +55,20 @@ export const useCheckFileValidity = (
   const isQueryArgsComplete =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
-  const cacheKey = isQueryArgsComplete
-    ? `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
-        projectUuid,
-        pipelineUuid,
-        path,
-      })}`
-    : null;
+  const isValidPathPattern = isQueryArgsComplete && pathValidator(path);
 
-  const { data = false } = useSWR(
-    cacheKey,
-    () => isQueryArgsComplete && isValidFile(projectUuid, pipelineUuid, path),
-    { refreshInterval: 1000 }
+  const delayedPath = useDebounce(path, 250);
+
+  const { data = false, status } = useFetcher<{ message: string }, boolean>(
+    isValidPathPattern
+      ? `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
+          projectUuid,
+          pipelineUuid,
+          path: delayedPath || path,
+        })}`
+      : undefined,
+    { transform: () => true }
   );
 
-  return data;
+  return [isValidPathPattern && data, status === "PENDING"] as const;
 };

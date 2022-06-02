@@ -1,21 +1,29 @@
 import { hasValue } from "@orchest/lib-utils";
-import * as React from "react";
+import React from "react";
 
 export const useInterval = (
   callback: () => void,
   delay: number | null | undefined
 ) => {
-  const savedCallback = React.useRef(callback);
+  const memoizedCallback = React.useRef<() => void>();
+  const intervalId = React.useRef<NodeJS.Timeout>();
+
+  const reset = React.useCallback(() => {
+    if (intervalId.current) clearInterval(intervalId.current);
+    memoizedCallback.current = undefined;
+  }, []);
 
   React.useEffect(() => {
-    savedCallback.current = callback;
-  }, [callback]);
+    memoizedCallback.current = hasValue(delay) ? callback : undefined;
+  }, [callback, delay]);
 
   React.useEffect(() => {
-    if (!hasValue(delay)) return;
-
-    const id = setInterval(() => savedCallback.current(), delay);
-
-    return () => clearInterval(id);
-  }, [delay]);
+    if (hasValue(delay) && memoizedCallback.current) {
+      intervalId.current = setInterval(
+        () => memoizedCallback.current?.(),
+        delay
+      );
+    }
+    return () => reset();
+  }, [delay, reset]);
 };

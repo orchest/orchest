@@ -91,7 +91,7 @@ export const FileManagerContextMenu: React.FC<{
 
     if (!pipelineUuid || !pipelineCwd) return;
 
-    const foundStep = Object.values(pipelineJson.steps).find((step) => {
+    const foundStep = Object.values(pipelineJson?.steps || {}).find((step) => {
       const filePath = joinRelativePaths(pipelineCwd, step.file_path);
       return filePath === cleanFilePath(contextMenuCombinedPath);
     });

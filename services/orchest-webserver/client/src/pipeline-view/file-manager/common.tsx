@@ -147,10 +147,18 @@ export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
   }
 };
 
+const camelToSnakeCase = (str: string) =>
+  str
+    .replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+    .replace(/^_+(.*?)_+$/g, (match, group1) => group1); // Remove leading and trailing underscors.
+
 export const queryArgs = (obj: Record<string, string | number | boolean>) => {
   return Object.entries(obj).reduce((str, [key, value]) => {
     const leadingCharts = str === "" ? str : `${str}&`;
-    return `${leadingCharts}${key}=${window.encodeURIComponent(value)}`;
+    const snakeCaseKey = camelToSnakeCase(key);
+    return `${leadingCharts}${snakeCaseKey}=${window.encodeURIComponent(
+      value
+    )}`;
   }, "");
 };
 

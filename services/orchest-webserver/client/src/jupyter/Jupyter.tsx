@@ -1,6 +1,29 @@
 import { ConfirmDispatcher } from "@/contexts/AppContext";
+import { tryUntilTrue } from "@/utils/webserver-utils";
 import $ from "jquery";
-import { tryUntilTrue } from "../utils/webserver-utils";
+
+// This is to enable using hotkeys to open CommandPalette.
+// Proxy all the keydown events in the iframe to the hosting document object.
+const passKeyboardEvent = (event: KeyboardEvent) => {
+  // Intercept Ctrl/Cmd + k. It's a reserved combination in Firefox
+  // https://support.mozilla.org/en-US/kb/keyboard-shortcuts-perform-firefox-tasks-quickly
+  if (
+    !event.altKey &&
+    !event.shiftKey &&
+    (event.ctrlKey || event.metaKey) &&
+    event.key === "k"
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const keyboardEvent = new KeyboardEvent(event.type, {
+    key: event.key,
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+  });
+  document.dispatchEvent(keyboardEvent);
+};
 
 class Jupyter {
   jupyterHolder: JQuery<HTMLElement>;
@@ -25,7 +48,7 @@ class Jupyter {
     this.initializeJupyter();
   }
 
-  updateJupyterInstance(baseAddress) {
+  updateJupyterInstance(baseAddress: string) {
     if (this.baseAddress != baseAddress) {
       // when a new baseAddress is set, unload iframe since it is no longer valid
       this.unload();
@@ -37,6 +60,10 @@ class Jupyter {
   _unhide() {
     // this method should only be called directly from main.js
     this.jupyterHolder.removeClass("hidden");
+    this.iframe?.contentWindow?.document?.addEventListener(
+      "keydown",
+      passKeyboardEvent
+    );
   }
 
   show() {
@@ -70,9 +97,21 @@ class Jupyter {
     }, 10);
   }
 
+  isShowing() {
+    return (
+      this.isJupyterPage() &&
+      this.isJupyterLoaded() &&
+      !this.jupyterHolder.hasClass("hidden")
+    );
+  }
+
   hide() {
     this.jupyterHolder.addClass("hidden");
     window.clearInterval(this.showCheckInterval);
+    this.iframe?.contentWindow?.document?.removeEventListener(
+      "keydown",
+      passKeyboardEvent
+    );
   }
 
   unload() {
@@ -89,14 +128,11 @@ class Jupyter {
   }
 
   _reloadFilesFromDisk() {
-    // @ts-ignore
-    if (this.iframe.contentWindow._orchest_app) {
+    if (this.iframe?.contentWindow?._orchest_app) {
       this.reloadOnShow = false;
 
-      // @ts-ignore
-      let lab = this.iframe.contentWindow._orchest_app;
-      // @ts-ignore
-      let docManager = this.iframe.contentWindow._orchest_docmanager;
+      let lab = this.iframe?.contentWindow?._orchest_app;
+      let docManager = this.iframe?.contentWindow?._orchest_docmanager;
 
       let citer = lab.shell.widgets("main");
 
@@ -138,8 +174,7 @@ class Jupyter {
 
   isJupyterLoaded() {
     try {
-      // @ts-ignore
-      let widgets = this.iframe.contentWindow._orchest_app.shell.widgets();
+      let widgets = this.iframe?.contentWindow?._orchest_app.shell.widgets();
 
       // a widget is on screen
       let widgetOnScreen = false;
@@ -151,8 +186,7 @@ class Jupyter {
         }
       }
       return (
-        // @ts-ignore
-        this.iframe.contentWindow._orchest_app !== undefined && widgetOnScreen
+        this.iframe?.contentWindow?._orchest_app !== undefined && widgetOnScreen
       );
     } catch {
       return false;
@@ -162,14 +196,11 @@ class Jupyter {
   isJupyterShellRenderedCorrectly() {
     try {
       return (
-        // @ts-ignore
-        this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+        this.iframe?.contentWindow?._orchest_app.shell.node.querySelector(
           "#jp-main-content-panel"
         ).clientWidth ===
-          // @ts-ignore
-          this.iframe.contentWindow._orchest_app.shell.node.clientWidth ||
-        // @ts-ignore
-        this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+          this.iframe?.contentWindow?._orchest_app.shell.node.clientWidth ||
+        this.iframe?.contentWindow?._orchest_app.shell.node.querySelector(
           "#jp-main-content-panel"
         ).clientWidth > 500
       );
@@ -208,10 +239,8 @@ class Jupyter {
       "Notebook? \n\nYou will lose the current kernel's state if no other Notebook " +
       "is attached to it.";
 
-    // @ts-ignore
-    if (this.iframe.contentWindow._orchest_app) {
-      // @ts-ignore
-      let docManager = this.iframe.contentWindow._orchest_docmanager;
+    if (this.iframe?.contentWindow?._orchest_app) {
+      let docManager = this.iframe?.contentWindow?._orchest_docmanager;
 
       let notebookWidget = docManager.findWidget(notebook);
       if (notebookWidget) {
@@ -297,13 +326,11 @@ class Jupyter {
       () => {
         if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {
           try {
-            // @ts-ignore
-            this.iframe.contentWindow._orchest_docmanager.openOrReveal(
+            this.iframe?.contentWindow?._orchest_docmanager.openOrReveal(
               filePath
             );
             return (
-              // @ts-ignore
-              this.iframe.contentWindow._orchest_docmanager.findWidget(
+              this.iframe?.contentWindow?._orchest_docmanager.findWidget(
                 filePath
               ) !== undefined
             );
