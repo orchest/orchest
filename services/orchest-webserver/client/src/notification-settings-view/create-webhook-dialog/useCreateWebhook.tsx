@@ -13,13 +13,13 @@ export type SubscriberPayload = Pick<
   subscriptions: NotificationSubscriptionPayload[];
 };
 
-export const useCreateWebhook = (subscriber: SubscriberPayload) => {
+export const useCreateWebhook = ({ url, ...subscriber }: SubscriberPayload) => {
   const { fetchData, status } = useFetcher<NotificationWebhookSubscriber>(
     `${NOTIFICATION_END_POINT}/subscribers/webhooks`,
     {
       method: "POST",
       headers: HEADER.JSON,
-      body: JSON.stringify(subscriber),
+      body: JSON.stringify({ url: url.trim(), ...subscriber }),
       disableFetchOnMount: true,
     }
   );

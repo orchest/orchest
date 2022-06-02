@@ -157,18 +157,17 @@ export const WebhookList = () => {
           rows={webhookRows}
         />
         <Box>
-          <CreateWebhookDialog isOpen={isOpen} onClose={onClose}>
-            <Button
-              startIcon={<AddOutlinedIcon />}
-              sx={{
-                padding: (theme) => theme.spacing(1, 2),
-                marginBottom: (theme) => theme.spacing(2),
-              }}
-              onClick={() => setIsOpen(true)}
-            >
-              New webhook
-            </Button>
-          </CreateWebhookDialog>
+          <Button
+            startIcon={<AddOutlinedIcon />}
+            sx={{
+              padding: (theme) => theme.spacing(1, 2),
+              marginBottom: (theme) => theme.spacing(2),
+            }}
+            onClick={() => setIsOpen(true)}
+          >
+            New webhook
+          </Button>
+          {isOpen && <CreateWebhookDialog isOpen={isOpen} onClose={onClose} />}
         </Box>
       </Stack>
     </Stack>
