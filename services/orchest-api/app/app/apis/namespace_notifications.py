@@ -71,6 +71,9 @@ class WebhookList(Resource):
         db.session.commit()
         return marshal(webhook, schema.webhook), 201
 
+
+@api.route("/subscribers/webhooks/<string:uuid>")
+class Webhook(Resource):
     @api.doc("update_webhook")
     @api.expect(schema.webhook_mutation, validate=True)
     @api.response(200, "Success", schema.webhook)
@@ -81,21 +84,22 @@ class WebhookList(Resource):
         changed. The original value will remain unchanged if not
         mentioned in the mutation.
         """
-        subscriber = (
-            models.Subscriber.query.options(joinedload(models.Subscriber.subscriptions))
-            .filter(models.Subscriber.uuid == uuid)
-            .first()
-        )
-        if subscriber is None or not isinstance(subscriber, models.Webhook):
-            return {"message": f"Webhook {uuid} does not exist."}, 404
+        try:
+            webhook = (
+                models.Webhook.query.options(joinedload(models.Webhook.subscriptions))
+                .filter(models.Webhook.uuid == uuid)
+                .one_or_none()
+            )
+        except Exception as e:
+            return {"message": f"Webhook {uuid} does not exist. {e}"}, 404
 
         try:
-            subscriber = webhooks.update_webhook(subscriber, request.get_json())
+            webhook = webhooks.update_webhook(webhook, request.get_json())
         except Exception as e:
             return {"message": f"Invalid webhook changes: {e}"}, 400
 
         db.session.commit()
-        return marshal(subscriber, schema.webhook), 200
+        return marshal(webhook, schema.webhook), 200
 
 
 @api.route("/subscribers/webhooks/pre-creation-test-ping-delivery")
