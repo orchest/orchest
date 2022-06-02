@@ -39,6 +39,7 @@ from app.models import (
     Job,
     JupyterImageBuild,
     NonInteractivePipelineRun,
+    Setting,
 )
 from config import CONFIG_CLASS
 
@@ -102,7 +103,7 @@ def create_app(
 
         with app.app_context():
             settings = utils.OrchestSettings()
-            settings.save()
+            settings.save(app)
             app.config.update(settings.as_dict())
 
     # Create a background scheduler (in a daemon thread) for every
@@ -121,12 +122,12 @@ def create_app(
                 # Infinite amount of grace time, so that if a task
                 # cannot be instantly executed (e.g. if the webserver is
                 # busy) then it will eventually be.
-                "misfire_grace_time": 2 ** 31,
+                "misfire_grace_time": 2**31,
                 "coalesce": False,
                 # So that the same job can be in the queue an infinite
                 # amount of times, e.g. for concurrent requests issuing
                 # the same tasks.
-                "max_instances": 2 ** 31,
+                "max_instances": 2**31,
             },
         )
 
@@ -315,6 +316,18 @@ def register_teardown_request(app):
         return response
 
     return app
+
+
+def register_orchest_stop():
+    app = create_app(
+        config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
+    )
+    app.logger.info("Orchest is being stopped")
+
+    with app.app_context():
+        app.logger.info("Updating Settings.")
+        Setting.query.update(dict(requires_restart=False))
+        db.session.commit()
 
 
 def cleanup():
