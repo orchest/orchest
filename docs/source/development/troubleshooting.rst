@@ -197,3 +197,33 @@ Open ``k9s`` and open a shell (``s`` shortcut) on the ``orchest-database`` pod.
 
 Next you need to ``orchest restart`` on your host for the changes to take affect. Or kill the
 appropriate pods so that they restart.
+
+Missing environment variables in pods
+-------------------------------------
+
+**What it looks like**
+   The pods of the ``orchest-api``, ``orchest-webserver``, ``auth-server`` or ``celery-worker`` are
+   having issues related to missing environment variables. E.g. they can't start because a given
+   environment variable is not defined or is wrongly defined.
+
+**Context**
+   Some parts of Orchest, like the ``orchest-controller``, are never stopped, regardless of issuing
+   a ``orchest restart`` or ``orchest stop``. This makes it so that, despite rebuilding all images
+   (i.e. including the controller) on a given branch and restarting Orchest, the new controller
+   image is not actually deployed. This leads to an inconsistency between what's running in the
+   cluster.
+
+**How to solve**
+   - make sure you have built the controller image, ``eval $(minikube -p minikube docker-env)``
+     then ``bash scripts/build_container.sh -i orchest-controller -o $TAG -t $TAG``.
+
+   - stop Orchest, ``orchest stop``.
+
+   - cause a redeployment of the controller image by killing the controller pod,
+     ``kubectl delete pod -n orchest -l app.kubernetes.io/name=orchest-controller``, or
+     scale down and back up the controller deployment, or any other preferred solution.
+   
+   - start Orchest, ``orchest start``.
+
+   
+
