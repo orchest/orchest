@@ -135,7 +135,7 @@ def prepare_build_context(task_uuid):
         # Use image from local daemon if instructed to do so.
         with open(snapshot_setup_script_path, "r") as script_file:
             first_line = script_file.readline()
-            if "# LOCAL" in first_line:
+            if "# LOCAL IMAGE" in first_line:
                 base_image = f"registry:docker-daemon:{base_image}"
                 logger.info(f"Using {base_image}.")
 

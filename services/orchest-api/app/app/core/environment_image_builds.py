@@ -251,11 +251,18 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
             if ":" not in base_image.split("orchest/")[1]:
                 base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
 
-        if (
-            base_image.startswith("registry:docker-daemon:")
-            and not CONFIG_CLASS.DEV_MODE
-        ):
-            raise ValueError("Can't use local daemon base image when not in dev mode.")
+        if CONFIG_CLASS.DEV_MODE:
+            # Don't set it two times.
+            if not base_image.startswith("registry:docker-daemon:"):
+                # Use image from local daemon if instructed to do so.
+                snapshot_setup_script_path = os.path.join(
+                    snapshot_path, bash_script_name
+                )
+                with open(snapshot_setup_script_path, "r") as script_file:
+                    first_line = script_file.readline()
+                    if "# LOCAL IMAGE" in first_line:
+                        base_image = f"registry:docker-daemon:{base_image}"
+                        _logger.info(f"Using {base_image}.")
 
         write_environment_dockerfile(
             base_image,

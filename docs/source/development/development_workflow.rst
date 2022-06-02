@@ -470,40 +470,37 @@ test changes to environment base images.
 
 When running Orchest in development mode (``orchest patch --dev``), the docker socket
 **of the cluster node** will be exposed to the builder. When that's the case, it's
-possible to instruct the builder to pull from the local daemon by specifying a custom base image in
-the environment build page, the image must have the form ``registry:docker-daemon:<your image>``,
-e.g. ``registry:docker-daemon:orchest/base-kernel-py``.
+possible to instruct the builder to pull from the local daemon by adding ``# LOCAL IMAGE`` to the
+first line of the custom build script.
 
 Example:
 
 - ``orchest patch --dev``
 - ``eval $(minikube -p minikube docker-env)``
 - ``bash scripts/build_container.sh -i base-kernel-py -o v2022.05.3 -t v2022.05.3``
-- specify ``registry:docker-daemon:orchest/base-kernel-py`` as the custom base image
-  and build
+- select the image of choice or specify a custom one like ``orchest/base-kernel-new-language``
+- add ``# LOCAL IMAGE`` to the first line of the custom build script and build
 
 .. note::
     As you rebuild, the image builder will pull the newest image.
 
 .. note::
-    You can specify the image tag to avoid the back-end making assumptions for you.
+    When you specify a custom image you can also specify the image tag to avoid the back-end making
+    assumptions for you.
 
 
 Testing jupyter base image changes
 ----------------------------------
 
 Required reading: :ref:`testing environment base image changes <environment base images changes>`.
-
-Orchest does not allow to specify custom jupyter base images, which makes it slightly more difficult
-to tell the back-end that you want to use an image which was built locally. To do so, simply add
-``# LOCAL`` to the first line of the custom build script.
+Again, simply add ``# LOCAL IMAGE`` to the first line of the custom build script.
 
 Example:
 
 - ``orchest patch --dev``
 - ``eval $(minikube -p minikube docker-env)``
 - ``bash scripts/build_container.sh -i jupyter-server -o v2022.05.3 -t v2022.05.3``
-- add ``# LOCAL`` to the first line of the custom build script and build
+- add ``# LOCAL IMAGE`` to the first line of the custom build script and build
 
 .. note::
     It's currently not possible to specify a custom tag, the back-end will always
