@@ -65,10 +65,10 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
     return webhook
 
 
-def _get_subscription_comparison_key(subscription: dict) -> str:
-    event_type = subscription["event_type"]
-    project_uuid = subscription.get("project_uuid", "")
-    job_uuid = subscription.get("job_uuid", "")
+def _get_subscription_comparison_key(subscription: object) -> str:
+    event_type = getattr(subscription, "event_type")
+    project_uuid = getattr(subscription, "project_uuid", "")
+    job_uuid = getattr(subscription, "job_uuid", "")
     return f"{event_type}|{project_uuid}|{job_uuid}"
 
 
@@ -94,7 +94,6 @@ def update_webhook(uuid: str, mutation: dict) -> None:
             models.Webhook.query.options(joinedload(models.Webhook.subscriptions))
             .filter(models.Webhook.uuid == uuid)
             .one()
-            .with_for_update()
         )
     except exc.MultipleResultsFound:
         raise ValueError(f"Multiple webhooks with UUID {uuid} exist")
@@ -103,21 +102,20 @@ def update_webhook(uuid: str, mutation: dict) -> None:
 
     marshalled_mutation = marshal(mutation, schema.webhook_mutation)
 
-    for key in marshalled_mutation:
-        value = marshalled_mutation[key]
+    valid_mutation = [
+        (key, value) for key, value in marshalled_mutation.items() if value is not None
+    ]
 
-        if value is None:
-            raise ValueError(f"Invalid value for '{key}'.")
+    if len(valid_mutation) == 0:
+        raise ValueError("None of the given attributes in the payload is valid.")
+
+    for key, value in valid_mutation:
 
         if key == "url" and not validators.url(value):
             raise ValueError(f"Invalid url: {value}.")
 
-        if key != "subscriptions":
-            webhook.update({key: value})
-        else:
-            existing_subs = models.Subscription.query.filter_by(
-                models.Subscription.subscriber_uuid == uuid
-            )
+        if key == "subscriptions":
+            existing_subs = models.Subscription.query.filter_by(subscriber_uuid=uuid)
             new_subs = notification_utils.subscription_specs_to_subscriptions(
                 webhook.uuid, value
             )
@@ -131,7 +129,7 @@ def update_webhook(uuid: str, mutation: dict) -> None:
             # Delete subscriptions.
             for existing_sub in existing_subs:
                 if _get_subscription_comparison_key(existing_sub) in sub_keys_to_remove:
-                    existing_sub.delete()
+                    db.session.delete(existing_sub)
 
             # Add subscriptions.
             subs_to_add = [
@@ -141,6 +139,9 @@ def update_webhook(uuid: str, mutation: dict) -> None:
             ]
 
             db.session.bulk_save_objects(subs_to_add)
+            continue
+
+        setattr(webhook, key, value)
 
 
 def _create_delivery_payload(delivery: models.Delivery) -> dict:
