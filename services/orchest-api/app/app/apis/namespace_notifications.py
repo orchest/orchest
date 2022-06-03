@@ -86,8 +86,10 @@ class Webhook(Resource):
         """
         try:
             webhooks.update_webhook(uuid, request.get_json())
+        except ValueError as e:
+            return {"message": f"Invalid payload. {e}"}, 400
         except Exception as e:
-            return {"message": f"Failed to update webhook. {e}"}, 400
+            return {"message": f"Failed to update webhook. {e}"}, 500
 
         db.session.commit()
         return {"message": f"Webhook {uuid} has been updated."}, 200
