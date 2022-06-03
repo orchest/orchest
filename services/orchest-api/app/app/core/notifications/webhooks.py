@@ -90,7 +90,7 @@ def update_webhook(uuid: str, mutation: dict) -> None:
     marshalled_mutation = marshal(mutation, schema.webhook_mutation)
 
     for key in marshalled_mutation:
-        value = marshalled_mutation.get(key)
+        value = marshalled_mutation[key]
 
         if value is None:
             raise ValueError(f"Invalid value for '{key}'.")
