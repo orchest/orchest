@@ -34,7 +34,7 @@ your cluster:
 
 .. code-block:: bash
 
-   # Create a minikube cluster with ingress addon enabled
+   # Create a minikube cluster with the ingress addon enabled
    minikube start --cpus 4 --addons ingress
 
 .. tip::
