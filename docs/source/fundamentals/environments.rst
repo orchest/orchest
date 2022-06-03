@@ -138,7 +138,11 @@ For example, to configure an environment with Python 3.10 using mamba, add these
    mamba install -y -n py310 ipykernel jupyter_client ipython_genutils pycryptodomex future "pyarrow<8.0.0"
    mamba run -n py310 pip install orchest
 
-   # Set environment variables so that the new Python version is used
-   # when executing the pipeline and inside kernels
+   # Jupyter environment variable that specifies
+   # a path to search for kernels data files
+   # See https://jupyter-core.readthedocs.io/en/latest/paths.html
    echo "export JUPYTER_PATH=/opt/conda/envs/py310/share/jupyter" >> /home/jovyan/.orchestrc
+
+   # Orchest related environment variable that can be set to specify
+   # the conda environment to use to start Jupyter kernels
    echo "export CONDA_ENV=py310" >> /home/jovyan/.orchestrc
