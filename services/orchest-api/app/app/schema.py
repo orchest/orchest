@@ -904,7 +904,7 @@ webhook_spec = subscriber_spec.inherit(
     },
 )
 
-webhook_mutation = subscriber_spec.inherit(
+webhook_mutation = Model(
     "WebhookMutation",
     {
         "url": fields.String(required=False, description="URL of the webhook."),
@@ -922,6 +922,12 @@ webhook_mutation = subscriber_spec.inherit(
                 models.Webhook.ContentType.JSON.value,
                 models.Webhook.ContentType.URLENCODED.value,
             ],
+        ),
+        "subscriptions": fields.List(
+            fields.Nested(subscription_spec),
+            required=False,
+            description="Collection of subscriptions, elements should be unique.",
+            min_items=1,
         ),
     },
 )
