@@ -930,6 +930,7 @@ webhook_mutation = Model(
             min_items=1,
         ),
     },
+    strict=True,
 )
 
 subscription = Model(
