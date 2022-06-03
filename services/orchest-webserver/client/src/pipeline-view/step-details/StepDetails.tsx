@@ -135,6 +135,7 @@ const StepDetailsComponent: React.FC<{
             <StepDetailsProperties
               pipelineCwd={pipelineCwd}
               readOnly={isReadOnly}
+              shouldAutoFocus={eventVars.shouldAutoFocus}
               onSave={onSave}
               menuMaxWidth={`${panelWidth - 48}px`}
             />
