@@ -2,11 +2,9 @@ import { useFetcher } from "@/hooks/useFetcher";
 import { HEADER, validURL } from "@orchest/lib-utils";
 import React from "react";
 import { NOTIFICATION_END_POINT } from "../common";
-import { SubscriberPayload } from "./useCreateWebhook";
+import { WebhookSpec } from "../notification-webhooks";
 
-export const useVerifyWebhookUrl = (
-  subscriberPayload: Omit<SubscriberPayload, "url">
-) => {
+export const useVerifyWebhookUrl = (webhookSpec: Omit<WebhookSpec, "url">) => {
   const [webhookUrl, setWebhookUrl] = React.useState("");
 
   const { data = false, status, fetchData, error } = useFetcher(
@@ -18,7 +16,7 @@ export const useVerifyWebhookUrl = (
       method: "POST",
       headers: HEADER.JSON,
       body: JSON.stringify({
-        ...subscriberPayload,
+        ...webhookSpec,
         url: webhookUrl,
       }),
       disableFetchOnMount: true,

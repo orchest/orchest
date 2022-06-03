@@ -136,7 +136,6 @@ export const WebhookList = () => {
           Webhooks
         </Typography>
       </Stack>
-
       <Stack
         direction="column"
         spacing={2}

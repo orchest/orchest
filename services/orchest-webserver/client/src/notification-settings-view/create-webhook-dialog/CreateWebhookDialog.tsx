@@ -16,9 +16,10 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { ContentType, hasValue, validURL } from "@orchest/lib-utils";
 import React from "react";
+import { WebhookSpec } from "../notification-webhooks";
 import { useNotificationSettingsContext } from "../NotificationSettingsContext";
 import { WebhookDocLink } from "../WebhookDocLink";
-import { SubscriberPayload, useCreateWebhook } from "./useCreateWebhook";
+import { useCreateWebhook } from "./useCreateWebhook";
 import { useVerifyWebhookUrl } from "./useVerifyWebhookUrl";
 import { WebhookUrlField } from "./WebhookUrlField";
 
@@ -32,7 +33,7 @@ export const CreateWebhookDialog: React.FC<{
   onClose: () => void;
 }> = ({ isOpen, onClose }) => {
   const { setWebhooks, fetchWebhooks } = useAppInnerContext();
-  const { notificationEventTypes } = useNotificationSettingsContext();
+  const { enabledEventTypes } = useNotificationSettingsContext();
   const { setAlert } = useAppContext();
 
   const [webhookName, setWebhookName] = React.useState("");
@@ -43,17 +44,17 @@ export const CreateWebhookDialog: React.FC<{
 
   const [isSslEnabled, setIsSslEnabled] = React.useState(false);
 
-  const webhookPayload = React.useMemo<Omit<SubscriberPayload, "url">>(() => {
+  const webhookSpec = React.useMemo<Omit<WebhookSpec, "url">>(() => {
     return {
       name: webhookName,
       secret,
       content_type: contentType,
       verify_ssl: isSslEnabled,
-      subscriptions: notificationEventTypes.map((type) => ({
-        event_type: type.name,
+      subscriptions: enabledEventTypes.map((event_type) => ({
+        event_type,
       })),
     };
-  }, [notificationEventTypes, contentType, isSslEnabled, secret, webhookName]);
+  }, [enabledEventTypes, contentType, isSslEnabled, secret, webhookName]);
 
   const {
     webhookUrl,
@@ -61,7 +62,7 @@ export const CreateWebhookDialog: React.FC<{
     status,
     verifyUrl,
     isSslAllowed,
-  } = useVerifyWebhookUrl(webhookPayload);
+  } = useVerifyWebhookUrl(webhookSpec);
 
   React.useEffect(() => {
     setIsSslEnabled(isSslAllowed);
@@ -73,7 +74,7 @@ export const CreateWebhookDialog: React.FC<{
   };
 
   const { createWebhook, status: createHookStatus } = useCreateWebhook({
-    ...webhookPayload,
+    ...webhookSpec,
     url: webhookUrl,
   });
 

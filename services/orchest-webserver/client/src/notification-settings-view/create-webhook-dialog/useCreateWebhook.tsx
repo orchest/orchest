@@ -2,18 +2,11 @@ import { useFetcher } from "@/hooks/useFetcher";
 import { HEADER } from "@orchest/lib-utils";
 import { NOTIFICATION_END_POINT } from "../common";
 import {
-  NotificationSubscriptionPayload,
   NotificationWebhookSubscriber,
+  WebhookSpec,
 } from "../notification-webhooks";
 
-export type SubscriberPayload = Pick<
-  NotificationWebhookSubscriber,
-  "url" | "name" | "secret" | "verify_ssl" | "content_type"
-> & {
-  subscriptions: NotificationSubscriptionPayload[];
-};
-
-export const useCreateWebhook = ({ url, ...subscriber }: SubscriberPayload) => {
+export const useCreateWebhook = ({ url, ...subscriber }: WebhookSpec) => {
   const { fetchData, status } = useFetcher<NotificationWebhookSubscriber>(
     `${NOTIFICATION_END_POINT}/subscribers/webhooks`,
     {
