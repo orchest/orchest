@@ -268,7 +268,7 @@ function Row<T, C>({
   isSelected: boolean;
   selectable: boolean;
   isDetailsOpen?: boolean;
-  onRowClick?: (
+  onRowClick: (
     e: React.MouseEvent,
     uuid: string,
     isShowingDetail: boolean
@@ -279,7 +279,7 @@ function Row<T, C>({
   const handleClickRow = (e: React.MouseEvent) => {
     if (!disabled) {
       setIsOpen((current) => {
-        if (onRowClick) onRowClick(e, data.uuid, !current);
+        onRowClick(e, data.uuid, !current);
         return !current;
       });
     }
@@ -290,7 +290,7 @@ function Row<T, C>({
   return (
     <>
       <TableRow
-        hover={hover && !isLoading && !disabled}
+        hover={!isLoading && !disabled && hover}
         onClick={handleClickRow}
         role="checkbox"
         aria-checked={isSelected}
@@ -301,7 +301,7 @@ function Row<T, C>({
           ...(data.details
             ? { "& > *": { borderBottom: "unset !important" } }
             : null),
-          ...(!isLoading && !disabled && (selectable || onRowClick)
+          ...(!isLoading && !disabled && (selectable || hover)
             ? { cursor: "pointer" }
             : null),
           height: data.details ? rowHeight - 1 : rowHeight,
@@ -805,6 +805,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
                     <Row<T, C>
                       isLoading={isFetchingData}
                       disabled={isTableDisabled}
+                      hover={hasValue(onRowClick) || hasValue(row.details)}
                       tableId={id}
                       data={composeRow(row, setData, fetchData)}
                       columns={columns}
