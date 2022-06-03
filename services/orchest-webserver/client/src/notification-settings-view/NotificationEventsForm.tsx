@@ -15,13 +15,13 @@ type NotificationEventTypeColumn = NotificationEventTypeRow & {
 };
 
 const eventExplanationMappings = {
-  "project:one-off-job:failed": "An one-off job failed",
+  "project:one-off-job:failed": "One-off job fails",
   "project:one-off-job:pipeline-run:failed":
-    "A pipeline run of a batch of one-off job runs failed",
-  "project:cron-job:failed": "A cron job failed",
-  "project:cron-job:run:failed": "A cron job run failed",
+    "Any pipeline run from a one-off job fails",
+  "project:cron-job:failed": "Cron job fails",
+  "project:cron-job:run:failed": "Any recurring cron job fails",
   "project:cron-job:run:pipeline-run:failed":
-    "A pipeline run of a batch of cron job runs failed",
+    "Any pipeline run from a recurring cron job fails",
 };
 
 export const NotificationEventsForm = () => {
@@ -83,7 +83,7 @@ export const NotificationEventsForm = () => {
     },
     {
       id: "toggle",
-      label: "Enabled",
+      label: " ",
       render: function renderEventTypeToggle(row) {
         const isEnabled = enabledEventTypes.includes(row.name);
         return (
@@ -116,6 +116,7 @@ export const NotificationEventsForm = () => {
       tableContainerElevation={0}
       columns={columns}
       rows={eventTypeRows}
+      sx={{ padding: (theme) => theme.spacing(2, 0, 2, 6), width: "100%" }}
     />
   );
 };
