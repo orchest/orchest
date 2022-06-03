@@ -90,6 +90,8 @@ func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component
 	}
 
 	// Get the cleanup pod
+	// Note: the cleanup logic is also taking care of registering the
+	// fact that Orchest is being stopped, see (register_orchest_stop).
 	pod, err := reconciler.Client().CoreV1().Pods(component.Namespace).Get(ctx, controller.OrchestApiCleanup, metav1.GetOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
 		return false, err

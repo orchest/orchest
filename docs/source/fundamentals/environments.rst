@@ -47,7 +47,13 @@ can access from within your code. These paths are:
     directory (which will slow down :ref:`job <jobs>` creation).
 
 ``/project-dir``
-    This directory contains all files from your :ref:`project <projects>`.
+    This directory contains all files from your :ref:`project <projects>` and is the working
+    directory when building the environment. This means that you can do:
+
+    .. code-block:: bash
+
+       #!/bin/bash
+       pip install -r requirements.txt
 
 Building an environment
 -----------------------
@@ -98,19 +104,9 @@ includes the packages you need, simply follow the steps in the previous section.
    but conda might need a long time to solve the environment.
 
 .. note::
-   💡 ``Pip``, ``mamba`` and ``conda`` caches are persisted across builds for quicker iterations.
+   💡 ``pip``, ``mamba`` and ``conda`` caches are persisted across builds for quicker iterations.
    Said cache can be ignored or removed using the respective flags (e.g. ``pip install --no-cache``)
    or commands.
-
-Installing packages from a ``requirements.txt``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The *environment set-up script* is run inside the ``/project-dir``, meaning that you can directly
-interact with your project files from within the script. For example:
-
-.. code-block:: bash
-
-   #!/bin/bash
-   pip install -r requirements.txt
 
 Creating a custom environment image
 -----------------------------------
