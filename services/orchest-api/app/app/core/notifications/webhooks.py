@@ -14,7 +14,7 @@ import hmac
 import json
 import secrets
 import uuid
-from typing import Optional
+from typing import List, Optional, Set
 
 import requests
 import validators
@@ -65,6 +65,21 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
     return webhook
 
 
+def _get_subscription_comparison_key(subscription: dict) -> str:
+    event_type = subscription["event_type"]
+    project_uuid = subscription.get("project_uuid", "")
+    job_uuid = subscription.get("job_uuid", "")
+    return f"{event_type}|{project_uuid}|{job_uuid}"
+
+
+def _get_subscription_comparison_key_set(subscriptions: List[dict]) -> Set[str]:
+    sub_keys = set()
+    for subscription in subscriptions:
+        comparison_key = _get_subscription_comparison_key(subscription)
+        sub_keys.add(comparison_key)
+    return sub_keys
+
+
 def update_webhook(uuid: str, mutation: dict) -> None:
     """Update a Webhook, does not commit.
 
@@ -79,13 +94,12 @@ def update_webhook(uuid: str, mutation: dict) -> None:
             models.Webhook.query.options(joinedload(models.Webhook.subscriptions))
             .filter(models.Webhook.uuid == uuid)
             .one()
+            .with_for_update()
         )
     except exc.MultipleResultsFound:
         raise ValueError(f"Multiple webhooks with UUID {uuid} exist")
     except exc.NoResultFound:
         raise ValueError(f"Webhook with UUID {uuid} not found.")
-
-    webhook.with_for_update()
 
     marshalled_mutation = marshal(mutation, schema.webhook_mutation)
 
@@ -101,54 +115,32 @@ def update_webhook(uuid: str, mutation: dict) -> None:
         if key != "subscriptions":
             webhook.update({key: value})
         else:
-            sub_specs = value
-
-            subs_keys = set()
-            sub_specs_to_add = []
-
-            subs = models.Subscription.query.filter_by(
+            existing_subs = models.Subscription.query.filter_by(
                 models.Subscription.subscriber_uuid == uuid
             )
-            project_specific_subs = models.ProjectSpecificSubscription.query.filter_by(
-                models.ProjectSpecificSubscription.subscriber_uuid == uuid
-            )
-
-            for sub_spec in sub_specs:
-                key = "|".join(
-                    [f"{key}:{sub_spec[key]}" for key in sorted(sub_spec.keys())]
-                )
-                if key not in subs_keys:
-                    subs_keys.add(key)
-
-                    project_uuid = sub_spec.get("project_uuid")
-                    job_uuid = sub_spec.get("job_uuid")
-                    event_type = sub_spec.get("event_type")
-
-                    if project_uuid is not None:
-                        project_specific_sub = project_specific_subs.filter(
-                            models.ProjectSpecificSubscription.project_uuid
-                            == project_uuid,
-                            models.ProjectSpecificSubscription.job_uuid == job_uuid,
-                            models.ProjectSpecificSubscription.event_type == event_type,
-                        ).one_or_none()
-
-                        if project_specific_sub is not None:
-                            continue
-
-                    sub = subs.filter(
-                        models.Subscription.event_type == event_type
-                    ).one_or_none()
-
-                    if sub is not None:
-                        continue
-
-                    sub_specs_to_add.append(sub_spec)
-
-            # Add new subscriptions.
             new_subs = notification_utils.subscription_specs_to_subscriptions(
-                webhook.uuid, sub_specs_to_add
+                webhook.uuid, value
             )
-            db.session.bulk_save_objects(new_subs)
+
+            existing_subs_keys = _get_subscription_comparison_key_set(existing_subs)
+            new_subs_keys = _get_subscription_comparison_key_set(new_subs)
+
+            sub_keys_to_remove = existing_subs_keys.difference(new_subs_keys)
+            sub_keys_to_add = new_subs_keys.difference(existing_subs_keys)
+
+            # Delete subscriptions.
+            for existing_sub in existing_subs:
+                if _get_subscription_comparison_key(existing_sub) in sub_keys_to_remove:
+                    existing_sub.delete()
+
+            # Add subscriptions.
+            subs_to_add = [
+                new_sub
+                for new_sub in new_subs
+                if _get_subscription_comparison_key(new_sub) in sub_keys_to_add
+            ]
+
+            db.session.bulk_save_objects(subs_to_add)
 
 
 def _create_delivery_payload(delivery: models.Delivery) -> dict:
