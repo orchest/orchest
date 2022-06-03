@@ -140,5 +140,5 @@ For example, to configure an environment with Python 3.10 using mamba, add these
 
    # Set environment variables so that the new Python version is used
    # when executing the pipeline and inside kernels
-   echo "export JUPYTER_PATH=/opt/conda/envs/py310/share/jupyter" > /home/jovyan/.orchestrc
+   echo "export JUPYTER_PATH=/opt/conda/envs/py310/share/jupyter" >> /home/jovyan/.orchestrc
    echo "export CONDA_ENV=py310" >> /home/jovyan/.orchestrc
