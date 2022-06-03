@@ -19,7 +19,7 @@ from typing import Optional
 import requests
 import validators
 from flask_restx import marshal
-from sqlalchemy.orm import joinedload, noload
+from sqlalchemy.orm import exc, joinedload, noload
 
 from app import errors as self_errors
 from app import models, schema
@@ -78,12 +78,11 @@ def update_webhook(uuid: str, mutation: dict) -> None:
         webhook = (
             models.Webhook.query.options(joinedload(models.Webhook.subscriptions))
             .filter(models.Webhook.uuid == uuid)
-            .one_or_none()
+            .one()
         )
-    except Exception as e:
-        raise ValueError(f"Multiple webhooks with UUID {uuid} exist: {e}")
-
-    if webhook is None:
+    except exc.MultipleResultsFound:
+        raise ValueError(f"Multiple webhooks with UUID {uuid} exist")
+    except exc.NoResultFound:
         raise ValueError(f"Webhook with UUID {uuid} not found.")
 
     webhook.with_for_update()
