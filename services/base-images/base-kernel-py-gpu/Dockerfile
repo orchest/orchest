@@ -42,6 +42,9 @@ RUN python -m venv /home/$NB_USER/venv \
     && pip install -r requirements.txt --no-cache \
     && deactivate
 
+# Empty configuration file for kernel initialization
+RUN touch /home/jovyan/.orchestrc
+
 # Get application files.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
 
@@ -50,6 +53,7 @@ COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runn
 # and end up using the wrong executable to start the kernel.
 ENV JUPYTER_PATH=/opt/conda/share/jupyter
 ENV HOME=/home/$NB_USER
+ENV BASH_ENV=/home/jovyan/.orchestrc
 
 # Environment variable that can be set to specify the conda environment
 # to use to start Jupyter kernels.
