@@ -159,7 +159,7 @@ export const CreateWebhookDialog: React.FC<{
               fullWidth
               sx={{ marginTop: (theme) => theme.spacing(2) }}
               label="Webhook name"
-              helperText={"For telling apart webhooks with similar URL's"}
+              helperText={"For telling apart webhooks with similar URLs"}
               disabled={isCreating}
               value={webhookName}
               onChange={(e) => setWebhookName(e.target.value)}
@@ -193,7 +193,7 @@ export const CreateWebhookDialog: React.FC<{
               }
               label={
                 <Typography variant="caption">
-                  {`SSL verification (unavailable for HTTP URL's)`}
+                  {`SSL verification (unavailable for HTTP URLs)`}
                 </Typography>
               }
             />

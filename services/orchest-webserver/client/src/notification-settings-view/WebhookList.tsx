@@ -147,14 +147,16 @@ export const WebhookList = () => {
           </Typography>
           <WebhookDocLink>Webhook docs</WebhookDocLink>
         </Stack>
-        <DataTable<WebhookRow, WebhookColumn>
-          id="webhook-list"
-          hideSearch
-          disablePagination
-          tableContainerElevation={0}
-          columns={columns}
-          rows={webhookRows}
-        />
+        {webhookRows.length > 0 && (
+          <DataTable<WebhookRow, WebhookColumn>
+            id="webhook-list"
+            hideSearch
+            disablePagination
+            tableContainerElevation={0}
+            columns={columns}
+            rows={webhookRows}
+          />
+        )}
         <Box>
           <Button
             startIcon={<AddOutlinedIcon />}

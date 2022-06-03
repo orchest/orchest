@@ -43,8 +43,8 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     revalidateOnFocus && hasBrowserFocusChanged && isFocused;
 
   const fetchData = React.useCallback(
-    (newUrl?: string): Promise<Data> | void => {
-      const targetUrl = newUrl || url;
+    (newUrl?: unknown): Promise<Data> | void => {
+      const targetUrl = typeof newUrl === "string" ? newUrl || url : url;
       if (!targetUrl) return;
       return run(
         fetcher<FetchedValue>(targetUrl, paramsRef.current).then(
