@@ -19,7 +19,7 @@ from typing import List, Optional, Set
 import requests
 import validators
 from flask_restx import marshal
-from sqlalchemy.orm import exc, joinedload, noload
+from sqlalchemy.orm import exc, noload
 
 from app import errors as self_errors
 from app import models, schema
@@ -91,10 +91,17 @@ def update_webhook(uuid: str, mutation: dict) -> None:
 
     try:
         webhook = (
-            models.Webhook.query.options(joinedload(models.Webhook.subscriptions))
+            models.Webhook.query.with_for_update()
             .filter(models.Webhook.uuid == uuid)
             .one()
         )
+        if mutation.get("subscriptions") is not None:
+            # Query subscriptions separately because with_for_update
+            # does not support joinload
+            existing_subs = models.Subscription.query.with_for_update().filter_by(
+                subscriber_uuid=uuid
+            )
+
     except exc.MultipleResultsFound:
         raise ValueError(f"Multiple webhooks with UUID {uuid} exist")
     except exc.NoResultFound:
@@ -115,7 +122,6 @@ def update_webhook(uuid: str, mutation: dict) -> None:
             raise ValueError(f"Invalid url: {value}.")
 
         if key == "subscriptions":
-            existing_subs = models.Subscription.query.filter_by(subscriber_uuid=uuid)
             new_subs = notification_utils.subscription_specs_to_subscriptions(
                 webhook.uuid, value
             )
