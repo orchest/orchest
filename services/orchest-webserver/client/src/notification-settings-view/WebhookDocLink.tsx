@@ -12,7 +12,7 @@ export const WebhookDocLink: React.FC = ({ children }) => {
         alignItems: "center",
         margin: (theme) => theme.spacing(0, 1, 0, 2),
       }}
-      href="https://google.com" // TODO: change this
+      href="https://docs.orchest.io/en/stable/fundamentals/notifications.html"
       target="_blank"
       rel="noopener noreferrer"
     >
