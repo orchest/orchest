@@ -500,7 +500,7 @@ export const DataTable = <T extends Record<string, any>>({
 
   const { run, status, error, data, setData } = useAsync<
     DataTableFetcherResponse<T>
-  >({ caching: true });
+  >();
   const fetchData = React.useCallback(async () => {
     if (fetcher) {
       return fetcher({
