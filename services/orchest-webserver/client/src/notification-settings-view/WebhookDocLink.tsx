@@ -6,6 +6,7 @@ export const WebhookDocLink: React.FC = ({ children }) => {
   return (
     <Link
       variant="body2"
+      underline="hover"
       sx={{
         display: "flex",
         flexDirection: "row",

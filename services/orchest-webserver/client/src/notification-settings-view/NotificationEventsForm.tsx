@@ -89,6 +89,7 @@ export const NotificationEventsForm = () => {
         return (
           <Switch
             size="small"
+            disabled={webhookUuids.length === 0}
             inputProps={{
               "aria-label": `Switch ${isEnabled ? "off" : "on"} event: ${
                 eventExplanationMappings[row.name]

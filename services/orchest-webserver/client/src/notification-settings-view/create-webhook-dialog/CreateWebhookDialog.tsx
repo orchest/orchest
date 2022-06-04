@@ -201,7 +201,7 @@ export const CreateWebhookDialog: React.FC<{
         </DialogContent>
         <DialogActions>
           <Button
-            color="secondary"
+            color="primary"
             tabIndex={-1}
             disabled={isCreating}
             onClick={closeDialog}

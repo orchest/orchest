@@ -28,7 +28,7 @@ export const useFetchNotificationEventTypes = (
     setEnabledEventTypes,
   } = useFetchSubscribedEventTypes(webhookUuid);
 
-  // If user does not have any webhook, assume all given events.
+  // If user does not have any webhook yet, default all job-related events.
   // This could also happen when user delete all existing webhooks.
   React.useEffect(() => {
     if (notificationEventTypes && !webhookUuid) {
