@@ -146,7 +146,9 @@ class ClusterStatus(enum.Enum):
     DELETING = "Deleting"
 
 
-def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> None:
+def install(
+    cloud: bool, dev_mode: bool, disable_argo: bool, fqdn: t.Optional[str], **kwargs
+) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
@@ -156,13 +158,21 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
         if e.reason == "Conflict":
             echo(f"Installing into existing namespace: {ns}.")
 
+    if disable_argo:
+        echo(
+            "ArgoWorkflow installation is disabled, Orchest Controller assumes"
+            "ArgoWorkflow is already installed on your cluster"
+        )
+
+        manifest_file_name = "orchest-controller-disable-argo.yaml"
+    else:
+        manifest_file_name = "orchest-controller.yaml"
+
     echo("Installing the Orchest Controller to manage the Orchest Cluster...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
-        with open(
-            "services/orchest-controller/deploy/k8s/orchest-controller.yaml"
-        ) as f:
+        with open(f"services/orchest-controller/deploy/k8s/{manifest_file_name}") as f:
             txt_deploy_controller = f.read()
     else:
         version = _fetch_latest_available_version(curr_version=None, is_cloud=cloud)
@@ -175,7 +185,9 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
             )
             sys.exit(1)
         try:
-            txt_deploy_controller = _fetch_orchest_controller_manifests(version)
+            txt_deploy_controller = _fetch_orchest_controller_manifests(
+                version, manifest_file_name
+            )
         except RuntimeError as e:
             echo(f"{e}", err=True)
             sys.exit(1)
@@ -374,6 +386,7 @@ def update(
     version: t.Optional[str],
     watch_flag: bool,
     dev_mode: bool,
+    disable_argo: bool,
     **kwargs,
 ) -> None:
     """Updates Orchest."""
@@ -469,17 +482,27 @@ def update(
         )
         sys.exit(1)
 
+    if disable_argo:
+        echo(
+            "ArgoWorkflow installation is disabled, Orchest Controller assumes"
+            "ArgoWorkflow is already installed on your cluster"
+        )
+
+        manifest_file_name = "orchest-controller-disable-argo.yaml"
+    else:
+        manifest_file_name = "orchest-controller.yaml"
+
     echo("Updating the Orchest Controller deployment requirements...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
-        with open(
-            "services/orchest-controller/deploy/k8s/orchest-controller.yaml"
-        ) as f:
+        with open(f"services/orchest-controller/deploy/k8s/{manifest_file_name}") as f:
             txt_deploy_controller = f.read()
     else:
         try:
-            txt_deploy_controller = _fetch_orchest_controller_manifests(version)
+            txt_deploy_controller = _fetch_orchest_controller_manifests(
+                version, manifest_file_name
+            )
         except RuntimeError as e:
             echo(f"{e}", err=True)
             sys.exit(1)
@@ -1341,10 +1364,12 @@ def _fetch_latest_available_version(
         return None
 
 
-def _fetch_orchest_controller_manifests(version: t.Optional[str]) -> str:
+def _fetch_orchest_controller_manifests(
+    version: t.Optional[str], manifest_file_name: str
+) -> str:
     url = (
         "https://github.com/orchest/orchest"
-        f"/releases/download/{version}/orchest-controller.yaml"
+        f"/releases/download/{version}/{manifest_file_name}"
     )
     resp = requests.get(url, timeout=10)
     if resp.status_code != 200:
