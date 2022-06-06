@@ -1,18 +1,25 @@
 import { useFetcher } from "@/hooks/useFetcher";
-import { NOTIFICATION_END_POINT } from "./common";
 import {
-  NotificationSubscription,
-  NotificationWebhookSubscriberWithSubscription,
-} from "./notification-webhooks";
+  eventExplanationMappings,
+  EventForDisplay,
+  NOTIFICATION_END_POINT,
+} from "./common";
+import { NotificationWebhookSubscriberWithSubscription } from "./notification-webhooks";
 
 export const useFetchSubscribedEventTypes = (uuid: string | undefined) => {
   const { data, setData, status } = useFetcher<
     NotificationWebhookSubscriberWithSubscription,
-    NotificationSubscription["event_type"][]
+    EventForDisplay[]
   >(uuid ? `${NOTIFICATION_END_POINT}/subscribers/${uuid}` : undefined, {
-    transform: (data) =>
-      data.subscriptions.map((subscription) => subscription.event_type),
-    caching: true, // enabledEventTypes should be persisted when uuid becomes undefined again.
+    transform: (data) => {
+      return data.subscriptions.reduce((eventsForDisplay, subscription) => {
+        const eventForDisplay =
+          eventExplanationMappings[subscription.event_type];
+        if (!eventForDisplay || eventsForDisplay.includes(eventForDisplay))
+          return eventsForDisplay;
+        return [...eventsForDisplay, eventForDisplay];
+      }, [] as EventForDisplay[]);
+    },
   });
 
   return {

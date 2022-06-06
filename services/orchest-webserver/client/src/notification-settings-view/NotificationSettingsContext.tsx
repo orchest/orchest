@@ -1,15 +1,13 @@
 import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import { StateDispatcher } from "@/hooks/useAsync";
 import React from "react";
-import { NotificationSubscription } from "./notification-webhooks";
+import { EventForDisplay } from "./common";
 import { useFetchNotificationEventTypes } from "./useFetchNotificationEventTypes";
 
 export type NotificationSettingsContextType = {
-  notificationEventTypes: NotificationSubscription["event_type"][];
-  enabledEventTypes: NotificationSubscription["event_type"][];
-  setEnabledEventTypes: StateDispatcher<
-    NotificationSubscription["event_type"][]
-  >;
+  notificationEventTypes: EventForDisplay[];
+  enabledEventTypes: EventForDisplay[];
+  setEnabledEventTypes: StateDispatcher<EventForDisplay[]>;
 };
 
 export const NotificationSettingsContext = React.createContext<

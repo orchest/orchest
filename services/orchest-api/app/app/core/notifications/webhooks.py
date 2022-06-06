@@ -39,26 +39,28 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
 
     """
 
-    if not validators.url(webhook_spec["url"]):
-        raise ValueError(f'Invalid url: {webhook_spec["url"]}.')
+    marshaled_webhook_spec = marshal(webhook_spec, schema.webhook_spec)
 
-    secret = webhook_spec.get("secret")
+    if not validators.url(marshaled_webhook_spec["url"]):
+        raise ValueError(f'Invalid url: {marshaled_webhook_spec["url"]}.')
+
+    secret = marshaled_webhook_spec.get("secret")
     # Replace None and "".
     if secret is None or not secret:
         secret = secrets.token_hex(64)
 
     webhook = models.Webhook(
-        url=webhook_spec["url"],
-        name=webhook_spec["name"],
-        verify_ssl=webhook_spec["verify_ssl"],
+        url=marshaled_webhook_spec["url"],
+        name=marshaled_webhook_spec["name"],
+        verify_ssl=marshaled_webhook_spec["verify_ssl"],
         secret=secret,
-        content_type=webhook_spec["content_type"],
+        content_type=marshaled_webhook_spec["content_type"],
     )
     db.session.add(webhook)
 
     db.session.flush()
     subs = notification_utils.subscription_specs_to_subscriptions(
-        webhook.uuid, webhook_spec["subscriptions"]
+        webhook.uuid, marshaled_webhook_spec["subscriptions"]
     )
     db.session.bulk_save_objects(subs)
 

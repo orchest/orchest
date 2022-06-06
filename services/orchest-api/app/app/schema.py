@@ -877,7 +877,7 @@ subscriber_spec = Model(
         "subscriptions": fields.List(
             fields.Nested(subscription_spec),
             description="Collection of subscriptions, elements should be unique.",
-            min_items=1,
+            min_items=0,
         ),
     },
 )
@@ -927,7 +927,7 @@ webhook_mutation = Model(
             fields.Nested(subscription_spec),
             required=False,
             description="Collection of subscriptions, elements should be unique.",
-            min_items=1,
+            min_items=0,
         ),
     },
     strict=True,

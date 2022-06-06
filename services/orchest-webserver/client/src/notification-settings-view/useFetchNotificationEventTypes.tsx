@@ -1,10 +1,11 @@
 import { useFetcher } from "@/hooks/useFetcher";
 import React from "react";
-import { NOTIFICATION_END_POINT } from "./common";
 import {
-  NotificationEventType,
-  NotificationSubscription,
-} from "./notification-webhooks";
+  eventExplanationMappings,
+  EventForDisplay,
+  NOTIFICATION_END_POINT,
+} from "./common";
+import { NotificationEventType } from "./notification-webhooks";
 import { useFetchSubscribedEventTypes } from "./useFetchSubscribedEventTypes";
 
 export const useFetchNotificationEventTypes = (
@@ -12,12 +13,23 @@ export const useFetchNotificationEventTypes = (
 ) => {
   const { data: notificationEventTypes } = useFetcher<
     { events: NotificationEventType[] },
-    NotificationSubscription["event_type"][]
+    EventForDisplay[]
   >(`${NOTIFICATION_END_POINT}/subscribable-events`, {
     transform: (response) =>
       response.events
-        .filter((event) => /^project:.*\:failed$/.test(event.name))
-        .map((event) => event.name),
+        .filter((event) =>
+          /^project:.*\:pipeline-run\:failed$/.test(event.name)
+        )
+        .reduce((allDisplayedEvents, event) => {
+          const eventForDisplay = eventExplanationMappings[event.name];
+          if (
+            !eventForDisplay ||
+            allDisplayedEvents.includes(eventForDisplay)
+          ) {
+            return allDisplayedEvents;
+          }
+          return [...allDisplayedEvents, eventForDisplay];
+        }, [] as EventForDisplay[]),
   });
 
   const {

@@ -1,30 +1,30 @@
 import { DataTable, DataTableColumn } from "@/components/DataTable";
+import { useAppContext } from "@/contexts/AppContext";
 import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import Switch from "@mui/material/Switch";
 import React from "react";
-import { NotificationEventType, updateWebhook } from "./notification-webhooks";
+import { displayEventMappings, EventForDisplay } from "./common";
+import {
+  NotificationSubscription,
+  updateWebhook,
+} from "./notification-webhooks";
 import { useNotificationSettingsContext } from "./NotificationSettingsContext";
 
-type NotificationEventTypeRow = { uuid: string } & Pick<
-  NotificationEventType,
-  "name"
->;
+type NotificationEventTypeRow = {
+  uuid: EventForDisplay;
+  name: EventForDisplay;
+};
 
 type NotificationEventTypeColumn = NotificationEventTypeRow & {
   toggle: React.ReactNode;
 };
 
-const eventExplanationMappings = {
-  "project:one-off-job:failed": "One-off job fails",
-  "project:one-off-job:pipeline-run:failed":
-    "Any pipeline run from a one-off job fails",
-  "project:cron-job:failed": "Cron job fails",
-  "project:cron-job:run:failed": "Any recurring cron job fails",
-  "project:cron-job:run:pipeline-run:failed":
-    "Any pipeline run from a recurring cron job fails",
+const eventExplanationMappings: Record<EventForDisplay, string> = {
+  "display:job-run-fails": "Job run fails",
 };
 
 export const NotificationEventsForm = () => {
+  const { setAlert } = useAppContext();
   const { webhooks } = useAppInnerContext();
   const {
     notificationEventTypes,
@@ -37,22 +37,34 @@ export const NotificationEventsForm = () => {
   }, [webhooks]);
 
   const updateSubscriptions = React.useCallback(
-    (eventTypes: string[]) => {
-      return Promise.all(
-        webhookUuids.map((uuid) =>
-          updateWebhook(uuid, {
-            subscriptions: eventTypes.map((event_type) => ({
-              event_type,
-            })),
-          })
-        )
-      );
+    async (eventTypes: NotificationSubscription["event_type"][]) => {
+      try {
+        Promise.all(
+          webhookUuids.map((uuid) =>
+            updateWebhook(uuid, {
+              subscriptions: eventTypes.map((event_type) => ({
+                event_type,
+              })),
+            })
+          )
+        );
+      } catch (error) {
+        setAlert(
+          "Error",
+          "Failed to update the configurations for the webhooks.",
+          (resolve) => {
+            resolve(true);
+            window.location.reload();
+            return true;
+          }
+        );
+      }
     },
-    [webhookUuids]
+    [webhookUuids, setAlert]
   );
 
   const handleEvent = React.useCallback(
-    (eventType: string, value: boolean) => {
+    (eventType: EventForDisplay, value: boolean) => {
       setEnabledEventTypes((current) => {
         const updatedEnabledEventTypes = value
           ? current
@@ -62,7 +74,11 @@ export const NotificationEventsForm = () => {
               (existingEventType) => existingEventType !== eventType
             );
 
-        updateSubscriptions(updatedEnabledEventTypes);
+        updateSubscriptions(
+          updatedEnabledEventTypes.flatMap(
+            (eventsForDisplay) => displayEventMappings[eventsForDisplay] || []
+          )
+        );
 
         return updatedEnabledEventTypes;
       });

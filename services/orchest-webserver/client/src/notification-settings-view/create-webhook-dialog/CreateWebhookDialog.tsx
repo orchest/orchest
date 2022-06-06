@@ -16,6 +16,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { ContentType, hasValue, validURL } from "@orchest/lib-utils";
 import React from "react";
+import { displayEventMappings } from "../common";
 import { WebhookSpec } from "../notification-webhooks";
 import { useNotificationSettingsContext } from "../NotificationSettingsContext";
 import { WebhookDocLink } from "../WebhookDocLink";
@@ -50,9 +51,11 @@ export const CreateWebhookDialog: React.FC<{
       secret,
       content_type: contentType,
       verify_ssl: isSslEnabled,
-      subscriptions: enabledEventTypes.map((event_type) => ({
-        event_type,
-      })),
+      subscriptions: enabledEventTypes
+        .flatMap(
+          (eventsForDisplay) => displayEventMappings[eventsForDisplay] || []
+        )
+        .map((event_type) => ({ event_type })),
     };
   }, [enabledEventTypes, contentType, isSslEnabled, secret, webhookName]);
 
@@ -153,7 +156,6 @@ export const CreateWebhookDialog: React.FC<{
                   </MenuItem>
                 ))}
               </Select>
-              {/* <FormHelperText> </FormHelperText> */}
             </FormControl>
             <TextField
               fullWidth
