@@ -168,9 +168,7 @@ export const CreateWebhookDialog: React.FC<{
               fullWidth
               sx={{ marginTop: (theme) => theme.spacing(2) }}
               label="Secret"
-              helperText={
-                "Generate secret and paste here and use this secret to verify the incoming notification"
-              }
+              helperText="This secret will be used to securely sign the payload."
               disabled={isCreating}
               value={secret}
               onChange={(e) => setSecret(e.target.value)}
