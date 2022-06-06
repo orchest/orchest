@@ -161,7 +161,7 @@ def install(
     if disable_argo:
         echo(
             "ArgoWorkflow installation is disabled, Orchest Controller assumes"
-            "ArgoWorkflow is already installed on your cluster"
+            " ArgoWorkflow is already installed on your cluster."
         )
 
         manifest_file_name = "orchest-controller-disable-argo.yaml"
