@@ -5,31 +5,33 @@ import (
 	"path"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"k8s.io/klog/v2"
 )
 
 var (
 	// list of all addons
 	ArgoWorkflow   = "argo-workflow"
-	DockerRegistry = "docker-registry"
-
-	// default orchest-system namespace
-	Namespace = "orchest-system"
+	DockerRegistry = "docker-regitry"
 )
 
 type AddonsConfig struct {
 
-	// The list of addons to enable
-	Addons []string
+	// The list of addons to disable
+	DisabledAddons []string
 
 	AssetDir string
+
+	DefaultNamespace string
 }
 
 func NewDefaultAddonsConfig() AddonsConfig {
 	return AddonsConfig{
-		Addons: []string{ArgoWorkflow},
+		DisabledAddons: []string{ArgoWorkflow},
 
 		AssetDir: "deploy",
+
+		DefaultNamespace: "orchest",
 	}
 }
 
@@ -74,11 +76,27 @@ func (m *AddonManager) Run(stopCh <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	for _, addonName := range m.config.Addons {
+	for addonName, addon := range m.addons {
+
+		//addon is not disabled
+		if !utils.Contains(m.config.DisabledAddons, addonName) {
+
+			err := addon.Enable(ctx, m.config.DefaultNamespace, nil)
+
+			if err != nil {
+				klog.Errorf("failed to deploy addon: %s, err: %s", addonName, err)
+			} else {
+				klog.Infof("addon is enabled %s", addonName)
+				defer addon.Uninstall(ctx, m.config.DefaultNamespace)
+			}
+		}
+	}
+
+	for _, addonName := range m.config.DisabledAddons {
 		if addon, ok := m.addons[addonName]; ok {
 			// enable addon
-			addon.Enable(ctx, Namespace, nil)
-			defer addon.Uninstall(ctx, Namespace)
+			addon.Enable(ctx, m.config.DefaultNamespace, nil)
+			defer addon.Uninstall(ctx, m.config.DefaultNamespace)
 		} else {
 			klog.Warningf("Addon %s is not registered with addon manager")
 		}

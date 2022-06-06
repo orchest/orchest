@@ -93,11 +93,14 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&serverConfig.Endpoint,
 		"endpoint", serverConfig.Endpoint, "The endpoint of Http Server")
 
-	cmd.PersistentFlags().StringSliceVar(&addonsConfig.Addons, "addons", addonsConfig.Addons,
-		"the default addons to enable on controller deployment")
+	cmd.PersistentFlags().StringArrayVar(&addonsConfig.DisabledAddons, "disable", addonsConfig.DisabledAddons,
+		"Which addons to disable on orchest-controller installation")
 
 	cmd.PersistentFlags().StringVar(&addonsConfig.AssetDir,
 		"assetDir", addonsConfig.AssetDir, "The directory of assets")
+
+	cmd.PersistentFlags().StringVar(&addonsConfig.DefaultNamespace,
+		"namespace", addonsConfig.DefaultNamespace, "The default namespace for installing addons")
 
 	cmd.PersistentFlags().BoolVar(&inCluster,
 		"inCluster", true, "In/Out cluster indicator")
