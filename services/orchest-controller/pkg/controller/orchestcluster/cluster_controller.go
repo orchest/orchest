@@ -543,7 +543,7 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			return err
 		}
 
-		err = occ.addonManager.Get("registry").Enable(ctx, orchest.Namespace, nil)
+		err = occ.addonManager.Get(addons.DockerRegistry).Enable(ctx, orchest.Namespace, nil)
 		if err != nil {
 			klog.Error(err)
 			return err

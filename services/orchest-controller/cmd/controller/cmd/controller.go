@@ -93,8 +93,8 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&serverConfig.Endpoint,
 		"endpoint", serverConfig.Endpoint, "The endpoint of Http Server")
 
-	cmd.PersistentFlags().StringArrayVar(&addonsConfig.DisabledAddons, "disable", addonsConfig.DisabledAddons,
-		"Which addons to disable on orchest-controller installation")
+	cmd.PersistentFlags().StringArrayVar(&addonsConfig.DefaultAddons, "enable", addonsConfig.DefaultAddons,
+		"Default addons to enable on orchest-controller installation")
 
 	cmd.PersistentFlags().StringVar(&addonsConfig.AssetDir,
 		"assetDir", addonsConfig.AssetDir, "The directory of assets")

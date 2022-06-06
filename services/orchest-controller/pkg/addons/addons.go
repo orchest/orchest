@@ -5,7 +5,6 @@ import (
 	"path"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"k8s.io/klog/v2"
 )
 
@@ -18,7 +17,7 @@ var (
 type AddonsConfig struct {
 
 	// The list of addons to disable
-	DisabledAddons []string
+	DefaultAddons []string
 
 	AssetDir string
 
@@ -27,7 +26,7 @@ type AddonsConfig struct {
 
 func NewDefaultAddonsConfig() AddonsConfig {
 	return AddonsConfig{
-		DisabledAddons: []string{ArgoWorkflow},
+		DefaultAddons: []string{},
 
 		AssetDir: "deploy",
 
@@ -56,13 +55,13 @@ func NewAddonManager(config AddonsConfig) *AddonManager {
 		addons: make(map[string]Addon),
 	}
 
-	addonManager.AddAddon("argo",
-		NewHelmDeployer("argo",
+	addonManager.AddAddon(ArgoWorkflow,
+		NewHelmDeployer(ArgoWorkflow,
 			path.Join(config.AssetDir, "thirdparty/argo-workflows"),
 			path.Join(config.AssetDir, "thirdparty/argo-workflows/orchest-values.yaml")))
 
-	addonManager.AddAddon("registry",
-		NewHelmDeployer("registry",
+	addonManager.AddAddon(DockerRegistry,
+		NewHelmDeployer(DockerRegistry,
 			path.Join(config.AssetDir, "thirdparty/docker-registry/helm"),
 			path.Join(config.AssetDir, "thirdparty/docker-registry/orchest-values.yaml")))
 
@@ -76,29 +75,20 @@ func (m *AddonManager) Run(stopCh <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	for addonName, addon := range m.addons {
+	// Enable default addons
+	for _, addonName := range m.config.DefaultAddons {
 
-		//addon is not disabled
-		if !utils.Contains(m.config.DisabledAddons, addonName) {
-
+		if addon, ok := m.addons[addonName]; ok {
+			// addon is registered with the addon manager
 			err := addon.Enable(ctx, m.config.DefaultNamespace, nil)
-
 			if err != nil {
 				klog.Errorf("failed to deploy addon: %s, err: %s", addonName, err)
 			} else {
 				klog.Infof("addon is enabled %s", addonName)
 				defer addon.Uninstall(ctx, m.config.DefaultNamespace)
 			}
-		}
-	}
-
-	for _, addonName := range m.config.DisabledAddons {
-		if addon, ok := m.addons[addonName]; ok {
-			// enable addon
-			addon.Enable(ctx, m.config.DefaultNamespace, nil)
-			defer addon.Uninstall(ctx, m.config.DefaultNamespace)
 		} else {
-			klog.Warningf("Addon %s is not registered with addon manager")
+			klog.Errorf("addon is not enabled with the addon manager addon: %s", addonName)
 		}
 	}
 

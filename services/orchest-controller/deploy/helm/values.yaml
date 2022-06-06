@@ -9,5 +9,5 @@ image:
   tag: latest
 
 
-# Uncomment to disable argo installation
-#disableArgo:true
+addons:
+  enableArgo: true

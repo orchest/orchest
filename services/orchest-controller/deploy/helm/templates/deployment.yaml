@@ -13,8 +13,8 @@ deployment
         - containerPort: 80
         args:
         - --namespace=$NAMESPACE
-        {{ if .Values.disableArgo}}
-        - --disable=argo-workflow
+        {{ if eq .Values.addons.enableArgo "true" }}
+        - --enable=argo-workflow
         {{ end }}
         env:
           - name: NAMESPACE
