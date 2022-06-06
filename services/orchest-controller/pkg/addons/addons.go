@@ -77,19 +77,7 @@ func (m *AddonManager) Run(stopCh <-chan struct{}) {
 
 	// Enable default addons
 	for _, addonName := range m.config.DefaultAddons {
-
-		if addon, ok := m.addons[addonName]; ok {
-			// addon is registered with the addon manager
-			err := addon.Enable(ctx, m.config.DefaultNamespace, nil)
-			if err != nil {
-				klog.Errorf("failed to deploy addon: %s, err: %s", addonName, err)
-			} else {
-				klog.Infof("addon is enabled %s", addonName)
-				defer addon.Uninstall(ctx, m.config.DefaultNamespace)
-			}
-		} else {
-			klog.Errorf("addon is not enabled with the addon manager addon: %s", addonName)
-		}
+		m.EnableAddon(ctx, addonName, m.config.DefaultNamespace)
 	}
 
 	<-stopCh
@@ -106,6 +94,31 @@ func (m *AddonManager) AddAddon(name string, addon Addon) {
 
 	m.addons[name] = addon
 	klog.V(2).Info("addon is registred with addon manager")
+}
+
+// Enable an addon
+func (m *AddonManager) EnableAddon(ctx context.Context, addonName, namespace string) {
+
+	funcCtx, cancel := context.WithCancel(ctx)
+
+	go func(ctx context.Context, cancel context.CancelFunc) {
+		if addon, ok := m.addons[addonName]; ok {
+			// addon is registered with the addon manager
+			err := addon.Enable(ctx, namespace, nil)
+			if err != nil {
+				klog.Errorf("failed to deploy addon: %s, err: %s", addonName, err)
+				cancel()
+			} else {
+				klog.Infof("addon is enabled %s", addonName)
+				defer addon.Uninstall(ctx, namespace)
+			}
+		} else {
+			klog.Errorf("addon is not enabled with the addon manager addon: %s", addonName)
+		}
+
+		<-ctx.Done()
+
+	}(funcCtx, cancel)
 }
 
 // get a deployer by the name
