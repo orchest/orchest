@@ -65,14 +65,16 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
     return webhook
 
 
-def _get_subscription_comparison_key(subscription: object) -> str:
+def _get_subscription_comparison_key(subscription: models.Subscription) -> str:
     event_type = getattr(subscription, "event_type")
     project_uuid = getattr(subscription, "project_uuid", "")
     job_uuid = getattr(subscription, "job_uuid", "")
     return f"{event_type}|{project_uuid}|{job_uuid}"
 
 
-def _get_subscription_comparison_key_set(subscriptions: List[dict]) -> Set[str]:
+def _get_subscription_comparison_key_set(
+    subscriptions: List[models.Subscription],
+) -> Set[str]:
     sub_keys = set()
     for subscription in subscriptions:
         comparison_key = _get_subscription_comparison_key(subscription)
@@ -97,7 +99,7 @@ def update_webhook(uuid: str, mutation: dict) -> None:
         )
         if mutation.get("subscriptions") is not None:
             # Query subscriptions separately because with_for_update
-            # does not support joinload
+            # does not support joinload.
             existing_subs = models.Subscription.query.with_for_update().filter_by(
                 subscriber_uuid=uuid
             )
