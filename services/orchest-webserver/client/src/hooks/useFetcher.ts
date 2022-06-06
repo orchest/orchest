@@ -10,7 +10,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     disableFetchOnMount?: boolean;
     revalidateOnFocus?: boolean;
     transform?: (data: FetchedValue) => Data | Promise<Data>;
-    caching?: boolean;
+    disableCaching?: boolean;
   }
 ) {
   const {
@@ -18,13 +18,15 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     revalidateOnFocus = false,
     transform = (fetchedValue: FetchedValue) =>
       (fetchedValue as unknown) as Data,
-    caching = false,
+    disableCaching = false,
     ...fetchParams
   } = React.useMemo(() => {
     return params || {};
   }, [params]);
 
-  const { run, data, setData, error, status } = useAsync<Data>({ caching });
+  const { run, data, setData, error, status } = useAsync<Data>({
+    disableCaching,
+  });
 
   const transformRef = React.useRef(transform);
   React.useEffect(() => {

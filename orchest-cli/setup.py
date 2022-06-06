@@ -13,6 +13,8 @@ setuptools.setup(
     name="orchest-cli",
     description="CLI for Orchest",
     keywords="orchest",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     version=about["__version__"],
     license="Apache 2.0",
     author="Rick Lamers",

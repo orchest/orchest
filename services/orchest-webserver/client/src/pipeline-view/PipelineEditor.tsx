@@ -344,7 +344,6 @@ export const PipelineEditor = () => {
           dispatch({ type: "SET_OPENED_STEP", payload: undefined });
           removeSteps([...eventVars.selectedSteps]);
           setIsDeletingSteps(false);
-          saveSteps(eventVars.steps);
           resolve(true);
           return true;
         },
@@ -355,33 +354,22 @@ export const PipelineEditor = () => {
         },
       });
     }
-  }, [
-    dispatch,
-    eventVars.selectedSteps,
-    eventVars.steps,
-    removeSteps,
-    saveSteps,
-    setConfirm,
-  ]);
+  }, [dispatch, eventVars.selectedSteps, removeSteps, setConfirm]);
 
   const onDetailsDelete = React.useCallback(() => {
+    setIsDeletingSteps(true);
     setConfirm("Warning", deleteStepMessage, async (resolve) => {
       if (!eventVars.openedStep) {
+        setIsDeletingSteps(false);
         resolve(false);
         return false;
       }
       removeSteps([eventVars.openedStep]);
-      saveSteps(eventVars.steps);
+      setIsDeletingSteps(false);
       resolve(true);
       return true;
     });
-  }, [
-    eventVars.openedStep,
-    eventVars.steps,
-    removeSteps,
-    saveSteps,
-    setConfirm,
-  ]);
+  }, [eventVars.openedStep, removeSteps, setConfirm]);
 
   const onOpenNotebook = React.useCallback(
     (e: React.MouseEvent) => {
