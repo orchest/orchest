@@ -11,7 +11,7 @@ import (
 var (
 	// list of all addons
 	ArgoWorkflow   = "argo-workflow"
-	DockerRegistry = "docker-regitry"
+	DockerRegistry = "docker-registry"
 
 	// default orchest-system namespace
 	Namespace = "orchest-system"
