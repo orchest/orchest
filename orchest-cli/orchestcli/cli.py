@@ -163,13 +163,12 @@ def cli():
     help="Run install in dev mode.",
 )
 @click.option(
-    "--disable-argo",
-    "disable_argo",  # name for arg
+    "--no-argo",
+    "no_argo",  # name for arg
     is_flag=True,
     default=False,
     show_default=True,
-    hidden=True,
-    help="Disable Argo Workflow during controller deployment or not.",
+    help="Disable deploying Argo as part of Orchest.",
 )
 @click.option(
     "--fqdn",
@@ -181,12 +180,12 @@ def cli():
 def install(
     cloud: bool,
     dev_mode: bool,
-    disable_argo: bool,
+    no_argo: bool,
     fqdn: t.Optional[str],
     **common_options,
 ) -> None:
     """Install Orchest."""
-    cmds.install(cloud, dev_mode, disable_argo, fqdn, **common_options)
+    cmds.install(cloud, dev_mode, no_argo, fqdn, **common_options)
 
 
 # TODO: Should be improved to remove the provided Orchest Cluster,
@@ -224,8 +223,8 @@ def uninstall(**common_options) -> None:
     help="Run update in dev mode.",
 )
 @click.option(
-    "--disable-argo",
-    "disable_argo",  # name for arg
+    "--no-argo",
+    "no_argo",  # name for arg
     is_flag=True,
     default=False,
     show_default=True,
@@ -237,7 +236,7 @@ def update(
     version: t.Optional[str],
     watch_flag: bool,
     dev_mode: bool,
-    disable_argo: bool,
+    no_argo: bool,
     **common_options,
 ) -> None:
     """Update Orchest.
@@ -258,7 +257,7 @@ def update(
         version,
         watch_flag,
         dev_mode,
-        disable_argo,
+        no_argo,
         **common_options,
     )
 

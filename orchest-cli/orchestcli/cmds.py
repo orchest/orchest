@@ -147,7 +147,7 @@ class ClusterStatus(enum.Enum):
 
 
 def install(
-    cloud: bool, dev_mode: bool, disable_argo: bool, fqdn: t.Optional[str], **kwargs
+    cloud: bool, dev_mode: bool, no_argo: bool, fqdn: t.Optional[str], **kwargs
 ) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
@@ -158,7 +158,7 @@ def install(
         if e.reason == "Conflict":
             echo(f"Installing into existing namespace: {ns}.")
 
-    if disable_argo:
+    if no_argo:
         echo(
             "ArgoWorkflow installation is disabled, Orchest Controller assumes"
             " ArgoWorkflow is already installed on your cluster."
@@ -386,7 +386,7 @@ def update(
     version: t.Optional[str],
     watch_flag: bool,
     dev_mode: bool,
-    disable_argo: bool,
+    no_argo: bool,
     **kwargs,
 ) -> None:
     """Updates Orchest."""
@@ -482,7 +482,7 @@ def update(
         )
         sys.exit(1)
 
-    if disable_argo:
+    if no_argo:
         echo(
             "ArgoWorkflow installation is disabled, Orchest Controller assumes"
             " ArgoWorkflow is already installed on your cluster."
