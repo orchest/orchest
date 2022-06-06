@@ -298,6 +298,8 @@ export const StepDetailsProperties = ({
     }
   }, [editableParameters]);
 
+  const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
+
   return (
     <div className={"detail-subview"}>
       <Stack direction="column" spacing={3}>
@@ -327,7 +329,8 @@ export const StepDetailsProperties = ({
             pipelineCwd={pipelineCwd}
             onChange={onChangeFilePath}
             menuMaxWidth={menuMaxWidth}
-            pipelineUuid={pipelineUuid}
+            doesFileExist={doesStepFileExist}
+            isCheckingFileValidity={isCheckingFileValidity}
           />
         )}
         {isNotebookStep && (

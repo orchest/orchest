@@ -12,7 +12,6 @@ import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import { extensionFromFilename } from "@orchest/lib-utils";
 import React from "react";
-import { getFilePathForRelativeToProject } from "../pipeline-view/file-manager/common";
 
 export const validatePathInTree = (path: string, tree: FileTree) => {
   // path assumed to start with /
@@ -87,6 +86,7 @@ export type FilePickerProps = {
   menuMaxWidth?: string;
   onSelectMenuItem: (node: FileTree) => void;
   allowedExtensions: string[];
+  generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
 };
 
 const ITEM_HEIGHT = 48;
@@ -97,10 +97,16 @@ const useFilePicker = ({
   absoluteCwd,
   onChangeValue,
   allowedExtensions,
+  generateRelativePath,
 }: Pick<
   FilePickerProps,
   "absoluteCwd" | "cwd" | "tree" | "onChangeValue" | "allowedExtensions"
->) => {
+> & {
+  generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
+}) => {
+  const generateRelativePathRef = React.useRef(generateRelativePath);
+  const onChangeValueRef = React.useRef(onChangeValue);
+
   const [absoluteFolderPath, setAbsoluteFolderPath] = React.useState<string>(
     absoluteCwd
   );
@@ -120,7 +126,9 @@ const useFilePicker = ({
     // the value of the FilePicker field to be the directory user is viewing via the dropdown.
     // as a visual feedback.
     if (absoluteFolderPath !== absoluteCwd) {
-      onChangeValue(getFilePathForRelativeToProject(absoluteFolderPath, cwd));
+      onChangeValueRef.current(
+        generateRelativePathRef.current(absoluteFolderPath, cwd)
+      );
     }
   }, [absoluteFolderPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -157,7 +165,7 @@ const useFilePicker = ({
         );
       }),
     };
-  }, [absoluteFolderPath, tree]);
+  }, [absoluteFolderPath, tree, allowedExtensions]);
 
   return {
     absoluteFolderPath,
@@ -180,6 +188,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
   icon,
   menuMaxWidth,
   onSelectMenuItem,
+  generateRelativePath,
   allowedExtensions,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -201,6 +210,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
     tree,
     onChangeValue,
     allowedExtensions,
+    generateRelativePath,
   });
 
   // When clicking on the dropdown menu, the built-in `onBlur` will be fired.
@@ -240,10 +250,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
       });
     } else {
       onChangeValue(
-        getFilePathForRelativeToProject(
-          `${absoluteFolderPath}${selectedNode.name}`,
-          cwd
-        )
+        generateRelativePath(`${absoluteFolderPath}${selectedNode.name}`, cwd)
       );
       setIsDropdownOpen(false);
     }

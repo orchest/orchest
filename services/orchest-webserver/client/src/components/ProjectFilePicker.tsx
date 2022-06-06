@@ -1,5 +1,4 @@
-import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
 import { FileTree } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -42,26 +41,19 @@ const ProjectFilePicker: React.FC<{
   onChange: (value: string) => void;
   menuMaxWidth?: string;
   allowedExtensions: string[];
-  pipelineUuid: string | undefined;
+  doesFileExist: boolean;
+  isCheckingFileValidity: boolean;
 }> = ({
   onChange,
   pipelineCwd,
   value,
   menuMaxWidth,
   allowedExtensions,
-  pipelineUuid,
+  doesFileExist,
+  isCheckingFileValidity,
 }) => {
   // ProjectFilePicker uses the same endpoint for fetching FileTree
   const { fileTrees, fetchFileTrees } = useFileManagerContext();
-
-  const { projectUuid } = useCustomRoute();
-
-  const [doesFileExist, isCheckingFileValidity] = useCheckFileValidity(
-    projectUuid,
-    pipelineUuid,
-    value,
-    allowedExtensions
-  );
 
   const tree = React.useMemo<FileTree>(() => {
     return {
@@ -118,12 +110,13 @@ const ProjectFilePicker: React.FC<{
           }
           helperText={
             doesFileExist
-              ? "File exists in the project directory."
-              : "Warning: this file wasn't found in the project directory."
+              ? "File exists."
+              : "Warning: this file wasn't found in the given path."
           }
           onChangeValue={onChange}
           menuMaxWidth={menuMaxWidth}
           onSelectMenuItem={onSelectMenuItem}
+          generateRelativePath={getFilePathForRelativeToProject}
         />
       )}
     </>

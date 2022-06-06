@@ -11,11 +11,9 @@ export const pathValidator = (value: string, allowedExtension: string[]) => {
   if (value === "" || value.endsWith("/")) {
     return false;
   }
-  let ext = extensionFromFilename(value);
-  if (allowedExtension.indexOf(ext) === -1) {
-    return false;
-  }
-  return true;
+  const ext = extensionFromFilename(value);
+
+  return allowedExtension.includes(ext);
 };
 
 export const isValidFile = async (
@@ -24,7 +22,7 @@ export const isValidFile = async (
   path: string,
   allowedExtensions: string[]
 ) => {
-  // only check file existence if it passes rule based validation
+  // only check file existence if it passes rule-based validation
   if (
     !project_uuid ||
     !pipeline_uuid ||

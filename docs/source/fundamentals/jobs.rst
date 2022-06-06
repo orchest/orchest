@@ -100,13 +100,13 @@ Specify job parameters with a file
 You can easily run a pipeline for multiple parameter configurations by creating
 a parameter file.
 
-If you place the file in the same location as your pipeline file the parameter file will automatically be detected when creating a job.
+If you place the file in the same folder as your pipeline file the parameter file will automatically be detected when creating a job.
 
-For a pipeline called ``main.orchest`` the parameter file should be name ``main.parameters.json``, and be put in the same location as the pipeline file (both in the project directory).
+For a pipeline called ``main.orchest`` the parameter file should be named ``main.parameters.json``, and be put in the same folder as the pipeline file (both in the project directory).
 
 You can also select a file manually when creating a job.
 
-The JSON file should be formatted as below. **Note that wrapping the values in a list is required, event if you're assigning just one parameter value to a key.** It is allowed to omit keys you don't want to specify.
+The JSON file should be formatted as below. **Note that wrapping the values in a list is required, even if you're assigning just one parameter value to a key.** It is allowed to omit keys you don't want to specify.
 
 .. code-block:: json
 
