@@ -1,3 +1,5 @@
+import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { FileTree } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -6,9 +8,6 @@ import { collapseDoubleDots } from "@orchest/lib-utils";
 import React from "react";
 import { useFileManagerContext } from "../pipeline-view/file-manager/FileManagerContext";
 import FilePicker, { FilePickerProps, validatePathInTree } from "./FilePicker";
-import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-
 
 const getFolderPath = (filePath: string) =>
   filePath.split("/").slice(0, -1).join("/") + "/";
@@ -44,7 +43,14 @@ const ProjectFilePicker: React.FC<{
   menuMaxWidth?: string;
   allowedExtensions: string[];
   pipelineUuid: string | undefined;
-}> = ({ onChange, pipelineCwd, value, menuMaxWidth, allowedExtensions, pipelineUuid }) => {
+}> = ({
+  onChange,
+  pipelineCwd,
+  value,
+  menuMaxWidth,
+  allowedExtensions,
+  pipelineUuid,
+}) => {
   // ProjectFilePicker uses the same endpoint for fetching FileTree
   const { fileTrees, fetchFileTrees } = useFileManagerContext();
 

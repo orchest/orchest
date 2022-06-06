@@ -239,8 +239,13 @@ export const PipelineViewport = React.forwardRef<
       allowed.forEach((filePath) => {
         // Adjust filePath to pipelineCwd, incoming filePath is relative to project
         // root.
-        let pipelineRelativeFilePath = getFilePathForRelativeToProject(filePath, pipelineCwd);
-        dispatch(createStepAction(environment, dropPosition, pipelineRelativeFilePath));
+        let pipelineRelativeFilePath = getFilePathForRelativeToProject(
+          filePath,
+          pipelineCwd
+        );
+        dispatch(
+          createStepAction(environment, dropPosition, pipelineRelativeFilePath)
+        );
       });
     },
     [dispatch, pipelineCwd, environments, getApplicableStepFiles]

@@ -631,7 +631,9 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
 
             notebook_path = os.path.join(pipeline_directory, step["file_path"])
 
-            if not is_valid_data_path(step["file_path"]) and not is_valid_pipeline_relative_path(
+            if not is_valid_data_path(
+                step["file_path"]
+            ) and not is_valid_pipeline_relative_path(
                 project_uuid, pipeline_json["uuid"], step["file_path"]
             ):
                 raise error.OutOfProjectError(

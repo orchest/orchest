@@ -25,7 +25,7 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
     projectUuid,
     pipelineUuid,
     step?.file_path,
-    ALLOWED_STEP_EXTENSIONS,
+    ALLOWED_STEP_EXTENSIONS
   );
 
   const connections = React.useMemo(() => {

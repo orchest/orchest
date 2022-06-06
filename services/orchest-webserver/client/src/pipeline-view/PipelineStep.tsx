@@ -350,7 +350,12 @@ const PipelineStepComponent = React.forwardRef<
       resetDraggingVariables();
     }
     if (e.detail === 2 && projectUuid && pipelineUuid) {
-      const valid = await isValidFile(projectUuid, pipelineUuid, file_path, ALLOWED_STEP_EXTENSIONS);
+      const valid = await isValidFile(
+        projectUuid,
+        pipelineUuid,
+        file_path,
+        ALLOWED_STEP_EXTENSIONS
+      );
       if (valid) onDoubleClick(uuid);
     }
   };

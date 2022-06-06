@@ -753,7 +753,9 @@ def register_views(app, db):
                 pipeline_json = json.load(json_file)
             try:
                 step_file_path = pipeline_json["steps"][step_uuid]["file_path"]
-                if not is_valid_data_path(step_file_path) and not is_valid_pipeline_relative_path(
+                if not is_valid_data_path(
+                    step_file_path
+                ) and not is_valid_pipeline_relative_path(
                     project_uuid, pipeline_uuid, step_file_path
                 ):
                     raise app_error.OutOfProjectError(
@@ -994,11 +996,29 @@ def register_views(app, db):
             return jsonify({"message": "Illegal file path prefix."}), 400
 
         if path.endswith("/"):
-            return jsonify({"message": "This endpoint only supports files, provided a directory path."}), 400
-        
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "This endpoint only supports files"
+                            ", provided a directory path."
+                        )
+                    }
+                ),
+                400,
+            )
+
         ext = pathlib.Path(path).suffix
         if ext not in ALLOWED_READ_FILE_EXTENIONS:
-            return jsonify({"message": "Illegal extension: %s. Allowed extensions: %s" % (ext, ALLOWED_READ_FILE_EXTENIONS)}), 400
+            return (
+                jsonify(
+                    {
+                        "message": "Illegal extension: %s. Allowed extensions: %s"
+                        % (ext, ALLOWED_READ_FILE_EXTENIONS)
+                    }
+                ),
+                400,
+            )
 
         file_path = None
 
@@ -1009,7 +1029,7 @@ def register_views(app, db):
                     "Path points outside of the data directory."
                 )
         else:
-            if pipeline_uuid != None:
+            if pipeline_uuid is not None:
                 path_parent_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
             else:
                 path_parent_dir = get_project_directory(project_uuid)
@@ -1024,8 +1044,6 @@ def register_views(app, db):
             return send_file(file_path)
         else:
             return jsonify({"message": "File does not exists."}), 404
-
-
 
     @app.route("/async/file-management/exists", methods=["GET"])
     def filemanager_exists():

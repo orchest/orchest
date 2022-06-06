@@ -10,9 +10,7 @@ import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import {
-  extensionFromFilename,
-} from "@orchest/lib-utils";
+import { extensionFromFilename } from "@orchest/lib-utils";
 import React from "react";
 import { getFilePathForRelativeToProject } from "../pipeline-view/file-manager/common";
 
@@ -99,7 +97,10 @@ const useFilePicker = ({
   absoluteCwd,
   onChangeValue,
   allowedExtensions,
-}: Pick<FilePickerProps, "absoluteCwd" | "cwd" | "tree" | "onChangeValue" | "allowedExtensions">) => {
+}: Pick<
+  FilePickerProps,
+  "absoluteCwd" | "cwd" | "tree" | "onChangeValue" | "allowedExtensions"
+>) => {
   const [absoluteFolderPath, setAbsoluteFolderPath] = React.useState<string>(
     absoluteCwd
   );
@@ -152,9 +153,7 @@ const useFilePicker = ({
       options: currentNode.children.filter((childNode) => {
         return (
           childNode.type === "directory" ||
-          allowedExtensions.includes(
-            extensionFromFilename(childNode.name)
-          )
+          allowedExtensions.includes(extensionFromFilename(childNode.name))
         );
       }),
     };
@@ -196,7 +195,13 @@ const FilePicker: React.FC<FilePickerProps> = ({
     onNavigateUp,
     isRootNode,
     options,
-  } = useFilePicker({ cwd, absoluteCwd, tree, onChangeValue, allowedExtensions });
+  } = useFilePicker({
+    cwd,
+    absoluteCwd,
+    tree,
+    onChangeValue,
+    allowedExtensions,
+  });
 
   // When clicking on the dropdown menu, the built-in `onBlur` will be fired.
   // Use a boolean to control if it's an intended blur behavior.

@@ -183,10 +183,12 @@ const generateStrategyJsonFromParamJsonFile = (
     // Note, this function expects a modifiable object.
     // cloneDeep before invoke is recommended.
     Object.keys(params).forEach((paramKey) => {
-      params[paramKey] = JSON.stringify(wrap ? [params[paramKey]] : params[paramKey]);
+      params[paramKey] = JSON.stringify(
+        wrap ? [params[paramKey]] : params[paramKey]
+      );
     });
-    return params
-  }
+    return params;
+  };
 
   Object.keys(strategyJson).forEach((key) => {
     let stringifiedParams = toStringifiedParams(cloneDeep(strategyJson[key]));
@@ -214,22 +216,29 @@ const generateStrategyJsonFromParamJsonFile = (
   // Fill in missing values
   Object.keys(pipeline.steps).forEach((stepUuid) => {
     let step = pipeline.steps[stepUuid];
-    if(strategyJson[stepUuid] === undefined && step.parameters && Object.keys(step.parameters).length > 0){
+    if (
+      strategyJson[stepUuid] === undefined &&
+      step.parameters &&
+      Object.keys(step.parameters).length > 0
+    ) {
       strategyJson[stepUuid] = {
         key: stepUuid,
         title: step.title,
-        parameters: toStringifiedParams(cloneDeep(step.parameters), true)
-      }
+        parameters: toStringifiedParams(cloneDeep(step.parameters), true),
+      };
     }
-  })
+  });
 
   // Check for missing pipeline parameters
-  if(strategyJson[reservedKey] === undefined){
+  if (strategyJson[reservedKey] === undefined) {
     strategyJson[reservedKey] = {
       key: reservedKey,
       title: pipeline.name,
-      parameters: toStringifiedParams(pipeline.parameters ? cloneDeep(pipeline.parameters) : {}, true)
-    }
+      parameters: toStringifiedParams(
+        pipeline.parameters ? cloneDeep(pipeline.parameters) : {},
+        true
+      ),
+    };
   }
 
   return strategyJson;

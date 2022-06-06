@@ -2,11 +2,7 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
-import {
-  extensionFromFilename,
-  fetcher,
-  hasValue,
-} from "@orchest/lib-utils";
+import { extensionFromFilename, fetcher, hasValue } from "@orchest/lib-utils";
 import { useDebounce } from "./useDebounce";
 import { useFetcher } from "./useFetcher";
 
@@ -29,7 +25,12 @@ export const isValidFile = async (
   allowedExtensions: string[]
 ) => {
   // only check file existence if it passes rule based validation
-  if (!project_uuid || !pipeline_uuid || !pathValidator(path, allowedExtensions)) return false;
+  if (
+    !project_uuid ||
+    !pipeline_uuid ||
+    !pathValidator(path, allowedExtensions)
+  )
+    return false;
   const response = await fetcher(
     `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
       project_uuid,
@@ -51,12 +52,13 @@ export const useCheckFileValidity = (
   projectUuid: string | undefined,
   pipelineUuid: string | undefined,
   path: string | undefined,
-  allowedExtensions: string[],
+  allowedExtensions: string[]
 ) => {
   const isQueryArgsComplete =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
-  const isValidPathPattern = isQueryArgsComplete && pathValidator(path, allowedExtensions);
+  const isValidPathPattern =
+    isQueryArgsComplete && pathValidator(path, allowedExtensions);
 
   const delayedPath = useDebounce(path, 250);
 
