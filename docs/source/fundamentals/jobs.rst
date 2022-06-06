@@ -94,6 +94,34 @@ Then inside the pipeline step you can access the parameters as follows:
    fruit = orchest.get_step_param("fruit")               # "apple"
    vegetable = orchest.get_pipeline_param("vegetable")   # "carrot"
 
+Specify job parameters with a file
+----------------------------------
+
+You can easily run a pipeline for multiple parameter configurations by creating
+a parameter file.
+
+If you place the file in the same location as your pipeline file the parameter file will automatically be detected when creating a job.
+
+For a pipeline called ``main.orchest`` the parameter file should be name ``main.parameters.json``, and be put in the same location as the pipeline file (both in the project directory).
+
+You can also select a file manually when creating a job.
+
+The JSON file should be formatted as below. **Note that wrapping the values in a list is required, event if you're assigning just one parameter value to a key.** It is allowed to omit keys you don't want to specify.
+
+.. code-block:: json
+
+   {
+      "pipeline_parameters": {
+         "some_key": ["a", "list", "of", "values"]
+      },
+      "62a62810-336c-44c4-af6a-35228e8f2028": {
+         "some_key": [1, 2, 3],
+         "another_key": [1]
+      }
+   }
+
+You can find the step UUIDs in the pipeline file (e.g. ``main.orchest``), pipelines are regular JSON files.
+
 .. _running a job:
 
 Running a job
