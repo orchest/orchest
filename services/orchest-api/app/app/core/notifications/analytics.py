@@ -65,92 +65,6 @@ def send_test_ping_delivery() -> bool:
     return analytics.send_event(current_app, analytics.Event.DEBUG_PING, {})
 
 
-def _generate_session_analytics_payload(event: models.InteractiveSessionEvent) -> dict:
-    if not event.type.startswith("project:pipeline:interactive-session:"):
-        raise ValueError()
-
-    payload = event.to_notification_payload()
-
-    payload["project_uuid"] = payload["project"]["uuid"]
-    payload["pipeline_uuid"] = payload["project"]["pipeline"]["uuid"]
-
-    if event.type == "project:pipeline:interactive-session:started":
-        user_services = None
-        session = models.InteractiveSession.query.filter(
-            models.InteractiveSession.project_uuid == event.project_uuid,
-            models.InteractiveSession.pipeline_uuid == event.pipeline_uuid,
-        ).first()
-        if session is not None:
-            user_services = session.user_services
-        payload["project"]["pipeline"]["session"]["user_services"] = user_services
-    elif event.type == "project:pipeline:interactive-session:service-started":
-        active_runs = db.session.query(
-            db.session.query(models.InteractivePipelineRun)
-            .filter(
-                models.InteractivePipelineRun.project_uuid == event.project_uuid,
-                models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
-            )
-            .exists()
-        ).scalar()
-        payload["project"]["pipeline"]["session"]["active_runs"] = active_runs
-
-    return payload
-
-
-def _generate_interactive_pipeline_run_payload(
-    event: models.InteractivePipelineRunEvent,
-) -> dict:
-    if not event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
-        raise ValueError()
-
-    payload = event.to_notification_payload()
-    pipeline_run = models.InteractivePipelineRun.query.filter(
-        models.InteractivePipelineRun.project_uuid == event.project_uuid,
-        models.InteractivePipelineRun.pipeline_uuid == event.pipeline_uuid,
-        models.InteractivePipelineRun.uuid == event.pipeline_run_uuid,
-    ).one()
-    payload["project"]["pipeline"]["session"]["pipeline_run"][
-        "pipeline_definition"
-    ] = pipeline_run.pipeline_definition
-
-    return payload
-
-
-def _generate_project_created_deleted_payload(event: models.ProjectEvent):
-    if event.type not in ["project:created", "project:deleted"]:
-        raise ValueError()
-
-    payload = event.to_notification_payload()
-    payload["project"]["project_count"] = models.Project.query.count()
-    return payload
-
-
-def _generate_pipeline_created_deleted_payload(event: models.ProjectEvent):
-    if event.type not in ["project:pipeline:created", "project:pipeline:deleted"]:
-        raise ValueError()
-
-    payload = event.to_notification_payload()
-    payload["project"]["pipeline"][
-        "project_pipelines_count"
-    ] = models.Pipeline.query.filter(
-        models.Pipeline.project_uuid == event.project_uuid
-    ).count()
-    return payload
-
-
-def _generate_environment_image_build_payload(event: models.ProjectEvent):
-    if not event.type.startswith("project:environment:image-build:"):
-        raise ValueError()
-
-    payload = event.to_notification_payload()
-
-    # Deprecated.
-    payload["project_uuid"] = payload["project"]["uuid"]
-    payload["environment_uuid"] = payload["project"]["environment"]["uuid"]
-    payload["image_tag"] = payload["project"]["environment"]["image_build"]["image_tag"]
-    return payload
-
-
 def generate_payload_for_analytics(event: models.Event) -> dict:
     """Creates an analytics module compatible payload.
 
@@ -160,27 +74,8 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
     """
 
     analytics_payload = event.to_notification_payload()
-    if event.type.startswith("project:pipeline:interactive-session:pipeline-run:"):
-        return _generate_interactive_pipeline_run_payload(event)
-
-    if event.type.startswith("project:pipeline:interactive-session:"):
-        return _generate_session_analytics_payload(event)
-
-    if event.type in ["project:created", "project:deleted"]:
-        return _generate_project_created_deleted_payload(event)
-
-    if event.type in ["project:pipeline:created", "project:pipeline:deleted"]:
-        return _generate_pipeline_created_deleted_payload(event)
-
-    if event.type.startswith("project:environment:image-build:"):
-        return _generate_environment_image_build_payload(event)
 
     event_type = analytics_payload["type"]
-
-    if event_type.startswith("project:cron-job:") or event_type.startswith(
-        "project:one-off-job:"
-    ):
-        analytics_payload["job_uuid"] = analytics_payload["project"]["job"]["uuid"]
 
     if event_type.startswith("project:cron-job:run:pipeline-run:"):
         analytics_payload["run_uuid"] = analytics_payload["project"]["job"]["run"][
@@ -191,34 +86,13 @@ def generate_payload_for_analytics(event: models.Event) -> dict:
             "pipeline_run"
         ]["uuid"]
 
-    if event_type in [
-        "project:cron-job:created",
-        "project:cron-job:updated",
-        "project:one-off-job:created",
-        "project:one-off-job:updated",
-    ]:
-        job: models.Job = models.Job.query.filter(
-            models.Job.project_uuid == analytics_payload["project"]["uuid"],
-            models.Job.uuid == analytics_payload["project"]["job"]["uuid"],
-        ).first()
-        if job is not None:
-            analytics_payload["job_definition"] = {
-                "parameters": job.parameters,
-                "project_uuid": job.project_uuid,
-                "pipeline_uuid": job.pipeline_uuid,
-                "draft": True,
-                "uuid": job.uuid,
-                "env_variables": job.env_variables,
-                "pipeline_run_spec": {"run_type": "full", "uuids": []},
-            }
-
     return analytics_payload
 
 
 def _augment_job_created_payload(payload: dict) -> None:
     job = models.Job.query.filter(
-        models.Job.project_uuid == payload["project"]["uuid"],
-        models.Job.uuid == payload["job"]["uuid"],
+        models.Job.project_uuid == payload["event_properties"]["project"]["uuid"],
+        models.Job.uuid == payload["event_properties"]["project"]["job"]["uuid"],
     ).first()
     if job is None:
         return
@@ -229,19 +103,29 @@ def _augment_job_created_payload(payload: dict) -> None:
         job.uuid,
     )
     if os.path.exists(snapshot_path):
-        payload["snapshot_size"] = _utils.get_directory_size(
-            snapshot_path
-            # In MBs.
-        ) / (1024**2)
+        snapshot_size = _utils.get_directory_size(snapshot_path) / (
+            1024**2
+        )  # In MBs.
+        payload["derived_properties"]["project"]["job"]["snapshot_size"] = snapshot_size
+        # Deprecated.
+        payload["event_properties"]["snapshot_size"] = snapshot_size
+        if "deprecated" not in payload["event_properties"]:
+            payload["event_properties"]["deprecated"] = []
+        payload["event_properties"]["deprecated"].append("snapshot_size")
 
 
 def _augment_env_image_build_created_payload(payload: dict) -> None:
+    event_properties, derived_props = (
+        payload["event_properties"],
+        payload["derived_properties"],
+    )
     build = models.EnvironmentImageBuild.query.filter(
-        models.EnvironmentImageBuild.project_uuid == payload["project"]["uuid"],
+        models.EnvironmentImageBuild.project_uuid
+        == event_properties["project"]["uuid"],
         models.EnvironmentImageBuild.environment_uuid
-        == payload["project"]["environment"]["uuid"],
+        == event_properties["project"]["environment"]["uuid"],
         models.EnvironmentImageBuild.image_tag
-        == payload["project"]["environment"]["image_build"]["image_tag"],
+        == event_properties["project"]["environment"]["image_build"]["image_tag"],
     ).first()
     if build is None:
         return
@@ -253,14 +137,25 @@ def _augment_env_image_build_created_payload(payload: dict) -> None:
     if os.path.exists(env_properties_path):
         with open(env_properties_path, "r") as env_props_file:
             env_dict = json.load(env_props_file)
-            build_properties = payload["project"]["environment"]["image_build"]
-            build_properties["base_image"] = env_dict["base_image"]
+
+            base_image = env_dict["base_image"]
+            uses_orchest_base_image = base_image.startswith("orchest/")
+
+            build_properties = event_properties["project"]["environment"]["image_build"]
             build_properties["gpu_support"] = env_dict["gpu_support"]
             build_properties["language"] = env_dict["language"]
+            derived_props["project"]["environment"]["image_build"][
+                "uses_orchest_base_image"
+            ] = uses_orchest_base_image
+            if uses_orchest_base_image:
+                build_properties["base_image"] = base_image
 
             # Deprecated.
-            payload["gpu_support"] = build_properties["gpu_support"]
-            payload["language"] = build_properties["language"]
+            event_properties["gpu_support"] = build_properties["gpu_support"]
+            event_properties["language"] = build_properties["language"]
+            derived_props["uses_orchest_base_image"] = uses_orchest_base_image
+            if uses_orchest_base_image:
+                event_properties["base_image"] = base_image
 
 
 def _augment_payload(payload: dict) -> None:
@@ -270,9 +165,14 @@ def _augment_payload(payload: dict) -> None:
     analytics schema and not having the orchest-api access the file
     system.
     """
-    if payload["type"] in ["project:one-off-job:created", "project:cron-job:created"]:
+    if payload["event_properties"]["type"] in [
+        "project:one-off-job:created",
+        "project:cron-job:created",
+    ]:
         _augment_job_created_payload(payload)
-    elif payload["type"] == "project:environment:image-build:created":
+    elif (
+        payload["event_properties"]["type"] == "project:environment:image-build:created"
+    ):
         _augment_env_image_build_created_payload(payload)
 
 
@@ -313,10 +213,12 @@ def deliver(delivery_uuid: str) -> None:
         raise ValueError("Deliveree of delivery isn't of type AnalyticsSubscriber.")
 
     try:
-        payload = delivery.notification_payload
+        payload: analytics.TelemetryData = delivery.notification_payload
         _augment_payload(payload)
 
-        if analytics.send_event(current_app, analytics.Event(payload["type"]), payload):
+        if analytics.send_event(
+            current_app, analytics.Event(payload["event_properties"]["type"]), payload
+        ):
             delivery.set_delivered()
             db.session.delete(delivery)
     except Exception as e:

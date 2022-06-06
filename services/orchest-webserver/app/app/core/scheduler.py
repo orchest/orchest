@@ -144,7 +144,12 @@ class Jobs:
                 active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
 
             analytics.send_event(
-                app, analytics.Event.HEARTBEAT_TRIGGER, {"active": active}
+                app,
+                analytics.Event.HEARTBEAT_TRIGGER,
+                analytics.TelemetryData(
+                    event_properties={"active": active},
+                    derived_properties={},
+                ),
             )
             app.logger.debug(
                 "Successfully sent analytics event "

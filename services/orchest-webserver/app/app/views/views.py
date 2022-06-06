@@ -1,3 +1,4 @@
+import copy
 import io
 import json
 import os
@@ -901,11 +902,32 @@ def register_views(app, db):
                         resp.status_code,
                     )
 
-            # Analytics call.
+            # Analytics call.  Copy otherwise the json will be modified.
+            # Currently it's not an issue since this is the last call of
+            # the endpoint.
+            pipeline_json = copy.deepcopy(pipeline_json)
+            derived_props = analytics.anonymize_pipeline_definition(pipeline_json)
             analytics.send_event(
                 app,
                 analytics.Event.PIPELINE_SAVED,
-                {"pipeline_definition": pipeline_json},
+                analytics.TelemetryData(
+                    event_properties={
+                        "project": {
+                            "uuid": project_uuid,
+                            "pipeline": {
+                                "uuid": pipeline_uuid,
+                                "pipeline_definition": pipeline_json,
+                            },
+                        },
+                        "pipeline_definition": pipeline_json,
+                        "deprecated": ["pipeline_definition"],
+                    },
+                    derived_properties={
+                        "project": {"pipeline": {"pipeline_definition": derived_props}},
+                        "pipeline_definition": derived_props,
+                        "deprecated": ["pipeline_definition"],
+                    },
+                ),
             )
             return jsonify({"success": True, "message": "Successfully saved pipeline."})
 

@@ -249,14 +249,35 @@ def register_orchest_api_views(app, db):
             json=job_spec,
         )
 
+        event_type = analytics.Event.ONE_OFF_JOB_DUPLICATED
+        if job_spec["cron_schedule"] is not None:
+            event_type = analytics.Event.CRON_JOB_DUPLICATED
+
         analytics.send_event(
             app,
-            analytics.Event.JOB_DUPLICATED,
-            {
-                "job_definition": job_spec,
-                "duplicate_from": json_obj["job_uuid"],
-                "snapshot_size": None,
-            },
+            event_type,
+            analytics.TelemetryData(
+                event_properties={
+                    "project": {
+                        "uuid": job_spec["project_uuid"],
+                        "job": {
+                            "uuid": json_obj["job_uuid"],
+                            "new_job_uuid": job_spec["uuid"],
+                        },
+                    },
+                    "duplicate_from": json_obj["job_uuid"],
+                    # Deprecated fields, kept to not break the analytics
+                    # BE schema.
+                    "job_definition": None,
+                    "snapshot_size": None,
+                    "deprecated": [
+                        "duplicated_from",
+                        "job_definition",
+                        "snapshot_size",
+                    ],
+                },
+                derived_properties={},
+            ),
         )
         return resp.content, resp.status_code, resp.headers.items()
 

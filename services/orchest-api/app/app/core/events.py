@@ -9,7 +9,6 @@ from app import types as app_types
 from app import utils as app_utils
 from app.connections import db
 from app.core import notifications
-from app.core.notifications import analytics as api_analytics
 
 _logger = app_utils.get_logger()
 
@@ -43,9 +42,9 @@ def _register_event(ev: models.Event) -> None:
                     "Telemetry is disabled, skipping event delivery to analytics."
                 )
                 continue
-            notification_payload = api_analytics.generate_payload_for_analytics(ev)
+            payload = ev.to_telemetry_payload()
         else:
-            notification_payload = ev.to_notification_payload()
+            payload = ev.to_notification_payload()
 
         _logger.info(
             f"Scheduling delivery for event {ev.uuid}, event type: {ev.type} for "
@@ -56,7 +55,7 @@ def _register_event(ev: models.Event) -> None:
             event=ev.uuid,
             deliveree=sub.uuid,
             status="SCHEDULED",
-            notification_payload=notification_payload,
+            notification_payload=payload,
         )
         db.session.add(delivery)
 
