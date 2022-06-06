@@ -2,36 +2,7 @@
 
 # Notifications
 
-You can receive notifications when specific events happen in Orchest,
-for example to receive an alert when a job fails.
-The way to do this is by using webhooks:
-whenever any of these events triggers,
-Orchest will send an HTTP request to an endpoint of your choosing
-with a specific payload you can process on your end.
-
-To create a webhook, first go to the {ref}`Orchest settings <orchest settings>`,
-then click the "Notification settings button".
-
-The webhook creation dialog will ask you some essential information, namely:
-
-Webhook URL
-: The URL Orchest will send the HTTP requests to.
-You can verify its correctness by clicking the "Test" button.
-
-Content type
-: Either `application/json` or `application/x-www-form-urlencoded`
-(default of `application/json`).
-
-Webhook name (optional)
-: A custom name for your webhook.
-
-Secret
-: A secret string that you can use to verify the origin of the request
-(see {ref}`below <secure webhook>`).
-
-The webhook will contain a payload with information about the triggered event
-and a series of headers.
-This is an example payload:
+You can receive webhook notifications when specific events happen in Orchest. For example, when a job fails. Whenever an events triggers, Orchest will send an HTTP request to your desired endpoint with a payload of information. For example:
 
 ```json
 {
@@ -50,6 +21,15 @@ This is an example payload:
 }
 ```
 
+To create a webhook, navigate to "Notification settings" in {ref}`Orchest settings <orchest settings>`. The webhook dialog will ask for the following:
+
+1. Webhook URL: Where Orchest sends the HTTP requests to. Activate incoming webhooks on your desired channel (for example: [Slack]) and verify the connection with the "Test" button.
+1. Content type: Either `application/json` (default) or `application/x-www-form-urlencoded`.
+1. Webhook name (optional): A custom name for your webhook. This is helpful when creating multiple webhooks with similar URLs.
+1. Secret (optional): A secret string that you can use to verify the origin of the request (see {ref}`below <secure webhook>`).
+
+[Slack]: https://slack.com/intl/en-gb/help/articles/115005265063-Incoming-webhooks-for-Slack
+
 (You can read [the source code of the webhook schema]).
 
 [the source code of the webhook schema]: https://github.com/orchest/orchest/blob/v2022.06.2/services/orchest-api/app/app/schema.py#L885-L905
@@ -58,8 +38,7 @@ This is an example payload:
 
 ## Verifying the webhook
 
-The HTTP request of the webhook will contain a few additional headers
-that you can use to verify that the webhook is coming from Orchest.
+The HTTP request of the webhook will contain additional headers that can verify the webhook is coming from Orchest.
 
 `X-Orchest-Event`
 : The event type.
@@ -70,8 +49,7 @@ that you can use to verify that the webhook is coming from Orchest.
 `X-Hub-Signature`
 : SHA-256 HMAC digest of the payload.
 
-This is some sample code that verifies that the signature of the payload
-is the same as the one expected from the webhook secret you specified:
+The following sample code verifies the payload signature is the same as the expected one from the webhook secret:
 
 ```python
 import hashlib
