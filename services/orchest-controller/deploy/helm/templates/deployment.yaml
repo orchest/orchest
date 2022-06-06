@@ -7,7 +7,17 @@ deployment
       serviceAccountName: {{ template "library.metadata.name" . }}
       containers:
       - name: orchest-controller
-        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
-        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        image: "{{ .Values.image.registry }}/{{ .Values.image.name }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ include "library.spec.image.pullPolicy" . }}
         ports:
         - containerPort: 80
+        args:
+        - --namespace=$NAMESPACE
+        {{ if .Values.disableArgo}}
+        - --disable=argo-workflow
+        {{ end }}
+        env:
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace        

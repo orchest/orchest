@@ -2,8 +2,12 @@
 service:
   port: 80
 
-images:
+image:
   pullPolicy: IfNotPresent
   registry: docker.io
   name: orchest/orchest-controller
   tag: latest
+
+
+# Uncomment to disable argo installation
+#disableArgo:true
