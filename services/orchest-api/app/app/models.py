@@ -1598,12 +1598,6 @@ class ProjectSpecificSubscription(Subscription):
             )
 
 
-UniqueConstraint(
-    ProjectSpecificSubscription.event_type,
-    ProjectSpecificSubscription.project_uuid,
-)
-
-
 event.listen(
     ProjectSpecificSubscription,
     "before_insert",
@@ -1632,12 +1626,6 @@ class ProjectJobSpecificSubscription(ProjectSpecificSubscription):
                 "'project:one-off-job:*' or 'project:cron-job:*' event types."
             )
 
-
-UniqueConstraint(
-    ProjectJobSpecificSubscription.event_type,
-    ProjectJobSpecificSubscription.project_uuid,
-    ProjectJobSpecificSubscription.job_uuid,
-)
 
 event.listen(
     ProjectJobSpecificSubscription,
