@@ -110,7 +110,7 @@ export const CustomImageDialog = ({
             <Stack direction="row">
               <Typography>
                 Use the path for the external image (default registry: Docker
-                Hub). For example,
+                Hub). For example,{" "}
                 <Code sx={{ marginTop: (theme) => theme.spacing(1) }}>
                   python:latest
                 </Code>

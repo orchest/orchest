@@ -56,11 +56,13 @@ const KERNEL_OPTIONS = [
 export const StepDetailsProperties = ({
   pipelineCwd,
   readOnly,
+  shouldAutoFocus,
   onSave,
   menuMaxWidth,
 }: {
   pipelineCwd: string | undefined;
   readOnly: boolean;
+  shouldAutoFocus: boolean;
   onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
 }) => {
@@ -299,7 +301,7 @@ export const StepDetailsProperties = ({
     <div className={"detail-subview"}>
       <Stack direction="column" spacing={3}>
         <TextField
-          autoFocus
+          autoFocus={shouldAutoFocus}
           value={step.title}
           onChange={(e) => onChangeTitle(e.target.value)}
           label="Title"

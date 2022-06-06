@@ -74,5 +74,6 @@ Ensure the ``id_rsa`` private key file is uploaded through the pipeline file man
    🚨 Adding a private key file to the ``/data`` folder exposes it to everyone using your Orchest instance.
 
 You can then version using ``git`` using:
+
 * JupyterLab terminal.
 * JupyterLab git extension UI.
