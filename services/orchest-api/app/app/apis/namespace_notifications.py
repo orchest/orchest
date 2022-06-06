@@ -50,15 +50,15 @@ class SubscriberList(Resource):
 class WebhookList(Resource):
     @api.doc("create_webhook")
     @api.expect(schema.webhook_spec, validate=True)
-    @api.response(201, "Success", schema.webhook_with_secret)
+    @api.response(201, "Success", schema.webhook)
     def post(self):
         """Creates a webhook with the given subscriptions.
 
         Repeated subscription entries are ignored. If no secret is
         passed a secret will be generated through the BE. This endpoint
-        returns a model with said secret, all other endpoints do not,
-        meaning that it's not possible to get back a secret from the BE
-        once the webhook has been created, for security reasons.
+        returns a model without the secret. All other endpoints also do
+        not return the secret, meaning that it's not possible to get
+        back a secret from the BE, for security reasons.
         """
         try:
             webhook = webhooks.create_webhook(request.get_json())
@@ -70,6 +70,29 @@ class WebhookList(Resource):
 
         db.session.commit()
         return marshal(webhook, schema.webhook), 201
+
+
+@api.route("/subscribers/webhooks/<string:uuid>")
+class Webhook(Resource):
+    @api.doc("update_webhook")
+    @api.expect(schema.webhook_mutation, validate=True)
+    @api.response(200, "Success", schema.webhook)
+    def put(self, uuid: str):
+        """Updates a webhook, including its subscriptions.
+
+        The mutation only contains the values of a webhook to be
+        changed. The original value will remain unchanged if not
+        mentioned in the mutation.
+        """
+        try:
+            webhooks.update_webhook(uuid, request.get_json())
+        except ValueError as e:
+            return {"message": f"Invalid payload. {e}"}, 400
+        except Exception as e:
+            return {"message": f"Failed to update webhook. {e}"}, 500
+
+        db.session.commit()
+        return {"message": f"Webhook {uuid} has been updated."}, 200
 
 
 @api.route("/subscribers/webhooks/pre-creation-test-ping-delivery")
