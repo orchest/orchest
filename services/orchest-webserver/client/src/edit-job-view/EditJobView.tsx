@@ -15,6 +15,10 @@ import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
+import {
+  FILE_MANAGEMENT_ENDPOINT,
+  queryArgs,
+} from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/routingConfig";
 import type { Json, PipelineJson, StrategyJson } from "@/types";
 import {
@@ -29,6 +33,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import SaveIcon from "@mui/icons-material/Save";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import TuneIcon from "@mui/icons-material/Tune";
+import UploadIcon from "@mui/icons-material/Upload";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -47,7 +52,7 @@ import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher, HEADER, uuidv4 } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
@@ -56,6 +61,7 @@ import {
   generatePipelineRunParamCombinations,
   generatePipelineRunRows,
 } from "./commons";
+import { LoadParametersDialog } from "./LoadParametersDialog";
 import { useAutoCleanUpEnabled } from "./useAutoCleanUpEnabled";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
@@ -166,6 +172,69 @@ const generateParameterLists = (parameters: Record<string, Json>) => {
   return parameterLists;
 };
 
+const generateStrategyJsonFromParamJsonFile = (
+  paramJson,
+  pipeline: PipelineJson,
+  reservedKey: string
+) => {
+  let strategyJson = cloneDeep(paramJson);
+
+  const toStringifiedParams = (params, wrap?) => {
+    // Note, this function expects a modifiable object.
+    // cloneDeep before invoke is recommended.
+    Object.keys(params).forEach((paramKey) => {
+      params[paramKey] = JSON.stringify(wrap ? [params[paramKey]] : params[paramKey]);
+    });
+    return params
+  }
+
+  Object.keys(strategyJson).forEach((key) => {
+    let stringifiedParams = toStringifiedParams(cloneDeep(strategyJson[key]));
+
+    strategyJson[key] = {};
+    strategyJson[key]["parameters"] = stringifiedParams;
+    strategyJson[key]["key"] = key;
+
+    // Handle reservedKey separately for title
+    if (key == reservedKey) {
+      try {
+        strategyJson[reservedKey]["title"] = pipeline.name;
+      } catch (error) {
+        console.error(error);
+      }
+    } else {
+      try {
+        strategyJson[key]["title"] = pipeline.steps[key].title;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  });
+
+  // Fill in missing values
+  Object.keys(pipeline.steps).forEach((stepUuid) => {
+    let step = pipeline.steps[stepUuid];
+    if(strategyJson[stepUuid] === undefined && step.parameters && Object.keys(step.parameters).length > 0){
+      strategyJson[stepUuid] = {
+        key: stepUuid,
+        title: step.title,
+        parameters: toStringifiedParams(cloneDeep(step.parameters), true)
+      }
+    }
+  })
+
+  // Check for missing pipeline parameters
+  if(strategyJson[reservedKey] === undefined){
+    strategyJson[reservedKey] = {
+      key: reservedKey,
+      title: pipeline.name,
+      parameters: toStringifiedParams(pipeline.parameters ? cloneDeep(pipeline.parameters) : {}, true)
+    }
+  }
+
+  return strategyJson;
+};
+
 const generateStrategyJson = (pipeline: PipelineJson, reservedKey: string) => {
   let strategyJSON = {};
 
@@ -225,6 +294,11 @@ const EditJobView: React.FC = () => {
     "now"
   );
 
+  const [
+    isLoadParametersDialogOpen,
+    setIsLoadParametersDialogOpen,
+  ] = React.useState<boolean>(false);
+
   const [envVariables, _setEnvVariables] = React.useState<
     EnvVarPair[] | undefined
   >([]);
@@ -243,9 +317,11 @@ const EditJobView: React.FC = () => {
   const [pipelineRuns, setPipelineRuns] = React.useState<
     Record<string, Json>[]
   >([]);
+  const [parameterHash, setParameterHash] = React.useState(uuidv4());
   const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
 
   const [runJobLoading, setRunJobLoading] = React.useState(false);
+  const [searchedParamFile, setSearchedParamFile] = React.useState(false);
 
   const { setJob, job, isFetchingJob } = useFetchJob({ jobUuid });
 
@@ -263,9 +339,25 @@ const EditJobView: React.FC = () => {
 
   const isLoading = isFetchingJob || isFetchingPipelineJson;
 
-  const [strategyJson, setStrategyJson] = React.useState<
+  const [strategyJson, _setStrategyJson] = React.useState<
     StrategyJson | undefined
   >(undefined);
+
+  const setStrategyJson = (
+    strategyJson: React.SetStateAction<StrategyJson | undefined>,
+    skipUnmount?: boolean
+  ) => {
+    _setStrategyJson(strategyJson);
+
+    if (skipUnmount === true) {
+      return;
+    }
+    setParameterHash(uuidv4());
+  };
+
+  const [loadedStrategyJsonText, setLoadedStrategyJsonText] = React.useState<
+    React.ReactElement | undefined
+  >();
 
   React.useEffect(() => {
     if (job) {
@@ -280,6 +372,74 @@ const EditJobView: React.FC = () => {
       }
     }
   }, [job, setAsSaved]);
+
+  const getParamConfig = async (paramPath, projectUuid) => {
+    return await fetcher(
+      `${FILE_MANAGEMENT_ENDPOINT}/read?${queryArgs({
+        project_uuid: projectUuid,
+        path: paramPath,
+      })}`,
+      { method: "GET" }
+    );
+  };
+
+  const setParamConfigByFile = (
+    paramConfigPath,
+    projectUuid,
+    pipelineJson,
+    reservedKey
+  ) => {
+    getParamConfig(paramConfigPath, projectUuid)
+      .then((paramConfig) => {
+        let strategyJson = generateStrategyJsonFromParamJsonFile(
+          paramConfig,
+          pipelineJson,
+          reservedKey
+        );
+        setStrategyJson(strategyJson);
+        setLoadedStrategyJsonText(
+          <p>
+            Loaded parameter file <Code>{paramConfigPath}</Code>
+          </p>
+        );
+      })
+      .catch((e) => {
+        // Default param file isn't always available, catch 404
+        // without generating an error.
+        if (e.status != 404) {
+          console.error(e);
+        }
+      });
+  };
+
+  const pipelinePathToJsonLocation = (pipelinePath) => {
+    if (!pipelinePath.endsWith(".orchest")) {
+      return;
+    }
+    return pipelinePath.slice(0, -".orchest".length) + ".parameters.json";
+  };
+
+  React.useEffect(() => {
+    if (
+      job &&
+      projectUuid &&
+      config?.PIPELINE_PARAMETERS_RESERVED_KEY &&
+      !searchedParamFile
+    ) {
+      setSearchedParamFile(true);
+      let paramConfigPath = pipelinePathToJsonLocation(
+        job.pipeline_run_spec.run_config.pipeline_path
+      );
+      if (paramConfigPath) {
+        setParamConfigByFile(
+          paramConfigPath,
+          projectUuid,
+          job.pipeline_definition,
+          config?.PIPELINE_PARAMETERS_RESERVED_KEY
+        );
+      }
+    }
+  }, [job, config, searchedParamFile]);
 
   React.useEffect(() => {
     if (job && pipelineJson) {
@@ -445,6 +605,27 @@ const EditJobView: React.FC = () => {
     );
   };
 
+  const showLoadParametersDialog = () => {
+    setIsLoadParametersDialogOpen(true);
+  };
+
+  const closeLoadParametersDialog = () => {
+    setIsLoadParametersDialogOpen(false);
+  };
+
+  const handleLoadParameters = (value) => {
+    if (!job || !config) {
+      return;
+    }
+    setParamConfigByFile(
+      value,
+      projectUuid,
+      job.pipeline_definition,
+      config?.PIPELINE_PARAMETERS_RESERVED_KEY
+    );
+    closeLoadParametersDialog();
+  };
+
   const putJobChanges = (e: React.MouseEvent) => {
     if (!job || !projectUuid) return;
     /* This function should only be called
@@ -545,6 +726,14 @@ const EditJobView: React.FC = () => {
     <Layout
       toolbarElements={<BackButton onClick={cancel}>Back to jobs</BackButton>}
     >
+      {job && (
+        <LoadParametersDialog
+          isOpen={isLoadParametersDialogOpen}
+          onClose={closeLoadParametersDialog}
+          onSubmit={handleLoadParameters}
+          pipelineUuid={job.pipeline_uuid}
+        />
+      )}
       <Stack direction="column" sx={{ height: "100%" }}>
         <Typography variant="h5">Edit job</Typography>
         {job && pipelineJson ? (
@@ -679,6 +868,7 @@ const EditJobView: React.FC = () => {
             <CustomTabPanel value={tabIndex} index={1} name="parameters">
               <ParameterEditor
                 pipelineName={pipelineJson.name}
+                key={parameterHash}
                 onParameterChange={(value: StrategyJson) => {
                   const newPipelineRuns = generatePipelineRuns(value);
                   const newPipelineRunRows = generatePipelineRunRows(
@@ -689,13 +879,28 @@ const EditJobView: React.FC = () => {
                   setPipelineRuns(newPipelineRuns);
                   setPipelineRunRows(newPipelineRunRows);
                   setSelectedRuns(newPipelineRunRows.map((row) => row.uuid));
-                  setStrategyJson(value);
+                  setStrategyJson(value, true);
 
                   setAsSaved(false);
                 }}
                 strategyJSON={strategyJson}
                 data-test-id="job-edit"
               />
+              <Box sx={{ marginTop: 2 }}>
+                <Button
+                  variant="contained"
+                  onClick={showLoadParametersDialog}
+                  onAuxClick={showLoadParametersDialog}
+                  startIcon={<UploadIcon />}
+                >
+                  Load parameters
+                </Button>
+                {loadedStrategyJsonText && (
+                  <Box sx={{ marginTop: 2 }}>
+                    <p>{loadedStrategyJsonText}</p>
+                  </Box>
+                )}
+              </Box>
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={2} name="env-variables">
               <p className="push-down">

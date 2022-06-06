@@ -1,3 +1,4 @@
+import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import Box from "@mui/material/Box";
@@ -236,7 +237,10 @@ export const PipelineViewport = React.forwardRef<
       const environment = environments.length > 0 ? environments[0] : null;
 
       allowed.forEach((filePath) => {
-        dispatch(createStepAction(environment, dropPosition, filePath));
+        // Adjust filePath to pipelineCwd, incoming filePath is relative to project
+        // root.
+        let pipelineRelativeFilePath = getFilePathForRelativeToProject(filePath, pipelineCwd);
+        dispatch(createStepAction(environment, dropPosition, pipelineRelativeFilePath));
       });
     },
     [dispatch, pipelineCwd, environments, getApplicableStepFiles]

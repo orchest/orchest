@@ -9,7 +9,7 @@ import {
   Position,
 } from "@/types";
 import Box from "@mui/material/Box";
-import { hasValue } from "@orchest/lib-utils";
+import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
@@ -350,7 +350,7 @@ const PipelineStepComponent = React.forwardRef<
       resetDraggingVariables();
     }
     if (e.detail === 2 && projectUuid && pipelineUuid) {
-      const valid = await isValidFile(projectUuid, pipelineUuid, file_path);
+      const valid = await isValidFile(projectUuid, pipelineUuid, file_path, ALLOWED_STEP_EXTENSIONS);
       if (valid) onDoubleClick(uuid);
     }
   };

@@ -11,11 +11,10 @@ import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import {
-  ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
 } from "@orchest/lib-utils";
 import React from "react";
-import { getFilePathForRelativeToProject } from "../file-manager/common";
+import { getFilePathForRelativeToProject } from "../pipeline-view/file-manager/common";
 
 export const validatePathInTree = (path: string, tree: FileTree) => {
   // path assumed to start with /
@@ -89,6 +88,7 @@ export type FilePickerProps = {
   value: string;
   menuMaxWidth?: string;
   onSelectMenuItem: (node: FileTree) => void;
+  allowedExtensions: string[];
 };
 
 const ITEM_HEIGHT = 48;
@@ -98,7 +98,8 @@ const useFilePicker = ({
   tree,
   absoluteCwd,
   onChangeValue,
-}: Pick<FilePickerProps, "absoluteCwd" | "cwd" | "tree" | "onChangeValue">) => {
+  allowedExtensions,
+}: Pick<FilePickerProps, "absoluteCwd" | "cwd" | "tree" | "onChangeValue" | "allowedExtensions">) => {
   const [absoluteFolderPath, setAbsoluteFolderPath] = React.useState<string>(
     absoluteCwd
   );
@@ -151,7 +152,7 @@ const useFilePicker = ({
       options: currentNode.children.filter((childNode) => {
         return (
           childNode.type === "directory" ||
-          ALLOWED_STEP_EXTENSIONS.includes(
+          allowedExtensions.includes(
             extensionFromFilename(childNode.name)
           )
         );
@@ -180,6 +181,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
   icon,
   menuMaxWidth,
   onSelectMenuItem,
+  allowedExtensions,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [keyboardIsActive, setKeyboardIsActive] = React.useState(false);
@@ -194,7 +196,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
     onNavigateUp,
     isRootNode,
     options,
-  } = useFilePicker({ cwd, absoluteCwd, tree, onChangeValue });
+  } = useFilePicker({ cwd, absoluteCwd, tree, onChangeValue, allowedExtensions });
 
   // When clicking on the dropdown menu, the built-in `onBlur` will be fired.
   // Use a boolean to control if it's an intended blur behavior.

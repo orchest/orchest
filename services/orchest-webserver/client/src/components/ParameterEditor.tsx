@@ -17,6 +17,7 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
   const [strategyJSON, setStrategyJson] = React.useState<StrategyJson>(
     props.strategyJSON || {}
   );
+  
   const [activeParameter, setActiveParameter] = React.useState<
     | {
         key: string;

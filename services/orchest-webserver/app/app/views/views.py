@@ -753,7 +753,7 @@ def register_views(app, db):
                 pipeline_json = json.load(json_file)
             try:
                 step_file_path = pipeline_json["steps"][step_uuid]["file_path"]
-                if not is_valid_pipeline_relative_path(
+                if not is_valid_data_path(step_file_path) and not is_valid_pipeline_relative_path(
                     project_uuid, pipeline_uuid, step_file_path
                 ):
                     raise app_error.OutOfProjectError(
@@ -975,6 +975,57 @@ def register_views(app, db):
             return jsonify({"message": "File created."})
         except IOError as e:
             app.logger.error(f"Could not create file at {file_path}. Error: {e}")
+
+    @app.route("/async/file-management/read", methods=["GET"])
+    def filemanager_read():
+        """Read file contents and return."""
+
+        # This is just for the load JSON params at the moment.
+        # So limiting to JSON files.
+        ALLOWED_READ_FILE_EXTENIONS = [".json"]
+
+        path = request.args.get("path")
+        project_uuid = request.args.get("project_uuid")
+        pipeline_uuid = request.args.get("pipeline_uuid")
+
+        # currently this endpoint only handles "/data"
+        # if path is absolute
+        if path.startswith("/") and not path.startswith("/data"):
+            return jsonify({"message": "Illegal file path prefix."}), 400
+
+        if path.endswith("/"):
+            return jsonify({"message": "This endpoint only supports files, provided a directory path."}), 400
+        
+        ext = pathlib.Path(path).suffix
+        if ext not in ALLOWED_READ_FILE_EXTENIONS:
+            return jsonify({"message": "Illegal extension: %s. Allowed extensions: %s" % (ext, ALLOWED_READ_FILE_EXTENIONS)}), 400
+
+        file_path = None
+
+        if path.startswith("/"):
+            file_path = resolve_absolute_path(path)
+            if not is_valid_data_path(file_path, True):
+                raise app_error.OutOfDataDirectoryError(
+                    "Path points outside of the data directory."
+                )
+        else:
+            if pipeline_uuid != None:
+                path_parent_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+            else:
+                path_parent_dir = get_project_directory(project_uuid)
+
+            file_path = normalize_project_relative_path(path)
+            file_path = os.path.join(path_parent_dir, file_path)
+
+        if file_path is None:
+            return jsonify({"message": "Failed to process file_path."}), 500
+
+        if os.path.isfile(file_path):
+            return send_file(file_path)
+        else:
+            return jsonify({"message": "File does not exists."}), 404
+
+
 
     @app.route("/async/file-management/exists", methods=["GET"])
     def filemanager_exists():

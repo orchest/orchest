@@ -1,5 +1,6 @@
 import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
 import { PipelineStepState } from "@/types";
+import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { ConnectionDict } from "./StepDetailsProperties";
@@ -23,7 +24,8 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
   const [doesStepFileExist, isCheckingFileValidity] = useCheckFileValidity(
     projectUuid,
     pipelineUuid,
-    step?.file_path
+    step?.file_path,
+    ALLOWED_STEP_EXTENSIONS,
   );
 
   const connections = React.useMemo(() => {

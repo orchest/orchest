@@ -1,4 +1,5 @@
-import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
+import ProjectFilePicker from "@/components/ProjectFilePicker";
+import { usePipelineEditorContext } from "@/pipeline-view/contexts/PipelineEditorContext";
 import { Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
@@ -11,6 +12,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
+  ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
   joinRelativePaths,
   kernelNameToLanguage,
@@ -65,6 +67,7 @@ export const StepDetailsProperties = ({
   menuMaxWidth?: string;
 }) => {
   const { step, connections } = useStepDetailsContext();
+  const { pipelineUuid } = usePipelineEditorContext();
   // Allows user to edit JSON while typing the text will not be valid JSON.
   const [editableParameters, setEditableParameters] = React.useState(
     JSON.stringify(step.parameters, null, 2)
@@ -320,9 +323,11 @@ export const StepDetailsProperties = ({
         ) : (
           <ProjectFilePicker
             value={step.file_path}
+            allowedExtensions={ALLOWED_STEP_EXTENSIONS}
             pipelineCwd={pipelineCwd}
             onChange={onChangeFilePath}
             menuMaxWidth={menuMaxWidth}
+            pipelineUuid={pipelineUuid}
           />
         )}
         {isNotebookStep && (

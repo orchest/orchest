@@ -65,7 +65,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
       includeTitle = true;
     }
 
-    if (includeTitle) {
+    if (includeTitle && stepStrategy.title && stepStrategy.title.length > 0) {
       elements.push(<b key={stepStrategy.key}>{stepStrategy.title}</b>);
     }
 
