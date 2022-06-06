@@ -86,6 +86,15 @@ Next, make Orchest reachable through your FQDN reachable from the browser:
    # /etc/hosts so that you can reach Orchest locally.
    echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
 
+Installing without ``argo-workflow``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you already have an ``argo-workflow`` deployment in your cluster, the ``orchest-controller``
+should be instructed to disable ``argo-workflow`` deployment to avoid colliding with the already installed one.
+
+.. code-block:: bash
+
+    orchest install --no-argo
+
 Install ``orchest`` via ``kubectl``
 -----------------------------------
 
