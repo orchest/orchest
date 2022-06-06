@@ -32,6 +32,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import SaveIcon from "@mui/icons-material/Save";
+import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -53,6 +54,7 @@ import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { generatePipelineJsonForSaving, instantiateNewService } from "./common";
+import { GenerateParametersDialog } from "./GenerateParametersDialog";
 import ServiceForm from "./ServiceForm";
 import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
@@ -179,6 +181,18 @@ const PipelineSettingsView: React.FC = () => {
 
   // If the component has loaded, attach the resize listener
   useOverflowListener(hasLoaded);
+
+  const [
+    isGenerateParametersDialogOpen,
+    setIsGenerateParametersDialogOpen,
+  ] = React.useState(false);
+
+  const showGenerateParametersDialog = () => {
+    setIsGenerateParametersDialogOpen(true);
+  };
+  const closeGenerateParametersDialog = () => {
+    setIsGenerateParametersDialogOpen(false);
+  };
 
   // Service['order'] acts as the serial number of a service
   const onChangeService = React.useCallback(
@@ -461,6 +475,15 @@ const PipelineSettingsView: React.FC = () => {
 
   return (
     <Layout>
+      {isGenerateParametersDialogOpen && projectUuid && pipelineUuid && (
+        <GenerateParametersDialog
+          pipelinePath={pipelinePath}
+          isOpen={isGenerateParametersDialogOpen}
+          onClose={closeGenerateParametersDialog}
+          projectUuid={projectUuid}
+          pipelineUuid={pipelineUuid}
+        />
+      )}
       <div className="view-page pipeline-settings-view">
         {!hasLoaded ? (
           <LinearProgress />
@@ -568,6 +591,15 @@ const PipelineSettingsView: React.FC = () => {
                           onBeforeChange={onChangePipelineParameters}
                         />
                         {inputParametersError}
+
+                        <Button
+                          variant="contained"
+                          onClick={showGenerateParametersDialog}
+                          onAuxClick={showGenerateParametersDialog}
+                          startIcon={<TuneIcon />}
+                        >
+                          Generate parameters file
+                        </Button>
                       </div>
                       <div className="clear"></div>
                     </div>

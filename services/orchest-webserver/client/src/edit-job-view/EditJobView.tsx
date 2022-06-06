@@ -24,7 +24,9 @@ import type { Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
+  generateStrategyJson,
   isValidEnvironmentVariableName,
+  pipelinePathToJsonLocation,
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -156,22 +158,6 @@ const columns: DataTableColumn<PipelineRunRow>[] = [
   },
 ];
 
-const generateParameterLists = (parameters: Record<string, Json>) => {
-  let parameterLists = {};
-
-  for (const paramKey in parameters) {
-    // Note: the list of parameters for each key will always be
-    // a string in the 'strategyJSON' data structure. This
-    // facilitates preserving user added indendation.
-
-    // Validity of the user string as JSON is checked client
-    // side (for now).
-    parameterLists[paramKey] = JSON.stringify([parameters[paramKey]]);
-  }
-
-  return parameterLists;
-};
-
 const generateStrategyJsonFromParamJsonFile = (
   paramJson,
   pipeline: PipelineJson,
@@ -242,37 +228,6 @@ const generateStrategyJsonFromParamJsonFile = (
   }
 
   return strategyJson;
-};
-
-const generateStrategyJson = (pipeline: PipelineJson, reservedKey: string) => {
-  let strategyJSON = {};
-
-  if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
-    strategyJSON[reservedKey] = {
-      key: reservedKey,
-      parameters: generateParameterLists(pipeline.parameters),
-      title: pipeline.name,
-    };
-  }
-
-  for (const stepUUID in pipeline.steps) {
-    let stepStrategy = JSON.parse(JSON.stringify(pipeline.steps[stepUUID]));
-
-    if (
-      stepStrategy.parameters &&
-      Object.keys(stepStrategy.parameters).length > 0
-    ) {
-      // selectively persist only required fields for use in parameter
-      // related React components
-      strategyJSON[stepUUID] = {
-        key: stepUUID,
-        parameters: generateParameterLists(stepStrategy.parameters),
-        title: stepStrategy.title,
-      };
-    }
-  }
-
-  return strategyJSON;
 };
 
 type JobUpdatePayload = {
@@ -421,13 +376,6 @@ const EditJobView: React.FC = () => {
       });
   };
 
-  const pipelinePathToJsonLocation = (pipelinePath) => {
-    if (!pipelinePath.endsWith(".orchest")) {
-      return;
-    }
-    return pipelinePath.slice(0, -".orchest".length) + ".parameters.json";
-  };
-
   React.useEffect(() => {
     if (
       job &&
@@ -448,7 +396,7 @@ const EditJobView: React.FC = () => {
         );
       }
     }
-  }, [job, config, searchedParamFile]);
+  }, [job, config, searchedParamFile, setParamConfigByFile]);
 
   React.useEffect(() => {
     if (job && pipelineJson) {
@@ -909,6 +857,20 @@ const EditJobView: React.FC = () => {
                     <p>{loadedStrategyJsonText}</p>
                   </Box>
                 )}
+                <Box sx={{ marginTop: 2 }}>
+                  You can generate this file manually or generate a file in the{" "}
+                  <Link
+                    sx={{ cursor: "pointer" }}
+                    onClick={() => {
+                      navigateTo(siteMap.pipelineSettings.path, {
+                        query: { projectUuid, pipelineUuid: job.pipeline_uuid },
+                      });
+                    }}
+                  >
+                    pipeline settings
+                  </Link>
+                  .
+                </Box>
               </Box>
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={2} name="env-variables">
