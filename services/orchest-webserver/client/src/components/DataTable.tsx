@@ -389,8 +389,9 @@ type DataTableProps<T> = {
     setData: (
       action:
         | DataTableFetcherResponse<T>
+        | undefined
         | ((
-            currentValue: DataTableFetcherResponse<T>
+            currentValue: DataTableFetcherResponse<T> | undefined
           ) => DataTableFetcherResponse<T>)
     ) => void,
     fetchData: () => void
@@ -500,7 +501,7 @@ export const DataTable = <T extends Record<string, any>>({
 
   const { run, status, error, data, setData } = useAsync<
     DataTableFetcherResponse<T>
-  >({ caching: true });
+  >();
   const fetchData = React.useCallback(async () => {
     if (fetcher) {
       return fetcher({
@@ -519,7 +520,7 @@ export const DataTable = <T extends Record<string, any>>({
       if (current === 1) forceUpdate(); // if page is already 1, it won't trigger re-render
       return 1;
     });
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, forceUpdate]);
 
   // when user change searchTerm, page, and rowsPerPage, it should re-fetch data, however
   // if we simply subscribe to debouncedSearchTerm, page, and rowsPerPage, an extra request will occur when page !== 1 and searchTerm is changing
