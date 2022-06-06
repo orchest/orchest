@@ -96,7 +96,7 @@ export const NotificationEventsForm = () => {
               }`,
             }}
             sx={{ margin: (theme) => theme.spacing(0, 1) }}
-            checked={isEnabled}
+            checked={webhookUuids.length === 0 ? false : isEnabled}
             onChange={(_, checked) => handleEvent(row.name, checked)}
           />
         );

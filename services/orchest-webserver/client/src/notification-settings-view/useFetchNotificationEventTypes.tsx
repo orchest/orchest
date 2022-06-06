@@ -16,10 +16,7 @@ export const useFetchNotificationEventTypes = (
   >(`${NOTIFICATION_END_POINT}/subscribable-events`, {
     transform: (response) =>
       response.events
-        .filter(
-          // TODO: expose other event types when PUT endpoint is implemented.
-          (event) => /^project:.*\:failed$/.test(event.name)
-        )
+        .filter((event) => /^project:.*\:failed$/.test(event.name))
         .map((event) => event.name),
   });
 
