@@ -36,8 +36,8 @@ const ReturnToJobsAlert = () => {
       {firstSuccess
         ? `You have successfully configured your first webhook!`
         : webhooks.length > 1
-        ? "Webhooks are enabled"
-        : "A valid Webhook URL is required for notifications to be enabled"}
+        ? "Webhooks are enabled."
+        : "A valid Webhook URL is required to enable notifications."}
     </Alert>
   ) : null;
 };

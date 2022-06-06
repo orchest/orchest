@@ -121,7 +121,7 @@ export const WebhookList = () => {
   return (
     <Stack
       direction="column"
-      spacing={2}
+      spacing={1}
       sx={{
         margin: (theme) => theme.spacing(2, 0),
         width: "100%",
@@ -141,8 +141,14 @@ export const WebhookList = () => {
         spacing={2}
         sx={{ paddingLeft: (theme) => theme.spacing(6.5) }}
       >
-        <Stack direction="row" sx={{ margin: (theme) => theme.spacing(2, 0) }}>
-          <Typography variant="body2">
+        <Stack
+          direction="row"
+          sx={{ marginBottom: (theme) => theme.spacing(1) }}
+        >
+          <Typography
+            variant="body2"
+            sx={{ color: (theme) => theme.palette.text.secondary }}
+          >
             {`Webhooks let you receive HTTP push notifications to a URL.`}
           </Typography>
           <WebhookDocLink>Webhook docs</WebhookDocLink>

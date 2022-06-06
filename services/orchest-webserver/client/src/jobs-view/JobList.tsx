@@ -328,7 +328,7 @@ const JobList = () => {
               startIcon={<AddIcon />}
               variant="contained"
               onClick={onCreateClick}
-              sx={{ marginBottom: (theme) => theme.spacing(2) }}
+              sx={{ marginBottom: (theme) => theme.spacing(1) }}
               data-test-id="job-create"
             >
               Create job

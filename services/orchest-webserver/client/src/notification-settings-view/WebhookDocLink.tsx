@@ -11,7 +11,7 @@ export const WebhookDocLink: React.FC = ({ children }) => {
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        margin: (theme) => theme.spacing(0, 1, 0, 2),
+        margin: (theme) => theme.spacing(0, 1),
       }}
       href="https://docs.orchest.io/en/stable/fundamentals/notifications.html"
       target="_blank"
