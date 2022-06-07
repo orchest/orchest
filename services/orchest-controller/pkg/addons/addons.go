@@ -36,7 +36,7 @@ func NewDefaultAddonsConfig() AddonsConfig {
 
 type Addon interface {
 	// Installs addon if the config is changed
-	Enable(ctx context.Context, namespace string, orchest *orchestv1alpha1.OrchestCluster) error
+	Enable(ctx context.Context, namespace string, config *orchestv1alpha1.ApplicationConfig) error
 
 	// Uninstall the addon
 	Uninstall(ctx context.Context, namespace string) error
@@ -57,7 +57,7 @@ func NewAddonManager(config AddonsConfig) *AddonManager {
 
 	addonManager.AddAddon(ArgoWorkflow,
 		NewHelmDeployer(ArgoWorkflow,
-			path.Join(config.AssetDir, "thirdparty/argo-workflows"),
+			path.Join(config.AssetDir, "thirdparty/argo-workflows/helm"),
 			path.Join(config.AssetDir, "thirdparty/argo-workflows/orchest-values.yaml")))
 
 	addonManager.AddAddon(DockerRegistry,
