@@ -120,10 +120,15 @@ export const useGestureOnViewport = (
           ],
         }));
       },
-      onPinch: ({ pinching, delta, event }) => {
+      onPinch: ({ pinching, delta: [delta], event, velocity: [velocity] }) => {
         if (disabled || !pinching) return;
+        // `delta` value jumps from time to time (i.e. super big or super small).
+        // We limit its range to ensure consistent zooming speed.
         const { clientX, clientY } = event as WheelEvent;
-        zoom({ x: clientX, y: clientY }, delta[0] / 12);
+        zoom(
+          { x: clientX, y: clientY },
+          Math.min(Math.max(velocity, 0.02), 0.06) * (delta < 0 ? -1 : 1)
+        );
       },
     },
     {
