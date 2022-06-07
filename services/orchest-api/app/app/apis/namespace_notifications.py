@@ -62,13 +62,13 @@ class WebhookList(Resource):
         """
         try:
             webhook = webhooks.create_webhook(request.get_json())
-            webhook.url = utils.extract_domain_name(
-                webhook.url
-            )  # Leave out the secret in the URL.
         except (ValueError, sqlalchemy.exc.IntegrityError) as e:
             return {"message": str(e)}, 400
 
         db.session.commit()
+        webhook.url = utils.extract_domain_name(
+            webhook.url
+        )  # Leave out the secret in the URL.
         return marshal(webhook, schema.webhook), 201
 
 
