@@ -193,8 +193,9 @@ const generateStrategyJsonFromParamJsonFile = (
     } else {
       try {
         strategyJson[key]["title"] = pipeline.steps[key].title;
-      } catch (error) {
-        console.error(error);
+      } catch {
+        // Missing pipeline step entries
+        // will be deleted in filtering step below.
       }
     }
   });
@@ -212,6 +213,16 @@ const generateStrategyJsonFromParamJsonFile = (
         title: step.title,
         parameters: toStringifiedParams(cloneDeep(step.parameters), true),
       };
+    }
+  });
+
+  Object.keys(strategyJson).forEach((key) => {
+    if (key != reservedKey) {
+      // For pipeline step keys in strategyJson, filter step UUIDs that aren't
+      // in the pipeline definition.
+      if (!Object.keys(pipeline.steps).includes(key)) {
+        delete strategyJson[key];
+      }
     }
   });
 

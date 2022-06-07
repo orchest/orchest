@@ -397,7 +397,6 @@ const PipelineStepComponent = React.forwardRef<
     if (keysDown.has("Space")) return;
 
     if (disabledDragging) {
-      resetDraggingVariables();
       return;
     }
 
