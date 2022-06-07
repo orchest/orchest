@@ -97,8 +97,10 @@ export const GenerateParametersDialog = ({
         <DialogContent sx={{ overflowY: "visible" }}>
           <Stack direction="column" spacing={2}>
             <Box>
-              Place the pipeline parameter file in the following location:{" "}
-              <br />{" "}
+              <span>
+                Place the pipeline parameter file in the following location in
+                your project directory:{" "}
+              </span>
               <Code>
                 {pipelinePathToJsonLocation(pipelinePath ? pipelinePath : "")}
               </Code>

@@ -46,10 +46,15 @@ def get_pipeline_path(
         )
     elif job_uuid is not None:
         return safe_join(
-            get_job_directory(pipeline_uuid, project_uuid, job_uuid),
-            "snapshot",
+            get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid),
             pipeline_path,
         )
+
+
+def get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid):
+    return safe_join(
+        get_job_directory(pipeline_uuid, project_uuid, job_uuid), "snapshot"
+    )
 
 
 def get_job_directory(pipeline_uuid, project_uuid, job_uuid):
@@ -487,10 +492,7 @@ def write_config(app, key, value):
 
 def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
 
-    snapshot_path = safe_join(
-        get_job_directory(pipeline_uuid, project_uuid, job_uuid),
-        "snapshot",
-    )
+    snapshot_path = get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid)
 
     os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
 

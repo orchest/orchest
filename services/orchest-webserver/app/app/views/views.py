@@ -55,6 +55,7 @@ from app.utils import (
     get_project_snapshot_size,
     get_repo_tag,
     get_session_counts,
+    get_snapshot_directory,
     is_valid_data_path,
     is_valid_pipeline_relative_path,
     normalize_project_relative_path,
@@ -986,9 +987,12 @@ def register_views(app, db):
         # So limiting to JSON files.
         ALLOWED_READ_FILE_EXTENIONS = [".json"]
 
+        # Path is assumed to be relative to root of the project
+        # directory (or absolute starting for data paths e.g. /data/abc)
         path = request.args.get("path")
-        project_uuid = request.args.get("project_uuid")
         pipeline_uuid = request.args.get("pipeline_uuid")
+        project_uuid = request.args.get("project_uuid")
+        job_uuid = request.args.get("job_uuid")
 
         # currently this endpoint only handles "/data"
         # if path is absolute
@@ -1029,11 +1033,9 @@ def register_views(app, db):
                     "Path points outside of the data directory."
                 )
         else:
-            if pipeline_uuid is not None:
-                path_parent_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
-            else:
-                path_parent_dir = get_project_directory(project_uuid)
-
+            path_parent_dir = get_snapshot_directory(
+                pipeline_uuid, project_uuid, job_uuid
+            )
             file_path = normalize_project_relative_path(path)
             file_path = os.path.join(path_parent_dir, file_path)
 
