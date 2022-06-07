@@ -70,7 +70,7 @@ Non-interactive (pipeline) run
     run is the building block of {term}`jobs <job>`.
 
 Job
-    A set of pipeline runs (where each pipeline will run for a different set of parameters).  Currently
+    A set of pipeline runs (where each pipeline will run for a different set of parameters). Currently
     we support the following types of jobs:
 
     * Grid search like jobs: a collection of {term}`non-interactive pipeline runs <Non-interactive
@@ -78,6 +78,8 @@ Job
       parameters other than the default values. The [scikit-learn docs] are a great resource to read more
       about grid searches.
     * Cron jobs: similar to grid search like jobs, but running on a cron schedule.
+
+    Read the {ref}`Jobs` section of the documentation to know more.
 
 Environment
     The runtime environment of a {term}`pipeline step <Pipeline step>`. Using environments you can

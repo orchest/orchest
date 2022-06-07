@@ -19,6 +19,8 @@ Lastly, environments are part of a single project and included when versioning. 
 you can get started immediately when importing an existing project without having to recreate the
 same environment.
 
+.. _languages:
+
 Choosing a programming language
 -------------------------------
 
