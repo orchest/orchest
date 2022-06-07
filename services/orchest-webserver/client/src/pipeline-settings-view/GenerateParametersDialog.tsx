@@ -117,7 +117,7 @@ export const GenerateParametersDialog = ({
       })
       .catch((response) => {
         if (response.status == 404) {
-          writeFile(body, filePath);
+          writeFile(body, filePath, pipelineUuid, projectUuid);
           onClose();
         }
       });

@@ -585,21 +585,21 @@ def create_file(
     ext = file_path_split[-1]
 
     file_content = None
-
-    if content is not None:
+    if content is not None and len(content) > 0:
         if isinstance(content, bytes):
             content = content.decode("utf-8")
         file_content = content
-    elif not os.path.isfile(file_path):
-        if len(file_path_without_ext) > 0:
-            file_content = ""
-        elif ext == "ipynb":
-            file_content = generate_ipynb_from_template(kernel_name)
-    elif ext == "ipynb":
-        # Check for empty .ipynb, for which we also generate a
-        # template notebook.
-        if os.stat(file_path).st_size == 0:
-            file_content = generate_ipynb_from_template(kernel_name)
+    else:
+        if not os.path.isfile(file_path):
+            if len(file_path_without_ext) > 0:
+                file_content = ""
+            if ext == "ipynb":
+                file_content = generate_ipynb_from_template(kernel_name)
+        else:
+            # Check for empty .ipynb, for which we also generate a
+            # template notebook.
+            if os.stat(file_path).st_size == 0:
+                file_content = generate_ipynb_from_template(kernel_name)
 
     if file_content is not None:
         with open(file_path, "w") as file:
