@@ -28,7 +28,7 @@ func NewDefaultAddonsConfig() AddonsConfig {
 	return AddonsConfig{
 		DefaultAddons: []string{},
 
-		AssetDir: "deploy",
+		AssetDir: "/deploy",
 
 		DefaultNamespace: "orchest",
 	}
