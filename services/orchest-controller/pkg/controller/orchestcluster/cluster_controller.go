@@ -31,25 +31,43 @@ var (
 )
 
 type ControllerConfig struct {
-	PostgresDefaultImage           string
-	RabbitmqDefaultImage           string
-	OrchestDefaultVersion          string
-	CeleryWorkerImageName          string
-	OrchestApiImageName            string
-	OrchestWebserverImageName      string
-	AuthServerImageName            string
-	UserdirDefaultVolumeSize       string
-	BuilddirDefaultVolumeSize      string
-	OrchestDefaultEnvVars          map[string]string
-	OrchestApiDefaultEnvVars       map[string]string
+	// Postgres default image to use if not provided
+	PostgresDefaultImage string
+	// Rabbitmq default image to use if not provided
+	RabbitmqDefaultImage string
+	// Orchest Default version to use if not provided
+	OrchestDefaultVersion string
+	// celery-worker default image to use if not provided
+	CeleryWorkerImageName string
+	// orchest-api default image to use if not provided
+	OrchestApiImageName string
+	// orchest-webserver default image to use if not provided
+	OrchestWebserverImageName string
+	// auth-server default image to use if not provided
+	AuthServerImageName string
+	// user-dir volume size if not provided
+	UserdirDefaultVolumeSize string
+	// build-dir volume size if not provided
+	BuilddirDefaultVolumeSize string
+	// default env vars for orchest services
+	OrchestDefaultEnvVars map[string]string
+	// default env vars for orchest-api
+	OrchestApiDefaultEnvVars map[string]string
+	// default env vars for orchest-webserver
 	OrchestWebserverDefaultEnvVars map[string]string
-	AuthServerDefaultEnvVars       map[string]string
-	CeleryWorkerDefaultEnvVars     map[string]string
-	OrchestDatabaseDefaultEnvVars  map[string]string
-	RabbitmqDefaultEnvVars         map[string]string
-	Threadiness                    int
-	InCluster                      bool
-	DefaultPause                   bool
+	// default env vars for auth-server
+	AuthServerDefaultEnvVars map[string]string
+	// default env vars for celery-worker
+	CeleryWorkerDefaultEnvVars map[string]string
+	// default env vars for orchest-database
+	OrchestDatabaseDefaultEnvVars map[string]string
+	// default env vars for rabbitmq
+	RabbitmqDefaultEnvVars map[string]string
+	// default third-party applications
+	DefaultApplications []orchestv1alpha1.ApplicationSpec
+	Threadiness         int
+	InCluster           bool
+	DefaultPause        bool
 }
 
 func NewDefaultControllerConfig() ControllerConfig {
@@ -93,6 +111,24 @@ func NewDefaultControllerConfig() ControllerConfig {
 		OrchestDatabaseDefaultEnvVars: map[string]string{
 			"PGDATA":                    "/userdir/.orchest/database/data",
 			"POSTGRES_HOST_AUTH_METHOD": "trust",
+		},
+		DefaultApplications: []orchestv1alpha1.ApplicationSpec{
+			{
+				Name: addons.ArgoWorkflow,
+				Config: orchestv1alpha1.ApplicationConfig{
+					Helm: &orchestv1alpha1.ApplicationConfigHelm{
+						Parameters: []orchestv1alpha1.HelmParameter{
+							{
+								Name:  "singleNamespace",
+								Value: "true",
+							},
+						},
+					},
+				},
+			},
+			{
+				Name: addons.DockerRegistry,
+			},
 		},
 		RabbitmqDefaultEnvVars: make(map[string]string, 0),
 		Threadiness:            1,
@@ -493,6 +529,11 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = occ.config.BuilddirDefaultVolumeSize
 	}
 
+	if copy.Spec.Applications == nil {
+		changed = true
+		copy.Spec.Applications = occ.config.DefaultApplications
+	}
+
 	if changed || !reflect.DeepEqual(copy.Spec, orchest.Spec) {
 		_, err := occ.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
 
@@ -537,16 +578,20 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			return err
 		}
 
-		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.DeployingRegistry)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
+		for _, application := range orchest.Spec.Applications {
+			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
+				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", application.Name)))
+			if err != nil {
+				klog.Error(err)
+				return err
+			}
 
-		err = occ.addonManager.Get(addons.DockerRegistry).Enable(ctx, orchest.Namespace, nil)
-		if err != nil {
-			klog.Error(err)
-			return err
+			err = occ.addonManager.Get(application.Name).Enable(ctx, orchest.Namespace, &application.Config)
+			if err != nil {
+				klog.Error(err)
+				return err
+			}
+
 		}
 	}
 
