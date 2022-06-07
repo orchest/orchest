@@ -1,6 +1,22 @@
 Glossary
 ========
 
+.. _DAG:
+
+DAG
+    DAG stands for **directed acyclic graph**, and it's the most widely used data structure
+    for data worflows:
+
+    * It's a **graph** (in the mathematical sense) since it connects a set of steps
+      (in the case of Orchest, a :ref:`pipeline step <pipeline step>`).
+    * It's **directed** because those connections have a specific direction
+      (from one step to the other). For example, a step loads the data, and hands it
+      to the following step to process it.
+    * It's **acyclic** because it has no _cycles_ (or feedback loops). In other words,
+      there is no way to follow the connections of the graph starting from one step
+      and come back to the same step. This is important because it means that pipelines
+      are finite.
+
 .. _pipeline step:
 
 Pipeline step
@@ -20,7 +36,7 @@ Pipeline step
 .. _pipeline:
 
 (Data science) pipeline
-    A DAG of :ref:`pipeline steps <pipeline step>` defined in its respective :ref:`pipeline
+    A :ref:`DAG <DAG>` of :ref:`pipeline steps <pipeline step>` defined in its respective :ref:`pipeline
     definition <pipeline definition>`.
 
 .. _pipeline definition:
@@ -34,7 +50,6 @@ Pipeline definition
       under *Pipelines*.
     * A full `JSON Schema <https://json-schema.org/>`_ definition can be found in the
       :ref:`implementation details <pipeline-json-schema>`.
-
 
 .. _interactive session:
 
