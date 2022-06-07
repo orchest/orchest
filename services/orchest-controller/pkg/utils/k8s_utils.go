@@ -247,6 +247,10 @@ func GetInstanceOfObj(obj interface{}) client.Object {
 		return &rbacv1.ClusterRole{}
 	case *rbacv1.ClusterRoleBinding:
 		return &rbacv1.ClusterRoleBinding{}
+	case *rbacv1.Role:
+		return &rbacv1.Role{}
+	case *rbacv1.RoleBinding:
+		return &rbacv1.RoleBinding{}
 	case *networkingv1.Ingress:
 		return &networkingv1.Ingress{}
 	}
