@@ -27,7 +27,12 @@ const ReturnToJobsAlert = () => {
     <Alert
       severity={firstSuccess ? "success" : "info"}
       action={
-        <Button color="inherit" size="small" onClick={returnToJobs}>
+        <Button
+          color="inherit"
+          size="small"
+          onClick={returnToJobs}
+          sx={{ marginTop: (theme) => theme.spacing(-0.25) }}
+        >
           Return to Jobs
         </Button>
       }

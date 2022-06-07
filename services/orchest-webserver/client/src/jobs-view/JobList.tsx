@@ -338,18 +338,21 @@ const JobList = () => {
             <Alert
               severity="info"
               action={
-                <Stack direction="row" spacing={2}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ marginTop: (theme) => theme.spacing(-0.25) }}
+                >
                   <Button
                     color="inherit"
                     size="small"
                     onClick={goToNotificationSettings}
-                    sx={{ height: "30px" }}
                   >
                     New webhook
                   </Button>
                   <IconButton
                     onClick={() => setShouldHideWebhookHint(true)}
-                    sx={{ height: "30px", width: "30px" }}
+                    size="small"
                   >
                     <CloseIcon />
                   </IconButton>
