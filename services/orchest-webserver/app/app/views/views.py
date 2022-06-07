@@ -40,7 +40,7 @@ from app.models import Environment, Pipeline, Project
 from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
 from app.utils import (
     check_pipeline_correctness,
-    create_empty_file,
+    create_file,
     delete_environment,
     get_environment,
     get_environment_directory,
@@ -947,12 +947,14 @@ def register_views(app, db):
     @app.route("/async/file-management/create", methods=["POST"])
     def filemanager_create():
         """
-        Create an empty file with the given path within `/project-dir`
+        Create a file with the given path within `/project-dir`
         or `/data`.
         """
         root = request.args.get("root")
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
+        body = request.data
+        overwrite = request.args.get("overwrite") == "true"
 
         try:
             root_dir_path, _ = process_request(
@@ -963,7 +965,9 @@ def register_views(app, db):
 
         file_path = safe_join(root_dir_path, path[1:])
 
-        if not file_path.split(".")[-1] in _config.ALLOWED_FILE_EXTENSIONS:
+        # This endpoint also allows JSON files to be created
+        # for the parameter file feature
+        if not file_path.split(".")[-1] in (_config.ALLOWED_FILE_EXTENSIONS + ["json"]):
             return jsonify({"message": "Given file type is not supported."}), 409
 
         directory, _ = os.path.split(file_path)
@@ -971,10 +975,10 @@ def register_views(app, db):
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-        if os.path.isfile(file_path):
+        if os.path.isfile(file_path) and not overwrite:
             return jsonify({"message": "File already exists."}), 409
         try:
-            create_empty_file(file_path)
+            create_file(file_path, content=body)
             return jsonify({"message": "File created."})
         except IOError as e:
             app.logger.error(f"Could not create file at {file_path}. Error: {e}")
@@ -1054,6 +1058,11 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
         pipeline_uuid = request.args.get("pipeline_uuid")
+        use_project_root = request.args.get("use_project_root")
+
+        if use_project_root is not None:
+            # string match query argument to bool
+            use_project_root = use_project_root == "true"
 
         # currently this endpoint only handles "/data"
         # if path is absolute
@@ -1068,10 +1077,14 @@ def register_views(app, db):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
-        else:
+        elif not use_project_root:
             pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
             file_path = normalize_project_relative_path(path)
             file_path = os.path.join(pipeline_dir, file_path)
+        elif use_project_root:
+            project_dir = get_project_directory(project_uuid)
+            file_path = normalize_project_relative_path(path)
+            file_path = os.path.join(project_dir, file_path)
 
         if file_path is None:
             return jsonify({"message": "Failed to process file_path."}), 500

@@ -567,7 +567,9 @@ def generate_ipynb_from_template(kernel_name: str):
     return json.dumps(template_json, indent=4)
 
 
-def create_empty_file(file_path: str, kernel_name: Optional[str] = "python"):
+def create_file(
+    file_path: str, kernel_name: Optional[str] = "python", content=Optional[str]
+):
     """
     This function creates an empty file with the given `file_path`.
     `kernel_name` is optional. It is  only applicable if `file_path`
@@ -584,14 +586,15 @@ def create_empty_file(file_path: str, kernel_name: Optional[str] = "python"):
 
     file_content = None
 
-    if not os.path.isfile(file_path):
-
+    if content is not None:
+        if isinstance(content, bytes):
+            content = content.decode("utf-8")
+        file_content = content
+    elif not os.path.isfile(file_path):
         if len(file_path_without_ext) > 0:
             file_content = ""
-
-        if ext == "ipynb":
+        elif ext == "ipynb":
             file_content = generate_ipynb_from_template(kernel_name)
-
     elif ext == "ipynb":
         # Check for empty .ipynb, for which we also generate a
         # template notebook.

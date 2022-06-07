@@ -2,6 +2,10 @@ import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import {
+  FILE_MANAGEMENT_ENDPOINT,
+  queryArgs,
+} from "@/pipeline-view/file-manager/common";
+import {
   generateStrategyJson,
   pipelinePathToJsonLocation,
 } from "@/utils/webserver-utils";
@@ -13,27 +17,9 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { Alert, AlertDescription, Link } from "@orchest/design-system";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-
-export const ParameterDocs = () => {
-  return (
-    <Alert status="info">
-      <AlertDescription>
-        <>
-          <Link
-            target="_blank"
-            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
-          >
-            Learn more
-          </Link>{" "}
-          about parametrizing your pipelines and steps.
-        </>
-      </AlertDescription>
-    </Alert>
-  );
-};
 
 export const GenerateParametersDialog = ({
   isOpen,
@@ -53,7 +39,7 @@ export const GenerateParametersDialog = ({
     pipelineUuid,
   });
 
-  const { config } = useAppContext();
+  const { config, setConfirm } = useAppContext();
 
   const [copyButtonText, setCopyButtontext] = React.useState("Copy");
 
@@ -84,6 +70,59 @@ export const GenerateParametersDialog = ({
     setCopyButtontext("Copied!");
   };
 
+  const writeFile = (body, path, pipelineUuid, projectUuid) => {
+    fetcher(
+      `${FILE_MANAGEMENT_ENDPOINT}/create?${queryArgs({
+        project_uuid: projectUuid,
+        pipeline_uuid: pipelineUuid,
+        path: path.startsWith("/") ? path : "/" + path,
+        overwrite: "true",
+        root: "/project-dir",
+        use_project_root: "true",
+      })}`,
+      { body, method: "POST" }
+    );
+  };
+
+  const createParamFile = async () => {
+    let body = pipelineJsonToParams(pipelineJson);
+    let filePath = pipelinePathToJsonLocation(pipelinePath ? pipelinePath : "");
+
+    if (!projectUuid || !pipelineUuid || !filePath) {
+      return;
+    }
+
+    // Check if file exists
+    fetcher(
+      `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
+        project_uuid: projectUuid,
+        pipeline_uuid: pipelineUuid,
+        path: filePath,
+        use_project_root: "true",
+      })}`
+    )
+      .then((response) => {
+        if (hasValue(response)) {
+          setConfirm(
+            "Warning",
+            "This file already exists, do you want to overwrite it?",
+            async (resolve) => {
+              writeFile(body, filePath, pipelineUuid, projectUuid);
+              onClose();
+              resolve(true);
+              return true;
+            }
+          );
+        }
+      })
+      .catch((response) => {
+        if (response.status == 404) {
+          writeFile(body, filePath);
+          onClose();
+        }
+      });
+  };
+
   return (
     <Dialog
       open={isOpen}
@@ -97,10 +136,7 @@ export const GenerateParametersDialog = ({
         <DialogContent sx={{ overflowY: "visible" }}>
           <Stack direction="column" spacing={2}>
             <Box>
-              <span>
-                Place the pipeline parameter file in the following location in
-                your project directory:{" "}
-              </span>
+              <span>The parameter file will be created at: </span>
               <Code>
                 {pipelinePathToJsonLocation(pipelinePath ? pipelinePath : "")}
               </Code>
@@ -117,15 +153,17 @@ export const GenerateParametersDialog = ({
                 }}
               />
             )}
-            <ParameterDocs />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button color="secondary" onClick={onClose}>
             Close
           </Button>
-          <Button variant="contained" onClick={copyParams}>
+          <Button color="secondary" onClick={copyParams}>
             {copyButtonText}
+          </Button>
+          <Button variant="contained" onClick={createParamFile}>
+            Create file
           </Button>
         </DialogActions>
       </form>

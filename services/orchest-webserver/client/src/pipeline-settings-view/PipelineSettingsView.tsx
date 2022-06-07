@@ -35,6 +35,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
@@ -58,6 +59,24 @@ import { GenerateParametersDialog } from "./GenerateParametersDialog";
 import ServiceForm from "./ServiceForm";
 import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
+
+const ParameterDocs = () => {
+  return (
+    <CustomAlert status="info">
+      <AlertDescription>
+        <>
+          <Link
+            target="_blank"
+            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
+          >
+            Learn more
+          </Link>{" "}
+          about parametrizing your pipelines and steps.
+        </>
+      </AlertDescription>
+    </CustomAlert>
+  );
+};
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 0),
@@ -592,14 +611,20 @@ const PipelineSettingsView: React.FC = () => {
                         />
                         {inputParametersError}
 
-                        <Button
-                          variant="contained"
-                          onClick={showGenerateParametersDialog}
-                          onAuxClick={showGenerateParametersDialog}
-                          startIcon={<TuneIcon />}
-                        >
-                          Generate parameters file
-                        </Button>
+                        {!isReadOnly && (
+                          <Button
+                            variant="contained"
+                            onClick={showGenerateParametersDialog}
+                            onAuxClick={showGenerateParametersDialog}
+                            startIcon={<TuneIcon />}
+                          >
+                            Generate parameters file
+                          </Button>
+                        )}
+
+                        <Box sx={{ marginTop: 2 }}>
+                          <ParameterDocs />
+                        </Box>
                       </div>
                       <div className="clear"></div>
                     </div>
