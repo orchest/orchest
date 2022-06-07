@@ -429,7 +429,6 @@ const PipelineStepComponent = React.forwardRef<
     cursorControlledStep,
     resetDraggingVariables,
     disabledDragging,
-    steps,
     selectedSteps,
     metadataPositions,
     detectDraggingBehavior,
@@ -477,7 +476,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Duplicate",
       disabled: isReadOnly || selectionContainsNotebooks,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ itemId }) => {
         if (itemId) {
           dispatch({ type: "DUPLICATE_STEPS", payload: [itemId] });
         }
@@ -487,7 +486,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Delete",
       disabled: isReadOnly,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ itemId }) => {
         if (itemId) {
           dispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
         }
@@ -496,7 +495,7 @@ const PipelineStepComponent = React.forwardRef<
     {
       type: "item",
       title: "Properties",
-      action: (e: React.MouseEvent, _itemId?: string) => {
+      action: () => {
         dispatch({ type: "SELECT_SUB_VIEW", payload: 0 });
       },
     },
@@ -504,19 +503,19 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Open in JupyterLab",
       disabled: isReadOnly,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ event, itemId }) => {
         if (itemId) {
           dispatch({ type: "SET_OPENED_STEP", payload: itemId });
-          onOpenNotebook(e);
+          onOpenNotebook(event);
         }
       },
     },
     {
       type: "item",
       title: "Open in File Viewer",
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ event, itemId }) => {
         if (itemId) {
-          onOpenFilePreviewView(e, itemId);
+          onOpenFilePreviewView(event, itemId);
         }
       },
     },
@@ -527,7 +526,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Run this step",
       disabled: isReadOnly,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ itemId }) => {
         if (itemId) {
           executeRun([itemId], "selection");
         }
@@ -537,7 +536,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Run incoming",
       disabled: isReadOnly,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ itemId }) => {
         if (itemId) {
           executeRun([itemId], "incoming");
         }
