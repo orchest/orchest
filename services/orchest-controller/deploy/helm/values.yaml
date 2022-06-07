@@ -10,4 +10,4 @@ image:
 
 
 addons:
-  enableArgo: true
+  enableArgo: false
