@@ -44,6 +44,10 @@ extensions = [
     "sphinx.ext.napoleon",
 ]
 
+myst_enable_extensions = [
+    "deflist",
+]
+
 # Add any paths that contain templates here, relative to this dir.
 templates_path = ["_templates"]
 

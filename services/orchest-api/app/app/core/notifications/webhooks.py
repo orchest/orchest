@@ -14,12 +14,12 @@ import hmac
 import json
 import secrets
 import uuid
-from typing import Optional
+from typing import List, Optional, Set
 
 import requests
 import validators
 from flask_restx import marshal
-from sqlalchemy.orm import noload
+from sqlalchemy.orm import exc, noload
 
 from app import errors as self_errors
 from app import models, schema
@@ -39,25 +39,119 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
 
     """
 
-    if not validators.url(webhook_spec["url"]):
-        raise ValueError(f'Invalid url: {webhook_spec["url"]}.')
+    marshaled_webhook_spec = marshal(webhook_spec, schema.webhook_spec)
+
+    if not validators.url(marshaled_webhook_spec["url"]):
+        raise ValueError(f'Invalid url: {marshaled_webhook_spec["url"]}.')
+
+    secret = marshaled_webhook_spec.get("secret")
+    # Replace None and "".
+    if secret is None or not secret:
+        secret = secrets.token_hex(64)
 
     webhook = models.Webhook(
-        url=webhook_spec["url"],
-        name=webhook_spec["name"],
-        verify_ssl=webhook_spec["verify_ssl"],
-        secret=webhook_spec.get("secret", secrets.token_hex(64)),
-        content_type=webhook_spec["content_type"],
+        url=marshaled_webhook_spec["url"],
+        name=marshaled_webhook_spec["name"],
+        verify_ssl=marshaled_webhook_spec["verify_ssl"],
+        secret=secret,
+        content_type=marshaled_webhook_spec["content_type"],
     )
     db.session.add(webhook)
 
     db.session.flush()
     subs = notification_utils.subscription_specs_to_subscriptions(
-        webhook.uuid, webhook_spec["subscriptions"]
+        webhook.uuid, marshaled_webhook_spec["subscriptions"]
     )
     db.session.bulk_save_objects(subs)
 
     return webhook
+
+
+def _get_subscription_comparison_key(subscription: models.Subscription) -> str:
+    event_type = getattr(subscription, "event_type")
+    project_uuid = getattr(subscription, "project_uuid", "")
+    job_uuid = getattr(subscription, "job_uuid", "")
+    return f"{event_type}|{project_uuid}|{job_uuid}"
+
+
+def _get_subscription_comparison_key_set(
+    subscriptions: List[models.Subscription],
+) -> Set[str]:
+    sub_keys = set()
+    for subscription in subscriptions:
+        comparison_key = _get_subscription_comparison_key(subscription)
+        sub_keys.add(comparison_key)
+    return sub_keys
+
+
+def update_webhook(uuid: str, mutation: dict) -> None:
+    """Update a Webhook, does not commit.
+
+    Args:
+        uuid: UUID of a webhook
+        mutation: Same as webhook_spec, but all fields are optional.
+
+    """
+
+    try:
+        webhook = (
+            models.Webhook.query.with_for_update()
+            .filter(models.Webhook.uuid == uuid)
+            .one()
+        )
+        if mutation.get("subscriptions") is not None:
+            # Query subscriptions separately because with_for_update
+            # does not support joinload.
+            existing_subs = models.Subscription.query.with_for_update().filter_by(
+                subscriber_uuid=uuid
+            )
+
+    except exc.MultipleResultsFound:
+        raise ValueError(f"Multiple webhooks with UUID {uuid} exist")
+    except exc.NoResultFound:
+        raise ValueError(f"Webhook with UUID {uuid} not found.")
+
+    marshalled_mutation = marshal(mutation, schema.webhook_mutation)
+
+    valid_mutation = [
+        (key, value) for key, value in marshalled_mutation.items() if value is not None
+    ]
+
+    if len(valid_mutation) == 0:
+        raise ValueError("None of the given attributes in the payload is valid.")
+
+    for key, value in valid_mutation:
+
+        if key == "url" and not validators.url(value):
+            raise ValueError(f"Invalid url: {value}.")
+
+        if key == "subscriptions":
+            new_subs = notification_utils.subscription_specs_to_subscriptions(
+                webhook.uuid, value
+            )
+
+            existing_subs_keys = _get_subscription_comparison_key_set(existing_subs)
+            new_subs_keys = _get_subscription_comparison_key_set(new_subs)
+
+            sub_keys_to_remove = existing_subs_keys.difference(new_subs_keys)
+            sub_keys_to_add = new_subs_keys.difference(existing_subs_keys)
+
+            # Delete subscriptions.
+            for existing_sub in existing_subs:
+                if _get_subscription_comparison_key(existing_sub) in sub_keys_to_remove:
+                    db.session.delete(existing_sub)
+
+            # Add subscriptions.
+            subs_to_add = [
+                new_sub
+                for new_sub in new_subs
+                if _get_subscription_comparison_key(new_sub) in sub_keys_to_add
+            ]
+
+            db.session.bulk_save_objects(subs_to_add)
+            continue
+
+        setattr(webhook, key, value)
 
 
 def _create_delivery_payload(delivery: models.Delivery) -> dict:
@@ -103,7 +197,7 @@ def _inject_headers(
 ) -> None:
     headers["X-Orchest-Event"] = event_type
     headers["X-Orchest-Delivery"] = delivery_uuid
-    headers["X-Orchest-Signature"] = signature
+    headers["X-Hub-Signature"] = signature
     headers["User-Agent"] = "Orchest"
 
 
@@ -192,8 +286,9 @@ def deliver(delivery_uuid: str) -> None:
     with the following headers:
         X-Orchest-Event: event type that triggered the delivery
         X-Orchest-Delivery: uuid of the deliery
-        X-Orchest-Signature: hmac signature computed with the webhook
-            secret and sha256.
+        X-Hub-Signature: hmac signature computed with the webhook
+            secret and sha256. Standardizes name as per:
+            https://www.w3.org/TR/websub/#conformance-classes
         User-Agent: Orchest
 
     Args:

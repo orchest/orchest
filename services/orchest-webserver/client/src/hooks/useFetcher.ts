@@ -1,4 +1,4 @@
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useAsync } from "./useAsync";
 import { useFocusBrowserTab } from "./useFocusBrowserTab";
@@ -14,7 +14,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
   }
 ) {
   const {
-    disableFetchOnMount = false,
+    disableFetchOnMount,
     revalidateOnFocus = false,
     transform = (fetchedValue: FetchedValue) =>
       (fetchedValue as unknown) as Data,
@@ -40,26 +40,40 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
 
   const isFocused = useFocusBrowserTab();
   const hasBrowserFocusChanged = useHasChanged(isFocused);
-  const hasUrlChanged = useHasChanged(url);
 
-  const shouldRefetch =
-    hasUrlChanged || (revalidateOnFocus && hasBrowserFocusChanged && isFocused);
+  const shouldReFetch =
+    revalidateOnFocus && hasBrowserFocusChanged && isFocused;
 
-  const fetchData = React.useCallback(() => {
-    if (!url) return;
-    return run(
-      fetcher<FetchedValue>(url, paramsRef.current).then(transformRef.current)
-    );
-  }, [run, url]);
+  const fetchData = React.useCallback(
+    (newUrl?: unknown): Promise<Data> | void => {
+      const targetUrl = typeof newUrl === "string" ? newUrl || url : url;
+      if (!targetUrl) return;
+      return run(
+        fetcher<FetchedValue>(targetUrl, paramsRef.current).then(
+          transformRef.current
+        )
+      );
+    },
+    [run, url]
+  );
 
-  const hasFetchedOnMount = React.useRef(disableFetchOnMount);
+  const urlRef = React.useRef<string>();
 
   React.useEffect(() => {
-    if (!hasFetchedOnMount.current || shouldRefetch) {
-      hasFetchedOnMount.current = true;
+    const isMounting =
+      !disableFetchOnMount &&
+      url &&
+      url.length > 0 &&
+      urlRef.current === undefined;
+    const isUrlChanged = hasValue(urlRef.current) && urlRef.current !== url;
+    const isRefetching =
+      shouldReFetch && hasValue(urlRef.current) && urlRef.current === url;
+
+    if (isMounting || isUrlChanged || isRefetching) {
+      urlRef.current = url;
       fetchData();
     }
-  }, [fetchData, shouldRefetch]);
+  }, [fetchData, url, disableFetchOnMount, shouldReFetch]);
 
   return { data, setData, error, status, fetchData };
 }

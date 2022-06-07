@@ -7,6 +7,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import PeopleIcon from "@mui/icons-material/People";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SaveIcon from "@mui/icons-material/Save";
@@ -66,6 +67,10 @@ const SettingsView: React.FC = () => {
 
   const onClickManageUsers = (e: React.MouseEvent) => {
     navigateTo(siteMap.manageUsers.path, undefined, e);
+  };
+
+  const loadNotificationSettings = (e: React.MouseEvent) => {
+    navigateTo(siteMap.notificationSettings.path, undefined, e);
   };
 
   const loadConfigureJupyterLab = (e: React.MouseEvent) => {
@@ -220,6 +225,25 @@ const SettingsView: React.FC = () => {
             <div className="clear"></div>
           </>
         )}
+
+        <h3>Notification settings</h3>
+        <div className="columns">
+          <div className="column">
+            <p>Get notified about specific events in Orchest.</p>
+          </div>
+          <div className="column">
+            <StyledButtonOutlined
+              variant="outlined"
+              color="secondary"
+              startIcon={<NotificationsNoneIcon />}
+              onClick={loadNotificationSettings}
+              onAuxClick={loadNotificationSettings}
+            >
+              Notification settings
+            </StyledButtonOutlined>
+          </div>
+          <div className="clear"></div>
+        </div>
 
         <h3>JupyterLab configuration</h3>
         <div className="columns">

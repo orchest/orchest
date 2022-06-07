@@ -84,7 +84,7 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
         },
         (error) => {
           dispatch({ type: "REJECTED", error });
-          return error;
+          return Promise.reject(error);
         }
       );
     },
