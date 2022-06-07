@@ -95,10 +95,6 @@ export const fetchPipelineJson = (
   }>(url).then(transformResponse);
 };
 
-// `useSWR` has a unexpected behavior when cache key costantly changes.
-// Sometimes it doesn't refetch, and also doesn't update its data based on the cache key.
-// Using our custom `useAsync` could achieve most things except caching, but it gives more stability.
-
 export const useFetchPipelineJson = (
   props: FetchPipelineJsonProps | undefined
 ) => {
@@ -122,7 +118,6 @@ export const useFetchPipelineJson = (
     PipelineJson
   >(url, {
     transform: transformResponse,
-    caching: true,
     revalidateOnFocus,
   });
 

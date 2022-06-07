@@ -13,6 +13,7 @@ import {
 } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { getFilePathForRelativeToProject } from "../file-manager/common";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { MenuItem, useContextMenu } from "../hooks/useContextMenu";
@@ -236,7 +237,15 @@ export const PipelineViewport = React.forwardRef<
       const environment = environments.length > 0 ? environments[0] : null;
 
       allowed.forEach((filePath) => {
-        dispatch(createStepAction(environment, dropPosition, filePath));
+        // Adjust filePath to pipelineCwd, incoming filePath is relative to project
+        // root.
+        const pipelineRelativeFilePath = getFilePathForRelativeToProject(
+          filePath,
+          pipelineCwd
+        );
+        dispatch(
+          createStepAction(environment, dropPosition, pipelineRelativeFilePath)
+        );
       });
     },
     [dispatch, pipelineCwd, environments, getApplicableStepFiles]

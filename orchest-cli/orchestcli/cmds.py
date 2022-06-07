@@ -193,10 +193,27 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
     except utils.FailToCreateError as e:
         conflicting_resources = []
         for exc in e.api_exceptions:
-            if exc.status != 409:  # conflict/already exists
-                raise e
-            else:
+            if exc.status == 409:  # conflict/already exists
                 conflicting_resources.append(json.loads(exc.body)["details"])
+            elif exc.status == 500:
+                exc_msg = json.loads(exc.body)["message"]
+                echo(
+                    f"Installation aborted. Kubernetes API message:\n{exc_msg}",
+                    err=True,
+                )
+                echo(
+                    "\n'orchest install' was probably called too quickly after"
+                    " creation of the Kubernetes cluster. To recover installing"
+                    " Orchest, run:"
+                    "\n\torchest uninstall"
+                    "\nThen wait a few seconds before again running:"
+                    "\n\torchest install",
+                    err=True,
+                )
+
+                sys.exit(1)
+            else:
+                raise e
 
         conflicting_resources_msg = "\n".join(
             [json.dumps(resource) for resource in conflicting_resources]
@@ -702,6 +719,9 @@ def patch(
         },
         "orchestApi": {
             "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
+        },
+        "celeryWorker": {
+            "env": [env for env in [env_var_dev] if env is not None],
         },
         "env": [env for env in [env_var_log_level] if env is not None],
     }

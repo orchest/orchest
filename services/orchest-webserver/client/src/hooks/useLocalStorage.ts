@@ -19,12 +19,15 @@ function parseLocalStorageString<T>(
 /**
  * useLocalStorage reads and writes to localstorage
  */
-export const useLocalStorage = <T>(key: string, defaultValue: T) => {
-  const privateKey = `orchest.${key}`;
+export const useLocalStorage = <T>(
+  key: string | undefined,
+  defaultValue: T
+) => {
+  const privateKey = key ? `orchest.${key}` : undefined;
 
   const cachedItemString = React.useRef<string | null>();
   const [storedValue, setStoredValue] = React.useState<T>(() => {
-    const item = window.localStorage.getItem(privateKey);
+    const item = privateKey ? window.localStorage.getItem(privateKey) : null;
     cachedItemString.current = item;
     return parseLocalStorageString<T>(item, defaultValue);
   });
@@ -36,7 +39,8 @@ export const useLocalStorage = <T>(key: string, defaultValue: T) => {
           const valueToStore =
             value instanceof Function ? value(current) : value;
           cachedItemString.current = JSON.stringify(valueToStore);
-          window.localStorage.setItem(privateKey, cachedItemString.current);
+          if (privateKey)
+            window.localStorage.setItem(privateKey, cachedItemString.current);
           return valueToStore;
         });
       } catch (error) {

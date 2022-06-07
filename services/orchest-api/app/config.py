@@ -8,6 +8,7 @@ class Config:
     # TODO: Should we read these from ENV variables instead?
     DEBUG = False
     TESTING = False
+    DEV_MODE = os.environ.get("FLASK_ENV") == "development"
 
     ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
     # must be uppercase

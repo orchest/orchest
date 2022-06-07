@@ -163,13 +163,18 @@ export function validURL(
   skipHttpsChecking = false
 ): url is string {
   if (!url) return false;
+
   try {
-    new URL(url);
-  } catch (_) {
+    const isValidUrl = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[^\s]*$/g.test(
+      url
+    );
+
+    return skipHttpsChecking
+      ? isValidUrl
+      : isValidUrl && url.startsWith("https");
+  } catch (e) {
     return false;
   }
-
-  return skipHttpsChecking || url.startsWith("https://");
 }
 
 // used in orchest-webserver only

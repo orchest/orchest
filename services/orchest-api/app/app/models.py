@@ -64,6 +64,15 @@ class Setting(BaseModel):
     # be able to preserve types while storing 1 setting as 1 record.
     value = db.Column(JSONB, nullable=False)
 
+    # Requires Orchest to be restarted in order to apply the setting.
+    requires_restart = db.Column(
+        db.Boolean(),
+        nullable=False,
+        default=False,
+        # To migrate existing entries.
+        server_default="False",
+    )
+
 
 class SchedulerJob(BaseModel):
     """Latest run of a job assigned to a Scheduler."""
@@ -1567,6 +1576,15 @@ class Subscription(BaseModel):
     }
 
 
+Index(
+    "plain_subscription_uniqueness",
+    Subscription.subscriber_uuid,
+    Subscription.event_type,
+    unique=True,
+    postgresql_where=(Subscription.type == "globally_scoped_subscription"),
+),
+
+
 class ProjectSpecificSubscription(Subscription):
     """Subscripions to events of a specific project."""
 
@@ -1595,6 +1613,17 @@ event.listen(
     ProjectSpecificSubscription.check_constraints,
 )
 
+Index(
+    "project_subscription_uniqueness",
+    ProjectSpecificSubscription.subscriber_uuid,
+    ProjectSpecificSubscription.event_type,
+    ProjectSpecificSubscription.project_uuid,
+    unique=True,
+    postgresql_where=(
+        ProjectSpecificSubscription.type == "project_specific_subscription"
+    ),
+),
+
 
 class ProjectJobSpecificSubscription(ProjectSpecificSubscription):
     """Subscripions to events of a specific job of project."""
@@ -1616,6 +1645,19 @@ class ProjectJobSpecificSubscription(ProjectSpecificSubscription):
                 "ProjectJobSpecificSubscription only allows to subscribe to "
                 "'project:one-off-job:*' or 'project:cron-job:*' event types."
             )
+
+
+Index(
+    "project_job_subscription_uniqueness",
+    ProjectJobSpecificSubscription.subscriber_uuid,
+    ProjectJobSpecificSubscription.event_type,
+    ProjectJobSpecificSubscription.project_uuid,
+    ProjectJobSpecificSubscription.job_uuid,
+    unique=True,
+    postgresql_where=(
+        ProjectJobSpecificSubscription.type == "project_job_specific_subscription"
+    ),
+),
 
 
 event.listen(

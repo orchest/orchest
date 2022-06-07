@@ -131,7 +131,7 @@ export const ContainerImagesRadioGroup = ({
           >
             learn more
           </Link>
-          )
+          ).
         </Typography>
       </Box>
       <Grid
