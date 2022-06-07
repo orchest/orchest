@@ -252,7 +252,7 @@ func GetOrchestLabelSelector(object client.Object) (labels.Selector, error) {
 
 func GetRbacManifest(metadata metav1.ObjectMeta) []client.Object {
 
-	clusterRole := &rbacv1.Role{
+	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metadata,
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -263,7 +263,7 @@ func GetRbacManifest(metadata metav1.ObjectMeta) []client.Object {
 		},
 	}
 
-	clusterRoleBinding := &rbacv1.RoleBinding{
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metadata,
 		Subjects: []rbacv1.Subject{
 			{
