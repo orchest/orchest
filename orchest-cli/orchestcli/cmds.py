@@ -158,15 +158,7 @@ def install(
         if e.reason == "Conflict":
             echo(f"Installing into existing namespace: {ns}.")
 
-    if no_argo:
-        echo(
-            "ArgoWorkflow installation is disabled, Orchest Controller assumes"
-            " ArgoWorkflow is already installed on your cluster."
-        )
-
-        manifest_file_name = "orchest-controller-disable-argo.yaml"
-    else:
-        manifest_file_name = "orchest-controller.yaml"
+    manifest_file_name = "orchest-controller.yaml"
 
     echo("Installing the Orchest Controller to manage the Orchest Cluster...")
     if dev_mode:
@@ -252,6 +244,26 @@ def install(
         )
         sys.exit(1)
 
+    applications = [{"name": "docker-registry", "config": {}}]
+
+    if no_argo:
+        echo(
+            "ArgoWorkflow installation is disabled, orchest will be "
+            "deployed without it, make sure ArgoWorkflow is already installed "
+            "on your cluster otherwise orchest will not act properly."
+        )
+    else:
+        applications.append(
+            {
+                "name": "argo-workflow",
+                "config": {
+                    "helm": {
+                        "parameters": [{"name": "singleNamespace", "value": "true"}]
+                    }
+                },
+            }
+        )
+
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
         "kind": "OrchestCluster",
@@ -260,6 +272,7 @@ def install(
             "namespace": ns,
         },
         "spec": {
+            "applications": applications,
             "orchest": {
                 "orchestHost": fqdn,
                 "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
@@ -386,7 +399,6 @@ def update(
     version: t.Optional[str],
     watch_flag: bool,
     dev_mode: bool,
-    no_argo: bool,
     **kwargs,
 ) -> None:
     """Updates Orchest."""
@@ -482,15 +494,7 @@ def update(
         )
         sys.exit(1)
 
-    if no_argo:
-        echo(
-            "ArgoWorkflow installation is disabled, Orchest Controller assumes"
-            " ArgoWorkflow is already installed on your cluster."
-        )
-
-        manifest_file_name = "orchest-controller-disable-argo.yaml"
-    else:
-        manifest_file_name = "orchest-controller.yaml"
+    manifest_file_name = "orchest-controller.yaml"
 
     echo("Updating the Orchest Controller deployment requirements...")
     if dev_mode:

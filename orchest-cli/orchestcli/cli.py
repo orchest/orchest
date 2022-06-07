@@ -222,21 +222,11 @@ def uninstall(**common_options) -> None:
     hidden=True,
     help="Run update in dev mode.",
 )
-@click.option(
-    "--no-argo",
-    "no_argo",  # name for arg
-    is_flag=True,
-    default=False,
-    show_default=True,
-    hidden=True,
-    help="Disable Argo Workflow during controller deployment or not.",
-)
 @cli.command(cls=ClickCommonOptionsCmd)
 def update(
     version: t.Optional[str],
     watch_flag: bool,
     dev_mode: bool,
-    no_argo: bool,
     **common_options,
 ) -> None:
     """Update Orchest.
@@ -257,7 +247,6 @@ def update(
         version,
         watch_flag,
         dev_mode,
-        no_argo,
         **common_options,
     )
 
