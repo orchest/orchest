@@ -14,10 +14,13 @@ import {
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import Modal from "@mui/material/Modal";
+import { fetcher, HEADER, makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -56,6 +59,8 @@ const ProjectSettingsView: React.FC = () => {
     environment_count: 0,
     path: "",
   });
+
+  const [isDeletingProject, setIsDeletingProject] = React.useState(false);
 
   const returnToProjects = (e: React.MouseEvent) => {
     navigateTo(siteMap.projects.path, undefined, e);
@@ -123,6 +128,33 @@ const ProjectSettingsView: React.FC = () => {
     fetchSettings();
   }, []);
 
+  const deleteProject = () => {
+    let deletePromise = makeRequest("DELETE", "/async/projects", {
+      type: "json",
+      content: {
+        project_uuid: projectUuid,
+      },
+    });
+    setIsDeletingProject(true);
+
+    deletePromise
+      .then(() => {
+        navigateTo(siteMap.projects.path);
+      })
+      .catch((response) => {
+        try {
+          let data = JSON.parse(response.body);
+
+          setAlert("Error", `Could not delete project. ${data.message}`);
+        } catch {
+          setAlert("Error", "Could not delete project. Reason unknown.");
+        }
+      })
+      .finally(() => setIsDeletingProject(false));
+
+    return deletePromise;
+  };
+
   const paths = React.useMemo(() => {
     const paths = ["pipeline", "jobs", "environments"] as RoutePath[];
     return paths.reduce((all, curr) => {
@@ -135,6 +167,25 @@ const ProjectSettingsView: React.FC = () => {
 
   return (
     <Layout>
+      <Modal open={isDeletingProject}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "20%",
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
+          <div>Deleting project...</div>
+          <Box sx={{ marginTop: 4 }}>
+            <LinearProgress />
+          </Box>
+        </Box>
+      </Modal>
       <div className={"view-page view-project-settings"}>
         <form
           className="project-settings-form"
@@ -216,6 +267,17 @@ const ProjectSettingsView: React.FC = () => {
                   data-test-id="project-settings-save"
                 >
                   {hasUnsavedChanges ? "SAVE*" : "SAVE"}
+                </Button>
+              </div>
+              <div className="bottom-buttons observe-overflow">
+                <Button
+                  variant="contained"
+                  startIcon={<DeleteIcon />}
+                  onClick={deleteProject}
+                  color="error"
+                  data-test-id="pipeline-settings-delete"
+                >
+                  DELETE
                 </Button>
               </div>
             </>
