@@ -20,7 +20,7 @@ type NotificationEventTypeColumn = NotificationEventTypeRow & {
 };
 
 const eventExplanationMappings: Record<EventForDisplay, string> = {
-  "display:job-run-fails": "Job run fails",
+  "display:job-run-fails": "A job run fails",
 };
 
 export const NotificationEventsForm = () => {
