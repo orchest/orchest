@@ -59,8 +59,3 @@ manifestgen: crds
 	@echo Generating orchest-controller.yaml manifests
 	@helm template --create-namespace --namespace ${NAMESPACE} \
 		--set image.tag=${TAGNAME} ./deploy/helm > deploy/k8s/orchest-controller.yaml
-
-	@echo Generating orchest-controller-disable-argo.yaml manifests	
-	helm template --create-namespace --namespace ${NAMESPACE} \
-		--set addons.enableArgo=false --set image.tag=${TAGNAME} \
-		./deploy/helm > deploy/k8s/orchest-controller-disable-argo.yaml
