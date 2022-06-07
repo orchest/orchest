@@ -1,5 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import {
   FILE_MANAGEMENT_ENDPOINT,
@@ -9,6 +10,7 @@ import {
   generateStrategyJson,
   pipelinePathToJsonLocation,
 } from "@/utils/webserver-utils";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -39,8 +41,11 @@ export const GenerateParametersDialog = ({
     pipelineUuid,
   });
 
-  const { config, setConfirm } = useAppContext();
+  const { config, setConfirm, setAlert } = useAppContext();
 
+  const [parameterFileString, setParameterFileString] = React.useState("");
+  const [_isParameterJsonValid, setIsParameterJsonValid] = React.useState(true);
+  const isParameterJsonValid = useDebounce(_isParameterJsonValid, 1000);
   const [copyButtonText, setCopyButtontext] = React.useState("Copy");
 
   const pipelineJsonToParams = (pipelineJson) => {
@@ -65,6 +70,14 @@ export const GenerateParametersDialog = ({
     return JSON.stringify(strategyJson, null, 2);
   };
 
+  React.useEffect(
+    () => {
+      setParameterFileString(pipelineJsonToParams(pipelineJson));
+    },
+    [pipelineJson],
+    pipelineJsonToParams
+  );
+
   const copyParams = () => {
     navigator.clipboard.writeText(pipelineJsonToParams(pipelineJson));
     setCopyButtontext("Copied!");
@@ -84,8 +97,24 @@ export const GenerateParametersDialog = ({
     );
   };
 
+  const isValidJson = (jsonString) => {
+    try {
+      JSON.parse(jsonString);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const createParamFile = async () => {
-    let body = pipelineJsonToParams(pipelineJson);
+    if (!isValidJson(parameterFileString)) {
+      setAlert(
+        "Invalid JSON",
+        "Invalid JSON content. Please fix syntax errors before writing the file to disk."
+      );
+      return;
+    }
+    let body = parameterFileString;
     let filePath = pipelinePathToJsonLocation(pipelinePath ? pipelinePath : "");
 
     if (!projectUuid || !pipelineUuid || !filePath) {
@@ -123,6 +152,12 @@ export const GenerateParametersDialog = ({
       });
   };
 
+  const checkValidityRef = React.useRef<(() => void) | undefined>();
+  const checkValidity = () => {
+    setIsParameterJsonValid(isValidJson(parameterFileString));
+  };
+  checkValidityRef.current = checkValidity;
+
   return (
     <Dialog
       open={isOpen}
@@ -143,15 +178,28 @@ export const GenerateParametersDialog = ({
             </Box>
             {isFetchingPipelineJson && <LinearProgress />}
             {!isFetchingPipelineJson && (
-              <CodeMirror
-                value={pipelineJsonToParams(pipelineJson)}
-                onBeforeChange={() => null}
-                options={{
-                  mode: "application/json",
-                  theme: "jupyter",
-                  lineNumbers: true,
-                }}
-              />
+              <>
+                <CodeMirror
+                  value={parameterFileString}
+                  onBeforeChange={(editor, data, value) => {
+                    setParameterFileString(value);
+                    checkValidityRef.current && checkValidityRef.current();
+                  }}
+                  options={{
+                    mode: "application/json",
+                    theme: "jupyter",
+                    lineNumbers: true,
+                  }}
+                />
+                {!isParameterJsonValid && (
+                  <Alert
+                    severity="warning"
+                    sx={{ marginTop: (theme) => theme.spacing(2) }}
+                  >
+                    Your input is not valid JSON.
+                  </Alert>
+                )}
+              </>
             )}
           </Stack>
         </DialogContent>
