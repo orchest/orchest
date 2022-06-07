@@ -1,14 +1,13 @@
-Glossary
-========
+# Glossary
 
-.. _DAG:
+```{glossary}
 
 DAG
     DAG stands for **directed acyclic graph**, and it's the most widely used data structure
     for data worflows:
 
     * It's a **graph** (in the mathematical sense) since it connects a set of steps
-      (in the case of Orchest, a :ref:`pipeline step <pipeline step>`).
+      (in the case of Orchest, a {term}`Pipeline step`).
     * It's **directed** because those connections have a specific direction
       (from one step to the other). For example, a step loads the data, and hands it
       to the following step to process it.
@@ -17,41 +16,33 @@ DAG
       and come back to the same step. This is important because it means that pipelines
       are finite.
 
-.. _pipeline step:
-
 Pipeline step
     A single unit of execution, that receives data, operates on it, and outputs it (which can be
     retrieved by a next step).
 
     * Has a one-to-one relationship with an executable file, which runs inside its own execution
-      :ref:`environment <environment glossary>`, powered through containerization. This executable
+      {term}`Environment`, powered through containerization. This executable
       file can be edited through Orchest's JupyterLab integration.
-    * Is executed as part of a :ref:`pipeline run <pipeline run>`.
+    * Is executed as part of a {term}`Pipeline run`.
     * Has an execution state, i.e. *READY*, *PENDING*, *RUNNING*, *COMPUTED*, *ABORTED* or *FAILURE*.
     * A step can have a set of parameters, all of which have to be given a default value. (The set
       of parameters can also be empty, thus the step not having any parameters.) These parameters
-      are stored inside the :ref:`pipeline definition <pipeline definition>` and are accessible
+      are stored inside the {term}`Pipeline definition` and are accessible
       inside the execution environment.
 
-.. _pipeline:
-
 (Data science) pipeline
-    A :ref:`DAG <DAG>` of :ref:`pipeline steps <pipeline step>` defined in its respective :ref:`pipeline
-    definition <pipeline definition>`.
-
-.. _pipeline definition:
+    A {term}`DAG <DAG>` of {term}`pipeline steps <Pipeline step>` defined in its respective
+    {term}`Pipeline definition`.
 
 Pipeline definition
     A file with the ``.orchest`` extension inside the project directory. The pipeline editor you see
     in Orchest is a UI handle to the file containing the pipeline definition.
 
-    * The JSON inside the file uniquely defines the :ref:`pipeline <pipeline>`.
+    * The JSON inside the file uniquely defines the {term}`pipeline <(Data science) pipeline>`.
     * Every pipeline definition in a project is automatically detected and listed in the Orchest UI
       under *Pipelines*.
-    * A full `JSON Schema <https://json-schema.org/>`_ definition can be found in the
-      :ref:`implementation details <pipeline-json-schema>`.
-
-.. _interactive session:
+    * A full [JSON Schema](https://json-schema.org/) definition can be found in the
+      {ref}`implementation details <pipeline-json-schema>`.
 
 Interactive session
     Some notion of a session that you can boot and shut down which gives you additional functionality
@@ -60,57 +51,48 @@ Interactive session
     when opening up a pipeline.
 
     * Automatically boots and manages: JupyterLab and jupyter-enterprise-gateway.
-    * Required in order to start an :ref:`interactive pipeline run <interactive pipeline run>`.
-
-.. _pipeline run:
+    * Required in order to start an {term}`interactive pipeline run <Interactive (pipeline) run>`.
 
 Pipeline run
     Abstraction to execute pipelines.
 
-    * Can be scheduled to run at a specific time (through :ref:`jobs <job>`).
+    * Can be scheduled to run at a specific time (through {term}`jobs <job>`).
     * If parameterized, runs for selected (by the user) default values. If not parameterized, runs
       without any parameter values.
 
-.. _interactive pipeline run:
-
 Interactive (pipeline) run
     A pipeline run that runs instantly and that actively changes the pipeline directory’s filesystem.
-    These interactive pipeline runs can only be run during an :ref:`interactive session <interactive
-    session>` inside the pipeline editor.
-
-.. _non-interactive pipeline run:
+    These interactive pipeline runs can only be run during an {term}`Interactive session` inside
+    the pipeline editor.
 
 Non-interactive (pipeline) run
     A pipeline run that runs on its own snapshot of the pipeline directory. This type of pipeline
-    run is the building block of :ref:`jobs <job>`.
-
-.. _job:
+    run is the building block of {term}`jobs <job>`.
 
 Job
     A set of pipeline runs (where each pipeline will run for a different set of parameters).  Currently
     we support the following types of jobs:
 
-    * Grid search like jobs: a collection of :ref:`non-interactive pipeline runs <non-interactive
-      pipeline run>` that is scheduled to run at a later time. The user can specify values for the
-      parameters other than the default values. The `scikit-learn docs
-      <https://scikit-learn.org/stable/modules/grid_search.html>`_ are a great resource to read more
+    * Grid search like jobs: a collection of {term}`non-interactive pipeline runs <Non-interactive
+      (pipeline) run>` that is scheduled to run at a later time. The user can specify values for the
+      parameters other than the default values. The [scikit-learn docs] are a great resource to read more
       about grid searches.
     * Cron jobs: similar to grid search like jobs, but running on a cron schedule.
 
-.. _environment glossary:
-
 Environment
-    The runtime environment of a :ref:`pipeline step <pipeline step>`. Using environments you can
+    The runtime environment of a {term}`pipeline step <Pipeline step>`. Using environments you can
     install additional packages and make changes to the base image directly.
 
 Edit mode
-    Edit, create and run your :ref:`pipelines <pipeline>` inside the pipeline editor.
-
-.. _read-only mode:
+    Edit, create and run your {term}`pipelines <(Data science) pipeline>` inside the pipeline editor.
 
 Read-only mode
-    View your pipeline and its results from a past run (mainly applicable in :ref:`jobs <jobs>`).
+    View your pipeline and its results from a past run (mainly applicable in {term}`jobs <Job>`).
 
     * A pipeline from read-only mode can be created into a pipeline in edit mode. This can be useful if
       you want to actively play with the environment that produced the results (state is not stored
-      after execution has finished, unless it is an :ref:`interactive run <interactive pipeline run>`).
+      after execution has finished, unless it is an {term}`interactive run <Interactive (pipeline) run>`).
+
+```
+
+[scikit-learn docs]: https://scikit-learn.org/stable/modules/grid_search.html
