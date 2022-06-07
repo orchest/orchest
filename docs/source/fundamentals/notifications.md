@@ -26,7 +26,7 @@ To create a webhook, navigate to "Notification settings" in {ref}`Orchest settin
 1. Webhook URL: Where Orchest sends the HTTP requests to. Activate incoming webhooks on your desired channel (for example: [Slack]) and verify the connection with the "Test" button.
 1. Content type: Either `application/json` (default) or `application/x-www-form-urlencoded`.
 1. Webhook name (optional): A custom name for your webhook. This is helpful when creating multiple webhooks with similar URLs.
-1. Secret (optional): A secret string that you can use to verify the origin of the request (see {ref}`below <secure webhook>`).
+1. Secret (optional): A secret string that you can use to verify the origin of the request (see {ref}`below <secure_webhook>`).
 
 [Slack]: https://slack.com/intl/en-gb/help/articles/115005265063-Incoming-webhooks-for-Slack
 
@@ -34,7 +34,7 @@ To create a webhook, navigate to "Notification settings" in {ref}`Orchest settin
 
 [the source code of the webhook schema]: https://github.com/orchest/orchest/blob/v2022.06.2/services/orchest-api/app/app/schema.py#L885-L905
 
-(secure webhook)=
+(secure_webhook)=
 
 ## Verifying the webhook
 
