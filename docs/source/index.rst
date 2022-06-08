@@ -46,7 +46,7 @@ Orchest
    fundamentals/environment_variables
    fundamentals/services
    fundamentals/sdk/index
-   fundamentals/configuration
+   fundamentals/settings
    fundamentals/glossary
 
 

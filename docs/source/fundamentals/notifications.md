@@ -21,7 +21,7 @@ You can receive webhook notifications when specific events happen in Orchest. Fo
 }
 ```
 
-To create a webhook, navigate to "Notification settings" in {ref}`Orchest settings <orchest settings>`. The webhook dialog will ask for the following:
+To create a webhook, navigate to "Notification settings" in {ref}`Orchest settings <settings>`. The webhook dialog will ask for the following:
 
 1. Webhook URL: Where Orchest sends the HTTP requests to. Activate incoming webhooks on your desired channel (for example: [Slack]) and verify the connection with the "Test" button.
 1. Content type: Either `application/json` (default) or `application/x-www-form-urlencoded`.
