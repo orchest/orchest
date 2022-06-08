@@ -80,7 +80,7 @@ export const LoadParametersDialog = ({
           onSubmit(selectedPath);
         }}
       >
-        <DialogTitle>Load parameter file</DialogTitle>
+        <DialogTitle>Load job parameters file</DialogTitle>
         <DialogContent sx={{ overflowY: "visible" }}>
           <Stack direction="column" spacing={2}>
             <FileManagerContextProvider>

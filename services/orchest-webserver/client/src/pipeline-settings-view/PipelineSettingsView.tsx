@@ -61,7 +61,7 @@ import ServiceForm from "./ServiceForm";
 import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
 
-const ParameterDocs = () => {
+export const ParameterDocs = () => {
   return (
     <CustomAlert status="info">
       <AlertDescription>
@@ -609,12 +609,13 @@ const PipelineSettingsView: React.FC = () => {
 
                         {!isReadOnly && (
                           <Button
+                            sx={{ marginTop: 2 }}
                             variant="contained"
                             onClick={showGenerateParametersDialog}
                             onAuxClick={showGenerateParametersDialog}
                             startIcon={<TuneIcon />}
                           >
-                            Generate parameters file
+                            Example job parameters file
                           </Button>
                         )}
 

@@ -966,7 +966,7 @@ def register_views(app, db):
         file_path = safe_join(root_dir_path, path[1:])
 
         # This endpoint also allows JSON files to be created
-        # for the parameter file feature
+        # for the job parameters file feature
         if not file_path.split(".")[-1] in (_config.ALLOWED_FILE_EXTENSIONS + ["json"]):
             return jsonify({"message": "Given file type is not supported."}), 409
 

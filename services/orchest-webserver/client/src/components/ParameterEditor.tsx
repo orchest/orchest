@@ -42,6 +42,23 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
     }
   }, [codeMirrorValue]);
 
+  React.useEffect(() => {
+    // By default open editor for first key
+    try {
+      let strategyKeys = Object.keys(strategyJSON);
+      if (strategyKeys.length > 0) {
+        let firstKey = strategyKeys[0];
+        let parameterKeys = Object.keys(strategyJSON[firstKey].parameters);
+        if (parameterKeys.length > 0) {
+          editParameter(parameterKeys[0], firstKey);
+        }
+      }
+    } catch {
+      // In case something is wrong with the strategyJSON object
+      // don't break.
+    }
+  }, []);
+
   return (
     <div className="parameter-editor">
       <div className="columns">

@@ -356,9 +356,10 @@ const EditJobView: React.FC = () => {
     }
   };
 
-  const [loadedStrategyJsonText, setLoadedStrategyJsonText] = React.useState<
-    React.ReactElement | undefined
-  >();
+  const [
+    loadedStrategyJsonText,
+    setLoadedStrategyJsonText,
+  ] = React.useState<React.ReactElement | null>(null);
 
   React.useEffect(() => {
     if (job) {
@@ -409,9 +410,9 @@ const EditJobView: React.FC = () => {
           );
           setNewStrategyJson(strategyJson, pipelineJson);
           setLoadedStrategyJsonText(
-            <p>
-              Loaded parameter file <Code>{paramConfigPath}</Code>
-            </p>
+            <span>
+              Loaded job parameters file <Code>{paramConfigPath}</Code>.
+            </span>
           );
 
           resolve();
@@ -568,7 +569,7 @@ const EditJobView: React.FC = () => {
     if (updatedEnvVariables.status === "rejected") {
       setAlert("Error", updatedEnvVariables.error);
       setRunJobLoading(false);
-      setTabIndex(1);
+      setTabIndex(2);
       return;
     }
 
@@ -893,30 +894,30 @@ const EditJobView: React.FC = () => {
               />
               <Box sx={{ marginTop: 2 }}>
                 <Button
-                  variant="contained"
+                  color="secondary"
                   onClick={showLoadParametersDialog}
                   startIcon={<UploadIcon />}
                 >
                   Load parameters
                 </Button>
-                {loadedStrategyJsonText && (
-                  <Box sx={{ marginTop: 2 }}>
-                    <p>{loadedStrategyJsonText}</p>
-                  </Box>
-                )}
                 <Box sx={{ marginTop: 2 }}>
-                  You can generate this file in the{" "}
-                  <Link
-                    sx={{ cursor: "pointer" }}
-                    onClick={() => {
-                      navigateTo(siteMap.pipelineSettings.path, {
-                        query: { projectUuid, pipelineUuid: job.pipeline_uuid },
-                      });
-                    }}
-                  >
-                    pipeline settings
-                  </Link>
-                  .
+                  <p>
+                    {loadedStrategyJsonText} You can generate this file in the{" "}
+                    <Link
+                      sx={{ cursor: "pointer" }}
+                      onClick={() => {
+                        navigateTo(siteMap.pipelineSettings.path, {
+                          query: {
+                            projectUuid,
+                            pipelineUuid: job.pipeline_uuid,
+                          },
+                        });
+                      }}
+                    >
+                      pipeline settings
+                    </Link>
+                    .
+                  </p>
                 </Box>
               </Box>
             </CustomTabPanel>

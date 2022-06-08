@@ -3,6 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { ParameterDocs } from "@/pipeline-settings-view/PipelineSettingsView";
 import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
@@ -186,14 +187,31 @@ export const GenerateParametersDialog = ({
       PaperProps={{ sx: { overflowY: "visible" } }}
     >
       <form id="generate-parameters">
-        <DialogTitle>Pipeline parameters file</DialogTitle>
+        <DialogTitle>Job parameters file</DialogTitle>
         <DialogContent sx={{ overflowY: "visible" }}>
           <Stack direction="column" spacing={2}>
             <Box>
-              <span>The parameter file will be created at: </span>
-              <Code>
-                {pipelinePathToJsonLocation(pipelinePath ? pipelinePath : "")}
-              </Code>
+              <p>
+                The job parameters file can be used to set the parameter values
+                for the pipeline runs in a job.
+              </p>
+            </Box>
+            <Box>
+              <p>
+                A job parameters file placed in the same directory as the
+                pipeline file will automatically be detected if named
+                appropriately.
+              </p>
+            </Box>
+            <Box>
+              <p>
+                <span>
+                  The job parameters file path for this pipeline file is:{" "}
+                </span>
+                <Code>
+                  {pipelinePathToJsonLocation(pipelinePath ? pipelinePath : "")}
+                </Code>
+              </p>
             </Box>
             {isFetchingPipelineJson && <LinearProgress />}
             {!isFetchingPipelineJson && (
@@ -219,6 +237,7 @@ export const GenerateParametersDialog = ({
                 )}
               </>
             )}
+            <ParameterDocs />
           </Stack>
         </DialogContent>
         <DialogActions>
