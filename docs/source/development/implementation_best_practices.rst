@@ -31,3 +31,7 @@ to it.
 -----------
 The ``orchest-api`` is not allowed to read content from the ``userdir``. It essentially just passes
 pointers to the ``celery-worker`` which then does operations on the ``userdir``.
+
+Writing docs
+------------
+* Captialize words that are primary concepts in the UI, e.g. Pipeline.
