@@ -39,9 +39,11 @@ Orchest is configured through *Settings*. Some settings require Orchest to be re
     UUID to track usage across user sessions.
 
     .. note::
-       💡 We do not use any third-party to track telemetry, see what telemetry we track and how in `our codebase
-       <https://github.com/orchest/orchest/blob/master/services/orchest-webserver/app/app/analytics.py>`_.
-       All telemetry is anonymized through the ``TELEMETRY_UUID``. We do not store any IP information on our servers.
+       💡 We do not use any third-party to track telemetry, see what telemetry we track and how in
+       `our codebase
+       <https://github.com/orchest/orchest/blob/2fb57b8c6ed699fa5f6529a38b838a5670a91a97/services/orchest-webserver/app/app/analytics.py#L26-L53>`_.
+       All telemetry is anonymized through the ``TELEMETRY_UUID``. We do not store any IP
+       information on our servers.
 
 .. _configuration jupyterlab:
 
