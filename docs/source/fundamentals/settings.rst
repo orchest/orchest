@@ -3,7 +3,7 @@
 Settings
 ========
 
-Orchest is configured through *Settings*. Some settings require Orchest to be restarted for changes to take effect.
+Orchest is configured through *Settings*. Some settings require Orchest to be restarted for changes to take effect. For example:
 
 .. code-block:: json
 
