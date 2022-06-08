@@ -1,4 +1,5 @@
 import { useClickOutside } from "@/hooks/useClickOutside";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { FileTree } from "@/types";
 import FolderIcon from "@mui/icons-material/Folder";
 import TurnLeftOutlinedIcon from "@mui/icons-material/TurnLeftOutlined";
@@ -192,7 +193,6 @@ const FilePicker: React.FC<FilePickerProps> = ({
   allowedExtensions,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const [keyboardIsActive, setKeyboardIsActive] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
@@ -221,22 +221,19 @@ const FilePicker: React.FC<FilePickerProps> = ({
   };
   const onMouseLeaveMenu = () => {
     isBlurAllowed.current = true;
-    setKeyboardIsActive(false);
   };
 
   const onFocusTextField = () => {
     setIsDropdownOpen(true);
-    setKeyboardIsActive(false);
   };
 
   const onBlurTextField = () => {
     if (isBlurAllowed.current) {
       setIsDropdownOpen(false);
-      setKeyboardIsActive(false);
     }
   };
 
-  const onSelectListItem = (selectedNode: FileTree) => {
+  const onSelectListItem = (e: React.MouseEvent, selectedNode: FileTree) => {
     onSelectMenuItem(selectedNode);
     if (selectedNode.type === "directory") {
       setAbsoluteFolderPath((oldPath) => {
@@ -249,30 +246,69 @@ const FilePicker: React.FC<FilePickerProps> = ({
         return `${oldPath}${selectedNode.name}/`;
       });
     } else {
+      e.preventDefault(); // To prevent trigger `onFocusTextField`.
       onChangeValue(
         generateRelativePath(`${absoluteFolderPath}${selectedNode.name}`, cwd)
       );
+      inputRef.current?.focus();
       setIsDropdownOpen(false);
     }
   };
 
-  React.useEffect(() => {
-    if (isDropdownOpen && keyboardIsActive) menuFirstItemRef.current?.focus();
-    console.log("use");
-  }, [options, isDropdownOpen, keyboardIsActive]);
-
   const onTextFieldKeyUp = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       isBlurAllowed.current = false;
-      setKeyboardIsActive(true);
       menuFirstItemRef.current?.focus();
+      if (!isDropdownOpen) setIsDropdownOpen(true);
     }
   };
+
+  const hasOptionChanged = useHasChanged(options);
+  React.useEffect(() => {
+    if (hasOptionChanged && isDropdownOpen) {
+      isBlurAllowed.current = false;
+      menuFirstItemRef.current?.focus();
+    }
+  }, [hasOptionChanged, isDropdownOpen]);
+
+  const onClick = () => {
+    if (!isDropdownOpen && inputRef.current === document.activeElement)
+      setIsDropdownOpen(true);
+  };
+
+  React.useEffect(() => {
+    // Applying the logic to onKeyUp for `MenuItem` is prone to error.
+    // The DOM ref is not always valid because the DOM element constantly being updated.
+    const keyDownHandler = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isDropdownOpen) {
+        event.preventDefault();
+        inputRef.current?.focus();
+        setIsDropdownOpen(false);
+      }
+      if (
+        event.key === "Enter" &&
+        isDropdownOpen &&
+        menuFirstItemRef.current !== document.activeElement
+      ) {
+        // Some other MUI might aggresively grab the focus.
+        // As long as pressing Enter when Dropdown is open, force focusing the first menu element.
+        event.preventDefault();
+        menuFirstItemRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", keyDownHandler);
+
+    return () => {
+      document.removeEventListener("keydown", keyDownHandler);
+    };
+  }, [isDropdownOpen]);
 
   return (
     <Box sx={{ position: "relative" }}>
       <TextField
         inputRef={inputRef}
+        onClick={onClick}
         onFocusCapture={onFocusTextField}
         onBlur={onBlurTextField}
         onChange={(e) => onChangeValue(e.target.value)}
@@ -317,7 +353,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
                   return (
                     <MenuItem
                       key={childNode.name}
-                      onClick={() => onSelectListItem(childNode)}
+                      onClick={(e) => onSelectListItem(e, childNode)}
                       ref={
                         isRootNode && index === 0 ? menuFirstItemRef : undefined
                       }
