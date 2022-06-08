@@ -9,7 +9,7 @@ Jobs
     * `Adding parameters to a pipeline <https://app.tella.tv/story/cknrahyn9000409kyf4s2d3xm>`_
     * `Running a pipeline as a job <https://app.tella.tv/story/cknr9nq1u000609kz9h0advvk>`_
 
-Jobs are a way to schedule one off or recurring :ref:`pipelines <pipeline>` runs.
+Jobs are a way to schedule one off or recurring :term:`pipelines <(data science) pipeline>` runs.
 
 A Job can run multiple iterations of the same pipeline over time or by using different parameters as
 inputs. For example, you could create a Job which uses the same ETL pipeline but extracts data from
@@ -117,7 +117,7 @@ combinations of values for different parameters. To run a job:
 
 To inspect the result of your job; click on the job you just created, choose a specific pipeline run
 (the one you want to inspect) and click on *View pipeline*. The pipeline is now opened in
-:ref:`read-only mode <read-only mode>` giving you the opportunity to check the logs or to open the
+:term:`read-only mode` giving you the opportunity to check the logs or to open the
 HTML version of you notebooks.
 
 .. note::

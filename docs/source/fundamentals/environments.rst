@@ -34,7 +34,7 @@ Building an Environment
    or :code:`sudo apt-get install gcc`.
 7. Press the *Build* button.
 
-Updated Environments will automatically be used in the Pipeline editor and :ref:`interactive pipeline runs <interactive pipeline run>`.
+Updated Environments will automatically be used in the Pipeline editor and :term:`interactive pipeline runs <interactive (pipeline) run>`.
 
 Important Environment Paths
 ---------------------------

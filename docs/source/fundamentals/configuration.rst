@@ -46,7 +46,7 @@ Explanation of possible configuration settings:
     Possible values: integer in the range of ``[1, 25]``.
 
     Controls the level of parallelism of interactive runs of different pipelines (by definition only
-    one :ref:`interactive run <interactive pipeline run>` can be running for a particular pipeline
+    one :term:`interactive run <interactive (pipeline) run>` can be running for a particular pipeline
     at a given time). For example, by setting this value to ``2`` you can (interactively) run two
     different pipelines (through the pipeline editor) at the same time. This setting can be useful
     when using Orchest with multiple people.
@@ -74,7 +74,7 @@ Configuring JupyterLab
 Extensions
 ~~~~~~~~~~
 You can install JupyterLab extensions through the JupyterLab GUI directly, these extensions will be
-persisted (across :ref:`interactive sessions <interactive session>`) automatically.
+persisted (across :term:`interactive sessions <interactive session>`) automatically.
 
 JupyterLab also supports server extensions. To install these extensions, navigate to *Settings* >
 *Configure JupyterLab*. Here you can install extensions like you normally would using commands such

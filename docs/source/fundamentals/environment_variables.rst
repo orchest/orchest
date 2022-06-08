@@ -17,8 +17,8 @@ same name in jobs take precedence over pipelines, take precedence over projects.
 
 Thus pipeline level environment variables would overwrite project level environment variables. For
 example, given that ``MY_VAR=PROJ_VALUE`` is defined at the project level and ``MY_VAR=PIP_VALUE``
-at the pipeline level, the value of ``MY_VAR`` for :ref:`interactive pipeline runs <interactive
-pipeline run>` is ``PIP_VALUE``.
+at the pipeline level, the value of ``MY_VAR`` for :term:`interactive pipeline runs <interactive
+(pipeline) run>` is ``PIP_VALUE``.
 
 .. warning::
    🚨 Environment variables are persisted within Orchest. Make sure only authorized people have
@@ -68,6 +68,6 @@ belonging to the job will have these environment variables set.
 Environment variables inside Notebooks
 --------------------------------------
 Environment variables will also be available in kernels that are launched in JupyterLab. To refresh
-the environment variables for kernels a restart of the :ref:`interactive session <interactive
+the environment variables for kernels a restart of the :term:`interactive session <interactive
 session>` is required. As per usual the environment variables defined at the pipeline level override
 the project's environment variables.

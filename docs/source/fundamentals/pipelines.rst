@@ -13,8 +13,8 @@ A pipeline is made up of steps and connections:
 * Connections link steps together to define how data flows (see :ref:`data passing <data passing>`)
   and the order of step execution.
 
-Pipelines are edited visually and stored in JSON format in the :ref:`pipeline definition <pipeline
-definition>` file. This allows pipeline changes (e.g. adding a step) to be versioned.
+Pipelines are edited visually and stored in JSON format in the :term:`pipeline definition`
+file. This allows pipeline changes (e.g. adding a step) to be versioned.
 
 .. figure:: ../img/quickstart/final-pipeline.png
    :width: 800
@@ -35,8 +35,8 @@ pipeline. Parameters can be set in the visual pipeline editor.
 Running a pipeline
 ------------------
 .. note::
-   In this section we will learn what it means to run a pipeline :ref:`interactively <interactive
-   pipeline run>`, when to do it, how to do it and what to keep in mind.
+   In this section we will learn what it means to run a pipeline :term:`interactively <interactive
+   (pipeline) run>`, when to do it, how to do it and what to keep in mind.
 
 Once set up, you can run your pipeline in two ways:
 
@@ -45,7 +45,7 @@ Once set up, you can run your pipeline in two ways:
 
 Interactive runs are a great way to rapidly prototype your Pipeline. When using Jupyter Notebook
 ``.ipynb`` files, Pipeline steps are actively changed as if running individual cells in JupyterLab.
-The output of pipeline steps is stored when you run a step as part of a :ref:`session <interactive
+The output of pipeline steps is stored when you run a step as part of a :term:`session <interactive
 session>`. This lets you run just the parts of the Pipeline that you're working rather than the
 entirety. You can access these outputs directly from within the JupyterLab kernel for notebook based
 steps.
