@@ -3,7 +3,7 @@
 Environment variables
 =====================
 
-Environment variables let you exclude sensitive data from your versioning system. 
+Environment variables let you exclude sensitive data from your versioning system.
 
 Environment variables are injected in your pipeline steps, and can be natively retrieved with your chosen language. For example, in Python:
 
@@ -12,7 +12,7 @@ Environment variables are injected in your pipeline steps, and can be natively r
    import os
    secret = os.environ["MY_VAR"]
 
-You can define environment variables for Projects, Pipelines and Jobs. 
+You can define environment variables for Projects, Pipelines and Jobs.
 
 Pipeline variables overwrite Project variables. For example, if ``MY_VAR=PROJ_VALUE`` is defined at the Project level and ``MY_VAR=PIP_VALUE``
 at the Pipeline level, the value of ``MY_VAR`` for an :ref:`interactive pipeline runs <interactive pipeline run>` is ``PIP_VALUE``.
@@ -20,7 +20,8 @@ at the Pipeline level, the value of ``MY_VAR`` for an :ref:`interactive pipeline
 Changes to the ``PATH`` variable are ignored since they could break code execution.
 
 .. warning::
-   🚨 Environment variables are persisted within Orchest. Make sure only authorized users can acess your instance. See how to setup authentication in :ref:`orchest settings <orchest settings>`.
+   🚨 Environment variables are persisted within Orchest. Make sure only authorized users can acess
+   your instance. See how to setup authentication in the :ref:`settings <settings>` section.
 
 Project environment variables
 -----------------------------
