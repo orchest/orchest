@@ -31,6 +31,7 @@ export const WebhookUrlField = ({
         fullWidth
         autoFocus
         required
+        type="url"
         onBlur={() => setIsBlurred(true)}
         sx={{ marginTop: (theme) => theme.spacing(2) }}
         label="Webhook URL"

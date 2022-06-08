@@ -1,3 +1,4 @@
+import { Position } from "@/types";
 import Divider from "@mui/material/Divider";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -7,7 +8,11 @@ type MenuItemAction = {
   type: "item";
   title: string;
   disabled?: boolean;
-  action: (e: React.MouseEvent, itemId?: string) => void;
+  action: (props: {
+    event: React.MouseEvent;
+    itemId?: string;
+    contextMenuPosition: Position;
+  }) => void;
 };
 
 type MenuItemSeparator = {
@@ -28,12 +33,16 @@ export function useContextMenu(
 
   const [contextMenuIsOpen, setContextMenuIsOpen] = contextMenuState;
 
-  const handleClicked = (e: React.MouseEvent, item: MenuItemAction) => {
+  const handleClicked = (event: React.MouseEvent, item: MenuItemAction) => {
     if (contextMenu === null) {
       return;
     }
 
-    item.action(e, itemId);
+    item.action({
+      event,
+      itemId,
+      contextMenuPosition: { x: contextMenu.mouseX, y: contextMenu.mouseY },
+    });
     handleClose();
   };
 

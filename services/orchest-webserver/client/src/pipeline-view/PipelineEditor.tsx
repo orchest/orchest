@@ -831,9 +831,11 @@ export const PipelineEditor = () => {
                   // it causes issue when user press space bar to navigate the canvas
                   // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
                   canvasFuncRef.current?.centerPipelineOrigin();
-                  dispatch({
-                    type: "SET_SCALE_FACTOR",
-                    payload: eventVars.scaleFactor - 0.25,
+                  dispatch((current) => {
+                    return {
+                      type: "SET_SCALE_FACTOR",
+                      payload: current.scaleFactor - 0.25,
+                    };
                   });
                 }}
               >
@@ -843,9 +845,11 @@ export const PipelineEditor = () => {
                 title="Zoom in"
                 onPointerDown={() => {
                   canvasFuncRef.current?.centerPipelineOrigin();
-                  dispatch({
-                    type: "SET_SCALE_FACTOR",
-                    payload: eventVars.scaleFactor + 0.25,
+                  dispatch((current) => {
+                    return {
+                      type: "SET_SCALE_FACTOR",
+                      payload: current.scaleFactor + 0.25,
+                    };
                   });
                 }}
               >
