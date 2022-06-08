@@ -3,9 +3,9 @@
 Environments
 ============
 
-Environments define the conditions in which Pipeline Steps execute scripts and kernels. Environments are: 
+Environments define the conditions in which Pipeline Steps execute scripts and kernels. Environments are:
 
-* Chosen in the Pipeline Step properties panel in the Pipeline Editor. 
+* Chosen in the Pipeline Step properties panel in the Pipeline Editor.
 * Installed with additional packages on the Environments page.
 * Versioned and belong to a single Project.
 
@@ -26,7 +26,7 @@ Building an Environment
 1. Go to *Environments* page.
 2. Create a new *Environment*.
 3. Choose an *Environment name*.
-4. Choose a base image. 
+4. Choose a base image.
 5. Choose one of the supported languages.
 6. Add installation commands for additional packages in the *Environment set-up script*. For example: :code:`pip install tensorflow`
    or :code:`sudo apt-get install gcc`.
@@ -80,7 +80,7 @@ Conda package installs are supported but might take a long time to build. We rec
 Custom Environment images
 -------------------------
 
-Fully custom environment images are not recommended. This is because Environments require a particular image structure to cater for Jupyter Docker stacks dependencies, Pipeline runs and hosting active Jupyter kernels. Instead, use our default base images and customize them via the *set-up script*. 
+Fully custom environment images are not recommended. This is because Environments require a particular image structure to cater for Jupyter Docker stacks dependencies, Pipeline runs and hosting active Jupyter kernels. Instead, use our default base images and customize them via the *set-up script*.
 
 Using a different Python version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,7 +88,7 @@ Using a different Python version
 To use a different Python version:
 
 1. Create the new conda Environment in your setup script with the desired Python version.
-1. Store the relevant environment variables in ``/home/jovyan/.orchestrc`` which will be sourced on startup.
+2. Store the relevant environment variables in ``/home/jovyan/.orchestrc`` which will be sourced on startup.
 
 Configuring an Environment with Python 3.10 using mamba:
 
