@@ -1,11 +1,13 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
+import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
+import { PipelineJson } from "@/types";
 import {
   generateStrategyJson,
   pipelinePathToJsonLocation,
@@ -19,9 +21,55 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+
+const pipelineJsonToParams = (
+  pipelineJson: PipelineJson | undefined,
+  reservedKey: string | undefined
+) => {
+  if (!pipelineJson || !reservedKey) {
+    return "";
+  }
+  let strategyJson = generateStrategyJson(pipelineJson, reservedKey);
+
+  // Cast parameters values to JSON
+  Object.keys(strategyJson).forEach((key) => {
+    Object.keys(strategyJson[key].parameters).forEach((paramKey) => {
+      strategyJson[key].parameters[paramKey] = JSON.parse(
+        strategyJson[key].parameters[paramKey]
+      );
+    });
+    strategyJson[key] = strategyJson[key].parameters;
+  });
+
+  return JSON.stringify(strategyJson, null, 2);
+};
+
+const writeFile = ({
+  body,
+  path,
+  pipelineUuid,
+  projectUuid,
+}: {
+  body: string;
+  path: string;
+  pipelineUuid: string;
+  projectUuid: string;
+}) => {
+  fetcher(
+    `${FILE_MANAGEMENT_ENDPOINT}/create?${queryArgs({
+      project_uuid: projectUuid,
+      pipeline_uuid: pipelineUuid,
+      path: path.startsWith("/") ? path : "/" + path,
+      overwrite: "true",
+      root: "/project-dir",
+      use_project_root: "true",
+    })}`,
+    { body, method: "POST" }
+  );
+};
 
 export const GenerateParametersDialog = ({
   isOpen,
@@ -48,53 +96,23 @@ export const GenerateParametersDialog = ({
   const isParameterJsonValid = useDebounce(_isParameterJsonValid, 1000);
   const [copyButtonText, setCopyButtontext] = React.useState("Copy");
 
-  const pipelineJsonToParams = (pipelineJson) => {
-    if (!pipelineJson || !config?.PIPELINE_PARAMETERS_RESERVED_KEY) {
-      return "";
-    }
-    let strategyJson = generateStrategyJson(
-      pipelineJson,
-      config?.PIPELINE_PARAMETERS_RESERVED_KEY
+  React.useEffect(() => {
+    setParameterFileString(
+      pipelineJsonToParams(
+        pipelineJson,
+        config?.PIPELINE_PARAMETERS_RESERVED_KEY
+      )
     );
-
-    // Cast parameters values to JSON
-    Object.keys(strategyJson).forEach((key) => {
-      Object.keys(strategyJson[key].parameters).forEach((paramKey) => {
-        strategyJson[key].parameters[paramKey] = JSON.parse(
-          strategyJson[key].parameters[paramKey]
-        );
-      });
-      strategyJson[key] = strategyJson[key].parameters;
-    });
-
-    return JSON.stringify(strategyJson, null, 2);
-  };
-
-  React.useEffect(
-    () => {
-      setParameterFileString(pipelineJsonToParams(pipelineJson));
-    },
-    [pipelineJson],
-    pipelineJsonToParams
-  );
+  }, [pipelineJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY]);
 
   const copyParams = () => {
-    navigator.clipboard.writeText(pipelineJsonToParams(pipelineJson));
-    setCopyButtontext("Copied!");
-  };
-
-  const writeFile = (body, path, pipelineUuid, projectUuid) => {
-    fetcher(
-      `${FILE_MANAGEMENT_ENDPOINT}/create?${queryArgs({
-        project_uuid: projectUuid,
-        pipeline_uuid: pipelineUuid,
-        path: path.startsWith("/") ? path : "/" + path,
-        overwrite: "true",
-        root: "/project-dir",
-        use_project_root: "true",
-      })}`,
-      { body, method: "POST" }
+    navigator.clipboard.writeText(
+      pipelineJsonToParams(
+        pipelineJson,
+        config?.PIPELINE_PARAMETERS_RESERVED_KEY
+      )
     );
+    setCopyButtontext("Copied!");
   };
 
   const isValidJson = (jsonString) => {
@@ -106,6 +124,17 @@ export const GenerateParametersDialog = ({
     }
   };
 
+  const onCreateFile = (filePath: string | undefined) => {
+    if (!filePath || !pipelineUuid || !projectUuid) return;
+    writeFile({
+      body: parameterFileString,
+      path: filePath,
+      pipelineUuid,
+      projectUuid,
+    });
+    onClose();
+  };
+
   const createParamFile = async () => {
     if (!isValidJson(parameterFileString)) {
       setAlert(
@@ -114,7 +143,7 @@ export const GenerateParametersDialog = ({
       );
       return;
     }
-    let body = parameterFileString;
+
     let filePath = pipelinePathToJsonLocation(pipelinePath ? pipelinePath : "");
 
     if (!projectUuid || !pipelineUuid || !filePath) {
@@ -122,34 +151,31 @@ export const GenerateParametersDialog = ({
     }
 
     // Check if file exists
-    fetcher(
-      `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
-        project_uuid: projectUuid,
-        pipeline_uuid: pipelineUuid,
-        path: filePath,
-        use_project_root: "true",
-      })}`
-    )
-      .then((response) => {
-        if (hasValue(response)) {
-          setConfirm(
-            "Warning",
-            "This file already exists, do you want to overwrite it?",
-            async (resolve) => {
-              writeFile(body, filePath, pipelineUuid, projectUuid);
-              onClose();
-              resolve(true);
-              return true;
-            }
-          );
+    try {
+      const doesFileExist = await isValidFile(
+        projectUuid,
+        pipelineUuid,
+        filePath,
+        ["json"],
+        true
+      );
+      if (!doesFileExist) {
+        onCreateFile(filePath);
+        return;
+      }
+
+      setConfirm(
+        "Warning",
+        "This file already exists, do you want to overwrite it?",
+        async (resolve) => {
+          onCreateFile(filePath);
+          resolve(true);
+          return true;
         }
-      })
-      .catch((response) => {
-        if (response.status == 404) {
-          writeFile(body, filePath, pipelineUuid, projectUuid);
-          onClose();
-        }
-      });
+      );
+    } catch (error) {
+      setAlert("Error", `Failed to create Parameter file. ${error}`);
+    }
   };
 
   const checkValidityRef = React.useRef<(() => void) | undefined>();

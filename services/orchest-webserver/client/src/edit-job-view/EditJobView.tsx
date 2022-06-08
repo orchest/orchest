@@ -746,7 +746,6 @@ const EditJobView: React.FC = () => {
           isOpen={isLoadParametersDialogOpen}
           onClose={closeLoadParametersDialog}
           onSubmit={handleLoadParameters}
-          projectUuid={projectUuid}
           pipelineUuid={job.pipeline_uuid}
         />
       )}

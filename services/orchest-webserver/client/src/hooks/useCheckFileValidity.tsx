@@ -20,7 +20,8 @@ export const isValidFile = async (
   project_uuid: string,
   pipeline_uuid: string,
   path: string,
-  allowedExtensions: string[]
+  allowedExtensions: string[],
+  use_project_root = false
 ) => {
   // only check file existence if it passes rule-based validation
   if (
@@ -34,6 +35,7 @@ export const isValidFile = async (
       project_uuid,
       pipeline_uuid,
       path,
+      use_project_root,
     })}`
   );
   return hasValue(response);
@@ -50,7 +52,8 @@ export const useCheckFileValidity = (
   projectUuid: string | undefined,
   pipelineUuid: string | undefined,
   path: string | undefined,
-  allowedExtensions: string[]
+  allowedExtensions: string[],
+  use_project_root = false
 ) => {
   const isQueryArgsComplete =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
@@ -66,6 +69,7 @@ export const useCheckFileValidity = (
           projectUuid,
           pipelineUuid,
           path: delayedPath || path,
+          use_project_root,
         })}`
       : undefined,
     { transform: () => true }

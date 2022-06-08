@@ -1,7 +1,6 @@
 import ProjectFilePicker from "@/components/ProjectFilePicker";
 import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import {
   FileManagerContextProvider,
   useFileManagerContext,
@@ -28,10 +27,13 @@ const ProjectFilePickerHolder = ({
 
   const { projectUuid } = useCustomRoute();
 
-  const [
-    doesFileExist,
-    isCheckingFileValidity,
-  ] = useCheckFileValidity(projectUuid, pipelineUuid, selectedPath, ["json"]);
+  const [doesFileExist, isCheckingFileValidity] = useCheckFileValidity(
+    projectUuid,
+    pipelineUuid,
+    selectedPath,
+    ["json"],
+    true
+  );
 
   return (
     <ProjectFilePicker
@@ -50,19 +52,17 @@ export const LoadParametersDialog = ({
   isOpen,
   onClose,
   onSubmit,
-  projectUuid,
   pipelineUuid,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (value: string) => void;
-  projectUuid: string | undefined;
   pipelineUuid: string | undefined;
 }) => {
-  const { pipeline } = useFetchPipeline({ projectUuid, pipelineUuid });
   const [selectedPath, setSelectedPath] = React.useState("");
 
-  const pipelineCwd = pipeline?.path.replace(/\/?[^\/]*.orchest$/, "/");
+  // Always load parameters from project root
+  const pipelineCwd = "/";
 
   return (
     <Dialog
