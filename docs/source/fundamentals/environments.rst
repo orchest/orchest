@@ -90,7 +90,7 @@ To use a different Python version:
 1. Create the new conda Environment in your setup script with the desired Python version.
 2. Store the relevant environment variables in ``/home/jovyan/.orchestrc`` which will be sourced on startup.
 
-Configuring an Environment with Python 3.10 using mamba:
+For example, configuring an Environment with Python 3.10 using mamba:
 
 .. code-block:: bash
 
