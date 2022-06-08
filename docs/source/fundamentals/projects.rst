@@ -3,7 +3,7 @@
 Projects
 ========
 
-A projects is the main container for organizing related :ref:`pipelines <pipelines>`, :ref:`jobs <jobs>`, :ref:`environments <environments>` and code.
+A project is the main container for organizing related :ref:`pipelines <pipelines>`, :ref:`jobs <jobs>`, :ref:`environments <environments>` and code.
 
 A project is basically a ``git`` repository. For example, a Project might be organized like:
 
