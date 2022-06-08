@@ -6,7 +6,7 @@ Environments
 Environments define the conditions in which Pipeline Steps execute scripts and kernels. Environments are:
 
 * Chosen in the Pipeline Step properties panel in the Pipeline Editor.
-* Installed with additional packages on the Environments page.
+* Configurable through their set-up script (on the Environments page) to install additional packages.
 * Versioned and belong to a single Project.
 
 Choosing a programming language
@@ -23,7 +23,7 @@ Each environment supports ``Bash`` scripts to invoke any other language indirect
 
 Building an Environment
 -----------------------
-1. Go to *Environments* page.
+1. Go to the *Environments* page.
 2. Create a new *Environment*.
 3. Choose an *Environment name*.
 4. Choose a base image.
@@ -72,7 +72,7 @@ Example *Environment set-up script*:
    # Or, alternatively, install Python dependencies using pip
    pip install black
 
-Conda package installs are supported but might take a long time to build. We recommmend using `mamba <https://mamba.readthedocs.io/>`_ as a user-friendly and fast drop-in conda replacement. ``pip``, ``mamba`` and ``conda`` caches are persisted across builds for quicker iterations. This cache can be ignored or removed using the respective flags (e.g. ``pip install --no-cache``) or commands.
+Installing packages with ``conda`` is also supported but might take longer (due to known conda issues regarding dependency solving). We recommmend using `mamba <https://mamba.readthedocs.io/>`_ as a user-friendly and fast drop-in conda replacement. ``pip``, ``mamba`` and ``conda`` caches are persisted across builds for quicker iterations. This cache can be ignored or removed using the respective flags (e.g. ``pip install --no-cache``) or commands.
 
 .. warning::
    🚨 Do not install packages by running :code:`!pip install <package-name>` inside your Jupyter Notebook. This causes the package to be installed every time you run the Pipeline Step. It is not saved in the Environment as containers are stateless!
