@@ -128,31 +128,38 @@ const ProjectSettingsView: React.FC = () => {
     fetchSettings();
   }, []);
 
+  const { setConfirm } = useAppContext();
   const deleteProject = () => {
-    let deletePromise = makeRequest("DELETE", "/async/projects", {
-      type: "json",
-      content: {
-        project_uuid: projectUuid,
-      },
-    });
-    setIsDeletingProject(true);
+    setConfirm(
+      "Warning",
+      "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
+      () => {
+        let deletePromise = makeRequest("DELETE", "/async/projects", {
+          type: "json",
+          content: {
+            project_uuid: projectUuid,
+          },
+        });
+        setIsDeletingProject(true);
 
-    deletePromise
-      .then(() => {
-        navigateTo(siteMap.projects.path);
-      })
-      .catch((response) => {
-        try {
-          let data = JSON.parse(response.body);
+        deletePromise
+          .then(() => {
+            navigateTo(siteMap.projects.path);
+          })
+          .catch((response) => {
+            try {
+              let data = JSON.parse(response.body);
 
-          setAlert("Error", `Could not delete project. ${data.message}`);
-        } catch {
-          setAlert("Error", "Could not delete project. Reason unknown.");
-        }
-      })
-      .finally(() => setIsDeletingProject(false));
+              setAlert("Error", `Could not delete project. ${data.message}`);
+            } catch {
+              setAlert("Error", "Could not delete project. Reason unknown.");
+            }
+          })
+          .finally(() => setIsDeletingProject(false));
 
-    return deletePromise;
+        return deletePromise;
+      }
+    );
   };
 
   const paths = React.useMemo(() => {
