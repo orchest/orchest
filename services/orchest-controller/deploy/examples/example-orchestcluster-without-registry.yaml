@@ -6,5 +6,9 @@ metadata:
 spec:
   singleNode: true
   applications:
-  - config: {}
-    name: docker-registry
+  - config:
+      helm:
+        parameters:
+        - name: singleNamespace
+          value: "true"
+    name: argo-workflow
