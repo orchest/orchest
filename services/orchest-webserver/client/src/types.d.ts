@@ -33,6 +33,12 @@ type CommonColorScales =
   | "A400"
   | "A700";
 
+export type ExtractStringLiteralType<T, U extends T> = U;
+
+export type ReducerActionWithCallback<ReducerState, ActionType> =
+  | ActionType
+  | ((previousState: ReducerState) => ActionType);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type PartialRecord<K extends keyof any, T> = {
   [P in K]?: T;
@@ -56,16 +62,12 @@ export type ColorScale = PartialRecord<
   string
 >;
 
+export type DefaultEnvironment = Omit<Environment, "uuid" | "project_uuid">;
+
 export type OrchestConfig = {
   CLOUD: boolean;
   CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
-  ENVIRONMENT_DEFAULTS: {
-    base_image: string;
-    gpu_support: boolean;
-    language: Language;
-    name: string;
-    setup_script: string;
-  };
+  ENVIRONMENT_DEFAULTS: DefaultEnvironment;
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;
   INTERCOM_APP_ID: string;
@@ -148,16 +150,16 @@ export type Project = {
   session_count?: number;
 };
 
-export type Language = "python" | "r" | "julia";
+export type Language = "python" | "r" | "julia" | "javascript";
 
 export type Environment = {
+  uuid: string;
+  project_uuid: string;
   base_image: string;
   gpu_support: boolean;
   language: Language;
   name: string;
-  project_uuid: string;
   setup_script: string;
-  uuid: string;
 };
 
 export type CustomImage = Pick<
@@ -174,7 +176,7 @@ export type EnvironmentImageBuild = {
   image_tag: string;
   requested_time: string;
   started_time: string;
-  status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
+  status: TStatus;
   celery_task_uuid: string;
 };
 
@@ -241,7 +243,7 @@ export type Job = {
     version: string;
     services: Record<string, Service>;
   };
-  next_scheduled_time: string;
+  next_scheduled_time: string | undefined;
   last_scheduled_time: string;
   parameters: Record<string, Json>[];
   schedule: string;
@@ -329,13 +331,15 @@ export type Service = {
   env_variables_inherit?: any[];
   exposed: boolean;
   requires_authentication?: boolean;
-  order?: number;
+  order: number;
 };
 
 export type FileTree = {
   type: "directory" | "file";
   name: string;
   root?: boolean;
+  // Absolute path against the root, e.g. /folder/sub/file.py, will need to check if its root is `/project-dir:/ or `/data:/`;
+  // therefore, the complete absolute path would be `/project-dir:/folder/sub/file.py`
   path?: string;
   depth?: number;
   children: FileTree[];
@@ -384,6 +388,8 @@ export type EnvironmentAction = "BUILD" | "WAIT" | "RETRY";
 export type EnvironmentValidationData = {
   actions: EnvironmentAction[];
   fail: string[];
+  pass: string[];
+  validation: "fail" | "pass";
 };
 
 export type BuildRequest = {

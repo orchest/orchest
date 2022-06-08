@@ -46,7 +46,7 @@ else
 fi
 
 # Get the pod to which command & cp will be issued.
-pod_name=$(kubectl get pods -n orchest -l ${SERVICE}=${SERVICE} \
+pod_name=$(kubectl get pods -n orchest -l controller.orchest.io/component=${SERVICE} \
     --field-selector=status.phase=Running --no-headers \
     --output=jsonpath={.items..metadata.name})
 

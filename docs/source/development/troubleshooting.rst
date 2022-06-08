@@ -131,3 +131,99 @@ Dev mode not working
 * If you have changed some dependencies (i.e. requirements.txt files) you have to rebuild the image and
   kill the pod to get it redeployed.
 
+Test updating Orchest
+---------------------
+Through the CLI
+~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   orchest uninstall
+   scripts/build_container.sh -M -t "v2022.04.4" -o "v2022.04.4"
+   orchest install --dev
+   scripts/build_container.sh -M -t "v2022.04.5" -o "v2022.04.5"
+   orchest update --dev --version=v2022.04.5
+   scripts/build_container.sh -M -t "v2022.04.6" -o "v2022.04.6"
+   orchest update --dev --version=v2022.04.6
+
+Through the UI
+~~~~~~~~~~~~~~
+For this to work you need to be running in dev mode and have the ``orchest-dev-repo`` mounted (as
+per :ref:`setting up minikube for development <cluster mount>`).
+
+.. code-block:: bash
+
+   # Start from a clean slate so that we know what version we are on
+   # before invoking the update.
+   orchest uninstall
+
+   # Build whatever version you like! In case you want to test out
+   # the product after the update, build the X-1 latest release
+   # tag.
+   scripts/build_container.sh -m -t "v2022.04.4" -o "v2022.04.4"
+
+   # Installing and making sure running in dev.
+   orchest install --dev
+   orchest patch --dev
+   pnpm run dev
+
+   # Build the version to update to
+   scripts/build_container.sh -M -t "v2022.04.5" -o "v2022.04.5"
+
+   # Invoke the update through the UI go to:
+   # http://localorchest.io/update
+   ...
+
+   # In case you want to test it again
+   scripts/build_container.sh -M -t "v2022.04.6" -o "v2022.04.6"
+   # Invoke the update through the UI go to:
+   # http://localorchest.io/update
+   ...
+
+   # And repeat if you like.
+
+Can't log-in to authentication enabled instance
+-----------------------------------------------
+Open ``k9s`` and open a shell (``s`` shortcut) on the ``orchest-database`` pod.
+
+.. code-block:: bash
+
+   # Log into the DB
+   psql -U postgres -d orchest_api
+
+   UPDATE settings
+   SET value = '{"value": false}'
+   WHERE name='AUTH_ENABLED';
+
+Next you need to ``orchest restart`` on your host for the changes to take affect. Or kill the
+appropriate pods so that they restart.
+
+Missing environment variables in pods
+-------------------------------------
+
+**What it looks like**
+   The pods of the ``orchest-api``, ``orchest-webserver``, ``auth-server`` or ``celery-worker`` are
+   having issues related to missing environment variables. E.g. they can't start because a given
+   environment variable is not defined or is wrongly defined.
+
+**Context**
+   Some parts of Orchest, like the ``orchest-controller``, are never stopped, regardless of issuing
+   a ``orchest restart`` or ``orchest stop``. This makes it so that, despite rebuilding all images
+   (i.e. including the controller) on a given branch and restarting Orchest, the new controller
+   image is not actually deployed. This leads to an inconsistency between what's running in the
+   cluster.
+
+**How to solve**
+   - make sure you have built the controller image, ``eval $(minikube -p minikube docker-env)``
+     then ``bash scripts/build_container.sh -i orchest-controller -o $TAG -t $TAG``.
+
+   - stop Orchest, ``orchest stop``.
+
+   - cause a redeployment of the controller image by killing the controller pod,
+     ``kubectl delete pod -n orchest -l app.kubernetes.io/name=orchest-controller``, or
+     scale down and back up the controller deployment, or any other preferred solution.
+   
+   - start Orchest, ``orchest start``.
+
+   
+

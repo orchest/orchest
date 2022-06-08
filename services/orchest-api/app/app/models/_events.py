@@ -1404,6 +1404,15 @@ class Subscription(_core_models.BaseModel):
     }
 
 
+Index(
+    "plain_subscription_uniqueness",
+    Subscription.subscriber_uuid,
+    Subscription.event_type,
+    unique=True,
+    postgresql_where=(Subscription.type == "globally_scoped_subscription"),
+),
+
+
 class ProjectSpecificSubscription(Subscription):
     """Subscripions to events of a specific project."""
 
@@ -1431,6 +1440,17 @@ event.listen(
     "before_insert",
     ProjectSpecificSubscription.check_constraints,
 )
+
+Index(
+    "project_subscription_uniqueness",
+    ProjectSpecificSubscription.subscriber_uuid,
+    ProjectSpecificSubscription.event_type,
+    ProjectSpecificSubscription.project_uuid,
+    unique=True,
+    postgresql_where=(
+        ProjectSpecificSubscription.type == "project_specific_subscription"
+    ),
+),
 
 
 class ProjectJobSpecificSubscription(ProjectSpecificSubscription):
@@ -1460,6 +1480,18 @@ event.listen(
     "before_insert",
     ProjectJobSpecificSubscription.check_constraints,
 )
+
+Index(
+    "project_job_subscription_uniqueness",
+    ProjectJobSpecificSubscription.subscriber_uuid,
+    ProjectJobSpecificSubscription.event_type,
+    ProjectJobSpecificSubscription.project_uuid,
+    ProjectJobSpecificSubscription.job_uuid,
+    unique=True,
+    postgresql_where=(
+        ProjectJobSpecificSubscription.type == "project_job_specific_subscription"
+    ),
+),
 
 
 class Delivery(_core_models.BaseModel):

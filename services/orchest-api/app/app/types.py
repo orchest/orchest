@@ -43,6 +43,7 @@ class ServiceDefinition(TypedDict):
     ports: Optional[List[int]]
     preserve_base_path: Optional[str]
     scope: List[str]  # interactive, noninteractive
+    order: int
 
 
 class PipelineDefinition(TypedDict):

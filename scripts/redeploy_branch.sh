@@ -1,15 +1,22 @@
 #!/bin/bash
 # Ths script will:
-# - checkout the given branch.
-# - build the minimal set of imags to run Orchest, using the current cluster version
-# - drop the orchest_api and orchest_webserer databases, to avoid schema migrations
-#   conflicts when switching between branches with schema migrations. This does not
-#   happen for the auth_server db since you would lose all users.
-# - redeploy the controller to make use of the latest changes.
-# - stop and start orchest.
+# - checkout the given branch
+# - store the existing auth users
+# - uninstall Orchest
+# - install the orchest-cli from the given branch
+# - install Orchest
+# - restore the existing auth users
+# - set cloud mode, enable auth 
+# - build the minimal set of imagand restartes to run Orchest, using the
+#   current cluster version
+# - restart
 #
-# The script is not battle proof, more like an incremental movement towards being able
-# to easily switch around branches to review them.
+# The script is not battle proof, but an incremental movement towards
+# being able to easily switch around branches to review them.  This is
+# currently used for our internal preview instances. The script assumes
+# Orchest to be already installed.
+#
+# TLDR: redeploy Orchest for a given branch, maintain auth users.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -20,45 +27,48 @@ fi
 
 set -e
 
-echo "Checking out branch ${1}."
+echo "Checking out branch ${1}..."
 git fetch --all
 git checkout $1
 git pull origin $1
 
 
+# Needed to get the auth users.
+orchest start
+
+echo "Storing auth users for later..."
+AUTH_USERS_DUMP=$(minikube kubectl -- exec -it -n orchest deploy/orchest-database -- \
+    pg_dump -U postgres --column-inserts --data-only -t users -d auth_server)
+
+orchest uninstall
+
+echo "Installing the orchest-cli from this branch..."
+pip install "${DIR}/../orchest-cli" > /dev/null
+
+orchest install
+
+echo "Restoring auth users..."
+# Needed because some rows contain dollar symbols, perhaps we should
+# just dump to a .sql file and copy it around from the pod to the host
+# and viceversa if more issues come up.
+AUTH_USERS_DUMP="${AUTH_USERS_DUMP//$/\\$}"
+minikube kubectl -- exec -n orchest deploy/orchest-database -- bash -c \
+    "echo \"${AUTH_USERS_DUMP}\" | psql -U postgres -d auth_server" > /dev/null
+
+echo "Enabling auth mode..."
+minikube kubectl -- exec -it -n orchest deploy/orchest-api -- curl -X 'PUT' \
+  'http://localhost:80/api/ctl/orchest-settings' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"AUTH_ENABLED": true}' > /dev/null
+
+orchest patch --cloud
+orchest stop
+
 TAG=$(orchest version --json | jq -r .version)
-echo "Building images locally with tag ${TAG}"
+echo "Building images locally with tag ${TAG}..."
 eval $(minikube -p minikube docker-env)
 bash "${DIR}/build_container.sh" -m -t ${TAG} -o ${TAG}
 
-# Needs to happen to be able to drop the DB.
 orchest start
-
-# Make the controller use the latest image and yaml changes.
-kubectl scale -n orchest --replicas=0 deployment orchest-controller --timeout 10m
-kubectl apply -f "${DIR}/../services/orchest-controller/deploy-controller"
-kubectl scale -n orchest --replicas=1 deployment orchest-controller --timeout 10m
-kubectl wait --for=condition=ready pod -n orchest -l "app=orchest-controller"
-
-echo "Scaling down orchest-api, celery, orchest-webserver deployments to avoid DB use."
-# We are actually deleting the deployment because on stop the controller
-# will create it again, but with an updated configuration in case it was
-# changed in that particular branch.
-kubectl delete deployment -n orchest orchest-api
-kubectl delete deployment -n orchest celery-worker
-kubectl delete deployment -n orchest orchest-webserver
-kubectl delete deployment -n orchest auth-server
-
-set +e
-echo "Dropping the orchest_api and orchest_webserver databases."
-minikube kubectl -- exec -it -n orchest deploy/orchest-database -- dropdb -U postgres -f orchest_api --if-exists
-minikube kubectl -- exec -it -n orchest deploy/orchest-database -- dropdb -U postgres -f orchest_webserver --if-exists
-set -e
-
-
-# The shutdown cleanup operation will fail, that's okay.
-orchest stop
-
-orchest start
-
 orchest status

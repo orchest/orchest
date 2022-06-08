@@ -158,7 +158,7 @@ export const HeaderBar = ({
                     <CheckCircleIcon />
                   </Tooltip>
                 ) : (
-                  <CircularProgress />
+                  <CircularProgress size={20} />
                 )}
                 <Typography
                   variant="h6"

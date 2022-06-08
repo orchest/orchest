@@ -7,8 +7,10 @@ import { OrchestVersion, UpdateInfo } from "@/types";
 import Typography from "@mui/material/Typography";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import useSWRImmutable from "swr/immutable";
+import { useInterval } from "./use-interval";
 import { useCancelablePromise } from "./useCancelablePromise";
+import { useFetcher } from "./useFetcher";
+import { useMatchRoutePaths } from "./useMatchProjectRoot";
 
 const isVersionLTE = (oldVersion: string, newVersion: string) => {
   const [oldYear, oldMonth, oldPatch] = oldVersion.split(".");
@@ -44,32 +46,65 @@ const fetchLatestVersion = () =>
     (response) => response.latest_version
   );
 
+const requestToCheckVersions = async () => {
+  const [orchestVersion, latestVersion] = await Promise.all([
+    fetchOrchestVersion(),
+    fetchLatestVersion(),
+  ]);
+
+  return [orchestVersion, latestVersion] as const;
+};
+
+const useOrchestVersion = () => {
+  const { data, fetchData } = useFetcher<
+    OrchestVersion,
+    string | null | undefined
+  >("/async/version", { transform: (data) => data.version });
+
+  return { orchestVersion: data, fetchOrchestVersion: fetchData };
+};
+
+const useLatestVersion = () => {
+  const { data, fetchData } = useFetcher<UpdateInfo, string | null>(
+    "/async/orchest-update-info",
+    { transform: (data) => data.latest_version }
+  );
+
+  return { latestVersion: data, fetchLatestVersion: fetchData };
+};
+
+const useVersionsPoller = () => {
+  const { orchestVersion } = useOrchestVersion();
+  const { latestVersion, fetchLatestVersion } = useLatestVersion();
+
+  // Only check the latest version every hour, because the latest Orchest version gets
+  // fetched once per hour.
+  useInterval(() => {
+    fetchLatestVersion();
+  }, 3600000);
+
+  return { orchestVersion, latestVersion };
+};
+
 // To limit the number of api calls and make sure only one prompt is shown,
 // it is best to place this hook in top-level components (i.e. the ones
 // defined in the routingConfig.tsx).
 export const useCheckUpdate = () => {
   const { setConfirm, setAlert } = useAppContext();
-  const { navigateTo } = useCustomRoute();
+  const { navigateTo, location } = useCustomRoute();
 
   const [skipVersion, setSkipVersion] = useLocalStorage<string | null>(
     "skip_version",
     null
   );
 
-  // Only make requests every hour, because the latest Orchest version gets
-  // fetched once per hour. Use `useSWRImmutable` to disable all kinds of
-  // automatic revalidation; just serve from cache and refresh cache
-  // once per hour.
-  const { data: orchestVersion } = useSWRImmutable(
-    true ? null : "/async/version",
-    fetchOrchestVersion,
-    { refreshInterval: 3600000 }
-  );
-  const { data: latestVersion } = useSWRImmutable(
-    true ? null : "/async/orchest-update-info",
-    fetchLatestVersion,
-    { refreshInterval: 3600000 }
-  );
+  // Only check update on mount if the route path matches the following:
+  const match = useMatchRoutePaths([
+    siteMap.projects,
+    siteMap.settings,
+    siteMap.help,
+  ]);
+  const { orchestVersion, latestVersion } = useVersionsPoller();
 
   const promptUpdate = React.useCallback(
     (localVersion: string, versionToUpdate: string) => {
@@ -112,7 +147,7 @@ export const useCheckUpdate = () => {
     (
       localVersion: OrchestVersion["version"],
       versionToUpdate: UpdateInfo["latest_version"],
-      skipVersion: string | null,
+      skipVersion: string | null | undefined,
       shouldPromptNoUpdate: boolean
     ) => {
       if (!localVersion || !versionToUpdate) return;
@@ -136,14 +171,14 @@ export const useCheckUpdate = () => {
 
   const { makeCancelable } = useCancelablePromise();
 
-  const checkUpdateNow = React.useCallback(async () => {
+  const checkUpdate = React.useCallback(async () => {
     // Use fetcher directly instead of mutate function from the SWR
     // calls to prevent updating the values which would trigger the
     // useEffect and thereby prompting the user twice. In addition,
     // we want to be able to tell the user that no update is available
     // if this function is invoked.
     const [fetchedOrchestVersion, fetchedLatestVersion] = await makeCancelable(
-      Promise.all([fetchOrchestVersion(), fetchLatestVersion()])
+      requestToCheckVersions()
     );
 
     if (fetchedOrchestVersion && fetchedLatestVersion) {
@@ -152,10 +187,18 @@ export const useCheckUpdate = () => {
   }, [handlePrompt, makeCancelable]);
 
   React.useEffect(() => {
-    if (orchestVersion && latestVersion) {
+    // When location is changed (i.e. user is navigating), check if match is valid and then execute handlePrompt.
+    if (orchestVersion && latestVersion && match) {
       handlePrompt(orchestVersion, latestVersion, skipVersion, false);
     }
-  }, [orchestVersion, latestVersion, skipVersion, handlePrompt]);
+  }, [
+    orchestVersion,
+    latestVersion,
+    skipVersion,
+    handlePrompt,
+    match,
+    location,
+  ]);
 
-  return checkUpdateNow;
+  return { orchestVersion, checkUpdate };
 };

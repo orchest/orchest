@@ -19,9 +19,15 @@ const buildFailMessage = `Some environment builds of this project have failed.
   but you might need to change the environment setup script in 
   order for the build to succeed.`;
 
+export enum BUILD_IMAGE_SOLUTION_VIEW {
+  PIPELINE = "Pipeline",
+  JUPYTER_LAB = "JupyterLab",
+}
+
 const solutionMessages = {
-  Pipeline: " You can cancel to open the project in read-only mode.",
-  JupyterLab:
+  [BUILD_IMAGE_SOLUTION_VIEW.PIPELINE]:
+    " You can cancel to open the project in read-only mode.",
+  [BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB]:
     " To start JupyterLab all environments in the project need to be built.",
 };
 

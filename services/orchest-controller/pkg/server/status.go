@@ -8,7 +8,7 @@ import (
 )
 
 // Get Orchest Cluster Logs
-func (s *Server) GetOrchetsClusterStatus(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetOrchestsClusterStatus(w http.ResponseWriter, r *http.Request) {
 	// TODO: add swagger docs
 
 	vars := mux.Vars(r)

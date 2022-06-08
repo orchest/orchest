@@ -1,3 +1,4 @@
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -34,10 +35,12 @@ export const useAutoStartSession = ({
     !isReadOnly &&
     hasValue(sessions) && // `sessions` is available to look up
     session?.pipelineUuid !== pipeline?.uuid && // when user is switching pipelines
-    pipelineUuidFromRoute === pipeline?.uuid; // Only auto-start the pipeline that user is viewing.
+    pipelineUuidFromRoute === pipeline?.uuid && // Only auto-start the pipeline that user is viewing.
+    !["LAUNCHING", "RUNNING"].includes(session?.status || ""); // Session is not yet (being) activated.
 
   // The only case that auto-start should be disabled is that
-  // session.status was once set as "STOPPING"
+  // session.status was once set as "STOPPING",
+  // because this state "STOPPING" can only happen if user clicks on "Stop Session" on purpose.
   const isAutoStartAllowed = React.useRef(true);
   React.useEffect(() => {
     if (session?.status === "STOPPING") isAutoStartAllowed.current = false;
@@ -46,7 +49,11 @@ export const useAutoStartSession = ({
   React.useEffect(() => {
     if (shouldCheckIfAutoStartIsNeeded && isAutoStartAllowed.current) {
       isAutoStartAllowed.current = false;
-      toggleSession(toggleSessionPayload, true);
+      toggleSession({
+        ...toggleSessionPayload,
+        shouldStart: true,
+        requestedFromView: BUILD_IMAGE_SOLUTION_VIEW.PIPELINE,
+      });
     }
   }, [
     toggleSessionPayload,

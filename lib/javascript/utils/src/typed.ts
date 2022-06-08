@@ -8,7 +8,7 @@ export function uuidv4() {
 }
 
 // used in orchest-webserver only
-export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
+export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl", "js"];
 
 // used in orchest-webserver only
 export function collapseDoubleDots(path: string) {
@@ -38,6 +38,16 @@ export function collapseDoubleDots(path: string) {
 
   return newPathComponents.join("/");
 }
+
+/**
+ * Join multiple relative paths to generate a relative path to the first path.
+ * @param cwd {string} A relative path from current working directory to root.
+ * @param path {string} A relative path based on cwd.
+ */
+export const joinRelativePaths = (...args: string[]) => {
+  // if cwd is at the root, `cwd` could be "/".
+  return collapseDoubleDots(args.join("")).replace(/^\//, "");
+};
 
 // used in orchest-webserver only
 export function absoluteToRelativePath(path: string, cwd: string) {
@@ -153,13 +163,18 @@ export function validURL(
   skipHttpsChecking = false
 ): url is string {
   if (!url) return false;
+
   try {
-    new URL(url);
-  } catch (_) {
+    const isValidUrl = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b[^\s]*$/g.test(
+      url
+    );
+
+    return skipHttpsChecking
+      ? isValidUrl
+      : isValidUrl && url.startsWith("https");
+  } catch (e) {
     return false;
   }
-
-  return skipHttpsChecking || url.startsWith("https://");
 }
 
 // used in orchest-webserver only

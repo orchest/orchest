@@ -78,6 +78,13 @@ Julia
 Refer to the `Julia example project <https://github.com/orchest-examples/julia-orchest-sdk>`_
 showcasing **Julia** in Orchest (:ref:`how to import a project <how to import a project>`).
 
+
+JavaScript
+----------
+Refer to the `JavaScript example project <https://github.com/orchest-examples/javascript-orchest-sdk>`_
+showcasing **JavaScript** in Orchest (:ref:`how to import a project <how to import a project>`).
+
+
 API reference
 -------------
 

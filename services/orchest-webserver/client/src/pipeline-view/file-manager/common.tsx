@@ -147,10 +147,18 @@ export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
   }
 };
 
+const camelToSnakeCase = (str: string) =>
+  str
+    .replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+    .replace(/^_+(.*?)_+$/g, (match, group1) => group1); // Remove leading and trailing underscors.
+
 export const queryArgs = (obj: Record<string, string | number | boolean>) => {
   return Object.entries(obj).reduce((str, [key, value]) => {
     const leadingCharts = str === "" ? str : `${str}&`;
-    return `${leadingCharts}${key}=${window.encodeURIComponent(value)}`;
+    const snakeCaseKey = camelToSnakeCase(key);
+    return `${leadingCharts}${snakeCaseKey}=${window.encodeURIComponent(
+      value
+    )}`;
   }, "");
 };
 
@@ -219,8 +227,8 @@ export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
 
 /**
  * remove leading "./" of a file path
- * @param filePath string
- * @returns string
+ * @param filePath {string}
+ * @returns {string}
  */
 export const removeLeadingSymbols = (filePath: string) =>
   filePath.replace(/^\.\//, "");
@@ -354,8 +362,9 @@ export const allowedExtensionsMarkup = ALLOWED_STEP_EXTENSIONS.map(
 );
 
 export const findFirstDiffIndex = (arrA: string[], arrB: string[]) => {
+  const range = Math.min(arrA.length, arrB.length);
   let i = 0;
-  while (arrA[i] === arrB[i]) i++;
+  while (i < range && arrA[i] === arrB[i]) i++;
   return i;
 };
 
@@ -377,7 +386,7 @@ export const getRelativePathTo = (filePath: string, targetFolder: string) => {
 
   const upLevels = cleanTargetFolderComponents.length - firstDiffIndex - 1;
 
-  const leadingString = "../".repeat(upLevels);
+  const leadingString = upLevels >= 0 ? "../".repeat(upLevels) : "";
 
   return `${leadingString}${remainingFilePathComponents.join("/")}`;
 };
@@ -430,8 +439,8 @@ const isAncester = (ancesterPath: string, childPath: string) =>
 /**
  * This function removes the child path if its ancester path already appears in the list.
  * e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed.
- * @param list :string[]
- * @returns string[]
+ * @param list {string[]}
+ * @returns {string[]}
  */
 export const filterRedundantChildPaths = (list: string[]) => {
   // ancestor will be processed first

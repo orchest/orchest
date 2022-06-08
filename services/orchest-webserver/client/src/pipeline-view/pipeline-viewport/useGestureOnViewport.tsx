@@ -1,3 +1,4 @@
+import { Position } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import React from "react";
@@ -7,7 +8,7 @@ import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
-const isTrachpad = (event: WheelEvent) => {
+const isTouchpad = (event: WheelEvent) => {
   // deltaMode represents the unit of the delta values scroll amount
   // 0: pixel; 1: line; 2: page
   if (!event.wheelDeltaY && event.deltaMode === 0) return true;
@@ -42,23 +43,16 @@ export const useGestureOnViewport = (
   } = usePipelineCanvasContext();
 
   const getPositionRelativeToCanvas = React.useCallback(
-    ([x, y]: [number, number]) => {
+    ({ x, y }: Position): Position => {
       trackMouseMovement(x, y); // in case that user start zoom-in/out before moving their cursor
       let canvasOffset = getOffset(pipelineCanvasRef.current);
 
-      return [
-        scaleCorrected(x - canvasOffset.left, eventVars.scaleFactor),
-        scaleCorrected(y - canvasOffset.top, eventVars.scaleFactor),
-      ] as [number, number];
+      return {
+        x: scaleCorrected(x - canvasOffset.left, eventVars.scaleFactor),
+        y: scaleCorrected(y - canvasOffset.top, eventVars.scaleFactor),
+      };
     },
     [pipelineCanvasRef, eventVars.scaleFactor, trackMouseMovement]
-  );
-
-  const getMousePositionRelativeToCanvas = React.useCallback(
-    (e: WheelEvent | React.WheelEvent) => {
-      return getPositionRelativeToCanvas([e.clientX, e.clientY]);
-    },
-    [getPositionRelativeToCanvas]
   );
 
   React.useEffect(() => {
@@ -74,18 +68,13 @@ export const useGestureOnViewport = (
   }, []);
 
   const zoom = React.useCallback(
-    (event: WheelEvent | PointerEvent | TouchEvent, scaleDiff: number) => {
+    (mousePosition: Position, scaleDiff: number) => {
       if (disabled) return;
-      let pipelineMousePosition = getMousePositionRelativeToCanvas(
-        event as WheelEvent
-      );
 
+      const { x, y } = getPositionRelativeToCanvas(mousePosition);
       // set origin at scroll wheel trigger
-      if (
-        pipelineMousePosition[0] !== pipelineOrigin[0] ||
-        pipelineMousePosition[1] !== pipelineOrigin[1]
-      ) {
-        pipelineSetHolderOrigin(pipelineMousePosition);
+      if (x !== pipelineOrigin[0] || y !== pipelineOrigin[1]) {
+        pipelineSetHolderOrigin([x, y]);
       }
 
       dispatch((current) => {
@@ -98,20 +87,28 @@ export const useGestureOnViewport = (
     [
       disabled,
       dispatch,
-      getMousePositionRelativeToCanvas,
       pipelineOrigin,
+      getPositionRelativeToCanvas,
       pipelineSetHolderOrigin,
     ]
   );
 
   useGesture(
     {
-      onWheel: ({ pinching, wheeling, delta: [deltaX, deltaY], event }) => {
+      onWheel: ({
+        pinching,
+        first,
+        wheeling,
+        delta: [deltaX, deltaY],
+        event,
+      }) => {
         if (disabled || pinching || !wheeling) return;
 
         // mouse wheel
-        if (!isTrachpad(event)) {
-          zoom(event, -deltaY / 3000);
+        // Weird behavior: `!isTouchpad(event)` is true whenever the pinching direction changes
+        // Exclude it when `first` is true.
+        if (!first && !isTouchpad(event)) {
+          zoom({ x: event.clientX, y: event.clientY }, -deltaY / 2048);
           return;
         }
 
@@ -123,9 +120,15 @@ export const useGestureOnViewport = (
           ],
         }));
       },
-      onPinch: ({ pinching, delta, event }) => {
+      onPinch: ({ pinching, delta: [delta], event, velocity: [velocity] }) => {
         if (disabled || !pinching) return;
-        zoom(event, delta[0] / 12);
+        // `delta` value jumps from time to time (i.e. super big or super small).
+        // We limit its range to ensure consistent zooming speed.
+        const { clientX, clientY } = event as WheelEvent;
+        zoom(
+          { x: clientX, y: clientY },
+          Math.min(Math.max(velocity, 0.02), 0.06) * (delta < 0 ? -1 : 1)
+        );
       },
     },
     {
@@ -134,4 +137,6 @@ export const useGestureOnViewport = (
       eventOptions: { passive: false, capture: true },
     }
   );
+
+  return zoom;
 };

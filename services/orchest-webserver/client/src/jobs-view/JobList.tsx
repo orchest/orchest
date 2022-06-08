@@ -1,14 +1,18 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJobs } from "@/hooks/useFetchJobs";
-import { useFetchProject } from "@/hooks/useFetchProject";
+import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { siteMap } from "@/routingConfig";
 import { EnvironmentValidationData, Job, JobStatus } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -104,12 +108,17 @@ const doCreateJob = async (
   });
 };
 
-const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
-  const { navigateTo } = useCustomRoute();
+const JobList = () => {
+  const { navigateTo, projectUuid } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
+  const { webhooks } = useAppInnerContext();
+
+  const goToNotificationSettings = () => {
+    navigateTo(siteMap.notificationSettings.path);
+  };
 
   const {
-    data: jobs = [],
+    jobs = [],
     error: fetchJobsError,
     isFetchingJobs,
     fetchJobs,
@@ -141,10 +150,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     string | undefined
   >();
 
-  const { data: projectSnapshotSize = 0 } = useFetchProject({
-    projectUuid,
-    selector: (project) => project.project_snapshot_size,
-  });
+  const projectSnapshotSize = useFetchProjectSnapshotSize(projectUuid);
 
   React.useEffect(() => {
     if (fetchJobsError)
@@ -189,6 +195,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const createJob = React.useCallback(
     async (newJobName: string, pipelineUuid: string) => {
+      if (!projectUuid) return;
       setJobName(newJobName);
       // TODO: in this part of the flow copy the pipeline directory to make
       // sure the pipeline no longer changes
@@ -217,7 +224,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   );
 
   React.useEffect(() => {
-    if (createJobError) {
+    if (projectUuid && createJobError) {
       setIsCreateDialogOpen(false);
 
       if (createJobError.reason === "gate-failed" && selectedPipeline) {
@@ -229,7 +236,15 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       }
       setAlert("Error", `Failed to create job. ${createJobError.message}`);
     }
-  }, [createJobError, setAlert, requestBuild, createJob]);
+  }, [
+    createJobError,
+    setAlert,
+    requestBuild,
+    createJob,
+    projectUuid,
+    jobName,
+    selectedPipeline,
+  ]);
 
   const onRowClick = (e: React.MouseEvent, uuid: string) => {
     const foundJob = jobs.find((job) => job.uuid === uuid);
@@ -280,6 +295,14 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     }
   };
 
+  const [shouldHideWebhookHint, setShouldHideWebhookHint] = useLocalStorage(
+    "hide_webhook_hint",
+    false
+  );
+
+  const shouldShowWebhookHint =
+    !shouldHideWebhookHint && webhooks.length === 0 && jobs.length > 0;
+
   return (
     <div className={"jobs-page"}>
       <PageTitle>Jobs</PageTitle>
@@ -305,12 +328,40 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
               startIcon={<AddIcon />}
               variant="contained"
               onClick={onCreateClick}
-              sx={{ marginBottom: (theme) => theme.spacing(2) }}
+              sx={{ marginBottom: (theme) => theme.spacing(1) }}
               data-test-id="job-create"
             >
               Create job
             </Button>
           </Box>
+          {shouldShowWebhookHint && (
+            <Alert
+              severity="info"
+              action={
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ marginTop: (theme) => theme.spacing(-0.25) }}
+                >
+                  <Button
+                    color="inherit"
+                    size="small"
+                    onClick={goToNotificationSettings}
+                  >
+                    New webhook
+                  </Button>
+                  <IconButton
+                    onClick={() => setShouldHideWebhookHint(true)}
+                    size="small"
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </Stack>
+              }
+            >
+              Use webhooks to get notified when pipeline runs fail
+            </Alert>
+          )}
           <DataTable<DisplayedJob>
             id="job-list"
             isLoading={isFetchingJobs}

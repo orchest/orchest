@@ -3,9 +3,9 @@ import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { uuidv4 } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
+import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import {
   DEFAULT_SCALE_FACTOR,
   originTransformScaling,
@@ -16,6 +16,8 @@ import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { getFilePathForRelativeToProject } from "../file-manager/common";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
+import { MenuItem, useContextMenu } from "../hooks/useContextMenu";
+import { RunStepsType } from "../hooks/useInteractiveRuns";
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { PipelineCanvas } from "./PipelineCanvas";
@@ -52,9 +54,24 @@ export const PipelineViewport = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
     canvasFuncRef: React.MutableRefObject<CanvasFunctions | undefined>;
+    executeRun: (uuids: string[], type: RunStepsType) => Promise<void>;
+    autoLayoutPipeline;
+    isContextMenuOpenState: [
+      boolean,
+      React.Dispatch<React.SetStateAction<boolean>>
+    ];
   }
 >(function PipelineViewportComponent(
-  { children, className, canvasFuncRef, style, ...props },
+  {
+    children,
+    className,
+    canvasFuncRef,
+    executeRun,
+    autoLayoutPipeline,
+    isContextMenuOpenState,
+    style,
+    ...props
+  },
   ref
 ) {
   const { dragFile } = useFileManagerContext();
@@ -64,6 +81,7 @@ export const PipelineViewport = React.forwardRef<
     trackMouseMovement,
     dispatch,
     pipelineCwd,
+    isReadOnly,
     newConnection,
     environments,
     pipelineCanvasRef,
@@ -88,7 +106,7 @@ export const PipelineViewport = React.forwardRef<
 
   const getCurrentOrigin = React.useCallback(() => {
     let canvasOffset = getOffset(pipelineCanvasRef.current);
-    let viewportOffset = getOffset(localRef.current);
+    let viewportOffset = getOffset(localRef.current ?? undefined);
 
     const x = canvasOffset.left - viewportOffset.left;
     const y = canvasOffset.top - viewportOffset.top;
@@ -122,9 +140,12 @@ export const PipelineViewport = React.forwardRef<
   }, [dispatch, resetPipelineCanvas]);
 
   const centerPipelineOrigin = React.useCallback(() => {
-    let viewportOffset = getOffset(localRef.current);
-    const canvasOffset = getOffset(pipelineCanvasRef.current);
+    let viewportOffset = getOffset(localRef.current ?? undefined);
+    const canvasOffset = getOffset(pipelineCanvasRef.current ?? undefined);
 
+    if (localRef.current === null) {
+      return;
+    }
     let viewportWidth = getWidth(localRef.current);
     let viewportHeight = getHeight(localRef.current);
 
@@ -168,7 +189,7 @@ export const PipelineViewport = React.forwardRef<
   }, [resizeCanvas, localRef]);
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if (disabled) return;
+    if (disabled || isContextMenuOpenState[0]) return;
     if (eventVars.selectedConnection) {
       dispatch({ type: "DESELECT_CONNECTION" });
     }
@@ -183,23 +204,27 @@ export const PipelineViewport = React.forwardRef<
     }
   };
 
-  const onMouseUp = () => {
-    if (disabled) return;
-    if (eventVars.stepSelector.active) {
-      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+  const onMouseUp = (e: React.MouseEvent) => {
+    if (disabled || isContextMenuOpenState[0]) return;
+    if (e.button === 0) {
+      if (eventVars.stepSelector.active) {
+        dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      } else {
+        dispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
+      }
+
+      if (eventVars.openedStep) {
+        dispatch({ type: "SET_OPENED_STEP", payload: undefined });
+      }
+
+      if (newConnection.current) {
+        dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
+      }
+
+      if (dragFile) onDropFiles();
     } else {
-      dispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
+      console.log("Right click");
     }
-
-    if (eventVars.openedStep) {
-      dispatch({ type: "SET_OPENED_STEP", payload: undefined });
-    }
-
-    if (newConnection.current) {
-      dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
-    }
-
-    if (dragFile) onDropFiles();
   };
 
   const getApplicableStepFiles = useValidateFilesOnSteps();
@@ -212,25 +237,15 @@ export const PipelineViewport = React.forwardRef<
       const environment = environments.length > 0 ? environments[0] : null;
 
       allowed.forEach((filePath) => {
-        dispatch({
-          type: "CREATE_STEP",
-          payload: {
-            title: "",
-            uuid: uuidv4(),
-            incoming_connections: [],
-            file_path: getFilePathForRelativeToProject(filePath, pipelineCwd),
-            kernel: {
-              name: environment?.language || "python",
-              display_name: environment?.name || "Python",
-            },
-            environment: environment?.uuid || "",
-            parameters: {},
-            meta_data: {
-              position: [dropPosition.x, dropPosition.y],
-              hidden: false,
-            },
-          },
-        });
+        // Adjust filePath to pipelineCwd, incoming filePath is relative to project
+        // root.
+        const pipelineRelativeFilePath = getFilePathForRelativeToProject(
+          filePath,
+          pipelineCwd
+        );
+        dispatch(
+          createStepAction(environment, dropPosition, pipelineRelativeFilePath)
+        );
       });
     },
     [dispatch, pipelineCwd, environments, getApplicableStepFiles]
@@ -258,7 +273,79 @@ export const PipelineViewport = React.forwardRef<
     };
   }, [pipelineSetHolderSize]);
 
-  useGestureOnViewport(localRef, pipelineSetHolderOrigin);
+  const zoom = useGestureOnViewport(localRef, pipelineSetHolderOrigin);
+
+  const menuItems: MenuItem[] = [
+    {
+      type: "item",
+      title: "Create new step",
+      disabled: isReadOnly,
+      action: () => {
+        const environment = environments.length > 0 ? environments[0] : null;
+        const canvasPosition = getOnCanvasPosition({
+          x: STEP_WIDTH / 2,
+          y: STEP_HEIGHT / 2,
+        });
+        dispatch(createStepAction(environment, canvasPosition));
+      },
+    },
+    {
+      type: "item",
+      title: "Select all steps",
+      disabled: isReadOnly,
+      action: () => {
+        dispatch({
+          type: "SELECT_STEPS",
+          payload: { uuids: Object.keys(eventVars.steps) },
+        });
+      },
+    },
+    {
+      type: "item",
+      title: "Run selected steps",
+      disabled: isReadOnly || eventVars.selectedSteps.length === 0,
+      action: () => {
+        executeRun(eventVars.selectedSteps, "selection");
+      },
+    },
+    {
+      type: "separator",
+    },
+    {
+      type: "item",
+      title: "Center view",
+      action: () => {
+        centerView();
+      },
+    },
+    {
+      type: "item",
+      title: "Auto layout pipeline",
+      disabled: isReadOnly,
+      action: () => {
+        autoLayoutPipeline();
+      },
+    },
+    {
+      type: "item",
+      title: "Zoom in",
+      action: ({ contextMenuPosition }) => {
+        zoom(contextMenuPosition, 0.25);
+      },
+    },
+    {
+      type: "item",
+      title: "Zoom out",
+      action: ({ contextMenuPosition }) => {
+        zoom(contextMenuPosition, -0.25);
+      },
+    },
+  ];
+
+  const { handleContextMenu, menu } = useContextMenu(
+    menuItems,
+    isContextMenuOpenState
+  );
 
   return (
     <div
@@ -279,10 +366,7 @@ export const PipelineViewport = React.forwardRef<
       }}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
-      onContextMenu={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-      }}
+      onContextMenu={handleContextMenu}
       style={{ ...style, touchAction: "none" }}
       {...props}
     >
@@ -337,6 +421,7 @@ export const PipelineViewport = React.forwardRef<
       >
         {disabled && <Overlay />}
         {children}
+        {menu}
       </PipelineCanvas>
     </div>
   );

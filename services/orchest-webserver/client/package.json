@@ -51,7 +51,6 @@
     "react-use-intercom": "^1.4.0",
     "seti-icons": "^0.0.4",
     "socket.io-client": "^2.3.0",
-    "swr": "1.1.2",
     "xterm": "^4.0.0",
     "xterm-addon-fit": "^0.4.0",
     "xterm-for-react": "^1.0.4"
@@ -85,6 +84,7 @@
     "jest": "^27.4.5",
     "jest-fetch-mock": "^3.0.3",
     "jest-junit": "^13.0.0",
+    "jest-localstorage-mock": "^2.4.21",
     "msw": "^0.39.2",
     "sass-bin": "^1.43.2",
     "ts-jest": "^27.1.2",

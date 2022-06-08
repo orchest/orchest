@@ -13,6 +13,8 @@ setuptools.setup(
     name="orchest-cli",
     description="CLI for Orchest",
     keywords="orchest",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     version=about["__version__"],
     license="Apache 2.0",
     author="Rick Lamers",
@@ -36,6 +38,7 @@ setuptools.setup(
         "click>=8.0.0",  # implies python >= 3.6
         "kubernetes>=21.7.0",
         "requests",  # required by kubernetes as well
+        "PyYAML",  # required by kubernetes as well
     ],
     entry_points={
         "console_scripts": [

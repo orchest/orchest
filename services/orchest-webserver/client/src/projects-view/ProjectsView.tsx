@@ -9,7 +9,6 @@ import { defaultOverlaySx, DropZone } from "@/components/DropZone";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -58,8 +57,6 @@ const ProjectsView: React.FC = () => {
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
-
-  useCheckUpdate();
 
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
     const openSettings = (projectUuid: string) => (e: React.MouseEvent) => {

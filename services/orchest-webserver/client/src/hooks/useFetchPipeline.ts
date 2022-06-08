@@ -1,13 +1,12 @@
 import { Pipeline } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
-import React from "react";
-import useSWR from "swr";
-import { MutatorCallback } from "swr/dist/types";
+import { useFetcher } from "./useFetcher";
 
 type FetchPipelineProps = {
   projectUuid: string | undefined;
   pipelineUuid: string | undefined;
   clearCacheOnUnmount?: boolean;
+  revalidateOnFocus?: boolean;
 };
 
 export const fetchPipeline = (
@@ -18,39 +17,20 @@ export const fetchPipeline = (
     ? fetcher<Pipeline>(`/async/pipelines/${projectUuid}/${pipelineUuid}`)
     : undefined;
 
-export const useFetchPipeline = (props: FetchPipelineProps | null) => {
-  const { projectUuid, pipelineUuid, clearCacheOnUnmount } = props || {};
-  const { data, error, isValidating, mutate } = useSWR<Pipeline | undefined>(
+export const useFetchPipeline = (props: FetchPipelineProps | undefined) => {
+  const { projectUuid, pipelineUuid } = props || {};
+
+  const { data, error, status, fetchData, setData } = useFetcher<Pipeline>(
     projectUuid && pipelineUuid
       ? `/async/pipelines/${projectUuid}/${pipelineUuid}`
-      : null,
-    () => fetchPipeline(projectUuid, pipelineUuid)
+      : undefined
   );
-
-  const setPipeline = React.useCallback(
-    (
-      data?:
-        | Pipeline
-        | undefined
-        | Promise<Pipeline | undefined>
-        | MutatorCallback<Pipeline | undefined>
-    ) => mutate(data, false),
-    [mutate]
-  );
-
-  React.useEffect(() => {
-    return () => {
-      if (clearCacheOnUnmount) {
-        setPipeline(undefined);
-      }
-    };
-  }, [clearCacheOnUnmount, setPipeline]);
 
   return {
     pipeline: data,
     error,
-    isFetchingPipeline: isValidating,
-    fetchPipeline: mutate,
-    setPipeline,
+    isFetchingPipeline: status === "PENDING",
+    fetchPipeline: fetchData,
+    setPipeline: setData,
   };
 };

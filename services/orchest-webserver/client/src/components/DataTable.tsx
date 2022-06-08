@@ -1,6 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
-import { useAsync } from "@/hooks/useAsync";
+import { StateDispatcher, useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -29,6 +29,7 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { IconButton } from "./common/IconButton";
 
@@ -66,7 +67,11 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
+function descendingComparator(
+  a: Record<string, string | number>,
+  b: Record<string, string | number>,
+  orderBy: string | number
+) {
   if (b[orderBy] < a[orderBy]) {
     return -1;
   }
@@ -78,22 +83,21 @@ function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
 
 type Order = "asc" | "desc";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getComparator<Key extends keyof any>(
+function getComparator(
   order: Order,
-  orderBy: Key
+  orderBy: string
 ): (
-  a: { [key in Key]: number | string },
-  b: { [key in Key]: number | string }
+  a: Record<string, number | string>,
+  b: Record<string, number | string>
 ) => number {
   return order === "desc"
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-export type DataTableColumn<T> = {
+export type DataTableColumn<T, C = T> = {
   disablePadding?: boolean;
-  id: keyof T;
+  id: keyof C;
   label: string;
   numeric?: boolean;
   sortable?: boolean;
@@ -110,20 +114,20 @@ export type DataTableRow<T> = T & {
   details?: React.ReactNode;
 };
 
-type EnhancedTableProps<T> = {
+type EnhancedTableProps<T, C> = {
   tableId: string;
   numSelected: number;
-  onRequestSort: (event: React.MouseEvent<unknown>, property: keyof T) => void;
+  onRequestSort: (event: React.MouseEvent<unknown>, property: string) => void;
   onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
   order: Order;
-  orderBy: keyof T | "";
+  orderBy: keyof C | "";
   rowCount: number;
-  data: DataTableColumn<T>[];
+  data: DataTableColumn<T, C>[];
   selectable: boolean;
   disabled: boolean;
 };
 
-function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
+function EnhancedTableHead<T, C>(props: EnhancedTableProps<T, C>) {
   const {
     tableId,
     onSelectAllClick,
@@ -136,7 +140,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
     disabled,
     data,
   } = props;
-  const createSortHandler = (property: keyof T) => (
+  const createSortHandler = (property: string) => (
     event: React.MouseEvent<unknown>
   ) => {
     onRequestSort(event, property);
@@ -171,7 +175,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
                   active={orderBy === headCell.id}
                   direction={orderBy === headCell.id ? order : "asc"}
                   disabled={disabled}
-                  onClick={createSortHandler(headCell.id)}
+                  onClick={createSortHandler(headCell.id.toString())}
                 >
                   {headCell.label}
                   {orderBy === headCell.id ? (
@@ -197,7 +201,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
 // and by default, we limit height to ensure consistent rowHeight
 // it could be overwritten with sx if needed.
 const CellContainer: React.FC<{
-  isLoading: boolean;
+  isLoading: boolean | undefined;
   sx?: SxProps<Theme>;
   skeletonSx?: SxProps<Theme>;
   onAuxClick?: (e: React.MouseEvent) => void;
@@ -205,7 +209,7 @@ const CellContainer: React.FC<{
   const auxClickHandler = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onAuxClick(e);
+    onAuxClick?.(e);
   };
   return (
     <>
@@ -226,18 +230,21 @@ const CellContainer: React.FC<{
   );
 };
 
-export function renderCell<T>(
-  column: DataTableColumn<T> | undefined,
+export function renderCell<T, C>(
+  column: DataTableColumn<T, C> | undefined,
   row: DataTableRow<T>,
   disabled: boolean
 ) {
-  if (!column) return null;
-  return column.render ? column.render(row, disabled) : row[column.id];
+  if (!hasValue(column)) return null;
+  return column.render
+    ? column.render(row, disabled)
+    : row[column.id.toString()] ?? null;
 }
 
-function Row<T>({
+function Row<T, C>({
   isLoading,
   disabled,
+  hover = false,
   tableId,
   columns,
   data,
@@ -250,8 +257,9 @@ function Row<T>({
 }: {
   isLoading?: boolean;
   disabled: boolean;
+  hover?: boolean;
   tableId: string;
-  columns: DataTableColumn<T>[];
+  columns: DataTableColumn<T, C>[];
   data: DataTableRow<T>;
   onClickCheckbox: (
     e: React.MouseEvent<HTMLButtonElement>,
@@ -260,7 +268,7 @@ function Row<T>({
   isSelected: boolean;
   selectable: boolean;
   isDetailsOpen?: boolean;
-  onRowClick?: (
+  onRowClick: (
     e: React.MouseEvent,
     uuid: string,
     isShowingDetail: boolean
@@ -282,7 +290,7 @@ function Row<T>({
   return (
     <>
       <TableRow
-        hover={!isLoading && !disabled}
+        hover={!isLoading && !disabled && hover}
         onClick={handleClickRow}
         role="checkbox"
         aria-checked={isSelected}
@@ -293,7 +301,7 @@ function Row<T>({
           ...(data.details
             ? { "& > *": { borderBottom: "unset !important" } }
             : null),
-          ...(!isLoading && !disabled && (selectable || onRowClick)
+          ...(!isLoading && !disabled && (selectable || hover)
             ? { cursor: "pointer" }
             : null),
           height: data.details ? rowHeight - 1 : rowHeight,
@@ -379,20 +387,14 @@ type DataTableFetcher<T> = (props: {
   ) => Promise<void | DataTableFetcherResponse<T>>;
 }) => void;
 
-type DataTableProps<T> = {
-  columns: DataTableColumn<T>[];
+type DataTableProps<T, C = T> = {
+  columns: DataTableColumn<T, C>[];
   fetcher?: DataTableFetcher<T>;
   rows?: (T & { uuid: string })[];
   // this prop is useful when `rows` is not given, and the data is fetched from within via `fetcher`
   composeRow?: (
     row: T & { uuid: string },
-    setData: (
-      action:
-        | DataTableFetcherResponse<T>
-        | ((
-            currentValue: DataTableFetcherResponse<T>
-          ) => DataTableFetcherResponse<T>)
-    ) => void,
+    setData: StateDispatcher<DataTableFetcherResponse<T>>,
     fetchData: () => void
   ) => DataTableRow<T>;
   id: string;
@@ -403,7 +405,7 @@ type DataTableProps<T> = {
   ) => void;
   onChangeSelection?: (rowUuids: string[]) => void;
   selectable?: boolean;
-  initialOrderBy?: keyof T;
+  initialOrderBy?: string;
   initialOrder?: Order;
   initialRowsPerPage?: number;
   deleteSelectedRows?: (rowUuids: string[]) => Promise<boolean>;
@@ -417,15 +419,17 @@ type DataTableProps<T> = {
   hideSearch?: boolean;
   isLoading?: boolean;
   disabled?: boolean;
+  disablePagination?: boolean;
   dense?: boolean;
   containerSx?: SxProps<Theme>;
   retainSelectionsOnPageChange?: boolean;
   footnote?: React.ReactNode;
+  tableContainerElevation?: number;
 } & BoxProps;
 
-function generateLoadingRows<T>(
+function generateLoadingRows<T, C>(
   rowCount: number,
-  columns: DataTableColumn<T>[]
+  columns: DataTableColumn<T, C>[]
 ) {
   // rendering large amount of table rows with skeleton is causing performance issue
   // We limit it to 25, which should suffice for most users' viewport.
@@ -451,7 +455,7 @@ enum FIXED_ROW_HEIGHT {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const DataTable = <T extends Record<string, any>>({
+export const DataTable = <T extends Record<string, any>, C = T>({
   id,
   columns,
   rows: originalRowsFromProp,
@@ -470,43 +474,43 @@ export const DataTable = <T extends Record<string, any>>({
   onChangeSelection,
   fetcher,
   isLoading,
-  initialRowsPerPage,
+  initialRowsPerPage = 10,
   containerSx,
   dense,
   disabled,
+  disablePagination = false,
   refreshInterval = null,
   retainSelectionsOnPageChange,
   footnote,
+  tableContainerElevation = 1,
   ...props
-}: DataTableProps<T>) => {
+}: DataTableProps<T, C>) => {
   const { setAlert } = useAppContext();
 
   const mounted = useMounted();
   const [searchTerm, setSearchTerm] = React.useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, debounceTime);
   const [order, setOrder] = React.useState<Order>(initialOrder || "asc");
-  const [orderBy, setOrderBy] = React.useState<keyof T | "">(
-    initialOrderBy || ""
-  );
+  const [orderBy, setOrderBy] = React.useState<string>(initialOrderBy || "");
   const [isDeleting, setIsDeleting] = React.useState(false);
   const isTableDisabled = disabled || isDeleting;
 
   // page is one-indexed
   const [page, setPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = useLocalStorage(
-    `${id}-table-page-size`,
-    initialRowsPerPage || 10
+    disablePagination ? undefined : `${id}-table-page-size`,
+    disablePagination ? null : initialRowsPerPage
   );
 
   const { run, status, error, data, setData } = useAsync<
     DataTableFetcherResponse<T>
-  >({ caching: true });
+  >();
   const fetchData = React.useCallback(async () => {
     if (fetcher) {
       return fetcher({
         run,
         page,
-        rowsPerPage,
+        ...(rowsPerPage ? { rowsPerPage } : null),
         searchTerm: debouncedSearchTerm,
       });
     }
@@ -519,7 +523,7 @@ export const DataTable = <T extends Record<string, any>>({
       if (current === 1) forceUpdate(); // if page is already 1, it won't trigger re-render
       return 1;
     });
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, forceUpdate]);
 
   // when user change searchTerm, page, and rowsPerPage, it should re-fetch data, however
   // if we simply subscribe to debouncedSearchTerm, page, and rowsPerPage, an extra request will occur when page !== 1 and searchTerm is changing
@@ -568,7 +572,7 @@ export const DataTable = <T extends Record<string, any>>({
       ? sortedRows
       : sortedRows.filter((unfilteredRow) => {
           return columns.some((column) => {
-            const value = `${unfilteredRow[column.id]}${
+            const value = `${unfilteredRow[column.id.toString()]}${
               unfilteredRow.searchIndex || ""
             }`;
             return value
@@ -582,7 +586,12 @@ export const DataTable = <T extends Record<string, any>>({
     ? rows.length
     : data?.totalCount || rows.length;
 
-  const rowsInPage = React.useMemo(() => {
+  const rowsInPage = React.useMemo<
+    (T & {
+      uuid: string;
+    })[]
+  >(() => {
+    if (!hasValue(rowsPerPage)) return rows;
     const startIndex = Math.max(page - 1, 0) * rowsPerPage;
     const slicedRows = useClientSideSearchAndPagination
       ? rows.slice(startIndex, startIndex + rowsPerPage)
@@ -620,7 +629,7 @@ export const DataTable = <T extends Record<string, any>>({
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
-    property: keyof T
+    property: string
   ) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
@@ -731,7 +740,11 @@ export const DataTable = <T extends Record<string, any>>({
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;
 
   // Avoid a layout jump when reaching the last page with empty rows.
-  const emptyRows = page > 1 ? Math.max(0, page * rowsPerPage - totalCount) : 0;
+  const emptyRows = !hasValue(rowsPerPage)
+    ? 0
+    : page > 1
+    ? Math.max(0, page * rowsPerPage - totalCount)
+    : 0;
 
   const tableTitleId = `${id}-title`;
 
@@ -759,7 +772,10 @@ export const DataTable = <T extends Record<string, any>>({
           />
         </SearchContainer>
       )}
-      <Paper sx={{ width: "100%", marginBottom: 2 }}>
+      <Paper
+        elevation={tableContainerElevation}
+        sx={{ width: "100%", marginBottom: 2 }}
+      >
         <TableContainer sx={containerSx}>
           <Table
             sx={{ minWidth: 750 }}
@@ -769,12 +785,12 @@ export const DataTable = <T extends Record<string, any>>({
             id={id}
             data-test-id={id}
           >
-            <EnhancedTableHead
+            <EnhancedTableHead<T, C>
               tableId={id}
               selectable={selectable}
               numSelected={selected.length}
               order={order}
-              orderBy={orderBy}
+              orderBy={orderBy as keyof C}
               disabled={isTableDisabled}
               onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}
@@ -786,9 +802,10 @@ export const DataTable = <T extends Record<string, any>>({
                 rowsInPage.map((row: DataTableRow<T>) => {
                   const isItemSelected = isSelected(row.uuid);
                   return (
-                    <Row<T>
+                    <Row<T, C>
                       isLoading={isFetchingData}
                       disabled={isTableDisabled}
+                      hover={hasValue(onRowClick) || hasValue(row.details)}
                       tableId={id}
                       data={composeRow(row, setData, fetchData)}
                       columns={columns}
@@ -865,18 +882,20 @@ export const DataTable = <T extends Record<string, any>>({
               </IconButton>
             )}
           </Stack>
-          <TablePagination
-            sx={{ flex: 1 }}
-            rowsPerPageOptions={[5, 10, 25, 100]}
-            component="div"
-            count={totalCount}
-            rowsPerPage={rowsPerPage}
-            page={page - 1} // NOTE: this is zero-indexed
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            size={dense ? "small" : "medium"} // this doesn't make a difference, need to report a bug to MUI
-            data-test-id={`${id}-pagination`}
-          />
+          {rowsPerPage && (
+            <TablePagination
+              sx={{ flex: 1 }}
+              rowsPerPageOptions={[5, 10, 25, 100]}
+              component="div"
+              count={totalCount}
+              rowsPerPage={rowsPerPage}
+              page={page - 1} // NOTE: this is zero-indexed
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              size={dense ? "small" : "medium"} // this doesn't make a difference, need to report a bug to MUI
+              data-test-id={`${id}-pagination`}
+            />
+          )}
         </Stack>
       </Paper>
     </Box>

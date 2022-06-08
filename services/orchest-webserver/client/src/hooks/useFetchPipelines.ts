@@ -1,46 +1,53 @@
 import type { PipelineMetaData } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import useSWR, { useSWRConfig } from "swr";
-import { MutatorCallback } from "swr/dist/types";
+import { useAsync } from "./useAsync";
+import { useFocusBrowserTab } from "./useFocusBrowserTab";
+import { useHasChanged } from "./useHasChanged";
 
-export const fetchPipelines = (projectUuid: string, isFullPath = false) =>
+export const fetchPipelines = (projectUuid: string) =>
   fetcher<{ result: PipelineMetaData[] }>(
-    isFullPath ? projectUuid : `/async/pipelines/${projectUuid}`
+    `/async/pipelines/${projectUuid}`
   ).then((response) => response.result);
 
-export const useFetchPipelines = (projectUuid: string | undefined) => {
-  const { cache } = useSWRConfig();
-  const { data, error, isValidating, mutate } = useSWR<PipelineMetaData[]>(
-    projectUuid ? `/async/pipelines/${projectUuid}` : null,
-    (url) => fetchPipelines(url, true)
+export const useFetchPipelines = (
+  projectUuid: string | undefined,
+  revalidateOnFocus = true
+) => {
+  const { run, data, setData, status, error } = useAsync<PipelineMetaData[]>();
+
+  const makeRequest = React.useCallback(
+    (projectUuid?: string) => {
+      return hasValue(projectUuid)
+        ? run(fetchPipelines(projectUuid))
+        : Promise.reject();
+    },
+    [run]
   );
 
-  if (error) {
-    console.log(error);
-  }
+  const isFocused = useFocusBrowserTab();
+  const hasBrowserFocusChanged = useHasChanged(isFocused);
+  const shouldRefetch =
+    revalidateOnFocus && hasBrowserFocusChanged && isFocused;
 
-  const setPipelines = React.useCallback(
-    (
-      data?:
-        | PipelineMetaData[]
-        | Promise<PipelineMetaData[]>
-        | MutatorCallback<PipelineMetaData[]>
-    ) => mutate(data, false),
-    [mutate]
-  );
+  const hasFetchedProjectUuid = React.useRef<string>();
 
-  const pipelines =
-    data ||
-    (cache.get(`/async/pipelines/${projectUuid}`) as
-      | PipelineMetaData[]
-      | undefined);
+  React.useEffect(() => {
+    if (
+      hasValue(projectUuid) &&
+      (hasFetchedProjectUuid.current !== projectUuid || shouldRefetch)
+    ) {
+      hasFetchedProjectUuid.current = projectUuid;
+      makeRequest(projectUuid);
+    }
+  }, [shouldRefetch, makeRequest, projectUuid]);
 
   return {
-    pipelines,
+    pipelines: data,
     error,
-    isFetchingPipelines: isValidating,
-    fetchPipelines: mutate,
-    setPipelines,
+    isFetchingPipelines: status === "PENDING",
+    fetchPipelines: makeRequest,
+    setPipelines: setData,
+    status,
   };
 };

@@ -6,38 +6,59 @@ import { mockProjects } from "@/__mocks__/mockProjects.mock";
 import { server } from "@/__mocks__/server.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
-import { SWRConfig } from "swr";
 import { useFetchPipelineSettings } from "../useFetchPipelineSettings";
 
-describe("useFetchPipelineSettings", () => {
-  const wrapper = ({ children }) => {
-    return (
-      <SWRConfig value={{ revalidateOnMount: true }}>
-        <AppContextProvider>
-          <ProjectsContextProvider>{children}</ProjectsContextProvider>;
-        </AppContextProvider>
-      </SWRConfig>
-    );
-  };
+const wrapper = ({ children = null, shouldStart }) => {
+  return (
+    <AppContextProvider shouldStart={shouldStart}>
+      <ProjectsContextProvider>{children}</ProjectsContextProvider>;
+    </AppContextProvider>
+  );
+};
 
-  const useTestHook = (props: {
-    projectUuid: string | undefined;
-    pipelineUuid: string | undefined;
-    jobUuid: string | undefined;
-    runUuid: string | undefined;
-  }) => {
-    const {
-      state: { hasUnsavedChanges },
-    } = useAppContext();
-    const values = useFetchPipelineSettings(props);
-    return { ...values, hasUnsavedChanges };
-  };
+const useTestHook = (props: {
+  projectUuid: string | undefined;
+  pipelineUuid: string | undefined;
+  jobUuid: string | undefined;
+  runUuid: string | undefined;
+  isBrowserTabFocused: boolean;
+}) => {
+  const {
+    state: { hasUnsavedChanges },
+  } = useAppContext();
+  const values = useFetchPipelineSettings(props);
+  return { ...values, hasUnsavedChanges };
+};
+
+describe("useFetchPipelineSettings", () => {
+  const { result, waitForNextUpdate, rerender, unmount } = renderHook<
+    {
+      children?: null;
+      shouldStart: boolean;
+      projectUuid: string | undefined;
+      pipelineUuid: string | undefined;
+      jobUuid: string | undefined;
+      runUuid: string | undefined;
+      isBrowserTabFocused: boolean;
+    },
+    ReturnType<typeof useFetchPipelineSettings> & { hasUnsavedChanges: boolean }
+  >(({ children, ...props }) => useTestHook(props), {
+    wrapper,
+    initialProps: {
+      shouldStart: false,
+      projectUuid: undefined,
+      pipelineUuid: undefined,
+      jobUuid: undefined,
+      runUuid: undefined,
+      isBrowserTabFocused: false,
+    },
+  });
 
   beforeEach(async () => {
     mockProjects.reset();
   });
 
-  it("should fetch and update pipeline settings for a non-read-only pipeline", async () => {
+  it("should fetch pipeline settings", async () => {
     const mockProjectUuid = chance.guid();
     const mockPipelineUuid = chance.guid();
 
@@ -46,16 +67,14 @@ describe("useFetchPipelineSettings", () => {
       .get(mockProjectUuid)
       .pipelines.get(mockPipelineUuid);
 
-    const { result, waitForNextUpdate } = renderHook(
-      () =>
-        useTestHook({
-          projectUuid: mockProjectUuid,
-          pipelineUuid: mockPipelineUuid,
-          jobUuid: undefined,
-          runUuid: undefined,
-        }),
-      { wrapper }
-    );
+    rerender({
+      shouldStart: true,
+      projectUuid: mockProjectUuid,
+      pipelineUuid: mockPipelineUuid,
+      jobUuid: undefined,
+      runUuid: undefined,
+      isBrowserTabFocused: true,
+    });
 
     await waitForNextUpdate();
 
@@ -80,51 +99,132 @@ describe("useFetchPipelineSettings", () => {
     );
 
     expect(result.current.hasUnsavedChanges).toEqual(false);
+  });
+
+  it(`should refresh pipeline settings if 
+      - the pipeline is not read-only
+      - regaining browser tab focus 
+      - no unsaved changes`, async () => {
+    const mockProjectUuid = chance.guid();
+    const mockPipelineUuid = chance.guid();
+
+    mockProjects.get(mockProjectUuid).project;
+    const pipeline = mockProjects
+      .get(mockProjectUuid)
+      .pipelines.get(mockPipelineUuid);
+
+    rerender({
+      shouldStart: true,
+      projectUuid: mockProjectUuid,
+      pipelineUuid: mockPipelineUuid,
+      jobUuid: undefined,
+      runUuid: undefined,
+      isBrowserTabFocused: true,
+    });
+
+    await waitForNextUpdate();
+
+    expect(result.current.pipelineName).toEqual(pipeline.metadata.name);
+    expect(result.current.pipelinePath).toEqual(pipeline.metadata.path);
+    expect(result.current.hasUnsavedChanges).toEqual(false);
+
+    // Lose browser tab focus.
+    rerender({
+      shouldStart: true,
+      projectUuid: mockProjectUuid,
+      pipelineUuid: mockPipelineUuid,
+      jobUuid: undefined,
+      runUuid: undefined,
+      isBrowserTabFocused: false,
+    });
 
     // Mutate the Mock API data
-
     mockProjects.set(mockProjectUuid, (projectData) => {
-      const targetPipeline = projectData.pipelines.set(
-        mockPipelineUuid,
-        (currentPipeline) => {
-          const newPipelineName = "New Pipeline Name";
-          const newPipelinePath = "new-pipeline-name.orchest";
-          return {
-            ...currentPipeline,
-            metadata: {
-              ...currentPipeline.metadata,
-              name: newPipelineName,
-              path: newPipelinePath,
-            },
-            pipeline: { ...currentPipeline.pipeline, path: newPipelinePath },
-            definition: {
-              ...currentPipeline.definition,
-              name: newPipelineName,
-            },
-          };
-        }
-      );
+      projectData.pipelines.set(mockPipelineUuid, (currentPipeline) => {
+        const newPipelineName = "New Pipeline Name";
+        const newPipelinePath = "new-pipeline-name.orchest";
+        return {
+          ...currentPipeline,
+          metadata: {
+            ...currentPipeline.metadata,
+            name: newPipelineName,
+            path: newPipelinePath,
+          },
+          pipeline: { ...currentPipeline.pipeline, path: newPipelinePath },
+          definition: {
+            ...currentPipeline.definition,
+            name: newPipelineName,
+          },
+        };
+      });
 
       return projectData;
     });
 
     server.resetHandlers();
 
-    // Simulate the scenario that SWR revalidates when browser tab regain focus when there's no unsaved changes.
-    // This happens when user visits Pipeline Settings (value cached) and
-    // then update the setting in other places, e.g. PipelineEditor
-    // new values, instead of the cached values, should be filled in PipelineSettings.
+    expect(result.current.hasUnsavedChanges).toEqual(false);
 
-    act(() => {
-      // SWRConfig.revalidateOnMount not working as expected
-      // manually refetch here.
-      result.current.refetch();
+    // Regain browser tab focus.
+    rerender({
+      shouldStart: true,
+      projectUuid: mockProjectUuid,
+      pipelineUuid: mockPipelineUuid,
+      jobUuid: undefined,
+      runUuid: undefined,
+      isBrowserTabFocused: true,
     });
 
     await waitForNextUpdate();
 
     expect(result.current.pipelineName).toEqual("New Pipeline Name");
     expect(result.current.pipelinePath).toEqual("new-pipeline-name.orchest");
+    expect(result.current.hasUnsavedChanges).toEqual(false);
+  });
+
+  it("should persist unsaved changes when browser tab regain focus.", async () => {
+    const mockProjectUuid = chance.guid();
+    const mockPipelineUuid = chance.guid();
+
+    mockProjects.get(mockProjectUuid).project;
+    mockProjects.get(mockProjectUuid).pipelines.get(mockPipelineUuid);
+
+    rerender({
+      shouldStart: true,
+      projectUuid: mockProjectUuid,
+      pipelineUuid: mockPipelineUuid,
+      jobUuid: undefined,
+      runUuid: undefined,
+      isBrowserTabFocused: true,
+    });
+
+    await waitForNextUpdate();
+
+    // Mutate the Mock API data
+    mockProjects.set(mockProjectUuid, (projectData) => {
+      projectData.pipelines.set(mockPipelineUuid, (currentPipeline) => {
+        const newPipelineName = "New Pipeline Name";
+        const newPipelinePath = "new-pipeline-name.orchest";
+        return {
+          ...currentPipeline,
+          metadata: {
+            ...currentPipeline.metadata,
+            name: newPipelineName,
+            path: newPipelinePath,
+          },
+          pipeline: { ...currentPipeline.pipeline, path: newPipelinePath },
+          definition: {
+            ...currentPipeline.definition,
+            name: newPipelineName,
+          },
+        };
+      });
+
+      return projectData;
+    });
+
+    server.resetHandlers();
+
     expect(result.current.hasUnsavedChanges).toEqual(false);
 
     // Update states manually
@@ -140,13 +240,26 @@ describe("useFetchPipelineSettings", () => {
     );
     expect(result.current.hasUnsavedChanges).toEqual(true);
 
-    // If states are updated and then refetch data, the states should stay.
-
-    act(() => {
-      result.current.refetch();
+    // Lose browser tab focus.
+    rerender({
+      shouldStart: true,
+      projectUuid: mockProjectUuid,
+      pipelineUuid: mockPipelineUuid,
+      jobUuid: undefined,
+      runUuid: undefined,
+      isBrowserTabFocused: false,
     });
 
-    await waitForNextUpdate();
+    // Regain browser tab focus.
+    // The unsaved changes should stay.
+    rerender({
+      shouldStart: true,
+      projectUuid: mockProjectUuid,
+      pipelineUuid: mockPipelineUuid,
+      jobUuid: undefined,
+      runUuid: undefined,
+      isBrowserTabFocused: true,
+    });
 
     expect(result.current.pipelineName).toEqual("Another New Pipeline Name");
     expect(result.current.pipelinePath).toEqual(

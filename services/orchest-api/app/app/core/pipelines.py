@@ -417,6 +417,8 @@ def _step_to_workflow_manifest_task(
         {"name": "ORCHEST_PIPELINE_UUID", "value": run_config["pipeline_uuid"]},
         {"name": "ORCHEST_PIPELINE_PATH", "value": _config.PIPELINE_FILE},
         {"name": "ORCHEST_PROJECT_UUID", "value": run_config["project_uuid"]},
+        {"name": "ORCHEST_NAMESPACE", "value": _config.ORCHEST_NAMESPACE},
+        {"name": "ORCHEST_CLUSTER", "value": _config.ORCHEST_CLUSTER},
         {
             # ORCHEST_MEMORY_EVICTION is never present when running
             # notebooks interactively and otherwise always present, this

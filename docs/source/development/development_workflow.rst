@@ -18,7 +18,7 @@ In order to code on Orchest, you need to have the following installed on your sy
 * `helm <https://helm.sh/docs/intro/install/>`_ (if you intend to develop files in ``/deploy``)
 * `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_ (you might want to try out a tool
   like ``k9s`` in the long run)
-* `pre-commit <https://pre-commit.com/#installation>`_ 
+* `pre-commit <https://pre-commit.com/#installation>`_
 
   * `install go <https://go.dev/doc/install>`_ if you work on the controller
 
@@ -37,18 +37,20 @@ which allows redeploying services and :ref:`incremental development <incremental
 
 .. code-block:: bash
 
+   # Delete any existing cluster
+   minikube delete
+
    # Start minikube with the repository mounted in the required place.
    # Run this command while you are in the Orchest repository directory.
    minikube start \
      --cpus 6 \
      --mount-string="$(pwd):/orchest-dev-repo" --mount
 
-After the minikube cluster is created, follow the steps of a
-:ref:`regular installation <regular installation>`.
+   # Without ingress enabled Orchest won't install
+   minikube addons enable ingress
 
-.. warning::
-   If you have an existing minikube cluster, you will have to delete it
-   by calling ``minikube delete``.
+After the minikube cluster is created, follow the steps of a :ref:`regular installation <regular
+installation>`.
 
 Installing Orchest for development
 ----------------------------------
@@ -360,6 +362,61 @@ schema change on update (since they can then be automatically migrated to the la
    # For more options run:
    scripts/migration_manager.sh --help
 
+Run Orchest Controller locally
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+For easier debugging it is possible to run  the ``orchest-controller`` locally with a debugger. We
+will explain how to do so using VSCode. Make sure your cluster is set up and you've installed `Go
+<https://go.dev/doc/install>`_, then follow the steps below:
+
+Run the ``orchest-controller`` with a debugger in VSCode, example ``launch.json``:
+
+.. code-block:: json
+
+   {
+       "configurations": [
+           {
+               "name": "Launch ctrl",
+               "type": "go",
+               "request": "launch",
+               "mode": "debug",
+               "program": "${workspaceFolder}/cmd/controller/main.go",
+               "args": [
+                   "--inCluster=false",
+                   "--defaultVersion=<INSERT VERSION, e.g. v2022.05.0>",
+                   "--deployDir=${workspaceFolder}/deploy",
+                   "--endpoint=:5000"
+               ],
+               "env": {
+                   "KUBECONFIG":"~/.kube/config",
+               },
+           },
+       ]
+   }
+
+Next install Orchest and afterwards issue other commands to test the controller with:
+
+.. code-block:: bash
+
+  # Asuming you are in the root of the orchest git repository
+  orchest install --dev
+
+  # Delete orchest-controller deployment so that the one started with
+  # the debugger does everything
+  kubectl delete -n orchest deploy orchest-controller
+
+The Orchest Controller should now be running inside a debugger session.
+
+Without using VSCode
+++++++++++++++++++++
+Build the ``orchest-controller`` binary via the ``Makefile`` in ``services/orchest-controller`` and
+run the ``orchest-controller`` by passing the following command line arguments:
+
+.. code-block:: bash
+
+  # Asuming you have built the controller via "make controller" command
+  ./bin/controller --inCluster=false --defaultVersion=v2022.05.3 \
+  --endpoint=:5000 --deployDir=./deploy
+
 .. _building the docs:
 
 Building the docs
@@ -400,3 +457,51 @@ branches respectively. Therefore, we require PRs to be merged into ``dev`` inste
 
 When opening the PR a checklist will automatically appear to guide you to successfully completing
 your PR 🏁
+
+.. _environment base images changes:
+
+Testing environment base image changes
+--------------------------------------
+
+By default, the image builder will pull a base image from Docker Hub based on the version of the
+cluster. For example, when building an environment image using the provided "python" base image, the
+builder will pull ``docker.io/orchest/base-kernel-py:<cluster version>``. This makes it difficult to
+test changes to environment base images.
+
+When running Orchest in development mode (``orchest patch --dev``), the docker socket
+**of the cluster node** will be exposed to the builder. When that's the case, it's
+possible to instruct the builder to pull from the local daemon by adding ``# LOCAL IMAGE`` to the
+first line of the custom build script.
+
+Example:
+
+- ``orchest patch --dev``
+- ``eval $(minikube -p minikube docker-env)``
+- ``bash scripts/build_container.sh -i base-kernel-py -o v2022.05.3 -t v2022.05.3``
+- select the image of choice or specify a custom one like ``orchest/base-kernel-new-language``
+- add ``# LOCAL IMAGE`` to the first line of the custom build script and build
+
+.. note::
+    As you rebuild, the image builder will pull the newest image.
+
+.. note::
+    When you specify a custom image you can also specify the image tag to avoid the back-end making
+    assumptions for you.
+
+
+Testing jupyter base image changes
+----------------------------------
+
+Required reading: :ref:`testing environment base image changes <environment base images changes>`.
+Again, simply add ``# LOCAL IMAGE`` to the first line of the custom build script.
+
+Example:
+
+- ``orchest patch --dev``
+- ``eval $(minikube -p minikube docker-env)``
+- ``bash scripts/build_container.sh -i jupyter-server -o v2022.05.3 -t v2022.05.3``
+- add ``# LOCAL IMAGE`` to the first line of the custom build script and build
+
+.. note::
+    It's currently not possible to specify a custom tag, the back-end will always
+    try to pull an image with a tag equal to the cluster version.

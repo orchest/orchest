@@ -104,7 +104,7 @@ class EnvironmentInUse(Resource):
     @api.doc("is-environment-in-use")
     def get(self, project_uuid, environment_uuid):
         in_use = environments.is_environment_in_use(project_uuid, environment_uuid)
-        return {"message": in_use, "in_use": in_use}, 200
+        return {"in_use": in_use}, 200
 
 
 class DeleteEnvironment(TwoPhaseFunction):

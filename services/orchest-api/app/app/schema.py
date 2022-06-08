@@ -14,6 +14,14 @@ from app import models
 
 dictionary = Model("Dictionary", {})
 
+update_started_response = Model(
+    "UpdateStartedResponse",
+    {
+        "namespace": fields.String(required=True, description="Namespace"),
+        "cluster_name": fields.String(required=True, description="Cluster name"),
+    },
+)
+
 settings_update_response = Model(
     "SettingsUpdateResponse",
     {
@@ -135,6 +143,13 @@ service = Model(
             description=(
                 "Can be set to False to expose the service "
                 "without authentication requirements."
+            ),
+        ),
+        "order": fields.Integer(
+            required=False,
+            description=(
+                "Acts as the serial number of a service, "
+                "which should be unique within a pipeline."
             ),
         ),
     },
@@ -863,7 +878,7 @@ subscriber_spec = Model(
         "subscriptions": fields.List(
             fields.Nested(subscription_spec),
             description="Collection of subscriptions, elements should be unique.",
-            min_items=1,
+            min_items=0,
         ),
     },
 )
@@ -888,6 +903,35 @@ webhook_spec = subscriber_spec.inherit(
             ],
         ),
     },
+)
+
+webhook_mutation = Model(
+    "WebhookMutation",
+    {
+        "url": fields.String(required=False, description="URL of the webhook."),
+        "name": fields.String(required=False, description="Name of the webhook."),
+        "verify_ssl": fields.Boolean(
+            required=False, description="If https certificate should be verified."
+        ),
+        "secret": fields.String(
+            required=False, description="Secret used for HMAC signing the payload."
+        ),
+        "content_type": fields.String(
+            required=False,
+            description="Content type of the payload, e.g. json, urlencoded, etc.",
+            enum=[
+                models.Webhook.ContentType.JSON.value,
+                models.Webhook.ContentType.URLENCODED.value,
+            ],
+        ),
+        "subscriptions": fields.List(
+            fields.Nested(subscription_spec),
+            required=False,
+            description="Collection of subscriptions, elements should be unique.",
+            min_items=0,
+        ),
+    },
+    strict=True,
 )
 
 subscription = Model(

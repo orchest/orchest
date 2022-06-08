@@ -1,5 +1,3 @@
-import React from "react";
-
 export type RouteName =
   | "projects"
   | "examples"
@@ -21,6 +19,7 @@ export type RouteName =
   | "editJob"
   | "fileManager"
   | "settings"
+  | "notificationSettings"
   | "configureJupyterLab"
   | "update"
   | "manageUsers"
@@ -30,7 +29,6 @@ export type RouteName =
 export type RouteData = {
   path: string;
   root?: string;
-  component: React.FunctionComponent;
   order: number;
 };
 
@@ -144,6 +142,12 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       name: "settings",
       path: "/settings",
       title: getTitle("Settings"),
+    },
+    {
+      name: "notificationSettings",
+      path: "/notification-settings",
+      root: "/settings",
+      title: getTitle("Notification Settings"),
     },
     {
       name: "configureJupyterLab",

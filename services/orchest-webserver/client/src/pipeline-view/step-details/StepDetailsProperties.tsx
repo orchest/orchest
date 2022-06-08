@@ -1,7 +1,5 @@
-import { useCancelableFetch } from "@/hooks/useCancelablePromise";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
-import { Environment, PipelineStepState, Step } from "@/types";
+import { Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -13,8 +11,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
-  collapseDoubleDots,
   extensionFromFilename,
+  joinRelativePaths,
   kernelNameToLanguage,
   RefManager,
 } from "@orchest/lib-utils";
@@ -23,6 +21,8 @@ import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import { SelectEnvironment } from "./SelectEnvironment";
+import { useStepDetailsContext } from "./StepDetailsContext";
 
 export type ConnectionDict = Record<
   string,
@@ -50,145 +50,102 @@ const KERNEL_OPTIONS = [
   { value: "python", label: "Python" },
   { value: "r", label: "R" },
   { value: "julia", label: "Julia" },
+  { value: "javascript", label: "JavaScript" },
 ];
-
-type EnvironmentOption = {
-  value: string;
-  label: string;
-};
 
 export const StepDetailsProperties = ({
   pipelineCwd,
   readOnly,
-  connections,
-  step,
+  shouldAutoFocus,
   onSave,
   menuMaxWidth,
 }: {
   pipelineCwd: string | undefined;
   readOnly: boolean;
-  connections: ConnectionDict;
-  step: PipelineStepState;
+  shouldAutoFocus: boolean;
   onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
 }) => {
-  const [state, setState] = React.useState({
-    // this is required to let users edit JSON (while typing the text will not be valid JSON)
-    editableParameters: JSON.stringify(step.parameters, null, 2),
-    autogenerateFilePath: step.file_path.length == 0,
-  });
+  const { step, connections } = useStepDetailsContext();
+  // Allows user to edit JSON while typing the text will not be valid JSON.
+  const [editableParameters, setEditableParameters] = React.useState(
+    JSON.stringify(step.parameters, null, 2)
+  );
 
-  const [environmentOptions, setEnvironmentOptions] = React.useState<
-    EnvironmentOption[]
-  >([]);
-
-  const { cancelableFetch } = useCancelableFetch();
   const refManager = React.useMemo(() => new RefManager(), []);
 
   const isNotebookStep = extensionFromFilename(step.file_path) === "ipynb";
 
   const onChangeEnvironment = React.useCallback(
-    (updatedEnvironmentUUID: string, updatedEnvironmentName: string) => {
-      onSave(
-        {
-          environment: updatedEnvironmentUUID,
-          kernel: { display_name: updatedEnvironmentName },
-        },
-        step.uuid,
-        false
-      );
-      if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
-        let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
-
-        window.orchest.jupyter?.setNotebookKernel(
-          collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
-          kernelName
+    (
+      updatedEnvironmentUUID: string,
+      updatedEnvironmentName: string,
+      skipSave?: boolean
+    ) => {
+      if (!skipSave) {
+        onSave(
+          {
+            environment: updatedEnvironmentUUID,
+            kernel: { display_name: updatedEnvironmentName },
+          },
+          step.uuid,
+          false
         );
+        if (
+          pipelineCwd &&
+          updatedEnvironmentUUID.length > 0 &&
+          step.file_path.length > 0
+        ) {
+          window.orchest.jupyter?.setNotebookKernel(
+            joinRelativePaths(pipelineCwd, step.file_path),
+            `orchest-kernel-${updatedEnvironmentUUID}`
+          );
+        }
       }
     },
     [onSave, pipelineCwd, step]
   );
 
-  const { projectUuid } = useCustomRoute();
-  const fetchEnvironmentOptions = React.useCallback(() => {
-    let environmentsEndpoint = `/store/environments/${projectUuid}`;
+  // Mostly for new steps, where user is assumed to start typing Step Title,
+  // then Step File Path is then automatically generated.
+  const autogenerateFilePath = React.useRef(step.file_path.length === 0);
 
-    if (isNotebookStep) {
-      environmentsEndpoint +=
-        "?language=" + kernelNameToLanguage(step.kernel.name);
-    }
-
-    cancelableFetch<Environment[]>(environmentsEndpoint)
-      .then((result) => {
-        let options: EnvironmentOption[] = [];
-
-        let currentEnvironmentInEnvironments = false;
-
-        for (let environment of result) {
-          if (environment.uuid == step.environment) {
-            currentEnvironmentInEnvironments = true;
-          }
-          options.push({
-            value: environment.uuid,
-            label: environment.name,
-          });
-        }
-
-        if (!currentEnvironmentInEnvironments) {
-          // update environment
-          onChangeEnvironment(
-            options.length > 0 ? options[0].value : "",
-            options.length > 0 ? options[0].label : ""
-          );
-        }
-
-        setEnvironmentOptions(options);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }, [
-    isNotebookStep,
-    onChangeEnvironment,
-    projectUuid,
-    step.environment,
-    step.kernel.name,
-  ]);
-
-  const onChangeFileName = (
-    updatedFileName: string,
-    autogenerated: boolean
-  ) => {
-    if (!autogenerated && updatedFileName.length > 0) {
-      setState((prevState) => ({
-        ...prevState,
-        autogenerateFilePath: false,
-      }));
-    }
-
-    onSave({ file_path: updatedFileName }, step.uuid);
-  };
+  const onChangeFilePath = React.useCallback(
+    (newFilePath: string) => {
+      if (newFilePath.length > 0) {
+        autogenerateFilePath.current = false;
+      }
+      if (newFilePath !== step.file_path)
+        onSave({ file_path: newFilePath }, step.uuid);
+    },
+    [onSave, step.uuid, step.file_path]
+  );
 
   const onChangeParameterJSON = (updatedParameterJSON: string) => {
-    setState((prevState) => ({
-      ...prevState,
-      editableParameters: updatedParameterJSON,
-    }));
-
+    setEditableParameters(updatedParameterJSON);
     try {
       onSave({ parameters: JSON.parse(updatedParameterJSON) }, step.uuid, true);
     } catch (err) {}
   };
 
   const onChangeKernel = (updatedKernel: string) => {
-    onSave({ kernel: { name: updatedKernel } }, step.uuid);
+    if (step.kernel.name !== updatedKernel)
+      onSave({ kernel: { name: updatedKernel } }, step.uuid);
   };
 
   const onChangeTitle = (updatedTitle: string) => {
-    onSave({ title: updatedTitle }, step.uuid);
+    const filePathChange = autogenerateFilePath.current
+      ? { file_path: toValidFilename(updatedTitle) }
+      : null;
+
+    if (step.title !== updatedTitle || filePathChange)
+      onSave({ title: updatedTitle, ...filePathChange }, step.uuid);
   };
 
-  const swapConnectionOrder = (oldConnectionIndex, newConnectionIndex) => {
+  const swapConnectionOrder = (
+    oldConnectionIndex: number,
+    newConnectionIndex: number
+  ) => {
     // check if there is work to do
     if (oldConnectionIndex != newConnectionIndex) {
       // note it's creating a reference
@@ -310,46 +267,41 @@ export const StepDetailsProperties = ({
     });
   };
 
+  React.useEffect(() => {
+    if (!readOnly) {
+      // set focus on first field
+      refManager.refs.titleTextField.focus();
+    }
+    if (step.file_path.length === 0) {
+      onChangeFilePath(toValidFilename(step.title));
+    }
+  }, []);
+
   const clearConnectionListener = () => {
     $(document).off("mouseup.connectionList");
     $(document).off("mousemove.connectionList");
   };
 
   React.useEffect(() => {
-    if (!readOnly) {
-      // set focus on first field
-      refManager.refs.titleTextField.focus();
-    }
-
-    fetchEnvironmentOptions();
-
-    return () => {
-      clearConnectionListener();
-    };
-  }, []);
-
-  React.useEffect(() => {
-    if (state.autogenerateFilePath) {
-      // Make sure the props have been updated
-      onChangeFileName(toValidFilename(step.title), true);
-    }
-  }, [step.title]);
-
-  React.useEffect(() => {
     clearConnectionListener();
     setupConnectionListener();
-  }, [step]);
+    return () => clearConnectionListener();
+  }, [step.uuid]);
 
-  React.useEffect(() => fetchEnvironmentOptions(), [
-    step.file_path,
-    step.kernel?.name,
-  ]);
+  const isValidJson = React.useMemo(() => {
+    try {
+      JSON.parse(editableParameters);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }, [editableParameters]);
 
   return (
     <div className={"detail-subview"}>
       <Stack direction="column" spacing={3}>
         <TextField
-          autoFocus
+          autoFocus={shouldAutoFocus}
           value={step.title}
           onChange={(e) => onChangeTitle(e.target.value)}
           label="Title"
@@ -371,7 +323,7 @@ export const StepDetailsProperties = ({
           <ProjectFilePicker
             value={step.file_path}
             pipelineCwd={pipelineCwd}
-            onChange={(value) => onChangeFileName(value, false)}
+            onChange={onChangeFilePath}
             menuMaxWidth={menuMaxWidth}
           />
         )}
@@ -396,31 +348,16 @@ export const StepDetailsProperties = ({
             </Select>
           </FormControl>
         )}
-        <FormControl fullWidth>
-          <InputLabel id="environment-label">Environment</InputLabel>
-          <Select
-            label="Kernel language"
-            labelId="environment-label"
-            id="environment"
-            value={step.environment}
-            disabled={readOnly}
-            onChange={(e) => {
-              const selected = environmentOptions.find(
-                (option) => option.value === e.target.value
-              );
-              if (selected) onChangeEnvironment(selected.value, selected.label);
-            }}
-          >
-            {environmentOptions.map((option) => {
-              return (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              );
-            })}
-          </Select>
-        </FormControl>
-
+        <SelectEnvironment
+          value={step.environment}
+          disabled={readOnly}
+          queryString={
+            isNotebookStep
+              ? `?language=${kernelNameToLanguage(step.kernel.name)}`
+              : ""
+          }
+          onChange={onChangeEnvironment}
+        />
         <Box>
           <Typography
             component="h3"
@@ -430,7 +367,7 @@ export const StepDetailsProperties = ({
             Parameters
           </Typography>
           <CodeMirror
-            value={state.editableParameters}
+            value={editableParameters}
             options={{
               mode: "application/json",
               theme: "jupyter",
@@ -441,15 +378,9 @@ export const StepDetailsProperties = ({
               onChangeParameterJSON(value);
             }}
           />
-          {(() => {
-            try {
-              JSON.parse(state.editableParameters);
-            } catch {
-              return (
-                <Alert severity="warning">Your input is not valid JSON.</Alert>
-              );
-            }
-          })()}
+          {!isValidJson && (
+            <Alert severity="warning">Your input is not valid JSON.</Alert>
+          )}
         </Box>
 
         {step.incoming_connections.length != 0 && (

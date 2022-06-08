@@ -1,14 +1,37 @@
 import { ConfirmDispatcher } from "@/contexts/AppContext";
+import { tryUntilTrue } from "@/utils/webserver-utils";
 import $ from "jquery";
-import { tryUntilTrue } from "../utils/webserver-utils";
+
+// This is to enable using hotkeys to open CommandPalette.
+// Proxy all the keydown events in the iframe to the hosting document object.
+const passKeyboardEvent = (event: KeyboardEvent) => {
+  // Intercept Ctrl/Cmd + k. It's a reserved combination in Firefox
+  // https://support.mozilla.org/en-US/kb/keyboard-shortcuts-perform-firefox-tasks-quickly
+  if (
+    !event.altKey &&
+    !event.shiftKey &&
+    (event.ctrlKey || event.metaKey) &&
+    event.key === "k"
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const keyboardEvent = new KeyboardEvent(event.type, {
+    key: event.key,
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+  });
+  document.dispatchEvent(keyboardEvent);
+};
 
 class Jupyter {
   jupyterHolder: JQuery<HTMLElement>;
-  iframe: any;
+  iframe: HTMLIFrameElement | undefined;
   baseAddress: string;
   reloadOnShow: boolean;
   showCheckInterval: number;
-  pendingKernelChanges: any;
+  pendingKernelChanges: Record<string, boolean>;
   iframeHasLoaded: boolean;
   setConfirm: ConfirmDispatcher;
 
@@ -25,7 +48,7 @@ class Jupyter {
     this.initializeJupyter();
   }
 
-  updateJupyterInstance(baseAddress) {
+  updateJupyterInstance(baseAddress: string) {
     if (this.baseAddress != baseAddress) {
       // when a new baseAddress is set, unload iframe since it is no longer valid
       this.unload();
@@ -37,6 +60,10 @@ class Jupyter {
   _unhide() {
     // this method should only be called directly from main.js
     this.jupyterHolder.removeClass("hidden");
+    this.iframe?.contentWindow?.document?.addEventListener(
+      "keydown",
+      passKeyboardEvent
+    );
   }
 
   show() {
@@ -47,7 +74,7 @@ class Jupyter {
 
     // make sure the baseAddress has loaded
 
-    if (!this.iframe.contentWindow.location.href.includes(this.baseAddress)) {
+    if (!this.iframe?.contentWindow?.location.href.includes(this.baseAddress)) {
       this._setJupyterAddress(this.baseAddress + "/lab");
     }
 
@@ -70,9 +97,21 @@ class Jupyter {
     }, 10);
   }
 
+  isShowing() {
+    return (
+      this.isJupyterPage() &&
+      this.isJupyterLoaded() &&
+      !this.jupyterHolder.hasClass("hidden")
+    );
+  }
+
   hide() {
     this.jupyterHolder.addClass("hidden");
     window.clearInterval(this.showCheckInterval);
+    this.iframe?.contentWindow?.document?.removeEventListener(
+      "keydown",
+      passKeyboardEvent
+    );
   }
 
   unload() {
@@ -81,7 +120,7 @@ class Jupyter {
 
   _setJupyterAddress(url: string) {
     this.iframeHasLoaded = false;
-    this.iframe.contentWindow.location.replace(url);
+    this.iframe?.contentWindow?.location.replace(url);
   }
 
   reloadFilesFromDisk() {
@@ -89,14 +128,11 @@ class Jupyter {
   }
 
   _reloadFilesFromDisk() {
-    // @ts-ignore
-    if (this.iframe.contentWindow._orchest_app) {
+    if (this.iframe?.contentWindow?._orchest_app) {
       this.reloadOnShow = false;
 
-      // @ts-ignore
-      let lab = this.iframe.contentWindow._orchest_app;
-      // @ts-ignore
-      let docManager = this.iframe.contentWindow._orchest_docmanager;
+      let lab = this.iframe?.contentWindow?._orchest_app;
+      let docManager = this.iframe?.contentWindow?._orchest_docmanager;
 
       let citer = lab.shell.widgets("main");
 
@@ -125,7 +161,9 @@ class Jupyter {
   isJupyterPage() {
     try {
       if (
-        this.iframe.contentWindow.document.getElementById("jupyter-config-data")
+        this.iframe?.contentWindow?.document.getElementById(
+          "jupyter-config-data"
+        )
       ) {
         return true;
       }
@@ -136,8 +174,7 @@ class Jupyter {
 
   isJupyterLoaded() {
     try {
-      // @ts-ignore
-      let widgets = this.iframe.contentWindow._orchest_app.shell.widgets();
+      let widgets = this.iframe?.contentWindow?._orchest_app.shell.widgets();
 
       // a widget is on screen
       let widgetOnScreen = false;
@@ -149,8 +186,7 @@ class Jupyter {
         }
       }
       return (
-        // @ts-ignore
-        this.iframe.contentWindow._orchest_app !== undefined && widgetOnScreen
+        this.iframe?.contentWindow?._orchest_app !== undefined && widgetOnScreen
       );
     } catch {
       return false;
@@ -160,14 +196,11 @@ class Jupyter {
   isJupyterShellRenderedCorrectly() {
     try {
       return (
-        // @ts-ignore
-        this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+        this.iframe?.contentWindow?._orchest_app.shell.node.querySelector(
           "#jp-main-content-panel"
         ).clientWidth ===
-          // @ts-ignore
-          this.iframe.contentWindow._orchest_app.shell.node.clientWidth ||
-        // @ts-ignore
-        this.iframe.contentWindow._orchest_app.shell.node.querySelector(
+          this.iframe?.contentWindow?._orchest_app.shell.node.clientWidth ||
+        this.iframe?.contentWindow?._orchest_app.shell.node.querySelector(
           "#jp-main-content-panel"
         ).clientWidth > 500
       );
@@ -182,18 +215,18 @@ class Jupyter {
 
   reloadIframe() {
     this.iframeHasLoaded = false;
-    this.iframe.contentWindow.location.reload();
+    this.iframe?.contentWindow?.location.reload();
   }
 
-  isKernelChangePending(notebook, kernel) {
-    return this.pendingKernelChanges[`${notebook}-${kernel}`] === true;
+  isKernelChangePending(notebook: string, kernel: string) {
+    return this.pendingKernelChanges[`${notebook}-${kernel}`];
   }
 
-  setKernelChangePending(notebook: string, kernel: string, value) {
+  setKernelChangePending(notebook: string, kernel: string, value: boolean) {
     this.pendingKernelChanges[`${notebook}-${kernel}`] = value;
   }
 
-  setNotebookKernel(notebook, kernel) {
+  setNotebookKernel(notebook: string, kernel: string) {
     /**
      *   @param {string} notebook relative path to the Jupyter file from the
      *   perspective of the root of the project directory.
@@ -206,10 +239,8 @@ class Jupyter {
       "Notebook? \n\nYou will lose the current kernel's state if no other Notebook " +
       "is attached to it.";
 
-    // @ts-ignore
-    if (this.iframe.contentWindow._orchest_app) {
-      // @ts-ignore
-      let docManager = this.iframe.contentWindow._orchest_docmanager;
+    if (this.iframe?.contentWindow?._orchest_app) {
+      let docManager = this.iframe?.contentWindow?._orchest_docmanager;
 
       let notebookWidget = docManager.findWidget(notebook);
       if (notebookWidget) {
@@ -222,11 +253,11 @@ class Jupyter {
           if (sessionContext.session.kernel.name !== kernel) {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
-              // @ts-ignore
               this.setConfirm("Warning", warningMessage, async (resolve) => {
                 try {
-                  await sessionContext.changeKernel({ name: kernel });
-                  this.setKernelChangePending(notebook, kernel, false);
+                  sessionContext.changeKernel({ name: kernel }).then(() => {
+                    this.setKernelChangePending(notebook, kernel, false);
+                  });
                   resolve(true);
                   return true;
                 } catch (error) {
@@ -247,17 +278,20 @@ class Jupyter {
               if (notebookSession.kernel.name !== kernel) {
                 if (!this.isKernelChangePending(notebook, kernel)) {
                   this.setKernelChangePending(notebook, kernel, true);
-                  // @ts-ignore
                   this.setConfirm(
                     "Warning",
                     warningMessage,
                     async (resolve) => {
                       try {
-                        await docManager.services.sessions.shutdown(
-                          notebookSession.id
-                        );
-
-                        this.setKernelChangePending(notebook, kernel, false);
+                        docManager.services.sessions
+                          .shutdown(notebookSession.id)
+                          .then(() => {
+                            this.setKernelChangePending(
+                              notebook,
+                              kernel,
+                              false
+                            );
+                          });
                         resolve(true);
                         return true;
                       } catch (error) {
@@ -292,13 +326,11 @@ class Jupyter {
       () => {
         if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {
           try {
-            // @ts-ignore
-            this.iframe.contentWindow._orchest_docmanager.openOrReveal(
+            this.iframe?.contentWindow?._orchest_docmanager.openOrReveal(
               filePath
             );
             return (
-              // @ts-ignore
-              this.iframe.contentWindow._orchest_docmanager.findWidget(
+              this.iframe?.contentWindow?._orchest_docmanager.findWidget(
                 filePath
               ) !== undefined
             );
@@ -324,11 +356,8 @@ class Jupyter {
     this.iframeHasLoaded = false;
     this.iframe.onload = this._loadIframe.bind(this);
 
-    // @ts-ignore
     $(this.iframe).attr("width", "100%");
-    // @ts-ignore
     $(this.iframe).attr("height", "100%");
-    // @ts-ignore
     $(this.iframe).attr("data-test-id", "jupyterlab-iframe");
 
     this.jupyterHolder.append(this.iframe);

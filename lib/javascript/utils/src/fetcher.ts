@@ -6,7 +6,10 @@ export type FetchError = {
 
 const getExactUrl = (url: string) => `${__BASE_URL__}${url}`;
 
-export const fetcher = async <T>(url: string, params?: RequestInit) => {
+export const fetcher = async <T, E = FetchError>(
+  url: string,
+  params?: RequestInit
+) => {
   const targetUrl = getExactUrl(url);
 
   const response = await window.fetch(targetUrl, params);
@@ -20,7 +23,7 @@ export const fetcher = async <T>(url: string, params?: RequestInit) => {
       status: response.status,
       message: message || response.statusText,
       ...rest, // pass along the payload of the error
-    } as FetchError);
+    } as E);
   }
 
   return jsonResponse as Promise<T>;
@@ -30,6 +33,10 @@ export type Fetcher<T = void> = (
   url: string,
   params?: RequestInit | undefined
 ) => Promise<T>;
+
+export type ContentType =
+  | "application/json"
+  | "application/x-www-form-urlencoded";
 
 export const HEADER = {
   JSON: { "Content-Type": "application/json; charset=UTF-8" },

@@ -2,8 +2,10 @@ import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
 import EditJobView from "./edit-job-view/EditJobView";
 import EnvironmentEditView from "./environment-edit-view/EnvironmentEditView";
+import EnvironmentsView from "./environments-view/EnvironmentsView";
 import JobView from "./job-view/JobView";
 import JobsView from "./jobs-view/JobsView";
+import { NotificationSettingsView } from "./notification-settings-view/NotificationSettingsView";
 import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
 import { LogsView } from "./pipeline-view/LogsView";
 import PipelineView from "./pipeline-view/PipelineView";
@@ -12,7 +14,6 @@ import ProjectsView from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
 import SettingsView from "./settings-view/SettingsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
-import EnvironmentsView from "./views/EnvironmentsView";
 import FilePreviewView from "./views/FilePreviewView";
 import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";
@@ -43,6 +44,7 @@ const pathComponentMapping = {
   "/job-run/file-preview": FilePreviewView,
   "/edit-job": EditJobView,
   "/settings": SettingsView,
+  "/notification-settings": NotificationSettingsView,
   "/configure-jupyter-lab": ConfigureJupyterLabView,
   "/update": UpdateView,
   "/manage-users": ManageUsersView,

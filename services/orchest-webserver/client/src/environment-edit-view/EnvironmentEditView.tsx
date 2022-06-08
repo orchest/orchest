@@ -5,6 +5,7 @@ import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { ImageBuildStatus } from "@/components/ImageBuildStatus";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAppInnerContext } from "@/contexts/AppInnerContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useHotKeys } from "@/hooks/useHotKeys";
@@ -27,9 +28,11 @@ import "codemirror/theme/dracula.css";
 import { useFormik } from "formik";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import { DEFAULT_BASE_IMAGES } from "./common";
 import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
 import { CustomImageDialog } from "./CustomImageDialog";
 import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
+import { useCustomImage } from "./useCustomImage";
 import { useRequestEnvironmentImageBuild } from "./useRequestEnvironmentImageBuild";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
@@ -60,6 +63,7 @@ const ENVIRONMENT_BUILDS_BASE_ENDPOINT =
 const EnvironmentEditView: React.FC = () => {
   // global states
   const { setAlert, setAsSaved, config } = useAppContext();
+  const { orchestVersion } = useAppInnerContext();
 
   useSendAnalyticEvent("view:loaded", { name: siteMap.environment.path });
 
@@ -78,15 +82,29 @@ const EnvironmentEditView: React.FC = () => {
     environment,
     setEnvironment,
     isFetchingEnvironment,
-    customImage,
-    setCustomImage,
     error: fetchEnvironmentError,
-  } = useFetchEnvironment({
-    // if environment is new, don't pass the uuid, so this hook won't fire the request
-    uuid: environmentUuid,
-    project_uuid: projectUuid,
-    ...config?.ENVIRONMENT_DEFAULTS,
-  });
+  } = useFetchEnvironment(
+    environmentUuid === "new" // if environmentUuid is "new", no need to fetch data.
+      ? undefined
+      : { projectUuid, environmentUuid }
+  );
+
+  const defaultImageInUse = React.useMemo(() => {
+    return environment?.base_image
+      ? DEFAULT_BASE_IMAGES.find((image) => {
+          const versionedImage = `${image.base_image}:${orchestVersion}`;
+          return [versionedImage, image.base_image].includes(
+            environment.base_image
+          );
+        })
+      : undefined;
+  }, [environment?.base_image, orchestVersion]);
+
+  const [customImage, setCustomImage] = useCustomImage(
+    environment,
+    defaultImageInUse,
+    orchestVersion
+  );
 
   // !Note: new environment should have been created in EnvironmentList
   // if user tweak the query args by changing it to "new", we send user back to EnvironmentList
@@ -142,18 +160,17 @@ const EnvironmentEditView: React.FC = () => {
 
   const saveEnvironment = React.useCallback(
     async (payload?: Partial<Environment>) => {
-      if (!environmentNameValidation.valid) {
-        return null;
-      }
+      if (!environmentNameValidation.valid || !environment?.uuid)
+        return Promise.reject();
+
       // Saving an environment will invalidate the Jupyter <iframe>
       // TODO: perhaps this can be fixed with coordination between JLab +
       // Enterprise Gateway team.
       window.orchest.jupyter?.unload();
 
       try {
-        const environmentUuidForUpdateOrCreate = environment?.uuid || "new";
         const response = await fetcher<Environment>(
-          `/store/environments/${projectUuid}/${environmentUuidForUpdateOrCreate}`,
+          `/store/environments/${projectUuid}/${environment.uuid}`,
           {
             method: "PUT",
             headers: HEADER.JSON,
@@ -161,7 +178,7 @@ const EnvironmentEditView: React.FC = () => {
               environment: {
                 ...environment,
                 ...payload,
-                uuid: environmentUuidForUpdateOrCreate,
+                uuid: environment.uuid,
               },
             }),
           }
@@ -313,6 +330,10 @@ const EnvironmentEditView: React.FC = () => {
     }
   };
 
+  const selectedImage = !isFetchingEnvironment
+    ? defaultImageInUse?.base_image || environment?.base_image
+    : undefined;
+
   return (
     <Layout
       toolbarElements={
@@ -333,10 +354,7 @@ const EnvironmentEditView: React.FC = () => {
           />
           <Box
             sx={{
-              height: {
-                xs: "auto",
-                md: "100%",
-              },
+              height: { xs: "auto", md: "100%" },
               display: "flex",
               flexDirection: { xs: "column", md: "row" },
             }}
@@ -379,7 +397,8 @@ const EnvironmentEditView: React.FC = () => {
                     />
                     <ContainerImagesRadioGroup
                       disabled={building}
-                      value={!isFetchingEnvironment && environment?.base_image}
+                      orchestVersion={orchestVersion}
+                      value={selectedImage}
                       onChange={onChangeEnvironment}
                       customImage={customImage}
                       onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}

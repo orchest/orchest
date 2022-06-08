@@ -6,11 +6,15 @@ import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchProject } from "@/hooks/useFetchProject";
+import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type { Job } from "@/types";
-import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
+import {
+  checkGate,
+  envVariablesDictToArray,
+  formatServerDateTime,
+} from "@/utils/webserver-utils";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
@@ -48,13 +52,17 @@ const JobView: React.FC = () => {
   const { navigateTo, jobUuid } = useCustomRoute();
 
   // data states
-  const { job, setJob, fetchJob, envVariables, isFetchingJob } = useFetchJob({
+  const { job, setJob, fetchJob, isFetchingJob } = useFetchJob({
     jobUuid,
     runStatuses: true,
   });
 
+  const envVariables: { name: string; value: string }[] = React.useMemo(() => {
+    return job ? envVariablesDictToArray(job.env_variables) : [];
+  }, [job]);
+
   // monitor if there's any operations ongoing, if so, disable action buttons
-  const { run, status } = useAsync<void>();
+  const { run, status } = useAsync<void | { next_scheduled_time: string }>();
   const isOperating = status === "PENDING" || isFetchingJob;
 
   // use this to force PipelineRunTable to re-fetch data
@@ -68,58 +76,64 @@ const JobView: React.FC = () => {
     forceUpdatePipelineRunTable();
   };
 
-  const cancelJob = () => {
-    run(
-      fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, { method: "DELETE" })
-        .then(() => {
-          setJob((prevJob) => ({ ...prevJob, status: "ABORTED" }));
-        })
-        .catch((error) => {
-          console.error(error);
-          setAlert("Error", `Failed to delete job: ${error}`);
-        })
-    );
+  const cancelJob = async () => {
+    if (!job) return Promise.reject();
+    try {
+      await run(
+        fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, { method: "DELETE" })
+      );
+      setJob((prevJob) =>
+        prevJob ? { ...prevJob, status: "ABORTED" } : prevJob
+      );
+    } catch (error) {
+      console.error(error);
+      setAlert("Error", `Failed to delete job: ${error}`);
+    }
   };
 
-  const pauseCronJob = () => {
-    run(
-      fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${job.uuid}`, {
-        method: "POST",
-      })
-        .then(() => {
-          setJob((job) => ({
-            ...job,
-            status: "PAUSED",
-            next_scheduled_time: undefined,
-          }));
+  const pauseCronJob = async () => {
+    if (!job) return Promise.reject();
+    try {
+      await run(
+        fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${job.uuid}`, {
+          method: "POST",
         })
-        .catch((error) => {
-          console.error(error);
-          setAlert("Error", `Failed to pause job: ${error}`);
-        })
-    );
+      );
+      setJob((job) =>
+        job ? { ...job, status: "PAUSED", next_scheduled_time: undefined } : job
+      );
+    } catch (error) {
+      console.error(error);
+      setAlert("Error", `Failed to pause job: ${error}`);
+    }
   };
 
-  const resumeCronJob = () => {
-    run(
-      fetcher(`/catch/api-proxy/api/jobs/cronjobs/resume/${job.uuid}`, {
-        method: "POST",
-      })
-        .then((data: { next_scheduled_time: string }) => {
-          setJob((job) => ({
-            ...job,
-            status: "STARTED",
-            next_scheduled_time: data.next_scheduled_time,
-          }));
-        })
-        .catch((error) => {
-          console.error(error);
-          setAlert("Error", `Failed to resume job: ${error}`);
-        })
-    );
+  const resumeCronJob = async () => {
+    if (!job) return Promise.reject();
+    try {
+      const response = await run(
+        fetcher<{ next_scheduled_time: string }>(
+          `/catch/api-proxy/api/jobs/cronjobs/resume/${job.uuid}`,
+          { method: "POST" }
+        )
+      );
+      setJob((job) =>
+        job
+          ? {
+              ...job,
+              status: "STARTED",
+              next_scheduled_time: response?.next_scheduled_time,
+            }
+          : job
+      );
+    } catch (error) {
+      console.error(error);
+      setAlert("Error", `Failed to resume job: ${error}`);
+    }
   };
 
   const editJob = (e: React.MouseEvent) => {
+    if (!job) return;
     navigateTo(
       siteMap.editJob.path,
       { query: { projectUuid: job.project_uuid, jobUuid: job.uuid } },
@@ -128,6 +142,7 @@ const JobView: React.FC = () => {
   };
 
   const returnToJobs = (e: React.MouseEvent) => {
+    if (!job) return;
     navigateTo(
       siteMap.jobs.path,
       { query: { projectUuid: job.project_uuid } },
@@ -179,34 +194,29 @@ const JobView: React.FC = () => {
         })
     );
   };
-  const [totalRunCount, setTotalRunCount] = React.useState<
-    number | undefined
-  >();
+  const [totalRunCount, setTotalRunCount] = React.useState<number>();
 
   const isJobDone = job?.status === "SUCCESS" || job?.status === "ABORTED";
 
   // we only need to check snapshot size if necessary (i.e. job is not done, and auto clean-up is not enabled)
   // because we need to show the warning to user if their snapshot size is too big
-  const { data: projectSnapshotSize = 0 } = useFetchProject({
-    projectUuid:
-      !isJobDone && job?.max_retained_pipeline_runs < 0 && job?.project_uuid
-        ? job.project_uuid
-        : null,
-    selector: (project) => project.project_snapshot_size,
-  });
+  const projectSnapshotSize = useFetchProjectSnapshotSize(
+    !isJobDone && job && job.max_retained_pipeline_runs < 0 && job.project_uuid
+      ? job.project_uuid
+      : undefined
+  );
 
-  const footnote =
-    job?.max_retained_pipeline_runs > 0 ? (
-      `Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`
-    ) : job?.max_retained_pipeline_runs === 0 ? (
-      `all finished jobs will be automatically cleaned up`
-    ) : projectSnapshotSize > 50 ? (
-      <>
-        {`Snapshot size exceeds 50MB. You might want to enable Auto Clean-up to free up disk space regularly. Check the `}
-        <JobDocLink />
-        {` for more details.`}
-      </>
-    ) : null;
+  const footnote = !job ? null : job.max_retained_pipeline_runs > 0 ? (
+    `Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`
+  ) : job.max_retained_pipeline_runs === 0 ? (
+    `all finished jobs will be automatically cleaned up`
+  ) : projectSnapshotSize > 50 ? (
+    <>
+      {`Snapshot size exceeds 50MB. You might want to enable Auto Clean-up to free up disk space regularly. Check the `}
+      <JobDocLink />
+      {` for more details.`}
+    </>
+  ) : null;
 
   return (
     <Layout>
@@ -282,6 +292,7 @@ const JobView: React.FC = () => {
             />
             <JobViewTabs job={job} totalRunCount={totalRunCount}>
               {(tabIndex) => {
+                if (!jobUuid) return null;
                 return (
                   <Box sx={{ flex: 1 }}>
                     <CustomTabPanel

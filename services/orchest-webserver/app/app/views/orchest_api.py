@@ -624,3 +624,21 @@ def register_orchest_api_views(app, db):
             (f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/info/idle')
         )
         return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route(
+        "/catch/api-proxy/api/notifications/<path:path>",
+        methods=["GET", "POST", "PUT", "DELETE"],
+    )
+    def catch_api_proxy_notifications(path):
+        # Note: doesn't preserve query args atm.
+        req_json = request.get_json() if request.is_json else None
+        resp = requests.request(
+            method=request.method,
+            url=(
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/notifications/{path}"
+            ),
+            json=req_json,
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()

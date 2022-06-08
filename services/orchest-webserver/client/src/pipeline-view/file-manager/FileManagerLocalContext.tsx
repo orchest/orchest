@@ -218,22 +218,8 @@ export const FileManagerLocalContextProvider: React.FC<{
         );
         // Send a GET request for file dicovery
         // to ensure that the pipeline is removed from DB.
-        // It's not needed to await it because we don't use the response
-        fetchPipelines(projectUuid);
-
-        // `state.pipelines` should be cleaned up.
-        const pipelinePaths = pathsThatContainsPipelineFiles.map(({ path }) =>
-          path.replace(/^\//, "")
-        );
-
-        dispatch((state) => {
-          const updatedPipelines = (state.pipelines || []).filter(
-            (pipeline) => {
-              return !pipelinePaths.some((path) => pipeline.path === path);
-            }
-          );
-          return { type: "SET_PIPELINES", payload: updatedPipelines };
-        });
+        const updatedPipelines = await fetchPipelines(projectUuid);
+        dispatch({ type: "SET_PIPELINES", payload: updatedPipelines });
 
         const shouldRedirect = filesToDelete.some((fileToDelete) => {
           const { path } = unpackCombinedPath(fileToDelete);

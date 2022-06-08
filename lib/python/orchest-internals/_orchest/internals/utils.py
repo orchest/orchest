@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import subprocess
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import requests
 from werkzeug.serving import is_running_from_reloader as _irfr
@@ -148,6 +148,7 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         and isinstance(service["image"], str)
         and service["image"]
         and isinstance(service["scope"], list)
+        and isinstance(service.get("order"), int)
         and isinstance(service.get("preserve_base_path", False), bool)
         and
         # Allowed scopes.
@@ -181,12 +182,22 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
 
 
 def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
-    return isinstance(services, dict) and all(
-        [
-            is_service_definition_valid(service) and sname == service["name"]
-            for sname, service in services.items()
-        ]
-    )
+    if not isinstance(services, dict):
+        return False
+
+    existing_orders: Set[int] = set()
+
+    for sname, service in services.items():
+        if (
+            not is_service_definition_valid(service)
+            or sname != service["name"]
+            or service["order"] in existing_orders
+        ):
+            return False
+
+        existing_orders.add(service["order"])
+
+    return True
 
 
 def rmtree(path, ignore_errors=False) -> None:
