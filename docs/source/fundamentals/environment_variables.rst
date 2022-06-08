@@ -15,7 +15,7 @@ Environment variables are injected in your pipeline steps, and can be natively r
 You can define environment variables for Projects, Pipelines and Jobs.
 
 Pipeline variables overwrite Project variables. For example, if ``MY_VAR=PROJ_VALUE`` is defined at the Project level and ``MY_VAR=PIP_VALUE``
-at the Pipeline level, the value of ``MY_VAR`` for an :ref:`interactive pipeline runs <interactive pipeline run>` is ``PIP_VALUE``.
+at the Pipeline level, the value of ``MY_VAR`` for an :term:`interactive pipeline runs <interactive (pipeline) run>` is ``PIP_VALUE``.
 
 Changes to the ``PATH`` variable are ignored since they could break code execution.
 
@@ -56,4 +56,4 @@ Job environment variables are initialized by merging the Project and Pipeline en
 Environment variables inside Notebooks
 --------------------------------------
 
-Environment variables are available in JupyterLab kernels too. Restart the :ref:`interactive session <interactive session>` to refresh the kernels' environment variables.
+Environment variables are available in JupyterLab kernels too. Restart the :term:`interactive session <interactive session>` to refresh the kernels' environment variables.

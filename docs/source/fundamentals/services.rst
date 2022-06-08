@@ -4,7 +4,7 @@ Services
 ========
 *Services* allow you to run a service, e.g. a database, Redis instance or Tensorboard, as part of
 your pipeline. To ease development, services have a lifetime that spans across the entire
-:ref:`session <interactive session>`. Services can be configured to persist to disk and to be
+:term:`session <interactive session>`. Services can be configured to persist to disk and to be
 reachable from your browser.
 
 To add a service to your Orchest pipeline, go to the `pipeline settings` and check out the

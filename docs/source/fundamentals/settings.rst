@@ -28,7 +28,7 @@ Orchest is configured through *Settings*. Some settings require Orchest to be re
 ``MAX_INTERACTIVE_RUNS_PARALLELISM``
     Integer between: ``[1, 25]``.
 
-    Controls the number of :ref:`interactive runs <interactive pipeline run>` that can be run in parallel for different Pipelines at a given time. For example, if this is set to ``2``, then only ``2`` different Pipelines can have interactive runs at the same time. This is useful when multiple users are using Orchest.
+    Controls the number of :term:`interactive runs <interactive (pipeline) run>` that can be run in parallel for different Pipelines at a given time. For example, if this is set to ``2``, then only ``2`` different Pipelines can have interactive runs at the same time. This is useful when multiple users are using Orchest.
 
 ``TELEMETRY_DISABLED``
     Boolean: ``true`` or ``false``.
@@ -52,7 +52,7 @@ Configuring JupyterLab
 
 Extensions
 ~~~~~~~~~~
-You can install JupyterLab extensions through the JupyterLab UI and these extensions will persist (across :ref:`interactive sessions <interactive session>`) automatically.
+You can install JupyterLab extensions through the JupyterLab UI and these extensions will persist (across :term:`interactive sessions <interactive session>`) automatically.
 
 JupyterLab also supports server extensions. To install, navigate to *Settings* > *Configure JupyterLab*. For example:
 

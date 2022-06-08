@@ -9,6 +9,8 @@ Environments define the conditions in which Pipeline Steps execute scripts and k
 * Configurable through their set-up script (on the Environments page) to install additional packages.
 * Versioned and belong to a single Project.
 
+.. _languages:
+
 Choosing a programming language
 -------------------------------
 
@@ -32,7 +34,7 @@ Building an Environment
    or :code:`sudo apt-get install gcc`.
 7. Press the *Build* button.
 
-Updated Environments will automatically be used in the Pipeline editor and :ref:`interactive pipeline runs <interactive pipeline run>`.
+Updated Environments will automatically be used in the Pipeline editor and :term:`interactive pipeline runs <interactive (pipeline) run>`.
 
 Important Environment Paths
 ---------------------------
