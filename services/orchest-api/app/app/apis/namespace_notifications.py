@@ -33,17 +33,17 @@ class SubscriberList(Resource):
         subscribers = models.Subscriber.query.options(
             noload(models.Subscriber.subscriptions)
         ).all()
-        marshalled = []
+        marshaled = []
         for subscriber in subscribers:
             if isinstance(subscriber, models.Webhook):
                 webhook = marshal(subscriber, schema.webhook)
                 # Some URL contains secret. Only expose
                 # domain name for security reasons.
                 webhook["url"] = utils.extract_domain_name(webhook["url"])
-                marshalled.append(webhook)
+                marshaled.append(webhook)
             else:
-                marshalled.append(marshal(subscriber, schema.subscriber))
-        return {"subscribers": marshalled}, 200
+                marshaled.append(marshal(subscriber, schema.subscriber))
+        return {"subscribers": marshaled}, 200
 
 
 @api.route("/subscribers/webhooks")
@@ -66,10 +66,11 @@ class WebhookList(Resource):
             return {"message": str(e)}, 400
 
         db.session.commit()
-        webhook.url = utils.extract_domain_name(
-            webhook.url
-        )  # Leave out the secret in the URL.
-        return marshal(webhook, schema.webhook), 201
+        # Leave out the secret in the URL for security reasons.
+        marshaled_webhook = marshal(webhook, schema.webhook)
+        url_without_secret = utils.extract_domain_name(marshaled_webhook["url"])
+        marshaled_webhook["url"] = url_without_secret
+        return marshaled_webhook, 201
 
 
 @api.route("/subscribers/webhooks/<string:uuid>")
@@ -249,11 +250,11 @@ class SubscribersSubscribedToEvent(Resource):
         except ValueError as e:
             return {"message": str(e)}, 400
 
-        marshalled = []
+        marshaled = []
         for subscriber in alerted_subscribers:
             if isinstance(subscriber, models.Webhook):
-                marshalled.append(marshal(subscriber, schema.webhook))
+                marshaled.append(marshal(subscriber, schema.webhook))
             else:
-                marshalled.append(marshal(subscriber, schema.subscriber))
+                marshaled.append(marshal(subscriber, schema.subscriber))
 
-        return {"subscribers": marshalled}, 200
+        return {"subscribers": marshaled}, 200
