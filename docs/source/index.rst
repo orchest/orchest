@@ -41,11 +41,12 @@ Orchest
    fundamentals/pipelines
    fundamentals/data_passing
    fundamentals/jobs
+   fundamentals/notifications
    fundamentals/environments
    fundamentals/environment_variables
    fundamentals/services
    fundamentals/sdk/index
-   fundamentals/configuration
+   fundamentals/settings
    fundamentals/glossary
 
 

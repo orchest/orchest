@@ -122,4 +122,4 @@ In case you want to configure the Orchest Cluster, you can patch the created ``O
 Closing notes
 -------------
 Authentication is disabled by default after installation. Check out the :ref:`Orchest settings
-<orchest settings>` to learn how to enable it.
+<settings>` to learn how to enable it.

@@ -2,72 +2,58 @@
 
 Environment variables
 =====================
-Defining environment variables can be useful when you want to avoid persisting sensitive data in your
-versioning system. These environment variables will be injected in your pipeline steps, and can be
-retrieved using the native way of your language of choice, for example in Python:
+
+Environment variables let you exclude sensitive data from your versioning system.
+
+Environment variables are injected in your pipeline steps, and can be natively retrieved with your chosen language. For example, in Python:
 
 .. code-block:: python
 
    import os
    secret = os.environ["MY_VAR"]
 
-It is possible to define environment variables for projects, pipelines and jobs. The environment
-variables set for these different entities have different priorities: environment variables with the
-same name in jobs take precedence over pipelines, take precedence over projects.
+You can define environment variables for Projects, Pipelines and Jobs.
 
-Thus pipeline level environment variables would overwrite project level environment variables. For
-example, given that ``MY_VAR=PROJ_VALUE`` is defined at the project level and ``MY_VAR=PIP_VALUE``
-at the pipeline level, the value of ``MY_VAR`` for :ref:`interactive pipeline runs <interactive
-pipeline run>` is ``PIP_VALUE``.
+Pipeline variables overwrite Project variables. For example, if ``MY_VAR=PROJ_VALUE`` is defined at the Project level and ``MY_VAR=PIP_VALUE``
+at the Pipeline level, the value of ``MY_VAR`` for an :term:`interactive pipeline runs <interactive (pipeline) run>` is ``PIP_VALUE``.
+
+Changes to the ``PATH`` variable are ignored since they could break code execution.
 
 .. warning::
-   🚨 Environment variables are persisted within Orchest. Make sure only authorized people have
-   access to your instance and sensible data. See how to setup authentication in the :ref:`orchest
-   settings <orchest settings>`.
-
-.. note::
-   👉 Changes to the ``PATH`` variable are ignored given that it could break the execution of your
-   code.
+   🚨 Environment variables are persisted within Orchest. Make sure only authorized users can acess
+   your instance. See how to setup authentication in the :ref:`settings <settings>` section.
 
 Project environment variables
 -----------------------------
-Every variable defined at the project level will be visible to every run of a pipeline belonging to
-the project (this includes pipelines that run as part of jobs).
 
-You can access your project environment variables through the project settings:
+Project environment variables are visible to all Pipelines in that respective Project (including Pipelines in Jobs). Access your Project environment variables through Project settings:
 
 1. Open the *Projects* view in the left menu pane.
 2. Click on gear icon (in the *settings* column) in the row representing the project of interest.
 3. Towards the top you will find the *Project environment variables* section.
 4. Set your variables.
-5. Make sure to press the blue *Save* button at the bottom of your screen.
+5. Click the *Save* button.
 
 Pipeline environment variables
 ------------------------------
-You can access your pipeline environment variables through the pipeline settings:
 
-1. Open a pipeline via the *Pipelines* option in the left menu pane.
+Access your Pipeline environment variables through the Pipeline settings:
+
+1. Open a Pipeline via the *Pipelines* option in the left menu pane.
 2. Click on *Settings* in the top right corner.
 3. Click on the *Environment variables* tab.
 4. Set your variables.
-5. Make sure to press the blue *Save* button at the bottom of your screen.
+5. Click the *Save* button.
 
 Job environment variables
 -------------------------
-Since a job is related to a pipeline, its environment variables are initialized by merging the
-project and pipeline environment variables (this are the variables that would be defined for an
-interactive pipeline run of the given pipeline).
 
-You can then edit those variables (or add new ones) before submitting the job. Every pipeline run
-belonging to the job will have these environment variables set.
+Job environment variables are initialized by merging the Project and Pipeline environment variables when a Job is run. Add to/edit these variables before running the Job. Every Pipeline run belonging to this Job will include these environment variables.
 
 .. note::
-   💡 Only periodically scheduled jobs can have their environment variables edited after they have
-   started.
+   💡 Only recurring scheduled jobs can have their environment variables edited after they have started.
 
 Environment variables inside Notebooks
 --------------------------------------
-Environment variables will also be available in kernels that are launched in JupyterLab. To refresh
-the environment variables for kernels a restart of the :ref:`interactive session <interactive
-session>` is required. As per usual the environment variables defined at the pipeline level override
-the project's environment variables.
+
+Environment variables are available in JupyterLab kernels too. Restart the :term:`interactive session <interactive session>` to refresh the kernels' environment variables.

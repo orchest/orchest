@@ -34,6 +34,10 @@ export type Fetcher<T = void> = (
   params?: RequestInit | undefined
 ) => Promise<T>;
 
+export type ContentType =
+  | "application/json"
+  | "application/x-www-form-urlencoded";
+
 export const HEADER = {
   JSON: { "Content-Type": "application/json; charset=UTF-8" },
   FORM: {

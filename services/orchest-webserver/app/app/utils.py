@@ -636,13 +636,16 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
 
             notebook_path = os.path.join(pipeline_directory, step["file_path"])
 
-            if not is_valid_data_path(
+            is_in_allowed_folder = is_valid_data_path(
                 step["file_path"]
-            ) and not is_valid_pipeline_relative_path(
+            ) or is_valid_pipeline_relative_path(
                 project_uuid, pipeline_json["uuid"], step["file_path"]
-            ):
+            )
+
+            if not is_in_allowed_folder:
                 raise error.OutOfProjectError(
-                    "Step path points outside of the project directory."
+                    "Step path points outside of the project directory or the data "
+                    + "directory."
                 )
 
             if os.path.isfile(notebook_path):

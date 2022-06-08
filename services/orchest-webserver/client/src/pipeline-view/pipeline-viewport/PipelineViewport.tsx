@@ -273,7 +273,7 @@ export const PipelineViewport = React.forwardRef<
     };
   }, [pipelineSetHolderSize]);
 
-  useGestureOnViewport(localRef, pipelineSetHolderOrigin);
+  const zoom = useGestureOnViewport(localRef, pipelineSetHolderOrigin);
 
   const menuItems: MenuItem[] = [
     {
@@ -329,21 +329,15 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Zoom in",
-      action: () => {
-        dispatch({
-          type: "SET_SCALE_FACTOR",
-          payload: eventVars.scaleFactor + 0.25,
-        });
+      action: ({ contextMenuPosition }) => {
+        zoom(contextMenuPosition, 0.25);
       },
     },
     {
       type: "item",
       title: "Zoom out",
-      action: () => {
-        dispatch({
-          type: "SET_SCALE_FACTOR",
-          payload: eventVars.scaleFactor - 0.25,
-        });
+      action: ({ contextMenuPosition }) => {
+        zoom(contextMenuPosition, -0.25);
       },
     },
   ];

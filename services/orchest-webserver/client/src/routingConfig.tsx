@@ -19,6 +19,7 @@ export type RouteName =
   | "editJob"
   | "fileManager"
   | "settings"
+  | "notificationSettings"
   | "configureJupyterLab"
   | "update"
   | "manageUsers"
@@ -141,6 +142,12 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       name: "settings",
       path: "/settings",
       title: getTitle("Settings"),
+    },
+    {
+      name: "notificationSettings",
+      path: "/notification-settings",
+      root: "/settings",
+      title: getTitle("Notification Settings"),
     },
     {
       name: "configureJupyterLab",
