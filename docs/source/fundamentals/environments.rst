@@ -2,88 +2,62 @@
 
 Environments
 ============
-.. tip::
-    👉 Would you rather watch a short video tutorial? Check it our here: `installing additional
-    packages <https://app.tella.tv/story/cknr8owf4000308kzalsk11a5>`_.
 
-The scripts and Notebooks that are pointed to by pipeline steps are executed within their own
-environment when doing a pipeline run. When editing Notebooks, the respective kernel runs within an
-environment as well! On step creation (or when editing the step) you can choose the environment it
-should use.
+Environments define the conditions in which Pipeline Steps execute scripts and kernels. Environments are:
 
-Essentially, Orchest's environments define the execution environment in which the scripts and
-kernels are executed. Therefore, if you want to use additional packages within scripts, then they
-need to be installed in their respective environment.
-
-Lastly, environments are part of a single project and included when versioning. This ensures that
-you can get started immediately when importing an existing project without having to recreate the
-same environment.
+* Chosen in the Pipeline Step properties panel in the Pipeline Editor.
+* Configurable through their set-up script (on the Environments page) to install additional packages.
+* Versioned and belong to a single Project.
 
 Choosing a programming language
 -------------------------------
 
-An environment is always specifically used for one programming language. This avoids bloating
-the container image of the environment to include dependencies for multiple languages.
-
-
-Orchest has built in support for environments with the languages:
+An Environment only uses one programming language to avoid bloating its container image with too many dependencies. Orchest has built in support for environments with the languages:
 
 * Python
 * R
 * JavaScript
 * Julia
 
-Each environment supports ``Bash`` scripts. This can also be used to invoke any other language indirectly.
-Like Java, Scala, Go or C++ based steps.
+Each environment supports ``Bash`` scripts to invoke any other language indirectly. For example: ``Java``, ``Scala``, ``Go`` or ``C++``.
 
-Important paths inside environments
------------------------------------
-Whenever code is executed in an environment a number of paths are mounted to the container that you
-can access from within your code. These paths are:
+Building an Environment
+-----------------------
+1. Go to the *Environments* page.
+2. Create a new *Environment*.
+3. Choose an *Environment name*.
+4. Choose a base image.
+5. Choose one of the supported languages.
+6. Add installation commands for additional packages in the *Environment set-up script*. For example: :code:`pip install tensorflow`
+   or :code:`sudo apt-get install gcc`.
+7. Press the *Build* button.
+
+Updated Environments will automatically be used in the Pipeline editor and :ref:`interactive pipeline runs <interactive pipeline run>`.
+
+Important Environment Paths
+---------------------------
+Executed code can access important Environment paths:
 
 ``/data``
-    This directory should be used to write large artifacts and/or data to. Writing it to other
-    locations might lose your data (since the environments are stateless) or bloat your project
-    directory (which will slow down :ref:`job <jobs>` creation).
+    Use this directory to write large artifacts and/or data to. Writing to other locations might result in data loss (since the Environments are stateless) or bloat your Project directory (which slows down :ref:`job <jobs>`).
 
 ``/project-dir``
-    This directory contains all files from your :ref:`project <projects>` and is the working
-    directory when building the environment. This means that you can do:
+    This directory contains all files from your :ref:`project <projects>` and is the working directory when building the environment. This means that you can:
 
     .. code-block:: bash
 
        #!/bin/bash
        pip install -r requirements.txt
 
-Building an environment
------------------------
-1. Go to *Environments* in the left menu pane.
-2. Create a new *Environment*.
-3. Choose an *Environment name*.
-4. Choose a base image. This image will be extended through your setup bash script.
-5. To keep environment image sizes to a minimal, each environment is tied to a specific programming
-   language. Choose one of the supported languages for your environment.
-6. Go to the *BUILD* tab to install additional packages by adding their installation steps to the *Environment set-up
-   script*. This is where you enter your installation commands, e.g. :code:`pip install tensorflow`
-   or :code:`sudo apt-get install gcc`.
-7. Finally, press the *Build* button at the bottom.
-
-.. note::
-   💡 When updating an existing environment, the new environment will automatically be used inside
-   the visual editor (and for your :ref:`interactive pipeline runs <interactive pipeline run>`).
-
 .. _install packages:
 
 Installing additional packages
 ------------------------------
-.. warning::
-   🚨 Do not install packages by running :code:`!pip install <package-name>` inside your
-   Jupyter Notebook. This causes the package to be installed every time you run the pipeline
-   step. It is not saved in the environment as containers are stateless!
 
-Installing additional packages is as easy as building a new version of your environment that
-includes the packages you need, simply follow the steps in the previous section. An example
-*Environment set-up script*:
+.. tip::
+    👉 See video tutorial: `installing additional packages <https://app.tella.tv/story/cknr8owf4000308kzalsk11a5>`_.
+
+Example *Environment set-up script*:
 
 .. code-block:: bash
 
@@ -98,33 +72,25 @@ includes the packages you need, simply follow the steps in the previous section.
    # Or, alternatively, install Python dependencies using pip
    pip install black
 
-.. note::
-   💡 `mamba <https://mamba.readthedocs.io/>`_ is a drop-in replacement to conda
-   that is more user friendly and faster. Installing packages with conda is also supported,
-   but conda might need a long time to solve the environment.
+Installing packages with ``conda`` is also supported but might take longer (due to known conda issues regarding dependency solving). We recommmend using `mamba <https://mamba.readthedocs.io/>`_ as a user-friendly and fast drop-in conda replacement. ``pip``, ``mamba`` and ``conda`` caches are persisted across builds for quicker iterations. This cache can be ignored or removed using the respective flags (e.g. ``pip install --no-cache``) or commands.
 
-.. note::
-   💡 ``pip``, ``mamba`` and ``conda`` caches are persisted across builds for quicker iterations.
-   Said cache can be ignored or removed using the respective flags (e.g. ``pip install --no-cache``)
-   or commands.
+.. warning::
+   🚨 Do not install packages by running :code:`!pip install <package-name>` inside your Jupyter Notebook. This causes the package to be installed every time you run the Pipeline Step. It is not saved in the Environment as containers are stateless!
 
-Creating a custom environment image
------------------------------------
-Bringing your own fully custom environment image is not recommended as Orchest requires a certain
-structure of the image to work correctly. Due to the dependency on the Jupyter Docker stacks and the
-ability of the environments to work for pipeline runs and to host active Jupyter kernels, we
-recommend using our provided base images for the :ref:`environments <environments>` instead and
-using the *set-up script* to customize the environments according to your needs.
+Custom Environment images
+-------------------------
+
+Fully custom environment images are not recommended. This is because Environments require a particular image structure to cater for Jupyter Docker stacks dependencies, Pipeline runs and hosting active Jupyter kernels. Instead, use our default base images and customize them via the *set-up script*.
 
 Using a different Python version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-It might be the case that your code requires another Python version than we are offering. Luckily
-with environments it is easy to set up the Python version you require.
 
-To do this, create the new conda environment in your setup script with your desired Python version
-and store the relevant environment variables in ``/home/jovyan/.orchestrc``,
-which will be sourced on startup.
-For example, to configure an environment with Python 3.10 using mamba, add these commands:
+To use a different Python version:
+
+1. Create the new conda Environment in your setup script with the desired Python version.
+2. Store the relevant environment variables in ``/home/jovyan/.orchestrc`` which will be sourced on startup.
+
+For example, configuring an Environment with Python 3.10 using mamba:
 
 .. code-block:: bash
 
