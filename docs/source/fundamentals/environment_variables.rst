@@ -12,7 +12,7 @@ Environment variables are injected in your pipeline steps, and can be natively r
    import os
    secret = os.environ["MY_VAR"]
 
-You can define Environment variables for Projects, Pipelines and Jobs. 
+You can define environment variables for Projects, Pipelines and Jobs. 
 
 Pipeline variables overwrite Project variables. For example, if ``MY_VAR=PROJ_VALUE`` is defined at the Project level and ``MY_VAR=PIP_VALUE``
 at the Pipeline level, the value of ``MY_VAR`` for an :ref:`interactive pipeline runs <interactive pipeline run>` is ``PIP_VALUE``.
@@ -36,7 +36,7 @@ Project environment variables are visible to all Pipelines in that respective Pr
 Pipeline environment variables
 ------------------------------
 
-Access your pipeline environment variables through the Pipeline settings:
+Access your Pipeline environment variables through the Pipeline settings:
 
 1. Open a Pipeline via the *Pipelines* option in the left menu pane.
 2. Click on *Settings* in the top right corner.
