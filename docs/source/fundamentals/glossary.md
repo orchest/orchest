@@ -13,8 +13,8 @@ DAG
       to the following step to process it.
     * It's **acyclic** because it has no _cycles_ (or feedback loops). In other words,
       there is no way to follow the connections of the graph starting from one step
-      and come back to the same step. This is important because it means that pipelines
-      are finite.
+      and come back to the same step. This is important because it means that the execution
+      of a pipeline is guaranteed to finish at some point.
 
 Pipeline step
     A single unit of execution, that receives data, operates on it, and outputs it (which can be
@@ -47,8 +47,7 @@ Pipeline definition
 Interactive session
     Some notion of a session that you can boot and shut down which gives you additional functionality
     when it comes to editing and running your pipelines. The lifetime of a session can be managed
-    inside the pipeline editor, or in the list pipelines. A session is automatically started for you
-    when opening up a pipeline.
+    inside the pipeline editor. A session is automatically started for you when opening up a pipeline.
 
     * Automatically boots and manages: JupyterLab and jupyter-enterprise-gateway.
     * Required in order to start an {term}`interactive pipeline run <Interactive (pipeline) run>`.

@@ -14,9 +14,9 @@ and infrastructure to monitor its results. However, there are notable difference
 
 - **Data Scientists and Engineers that love Jupyter notebooks**:
   Even though you can use scripts as your {term}`pipeline steps <Pipeline step>` as well,
-  Orchest is built on top of JupyterLab, bundles a few useful extensions,
+  Orchest has deep JupyterLab integration, bundles a few useful extensions,
   and is integrated seamlessly with your existing workflow.
-  If you already love Jupyter notebooks, using Orchest will feel easy.
+  If you already love Jupyter notebooks, then you will feel right at home in Orchest.
 
 - **Anyone who is looking to create pipelines through a visual interface**:
   Rather than defining your steps in YAML files, you can connect them with the Orchest
