@@ -49,7 +49,7 @@ Interactive session
     when it comes to editing and running your pipelines. The lifetime of a session can be managed
     inside the pipeline editor. A session is automatically started for you when opening up a pipeline.
 
-    * Automatically boots and manages: JupyterLab and jupyter-enterprise-gateway.
+    * Automatically boots and manages: JupyterLab, jupyter-enterprise-gateway, and the {ref}`Services`.
     * Required in order to start an {term}`interactive pipeline run <Interactive (pipeline) run>`.
 
 Pipeline run
