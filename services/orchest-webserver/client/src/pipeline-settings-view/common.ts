@@ -47,18 +47,18 @@ export const cleanPipelineJson = (pipelineJson: PipelineJson): PipelineJson => {
 
 export const generatePipelineJsonForSaving = ({
   pipelineJson,
-  inputParameters,
+  pipelineParameters,
   pipelineName,
   services,
   settings = {},
 }: {
   pipelineJson: PipelineJson;
-  inputParameters: string | undefined;
+  pipelineParameters: string | undefined;
   pipelineName: string | undefined;
   services: Record<string, Service> | undefined;
   settings: PipelineSettings | undefined;
 }): PipelineJson => {
-  const parameters = parseJsonString<Json>(inputParameters);
+  const parameters = parseJsonString<Json>(pipelineParameters);
 
   return cleanPipelineJson({
     ...pipelineJson,

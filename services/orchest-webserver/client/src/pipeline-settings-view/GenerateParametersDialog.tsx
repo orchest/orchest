@@ -8,6 +8,7 @@ import {
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
 import { PipelineJson } from "@/types";
+import { isValidJson } from "@/utils/isValidJson";
 import {
   generateStrategyJson,
   pipelinePathToJsonLocation,
@@ -25,7 +26,7 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 
-const pipelineJsonToParams = (
+export const pipelineJsonToParams = (
   pipelineJson: PipelineJson | undefined,
   reservedKey: string | undefined
 ) => {
@@ -92,8 +93,10 @@ export const GenerateParametersDialog = ({
   const { config, setConfirm, setAlert } = useAppContext();
 
   const [parameterFileString, setParameterFileString] = React.useState("");
-  const [_isParameterJsonValid, setIsParameterJsonValid] = React.useState(true);
-  const isParameterJsonValid = useDebounce(_isParameterJsonValid, 1000);
+  const parameterFileStringForValidation = useDebounce(
+    parameterFileString,
+    1000
+  );
   const [copyButtonText, setCopyButtontext] = React.useState("Copy");
 
   React.useEffect(() => {
@@ -113,15 +116,6 @@ export const GenerateParametersDialog = ({
       )
     );
     setCopyButtontext("Copied!");
-  };
-
-  const isValidJson = (jsonString) => {
-    try {
-      JSON.parse(jsonString);
-      return true;
-    } catch {
-      return false;
-    }
   };
 
   const onCreateFile = (filePath: string | undefined) => {
@@ -178,11 +172,10 @@ export const GenerateParametersDialog = ({
     }
   };
 
-  const checkValidityRef = React.useRef<(() => void) | undefined>();
-  const checkValidity = () => {
-    setIsParameterJsonValid(isValidJson(parameterFileString));
-  };
-  checkValidityRef.current = checkValidity;
+  const isParameterJsonValid = React.useMemo(() => {
+    if (!parameterFileStringForValidation) return true;
+    return isValidJson(parameterFileStringForValidation);
+  }, [parameterFileStringForValidation]);
 
   return (
     <Dialog
@@ -209,7 +202,6 @@ export const GenerateParametersDialog = ({
                   value={parameterFileString}
                   onBeforeChange={(editor, data, value) => {
                     setParameterFileString(value);
-                    checkValidityRef.current && checkValidityRef.current();
                   }}
                   options={{
                     mode: "application/json",

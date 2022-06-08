@@ -282,7 +282,7 @@ export type BackgroundTask =
       result: null;
     };
 
-export const pipelinePathToJsonLocation = (pipelinePath) => {
+export const pipelinePathToJsonLocation = (pipelinePath: string) => {
   if (!pipelinePath.endsWith(".orchest")) {
     return;
   }

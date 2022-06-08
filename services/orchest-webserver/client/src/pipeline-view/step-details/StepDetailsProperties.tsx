@@ -1,6 +1,6 @@
 import ProjectFilePicker from "@/components/ProjectFilePicker";
-import { usePipelineEditorContext } from "@/pipeline-view/contexts/PipelineEditorContext";
 import { Step } from "@/types";
+import { isValidJson } from "@/utils/isValidJson";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -69,7 +69,6 @@ export const StepDetailsProperties = ({
   menuMaxWidth?: string;
 }) => {
   const { step, connections } = useStepDetailsContext();
-  const { pipelineUuid } = usePipelineEditorContext();
   // Allows user to edit JSON while typing the text will not be valid JSON.
   const [editableParameters, setEditableParameters] = React.useState(
     JSON.stringify(step.parameters, null, 2)
@@ -291,13 +290,8 @@ export const StepDetailsProperties = ({
     return () => clearConnectionListener();
   }, [step.uuid]);
 
-  const isValidJson = React.useMemo(() => {
-    try {
-      JSON.parse(editableParameters);
-      return true;
-    } catch (error) {
-      return false;
-    }
+  const isParametersValidJson = React.useMemo(() => {
+    return isValidJson(editableParameters);
   }, [editableParameters]);
 
   const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
@@ -386,7 +380,7 @@ export const StepDetailsProperties = ({
               onChangeParameterJSON(value);
             }}
           />
-          {!isValidJson && (
+          {!isParametersValidJson && (
             <Alert severity="warning">Your input is not valid JSON.</Alert>
           )}
         </Box>

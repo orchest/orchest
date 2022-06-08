@@ -21,6 +21,7 @@ import type {
   Service,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
+import { isValidJson } from "@/utils/isValidJson";
 import {
   envVariablesArrayToDict,
   isValidEnvironmentVariableName,
@@ -163,8 +164,8 @@ const PipelineSettingsView: React.FC = () => {
     pipelineJson,
     pipelineName,
     setPipelineName,
-    inputParameters,
-    setInputParameters,
+    pipelineParameters,
+    setPipelineParameters,
   } = useFetchPipelineSettings({
     projectUuid,
     pipelineUuid,
@@ -258,7 +259,7 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const onChangePipelineParameters = (editor, data, value: string) => {
-    setInputParameters(value);
+    setPipelineParameters(value);
   };
 
   const validateServiceEnvironmentVariables = (pipeline: PipelineJson) => {
@@ -283,12 +284,12 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const saveGeneralForm = async () => {
-    if (!pipelineUuid) return;
+    if (!pipelineUuid || !pipelineJson) return;
     // do not mutate the original pipelineJson
     // put all mutations together for saving
     const updatedPipelineJson = generatePipelineJsonForSaving({
       pipelineJson,
-      inputParameters,
+      pipelineParameters,
       pipelineName,
       services,
       settings,
@@ -471,26 +472,21 @@ const PipelineSettingsView: React.FC = () => {
   const prettifyInputParameters = () => {
     let newValue: string | undefined;
     try {
-      const parsedValue = JSON.stringify(JSON.parse(inputParameters));
-      newValue = parsedValue !== inputParameters ? parsedValue : undefined;
+      const parsedValue = JSON.stringify(JSON.parse(pipelineParameters));
+      newValue = parsedValue !== pipelineParameters ? parsedValue : undefined;
     } catch (error) {}
 
-    if (newValue) setInputParameters(newValue);
+    if (newValue) setPipelineParameters(newValue);
   };
 
   const inputParametersError = React.useMemo(() => {
-    try {
-      JSON.parse(inputParameters);
-      return null;
-    } catch {
-      return (
-        <div className="warning push-up push-down">
-          <i className="material-icons">warning</i> Your input is not valid
-          JSON.
-        </div>
-      );
-    }
-  }, [inputParameters]);
+    if (isValidJson(pipelineParameters)) return null;
+    return (
+      <div className="warning push-up push-down">
+        <i className="material-icons">warning</i> Your input is not valid JSON.
+      </div>
+    );
+  }, [pipelineParameters]);
 
   return (
     <Layout>
@@ -599,7 +595,7 @@ const PipelineSettingsView: React.FC = () => {
                       </div>
                       <div className="column">
                         <CodeMirror
-                          value={inputParameters}
+                          value={pipelineParameters}
                           options={{
                             mode: "application/json",
                             theme: "jupyter",
