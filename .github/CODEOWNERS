@@ -1,0 +1,21 @@
+# See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+# for more details about how CODEOWNERS works
+
+# Backend
+services/base-images/*  @fruttasecca @yannickperrenet
+services/jupyter-enterprise-gateway/*  @fruttasecca @yannickperrenet
+services/jupyter-server/*  @fruttasecca @yannickperrenet
+services/memory-server/*  @fruttasecca @yannickperrenet
+services/node-agent/*  @fruttasecca @yannickperrenet
+services/orchest-api/*  @fruttasecca @yannickperrenet
+services/session-sidecar/*  @fruttasecca @yannickperrenet
+
+# Frontend
+services/auth-server/*  @iannbing @BrunoOrchest
+services/orchest-webserver/*  @iannbing @BrunoOrchest
+
+# K8S
+services/orchest-controller/*  @nhaghighat
+
+# Documentation
+docs/*  @astrojuanlu
