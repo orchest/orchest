@@ -16,6 +16,7 @@ import {
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
 import { Project } from "@/types";
+import deleteProject from "@/utils/delete-project";
 import {
   BackgroundTask,
   CreateProjectError,
@@ -176,15 +177,6 @@ const dialogTitleMappings: Record<ImportStatus, string> = {
   FILES_STORED: "Upload complete",
   SAVING_PROJECT_NAME: "Upload complete",
 };
-
-const deleteProject = (projectUuid: string) =>
-  fetcher("/async/projects", {
-    method: "DELETE",
-    headers: HEADER.JSON,
-    body: JSON.stringify({
-      project_uuid: projectUuid,
-    }),
-  });
 
 export const ImportDialog: React.FC<{
   importUrl: string;

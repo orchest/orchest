@@ -7,6 +7,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { RouteName, siteMap } from "@/routingConfig";
 import { Project } from "@/types";
+import deleteProject from "@/utils/delete-project";
 import { toQueryString } from "@/utils/routing";
 import {
   envVariablesArrayToDict,
@@ -20,7 +21,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Modal from "@mui/material/Modal";
-import { fetcher, HEADER, makeRequest } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -129,35 +130,30 @@ const ProjectSettingsView: React.FC = () => {
   }, []);
 
   const { setConfirm } = useAppContext();
-  const deleteProject = () => {
+  const deleteCurrentProject = () => {
+    if (!projectUuid) {
+      return;
+    }
     setConfirm(
       "Warning",
       "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
-      () => {
-        let deletePromise = makeRequest("DELETE", "/async/projects", {
-          type: "json",
-          content: {
-            project_uuid: projectUuid,
-          },
-        });
-        setIsDeletingProject(true);
-
-        deletePromise
-          .then(() => {
-            navigateTo(siteMap.projects.path);
-          })
-          .catch((response) => {
-            try {
-              let data = JSON.parse(response.body);
-
-              setAlert("Error", `Could not delete project. ${data.message}`);
-            } catch {
-              setAlert("Error", "Could not delete project. Reason unknown.");
-            }
-          })
-          .finally(() => setIsDeletingProject(false));
-
-        return deletePromise;
+      async (resolve) => {
+        try {
+          await deleteProject(projectUuid);
+          navigateTo(siteMap.projects.path);
+        } catch (error) {
+          setAlert(
+            "Error",
+            `Failed to delete the project with UUID ${projectUuid}`
+          );
+          console.error(
+            `Failed to delete the project with UUID ${projectUuid}. ${error}`
+          );
+        } finally {
+          resolve(true);
+          setIsDeletingProject(true);
+          return true;
+        }
       }
     );
   };
@@ -280,11 +276,11 @@ const ProjectSettingsView: React.FC = () => {
                 <Button
                   variant="contained"
                   startIcon={<DeleteIcon />}
-                  onClick={deleteProject}
+                  onClick={deleteCurrentProject}
                   color="error"
                   data-test-id="pipeline-settings-delete"
                 >
-                  DELETE
+                  DELETE PROJECT
                 </Button>
               </div>
             </>

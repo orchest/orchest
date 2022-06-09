@@ -14,6 +14,7 @@ import { useImportUrl } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
+import deleteProject from "@/utils/delete-project";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import InputIcon from "@mui/icons-material/Input";
@@ -22,7 +23,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { hasValue, makeRequest } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectPathDialog } from "./EditProjectPathDialog";
@@ -184,7 +185,10 @@ const ProjectsView: React.FC = () => {
           .then(() => {
             resolve(true); // 2. this is resolved later, and this resolves the Promise returned by setConfirm, and thereafter resolved in DataTable
           })
-          .catch(() => {
+          .catch((error) => {
+            setAlert("Error", `Failed to delete the projects`);
+            console.error(`Failed to delete the projects. ${error}`);
+
             resolve(false);
           })
           .finally(() => {
@@ -200,24 +204,7 @@ const ProjectsView: React.FC = () => {
       dispatch({ type: "SET_PROJECT", payload: undefined });
     }
 
-    let deletePromise = makeRequest("DELETE", "/async/projects", {
-      type: "json",
-      content: {
-        project_uuid: toBeDeletedId,
-      },
-    });
-
-    deletePromise.catch((response) => {
-      try {
-        let data = JSON.parse(response.body);
-
-        setAlert("Error", `Could not delete project. ${data.message}`);
-      } catch {
-        setAlert("Error", "Could not delete project. Reason unknown.");
-      }
-    });
-
-    return deletePromise;
+    return deleteProject(toBeDeletedId);
   };
 
   const onCreateClick = () => {
