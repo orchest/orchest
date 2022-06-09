@@ -18,7 +18,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
-import { Dialog } from "@mui/material";
+import { Dialog, Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -138,15 +138,16 @@ const ProjectSettingsView: React.FC = () => {
       return;
     }
     setConfirm(
-      "Warning",
-      "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
+      `Delete ${state.path}?`,
+      "Warning: Deleting a Project is permanent. All associated Jobs and resources will be deleted and unrecoverable.",
       async (resolve) => {
+        setIsDeletingProject(true);
         try {
+          await deleteProject(projectUuid);
           if (projectsState.projectUuid === projectUuid) {
             dispatch({ type: "SET_PROJECT", payload: undefined });
           }
 
-          await deleteProject(projectUuid);
           navigateTo(siteMap.projects.path);
         } catch (error) {
           setAlert(
@@ -158,7 +159,7 @@ const ProjectSettingsView: React.FC = () => {
           );
         } finally {
           resolve(true);
-          setIsDeletingProject(true);
+          setIsDeletingProject(false);
           return true;
         }
       },
@@ -181,17 +182,10 @@ const ProjectSettingsView: React.FC = () => {
       <Dialog open={isDeletingProject}>
         <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "20%",
-            bgcolor: "background.paper",
-            boxShadow: 24,
             p: 4,
           }}
         >
-          <div>Deleting project...</div>
+          <Typography variant="h5">Deleting project...</Typography>
           <Box sx={{ marginTop: 4 }}>
             <LinearProgress />
           </Box>
