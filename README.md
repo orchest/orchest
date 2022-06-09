@@ -119,3 +119,4 @@ An example badge to import our [quickstart](https://github.com/orchest/quickstar
 <a href="https://github.com/nhaghighat"><img src="https://avatars.githubusercontent.com/u/3792293?v=4" title="nhaghighat" width="50" height="50"></a>
 <a href="https://github.com/porcupineyhairs"><img src="https://avatars.githubusercontent.com/u/61983466?v=4" title="porcupineyhairs" width="50" height="50"></a>
 <a href="https://github.com/ncspost"><img src="https://avatars.githubusercontent.com/ncspost?v=4" title="ncspost" width="50" height="50"></a>
+<a href="https://github.com/cavriends"><img src="https://avatars.githubusercontent.com/u/4497501?v=4" title="cavriends" width="50" height="50"></a>
