@@ -11,9 +11,12 @@ import app.models as models
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
+from app import types as app_types
+from app import utils as app_utils
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
+from app.core import events
 from app.utils import register_schema
 
 api = Namespace("pipelines", description="Managing pipelines")
@@ -42,6 +45,10 @@ class PipelineList(Resource):
 
         try:
             db.session.add(models.Pipeline(**pipeline))
+            events.register_pipeline_created_event(
+                pipeline["project_uuid"],
+                pipeline["uuid"],
+            )
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -71,11 +78,24 @@ class Pipeline(Resource):
     @api.doc("update_pipeline")
     def put(self, project_uuid, pipeline_uuid):
         """Update a pipeline."""
+        pipeline = (
+            models.Pipeline.query.options(undefer(models.Pipeline.env_variables))
+            .filter(
+                models.Pipeline.project_uuid == project_uuid,
+                models.Pipeline.uuid == pipeline_uuid,
+            )
+            .one_or_none()
+        )
+        if pipeline is None:
+            abort(404, "Pipeline not found.")
+
         update = request.get_json()
 
         # Keep mutable job pipeline name entry up to date so that the
         # job views reflect the newest name.
         if "name" in update:
+            if len(update["name"]) > 255:
+                return {}, 400
             try:
                 models.Job.query.filter_by(
                     project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
@@ -92,9 +112,30 @@ class Pipeline(Resource):
 
         if update:
             try:
+                changes = []
+                if "env_variables" in update:
+                    changes.extend(
+                        app_utils.get_env_vars_update(
+                            pipeline.env_variables, update["env_variables"]
+                        )
+                    )
+                if "name" in update and pipeline.name != update["name"]:
+                    changes.append(
+                        app_types.Change(
+                            type=app_types.ChangeType.UPDATED, changed_object="name"
+                        )
+                    )
+
                 models.Pipeline.query.filter_by(
                     project_uuid=project_uuid, uuid=pipeline_uuid
                 ).update(update)
+
+                if changes:
+                    events.register_pipeline_updated_event(
+                        project_uuid,
+                        pipeline_uuid,
+                        app_types.EntityUpdate(changes=changes),
+                    )
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -154,6 +195,10 @@ class DeletePipeline(TwoPhaseFunction):
         models.Pipeline.query.filter_by(
             project_uuid=project_uuid, uuid=pipeline_uuid
         ).update({"env_variables": {}})
+
+        events.register_pipeline_deleted_event(
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+        )
 
         # Note that we do not delete the pipeline from the db since we
         # are not deleting jobs related to the pipeline. Deleting the

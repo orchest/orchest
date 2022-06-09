@@ -42,7 +42,7 @@ type ProjectRow = Pick<
 
 const ProjectsView: React.FC = () => {
   const { state, setAlert, setConfirm } = useAppContext();
-  useSendAnalyticEvent("view load", { name: siteMap.projects.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
 
   const {
     dispatch,

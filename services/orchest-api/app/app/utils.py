@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import uuid
 from collections import ChainMap
@@ -21,6 +22,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from app import errors as self_errors
 from app import schema
+from app import types as app_types
 from app.celery_app import make_celery
 from app.connections import db, k8s_core_api
 from config import CONFIG_CLASS
@@ -694,6 +696,65 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
     images_to_be_removed.update({"marked_for_removal": True})
 
 
-def extract_domain_name(url: str):
+def get_environment_directory_path(project_path: str, environment_uuid: str) -> str:
+    return os.path.join(
+        "/userdir",
+        "projects",
+        project_path,
+        ".orchest",
+        "environments",
+        environment_uuid,
+    )
+
+
+def get_job_dir_path(project_uuid: str, pipeline_uuid: str, job_uuid: str) -> str:
+    return os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
+
+
+def get_job_snapshot_path(project_uuid: str, pipeline_uuid: str, job_uuid: str) -> str:
+    job_dir = get_job_dir_path(project_uuid, pipeline_uuid, job_uuid)
+    return os.path.join(job_dir, "snapshot")
+
+
+def get_job_run_dir_path(
+    project_uuid: str, pipeline_uuid: str, job_uuid: str, run_uuid: str
+) -> str:
+    job_dir = get_job_dir_path(project_uuid, pipeline_uuid, job_uuid)
+    return os.path.join(job_dir, run_uuid)
+
+
+def get_env_vars_update(
+    old_env_vars: Dict[str, str], new_env_vars: Dict[str, str]
+) -> List[app_types.Change]:
+    """Gets a list of changes relate to env vars, values excluded."""
+    changes = []
+    for env_var_name, env_var_value in old_env_vars.items():
+        new_value = new_env_vars.get(env_var_name)
+        if new_value is None:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.DELETED,
+                    changed_object="environment_variable",
+                )
+            )
+        elif env_var_value != new_value:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.UPDATED,
+                    changed_object="environment_variable",
+                )
+            )
+    for env_var_name in new_env_vars:
+        if env_var_name not in old_env_vars:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.CREATED,
+                    changed_object="environment_variable",
+                )
+            )
+    return changes
+
+
+def extract_domain_name(url: str) -> str:
     parsed_url = urlparse(url)
     return f"{parsed_url.scheme}://{parsed_url.netloc}"

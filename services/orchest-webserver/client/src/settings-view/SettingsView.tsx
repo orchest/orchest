@@ -42,7 +42,7 @@ const SettingsView: React.FC = () => {
 
   const { orchestVersion, checkUpdate } = useAppInnerContext();
 
-  useSendAnalyticEvent("view load", { name: siteMap.settings.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.settings.path });
 
   const [status, setStatus] = useOrchestStatus();
 

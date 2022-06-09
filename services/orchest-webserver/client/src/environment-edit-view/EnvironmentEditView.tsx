@@ -65,7 +65,7 @@ const EnvironmentEditView: React.FC = () => {
   const { setAlert, setAsSaved, config } = useAppContext();
   const { orchestVersion } = useAppInnerContext();
 
-  useSendAnalyticEvent("view load", { name: siteMap.environment.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.environment.path });
 
   // data from route
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();

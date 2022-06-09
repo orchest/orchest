@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import subprocess
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import requests
 from werkzeug.serving import is_running_from_reloader as _irfr
@@ -312,3 +312,32 @@ def is_version_lt(expected_older: str, expected_newer: str) -> bool:
         elif int(o) < int(n):
             return True
     return False
+
+
+def get_directory_size(path: str, skip_dirs: Optional[Iterable] = None):
+    """Gets the directory size in bytes.
+
+    Args:
+        path: Path of the directory.
+        skip_dirs: Direcotires to skip when calculating the size.
+
+    Returns:
+        Size of the directory in bytes.
+
+    """
+    if skip_dirs is None:
+        skip_dirs = []
+
+    size = 0
+    for root, dirs, files in os.walk(path):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+            if os.path.islink(file_path):
+                continue
+            size += os.path.getsize(file_path)
+
+        for skip_dir in skip_dirs:
+            if skip_dir in dirs:
+                dirs.remove(skip_dir)
+
+    return size

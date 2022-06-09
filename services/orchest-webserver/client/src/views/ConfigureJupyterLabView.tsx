@@ -36,7 +36,9 @@ const ConfigureJupyterLabView: React.FC = () => {
     state: { sessionsKillAllInProgress, sessions },
   } = useSessionsContext();
 
-  useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
+  useSendAnalyticEvent("view:loaded", {
+    name: siteMap.configureJupyterLab.path,
+  });
   const { cancelableFetch } = useCancelableFetch();
 
   // local states

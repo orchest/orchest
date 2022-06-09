@@ -14,7 +14,7 @@ from sqlalchemy.orm import noload
 from app import models
 from app import utils as app_utils
 from app.connections import db
-from app.core.notifications import webhooks
+from app.core.notifications import analytics, webhooks
 
 logger = app_utils.get_logger()
 
@@ -105,16 +105,17 @@ def get_subscribers_subscribed_to_event(
 def process_notifications_deliveries_task() -> None:
     logger.info("Processing notifications deliveries")
 
+    delivery_filter = [
+        models.Delivery.status.in_(["SCHEDULED", "RESCHEDULED"]),
+        models.Delivery.scheduled_at <= datetime.datetime.now(datetime.timezone.utc),
+    ]
+
     # Note that we don't select for update here, said locking will
     # happen on a single delivery basis.
     webhook_deliveries = (
         (db.session.query(models.Delivery.uuid))
         .join(models.Webhook, models.Webhook.uuid == models.Delivery.deliveree)
-        .filter(
-            models.Delivery.status.in_(["SCHEDULED", "RESCHEDULED"]),
-            models.Delivery.scheduled_at
-            <= datetime.datetime.now(datetime.timezone.utc),
-        )
+        .filter(*delivery_filter)
         .order_by(models.Delivery.scheduled_at)
         .all()
     )
@@ -124,6 +125,26 @@ def process_notifications_deliveries_task() -> None:
     for delivery in webhook_deliveries:
         try:
             webhooks.deliver(delivery.uuid)
+        # Don't let failures affect other deliveries.
+        except Exception as e:
+            logger.error(e)
+
+    analytics_deliveries = (
+        (db.session.query(models.Delivery.uuid))
+        .join(
+            models.AnalyticsSubscriber,
+            models.AnalyticsSubscriber.uuid == models.Delivery.deliveree,
+        )
+        .filter(*delivery_filter)
+        .order_by(models.Delivery.scheduled_at)
+        .all()
+    )
+
+    logger.info(f"Found {len(analytics_deliveries)} analytics deliveries to deliver.")
+
+    for delivery in analytics_deliveries:
+        try:
+            analytics.deliver(delivery.uuid)
         # Don't let failures affect other deliveries.
         except Exception as e:
             logger.error(e)

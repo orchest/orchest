@@ -16,7 +16,7 @@ from app import errors as self_errors
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
-from app.core import environments
+from app.core import environments, events
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import get_proj_pip_env_variables, register_schema, update_status_db
 
@@ -90,11 +90,28 @@ class Run(Resource):
         filter_by = {"uuid": run_uuid}
         status_update = request.get_json()
         try:
-            update_status_db(
+            has_updated = update_status_db(
                 status_update, model=models.PipelineRun, filter_by=filter_by
             )
+            if has_updated:
+                run = models.InteractivePipelineRun.query.filter(
+                    models.InteractivePipelineRun.uuid == run_uuid
+                ).one()
+                if status_update["status"] == "STARTED":
+                    events.register_interactive_pipeline_run_started(
+                        run.project_uuid, run.pipeline_uuid, run_uuid
+                    )
+                elif status_update["status"] == "FAILURE":
+                    events.register_interactive_pipeline_run_failed(
+                        run.project_uuid, run.pipeline_uuid, run_uuid
+                    )
+                elif status_update["status"] == "SUCCESS":
+                    events.register_interactive_pipeline_run_succeeded(
+                        run.project_uuid, run.pipeline_uuid, run_uuid
+                    )
             db.session.commit()
-        except Exception:
+        except Exception as e:
+            current_app.logger.error(e)
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -190,6 +207,13 @@ class AbortPipelineRun(TwoPhaseFunction):
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
 
+        run = models.InteractivePipelineRun.query.filter(
+            models.InteractivePipelineRun.uuid == run_uuid
+        ).one()
+        events.register_interactive_pipeline_run_cancelled(
+            run.project_uuid, run.pipeline_uuid, run_uuid
+        )
+
         self.collateral_kwargs["run_uuid"] = run_uuid if can_abort else None
 
         return can_abort
@@ -229,6 +253,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
             "pipeline_uuid": pipeline.properties["uuid"],
             "project_uuid": project_uuid,
             "status": "PENDING",
+            "pipeline_definition": pipeline.to_dict(),
         }
         db.session.add(models.InteractivePipelineRun(**run))
         # need to flush because otherwise the bulk insertion of pipeline
@@ -263,6 +288,10 @@ class CreateInteractiveRun(TwoPhaseFunction):
         except self_errors.PipelineDefinitionNotValid:
             msg = "Please make sure every pipeline step is assigned an environment."
             raise self_errors.PipelineDefinitionNotValid(msg)
+
+        events.register_interactive_pipeline_run_created(
+            project_uuid, pipeline.properties["uuid"], task_id
+        )
 
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["task_id"] = task_id
@@ -323,4 +352,9 @@ class CreateInteractiveRun(TwoPhaseFunction):
         models.PipelineRunStep.query.filter_by(
             run_uuid=self.collateral_kwargs["task_id"]
         ).update({"status": "FAILURE"})
+        events.register_interactive_pipeline_run_failed(
+            self.collateral_kwargs["project_uuid"],
+            self.collateral_kwargs["pipeline"].properties["uuid"],
+            self.collateral_kwargs["task_id"],
+        )
         db.session.commit()
