@@ -2,6 +2,7 @@ import { PageTitle } from "@/components/common/PageTitle";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -40,6 +41,8 @@ const ProjectSettingsView: React.FC = () => {
 
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
+
+  const { state: projectsState, dispatch } = useProjectsContext();
 
   const [envVariables, _setEnvVariables] = React.useState<
     EnvVarPair[] | undefined
@@ -139,6 +142,10 @@ const ProjectSettingsView: React.FC = () => {
       "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
       async (resolve) => {
         try {
+          if (projectsState.projectUuid === projectUuid) {
+            dispatch({ type: "SET_PROJECT", payload: undefined });
+          }
+
           await deleteProject(projectUuid);
           navigateTo(siteMap.projects.path);
         } catch (error) {
