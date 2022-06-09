@@ -18,10 +18,10 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
+import { Dialog } from "@mui/material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import Modal from "@mui/material/Modal";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { Link } from "react-router-dom";
@@ -177,7 +177,7 @@ const ProjectSettingsView: React.FC = () => {
 
   return (
     <Layout>
-      <Modal open={isDeletingProject}>
+      <Dialog open={isDeletingProject}>
         <Box
           sx={{
             position: "absolute",
@@ -195,7 +195,7 @@ const ProjectSettingsView: React.FC = () => {
             <LinearProgress />
           </Box>
         </Box>
-      </Modal>
+      </Dialog>
       <div className={"view-page view-project-settings"}>
         <form
           className="project-settings-form"
