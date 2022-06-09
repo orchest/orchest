@@ -50,7 +50,7 @@ export const generateStrategyJsonFromParamJsonFile = (
 
     if (key === reservedKey) {
       try {
-        all[reservedKey]["title"] = pipeline.name;
+        newValue["title"] = pipeline.name;
       } catch (error) {
         console.error(error);
       }
@@ -72,16 +72,23 @@ export const generateStrategyJsonFromParamJsonFile = (
   // Fill in missing values
   Object.keys(pipeline.steps).forEach((stepUuid) => {
     let step = pipeline.steps[stepUuid];
-    if (
-      strategyJson[stepUuid] === undefined &&
-      step.parameters &&
-      Object.keys(step.parameters).length > 0
-    ) {
-      strategyJson[stepUuid] = {
-        key: stepUuid,
-        title: step.title,
-        parameters: toStringifiedParams(cloneDeep(step.parameters), true),
-      };
+    if (step.parameters && Object.keys(step.parameters).length > 0) {
+      let stepParametersFromPipelineStepDef = toStringifiedParams(
+        cloneDeep(step.parameters),
+        true
+      );
+      if (!strategyJson[stepUuid]) {
+        strategyJson[stepUuid] = {
+          key: stepUuid,
+          title: step.title,
+          parameters: stepParametersFromPipelineStepDef,
+        };
+      } else {
+        strategyJson[stepUuid].parameters = {
+          ...stepParametersFromPipelineStepDef,
+          ...strategyJson[stepUuid].parameters,
+        };
+      }
     }
   });
 
@@ -96,14 +103,20 @@ export const generateStrategyJsonFromParamJsonFile = (
   });
 
   // Check for missing pipeline parameters
+  let pipelineParametersFromPipelineDef = toStringifiedParams(
+    pipeline.parameters ? cloneDeep(pipeline.parameters) : {},
+    true
+  );
   if (strategyJson[reservedKey] === undefined) {
     strategyJson[reservedKey] = {
       key: reservedKey,
       title: pipeline.name,
-      parameters: toStringifiedParams(
-        pipeline.parameters ? cloneDeep(pipeline.parameters) : {},
-        true
-      ),
+      parameters: pipelineParametersFromPipelineDef,
+    };
+  } else if (Object.keys(pipeline.parameters).length > 0) {
+    strategyJson[reservedKey].parameters = {
+      ...pipelineParametersFromPipelineDef,
+      ...strategyJson[reservedKey].parameters,
     };
   }
 

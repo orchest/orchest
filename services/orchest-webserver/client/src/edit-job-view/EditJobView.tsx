@@ -293,14 +293,7 @@ const EditJobView: React.FC = () => {
   }, [job, strategyJson, pipelineJson, setAsSaved]);
 
   const setParamConfigByFile = React.useCallback(
-    async ({
-      paramConfigPath,
-      pipelineUuid,
-      projectUuid,
-      jobUuid,
-      pipelineJson,
-      reservedKey,
-    }: {
+    (params: {
       paramConfigPath: string;
       pipelineUuid: string;
       projectUuid: string;
@@ -308,32 +301,50 @@ const EditJobView: React.FC = () => {
       pipelineJson: PipelineJson;
       reservedKey: string;
     }) => {
-      try {
-        const paramConfig = await fetchParamConfig({
-          paramPath: paramConfigPath,
-          pipelineUuid,
-          projectUuid,
-          jobUuid,
-        });
+      let {
+        paramConfigPath,
+        pipelineUuid,
+        projectUuid,
+        jobUuid,
+        pipelineJson,
+        reservedKey,
+      } = params;
 
-        let strategyJson = generateStrategyJsonFromParamJsonFile(
-          paramConfig,
-          pipelineJson,
-          reservedKey
-        );
-        setNewStrategyJson(strategyJson, pipelineJson);
-        setLoadedStrategyJsonText(
-          <span>
-            Loaded job parameters file <Code>{paramConfigPath}</Code>.
-          </span>
-        );
-      } catch (error) {
-        if (error.status !== 404) {
-          console.error(error);
+      return new Promise<void>(async (resolve, reject) => {
+        try {
+          const paramConfig = await fetchParamConfig({
+            paramPath: paramConfigPath,
+            pipelineUuid,
+            projectUuid,
+            jobUuid,
+          });
+
+          let strategyJson = generateStrategyJsonFromParamJsonFile(
+            paramConfig,
+            pipelineJson,
+            reservedKey
+          );
+          setNewStrategyJson(strategyJson, pipelineJson);
+          setLoadedStrategyJsonText(
+            <span>
+              Loaded job parameters file <Code>{paramConfigPath}</Code>.
+            </span>
+          );
+          resolve();
+        } catch (error) {
+          if (error.status !== 404) {
+            console.error(error);
+          }
+          reject();
         }
-      }
+      });
     },
-    []
+    [
+      generateStrategyJsonFromParamJsonFile,
+      setNewStrategyJson,
+      setLoadedStrategyJsonText,
+      fetchParamConfig,
+    ]
   );
 
   const loadDefaultOrExistingParameterStrategy = React.useCallback(

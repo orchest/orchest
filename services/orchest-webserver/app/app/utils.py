@@ -288,8 +288,12 @@ def get_environments_from_pipeline_json(pipeline_definition):
     return environment_uuids
 
 
-def get_pipeline_json(pipeline_uuid, project_uuid):
-    pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
+def get_pipeline_json(pipeline_uuid=None, project_uuid=None, pipeline_path=None):
+    """Either the path is derived from pipeline_uuid and project_uuid
+    or the path is used that's passed in.
+    """
+    if pipeline_path is None:
+        pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
 
     try:
         with open(pipeline_path, "r") as json_file:
