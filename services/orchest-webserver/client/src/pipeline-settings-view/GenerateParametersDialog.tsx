@@ -9,6 +9,7 @@ import {
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
 import { PipelineJson } from "@/types";
+import { copyToClipboard } from "@/utils/copyToClipboard";
 import { isValidJson } from "@/utils/isValidJson";
 import {
   generateStrategyJson,
@@ -110,7 +111,7 @@ export const GenerateParametersDialog = ({
   }, [pipelineJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY]);
 
   const copyParams = () => {
-    navigator.clipboard.writeText(
+    copyToClipboard(
       pipelineJsonToParams(
         pipelineJson,
         config?.PIPELINE_PARAMETERS_RESERVED_KEY

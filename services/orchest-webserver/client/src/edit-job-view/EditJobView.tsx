@@ -15,12 +15,8 @@ import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
-import {
-  FILE_MANAGEMENT_ENDPOINT,
-  queryArgs,
-} from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/routingConfig";
-import type { Json, PipelineJson, StrategyJson } from "@/types";
+import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -58,6 +54,10 @@ import { fetcher, HEADER, uuidv4 } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
+import {
+  fetchParamConfig,
+  generateStrategyJsonFromParamJsonFile,
+} from "./common";
 import {
   flattenStrategyJson,
   generatePipelineRunParamCombinations,
@@ -157,89 +157,6 @@ const columns: DataTableColumn<PipelineRunRow>[] = [
     },
   },
 ];
-
-const generateStrategyJsonFromParamJsonFile = (
-  paramJson,
-  pipeline: PipelineJson,
-  reservedKey: string
-) => {
-  let strategyJson = cloneDeep(paramJson);
-
-  const toStringifiedParams = (params, wrap?) => {
-    // Note, this function expects a modifiable object.
-    // cloneDeep before invoke is recommended.
-    Object.keys(params).forEach((paramKey) => {
-      params[paramKey] = JSON.stringify(
-        wrap ? [params[paramKey]] : params[paramKey]
-      );
-    });
-    return params;
-  };
-
-  Object.keys(strategyJson).forEach((key) => {
-    let stringifiedParams = toStringifiedParams(cloneDeep(strategyJson[key]));
-
-    strategyJson[key] = {};
-    strategyJson[key]["parameters"] = stringifiedParams;
-    strategyJson[key]["key"] = key;
-
-    // Handle reservedKey separately for title
-    if (key == reservedKey) {
-      try {
-        strategyJson[reservedKey]["title"] = pipeline.name;
-      } catch (error) {
-        console.error(error);
-      }
-    } else {
-      try {
-        strategyJson[key]["title"] = pipeline.steps[key].title;
-      } catch {
-        // Missing pipeline step entries
-        // will be deleted in filtering step below.
-      }
-    }
-  });
-
-  // Fill in missing values
-  Object.keys(pipeline.steps).forEach((stepUuid) => {
-    let step = pipeline.steps[stepUuid];
-    if (
-      strategyJson[stepUuid] === undefined &&
-      step.parameters &&
-      Object.keys(step.parameters).length > 0
-    ) {
-      strategyJson[stepUuid] = {
-        key: stepUuid,
-        title: step.title,
-        parameters: toStringifiedParams(cloneDeep(step.parameters), true),
-      };
-    }
-  });
-
-  Object.keys(strategyJson).forEach((key) => {
-    if (key != reservedKey) {
-      // For pipeline step keys in strategyJson, filter step UUIDs that aren't
-      // in the pipeline definition.
-      if (!Object.keys(pipeline.steps).includes(key)) {
-        delete strategyJson[key];
-      }
-    }
-  });
-
-  // Check for missing pipeline parameters
-  if (strategyJson[reservedKey] === undefined) {
-    strategyJson[reservedKey] = {
-      key: reservedKey,
-      title: pipeline.name,
-      parameters: toStringifiedParams(
-        pipeline.parameters ? cloneDeep(pipeline.parameters) : {},
-        true
-      ),
-    };
-  }
-
-  return strategyJson;
-};
 
 type JobUpdatePayload = {
   name: string;
@@ -375,58 +292,73 @@ const EditJobView: React.FC = () => {
     }
   }, [job, strategyJson, pipelineJson, setAsSaved]);
 
-  const getParamConfig = async (
-    paramPath,
-    pipelineUuid,
-    projectUuid,
-    jobUuid
-  ) => {
-    return await fetcher(
-      `${FILE_MANAGEMENT_ENDPOINT}/read?${queryArgs({
-        pipeline_uuid: pipelineUuid,
-        project_uuid: projectUuid,
-        job_uuid: jobUuid,
-        path: paramPath,
-      })}`,
-      { method: "GET" }
-    );
-  };
-
-  const setParamConfigByFile = (
-    paramConfigPath,
-    pipelineUuid,
-    projectUuid,
-    jobUuid,
-    pipelineJson,
-    reservedKey
-  ) => {
-    return new Promise<void>((resolve, reject) => {
-      getParamConfig(paramConfigPath, pipelineUuid, projectUuid, jobUuid)
-        .then((paramConfig) => {
-          let strategyJson = generateStrategyJsonFromParamJsonFile(
-            paramConfig,
-            pipelineJson,
-            reservedKey
-          );
-          setNewStrategyJson(strategyJson, pipelineJson);
-          setLoadedStrategyJsonText(
-            <span>
-              Loaded job parameters file <Code>{paramConfigPath}</Code>.
-            </span>
-          );
-
-          resolve();
-        })
-        .catch((e) => {
-          // Default param file isn't always available, catch 404
-          // without generating an error.
-          if (e.status != 404) {
-            console.error(e);
-          }
-          reject();
+  const setParamConfigByFile = React.useCallback(
+    async ({
+      paramConfigPath,
+      pipelineUuid,
+      projectUuid,
+      jobUuid,
+      pipelineJson,
+      reservedKey,
+    }: {
+      paramConfigPath: string;
+      pipelineUuid: string;
+      projectUuid: string;
+      jobUuid: string;
+      pipelineJson: PipelineJson;
+      reservedKey: string;
+    }) => {
+      try {
+        const paramConfig = await fetchParamConfig({
+          paramPath: paramConfigPath,
+          pipelineUuid,
+          projectUuid,
+          jobUuid,
         });
-    });
-  };
+
+        let strategyJson = generateStrategyJsonFromParamJsonFile(
+          paramConfig,
+          pipelineJson,
+          reservedKey
+        );
+        setNewStrategyJson(strategyJson, pipelineJson);
+        setLoadedStrategyJsonText(
+          <span>
+            Loaded job parameters file <Code>{paramConfigPath}</Code>.
+          </span>
+        );
+      } catch (error) {
+        if (error.status !== 404) {
+          console.error(error);
+        }
+      }
+    },
+    []
+  );
+
+  const loadDefaultOrExistingParameterStrategy = React.useCallback(
+    (pipelineJson: PipelineJson, job: Job) => {
+      // Do not generate another strategy_json if it has been defined
+      // already.
+      const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+      const strategyJson =
+        job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
+          ? generateStrategyJson(pipelineJson, reserveKey)
+          : job.strategy_json;
+
+      const newPipelineRuns = generatePipelineRuns(strategyJson);
+
+      setNewStrategyJson(
+        strategyJson,
+        pipelineJson,
+        false,
+        job.parameters.length > 0
+          ? parseParameters(job.parameters, newPipelineRuns)
+          : undefined
+      );
+    },
+    [config?.PIPELINE_PARAMETERS_RESERVED_KEY]
+  );
 
   React.useEffect(() => {
     /*
@@ -444,42 +376,29 @@ const EditJobView: React.FC = () => {
         job.pipeline_run_spec.run_config.pipeline_path
       );
       if (paramConfigPath && job.status === "DRAFT") {
-        setParamConfigByFile(
+        setParamConfigByFile({
           paramConfigPath,
-          pipelineJson.uuid,
+          pipelineUuid: pipelineJson.uuid,
           projectUuid,
-          job.uuid,
-          job.pipeline_definition,
-          config?.PIPELINE_PARAMETERS_RESERVED_KEY
-        ).catch(() => {
+          jobUuid: job.uuid,
+          pipelineJson: job.pipeline_definition,
+          reservedKey: config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+        }).catch(() => {
           loadDefaultOrExistingParameterStrategy(pipelineJson, job);
         });
       } else {
         loadDefaultOrExistingParameterStrategy(pipelineJson, job);
       }
     }
-  }, [job, config, pipelineJson, searchedParamFile, setParamConfigByFile]);
-
-  const loadDefaultOrExistingParameterStrategy = (pipelineJson, job) => {
-    // Do not generate another strategy_json if it has been defined
-    // already.
-    const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
-    const strategyJson =
-      job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
-        ? generateStrategyJson(pipelineJson, reserveKey)
-        : job.strategy_json;
-
-    const newPipelineRuns = generatePipelineRuns(strategyJson);
-
-    setNewStrategyJson(
-      strategyJson,
-      pipelineJson,
-      false,
-      job.parameters.length > 0
-        ? parseParameters(job.parameters, newPipelineRuns)
-        : undefined
-    );
-  };
+  }, [
+    projectUuid,
+    job,
+    config,
+    pipelineJson,
+    searchedParamFile,
+    setParamConfigByFile,
+    loadDefaultOrExistingParameterStrategy,
+  ]);
 
   React.useEffect(() => {
     if (job && pipelineJson) {
@@ -628,17 +547,17 @@ const EditJobView: React.FC = () => {
   };
 
   const handleLoadParameters = (value) => {
-    if (!job || !config || !pipelineJson) {
+    if (!job || !config || !pipelineJson || !projectUuid) {
       return;
     }
-    setParamConfigByFile(
-      value,
-      pipelineJson.uuid,
+    setParamConfigByFile({
+      paramConfigPath: value,
+      pipelineUuid: pipelineJson.uuid,
       projectUuid,
-      job.uuid,
-      job.pipeline_definition,
-      config?.PIPELINE_PARAMETERS_RESERVED_KEY
-    );
+      jobUuid: job.uuid,
+      pipelineJson: job.pipeline_definition,
+      reservedKey: config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+    });
     closeLoadParametersDialog();
   };
 
