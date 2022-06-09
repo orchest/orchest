@@ -46,6 +46,7 @@ export type Alert = {
 export type Confirm = {
   type: "confirm";
   title: string;
+  warning?: boolean;
   content: string | React.ReactElement | JSX.Element[];
   onConfirm: () => Promise<boolean> | boolean; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
   onCancel?: () => Promise<boolean | void> | void | boolean;
@@ -64,6 +65,7 @@ type AlertConverter = (props: {
 
 type ConfirmConverter = (props: {
   title: string;
+  warning?: boolean;
   content: string | React.ReactElement | JSX.Element[];
   confirmHandler: () => Promise<boolean> | boolean;
   cancelHandler?: () => Promise<boolean | void> | void | boolean;
@@ -132,7 +134,8 @@ export type ConfirmDispatcher = (
         onCancel?: CancelHandler;
         confirmLabel?: string;
         cancelLabel?: string;
-      }
+      },
+  warning?: boolean
 ) => Promise<boolean>;
 
 type PromptMessageDispatcher<T extends PromptMessage> = T extends Alert
@@ -231,7 +234,8 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
           onCancel?: CancelHandler;
           confirmLabel?: string;
           cancelLabel?: string;
-        }
+        },
+    warning?: boolean
   ) => {
     // NOTE: consumer could either provide a callback function for onConfirm (for most use cases), or provide an object for more detailed config
     return new Promise<boolean>((resolve) => {
@@ -263,6 +267,7 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
       const message = convert({
         title,
         content,
+        warning,
         confirmHandler,
         cancelHandler,
         confirmLabel,
@@ -298,6 +303,7 @@ const convertAlert: PromptMessageConverter<Alert> = ({
 
 const convertConfirm: PromptMessageConverter<Confirm> = ({
   title,
+  warning,
   content,
   confirmHandler,
   cancelHandler,
@@ -307,6 +313,7 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
   return {
     type: "confirm",
     title,
+    warning,
     content: contentParser(content),
     onConfirm: confirmHandler,
     onCancel: cancelHandler,

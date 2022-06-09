@@ -113,7 +113,7 @@ export const SystemDialog: React.FC = () => {
         <DialogContent>{promptMessage.content}</DialogContent>
         <DialogActions>
           {isCancellable && (
-            <Button color="secondary" onClick={cancel} tabIndex={-1}>
+            <Button onClick={cancel} tabIndex={-1}>
               {promptMessage.cancelLabel || "Cancel"}
             </Button>
           )}
@@ -121,6 +121,11 @@ export const SystemDialog: React.FC = () => {
             type="submit"
             form={`${promptMessage.type}-form`}
             variant="contained"
+            color={
+              promptMessage.type === "confirm" && promptMessage.warning
+                ? "error" // Will change in the future with redesign, for now use default error (red)
+                : undefined
+            }
             data-test-id="confirm-dialog-ok"
           >
             {promptMessage.confirmLabel || "Confirm"}
