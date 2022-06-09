@@ -60,7 +60,7 @@ const writeFile = ({
   pipelineUuid: string;
   projectUuid: string;
 }) => {
-  fetcher(
+  return fetcher(
     `${FILE_MANAGEMENT_ENDPOINT}/create?${queryArgs({
       project_uuid: projectUuid,
       pipeline_uuid: pipelineUuid,
@@ -121,11 +121,18 @@ export const GenerateParametersDialog = ({
 
   const onCreateFile = (filePath: string | undefined) => {
     if (!filePath || !pipelineUuid || !projectUuid) return;
+    // Do not await this promise.
+    // User will get alert if it fails afterwards.
     writeFile({
       body: parameterFileString,
       path: filePath,
       pipelineUuid,
       projectUuid,
+    }).catch((error) => {
+      setAlert(
+        "Error",
+        `Failed to create Parameter file. ${error.message || ""}`
+      );
     });
     onClose();
   };
@@ -146,31 +153,33 @@ export const GenerateParametersDialog = ({
     }
 
     // Check if file exists
+    let doesFileExist: boolean;
     try {
-      const doesFileExist = await isValidFile(
+      doesFileExist = await isValidFile(
         projectUuid,
         pipelineUuid,
         filePath,
         ["json"],
         true
       );
-      if (!doesFileExist) {
-        onCreateFile(filePath);
-        return;
-      }
-
-      setConfirm(
-        "Warning",
-        "This file already exists, do you want to overwrite it?",
-        async (resolve) => {
-          onCreateFile(filePath);
-          resolve(true);
-          return true;
-        }
-      );
     } catch (error) {
-      setAlert("Error", `Failed to create Parameter file. ${error}`);
+      doesFileExist = false;
     }
+
+    if (!doesFileExist) {
+      onCreateFile(filePath);
+      return;
+    }
+
+    setConfirm(
+      "Warning",
+      "This file already exists, do you want to overwrite it?",
+      async (resolve) => {
+        onCreateFile(filePath);
+        resolve(true);
+        return true;
+      }
+    );
   };
 
   const isParameterJsonValid = React.useMemo(() => {
