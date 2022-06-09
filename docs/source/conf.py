@@ -49,17 +49,11 @@ myst_enable_extensions = [
     "deflist",
 ]
 
-hoverxref_auto_ref = True
-hoverxref_domains = ["py"]
 hoverxref_roles = [
     "term",
 ]
 hoverxref_role_types = {
-    "ref": "tooltip",
     "term": "tooltip",
-    "meth": "tooltip",
-    "func": "tooltip",
-    "class": "tooltip",
 }
 
 # Add any paths that contain templates here, relative to this dir.
