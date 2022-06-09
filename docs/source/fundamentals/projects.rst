@@ -25,6 +25,7 @@ You can access Project files in your code running inside :ref:`environments <env
 Getting started
 ---------------
 You can get started with Projects by:
+
 * Creating a new project
 * Importing an existing project using its git repository URL (see :ref:`how to import a project <how to import a project>`).
 * Importing Orchest curated or community contributed examples.
