@@ -854,8 +854,8 @@ class OneOffJobEvent(JobEvent):
         # Here we just modify the current layer (i.e. `job` entry) in
         # place.
         payload["project"]["job"] = {
-            **payload["project"]["job"]
-            ** OneOffJobEvent.current_layer_notification_data(self),
+            **payload["project"]["job"],
+            **OneOffJobEvent.current_layer_notification_data(self),
         }
 
         return payload
@@ -1066,8 +1066,8 @@ class CronJobEvent(JobEvent):
         # Here we just modify the current layer (i.e. `job` entry) in
         # place.
         payload["project"]["job"] = {
-            **payload["project"]["job"]
-            ** OneOffJobEvent.current_layer_notification_data(self),
+            **payload["project"]["job"],
+            **OneOffJobEvent.current_layer_notification_data(self),
         }
         return payload
 
