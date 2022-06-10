@@ -1343,12 +1343,16 @@ def register_views(app, db):
         path = request.args.get("path")
         depth_as_string = request.args.get("depth")
         project_uuid = request.args.get("project_uuid")
+        pipeline_uuid = request.args.get("pipeline_uuid")
+        run_uuid = request.args.get("run_uuid")
 
         try:
             root_dir_path, depth = process_request(
                 root=root,
                 path=path,
                 project_uuid=project_uuid,
+                pipeline_uuid=pipeline_uuid,
+                run_uuid=run_uuid,
                 depth=depth_as_string,
                 is_path_required=False,
             )

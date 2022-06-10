@@ -25,7 +25,12 @@ def allowed_file(filename):
     return True
 
 
-def _construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) -> str:
+def _construct_root_dir_path(
+    root: Optional[str],
+    project_uuid: Optional[str],
+    pipeline_uuid: Optional[str],
+    run_uuid: Optional[str],
+) -> str:
     """
     If root is not provided, default to PROJECT_DIR_PATH;
     If root equals to PROJECT_DIR_PATH, project_uuid is required;
@@ -47,6 +52,21 @@ def _construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) -
     if project is None:
         raise ValueError(f"project {project_uuid} not found.")
 
+    # Load from run if pipeline_uuid and run_uuid are given.
+    if pipeline_uuid is not None and run_uuid is not None:
+        return (
+            f"{_config.USERDIR_PROJECTS}/jobs/{project_uuid}/{pipeline_uuid}"
+            + f"/{run_uuid}/{project.path}"
+        )
+
+    # Load from snapshot if pipeline_uuid is given.
+    if pipeline_uuid is not None:
+        return (
+            f"{_config.USERDIR_PROJECTS}/jobs/{project_uuid}/{pipeline_uuid}"
+            + f"/snapshot/{project.path}"
+        )
+
+    # Load from the working directory.
     return f"{_config.USERDIR_PROJECTS}/{project.path}"
 
 
@@ -206,6 +226,8 @@ def process_request(
     root: Optional[str],
     path: Optional[str],
     project_uuid: Optional[str],
+    pipeline_uuid: Optional[str],
+    run_uuid: Optional[str],
     depth: Optional[str] = None,
     is_path_required: Optional[bool] = True,
 ) -> Tuple[str, Optional[int]]:
@@ -224,16 +246,21 @@ def process_request(
     # in most cases, path is required,
     # except for /async/file-management/browse,
     # where either depth and path should be provided
+
+    if is_path_required and path is None:
+        raise ValueError("Argument path is required.")
+
     if depth is None and path is None:
-        extra_explanation = "" if is_path_required else " if depth is None"
-        raise ValueError(f"Argument path is required{extra_explanation}.")
+        raise ValueError("Either depth or path should be provided.")
 
-    if path is not None:
-        if not path.startswith("/"):
-            raise ValueError(
-                "Argument path should always start with a forward-slash: '/'"
-            )
+    if path is not None and not path.startswith("/"):
+        raise ValueError("Argument path should always start with a forward-slash: '/'")
 
-    root_dir_path = _construct_root_dir_path(root=root, project_uuid=project_uuid)
+    root_dir_path = _construct_root_dir_path(
+        root=root,
+        project_uuid=project_uuid,
+        pipeline_uuid=pipeline_uuid,
+        run_uuid=run_uuid,
+    )
 
     return (root_dir_path, depth)
