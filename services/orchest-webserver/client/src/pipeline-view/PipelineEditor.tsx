@@ -14,6 +14,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import CropFreeIcon from "@mui/icons-material/CropFree";
 import DeleteIcon from "@mui/icons-material/Delete";
+import KeyboardIcon from "@mui/icons-material/Keyboard";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SettingsIcon from "@mui/icons-material/Settings";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -38,6 +39,10 @@ import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { CreateNextStepButton } from "./CreateNextStepButton";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
+import {
+  keyboardShortcuts,
+  useKeyboardShortcutsOverlay,
+} from "./hooks/useKeyboardShortcutsOverlay";
 import { useOpenNoteBook } from "./hooks/useOpenNoteBook";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
@@ -625,6 +630,11 @@ export const PipelineEditor = () => {
     return [nonInteractive, interactive];
   }, [eventVars.connections, eventVars.cursorControlledStep]);
 
+  const {
+    overlay,
+    setIsVisible: setKeyboardShortcutsIsVisible,
+  } = useKeyboardShortcutsOverlay(keyboardShortcuts);
+
   return (
     <div className="pipeline-view">
       <div
@@ -815,91 +825,100 @@ export const PipelineEditor = () => {
           )}
         </PipelineViewport>
         {pipelineJson && (
-          <div className="pipeline-actions bottom-left">
-            <div className="navigation-buttons">
-              <IconButton
-                title="Center"
-                data-test-id="pipeline-center"
-                onPointerDown={canvasFuncRef.current?.centerView}
-              >
-                <CropFreeIcon />
-              </IconButton>
-              <IconButton
-                title="Zoom out"
-                onPointerDown={() => {
-                  // NOTE: onClick also listens to space bar press when button is focused
-                  // it causes issue when user press space bar to navigate the canvas
-                  // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
-                  canvasFuncRef.current?.centerPipelineOrigin();
-                  dispatch((current) => {
-                    return {
-                      type: "SET_SCALE_FACTOR",
-                      payload: current.scaleFactor - 0.25,
-                    };
-                  });
-                }}
-              >
-                <RemoveIcon />
-              </IconButton>
-              <IconButton
-                title="Zoom in"
-                onPointerDown={() => {
-                  canvasFuncRef.current?.centerPipelineOrigin();
-                  dispatch((current) => {
-                    return {
-                      type: "SET_SCALE_FACTOR",
-                      payload: current.scaleFactor + 0.25,
-                    };
-                  });
-                }}
-              >
-                <AddIcon />
-              </IconButton>
-              {!isReadOnly && (
+          <>
+            <div className="pipeline-actions bottom-right">
+              <div className="navigation-buttons">
                 <IconButton
-                  title="Auto layout"
-                  onPointerDown={autoLayoutPipeline}
+                  title="Keyboard shortcuts"
+                  data-test-id="keyboard-shortcuts"
+                  onPointerDown={() => setKeyboardShortcutsIsVisible(true)}
                 >
-                  <AccountTreeOutlinedIcon />
+                  <KeyboardIcon />
                 </IconButton>
-              )}
+              </div>
             </div>
-            {!isReadOnly &&
-              !pipelineRunning &&
-              eventVars.selectedSteps.length > 0 &&
-              !eventVars.stepSelector.active && (
-                <div className="selection-buttons">
-                  <Button
-                    variant="contained"
-                    onClick={runSelectedSteps}
-                    data-test-id="interactive-run-run-selected-steps"
+            <div className="pipeline-actions bottom-left">
+              <div className="navigation-buttons">
+                <IconButton
+                  title="Center"
+                  data-test-id="pipeline-center"
+                  onPointerDown={canvasFuncRef.current?.centerView}
+                >
+                  <CropFreeIcon />
+                </IconButton>
+                <IconButton
+                  title="Zoom out"
+                  onPointerDown={() => {
+                    // NOTE: onClick also listens to space bar press when button is focused
+                    // it causes issue when user press space bar to navigate the canvas
+                    // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
+                    canvasFuncRef.current?.centerPipelineOrigin();
+                    dispatch({
+                      type: "SET_SCALE_FACTOR",
+                      payload: eventVars.scaleFactor - 0.25,
+                    });
+                  }}
+                >
+                  <RemoveIcon />
+                </IconButton>
+                <IconButton
+                  title="Zoom in"
+                  onPointerDown={() => {
+                    canvasFuncRef.current?.centerPipelineOrigin();
+                    dispatch({
+                      type: "SET_SCALE_FACTOR",
+                      payload: eventVars.scaleFactor + 0.25,
+                    });
+                  }}
+                >
+                  <AddIcon />
+                </IconButton>
+                {!isReadOnly && (
+                  <IconButton
+                    title="Auto layout"
+                    onPointerDown={autoLayoutPipeline}
                   >
-                    Run selected steps
-                  </Button>
-                  {selectedStepsHasIncoming && (
+                    <AccountTreeOutlinedIcon />
+                  </IconButton>
+                )}
+              </div>
+              {!isReadOnly &&
+                !pipelineRunning &&
+                eventVars.selectedSteps.length > 0 &&
+                !eventVars.stepSelector.active && (
+                  <div className="selection-buttons">
                     <Button
                       variant="contained"
-                      onClick={onRunIncoming}
-                      data-test-id="interactive-run-run-incoming-steps"
+                      onClick={runSelectedSteps}
+                      data-test-id="interactive-run-run-selected-steps"
                     >
-                      Run incoming steps
+                      Run selected steps
                     </Button>
-                  )}
+                    {selectedStepsHasIncoming && (
+                      <Button
+                        variant="contained"
+                        onClick={onRunIncoming}
+                        data-test-id="interactive-run-run-incoming-steps"
+                      >
+                        Run incoming steps
+                      </Button>
+                    )}
+                  </div>
+                )}
+              {pipelineRunning && (
+                <div className="selection-buttons">
+                  <PipelineActionButton
+                    onClick={cancelRun}
+                    startIcon={<CloseIcon />}
+                    disabled={isCancellingRun}
+                    data-test-id="interactive-run-cancel"
+                  >
+                    Cancel run
+                  </PipelineActionButton>
                 </div>
               )}
-            {pipelineRunning && (
-              <div className="selection-buttons">
-                <PipelineActionButton
-                  onClick={cancelRun}
-                  startIcon={<CloseIcon />}
-                  disabled={isCancellingRun}
-                  data-test-id="interactive-run-cancel"
-                >
-                  Cancel run
-                </PipelineActionButton>
-              </div>
-            )}
-          </div>
+            </div>
+          </>
         )}
         {pipelineJson && (
           <div className={"pipeline-actions top-right"}>
@@ -949,7 +968,7 @@ export const PipelineEditor = () => {
         onOpenFilePreviewView={onOpenFilePreviewView}
         onOpenNotebook={onOpenNotebook}
       />
-
+      {overlay}
       {hasSelectedSteps && !isReadOnly && (
         <div className={"pipeline-actions bottom-right"}>
           <PipelineActionButton
