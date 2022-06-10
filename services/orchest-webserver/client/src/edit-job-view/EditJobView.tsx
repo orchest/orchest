@@ -235,46 +235,43 @@ const EditJobView: React.FC = () => {
     StrategyJson | undefined
   >(undefined);
 
-  const setNewStrategyJson = React.useCallback(
-    (
-      strategyJson: StrategyJson | undefined,
-      pipelineJson: PipelineJson | undefined,
-      skipUnmount?: boolean,
-      selectedIndices?: string[] | undefined
-    ) => {
-      // This function has some side effects to update
-      // pipelineRuns
-      // pipelineRunRows
-      // and it optionally force re-mounts the controlled
-      // component ParameterEditor
-      if (!strategyJson) {
-        return;
-      }
-      if (!pipelineJson) {
-        return;
-      }
+  const setNewStrategyJson = (
+    strategyJson: StrategyJson | undefined,
+    pipelineJson: PipelineJson | undefined,
+    skipUnmount?: boolean,
+    selectedIndices?: string[] | undefined
+  ) => {
+    // This function has some side effects to update
+    // pipelineRuns
+    // pipelineRunRows
+    // and it optionally force re-mounts the controlled
+    // component ParameterEditor
+    if (!strategyJson) {
+      return;
+    }
+    if (!pipelineJson) {
+      return;
+    }
 
-      const newPipelineRuns = generatePipelineRuns(strategyJson);
-      const newPipelineRunRows = generatePipelineRunRows(
-        pipelineJson.name,
-        newPipelineRuns
-      );
+    const newPipelineRuns = generatePipelineRuns(strategyJson);
+    const newPipelineRunRows = generatePipelineRunRows(
+      pipelineJson.name,
+      newPipelineRuns
+    );
 
-      setStrategyJson(strategyJson);
-      setPipelineRuns(newPipelineRuns);
-      setPipelineRunRows(newPipelineRunRows);
-      setSelectedRuns(
-        selectedIndices
-          ? selectedIndices
-          : newPipelineRunRows.map((row) => row.uuid)
-      );
+    setStrategyJson(strategyJson);
+    setPipelineRuns(newPipelineRuns);
+    setPipelineRunRows(newPipelineRunRows);
+    setSelectedRuns(
+      selectedIndices
+        ? selectedIndices
+        : newPipelineRunRows.map((row) => row.uuid)
+    );
 
-      if (skipUnmount !== true) {
-        setParameterHash(uuidv4());
-      }
-    },
-    []
-  );
+    if (skipUnmount !== true) {
+      setParameterHash(uuidv4());
+    }
+  };
 
   const [
     loadedStrategyJsonText,
@@ -342,7 +339,12 @@ const EditJobView: React.FC = () => {
         }
       });
     },
-    [setNewStrategyJson, setLoadedStrategyJsonText]
+    [
+      generateStrategyJsonFromParamJsonFile,
+      setNewStrategyJson,
+      setLoadedStrategyJsonText,
+      fetchParamConfig,
+    ]
   );
 
   const loadDefaultOrExistingParameterStrategy = React.useCallback(
@@ -366,7 +368,7 @@ const EditJobView: React.FC = () => {
           : undefined
       );
     },
-    [config?.PIPELINE_PARAMETERS_RESERVED_KEY, setNewStrategyJson]
+    [config?.PIPELINE_PARAMETERS_RESERVED_KEY]
   );
 
   React.useEffect(() => {
