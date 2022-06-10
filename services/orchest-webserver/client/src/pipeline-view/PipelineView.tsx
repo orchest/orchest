@@ -2,6 +2,7 @@ import { Layout } from "@/components/Layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import Stack from "@mui/material/Stack";
@@ -19,8 +20,10 @@ const PipelineView = () => {
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
   const { setIsDrawerOpen } = useAppContext();
   const {
-    state: { pipelineIsReadOnly, projectUuid },
+    state: { pipelineIsReadOnly, projectUuid, pipeline },
   } = useProjectsContext();
+
+  const { jobUuid, runUuid } = useCustomRoute();
 
   React.useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -33,7 +36,12 @@ const PipelineView = () => {
     <Layout disablePadding={hasValue(projectUuid)}>
       {projectUuid ? (
         <PipelineEditorContextProvider>
-          <FileManagerContextProvider>
+          <FileManagerContextProvider
+            projectUuid={projectUuid}
+            pipelineUuid={pipeline?.uuid}
+            jobUuid={jobUuid}
+            runUuid={runUuid}
+          >
             <PipelineCanvasContextProvider>
               <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
                 <MainSidePanel>

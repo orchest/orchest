@@ -44,7 +44,6 @@ export const NoParameterAlert = () => {
 };
 
 const ParamTree: React.FC<IParamTreeProps> = (props) => {
-  console.log(props);
   const { config } = useAppContext();
 
   const truncateParameterValue = (value) => {

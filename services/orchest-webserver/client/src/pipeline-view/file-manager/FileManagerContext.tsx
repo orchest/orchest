@@ -1,4 +1,3 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { FileTree } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
@@ -40,9 +39,12 @@ export const FileManagerContext = React.createContext<FileManagerContextType>(
 
 export const useFileManagerContext = () => React.useContext(FileManagerContext);
 
-export const FileManagerContextProvider: React.FC = ({ children }) => {
-  const { projectUuid, pipelineUuid, jobUuid, runUuid } = useCustomRoute();
-
+export const FileManagerContextProvider: React.FC<{
+  projectUuid: string | undefined;
+  pipelineUuid?: string | undefined;
+  jobUuid?: string | undefined;
+  runUuid?: string | undefined;
+}> = ({ children, projectUuid, pipelineUuid, jobUuid, runUuid }) => {
   const fileTreeDepth = React.useRef<number>(3);
   const [selectedFiles, _setSelectedFiles] = React.useState<string[]>([]);
 
@@ -76,9 +78,30 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
     }, 1);
   }, [setIsDragging, setDragFile, setHoveredPath]);
 
+  const browseUrl = React.useMemo(() => {
+    if (!projectUuid) return undefined;
+    const commonArgs = {
+      projectUuid,
+      depth: fileTreeDepth.current,
+    };
+
+    // For normal pipelines, FileManager reads from the whole project, it doesn't need `pipelineUuid`.
+    // `pipelineUuid` is only needed together with `jobuuid`, so that it could read from the snapshot.
+    return `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs(
+      pipelineUuid && jobUuid
+        ? {
+            pipelineUuid,
+            jobUuid,
+            runUuid,
+            ...commonArgs,
+          }
+        : commonArgs
+    )}`;
+  }, [projectUuid, pipelineUuid, jobUuid, runUuid]);
+
   const fetchFileTrees = React.useCallback(
     async (depth?: number) => {
-      if (!projectUuid) return;
+      if (!browseUrl) return;
       if (depth) {
         fileTreeDepth.current = Math.max(fileTreeDepth.current, depth);
       }
@@ -86,14 +109,7 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
       const newFiles = await Promise.all(
         treeRoots.map(async (root) => {
           const file = await fetcher<FileTree>(
-            `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
-              projectUuid,
-              pipelineUuid,
-              jobUuid,
-              runUuid,
-              root,
-              depth: fileTreeDepth.current,
-            })}`
+            `${browseUrl}&${queryArgs({ root })}`
           );
           return { key: root, file };
         })
@@ -105,7 +121,7 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         }, {})
       );
     },
-    [projectUuid, pipelineUuid, jobUuid, runUuid]
+    [browseUrl]
   );
 
   return (

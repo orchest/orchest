@@ -60,6 +60,7 @@ export const LoadParametersDialog = ({
   pipelineUuid: string | undefined;
 }) => {
   const [selectedPath, setSelectedPath] = React.useState("");
+  const { projectUuid, jobUuid, runUuid } = useCustomRoute();
 
   // Always load parameters from project root
   const pipelineCwd = "/";
@@ -83,7 +84,12 @@ export const LoadParametersDialog = ({
         <DialogTitle>Load job parameters file</DialogTitle>
         <DialogContent sx={{ overflowY: "visible" }}>
           <Stack direction="column" spacing={2}>
-            <FileManagerContextProvider>
+            <FileManagerContextProvider
+              projectUuid={projectUuid}
+              pipelineUuid={pipelineUuid}
+              jobUuid={jobUuid}
+              runUuid={runUuid}
+            >
               <ProjectFilePickerHolder
                 selectedPath={selectedPath}
                 pipelineCwd={pipelineCwd}
