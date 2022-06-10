@@ -28,9 +28,9 @@ def allowed_file(filename):
 def _construct_root_dir_path(
     root: Optional[str],
     project_uuid: Optional[str],
-    pipeline_uuid: Optional[str],
-    job_uuid: Optional[str],
-    run_uuid: Optional[str],
+    pipeline_uuid: Optional[str] = None,
+    job_uuid: Optional[str] = None,
+    run_uuid: Optional[str] = None,
 ) -> str:
     """
     If root is not provided, default to PROJECT_DIR_PATH;
@@ -53,18 +53,18 @@ def _construct_root_dir_path(
     if project is None:
         raise ValueError(f"project {project_uuid} not found.")
 
-    if pipeline_uuid is None and job_uuid is None and run_uuid is None:
-        # Load from the working directory.
+    if job_uuid is None and run_uuid is None:
+        # Load from user's projects directory.
         return f"{_config.USERDIR_PROJECTS}/{project.path}"
 
-    if pipeline_uuid is None or job_uuid is None:
+    if pipeline_uuid is None and job_uuid is not None:
         raise ValueError("pipeline_uuid and job_uuid are both required.")
 
     run_uuid_or_snapshot = run_uuid if run_uuid is not None else "snapshot"
     # Load run if run_uuid is given, otherwise load snapshot.
     return (
-        f"{_config.USERDIR_PROJECTS}/jobs/{project_uuid}/{pipeline_uuid}"
-        + f"/{job_uuid}/{run_uuid_or_snapshot}/{project.path}"
+        f"{_config.USERDIR_JOBS}/{project_uuid}/{pipeline_uuid}"
+        + f"/{job_uuid}/{run_uuid_or_snapshot}"
     )
 
 
@@ -224,9 +224,9 @@ def process_request(
     root: Optional[str],
     path: Optional[str],
     project_uuid: Optional[str],
-    pipeline_uuid: Optional[str],
-    job_uuid: Optional[str],
-    run_uuid: Optional[str],
+    pipeline_uuid: Optional[str] = None,
+    job_uuid: Optional[str] = None,
+    run_uuid: Optional[str] = None,
     depth: Optional[str] = None,
     is_path_required: Optional[bool] = True,
 ) -> Tuple[str, Optional[int]]:

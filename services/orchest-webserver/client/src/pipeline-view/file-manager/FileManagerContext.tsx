@@ -41,7 +41,7 @@ export const FileManagerContext = React.createContext<FileManagerContextType>(
 export const useFileManagerContext = () => React.useContext(FileManagerContext);
 
 export const FileManagerContextProvider: React.FC = ({ children }) => {
-  const { projectUuid } = useCustomRoute();
+  const { projectUuid, pipelineUuid, jobUuid, runUuid } = useCustomRoute();
 
   const fileTreeDepth = React.useRef<number>(3);
   const [selectedFiles, _setSelectedFiles] = React.useState<string[]>([]);
@@ -87,7 +87,10 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         treeRoots.map(async (root) => {
           const file = await fetcher<FileTree>(
             `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
-              project_uuid: projectUuid,
+              projectUuid,
+              pipelineUuid,
+              jobUuid,
+              runUuid,
               root,
               depth: fileTreeDepth.current,
             })}`
@@ -102,7 +105,7 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         }, {})
       );
     },
-    [projectUuid]
+    [projectUuid, pipelineUuid, jobUuid, runUuid]
   );
 
   return (
