@@ -1344,6 +1344,7 @@ def register_views(app, db):
         depth_as_string = request.args.get("depth")
         project_uuid = request.args.get("project_uuid")
         pipeline_uuid = request.args.get("pipeline_uuid")
+        job_uuid = request.args.get("job_uuid")
         run_uuid = request.args.get("run_uuid")
 
         try:
@@ -1352,6 +1353,7 @@ def register_views(app, db):
                 path=path,
                 project_uuid=project_uuid,
                 pipeline_uuid=pipeline_uuid,
+                job_uuid=job_uuid,
                 run_uuid=run_uuid,
                 depth=depth_as_string,
                 is_path_required=False,

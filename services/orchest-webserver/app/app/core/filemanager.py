@@ -29,6 +29,7 @@ def _construct_root_dir_path(
     root: Optional[str],
     project_uuid: Optional[str],
     pipeline_uuid: Optional[str],
+    job_uuid: Optional[str],
     run_uuid: Optional[str],
 ) -> str:
     """
@@ -52,22 +53,19 @@ def _construct_root_dir_path(
     if project is None:
         raise ValueError(f"project {project_uuid} not found.")
 
-    # Load from run if pipeline_uuid and run_uuid are given.
-    if pipeline_uuid is not None and run_uuid is not None:
-        return (
-            f"{_config.USERDIR_PROJECTS}/jobs/{project_uuid}/{pipeline_uuid}"
-            + f"/{run_uuid}/{project.path}"
-        )
+    if pipeline_uuid is None and job_uuid is None and run_uuid is None:
+        # Load from the working directory.
+        return f"{_config.USERDIR_PROJECTS}/{project.path}"
 
-    # Load from snapshot if pipeline_uuid is given.
-    if pipeline_uuid is not None:
-        return (
-            f"{_config.USERDIR_PROJECTS}/jobs/{project_uuid}/{pipeline_uuid}"
-            + f"/snapshot/{project.path}"
-        )
+    if pipeline_uuid is None or job_uuid is None:
+        raise ValueError("pipeline_uuid and job_uuid are both required.")
 
-    # Load from the working directory.
-    return f"{_config.USERDIR_PROJECTS}/{project.path}"
+    run_uuid_or_snapshot = run_uuid if run_uuid is not None else "snapshot"
+    # Load run if run_uuid is given, otherwise load snapshot.
+    return (
+        f"{_config.USERDIR_PROJECTS}/jobs/{project_uuid}/{pipeline_uuid}"
+        + f"/{job_uuid}/{run_uuid_or_snapshot}/{project.path}"
+    )
 
 
 def find_unique_duplicate_filepath(fp):
@@ -227,6 +225,7 @@ def process_request(
     path: Optional[str],
     project_uuid: Optional[str],
     pipeline_uuid: Optional[str],
+    job_uuid: Optional[str],
     run_uuid: Optional[str],
     depth: Optional[str] = None,
     is_path_required: Optional[bool] = True,
@@ -260,6 +259,7 @@ def process_request(
         root=root,
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
+        job_uuid=job_uuid,
         run_uuid=run_uuid,
     )
 
