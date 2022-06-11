@@ -18,6 +18,15 @@ const ProjectFilePickerHolder = ({
   pipelineCwd,
   onChangeFilePath,
   pipelineUuid,
+  jobUuid,
+  runUuid,
+}: {
+  selectedPath: string;
+  pipelineCwd: string;
+  onChangeFilePath: React.Dispatch<React.SetStateAction<string>>;
+  pipelineUuid: string | undefined;
+  jobUuid: string | undefined;
+  runUuid: string | undefined;
 }) => {
   const { fetchFileTrees } = useFileManagerContext();
 
@@ -27,13 +36,15 @@ const ProjectFilePickerHolder = ({
 
   const { projectUuid } = useCustomRoute();
 
-  const [doesFileExist, isCheckingFileValidity] = useCheckFileValidity(
+  const [doesFileExist, isCheckingFileValidity] = useCheckFileValidity({
     projectUuid,
     pipelineUuid,
-    selectedPath,
-    ["json"],
-    true
-  );
+    jobUuid,
+    runUuid,
+    path: selectedPath,
+    allowedExtensions: ["json"],
+    useProjectRoot: true,
+  });
 
   return (
     <ProjectFilePicker
@@ -95,6 +106,8 @@ export const LoadParametersDialog = ({
                 pipelineCwd={pipelineCwd}
                 onChangeFilePath={setSelectedPath}
                 pipelineUuid={pipelineUuid}
+                jobUuid={jobUuid}
+                runUuid={runUuid}
               />
             </FileManagerContextProvider>
           </Stack>

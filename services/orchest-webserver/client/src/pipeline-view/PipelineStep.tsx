@@ -165,6 +165,8 @@ const PipelineStepComponent = React.forwardRef<
     mouseTracker,
     newConnection,
     keysDown,
+    jobUuid,
+    runUuid,
     eventVars: {
       cursorControlledStep,
       steps,
@@ -350,12 +352,14 @@ const PipelineStepComponent = React.forwardRef<
       resetDraggingVariables();
     }
     if (e.detail === 2 && projectUuid && pipelineUuid) {
-      const valid = await isValidFile(
+      const valid = await isValidFile({
         projectUuid,
         pipelineUuid,
-        file_path,
-        ALLOWED_STEP_EXTENSIONS
-      );
+        jobUuid,
+        runUuid,
+        path: file_path,
+        allowedExtensions: ALLOWED_STEP_EXTENSIONS,
+      });
       if (valid) onDoubleClick(uuid);
     }
   };
@@ -431,7 +435,6 @@ const PipelineStepComponent = React.forwardRef<
     isSelectorActive,
     selected,
     cursorControlledStep,
-    resetDraggingVariables,
     disabledDragging,
     selectedSteps,
     metadataPositions,

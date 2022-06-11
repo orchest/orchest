@@ -80,12 +80,16 @@ export const GenerateParametersDialog = ({
   pipelinePath,
   projectUuid,
   pipelineUuid,
+  jobUuid,
+  runUuid,
 }: {
   isOpen: boolean;
   onClose: () => void;
   pipelinePath: string | undefined;
   projectUuid: string | undefined;
   pipelineUuid: string | undefined;
+  jobUuid: string | undefined;
+  runUuid: string | undefined;
 }) => {
   const { pipelineJson, isFetchingPipelineJson } = useFetchPipelineJson({
     projectUuid,
@@ -156,13 +160,15 @@ export const GenerateParametersDialog = ({
     // Check if file exists
     let doesFileExist: boolean;
     try {
-      doesFileExist = await isValidFile(
+      doesFileExist = await isValidFile({
         projectUuid,
         pipelineUuid,
-        filePath,
-        ["json"],
-        true
-      );
+        jobUuid,
+        runUuid,
+        path: filePath,
+        allowedExtensions: ["json"],
+        useProjectRoot: true,
+      });
     } catch (error) {
       doesFileExist = false;
     }

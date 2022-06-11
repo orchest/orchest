@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 from flask import jsonify, safe_join
 
 from _orchest.internals import config as _config
-from app.models import Project
+from app.utils import get_project_directory
 
 logger = logging.getLogger(__name__)
 
@@ -48,23 +48,11 @@ def _construct_root_dir_path(
     if root == PROJECT_DIR_PATH and project_uuid is None:
         raise ValueError("project_uuid is required.")
 
-    project = Project.query.filter(Project.uuid == project_uuid).first()
-
-    if project is None:
-        raise ValueError(f"project {project_uuid} not found.")
-
-    if job_uuid is None and run_uuid is None:
-        # Load from user's projects directory.
-        return f"{_config.USERDIR_PROJECTS}/{project.path}"
-
-    if pipeline_uuid is None and job_uuid is not None:
-        raise ValueError("pipeline_uuid and job_uuid are both required.")
-
-    run_uuid_or_snapshot = run_uuid if run_uuid is not None else "snapshot"
-    # Load run if run_uuid is given, otherwise load snapshot.
-    return (
-        f"{_config.USERDIR_JOBS}/{project_uuid}/{pipeline_uuid}"
-        + f"/{job_uuid}/{run_uuid_or_snapshot}"
+    return get_project_directory(
+        project_uuid=project_uuid,
+        pipeline_uuid=pipeline_uuid,
+        job_uuid=job_uuid,
+        run_uuid=run_uuid,
     )
 
 

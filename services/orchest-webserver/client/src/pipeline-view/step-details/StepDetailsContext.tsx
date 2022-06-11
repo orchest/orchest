@@ -18,15 +18,23 @@ export const StepDetailsContext = React.createContext<StepDetailsContextType>(
 
 export const useStepDetailsContext = () => React.useContext(StepDetailsContext);
 export const StepDetailsContextProvider: React.FC = ({ children }) => {
-  const { eventVars, pipelineUuid, projectUuid } = usePipelineEditorContext();
+  const {
+    eventVars,
+    pipelineUuid,
+    projectUuid,
+    runUuid,
+    jobUuid,
+  } = usePipelineEditorContext();
 
   const step = eventVars.steps[eventVars.openedStep || ""];
-  const [doesStepFileExist, isCheckingFileValidity] = useCheckFileValidity(
+  const [doesStepFileExist, isCheckingFileValidity] = useCheckFileValidity({
     projectUuid,
     pipelineUuid,
-    step?.file_path,
-    ALLOWED_STEP_EXTENSIONS
-  );
+    jobUuid,
+    runUuid,
+    path: step?.file_path,
+    allowedExtensions: ALLOWED_STEP_EXTENSIONS,
+  });
 
   const connections = React.useMemo(() => {
     if (!step) return {};

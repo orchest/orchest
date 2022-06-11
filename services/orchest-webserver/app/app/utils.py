@@ -86,10 +86,40 @@ def get_pipeline_directory(
     )[0]
 
 
-def get_project_directory(project_uuid):
-    USER_DIR = StaticConfig.USER_DIR
+def get_project_directory(
+    project_uuid: str,
+    pipeline_uuid: Optional[str] = None,
+    job_uuid: Optional[str] = None,
+    run_uuid: Optional[str] = None,
+):
+    project_path = project_uuid_to_path(project_uuid)
 
-    return safe_join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
+    if job_uuid is None and run_uuid is None:
+        # Load from user's projects directory.
+        # pipeline_uuid is ignored even if it's provided.
+        return safe_join(_config.USERDIR_PROJECTS, project_path)
+
+    if job_uuid is None and run_uuid is None:
+        # Load from user's projects directory.
+        return safe_join(_config.USERDIR_PROJECTS, project_path)
+
+    if run_uuid is not None and (pipeline_uuid is None or job_uuid is None):
+        raise ValueError(
+            "pipeline_uuid and job_uuid are both required when run_uuid is provided."
+        )
+
+    if pipeline_uuid is None and job_uuid is not None:
+        raise ValueError("pipeline_uuid is required when job_uuid is provided.")
+
+    run_uuid_or_snapshot = run_uuid if run_uuid is not None else "snapshot"
+    # Load run if run_uuid is given, otherwise load snapshot.
+    return safe_join(
+        _config.USERDIR_JOBS,
+        project_uuid,
+        pipeline_uuid,
+        job_uuid,
+        run_uuid_or_snapshot,
+    )
 
 
 def get_project_snapshot_size(project_uuid):
@@ -429,12 +459,12 @@ def get_api_entity_counts(endpoint, entity_key, project_uuid=None):
     return counts
 
 
-def project_uuid_to_path(project_uuid: str) -> Optional[str]:
+def project_uuid_to_path(project_uuid: str) -> str:
     project = Project.query.filter(Project.uuid == project_uuid).first()
     if project is not None:
         return project.path
     else:
-        return None
+        raise ValueError(f"project {project_uuid} not found.")
 
 
 def find_pipelines_in_dir(path, relative_to=None):

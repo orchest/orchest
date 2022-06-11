@@ -1058,11 +1058,15 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
         pipeline_uuid = request.args.get("pipeline_uuid")
-        use_project_root = request.args.get("use_project_root")
+        job_uuid = request.args.get("job_uuid")
+        run_uuid = request.args.get("run_uuid")
+        use_project_root_as_string = request.args.get("use_project_root")
 
-        if use_project_root is not None:
-            # string match query argument to bool
-            use_project_root = use_project_root == "true"
+        # string match query argument to bool
+        use_project_root = (
+            use_project_root_as_string is not None
+            and use_project_root_as_string == "true"
+        )
 
         # currently this endpoint only handles "/data"
         # if path is absolute
@@ -1078,11 +1082,21 @@ def register_views(app, db):
                     "Path points outside of the data directory."
                 )
         elif not use_project_root:
-            pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+            pipeline_dir = get_pipeline_directory(
+                pipeline_uuid=pipeline_uuid,
+                project_uuid=project_uuid,
+                job_uuid=job_uuid,
+                pipeline_run_uuid=run_uuid,
+            )
             file_path = normalize_project_relative_path(path)
             file_path = os.path.join(pipeline_dir, file_path)
         elif use_project_root:
-            project_dir = get_project_directory(project_uuid)
+            project_dir = get_project_directory(
+                project_uuid=project_uuid,
+                pipeline_uuid=pipeline_uuid,
+                job_uuid=job_uuid,
+                run_uuid=run_uuid,
+            )
             file_path = normalize_project_relative_path(path)
             file_path = os.path.join(project_dir, file_path)
 
