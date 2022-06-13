@@ -826,7 +826,7 @@ const EditJobView: React.FC = () => {
                   onClick={showLoadParametersDialog}
                   startIcon={<UploadIcon />}
                 >
-                  Load parameters
+                  Load parameter file
                 </Button>
                 <Box sx={{ marginTop: 2 }}>
                   <p>

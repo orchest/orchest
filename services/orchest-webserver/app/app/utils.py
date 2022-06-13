@@ -37,7 +37,7 @@ def get_pipeline_path(
 
     project_path = project_uuid_to_path(project_uuid)
 
-    if pipeline_run_uuid is None and job_uuid is None:
+    if job_uuid is None:
         return safe_join(USER_DIR, "projects", project_path, pipeline_path)
     elif pipeline_run_uuid is not None and job_uuid is not None:
         return safe_join(
