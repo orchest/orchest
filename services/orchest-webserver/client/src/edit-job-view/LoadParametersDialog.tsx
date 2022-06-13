@@ -18,6 +18,15 @@ const ProjectFilePickerHolder = ({
   pipelineCwd,
   onChangeFilePath,
   pipelineUuid,
+  jobUuid,
+  runUuid,
+}: {
+  selectedPath: string;
+  pipelineCwd: string;
+  onChangeFilePath: React.Dispatch<React.SetStateAction<string>>;
+  pipelineUuid: string | undefined;
+  jobUuid: string | undefined;
+  runUuid: string | undefined;
 }) => {
   const { fetchFileTrees } = useFileManagerContext();
 
@@ -27,13 +36,15 @@ const ProjectFilePickerHolder = ({
 
   const { projectUuid } = useCustomRoute();
 
-  const [doesFileExist, isCheckingFileValidity] = useCheckFileValidity(
+  const [doesFileExist, isCheckingFileValidity] = useCheckFileValidity({
     projectUuid,
     pipelineUuid,
-    selectedPath,
-    ["json"],
-    true
-  );
+    jobUuid,
+    runUuid,
+    path: selectedPath,
+    allowedExtensions: ["json"],
+    useProjectRoot: true,
+  });
 
   return (
     <ProjectFilePicker
@@ -60,6 +71,7 @@ export const LoadParametersDialog = ({
   pipelineUuid: string | undefined;
 }) => {
   const [selectedPath, setSelectedPath] = React.useState("");
+  const { projectUuid, jobUuid, runUuid } = useCustomRoute();
 
   // Always load parameters from project root
   const pipelineCwd = "/";
@@ -83,12 +95,19 @@ export const LoadParametersDialog = ({
         <DialogTitle>Load job parameters file</DialogTitle>
         <DialogContent sx={{ overflowY: "visible" }}>
           <Stack direction="column" spacing={2}>
-            <FileManagerContextProvider>
+            <FileManagerContextProvider
+              projectUuid={projectUuid}
+              pipelineUuid={pipelineUuid}
+              jobUuid={jobUuid}
+              runUuid={runUuid}
+            >
               <ProjectFilePickerHolder
                 selectedPath={selectedPath}
                 pipelineCwd={pipelineCwd}
                 onChangeFilePath={setSelectedPath}
                 pipelineUuid={pipelineUuid}
+                jobUuid={jobUuid}
+                runUuid={runUuid}
               />
             </FileManagerContextProvider>
           </Stack>

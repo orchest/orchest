@@ -497,6 +497,8 @@ const PipelineSettingsView: React.FC = () => {
           onClose={closeGenerateParametersDialog}
           projectUuid={projectUuid}
           pipelineUuid={pipelineUuid}
+          jobUuid={jobUuid}
+          runUuid={runUuid}
         />
       )}
       <div className="view-page pipeline-settings-view">

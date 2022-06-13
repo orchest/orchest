@@ -16,26 +16,37 @@ export const pathValidator = (value: string, allowedExtension: string[]) => {
   return allowedExtension.includes(ext);
 };
 
-export const isValidFile = async (
-  project_uuid: string,
-  pipeline_uuid: string,
-  path: string,
-  allowedExtensions: string[],
-  use_project_root = false
-) => {
+type ValidateFileProps = {
+  projectUuid: string | undefined;
+  pipelineUuid: string | undefined;
+  jobUuid?: string;
+  runUuid?: string;
+  path: string;
+  allowedExtensions: string[];
+  useProjectRoot?: boolean;
+};
+
+export const isValidFile = async ({
+  path,
+  projectUuid,
+  pipelineUuid,
+  jobUuid,
+  runUuid,
+  allowedExtensions,
+  useProjectRoot = false,
+}: ValidateFileProps) => {
   // only check file existence if it passes rule-based validation
-  if (
-    !project_uuid ||
-    !pipeline_uuid ||
-    !pathValidator(path, allowedExtensions)
-  )
+  if (!projectUuid || !pipelineUuid || !pathValidator(path, allowedExtensions))
     return false;
+
   const response = await fetcher(
     `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
-      project_uuid,
-      pipeline_uuid,
+      projectUuid,
+      pipelineUuid,
+      jobUuid,
+      runUuid,
       path,
-      use_project_root,
+      useProjectRoot,
     })}`
   );
   return hasValue(response);
@@ -48,13 +59,15 @@ export const isValidFile = async (
  * @param path {string|undefined}
  * @returns boolean
  */
-export const useCheckFileValidity = (
-  projectUuid: string | undefined,
-  pipelineUuid: string | undefined,
-  path: string | undefined,
-  allowedExtensions: string[],
-  use_project_root = false
-) => {
+export const useCheckFileValidity = ({
+  path,
+  projectUuid,
+  pipelineUuid,
+  jobUuid,
+  runUuid,
+  allowedExtensions,
+  useProjectRoot = false,
+}: ValidateFileProps) => {
   const isQueryArgsComplete =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
@@ -68,8 +81,10 @@ export const useCheckFileValidity = (
       ? `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
           projectUuid,
           pipelineUuid,
+          jobUuid,
+          runUuid,
           path: delayedPath || path,
-          use_project_root,
+          useProjectRoot,
         })}`
       : undefined,
     { transform: () => true }
