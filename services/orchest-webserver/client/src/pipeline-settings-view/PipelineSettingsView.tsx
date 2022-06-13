@@ -129,7 +129,7 @@ const PipelineSettingsView: React.FC = () => {
     setAsSaved,
   } = useAppContext();
 
-  useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.pipelineSettings.path });
 
   useEnsureValidPipeline();
 

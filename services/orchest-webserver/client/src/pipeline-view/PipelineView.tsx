@@ -17,7 +17,7 @@ import { PipelineEditor } from "./PipelineEditor";
 import { SessionsPanel } from "./sessions-panel/SessionsPanel";
 
 const PipelineView = () => {
-  useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.pipeline.path });
   const { setIsDrawerOpen } = useAppContext();
   const {
     state: { pipelineIsReadOnly, projectUuid, pipeline },

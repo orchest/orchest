@@ -21,6 +21,5 @@ Werkzeug<2.1.0  # Newer versions are broken with old Flask
 python-engineio
 python-socketio
 SQLAlchemy-Utils
-posthog
 psycopg2-binary
 -e file:../../lib/python/orchest-internals

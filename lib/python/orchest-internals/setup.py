@@ -15,5 +15,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3.8",
     ],
     license="",
-    install_requires=["requests>=2.0.0", "Flask>=1.0.0"],
+    install_requires=["requests>=2.0.0", "Flask>=1.0.0", "posthog==1.4.7"],
 )

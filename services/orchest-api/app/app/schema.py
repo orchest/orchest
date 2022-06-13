@@ -65,6 +65,7 @@ project = Model(
 project_update = Model(
     "ProjectUpdate",
     {
+        "name": fields.String(required=False, description="Name of the project"),
         "env_variables": fields.Raw(
             required=False, description="Environment variables of the project"
         ),

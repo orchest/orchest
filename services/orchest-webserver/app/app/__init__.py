@@ -7,7 +7,6 @@ Additinal note:
         https://docs.pytest.org/en/latest/goodpractices.html
 """
 
-import base64
 import contextlib
 import logging
 import os
@@ -18,7 +17,6 @@ from logging.config import dictConfig
 from pprint import pformat
 from subprocess import Popen
 
-import posthog
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request, safe_join, send_from_directory
@@ -101,12 +99,6 @@ def create_app(to_migrate_db=False):
     # twice. Because before the app starts we first migrate.
     app.logger.info("Flask CONFIG: %s" % app.config)
 
-    # Initialize posthog ASAP, at least before setting up the scheduler
-    # but after `to_migrate_db`.
-    if not app.config["TELEMETRY_DISABLED"]:
-        posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"]).decode()
-        posthog.host = app.config["POSTHOG_HOST"]
-
     if not _utils.is_running_from_reloader():
         with app.app_context():
             try:
@@ -149,12 +141,12 @@ def create_app(to_migrate_db=False):
             # Infinite amount of grace time, so that if a task cannot be
             # instantly executed (e.g. if the webserver is busy) then it
             # will eventually be.
-            "misfire_grace_time": 2 ** 31,
+            "misfire_grace_time": 2**31,
             "coalesce": False,
             # So that the same job can be in the queue an infinite
             # amount of times, e.g. for concurrent requests issuing the
             # same tasks.
-            "max_instances": 2 ** 31,
+            "max_instances": 2**31,
         }
     )
     app.config["SCHEDULER"] = scheduler

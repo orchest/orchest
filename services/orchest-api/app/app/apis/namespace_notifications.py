@@ -30,9 +30,14 @@ class SubscriberList(Resource):
     @api.response(200, "Success", schema.subscribers)
     def get(self):
         """Gets all subscribers, doesn't include their subscriptions."""
-        subscribers = models.Subscriber.query.options(
-            noload(models.Subscriber.subscriptions)
-        ).all()
+        subscribers = (
+            models.Subscriber.query.options(
+                noload(models.Subscriber.subscriptions)
+                # Don't expose analytics subscriber.
+            )
+            .filter(models.Subscriber.type != "analytics")
+            .all()
+        )
         marshaled = []
         for subscriber in subscribers:
             if isinstance(subscriber, models.Webhook):
@@ -254,6 +259,9 @@ class SubscribersSubscribedToEvent(Resource):
         for subscriber in alerted_subscribers:
             if isinstance(subscriber, models.Webhook):
                 marshaled.append(marshal(subscriber, schema.webhook))
+            # Don't expose analytics subscriber.
+            elif isinstance(subscriber, models.AnalyticsSubscriber):
+                continue
             else:
                 marshaled.append(marshal(subscriber, schema.subscriber))
 

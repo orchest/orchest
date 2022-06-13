@@ -18,7 +18,7 @@ import React from "react";
 
 const UpdateView: React.FC = () => {
   const { setConfirm, setAlert } = useAppContext();
-  useSendAnalyticEvent("view load", { name: siteMap.update.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.update.path });
 
   const { cancelableFetch } = useCancelableFetch();
   const { makeCancelable } = useCancelablePromise();

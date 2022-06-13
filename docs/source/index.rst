@@ -60,3 +60,4 @@ Orchest
    development/how_orchest_works
    development/troubleshooting
    development/implementation_best_practices
+   development/feature_manuals

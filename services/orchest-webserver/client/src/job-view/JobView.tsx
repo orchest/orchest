@@ -46,7 +46,7 @@ const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
 const JobView: React.FC = () => {
   // global states
   const { setAlert, requestBuild } = useAppContext();
-  useSendAnalyticEvent("view load", { name: siteMap.job.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.job.path });
 
   // data from route
   const { navigateTo, jobUuid } = useCustomRoute();
