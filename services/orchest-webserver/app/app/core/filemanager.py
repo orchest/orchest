@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 from flask import jsonify, safe_join
 
 from _orchest.internals import config as _config
-from app.models import Project
+from app.utils import get_project_directory
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,13 @@ def allowed_file(filename):
     return True
 
 
-def _construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) -> str:
+def _construct_root_dir_path(
+    root: Optional[str],
+    project_uuid: Optional[str],
+    pipeline_uuid: Optional[str] = None,
+    job_uuid: Optional[str] = None,
+    run_uuid: Optional[str] = None,
+) -> str:
     """
     If root is not provided, default to PROJECT_DIR_PATH;
     If root equals to PROJECT_DIR_PATH, project_uuid is required;
@@ -42,12 +48,12 @@ def _construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) -
     if root == PROJECT_DIR_PATH and project_uuid is None:
         raise ValueError("project_uuid is required.")
 
-    project = Project.query.filter(Project.uuid == project_uuid).first()
-
-    if project is None:
-        raise ValueError(f"project {project_uuid} not found.")
-
-    return f"{_config.USERDIR_PROJECTS}/{project.path}"
+    return get_project_directory(
+        project_uuid=project_uuid,
+        pipeline_uuid=pipeline_uuid,
+        job_uuid=job_uuid,
+        run_uuid=run_uuid,
+    )
 
 
 def find_unique_duplicate_filepath(fp):
@@ -206,6 +212,9 @@ def process_request(
     root: Optional[str],
     path: Optional[str],
     project_uuid: Optional[str],
+    pipeline_uuid: Optional[str] = None,
+    job_uuid: Optional[str] = None,
+    run_uuid: Optional[str] = None,
     depth: Optional[str] = None,
     is_path_required: Optional[bool] = True,
 ) -> Tuple[str, Optional[int]]:
@@ -224,16 +233,22 @@ def process_request(
     # in most cases, path is required,
     # except for /async/file-management/browse,
     # where either depth and path should be provided
+
+    if is_path_required and path is None:
+        raise ValueError("Argument path is required.")
+
     if depth is None and path is None:
-        extra_explanation = "" if is_path_required else " if depth is None"
-        raise ValueError(f"Argument path is required{extra_explanation}.")
+        raise ValueError("Either depth or path should be provided.")
 
-    if path is not None:
-        if not path.startswith("/"):
-            raise ValueError(
-                "Argument path should always start with a forward-slash: '/'"
-            )
+    if path is not None and not path.startswith("/"):
+        raise ValueError("Argument path should always start with a forward-slash: '/'")
 
-    root_dir_path = _construct_root_dir_path(root=root, project_uuid=project_uuid)
+    root_dir_path = _construct_root_dir_path(
+        root=root,
+        project_uuid=project_uuid,
+        pipeline_uuid=pipeline_uuid,
+        job_uuid=job_uuid,
+        run_uuid=run_uuid,
+    )
 
     return (root_dir_path, depth)

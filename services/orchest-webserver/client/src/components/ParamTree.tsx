@@ -13,6 +13,12 @@ export interface IParamTreeProps {
   pipelineName: string;
   editParameter?: (parameterKey: any, key: any) => void;
   strategyJSON: any;
+  activeParameter:
+    | {
+        key: string;
+        strategyJSONKey: string;
+      }
+    | undefined;
 }
 
 export const NoParameterAlert = () => {
@@ -59,13 +65,13 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
   };
 
   const generateParameterElement = (stepStrategy, includeTitle?) => {
-    let elements = [];
+    let elements = new Array<React.ReactElement>();
 
     if (includeTitle === undefined) {
       includeTitle = true;
     }
 
-    if (includeTitle) {
+    if (includeTitle && stepStrategy.title && stepStrategy.title.length > 0) {
       elements.push(<b key={stepStrategy.key}>{stepStrategy.title}</b>);
     }
 
@@ -92,7 +98,18 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
               props["data-test-id"] + `-parameter-row-${parameterKey}-value`
             }
           >
-            {truncateParameterValue(stepStrategy.parameters[parameterKey])}
+            <span
+              style={{
+                fontWeight:
+                  props.activeParameter &&
+                  props.activeParameter.key == parameterKey &&
+                  props.activeParameter.strategyJSONKey == stepStrategy.key
+                    ? "bold"
+                    : "normal",
+              }}
+            >
+              {truncateParameterValue(stepStrategy.parameters[parameterKey])}
+            </span>
           </div>
         </div>
       );
@@ -105,7 +122,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
     let pipelineParameterElement;
     let stepParameterElements = [];
 
-    // first list pipeline parameters
+    // First list pipeline parameters
     let pipelineParameterization =
       strategyJSON[config?.PIPELINE_PARAMETERS_RESERVED_KEY || ""];
     if (pipelineParameterization) {

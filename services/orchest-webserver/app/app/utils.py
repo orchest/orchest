@@ -37,7 +37,7 @@ def get_pipeline_path(
 
     project_path = project_uuid_to_path(project_uuid)
 
-    if pipeline_run_uuid is None and job_uuid is None:
+    if job_uuid is None:
         return safe_join(USER_DIR, "projects", project_path, pipeline_path)
     elif pipeline_run_uuid is not None and job_uuid is not None:
         return safe_join(
@@ -47,10 +47,15 @@ def get_pipeline_path(
         )
     elif job_uuid is not None:
         return safe_join(
-            get_job_directory(pipeline_uuid, project_uuid, job_uuid),
-            "snapshot",
+            get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid),
             pipeline_path,
         )
+
+
+def get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid):
+    return safe_join(
+        get_job_directory(pipeline_uuid, project_uuid, job_uuid), "snapshot"
+    )
 
 
 def get_job_directory(pipeline_uuid, project_uuid, job_uuid):
@@ -82,10 +87,40 @@ def get_pipeline_directory(
     )[0]
 
 
-def get_project_directory(project_uuid):
-    USER_DIR = StaticConfig.USER_DIR
+def get_project_directory(
+    project_uuid: str,
+    pipeline_uuid: Optional[str] = None,
+    job_uuid: Optional[str] = None,
+    run_uuid: Optional[str] = None,
+):
+    project_path = project_uuid_to_path(project_uuid)
 
-    return safe_join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
+    if job_uuid is None and run_uuid is None:
+        # Load from user's projects directory.
+        # pipeline_uuid is ignored even if it's provided.
+        return safe_join(_config.USERDIR_PROJECTS, project_path)
+
+    if job_uuid is None and run_uuid is None:
+        # Load from user's projects directory.
+        return safe_join(_config.USERDIR_PROJECTS, project_path)
+
+    if run_uuid is not None and (pipeline_uuid is None or job_uuid is None):
+        raise ValueError(
+            "pipeline_uuid and job_uuid are both required when run_uuid is provided."
+        )
+
+    if pipeline_uuid is None and job_uuid is not None:
+        raise ValueError("pipeline_uuid is required when job_uuid is provided.")
+
+    run_uuid_or_snapshot = run_uuid if run_uuid is not None else "snapshot"
+    # Load run if run_uuid is given, otherwise load snapshot.
+    return safe_join(
+        _config.USERDIR_JOBS,
+        project_uuid,
+        pipeline_uuid,
+        job_uuid,
+        run_uuid_or_snapshot,
+    )
 
 
 def get_project_snapshot_size(project_uuid):
@@ -269,8 +304,12 @@ def get_environments_from_pipeline_json(pipeline_definition):
     return environment_uuids
 
 
-def get_pipeline_json(pipeline_uuid, project_uuid):
-    pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
+def get_pipeline_json(pipeline_uuid=None, project_uuid=None, pipeline_path=None):
+    """Either the path is derived from pipeline_uuid and project_uuid
+    or the path is used that's passed in.
+    """
+    if pipeline_path is None:
+        pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
 
     try:
         with open(pipeline_path, "r") as json_file:
@@ -406,12 +445,12 @@ def get_api_entity_counts(endpoint, entity_key, project_uuid=None):
     return counts
 
 
-def project_uuid_to_path(project_uuid: str) -> Optional[str]:
+def project_uuid_to_path(project_uuid: str) -> str:
     project = Project.query.filter(Project.uuid == project_uuid).first()
     if project is not None:
         return project.path
     else:
-        return None
+        raise ValueError(f"project {project_uuid} not found.")
 
 
 def find_pipelines_in_dir(path, relative_to=None):
@@ -473,10 +512,7 @@ def write_config(app, key, value):
 
 def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
 
-    snapshot_path = safe_join(
-        get_job_directory(pipeline_uuid, project_uuid, job_uuid),
-        "snapshot",
-    )
+    snapshot_path = get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid)
 
     os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
 
@@ -551,7 +587,9 @@ def generate_ipynb_from_template(kernel_name: str):
     return json.dumps(template_json, indent=4)
 
 
-def create_empty_file(file_path: str, kernel_name: Optional[str] = "python"):
+def create_file(
+    file_path: str, kernel_name: Optional[str] = "python", content=Optional[str]
+):
     """
     This function creates an empty file with the given `file_path`.
     `kernel_name` is optional. It is  only applicable if `file_path`
@@ -567,20 +605,21 @@ def create_empty_file(file_path: str, kernel_name: Optional[str] = "python"):
     ext = file_path_split[-1]
 
     file_content = None
-
-    if not os.path.isfile(file_path):
-
-        if len(file_path_without_ext) > 0:
-            file_content = ""
-
-        if ext == "ipynb":
-            file_content = generate_ipynb_from_template(kernel_name)
-
-    elif ext == "ipynb":
-        # Check for empty .ipynb, for which we also generate a
-        # template notebook.
-        if os.stat(file_path).st_size == 0:
-            file_content = generate_ipynb_from_template(kernel_name)
+    if content is not None and len(content) > 0:
+        if isinstance(content, bytes):
+            content = content.decode("utf-8")
+        file_content = content
+    else:
+        if not os.path.isfile(file_path):
+            if len(file_path_without_ext) > 0:
+                file_content = ""
+            if ext == "ipynb":
+                file_content = generate_ipynb_from_template(kernel_name)
+        else:
+            # Check for empty .ipynb, for which we also generate a
+            # template notebook.
+            if os.stat(file_path).st_size == 0:
+                file_content = generate_ipynb_from_template(kernel_name)
 
     if file_content is not None:
         with open(file_path, "w") as file:

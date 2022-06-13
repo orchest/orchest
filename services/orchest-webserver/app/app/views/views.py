@@ -41,7 +41,7 @@ from app.models import Environment, Pipeline, Project
 from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
 from app.utils import (
     check_pipeline_correctness,
-    create_empty_file,
+    create_file,
     delete_environment,
     get_environment,
     get_environment_directory,
@@ -56,6 +56,7 @@ from app.utils import (
     get_project_snapshot_size,
     get_repo_tag,
     get_session_counts,
+    get_snapshot_directory,
     is_valid_data_path,
     is_valid_pipeline_relative_path,
     normalize_project_relative_path,
@@ -754,7 +755,9 @@ def register_views(app, db):
                 pipeline_json = json.load(json_file)
             try:
                 step_file_path = pipeline_json["steps"][step_uuid]["file_path"]
-                if not is_valid_pipeline_relative_path(
+                if not is_valid_data_path(
+                    step_file_path
+                ) and not is_valid_pipeline_relative_path(
                     project_uuid, pipeline_uuid, step_file_path
                 ):
                     raise app_error.OutOfProjectError(
@@ -945,7 +948,7 @@ def register_views(app, db):
                     404,
                 )
             else:
-                pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
+                pipeline_json = get_pipeline_json(pipeline_path=pipeline_json_path)
 
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
@@ -966,12 +969,14 @@ def register_views(app, db):
     @app.route("/async/file-management/create", methods=["POST"])
     def filemanager_create():
         """
-        Create an empty file with the given path within `/project-dir`
+        Create a file with the given path within `/project-dir`
         or `/data`.
         """
         root = request.args.get("root")
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
+        body = request.data
+        overwrite = request.args.get("overwrite") == "true"
 
         try:
             root_dir_path, _ = process_request(
@@ -982,7 +987,9 @@ def register_views(app, db):
 
         file_path = safe_join(root_dir_path, path[1:])
 
-        if not file_path.split(".")[-1] in _config.ALLOWED_FILE_EXTENSIONS:
+        # This endpoint also allows JSON files to be created
+        # for the job parameters file feature
+        if not file_path.split(".")[-1] in (_config.ALLOWED_FILE_EXTENSIONS + ["json"]):
             return jsonify({"message": "Given file type is not supported."}), 409
 
         directory, _ = os.path.split(file_path)
@@ -990,13 +997,81 @@ def register_views(app, db):
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-        if os.path.isfile(file_path):
+        if os.path.isfile(file_path) and not overwrite:
             return jsonify({"message": "File already exists."}), 409
         try:
-            create_empty_file(file_path)
+            create_file(file_path, content=body)
             return jsonify({"message": "File created."})
         except IOError as e:
             app.logger.error(f"Could not create file at {file_path}. Error: {e}")
+
+    @app.route("/async/file-management/read", methods=["GET"])
+    def filemanager_read():
+        """Read file contents and return."""
+
+        # This is just for the load JSON params at the moment.
+        # So limiting to JSON files.
+        ALLOWED_READ_FILE_EXTENIONS = [".json"]
+
+        # Path is assumed to be relative to root of the project
+        # directory (or absolute starting for data paths e.g. /data/abc)
+        path = request.args.get("path")
+        pipeline_uuid = request.args.get("pipeline_uuid")
+        project_uuid = request.args.get("project_uuid")
+        job_uuid = request.args.get("job_uuid")
+
+        # currently this endpoint only handles "/data"
+        # if path is absolute
+        if path.startswith("/") and not path.startswith("/data"):
+            return jsonify({"message": "Illegal file path prefix."}), 400
+
+        if path.endswith("/"):
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "This endpoint only supports files"
+                            ", provided a directory path."
+                        )
+                    }
+                ),
+                400,
+            )
+
+        ext = pathlib.Path(path).suffix
+        if ext not in ALLOWED_READ_FILE_EXTENIONS:
+            return (
+                jsonify(
+                    {
+                        "message": "Illegal extension: %s. Allowed extensions: %s"
+                        % (ext, ALLOWED_READ_FILE_EXTENIONS)
+                    }
+                ),
+                400,
+            )
+
+        file_path = None
+
+        if path.startswith("/"):
+            file_path = resolve_absolute_path(path)
+            if not is_valid_data_path(file_path, True):
+                raise app_error.OutOfDataDirectoryError(
+                    "Path points outside of the data directory."
+                )
+        else:
+            path_parent_dir = get_snapshot_directory(
+                pipeline_uuid, project_uuid, job_uuid
+            )
+            file_path = normalize_project_relative_path(path)
+            file_path = os.path.join(path_parent_dir, file_path)
+
+        if file_path is None:
+            return jsonify({"message": "Failed to process file_path."}), 500
+
+        if os.path.isfile(file_path):
+            return send_file(file_path)
+        else:
+            return jsonify({"message": "File does not exists."}), 404
 
     @app.route("/async/file-management/exists", methods=["GET"])
     def filemanager_exists():
@@ -1005,6 +1080,15 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
         pipeline_uuid = request.args.get("pipeline_uuid")
+        job_uuid = request.args.get("job_uuid")
+        run_uuid = request.args.get("run_uuid")
+        use_project_root_as_string = request.args.get("use_project_root")
+
+        # string match query argument to bool
+        use_project_root = (
+            use_project_root_as_string is not None
+            and use_project_root_as_string == "true"
+        )
 
         # currently this endpoint only handles "/data"
         # if path is absolute
@@ -1019,10 +1103,24 @@ def register_views(app, db):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
-        else:
-            pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+        elif not use_project_root:
+            pipeline_dir = get_pipeline_directory(
+                pipeline_uuid=pipeline_uuid,
+                project_uuid=project_uuid,
+                job_uuid=job_uuid,
+                pipeline_run_uuid=run_uuid,
+            )
             file_path = normalize_project_relative_path(path)
             file_path = os.path.join(pipeline_dir, file_path)
+        elif use_project_root:
+            project_dir = get_project_directory(
+                project_uuid=project_uuid,
+                pipeline_uuid=pipeline_uuid,
+                job_uuid=job_uuid,
+                run_uuid=run_uuid,
+            )
+            file_path = normalize_project_relative_path(path)
+            file_path = os.path.join(project_dir, file_path)
 
         if file_path is None:
             return jsonify({"message": "Failed to process file_path."}), 500
@@ -1281,12 +1379,18 @@ def register_views(app, db):
         path = request.args.get("path")
         depth_as_string = request.args.get("depth")
         project_uuid = request.args.get("project_uuid")
+        pipeline_uuid = request.args.get("pipeline_uuid")
+        job_uuid = request.args.get("job_uuid")
+        run_uuid = request.args.get("run_uuid")
 
         try:
             root_dir_path, depth = process_request(
                 root=root,
                 path=path,
                 project_uuid=project_uuid,
+                pipeline_uuid=pipeline_uuid,
+                job_uuid=job_uuid,
+                run_uuid=run_uuid,
                 depth=depth_as_string,
                 is_path_required=False,
             )

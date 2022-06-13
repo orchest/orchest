@@ -16,11 +16,13 @@ import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
 import { siteMap } from "@/routingConfig";
-import type { Json, PipelineJson, StrategyJson } from "@/types";
+import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
+  generateStrategyJson,
   isValidEnvironmentVariableName,
+  pipelinePathToJsonLocation,
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -29,6 +31,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import SaveIcon from "@mui/icons-material/Save";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import TuneIcon from "@mui/icons-material/Tune";
+import UploadIcon from "@mui/icons-material/Upload";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -47,15 +50,20 @@ import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher, HEADER, uuidv4 } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
+import {
+  fetchParamConfig,
+  generateStrategyJsonFromParamJsonFile,
+} from "./common";
 import {
   flattenStrategyJson,
   generatePipelineRunParamCombinations,
   generatePipelineRunRows,
 } from "./commons";
+import { LoadParametersDialog } from "./LoadParametersDialog";
 import { useAutoCleanUpEnabled } from "./useAutoCleanUpEnabled";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
@@ -103,7 +111,7 @@ const findParameterization = (
 const parseParameters = (
   parameters: Record<string, Json>[],
   generatedPipelineRuns: Record<string, Json>[]
-) => {
+): string[] => {
   let _parameters = cloneDeep(parameters);
   let selectedIndices = new Set<string>();
   generatedPipelineRuns.forEach((run, index) => {
@@ -150,53 +158,6 @@ const columns: DataTableColumn<PipelineRunRow>[] = [
   },
 ];
 
-const generateParameterLists = (parameters: Record<string, Json>) => {
-  let parameterLists = {};
-
-  for (const paramKey in parameters) {
-    // Note: the list of parameters for each key will always be
-    // a string in the 'strategyJSON' data structure. This
-    // facilitates preserving user added indendation.
-
-    // Validity of the user string as JSON is checked client
-    // side (for now).
-    parameterLists[paramKey] = JSON.stringify([parameters[paramKey]]);
-  }
-
-  return parameterLists;
-};
-
-const generateStrategyJson = (pipeline: PipelineJson, reservedKey: string) => {
-  let strategyJSON = {};
-
-  if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
-    strategyJSON[reservedKey] = {
-      key: reservedKey,
-      parameters: generateParameterLists(pipeline.parameters),
-      title: pipeline.name,
-    };
-  }
-
-  for (const stepUUID in pipeline.steps) {
-    let stepStrategy = JSON.parse(JSON.stringify(pipeline.steps[stepUUID]));
-
-    if (
-      stepStrategy.parameters &&
-      Object.keys(stepStrategy.parameters).length > 0
-    ) {
-      // selectively persist only required fields for use in parameter
-      // related React components
-      strategyJSON[stepUUID] = {
-        key: stepUUID,
-        parameters: generateParameterLists(stepStrategy.parameters),
-        title: stepStrategy.title,
-      };
-    }
-  }
-
-  return strategyJSON;
-};
-
 type JobUpdatePayload = {
   name: string;
   confirm_draft: boolean;
@@ -225,6 +186,11 @@ const EditJobView: React.FC = () => {
     "now"
   );
 
+  const [
+    isLoadParametersDialogOpen,
+    setIsLoadParametersDialogOpen,
+  ] = React.useState<boolean>(false);
+
   const [envVariables, _setEnvVariables] = React.useState<
     EnvVarPair[] | undefined
   >([]);
@@ -243,9 +209,11 @@ const EditJobView: React.FC = () => {
   const [pipelineRuns, setPipelineRuns] = React.useState<
     Record<string, Json>[]
   >([]);
+  const [parameterHash, setParameterHash] = React.useState(uuidv4());
   const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
 
   const [runJobLoading, setRunJobLoading] = React.useState(false);
+  const [searchedParamFile, setSearchedParamFile] = React.useState(false);
 
   const { setJob, job, isFetchingJob } = useFetchJob({ jobUuid });
 
@@ -267,48 +235,182 @@ const EditJobView: React.FC = () => {
     StrategyJson | undefined
   >(undefined);
 
-  React.useEffect(() => {
-    if (job) {
-      _setEnvVariables(envVariablesDictToArray(job.env_variables));
-      setScheduleOption(!job.schedule ? "now" : "cron");
-      setCronString(job.schedule || DEFAULT_CRON_STRING);
-      setStrategyJson((prev) =>
-        job.status !== "DRAFT" ? job.strategy_json : prev
-      );
-      if (job.status === "DRAFT") {
-        setAsSaved(false);
+  const setNewStrategyJson = React.useCallback(
+    (
+      strategyJson: StrategyJson | undefined,
+      pipelineJson: PipelineJson | undefined,
+      skipUnmount?: boolean,
+      selectedIndices?: string[] | undefined
+    ) => {
+      // This function has some side effects to update
+      // pipelineRuns
+      // pipelineRunRows
+      // and it optionally force re-mounts the controlled
+      // component ParameterEditor
+      if (!strategyJson) {
+        return;
       }
-    }
-  }, [job, setAsSaved]);
+      if (!pipelineJson) {
+        return;
+      }
 
-  React.useEffect(() => {
-    if (job && pipelineJson) {
-      // Do not generate another strategy_json if it has been defined
-      // already.
-      const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
-      const generatedStrategyJson =
-        job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
-          ? generateStrategyJson(pipelineJson, reserveKey)
-          : job.strategy_json;
-
-      const newPipelineRuns = generatePipelineRuns(generatedStrategyJson);
+      const newPipelineRuns = generatePipelineRuns(strategyJson);
       const newPipelineRunRows = generatePipelineRunRows(
         pipelineJson.name,
         newPipelineRuns
       );
 
-      // Account for the fact that a job might have a list of
-      // parameters already defined, i.e. when editing a non draft
-      // job or when duplicating a job.
-      // if fetchedJob has no set parameters, we select all parameters as default
-      setSelectedRuns(
-        job.parameters.length > 0
-          ? parseParameters(job.parameters, newPipelineRuns)
-          : newPipelineRunRows.map((run) => run.uuid)
-      );
-      setStrategyJson(generatedStrategyJson);
+      setStrategyJson(strategyJson);
       setPipelineRuns(newPipelineRuns);
       setPipelineRunRows(newPipelineRunRows);
+      setSelectedRuns(
+        selectedIndices
+          ? selectedIndices
+          : newPipelineRunRows.map((row) => row.uuid)
+      );
+
+      if (skipUnmount !== true) {
+        setParameterHash(uuidv4());
+      }
+    },
+    []
+  );
+
+  const [
+    loadedStrategyJsonText,
+    setLoadedStrategyJsonText,
+  ] = React.useState<React.ReactElement | null>(null);
+
+  React.useEffect(() => {
+    if (job) {
+      _setEnvVariables(envVariablesDictToArray(job.env_variables));
+      setScheduleOption(!job.schedule ? "now" : "cron");
+      setCronString(job.schedule || DEFAULT_CRON_STRING);
+      setStrategyJson(
+        job.status !== "DRAFT" ? job.strategy_json : strategyJson
+      );
+      if (job.status === "DRAFT") {
+        setAsSaved(false);
+      }
+    }
+  }, [job, strategyJson, pipelineJson, setAsSaved]);
+
+  const setParamConfigByFile = React.useCallback(
+    (params: {
+      paramConfigPath: string;
+      pipelineUuid: string;
+      projectUuid: string;
+      jobUuid: string;
+      pipelineJson: PipelineJson;
+      reservedKey: string;
+    }) => {
+      let {
+        paramConfigPath,
+        pipelineUuid,
+        projectUuid,
+        jobUuid,
+        pipelineJson,
+        reservedKey,
+      } = params;
+
+      return new Promise<void>(async (resolve, reject) => {
+        try {
+          const paramConfig = await fetchParamConfig({
+            paramPath: paramConfigPath,
+            pipelineUuid,
+            projectUuid,
+            jobUuid,
+          });
+
+          let strategyJson = generateStrategyJsonFromParamJsonFile(
+            paramConfig,
+            pipelineJson,
+            reservedKey
+          );
+          setNewStrategyJson(strategyJson, pipelineJson);
+          setLoadedStrategyJsonText(
+            <span>
+              Loaded job parameters file <Code>{paramConfigPath}</Code>.
+            </span>
+          );
+          resolve();
+        } catch (error) {
+          if (error.status !== 404) {
+            console.error(error);
+          }
+          reject();
+        }
+      });
+    },
+    [setNewStrategyJson, setLoadedStrategyJsonText]
+  );
+
+  const loadDefaultOrExistingParameterStrategy = React.useCallback(
+    (pipelineJson: PipelineJson, job: Job) => {
+      // Do not generate another strategy_json if it has been defined
+      // already.
+      const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+      const strategyJson =
+        job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
+          ? generateStrategyJson(pipelineJson, reserveKey)
+          : job.strategy_json;
+
+      const newPipelineRuns = generatePipelineRuns(strategyJson);
+
+      setNewStrategyJson(
+        strategyJson,
+        pipelineJson,
+        false,
+        job.parameters.length > 0
+          ? parseParameters(job.parameters, newPipelineRuns)
+          : undefined
+      );
+    },
+    [config?.PIPELINE_PARAMETERS_RESERVED_KEY, setNewStrategyJson]
+  );
+
+  React.useEffect(() => {
+    /*
+      Trigger parameter config file load.
+    */
+    if (
+      job &&
+      projectUuid &&
+      pipelineJson &&
+      config?.PIPELINE_PARAMETERS_RESERVED_KEY &&
+      !searchedParamFile
+    ) {
+      setSearchedParamFile(true);
+      let paramConfigPath = pipelinePathToJsonLocation(
+        job.pipeline_run_spec.run_config.pipeline_path
+      );
+      if (paramConfigPath && job.status === "DRAFT") {
+        setParamConfigByFile({
+          paramConfigPath,
+          pipelineUuid: pipelineJson.uuid,
+          projectUuid,
+          jobUuid: job.uuid,
+          pipelineJson: job.pipeline_definition,
+          reservedKey: config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+        }).catch(() => {
+          loadDefaultOrExistingParameterStrategy(pipelineJson, job);
+        });
+      } else {
+        loadDefaultOrExistingParameterStrategy(pipelineJson, job);
+      }
+    }
+  }, [
+    projectUuid,
+    job,
+    config,
+    pipelineJson,
+    searchedParamFile,
+    setParamConfigByFile,
+    loadDefaultOrExistingParameterStrategy,
+  ]);
+
+  React.useEffect(() => {
+    if (job && pipelineJson) {
     }
   }, [job, pipelineJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY]);
 
@@ -395,7 +497,7 @@ const EditJobView: React.FC = () => {
     if (updatedEnvVariables.status === "rejected") {
       setAlert("Error", updatedEnvVariables.error);
       setRunJobLoading(false);
-      setTabIndex(1);
+      setTabIndex(2);
       return;
     }
 
@@ -443,6 +545,29 @@ const EditJobView: React.FC = () => {
           navigateTo(siteMap.jobs.path, { query: { projectUuid } }, e);
       })
     );
+  };
+
+  const showLoadParametersDialog = () => {
+    setIsLoadParametersDialogOpen(true);
+  };
+
+  const closeLoadParametersDialog = () => {
+    setIsLoadParametersDialogOpen(false);
+  };
+
+  const handleLoadParameters = (value) => {
+    if (!job || !config || !pipelineJson || !projectUuid) {
+      return;
+    }
+    setParamConfigByFile({
+      paramConfigPath: value,
+      pipelineUuid: pipelineJson.uuid,
+      projectUuid,
+      jobUuid: job.uuid,
+      pipelineJson: job.pipeline_definition,
+      reservedKey: config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+    });
+    closeLoadParametersDialog();
   };
 
   const putJobChanges = (e: React.MouseEvent) => {
@@ -545,6 +670,14 @@ const EditJobView: React.FC = () => {
     <Layout
       toolbarElements={<BackButton onClick={cancel}>Back to jobs</BackButton>}
     >
+      {job && (
+        <LoadParametersDialog
+          isOpen={isLoadParametersDialogOpen}
+          onClose={closeLoadParametersDialog}
+          onSubmit={handleLoadParameters}
+          pipelineUuid={job.pipeline_uuid}
+        />
+      )}
       <Stack direction="column" sx={{ height: "100%" }}>
         <Typography variant="h5">Edit job</Typography>
         {job && pipelineJson ? (
@@ -679,23 +812,42 @@ const EditJobView: React.FC = () => {
             <CustomTabPanel value={tabIndex} index={1} name="parameters">
               <ParameterEditor
                 pipelineName={pipelineJson.name}
+                key={parameterHash}
                 onParameterChange={(value: StrategyJson) => {
-                  const newPipelineRuns = generatePipelineRuns(value);
-                  const newPipelineRunRows = generatePipelineRunRows(
-                    pipelineJson.name,
-                    newPipelineRuns
-                  );
-
-                  setPipelineRuns(newPipelineRuns);
-                  setPipelineRunRows(newPipelineRunRows);
-                  setSelectedRuns(newPipelineRunRows.map((row) => row.uuid));
-                  setStrategyJson(value);
-
+                  setNewStrategyJson(value, pipelineJson, true);
                   setAsSaved(false);
                 }}
                 strategyJSON={strategyJson}
                 data-test-id="job-edit"
               />
+              <Box sx={{ marginTop: 2 }}>
+                <Button
+                  color="secondary"
+                  onClick={showLoadParametersDialog}
+                  startIcon={<UploadIcon />}
+                >
+                  Load parameter file
+                </Button>
+                <Box sx={{ marginTop: 2 }}>
+                  <p>
+                    {loadedStrategyJsonText} You can generate this file in the{" "}
+                    <Link
+                      sx={{ cursor: "pointer" }}
+                      onClick={() => {
+                        navigateTo(siteMap.pipelineSettings.path, {
+                          query: {
+                            projectUuid,
+                            pipelineUuid: job.pipeline_uuid,
+                          },
+                        });
+                      }}
+                    >
+                      pipeline settings
+                    </Link>
+                    .
+                  </p>
+                </Box>
+              </Box>
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={2} name="env-variables">
               <p className="push-down">
