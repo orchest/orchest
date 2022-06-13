@@ -21,6 +21,7 @@ import type {
   Service,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
+import { isValidJson } from "@/utils/isValidJson";
 import {
   envVariablesArrayToDict,
   isValidEnvironmentVariableName,
@@ -32,8 +33,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import SaveIcon from "@mui/icons-material/Save";
+import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
@@ -53,9 +56,28 @@ import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { generatePipelineJsonForSaving, instantiateNewService } from "./common";
+import { GenerateParametersDialog } from "./GenerateParametersDialog";
 import ServiceForm from "./ServiceForm";
 import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
+
+export const ParameterDocs = () => {
+  return (
+    <CustomAlert status="info">
+      <AlertDescription>
+        <>
+          <Link
+            target="_blank"
+            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
+          >
+            Learn more
+          </Link>{" "}
+          about parametrizing your pipelines and steps.
+        </>
+      </AlertDescription>
+    </CustomAlert>
+  );
+};
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 0),
@@ -107,7 +129,7 @@ const PipelineSettingsView: React.FC = () => {
     setAsSaved,
   } = useAppContext();
 
-  useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.pipelineSettings.path });
 
   useEnsureValidPipeline();
 
@@ -142,8 +164,8 @@ const PipelineSettingsView: React.FC = () => {
     pipelineJson,
     pipelineName,
     setPipelineName,
-    inputParameters,
-    setInputParameters,
+    pipelineParameters,
+    setPipelineParameters,
   } = useFetchPipelineSettings({
     projectUuid,
     pipelineUuid,
@@ -179,6 +201,18 @@ const PipelineSettingsView: React.FC = () => {
 
   // If the component has loaded, attach the resize listener
   useOverflowListener(hasLoaded);
+
+  const [
+    isGenerateParametersDialogOpen,
+    setIsGenerateParametersDialogOpen,
+  ] = React.useState(false);
+
+  const showGenerateParametersDialog = () => {
+    setIsGenerateParametersDialogOpen(true);
+  };
+  const closeGenerateParametersDialog = () => {
+    setIsGenerateParametersDialogOpen(false);
+  };
 
   // Service['order'] acts as the serial number of a service
   const onChangeService = React.useCallback(
@@ -225,7 +259,7 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const onChangePipelineParameters = (editor, data, value: string) => {
-    setInputParameters(value);
+    setPipelineParameters(value);
   };
 
   const validateServiceEnvironmentVariables = (pipeline: PipelineJson) => {
@@ -250,12 +284,12 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const saveGeneralForm = async () => {
-    if (!pipelineUuid) return;
+    if (!pipelineUuid || !pipelineJson) return;
     // do not mutate the original pipelineJson
     // put all mutations together for saving
     const updatedPipelineJson = generatePipelineJsonForSaving({
       pipelineJson,
-      inputParameters,
+      pipelineParameters,
       pipelineName,
       services,
       settings,
@@ -438,29 +472,35 @@ const PipelineSettingsView: React.FC = () => {
   const prettifyInputParameters = () => {
     let newValue: string | undefined;
     try {
-      const parsedValue = JSON.stringify(JSON.parse(inputParameters));
-      newValue = parsedValue !== inputParameters ? parsedValue : undefined;
+      const parsedValue = JSON.stringify(JSON.parse(pipelineParameters));
+      newValue = parsedValue !== pipelineParameters ? parsedValue : undefined;
     } catch (error) {}
 
-    if (newValue) setInputParameters(newValue);
+    if (newValue) setPipelineParameters(newValue);
   };
 
   const inputParametersError = React.useMemo(() => {
-    try {
-      JSON.parse(inputParameters);
-      return null;
-    } catch {
-      return (
-        <div className="warning push-up push-down">
-          <i className="material-icons">warning</i> Your input is not valid
-          JSON.
-        </div>
-      );
-    }
-  }, [inputParameters]);
+    if (isValidJson(pipelineParameters)) return null;
+    return (
+      <div className="warning push-up push-down">
+        <i className="material-icons">warning</i> Your input is not valid JSON.
+      </div>
+    );
+  }, [pipelineParameters]);
 
   return (
     <Layout>
+      {isGenerateParametersDialogOpen && projectUuid && pipelineUuid && (
+        <GenerateParametersDialog
+          pipelinePath={pipelinePath}
+          isOpen={isGenerateParametersDialogOpen}
+          onClose={closeGenerateParametersDialog}
+          projectUuid={projectUuid}
+          pipelineUuid={pipelineUuid}
+          jobUuid={jobUuid}
+          runUuid={runUuid}
+        />
+      )}
       <div className="view-page pipeline-settings-view">
         {!hasLoaded ? (
           <LinearProgress />
@@ -557,7 +597,7 @@ const PipelineSettingsView: React.FC = () => {
                       </div>
                       <div className="column">
                         <CodeMirror
-                          value={inputParameters}
+                          value={pipelineParameters}
                           options={{
                             mode: "application/json",
                             theme: "jupyter",
@@ -568,6 +608,22 @@ const PipelineSettingsView: React.FC = () => {
                           onBeforeChange={onChangePipelineParameters}
                         />
                         {inputParametersError}
+
+                        {!isReadOnly && (
+                          <Button
+                            sx={{ marginTop: 2 }}
+                            variant="contained"
+                            onClick={showGenerateParametersDialog}
+                            onAuxClick={showGenerateParametersDialog}
+                            startIcon={<TuneIcon />}
+                          >
+                            Example job parameters file
+                          </Button>
+                        )}
+
+                        <Box sx={{ marginTop: 2 }}>
+                          <ParameterDocs />
+                        </Box>
                       </div>
                       <div className="clear"></div>
                     </div>

@@ -47,7 +47,7 @@ const tabs = [
 const ExamplesView: React.FC = () => {
   // global states
   const { navigateTo } = useCustomRoute();
-  useSendAnalyticEvent("view load", { name: siteMap.examples.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.examples.path });
 
   const { data } = useFetchExamples();
 

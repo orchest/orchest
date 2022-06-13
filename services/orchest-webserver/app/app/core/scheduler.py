@@ -22,6 +22,7 @@ import enum
 import json
 import logging
 import os
+import time
 from typing import Callable
 
 import requests
@@ -29,8 +30,9 @@ import sqlalchemy
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask.app import Flask
 
+from _orchest.internals import analytics
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from app import analytics, models
+from app import models
 from app.connections import db
 
 logger = logging.getLogger("job-scheduler")
@@ -114,10 +116,50 @@ class Jobs:
                 `interval=0` will execute the job right away.
 
         """
+        # Nested function because it won't be called from any other
+        # place.
+        def send_heartbeat_signal(app: Flask) -> None:
+            """Sends a heartbeat signal to the telemetry service.
+
+            A user is considered to be active if the user has triggered
+            any webserver logs in the last half of the
+            `TELEMETRY_INTERVAL`.
+
+            """
+            # Value of None indicates that the user's activity could not
+            # be determined.
+            active = None
+            try:
+                t = os.path.getmtime(app.config["WEBSERVER_LOGS"])
+            except OSError:
+                app.logger.error(
+                    (
+                        "Analytics heartbeat failed to identify "
+                        "whether the user is active."
+                    ),
+                    exc_info=True,
+                )
+            else:
+                diff_minutes = (time.time() - t) / 60
+                active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
+
+            analytics.send_event(
+                app,
+                analytics.Event.HEARTBEAT_TRIGGER,
+                analytics.TelemetryData(
+                    event_properties={"active": active},
+                    derived_properties={},
+                ),
+            )
+            app.logger.debug(
+                "Successfully sent analytics event "
+                f"'{analytics.Event.HEARTBEAT_TRIGGER}'."
+            )
+
         return self._handle_recurring_scheduler_job(
             SchedulerJobType.TELEMETRY_HEARTBEAT.value,
             interval,
-            analytics.send_heartbeat_signal,
+            send_heartbeat_signal,
             app,
         )
 

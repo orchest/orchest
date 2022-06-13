@@ -2,39 +2,51 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
-import {
-  ALLOWED_STEP_EXTENSIONS,
-  extensionFromFilename,
-  fetcher,
-  hasValue,
-} from "@orchest/lib-utils";
+import { extensionFromFilename, fetcher, hasValue } from "@orchest/lib-utils";
 import { useDebounce } from "./useDebounce";
 import { useFetcher } from "./useFetcher";
 
-export const pathValidator = (value: string) => {
+export const pathValidator = (value: string, allowedExtension: string[]) => {
   if (!hasValue(value)) return false;
   if (value === "" || value.endsWith("/")) {
     return false;
   }
-  let ext = extensionFromFilename(value);
-  if (ALLOWED_STEP_EXTENSIONS.indexOf(ext) === -1) {
-    return false;
-  }
-  return true;
+  const ext = extensionFromFilename(value);
+
+  return allowedExtension.includes(ext);
 };
 
-export const isValidFile = async (
-  project_uuid: string,
-  pipeline_uuid: string,
-  path: string
-) => {
-  // only check file existence if it passes rule based validation
-  if (!project_uuid || !pipeline_uuid || !pathValidator(path)) return false;
+type ValidateFileProps = {
+  projectUuid: string | undefined;
+  pipelineUuid: string | undefined;
+  jobUuid?: string;
+  runUuid?: string;
+  path: string;
+  allowedExtensions: string[];
+  useProjectRoot?: boolean;
+};
+
+export const isValidFile = async ({
+  path,
+  projectUuid,
+  pipelineUuid,
+  jobUuid,
+  runUuid,
+  allowedExtensions,
+  useProjectRoot = false,
+}: ValidateFileProps) => {
+  // only check file existence if it passes rule-based validation
+  if (!projectUuid || !pipelineUuid || !pathValidator(path, allowedExtensions))
+    return false;
+
   const response = await fetcher(
     `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
-      project_uuid,
-      pipeline_uuid,
+      projectUuid,
+      pipelineUuid,
+      jobUuid,
+      runUuid,
       path,
+      useProjectRoot,
     })}`
   );
   return hasValue(response);
@@ -47,15 +59,20 @@ export const isValidFile = async (
  * @param path {string|undefined}
  * @returns boolean
  */
-export const useCheckFileValidity = (
-  projectUuid: string | undefined,
-  pipelineUuid: string | undefined,
-  path: string | undefined
-) => {
+export const useCheckFileValidity = ({
+  path,
+  projectUuid,
+  pipelineUuid,
+  jobUuid,
+  runUuid,
+  allowedExtensions,
+  useProjectRoot = false,
+}: ValidateFileProps) => {
   const isQueryArgsComplete =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
-  const isValidPathPattern = isQueryArgsComplete && pathValidator(path);
+  const isValidPathPattern =
+    isQueryArgsComplete && pathValidator(path, allowedExtensions);
 
   const delayedPath = useDebounce(path, 250);
 
@@ -64,7 +81,10 @@ export const useCheckFileValidity = (
       ? `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
           projectUuid,
           pipelineUuid,
+          jobUuid,
+          runUuid,
           path: delayedPath || path,
+          useProjectRoot,
         })}`
       : undefined,
     { transform: () => true }

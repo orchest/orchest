@@ -6,7 +6,7 @@ import React from "react";
 import JobList from "./JobList";
 
 const JobsView: React.FC = () => {
-  useSendAnalyticEvent("view load", { name: siteMap.jobs.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.jobs.path });
 
   return (
     <Layout>

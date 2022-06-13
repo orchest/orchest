@@ -172,9 +172,10 @@ def start_non_interactive_pipeline_run(
     """
     pipeline_uuid = pipeline_definition["uuid"]
 
-    job_dir = os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
-    snapshot_dir = os.path.join(job_dir, "snapshot")
-    run_dir = os.path.join(job_dir, self.request.id)
+    snapshot_dir = utils.get_job_snapshot_path(project_uuid, pipeline_uuid, job_uuid)
+    run_dir = utils.get_job_run_dir_path(
+        project_uuid, pipeline_uuid, job_uuid, self.request.id
+    )
 
     # Copy the contents of `snapshot_dir` to the new (not yet existing
     # folder) `run_dir`. No need to use_gitignore since the snapshot

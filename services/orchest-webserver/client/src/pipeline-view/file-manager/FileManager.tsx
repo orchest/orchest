@@ -1,5 +1,6 @@
 import { generateUploadFiles } from "@/components/DropZone";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDebounce } from "@/hooks/useDebounce";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import Box from "@mui/material/Box";
@@ -75,6 +76,8 @@ export function FileManager() {
    * States
    */
 
+  const { pipelineUuid, jobUuid, runUuid } = useCustomRoute();
+
   const {
     state: { projectUuid, pipelineIsReadOnly },
   } = useProjectsContext();
@@ -136,7 +139,10 @@ export function FileManager() {
       let { root, path } = unpackCombinedPath(combinedPath);
 
       const url = `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
-        project_uuid: projectUuid,
+        projectUuid,
+        pipelineUuid,
+        jobUuid,
+        runUuid,
         root,
         path,
       })}`;
@@ -148,7 +154,7 @@ export function FileManager() {
       setFileTrees(fileTrees);
       setInProgress(false);
     },
-    [fileTrees, projectUuid, setFileTrees]
+    [fileTrees, projectUuid, setFileTrees, jobUuid, pipelineUuid, runUuid]
   );
 
   const doUploadFiles = React.useCallback(

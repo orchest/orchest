@@ -1,5 +1,6 @@
-import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
+import ProjectFilePicker from "@/components/ProjectFilePicker";
 import { Step } from "@/types";
+import { isValidJson } from "@/utils/isValidJson";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -11,6 +12,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
+  ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
   joinRelativePaths,
   kernelNameToLanguage,
@@ -288,14 +290,11 @@ export const StepDetailsProperties = ({
     return () => clearConnectionListener();
   }, [step.uuid]);
 
-  const isValidJson = React.useMemo(() => {
-    try {
-      JSON.parse(editableParameters);
-      return true;
-    } catch (error) {
-      return false;
-    }
+  const isParametersValidJson = React.useMemo(() => {
+    return isValidJson(editableParameters);
   }, [editableParameters]);
+
+  const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
 
   return (
     <div className={"detail-subview"}>
@@ -322,9 +321,12 @@ export const StepDetailsProperties = ({
         ) : (
           <ProjectFilePicker
             value={step.file_path}
+            allowedExtensions={ALLOWED_STEP_EXTENSIONS}
             pipelineCwd={pipelineCwd}
             onChange={onChangeFilePath}
             menuMaxWidth={menuMaxWidth}
+            doesFileExist={doesStepFileExist}
+            isCheckingFileValidity={isCheckingFileValidity}
           />
         )}
         {isNotebookStep && (
@@ -378,7 +380,7 @@ export const StepDetailsProperties = ({
               onChangeParameterJSON(value);
             }}
           />
-          {!isValidJson && (
+          {!isParametersValidJson && (
             <Alert severity="warning">Your input is not valid JSON.</Alert>
           )}
         </Box>

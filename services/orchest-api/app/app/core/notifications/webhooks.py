@@ -111,10 +111,10 @@ def update_webhook(uuid: str, mutation: dict) -> None:
     except exc.NoResultFound:
         raise ValueError(f"Webhook with UUID {uuid} not found.")
 
-    marshalled_mutation = marshal(mutation, schema.webhook_mutation)
+    marshaled_mutation = marshal(mutation, schema.webhook_mutation)
 
     valid_mutation = [
-        (key, value) for key, value in marshalled_mutation.items() if value is not None
+        (key, value) for key, value in marshaled_mutation.items() if value is not None
     ]
 
     if len(valid_mutation) == 0:

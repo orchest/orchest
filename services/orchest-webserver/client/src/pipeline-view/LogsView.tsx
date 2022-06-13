@@ -109,7 +109,7 @@ const topologicalSort = (pipelineSteps: Record<string, Step>) => {
 export const LogsView: React.FC = () => {
   // global states
 
-  useSendAnalyticEvent("view load", { name: siteMap.logs.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.logs.path });
 
   // data from route
   const {

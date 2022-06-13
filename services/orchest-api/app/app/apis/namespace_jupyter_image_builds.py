@@ -13,7 +13,7 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
-from app.core import registry
+from app.core import events, registry
 from app.errors import SessionInProgressException
 from app.utils import register_schema, update_status_db
 from config import CONFIG_CLASS
@@ -53,7 +53,8 @@ class JupyterEnvironmentBuildList(Resource):
                 jupyter_image_build = CreateJupyterEnvironmentBuild(tpe).transaction()
         except SessionInProgressException:
             return {"message": "SessionInProgressException"}, 500
-        except Exception:
+        except Exception as e:
+            current_app.logger.error(e)
             jupyter_image_build = None
 
         if jupyter_image_build is not None:
@@ -116,8 +117,17 @@ class JupyterEnvironmentBuild(Resource):
                         base_image_version=CONFIG_CLASS.ORCHEST_VERSION,
                     )
                 )
+                events.register_jupyter_image_build_succeeded(jupyter_image_build_uuid)
+            else:
+                if status_update["status"] == "STARTED":
+                    events.register_jupyter_image_build_started(
+                        jupyter_image_build_uuid
+                    )
+                elif status_update["status"] == "FAILURE":
+                    events.register_jupyter_image_build_failed(jupyter_image_build_uuid)
             db.session.commit()
-        except Exception:
+        except Exception as e:
+            current_app.logger.error(e)
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 
@@ -226,6 +236,7 @@ class CreateJupyterEnvironmentBuild(TwoPhaseFunction):
             "image_tag": image_tag,
         }
         db.session.add(models.JupyterImageBuild(**jupyter_image_build))
+        events.register_jupyter_image_build_created(task_id)
 
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["image_tag"] = str(image_tag)
@@ -244,6 +255,7 @@ class CreateJupyterEnvironmentBuild(TwoPhaseFunction):
         models.JupyterImageBuild.query.filter_by(
             uuid=self.collateral_kwargs["task_id"]
         ).update({"status": "FAILURE"})
+        events.register_jupyter_image_build_failed(self.collateral_kwargs["task_id"])
         db.session.commit()
 
 
@@ -261,6 +273,8 @@ class AbortJupyterEnvironmentBuild(TwoPhaseFunction):
             model=models.JupyterImageBuild,
             filter_by=filter_by,
         )
+        if abortable:
+            events.register_jupyter_image_build_cancelled(jupyter_image_build_uuid)
 
         self.collateral_kwargs["jupyter_image_build_uuid"] = (
             jupyter_image_build_uuid if abortable else None

@@ -10,7 +10,7 @@ from app import errors as self_errors
 from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db
-from app.core import environments, sessions
+from app.core import environments, events, sessions
 from app.errors import JupyterEnvironmentBuildInProgressException
 from app.types import InteractiveSessionConfig, SessionType
 from app.utils import register_schema
@@ -131,9 +131,9 @@ class Session(Resource):
             return {"message": str(e)}, 500
 
         if not could_restart:
-            return {"message": "SessionNotRunning"}, 500
+            return {"message": "SessionNotRunning"}, 409
 
-        return {"message": "Session restart was successful."}, 200
+        return {"message": "Memory server restart was successful."}, 200
 
 
 @api.route(
@@ -233,6 +233,10 @@ class CreateInteractiveSession(TwoPhaseFunction):
         session_uuid = (
             session_config["project_uuid"][:18] + session_config["pipeline_uuid"][:18]
         )
+        events._register_interactive_session_started(
+            session_config["project_uuid"],
+            session_config["pipeline_uuid"],
+        )
         self.collateral_kwargs["session_uuid"] = session_uuid
         self.collateral_kwargs["session_config"] = session_config
 
@@ -279,6 +283,9 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 if session_entry.status == "LAUNCHING":
                     session_entry.status = "RUNNING"
 
+                events._register_interactive_session_service_succeeded(
+                    project_uuid, pipeline_uuid
+                )
                 db.session.commit()
             except Exception as e:
                 current_app.logger.error(e)
@@ -290,6 +297,9 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 # Attempt containers cleanup.
                 try:
                     sessions.cleanup_resources(session_uuid, wait_for_completion=True)
+                    events._register_interactive_session_failed(
+                        project_uuid, pipeline_uuid
+                    )
                 except Exception:
                     pass
 
@@ -353,6 +363,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs["project_uuid"] = project_uuid
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
             self.collateral_kwargs["async_mode"] = async_mode
+            events._register_interactive_session_stopped(project_uuid, pipeline_uuid)
         return True
 
     @classmethod
@@ -421,6 +432,13 @@ class RestartMemoryServer(TwoPhaseFunction):
             self.collateral_kwargs["session_uuid"] = None
             return False
         else:
+            # Register here so that the event payload can register the
+            # fact that an interactive run was running while the user
+            # attempted such a restart.
+            events._register_interactive_session_service_restarted(
+                project_uuid, pipeline_uuid
+            )
+
             # Abort interactive run if it was PENDING/STARTED.
             run = models.InteractivePipelineRun.query.filter(
                 models.InteractivePipelineRun.project_uuid == project_uuid,
@@ -438,4 +456,4 @@ class RestartMemoryServer(TwoPhaseFunction):
 
     def _collateral(self, session_uuid: str):
         if session_uuid is not None:
-            sessions.restart_session_service(session_uuid, "memory-server", True)
+            sessions.restart_session_service(session_uuid, "memory-server", False)

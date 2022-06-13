@@ -94,7 +94,7 @@ describe("useFetchPipelineSettings", () => {
       envVariablesDictToArray(pipeline.pipeline.env_variables)
     );
 
-    expect(result.current.inputParameters).toEqual(
+    expect(result.current.pipelineParameters).toEqual(
       JSON.stringify(pipeline.definition.parameters)
     );
 

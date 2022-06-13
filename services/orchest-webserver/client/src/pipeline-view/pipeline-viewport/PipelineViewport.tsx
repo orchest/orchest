@@ -1,3 +1,4 @@
+import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import Box from "@mui/material/Box";
@@ -13,7 +14,6 @@ import {
 } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { getFilePathForRelativeToProject } from "../file-manager/common";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { MenuItem, useContextMenu } from "../hooks/useContextMenu";
@@ -273,7 +273,7 @@ export const PipelineViewport = React.forwardRef<
     };
   }, [pipelineSetHolderSize]);
 
-  useGestureOnViewport(localRef, pipelineSetHolderOrigin);
+  const zoom = useGestureOnViewport(localRef, pipelineSetHolderOrigin);
 
   const menuItems: MenuItem[] = [
     {
@@ -329,21 +329,15 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Zoom in",
-      action: () => {
-        dispatch({
-          type: "SET_SCALE_FACTOR",
-          payload: eventVars.scaleFactor + 0.25,
-        });
+      action: ({ contextMenuPosition }) => {
+        zoom(contextMenuPosition, 0.25);
       },
     },
     {
       type: "item",
       title: "Zoom out",
-      action: () => {
-        dispatch({
-          type: "SET_SCALE_FACTOR",
-          payload: eventVars.scaleFactor - 0.25,
-        });
+      action: ({ contextMenuPosition }) => {
+        zoom(contextMenuPosition, -0.25);
       },
     },
   ];

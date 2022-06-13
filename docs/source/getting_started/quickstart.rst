@@ -45,7 +45,7 @@ To start, make sure you have :ref:`installed Orchest <regular installation>` and
    orchest start
 
 Next create a new :ref:`project <projects>` named ``quickstart``. After creating the project, you will see that it
-does not yet have any :ref:`pipelines <pipeline>`.
+does not yet have any :term:`pipelines <(Data science) pipeline>`.
 
 .. figure:: ../img/quickstart/project-creation.png
    :width: 800
@@ -59,7 +59,7 @@ does not yet have any :ref:`pipelines <pipeline>`.
 Get California housing data
 ---------------------------
 The logical next step is to create the first pipeline called ``California housing`` and open the
-pipeline editor. This will automatically boot an :ref:`interactive session <interactive session>` so
+pipeline editor. This will automatically boot an :term:`interactive session <Interactive session>` so
 you can interactively edit the Python script we create (the other steps will be Jupyter Notebooks!):
 
 1. Create a new step by clicking: *+ new step*.
@@ -170,7 +170,7 @@ to import the pipeline. You can also build the pipeline from scratch yourself!
    A successful pipeline run of the final pipeline.
 
 .. note::
-   The :ref:`interactive session <interactive session>` does not shut down automatically and thus the
+   The :term:`interactive session <Interactive session>` does not shut down automatically and thus the
    resources will keep running when editing another pipeline, you can shut down the session manually
    by clicking on the shut down button. Of course all resources are shut down when you shut down
    Orchest with ``orchest stop``.

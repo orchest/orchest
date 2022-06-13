@@ -12,7 +12,7 @@ from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
-from app.core import environments
+from app.core import environments, events
 from app.utils import register_schema
 
 api = Namespace("environments", description="Managing Environments")
@@ -53,6 +53,7 @@ class ProjectEnvironmentList(Resource):
         try:
             env = models.Environment(**environment)
             db.session.add(env)
+            events.register_environment_created_event(project_uuid, environment["uuid"])
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -152,6 +153,7 @@ class DeleteEnvironment(TwoPhaseFunction):
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["environment_uuid"] = environment_uuid
 
+        events.register_environment_deleted_event(project_uuid, environment_uuid)
         models.Environment.query.filter_by(
             project_uuid=project_uuid, uuid=environment_uuid
         ).delete()
