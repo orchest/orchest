@@ -62,17 +62,23 @@ Want to skip the installation and jump right in? Then try out our managed servic
 
 [![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
-For instructions on how to deploy a self-hosted version, check out our [installation
+For `macOS` and `Linux` we provide a convience script for installation:
+```
+curl -fsSL https://get.orchest.io > convenience_install.sh
+bash convenience_install.sh
+```
+
+For detailed instructions on how to deploy a self-hosted version, check out our [installation
 docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 ## License
 
 The software in this repository is licensed as follows:
 
-- All content residing under the "orchest-sdk/" and "orchest-cli/" directories of this repository
-  are licensed under the "Apache-2.0" license as defined in "orchest-sdk/LICENSE" and
-  "orchest-cli/LICENSE" respectively.
-- Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
+- All content residing under the ` orchest-sdk/` and `orchest-cli/` directories of this repository
+  are licensed under the `Apache-2.0` license as defined in `orchest-sdk/LICENSE` and
+  `orchest-cli/LICENSE` respectively.
+- Content outside of the above mentioned directories is available under the `AGPL-3.0` license.
 
 ## Slack Community
 
