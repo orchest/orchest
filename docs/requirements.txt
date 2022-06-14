@@ -1,5 +1,5 @@
 sphinx
 sphinx_press_theme
 myst-parser
-docutils==0.16
+docutils
 sphinx-hoverxref==1.1.1
