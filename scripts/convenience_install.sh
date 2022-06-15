@@ -17,6 +17,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   OS="darwin"
 fi
 
+if [[ $(uname -p) == "arm" ]]; then
+  echo "The convenience script does not support ARM yet."
+  exit
+fi
+
 if ! [ -x "$(command -v pip)" ]; then
     echo "This script requires 'pip' in order to install the orchest-cli package."
     echo "Couldn't find pip, you can install it by following the recommended process:"
