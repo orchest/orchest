@@ -37,7 +37,7 @@ fi
 
 if ! minikube status | grep "host" | grep "Running" > /dev/null ; then
     echo "Starting minikube..."
-    minikube start --cpus $(nproc) --memory max --disk-size 50g 
+    minikube start --cpus max --memory max --disk-size 50g 
 fi
 
 if ! minikube addons list | grep "ingress " | grep "enabled" > /dev/null ; then
