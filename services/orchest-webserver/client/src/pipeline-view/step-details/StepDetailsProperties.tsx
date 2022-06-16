@@ -4,6 +4,11 @@ import { firstAncestor } from "@/utils/element";
 import { isValidJson } from "@/utils/isValidJson";
 import { hasExtension, join } from "@/utils/path";
 import { toValidFilename } from "@/utils/toValidFilename";
+import {
+  materialCells,
+  materialRenderers,
+} from "@jsonforms/material-renderers";
+import { JsonForms } from "@jsonforms/react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
@@ -72,6 +77,7 @@ export const StepDetailsProperties = ({
   const [editableParameters, setEditableParameters] = React.useState(
     JSON.stringify(step.parameters, null, 2)
   );
+  const [parametersData, setParametersData] = React.useState(step.parameters);
 
   const refManager = React.useMemo(() => new RefManager(), []);
 
@@ -126,6 +132,14 @@ export const StepDetailsProperties = ({
     setEditableParameters(updatedParameterJSON);
     try {
       onSave({ parameters: JSON.parse(updatedParameterJSON) }, step.uuid, true);
+      setParametersData(JSON.parse(updatedParameterJSON));
+    } catch (err) {}
+  };
+
+  const onChangeParameterData = (data: object) => {
+    setEditableParameters(JSON.stringify(data, null, 2));
+    try {
+      onSave({ parameters: data }, step.uuid, true);
     } catch (err) {}
   };
 
@@ -305,7 +319,14 @@ export const StepDetailsProperties = ({
     return isValidJson(editableParameters);
   }, [editableParameters]);
 
-  const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
+  const {
+    doesStepFileExist,
+    isCheckingFileValidity,
+    stepSchema,
+    isReadingSchemaFile,
+    stepUiSchema,
+    isReadingUiSchemaFile,
+  } = useStepDetailsContext();
 
   return (
     <div className={"detail-subview"}>
@@ -393,6 +414,19 @@ export const StepDetailsProperties = ({
           />
           {!isParametersValidJson && (
             <Alert severity="warning">Your input is not valid JSON.</Alert>
+          )}
+          {stepSchema && (
+            <JsonForms
+              schema={stepSchema}
+              uischema={stepUiSchema}
+              data={parametersData}
+              renderers={materialRenderers}
+              cells={materialCells}
+              onChange={({ data, _errors }) => {
+                //setEditableParameters(JSON.stringify(data, null, 2));
+                onChangeParameterData(data);
+              }}
+            />
           )}
         </Box>
 

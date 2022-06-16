@@ -44,5 +44,10 @@
       "dependencies",
       "devDependencies"
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "json-schema-ref-parser": "https://github.com/Bakerburgh/json-schema-ref-parser"
+    }
   }
 }

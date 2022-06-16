@@ -1,4 +1,7 @@
-import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
+import {
+  useCheckFileValidity,
+  useReadFile,
+} from "@/hooks/useCheckFileValidity";
 import { PipelineStepState } from "@/types";
 import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import React from "react";
@@ -10,6 +13,10 @@ export type StepDetailsContextType = {
   isCheckingFileValidity: boolean;
   step: PipelineStepState;
   connections: ConnectionDict;
+  stepSchema: object | boolean;
+  isReadingSchemaFile: boolean;
+  stepUiSchema: object | boolean;
+  isReadingUiSchemaFile: boolean;
 };
 
 export const StepDetailsContext = React.createContext<StepDetailsContextType>(
@@ -36,6 +43,24 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
     allowedExtensions: ALLOWED_STEP_EXTENSIONS,
   });
 
+  const [stepSchema, isReadingSchemaFile] = useReadFile({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    path: step?.file_path.concat(".schema.json"),
+    allowedExtensions: ["json"],
+  });
+
+  const [stepUiSchema, isReadingUiSchemaFile] = useReadFile({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    path: step?.file_path.concat(".uischema.json"),
+    allowedExtensions: ["json"],
+  });
+
   const connections = React.useMemo(() => {
     if (!step) return {};
 
@@ -54,6 +79,10 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
         isCheckingFileValidity,
         connections,
         step,
+        stepSchema,
+        isReadingSchemaFile,
+        stepUiSchema,
+        isReadingUiSchemaFile,
       }}
     >
       {children}
