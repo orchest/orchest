@@ -91,3 +91,43 @@ export const useCheckFileValidity = ({
 
   return [isValidPathPattern && data, status === "PENDING"] as const;
 };
+
+/**
+ * checks if a file exists with the given path, poll per 1000 ms
+ * @param project_uuid {string|undefined}
+ * @param pipeline_uuid {string|undefined}
+ * @param path {string|undefined}
+ * @returns boolean
+ */
+export const useReadFile = ({
+  path,
+  projectUuid,
+  pipelineUuid,
+  jobUuid,
+  runUuid,
+  allowedExtensions,
+  useProjectRoot = false,
+}: ValidateFileProps) => {
+  const isQueryArgsComplete =
+    hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
+
+  const isValidPathPattern =
+    isQueryArgsComplete && isValidPath(path, allowedExtensions);
+
+  const delayedPath = useDebounce(path, 250);
+
+  const { data = false, status } = useFetcher<{ message: string }, boolean>(
+    isValidPathPattern
+      ? `${FILE_MANAGEMENT_ENDPOINT}/read?${queryArgs({
+          projectUuid,
+          pipelineUuid,
+          jobUuid,
+          runUuid,
+          path: delayedPath || path,
+          useProjectRoot,
+        })}`
+      : undefined
+  );
+
+  return [data, status === "PENDING"] as const;
+};

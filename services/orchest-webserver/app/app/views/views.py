@@ -1030,6 +1030,7 @@ def register_views(app, db):
         pipeline_uuid = request.args.get("pipeline_uuid")
         project_uuid = request.args.get("project_uuid")
         job_uuid = request.args.get("job_uuid")
+        run_uuid = request.args.get("run_uuid")
 
         # currently this endpoint only handles "/data"
         # if path is absolute
@@ -1069,6 +1070,15 @@ def register_views(app, db):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
+        elif path.endswith("schema.json"):
+            pipeline_dir = get_pipeline_directory(
+                pipeline_uuid=pipeline_uuid,
+                project_uuid=project_uuid,
+                job_uuid=job_uuid,
+                pipeline_run_uuid=run_uuid,
+            )
+            file_path = normalize_project_relative_path(path)
+            file_path = os.path.join(pipeline_dir, file_path)
         else:
             path_parent_dir = get_snapshot_directory(
                 pipeline_uuid, project_uuid, job_uuid
