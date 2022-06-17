@@ -18,11 +18,11 @@ from kubernetes.utils.create_from_yaml import (
     LOWER_OR_NUM_FOLLOWED_BY_UPPER_RE,
     UPPER_FOLLOWED_BY_LOWER_RE,
     FailToCreateError,
-    create_from_yaml,
+    create_from_dict,
     create_from_yaml_single_item,
 )
 
-create_from_yaml = create_from_yaml
+create_from_dict = create_from_dict
 
 
 def replace_from_yaml(
