@@ -236,7 +236,8 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
     if failed_to_create_k8s_objs:
         retries = 0
         get_backoff_period = lambda x: 5 * 2**x  # noqa
-        # TODO: make retries a --retries=int CLI option?
+        # NOTE: Total possible wait of `sum(5 * 2**x for x in range(4))`
+        # which is 75s.
         while retries < 4:
             echo(
                 "Failed to install the Orchest Controller, retrying in"
