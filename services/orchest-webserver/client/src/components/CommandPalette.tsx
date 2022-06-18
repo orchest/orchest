@@ -27,20 +27,14 @@ type Command = {
   };
 };
 
-function fetchObjects<T>(path: string, attribute?: string) {
-  return new Promise<T[]>((resolve, reject) => {
-    fetcher<Record<string, T[]> | T[]>(path)
-      .then((response) => {
-        resolve(attribute ? response[attribute] : response);
-      })
-      .catch((e) => {
-        console.error(e);
-        reject([]);
-      })
-      .finally(() => {
-        resolve([]);
-      });
-  });
+async function fetchObjects<T>(path: string, attribute?: string): Promise<T[]> {
+  try {
+    const response = await fetcher<Record<string, T[]> | T[]>(path);
+    return attribute ? response[attribute] : response;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 }
 
 const fetchPipelines = () => {
@@ -131,13 +125,27 @@ const commandsFromProject = (project: Project): Command => {
     action: "openList",
     children: [
       {
-        title: "Project settings: " + project.path,
+        title: `Project settings: ${project.path}`,
         action: "openPage",
         data: {
           path: siteMap.projectSettings.path,
-          query: {
-            projectUuid: project.uuid,
-          },
+          query: { projectUuid: project.uuid },
+        },
+      },
+      {
+        title: `Jobs: ${project.path}`,
+        action: "openPage",
+        data: {
+          path: siteMap.jobs.path,
+          query: { projectUuid: project.uuid },
+        },
+      },
+      {
+        title: `Environments: ${project.path}`,
+        action: "openPage",
+        data: {
+          path: siteMap.environments.path,
+          query: { projectUuid: project.uuid },
         },
       },
     ],
