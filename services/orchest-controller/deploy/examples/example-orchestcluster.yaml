@@ -3,5 +3,7 @@ kind: OrchestCluster
 metadata:
   name: cluster-1
   namespace: orchest
+  annotations:
+    orchest.io/runtime-socket: /var/run/docker.sock
 spec:
   singleNode: true
