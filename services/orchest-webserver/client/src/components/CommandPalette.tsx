@@ -1,6 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
-import { pageCommands, siteMap } from "@/routingConfig";
+import { getPageCommands, siteMap } from "@/routingConfig";
 import { Job, Project } from "@/types";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -181,7 +181,7 @@ const isVisible = (el: HTMLLIElement, holder: HTMLDivElement) => {
 
 export const CommandPalette: React.FC = () => {
   // global states
-  const { navigateTo } = useCustomRoute();
+  const { navigateTo, projectUuid } = useCustomRoute();
 
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -233,7 +233,7 @@ export const CommandPalette: React.FC = () => {
       ]);
 
       setCommands([
-        ...pageCommands,
+        ...getPageCommands(projectUuid),
         ...projectCommands.list,
         ...pipelineCommands,
         ...jobCommands,
@@ -243,7 +243,7 @@ export const CommandPalette: React.FC = () => {
       // handle failure silently because this is done in the background
       console.error(`Failed to fetch for command palette: ${error}`);
     }
-  }, []);
+  }, [projectUuid]);
 
   const onQueryChange = (
     e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>

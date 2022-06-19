@@ -1,3 +1,5 @@
+import { findRouteMatch } from "./hooks/useMatchProjectRoot";
+
 export type RouteName =
   | "projects"
   | "examples"
@@ -249,12 +251,20 @@ const excludedPaths = [
 ];
 
 // used in CommandPalette
-export const pageCommands = getOrderedRoutes((title: string) => title)
-  .filter((route) => !excludedPaths.includes(route.path))
-  .map((route) => {
-    return {
-      title: "Page: " + route.title,
-      action: "openPage",
-      data: { path: route.path, query: {} },
-    };
-  });
+export const getPageCommands = (projectUuid: string | undefined) =>
+  getOrderedRoutes((title: string) => title)
+    .filter((route) => !excludedPaths.includes(route.path))
+    .map((route) => {
+      const match = findRouteMatch(withinProjectPaths);
+      const query: Record<string, string> =
+        match && projectUuid ? { projectUuid } : {};
+
+      return {
+        title: `Page: ${route.title}`,
+        action: "openPage",
+        data: {
+          path: route.path,
+          query,
+        },
+      };
+    });
