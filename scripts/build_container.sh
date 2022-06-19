@@ -81,6 +81,8 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "auth-server"
         "node-agent"
         "orchest-controller"
+        "docker-cli"
+        "containerd-cli"
     )
 fi
 
@@ -389,6 +391,29 @@ do
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
+
+    if [ $IMG == "docker-cli" ]; then
+
+        build_ctx=$DIR/../services/tools/docker
+        build=(docker build --platform linux/amd64 --progress=plain \
+            -t "orchest/docker-cli:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/tools/docker/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    if [ $IMG == "containerd-cli" ]; then
+
+        build_ctx=$DIR/../services/tools/containerd
+        build=(docker build --platform linux/amd64 --progress=plain \
+            -t "orchest/containerd-cli:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/tools/containerd/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
 
     if [ $IMG == "orchest-controller" ]; then
 
