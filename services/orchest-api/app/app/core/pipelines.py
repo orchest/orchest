@@ -460,6 +460,13 @@ def _step_to_workflow_manifest_task(
     registry_ip = k8s_core_api.read_namespaced_service(
         _config.REGISTRY, _config.ORCHEST_NAMESPACE
     ).spec.cluster_ip
+
+    # The image of the step is the registry address plus the image name.
+    image = (
+        registry_ip
+        + "/"
+        + run_config["env_uuid_to_image"][step.properties["environment"]]
+    )
     task = {
         # "Name cannot begin with a digit when using either 'depends' or
         # 'dependencies'".
@@ -477,9 +484,7 @@ def _step_to_workflow_manifest_task(
                 },
                 {
                     "name": "image",
-                    "value": registry_ip
-                    + "/"
-                    + run_config["env_uuid_to_image"][step.properties["environment"]],
+                    "value": image,
                 },
                 {"name": "working_dir", "value": working_dir},
                 {
@@ -491,6 +496,10 @@ def _step_to_workflow_manifest_task(
                     # NOTE: only used by tests.
                     "name": "tests_uuid",
                     "value": step.properties["uuid"],
+                },
+                {
+                    "name": "runtime_image",
+                    "value": _config.RUNTIME_IMAGE,
                 },
             ]
         },
@@ -510,6 +519,7 @@ def _pipeline_to_workflow_manifest(
         pipeline_file=run_config["pipeline_path"],
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
+        container_runtime_socket=_config.RUNTIME_SOCKET,
     )
 
     manifest = {
@@ -565,6 +575,7 @@ def _pipeline_to_workflow_manifest(
                                 "project_relative_file_path",
                                 "pod_spec_patch",
                                 "tests_uuid",
+                                "runtime_image",
                             ]
                         ]
                     },
@@ -579,6 +590,25 @@ def _pipeline_to_workflow_manifest(
                         ],
                         "volumeMounts": volume_mounts,
                     },
+                    "initContainers": [
+                        {
+                            "name": "image-puller",
+                            "image": "{{inputs.parameters.runtime_image}}",
+                            "env": [
+                                {
+                                    "name": "IMAGE_TO_PULL",
+                                    "value": "{{inputs.parameters.image}}",
+                                }
+                            ],
+                            "command": ["/pull_image.sh"],
+                            "volumeMounts": [
+                                {
+                                    "name": "image-puller-socket",
+                                    "mountPath": "/var/run/runtime.sock",
+                                },
+                            ],
+                        },
+                    ],
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },

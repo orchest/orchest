@@ -46,15 +46,24 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     pipeline_file: str,
     container_project_dir: str,
     container_pipeline_file: str,
+    container_runtime_socket: str,
 ) -> Tuple[List[dict], List[dict]]:
     """Gets volumes and volume mounts required to run steps and kernels.
 
     Args:
         userdir_pvc:
+            The PVC for the userdir.
         project_dir:
+            The project directory.
         pipeline_file:
+            The pipeline file.
         container_project_dir:
+            The container project directory.
         container_pipeline_file:
+            The container pipeline file.
+        container_runtime_socket:
+            The socket to use for the container runtime.
+
 
     Returns:
         A pair of lists, the first element is a list of volumes, the
@@ -71,6 +80,13 @@ def get_step_and_kernel_volumes_and_volume_mounts(
         {
             "name": "userdir-pvc",
             "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
+        },
+    )
+
+    volumes.append(
+        {
+            "name": "image-puller-socket",
+            "hostPath": {"path": container_runtime_socket, "type": "Socket"},
         }
     )
 
