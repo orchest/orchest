@@ -61,6 +61,10 @@ var (
 	ControllerPartOfLabel  = "controller.orchest.io/part-of"
 	ComponentLabelKey      = "controller.orchest.io/component"
 	RestartAnnotationKey   = "orchest.io/restart"
+
+	// Runtime annotations
+	KubeAdmCRISocketAnnotationKey           = "kubeadm.alpha.kubernetes.io/cri-socket"
+	ContainerRuntimeSocketPathAnnotationKey = "orchest.io/runtime-socket"
 )
 
 // AddFinalizer adds specified finalizer string to object

@@ -1,6 +1,8 @@
 package orchestcluster
 
 import (
+	"strings"
+
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/certs"
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
@@ -228,4 +230,61 @@ func getOrchestComponent(name, hash string,
 		},
 	}
 
+}
+
+// detectContainerRuntime detects the container runtime of the cluster and the socket path
+// returns error if the container runtime is not supported or the cluster is not homogeneous
+// it also returns error if the runttime socket path is not provided in the annotation or not detectable
+func detectContainerRuntime(ctx context.Context,
+	client kubernetes.Interface, orchest *orchestv1alpha1.OrchestCluster) (string, string, error) {
+
+	// Get the node list
+	nodeList, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", "", errors.Wrapf(err, "failed to get node list")
+	}
+
+	var runtime = ""
+	for _, node := range nodeList.Items {
+		// Get the node container runtime
+		runtimeVersion := node.Status.NodeInfo.ContainerRuntimeVersion
+		if runtimeVersion == "" {
+			return "", "", errors.Errorf("failed to get container runtime version")
+		}
+
+		// Get the container runtime name
+		runtimeName := strings.Split(runtimeVersion, ":")[0]
+		if runtimeName != "docker" && runtimeName != "containerd" {
+			return "", "", errors.Errorf("unsupported container runtime %s", runtimeName)
+		}
+
+		if runtime == "" {
+			runtime = runtimeName
+			continue
+		}
+
+		if runtime != runtimeName {
+			return "", "", errors.Errorf("cluster is not homogeneous")
+		}
+	}
+
+	// Get the container runtime socket path
+	runtimeSocket, ok := orchest.Annotations[controller.ContainerRuntimeSocketPathAnnotationKey]
+	if !ok {
+		// The socket path is not provided in the annotation, so we need to detect it
+		if runtime == "containerd" {
+			// Get the first node
+			node := nodeList.Items[0]
+			runtimeSocket, ok = node.Annotations[controller.KubeAdmCRISocketAnnotationKey]
+			if !ok {
+				return "", "", errors.Errorf("failed to get container runtime socket path")
+			}
+		} else {
+			// we are using docker, but we can't use the kubeadm CRI socket path (as CRI does not provide a way to disable auth)
+			// so we return an error
+			return "", "", errors.Errorf("failed to get container runtime socket path")
+		}
+	}
+
+	return runtime, runtimeSocket, nil
 }
