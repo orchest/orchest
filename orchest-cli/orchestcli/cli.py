@@ -55,6 +55,7 @@ from gettext import gettext
 
 import click
 from orchestcli import cmds
+from orchestcli._version import __version__
 
 NAMESPACE = "orchest"
 ORCHEST_CLUSTER_NAME = "cluster-1"
@@ -133,6 +134,7 @@ class ClickHelpCategories(click.Group):
     },
     cls=ClickHelpCategories,
 )
+@click.version_option(version=__version__, prog_name="orchest-cli")
 def cli():
     """The Orchest CLI to manage your Orchest Cluster on Kubernetes.
 
