@@ -234,7 +234,8 @@ func getOrchestComponent(name, hash string,
 
 // detectContainerRuntime detects the container runtime of the cluster and the socket path
 // returns error if the container runtime is not supported or the cluster is not homogeneous
-// it also returns error if the runttime socket path is not provided in the annotation or not detectable
+// If the socket path is not set or not deteted, it will use the default socket path based on
+// the container runtime
 func detectContainerRuntime(ctx context.Context,
 	client kubernetes.Interface, orchest *orchestv1alpha1.OrchestCluster) (string, string, error) {
 
@@ -277,12 +278,13 @@ func detectContainerRuntime(ctx context.Context,
 			node := nodeList.Items[0]
 			runtimeSocket, ok = node.Annotations[controller.KubeAdmCRISocketAnnotationKey]
 			if !ok {
-				return "", "", errors.Errorf("failed to get container runtime socket path")
+				// kubeadm CRi socket is not provided in the annotation, so we use the default socket path
+				runtimeSocket = "/var/run/containerd/containerd.sock"
+
 			}
 		} else {
-			// we are using docker, but we can't use the kubeadm CRI socket path (as CRI does not provide a way to disable auth)
-			// so we return an error
-			return "", "", errors.Errorf("failed to get container runtime socket path")
+			// The socket path is not provided in the annotation of OrchestCluster, so we use the default socket path
+			runtimeSocket = "/var/run/docker.sock"
 		}
 	}
 
