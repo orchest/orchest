@@ -146,7 +146,7 @@ nest-asyncio==1.5.4
     #   jupyter-client
     #   nbclient
     #   notebook
-notebook==6.4.10
+notebook==6.4.12
     # via nbclassic
 notebook-shim==0.1.0
     # via nbclassic
