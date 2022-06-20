@@ -290,15 +290,23 @@ def patch(
     show_default=False,
     help="Get output in json.",
 )
-def version(json_flag: bool, **common_options) -> None:
-    """Get running Orchest version.
+@click.option(
+    "--latest",
+    "latest_flag",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=False,
+    help="Get latest available Orchest version.",
+)
+def version(json_flag: bool, latest_flag: bool, **common_options) -> None:
+    """Get Orchest version.
 
     \b
     Equivalent `kubectl` command:
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.spec.orchest.version}"
 
     """
-    cmds.version(json_flag, **common_options)
+    cmds.version(json_flag, latest_flag, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)

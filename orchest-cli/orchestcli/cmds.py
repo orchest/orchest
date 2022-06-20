@@ -786,13 +786,16 @@ def patch(
     echo("Successfully patched the Orchest Cluster.")
 
 
-def version(json_flag: bool, **kwargs) -> None:
-    """Gets running Orchest version."""
+def version(json_flag: bool, latest_flag: bool, **kwargs) -> None:
+    """Gets Orchest version."""
     try:
-        version = _get_orchest_cluster_version(
-            kwargs["namespace"],
-            kwargs["cluster_name"],
-        )
+        if latest_flag:
+            version = _fetch_latest_available_version(curr_version=None, is_cloud=False)
+        else:
+            version = _get_orchest_cluster_version(
+                kwargs["namespace"],
+                kwargs["cluster_name"],
+            )
 
     except CRObjectNotFound as e:
         if json_flag:
