@@ -9,5 +9,5 @@ image:
   tag: latest
 
 
-addons:
+clusterLevelAddons:
   enableArgo: false
