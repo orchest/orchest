@@ -10,6 +10,10 @@ services/node-agent/*  @fruttasecca @yannickperrenet
 services/orchest-api/*  @fruttasecca @yannickperrenet
 services/session-sidecar/*  @fruttasecca @yannickperrenet
 
+# PyPi packages
+orchest-cli/*  @yannickperrenet @nhaghighat
+orchest-sdk/*  @fruttasecca @yannickperrenet
+
 # Frontend
 services/auth-server/*  @iannbing @BrunoOrchest
 services/orchest-webserver/*  @iannbing @BrunoOrchest
