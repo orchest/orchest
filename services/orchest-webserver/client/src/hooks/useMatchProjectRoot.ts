@@ -3,7 +3,7 @@ import React from "react";
 import { matchPath } from "react-router-dom";
 import { useHistoryListener } from "./useCustomRoute";
 
-const findRouteMatch = (routes: Pick<RouteData, "path" | "root">[]) => {
+export const findRouteMatch = (routes: Pick<RouteData, "path" | "root">[]) => {
   for (const route of routes) {
     const match = matchPath(window.location.pathname, {
       path: route.path,
