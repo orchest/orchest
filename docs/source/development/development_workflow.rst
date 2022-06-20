@@ -44,10 +44,8 @@ which allows redeploying services and :ref:`incremental development <incremental
    # Run this command while you are in the Orchest repository directory.
    minikube start \
      --cpus 6 \
+     --addons ingress \
      --mount-string="$(pwd):/orchest-dev-repo" --mount
-
-   # Without ingress enabled Orchest won't install
-   minikube addons enable ingress
 
 After the minikube cluster is created, follow the steps of a :ref:`regular installation <regular
 installation>`.
@@ -383,7 +381,7 @@ Run the ``orchest-controller`` with a debugger in VSCode, example ``launch.json`
                "args": [
                    "--inCluster=false",
                    "--defaultVersion=<INSERT VERSION, e.g. v2022.05.0>",
-                   "--deployDir=${workspaceFolder}/deploy",
+                   "--assetsDir=${workspaceFolder}/deploy",
                    "--endpoint=:5000"
                ],
                "env": {
@@ -415,7 +413,7 @@ run the ``orchest-controller`` by passing the following command line arguments:
 
   # Asuming you have built the controller via "make controller" command
   ./bin/controller --inCluster=false --defaultVersion=v2022.05.3 \
-  --endpoint=:5000 --deployDir=./deploy
+  --endpoint=:5000 --assetsDir=./deploy
 
 .. _building the docs:
 

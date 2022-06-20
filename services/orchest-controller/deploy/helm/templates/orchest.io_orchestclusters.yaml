@@ -36,6 +36,61 @@ spec:
             description: OrchestClusterSpec describes the attributes that a user creates
               on a OrchestCluster.
             properties:
+              applications:
+                items:
+                  properties:
+                    config:
+                      description: Config is a reference to the location of the application's
+                        manifests or chart
+                      properties:
+                        helm:
+                          description: Helm holds helm specific options
+                          properties:
+                            parameters:
+                              description: Parameters is a list of Helm parameters
+                                which are passed to the helm template command upon
+                                manifest generation
+                              items:
+                                description: HelmParameter is a parameter that's passed
+                                  to helm template during manifest generation
+                                properties:
+                                  forceString:
+                                    description: ForceString determines whether to
+                                      tell Helm to interpret booleans and numbers
+                                      as strings
+                                    type: boolean
+                                  name:
+                                    description: Name is the name of the Helm parameter
+                                    type: string
+                                  value:
+                                    description: Value is the value for the Helm parameter
+                                    type: string
+                                type: object
+                              type: array
+                            releaseName:
+                              description: ReleaseName is the Helm release name to
+                                use. If omitted it will use the application name
+                              type: string
+                            values:
+                              description: Values is a list of Helm values to use
+                                when generating a template
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                      type: object
+                    name:
+                      description: Name of the application to deploy
+                      type: string
+                    needs:
+                      description: Specifies the list of dependecies in other applications
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - config
+                  type: object
+                type: array
               nodeSelector:
                 additionalProperties:
                   type: string

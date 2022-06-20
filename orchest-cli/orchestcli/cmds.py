@@ -146,7 +146,9 @@ class ClusterStatus(enum.Enum):
     DELETING = "Deleting"
 
 
-def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> None:
+def install(
+    cloud: bool, dev_mode: bool, no_argo: bool, fqdn: t.Optional[str], **kwargs
+) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
@@ -156,13 +158,13 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
         if e.reason == "Conflict":
             echo(f"Installing into existing namespace: {ns}.")
 
+    manifest_file_name = "orchest-controller.yaml"
+
     echo("Installing the Orchest Controller to manage the Orchest Cluster...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
-        with open(
-            "services/orchest-controller/deploy/k8s/orchest-controller.yaml"
-        ) as f:
+        with open(f"services/orchest-controller/deploy/k8s/{manifest_file_name}") as f:
             txt_deploy_controller = f.read()
     else:
         version = _fetch_latest_available_version(curr_version=None, is_cloud=cloud)
@@ -175,7 +177,9 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
             )
             sys.exit(1)
         try:
-            txt_deploy_controller = _fetch_orchest_controller_manifests(version)
+            txt_deploy_controller = _fetch_orchest_controller_manifests(
+                version, manifest_file_name
+            )
         except RuntimeError as e:
             echo(f"{e}", err=True)
             sys.exit(1)
@@ -274,6 +278,30 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
             )
             sys.exit(1)
 
+    # Creating the OrchestCluster custom resource.
+    applications = [{"name": "docker-registry", "config": {}}]
+    if no_argo:
+        echo(
+            "Disabling 'ArgoWorkflow' installation."
+            "\n\tMake sure 'ArgoWorkflow' is already installed in your cluster"
+            "\n\tand has the right permissions set in order to work properly"
+            "\n\twith Orchest."
+        )
+    else:
+        applications.append(
+            {
+                "name": "argo-workflow",
+                "config": {
+                    "helm": {
+                        # `singleNamespace` so that Argo acts as a
+                        # namespace level component and only schedule
+                        # workflows in it's own namespace.
+                        "parameters": [{"name": "singleNamespace", "value": "true"}]
+                    }
+                },
+            }
+        )
+
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
         "kind": "OrchestCluster",
@@ -282,6 +310,7 @@ def install(cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **kwargs) -> Non
             "namespace": ns,
         },
         "spec": {
+            "applications": applications,
             "orchest": {
                 "orchestHost": fqdn,
                 "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
@@ -503,17 +532,19 @@ def update(
         )
         sys.exit(1)
 
+    manifest_file_name = "orchest-controller.yaml"
+
     echo("Updating the Orchest Controller deployment requirements...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
-        with open(
-            "services/orchest-controller/deploy/k8s/orchest-controller.yaml"
-        ) as f:
+        with open(f"services/orchest-controller/deploy/k8s/{manifest_file_name}") as f:
             txt_deploy_controller = f.read()
     else:
         try:
-            txt_deploy_controller = _fetch_orchest_controller_manifests(version)
+            txt_deploy_controller = _fetch_orchest_controller_manifests(
+                version, manifest_file_name
+            )
         except RuntimeError as e:
             echo(f"{e}", err=True)
             sys.exit(1)
@@ -1381,10 +1412,12 @@ def _fetch_latest_available_version(
         return None
 
 
-def _fetch_orchest_controller_manifests(version: t.Optional[str]) -> str:
+def _fetch_orchest_controller_manifests(
+    version: t.Optional[str], manifest_file_name: str
+) -> str:
     url = (
         "https://github.com/orchest/orchest"
-        f"/releases/download/{version}/orchest-controller.yaml"
+        f"/releases/download/{version}/{manifest_file_name}"
     )
     resp = requests.get(url, timeout=10)
     if resp.status_code != 200:

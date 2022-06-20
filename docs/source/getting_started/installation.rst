@@ -48,9 +48,8 @@ After installing minikube, create a minikube cluster and continue with :ref:`ins
 
 .. code-block:: bash
 
-   # Create a minikube cluster.
-   minikube start --cpus=4 --addons ingress
-
+   # Create a minikube cluster and configure ingress.
+   minikube start --cpus 4 --addons ingress
 
 Installing ``minikube`` and Orchest on Windows
 """"""""""""""""""""""""""""""""""""""""""""""
@@ -100,6 +99,24 @@ Next, make Orchest reachable locally through the FQDN:
    # Set up the default Fully Qualified Domain Name (FQDN) in your
    # /etc/hosts so that you can reach Orchest locally.
    echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
+
+Installing without Argo Workflows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you already have `Argo Workflows <https://argoproj.github.io/argo-workflows/>`_ installed on your
+Kubernetes cluster, then you need to explicitly tell Orchest not to install it again:
+
+.. code-block:: bash
+
+    orchest install --no-argo
+
+Since Argo Workflows creates cluster level resources, installing it again would lead to clashes or
+both Argo Workflow deployments managing Custom Resource Objects (most likely you don't want either
+of those things to happen).
+
+Now that you are using an Argo Workflows set-up that is not managed by the Orchest Controller, you
+need to make sure that the right set of permissions are configured for Orchest to work as expected.
+Check out the permissions that the Orchest Controller sets for Argo `here
+<https://github.com/orchest/orchest/tree/v2022.06.5/services/orchest-controller/deploy/thirdparty/argo-workflows/templates>`_.
 
 Install ``orchest`` via ``kubectl``
 -----------------------------------

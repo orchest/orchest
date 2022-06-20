@@ -177,16 +177,52 @@ type OrchestSpec struct {
 
 // RegistrySpec describes the attributes of docker-registry which will be used by step containers.
 type DockerRegistrySpec struct {
-	Name string `json:"image,omitempty" helm:"fullnameOverride"`
+	Name string `json:"image,omitempty"`
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	VolumeSize string `json:"volumeSize,omitempty" helm:"persistence.size"`
+	VolumeSize string `json:"volumeSize,omitempty"`
 
-	StorageClass string `json:"storageClass,omitempty" helm:"persistence.storageClass"`
+	StorageClass string `json:"storageClass,omitempty"`
+}
+
+// Partially borrowed from argocd
+// ApplicationConfig contains all required information about the source of an application
+type ApplicationConfig struct {
+	// Helm holds helm specific options
+	Helm *ApplicationConfigHelm `json:"helm,omitempty"`
+}
+
+// ApplicationConfigHelm holds helm specific options
+type ApplicationConfigHelm struct {
+	// Values is a list of Helm values to use when generating a template
+	Values []string `json:"values,omitempty"`
+	// Parameters is a list of Helm parameters which are passed to the helm template command upon manifest generation
+	Parameters []HelmParameter `json:"parameters,omitempty"`
+	// ReleaseName is the Helm release name to use. If omitted it will use the application name
+	ReleaseName string `json:"releaseName,omitempty"`
+}
+
+// HelmParameter is a parameter that's passed to helm template during manifest generation
+type HelmParameter struct {
+	// Name is the name of the Helm parameter
+	Name string `json:"name,omitempty"`
+	// Value is the value for the Helm parameter
+	Value string `json:"value,omitempty"`
+	// ForceString determines whether to tell Helm to interpret booleans and numbers as strings
+	ForceString bool `json:"forceString,omitempty"`
+}
+
+type ApplicationSpec struct {
+	// Name of the application to deploy
+	Name string `json:"name,omitempty"`
+	// Specifies the list of dependecies in other applications
+	Needs []string `json:"needs,omitempty"`
+	// Config is a reference to the location of the application's manifests or chart
+	Config ApplicationConfig `json:"config" protobuf:"bytes,1,opt,name=source"`
 }
 
 // OrchestClusterSpec describes the attributes that a user creates on a OrchestCluster.
@@ -208,6 +244,8 @@ type OrchestClusterSpec struct {
 	Postgres OrchestComponentTemplate `json:"postgres,omitempty"`
 
 	RabbitMq OrchestComponentTemplate `json:"rabbitMq,omitempty"`
+
+	Applications []ApplicationSpec `json:"applications,omitempty"`
 }
 
 type Condition struct {

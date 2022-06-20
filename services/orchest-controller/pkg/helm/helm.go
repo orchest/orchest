@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os/exec"
 	"reflect"
 
@@ -83,7 +84,7 @@ func DeployRelease(ctx context.Context, args []string) error {
 	err := cmd.Run()
 	_, ok := err.(*exec.ExitError)
 	if ok {
-		return errors.Wrap(err, "failed to deploy helm deployment")
+		return fmt.Errorf("failed to deploy helm deployment %s", stderr.String())
 	}
 
 	return err

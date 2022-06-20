@@ -165,6 +165,14 @@ def cli():
     help="Run install in dev mode.",
 )
 @click.option(
+    "--no-argo",
+    "no_argo",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Disable deploying Argo as part of Orchest.",
+)
+@click.option(
     "--fqdn",
     default=None,
     show_default=True,
@@ -172,10 +180,14 @@ def cli():
 )
 @cli.command(cls=ClickCommonOptionsCmd)
 def install(
-    cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **common_options
+    cloud: bool,
+    dev_mode: bool,
+    no_argo: bool,
+    fqdn: t.Optional[str],
+    **common_options,
 ) -> None:
     """Install Orchest."""
-    cmds.install(cloud, dev_mode, fqdn, **common_options)
+    cmds.install(cloud, dev_mode, no_argo, fqdn, **common_options)
 
 
 # TODO: Should be improved to remove the provided Orchest Cluster,
