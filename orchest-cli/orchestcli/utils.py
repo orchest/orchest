@@ -11,20 +11,18 @@ We just changed things to support:
 """
 
 import os
-import re
 
 import yaml
 from kubernetes import client
 from kubernetes.utils.create_from_yaml import (
+    LOWER_OR_NUM_FOLLOWED_BY_UPPER_RE,
+    UPPER_FOLLOWED_BY_LOWER_RE,
     FailToCreateError,
-    create_from_yaml,
+    create_from_dict,
     create_from_yaml_single_item,
 )
 
-UPPER_FOLLOWED_BY_LOWER_RE = re.compile("(.)([A-Z][a-z]+)")
-LOWER_OR_NUM_FOLLOWED_BY_UPPER_RE = re.compile("([a-z0-9])([A-Z])")
-
-create_from_yaml = create_from_yaml
+create_from_dict = create_from_dict
 
 
 def replace_from_yaml(

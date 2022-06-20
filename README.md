@@ -24,7 +24,7 @@ No frameworks. No YAML. Just write your data processing code directly in **Pytho
   <i>💡 Watch the <a target="_blank" href="https://vimeo.com/589879082">full narrated video</a> to learn more about building data pipelines in Orchest.</i>
  </p>
 
-> **NOTE:** Orchest is in **beta**.
+> **Note**: Orchest is in **beta**.
 
 ## Features
 
@@ -62,14 +62,15 @@ Want to skip the installation and jump right in? Then try out our managed servic
 
 [![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
-For `macOS` and `Linux` we provide a convience script for installation:
+For `macOS` and `Linux` we provide an automated convience script to install Orchest on
+[minikube](https://minikube.sigs.k8s.io/docs/). Run it with:
 
-```
+```sh
 curl -fsSL https://get.orchest.io > convenience_install.sh
 bash convenience_install.sh
 ```
 
-For detailed instructions on how to deploy a self-hosted version, check out our [installation
+👉 For detailed instructions on how to deploy a self-hosted version, check out our [installation
 docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 ## License
@@ -89,19 +90,12 @@ Join our Slack to chat about Orchest, ask questions, and share tips.
 
 ## Contributing
 
-Contributions are more than welcome! Please see our
-[contributor guides](https://docs.orchest.io/en/stable/development/contributing.html)
-for more details.
+Contributions are more than welcome! Please see our [contributor
+guides](https://docs.orchest.io/en/stable/development/contributing.html) for more details.
 
-You could also submit your pipeline to [the curated list of examples](https://github.com/orchest/orchest-examples). Help other users try out your pipeline with one click by adding the following script in the `README.md` of your repository (NOTE: you need to replace `your-repo-url` with your repo URL).
-
-```markdown
-[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=your-repo-url)
-```
-
-An example badge to import our [quickstart](https://github.com/orchest/quickstart) repo in Orchest:
-
-[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
+Alternatively, you can submit your pipeline to the curated list of [Orchest
+examples](https://github.com/orchest/orchest-examples) that are automatically loaded in every
+Orchest deployment! 🔥
 
 ## Contributors
 
