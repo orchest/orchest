@@ -63,6 +63,7 @@ Want to skip the installation and jump right in? Then try out our managed servic
 [![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
 For `macOS` and `Linux` we provide a convience script for installation:
+
 ```
 curl -fsSL https://get.orchest.io > convenience_install.sh
 bash convenience_install.sh
