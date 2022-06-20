@@ -7,6 +7,8 @@ Object defining the Orchest Cluster to trigger actions in the
 `orchest-controller` that is watching the CR Object for changes.
 
 """
+from __future__ import annotations
+
 import enum
 import json
 import re
@@ -158,7 +160,12 @@ class ClusterStatus(enum.Enum):
 
 
 def install(
-    cloud: bool, dev_mode: bool, no_argo: bool, fqdn: t.Optional[str], **kwargs
+    cloud: bool,
+    dev_mode: bool,
+    no_argo: bool,
+    fqdn: t.Optional[str],
+    socket_path: t.Optional[str],
+    **kwargs,
 ) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
@@ -313,13 +320,19 @@ def install(
             }
         )
 
+    metadata = {
+        "name": cluster_name,
+        "namespace": ns,
+    }
+
+    # if socket_path is provided, set the annotation to the socket path
+    if socket_path is not None:
+        metadata["annotations"] = {"orchest.io/container-runtime-socket": socket_path}
+
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
         "kind": "OrchestCluster",
-        "metadata": {
-            "name": cluster_name,
-            "namespace": ns,
-        },
+        "metadata": metadata,
         "spec": {
             "applications": applications,
             "orchest": {
@@ -674,6 +687,7 @@ def patch(
     dev: t.Optional[bool],
     cloud: t.Optional[bool],
     log_level: t.Optional[LogLevel],
+    socket_path: t.Optional[str],
     **kwargs,
 ) -> None:
     """Patches the Orchest Cluster."""
@@ -805,6 +819,13 @@ def patch(
         orchest_spec_patch,
         custom_object["spec"]["orchest"],  # type: ignore
     )
+
+    if socket_path is not None:
+        annotations = {"orchest.io/container-runtime-socket": socket_path}
+        convert_to_strategic_merge_patch(
+            annotations,
+            custom_object["metadata"]["annotations"],
+        )
 
     try:
         patch_namespaced_custom_object(

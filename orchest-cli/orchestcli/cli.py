@@ -178,16 +178,24 @@ def cli():
     show_default=True,
     help="Fully Qualified Domain Name that Orchest listens on.",
 )
+@click.option(
+    "--socket-path",
+    "socket_path",  # name for arg
+    default=None,
+    show_default=True,
+    help="The path of the container runtime socket location.",
+)
 @cli.command(cls=ClickCommonOptionsCmd)
 def install(
     cloud: bool,
     dev_mode: bool,
     no_argo: bool,
     fqdn: t.Optional[str],
+    socket_path: t.Optional[str],
     **common_options,
 ) -> None:
     """Install Orchest."""
-    cmds.install(cloud, dev_mode, no_argo, fqdn, **common_options)
+    cmds.install(cloud, dev_mode, no_argo, fqdn, socket_path, **common_options)
 
 
 # TODO: Should be improved to remove the provided Orchest Cluster,
@@ -276,10 +284,18 @@ def update(
     type=click.Choice(cmds.LogLevel),
     help="Log level to set on Orchest services.",
 )
+@click.option(
+    "--socket-path",
+    "socket_path",  # name for arg
+    default=None,
+    show_default=True,
+    help="The path of the container runtime socket location.",
+)
 def patch(
     dev: t.Optional[bool],
     cloud: t.Optional[bool],
     log_level: t.Optional[cmds.LogLevel],
+    socket_path: t.Optional[str],
     **common_options,
 ) -> None:
     """Patch the Orchest Cluster.
@@ -290,7 +306,7 @@ def patch(
         orchest patch --dev
 
     """
-    cmds.patch(dev, cloud, log_level, **common_options)
+    cmds.patch(dev, cloud, log_level, socket_path, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
