@@ -4,7 +4,7 @@ import { siteMap } from "@/routingConfig";
 import React from "react";
 
 const ManageUsersView: React.FC = () => {
-  useSendAnalyticEvent("view load", { name: siteMap.manageUsers.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.manageUsers.path });
 
   return (
     <Layout disablePadding fullHeight>

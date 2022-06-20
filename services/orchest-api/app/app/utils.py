@@ -1,10 +1,12 @@
 import logging
+import os
 import time
 import uuid
 from collections import ChainMap
 from copy import deepcopy
 from datetime import datetime
 from typing import Container, Dict, Iterable, List, Optional, Tuple, Union
+from urllib.parse import urlparse
 
 from celery.utils.log import get_task_logger
 from flask import current_app
@@ -20,6 +22,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from app import errors as self_errors
 from app import schema
+from app import types as app_types
 from app.celery_app import make_celery
 from app.connections import db, k8s_core_api
 from config import CONFIG_CLASS
@@ -388,7 +391,7 @@ class OrchestSettings:
         # Flatten into regular dictionary.
         return dict(self._values)
 
-    def save(self, flask_app=None) -> Optional[List[str]]:
+    def save(self, flask_app) -> List[str]:
         """Saves the state to the database.
 
         Args:
@@ -398,7 +401,6 @@ class OrchestSettings:
                 can be updated at runtime.
 
         Returns:
-            * `None` if no `flask_app` is given.
             * List of changed config options that require an Orchest
               restart to take effect.
             * Empty list otherwise.
@@ -406,12 +408,27 @@ class OrchestSettings:
         """
         settings_as_dict = self.as_dict()
 
+        settings_requiring_restart = self._apply_runtime_changes(
+            flask_app, settings_as_dict
+        )
+
         # Upsert entries.
         stmt = insert(models.Setting).values(
-            [dict(name=k, value={"value": v}) for k, v in settings_as_dict.items()]
+            [
+                dict(
+                    name=k,
+                    value={"value": v},
+                    requires_restart=k in settings_requiring_restart,
+                )
+                for k, v in settings_as_dict.items()
+            ]
         )
         stmt = stmt.on_conflict_do_update(
-            index_elements=[models.Setting.name], set_=dict(value=stmt.excluded.value)
+            index_elements=[models.Setting.name],
+            set_=dict(
+                value=stmt.excluded.value,
+                requires_restart=stmt.excluded.requires_restart,
+            ),
         )
         db.session.execute(stmt)
 
@@ -421,11 +438,7 @@ class OrchestSettings:
         ).delete()
 
         db.session.commit()
-
-        if flask_app is None:
-            return
-
-        return self._apply_runtime_changes(flask_app, settings_as_dict)
+        return settings_requiring_restart
 
     def update(self, d: dict) -> None:
         """Updates the current config values.
@@ -493,6 +506,11 @@ class OrchestSettings:
 
         """
         settings_requiring_restart = []
+
+        settings_db_entries = {}
+        for setting_db_entry in models.Setting().query.all():
+            settings_db_entries[setting_db_entry.name] = setting_db_entry
+
         for k, val in self._config_values.items():
             # Changes to unmodifiable config options won't take effect
             # anyways and so they should not account towards requiring
@@ -500,12 +518,25 @@ class OrchestSettings:
             if self._cloud and k in self._cloud_unmodifiable_config_opts:
                 continue
 
-            apply_f = val["apply-runtime-changes-function"]
-
-            current_val = flask_app.config.get(k)
             new_val = new.get(k)
-            if new_val is not None and new_val != current_val:
-                could_update = apply_f(current_val, new_val)
+            if new_val is None:
+                continue
+
+            setting_db_entry_value = None
+            setting_db_entry_requires_restart = False
+            setting_db_entry = settings_db_entries.get(k)
+            if setting_db_entry is not None:
+                setting_db_entry_value = setting_db_entry.value["value"]
+                setting_db_entry_requires_restart = setting_db_entry.requires_restart
+
+            if new_val == setting_db_entry_value:
+                if setting_db_entry_requires_restart:
+                    settings_requiring_restart.append(k)
+                else:
+                    flask_app.config[k] = new_val
+            else:
+                apply_f = val["apply-runtime-changes-function"]
+                could_update = apply_f(setting_db_entry_value, new_val)
                 if could_update:
                     flask_app.config[k] = new_val
                 else:
@@ -663,3 +694,67 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
         )
 
     images_to_be_removed.update({"marked_for_removal": True})
+
+
+def get_environment_directory_path(project_path: str, environment_uuid: str) -> str:
+    return os.path.join(
+        "/userdir",
+        "projects",
+        project_path,
+        ".orchest",
+        "environments",
+        environment_uuid,
+    )
+
+
+def get_job_dir_path(project_uuid: str, pipeline_uuid: str, job_uuid: str) -> str:
+    return os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
+
+
+def get_job_snapshot_path(project_uuid: str, pipeline_uuid: str, job_uuid: str) -> str:
+    job_dir = get_job_dir_path(project_uuid, pipeline_uuid, job_uuid)
+    return os.path.join(job_dir, "snapshot")
+
+
+def get_job_run_dir_path(
+    project_uuid: str, pipeline_uuid: str, job_uuid: str, run_uuid: str
+) -> str:
+    job_dir = get_job_dir_path(project_uuid, pipeline_uuid, job_uuid)
+    return os.path.join(job_dir, run_uuid)
+
+
+def get_env_vars_update(
+    old_env_vars: Dict[str, str], new_env_vars: Dict[str, str]
+) -> List[app_types.Change]:
+    """Gets a list of changes relate to env vars, values excluded."""
+    changes = []
+    for env_var_name, env_var_value in old_env_vars.items():
+        new_value = new_env_vars.get(env_var_name)
+        if new_value is None:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.DELETED,
+                    changed_object="environment_variable",
+                )
+            )
+        elif env_var_value != new_value:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.UPDATED,
+                    changed_object="environment_variable",
+                )
+            )
+    for env_var_name in new_env_vars:
+        if env_var_name not in old_env_vars:
+            changes.append(
+                app_types.Change(
+                    type=app_types.ChangeType.CREATED,
+                    changed_object="environment_variable",
+                )
+            )
+    return changes
+
+
+def extract_domain_name(url: str) -> str:
+    parsed_url = urlparse(url)
+    return f"{parsed_url.scheme}://{parsed_url.netloc}"

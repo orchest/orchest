@@ -1,4 +1,5 @@
 import { useClickOutside } from "@/hooks/useClickOutside";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { FileTree } from "@/types";
 import FolderIcon from "@mui/icons-material/Folder";
 import TurnLeftOutlinedIcon from "@mui/icons-material/TurnLeftOutlined";
@@ -10,12 +11,8 @@ import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import {
-  ALLOWED_STEP_EXTENSIONS,
-  extensionFromFilename,
-} from "@orchest/lib-utils";
+import { extensionFromFilename } from "@orchest/lib-utils";
 import React from "react";
-import { getFilePathForRelativeToProject } from "../file-manager/common";
 
 export const validatePathInTree = (path: string, tree: FileTree) => {
   // path assumed to start with /
@@ -89,6 +86,8 @@ export type FilePickerProps = {
   value: string;
   menuMaxWidth?: string;
   onSelectMenuItem: (node: FileTree) => void;
+  allowedExtensions: string[];
+  generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
 };
 
 const ITEM_HEIGHT = 48;
@@ -98,7 +97,17 @@ const useFilePicker = ({
   tree,
   absoluteCwd,
   onChangeValue,
-}: Pick<FilePickerProps, "absoluteCwd" | "cwd" | "tree" | "onChangeValue">) => {
+  allowedExtensions,
+  generateRelativePath,
+}: Pick<
+  FilePickerProps,
+  "absoluteCwd" | "cwd" | "tree" | "onChangeValue" | "allowedExtensions"
+> & {
+  generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
+}) => {
+  const generateRelativePathRef = React.useRef(generateRelativePath);
+  const onChangeValueRef = React.useRef(onChangeValue);
+
   const [absoluteFolderPath, setAbsoluteFolderPath] = React.useState<string>(
     absoluteCwd
   );
@@ -118,7 +127,9 @@ const useFilePicker = ({
     // the value of the FilePicker field to be the directory user is viewing via the dropdown.
     // as a visual feedback.
     if (absoluteFolderPath !== absoluteCwd) {
-      onChangeValue(getFilePathForRelativeToProject(absoluteFolderPath, cwd));
+      onChangeValueRef.current(
+        generateRelativePathRef.current(absoluteFolderPath, cwd)
+      );
     }
   }, [absoluteFolderPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -151,13 +162,11 @@ const useFilePicker = ({
       options: currentNode.children.filter((childNode) => {
         return (
           childNode.type === "directory" ||
-          ALLOWED_STEP_EXTENSIONS.includes(
-            extensionFromFilename(childNode.name)
-          )
+          allowedExtensions.includes(extensionFromFilename(childNode.name))
         );
       }),
     };
-  }, [absoluteFolderPath, tree]);
+  }, [absoluteFolderPath, tree, allowedExtensions]);
 
   return {
     absoluteFolderPath,
@@ -180,9 +189,10 @@ const FilePicker: React.FC<FilePickerProps> = ({
   icon,
   menuMaxWidth,
   onSelectMenuItem,
+  generateRelativePath,
+  allowedExtensions,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const [keyboardIsActive, setKeyboardIsActive] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
@@ -194,7 +204,14 @@ const FilePicker: React.FC<FilePickerProps> = ({
     onNavigateUp,
     isRootNode,
     options,
-  } = useFilePicker({ cwd, absoluteCwd, tree, onChangeValue });
+  } = useFilePicker({
+    cwd,
+    absoluteCwd,
+    tree,
+    onChangeValue,
+    allowedExtensions,
+    generateRelativePath,
+  });
 
   // When clicking on the dropdown menu, the built-in `onBlur` will be fired.
   // Use a boolean to control if it's an intended blur behavior.
@@ -204,22 +221,19 @@ const FilePicker: React.FC<FilePickerProps> = ({
   };
   const onMouseLeaveMenu = () => {
     isBlurAllowed.current = true;
-    setKeyboardIsActive(false);
   };
 
   const onFocusTextField = () => {
     setIsDropdownOpen(true);
-    setKeyboardIsActive(false);
   };
 
   const onBlurTextField = () => {
     if (isBlurAllowed.current) {
       setIsDropdownOpen(false);
-      setKeyboardIsActive(false);
     }
   };
 
-  const onSelectListItem = (selectedNode: FileTree) => {
+  const onSelectListItem = (e: React.MouseEvent, selectedNode: FileTree) => {
     onSelectMenuItem(selectedNode);
     if (selectedNode.type === "directory") {
       setAbsoluteFolderPath((oldPath) => {
@@ -232,40 +246,69 @@ const FilePicker: React.FC<FilePickerProps> = ({
         return `${oldPath}${selectedNode.name}/`;
       });
     } else {
+      e.preventDefault(); // To prevent trigger `onFocusTextField`.
       onChangeValue(
-        getFilePathForRelativeToProject(
-          `${absoluteFolderPath}${selectedNode.name}`,
-          cwd
-        )
+        generateRelativePath(`${absoluteFolderPath}${selectedNode.name}`, cwd)
       );
+      inputRef.current?.focus();
       setIsDropdownOpen(false);
     }
   };
 
-  React.useEffect(() => {
-    if (isDropdownOpen && keyboardIsActive) menuFirstItemRef.current?.focus();
-  }, [options, isDropdownOpen, keyboardIsActive]);
-
   const onTextFieldKeyUp = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       isBlurAllowed.current = false;
-      setKeyboardIsActive(true);
       menuFirstItemRef.current?.focus();
+      if (!isDropdownOpen) setIsDropdownOpen(true);
     }
   };
 
-  const onMenuItemKeyUp = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      isBlurAllowed.current = true;
-      setKeyboardIsActive(false);
-      inputRef.current?.focus();
+  const hasOptionChanged = useHasChanged(options);
+  React.useEffect(() => {
+    if (hasOptionChanged && isDropdownOpen) {
+      isBlurAllowed.current = false;
+      menuFirstItemRef.current?.focus();
     }
+  }, [hasOptionChanged, isDropdownOpen]);
+
+  const onClick = () => {
+    if (!isDropdownOpen && inputRef.current === document.activeElement)
+      setIsDropdownOpen(true);
   };
+
+  React.useEffect(() => {
+    // Applying the logic to onKeyUp for `MenuItem` is prone to error.
+    // The DOM ref is not always valid because the DOM element constantly being updated.
+    const keyDownHandler = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isDropdownOpen) {
+        event.preventDefault();
+        inputRef.current?.focus();
+        setIsDropdownOpen(false);
+      }
+      if (
+        event.key === "Enter" &&
+        isDropdownOpen &&
+        menuFirstItemRef.current !== document.activeElement
+      ) {
+        // Some other MUI might aggresively grab the focus.
+        // As long as pressing Enter when Dropdown is open, force focusing the first menu element.
+        event.preventDefault();
+        menuFirstItemRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", keyDownHandler);
+
+    return () => {
+      document.removeEventListener("keydown", keyDownHandler);
+    };
+  }, [isDropdownOpen]);
 
   return (
     <Box sx={{ position: "relative" }}>
       <TextField
         inputRef={inputRef}
+        onClick={onClick}
         onFocusCapture={onFocusTextField}
         onBlur={onBlurTextField}
         onChange={(e) => onChangeValue(e.target.value)}
@@ -298,11 +341,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
             {options && (
               <>
                 {!isRootNode && (
-                  <MenuItem
-                    onClick={onNavigateUp}
-                    ref={menuFirstItemRef}
-                    onKeyUp={onMenuItemKeyUp}
-                  >
+                  <MenuItem onClick={onNavigateUp} ref={menuFirstItemRef}>
                     <ListItemIcon>
                       <TurnLeftOutlinedIcon fontSize="small" />
                     </ListItemIcon>
@@ -314,8 +353,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
                   return (
                     <MenuItem
                       key={childNode.name}
-                      onClick={() => onSelectListItem(childNode)}
-                      onKeyUp={onMenuItemKeyUp}
+                      onClick={(e) => onSelectListItem(e, childNode)}
                       ref={
                         isRootNode && index === 0 ? menuFirstItemRef : undefined
                       }

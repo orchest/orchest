@@ -344,7 +344,6 @@ export const PipelineEditor = () => {
           dispatch({ type: "SET_OPENED_STEP", payload: undefined });
           removeSteps([...eventVars.selectedSteps]);
           setIsDeletingSteps(false);
-          saveSteps(eventVars.steps);
           resolve(true);
           return true;
         },
@@ -355,33 +354,22 @@ export const PipelineEditor = () => {
         },
       });
     }
-  }, [
-    dispatch,
-    eventVars.selectedSteps,
-    eventVars.steps,
-    removeSteps,
-    saveSteps,
-    setConfirm,
-  ]);
+  }, [dispatch, eventVars.selectedSteps, removeSteps, setConfirm]);
 
   const onDetailsDelete = React.useCallback(() => {
+    setIsDeletingSteps(true);
     setConfirm("Warning", deleteStepMessage, async (resolve) => {
       if (!eventVars.openedStep) {
+        setIsDeletingSteps(false);
         resolve(false);
         return false;
       }
       removeSteps([eventVars.openedStep]);
-      saveSteps(eventVars.steps);
+      setIsDeletingSteps(false);
       resolve(true);
       return true;
     });
-  }, [
-    eventVars.openedStep,
-    eventVars.steps,
-    removeSteps,
-    saveSteps,
-    setConfirm,
-  ]);
+  }, [eventVars.openedStep, removeSteps, setConfirm]);
 
   const onOpenNotebook = React.useCallback(
     (e: React.MouseEvent) => {
@@ -843,9 +831,11 @@ export const PipelineEditor = () => {
                   // it causes issue when user press space bar to navigate the canvas
                   // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
                   canvasFuncRef.current?.centerPipelineOrigin();
-                  dispatch({
-                    type: "SET_SCALE_FACTOR",
-                    payload: eventVars.scaleFactor - 0.25,
+                  dispatch((current) => {
+                    return {
+                      type: "SET_SCALE_FACTOR",
+                      payload: current.scaleFactor - 0.25,
+                    };
                   });
                 }}
               >
@@ -855,9 +845,11 @@ export const PipelineEditor = () => {
                 title="Zoom in"
                 onPointerDown={() => {
                   canvasFuncRef.current?.centerPipelineOrigin();
-                  dispatch({
-                    type: "SET_SCALE_FACTOR",
-                    payload: eventVars.scaleFactor + 0.25,
+                  dispatch((current) => {
+                    return {
+                      type: "SET_SCALE_FACTOR",
+                      payload: current.scaleFactor + 0.25,
+                    };
                   });
                 }}
               >

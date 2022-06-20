@@ -189,38 +189,29 @@ def install(
 
     # Deploy the `orchest-controller` and the resources it needs.
     yml_deploy_controller = yaml.safe_load_all(txt_deploy_controller)
-    try:
-        utils.create_from_yaml(
-            k8s_client=API_CLIENT,
-            yaml_objects=yml_deploy_controller,
-        )
-    except utils.FailToCreateError as e:
-        conflicting_resources = []
-        for exc in e.api_exceptions:
-            if exc.status == 409:  # conflict/already exists
-                conflicting_resources.append(json.loads(exc.body)["details"])
-            elif exc.status == 500:
-                exc_msg = json.loads(exc.body)["message"]
-                echo(
-                    f"Installation aborted. Kubernetes API message:\n{exc_msg}",
-                    err=True,
-                )
-                echo(
-                    "\n'orchest install' was probably called too quickly after"
-                    " creation of the Kubernetes cluster. To recover installing"
-                    " Orchest, run:"
-                    "\n\torchest uninstall"
-                    "\nThen wait a few seconds before again running:"
-                    "\n\torchest install",
-                    err=True,
-                )
+    failed_to_create_k8s_objs = []
+    conflicting_k8s_resources = []
+    for yml_document in yml_deploy_controller:
+        if yml_document is None:
+            continue
+        try:
+            utils.create_from_dict(
+                k8s_client=API_CLIENT,
+                data=yml_document,
+            )
+        except utils.FailToCreateError as e:
+            for exc in e.api_exceptions:
+                if exc.status == 409:  # conflict/already exists
+                    conflicting_k8s_resources.append(json.loads(exc.body)["details"])
+                elif exc.status == 500:
+                    failed_to_create_k8s_objs.append(yml_document)
+                else:
+                    raise e
 
-                sys.exit(1)
-            else:
-                raise e
-
-        conflicting_resources_msg = "\n".join(
-            [json.dumps(resource) for resource in conflicting_resources]
+    # Don't overwrite existing/conflicting resources, fail instead.
+    if conflicting_k8s_resources:
+        conflicting_k8s_resources_msg = "\n".join(
+            [json.dumps(resource) for resource in conflicting_k8s_resources]
         )
 
         echo(
@@ -239,18 +230,62 @@ def install(
         echo(
             "If uninstalling doesn't work, then please try to remove the"
             " following resources manually before installing again:"
-            f"\n{conflicting_resources_msg}",
+            f"\n{conflicting_k8s_resources_msg}",
             err=True,
         )
         sys.exit(1)
 
-    applications = [{"name": "docker-registry", "config": {}}]
+    # Retry to create k8s objects that could not be created the first
+    # time.
+    if failed_to_create_k8s_objs:
+        retries = 0
+        get_backoff_period = lambda x: 5 * 2**x  # noqa
+        # NOTE: Total possible wait of `sum(5 * 2**x for x in range(4))`
+        # which is 75s.
+        while retries < 4:
+            echo(
+                "Failed to install the Orchest Controller, retrying in"
+                f" {get_backoff_period(retries)} seconds...",
+            )
+            time.sleep(get_backoff_period(retries))
 
+            tmp_failed_to_create_k8s_objs = []
+            for yml_document in failed_to_create_k8s_objs:
+                try:
+                    # NOTE: Use replace instead of create to handle
+                    # "List" kinds.
+                    utils.replace_from_dict(
+                        k8s_client=API_CLIENT,
+                        data=yml_document,
+                    )
+                except utils.FailToCreateError as e:
+                    for exc in e.api_exceptions:
+                        if exc.status == 500:
+                            tmp_failed_to_create_k8s_objs.append(yml_document)
+                            exc_msg = json.loads(exc.body)["message"]
+                        else:
+                            raise e
+
+            failed_to_create_k8s_objs = tmp_failed_to_create_k8s_objs
+            if failed_to_create_k8s_objs:
+                retries += 1
+            else:
+                break
+        else:
+            echo(
+                f"Installation aborted. Kubernetes API message:\n{exc_msg}",
+                err=True,
+            )
+            sys.exit(1)
+
+    # Creating the OrchestCluster custom resource.
+    applications = [{"name": "docker-registry", "config": {}}]
     if no_argo:
         echo(
-            "ArgoWorkflow installation is disabled, orchest will be "
-            "deployed without it, make sure ArgoWorkflow is already installed "
-            "on your cluster otherwise orchest will not act properly."
+            "Disabling 'ArgoWorkflow' installation."
+            "\n\tMake sure 'ArgoWorkflow' is already installed in your cluster"
+            "\n\tand has the right permissions set in order to work properly"
+            "\n\twith Orchest."
         )
     else:
         applications.append(
@@ -258,6 +293,9 @@ def install(
                 "name": "argo-workflow",
                 "config": {
                     "helm": {
+                        # `singleNamespace` so that Argo acts as a
+                        # namespace level component and only schedule
+                        # workflows in it's own namespace.
                         "parameters": [{"name": "singleNamespace", "value": "true"}]
                     }
                 },
@@ -746,6 +784,9 @@ def patch(
         },
         "orchestApi": {
             "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
+        },
+        "celeryWorker": {
+            "env": [env for env in [env_var_dev] if env is not None],
         },
         "env": [env for env in [env_var_log_level] if env is not None],
     }

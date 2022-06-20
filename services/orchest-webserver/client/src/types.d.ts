@@ -222,7 +222,7 @@ export type PipelineRun = {
 
 export type StrategyJson = Record<
   string,
-  { parameters: Record<string, string> }
+  { parameters: Record<string, string>; key?: string; title?: string }
 >;
 
 export type Job = {

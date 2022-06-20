@@ -1,3 +1,4 @@
+import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import Box from "@mui/material/Box";
@@ -236,7 +237,15 @@ export const PipelineViewport = React.forwardRef<
       const environment = environments.length > 0 ? environments[0] : null;
 
       allowed.forEach((filePath) => {
-        dispatch(createStepAction(environment, dropPosition, filePath));
+        // Adjust filePath to pipelineCwd, incoming filePath is relative to project
+        // root.
+        const pipelineRelativeFilePath = getFilePathForRelativeToProject(
+          filePath,
+          pipelineCwd
+        );
+        dispatch(
+          createStepAction(environment, dropPosition, pipelineRelativeFilePath)
+        );
       });
     },
     [dispatch, pipelineCwd, environments, getApplicableStepFiles]
@@ -264,7 +273,7 @@ export const PipelineViewport = React.forwardRef<
     };
   }, [pipelineSetHolderSize]);
 
-  useGestureOnViewport(localRef, pipelineSetHolderOrigin);
+  const zoom = useGestureOnViewport(localRef, pipelineSetHolderOrigin);
 
   const menuItems: MenuItem[] = [
     {
@@ -320,21 +329,15 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Zoom in",
-      action: () => {
-        dispatch({
-          type: "SET_SCALE_FACTOR",
-          payload: eventVars.scaleFactor + 0.25,
-        });
+      action: ({ contextMenuPosition }) => {
+        zoom(contextMenuPosition, 0.25);
       },
     },
     {
       type: "item",
       title: "Zoom out",
-      action: () => {
-        dispatch({
-          type: "SET_SCALE_FACTOR",
-          payload: eventVars.scaleFactor - 0.25,
-        });
+      action: ({ contextMenuPosition }) => {
+        zoom(contextMenuPosition, -0.25);
       },
     },
   ];

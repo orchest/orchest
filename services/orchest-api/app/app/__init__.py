@@ -31,6 +31,7 @@ from app.apis.namespace_jupyter_image_builds import (
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
+from app.core.notifications import analytics as api_analytics
 from app.core.scheduler import add_recurring_jobs_to_scheduler
 from app.models import (
     EnvironmentImageBuild,
@@ -39,6 +40,7 @@ from app.models import (
     Job,
     JupyterImageBuild,
     NonInteractivePipelineRun,
+    Setting,
 )
 from config import CONFIG_CLASS
 
@@ -77,7 +79,7 @@ def create_app(
     init_logging()
 
     # In development we want more verbose logging of every request.
-    if os.getenv("FLASK_ENV") == "development":
+    if app.config["DEV_MODE"]:
         app = register_teardown_request(app)
 
     # Cross-origin resource sharing. Allow API to be requested from the
@@ -102,8 +104,12 @@ def create_app(
 
         with app.app_context():
             settings = utils.OrchestSettings()
-            settings.save()
+            settings.save(app)
             app.config.update(settings.as_dict())
+
+    # Keep analytics subscribed to all events of interest.
+    with app.app_context():
+        api_analytics.upsert_analytics_subscriptions()
 
     # Create a background scheduler (in a daemon thread) for every
     # gunicorn worker. The individual schedulers do not cause duplicate
@@ -121,12 +127,12 @@ def create_app(
                 # Infinite amount of grace time, so that if a task
                 # cannot be instantly executed (e.g. if the webserver is
                 # busy) then it will eventually be.
-                "misfire_grace_time": 2 ** 31,
+                "misfire_grace_time": 2**31,
                 "coalesce": False,
                 # So that the same job can be in the queue an infinite
                 # amount of times, e.g. for concurrent requests issuing
                 # the same tasks.
-                "max_instances": 2 ** 31,
+                "max_instances": 2**31,
             },
         )
 
@@ -315,6 +321,18 @@ def register_teardown_request(app):
         return response
 
     return app
+
+
+def register_orchest_stop():
+    app = create_app(
+        config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
+    )
+    app.logger.info("Orchest is being stopped")
+
+    with app.app_context():
+        app.logger.info("Updating Settings.")
+        Setting.query.update(dict(requires_restart=False))
+        db.session.commit()
 
 
 def cleanup():

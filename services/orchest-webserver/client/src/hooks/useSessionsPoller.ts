@@ -78,7 +78,6 @@ export const useSessionsPoller = () => {
       data.sessions.map((session) =>
         convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
       ),
-    caching: true,
   });
 
   // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING

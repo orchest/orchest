@@ -7,7 +7,7 @@ import { PipelineEditorContextProvider } from "../pipeline-view/contexts/Pipelin
 import { PipelineEditor } from "../pipeline-view/PipelineEditor";
 
 const PipelineView: React.FC = () => {
-  useSendAnalyticEvent("view load", { name: siteMap.jobRun.path });
+  useSendAnalyticEvent("view:loaded", { name: siteMap.jobRun.path });
 
   return (
     <Layout disablePadding>

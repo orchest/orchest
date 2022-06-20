@@ -17,7 +17,7 @@ packages is done using well known commands such as ``pip install`` and ``sudo ap
 
 .. note::
    💡 When updating an existing environment, the new environment will automatically be used inside
-   the visual editor (and for your :ref:`interactive pipeline runs <interactive pipeline run>`).
+   the visual editor (and for your :term:`interactive pipeline runs <interactive (pipeline) run>`).
    However, the JupyterLab kernel needs to be restarted if it was already running.
 
 What not to do
@@ -163,7 +163,7 @@ Pipeline editor
 Skip notebook cells
 -------------------
 Notebooks facilitate an experimental workflow, meaning that there will be cells that should not be
-run when executing the notebook (from top to bottom). Since :ref:`pipeline runs <pipeline run>`
+run when executing the notebook (from top to bottom). Since :term:`pipeline runs <pipeline run>`
 require your notebooks to be executable, Orchest provides an (pre-installed JupyterLab) extension
 to skip those cells.
 

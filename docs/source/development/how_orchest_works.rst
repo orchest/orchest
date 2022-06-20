@@ -16,8 +16,8 @@ shell script. Orchest runs in kubernetes and the script will take care of deploy
 application in the cluster.
 
 The mental model in Orchest is centered around *Projects*. Within each project you get to create
-multiple :ref:`pipelines <pipeline>` through the Orchest UI, and every pipeline consists of
-:ref:`pipeline steps <pipeline step>` that point to your scripts. Let's take a look at the
+multiple :term:`pipelines <(data science) pipeline>` through the Orchest UI, and every pipeline consists of
+:term:`pipeline steps <pipeline step>` that point to your scripts. Let's take a look at the
 following directory structure of a project:
 
 .. code-block:: bash
@@ -43,7 +43,7 @@ following directory structure of a project:
    creates snapshots of the project directory (for reproducibility reasons) and therefore would copy
    all the data.
 
-The :ref:`pipeline definition <pipeline definition>` file ``pipeline.orchest`` in the directory
+The :term:`pipeline definition` file ``pipeline.orchest`` in the directory
 structure above defines the structure of the pipeline. For example:
 
 .. image:: ../img/pipeline-orientation.png
@@ -62,8 +62,8 @@ At Orchest we believe that Jupyter Notebooks thank their popularity to their int
 is great to get immediate feedback and actively inspect your results without having to run the
 entire script.
 
-To facilitate a similar workflow within Orchest both JupyterLab and :ref:`interactive pipeline runs
-<interactive pipeline run>` get to directly change your notebook files. Lets explain this with an
+To facilitate a similar workflow within Orchest both JupyterLab and :term:`interactive pipeline runs
+<interactive (pipeline) run>` get to directly change your notebook files. Lets explain this with an
 example. Assume your pipeline is just a single ``.ipynb`` file (run inside its own environment) with
 the following code:
 
@@ -148,7 +148,7 @@ Overview of the different paths inside the ``userdir/``.
 Pipeline definition JSON
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The full `JSON Schema <https://json-schema.org/>`_ definition of :ref:`pipelines <pipeline
+The full `JSON Schema <https://json-schema.org/>`_ definition of :term:`pipelines <pipeline
 definition>` in Orchest can be found below.
 
 You can see an example and interactive validator `here <https://www.jsonschemavalidator.net/s/FfQDko01>`_.

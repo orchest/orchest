@@ -1,6 +1,7 @@
 import { EnvVarPair } from "@/components/EnvVarList";
 import {
   EnvironmentValidationData,
+  Json,
   PipelineJson,
   PipelineStepState,
   Service,
@@ -281,6 +282,13 @@ export type BackgroundTask =
       result: null;
     };
 
+export const pipelinePathToJsonLocation = (pipelinePath: string) => {
+  if (!pipelinePath.endsWith(".orchest")) {
+    return;
+  }
+  return pipelinePath.slice(0, -".orchest".length) + ".parameters.json";
+};
+
 export class BackgroundTaskPoller {
   private END_STATUSES: string[];
   private taskCallbacks: Record<string, (task: BackgroundTask) => void>;
@@ -426,6 +434,56 @@ export function getPipelineStepParents(
     (parentStepUUID) => pipelineJSON.steps[parentStepUUID]
   );
 }
+
+const generateParameterLists = (parameters: Record<string, Json>) => {
+  let parameterLists = {};
+
+  for (const paramKey in parameters) {
+    // Note: the list of parameters for each key will always be
+    // a string in the 'strategyJSON' data structure. This
+    // facilitates preserving user added indendation.
+
+    // Validity of the user string as JSON is checked client
+    // side (for now).
+    parameterLists[paramKey] = JSON.stringify([parameters[paramKey]]);
+  }
+
+  return parameterLists;
+};
+
+export const generateStrategyJson = (
+  pipeline: PipelineJson,
+  reservedKey: string
+) => {
+  let strategyJSON = {};
+
+  if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
+    strategyJSON[reservedKey] = {
+      key: reservedKey,
+      parameters: generateParameterLists(pipeline.parameters),
+      title: pipeline.name,
+    };
+  }
+
+  for (const stepUUID in pipeline.steps) {
+    let stepStrategy = JSON.parse(JSON.stringify(pipeline.steps[stepUUID]));
+
+    if (
+      stepStrategy.parameters &&
+      Object.keys(stepStrategy.parameters).length > 0
+    ) {
+      // selectively persist only required fields for use in parameter
+      // related React components
+      strategyJSON[stepUUID] = {
+        key: stepUUID,
+        parameters: generateParameterLists(stepStrategy.parameters),
+        title: stepStrategy.title,
+      };
+    }
+  }
+
+  return strategyJSON;
+};
 
 export function getPipelineStepChildren(
   stepUUID: string,

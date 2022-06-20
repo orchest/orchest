@@ -8,7 +8,7 @@ export type Action<T, E = Error> = {
   type: STATUS;
   data?: T;
   error?: E;
-  caching?: boolean;
+  disableCaching?: boolean;
 };
 
 export type SetStateAction<T> =
@@ -36,7 +36,7 @@ const asyncReducer = <T, E>(
   const action = _action instanceof Function ? _action(state) : _action;
   switch (action.type) {
     case "PENDING": {
-      const payload = action.caching ? state.data : undefined;
+      const payload = action.disableCaching ? undefined : state.data;
       return { status: "PENDING", data: payload, error: undefined };
     }
     case "RESOLVED": {
@@ -57,11 +57,11 @@ const asyncReducer = <T, E>(
 
 type AsyncParams<T> = {
   initialState?: T;
-  caching?: boolean; // if true, data will not be set to null when re-fetching data
+  disableCaching?: boolean; // if true, data will be set to undefined when re-fetching data
 };
 
 const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
-  const { initialState, caching = false } = params || {};
+  const { initialState, disableCaching = false } = params || {};
   const [state, dispatch] = React.useReducer<
     (state: State<T, E>, action: AsyncReducerAction<T, E>) => State<T, E>
   >(asyncReducer, {
@@ -76,7 +76,7 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
 
   const run = React.useCallback(
     (promise: Promise<T>): Promise<T> => {
-      dispatch({ type: "PENDING", caching });
+      dispatch({ type: "PENDING", disableCaching });
       return makeCancelable(promise).then(
         (data) => {
           dispatch({ type: "RESOLVED", data });
@@ -84,11 +84,11 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
         },
         (error) => {
           dispatch({ type: "REJECTED", error });
-          return error;
+          return Promise.reject(error);
         }
       );
     },
-    [dispatch, caching, makeCancelable]
+    [dispatch, disableCaching, makeCancelable]
   );
 
   const setData: StateDispatcher<T> = React.useCallback(

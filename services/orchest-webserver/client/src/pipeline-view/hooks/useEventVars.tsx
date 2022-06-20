@@ -39,6 +39,7 @@ export type EventVars = {
     y2: number;
     active: boolean;
   };
+  shouldAutoFocus: boolean;
   error?: string | null;
   timestamp: number | undefined;
   subViewIndex: number;
@@ -393,6 +394,7 @@ export const useEventVars = () => {
             ...updated,
             openedStep: newStep.uuid,
             subViewIndex: 0,
+            shouldAutoFocus: true,
             ...selectSteps([newStep.uuid]),
           });
         }
@@ -424,6 +426,7 @@ export const useEventVars = () => {
           return withTimestamp({
             ...state,
             ...updated,
+            shouldAutoFocus: true,
             ...selectSteps(newSteps.map((s) => s.uuid)),
           });
         }
@@ -449,6 +452,7 @@ export const useEventVars = () => {
             ...state,
             cursorControlledStep: undefined,
             selectedSteps: [],
+            shouldAutoFocus: false,
             stepSelector: {
               x1: selectorOrigin.x,
               x2: selectorOrigin.x,
@@ -485,6 +489,7 @@ export const useEventVars = () => {
 
           return {
             ...state,
+            shouldAutoFocus: false,
             ...selectSteps(uniqueSteps),
           };
         }
@@ -704,6 +709,7 @@ export const useEventVars = () => {
     selectedConnection: null,
     timestamp: undefined,
     subViewIndex: 0,
+    shouldAutoFocus: false,
   });
 
   // this function doesn't trigger update, it simply persists clientX clientY for calculation

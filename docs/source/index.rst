@@ -41,11 +41,12 @@ Orchest
    fundamentals/pipelines
    fundamentals/data_passing
    fundamentals/jobs
+   fundamentals/notifications
    fundamentals/environments
    fundamentals/environment_variables
    fundamentals/services
    fundamentals/sdk/index
-   fundamentals/configuration
+   fundamentals/settings
    fundamentals/glossary
 
 
@@ -59,3 +60,4 @@ Orchest
    development/how_orchest_works
    development/troubleshooting
    development/implementation_best_practices
+   development/feature_manuals

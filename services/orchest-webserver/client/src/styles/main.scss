@@ -631,14 +631,8 @@ button.text-button {
 
   .CodeMirror {
     height: auto;
-  }
-
-  .configuration {
-    form {
-      button {
-        margin-top: var(--space-5);
-      }
-    }
+    padding: 0;
+    min-height: 60px;
   }
 }
 

@@ -26,7 +26,7 @@ fi
 
 if ! [ -x "$(command -v minikube)" ]; then
     echo "Minikube is not installed. Installing minikube..."
-    BIN_NAME="minikube-${OS}-amd64"
+    BIN_NAME="minikube-${OS}-$(uname -m)"
     echo "Downloading the minikube installer..."
     curl -LOs "https://storage.googleapis.com/minikube/releases/latest/${BIN_NAME}" > /dev/null
     echo "Installing minikube..."
@@ -37,7 +37,7 @@ fi
 
 if ! minikube status | grep "host" | grep "Running" > /dev/null ; then
     echo "Starting minikube..."
-    minikube start --cpus 6 --memory 8g --disk-size 50g 
+    minikube start --cpus max --memory max --disk-size 50g 
 fi
 
 if ! minikube addons list | grep "ingress " | grep "enabled" > /dev/null ; then

@@ -127,7 +127,10 @@ export const useFetchPipelineSettings = ({
     if (isBrowserTabFocused && !hasUnsavedChanges) reinitialize();
   }, [hasUnsavedChanges, isBrowserTabFocused, reinitialize]);
 
-  const [inputParameters = "{}", setInputParameters] = usePipelineProperty({
+  const [
+    pipelineParameters = "{}",
+    setPipelineParameters,
+  ] = usePipelineProperty({
     initialValue: pipelineJson?.parameters
       ? JSON.stringify(pipelineJson.parameters || {})
       : undefined,
@@ -196,7 +199,7 @@ export const useFetchPipelineSettings = ({
     setSettings,
     pipelineJson,
     setPipelineJson,
-    inputParameters,
-    setInputParameters,
+    pipelineParameters,
+    setPipelineParameters,
   };
 };

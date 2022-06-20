@@ -9,7 +9,7 @@ import {
   Position,
 } from "@/types";
 import Box from "@mui/material/Box";
-import { hasValue } from "@orchest/lib-utils";
+import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
@@ -165,6 +165,8 @@ const PipelineStepComponent = React.forwardRef<
     mouseTracker,
     newConnection,
     keysDown,
+    jobUuid,
+    runUuid,
     eventVars: {
       cursorControlledStep,
       steps,
@@ -350,7 +352,14 @@ const PipelineStepComponent = React.forwardRef<
       resetDraggingVariables();
     }
     if (e.detail === 2 && projectUuid && pipelineUuid) {
-      const valid = await isValidFile(projectUuid, pipelineUuid, file_path);
+      const valid = await isValidFile({
+        projectUuid,
+        pipelineUuid,
+        jobUuid,
+        runUuid,
+        path: file_path,
+        allowedExtensions: ALLOWED_STEP_EXTENSIONS,
+      });
       if (valid) onDoubleClick(uuid);
     }
   };
@@ -392,7 +401,6 @@ const PipelineStepComponent = React.forwardRef<
     if (keysDown.has("Space")) return;
 
     if (disabledDragging) {
-      resetDraggingVariables();
       return;
     }
 
@@ -427,9 +435,7 @@ const PipelineStepComponent = React.forwardRef<
     isSelectorActive,
     selected,
     cursorControlledStep,
-    resetDraggingVariables,
     disabledDragging,
-    steps,
     selectedSteps,
     metadataPositions,
     detectDraggingBehavior,
@@ -477,7 +483,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Duplicate",
       disabled: isReadOnly || selectionContainsNotebooks,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ itemId }) => {
         if (itemId) {
           dispatch({ type: "DUPLICATE_STEPS", payload: [itemId] });
         }
@@ -487,7 +493,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Delete",
       disabled: isReadOnly,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ itemId }) => {
         if (itemId) {
           dispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
         }
@@ -496,7 +502,7 @@ const PipelineStepComponent = React.forwardRef<
     {
       type: "item",
       title: "Properties",
-      action: (e: React.MouseEvent, _itemId?: string) => {
+      action: () => {
         dispatch({ type: "SELECT_SUB_VIEW", payload: 0 });
       },
     },
@@ -504,19 +510,19 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Open in JupyterLab",
       disabled: isReadOnly,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ event, itemId }) => {
         if (itemId) {
           dispatch({ type: "SET_OPENED_STEP", payload: itemId });
-          onOpenNotebook(e);
+          onOpenNotebook(event);
         }
       },
     },
     {
       type: "item",
       title: "Open in File Viewer",
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ event, itemId }) => {
         if (itemId) {
-          onOpenFilePreviewView(e, itemId);
+          onOpenFilePreviewView(event, itemId);
         }
       },
     },
@@ -527,7 +533,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Run this step",
       disabled: isReadOnly,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ itemId }) => {
         if (itemId) {
           executeRun([itemId], "selection");
         }
@@ -537,7 +543,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Run incoming",
       disabled: isReadOnly,
-      action: (e: React.MouseEvent, itemId?: string) => {
+      action: ({ itemId }) => {
         if (itemId) {
           executeRun([itemId], "incoming");
         }

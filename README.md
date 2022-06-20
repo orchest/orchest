@@ -24,7 +24,7 @@ No frameworks. No YAML. Just write your data processing code directly in **Pytho
   <i>💡 Watch the <a target="_blank" href="https://vimeo.com/589879082">full narrated video</a> to learn more about building data pipelines in Orchest.</i>
  </p>
 
-> **NOTE:** Orchest is in **beta**.
+> **Note**: Orchest is in **beta**.
 
 ## Features
 
@@ -62,17 +62,25 @@ Want to skip the installation and jump right in? Then try out our managed servic
 
 [![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
-For instructions on how to deploy a self-hosted version, check out our [installation
+For `macOS` and `Linux` we provide an automated convience script to install Orchest on
+[minikube](https://minikube.sigs.k8s.io/docs/). Run it with:
+
+```sh
+curl -fsSL https://get.orchest.io > convenience_install.sh
+bash convenience_install.sh
+```
+
+👉 For detailed instructions on how to deploy a self-hosted version, check out our [installation
 docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 ## License
 
 The software in this repository is licensed as follows:
 
-- All content residing under the "orchest-sdk/" and "orchest-cli/" directories of this repository
-  are licensed under the "Apache-2.0" license as defined in "orchest-sdk/LICENSE" and
-  "orchest-cli/LICENSE" respectively.
-- Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
+- All content residing under the ` orchest-sdk/` and `orchest-cli/` directories of this repository
+  are licensed under the `Apache-2.0` license as defined in `orchest-sdk/LICENSE` and
+  `orchest-cli/LICENSE` respectively.
+- Content outside of the above mentioned directories is available under the `AGPL-3.0` license.
 
 ## Slack Community
 
@@ -82,19 +90,12 @@ Join our Slack to chat about Orchest, ask questions, and share tips.
 
 ## Contributing
 
-Contributions are more than welcome! Please see our
-[contributor guides](https://docs.orchest.io/en/stable/development/contributing.html)
-for more details.
+Contributions are more than welcome! Please see our [contributor
+guides](https://docs.orchest.io/en/stable/development/contributing.html) for more details.
 
-You could also submit your pipeline to [the curated list of examples](https://github.com/orchest/orchest-examples). Help other users try out your pipeline with one click by adding the following script in the `README.md` of your repository (NOTE: you need to replace `your-repo-url` with your repo URL).
-
-```markdown
-[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=your-repo-url)
-```
-
-An example badge to import our [quickstart](https://github.com/orchest/quickstart) repo in Orchest:
-
-[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
+Alternatively, you can submit your pipeline to the curated list of [Orchest
+examples](https://github.com/orchest/orchest-examples) that are automatically loaded in every
+Orchest deployment! 🔥
 
 ## Contributors
 
@@ -119,3 +120,5 @@ An example badge to import our [quickstart](https://github.com/orchest/quickstar
 <a href="https://github.com/nhaghighat"><img src="https://avatars.githubusercontent.com/u/3792293?v=4" title="nhaghighat" width="50" height="50"></a>
 <a href="https://github.com/porcupineyhairs"><img src="https://avatars.githubusercontent.com/u/61983466?v=4" title="porcupineyhairs" width="50" height="50"></a>
 <a href="https://github.com/ncspost"><img src="https://avatars.githubusercontent.com/ncspost?v=4" title="ncspost" width="50" height="50"></a>
+<a href="https://github.com/cavriends"><img src="https://avatars.githubusercontent.com/u/4497501?v=4" title="cavriends" width="50" height="50"></a>
+<a href="https://github.com/astrojuanlu"><img src="https://avatars.githubusercontent.com/u/316517?v=4" title="astrojuanlu" width="50" height="50"></a>
