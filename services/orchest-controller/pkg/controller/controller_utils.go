@@ -64,7 +64,7 @@ var (
 
 	// Runtime annotations
 	KubeAdmCRISocketAnnotationKey           = "kubeadm.alpha.kubernetes.io/cri-socket"
-	ContainerRuntimeSocketPathAnnotationKey = "orchest.io/runtime-socket"
+	ContainerRuntimeSocketPathAnnotationKey = "orchest.io/container-runtime-socket"
 )
 
 // AddFinalizer adds specified finalizer string to object
