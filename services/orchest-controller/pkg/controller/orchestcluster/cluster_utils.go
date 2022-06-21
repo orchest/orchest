@@ -234,7 +234,7 @@ func getOrchestComponent(name, hash string,
 
 // detectContainerRuntime detects the container runtime of the cluster and the socket path
 // returns error if the container runtime is not supported or the cluster is not homogeneous
-// If the socket path is not set or not deteted, it will use the default socket path based on
+// If the socket path is not set or not detected, it will use the default socket path based on
 // the container runtime
 func detectContainerRuntime(ctx context.Context,
 	client kubernetes.Interface, orchest *orchestv1alpha1.OrchestCluster) (string, string, error) {
