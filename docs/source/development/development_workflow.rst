@@ -167,6 +167,7 @@ The services that support dev mode are:
 
    orchest patch --dev
 
+**Don't forget to disable cache (DevTools -> Disable cache) or force reload (Command/Ctrl + Shift + R) to see frontend changes propagate.**
 
 .. note::
    🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
