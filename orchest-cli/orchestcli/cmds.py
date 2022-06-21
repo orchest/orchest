@@ -282,8 +282,8 @@ def install(
     applications = [{"name": "docker-registry", "config": {}}]
     if no_argo:
         echo(
-            "Disabling 'ArgoWorkflow' installation."
-            "\n\tMake sure 'ArgoWorkflow' is already installed in your cluster"
+            "Disabling 'Argo Workflows' installation."
+            "\n\tMake sure 'Argo Workflows' is already installed in your cluster"
             "\n\tand has the right permissions set in order to work properly"
             "\n\twith Orchest."
         )
