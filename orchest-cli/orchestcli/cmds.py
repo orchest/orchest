@@ -559,10 +559,10 @@ def update(
             k8s_client=API_CLIENT,
             yaml_objects=yml_deploy_controller,
         )
-    except utils.FailToCreateError:
+    except utils.FailToCreateError as e:
         echo(
             "Failed to update Orchest. Could not apply 'orchest-controller'"
-            " manifests.",
+            f" manifests: \n{e}",
             err=True,
         )
         sys.exit(1)

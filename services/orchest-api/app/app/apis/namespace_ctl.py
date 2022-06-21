@@ -2,7 +2,6 @@
 import os
 import shlex
 import subprocess
-from typing import List
 
 from flask import current_app, request
 from flask_restx import Namespace, Resource
@@ -135,34 +134,34 @@ class OrchestSettings(Resource):
 def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
     """Runs `orchest update` in a virtualenv."""
 
-    def run_cmds(cmd: List[str], cwd=None):
+    def run_cmds(**kwargs):
         """Executes the provided commands.
+
+        Basically runs and handles `subprocess.Popen(**kwargs)`
 
         Args:
             cmds: commands to execute.
-            fail_if_std_err: If True raises SystemExit if stderr is
-                not None.
 
         Raises:
             SystemExit: If `returncode` of the cmds execution is not
                 zero or fail_if_std_err is `True` and stderr is not
                 None.
         """
-        process = subprocess.Popen(cmd, cwd=cwd)
+        process = subprocess.Popen(**kwargs)
 
         if process.wait() != 0:
             raise SystemExit(1)
 
     if not dev_mode:
-        install_cmd = "&&".join(
+        install_cmd = " && ".join(
             [
                 "rm -rf /tmp/venv",
                 "python3 -m venv /tmp/venv",
                 "/tmp/venv/bin/pip install --upgrade orchest-cli",
             ]
         )
-        install_cmd = shlex.split(install_cmd)
-        run_cmds(install_cmd)
+        # Use `shell=True` so we can use `&&` to chain commands.
+        run_cmds(args=install_cmd, shell=True)
 
     if dev_mode:
         import yaml  # installed by orchest-cli
@@ -210,11 +209,11 @@ def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
 
         # `orchest update --dev` only works inside root level
         # orchest folder
-        run_cmds(shlex.split(update_cmd), cwd="/orchest")
+        run_cmds(args=shlex.split(update_cmd), cwd="/orchest")
     else:
         update_cmd = (
             "/tmp/venv/bin/orchest update"
             f" --no-watch --namespace={namespace} --cluster-name={cluster_name}"
         )
 
-        run_cmds(shlex.split(update_cmd))
+        run_cmds(args=shlex.split(update_cmd))
