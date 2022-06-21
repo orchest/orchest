@@ -325,7 +325,6 @@ def install(
         "namespace": ns,
     }
 
-    # if socket_path is provided, set the annotation to the socket path
     if socket_path is not None:
         metadata["annotations"] = {"orchest.io/container-runtime-socket": socket_path}
 
