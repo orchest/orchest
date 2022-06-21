@@ -39,10 +39,10 @@ USER_CONTAINERS_CPU_SHARES = "500m"
 REGISTRY = "docker-registry"
 REGISTRY_FQDN = f"docker-registry.{ORCHEST_NAMESPACE}.svc.cluster.local"
 
-# Runtime configs.
-RUNTIME = os.environ.get("RUNTIME")
-RUNTIME_IMAGE = os.environ.get("RUNTIME_IMAGE")
-RUNTIME_SOCKET = os.environ.get("RUNTIME_SOCKET")
+# Container Runtime configs.
+CONTAINER_RUNTIME = os.environ.get("CONTAINER_RUNTIME")
+CONTAINER_RUNTIME_IMAGE = os.environ.get("CONTAINER_RUNTIME_IMAGE")
+CONTAINER_RUNTIME_SOCKET = os.environ.get("CONTAINER_RUNTIME_SOCKET")
 
 # Databases
 database_naming_convention = {

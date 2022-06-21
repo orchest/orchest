@@ -362,9 +362,9 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 	if err != nil {
 		return false, err
 	}
-	occ.config.OrchestDefaultEnvVars["RUNTIME"] = runtime
-	occ.config.OrchestDefaultEnvVars["RUNTIME_SOCKET"] = socketPath
-	occ.config.OrchestDefaultEnvVars["RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
+	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME"] = runtime
+	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = socketPath
+	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
 		fmt.Sprintf("%s-cli", runtime), occ.config.OrchestDefaultVersion)
 
 	return true, err

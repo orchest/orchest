@@ -498,8 +498,8 @@ def _step_to_workflow_manifest_task(
                     "value": step.properties["uuid"],
                 },
                 {
-                    "name": "runtime_image",
-                    "value": _config.RUNTIME_IMAGE,
+                    "name": "container_runtime_image",
+                    "value": _config.CONTAINER_RUNTIME_IMAGE,
                 },
             ]
         },
@@ -519,7 +519,7 @@ def _pipeline_to_workflow_manifest(
         pipeline_file=run_config["pipeline_path"],
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
-        container_runtime_socket=_config.RUNTIME_SOCKET,
+        container_runtime_socket=_config.CONTAINER_RUNTIME_SOCKET,
     )
 
     manifest = {
@@ -593,7 +593,7 @@ def _pipeline_to_workflow_manifest(
                     "initContainers": [
                         {
                             "name": "image-puller",
-                            "image": "{{inputs.parameters.runtime_image}}",
+                            "image": "{{inputs.parameters.container_runtime_image}}",
                             "env": [
                                 {
                                     "name": "IMAGE_TO_PULL",
