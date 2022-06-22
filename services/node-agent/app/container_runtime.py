@@ -1,10 +1,13 @@
 import asyncio
+import json
 import logging
 import time
 from enum import Enum
 from typing import List, Optional
 
 import aiodocker
+
+from _orchest.internals import config as _config
 
 
 class RuntimeType(Enum):
@@ -105,11 +108,6 @@ class ContainerRuntime(object):
                 image_name,
             ]
             result = await self.execute_cmd(args)
-        else:  # invalid container runtime
-            self.logger.error(
-                f"Invalid container runtime detected: '{self.container_runtime}'!"
-            )
-            result = False
 
         self.logger.debug(
             f"Checked existence of image '{image_name} '" f"exists = {result}"
@@ -140,13 +138,65 @@ class ContainerRuntime(object):
         elif self.container_runtime == RuntimeType.Containerd:
             args = ["crictl", "-r", self.container_runtime_socket, "pull", image_name]
             result = await self.execute_cmd(args)
-        else:  # invalid container runtime
-            self.logger.error(
-                f"Invalid container runtime detected: '{self.container_runtime}'!"
-            )
-            result = False
 
         t1 = time.time()
         if result is True:
             self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
+        return result
+
+    async def list_images(self):
+        """Lists all the images present on the node.
+
+        Returns:
+            Yields the name of the images on the node.
+
+        """
+        if self.container_runtime == RuntimeType.Docker:
+            try:
+                filters = {
+                    "label": [
+                        f"maintainer={_config.ORCHEST_MAINTAINER_LABEL}",
+                    ]
+                }
+                for img in await self.aclient().images.list(filters=filters):
+                    names = img.get("RepoTags")
+                    # Unfortunately RepoTags is mapped to None
+                    # instead of not being there in some cases.
+                    names = names if names is not None else []
+                    for name in names:
+                        yield name
+            except aiodocker.DockerError:
+                pass
+        elif self.container_runtime == RuntimeType.Containerd:
+            args = ["crictl", "-r", self.container_runtime_socket, "images", "-o=json"]
+            result = await self.execute_cmd(args)
+            try:
+                images = json.loads(result)["images"]
+                for img in images:
+                    names = img["repoTags"]
+                    names = names if names is not None else []
+                    for name in names:
+                        yield name
+            except Exception:
+                pass
+
+    async def delete_image(self, image_name: str) -> bool:
+        result = True
+
+        if self.container_runtime == RuntimeType.Docker:
+            try:
+                await self.aclient().images.delete(image_name, force=True)
+            except aiodocker.DockerError:
+                result = False
+        elif self.container_runtime == RuntimeType.Containerd:
+            args = [
+                "crictl",
+                "-r",
+                self.container_runtime_socket,
+                "rmi",
+                image_name,
+            ]
+            result = await self.execute_cmd(args)
+
+        self.logger.debug(f"Image is deleted: '{image_name} '")
         return result

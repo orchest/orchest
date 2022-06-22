@@ -12,8 +12,8 @@ import logging
 import os
 from typing import List, Optional, Set, Tuple
 
-import aiodocker
 import aiohttp
+from container_runtime import ContainerRuntime
 
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
@@ -65,7 +65,7 @@ async def get_active_custom_jupyter_images(session: aiohttp.ClientSession) -> Se
 
 
 async def get_images_of_interest_on_node(
-    aiodocker_client,
+    container_runtime: ContainerRuntime,
 ) -> Tuple[List[str], List[str], List[str]]:
     """Gets the environment images on the node.
 
@@ -78,29 +78,18 @@ async def get_images_of_interest_on_node(
     custom_jupyter_images_on_node = []
     orchest_images = []
 
-    filters = {
-        "label": [
-            f"maintainer={_config.ORCHEST_MAINTAINER_LABEL}",
-        ]
-    }
-
-    for img in await aiodocker_client.images.list(filters=filters):
-        names = img.get("RepoTags")
-        # Unfortunately RepoTags is mapped to None instead of not being
-        # there in some cases.
-        names = names if names is not None else []
-        for name in names:
-            if is_env_image(name):
-                env_images_on_node.append(name)
-            elif is_custom_jupyter_image(name):
-                custom_jupyter_images_on_node.append(name)
-            elif is_orchest_image(name):
-                orchest_images.append(name)
+    for img_name in await container_runtime.list_images():
+        if is_env_image(img_name):
+            env_images_on_node.append(img_name)
+        elif is_custom_jupyter_image(img_name):
+            custom_jupyter_images_on_node.append(img_name)
+        elif is_orchest_image(img_name):
+            orchest_images.append(img_name)
     return env_images_on_node, custom_jupyter_images_on_node, orchest_images
 
 
 async def run():
-    aiodocker_client = aiodocker.Docker()
+    container_runtime = ContainerRuntime()
     try:
         async with aiohttp.ClientSession(trust_env=True) as session:
             while True:
@@ -109,7 +98,7 @@ async def run():
                         env_images_on_node,
                         custom_jupyter_images_on_node,
                         orchest_images_on_node,
-                    ) = await get_images_of_interest_on_node(aiodocker_client)
+                    ) = await get_images_of_interest_on_node(container_runtime)
                     env_images_on_node = set(env_images_on_node)
                     custom_jupyter_images_on_node = set(custom_jupyter_images_on_node)
                     orchest_images_on_node = set(orchest_images_on_node)
@@ -170,13 +159,10 @@ async def run():
                         + custom_jupyter_images_to_remove_from_node
                         + orchest_images_to_remove_from_node
                     ):
-                        try:
-                            logger.info(f"Deleting {img}.")
-                            await aiodocker_client.images.delete(img, force=True)
-                        except aiodocker.DockerError as e:
-                            logger.error(f"Failed to delete {img}: {e}")
+                        if not await container_runtime(img):
+                            logger.error(f"Failed to delete {img}")
                 except Exception as ex:
                     logger.error(ex)
                 await asyncio.sleep(60)
     finally:
-        await aiodocker_client.close()
+        await container_runtime.close()
