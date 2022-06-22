@@ -1,6 +1,6 @@
 ## Description
 
-Description of what your PR solves or adds.
+Description (including a screenshot/video if applicable) of what your PR solves or adds.
 
 Fixes: #issue
 

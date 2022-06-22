@@ -1,7 +1,8 @@
-package deployer
+package addons
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -15,7 +16,7 @@ type HelmDeployer struct {
 	valuesPath string
 }
 
-func NewHelmDeployer(name, deployDir string, valuesPath string) Deployer {
+func NewHelmDeployer(name, deployDir string, valuesPath string) Addon {
 	return &HelmDeployer{
 		name:       name,
 		deployDir:  deployDir,
@@ -24,8 +25,8 @@ func NewHelmDeployer(name, deployDir string, valuesPath string) Deployer {
 }
 
 // Installs deployer if the config is changed
-func (d *HelmDeployer) InstallIfChanged(ctx context.Context, namespace string,
-	orchest *orchestv1alpha1.OrchestCluster) error {
+func (d *HelmDeployer) Enable(ctx context.Context, namespace string,
+	config *orchestv1alpha1.ApplicationConfig) error {
 
 	// First we need to check if there is already a release
 	_, err := helm.GetReleaseConfig(ctx, d.name, namespace)
@@ -40,7 +41,7 @@ func (d *HelmDeployer) InstallIfChanged(ctx context.Context, namespace string,
 
 	argBuilder := helm.NewHelmArgBuilder()
 	args := argBuilder.WithUpgradeInstall().
-		WithName(d.name).
+		WithName(fmt.Sprintf("%s-%s", namespace, d.name)).
 		WithNamespace(namespace).
 		WithCreateNamespace().
 		WithAtomic().WithTimeout(time.Second * 180)
@@ -49,11 +50,11 @@ func (d *HelmDeployer) InstallIfChanged(ctx context.Context, namespace string,
 		args.WithValuesFile(d.valuesPath)
 	}
 
-	/*
-		for key, value := range newValues {
-			args.WithSetValue(key, value.(string))
+	if config.Helm != nil && config.Helm.Parameters != nil {
+		for _, parameter := range config.Helm.Parameters {
+			args.WithSetValue(parameter.Name, parameter.Value)
 		}
-	*/
+	}
 
 	args.WithRepository(d.deployDir)
 

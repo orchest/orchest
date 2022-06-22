@@ -55,6 +55,7 @@ from gettext import gettext
 
 import click
 from orchestcli import cmds
+from orchestcli._version import __version__
 
 NAMESPACE = "orchest"
 ORCHEST_CLUSTER_NAME = "cluster-1"
@@ -133,6 +134,7 @@ class ClickHelpCategories(click.Group):
     },
     cls=ClickHelpCategories,
 )
+@click.version_option(version=__version__, prog_name="orchest-cli")
 def cli():
     """The Orchest CLI to manage your Orchest Cluster on Kubernetes.
 
@@ -163,6 +165,14 @@ def cli():
     help="Run install in dev mode.",
 )
 @click.option(
+    "--no-argo",
+    "no_argo",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Disable deploying Argo as part of Orchest.",
+)
+@click.option(
     "--fqdn",
     default=None,
     show_default=True,
@@ -170,10 +180,14 @@ def cli():
 )
 @cli.command(cls=ClickCommonOptionsCmd)
 def install(
-    cloud: bool, dev_mode: bool, fqdn: t.Optional[str], **common_options
+    cloud: bool,
+    dev_mode: bool,
+    no_argo: bool,
+    fqdn: t.Optional[str],
+    **common_options,
 ) -> None:
     """Install Orchest."""
-    cmds.install(cloud, dev_mode, fqdn, **common_options)
+    cmds.install(cloud, dev_mode, no_argo, fqdn, **common_options)
 
 
 # TODO: Should be improved to remove the provided Orchest Cluster,
@@ -288,15 +302,23 @@ def patch(
     show_default=False,
     help="Get output in json.",
 )
-def version(json_flag: bool, **common_options) -> None:
-    """Get running Orchest version.
+@click.option(
+    "--latest",
+    "latest_flag",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=False,
+    help="Get latest available Orchest version.",
+)
+def version(json_flag: bool, latest_flag: bool, **common_options) -> None:
+    """Get Orchest version.
 
     \b
     Equivalent `kubectl` command:
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.spec.orchest.version}"
 
     """
-    cmds.version(json_flag, **common_options)
+    cmds.version(json_flag, latest_flag, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)

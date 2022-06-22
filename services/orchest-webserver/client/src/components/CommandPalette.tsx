@@ -1,6 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
-import { pageCommands, siteMap } from "@/routingConfig";
+import { getPageCommands, siteMap } from "@/routingConfig";
 import { Job, Project } from "@/types";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -27,20 +27,14 @@ type Command = {
   };
 };
 
-function fetchObjects<T>(path: string, attribute?: string) {
-  return new Promise<T[]>((resolve, reject) => {
-    fetcher<Record<string, T[]> | T[]>(path)
-      .then((response) => {
-        resolve(attribute ? response[attribute] : response);
-      })
-      .catch((e) => {
-        console.error(e);
-        reject([]);
-      })
-      .finally(() => {
-        resolve([]);
-      });
-  });
+async function fetchObjects<T>(path: string, attribute?: string): Promise<T[]> {
+  try {
+    const response = await fetcher<Record<string, T[]> | T[]>(path);
+    return attribute ? response[attribute] : response;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 }
 
 const fetchPipelines = () => {
@@ -131,13 +125,27 @@ const commandsFromProject = (project: Project): Command => {
     action: "openList",
     children: [
       {
-        title: "Project settings: " + project.path,
+        title: `Project settings: ${project.path}`,
         action: "openPage",
         data: {
           path: siteMap.projectSettings.path,
-          query: {
-            projectUuid: project.uuid,
-          },
+          query: { projectUuid: project.uuid },
+        },
+      },
+      {
+        title: `Jobs: ${project.path}`,
+        action: "openPage",
+        data: {
+          path: siteMap.jobs.path,
+          query: { projectUuid: project.uuid },
+        },
+      },
+      {
+        title: `Environments: ${project.path}`,
+        action: "openPage",
+        data: {
+          path: siteMap.environments.path,
+          query: { projectUuid: project.uuid },
         },
       },
     ],
@@ -173,7 +181,7 @@ const isVisible = (el: HTMLLIElement, holder: HTMLDivElement) => {
 
 export const CommandPalette: React.FC = () => {
   // global states
-  const { navigateTo } = useCustomRoute();
+  const { navigateTo, projectUuid } = useCustomRoute();
 
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -225,7 +233,7 @@ export const CommandPalette: React.FC = () => {
       ]);
 
       setCommands([
-        ...pageCommands,
+        ...getPageCommands(projectUuid),
         ...projectCommands.list,
         ...pipelineCommands,
         ...jobCommands,
@@ -235,7 +243,7 @@ export const CommandPalette: React.FC = () => {
       // handle failure silently because this is done in the background
       console.error(`Failed to fetch for command palette: ${error}`);
     }
-  }, []);
+  }, [projectUuid]);
 
   const onQueryChange = (
     e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>

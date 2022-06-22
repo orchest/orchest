@@ -1,7 +1,7 @@
 # When to use Orchest
 
 There are several workflow management and pipeline orchestration solutions out there.
-They all share some similarities: they all provide some way to define a :term:`DAG` of tasks,
+They all share some similarities: they all provide some way to define a {term}`DAG` of tasks,
 and infrastructure to monitor its results. However, there are notable differences between tools.
 
 ## Who is Orchest good for?

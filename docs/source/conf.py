@@ -42,7 +42,10 @@ extensions = [
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "hoverxref.extension",
 ]
+
+hoverxref_auto_ref = True
 
 myst_enable_extensions = [
     "deflist",

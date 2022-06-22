@@ -2,16 +2,15 @@ package orchestcluster
 
 import (
 	"fmt"
-	"path"
 	"reflect"
 	"time"
 
+	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/version"
 	"github.com/pkg/errors"
@@ -32,31 +31,47 @@ var (
 )
 
 type ControllerConfig struct {
-	DeployDir                      string
-	PostgresDefaultImage           string
-	RabbitmqDefaultImage           string
-	OrchestDefaultVersion          string
-	CeleryWorkerImageName          string
-	OrchestApiImageName            string
-	OrchestWebserverImageName      string
-	AuthServerImageName            string
-	UserdirDefaultVolumeSize       string
-	BuilddirDefaultVolumeSize      string
-	OrchestDefaultEnvVars          map[string]string
-	OrchestApiDefaultEnvVars       map[string]string
+	// Postgres default image to use if not provided
+	PostgresDefaultImage string
+	// Rabbitmq default image to use if not provided
+	RabbitmqDefaultImage string
+	// Orchest Default version to use if not provided
+	OrchestDefaultVersion string
+	// celery-worker default image to use if not provided
+	CeleryWorkerImageName string
+	// orchest-api default image to use if not provided
+	OrchestApiImageName string
+	// orchest-webserver default image to use if not provided
+	OrchestWebserverImageName string
+	// auth-server default image to use if not provided
+	AuthServerImageName string
+	// user-dir volume size if not provided
+	UserdirDefaultVolumeSize string
+	// build-dir volume size if not provided
+	BuilddirDefaultVolumeSize string
+	// default env vars for orchest services
+	OrchestDefaultEnvVars map[string]string
+	// default env vars for orchest-api
+	OrchestApiDefaultEnvVars map[string]string
+	// default env vars for orchest-webserver
 	OrchestWebserverDefaultEnvVars map[string]string
-	AuthServerDefaultEnvVars       map[string]string
-	CeleryWorkerDefaultEnvVars     map[string]string
-	OrchestDatabaseDefaultEnvVars  map[string]string
-	RabbitmqDefaultEnvVars         map[string]string
-	Threadiness                    int
-	InCluster                      bool
-	DefaultPause                   bool
+	// default env vars for auth-server
+	AuthServerDefaultEnvVars map[string]string
+	// default env vars for celery-worker
+	CeleryWorkerDefaultEnvVars map[string]string
+	// default env vars for orchest-database
+	OrchestDatabaseDefaultEnvVars map[string]string
+	// default env vars for rabbitmq
+	RabbitmqDefaultEnvVars map[string]string
+	// default third-party applications
+	DefaultApplications []orchestv1alpha1.ApplicationSpec
+	Threadiness         int
+	InCluster           bool
+	DefaultPause        bool
 }
 
 func NewDefaultControllerConfig() ControllerConfig {
 	return ControllerConfig{
-		DeployDir:                 "/deploy",
 		PostgresDefaultImage:      "postgres:13.1",
 		RabbitmqDefaultImage:      "rabbitmq:3",
 		OrchestDefaultVersion:     version.Version,
@@ -98,6 +113,24 @@ func NewDefaultControllerConfig() ControllerConfig {
 			"PGDATA":                    "/userdir/.orchest/database/data",
 			"POSTGRES_HOST_AUTH_METHOD": "trust",
 		},
+		DefaultApplications: []orchestv1alpha1.ApplicationSpec{
+			{
+				Name: addons.ArgoWorkflow,
+				Config: orchestv1alpha1.ApplicationConfig{
+					Helm: &orchestv1alpha1.ApplicationConfigHelm{
+						Parameters: []orchestv1alpha1.HelmParameter{
+							{
+								Name:  "singleNamespace",
+								Value: "true",
+							},
+						},
+					},
+				},
+			},
+			{
+				Name: addons.DockerRegistry,
+			},
+		},
 		RabbitmqDefaultEnvVars: make(map[string]string, 0),
 		Threadiness:            1,
 		InCluster:              true,
@@ -121,7 +154,7 @@ type OrchestClusterController struct {
 
 	oComponentLister orchestlisters.OrchestComponentLister
 
-	deployerManager *deployer.DeployerManager
+	addonManager *addons.AddonManager
 }
 
 // NewOrchestClusterController returns a new *OrchestClusterController.
@@ -132,6 +165,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	config ControllerConfig,
 	oClusterInformer orchestinformers.OrchestClusterInformer,
 	oComponentInformer orchestinformers.OrchestComponentInformer,
+	addonManager *addons.AddonManager,
 ) *OrchestClusterController {
 
 	informerSyncedList := make([]cache.InformerSynced, 0, 0)
@@ -144,10 +178,11 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	)
 
 	occ := OrchestClusterController{
-		oClient: oClient,
-		gClient: gClient,
-		scheme:  scheme,
-		config:  config,
+		oClient:      oClient,
+		gClient:      gClient,
+		scheme:       scheme,
+		config:       config,
+		addonManager: addonManager,
 	}
 
 	// OrchestCluster event handlers
@@ -175,24 +210,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 
 	occ.Controller = ctrl
 
-	occ.intiDeployerManager()
-
 	return &occ
-}
-
-// Initialzes the third-party deployers.
-func (occ *OrchestClusterController) intiDeployerManager() {
-	occ.deployerManager = deployer.NewDeployerManager()
-
-	occ.deployerManager.AddDeployer("argo",
-		deployer.NewHelmDeployer("argo",
-			path.Join(occ.config.DeployDir, "thirdparty/argo-workflows"),
-			path.Join(occ.config.DeployDir, "thirdparty/argo-workflows/orchest-values.yaml")))
-
-	occ.deployerManager.AddDeployer("registry",
-		deployer.NewHelmDeployer("registry",
-			path.Join(occ.config.DeployDir, "thirdparty/docker-registry/helm"),
-			path.Join(occ.config.DeployDir, "thirdparty/docker-registry/orchest-values.yaml")))
 }
 
 func (occ *OrchestClusterController) addOrchestCluster(obj interface{}) {
@@ -512,6 +530,11 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = occ.config.BuilddirDefaultVolumeSize
 	}
 
+	if copy.Spec.Applications == nil {
+		changed = true
+		copy.Spec.Applications = occ.config.DefaultApplications
+	}
+
 	if changed || !reflect.DeepEqual(copy.Spec, orchest.Spec) {
 		_, err := occ.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
 
@@ -544,12 +567,6 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			}
 		}()
 
-		err = occ.deployerManager.Get("argo").InstallIfChanged(ctx, orchest.Namespace, nil)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
 		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
 		if err != nil {
 			klog.Error(err)
@@ -562,16 +579,20 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			return err
 		}
 
-		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.DeployingRegistry)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
+		for _, application := range orchest.Spec.Applications {
+			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
+				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", application.Name)))
+			if err != nil {
+				klog.Error(err)
+				return err
+			}
 
-		err = occ.deployerManager.Get("registry").InstallIfChanged(ctx, orchest.Namespace, nil)
-		if err != nil {
-			klog.Error(err)
-			return err
+			err = occ.addonManager.Get(application.Name).Enable(ctx, orchest.Namespace, &application.Config)
+			if err != nil {
+				klog.Error(err)
+				return err
+			}
+
 		}
 	}
 

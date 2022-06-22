@@ -43,7 +43,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: manifests
-          path: ./services/orchest-controller/deploy/k8s/orchest-controller.yaml
+          path: ./services/orchest-controller/deploy/k8s
       - uses: actions/upload-artifact@v3
         with:
           name: examples
