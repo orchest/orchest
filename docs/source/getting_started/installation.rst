@@ -28,7 +28,7 @@ The supported operating systems are:
 
 - Linux (``x86_64``)
 - `Windows Subsystem for Linux 2 <https://docs.microsoft.com/en-us/windows/wsl/about>`_ (WSL2)
-- macOS (M1 Macs use Rosetta for emulation)
+- macOS (M1 Macs should use `Rosetta <https://support.apple.com/en-us/HT211861>`_ for emulation)
 
 .. note::
    💡 We recommend to install Orchest on a clean cluster to prevent it clashing with existing
