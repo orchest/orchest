@@ -160,6 +160,7 @@ class Subscriber(Resource):
 
         if isinstance(subscriber, models.Webhook):
             subscriber = marshal(subscriber, schema.webhook)
+            subscriber["url"] = utils.extract_domain_name(subscriber["url"])
         else:
             subscriber = marshal(subscriber, schema.subscriber)
 
