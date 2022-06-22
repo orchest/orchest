@@ -160,6 +160,7 @@ class Subscriber(Resource):
 
         if isinstance(subscriber, models.Webhook):
             subscriber = marshal(subscriber, schema.webhook)
+            subscriber["url"] = utils.extract_domain_name(subscriber["url"])
         else:
             subscriber = marshal(subscriber, schema.subscriber)
 
@@ -258,7 +259,9 @@ class SubscribersSubscribedToEvent(Resource):
         marshaled = []
         for subscriber in alerted_subscribers:
             if isinstance(subscriber, models.Webhook):
-                marshaled.append(marshal(subscriber, schema.webhook))
+                subscriber = marshal(subscriber, schema.webhook)
+                subscriber["url"] = utils.extract_domain_name(subscriber["url"])
+                marshaled.append(subscriber)
             # Don't expose analytics subscriber.
             elif isinstance(subscriber, models.AnalyticsSubscriber):
                 continue
