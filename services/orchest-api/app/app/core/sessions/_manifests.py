@@ -27,6 +27,7 @@ def _get_common_volumes_and_volume_mounts(
     container_project_dir: str = _config.PROJECT_DIR,
     container_pipeline_path: str = _config.PIPELINE_FILE,
     container_data_dir: str = _config.DATA_DIR,
+    container_runtime_socket: str = _config.CONTAINER_RUNTIME_SOCKET,
 ) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
     volumes = {}
     volume_mounts = {}
@@ -37,6 +38,11 @@ def _get_common_volumes_and_volume_mounts(
     volumes["userdir-pvc"] = {
         "name": "userdir-pvc",
         "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
+    }
+
+    volumes["container-runtime-socket"] = {
+        "name": "container-runtime-socket",
+        "hostPath": {"path": container_runtime_socket, "type": "Socket"},
     }
 
     volume_mounts["data"] = {
@@ -54,6 +60,12 @@ def _get_common_volumes_and_volume_mounts(
         "mountPath": container_pipeline_path,
         "subPath": relative_pipeline_path,
     }
+    volume_mounts["container-runtime-socket"] = (
+        {
+            "name": "container-runtime-socket",
+            "mountPath": "/var/run/runtime.sock",
+        },
+    )
 
     return volumes, volume_mounts
 
@@ -421,6 +433,23 @@ def _get_jupyter_server_deployment_service_manifest(
                     },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
+                        volumes_dict["container-runtime-socket"],
+                    ],
+                    "initContainers": [
+                        {
+                            "name": "image-puller",
+                            "image": _config.CONTAINER_RUNTIME_IMAGE,
+                            "env": [
+                                {
+                                    "name": "IMAGE_TO_PULL",
+                                    "value": utils.get_jupyter_server_image_to_use(),
+                                }
+                            ],
+                            "command": ["/pull_image.sh"],
+                            "volumeMounts": [
+                                volume_mounts_dict["container-runtime-socket"],
+                            ],
+                        },
                     ],
                     "containers": [
                         {
@@ -715,6 +744,25 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                     ],
+                    "initContainers": [
+                        {
+                            "name": "image-puller",
+                            "image": _config.CONTAINER_RUNTIME_IMAGE,
+                            "env": [
+                                {
+                                    "name": "IMAGE_TO_PULL",
+                                    "value": (
+                                        "orchest/jupyter-enterprise-gateway:"
+                                        + CONFIG_CLASS.ORCHEST_VERSION
+                                    ),
+                                }
+                            ],
+                            "command": ["/pull_image.sh"],
+                            "volumeMounts": [
+                                volume_mounts_dict["container-runtime-socket"],
+                            ],
+                        },
+                    ],
                     "containers": [
                         {
                             "name": metadata["name"],
@@ -849,6 +897,9 @@ def _get_user_service_deployment_service_manifest(
     if "/data" in sbinds or "/project-dir" in sbinds:
         volumes.append(volumes_dict["userdir-pvc"])
 
+    # Volume for init container puller image
+    volumes.append(volumes_dict["container-runtime-socket"])
+
     # To support orchest environments as services.
     image = service_config["image"]
     prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
@@ -894,6 +945,22 @@ def _get_user_service_deployment_service_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": volumes,
+                    "initContainers": [
+                        {
+                            "name": "image-puller",
+                            "image": _config.CONTAINER_RUNTIME_IMAGE,
+                            "env": [
+                                {
+                                    "name": "IMAGE_TO_PULL",
+                                    "value": image,
+                                }
+                            ],
+                            "command": ["/pull_image.sh"],
+                            "volumeMounts": [
+                                volume_mounts_dict["container-runtime-socket"],
+                            ],
+                        },
+                    ],
                     "containers": [
                         {
                             "name": metadata["name"],

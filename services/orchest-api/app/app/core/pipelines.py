@@ -603,7 +603,7 @@ def _pipeline_to_workflow_manifest(
                             "command": ["/pull_image.sh"],
                             "volumeMounts": [
                                 {
-                                    "name": "image-puller-socket",
+                                    "name": "container-runtime-socket",
                                     "mountPath": "/var/run/runtime.sock",
                                 },
                             ],

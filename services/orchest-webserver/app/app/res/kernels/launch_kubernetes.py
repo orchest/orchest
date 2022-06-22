@@ -155,6 +155,25 @@ def _get_kernel_pod_manifest(
             # behaviors."
             "restartPolicy": "Never",
             "volumes": vols,
+            "initContainers": [
+                {
+                    "name": "image-puller",
+                    "image": _config.CONTAINER_RUNTIME_IMAGE,
+                    "env": [
+                        {
+                            "name": "IMAGE_TO_PULL",
+                            "value": image_name,
+                        }
+                    ],
+                    "command": ["/pull_image.sh"],
+                    "volumeMounts": [
+                        {
+                            "name": "container-runtime-socket",
+                            "mountPath": "/var/run/runtime.sock",
+                        },
+                    ],
+                },
+            ],
             "containers": [
                 {
                     "name": name,

@@ -85,7 +85,7 @@ def get_step_and_kernel_volumes_and_volume_mounts(
 
     volumes.append(
         {
-            "name": "image-puller-socket",
+            "name": "container-runtime-socket",
             "hostPath": {"path": container_runtime_socket, "type": "Socket"},
         }
     )
