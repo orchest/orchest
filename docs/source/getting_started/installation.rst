@@ -24,6 +24,12 @@ locally, e.g. using `minikube
 
 Do make sure that, no matter the cluster you choose, the ingress controller is configured.
 
+The supported operating systems are:
+
+- Linux (``x86_64``)
+- `Windows Subsystem for Linux 2 <https://docs.microsoft.com/en-us/windows/wsl/about>`_ (WSL2)
+- macOS (M1 Macs use Rosetta for emulation)
+
 .. note::
    💡 We recommend to install Orchest on a clean cluster to prevent it clashing with existing
    cluster-level resources.
