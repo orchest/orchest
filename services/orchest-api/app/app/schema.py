@@ -11,7 +11,7 @@ import sys
 
 from flask_restx import Model, Namespace, fields
 
-from app import models
+from app import models, utils
 
 dictionary = Model("Dictionary", {})
 
@@ -971,7 +971,11 @@ subscriber = Model(
 webhook = subscriber.inherit(
     "Webhook",
     {
-        "url": fields.String(required=True, description="URL of the webhook."),
+        "url": fields.String(
+            required=True,
+            attribute=lambda webhook: utils.extract_domain_name(webhook.url),
+            description="URL of the webhook.",
+        ),
         "name": fields.String(required=True, description="Name of the webhook."),
         "verify_ssl": fields.Boolean(
             required=True, description="If https certificate should be verified."

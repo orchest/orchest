@@ -41,11 +41,7 @@ class SubscriberList(Resource):
         marshaled = []
         for subscriber in subscribers:
             if isinstance(subscriber, models.Webhook):
-                webhook = marshal(subscriber, schema.webhook)
-                # Some URL contains secret. Only expose
-                # domain name for security reasons.
-                webhook["url"] = utils.extract_domain_name(webhook["url"])
-                marshaled.append(webhook)
+                marshaled.append(marshal(subscriber, schema.webhook))
             else:
                 marshaled.append(marshal(subscriber, schema.subscriber))
         return {"subscribers": marshaled}, 200
@@ -71,11 +67,7 @@ class WebhookList(Resource):
             return {"message": str(e)}, 400
 
         db.session.commit()
-        # Leave out the secret in the URL for security reasons.
-        marshaled_webhook = marshal(webhook, schema.webhook)
-        url_without_secret = utils.extract_domain_name(marshaled_webhook["url"])
-        marshaled_webhook["url"] = url_without_secret
-        return marshaled_webhook, 201
+        return marshal(webhook, schema.webhook), 201
 
 
 @api.route("/subscribers/webhooks/<string:uuid>")
@@ -160,7 +152,6 @@ class Subscriber(Resource):
 
         if isinstance(subscriber, models.Webhook):
             subscriber = marshal(subscriber, schema.webhook)
-            subscriber["url"] = utils.extract_domain_name(subscriber["url"])
         else:
             subscriber = marshal(subscriber, schema.subscriber)
 
@@ -259,9 +250,7 @@ class SubscribersSubscribedToEvent(Resource):
         marshaled = []
         for subscriber in alerted_subscribers:
             if isinstance(subscriber, models.Webhook):
-                subscriber = marshal(subscriber, schema.webhook)
-                subscriber["url"] = utils.extract_domain_name(subscriber["url"])
-                marshaled.append(subscriber)
+                marshaled.append(marshal(subscriber, schema.webhook))
             # Don't expose analytics subscriber.
             elif isinstance(subscriber, models.AnalyticsSubscriber):
                 continue
