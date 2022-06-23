@@ -15,11 +15,11 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core import events, registry
 from app.errors import SessionInProgressException
-from app.utils import register_schema, update_status_db
+from app.utils import update_status_db
 from config import CONFIG_CLASS
 
 api = Namespace("jupyter-builds", description="Build Jupyter server image")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/")

@@ -11,7 +11,7 @@ from app.core import notifications
 from app.core.notifications import webhooks
 
 api = Namespace("notifications", description="Orchest-api notifications API.")
-api = utils.register_schema(api)
+api = schema.register_schema(api)
 
 logger = utils.get_logger()
 

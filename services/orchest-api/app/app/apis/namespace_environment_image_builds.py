@@ -14,10 +14,10 @@ from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core import events, registry
-from app.utils import register_schema, update_status_db
+from app.utils import update_status_db
 
 api = Namespace("environment-builds", description="Managing environment builds")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/")

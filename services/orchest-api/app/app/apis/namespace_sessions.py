@@ -13,10 +13,9 @@ from app.connections import db
 from app.core import environments, events, sessions
 from app.errors import JupyterEnvironmentBuildInProgressException
 from app.types import InteractiveSessionConfig, SessionType
-from app.utils import register_schema
 
 api = Namespace("sessions", description="Manage interactive sessions")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/")

@@ -7,8 +7,9 @@ TODO:
 
 """
 import datetime
+import sys
 
-from flask_restx import Model, fields
+from flask_restx import Model, Namespace, fields
 
 from app import models
 
@@ -1014,3 +1015,18 @@ event = Model(
         ),
     },
 )
+
+
+def register_schema(api: Namespace) -> Namespace:
+    current_module = sys.modules[__name__]
+    all_models = [
+        getattr(current_module, attr)
+        for attr in dir(current_module)
+        if isinstance(getattr(current_module, attr), Model)
+    ]
+
+    # TODO: only a subset of all models should be registered.
+    for model in all_models:
+        api.add_model(model.name, model)
+
+    return api

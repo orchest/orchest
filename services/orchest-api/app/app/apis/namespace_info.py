@@ -4,12 +4,12 @@ from datetime import datetime, timezone
 from flask import current_app
 from flask_restx import Namespace, Resource
 
-from app import models, schema, utils
+from app import models, schema
 from app.connections import db
 from app.core import sessions
 
 api = Namespace("info", description="Orchest-api information.")
-api = utils.register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/idle")

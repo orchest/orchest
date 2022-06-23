@@ -27,12 +27,11 @@ from app.utils import (
     get_env_vars_update,
     get_proj_pip_env_variables,
     page_to_pagination_data,
-    register_schema,
     update_status_db,
 )
 
 api = Namespace("jobs", description="Managing jobs")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/")

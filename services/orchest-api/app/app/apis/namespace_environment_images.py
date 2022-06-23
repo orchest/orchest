@@ -9,10 +9,9 @@ from app import models, schema
 from app.apis.namespace_environment_image_builds import DeleteProjectBuilds
 from app.connections import db, k8s_core_api
 from app.core import environments, image_utils
-from app.utils import register_schema
 
 api = Namespace("environment-images", description="Managing environment images")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/latest/<string:project_uuid>/<string:environment_uuid>")
