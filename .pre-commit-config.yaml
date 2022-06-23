@@ -41,3 +41,11 @@ repos:
     rev: v0.5.0
     hooks:
       - id: go-fmt
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.14
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-myst
+          - mdformat-deflist
