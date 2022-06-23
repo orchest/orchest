@@ -22,6 +22,8 @@ type OrchestClusterEvent string
 
 const (
 	// OrchestClusterPhase
+	// Altering the string of Running, Restarting, Updating might lead
+	// to breaking some cloud health checks.
 	Initializing          OrchestPhase = "Initializing"
 	DeployingThirdParties OrchestPhase = "Deploying Third Parties"
 	DeployedThirdParties  OrchestPhase = "Deployed Third Parties"
