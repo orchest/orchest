@@ -257,6 +257,17 @@ func GetInstanceOfObj(obj interface{}) client.Object {
 	return nil
 }
 
+func GetFromFromEnvVar(envVars []corev1.EnvVar, key string) string {
+
+	for _, envVar := range envVars {
+		if envVar.Name == key {
+			return envVar.Value
+		}
+	}
+
+	return ""
+}
+
 func GetEnvVarFromMap(envVars map[string]string) []corev1.EnvVar {
 
 	result := make([]corev1.EnvVar, 0, len(envVars))

@@ -20,7 +20,6 @@ class ImagePuller(object):
         image_puller_log_level: str,
         image_puller_threadiness: int,
         orchest_api_host: str,
-        container_runtime: ContainerRuntime,
     ) -> None:
 
         """ImagePuller is started is responsible for pulling the
@@ -45,7 +44,7 @@ class ImagePuller(object):
         self.num_retries = image_puller_retries
         self.threadiness = image_puller_threadiness
         self.orchest_api_host = orchest_api_host
-        self.container_runtime = container_runtime
+        self.container_runtime = ContainerRuntime()
         self.logger = logging.getLogger("IMAGE_PULLER")
         self.logger.setLevel(image_puller_log_level)
 
@@ -140,6 +139,4 @@ class ImagePuller(object):
             ]
             await asyncio.gather(*pullers, get_images_task)
         finally:
-            if self._aclient is not None:
-                await self._aclient.close()
-                self._aclient = None
+            await self.container_runtime.close()

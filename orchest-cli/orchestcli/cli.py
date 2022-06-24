@@ -183,7 +183,7 @@ def cli():
     "socket_path",  # name for arg
     default=None,
     show_default=True,
-    help="The absolute path of the container runtime socket on the host.",
+    help="The absolute path of the container runtime socket on the node.",
 )
 @cli.command(cls=ClickCommonOptionsCmd)
 def install(
@@ -289,7 +289,7 @@ def update(
     "socket_path",  # name for arg
     default=None,
     show_default=True,
-    help="The absolute path of the container runtime socket on the host.",
+    help="The absolute path of the container runtime socket on the node.",
 )
 def patch(
     dev: t.Optional[bool],

@@ -32,7 +32,7 @@ def is_custom_jupyter_image(name: str) -> bool:
 
 
 def is_orchest_image(name: str) -> bool:
-    return name.startswith("orchest/")
+    return name.startswith("orchest/") or name.startswith("docker.io/orchest")
 
 
 def _get_orchest_version() -> Optional[str]:
@@ -77,7 +77,6 @@ async def get_images_of_interest_on_node(
     env_images_on_node = []
     custom_jupyter_images_on_node = []
     orchest_images = []
-
     for img_name in await container_runtime.list_images():
         if is_env_image(img_name):
             env_images_on_node.append(img_name)
@@ -159,7 +158,7 @@ async def run():
                         + custom_jupyter_images_to_remove_from_node
                         + orchest_images_to_remove_from_node
                     ):
-                        if not await container_runtime(img):
+                        if not await container_runtime.delete_image(img):
                             logger.error(f"Failed to delete {img}")
                 except Exception as ex:
                     logger.error(ex)

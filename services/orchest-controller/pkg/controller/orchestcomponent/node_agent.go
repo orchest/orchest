@@ -3,6 +3,7 @@ package orchestcomponent
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -58,6 +59,9 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 
 	var one int64 = 1
 
+	socketPath := utils.GetFromFromEnvVar(component.Spec.Template.Env, "CONTAINER_RUNTIME_SOCKET")
+	hostPathSocket := corev1.HostPathType("Socket")
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,
@@ -66,10 +70,11 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 			TerminationGracePeriodSeconds: &one,
 			Volumes: []corev1.Volume{
 				{
-					Name: "dockersock",
+					Name: "runtimesocket",
 					VolumeSource: corev1.VolumeSource{
 						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/var/run/docker.sock",
+							Path: socketPath,
+							Type: &hostPathSocket,
 						},
 					},
 				},
@@ -93,8 +98,8 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 					},
 					VolumeMounts: []corev1.VolumeMount{
 						{
-							Name:      "dockersock",
-							MountPath: "/var/run/docker.sock",
+							Name:      "runtimesocket",
+							MountPath: socketPath,
 						},
 					},
 				},

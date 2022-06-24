@@ -1,9 +1,11 @@
 import asyncio
 import json
 import logging
+import os
 import time
+from asyncio import subprocess
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import aiodocker
 
@@ -16,17 +18,12 @@ class RuntimeType(Enum):
 
 
 class ContainerRuntime(object):
-    def __init__(
-        self,
-        container_runtime: str,
-        container_runtime_socket: str,
-        runtime_log_level: str,
-    ) -> None:
+    def __init__(self) -> None:
 
-        self.container_runtime = container_runtime
-        self.container_runtime_socket = container_runtime_socket
-        self.logger = logging.getLogger("RUNTIME_CLI")
-        self.logger.setLevel(runtime_log_level)
+        self.container_runtime = RuntimeType(os.getenv("CONTAINER_RUNTIME"))
+        self.container_runtime_socket = os.getenv("CONTAINER_RUNTIME_SOCKET")
+        self.logger = logging.getLogger("CONTAINER_RUNTIME_CLI")
+        self.logger.setLevel(os.getenv("CONTAINER_RUNTIME_LOG_LEVEL", "INFO"))
 
         # Container to make sure that images that are already being
         # pulled are not pulled concurrently again.
@@ -48,37 +45,29 @@ class ContainerRuntime(object):
         elif self.container_runtime == RuntimeType.Containerd:
             pass
 
-    async def execute_cmd(self, args: List[str]) -> bool:
+    async def execute_cmd(self, **kwargs) -> Tuple[bool, Optional[str]]:
         """Run command in subprocess.
 
-        Example from:
-            http://asyncio.readthedocs.io/en/latest/subprocess.html
+        Returns:
+            Tuple of result and stdout of the command, the result is
+            True if the command where succfull.
         """
-        process = await asyncio.create_subprocess_exec(
-            *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        process = await asyncio.create_subprocess_shell(
+            **kwargs, stdin=subprocess.PIPE, stdout=subprocess.PIPE
         )
 
         # Wait for the subprocess to finish
-        stdout, stderr = await process.communicate()
+        returncode = await process.wait()
+        stdout, _ = await process.communicate()
 
-        if process.returncode == 0:
-            self.logger.debug(
-                "Done: %s, pid=%s, result: %s"
-                % (args, process.pid, stdout.decode().strip()),
-                flush=True,
-            )
-        else:
-            self.logger.debug(
-                "Failed: %s, pid=%s, result: %s"
-                % (args, process.pid, stderr.decode().strip()),
-                flush=True,
-            )
+        if stdout is not None:
+            stdout = stdout.decode().strip()
 
-        # Result
-        result = stdout.decode().strip()
+        self.logger.debug(
+            f"excuted a command with returncide: {returncode} command: {kwargs}"
+        )
 
-        # Return stdout
-        return result
+        return returncode == 0, stdout
 
     async def image_exists(self, image_name: str) -> bool:
         """Checks for the existence of the named image using
@@ -99,15 +88,11 @@ class ContainerRuntime(object):
             except aiodocker.DockerError:
                 result = False
         elif self.container_runtime == RuntimeType.Containerd:
-            args = [
-                "crictl",
-                "-r",
-                self.container_runtime_socket,
-                "inspecti",
-                "-q",
-                image_name,
-            ]
-            result = await self.execute_cmd(args)
+            cmd = (
+                f"crictl -r unix://{self.container_runtime_socket} "
+                f"inspecti -q {image_name}"
+            )
+            result, _ = await self.execute_cmd(cmd=cmd)
 
         self.logger.debug(
             f"Checked existence of image '{image_name} '" f"exists = {result}"
@@ -127,30 +112,37 @@ class ContainerRuntime(object):
         result = True
         t0 = time.time()
 
+        self._curr_pulling_imgs.add(image_name)
         if self.container_runtime == RuntimeType.Docker:
             try:
-                self._curr_pulling_imgs.add(image_name)
                 await self.aclient().images.pull(image_name)
             except aiodocker.DockerError:
                 result = False
             finally:
                 self._curr_pulling_imgs.remove(image_name)
         elif self.container_runtime == RuntimeType.Containerd:
-            args = ["crictl", "-r", self.container_runtime_socket, "pull", image_name]
-            result = await self.execute_cmd(args)
+            cmd = (
+                f"ctr -n k8s.io -a {self.container_runtime_socket} "
+                f"i pull {image_name} --skip-verify "
+            )
+            result, _ = await self.execute_cmd(cmd=cmd)
+
+        self._curr_pulling_imgs.remove(image_name)
 
         t1 = time.time()
         if result is True:
             self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
+
         return result
 
-    async def list_images(self):
+    async def list_images(self) -> List[str]:
         """Lists all the images present on the node.
 
         Returns:
             Yields the name of the images on the node.
 
         """
+        image_names = []
         if self.container_runtime == RuntimeType.Docker:
             try:
                 filters = {
@@ -164,21 +156,21 @@ class ContainerRuntime(object):
                     # instead of not being there in some cases.
                     names = names if names is not None else []
                     for name in names:
-                        yield name
+                        image_names.append(name)
             except aiodocker.DockerError:
                 pass
         elif self.container_runtime == RuntimeType.Containerd:
-            args = ["crictl", "-r", self.container_runtime_socket, "images", "-o=json"]
-            result = await self.execute_cmd(args)
-            try:
-                images = json.loads(result)["images"]
+            cmd = f"crictl -r unix://{self.container_runtime_socket} images -o=json"
+            result, stdout = await self.execute_cmd(cmd=cmd)
+            if result is True:
+                images = json.loads(stdout)["images"]
                 for img in images:
                     names = img["repoTags"]
                     names = names if names is not None else []
                     for name in names:
-                        yield name
-            except Exception:
-                pass
+                        image_names.append(name)
+
+        return image_names
 
     async def delete_image(self, image_name: str) -> bool:
         result = True
@@ -189,14 +181,8 @@ class ContainerRuntime(object):
             except aiodocker.DockerError:
                 result = False
         elif self.container_runtime == RuntimeType.Containerd:
-            args = [
-                "crictl",
-                "-r",
-                self.container_runtime_socket,
-                "rmi",
-                image_name,
-            ]
-            result = await self.execute_cmd(args)
+            cmd = "crictl -r unix://{self.container_runtime_socket} rmi image_name"
+            result, _ = await self.execute_cmd(cmd=cmd)
 
         self.logger.debug(f"Image is deleted: '{image_name} '")
         return result
