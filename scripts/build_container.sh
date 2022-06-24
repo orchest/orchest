@@ -81,8 +81,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "auth-server"
         "node-agent"
         "orchest-controller"
-        "docker-cli"
-        "containerd-cli"
+        "image-puller"
     )
 fi
 
@@ -126,6 +125,10 @@ SDK_IMAGES=(
 CLI_IMAGES=(
     "orchest-api"
     "celery-worker"
+)
+
+TOOLS_IMAGES=(
+    "image-puller"
 )
 
 CLEANUP_BUILD_CTX=()
@@ -392,29 +395,6 @@ do
             $build_ctx)
     fi
 
-    if [ $IMG == "docker-cli" ]; then
-
-        build_ctx=$DIR/../services/tools/docker
-        build=(docker build --platform linux/amd64 --progress=plain \
-            -t "orchest/docker-cli:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/tools/docker/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-    fi
-
-    if [ $IMG == "containerd-cli" ]; then
-
-        build_ctx=$DIR/../services/tools/containerd
-        build=(docker build --platform linux/amd64 --progress=plain \
-            -t "orchest/containerd-cli:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/tools/containerd/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-    fi
-
-
     if [ $IMG == "orchest-controller" ]; then
 
         build_ctx=$DIR/../services/orchest-controller
@@ -454,6 +434,17 @@ do
             -t "orchest/session-sidecar:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/session-sidecar/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    # building tools
+    if [ $IMG == "image-puller" ]; then
+        build_ctx=$DIR/../tools/image-puller
+        build=(docker build --platform linux/amd64 --progress=plain \
+            -t "orchest/image-puller:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../tools/image-puller/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
