@@ -24,7 +24,10 @@ import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
+from _orchest.internals.utils import (
+    get_init_container_manifest,
+    get_step_and_kernel_volumes_and_volume_mounts,
+)
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
 from app.utils import get_logger
@@ -522,6 +525,13 @@ def _pipeline_to_workflow_manifest(
         container_runtime_socket=_config.CONTAINER_RUNTIME_SOCKET,
     )
 
+    # these parameters will be fed by _step_to_workflow_manifest_task
+    image_puller_manifest = get_init_container_manifest(
+        "{{inputs.parameters.image}}",
+        "{{inputs.parameters.container_runtime}}",
+        "{{inputs.parameters.container_runtime_image}}",
+    )
+
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -591,23 +601,7 @@ def _pipeline_to_workflow_manifest(
                         "volumeMounts": volume_mounts,
                     },
                     "initContainers": [
-                        {
-                            "name": "image-puller",
-                            "image": "{{inputs.parameters.container_runtime_image}}",
-                            "env": [
-                                {
-                                    "name": "IMAGE_TO_PULL",
-                                    "value": "{{inputs.parameters.image}}",
-                                }
-                            ],
-                            "command": ["/pull_image.sh"],
-                            "volumeMounts": [
-                                {
-                                    "name": "container-runtime-socket",
-                                    "mountPath": "/var/run/runtime.sock",
-                                },
-                            ],
-                        },
+                        image_puller_manifest,
                     ],
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}

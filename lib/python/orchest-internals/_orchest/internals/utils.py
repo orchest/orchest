@@ -118,6 +118,35 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     return volumes, volume_mounts
 
 
+def _get_init_container_manifest(
+    image_to_pull: str,
+    container_runtime: str,
+    container_runtime_image: str,
+) -> Dict[str, Any]:
+    init_container = {
+        "name": "image-puller",
+        "image": container_runtime_image,
+        "env": [
+            {
+                "name": "IMAGE_TO_PULL",
+                "value": image_to_pull,
+            },
+            {
+                "name": "CONTAINER_RUNTIME",
+                "value": container_runtime,
+            },
+        ],
+        "command": ["/pull_image.sh"],
+        "volumeMounts": [
+            {
+                "name": "container-runtime-socket",
+                "mountPath": "/var/run/runtime.sock",
+            },
+        ],
+    }
+    return init_container
+
+
 def is_running_from_reloader():
     """Is this thread running from a werkzeug reloader.
 
