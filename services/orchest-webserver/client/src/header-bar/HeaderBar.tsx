@@ -2,31 +2,21 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
-import { cleanFilePath } from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/routingConfig";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import HelpIcon from "@mui/icons-material/Help";
 import LogoutIcon from "@mui/icons-material/Logout";
-import MenuIcon from "@mui/icons-material/Menu";
 import ScienceIcon from "@mui/icons-material/Science";
 import AppBar from "@mui/material/AppBar";
-import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
-import MuiIconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
-import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useRouteMatch } from "react-router-dom";
+import { IconButton } from "../components/common/IconButton";
+import SessionToggleButton from "../components/SessionToggleButton";
 import { ProjectSelector } from "../project-selector/ProjectSelector";
-import { IconButton } from "./common/IconButton";
-import SessionToggleButton from "./SessionToggleButton";
-
-// TODO: implement new design
+import { NavigationTabs } from "./NavigationTabs";
 
 export const HeaderBar = ({
   toggleDrawer,
@@ -37,7 +27,7 @@ export const HeaderBar = ({
 }) => {
   const { navigateTo, pipelineUuid } = useCustomRoute();
   const {
-    state: { projectUuid, pipeline, pipelineSaveStatus, pipelineIsReadOnly },
+    state: { projectUuid, pipeline, pipelineIsReadOnly },
   } = useProjectsContext();
   const { user_config } = useAppContext();
   useSessionsPoller();
@@ -84,9 +74,6 @@ export const HeaderBar = ({
   const logoutHandler = () => {
     window.location.href = "/login/clear";
   };
-  // Only show the pipeline name if pipeline_uuid is in the route args,
-  // where `pipeline` exists in `PorjectsContext` or not.
-  const isShowingPipelineName = hasValue(pipelineUuid) && hasValue(pipeline);
 
   return (
     <AppBar
@@ -100,101 +87,12 @@ export const HeaderBar = ({
       }}
     >
       <Toolbar
-        sx={{
-          justifyContent: "space-between",
-        }}
+        variant="dense"
+        sx={{ justifyContent: "space-between", paddingLeft: "0 !important" }}
       >
-        <Stack direction="row" alignItems="center">
-          <MuiIconButton
-            title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
-            onClick={(e) => {
-              e.preventDefault();
-              toggleDrawer();
-            }}
-            sx={{ marginLeft: (theme) => theme.spacing(-2) }}
-          >
-            <MenuIcon />
-          </MuiIconButton>
-          <Box
-            component="img"
-            onClick={goToHome}
-            onAuxClick={goToHome}
-            src="/image/logo.svg"
-            data-test-id="orchest-logo"
-            sx={{
-              cursor: "pointer",
-              width: (theme) => theme.spacing(5),
-              margin: (theme) => theme.spacing(0, 2.5, 0, 1.25), // to align the AppDrawer ListIconText
-            }}
-          />
-          <ProjectSelector />
-        </Stack>
-        <Stack
-          direction="column"
-          alignItems="center"
-          justifyContent="center"
-          sx={{
-            flex: 1,
-            maxWidth: "33%",
-            left: {
-              xl: "50%",
-            },
-            position: {
-              xl: "absolute",
-            },
-            transform: {
-              xl: "translateX(-50%)",
-            },
-          }}
-        >
-          {isShowingPipelineName && (
-            <>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="center"
-                sx={{ width: "100%" }}
-              >
-                {pipelineSaveStatus === "saved" ? (
-                  <Tooltip title="Pipeline saved">
-                    <CheckCircleIcon />
-                  </Tooltip>
-                ) : (
-                  <CircularProgress size={20} />
-                )}
-                <Typography
-                  variant="h6"
-                  sx={{
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                    minWidth: 0,
-                    margin: (theme) => theme.spacing(0, 1),
-                  }}
-                  title={pipeline.name}
-                  data-test-id="pipeline-name"
-                >
-                  {pipeline.name}
-                </Typography>
-              </Stack>
-              <Typography
-                variant="caption"
-                sx={{
-                  textOverflow: "ellipsis",
-                  overflow: "hidden",
-                  whiteSpace: "nowrap",
-                  minWidth: 0,
-                  color: (theme) => theme.palette.grey[700],
-                }}
-                title={pipeline.path}
-                data-test-id="pipeline-path"
-              >
-                {cleanFilePath(pipeline.path)}
-              </Typography>
-            </>
-          )}
-        </Stack>
+        <ProjectSelector />
         <Stack spacing={2} direction="row" justifyContent="flex-end">
+          <NavigationTabs />
           {!matchFilePreview &&
             pipeline &&
             !pipelineIsReadOnly &&
