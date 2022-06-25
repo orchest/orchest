@@ -67,7 +67,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
     {
       name: "jupyterLab",
       path: "/jupyter-lab",
-      root: "/pipeline",
       title: getTitle("JupyterLab"),
     },
     {
@@ -197,9 +196,10 @@ export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
 );
 
 export const projectRootPaths = [
+  siteMap.pipeline.path,
+  siteMap.jupyterLab.path,
   siteMap.jobs.path,
   siteMap.environments.path,
-  siteMap.pipeline.path,
 ];
 
 export const withinProjectPaths = getOrderedRoutes().reduce<
