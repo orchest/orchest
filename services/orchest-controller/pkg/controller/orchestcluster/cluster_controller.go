@@ -365,7 +365,7 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME"] = runtime
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = socketPath
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
-		fmt.Sprintf("%s-cli", runtime), occ.config.OrchestDefaultVersion)
+		"image-puller", occ.config.OrchestDefaultVersion)
 
 	return true, err
 }
