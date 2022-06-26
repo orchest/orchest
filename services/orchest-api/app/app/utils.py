@@ -231,7 +231,9 @@ def get_jupyter_server_image_to_use() -> str:
         ).spec.cluster_ip
         return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{custom_image.tag}"
     else:
-        return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+        # ctr needs full image name, including the registry
+        # (even docker hub) to pull
+        return f"docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
 
 
 def _set_celery_worker_parallelism_at_runtime(
