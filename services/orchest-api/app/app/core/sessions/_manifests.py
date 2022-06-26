@@ -11,7 +11,7 @@ import traceback
 from typing import Any, Dict, Optional, Tuple
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_userdir_relpath
+from _orchest.internals.utils import get_init_container_manifest, get_userdir_relpath
 from app import utils
 from app.connections import k8s_core_api
 from app.types import SessionConfig, SessionType
@@ -407,7 +407,7 @@ def _get_jupyter_server_deployment_service_manifest(
         project_uuid, userdir_pvc, project_dir, pipeline_path
     )
 
-    image_puller_manifest = utils._get_init_container_manifest(
+    image_puller_manifest = get_init_container_manifest(
         utils.get_jupyter_server_image_to_use(),
         _config.CONTAINER_RUNTIME,
         _config.CONTAINER_RUNTIME_IMAGE,
@@ -894,7 +894,7 @@ def _get_user_service_deployment_service_manifest(
         },
     }
 
-    image_puller_manifest = utils._get_init_container_manifest(
+    image_puller_manifest = get_init_container_manifest(
         image,
         _config.CONTAINER_RUNTIME,
         _config.CONTAINER_RUNTIME_IMAGE,
