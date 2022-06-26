@@ -16,7 +16,11 @@ import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
-import { MenuItem, useContextMenu } from "../hooks/useContextMenu";
+import {
+  ContextMenuItem,
+  PipelineEditorContextMenu,
+  useContextMenu,
+} from "../hooks/useContextMenu";
 import { RunStepsType } from "../hooks/useInteractiveRuns";
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
@@ -275,7 +279,7 @@ export const PipelineViewport = React.forwardRef<
 
   const zoom = useGestureOnViewport(localRef, pipelineSetHolderOrigin);
 
-  const menuItems: MenuItem[] = [
+  const menuItems: ContextMenuItem[] = [
     {
       type: "item",
       title: "Create new step",
@@ -329,23 +333,20 @@ export const PipelineViewport = React.forwardRef<
     {
       type: "item",
       title: "Zoom in",
-      action: ({ contextMenuPosition }) => {
-        zoom(contextMenuPosition, 0.25);
+      action: ({ position }) => {
+        zoom(position, 0.25);
       },
     },
     {
       type: "item",
       title: "Zoom out",
-      action: ({ contextMenuPosition }) => {
-        zoom(contextMenuPosition, -0.25);
+      action: ({ position }) => {
+        zoom(position, -0.25);
       },
     },
   ];
 
-  const { handleContextMenu, menu } = useContextMenu(
-    menuItems,
-    isContextMenuOpenState
-  );
+  const { handleContextMenu, ...contextMenuProps } = useContextMenu();
 
   return (
     <div
@@ -421,7 +422,10 @@ export const PipelineViewport = React.forwardRef<
       >
         {disabled && <Overlay />}
         {children}
-        {menu}
+        <PipelineEditorContextMenu
+          {...contextMenuProps}
+          menuItems={menuItems}
+        />
       </PipelineCanvas>
     </div>
   );
