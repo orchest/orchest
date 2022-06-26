@@ -118,7 +118,7 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     return volumes, volume_mounts
 
 
-def _get_init_container_manifest(
+def get_init_container_manifest(
     image_to_pull: str,
     container_runtime: str,
     container_runtime_image: str,
