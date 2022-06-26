@@ -1,9 +1,11 @@
 #!/bin/sh
 set -e
 
-if [ "$TESTVAR" == "containerd" ]
+if [ $CONTAINER_RUNTIME=="containerd" ]
+then
     ctr -n=k8s.io -a=/var/run/runtime.sock i pull "${IMAGE_TO_PULL}" --skip-verify
-elif [ "$TESTVAR" == "docker" ]
+elif [ $CONTAINER_RUNTIME=="docker" ]
+then
     docker -H unix:///var/run/runtime.sock pull "${IMAGE_TO_PULL}"
 else
     echo "Container runtime is not supported"
