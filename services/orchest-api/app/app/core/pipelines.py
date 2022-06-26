@@ -501,6 +501,10 @@ def _step_to_workflow_manifest_task(
                     "value": step.properties["uuid"],
                 },
                 {
+                    "name": "container_runtime",
+                    "value": _config.CONTAINER_RUNTIME,
+                },
+                {
                     "name": "container_runtime_image",
                     "value": _config.CONTAINER_RUNTIME_IMAGE,
                 },
@@ -585,7 +589,8 @@ def _pipeline_to_workflow_manifest(
                                 "project_relative_file_path",
                                 "pod_spec_patch",
                                 "tests_uuid",
-                                "runtime_image",
+                                "container_runtime",
+                                "container_runtime_image",
                             ]
                         ]
                     },
