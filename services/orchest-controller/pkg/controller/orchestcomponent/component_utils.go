@@ -143,7 +143,7 @@ func getIngressManifest(metadata metav1.ObjectMeta, path string,
 	ingress := &netsv1.Ingress{
 		ObjectMeta: ingressMeta,
 		Spec: netsv1.IngressSpec{
-			IngressClassName: &controller.OrchestIngressClassName,
+			//IngressClassName: &controller.OrchestIngressClassName,
 			Rules: []netsv1.IngressRule{
 				rule,
 			},
