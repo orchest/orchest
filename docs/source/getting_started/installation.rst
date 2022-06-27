@@ -57,6 +57,20 @@ After installing minikube, create a minikube cluster and continue with :ref:`ins
    # Create a minikube cluster and configure ingress.
    minikube start --cpus 4 --addons ingress
 
+Setting up a ``microk8s`` cluster
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you want to try out Orchest on a ``microk8s`` cluster, a couple of addons have to be enabled for that, 
+after `microk8s <https://microk8s.io/#install-microk8s>` is installed, the following commands need to be executed..
+
+   .. code-block:: bash
+
+      microk8s enable hostpath-storage
+      microk8s enable dns
+      microk8s enable orchest
+
+After that continue with :ref:`installing Orchest <regular installation>`.
+
+
 Installing ``minikube`` and Orchest on Windows
 """"""""""""""""""""""""""""""""""""""""""""""
 
@@ -72,15 +86,25 @@ opening the distribution using the Start menu or by `setting up the Windows Term
 Install ``orchest`` via ``orchest-cli``
 ---------------------------------------
 
+If you are using ``minikube``, the orchest can be installed by the following commands.
+
 .. code-block:: bash
 
-   pip install --upgrade orchest-cli
+   pip install --upgrade orchest-cli 
    orchest install
+
+and If you are using ``microk8s``, the following commands should be used.
+
+.. code-block:: bash
+
+   pip install --upgrade orchest-cli 
+   orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock --dev
 
 Now the cluster can be reached on the IP returned by:
 
 .. code-block:: bash
-
+   
+   # If you are using minikube
    minikube ip
 
 .. tip::
