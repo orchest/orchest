@@ -35,25 +35,16 @@ export const HeaderBar = () => {
         <ProjectSelector />
         <Stack direction="row" justifyContent="flex-end">
           <NavigationTabs />
-          <IconButton
-            title="Logout"
-            onClick={logoutHandler}
-            sx={{
-              color: (theme) => theme.palette.action.active,
-              width: (theme) => theme.spacing(7),
-            }}
-          >
-            <LogoutIcon />
-          </IconButton>
           {user_config?.AUTH_ENABLED && (
             <IconButton
               title="Logout"
               onClick={logoutHandler}
-              color="secondary"
+              sx={{
+                color: (theme) => theme.palette.action.active,
+                width: (theme) => theme.spacing(7),
+              }}
             >
-              <LogoutIcon
-                sx={{ color: (theme) => theme.palette.action.active }}
-              />
+              <LogoutIcon />
             </IconButton>
           )}
         </Stack>
