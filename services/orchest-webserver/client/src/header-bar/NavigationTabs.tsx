@@ -1,24 +1,40 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
-import { withinProjectPaths } from "@/routingConfig";
+import { navigationRoutes, siteMap } from "@/routingConfig";
+import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { useTheme } from "@mui/material/styles";
-import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import React from "react";
-import { getProjectMenuItems } from "./common";
+import { getProjectMenuItems, NavItem } from "./common";
+import { CustomTab } from "./CustomTab";
 import { useNavTabIndex } from "./useNavTabIndex";
+
+const systemMenuItems: NavItem[] = [
+  {
+    label: "Settings",
+    icon: <SettingsOutlinedIcon />,
+    path: siteMap.settings.path,
+  },
+  {
+    label: "Help",
+    icon: <HelpOutlineOutlinedIcon />,
+    path: siteMap.help.path,
+  },
+];
 
 export const NavigationTabs = () => {
   const { navigateTo } = useCustomRoute();
-  const matchRoute = useMatchRoutePaths(withinProjectPaths);
+  const matchRoute = useMatchRoutePaths(navigationRoutes);
 
   const {
     state: { projectUuid },
   } = useProjectsContext();
 
   const navItems = React.useMemo(() => {
-    return getProjectMenuItems(projectUuid);
+    const projectMenuItems = getProjectMenuItems(projectUuid);
+    return [...projectMenuItems, ...systemMenuItems];
   }, [projectUuid]);
 
   const navTabIndex = useNavTabIndex({ matchRoute, navItems });
@@ -40,18 +56,13 @@ export const NavigationTabs = () => {
     >
       {navItems.map((menuItem, index) => {
         return (
-          <Tab
+          <CustomTab
             key={menuItem.label}
-            label={menuItem.label}
-            disableRipple
-            sx={{
-              height: (theme) => theme.spacing(7),
-              "&.Mui-selected": {
-                color: (theme) => theme.palette.common.black,
-              },
-            }}
-            aria-controls={`navigate-to-${menuItem.label}`}
+            label={menuItem.icon ? undefined : menuItem.label}
+            icon={menuItem.icon}
+            aria-label={menuItem.label}
             onClick={() => onClickTab(index)}
+            onAuxClick={() => onClickTab(index)}
           />
         );
       })}

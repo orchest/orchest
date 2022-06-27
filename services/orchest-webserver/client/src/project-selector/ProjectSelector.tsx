@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
-import { siteMap, withinProjectPaths } from "@/routingConfig";
+import { siteMap, withinProjectRoutes } from "@/routingConfig";
 import Box from "@mui/material/Box";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
@@ -22,7 +22,7 @@ export const ProjectSelector = () => {
     [navigateTo]
   );
 
-  const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
+  const matchWithinProjectRoutes = useMatchRoutePaths(withinProjectRoutes);
 
   const {
     validProjectUuid,
@@ -31,7 +31,7 @@ export const ProjectSelector = () => {
     shouldShowInvalidProjectUuidAlert,
   } = useProjectSelector(
     projectUuidFromRoute,
-    matchWithinProjectPaths?.root || matchWithinProjectPaths?.path,
+    matchWithinProjectRoutes?.root || matchWithinProjectRoutes?.path,
     customNavigateTo
   );
 

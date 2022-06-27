@@ -195,33 +195,46 @@ export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
   {} as Record<RouteName, RouteData>
 );
 
-export const projectRootPaths = [
+const projectRootPaths = [
   siteMap.pipeline.path,
   siteMap.jupyterLab.path,
   siteMap.jobs.path,
   siteMap.environments.path,
 ];
 
-export const withinProjectPaths = getOrderedRoutes().reduce<
-  Pick<RouteData, "path" | "root">[]
->((all, curr) => {
-  // only include within-project paths
-  // i.e. if the context involves multiple projects, it should be excluded
-  if (
-    projectRootPaths.includes(curr.path) ||
-    projectRootPaths.includes(curr.root || "") ||
-    curr.path === "/project"
-  ) {
-    return [
-      ...all,
-      {
-        path: curr.path,
-        root: curr.root,
-      },
-    ];
-  }
-  return all;
-}, [] as Pick<RouteData, "path" | "root">[]);
+const navigationPaths = [
+  ...projectRootPaths,
+  siteMap.settings.path,
+  siteMap.help.path,
+];
+
+export const getRoutes = (
+  predicates: (routeData: Pick<RouteData, "path" | "root">) => boolean
+) => {
+  return getOrderedRoutes().reduce<Pick<RouteData, "path" | "root">[]>(
+    (all, curr) => {
+      if (predicates(curr)) {
+        return [...all, { path: curr.path, root: curr.root }];
+      }
+      return all;
+    },
+    [] as Pick<RouteData, "path" | "root">[]
+  );
+};
+
+export const navigationRoutes = getRoutes((routeData) => {
+  return (
+    navigationPaths.includes(routeData.path) ||
+    navigationPaths.includes(routeData.root || "")
+  );
+});
+
+export const withinProjectRoutes = getRoutes((routeData) => {
+  return (
+    projectRootPaths.includes(routeData.path) ||
+    projectRootPaths.includes(routeData.root || "")
+  );
+});
 
 export const generatePathFromRoute = <T extends string>(
   route: string,
@@ -255,7 +268,7 @@ export const getPageCommands = (projectUuid: string | undefined) =>
   getOrderedRoutes((title: string) => title)
     .filter((route) => !excludedPaths.includes(route.path))
     .map((route) => {
-      const match = findRouteMatch(withinProjectPaths);
+      const match = findRouteMatch(withinProjectRoutes);
       const query: Record<string, string> =
         match && projectUuid ? { projectUuid } : {};
 

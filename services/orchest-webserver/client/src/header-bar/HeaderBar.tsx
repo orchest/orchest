@@ -1,8 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
-import { siteMap } from "@/routingConfig";
-import HelpIcon from "@mui/icons-material/Help";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AppBar from "@mui/material/AppBar";
 import Stack from "@mui/material/Stack";
@@ -13,13 +10,8 @@ import { ProjectSelector } from "../project-selector/ProjectSelector";
 import { NavigationTabs } from "./NavigationTabs";
 
 export const HeaderBar = () => {
-  const { navigateTo } = useCustomRoute();
   const { user_config } = useAppContext();
   useSessionsPoller();
-
-  const showHelp = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    navigateTo(siteMap.help.path, undefined, e);
-  };
 
   const logoutHandler = () => {
     window.location.href = "/login/clear";
@@ -41,31 +33,29 @@ export const HeaderBar = () => {
         sx={{ justifyContent: "space-between", paddingLeft: "0 !important" }}
       >
         <ProjectSelector />
-        <Stack spacing={2} direction="row" justifyContent="flex-end">
+        <Stack direction="row" justifyContent="flex-end">
           <NavigationTabs />
-          <Stack
-            spacing={1}
-            direction="row"
-            sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+          <IconButton
+            title="Logout"
+            onClick={logoutHandler}
+            sx={{
+              color: (theme) => theme.palette.action.active,
+              width: (theme) => theme.spacing(7),
+            }}
           >
-            {user_config?.AUTH_ENABLED && (
-              <IconButton
-                title="Logout"
-                onClick={logoutHandler}
-                color="secondary"
-              >
-                <LogoutIcon />
-              </IconButton>
-            )}
+            <LogoutIcon />
+          </IconButton>
+          {user_config?.AUTH_ENABLED && (
             <IconButton
-              title="Help"
-              onClick={showHelp}
-              onAuxClick={showHelp}
+              title="Logout"
+              onClick={logoutHandler}
               color="secondary"
             >
-              <HelpIcon />
+              <LogoutIcon
+                sx={{ color: (theme) => theme.palette.action.active }}
+              />
             </IconButton>
-          </Stack>
+          )}
         </Stack>
       </Toolbar>
     </AppBar>
