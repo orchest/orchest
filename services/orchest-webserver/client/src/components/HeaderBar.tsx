@@ -26,6 +26,8 @@ import { ProjectSelector } from "../project-selector/ProjectSelector";
 import { IconButton } from "./common/IconButton";
 import SessionToggleButton from "./SessionToggleButton";
 
+// TODO: implement new design
+
 export const HeaderBar = ({
   toggleDrawer,
   isDrawerOpen,
