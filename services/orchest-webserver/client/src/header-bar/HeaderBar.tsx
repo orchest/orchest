@@ -26,11 +26,15 @@ export const HeaderBar = () => {
         backgroundColor: (theme) => theme.palette.background.paper,
         boxShadow: "none",
         borderBottom: (theme) => `1px solid ${theme.borderColor}`,
+        height: (theme) => theme.spacing(7),
       }}
     >
       <Toolbar
         variant="dense"
-        sx={{ justifyContent: "space-between", paddingLeft: "0 !important" }}
+        sx={{
+          justifyContent: "space-between",
+          paddingLeft: "0 !important",
+        }}
       >
         <ProjectSelector />
         <Stack direction="row" justifyContent="flex-end">
