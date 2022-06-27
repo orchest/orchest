@@ -1,6 +1,7 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { siteMap, withinProjectRoutes } from "@/routingConfig";
+import { ellipsis } from "@/utils/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -50,64 +51,66 @@ export const ProjectSelectorToggle = ({
         borderRadius: 0,
         padding: 0,
         justifyContent: "flex-start",
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: (theme) =>
           isOpen ? theme.palette.action.hover : "unset",
       }}
       disableRipple
     >
-      <Stack direction="row" alignItems="center" sx={{ width: "100%" }}>
-        <Box
-          component="img"
-          src="/image/logo.svg"
-          data-test-id="orchest-logo"
+      <Box
+        component="img"
+        src="/image/logo.svg"
+        data-test-id="orchest-logo"
+        sx={{
+          width: (theme) => theme.spacing(3.25),
+          height: (theme) => theme.spacing(3.25),
+          margin: (theme) => theme.spacing(0, 2),
+        }}
+      />
+      <Stack
+        direction="column"
+        justifyContent="center"
+        alignItems="flex-start"
+        spacing={0.25}
+        sx={{ flex: 1 }}
+      >
+        <Typography
+          variant="caption"
           sx={{
-            width: (theme) => theme.spacing(3.25),
-            height: (theme) => theme.spacing(3.25),
-            margin: (theme) => theme.spacing(0, 2),
+            color: (theme) => theme.palette.text.secondary,
+            fontWeight: (theme) => theme.typography.fontWeightMedium,
+            lineHeight: 1,
           }}
-        />
-        <Stack
-          direction="column"
-          justifyContent="center"
-          alignItems="flex-start"
-          spacing={0.25}
-          sx={{ flex: 1 }}
         >
+          {projectName ? "PROJECT" : "CHOOSE PROJECT"}
+        </Typography>
+        {hasValue(projectName) && (
           <Typography
-            variant="caption"
+            variant="body1"
+            title={projectName}
             sx={{
-              color: (theme) => theme.palette.text.secondary,
-              fontWeight: (theme) => theme.typography.fontWeightMedium,
+              ...ellipsis((theme) => theme.spacing(20.5)),
+              textTransform: "initial",
               lineHeight: 1,
+              color: (theme) => theme.palette.common.black,
             }}
           >
-            {projectName ? "PROJECT" : "CHOOSE PROJECT"}
+            {projectName}
           </Typography>
-          {hasValue(projectName) && (
-            <Typography
-              variant="body1"
-              sx={{
-                textTransform: "initial",
-                lineHeight: 1,
-                color: (theme) => theme.palette.common.black,
-              }}
-            >
-              {projectName}
-            </Typography>
-          )}
-        </Stack>
-        <ArrowDropDownIcon
-          sx={{
-            marginRight: (theme) => theme.spacing(1),
-            color: (theme) => theme.palette.action.active,
-          }}
-        />
-        <Divider
-          orientation="vertical"
-          flexItem
-          sx={{ height: (theme) => theme.spacing(4.5) }}
-        />
+        )}
       </Stack>
+      <ArrowDropDownIcon
+        sx={{
+          marginRight: (theme) => theme.spacing(1),
+          color: (theme) => theme.palette.action.active,
+        }}
+      />
+      <Divider
+        orientation="vertical"
+        sx={{ height: (theme) => theme.spacing(4.5) }}
+      />
     </Button>
   );
 };

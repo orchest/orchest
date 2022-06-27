@@ -1,11 +1,8 @@
-import { SearchField } from "@/components/SearchField";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { siteMap, withinProjectRoutes } from "@/routingConfig";
 import Box from "@mui/material/Box";
-import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { Code } from "../components/common/Code";
@@ -69,38 +66,16 @@ export const ProjectSelector = () => {
     onChangeProject(projectUuid);
   };
 
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm);
-
   return (
     <>
       <ProjectSelectorToggle onClick={toggle} isOpen={isOpen} />
-      <ProjectSelectorMenu open={isOpen} onClose={handleClose}>
-        <Box
-          sx={{
-            padding: (theme) => theme.spacing(0, 2),
-            marginBottom: (theme) => theme.spacing(2),
-          }}
-        >
-          <SearchField
-            placeholder="Search projects"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-        </Box>
-        {projects
-          .filter((project) => project.path.includes(debouncedSearchTerm))
-          .map((project) => {
-            return (
-              <MenuItem
-                key={project.uuid}
-                onClick={() => selectProject(project.uuid)}
-              >
-                {project.path}
-              </MenuItem>
-            );
-          })}
-      </ProjectSelectorMenu>
+      <ProjectSelectorMenu
+        open={isOpen}
+        onClose={handleClose}
+        projects={projects}
+        validProjectUuid={validProjectUuid}
+        selectProject={selectProject}
+      />
     </>
   );
 };
