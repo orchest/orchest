@@ -18,13 +18,7 @@ import SessionToggleButton from "../components/SessionToggleButton";
 import { ProjectSelector } from "../project-selector/ProjectSelector";
 import { NavigationTabs } from "./NavigationTabs";
 
-export const HeaderBar = ({
-  toggleDrawer,
-  isDrawerOpen,
-}: {
-  toggleDrawer: () => void;
-  isDrawerOpen: boolean;
-}) => {
+export const HeaderBar = () => {
   const { navigateTo, pipelineUuid } = useCustomRoute();
   const {
     state: { projectUuid, pipeline, pipelineIsReadOnly },
@@ -46,10 +40,6 @@ export const HeaderBar = ({
     path: siteMap.jupyterLab.path,
     exact: true,
   });
-
-  const goToHome = (e: React.MouseEvent) => {
-    navigateTo(siteMap.projects.path, undefined, e);
-  };
 
   const showHelp = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     navigateTo(siteMap.help.path, undefined, e);
