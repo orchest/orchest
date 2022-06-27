@@ -1,5 +1,5 @@
-import { SxProps, Theme } from "@mui/material";
 import Paper from "@mui/material/Paper";
+import { SxProps, Theme } from "@mui/material/styles";
 import React from "react";
 
 export const ContainerImageTile: React.FC<{

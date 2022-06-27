@@ -3,9 +3,8 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
-import { alpha } from "@mui/material";
 import Box, { BoxProps } from "@mui/material/Box";
-import { SxProps, Theme } from "@mui/material/styles";
+import { alpha, SxProps, Theme } from "@mui/material/styles";
 import { fetcher, Fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileWithPath, useDropzone } from "react-dropzone";
