@@ -1,6 +1,5 @@
 import { Layout } from "@/components/Layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
-import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -18,19 +17,11 @@ import { SessionsPanel } from "./sessions-panel/SessionsPanel";
 
 const PipelineView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.pipeline.path });
-  const { setIsDrawerOpen } = useAppContext();
   const {
     state: { pipelineIsReadOnly, projectUuid, pipeline },
   } = useProjectsContext();
 
   const { jobUuid, runUuid } = useCustomRoute();
-
-  React.useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setIsDrawerOpen(false);
-    }, 500);
-    return () => window.clearTimeout(timeout);
-  }, [setIsDrawerOpen]);
 
   return (
     <Layout disablePadding={hasValue(projectUuid)}>
