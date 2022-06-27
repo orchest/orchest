@@ -18,9 +18,7 @@ import Jupyter from "./jupyter/Jupyter";
 const App = () => {
   const [jupyter, setJupyter] = React.useState<Jupyter | null>(null);
   const { boot } = useIntercom();
-  const { setConfirm, isDrawerOpen, setIsDrawerOpen } = useAppContext();
-
-  const toggleDrawer = () => setIsDrawerOpen((currentValue) => !currentValue);
+  const { setConfirm } = useAppContext();
 
   // load server side config populated by flask template
   const {
@@ -95,7 +93,7 @@ const App = () => {
     >
       <AppInnerContextProvider>
         <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
+          <HeaderBar />
           <Box
             component="main"
             sx={{
