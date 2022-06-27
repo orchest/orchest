@@ -7,18 +7,16 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMounted } from "@/hooks/useMounted";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import SearchIcon from "@mui/icons-material/Search";
 import Alert from "@mui/material/Alert";
 import Box, { BoxProps } from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Collapse from "@mui/material/Collapse";
 import Fade from "@mui/material/Fade";
-import InputBase from "@mui/material/InputBase";
 import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import { alpha, styled, SxProps, Theme } from "@mui/material/styles";
+import { SxProps, Theme } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -32,40 +30,7 @@ import { visuallyHidden } from "@mui/utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { IconButton } from "./common/IconButton";
-
-const SearchContainer = styled("div")(({ theme }) => ({
-  position: "relative",
-  borderRadius: theme.spacing(1),
-  border: `1px solid ${alpha(theme.palette.grey[300], 0.8)}`,
-  backgroundColor: alpha(theme.palette.grey[100], 0.2),
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.grey[100], 0.6),
-  },
-  margin: theme.spacing(2, 0),
-  width: "100%",
-}));
-
-const SearchIconWrapper = styled("div")(({ theme }) => ({
-  padding: theme.spacing(0, 1, 0, 2),
-  color: theme.palette.grey[400],
-  height: "100%",
-  position: "absolute",
-  pointerEvents: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-}));
-
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  color: "inherit",
-  width: "100%",
-  "& .MuiInputBase-input": {
-    padding: theme.spacing(1.5, 1, 1.5, 0),
-    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-    transition: theme.transitions.create("width"),
-    width: "100%",
-  },
-}));
+import { SearchField } from "./SearchField";
 
 function descendingComparator(
   a: Record<string, string | number>,
@@ -759,18 +724,11 @@ export const DataTable = <T extends Record<string, any>, C = T>({
   return (
     <Box sx={{ width: "100%" }} {...props}>
       {!hideSearch && (
-        <SearchContainer>
-          <SearchIconWrapper>
-            <SearchIcon />
-          </SearchIconWrapper>
-          <StyledInputBase
-            placeholder="Search"
-            inputProps={{ "aria-label": "search" }}
-            value={searchTerm}
-            disabled={isTableDisabled}
-            onChange={handleChangeSearchTerm}
-          />
-        </SearchContainer>
+        <SearchField
+          value={searchTerm}
+          disabled={isTableDisabled}
+          onChange={handleChangeSearchTerm}
+        />
       )}
       <Paper
         elevation={tableContainerElevation}
