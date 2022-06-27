@@ -9,9 +9,12 @@ export type NavItem = {
 };
 
 export const getProjectMenuItems = (
-  projectUuid: string | undefined
+  projectUuid: string | undefined,
+  pipelineUuid: string | undefined
 ): NavItem[] => {
-  const queryString = projectUuid ? toQueryString({ projectUuid }) : "";
+  const queryString = projectUuid
+    ? toQueryString({ projectUuid, pipelineUuid })
+    : "";
   return [
     {
       label: "Pipelines",
