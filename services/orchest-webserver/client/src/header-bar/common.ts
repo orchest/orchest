@@ -1,7 +1,12 @@
 import { siteMap } from "@/routingConfig";
 import { toQueryString } from "@/utils/routing";
+import React from "react";
 
-export type NavItem = { label: string; path: string };
+export type NavItem = {
+  label: string;
+  icon?: React.ReactElement;
+  path: string;
+};
 
 export const getProjectMenuItems = (
   projectUuid: string | undefined
