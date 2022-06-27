@@ -1,5 +1,5 @@
-import { SxProps, Theme } from "@mui/material";
 import Stack from "@mui/material/Stack";
+import { SxProps, Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
 

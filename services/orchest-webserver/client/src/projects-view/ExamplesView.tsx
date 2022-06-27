@@ -3,7 +3,7 @@ import { LogoIcon } from "@/components/common/icons/LogoIcon";
 import { TabLabel, Tabs } from "@/components/common/Tabs";
 import { Layout } from "@/components/Layout";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useImportUrl } from "@/hooks/useImportUrl";
+import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useTransition } from "@/hooks/useTransition";
 import { siteMap } from "@/routingConfig";
@@ -60,7 +60,7 @@ const ExamplesView: React.FC = () => {
   const [selectedTab, setSelectedTab] = React.useState<EXAMPLES_TAB>(
     EXAMPLES_TAB.ORCHEST
   );
-  const [importUrl, setImportUrl] = useImportUrl();
+  const [importUrl, setImportUrl] = useImportUrlFromQueryString();
 
   // if user loads the app with a pre-filled import_url in their query string
   // we prompt them directly with the import modal
@@ -132,7 +132,6 @@ const ExamplesView: React.FC = () => {
           setImportUrl={setImportUrl}
           onImportComplete={onImportComplete}
           hideUploadOption
-          hideProjectMetadata
         />
         <ImportSuccessDialog
           projectName={projectName}
