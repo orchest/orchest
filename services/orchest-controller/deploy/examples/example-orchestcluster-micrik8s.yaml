@@ -1,0 +1,9 @@
+apiVersion: orchest.io/v1alpha1
+kind: OrchestCluster
+metadata:
+  name: cluster-1
+  namespace: orchest
+  annotations:
+    orchest.io/container-runtime-socket: /var/snap/microk8s/common/run/containerd.sock
+spec:
+  singleNode: true
