@@ -1,6 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useImportUrl } from "@/hooks/useImportUrl";
+import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -17,7 +17,7 @@ export const useOnboardingDialog = () => {
   );
 
   const projectsContext = useProjectsContext();
-  const [importUrl] = useImportUrl();
+  const [importUrl] = useImportUrlFromQueryString();
 
   const findQuickstart = projectsContext.state.projects?.find(
     (project) => project.path === "quickstart"

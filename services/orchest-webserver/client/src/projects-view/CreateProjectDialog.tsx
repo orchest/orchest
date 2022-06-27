@@ -11,20 +11,30 @@ import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
+import { useControlledIsOpen } from "./hooks/useControlledIsOpen";
 import { useProjectName } from "./hooks/useProjectName";
 
 export const CreateProjectDialog = ({
-  isOpen,
-  onClose,
+  open: isOpenByParent,
+  onClose: onCloseByParent,
   projects,
+  postCreateCallback,
+  children,
 }: {
-  isOpen: boolean;
-  onClose: () => void;
+  open?: boolean;
+  onClose?: () => void;
   projects: Project[];
+  children: (onOpen: () => void) => React.ReactNode;
+  postCreateCallback?: () => void;
 }) => {
   const { setAlert } = useAppContext();
   const { navigateTo } = useCustomRoute();
   const { dispatch } = useProjectsContext();
+
+  const { isOpen, onClose, onOpen } = useControlledIsOpen(
+    isOpenByParent,
+    onCloseByParent
+  );
 
   const [projectName, setProjectName, validation] = useProjectName(projects);
 
@@ -67,11 +77,12 @@ export const CreateProjectDialog = ({
       }));
 
       dispatch({ type: "SET_PROJECT", payload: project_uuid });
-
+      postCreateCallback?.();
       navigateTo(siteMap.pipeline.path, {
         query: { projectUuid: project_uuid },
       });
     } catch (error) {
+      postCreateCallback?.();
       setAlert(
         "Error",
         `Could not create project. ${error.message || "Reason unknown."}`
@@ -80,46 +91,49 @@ export const CreateProjectDialog = ({
   };
 
   return (
-    <Dialog open={isOpen} onClose={closeDialog} fullWidth maxWidth="xs">
-      <form
-        id="create-project"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onClickCreateProject();
-        }}
-      >
-        <DialogTitle>Create a new project</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            autoFocus
-            required
-            sx={{ marginTop: (theme) => theme.spacing(2) }}
-            label="Project name"
-            error={validation.length > 0}
-            helperText={validation || " "}
-            value={projectName}
-            onChange={(e) =>
-              setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
-            }
-            data-test-id="project-name-textfield"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button color="secondary" tabIndex={-1} onClick={closeDialog}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            type="submit"
-            form="create-project"
-            disabled={!isFormValid}
-            data-test-id="create-project"
-          >
-            Create project
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+    <>
+      {children(onOpen)}
+      <Dialog open={isOpen} onClose={closeDialog} fullWidth maxWidth="xs">
+        <form
+          id="create-project"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onClickCreateProject();
+          }}
+        >
+          <DialogTitle>Create a new project</DialogTitle>
+          <DialogContent>
+            <TextField
+              fullWidth
+              autoFocus
+              required
+              sx={{ marginTop: (theme) => theme.spacing(2) }}
+              label="Project name"
+              error={validation.length > 0}
+              helperText={validation || " "}
+              value={projectName}
+              onChange={(e) =>
+                setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
+              }
+              data-test-id="project-name-textfield"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button color="secondary" tabIndex={-1} onClick={closeDialog}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              type="submit"
+              form="create-project"
+              disabled={!isFormValid}
+              data-test-id="create-project"
+            >
+              Create project
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+    </>
   );
 };

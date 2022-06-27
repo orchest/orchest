@@ -10,7 +10,7 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useImportUrl } from "@/hooks/useImportUrl";
+import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
@@ -220,29 +220,11 @@ const ProjectsView: React.FC = () => {
     return deletePromise;
   };
 
-  const onCreateClick = () => {
-    setIsShowingCreateModal(true);
-  };
-
   const goToExamples = (e: React.MouseEvent) => {
     navigateTo(siteMap.examples.path, undefined, e);
   };
 
-  const onCloseCreateProjectModal = () => {
-    setIsShowingCreateModal(false);
-  };
-
-  const onImport = () => {
-    setIsImportDialogOpen(true);
-  };
-
-  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
-    navigateTo(siteMap.pipeline.path, {
-      query: { projectUuid: newProject.uuid },
-    });
-  };
-
-  const [importUrl, setImportUrl] = useImportUrl();
+  const [importUrl, setImportUrl] = useImportUrlFromQueryString();
   // if user loads the app with a pre-filled import_url in their query string
   // we prompt them directly with the import modal
   React.useEffect(() => {
@@ -291,25 +273,11 @@ const ProjectsView: React.FC = () => {
           },
         }}
       >
-        <ImportDialog
-          onImportComplete={onImportComplete}
-          importUrl={importUrl}
-          setImportUrl={setImportUrl}
-          open={isImportDialogOpen}
-          onClose={() => setIsImportDialogOpen(false)}
-          filesToUpload={filesToUpload}
-          confirmButtonLabel={`Save & view`}
-        />
         <EditProjectPathDialog
           projects={projects}
           projectUuid={projectUuidOnEdit}
           onClose={onCloseEditProjectPathModal}
           setProjects={setProjects}
-        />
-        <CreateProjectDialog
-          projects={projects}
-          isOpen={isShowingCreateModal}
-          onClose={onCloseCreateProjectModal}
         />
         <PageTitle>Projects</PageTitle>
         {projectRows.length === 0 && isFetchingProjects ? (
@@ -321,24 +289,37 @@ const ProjectsView: React.FC = () => {
               spacing={2}
               sx={{ margin: (theme) => theme.spacing(2, 0) }}
             >
-              <Button
-                variant="contained"
-                autoFocus
-                startIcon={<AddIcon />}
-                onClick={onCreateClick}
-                data-test-id="add-project"
+              <CreateProjectDialog projects={projects}>
+                {(onOpen) => (
+                  <Button
+                    variant="contained"
+                    autoFocus
+                    startIcon={<AddIcon />}
+                    onClick={onOpen}
+                    data-test-id="add-project"
+                  >
+                    Create project
+                  </Button>
+                )}
+              </CreateProjectDialog>
+              <ImportDialog
+                importUrl={importUrl}
+                setImportUrl={setImportUrl}
+                filesToUpload={filesToUpload}
+                confirmButtonLabel={`Save & view`}
               >
-                Create project
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<InputIcon />}
-                onClick={onImport}
-                data-test-id="import-project"
-              >
-                Import project
-              </Button>
+                {(onOpen) => (
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    startIcon={<InputIcon />}
+                    onClick={onOpen}
+                    data-test-id="import-project"
+                  >
+                    Import project
+                  </Button>
+                )}
+              </ImportDialog>
               <Button
                 variant="contained"
                 color="secondary"
