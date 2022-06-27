@@ -226,8 +226,6 @@ export const PipelineViewport = React.forwardRef<
       }
 
       if (dragFile) onDropFiles();
-    } else {
-      console.log("Right click");
     }
   };
 
