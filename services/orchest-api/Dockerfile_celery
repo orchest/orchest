@@ -3,7 +3,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Needed to daemonize celery workers.
 RUN apt-get update \
-     && apt-get install -y supervisor rsync netcat \
+     && apt-get install -y supervisor rsync netcat jq curl \
      && mkdir -p /var/log/supervisor
 
 # Get all requirements in place.
@@ -30,9 +30,11 @@ COPY celery_daemon_configs/worker_builds.conf \
 # To be consistent with the other services.
 WORKDIR /orchest/services/orchest-api/app/
 
+COPY ./start_celery_daemon.sh /
+
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 # -n to run in the foreground, -m is the umask of the supervisord
 # process, the umask needs to be setup for each child/service process.
 # -u 0 is to run as root.
-ENTRYPOINT ["/usr/bin/supervisord", "-n", "-m 002", "-u 0"]
+ENTRYPOINT ["/start_celery_daemon.sh"]
