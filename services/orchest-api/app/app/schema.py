@@ -315,6 +315,9 @@ pipeline_run = Model(
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of the run"),
+        "created_time": fields.String(
+            required=True, description="Time at which the pipeline run was created"
+        ),
         "started_time": fields.String(
             required=True, description="Time at which the pipeline started executing"
         ),

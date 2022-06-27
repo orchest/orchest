@@ -8,6 +8,7 @@ TODO:
 
 """
 import copy
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from sqlalchemy import (
@@ -679,6 +680,15 @@ class PipelineRun(BaseModel):
     pipeline_uuid = db.Column(db.String(36), index=True, unique=False, nullable=False)
     uuid = db.Column(db.String(36), primary_key=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
+    created_time = db.Column(
+        db.DateTime,
+        unique=False,
+        nullable=False,
+        index=True,
+        default=datetime.now(timezone.utc),
+        # To migrate existing entries.
+        server_default=text("timezone('utc', now())"),
+    )
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     type = db.Column(db.String(50))
