@@ -1,6 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
-import { siteMap, withinProjectPaths } from "@/routingConfig";
+import { siteMap, withinProjectRoutes } from "@/routingConfig";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -27,11 +27,11 @@ export const ProjectSelectorToggle = ({
     [navigateTo]
   );
 
-  const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
+  const matchWithinProjectRoutes = useMatchRoutePaths(withinProjectRoutes);
 
   const { validProjectUuid, projects = [] } = useProjectSelector(
     projectUuidFromRoute,
-    matchWithinProjectPaths?.root || matchWithinProjectPaths?.path,
+    matchWithinProjectRoutes?.root || matchWithinProjectRoutes?.path,
     customNavigateTo
   );
 
