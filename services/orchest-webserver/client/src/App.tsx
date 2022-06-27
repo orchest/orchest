@@ -12,7 +12,7 @@ import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
 import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
 import { AppInnerContextProvider } from "./contexts/AppInnerContext";
-import HeaderBar from "./header-bar/HeaderBar";
+import { HeaderBar } from "./header-bar/HeaderBar";
 import Jupyter from "./jupyter/Jupyter";
 
 const App = () => {
