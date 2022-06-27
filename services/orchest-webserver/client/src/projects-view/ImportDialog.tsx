@@ -9,12 +9,14 @@ import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchProject } from "@/hooks/useFetchProject";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
 import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
+import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import {
   BackgroundTask,
@@ -27,7 +29,6 @@ import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUpload
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import WarningIcon from "@mui/icons-material/Warning";
-import { SxProps, Theme } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -39,12 +40,19 @@ import LinearProgress, {
 } from "@mui/material/LinearProgress";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import { alpha } from "@mui/material/styles";
+import { alpha, SxProps, Theme } from "@mui/material/styles";
 import useTheme from "@mui/material/styles/useTheme";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { fetcher, HEADER, uuidv4, validURL } from "@orchest/lib-utils";
+import {
+  fetcher,
+  hasValue,
+  HEADER,
+  uuidv4,
+  validURL,
+} from "@orchest/lib-utils";
 import React from "react";
+import { useControlledIsOpen } from "./hooks/useControlledIsOpen";
 import { useImportGitRepo, validProjectName } from "./hooks/useImportGitRepo";
 
 const ERROR_MAPPING: Record<CreateProjectError, string> = {
@@ -186,31 +194,47 @@ const deleteProject = (projectUuid: string) =>
     }),
   });
 
-export const ImportDialog: React.FC<{
-  importUrl: string;
-  setImportUrl: (url: string) => void;
-  onImportComplete: (newProject: Pick<Project, "path" | "uuid">) => void;
-  open: boolean;
-  onClose: () => void;
-  hideUploadOption?: boolean;
-  hideProjectMetadata?: boolean;
-  filesToUpload?: FileList | File[];
-  confirmButtonLabel?: string;
-}> = ({
+export const ImportDialog = ({
+  open: isOpenByParent,
+  onClose: onCloseByParent,
   importUrl,
   setImportUrl,
-  onImportComplete,
+  onImportComplete: onImportCompleteByParent,
   confirmButtonLabel = "Save",
-  open,
-  onClose,
   hideUploadOption,
-  hideProjectMetadata,
   filesToUpload,
+  children,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+  importUrl: string;
+  setImportUrl: (url: string) => void;
+  onImportComplete?: (newProject: Pick<Project, "path" | "uuid">) => void;
+  hideUploadOption?: boolean;
+  filesToUpload?: FileList | File[];
+  confirmButtonLabel?: string;
+  children?: (onOpen: () => void) => React.ReactNode;
 }) => {
   const { setAlert } = useAppContext();
+  const { navigateTo } = useCustomRoute();
+
+  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
+    if (onImportCompleteByParent) {
+      onImportCompleteByParent(newProject);
+      return;
+    }
+    navigateTo(siteMap.pipeline.path, {
+      query: { projectUuid: newProject.uuid },
+    });
+  };
+
+  const { isOpen, onClose, onOpen } = useControlledIsOpen(
+    isOpenByParent,
+    onCloseByParent
+  );
 
   const { projects, fetchProjects } = useFetchProjects({
-    shouldFetch: open, // Should only be fired when the dialog is open.
+    shouldFetch: isOpen, // Should only be fired when the dialog is open.
   });
 
   // Keep state.projects up-to-date
@@ -230,8 +254,8 @@ export const ImportDialog: React.FC<{
   const [tempProjectName, setTempProjectName] = React.useState<string>();
 
   React.useEffect(() => {
-    if (open) setTempProjectName(`temp-project-${uuidv4()}`);
-  }, [open]);
+    if (isOpen) setTempProjectName(`temp-project-${uuidv4()}`);
+  }, [isOpen]);
 
   const [
     shouldShowImportUrlValidation,
@@ -541,217 +565,222 @@ export const ImportDialog: React.FC<{
   }, [importStatus, hideUploadOption]);
 
   return (
-    <Dialog
-      open={open}
-      onClose={isAllowedToCloseWithEscape ? closeDialog : undefined}
-      fullWidth
-      maxWidth="sm"
-    >
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        <Stack
-          direction="column"
-          spacing={2}
-          data-test-id="import-project-dialog"
-        >
-          {importStatus === "READY" && (
-            <>
-              <Stack direction="column" spacing={1}>
-                <Typography>
-                  Paste <Code>HTTPS</Code> link to <Code>git</Code> repository:
-                </Typography>
+    <>
+      {hasValue(children) && children(onOpen)}
+      <Dialog
+        open={isOpen}
+        onClose={isAllowedToCloseWithEscape ? closeDialog : undefined}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>{title}</DialogTitle>
+        <DialogContent>
+          <Stack
+            direction="column"
+            spacing={2}
+            data-test-id="import-project-dialog"
+          >
+            {importStatus === "READY" && (
+              <>
+                <Stack direction="column" spacing={1}>
+                  <Typography>
+                    Paste <Code>HTTPS</Code> link to <Code>git</Code>{" "}
+                    repository:
+                  </Typography>
+                  <form
+                    id="import-project"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      startImportGitRepo();
+                    }}
+                  >
+                    <TextField
+                      fullWidth
+                      autoFocus={hideUploadOption}
+                      placeholder="Git repository URL"
+                      onBlur={() => {
+                        if (importUrl.length > 0)
+                          setShouldShowImportUrlValidation(true);
+                      }}
+                      {...(shouldShowImportUrlValidation
+                        ? importUrlValidation
+                        : {
+                            // When showing the FAILURE alert, the space of helperText should be removed.
+                            // In other cases, helperText should take space to prevent UI jumping.
+                            helperText:
+                              importResult?.status === "FAILURE" ? "" : " ",
+                          })}
+                      value={importUrl}
+                      onChange={(e) => {
+                        if (e.target.value.length === 0)
+                          setShouldShowImportUrlValidation(false);
+                        setImportUrl(e.target.value);
+                      }}
+                      data-test-id="project-url-textfield"
+                    />
+                  </form>
+                  {importResult?.status === "FAILURE" && (
+                    <Alert
+                      severity="error"
+                      sx={{ marginTop: (theme) => theme.spacing(1) }}
+                      onClose={clearImportResult}
+                    >
+                      Import failed:{" "}
+                      {getMappedErrorMessage(importResult.result)}
+                    </Alert>
+                  )}
+                </Stack>
+                {!hideUploadOption && (
+                  <Stack direction="column" spacing={1}>
+                    <Typography>Or upload from computer:</Typography>
+                    <DropZone
+                      disableOverlay
+                      uploadFiles={uploadFilesAndSetImportStatus}
+                    >
+                      {(isDragActive) => (
+                        <UploadFilesForm
+                          folder
+                          upload={uploadFilesAndSetImportStatus}
+                        >
+                          {(onClick) => (
+                            <Stack
+                              justifyContent="center"
+                              alignItems="center"
+                              direction="column"
+                              onMouseOver={() => setIsHoverDropZone(true)}
+                              onMouseLeave={() => setIsHoverDropZone(false)}
+                              sx={{
+                                height: "16vh",
+                                border: (theme) =>
+                                  `2px dashed ${theme.palette.grey[400]}`,
+                                backgroundColor: (theme) =>
+                                  theme.palette.common.white,
+                                borderRadius: (theme) => theme.spacing(0.5),
+                                cursor: "pointer",
+                              }}
+                              style={
+                                isDragActive
+                                  ? {
+                                      border: `2px dashed ${theme.palette.primary.main}`,
+                                      backgroundColor: alpha(
+                                        theme.palette.primary.main,
+                                        0.08
+                                      ),
+                                    }
+                                  : isHoverDropZone
+                                  ? {
+                                      border: `2px dashed ${theme.palette.grey[600]}`,
+                                      backgroundColor: theme.palette.grey[50],
+                                    }
+                                  : {}
+                              }
+                              onClick={onClick}
+                            >
+                              <DriveFolderUploadOutlinedIcon
+                                fontSize="large"
+                                sx={{
+                                  color: (theme) =>
+                                    isDragActive
+                                      ? theme.palette.primary.main
+                                      : isHoverDropZone
+                                      ? theme.palette.grey[600]
+                                      : theme.palette.grey[500],
+                                }}
+                              />
+                              <Typography variant="body2">{`Drag & drop project folder here`}</Typography>
+                              <Button
+                                sx={{ marginTop: (theme) => theme.spacing(1) }}
+                              >
+                                Browse files
+                              </Button>
+                            </Stack>
+                          )}
+                        </UploadFilesForm>
+                      )}
+                    </DropZone>
+                  </Stack>
+                )}
+              </>
+            )}
+            {importStatus !== "READY" && (
+              <Stack direction="column" spacing={2}>
+                {filesToUpload && (
+                  <ProjectMetadata value={newProjectMetadata} />
+                )}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <LinearProgress
+                    value={isNumber(progress) ? progress : undefined}
+                    variant={progressStyle}
+                    sx={{ margin: (theme) => theme.spacing(1, 0), flex: 1 }}
+                  />
+                  <Typography variant="caption">
+                    {isNumber(progress)
+                      ? `${progress} %`
+                      : progress === "unknown"
+                      ? "Importing..."
+                      : "Imported!"}
+                  </Typography>
+                </Stack>
                 <form
-                  id="import-project"
+                  id="save-project-name"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    startImportGitRepo();
+                    saveProjectName();
                   }}
                 >
                   <TextField
                     fullWidth
-                    autoFocus={hideUploadOption}
-                    placeholder="Git repository URL"
-                    onBlur={() => {
-                      if (importUrl.length > 0)
-                        setShouldShowImportUrlValidation(true);
-                    }}
-                    {...(shouldShowImportUrlValidation
-                      ? importUrlValidation
-                      : {
-                          // When showing the FAILURE alert, the space of helperText should be removed.
-                          // In other cases, helperText should take space to prevent UI jumping.
-                          helperText:
-                            importResult?.status === "FAILURE" ? "" : " ",
-                        })}
-                    value={importUrl}
+                    autoFocus
+                    label="Project name"
+                    value={projectName}
                     onChange={(e) => {
-                      if (e.target.value.length === 0)
-                        setShouldShowImportUrlValidation(false);
-                      setImportUrl(e.target.value);
+                      setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));
                     }}
-                    data-test-id="project-url-textfield"
+                    {...(projectName.length > 0
+                      ? projectNameValidation
+                      : { helperText: " " })}
+                    disabled={importStatus === "SAVING_PROJECT_NAME"}
+                    data-test-id="project-name-textfield"
                   />
                 </form>
-                {importResult?.status === "FAILURE" && (
-                  <Alert
-                    severity="error"
-                    sx={{ marginTop: (theme) => theme.spacing(1) }}
-                    onClose={clearImportResult}
-                  >
-                    Import failed: {getMappedErrorMessage(importResult.result)}
-                  </Alert>
-                )}
               </Stack>
-              {!hideUploadOption && (
-                <Stack direction="column" spacing={1}>
-                  <Typography>Or upload from computer:</Typography>
-                  <DropZone
-                    disableOverlay
-                    uploadFiles={uploadFilesAndSetImportStatus}
-                  >
-                    {(isDragActive) => (
-                      <UploadFilesForm
-                        folder
-                        upload={uploadFilesAndSetImportStatus}
-                      >
-                        {(onClick) => (
-                          <Stack
-                            justifyContent="center"
-                            alignItems="center"
-                            direction="column"
-                            onMouseOver={() => setIsHoverDropZone(true)}
-                            onMouseLeave={() => setIsHoverDropZone(false)}
-                            sx={{
-                              height: "16vh",
-                              border: (theme) =>
-                                `2px dashed ${theme.palette.grey[400]}`,
-                              backgroundColor: (theme) =>
-                                theme.palette.common.white,
-                              borderRadius: (theme) => theme.spacing(0.5),
-                              cursor: "pointer",
-                            }}
-                            style={
-                              isDragActive
-                                ? {
-                                    border: `2px dashed ${theme.palette.primary.main}`,
-                                    backgroundColor: alpha(
-                                      theme.palette.primary.main,
-                                      0.08
-                                    ),
-                                  }
-                                : isHoverDropZone
-                                ? {
-                                    border: `2px dashed ${theme.palette.grey[600]}`,
-                                    backgroundColor: theme.palette.grey[50],
-                                  }
-                                : {}
-                            }
-                            onClick={onClick}
-                          >
-                            <DriveFolderUploadOutlinedIcon
-                              fontSize="large"
-                              sx={{
-                                color: (theme) =>
-                                  isDragActive
-                                    ? theme.palette.primary.main
-                                    : isHoverDropZone
-                                    ? theme.palette.grey[600]
-                                    : theme.palette.grey[500],
-                              }}
-                            />
-                            <Typography variant="body2">{`Drag & drop project folder here`}</Typography>
-                            <Button
-                              sx={{ marginTop: (theme) => theme.spacing(1) }}
-                            >
-                              Browse files
-                            </Button>
-                          </Stack>
-                        )}
-                      </UploadFilesForm>
-                    )}
-                  </DropZone>
-                </Stack>
-              )}
-            </>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          {isShowingCancelButton && (
+            <Button color="secondary" onClick={closeDialog} tabIndex={-1}>
+              {`Cancel${hideUploadOption ? "" : " upload"}`}
+            </Button>
           )}
-          {importStatus !== "READY" && (
-            <Stack direction="column" spacing={2}>
-              {!hideProjectMetadata && (
-                <ProjectMetadata value={newProjectMetadata} />
-              )}
-              <Stack direction="row" spacing={1} alignItems="center">
-                <LinearProgress
-                  value={isNumber(progress) ? progress : undefined}
-                  variant={progressStyle}
-                  sx={{ margin: (theme) => theme.spacing(1, 0), flex: 1 }}
-                />
-                <Typography variant="caption">
-                  {isNumber(progress)
-                    ? `${progress} %`
-                    : progress === "unknown"
-                    ? "Importing..."
-                    : "Imported!"}
-                </Typography>
-              </Stack>
-              <form
-                id="save-project-name"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  saveProjectName();
-                }}
-              >
-                <TextField
-                  fullWidth
-                  autoFocus
-                  label="Project name"
-                  value={projectName}
-                  onChange={(e) => {
-                    setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));
-                  }}
-                  {...(projectName.length > 0
-                    ? projectNameValidation
-                    : { helperText: " " })}
-                  disabled={importStatus === "SAVING_PROJECT_NAME"}
-                  data-test-id="project-name-textfield"
-                />
-              </form>
-            </Stack>
+          {importStatus === "READY" ? (
+            <Button
+              variant="contained"
+              disabled={importUrlValidation.error}
+              type="submit"
+              form="import-project"
+              data-test-id="import-project-ok"
+            >
+              Import
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              disabled={
+                !projectName ||
+                projectNameValidation.error ||
+                ["IMPORTING", "UPLOADING", "SAVING_PROJECT_NAME"].includes(
+                  importStatus
+                )
+              }
+              type="submit"
+              form="save-project-name"
+            >
+              {confirmButtonLabel}
+            </Button>
           )}
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        {isShowingCancelButton && (
-          <Button color="secondary" onClick={closeDialog} tabIndex={-1}>
-            {`Cancel${hideUploadOption ? "" : " upload"}`}
-          </Button>
-        )}
-        {importStatus === "READY" ? (
-          <Button
-            variant="contained"
-            disabled={importUrlValidation.error}
-            type="submit"
-            form="import-project"
-            data-test-id="import-project-ok"
-          >
-            Import
-          </Button>
-        ) : (
-          <Button
-            variant="contained"
-            disabled={
-              !projectName ||
-              projectNameValidation.error ||
-              ["IMPORTING", "UPLOADING", "SAVING_PROJECT_NAME"].includes(
-                importStatus
-              )
-            }
-            type="submit"
-            form="save-project-name"
-          >
-            {confirmButtonLabel}
-          </Button>
-        )}
-      </DialogActions>
-    </Dialog>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
