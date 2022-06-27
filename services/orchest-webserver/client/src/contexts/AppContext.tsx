@@ -1,5 +1,4 @@
 import { useAsync } from "@/hooks/useAsync";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   OrchestConfig,
   OrchestServerConfig,
@@ -148,8 +147,6 @@ type AppContext = {
   setConfirm: ConfirmDispatcher;
   deletePromptMessage: () => void;
   setAsSaved: (value?: boolean) => void;
-  isDrawerOpen: boolean;
-  setIsDrawerOpen: (value: boolean | ((value: boolean) => boolean)) => void;
   config: OrchestConfig | undefined;
   user_config: OrchestUserConfig | undefined;
 };
@@ -334,11 +331,6 @@ export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
 }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
-  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage<boolean>(
-    "drawer",
-    true
-  );
-
   const { config, user_config } = useFetchSystemConfig(shouldStart);
 
   /**
@@ -391,8 +383,6 @@ export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
         setConfirm,
         deletePromptMessage,
         setAsSaved,
-        isDrawerOpen,
-        setIsDrawerOpen,
       }}
     >
       {children}
