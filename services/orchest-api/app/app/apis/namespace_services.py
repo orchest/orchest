@@ -3,10 +3,9 @@ from flask_restx import Namespace, Resource
 
 import app.models as models
 from app import schema
-from app.utils import register_schema
 
 api = Namespace("services", description="Get information about running services")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/")

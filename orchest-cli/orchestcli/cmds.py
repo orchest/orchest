@@ -26,10 +26,61 @@ from orchestcli import utils
 if t.TYPE_CHECKING:
     from multiprocessing.pool import AsyncResult
 
+
+def echo(*args, **kwargs) -> None:
+    """Wrapped `click.echo`.
+
+    Note:
+        Will do nothing in case the current CLI command is invoked with
+        the `--json` flag.
+
+    """
+    click_ctx = click.get_current_context(silent=True)
+
+    if click_ctx is None:
+        return click.echo(*args, **kwargs)
+
+    json_flag = click_ctx.params.get("json_flag")
+    if json_flag and json_flag is not None:
+        return
+    else:
+        return click.echo(*args, **kwargs)
+
+
+JECHO_CALLS = 0
+
+
+def jecho(*args, **kwargs) -> None:
+    """JSON echo."""
+    # Invoking `jecho` multiple times within one CLI invocation would
+    # mean that the final output is not JSON parsable.
+    global JECHO_CALLS
+    assert JECHO_CALLS == 0, "`jecho` should only be called once per CLI invocation."
+    JECHO_CALLS += 1
+
+    message = kwargs.get("message")
+    if message is not None:
+        kwargs["message"] = json.dumps(message, sort_keys=True, indent=True)
+    else:
+        if args and args[0] is not None:
+            args = (json.dumps(args[0], sort_keys=True, indent=True), *args[1:])
+    return click.echo(*args, **kwargs)  # type: ignore
+
+
 try:
-    config.load_kube_config()
-except config.config_exception.ConfigException:
-    config.load_incluster_config()
+    try:
+        config.load_kube_config()
+    except config.config_exception.ConfigException:
+        config.load_incluster_config()
+except Exception as e:
+    echo(
+        "Aborting..."
+        f"\nCould not load kube-config file: {e}"
+        "\nFor example for minikube, you need to make sure your cluster"
+        " is started.",
+        err=True,
+    )
+    sys.exit(1)
 
 ORCHEST_NAMESPACE = re.compile("(namespace: )([-a-z]+)")
 
@@ -77,46 +128,6 @@ class LogLevel(str, enum.Enum):
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"
-
-
-def echo(*args, **kwargs) -> None:
-    """Wrapped `click.echo`.
-
-    Note:
-        Will do nothing in case the current CLI command is invoked with
-        the `--json` flag.
-
-    """
-    click_ctx = click.get_current_context(silent=True)
-
-    if click_ctx is None:
-        return click.echo(*args, **kwargs)
-
-    json_flag = click_ctx.params.get("json_flag")
-    if json_flag and json_flag is not None:
-        return
-    else:
-        return click.echo(*args, **kwargs)
-
-
-JECHO_CALLS = 0
-
-
-def jecho(*args, **kwargs) -> None:
-    """JSON echo."""
-    # Invoking `jecho` multiple times within one CLI invocation would
-    # mean that the final output is not JSON parsable.
-    global JECHO_CALLS
-    assert JECHO_CALLS == 0, "`jecho` should only be called once per CLI invocation."
-    JECHO_CALLS += 1
-
-    message = kwargs.get("message")
-    if message is not None:
-        kwargs["message"] = json.dumps(message, sort_keys=True, indent=True)
-    else:
-        if args and args[0] is not None:
-            args = (json.dumps(args[0], sort_keys=True, indent=True), *args[1:])
-    return click.echo(*args, **kwargs)  # type: ignore
 
 
 class CRObjectNotFound(Exception):

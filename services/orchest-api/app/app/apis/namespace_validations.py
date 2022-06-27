@@ -8,10 +8,9 @@ from flask_restx import Namespace, Resource
 from app import errors as self_errors
 from app import models, schema
 from app.core import environments
-from app.utils import register_schema
 
 api = Namespace("validations", description="Validates system requirements")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optional[str]]:

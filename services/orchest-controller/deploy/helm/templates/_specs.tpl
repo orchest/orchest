@@ -10,8 +10,6 @@ All labels
 */}}
 {{- define "library.labels.all" -}}
 {{ include "library.labels.selector" . }}
-app.kubernetes.io/generated-by: helm
-helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
 {{- end -}}
 
 {{/*
@@ -19,7 +17,6 @@ Selector labels
 */}}
 {{- define "library.labels.selector" -}}
 app.kubernetes.io/part-of: orchest
-app.kubernetes.io/release: {{ .Release.Name }}
 app.kubernetes.io/name: {{ template "library.metadata.name" . }}
 {{- end -}}
 

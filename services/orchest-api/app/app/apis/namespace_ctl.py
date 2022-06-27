@@ -12,7 +12,7 @@ from app import schema, utils
 from config import CONFIG_CLASS
 
 ns = Namespace("ctl", description="Orchest-api internal control.")
-api = utils.register_schema(ns)
+api = schema.register_schema(ns)
 
 
 @api.route("/start-update")

@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from celery.utils.log import get_task_logger
 from flask import current_app
-from flask_restx import Model, Namespace
+from flask_restx import Model
 from flask_sqlalchemy import Pagination
 from kubernetes import client as k8s_client
 from sqlalchemy import and_, desc, or_, text
@@ -21,7 +21,6 @@ import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from app import errors as self_errors
-from app import schema
 from app import types as app_types
 from app.celery_app import make_celery
 from app.connections import db, k8s_core_api
@@ -37,20 +36,6 @@ def get_logger() -> logging.Logger:
 
 
 logger = get_logger()
-
-
-def register_schema(api: Namespace) -> Namespace:
-    all_models = [
-        getattr(schema, attr)
-        for attr in dir(schema)
-        if isinstance(getattr(schema, attr), Model)
-    ]
-
-    # TODO: only a subset of all models should be registered.
-    for model in all_models:
-        api.add_model(model.name, model)
-
-    return api
 
 
 def update_status_db(

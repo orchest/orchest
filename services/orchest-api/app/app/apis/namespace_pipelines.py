@@ -17,10 +17,9 @@ from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
 from app.core import events
-from app.utils import register_schema
 
 api = Namespace("pipelines", description="Managing pipelines")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/")

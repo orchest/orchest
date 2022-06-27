@@ -18,10 +18,10 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core import environments, events
 from app.core.pipelines import Pipeline, construct_pipeline
-from app.utils import get_proj_pip_env_variables, register_schema, update_status_db
+from app.utils import get_proj_pip_env_variables, update_status_db
 
 api = Namespace("runs", description="Manages interactive pipeline runs")
-api = register_schema(api)
+api = schema.register_schema(api)
 
 
 @api.route("/")

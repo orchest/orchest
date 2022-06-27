@@ -104,10 +104,8 @@ func NewDefaultControllerConfig() ControllerConfig {
 			"FLASK_ENV": "production",
 		},
 		CeleryWorkerDefaultEnvVars: map[string]string{
-			"ORCHEST_GPU_ENABLED_INSTANCE":     "FALSE",
-			"FLASK_ENV":                        "production",
-			"MAX_JOB_RUNS_PARALLELISM":         "1",
-			"MAX_INTERACTIVE_RUNS_PARALLELISM": "1",
+			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
+			"FLASK_ENV":                    "production",
 		},
 		OrchestDatabaseDefaultEnvVars: map[string]string{
 			"PGDATA":                    "/userdir/.orchest/database/data",

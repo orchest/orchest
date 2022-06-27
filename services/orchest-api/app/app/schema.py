@@ -7,10 +7,11 @@ TODO:
 
 """
 import datetime
+import sys
 
-from flask_restx import Model, fields
+from flask_restx import Model, Namespace, fields
 
-from app import models
+from app import models, utils
 
 dictionary = Model("Dictionary", {})
 
@@ -314,6 +315,9 @@ pipeline_run = Model(
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of the run"),
+        "created_time": fields.String(
+            required=True, description="Time at which the pipeline run was created"
+        ),
         "started_time": fields.String(
             required=True, description="Time at which the pipeline started executing"
         ),
@@ -970,7 +974,11 @@ subscriber = Model(
 webhook = subscriber.inherit(
     "Webhook",
     {
-        "url": fields.String(required=True, description="URL of the webhook."),
+        "url": fields.String(
+            required=True,
+            attribute=lambda webhook: utils.extract_domain_name(webhook.url),
+            description="URL of the webhook.",
+        ),
         "name": fields.String(required=True, description="Name of the webhook."),
         "verify_ssl": fields.Boolean(
             required=True, description="If https certificate should be verified."
@@ -1014,3 +1022,18 @@ event = Model(
         ),
     },
 )
+
+
+def register_schema(api: Namespace) -> Namespace:
+    current_module = sys.modules[__name__]
+    all_models = [
+        getattr(current_module, attr)
+        for attr in dir(current_module)
+        if isinstance(getattr(current_module, attr), Model)
+    ]
+
+    # TODO: only a subset of all models should be registered.
+    for model in all_models:
+        api.add_model(model.name, model)
+
+    return api
