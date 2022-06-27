@@ -66,9 +66,11 @@ def get_step_and_kernel_volumes_and_volume_mounts(
 
 
     Returns:
-        A pair of lists, the first element is a list of volumes, the
-        second a list of volume_mounts, valid in k8s pod manifest. The
-        two lists are coupled, each volume mount is related to a volume.
+        A pair of lists, the first element is a list of volumes the
+        step pod needs, the second a list of volume_mounts of the step
+        container, valid in k8s pod manifest. Each volume mount must
+        point to a volume, and multiple volume_mounts can point to
+        a single volume.
     """
     volumes = []
     volume_mounts = []
