@@ -11,7 +11,7 @@ export const Layout: React.FC<{
 }> = ({ children, disablePadding, toolbarElements, loading }) => {
   return (
     <Stack direction="column" sx={{ position: "relative", height: "100%" }}>
-      <Toolbar />
+      <Toolbar variant="dense" sx={{ height: (theme) => theme.spacing(7) }} />
       {loading && <LinearProgress sx={{ zIndex: 1 }} />}
       {toolbarElements && (
         <Toolbar

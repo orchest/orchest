@@ -35,11 +35,16 @@ export const ProjectSelectorMenu = ({
   selectProject: (projectUuid: string) => void;
 }) => {
   const { navigateTo } = useCustomRoute();
+
+  const goToProjects = () => {
+    onClose();
+    navigateTo(siteMap.projects.path);
+  };
+
+  const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
   const [importUrl, setImportUrl] = useImportUrlFromQueryString("");
   const [searchTerm, setSearchTerm] = React.useState("");
   const debouncedSearchTerm = useDebounce(searchTerm);
-
-  const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
 
   return (
     <ProjectSelectorPopover open={open} onClose={onClose}>
@@ -116,8 +121,8 @@ export const ProjectSelectorMenu = ({
       </Box>
       <MenuList
         sx={{
-          minHeight: (theme) => `calc(100vh - ${theme.spacing(21)})`,
-          maxHeight: (theme) => `calc(100vh - ${theme.spacing(21)})`,
+          minHeight: (theme) => `calc(100vh - ${theme.spacing(27.5)})`,
+          maxHeight: (theme) => `calc(100vh - ${theme.spacing(27.5)})`,
           overflowY: "auto",
         }}
       >
@@ -143,6 +148,20 @@ export const ProjectSelectorMenu = ({
             );
           })}
       </MenuList>
+      <Button
+        disableRipple
+        variant="text"
+        sx={{
+          width: "100%",
+          borderTop: (theme) => `1px solid ${theme.borderColor}`,
+          borderRadius: 0,
+          height: (theme) => theme.spacing(6),
+          verticalAlign: "middle",
+        }}
+        onClick={goToProjects}
+      >
+        View all projects
+      </Button>
     </ProjectSelectorPopover>
   );
 };
