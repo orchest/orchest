@@ -29,13 +29,13 @@ export const NavigationTabs = () => {
   const matchRoute = useMatchRoutePaths(navigationRoutes);
 
   const {
-    state: { projectUuid },
+    state: { projectUuid, pipeline },
   } = useProjectsContext();
 
   const navItems = React.useMemo(() => {
-    const projectMenuItems = getProjectMenuItems(projectUuid);
+    const projectMenuItems = getProjectMenuItems(projectUuid, pipeline?.uuid);
     return [...projectMenuItems, ...systemMenuItems];
-  }, [projectUuid]);
+  }, [projectUuid, pipeline?.uuid]);
 
   const navTabIndex = useNavTabIndex({ matchRoute, navItems });
 
