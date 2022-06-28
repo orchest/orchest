@@ -15,10 +15,14 @@ import React from "react";
 import { useProjectName } from "./hooks/useProjectName";
 
 export const CreateProjectDialog = ({
+  open: isOpenByParent,
+  onClose: onCloseByParent,
   projects,
   postCreateCallback,
   children,
 }: {
+  open?: boolean;
+  onClose?: () => void;
   projects: Project[];
   children: (onOpen: () => void) => React.ReactNode;
   postCreateCallback?: () => void;
@@ -27,7 +31,10 @@ export const CreateProjectDialog = ({
   const { navigateTo } = useCustomRoute();
   const { dispatch } = useProjectsContext();
 
-  const { isOpen, onClose, onOpen } = useControlledIsOpen();
+  const { isOpen, onClose, onOpen } = useControlledIsOpen(
+    isOpenByParent,
+    onCloseByParent
+  );
 
   const [projectName, setProjectName, validation] = useProjectName(projects);
 
