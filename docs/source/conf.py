@@ -47,6 +47,8 @@ extensions = [
 
 hoverxref_auto_ref = True
 
+hoverxref_role_types = {"ref": "modal"}
+
 myst_enable_extensions = [
     "deflist",
 ]
@@ -89,4 +91,7 @@ html_static_path = ["_static"]
 
 html_css_files = [
     "css/custom_styles.css",
+    "css/installer_widget.css",
 ]
+
+html_js_files = ["js/installer_widget.js"]

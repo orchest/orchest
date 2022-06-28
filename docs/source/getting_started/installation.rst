@@ -13,6 +13,10 @@ We provide three installation paths, installation through:
 * `our Cloud offering <https://cloud.orchest.io/signup>`_ which comes with a free, fully configured
   Orchest instance.
 
+.. raw:: html
+   :file: install-widget.html
+
+
 Prerequisites
 -------------
 

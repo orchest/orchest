@@ -1,0 +1,46 @@
+.installer-container {
+  background-color: #e5f1fb;
+  padding: 1em;
+  border-left: 0.5rem solid;
+  border-color: #5faaea;
+}
+
+.installer-container button {
+  padding: 6px 9px;
+  background: white;
+  margin-right: 0.5em;
+  border-radius: 2px;
+  font-weight: bold;
+  border: 0;
+  font-size: 0.9em;
+  margin-bottom: 0.5em;
+  cursor: pointer;
+}
+
+.installer-container button.active,
+.installer-container button:hover {
+  background-color: var(--blue);
+  color: white;
+}
+
+.installer-container button:last-of-type {
+  margin-right: 0;
+}
+
+.installer-container > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.installer-container .row {
+  flex-direction: row;
+  display: flex;
+}
+
+.installer-container .row > div:nth-child(1) {
+  min-width: 175px;
+}
+
+.installer-container p {
+  margin-block-start: 0;
+}
