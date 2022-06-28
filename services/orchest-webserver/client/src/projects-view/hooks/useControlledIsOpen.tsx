@@ -2,8 +2,8 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useControlledIsOpen = (
-  isOpenByParent: boolean | undefined,
-  onCloseByParent: (() => void) | undefined
+  isOpenByParent?: boolean,
+  onCloseByParent?: () => void
 ) => {
   // If `open` and `onClose` are provided, `isOpen` is controlled by its parent component.
   const isControlled = hasValue(isOpenByParent) || hasValue(onCloseByParent);
