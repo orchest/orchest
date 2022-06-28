@@ -12,9 +12,14 @@
   border-radius: 2px;
   font-weight: bold;
   border: 0;
-  font-size: 0.9em;
+  font-size: 16px;
   margin-bottom: 0.5em;
   cursor: pointer;
+}
+
+.installer-container .lhs-label {
+  padding: 6px 0;
+  font-size: 16px;
 }
 
 .installer-container button.active,

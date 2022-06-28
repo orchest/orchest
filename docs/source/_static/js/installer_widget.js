@@ -87,13 +87,13 @@ window.document.addEventListener("DOMContentLoaded", function () {
   installerContainer.innerHTML = `
     <div>
       <div class="row">
-        <div>Operating system</div> <div>${osHtml}</div>
+        <div class="lhs-label">Operating system</div> <div>${osHtml}</div>
       </div>
       <div class="row">
-        <div>K8s distribution</div> <div>${platformHtml}</div>
+        <div class="lhs-label">K8s distribution</div> <div>${platformHtml}</div>
       </div>
       <div class="row">
-        <div>Installation</div> <div>${instructionsHtml}</div>
+        <div class="lhs-label">Installation</div> <div>${instructionsHtml}</div>
       </div>
     </div>
   `;
