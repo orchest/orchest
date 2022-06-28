@@ -63,14 +63,13 @@ export const ServicesMenu = ({
 
   const serviceLinks =
     services && projectUuid && pipelineUuid
-      ? Object.entries(services)
-          .filter((serviceTuple) => serviceTuple[1].exposed)
-          .map(([serviceName, service]) => {
-            return {
-              name: serviceName,
-              urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
-            };
-          })
+      ? Object.entries(services).map(([serviceName, service]) => {
+          return {
+            name: serviceName,
+            urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
+            exposed: service.exposed,
+          };
+        })
       : null;
 
   return (
@@ -102,34 +101,41 @@ export const ServicesMenu = ({
       </ListItem>
       {serviceLinks && serviceLinks.length > 0 ? (
         serviceLinks.map((serviceLink) => {
+          const serviceStatusMessage = !serviceLink.exposed
+            ? `Not exposed.`
+            : serviceLink.urls.length === 0
+            ? `No endpoints.`
+            : null;
           return (
             <List
               key={serviceLink.name}
               subheader={<ListSubheader>{serviceLink.name}</ListSubheader>}
             >
-              {serviceLink.urls.length === 0 && (
+              {serviceStatusMessage && (
                 <ListItem>
                   <Typography variant="caption">
-                    <i>This service has no endpoints.</i>
+                    <i>{serviceStatusMessage}</i>
                   </Typography>
                 </ListItem>
               )}
-              {serviceLink.urls.map((url) => {
-                return (
-                  <ListItemButton
-                    key={url}
-                    component="a"
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <ListItemIcon>
-                      <OpenInNewIcon />
-                    </ListItemIcon>
-                    <ListItemText primary={formatUrl(url)} />
-                  </ListItemButton>
-                );
-              })}
+
+              {serviceLink.exposed &&
+                serviceLink.urls.map((url) => {
+                  return (
+                    <ListItemButton
+                      key={url}
+                      component="a"
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <ListItemIcon>
+                        <OpenInNewIcon />
+                      </ListItemIcon>
+                      <ListItemText primary={formatUrl(url)} />
+                    </ListItemButton>
+                  );
+                })}
             </List>
           );
         })
