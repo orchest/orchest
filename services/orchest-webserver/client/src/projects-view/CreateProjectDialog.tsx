@@ -10,7 +10,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectName } from "./hooks/useProjectName";
 
@@ -24,7 +24,7 @@ export const CreateProjectDialog = ({
   open?: boolean;
   onClose?: () => void;
   projects: Project[];
-  children: (onOpen: () => void) => React.ReactNode;
+  children?: (onOpen: () => void) => React.ReactNode;
   postCreateCallback?: () => void;
 }) => {
   const { setAlert } = useAppContext();
@@ -92,7 +92,7 @@ export const CreateProjectDialog = ({
 
   return (
     <>
-      {children(onOpen)}
+      {hasValue(children) && children(onOpen)}
       <Dialog open={isOpen} onClose={closeDialog} fullWidth maxWidth="xs">
         <form
           id="create-project"

@@ -220,8 +220,20 @@ const ProjectsView: React.FC = () => {
     return deletePromise;
   };
 
+  const onCreateClick = () => {
+    setIsShowingCreateModal(true);
+  };
+
   const goToExamples = (e: React.MouseEvent) => {
     navigateTo(siteMap.examples.path, undefined, e);
+  };
+
+  const onCloseCreateProjectModal = () => {
+    setIsShowingCreateModal(false);
+  };
+
+  const onImport = () => {
+    setIsImportDialogOpen(true);
   };
 
   const [importUrl, setImportUrl] = useImportUrlFromQueryString();
@@ -273,11 +285,24 @@ const ProjectsView: React.FC = () => {
           },
         }}
       >
+        <ImportDialog
+          importUrl={importUrl}
+          setImportUrl={setImportUrl}
+          open={isImportDialogOpen}
+          onClose={() => setIsImportDialogOpen(false)}
+          filesToUpload={filesToUpload}
+          confirmButtonLabel={`Save & view`}
+        />
         <EditProjectPathDialog
           projects={projects}
           projectUuid={projectUuidOnEdit}
           onClose={onCloseEditProjectPathModal}
           setProjects={setProjects}
+        />
+        <CreateProjectDialog
+          projects={projects}
+          open={isShowingCreateModal}
+          onClose={onCloseCreateProjectModal}
         />
         <PageTitle>Projects</PageTitle>
         {projectRows.length === 0 && isFetchingProjects ? (
@@ -289,37 +314,24 @@ const ProjectsView: React.FC = () => {
               spacing={2}
               sx={{ margin: (theme) => theme.spacing(2, 0) }}
             >
-              <CreateProjectDialog projects={projects}>
-                {(onOpen) => (
-                  <Button
-                    variant="contained"
-                    autoFocus
-                    startIcon={<AddIcon />}
-                    onClick={onOpen}
-                    data-test-id="add-project"
-                  >
-                    Create project
-                  </Button>
-                )}
-              </CreateProjectDialog>
-              <ImportDialog
-                importUrl={importUrl}
-                setImportUrl={setImportUrl}
-                filesToUpload={filesToUpload}
-                confirmButtonLabel={`Save & view`}
+              <Button
+                variant="contained"
+                autoFocus
+                startIcon={<AddIcon />}
+                onClick={onCreateClick}
+                data-test-id="add-project"
               >
-                {(onOpen) => (
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    startIcon={<InputIcon />}
-                    onClick={onOpen}
-                    data-test-id="import-project"
-                  >
-                    Import project
-                  </Button>
-                )}
-              </ImportDialog>
+                Create project
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<InputIcon />}
+                onClick={onImport}
+                data-test-id="import-project"
+              >
+                Import project
+              </Button>
               <Button
                 variant="contained"
                 color="secondary"
