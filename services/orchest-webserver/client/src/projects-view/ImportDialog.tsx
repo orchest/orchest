@@ -9,6 +9,7 @@ import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
+import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchProject } from "@/hooks/useFetchProject";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
@@ -52,7 +53,6 @@ import {
   validURL,
 } from "@orchest/lib-utils";
 import React from "react";
-import { useControlledIsOpen } from "./hooks/useControlledIsOpen";
 import { useImportGitRepo, validProjectName } from "./hooks/useImportGitRepo";
 
 const ERROR_MAPPING: Record<CreateProjectError, string> = {
