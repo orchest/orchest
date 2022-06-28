@@ -734,6 +734,28 @@ def patch(
                     if obj_item["name"] not in patch_items:
                         spec.append(obj_item)
 
+    def annotate_obj(anotations: t.Dict, obj: t.Dict) -> None:
+        """Annotates the `object` with the provided `annotations`.
+
+        `obj` is changed in-place.
+
+        Note:
+            The annotations have to be a string-to-string hashmap:
+
+                {"name1": "value1", ...}
+
+        Precedence is given to `annotations`, for example if a key is
+        present in both, the one in annotations will be used.
+
+        """
+        if "annotations" not in obj:
+            obj["annotations"] = anotations
+            return
+
+        for key, value in anotations.items():
+            print(key, value)
+            obj["annotations"][key] = value
+
     def disable_telemetry() -> None:
         command = [
             "curl",
@@ -820,10 +842,9 @@ def patch(
     )
 
     if socket_path is not None:
-        annotations = {"orchest.io/container-runtime-socket": socket_path}
-        convert_to_strategic_merge_patch(
-            annotations,
-            custom_object["metadata"]["annotations"],
+        annotate_obj(
+            {"orchest.io/container-runtime-socket": socket_path},
+            custom_object["metadata"],
         )
 
     try:
