@@ -1,33 +1,39 @@
 import { IconButton } from "@/components/common/IconButton";
-import { PageTitle } from "@/components/common/PageTitle";
 import {
   DataTable,
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
 import { defaultOverlaySx, DropZone } from "@/components/DropZone";
-import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import type { Project } from "@/types";
+import type { Example, Project } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-import InputIcon from "@mui/icons-material/Input";
-import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import SettingsIcon from "@mui/icons-material/Settings";
+import UploadOutlinedIcon from "@mui/icons-material/UploadOutlined";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import Typography from "@mui/material/Typography";
 import { hasValue, makeRequest } from "@orchest/lib-utils";
 import React from "react";
+import { ContributeCard } from "./ContributeCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectPathDialog } from "./EditProjectPathDialog";
+import { ExampleCard } from "./ExampleCard";
+import { useFetchExamples } from "./hooks/useFetchExamples";
 import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
+import { ProjectTabPanel } from "./ProjectTabPanel";
+import { TempLayout } from "./TempLayout";
 
 type ProjectRow = Pick<
   Project,
@@ -39,6 +45,17 @@ type ProjectRow = Pick<
 > & {
   settings: string;
 };
+
+const projectTabs = ["My projects", "Orchest examples", "Community examples"];
+
+enum PROJECT_TAB {
+  "MY_PROJECTS" = 0,
+  "ORCHEST_EXAMPLES" = 1,
+  "COMMUNITY_EXAMPLES" = 2,
+}
+
+const isCuratedByOrchest = (owner: string) =>
+  ["orchest", "orchest-examples"].includes(owner.toLowerCase());
 
 const ProjectsView: React.FC = () => {
   const { state, setAlert, setConfirm } = useAppContext();
@@ -224,15 +241,16 @@ const ProjectsView: React.FC = () => {
     setIsShowingCreateModal(true);
   };
 
-  const goToExamples = (e: React.MouseEvent) => {
-    navigateTo(siteMap.examples.path, undefined, e);
-  };
-
   const onCloseCreateProjectModal = () => {
     setIsShowingCreateModal(false);
   };
 
   const onImport = () => {
+    setIsImportDialogOpen(true);
+  };
+
+  const importWithUrl = (url: string) => {
+    setImportUrl(url);
     setIsImportDialogOpen(true);
   };
 
@@ -257,8 +275,41 @@ const ProjectsView: React.FC = () => {
     []
   );
 
+  const [projectTabIndex, setProjectTabIndex] = React.useState<PROJECT_TAB>(
+    PROJECT_TAB.MY_PROJECTS
+  );
+  const onClickTab = React.useCallback(
+    (tabIndex: number) => setProjectTabIndex(tabIndex),
+    []
+  );
+
+  const { data } = useFetchExamples();
+
+  const { orchestExamples, communityExamples } = React.useMemo<{
+    orchestExamples: Example[];
+    communityExamples: Example[];
+  }>(() => {
+    if (!data) return { orchestExamples: [], communityExamples: [] };
+
+    return data.reduce(
+      (categorized, example) => {
+        const type = isCuratedByOrchest(example.owner)
+          ? "orchestExamples"
+          : "communityExamples";
+        categorized[type].push(example);
+        return categorized;
+      },
+      { orchestExamples: [], communityExamples: [] } as {
+        orchestExamples: Example[];
+        communityExamples: Example[];
+      }
+    );
+  }, [data]);
+
+  console.log("DEV communityExamples: ", communityExamples);
+
   return (
-    <Layout>
+    <TempLayout>
       <DropZone
         className="view-page projects-view"
         uploadFiles={dropFilesToCreateProject}
@@ -304,44 +355,59 @@ const ProjectsView: React.FC = () => {
           open={isShowingCreateModal}
           onClose={onCloseCreateProjectModal}
         />
-        <PageTitle>Projects</PageTitle>
-        {projectRows.length === 0 && isFetchingProjects ? (
-          <LinearProgress />
-        ) : (
-          <>
-            <Stack
-              direction="row"
-              spacing={2}
-              sx={{ margin: (theme) => theme.spacing(2, 0) }}
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ marginBottom: (theme) => theme.spacing(1) }}
+        >
+          <Typography variant="h4">Projects</Typography>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="text"
+              startIcon={<UploadOutlinedIcon />}
+              onClick={onImport}
+              data-test-id="import-project"
             >
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={onCreateClick}
-                data-test-id="add-project"
-              >
-                Create project
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<InputIcon />}
-                onClick={onImport}
-                data-test-id="import-project"
-              >
-                Import project
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<LightbulbIcon />}
-                onClick={goToExamples}
-                onAuxClick={goToExamples}
-                data-test-id="explore-examples"
-              >
-                Explore Examples
-              </Button>
-            </Stack>
+              Import
+            </Button>
+            <Button
+              variant="contained"
+              autoFocus
+              startIcon={<AddIcon />}
+              onClick={onCreateClick}
+              data-test-id="add-project"
+            >
+              New project
+            </Button>
+          </Stack>
+        </Stack>
+        <Tabs value={projectTabIndex} aria-label="Projects tabs">
+          {projectTabs.map((projectTab, index) => {
+            return (
+              <Tab
+                key={projectTab}
+                label={projectTab}
+                aria-label={projectTab}
+                sx={{
+                  minWidth: (theme) => theme.spacing(24),
+                  paddingLeft: (theme) => theme.spacing(1),
+                  paddingRight: (theme) => theme.spacing(1),
+                }}
+                onClick={() => onClickTab(index)}
+                onAuxClick={() => onClickTab(index)}
+              />
+            );
+          })}
+        </Tabs>
+        <ProjectTabPanel
+          id="projects"
+          value={projectTabIndex}
+          index={PROJECT_TAB.MY_PROJECTS}
+        >
+          {projectRows.length === 0 && isFetchingProjects ? (
+            <LinearProgress />
+          ) : (
             <DataTable<ProjectRow>
               id="project-list"
               isLoading={isFetchingProjects}
@@ -353,10 +419,46 @@ const ProjectsView: React.FC = () => {
               rows={projectRows}
               data-test-id="projects-table"
             />
-          </>
-        )}
+          )}
+        </ProjectTabPanel>
+        <ProjectTabPanel
+          id="orchest-examples"
+          value={projectTabIndex}
+          index={PROJECT_TAB.ORCHEST_EXAMPLES}
+        >
+          <Box sx={{ display: "flex", flexWrap: "wrap" }}>
+            {orchestExamples.map((item) => {
+              return (
+                <ExampleCard
+                  key={item.url}
+                  {...item}
+                  startImport={importWithUrl}
+                />
+              );
+            })}
+          </Box>
+        </ProjectTabPanel>
+        <ProjectTabPanel
+          id="community-examples"
+          value={projectTabIndex}
+          index={PROJECT_TAB.COMMUNITY_EXAMPLES}
+          sx={{ display: "flex", flexWrap: "wrap" }}
+        >
+          <Box sx={{ display: "flex", flexWrap: "wrap" }}>
+            <ContributeCard />
+            {communityExamples.map((item) => {
+              return (
+                <ExampleCard
+                  key={item.url}
+                  {...item}
+                  startImport={importWithUrl}
+                />
+              );
+            })}
+          </Box>
+        </ProjectTabPanel>
       </DropZone>
-    </Layout>
+    </TempLayout>
   );
 };
 
