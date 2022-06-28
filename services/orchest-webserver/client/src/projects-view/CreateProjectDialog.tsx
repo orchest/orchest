@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
@@ -11,7 +12,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import { useControlledIsOpen } from "./hooks/useControlledIsOpen";
 import { useProjectName } from "./hooks/useProjectName";
 
 export const CreateProjectDialog = ({
