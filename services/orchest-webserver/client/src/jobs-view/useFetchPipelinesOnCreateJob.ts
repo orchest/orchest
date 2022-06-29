@@ -30,7 +30,7 @@ export const useFetchPipelinesOnCreateJob = ({
     if (isCreateDialogOpen && pipelines?.length === 0) {
       closeCreateDialog();
       setConfirm(
-        "Warning",
+        "Note",
         "No pipeline found in this project. You need a pipeline to start with.",
         (resolve) => {
           navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
