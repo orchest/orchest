@@ -208,8 +208,8 @@ orchest patch --no-dev
 To stop the cluster, it's enough to call `minikube stop`, which will stop all the pods.
 
 ```{warning}
-If you do `minikube delete`, you will lose the local cache
-and creating the cluster again will take more time.
+If you do `minikube delete`, you will lose the Docker cache on the minikube node
+and building the images again (when creating the cluster) will take more time.
 ```
 
 (tests)=
