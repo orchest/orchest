@@ -297,6 +297,32 @@ In our CI we also run all of these checks together with
 {ref}`integration tests <integration-tests>` to make sure the codebase remains stable.
 To read more about testing, check out the {ref}`testing <tests>` section.
 
+### Switching branches
+
+If you have a running development installation with hot reloading, every time you make
+a change to the code it will be automatically reloaded.
+However, when switching git branches that are very different,
+or if changes to certain core components were made,
+this procedure might produce inconsistent results.
+A safer way to proceed is to uninstall Orchest before making the switch:
+
+```bash
+# Uninstall Orchest before proceeding
+orchest uninstall
+
+# Switch git branches
+git switch feature-branch
+
+# Rebuild containers, if needed
+scripts/build_containers.sh
+
+# Kill any pods that should reload
+# kubectl delete pods -n orchest -l "app.kubernetes.io/name=..."
+
+# Install Orchest again
+orchest install --dev
+```
+
 ### IDE & language servers
 
 ```{note}
