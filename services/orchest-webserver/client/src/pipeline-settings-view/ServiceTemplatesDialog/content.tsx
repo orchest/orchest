@@ -74,7 +74,7 @@ export const templates: ServiceTemplates = {
     label: "Redis",
     icon: <IconRedis />,
     config: {
-      exposed: false,
+      exposed: true,
       requires_authentication: true,
       image: "redis",
       name: "redis",

@@ -18,7 +18,11 @@ import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
-import { MenuItem, useContextMenu } from "./hooks/useContextMenu";
+import {
+  ContextMenuItem,
+  PipelineEditorContextMenu,
+  useContextMenu,
+} from "./hooks/useContextMenu";
 import { RunStepsType } from "./hooks/useInteractiveRuns";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
@@ -304,6 +308,7 @@ const PipelineStepComponent = React.forwardRef<
     [forceUpdate, keysDown, isContextMenuOpenState]
   );
 
+  const { handleContextMenu, ...contextMenuProps } = useContextMenu();
   const onContextMenu = async (e: React.MouseEvent) => {
     const ctrlKeyPressed = e.ctrlKey || e.metaKey;
     if (!selected) {
@@ -478,25 +483,21 @@ const PipelineStepComponent = React.forwardRef<
     [selectedSteps, steps]
   );
 
-  const menuItems: MenuItem[] = [
+  const menuItems: ContextMenuItem[] = [
     {
       type: "item",
       title: "Duplicate",
       disabled: isReadOnly || selectionContainsNotebooks,
-      action: ({ itemId }) => {
-        if (itemId) {
-          dispatch({ type: "DUPLICATE_STEPS", payload: [itemId] });
-        }
+      action: () => {
+        dispatch({ type: "DUPLICATE_STEPS", payload: [uuid] });
       },
     },
     {
       type: "item",
       title: "Delete",
       disabled: isReadOnly,
-      action: ({ itemId }) => {
-        if (itemId) {
-          dispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
-        }
+      action: () => {
+        dispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
       },
     },
     {
@@ -510,20 +511,16 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Open in JupyterLab",
       disabled: isReadOnly,
-      action: ({ event, itemId }) => {
-        if (itemId) {
-          dispatch({ type: "SET_OPENED_STEP", payload: itemId });
-          onOpenNotebook(event);
-        }
+      action: ({ event }) => {
+        dispatch({ type: "SET_OPENED_STEP", payload: uuid });
+        onOpenNotebook(event);
       },
     },
     {
       type: "item",
       title: "Open in File Viewer",
-      action: ({ event, itemId }) => {
-        if (itemId) {
-          onOpenFilePreviewView(event, itemId);
-        }
+      action: ({ event }) => {
+        onOpenFilePreviewView(event, uuid);
       },
     },
     {
@@ -533,29 +530,19 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Run this step",
       disabled: isReadOnly,
-      action: ({ itemId }) => {
-        if (itemId) {
-          executeRun([itemId], "selection");
-        }
+      action: () => {
+        executeRun([uuid], "selection");
       },
     },
     {
       type: "item",
       title: "Run incoming",
       disabled: isReadOnly,
-      action: ({ itemId }) => {
-        if (itemId) {
-          executeRun([itemId], "incoming");
-        }
+      action: () => {
+        executeRun([uuid], "incoming");
       },
     },
   ];
-
-  const { handleContextMenu, menu } = useContextMenu(
-    menuItems,
-    isContextMenuOpenState,
-    uuid
-  );
 
   return (
     <>
@@ -581,7 +568,7 @@ const PipelineStepComponent = React.forwardRef<
       >
         {children}
       </Box>
-      {menu}
+      <PipelineEditorContextMenu {...contextMenuProps} menuItems={menuItems} />
       {isCursorControlled && // the cursor-controlled step also renders all the interactive connections
         interactiveConnections.map((connection) => {
           if (!connection) return null;
