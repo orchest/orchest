@@ -37,11 +37,9 @@ class Token(db.Model):
 
     __tablename__ = "tokens"
 
-    token = db.Column(db.String(255))
+    token = db.Column(db.String(255), primary_key=True)
 
-    user = db.Column(
-        db.String(36), db.ForeignKey("users.uuid", ondelete="CASCADE"), primary_key=True
-    )
+    user = db.Column(db.String(36), db.ForeignKey("users.uuid", ondelete="CASCADE"))
 
     created = db.Column(
         db.DateTime,

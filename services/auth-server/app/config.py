@@ -7,7 +7,7 @@ class Config:
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/auth_server"
 
-    TOKEN_DURATION_HOURS = 24
+    TOKEN_DURATION_HOURS = 48
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
 

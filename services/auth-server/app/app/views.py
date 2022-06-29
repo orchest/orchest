@@ -54,7 +54,7 @@ def register_views(app):
         username = request.cookies.get("auth_username")
 
         token_creation_limit = datetime.datetime.utcnow() - datetime.timedelta(
-            days=app.config["TOKEN_DURATION_HOURS"]
+            hours=app.config["TOKEN_DURATION_HOURS"]
         )
         return db.session.query(
             db.session.query(Token)
@@ -138,6 +138,12 @@ def register_views(app):
             return redirect_response(redirect_url, redirect_type)
 
         if request.method == "POST":
+            token_creation_limit = datetime.datetime.utcnow() - datetime.timedelta(
+                hours=app.config["TOKEN_DURATION_HOURS"]
+            )
+            # Remove outdated tokens.
+            Token.query.filter(Token.created < token_creation_limit).delete()
+
             username = request.form.get("username")
             password = request.form.get("password")
             token = request.form.get("token")
@@ -157,9 +163,6 @@ def register_views(app):
                     can_login = False
 
                 if can_login:
-
-                    # remove old token if it exists
-                    Token.query.filter(Token.user == user.uuid).delete()
 
                     token = Token(user=user.uuid, token=str(secrets.token_hex(16)))
 
