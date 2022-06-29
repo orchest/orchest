@@ -52,29 +52,19 @@ def register_views(app):
         cookie_token = request.cookies.get("auth_token")
         username = request.cookies.get("auth_username")
 
-        user = User.query.filter(User.username == username).first()
-
-        if user is None:
-            return False
-
-        token = (
-            Token.query.filter(Token.token == cookie_token)
-            .filter(Token.user == user.uuid)
-            .first()
+        token_creation_limit = datetime.datetime.utcnow() - datetime.timedelta(
+            days=app.config["TOKEN_DURATION_HOURS"]
         )
-
-        if token is None:
-            return False
-        else:
-
-            token_creation_limit = datetime.datetime.utcnow() - datetime.timedelta(
-                days=app.config["TOKEN_DURATION_HOURS"]
+        return db.session.query(
+            db.session.query(Token)
+            .join(User)
+            .filter(
+                Token.token == cookie_token,
+                User.username == username,
+                Token.created > token_creation_limit,
             )
-
-            if token.created > token_creation_limit:
-                return True
-            else:
-                return False
+            .exists()
+        ).scalar()
 
     def serve_static_or_dev(path):
         file_path = os.path.join(app.config["STATIC_DIR"], path)
