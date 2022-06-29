@@ -38,7 +38,11 @@ const JupyterLabView: React.FC = () => {
   // data from route
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
 
-  const { getSession, toggleSession, state } = useSessionsContext();
+  const {
+    getSession,
+    toggleSession,
+    state: { sessionsIsLoading },
+  } = useSessionsContext();
 
   // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState<
@@ -59,7 +63,6 @@ const JupyterLabView: React.FC = () => {
       }),
     [pipelineUuid, projectUuid, getSession]
   );
-
   React.useEffect(() => {
     return () => {
       if (window.orchest.jupyter) {
@@ -111,7 +114,7 @@ const JupyterLabView: React.FC = () => {
 
   // Launch the session if it doesn't exist
   React.useEffect(() => {
-    if (!state.sessionsIsLoading && pipelineUuid && projectUuid) {
+    if (!sessionsIsLoading && pipelineUuid && projectUuid) {
       toggleSession({
         pipelineUuid,
         projectUuid,
@@ -131,13 +134,7 @@ const JupyterLabView: React.FC = () => {
         setHasEnvironmentCheckCompleted(true);
       });
     }
-  }, [
-    toggleSession,
-    state.sessionsIsLoading,
-    pipelineUuid,
-    projectUuid,
-    navigateTo,
-  ]);
+  }, [toggleSession, sessionsIsLoading, pipelineUuid, projectUuid, navigateTo]);
 
   React.useEffect(() => {
     if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
@@ -158,9 +155,7 @@ const JupyterLabView: React.FC = () => {
     conditionalRenderingOfJupyterLab();
 
     if (session?.status === "STOPPING") {
-      navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid },
-      });
+      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
     }
   }, [
     session?.status,
