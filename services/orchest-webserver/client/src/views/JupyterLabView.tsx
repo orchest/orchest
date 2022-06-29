@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import ProjectBasedView from "@/components/ProjectBasedView";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
@@ -198,24 +199,28 @@ const JupyterLabView = () => {
 
   return (
     <Layout disablePadding>
-      <Stack
-        justifyContent="center"
-        alignItems="center"
-        sx={{ height: "100%" }}
+      <ProjectBasedView
+        sx={{ padding: (theme) => theme.spacing(4), height: "100%" }}
       >
-        <Box
-          sx={{
-            textAlign: "center",
-            width: "100%",
-            maxWidth: "400px",
-          }}
+        <Stack
+          justifyContent="center"
+          alignItems="center"
+          sx={{ height: "100%" }}
         >
-          <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
-            Setting up JupyterLab…
-          </Typography>
-          <LinearProgress />
-        </Box>
-      </Stack>
+          <Box
+            sx={{
+              textAlign: "center",
+              width: "100%",
+              maxWidth: "400px",
+            }}
+          >
+            <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
+              Setting up JupyterLab…
+            </Typography>
+            <LinearProgress />
+          </Box>
+        </Stack>
+      </ProjectBasedView>
     </Layout>
   );
 };
