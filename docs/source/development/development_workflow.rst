@@ -47,14 +47,8 @@ which allows redeploying services and :ref:`incremental development <incremental
      --addons ingress \
      --mount-string="$(pwd):/orchest-dev-repo" --mount
 
-After the minikube cluster is created, follow the steps of a :ref:`regular installation <regular
-installation>`.
-
-Installing Orchest for development
-----------------------------------
-
-Development environment
-~~~~~~~~~~~~~~~~~~~~~~~
+Dependencies
+~~~~~~~~~~~~
 Run the code below to install all dependencies needed for :ref:`incremental
 development <incremental development>`, :ref:`building the docs <building the docs>`,
 :ref:`running tests <tests>`, and automatically running pre-commit hooks:
@@ -75,6 +69,9 @@ development <incremental development>`, :ref:`building the docs <building the do
    # Dependencies to build the docs
    python3 -m pip install -r docs/requirements.txt
 
+Installing Orchest for development
+----------------------------------
+
 Building services locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 To easily test code changes of an arbitrary service, you will need to 1) rebuild the service image
@@ -94,18 +91,23 @@ For example, to make changes on the ``orchest-api`` service, do the following:
     # If not active, set it
     eval $(minikube -p minikube docker-env)
 
-    # Save the Orchest version in use
-    export TAG=$(orchest version --json | jq -r .version)
+    # Use the latest Orchest version available
+    export TAG=$(curl \
+      "https://update-info.orchest.io/api/orchest/update-info/v3?version=None&is_cloud=False" \
+      | grep -oP "v\d+\.\d+\.\d+")
+    echo $TAG
 
-    # Build the desired image
-    scripts/build_container.sh -i orchest-api -t $TAG -o $TAG
+    # Rebuild the images that need it
+    scripts/build_container.sh -m -t $TAG -o $TAG
 
     # Kill the pods of the orchest-api, so that the new image gets used
     # when new pods are deployed
     kubectl delete pods -n orchest -l "app.kubernetes.io/name=orchest-api"
 
-Alternatively, you can run ``scripts/build_container.sh -m -t $TAG -o $TAG``
-to rebuild the minimal required set of images.
+Alternatively, you can run ``scripts/build_container.sh -M -t $TAG -o $TAG``
+to rebuild the absolulte minimal required set of images,
+or ``scripts/build_container.sh -i <image-name> -t $TAG -o $TAG``
+to rebuild a single image.
 
 Multi node
 ++++++++++
@@ -137,33 +139,38 @@ For this reason, we provide the following scripts:
    However, note that multi node mounting might not be supported by all minikube drivers.
    We have tested with docker, the default driver.
 
+Install Orchest in development mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+At this point, you are ready to install Orchest in your cluster using the development mode,
+which will read the local k8s manifests instead of the latest ones available online:
+
+.. code-block:: bash
+
+   orchest install --dev
+
 .. _incremental development:
 
 Incremental development (hot reloading)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The steps above allow you to rebuild the images for the services.
-In addition, you can also set Orchest to run in dev mode with ``orchest patch --dev``
-so that code changes are instantly reflected, without having to build the containers again.
-The services that support dev mode are:
+Finally, you can also set Orchest to run in dev mode with ``orchest patch --dev``
+so that code changes are instantly reflected, without having to build the containers
+every time you make changes to the code. The services that support incremental development are:
 
 - ``orchest-webserver``
 - ``orchest-api``
 - ``auth-server``
 
 .. note::
-   It is good practice to rebuild all containers :ref:`before committing <before committing>`
-   your changes.
+   Even if you do incremental development, it is good practice to rebuild all containers
+   :ref:`before committing <before committing>` your changes.
 
 .. code-block:: bash
 
-   # In case any new dependencies were changed or added they need to
-   # be installed.
+   # In case any new dependencies were changed or added they need to be installed
    pnpm i
 
-   # Run the client dev server for hot reloading of client (i.e. FE) files.
+   # Run the client dev server for hot reloading of client (i.e. FE) files
    pnpm run dev &
-
-   orchest start
 
    orchest patch --dev
 
@@ -173,6 +180,26 @@ The services that support dev mode are:
    🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
    :ref:`best practices <best practices>` and our `GitHub
    <https://github.com/orchest/orchest/issues>`_ to find interesting issues to work on.
+
+Teardown
+~~~~~~~~
+
+If at any point you want to disable incremental development, proceed as follows:
+
+.. code-block:: bash
+
+   # Kill the client dev server
+   kill $(pidof pnpm)
+
+   # Revert the patch
+   orchest patch --no-dev
+
+To stop the cluster, it's enough to call ``minikube stop``, which will stop all the pods.
+
+.. warning::
+
+   If you do ``minikube delete``, you will lose the local cache
+   and creating the cluster again will take more time.
 
 .. _tests:
 
