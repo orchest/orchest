@@ -75,7 +75,7 @@ depending on the deployment type.
 #### Single node
 
 Generally speaking, single node deployments make it far easier to test changes.
-For example, to make changes on the `orchest-api` service, do the following:
+First of all, make sure the in-node docker engine is active:
 
 ```bash
 # Verify if in-node docker engine is active
@@ -89,19 +89,30 @@ export TAG=$(curl \
   "https://update-info.orchest.io/api/orchest/update-info/v3?version=None&is_cloud=False" \
   | grep -oP "v\d+\.\d+\.\d+")
 echo $TAG
+```
 
+Now you're ready to rebuild the images that need it using the `build_container.sh` script:
+
+```bash
 # Rebuild the images that need it
 scripts/build_container.sh -m -t $TAG -o $TAG
+```
+
+Alternatively, you can run `scripts/build_container.sh -M -t $TAG -o $TAG`
+to rebuild the absolulte minimal required set of images.
+
+During development, you can also rebuild one specific image,
+and then kill the corresponding pod for the cluster to pick up the local image.
+For example, to make changes on the `orchest-api` service, do the following:
+
+```bash
+# Build the desired image
+scripts/build_container.sh -i orchest-api -t $TAG -o $TAG
 
 # Kill the pods of the orchest-api, so that the new image gets used
 # when new pods are deployed
 kubectl delete pods -n orchest -l "app.kubernetes.io/name=orchest-api"
 ```
-
-Alternatively, you can run `scripts/build_container.sh -M -t $TAG -o $TAG`
-to rebuild the absolulte minimal required set of images,
-or `scripts/build_container.sh -i <image-name> -t $TAG -o $TAG`
-to rebuild a single image.
 
 #### Multi node
 
