@@ -4,6 +4,7 @@ import secrets
 import uuid
 
 import requests
+import sqlalchemy
 from flask import jsonify, redirect, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -144,7 +145,7 @@ def register_views(app):
             # Check whether the given user exists.
             user = User.query.filter(User.username == username).first()
 
-            invalid_login_msg = "Username password combination does not exist."
+            invalid_login_msg = "Username does not exist."
             if user is None:
                 return jsonify({"error": invalid_login_msg}), 401
             else:
@@ -211,12 +212,10 @@ def register_views(app):
             if username == app.config.get("ORCHEST_CLOUD_RESERVED_USER"):
                 return jsonify({"error": "User is reserved."}), 409
 
-            user = User.query.filter(User.username == username).first()
-            if user is not None:
-                return jsonify({"error": "User already exists."}), 409
-            elif len(password) == 0:
+            if len(password) == 0:
                 return jsonify({"error": "Password cannot be empty."}), 400
-            else:
+
+            try:
                 user = User(
                     username=username,
                     password_hash=generate_password_hash(password),
@@ -225,8 +224,10 @@ def register_views(app):
 
                 db.session.add(user)
                 db.session.commit()
-
                 return ""
+            except sqlalchemy.exc.IntegrityError as e:
+                app.logger.warning(e)
+                return jsonify({"error": "User already exists."}), 409
         else:
             return jsonify({"error": "No username supplied."}), 400
 

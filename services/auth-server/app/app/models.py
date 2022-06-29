@@ -10,15 +10,13 @@ class User(db.Model):
     uuid = db.Column(
         db.String(36),
         primary_key=True,
-        # required to be referenced as a foreign key by the Token table,
-        # since postgres does not accept foreign keys referencing non
-        # unique fields
         unique=True,
     )
 
     username = db.Column(
         db.String(255),
         primary_key=True,
+        unique=True,
     )
 
     password_hash = db.Column(db.String(255), nullable=False)
