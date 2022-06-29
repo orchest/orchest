@@ -36,19 +36,13 @@ orchest install
           </div>
         </div>`,
       },
-      k3s: {
-        instructions: ``,
-      },
-      kind: {
-        instructions: ``,
-      },
       microK8s: {
-        instructions: `After <a href="https://minikube.sigs.k8s.io/docs/start/">microk8s</a> installation. following addons have to be enabled</p>
+        instructions: `After <a href="https://microk8s.io/#install-microk8s">microk8s</a> installation. following addons have to be enabled</p>
         <div class="highlight">
 <pre>
 microk8s enable hostpath-storage \\
 && microk8s enable dns \\
-&& microk8s enable ingress \\
+&& microk8s enable ingress
 </pre>
         </div>
         <p>Then orchest can be installed via orchest-cli</p>
@@ -59,22 +53,49 @@ orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
 </pre>
         </div>`,
       },
-      "Docker for Desktop": {
-        instructions: ``,
-      },
     },
     macOS: {
       minikube: {
-        instructions: ``,
+        instructions: `<p>After <a href="https://minikube.sigs.k8s.io/docs/start/">minikube</a> installation. then create a minikube cluster and configure ingress</p>
+        <div class="highlight">
+          <pre>minikube start --cpus 4 --addons ingress</pre>
+        </div>
+        <p>Then orchest can be installed via orchest-cli</p>
+          <div class="highlight">
+<pre>
+pip install --upgrade orchest-cli 
+orchest install
+</pre>
+        </div>
+        <p>Now the cluster can be reached on the IP returned by:</p>
+        <div class="highlight">
+          <pre>minikube ip</pre>        
+        </div>
+        <div class="admonition tip">
+          <p class="admonition-title">Tip</p>
+          <p>👉 We provide an automated convenience script for a complete minikube deployment. Taking care of installing <code class="docutils literal notranslate"><span class="pre">minikube</span></code>, installing the <code class="docutils literal notranslate"><span class="pre">orchest-cli</span></code> and installing Orchest, run it with:</p>
+          <div class="highlight">
+          <pre>curl -fsSL https://get.orchest.io > convenience_install.sh \\
+&& bash convenience_install.sh</pre>
+          </div>
+        </div>`,
       },
-      k3s: {
-        instructions: ``,
-      },
-      kind: {
-        instructions: ``,
-      },
-      "Docker for Desktop": {
-        instructions: ``,
+      microK8s: {
+        instructions: `After <a href="https://microk8s.io/#install-microk8s">microk8s</a> installation. following addons have to be enabled</p>
+        <div class="highlight">
+<pre>
+microk8s enable hostpath-storage \\
+&& microk8s enable dns \\
+&& microk8s enable ingress
+</pre>
+        </div>
+        <p>Then orchest can be installed via orchest-cli</p>
+        <div class="highlight">
+<pre>
+pip install --upgrade orchest-cli 
+orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
+</pre>
+        </div>`,
       },
     },
     Windows: {
@@ -111,9 +132,6 @@ orchest install
           </div>
         </div>
         `,
-      },
-      "Docker for Desktop": {
-        instructions: ``,
       },
     },
   };
