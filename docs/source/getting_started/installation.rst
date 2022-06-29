@@ -13,9 +13,6 @@ We provide three installation paths, installation through:
 * `our Cloud offering <https://cloud.orchest.io/signup>`_ which comes with a free, fully configured
   Orchest instance.
 
-.. raw:: html
-   :file: install-widget.html
-
 
 Prerequisites
 -------------
@@ -38,82 +35,10 @@ The supported operating systems are:
    💡 We recommend to install Orchest on a clean cluster to prevent it clashing with existing
    cluster-level resources.
 
-Setting up a ``minikube`` cluster
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you already have a Kubernetes cluster to install Orchest on, then continue with :ref:`installing
-Orchest <regular installation>`. In case you don't have a cluster yet, then `installing minikube
-<https://minikube.sigs.k8s.io/docs/start/>`_ is a good solution in order to try out Orchest.
-
-.. tip::
-   👉 We provide an automated convenience script for a complete minikube deployment. Taking care of
-   installing ``minikube``, installing the ``orchest-cli`` and installing Orchest, run it with:
-
-   .. code-block:: bash
-
-      curl -fsSL https://get.orchest.io > convenience_install.sh
-      bash convenience_install.sh
-
-After installing minikube, create a minikube cluster and continue with :ref:`installing Orchest
-<regular installation>`.
-
-.. code-block:: bash
-
-   # Create a minikube cluster and configure ingress.
-   minikube start --cpus 4 --addons ingress
-
-Setting up a ``microk8s`` cluster
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you want to try out Orchest on a ``microk8s`` cluster, a couple of addons have to be enabled for that, 
-after `microk8s <https://microk8s.io/#install-microk8s>` is installed, the following commands need to be executed..
-
-   .. code-block:: bash
-
-      microk8s enable hostpath-storage
-      microk8s enable dns
-      microk8s enable orchest
-
-After that continue with :ref:`installing Orchest <regular installation>`.
-
-
-Installing ``minikube`` and Orchest on Windows
-""""""""""""""""""""""""""""""""""""""""""""""
-
-For Orchest to work on Windows, Docker has to be configured to use WSL 2 (`Docker Desktop WSL 2
-backend <https://docs.docker.com/desktop/windows/wsl/>`_).
-
-For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
-opening the distribution using the Start menu or by `setting up the Windows Terminal
-<https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal>`_.
-
-.. _regular installation:
-
-Install ``orchest`` via ``orchest-cli``
----------------------------------------
-
-If you are using ``minikube``, the orchest can be installed by the following commands.
-
-.. code-block:: bash
-
-   pip install --upgrade orchest-cli 
-   orchest install
-
-and If you are using ``microk8s``, the following commands should be used.
-
-.. code-block:: bash
-
-   pip install --upgrade orchest-cli 
-   orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock --dev
-
-Now the cluster can be reached on the IP returned by:
-
-.. code-block:: bash
-   
-   # If you are using minikube
-   minikube ip
-
-.. tip::
-   🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
-   <quickstart>`.
+Install ``orchest``
+-------------------
+.. raw:: html
+   :file: install-widget.html
 
 Installing using an FQDN
 ~~~~~~~~~~~~~~~~~~~~~~~~
