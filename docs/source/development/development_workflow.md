@@ -72,7 +72,8 @@ To easily test code changes of an arbitrary service, you will need to 1) rebuild
 and 2) make it available to the k8s deployment. The procedure changes slightly
 depending on the deployment type.
 
-#### Single node
+`````{tab-set}
+````{tab-item} Single node
 
 Generally, single node deployments make it far easier to test changes.
 First of all, make sure the in-node docker engine is active:
@@ -113,8 +114,9 @@ scripts/build_container.sh -i orchest-api -t $TAG -o $TAG
 # when new pods are deployed
 kubectl delete pods -n orchest -l "app.kubernetes.io/name=orchest-api"
 ```
+````
 
-#### Multi node
+````{tab-item} Multi node
 
 The procedure above is not possible in multi node deployments though,
 and it's also error prone when it comes to setting the right tag, label, etc.
@@ -144,6 +146,8 @@ The redeploy and build_image scripts require the Orchest repository
 However, note that multi node mounting might not be supported by all minikube drivers.
 We have tested with docker, the default driver.
 ```
+````
+`````
 
 ### Install Orchest in development mode
 
