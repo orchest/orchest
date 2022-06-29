@@ -8,7 +8,7 @@
 
 ### Required software
 
-In order to code on Orchest, you need to have the following installed on your system:
+You need the following installed to contribute to Orchest:
 
 - Python version `3.x`
 - [Docker](https://docs.docker.com/get-docker/)
@@ -74,7 +74,7 @@ depending on the deployment type.
 
 #### Single node
 
-Generally speaking, single node deployments make it far easier to test changes.
+Generally, single node deployments make it far easier to test changes.
 First of all, make sure the in-node docker engine is active:
 
 ```bash
@@ -99,7 +99,7 @@ scripts/build_container.sh -m -t $TAG -o $TAG
 ```
 
 Alternatively, you can run `scripts/build_container.sh -M -t $TAG -o $TAG`
-to rebuild the absolulte minimal required set of images.
+to rebuild the absolute minimal required set of images.
 
 During development, you can also rebuild one specific image,
 and then kill the corresponding pod for the cluster to pick up the local image.
@@ -147,7 +147,7 @@ We have tested with docker, the default driver.
 
 ### Install Orchest in development mode
 
-At this point, you are ready to install Orchest in your cluster using the development mode,
+You are now ready to install Orchest in your cluster using the development mode,
 which will read the local k8s manifests instead of the latest ones available online:
 
 ```bash
@@ -449,7 +449,7 @@ run the `orchest-controller` by passing the following command line arguments:
 
 ## Building the docs
 
-Our docs are build using [Read the Docs](https://docs.readthedocs.io/) with Sphinx and written
+Our docs are built using [Read the Docs](https://docs.readthedocs.io/) with Sphinx and written
 in [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html).
 
 To build the docs, run:
