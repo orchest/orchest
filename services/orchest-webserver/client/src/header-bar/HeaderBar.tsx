@@ -31,10 +31,7 @@ export const HeaderBar = () => {
     >
       <Toolbar
         variant="dense"
-        sx={{
-          justifyContent: "space-between",
-          paddingLeft: "0 !important",
-        }}
+        sx={{ justifyContent: "space-between", paddingLeft: "0 !important" }}
       >
         <ProjectSelector />
         <Stack direction="row" justifyContent="flex-end">
