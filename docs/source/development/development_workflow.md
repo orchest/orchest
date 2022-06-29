@@ -151,6 +151,9 @@ At this point, you are ready to install Orchest in your cluster using the develo
 which will read the local k8s manifests instead of the latest ones available online:
 
 ```bash
+# If you haven't already, remember to rebuild the images that need it
+# scripts/build_container.sh -m -t $TAG -o $TAG
+
 orchest install --dev
 ```
 
