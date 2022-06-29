@@ -151,7 +151,7 @@ def register_views(app):
             # Check whether the given user exists.
             user = User.query.filter(User.username == username).first()
 
-            invalid_login_msg = "Username does not exist."
+            invalid_login_msg = "Username password combination does not exist."
             if user is None:
                 return jsonify({"error": invalid_login_msg}), 401
             else:
