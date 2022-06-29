@@ -9,8 +9,9 @@ import { siteMap } from "@/routingConfig";
 import { OrchestSession } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { matchPath, useLocation } from "react-router-dom";
+import { matchPath } from "react-router-dom";
 import { useInterval } from "./use-interval";
+import { useCustomRoute } from "./useCustomRoute";
 import { useFetcher } from "./useFetcher";
 
 type TSessionStatus = OrchestSession["status"];
@@ -27,13 +28,12 @@ type FetchSessionResponse = {
  * NOTE: useSessionsPoller should only be placed in HeaderBar
  */
 export const useSessionsPoller = () => {
+  const { location } = useCustomRoute();
   const { dispatch } = useSessionsContext();
   const { setAlert } = useAppContext();
   const {
     state: { pipeline, pipelineIsReadOnly },
   } = useProjectsContext();
-
-  const location = useLocation();
 
   // add the view paths that requires polling sessions
   const matchRooViews = matchPath(location.pathname, [

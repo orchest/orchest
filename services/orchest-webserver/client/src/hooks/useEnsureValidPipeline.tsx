@@ -3,7 +3,6 @@ import { useAutoFetchPipelines } from "@/contexts/useAutoFetchPipelines";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useLocation } from "react-router-dom";
 import { useLastSeenPipeline } from "./useLastSeenPipeline";
 
 // Note: this is the testable part of the hook `useEnsureValidPipeline`
@@ -113,8 +112,7 @@ export const useEnsureValidPipelineBase = (
  * `PipelineEditor`, `PipelineSettingsView`, `LogsView`, and `JupyterLabView`.
  */
 export const useEnsureValidPipeline = () => {
-  const location = useLocation();
-  const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
+  const { location, navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
 
   const navigateToPipeline = React.useCallback(
     (pipelineUuid: string, replace: boolean) => {
