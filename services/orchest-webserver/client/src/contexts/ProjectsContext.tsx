@@ -35,7 +35,6 @@ const ProjectsContext = React.createContext<IProjectsContext>(
 
 export type IProjectsContextState = {
   projectUuid?: string;
-  preProjectUuid?: string;
   pipelineIsReadOnly: boolean;
   pipelineSaveStatus: "saved" | "saving";
   pipelines: PipelineMetaData[] | undefined;
@@ -253,7 +252,6 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             setlastSeenProjectUuid("");
             return {
               ...state,
-              preProjectUuid: state.projectUuid,
               projectUuid: undefined,
               pipelines: undefined,
               pipeline: undefined,
@@ -271,7 +269,6 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           if (!foundProject) return state;
           return {
             ...state,
-            preProjectUuid: state.projectUuid,
             projectUuid: foundProject.uuid,
             pipelines: undefined,
             pipeline: undefined,
