@@ -4,14 +4,19 @@ import { useAsync } from "./useAsync";
 import { useFocusBrowserTab } from "./useFocusBrowserTab";
 import { useHasChanged } from "./useHasChanged";
 
+export type UseFetcherParams<
+  FetchedValue,
+  Data = FetchedValue
+> = RequestInit & {
+  disableFetchOnMount?: boolean;
+  revalidateOnFocus?: boolean;
+  transform?: (data: FetchedValue) => Data | Promise<Data>;
+  disableCaching?: boolean;
+};
+
 export function useFetcher<FetchedValue, Data = FetchedValue>(
   url: string | undefined,
-  params?: RequestInit & {
-    disableFetchOnMount?: boolean;
-    revalidateOnFocus?: boolean;
-    transform?: (data: FetchedValue) => Data | Promise<Data>;
-    disableCaching?: boolean;
-  }
+  params?: UseFetcherParams<FetchedValue, Data>
 ) {
   const {
     disableFetchOnMount,
@@ -38,7 +43,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     paramsRef.current = fetchParams;
   }, [fetchParams]);
 
-  const isFocused = useFocusBrowserTab();
+  const isFocused = useFocusBrowserTab(!revalidateOnFocus);
   const hasBrowserFocusChanged = useHasChanged(isFocused);
 
   const shouldReFetch =

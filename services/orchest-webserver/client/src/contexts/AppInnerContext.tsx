@@ -3,6 +3,7 @@ import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { NotificationWebhookSubscriber } from "@/notification-settings-view/notification-webhooks";
 import { useFetchNotificationSubscribers } from "@/notification-settings-view/useFetchNotificationSubscribers";
 import React from "react";
+import { useAutoFetchPipelines } from "./useAutoFetchPipelines";
 
 export type AppInnerContextType = {
   orchestVersion: string | null | undefined;
@@ -32,6 +33,11 @@ export const AppInnerContextProvider: React.FC = ({ children }) => {
       );
     }
   );
+
+  // This hook has to stay in a context,
+  // otherwise, it will fire unwanted requests when component mounts.
+  // And it cannot reside in ProjectsContext because it requires useCustomRoute.
+  useAutoFetchPipelines();
 
   return (
     <AppInnerContext.Provider

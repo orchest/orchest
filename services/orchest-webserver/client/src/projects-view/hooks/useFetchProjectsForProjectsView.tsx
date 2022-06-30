@@ -8,7 +8,7 @@ export const useFetchProjectsForProjectsView = () => {
   const { setAlert } = useAppContext();
   const { dispatch } = useProjectsContext();
   const {
-    projects: fetchedProjects = [],
+    projects: fetchedProjects,
     fetchProjects,
     setProjects,
     error: fetchProjectsError,

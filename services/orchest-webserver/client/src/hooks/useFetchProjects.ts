@@ -18,6 +18,7 @@ export const useFetchProjects = (params: {
   return {
     projects: data,
     error,
+    status,
     isFetchingProjects: status === "PENDING",
     fetchProjects: fetchData,
     setProjects: setData,

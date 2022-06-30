@@ -1,9 +1,6 @@
 import type { PipelineMetaData } from "@/types";
-import { fetcher, hasValue } from "@orchest/lib-utils";
-import React from "react";
-import { useAsync } from "./useAsync";
-import { useFocusBrowserTab } from "./useFocusBrowserTab";
-import { useHasChanged } from "./useHasChanged";
+import { fetcher } from "@orchest/lib-utils";
+import { useFetcher, UseFetcherParams } from "./useFetcher";
 
 export const fetchPipelines = (projectUuid: string) =>
   fetcher<{ result: PipelineMetaData[] }>(
@@ -12,41 +9,30 @@ export const fetchPipelines = (projectUuid: string) =>
 
 export const useFetchPipelines = (
   projectUuid: string | undefined,
-  revalidateOnFocus = true
+  params?: Omit<
+    UseFetcherParams<
+      { success: boolean; result: PipelineMetaData[] },
+      PipelineMetaData[]
+    >,
+    "transform"
+  >
 ) => {
-  const { run, data, setData, status, error } = useAsync<PipelineMetaData[]>();
+  const { revalidateOnFocus = true, ...rest } = params || {};
 
-  const makeRequest = React.useCallback(
-    (projectUuid?: string) => {
-      return hasValue(projectUuid)
-        ? run(fetchPipelines(projectUuid))
-        : Promise.reject();
-    },
-    [run]
-  );
-
-  const isFocused = useFocusBrowserTab();
-  const hasBrowserFocusChanged = useHasChanged(isFocused);
-  const shouldRefetch =
-    revalidateOnFocus && hasBrowserFocusChanged && isFocused;
-
-  const hasFetchedProjectUuid = React.useRef<string>();
-
-  React.useEffect(() => {
-    if (
-      hasValue(projectUuid) &&
-      (hasFetchedProjectUuid.current !== projectUuid || shouldRefetch)
-    ) {
-      hasFetchedProjectUuid.current = projectUuid;
-      makeRequest(projectUuid);
-    }
-  }, [shouldRefetch, makeRequest, projectUuid]);
+  const { data, error, status, fetchData, setData } = useFetcher<
+    { success: boolean; result: PipelineMetaData[] },
+    PipelineMetaData[]
+  >(projectUuid ? `/async/pipelines/${projectUuid}` : undefined, {
+    revalidateOnFocus,
+    ...rest,
+    transform: (response) => response.result,
+  });
 
   return {
     pipelines: data,
     error,
     isFetchingPipelines: status === "PENDING",
-    fetchPipelines: makeRequest,
+    fetchPipelines: fetchData,
     setPipelines: setData,
     status,
   };

@@ -1,6 +1,4 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
-import { siteMap, withinProjectRoutes } from "@/routingConfig";
+import { Project } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
@@ -10,32 +8,18 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useProjectSelector } from "./useProjectSelector";
 
 export const ProjectSelectorToggle = ({
   onClick,
   isOpen,
+  projects,
+  validProjectUuid,
 }: {
   onClick: () => void;
   isOpen: boolean;
+  projects: Project[];
+  validProjectUuid: string | undefined;
 }) => {
-  const { projectUuid: projectUuidFromRoute, navigateTo } = useCustomRoute();
-
-  const customNavigateTo = React.useCallback(
-    (projectUuid: string, path: string | undefined) => {
-      navigateTo(path || siteMap.pipeline.path, { query: { projectUuid } });
-    },
-    [navigateTo]
-  );
-
-  const matchWithinProjectRoutes = useMatchRoutePaths(withinProjectRoutes);
-
-  const { validProjectUuid, projects = [] } = useProjectSelector(
-    projectUuidFromRoute,
-    matchWithinProjectRoutes?.root || matchWithinProjectRoutes?.path,
-    customNavigateTo
-  );
-
   const projectName = React.useMemo(() => {
     const found = projects.find((project) => project.uuid === validProjectUuid);
     return found?.path;
