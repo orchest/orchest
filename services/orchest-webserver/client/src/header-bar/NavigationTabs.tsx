@@ -57,16 +57,18 @@ export const NavigationTabsBase = ({ disabled }: { disabled?: boolean }) => {
       }}
     >
       {navItems.map((menuItem, index) => {
+        const isDisabled = !menuItem.icon && disabled;
+        const hideTooltip = !menuItem.icon && !disabled;
         return (
           <Tooltip
             key={menuItem.label}
-            title={"Create a project fist"}
-            disableHoverListener={!disabled}
+            title={isDisabled ? "Create a project fist" : menuItem.label}
+            disableHoverListener={hideTooltip}
           >
             <Box>
               <CustomTab
                 key={menuItem.label}
-                disabled={disabled}
+                disabled={!menuItem.icon && disabled}
                 label={menuItem.icon ? undefined : menuItem.label}
                 icon={menuItem.icon}
                 aria-label={menuItem.label}
