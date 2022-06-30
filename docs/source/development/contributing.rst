@@ -3,10 +3,10 @@ Contributing to Orchest
 
 Thank you so much for contributing to Orchest!
 
-To get started, check out the :ref:`development workflow <development workflow>` section and pick up
+To get started, check out the :ref:`development workflow <development-workflow>` section and pick up
 your favorite `GitHub issue
 <https://github.com/orchest/orchest/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22>`_.
-Once you are ready to submit your PR, see :ref:`opening a pull request <opening a pr>`.
+Once you are ready to submit your PR, see :ref:`opening a pull request <opening-a-pr>`.
 
 If you need any help or input, then don't hesitate to ask on our `Slack Community
 <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_.
