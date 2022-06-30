@@ -26,18 +26,16 @@ const systemMenuItems: NavItem[] = [
   },
 ];
 
-export const NavigationTabsBase = ({ disabled }: { disabled?: boolean }) => {
+export const NavigationTabsBase = ({
+  disabled,
+  navItems,
+}: {
+  disabled?: boolean;
+  navItems: NavItem[];
+}) => {
   const { navigateTo } = useCustomRoute();
-  const { state } = useProjectsContext();
-  const matchRoute = useMatchRoutePaths(navigationRoutes);
 
-  const navItems = React.useMemo(() => {
-    const projectMenuItems = getProjectMenuItems(
-      state.projectUuid,
-      state.pipeline?.uuid
-    );
-    return [...projectMenuItems, ...systemMenuItems];
-  }, [state.projectUuid, state.pipeline?.uuid]);
+  const matchRoute = useMatchRoutePaths(navigationRoutes);
 
   const navTabIndex = useNavTabIndex({ matchRoute, navItems });
 
@@ -68,6 +66,7 @@ export const NavigationTabsBase = ({ disabled }: { disabled?: boolean }) => {
             <Box>
               <CustomTab
                 key={menuItem.label}
+                tabIndex={0}
                 disabled={!menuItem.icon && disabled}
                 label={menuItem.icon ? undefined : menuItem.label}
                 icon={menuItem.icon}
@@ -85,8 +84,14 @@ export const NavigationTabsBase = ({ disabled }: { disabled?: boolean }) => {
 
 export const NavigationTabs = () => {
   const {
-    state: { projects, hasLoadedProjects },
+    state: { projects, hasLoadedProjects, projectUuid, pipeline },
   } = useProjectsContext();
+
   const disabled = hasLoadedProjects && projects.length === 0;
-  return <NavigationTabsBase disabled={disabled} />;
+  const navItems = React.useMemo(() => {
+    const projectMenuItems = getProjectMenuItems(projectUuid, pipeline?.uuid);
+    return [...projectMenuItems, ...systemMenuItems];
+  }, [projectUuid, pipeline?.uuid]);
+
+  return <NavigationTabsBase disabled={disabled} navItems={navItems} />;
 };

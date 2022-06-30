@@ -11,11 +11,13 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const ProjectSelectorToggle = ({
+  tabIndex,
   onClick,
   isOpen,
   projects,
   validProjectUuid,
 }: {
+  tabIndex?: number;
   onClick: () => void;
   isOpen: boolean;
   projects: Project[];
@@ -29,6 +31,7 @@ export const ProjectSelectorToggle = ({
   return (
     <Button
       onClick={onClick}
+      tabIndex={tabIndex}
       id="navigation-toggle"
       sx={{
         height: (theme) => theme.spacing(7),
@@ -41,7 +44,7 @@ export const ProjectSelectorToggle = ({
         alignItems: "center",
         backgroundColor: (theme) =>
           isOpen ? alpha(theme.palette.primary.light, 0.1) : "unset",
-        ":hover": {
+        ":hover, :focus": {
           backgroundColor: (theme) =>
             isOpen
               ? alpha(theme.palette.primary.light, 0.2)

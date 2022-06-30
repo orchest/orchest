@@ -70,6 +70,7 @@ export const ProjectSelector = () => {
     <>
       <ProjectSelectorToggle
         onClick={toggle}
+        tabIndex={0}
         isOpen={isOpen}
         projects={projects}
         validProjectUuid={validProjectUuid}
