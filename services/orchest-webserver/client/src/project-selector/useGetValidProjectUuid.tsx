@@ -35,13 +35,14 @@ export const useGetValidProjectUuid = (
 
     const validProjectUuid = isProjectUuidFromRouteValid
       ? projectUuidFromRoute
-      : state.projects[0].uuid;
+      : state.projectUuid || state.projects[0].uuid;
 
     return validProjectUuid;
   }, [
     isMatchingProjectPaths,
     projectUuidFromRoute,
     state.hasLoadedProjects,
+    state.projectUuid,
     state.projects,
   ]);
 
