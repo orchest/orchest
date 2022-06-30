@@ -1,5 +1,7 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
@@ -15,7 +17,9 @@ export const useEnsureValidPipelineBase = (
   projectUuidFromRoute: string | undefined,
   pipelineUuid: string | undefined
 ) => {
+  const { setAlert } = useAppContext();
   const { state, dispatch } = useProjectsContext();
+  const { location, navigateTo } = useCustomRoute();
 
   const { projectUuid, pipelines, pipeline } = state;
 
@@ -51,6 +55,25 @@ export const useEnsureValidPipelineBase = (
     pipelineUuid,
     pipelineUuidToOpen,
     statesLoaded,
+  ]);
+
+  const isAtPipelineEditor = location.pathname === siteMap.pipeline.path;
+  React.useEffect(() => {
+    if (hasValue(pipelines) && !pipelineUuidToOpen && !isAtPipelineEditor) {
+      setAlert(
+        "Note",
+        "No pipeline found in this project. Create a pipeline first."
+      );
+      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+      return;
+    }
+  }, [
+    isAtPipelineEditor,
+    navigateTo,
+    pipelineUuidToOpen,
+    pipelines,
+    setAlert,
+    projectUuid,
   ]);
 
   React.useEffect(() => {
