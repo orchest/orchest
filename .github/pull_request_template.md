@@ -6,6 +6,7 @@ Fixes: #issue
 
 ## Checklist
 
+- [ ] I have manually tested my changes and I am happy with the result.
 - [ ] The documentation reflects the changes.
 - [ ] The PR branch is set up to merge into `dev` instead of `master`.
 - [ ] I haven't introduced breaking changes that would disrupt existing jobs, i.e. backwards compatibility is maintained.
