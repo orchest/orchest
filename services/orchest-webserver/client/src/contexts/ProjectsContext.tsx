@@ -114,6 +114,10 @@ const initialState: IProjectsContextState = {
 export const ProjectsContextProvider: React.FC = ({ children }) => {
   // Read and write localstorage in the context to ensure that the state
   // is updated synchronosely.
+  const [lastSeenProjectUuid, setlastSeenProjectUuid] = useLocalStorage<string>(
+    "pipelineEditor.lastSeenProjectUuid",
+    ""
+  );
   const [lastSeenPipelines, setlastSeenPipelines] = useLocalStorage<
     Record<string, string>
   >("pipelineEditor.lastSeenPipelines", {});
@@ -246,6 +250,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           return { ...state, pipelineIsReadOnly: action.payload };
         case "SET_PROJECT": {
           if (!action.payload) {
+            setlastSeenProjectUuid("");
             return {
               ...state,
               preProjectUuid: state.projectUuid,
@@ -261,6 +266,8 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           const foundProject = state.projects.find(
             (project) => project.uuid === action.payload
           );
+
+          setlastSeenProjectUuid(foundProject ? foundProject.uuid : "");
           if (!foundProject) return state;
           return {
             ...state,
@@ -273,9 +280,19 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         }
         case "SET_PROJECTS":
           cleanProjectsFromLocalstorage(action.payload);
+          const initialProjectUuid = action.payload.some(
+            (project) => project.uuid === lastSeenProjectUuid
+          )
+            ? lastSeenProjectUuid
+            : action.payload[0]?.uuid;
+
+          if (initialProjectUuid !== lastSeenProjectUuid)
+            setlastSeenProjectUuid(initialProjectUuid);
+
           return {
             ...state,
             projects: action.payload,
+            projectUuid: initialProjectUuid,
             hasLoadedProjects: true,
           };
         case "SET_BUILD_REQUEST": {
