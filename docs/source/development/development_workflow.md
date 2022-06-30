@@ -11,116 +11,281 @@
 You need the following installed to contribute to Orchest:
 
 - Python version `3.x`
-- [Docker](https://docs.docker.com/get-docker/)
-- [minikube](https://minikube.sigs.k8s.io/docs/start/)
-- [helm](https://helm.sh/docs/intro/install/) (if you intend to develop files in `/deploy`)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) (you might want to try out a tool
-  like `k9s` in the long run)
-- [pre-commit](https://pre-commit.com/#installation)
-  - [install go](https://go.dev/doc/install) if you work on the controller
-- [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) and [pnpm](https://pnpm.io/installation#using-npm)
-- [jq](https://stedolan.github.io/jq/) (useful when working with JSON in your terminal)
-- [Google Chrome](https://www.google.com/chrome/) (integration tests only)
+- [Go](https://go.dev/doc/install): Used by the `orchest-controller` and needed to run our
+  `scripts/build_container.sh` to build Orchest's images.
+- [Docker](https://docs.docker.com/get-docker/): To build Orchest's images.
+- [minikube](https://minikube.sigs.k8s.io/docs/start/): To deploy Orchest on a local cluster.
+- [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl): To manage k8s clusters.
+- [helm](https://helm.sh/docs/intro/install/): Needed to run our `scripts/build_container.sh` to
+  create the manifests to deploy the `orchest-controller`.
+- [pre-commit](https://pre-commit.com/#installation): Running pre-commit hooks, e.g. linters.
+- [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) and
+  [pnpm](https://pnpm.io/installation#using-npm): To develop the front-end code of Orchest.
+- [Google Chrome](https://www.google.com/chrome/): Requirement to run integration tests locally.
+
+Optional, but highly recommended:
+
+- [k9s](https://github.com/derailed/k9s): Terminal UI to manage k8s clusters.
+- [jq](https://stedolan.github.io/jq/): Useful when working with JSON in your terminal.
+- [gron](https://github.com/tomnomnom/gron): Make JSON greppable.
+
+### Dependencies
+
+After installing the required software, you need to configure the tools and install additional
+dependencies.
+
+**Note**: Make sure you are inside the root of the `orchest` repository.
+
+```bash
+# This will get you:
+# - pre-commit hooks
+# - Dependencies to run unit tests
+# - Frontend dependencies for incremental development
+# - Dependencies to build the docs
+# - Orchest's CLI to manage the Orchest Cluster on k8s
+
+pre-commit install \
+    && sudo apt-get install -y default-libmysqlclient-dev \
+    && npm run setup --install && pnpm i \
+    && python3 -m pip install -r docs/requirements.txt \
+    && python3 -m pip install -e orchest-cli
+```
 
 (cluster-mount)=
 
 ### Cluster for development
 
-Currently, the development scripts/tools assume that you are have Orchest installed in minikube.
-It is recommended, but not mandatory, to mount the Orchest repository in minikube,
-which allows redeploying services and {ref}`incremental development <incremental-development>`:
+Currently, the development scripts/tools assume that you are have Orchest installed on a local
+`minikube` cluster. It is highly recommended, but not mandatory, to mount the Orchest repository to
+minikube, which allows redeploying services and {ref}`incremental development <incremental-development>`:
+
+**Note**: Make sure you are inside the root of the `orchest` repository.
 
 ```bash
 # Delete any existing cluster
 minikube delete
 
-# Start minikube with the repository mounted in the required place.
-# Run this command while you are in the Orchest repository directory.
+# Start minikube with the repository mounted in the required place
+# for hot reloading to work.
 minikube start \
   --cpus 6 \
   --addons ingress \
   --mount-string="$(pwd):/orchest-dev-repo" --mount
 ```
 
-### Dependencies
-
-Run the code below to install all dependencies needed for
-{ref}`incremental development <incremental-development>`, {ref}`building the docs <building-the-docs>`,
-{ref}`running tests <tests>`, and automatically running pre-commit hooks:
-
-```bash
-# Make sure you are inside the orchest root directory
-
-# pre-commit hooks
-pre-commit install
-
-# Dependencies to run unit tests
-sudo apt-get install -y default-libmysqlclient-dev
-
-# Frontend dependencies for incremental development
-npm run setup --install && pnpm i
-
-# Dependencies to build the docs
-python3 -m pip install -r docs/requirements.txt
-```
-
 ## Installing Orchest for development
 
-### Building services locally
+Now that you have all dependencies and your cluster set up, you can install Orchest!
 
-To easily test code changes of an arbitrary service, you will need to 1) rebuild the service image
-and 2) make it available to the k8s deployment. The procedure changes slightly
-depending on the deployment type.
+It is important to realize that the Docker daemon of your host is different from the Docker daemon
+of minikube. This means that you need to build Orchest's images on the minikube node in order for
+minikube to be able to use them, otherwise it will pull the images from DockerHub. Note that
+DockerHub only contains images of Orchest releases and not active code changes from GitHub branches.
+Therefore it is important to configure your environment to use minikube's Docker daemon before
+building images.
+
+**Note**: The command below needs to be run in every terminal window you open!
+
+```bash
+# Use minikube's Docker daemon:
+eval $(minikube -p minikube docker-env)
+
+# Verify whether you are using minikube's Docker daemon
+echo "$MINIKUBE_ACTIVE_DOCKERD"
+```
+
+Next, you can build Orchest's images. Again, there is an important realization to make here and that
+is that the images you build are given a specific _tag_. This tag is used by the Orchest Controller
+(`orchest-controller`) to manage the Orchest Cluster, thus if you build images with tag `X` but
+deploy the `orchest-controller` with tag `Y`, then the `orchest-controller` will start pulling the
+images with tag `Y` from DockerHub (instead of using the locally built images with tag `X`). This
+will become important when {ref}`rebuilding images after making code changes <dev-rebuilding-images>`.
+
+Let's build the minimal set of required images for Orchest to run:
+
+```bash
+# Make sure you are still using minikube's Docker daemon!
+echo "$MINIKUBE_ACTIVE_DOCKERD"
+
+# Set the *tag* to the latest Orchest version available
+export TAG="$(orchest version --latest)"
+
+# Build the minimal set of images for Orchest to run
+scripts/build_container.sh -M -t $TAG -o $TAG
+```
+
+And finally, install Orchest:
+
+```bash
+# The --dev flag is used so that it doesn't pull in the release assets
+# from GitHub, but instead uses the manifests from the local filesystem
+# to deploy the Orchest Controller. NOTE: these manifests are automatically
+# generated when running the above `build_container.sh` script ;)
+orchest install --dev
+```
+
+Take a look in [k9s](https://github.com/derailed/k9s) and see how Orchest is getting installed.
+
+```{note}
+🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
+{ref}`best practices <best practices>` and our [GitHub](https://github.com/orchest/orchest/issues)
+to find interesting issues to work on.
+```
+
+## Redeploying Orchest after code changes
+
+```{warning}
+Running `minikube delete` is not recommend because it will lose the Docker cache on the minikube
+node, making rebuilding images very slow. Luckily, it is unlikely you will need to (ever) run
+`minikube delete`.
+```
+
+In this section we will go over the three ways to "redeploy" Orchest to reflect your code changes.
+Note that each approach is best used in specific circumstances.
+
+- _Using development mode to automatically reflect code changes._
+  ({ref}`link <incremental-development>`)
+  Best used when working on a PR and you would like to see your code changes immediately, especially
+  useful when developing the front-end (e.g. `orchest-webserver`).
+- _Rebuilding and redeploying only the service's image that you made changes to._
+  ({ref}`link <dev-rebuilding-images>`)
+  Best used when you know the code changes affect only one service and you don't want to fully
+  re-install Orchest. For example, you want to test a PR that only changed the front-end and want to
+  run in production mode instead of development mode.
+- _Completely uninstalling and installing Orchest again._
+  ({ref}`link <dev-reinstalling-orchest>`)
+  When making larger changes that touch different parts of Orchest, it is a good idea to fully
+  re-install Orchest. Do note that this should be rather fast because the Docker cache is used when
+  rebuilding images.
+
+(incremental-development)=
+
+### Development mode (incremental development)
+
+For the next steps, we assume you already installed Orchest.
+
+To get "hot reloading", you need to make sure your minikube cluster was created using the above
+{ref}`mount command <cluster-mount>` and have Orchest serve files from your local filesystem (that
+contains code changes) instead of the files baked into the Docker images. To achieve the latter,
+simply run:
+
+**Note**: Don't forget to disable cache (DevTools -> Disable cache) or force reload (Command/Ctrl + Shift + R)
+to see frontend changes propagate.
+
+```bash
+# In case any new dependencies were changed or added they need
+# to be installed
+pnpm i
+
+# Run the client dev server for hot reloading of client (i.e. FE)
+# files
+pnpm run dev
+
+# Get the Orchest Cluster to serve files from your local filesystem.
+orchest patch --dev
+```
+
+**Note**: Your cluster will stay in `--dev` mode until you unpatch it (using `orchest patch --no-dev`).
+
+The services that support incremental development are:
+
+- `orchest-webserver`
+- `orchest-api`
+- `auth-server`
+
+For changes to all other services, you need to redeploy the respective image as described in the
+next section.
+
+```{note}
+Even if you do incremental development, it is good practice to rebuild the containers and run in
+production mode before opening a PR (see {ref}`before committing <before-committing>`).
+```
+
+#### Teardown
+
+If at any point you want to disable incremental development, proceed as follows:
+
+```bash
+# Kill the client dev server
+kill $(pidof pnpm)
+
+# Revert the patch
+orchest patch --no-dev
+```
+
+To stop the cluster, it's enough to call `minikube stop`, which will stop all the pods.
+
+#### Switching branches
+
+If you have a running development installation with hot reloading, every time you make a change to
+the code it will be automatically reloaded. However, when switching git branches that are very
+different, or if changes to certain core components were made, this procedure might produce
+inconsistent results. A safer way to proceed is to uninstall Orchest before making the switch, see
+{ref}`re-installing Orchest <dev-reinstalling-orchest>`.
+
+(dev-rebuilding-images)=
+
+### Rebuilding images
+
+To easily test code changes of an arbitrary service, you will need to:
+
+1. rebuild the respective Docker image and
+2. make it available to the k8s deployment.
+
+The procedure changes slightly depending on the deployment type, i.e. single-node or multi-node.
+Luckily, in the majority of cases you will be using a local single-node cluster (like the one you
+created in the previous steps).
+
+For the sake of simplicity (without loss of generality), let's assume you made changes to the
+`orchest-api`.
 
 `````{tab-set}
 ````{tab-item} Single node
 
-Generally, single node deployments make it far easier to test changes.
-First of all, make sure the in-node docker engine is active:
+Generally, single node deployments make it far easier to test changes. First of all, configure your
+environment to use minikube's Docker daemon if you haven't already:
 
 ```bash
-# Verify if in-node docker engine is active
-[[ -n "${MINIKUBE_ACTIVE_DOCKERD}" ]] && echo $MINIKUBE_ACTIVE_DOCKERD || echo "Not active"
-
 # If not active, set it
 eval $(minikube -p minikube docker-env)
-
-# Use the latest Orchest version available
-export TAG=$(curl \
-  "https://update-info.orchest.io/api/orchest/update-info/v3?version=None&is_cloud=False" \
-  | grep -oP "v\d+\.\d+\.\d+")
-echo $TAG
 ```
 
-Now you're ready to rebuild the images that need it using the `build_container.sh` script:
+Now you're ready to rebuild the images, to which you made changes, using the `build_container.sh`
+script.
+
+**Note**: It is very important (otherwise your code changes will not be reflected) to use the *tag*
+equal to the currently running Orchest version.
 
 ```bash
+export TAG="$(orchest version)"
+
 # Rebuild the images that need it
-scripts/build_container.sh -m -t $TAG -o $TAG
+scripts/build_container.sh -i orchest-api -t $TAG -o $TAG
 ```
 
-Alternatively, you can run `scripts/build_container.sh -M -t $TAG -o $TAG`
-to rebuild the absolute minimal required set of images.
+Alternatively, you can run `scripts/build_container.sh -M -t $TAG -o $TAG` to rebuild the absolute
+minimal required set of images instead of cherry picking. This is not a bad idea given that the
+Docker cache will be used and thus rebuilds of unchanged images is quick.
 
-During development, you can also rebuild one specific image,
-and then kill the corresponding pod for the cluster to pick up the local image.
-For example, to make changes on the `orchest-api` service, do the following:
+Lastly, you need to make sure that your new `orchest-api` image is used by minikube. This can be
+done by deleting the respective `orchest-api` pod (which will automatically get replaced with a new
+pod serving your updated image thanks to Kubernetes deployments):
 
 ```bash
-# Build the desired image
-scripts/build_container.sh -i orchest-api -t $TAG -o $TAG
-
 # Kill the pods of the orchest-api, so that the new image gets used
-# when new pods are deployed
+# when new pod gets automatically deployed.
 kubectl delete pods -n orchest -l "app.kubernetes.io/name=orchest-api"
 ```
+
+Check out [k9s](https://github.com/derailed/k9s) if you want to use a visual interface instead
+(highly recommended!).
+
 ````
 
 ````{tab-item} Multi node
 
-The procedure above is not possible in multi node deployments though,
-and it's also error prone when it comes to setting the right tag, label, etc.
-For this reason, we provide the following scripts:
+The procedure for single-node is not possible in multi node deployments though. Since this is
+slightly more involved, we provide the following scripts:
 
 ```bash
 # Redeploy a service after building the image using the repo code.
@@ -149,71 +314,27 @@ We have tested with docker, the default driver.
 ````
 `````
 
-### Install Orchest in development mode
+(dev-reinstalling-orchest)=
 
-You are now ready to install Orchest in your cluster using the development mode,
-which will read the local k8s manifests instead of the latest ones available online:
+### Re-installing Orchest
+
+When making larger changes or when wanting to check out a different branch for example, it is a good
+idea to re-install Orchest. Rest assured, this should be fairly quick!
 
 ```bash
-# If you haven't already, remember to rebuild the images that need it
-# scripts/build_container.sh -m -t $TAG -o $TAG
+# Uninstall Orchest before proceeding
+orchest uninstall
 
+# Switch git branches if applicable
+git switch feature-branch
+
+# Rebuild containers, if needed
+eval $(minikube -p minikube docker-env)
+export TAG="$(orchest version --latest)"
+scripts/build_container.sh -M -t $TAG -o $TAG
+
+# Install Orchest again
 orchest install --dev
-```
-
-(incremental-development)=
-
-### Incremental development (hot reloading)
-
-Finally, you can also set Orchest to run in dev mode with `orchest patch --dev`
-so that code changes are instantly reflected, without having to build the containers
-every time you make changes to the code. The services that support incremental development are:
-
-- `orchest-webserver`
-- `orchest-api`
-- `auth-server`
-
-```{note}
-Even if you do incremental development, it is good practice to rebuild all containers
-{ref}`before committing <before-committing>` your changes.
-```
-
-```bash
-# In case any new dependencies were changed or added they need to be installed
-pnpm i
-
-# Run the client dev server for hot reloading of client (i.e. FE) files
-pnpm run dev &
-
-orchest patch --dev
-```
-
-**Don't forget to disable cache (DevTools -> Disable cache) or force reload (Command/Ctrl + Shift + R)
-to see frontend changes propagate.**
-
-```{note}
-🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
-{ref}`best practices <best practices>` and our [GitHub](https://github.com/orchest/orchest/issues)
-to find interesting issues to work on.
-```
-
-### Teardown
-
-If at any point you want to disable incremental development, proceed as follows:
-
-```bash
-# Kill the client dev server
-kill $(pidof pnpm)
-
-# Revert the patch
-orchest patch --no-dev
-```
-
-To stop the cluster, it's enough to call `minikube stop`, which will stop all the pods.
-
-```{warning}
-If you do `minikube delete`, you will lose the Docker cache on the minikube node
-and building the images again (when creating the cluster) will take more time.
 ```
 
 (tests)=
@@ -281,47 +402,27 @@ Integration tests are being ported to k8s, stay tuned :)!
 Make sure your development environment is set up correctly
 (see {ref}`prerequisites <development-prerequisites>`)
 so that pre-commit can automatically take care of running the appropriate
-formatters and linters when running `git commit`. Lastly, it is good practice to rebuild all
-containers (and restart Orchest) to do some manual testing and running the
-{ref}`unit tests <unit-tests>` to make sure your changes didn't break anything:
+formatters and linters when running `git commit`.
 
-```bash
-# Rebuild containers to do manual testing.
-scripts/build_containers.sh
+In our CI we also run a bunch of checks, such as unit tests and {ref}`integration tests <integration-tests>` to make sure the codebase remains stable. To read more about testing, check out
+the {ref}`testing <tests>` section.
 
-# Run unit tests.
-scripts/run_tests.sh
+(opening-a-pr)=
+
+## Opening a PR
+
+```{note}
+When opening a PR please change the base in which you want to merge from `master` to `dev`.
+The [GitHub docs](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-base-branch-of-a-pull-request)
+describe how this can be done.
 ```
 
-In our CI we also run all of these checks together with
-{ref}`integration tests <integration-tests>` to make sure the codebase remains stable.
-To read more about testing, check out the {ref}`testing <tests>` section.
+We use [gitflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) as
+our branching model with `master` and `dev` being the described `master` and `develop`
+branches respectively. Therefore, we require PRs to be merged into `dev` instead of `master`.
 
-### Switching branches
-
-If you have a running development installation with hot reloading, every time you make
-a change to the code it will be automatically reloaded.
-However, when switching git branches that are very different,
-or if changes to certain core components were made,
-this procedure might produce inconsistent results.
-A safer way to proceed is to uninstall Orchest before making the switch:
-
-```bash
-# Uninstall Orchest before proceeding
-orchest uninstall
-
-# Switch git branches
-git switch feature-branch
-
-# Rebuild containers, if needed
-scripts/build_containers.sh
-
-# Kill any pods that should reload
-# kubectl delete pods -n orchest -l "app.kubernetes.io/name=..."
-
-# Install Orchest again
-orchest install --dev
-```
+When opening the PR a checklist will automatically appear to guide you to successfully completing
+your PR 🏁
 
 ### IDE & language servers
 
@@ -497,23 +598,6 @@ you've installed the needed requirements to builds the docs:
 python3 -m pip install -r docs/requirements.txt
 ```
 ````
-
-(opening-a-pr)=
-
-## Opening a PR
-
-```{note}
-When opening a PR please change the base in which you want to merge from `master` to `dev`.
-The [GitHub docs](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-base-branch-of-a-pull-request)
-describe how this can be done.
-```
-
-We use [gitflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) as
-our branching model with `master` and `dev` being the described `master` and `develop`
-branches respectively. Therefore, we require PRs to be merged into `dev` instead of `master`.
-
-When opening the PR a checklist will automatically appear to guide you to successfully completing
-your PR 🏁
 
 (environment-base-images-changes)=
 
