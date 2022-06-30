@@ -1,4 +1,4 @@
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 
 export type CancelablePromise<T> = {
@@ -7,34 +7,41 @@ export type CancelablePromise<T> = {
 };
 
 // https://reactjs.org/blog/2015/12/16/ismounted-antipattern.html
-function _makeCancelable<T>(promise: Promise<T>) {
+function _makeCancelable<T>(promise: Promise<T>, callback?: () => void) {
   let isCanceled = false;
   const wrappedPromise = new Promise<T>((resolve, reject) => {
     promise
       .then((val) => (isCanceled ? reject({ isCanceled }) : resolve(val)))
-      .catch((error) => (isCanceled ? reject({ isCanceled }) : reject(error)));
+      .catch((error) => (isCanceled ? reject({ isCanceled }) : reject(error)))
+      .finally(() => callback?.());
   });
   return {
     promise: wrappedPromise,
     cancel() {
       isCanceled = true;
+      callback?.();
     },
   };
 }
 
 export function useCancelablePromise() {
-  const cancelablePromises = React.useRef<CancelablePromise<unknown>[]>([]);
+  const cancelablePromises = React.useRef<
+    Record<string, CancelablePromise<unknown>>
+  >({});
 
   const makeCancelable = React.useCallback(function <T = void>(p: Promise<T>) {
-    const cPromise = _makeCancelable(p);
-    cancelablePromises.current.push(cPromise);
+    const uuid = uuidv4();
+    const cPromise = _makeCancelable(p, () => {
+      delete cancelablePromises.current[uuid]; // Use the callback to clean up the promise.
+    });
+    cancelablePromises.current[uuid] = cPromise;
     return cPromise.promise;
   }, []);
 
   const cancelAll = React.useCallback(() => {
     () => {
-      cancelablePromises.current.forEach((p) => p.cancel());
-      cancelablePromises.current = [];
+      Object.values(cancelablePromises.current).forEach((p) => p.cancel());
+      cancelablePromises.current = {};
     };
   }, []);
 
