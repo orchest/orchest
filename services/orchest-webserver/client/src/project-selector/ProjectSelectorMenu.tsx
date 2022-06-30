@@ -8,7 +8,7 @@ import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import AddIcon from "@mui/icons-material/Add";
-import UploadOutlinedIcon from "@mui/icons-material/UploadOutlined";
+import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
@@ -44,7 +44,13 @@ export const ProjectSelectorMenu = ({
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
   const [importUrl, setImportUrl] = useImportUrlFromQueryString("");
   const [searchTerm, setSearchTerm] = React.useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm);
+  const debouncedSearchTerm = useDebounce(searchTerm.trim());
+
+  const filteredProjects = React.useMemo(() => {
+    return projects.filter((project) =>
+      project.path.includes(debouncedSearchTerm)
+    );
+  }, [debouncedSearchTerm, projects]);
 
   return (
     <ProjectSelectorPopover open={open} onClose={onClose}>
@@ -54,7 +60,7 @@ export const ProjectSelectorMenu = ({
           justifyContent="space-around"
           sx={{
             width: "100%",
-            padding: (theme) => theme.spacing(2, 2, 0),
+            padding: (theme) => theme.spacing(1, 2, 0),
           }}
         >
           <CreateProjectDialog projects={projects} postCreateCallback={onClose}>
@@ -90,7 +96,7 @@ export const ProjectSelectorMenu = ({
             {(onOpen) => (
               <Button
                 variant="text"
-                startIcon={<UploadOutlinedIcon />}
+                startIcon={<DownloadOutlinedIcon />}
                 onClick={onOpen}
                 sx={{ flex: 1 }}
                 data-test-id="import-project"
@@ -108,7 +114,7 @@ export const ProjectSelectorMenu = ({
         >
           <SearchField
             autoFocus
-            placeholder="Search projects"
+            placeholder="Search Projects"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             onKeyDown={(e) => {
@@ -121,32 +127,35 @@ export const ProjectSelectorMenu = ({
       </Box>
       <MenuList
         sx={{
-          minHeight: (theme) => `calc(100vh - ${theme.spacing(27.5)})`,
-          maxHeight: (theme) => `calc(100vh - ${theme.spacing(27.5)})`,
+          minHeight: (theme) => `calc(100vh - ${theme.spacing(29.5)})`,
+          maxHeight: (theme) => `calc(100vh - ${theme.spacing(29.5)})`,
           overflowY: "auto",
         }}
       >
-        {projects
-          .filter((project) => project.path.includes(debouncedSearchTerm))
-          .map((project, index) => {
-            return (
-              <MenuItem
-                key={project.uuid}
-                ref={(ref) => {
-                  if (index === 0) menuFirstItemRef.current = ref;
-                }}
-                selected={validProjectUuid === project.uuid}
-                onClick={() => selectProject(project.uuid)}
+        {filteredProjects.length === 0 && debouncedSearchTerm.length > 0 && (
+          <MenuItem disabled>
+            <Typography variant="body2">No Projects found</Typography>
+          </MenuItem>
+        )}
+        {filteredProjects.map((project, index) => {
+          return (
+            <MenuItem
+              key={project.uuid}
+              ref={(ref) => {
+                if (index === 0) menuFirstItemRef.current = ref;
+              }}
+              selected={validProjectUuid === project.uuid}
+              onClick={() => selectProject(project.uuid)}
+            >
+              <Typography
+                title={project.path}
+                sx={ellipsis((theme) => theme.spacing(40))}
               >
-                <Typography
-                  title={project.path}
-                  sx={ellipsis((theme) => theme.spacing(40))}
-                >
-                  {project.path}
-                </Typography>
-              </MenuItem>
-            );
-          })}
+                {project.path}
+              </Typography>
+            </MenuItem>
+          );
+        })}
       </MenuList>
       <Button
         disableRipple
@@ -155,7 +164,7 @@ export const ProjectSelectorMenu = ({
           width: "100%",
           borderTop: (theme) => `1px solid ${theme.borderColor}`,
           borderRadius: 0,
-          height: (theme) => theme.spacing(6),
+          height: (theme) => theme.spacing(8),
           verticalAlign: "middle",
         }}
         onClick={goToProjects}
