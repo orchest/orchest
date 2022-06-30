@@ -62,7 +62,7 @@ const generateHandleVisibilityChange = (
   }
 };
 
-export const useFocusBrowserTab = () => {
+export const useFocusBrowserTab = (disabled?: boolean) => {
   const handleVisibilityChangeRef = React.useRef<() => void>();
   const [isFocused, setIsFocused] = React.useState(
     hasWindow && document[visibilityState] === "visible"
@@ -74,6 +74,7 @@ export const useFocusBrowserTab = () => {
   }
   React.useEffect(() => {
     if (
+      !disabled &&
       hasWindow &&
       document[hidden] !== undefined &&
       !!handleVisibilityChangeRef.current
@@ -92,6 +93,6 @@ export const useFocusBrowserTab = () => {
         );
       }
     };
-  }, []);
+  }, [disabled]);
   return isFocused;
 };
