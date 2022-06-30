@@ -11,12 +11,9 @@ export const useProjectSelector = (
   targetRoutePath: string | undefined,
   customNavigateTo: (projectUuid: string, path: string | undefined) => void
 ) => {
-  // ProjectSelector only renders when the current view only concerns ONE project,
-  // which can be inferred from the route path.
-  // e.g.  `/pipeline`, `/jobs`.
-  const isMatchingProjectPaths = hasValue(targetRoutePath);
-  const projects = useFetchProjectsForSelector(isMatchingProjectPaths);
+  const projects = useFetchProjectsForSelector();
 
+  const isMatchingProjectPaths = hasValue(targetRoutePath);
   const [
     validProjectUuid,
     shouldShowInvalidProjectUuidAlert,
