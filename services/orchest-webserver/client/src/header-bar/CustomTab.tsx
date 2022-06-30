@@ -16,6 +16,9 @@ export const CustomTab = ({ label, icon, onClick, ...props }: TabProps) => {
         "&.Mui-selected": {
           color: (theme) => theme.palette.common.black,
         },
+        ":focus": {
+          backgroundColor: (theme) => theme.palette.action.hover,
+        },
       }}
       aria-controls={`navigate-to-${label}`}
       onClick={onClick}

@@ -42,6 +42,7 @@ export const ProjectSelectorMenu = ({
   };
 
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
+  const createButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const [importUrl, setImportUrl] = useImportUrlFromQueryString("");
   const [searchTerm, setSearchTerm] = React.useState("");
   const debouncedSearchTerm = useDebounce(searchTerm.trim());
@@ -67,7 +68,8 @@ export const ProjectSelectorMenu = ({
             {(onOpen) => (
               <Button
                 variant="text"
-                autoFocus
+                ref={createButtonRef}
+                tabIndex={0}
                 startIcon={<AddIcon />}
                 onClick={onOpen}
                 sx={{ flex: 1 }}
@@ -96,6 +98,7 @@ export const ProjectSelectorMenu = ({
             {(onOpen) => (
               <Button
                 variant="text"
+                tabIndex={0}
                 startIcon={<DownloadOutlinedIcon />}
                 onClick={onOpen}
                 sx={{ flex: 1 }}
@@ -115,11 +118,15 @@ export const ProjectSelectorMenu = ({
           <SearchField
             autoFocus
             placeholder="Search Projects"
+            tabIndex={0}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") {
                 menuFirstItemRef.current?.focus();
+              }
+              if (e.key === "ArrowUp") {
+                createButtonRef.current?.focus();
               }
             }}
           />
@@ -127,8 +134,8 @@ export const ProjectSelectorMenu = ({
       </Box>
       <MenuList
         sx={{
-          minHeight: (theme) => `calc(100vh - ${theme.spacing(29.5)})`,
-          maxHeight: (theme) => `calc(100vh - ${theme.spacing(29.5)})`,
+          minHeight: (theme) => `calc(100vh - ${theme.spacing(29)})`,
+          maxHeight: (theme) => `calc(100vh - ${theme.spacing(29)})`,
           overflowY: "auto",
         }}
       >
@@ -141,6 +148,7 @@ export const ProjectSelectorMenu = ({
           return (
             <MenuItem
               key={project.uuid}
+              tabIndex={0}
               ref={(ref) => {
                 if (index === 0) menuFirstItemRef.current = ref;
               }}
@@ -158,8 +166,8 @@ export const ProjectSelectorMenu = ({
         })}
       </MenuList>
       <Button
-        disableRipple
         variant="text"
+        tabIndex={0}
         sx={{
           width: "100%",
           borderTop: (theme) => `1px solid ${theme.borderColor}`,
