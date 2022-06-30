@@ -35,6 +35,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 
 export const SearchField = ({
   autoFocus,
+  tabIndex,
   value,
   disabled,
   onChange,
@@ -42,6 +43,7 @@ export const SearchField = ({
   onKeyDown,
 }: {
   autoFocus?: boolean;
+  tabIndex?: number;
   value: string;
   disabled?: boolean;
   onChange: InputBaseProps["onChange"];
@@ -55,6 +57,7 @@ export const SearchField = ({
       </SearchIconWrapper>
       <StyledInputBase
         autoFocus={autoFocus}
+        tabIndex={tabIndex}
         placeholder={placeholder}
         inputProps={{ "aria-label": placeholder }}
         value={value}

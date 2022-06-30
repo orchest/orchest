@@ -2,12 +2,12 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
 import React from "react";
 
-export const useFetchProjectsForSelector = (shouldFetch: boolean) => {
+export const useFetchProjectsForSelector = () => {
   const { state, dispatch } = useProjectsContext();
 
   const { projects, isFetchingProjects } = useFetchProjects({
     // only need to fetch if `state.projects` is undefined.
-    shouldFetch: shouldFetch && !state.hasLoadedProjects,
+    shouldFetch: !state.hasLoadedProjects,
     skipDiscovery: true,
   });
 
