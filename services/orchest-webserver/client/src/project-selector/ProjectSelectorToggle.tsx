@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
+import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -39,7 +40,13 @@ export const ProjectSelectorToggle = ({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: (theme) =>
-          isOpen ? theme.palette.action.hover : "unset",
+          isOpen ? alpha(theme.palette.primary.light, 0.1) : "unset",
+        ":hover": {
+          backgroundColor: (theme) =>
+            isOpen
+              ? alpha(theme.palette.primary.light, 0.2)
+              : theme.palette.action.hover,
+        },
       }}
       disableRipple
     >
