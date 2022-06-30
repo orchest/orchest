@@ -1,61 +1,58 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useAutoFetchPipelines } from "@/contexts/useAutoFetchPipelines";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useLastSeenPipeline } from "./useLastSeenPipeline";
 
 // Note: this is the testable part of the hook `useEnsureValidPipeline`
 // as we want to separate it from the global contexts: `useCustomRoute` and `useAppContext`.
 // This hook should NOT be used alone except in jest tests.
 export const useEnsureValidPipelineBase = (
-  navigateToPipeline: (pipelineUuid: string, replace: boolean) => void,
+  customNavigateTo: (
+    projectUuid: string,
+    pipelineUuid: string,
+    replace: boolean
+  ) => void,
+  projectUuidFromRoute: string | undefined,
   pipelineUuid: string | undefined
 ) => {
   const { state, dispatch } = useProjectsContext();
 
-  const { pipelines, pipeline, newPipelineUuid, projectUuid } = state;
-
-  const fetchedPipelines = useAutoFetchPipelines(projectUuid, pipelineUuid);
-
-  const [lastSeenPipelineUuid, setlastSeenPipelines] = useLastSeenPipeline();
+  const { projectUuid, pipelines, pipeline } = state;
 
   const foundPipelineUuidFromRoute = React.useMemo(() => {
     if (!pipelines) return undefined;
-    return (pipelines || []).find((pipeline) => pipelineUuid === pipeline.uuid)
-      ?.uuid;
+    return (pipelines || []).find((p) => pipelineUuid === p.uuid)?.uuid;
   }, [pipelines, pipelineUuid]);
 
   const validPipelineUuid = React.useMemo(() => {
-    if (foundPipelineUuidFromRoute) return foundPipelineUuidFromRoute;
-
-    return (pipelines || []).find(
-      (pipeline) => lastSeenPipelineUuid === pipeline.uuid
-    )?.uuid;
-  }, [pipelines, lastSeenPipelineUuid, foundPipelineUuidFromRoute]);
+    return foundPipelineUuidFromRoute || pipeline?.uuid;
+  }, [foundPipelineUuidFromRoute, pipeline?.uuid]);
 
   const pipelineUuidToOpen =
     validPipelineUuid || pipelines?.find(Boolean)?.uuid;
 
-  /**
-   * Redirect only when
-   * - state.pipeline is not yet loaded.
-   * - pipelineUuid is invalid (undefined or is different from pipelineUuidToOpen)
-   * And the above conditions are met usually when
-   * - switching projects (because pipelineUuid is undefined)
-   * - enter from non-project to project-related views, e.g. settings -> pipeline, because pipelineUuid is undefined.
-   * - the current pipeline is deleted, then the given pipelineUuid doesn't exist anymore
-   */
-  const shouldRedirect = React.useMemo(() => {
+  const statesLoaded = React.useMemo(() => {
     return (
       hasValue(pipelines) &&
       hasValue(projectUuid) &&
-      hasValue(pipelineUuidToOpen) &&
-      (pipelineUuidToOpen !== pipelineUuid || !pipelineUuid)
+      hasValue(pipelineUuidToOpen)
     );
-  }, [pipelines, projectUuid, pipelineUuid, pipelineUuidToOpen]);
+  }, [pipelines, projectUuid, pipelineUuidToOpen]);
 
-  const hasRedirected = React.useRef(false);
+  const shouldRedirectPipeline = React.useMemo(() => {
+    return (
+      statesLoaded &&
+      projectUuidFromRoute === projectUuid && // Only redirect to pipeline when project is already redirected.
+      pipelineUuidToOpen !== pipelineUuid
+    );
+  }, [
+    projectUuidFromRoute,
+    projectUuid,
+    pipelineUuid,
+    pipelineUuidToOpen,
+    statesLoaded,
+  ]);
+
   React.useEffect(() => {
     if (pipelineUuidToOpen && pipelineUuidToOpen !== pipeline?.uuid) {
       dispatch({
@@ -63,44 +60,25 @@ export const useEnsureValidPipelineBase = (
         payload: { uuid: pipelineUuidToOpen },
       });
     }
-    if (pipelineUuidToOpen && pipelineUuidToOpen !== lastSeenPipelineUuid) {
-      setlastSeenPipelines((current) => {
-        if (!projectUuid || !current) return current;
-        return { ...current, [projectUuid]: pipelineUuidToOpen };
-      });
-    }
+  }, [dispatch, pipeline?.uuid, pipelineUuidToOpen]);
 
-    if (shouldRedirect && pipelineUuidToOpen && !hasRedirected.current) {
+  React.useEffect(() => {
+    if (shouldRedirectPipeline && pipelineUuidToOpen && projectUuid) {
       // Navigate to a valid pipelineUuid.
-      hasRedirected.current = true;
-      navigateToPipeline(
+      customNavigateTo(
+        projectUuid,
         pipelineUuidToOpen,
         !foundPipelineUuidFromRoute || !validPipelineUuid
       );
     }
   }, [
-    dispatch,
+    customNavigateTo,
+    shouldRedirectPipeline,
     projectUuid,
-    pipeline?.uuid,
-    setlastSeenPipelines,
-    navigateToPipeline,
     pipelineUuidToOpen,
-    shouldRedirect,
     validPipelineUuid,
-    lastSeenPipelineUuid,
     foundPipelineUuidFromRoute,
   ]);
-
-  // Note that `fetchedPipelines` is used here instead of `state.pipelines`.
-  // In order to determine if the given pipeline UUID is valid,
-  // it is only possible to check pipelineUuid and the response before redirect happens.
-  const shouldShowAlert =
-    hasValue(fetchedPipelines) &&
-    hasValue(pipelineUuid) &&
-    fetchedPipelines?.every((p) => p.uuid !== pipelineUuid) &&
-    pipelineUuid !== newPipelineUuid; // No need to show alert if pipelineUuid is a new pipeline
-
-  return shouldShowAlert;
 };
 
 /**
@@ -114,14 +92,14 @@ export const useEnsureValidPipelineBase = (
 export const useEnsureValidPipeline = () => {
   const { location, navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
 
-  const navigateToPipeline = React.useCallback(
-    (pipelineUuid: string, replace: boolean) => {
+  const customNavigateTo = React.useCallback(
+    (projectUuid: string, pipelineUuid: string, replace: boolean) => {
       navigateTo(location.pathname, {
         query: { projectUuid, pipelineUuid },
         replace,
       });
     },
-    [location.pathname, projectUuid, navigateTo]
+    [location.pathname, navigateTo]
   );
-  useEnsureValidPipelineBase(navigateToPipeline, pipelineUuid);
+  useEnsureValidPipelineBase(customNavigateTo, projectUuid, pipelineUuid);
 };
