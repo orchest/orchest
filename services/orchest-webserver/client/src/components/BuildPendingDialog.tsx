@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -47,6 +48,9 @@ const getInactiveEnvironmentsMessage = (
 const BuildPendingDialog: React.FC = () => {
   const { navigateTo } = useCustomRoute();
   const {
+    state: { projectUuid },
+  } = useProjectsContext();
+  const {
     state: { buildRequest },
     dispatch,
   } = useAppContext();
@@ -66,7 +70,7 @@ const BuildPendingDialog: React.FC = () => {
   >([]);
 
   useInterval(() => {
-    if (!buildRequest) return;
+    if (!buildRequest || buildRequest.projectUuid !== projectUuid) return;
     checkGate(buildRequest.projectUuid)
       .then(() => {
         setBuilding(false);
@@ -190,7 +194,9 @@ const BuildPendingDialog: React.FC = () => {
   };
 
   return (
-    <Dialog open={hasValue(buildRequest)}>
+    <Dialog
+      open={hasValue(buildRequest) && buildRequest.projectUuid === projectUuid}
+    >
       <DialogTitle>Build</DialogTitle>
       <DialogContent>
         <div>

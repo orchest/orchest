@@ -68,7 +68,12 @@ export const ProjectSelector = () => {
 
   return (
     <>
-      <ProjectSelectorToggle onClick={toggle} isOpen={isOpen} />
+      <ProjectSelectorToggle
+        onClick={toggle}
+        isOpen={isOpen}
+        projects={projects}
+        validProjectUuid={validProjectUuid}
+      />
       <ProjectSelectorMenu
         open={isOpen}
         onClose={handleClose}
