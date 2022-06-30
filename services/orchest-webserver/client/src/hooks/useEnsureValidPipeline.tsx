@@ -15,26 +15,23 @@ export const useEnsureValidPipelineBase = (
     replace: boolean
   ) => void,
   projectUuidFromRoute: string | undefined,
-  pipelineUuid: string | undefined
+  pipelineUuidFromRoute: string | undefined
 ) => {
-  const { setAlert } = useAppContext();
   const { state, dispatch } = useProjectsContext();
-  const { location, navigateTo } = useCustomRoute();
 
   const { projectUuid, pipelines, pipeline } = state;
 
-  const foundPipelineUuidFromRoute = React.useMemo(() => {
-    if (!pipelines) return undefined;
-    return (pipelines || []).find((p) => pipelineUuid === p.uuid)?.uuid;
-  }, [pipelines, pipelineUuid]);
-
   const validPipelineUuid = React.useMemo(() => {
+    const foundPipelineUuidFromRoute = (pipelines || []).find(
+      (pipeline) => pipelineUuidFromRoute === pipeline.uuid
+    )?.uuid;
     return foundPipelineUuidFromRoute || pipeline?.uuid;
-  }, [foundPipelineUuidFromRoute, pipeline?.uuid]);
+  }, [pipeline?.uuid, pipelineUuidFromRoute, pipelines]);
 
   const pipelineUuidToOpen =
     validPipelineUuid || pipelines?.find(Boolean)?.uuid;
 
+  // Await `useAutoFetchPipelines` to refetch.
   const statesLoaded = React.useMemo(() => {
     return (
       hasValue(pipelines) &&
@@ -47,33 +44,14 @@ export const useEnsureValidPipelineBase = (
     return (
       statesLoaded &&
       projectUuidFromRoute === projectUuid && // Only redirect to pipeline when project is already redirected.
-      pipelineUuidToOpen !== pipelineUuid
+      pipelineUuidToOpen !== pipelineUuidFromRoute
     );
   }, [
     projectUuidFromRoute,
     projectUuid,
-    pipelineUuid,
+    pipelineUuidFromRoute,
     pipelineUuidToOpen,
     statesLoaded,
-  ]);
-
-  const isAtPipelineEditor = location.pathname === siteMap.pipeline.path;
-  React.useEffect(() => {
-    if (hasValue(pipelines) && !pipelineUuidToOpen && !isAtPipelineEditor) {
-      setAlert(
-        "Note",
-        "No pipeline found in this project. Create a pipeline first."
-      );
-      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
-      return;
-    }
-  }, [
-    isAtPipelineEditor,
-    navigateTo,
-    pipelineUuidToOpen,
-    pipelines,
-    setAlert,
-    projectUuid,
   ]);
 
   React.useEffect(() => {
@@ -88,11 +66,7 @@ export const useEnsureValidPipelineBase = (
   React.useEffect(() => {
     if (shouldRedirectPipeline && pipelineUuidToOpen && projectUuid) {
       // Navigate to a valid pipelineUuid.
-      customNavigateTo(
-        projectUuid,
-        pipelineUuidToOpen,
-        !foundPipelineUuidFromRoute || !validPipelineUuid
-      );
+      customNavigateTo(projectUuid, pipelineUuidToOpen, !validPipelineUuid);
     }
   }, [
     customNavigateTo,
@@ -100,8 +74,9 @@ export const useEnsureValidPipelineBase = (
     projectUuid,
     pipelineUuidToOpen,
     validPipelineUuid,
-    foundPipelineUuidFromRoute,
   ]);
+
+  return hasValue(pipelines) && !pipelineUuidToOpen;
 };
 
 /**
@@ -114,6 +89,7 @@ export const useEnsureValidPipelineBase = (
  */
 export const useEnsureValidPipeline = () => {
   const { location, navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
+  const { setAlert } = useAppContext();
 
   const customNavigateTo = React.useCallback(
     (projectUuid: string, pipelineUuid: string, replace: boolean) => {
@@ -124,5 +100,21 @@ export const useEnsureValidPipeline = () => {
     },
     [location.pathname, navigateTo]
   );
-  useEnsureValidPipelineBase(customNavigateTo, projectUuid, pipelineUuid);
+  const shouldShowAlert = useEnsureValidPipelineBase(
+    customNavigateTo,
+    projectUuid,
+    pipelineUuid
+  );
+
+  const isAtPipelineEditor = location.pathname === siteMap.pipeline.path;
+  React.useEffect(() => {
+    if (shouldShowAlert && !isAtPipelineEditor) {
+      setAlert(
+        "Note",
+        "No pipeline found in this project. Create a pipeline first."
+      );
+      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+      return;
+    }
+  }, [shouldShowAlert, isAtPipelineEditor, navigateTo, setAlert, projectUuid]);
 };
