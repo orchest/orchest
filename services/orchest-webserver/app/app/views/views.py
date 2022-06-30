@@ -166,6 +166,11 @@ def register_views(app, db):
 
         return json_string, 404, {"content-type": "application/json"}
 
+    @app.route("/health", methods=["GET"])
+    def health():
+        """Endpoint to know if the web server is running."""
+        return {"Orchest": True}
+
     @app.route("/async/orchest-examples", methods=["GET"])
     def orchest_examples():
         return get_orchest_examples_json()
