@@ -4,7 +4,6 @@ import secrets
 import uuid
 
 import requests
-import sqlalchemy
 from flask import jsonify, redirect, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -218,19 +217,19 @@ def register_views(app):
             if len(password) == 0:
                 return jsonify({"error": "Password cannot be empty."}), 400
 
-            try:
-                user = User(
-                    username=username,
-                    password_hash=generate_password_hash(password),
-                    uuid=str(uuid.uuid4()),
-                )
-
-                db.session.add(user)
-                db.session.commit()
-                return ""
-            except sqlalchemy.exc.IntegrityError as e:
-                app.logger.warning(e)
+            user = User.query.filter(User.username == username).first()
+            if user is not None:
                 return jsonify({"error": "User already exists."}), 409
+
+            user = User(
+                username=username,
+                password_hash=generate_password_hash(password),
+                uuid=str(uuid.uuid4()),
+            )
+
+            db.session.add(user)
+            db.session.commit()
+            return ""
         else:
             return jsonify({"error": "No username supplied."}), 400
 
