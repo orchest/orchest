@@ -54,7 +54,7 @@ bash "${DIR}/build_container.sh" -m -t ${TAG} -o ${TAG}
 echo "Installing the orchest-cli from this branch..."
 pip install "${DIR}/../orchest-cli" > /dev/null
 
-orchest install
+orchest install --dev
 
 echo "Restoring auth users..."
 # Needed because some rows contain dollar symbols, perhaps we should
