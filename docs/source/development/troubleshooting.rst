@@ -127,7 +127,7 @@ Error: Multiple head revisions
 
 Dev mode not working
 --------------------
-* Make sure you started the cluster with the Orchest repository mounted, see :ref:`here <cluster mount>`.
+* Make sure you started the cluster with the Orchest repository mounted, see :ref:`here <cluster-mount>`.
 * If you have changed some dependencies (i.e. requirements.txt files) you have to rebuild the image and
   kill the pod to get it redeployed.
 
@@ -149,7 +149,7 @@ Through the CLI
 Through the UI
 ~~~~~~~~~~~~~~
 For this to work you need to be running in dev mode and have the ``orchest-dev-repo`` mounted (as
-per :ref:`setting up minikube for development <cluster mount>`).
+per :ref:`setting up minikube for development <cluster-mount>`).
 
 .. code-block:: bash
 

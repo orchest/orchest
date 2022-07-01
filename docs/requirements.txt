@@ -3,3 +3,4 @@ sphinx_press_theme
 myst-parser
 docutils==0.16
 sphinx-hoverxref==1.1.1
+sphinx-design
