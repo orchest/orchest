@@ -56,7 +56,7 @@ const UserList: React.FC<{
 };
 
 const Admin = () => {
-  const [users, setUsers] = React.useState([]);
+  const [users, setUsers] = React.useState<User[]>([]);
   const [newUsername, setNewUsername] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
   const [formError, setFormError] = React.useState<string>();
@@ -91,9 +91,9 @@ const Admin = () => {
         body: formData,
       });
       fetchUsers();
-    } catch (error) {
-      console.log(error);
-      setFormError(error.body.error);
+    } catch (errorResponse) {
+      console.log(errorResponse);
+      setFormError(errorResponse.error);
     }
   };
 
