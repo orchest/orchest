@@ -16,8 +16,6 @@ export const TempLayout: React.FC<{
         position: "relative",
         height: "100%",
         width: "100%",
-        maxWidth: (theme) => theme.spacing(144),
-        margin: "0 auto",
       }}
     >
       <Toolbar variant="dense" sx={{ height: (theme) => theme.spacing(7) }} />
@@ -43,7 +41,9 @@ export const TempLayout: React.FC<{
             loading && !toolbarElements ? theme.spacing(-0.5) : 0,
         }}
       >
-        {children}
+        <Box sx={{ maxWidth: (theme) => theme.spacing(144), margin: "0 auto" }}>
+          {children}
+        </Box>
       </Box>
     </Stack>
   );
