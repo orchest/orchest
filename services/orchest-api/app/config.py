@@ -37,7 +37,7 @@ class Config:
     CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=30)
 
     # Image building.
-    IMAGE_BUILDER_IMAGE = "docker.io/orchest/buildah:1.26-experimental"
+    IMAGE_BUILDER_IMAGE = "docker.io/orchest/buildah:1.26.0-patched"
     BUILD_IMAGE_LOG_FLAG = "_ORCHEST_RESERVED_LOG_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
 
