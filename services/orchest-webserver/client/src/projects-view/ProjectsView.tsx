@@ -11,11 +11,11 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import type { Example, Project } from "@/types";
+import type { Project } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
+import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import SettingsIcon from "@mui/icons-material/Settings";
-import UploadOutlinedIcon from "@mui/icons-material/UploadOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -25,7 +25,6 @@ import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import { hasValue, makeRequest } from "@orchest/lib-utils";
 import React from "react";
-import { ContributeCard } from "./ContributeCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectPathDialog } from "./EditProjectPathDialog";
 import { ExampleCard } from "./ExampleCard";
@@ -46,12 +45,11 @@ type ProjectRow = Pick<
   settings: string;
 };
 
-const projectTabs = ["My projects", "Orchest examples", "Community examples"];
+const projectTabs = ["My projects", "Example projects"];
 
 enum PROJECT_TAB {
   "MY_PROJECTS" = 0,
-  "ORCHEST_EXAMPLES" = 1,
-  "COMMUNITY_EXAMPLES" = 2,
+  "EXAMPLE_PROJECTS" = 1,
 }
 
 const isCuratedByOrchest = (owner: string) =>
@@ -276,37 +274,16 @@ const ProjectsView: React.FC = () => {
   );
 
   const [projectTabIndex, setProjectTabIndex] = React.useState<PROJECT_TAB>(
-    PROJECT_TAB.MY_PROJECTS
+    PROJECT_TAB.EXAMPLE_PROJECTS
   );
   const onClickTab = React.useCallback(
     (tabIndex: number) => setProjectTabIndex(tabIndex),
     []
   );
 
-  const { data } = useFetchExamples();
+  const { data: examples = [] } = useFetchExamples();
 
-  const { orchestExamples, communityExamples } = React.useMemo<{
-    orchestExamples: Example[];
-    communityExamples: Example[];
-  }>(() => {
-    if (!data) return { orchestExamples: [], communityExamples: [] };
-
-    return data.reduce(
-      (categorized, example) => {
-        const type = isCuratedByOrchest(example.owner)
-          ? "orchestExamples"
-          : "communityExamples";
-        categorized[type].push(example);
-        return categorized;
-      },
-      { orchestExamples: [], communityExamples: [] } as {
-        orchestExamples: Example[];
-        communityExamples: Example[];
-      }
-    );
-  }, [data]);
-
-  console.log("DEV communityExamples: ", communityExamples);
+  console.log("DEV communityExamples: ", examples);
 
   return (
     <TempLayout>
@@ -365,7 +342,7 @@ const ProjectsView: React.FC = () => {
           <Stack direction="row" spacing={2}>
             <Button
               variant="text"
-              startIcon={<UploadOutlinedIcon />}
+              startIcon={<DownloadOutlinedIcon />}
               onClick={onImport}
               data-test-id="import-project"
             >
@@ -422,31 +399,12 @@ const ProjectsView: React.FC = () => {
           )}
         </ProjectTabPanel>
         <ProjectTabPanel
-          id="orchest-examples"
+          id="example-projects"
           value={projectTabIndex}
-          index={PROJECT_TAB.ORCHEST_EXAMPLES}
+          index={PROJECT_TAB.EXAMPLE_PROJECTS}
         >
           <Box sx={{ display: "flex", flexWrap: "wrap" }}>
-            {orchestExamples.map((item) => {
-              return (
-                <ExampleCard
-                  key={item.url}
-                  {...item}
-                  startImport={importWithUrl}
-                />
-              );
-            })}
-          </Box>
-        </ProjectTabPanel>
-        <ProjectTabPanel
-          id="community-examples"
-          value={projectTabIndex}
-          index={PROJECT_TAB.COMMUNITY_EXAMPLES}
-          sx={{ display: "flex", flexWrap: "wrap" }}
-        >
-          <Box sx={{ display: "flex", flexWrap: "wrap" }}>
-            <ContributeCard />
-            {communityExamples.map((item) => {
+            {examples.map((item) => {
               return (
                 <ExampleCard
                   key={item.url}
