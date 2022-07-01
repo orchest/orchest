@@ -889,7 +889,7 @@ spec:
                       storageClassName:
                         description: The Storage class of user-dir/
                         type: string
-                      userDirvolumeSize:
+                      userDirVolumeSize:
                         description: If specified, this components will be deployed
                           provided image
                         type: string
