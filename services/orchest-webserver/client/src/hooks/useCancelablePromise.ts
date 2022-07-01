@@ -24,6 +24,13 @@ function _makeCancelable<T>(promise: Promise<T>, callback?: () => void) {
   };
 }
 
+function cancelAllPromises<T>(
+  cancelablePromises: Record<string, CancelablePromise<T>>
+) {
+  Object.values(cancelablePromises).forEach((p) => p.cancel());
+  cancelablePromises = {};
+}
+
 export function useCancelablePromise() {
   const cancelablePromises = React.useRef<
     Record<string, CancelablePromise<unknown>>
@@ -39,15 +46,13 @@ export function useCancelablePromise() {
   }, []);
 
   const cancelAll = React.useCallback(() => {
-    () => {
-      Object.values(cancelablePromises.current).forEach((p) => p.cancel());
-      cancelablePromises.current = {};
-    };
+    () => cancelAllPromises(cancelablePromises.current);
   }, []);
 
   React.useEffect(() => {
-    return () => cancelAll();
-  }, [cancelAll]);
+    const currentCancelablePromises = cancelablePromises.current;
+    return () => cancelAllPromises(currentCancelablePromises);
+  }, []);
 
   return { makeCancelable, cancelAll };
 }
