@@ -67,7 +67,9 @@ class Jupyter {
   }
 
   show() {
+    console.log("DEV start showing");
     if (this.reloadOnShow) {
+      console.log("DEV start reloading");
       this.reloadOnShow = false;
       this._reloadFilesFromDisk();
     }
@@ -80,6 +82,8 @@ class Jupyter {
 
     window.clearInterval(this.showCheckInterval);
     this.showCheckInterval = window.setInterval(() => {
+      console.log("DEV start iframe", this.iframeHasLoaded);
+
       if (this.iframeHasLoaded) {
         if (this.hasJupyterRenderingGlitched()) {
           console.log("Reloading iframe because JupyterLab failed to render");
@@ -359,6 +363,18 @@ class Jupyter {
     $(this.iframe).attr("width", "100%");
     $(this.iframe).attr("height", "100%");
     $(this.iframe).attr("data-test-id", "jupyterlab-iframe");
+
+    const expandToFullScreenInterval = window.setInterval(() => {
+      const width = this.iframe?.getAttribute("width");
+      const height = this.iframe?.getAttribute("height");
+
+      if (this.iframe && (width !== "100%" || height !== "100%")) {
+        this.iframe?.setAttribute("width", "100%");
+        this.iframe?.setAttribute("height", "100%");
+        return;
+      }
+      window.clearInterval(expandToFullScreenInterval);
+    }, 10);
 
     this.jupyterHolder.append(this.iframe);
   }
