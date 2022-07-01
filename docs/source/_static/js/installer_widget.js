@@ -169,13 +169,13 @@ orchest install
   installerContainer.innerHTML = `
     <div>
       <div class="row">
-        <div class="lhs-label">Operating system</div> <div>${osHtml}</div>
+        <div class="lhs-label">Operating system</div> <div class="content">${osHtml}</div>
       </div>
       <div class="row">
-        <div class="lhs-label">K8s distribution</div> <div>${platformHtml}</div>
+        <div class="lhs-label">K8s distribution</div> <div class="content">${platformHtml}</div>
       </div>
       <div class="row">
-        <div class="lhs-label">Installation</div> <div>${instructionsHtml}</div>
+        <div class="lhs-label">Installation</div> <div class="content">${instructionsHtml}</div>
       </div>
     </div>
   `;
