@@ -67,9 +67,7 @@ class Jupyter {
   }
 
   show() {
-    console.log("DEV start showing");
     if (this.reloadOnShow) {
-      console.log("DEV start reloading");
       this.reloadOnShow = false;
       this._reloadFilesFromDisk();
     }
@@ -82,8 +80,6 @@ class Jupyter {
 
     window.clearInterval(this.showCheckInterval);
     this.showCheckInterval = window.setInterval(() => {
-      console.log("DEV start iframe", this.iframeHasLoaded);
-
       if (this.iframeHasLoaded) {
         if (this.hasJupyterRenderingGlitched()) {
           console.log("Reloading iframe because JupyterLab failed to render");
