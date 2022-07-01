@@ -5,13 +5,13 @@ import { getServiceURLs } from "@/utils/webserver-utils";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import TuneIcon from "@mui/icons-material/Tune";
 import Divider from "@mui/material/Divider";
-import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
 import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import MenuList from "@mui/material/MenuList";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -63,14 +63,13 @@ export const ServicesMenu = ({
 
   const serviceLinks =
     services && projectUuid && pipelineUuid
-      ? Object.entries(services)
-          .filter((serviceTuple) => serviceTuple[1].exposed)
-          .map(([serviceName, service]) => {
-            return {
-              name: serviceName,
-              urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
-            };
-          })
+      ? Object.entries(services).map(([serviceName, service]) => {
+          return {
+            name: serviceName,
+            urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
+            exposed: service.exposed,
+          };
+        })
       : null;
 
   return (
@@ -80,6 +79,7 @@ export const ServicesMenu = ({
       open={isOpen}
       onClose={onClose}
       MenuListProps={{
+        dense: true,
         "aria-labelledby": "running-services-button",
       }}
       anchorOrigin={{
@@ -91,46 +91,53 @@ export const ServicesMenu = ({
         horizontal: "center",
       }}
     >
-      <ListItem>
-        <Typography
-          variant="subtitle1"
-          component="h3"
-          sx={{ paddingBottom: 0 }}
-        >
-          Running services
-        </Typography>
-      </ListItem>
+      <ListSubheader
+        sx={{
+          color: (theme) => theme.palette.common.black,
+          margin: (theme) => theme.spacing(0.5, 0, -1.5),
+        }}
+      >
+        Running services
+      </ListSubheader>
       {serviceLinks && serviceLinks.length > 0 ? (
         serviceLinks.map((serviceLink) => {
+          const serviceStatusMessage = !serviceLink.exposed
+            ? `Not exposed.`
+            : serviceLink.urls.length === 0
+            ? `No endpoints.`
+            : null;
           return (
-            <List
+            <MenuList
+              dense
               key={serviceLink.name}
               subheader={<ListSubheader>{serviceLink.name}</ListSubheader>}
             >
-              {serviceLink.urls.length === 0 && (
-                <ListItem>
-                  <Typography variant="caption">
-                    <i>This service has no endpoints.</i>
+              {serviceStatusMessage && (
+                <MenuItem disabled sx={{ opacity: `0.8 !important` }}>
+                  <Typography variant="caption" sx={{ fontStyle: "italic" }}>
+                    {serviceStatusMessage}
                   </Typography>
-                </ListItem>
+                </MenuItem>
               )}
-              {serviceLink.urls.map((url) => {
-                return (
-                  <ListItemButton
-                    key={url}
-                    component="a"
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <ListItemIcon>
-                      <OpenInNewIcon />
-                    </ListItemIcon>
-                    <ListItemText primary={formatUrl(url)} />
-                  </ListItemButton>
-                );
-              })}
-            </List>
+
+              {serviceLink.exposed &&
+                serviceLink.urls.map((url) => {
+                  return (
+                    <MenuItem
+                      key={url}
+                      component="a"
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <ListItemIcon>
+                        <OpenInNewIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>{formatUrl(url)}</ListItemText>
+                    </MenuItem>
+                  );
+                })}
+            </MenuList>
           );
         })
       ) : (
@@ -139,14 +146,16 @@ export const ServicesMenu = ({
         </ListItem>
       )}
       <Divider />
-      <List>
-        <ListItemButton onClick={openSettings} onAuxClick={openSettings}>
+      <MenuList dense>
+        <MenuItem onClick={openSettings} onAuxClick={openSettings}>
           <ListItemIcon>
-            <TuneIcon />
+            <TuneIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary={`${!isReadOnly ? "Edit" : "View"} services`} />
-        </ListItemButton>
-      </List>
+          <ListItemText>{`${
+            !isReadOnly ? "Edit" : "View"
+          } services`}</ListItemText>
+        </MenuItem>
+      </MenuList>
     </Menu>
   );
 };
