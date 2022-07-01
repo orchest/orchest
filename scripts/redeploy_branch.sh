@@ -3,12 +3,12 @@
 # - checkout the given branch
 # - store the existing auth users
 # - uninstall Orchest
+# - detect which version will be installed, $TAG
+# - build images locally with $TAG
 # - install the orchest-cli from the given branch
 # - install Orchest
 # - restore the existing auth users
-# - set cloud mode, enable auth 
-# - build the minimal set of imagand restartes to run Orchest, using the
-#   current cluster version
+# - set cloud mode, enable auth and disable telemetry
 # - restart
 #
 # The script is not battle proof, but an incremental movement towards
@@ -16,7 +16,9 @@
 # currently used for our internal preview instances. The script assumes
 # Orchest to be already installed.
 #
-# TLDR: redeploy Orchest for a given branch, maintain auth users.
+# TLDR: redeploy Orchest for a given branch, persist auth users.
+# ! Heavy schema changes of the User model of the auth-server db will
+# make persiting users not possible.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -42,6 +44,13 @@ AUTH_USERS_DUMP=$(minikube kubectl -- exec -it -n orchest deploy/orchest-databas
 
 orchest uninstall
 
+TAG=$(curl \
+    https://update-info.orchest.io/api/orchest/update-info/v3\?version\=None\&is_cloud\=False \
+    -s | jq -r .latest_version)
+echo "Building images locally with tag ${TAG}..."
+eval $(minikube -p minikube docker-env)
+bash "${DIR}/build_container.sh" -m -t ${TAG} -o ${TAG}
+
 echo "Installing the orchest-cli from this branch..."
 pip install "${DIR}/../orchest-cli" > /dev/null
 
@@ -62,13 +71,16 @@ minikube kubectl -- exec -it -n orchest deploy/orchest-api -- curl -X 'PUT' \
   -H 'Content-Type: application/json' \
   -d '{"AUTH_ENABLED": true}' > /dev/null
 
+echo "Disabling telemetry..."
+minikube kubectl -- exec -it -n orchest deploy/orchest-api -- curl -X 'PUT' \
+  'http://localhost:80/api/ctl/orchest-settings' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"TELEMETRY_DISABLED": true}' > /dev/null
+
 orchest patch --cloud
-orchest stop
-
-TAG=$(orchest version --json | jq -r .version)
-echo "Building images locally with tag ${TAG}..."
-eval $(minikube -p minikube docker-env)
-bash "${DIR}/build_container.sh" -m -t ${TAG} -o ${TAG}
-
-orchest start
+# Not strictly necessary since 'patch --cloud' leads to a restart of
+# the cluster, but it's a break of abstraction and might not be always
+# so.
+orchest restart
 orchest status
