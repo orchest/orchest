@@ -7,7 +7,7 @@ const ManageUsersView: React.FC = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.manageUsers.path });
 
   return (
-    <Layout disablePadding fullHeight>
+    <Layout disablePadding>
       <div className="view-page no-padding manage-users fullheight">
         <iframe
           className="borderless fullsize"

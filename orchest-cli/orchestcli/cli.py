@@ -178,16 +178,52 @@ def cli():
     show_default=True,
     help="Fully Qualified Domain Name that Orchest listens on.",
 )
+@click.option(
+    "--userdir-pvc-size",
+    "userdir_pvc_size",
+    type=click.IntRange(min=5),
+    default=50,
+    show_default=True,
+    help="Size of the userdir volume claim in Gi.",
+)
+@click.option(
+    "--builder-pvc-size",
+    "builder_pvc_size",
+    type=click.IntRange(min=5),
+    default=50,
+    show_default=True,
+    help="Size of the image builder volume claim in Gi.",
+)
+@click.option(
+    "--registry-pvc-size",
+    "registry_pvc_size",
+    type=click.IntRange(min=5),
+    default=25,
+    show_default=True,
+    help="Size of the registry volume claim in Gi.",
+)
 @cli.command(cls=ClickCommonOptionsCmd)
 def install(
     cloud: bool,
     dev_mode: bool,
     no_argo: bool,
     fqdn: t.Optional[str],
+    userdir_pvc_size: int,
+    builder_pvc_size: int,
+    registry_pvc_size: int,
     **common_options,
 ) -> None:
     """Install Orchest."""
-    cmds.install(cloud, dev_mode, no_argo, fqdn, **common_options)
+    cmds.install(
+        cloud,
+        dev_mode,
+        no_argo,
+        fqdn,
+        userdir_pvc_size,
+        builder_pvc_size,
+        registry_pvc_size,
+        **common_options,
+    )
 
 
 # TODO: Should be improved to remove the provided Orchest Cluster,

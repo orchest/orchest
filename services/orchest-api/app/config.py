@@ -28,6 +28,7 @@ class Config:
     SCHEDULER_INTERVAL = 10
     # Same as above, but for image deletion and GC.
     IMAGES_DELETION_INTERVAL = 120
+    CLEANUP_BUILDER_CACHE_INTERVAL = 3600 * 24 * 7
     NOTIFICATIONS_DELIVERIES_INTERVAL = 1
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
@@ -74,6 +75,7 @@ class Config:
         "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "jobs"},
         "app.core.tasks.delete_job_pipeline_run_directories": {"queue": "jobs"},
         "app.core.tasks.run_pipeline": {"queue": "celery"},
+        "app.core.tasks.cleanup_builder_cache": {"queue": "builds"},
         "app.core.tasks.build_environment_image": {"queue": "builds"},
         "app.core.tasks.build_jupyter_image": {"queue": "builds"},
         "app.core.tasks.registry_garbage_collection": {"queue": "builds"},

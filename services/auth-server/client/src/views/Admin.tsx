@@ -56,7 +56,7 @@ const UserList: React.FC<{
 };
 
 const Admin = () => {
-  const [users, setUsers] = React.useState([]);
+  const [users, setUsers] = React.useState<User[]>([]);
   const [newUsername, setNewUsername] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
   const [formError, setFormError] = React.useState<string>();
@@ -91,9 +91,9 @@ const Admin = () => {
         body: formData,
       });
       fetchUsers();
-    } catch (error) {
-      console.log(error);
-      setFormError(error.body.error);
+    } catch (errorResponse) {
+      console.log(errorResponse);
+      setFormError(errorResponse.error);
     }
   };
 
@@ -102,6 +102,13 @@ const Admin = () => {
       return currentUsers.filter((user) => user.username !== deletedUser);
     });
   };
+  const userNameValidation = users.some(
+    (user) => user.username.toLowerCase() === newUsername.trim().toLowerCase()
+  )
+    ? "Username already taken."
+    : " ";
+
+  const isValid = userNameValidation === " " && newPassword.length > 0;
 
   return (
     <Box sx={{ margin: 4 }}>
@@ -109,14 +116,16 @@ const Admin = () => {
         <Typography variant="h5" sx={{ marginBottom: 4 }}>
           Add a user
         </Typography>
-        <Stack direction="column" alignItems="flex-start">
+        <Stack direction="column" alignItems="flex-start" spacing={1}>
           <TextField
+            autoFocus
             value={newUsername}
             onChange={(e) => setNewUsername(e.target.value)}
             label="Username"
             name="username"
-            margin="normal"
             data-test-id="new-user-name"
+            error={userNameValidation !== " "}
+            helperText={userNameValidation}
           />
           <TextField
             value={newPassword}
@@ -124,7 +133,7 @@ const Admin = () => {
             label="Password"
             type="password"
             name="password"
-            margin="normal"
+            helperText=" "
             data-test-id="new-user-password"
           />
           <Button
@@ -132,6 +141,7 @@ const Admin = () => {
             color="secondary"
             variant="contained"
             sx={{ marginTop: 2 }}
+            disabled={!isValid}
             data-test-id="add-user"
           >
             Add

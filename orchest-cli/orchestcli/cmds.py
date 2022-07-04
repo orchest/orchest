@@ -158,7 +158,14 @@ class ClusterStatus(enum.Enum):
 
 
 def install(
-    cloud: bool, dev_mode: bool, no_argo: bool, fqdn: t.Optional[str], **kwargs
+    cloud: bool,
+    dev_mode: bool,
+    no_argo: bool,
+    fqdn: t.Optional[str],
+    userdir_pvc_size: int,
+    builder_pvc_size: int,
+    registry_pvc_size: int,
+    **kwargs,
 ) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
@@ -290,7 +297,21 @@ def install(
             sys.exit(1)
 
     # Creating the OrchestCluster custom resource.
-    applications = [{"name": "docker-registry", "config": {}}]
+    applications = [
+        {
+            "name": "docker-registry",
+            "config": {
+                "helm": {
+                    "parameters": [
+                        {
+                            "name": "persistence.size",
+                            "value": f"{registry_pvc_size}Gi",
+                        }
+                    ]
+                }
+            },
+        }
+    ]
     if no_argo:
         echo(
             "Disabling 'Argo Workflows' installation."
@@ -326,6 +347,10 @@ def install(
                 "orchestHost": fqdn,
                 "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
+                "resources": {
+                    "userDirVolumeSize": f"{userdir_pvc_size}Gi",
+                    "builderCacheDirVolumeSize": f"{builder_pvc_size}Gi",
+                },
             },
         },
     }

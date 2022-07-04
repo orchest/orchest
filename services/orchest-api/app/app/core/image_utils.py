@@ -32,6 +32,86 @@ _registry_pod_affinity = {
 }
 
 
+def _get_builder_cache_cleanup_workflow_manifest():
+    manifest = {
+        "apiVersion": "argoproj.io/v1alpha1",
+        "kind": "Workflow",
+        "metadata": {"name": "builder-cache-cleanup"},
+        "spec": {
+            "entrypoint": "build-env",
+            "templates": [
+                {
+                    "name": "build-env",
+                    "container": {
+                        "name": "buildah",
+                        "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
+                        "workingDir": "/build-context",
+                        "command": ["/bin/sh", "-c"],
+                        "args": ["sudo rm -rf /builder-cache/* && echo 'SUCCESS'"],
+                        "securityContext": {
+                            "privileged": True,
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "image-builder-cache-pvc",
+                                "mountPath": "/builder-cache",
+                            },
+                        ],
+                    },
+                    "affinity": _registry_pod_affinity,
+                },
+            ],
+            # The celery task actually takes care of deleting the
+            # workflow, this is just a failsafe.
+            "ttlStrategy": {
+                "secondsAfterCompletion": 100,
+                "secondsAfterSuccess": 100,
+                "secondsAfterFailure": 100,
+            },
+            "restartPolicy": "Never",
+            "volumes": [
+                {
+                    "name": "image-builder-cache-pvc",
+                    "persistentVolumeClaim": {
+                        "claimName": "image-builder-cache-pvc",
+                    },
+                },
+            ],
+        },
+    }
+
+    return manifest
+
+
+def cleanup_builder_cache() -> None:
+    """Cleanup the builder cache.
+
+    This particular function should only be run through the celery
+    worker "builds" queue to ensure that there are no ongoing env or
+    jupyter builds.
+    """
+    manifest = _get_builder_cache_cleanup_workflow_manifest()
+    ns = _config.ORCHEST_NAMESPACE
+    try:
+        k8s_custom_obj_api.create_namespaced_custom_object(
+            "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
+        )
+        utils.wait_for_pod_status(
+            "builder-cache-cleanup",
+            ns,
+            expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
+            max_retries=10,
+        )
+    finally:
+        k8s_custom_obj_api.delete_namespaced_custom_object(
+            "argoproj.io",
+            "v1alpha1",
+            _config.ORCHEST_NAMESPACE,
+            "workflows",
+            "builder-cache-cleanup",
+        )
+
+
 def _get_buildah_image_build_workflow_manifest(
     workflow_name,
     image_name,
