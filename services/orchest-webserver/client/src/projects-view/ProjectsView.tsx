@@ -12,21 +12,26 @@ import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
+import { wait } from "@/utils/dev-utils";
+import { fetcher } from "@/utils/fetcher";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import EditIcon from "@mui/icons-material/Edit";
-import SettingsIcon from "@mui/icons-material/Settings";
+import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
-import { hasValue, makeRequest } from "@orchest/lib-utils";
+import { HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { CreateProjectDialog } from "./CreateProjectDialog";
-import { EditProjectPathDialog } from "./EditProjectPathDialog";
 import { ExampleCard } from "./ExampleCard";
 import { useFetchExamples } from "./hooks/useFetchExamples";
 import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
@@ -65,35 +70,49 @@ const ProjectsView: React.FC = () => {
   } = useProjectsContext();
   const { navigateTo } = useCustomRoute();
 
-  const [projectUuidOnEdit, setProjectUuidOnEdit] = React.useState<
-    string | undefined
+  const [projectBeingDeleted, setProjectBeingDeleted] = React.useState<
+    string
   >();
 
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
 
-  const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
-    const openSettings = (projectUuid: string) => (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
+  const [
+    selectedProjectMenuButton,
+    setSelectedProjectMenuButton,
+  ] = React.useState<{ element: HTMLElement; uuid: string }>();
+
+  const openProjectMenu = (projectUuid: string) => (
+    event: React.MouseEvent<HTMLElement>
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedProjectMenuButton({
+      element: event.currentTarget,
+      uuid: projectUuid,
+    });
+  };
+
+  console.log("DEV hey!");
+
+  const closeProjectMenu = () => setSelectedProjectMenuButton(undefined);
+
+  const openSettings = (e: React.MouseEvent) => {
+    if (selectedProjectMenuButton)
       navigateTo(
         siteMap.projectSettings.path,
-        {
-          query: { projectUuid },
-        },
+        { query: { projectUuid: selectedProjectMenuButton.uuid } },
         e
       );
-    };
-    const onEditProjectName = (projectUUID: string) => {
-      setProjectUuidOnEdit(projectUUID);
-    };
+  };
+  const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
     return [
       {
         id: "path",
         label: "Project",
         sx: { margin: (theme) => theme.spacing(-0.5, 0) },
-        render: function ProjectPath(row, disabled) {
+        render: function ProjectPath(row) {
           return (
             <Stack
               direction="row"
@@ -108,23 +127,6 @@ const ProjectsView: React.FC = () => {
               }}
             >
               {row.path}
-              <IconButton
-                title="Edit job name"
-                size="small"
-                sx={{ marginLeft: (theme) => theme.spacing(2) }}
-                disabled={disabled}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onEditProjectName(row.uuid);
-                }}
-                onAuxClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
             </Stack>
           );
         },
@@ -135,33 +137,29 @@ const ProjectsView: React.FC = () => {
       { id: "environment_count", label: "Environments" },
       {
         id: "settings",
-        label: "Settings",
+        label: "",
         sx: { margin: (theme) => theme.spacing(-0.5, 0) },
         render: function ProjectSettingsButton(row, disabled) {
-          return (
+          return projectBeingDeleted !== row.uuid ? (
             <IconButton
               title="settings"
               disabled={disabled}
               size="small"
               data-test-id={`settings-button-${row.path}`}
-              onClick={openSettings(row.uuid)}
-              onAuxClick={openSettings(row.uuid)}
+              onClick={openProjectMenu(row.uuid)}
             >
-              <SettingsIcon fontSize="small" />
+              <MoreHorizOutlinedIcon fontSize="small" />
             </IconButton>
+          ) : (
+            "Deleting..."
           );
         },
       },
     ];
-  }, [navigateTo]);
-
-  const onCloseEditProjectPathModal = () => {
-    setProjectUuidOnEdit(undefined);
-  };
+  }, [projectBeingDeleted]);
 
   const {
     fetchProjects,
-    setProjects,
     isFetchingProjects,
   } = useFetchProjectsForProjectsView();
 
@@ -170,69 +168,51 @@ const ProjectsView: React.FC = () => {
       return {
         ...project,
         settings: project.path,
+        disabled: projectBeingDeleted === project.uuid,
       };
     });
-  }, [projects]);
+  }, [projects, projectBeingDeleted]);
 
   const onRowClick = (e: React.MouseEvent, projectUuid: string) => {
     navigateTo(siteMap.pipeline.path, { query: { projectUuid } }, e);
   };
 
-  const deleteSelectedRows = async (projectUuids: string[]) => {
-    if (projectUuids.length === 0) {
-      setAlert("Error", "You haven't selected a project.");
-
-      return false;
-    }
-
+  const deleteProject = async () => {
+    if (!selectedProjectMenuButton) return;
     // setConfirm returns a Promise, which is then passed to DataTable deleteSelectedRows function
     // DataTable then is able to act upon the outcome of the deletion operation
     return setConfirm(
       "Warning",
-      "Are you certain that you want to delete these projects? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
+      "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
       async (resolve) => {
         // we don't await this Promise on purpose
         // because we want the dialog close first, and resolve setConfirm later
-        Promise.all(
-          projectUuids.map((projectUuid) => deleteProjectRequest(projectUuid))
-        )
-          .then(() => {
-            resolve(true); // 2. this is resolved later, and this resolves the Promise returned by setConfirm, and thereafter resolved in DataTable
-          })
-          .catch(() => {
-            resolve(false);
-          })
-          .finally(() => {
-            fetchProjects();
-          });
+        requestDeleteProject(selectedProjectMenuButton.uuid);
+        resolve(true);
         return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
       }
     );
   };
 
-  const deleteProjectRequest = (toBeDeletedId: string) => {
+  const requestDeleteProject = async (toBeDeletedId: string) => {
     if (projectUuid === toBeDeletedId) {
       dispatch({ type: "SET_PROJECT", payload: undefined });
     }
 
-    let deletePromise = makeRequest("DELETE", "/async/projects", {
-      type: "json",
-      content: {
-        project_uuid: toBeDeletedId,
-      },
-    });
-
-    deletePromise.catch((response) => {
-      try {
-        let data = JSON.parse(response.body);
-
-        setAlert("Error", `Could not delete project. ${data.message}`);
-      } catch {
-        setAlert("Error", "Could not delete project. Reason unknown.");
-      }
-    });
-
-    return deletePromise;
+    setProjectBeingDeleted(toBeDeletedId);
+    setSelectedProjectMenuButton(undefined);
+    try {
+      await fetcher("/async/projects", {
+        method: "DELETE",
+        headers: HEADER.JSON,
+        body: JSON.stringify({ project_uuid: toBeDeletedId }),
+      });
+      await wait(3000);
+      fetchProjects();
+    } catch (error) {
+      setAlert("Error", `Could not delete project. ${error.message}`);
+    }
+    setProjectBeingDeleted(undefined);
   };
 
   const onCreateClick = () => {
@@ -274,7 +254,7 @@ const ProjectsView: React.FC = () => {
   );
 
   const [projectTabIndex, setProjectTabIndex] = React.useState<PROJECT_TAB>(
-    PROJECT_TAB.EXAMPLE_PROJECTS
+    PROJECT_TAB.MY_PROJECTS
   );
   const onClickTab = React.useCallback(
     (tabIndex: number) => setProjectTabIndex(tabIndex),
@@ -282,8 +262,6 @@ const ProjectsView: React.FC = () => {
   );
 
   const { data: examples = [] } = useFetchExamples();
-
-  console.log("DEV communityExamples: ", examples);
 
   return (
     <TempLayout>
@@ -293,7 +271,6 @@ const ProjectsView: React.FC = () => {
         disabled={
           isImportDialogOpen ||
           isShowingCreateModal ||
-          hasValue(projectUuidOnEdit) ||
           (projectRows.length === 0 && isFetchingProjects)
         }
         sx={{
@@ -320,12 +297,6 @@ const ProjectsView: React.FC = () => {
           onClose={() => setIsImportDialogOpen(false)}
           filesToUpload={filesToUpload}
           confirmButtonLabel={`Save & view`}
-        />
-        <EditProjectPathDialog
-          projects={projects}
-          projectUuid={projectUuidOnEdit}
-          onClose={onCloseEditProjectPathModal}
-          setProjects={setProjects}
         />
         <CreateProjectDialog
           projects={projects}
@@ -359,7 +330,11 @@ const ProjectsView: React.FC = () => {
             </Button>
           </Stack>
         </Stack>
-        <Tabs value={projectTabIndex} aria-label="Projects tabs">
+        <Tabs
+          value={projectTabIndex}
+          aria-label="Projects tabs"
+          sx={{ borderBottom: (theme) => `1px solid ${theme.borderColor}` }}
+        >
           {projectTabs.map((projectTab, index) => {
             return (
               <Tab
@@ -385,17 +360,40 @@ const ProjectsView: React.FC = () => {
           {projectRows.length === 0 && isFetchingProjects ? (
             <LinearProgress />
           ) : (
-            <DataTable<ProjectRow>
-              id="project-list"
-              isLoading={isFetchingProjects}
-              selectable
-              hideSearch
-              onRowClick={onRowClick}
-              deleteSelectedRows={deleteSelectedRows}
-              columns={columns}
-              rows={projectRows}
-              data-test-id="projects-table"
-            />
+            <>
+              <DataTable<ProjectRow>
+                id="project-list"
+                isLoading={isFetchingProjects}
+                hideSearch
+                onRowClick={onRowClick}
+                columns={columns}
+                rows={projectRows}
+                data-test-id="projects-table"
+              />
+              {selectedProjectMenuButton && (
+                <Menu
+                  anchorEl={selectedProjectMenuButton.element}
+                  id="project-menu"
+                  open={Boolean(selectedProjectMenuButton)}
+                  onClose={closeProjectMenu}
+                  transformOrigin={{ horizontal: "right", vertical: "top" }}
+                  anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                >
+                  <MenuItem onClick={openSettings}>
+                    <ListItemIcon>
+                      <SettingsOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    Project settings
+                  </MenuItem>
+                  <MenuItem onClick={deleteProject}>
+                    <ListItemIcon>
+                      <DeleteOutlineOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    Delete project
+                  </MenuItem>
+                </Menu>
+              )}
+            </>
           )}
         </ProjectTabPanel>
         <ProjectTabPanel
