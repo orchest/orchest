@@ -633,7 +633,7 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 	}
 
 	err = occ.ensurePvc(ctx, generation, controller.BuilderDirName,
-		orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
+		orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize, orchest)
 	if err != nil {
 		return err
 	}
