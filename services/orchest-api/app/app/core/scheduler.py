@@ -145,7 +145,7 @@ class Jobs:
 
     def handle_cleanup_builder_cache(self, app: Flask, interval: int = 0) -> None:
         """Handles cleaning up the builder cache."""
-        interval = max(app.config["IMAGES_DELETION_INTERVAL"], interval)
+        interval = max(app.config["CLEANUP_BUILDER_CACHE_INTERVAL"], interval)
         return self._handle_recurring_scheduler_job(
             SchedulerJobType.CLEANUP_BUILDER_CACHE.value,
             interval,
