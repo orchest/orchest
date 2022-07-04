@@ -28,9 +28,10 @@ logger = logging.getLogger("job-scheduler")
 
 
 class SchedulerJobType(enum.Enum):
-    SCHEDULE_JOB_RUNS = "SCHEDULE_JOB_RUNS"
+    CLEANUP_BUILDER_CACHE = "CLEANUP_BUILDER_CACHE"
     PROCESS_IMAGES_FOR_DELETION = "PROCESS_IMAGES_FOR_DELETION"
     PROCESS_NOTIFICATIONS_DELIVERIES = "PROCESS_NOTIFICATIONS_DELIVERIES"
+    SCHEDULE_JOB_RUNS = "SCHEDULE_JOB_RUNS"
 
 
 def add_recurring_jobs_to_scheduler(
@@ -49,6 +50,16 @@ def add_recurring_jobs_to_scheduler(
     """
     jobs = Jobs()
     recurring_jobs = {
+        "cleanup builder cache": {
+            "allowed_to_run": True,
+            # For jobs with a long period rely on the DB instead of the
+            # internal scheduler given that the pod might restart and
+            # the progress through the interval would get lost. In this
+            # particular case the real interval is in days, and is
+            # handled by handle_cleanup_builder_cache.
+            "interval": 3600,
+            "job_func": jobs.handle_cleanup_builder_cache,
+        },
         "schedule job runs": {
             "allowed_to_run": True,
             "interval": app.config["SCHEDULER_INTERVAL"],
@@ -129,6 +140,16 @@ class Jobs:
             SchedulerJobType.PROCESS_NOTIFICATIONS_DELIVERIES.value,
             interval,
             process_notification_deliveries,
+            app,
+        )
+
+    def handle_cleanup_builder_cache(self, app: Flask, interval: int = 0) -> None:
+        """Handles cleaning up the builder cache."""
+        interval = max(app.config["CLEANUP_BUILDER_CACHE_INTERVAL"], interval)
+        return self._handle_recurring_scheduler_job(
+            SchedulerJobType.CLEANUP_BUILDER_CACHE.value,
+            interval,
+            cleanup_builder_cache,
             app,
         )
 
@@ -362,4 +383,12 @@ def process_notification_deliveries(app) -> None:
         app.logger.debug("Sending process notifications deliveries task.")
         celery = make_celery(app)
         res = celery.send_task(name="app.core.tasks.process_notifications_deliveries")
+        res.forget()
+
+
+def cleanup_builder_cache(app) -> None:
+    with app.app_context():
+        app.logger.debug("Sending cleanup builder cache task.")
+        celery = make_celery(app)
+        res = celery.send_task(name="app.core.tasks.cleanup_builder_cache")
         res.forget()
