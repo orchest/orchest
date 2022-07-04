@@ -124,19 +124,18 @@ jobs:
           DOCKERHUB_REPOSITORY: orchest/auth-server
           README_FILEPATH: services/auth-server/README.md
 
-  # To be enabled back once the k8s version hits the cloud.
-  # dispatch-orchest-ami-build:
-  #   needs: buildpush
-  #   runs-on: ubuntu-latest
+  dispatch-orchest-ami-build:
+    needs: buildpush
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Dispatch
-  #       run: >
-  #         curl -X POST
-  #         -u "${{secrets.PAT_USER}}:${{secrets.PAT_TOKEN}}"
-  #         -H "Accept: application/vnd.github.v3+json"
-  #         https://api.github.com/repos/orchest/cloud-infra/actions/workflows/build_amis.yml/dispatches
-  #         -d '{"ref":"master"}'
+    steps:
+      - name: Dispatch
+        run: >
+          curl -X POST
+          -u "${{secrets.PAT_USER}}:${{secrets.PAT_TOKEN}}"
+          -H "Accept: application/vnd.github.v3+json"
+          https://api.github.com/repos/orchest/cloud-infra/actions/workflows/build_amis.yml/dispatches
+          -d '{"ref":"master"}'
 
   dispatch-version-update-info:
     needs: buildpush
