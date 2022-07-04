@@ -134,11 +134,17 @@ orchest install --dev
 
 Take a look in [k9s](https://github.com/derailed/k9s) and see how Orchest is getting installed.
 
-```{note}
-🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
-{ref}`best practices <best practices>` and our [GitHub](https://github.com/orchest/orchest/issues)
-to find interesting issues to work on.
+```{tip}
+Once the installation is completed you can run `minikube ip` and browse to it.
+If everything is working correctly, you should be welcomed by the Orchest UI!
+
+**Note:** On MacOS, run `sudo minikube tunnel`, and browse to `localhost` instead.
 ```
+
+Does everything look good? _Awesome!_ You're all set up and ready to start coding now! 🎉
+
+Have a look at our {ref}`best practices <best practices>` and our [GitHub](https://github.com/orchest/orchest/issues)
+to find interesting issues to work on.
 
 ## Redeploying Orchest after code changes
 
