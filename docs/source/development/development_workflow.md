@@ -34,21 +34,28 @@ Optional, but highly recommended:
 After installing the required software, you need to configure the tools and install additional
 dependencies.
 
-**Note**: Make sure you are inside the root of the `orchest` repository.
+```{note}
+Make sure you are inside the root of the `orchest` repository.
+```
 
 ```bash
-# This will get you:
-# - pre-commit hooks
-# - Dependencies to run unit tests
-# - Frontend dependencies for incremental development
-# - Dependencies to build the docs
-# - Orchest's CLI to manage the Orchest Cluster on k8s
+# Set-up pre-commit:
+pre-commit install
+# Install frontend dependencies for local development:
+npm run setup --install && pnpm i
+# Install the Orchest CLI to manage the Orchest Cluster in k8s:
+python3 -m pip install -e orchest-cli
+# Install dependencies to build the docs:
+python3 -m pip install -r docs/requirements.txt
+```
 
-pre-commit install \
-    && sudo apt-get install -y default-libmysqlclient-dev \
-    && npm run setup --install && pnpm i \
-    && python3 -m pip install -r docs/requirements.txt \
-    && python3 -m pip install -e orchest-cli
+Orchest integrations tests require a MySQL client to be installed:
+
+```bash
+# On apt-based systems (e.g. Ubuntu):
+sudo apt install -y default-libmysqlclient-dev
+# On Homebrew (MacOS/Linux)
+brew install mysql
 ```
 
 (cluster-mount)=
