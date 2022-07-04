@@ -300,17 +300,17 @@ def register_views(app, db):
         total_inodes_size = total_inodes * inode_size * 1e-9
 
         # Remove the "kB"
-        avail = int(avail[:-2]) * 1e-6
+        avail = round(int(avail[:-2]) * 1e-6)
         # Account for the 5% reserved root space, so that used + avail
         # add up to the total disk size the user would see in a file
         # explorer. Moreover, account for inodes.
-        total = int(size[:-2]) * 1e-6 + total_inodes_size
+        total = round(int(size[:-2]) * 1e-6 + total_inodes_size)
         used = total - avail
 
         host_info = {
             "disk_info": {
-                "used_GB": int(used),
-                "avail_GB": int(avail),
+                "used_GB": used,
+                "avail_GB": avail,
                 "used_pcent": (used / total) * 100,
             }
         }
