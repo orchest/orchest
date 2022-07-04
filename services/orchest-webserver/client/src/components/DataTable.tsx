@@ -13,7 +13,6 @@ import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Collapse from "@mui/material/Collapse";
 import Fade from "@mui/material/Fade";
-import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { SxProps, Theme } from "@mui/material/styles";
@@ -73,6 +72,7 @@ export type DataTableColumn<T, C = T> = {
 
 export type DataTableRow<T> = T & {
   uuid: string;
+  disabled?: boolean;
   // in case you're rendering something totally different from the data
   // provide a searchIndex for matching user's search term
   searchIndex?: string;
@@ -130,7 +130,7 @@ function EnhancedTableHead<T, C>(props: EnhancedTableProps<T, C>) {
         {data.map((headCell, index) => (
           <TableCell
             key={headCell.id.toString()}
-            align={index === 0 ? "left" : headCell.align || "center"}
+            align={index === 0 ? "left" : headCell.align || "left"}
             padding={headCell.disablePadding ? "none" : "normal"}
             sortDirection={orderBy === headCell.id ? order : false}
           >
@@ -270,6 +270,8 @@ function Row<T, C>({
             ? { cursor: "pointer" }
             : null),
           height: data.details ? rowHeight - 1 : rowHeight,
+          // color: (theme) => theme.palette.action.disabled,
+          // disabled ? theme.palette.action.disabled : undefined,
         }}
         data-test-id={isLoading ? "loading-table-row" : `${tableId}-row`}
       >
@@ -293,7 +295,11 @@ function Row<T, C>({
         <TableCell component="th" align="left" id={labelId} scope="row">
           <CellContainer
             isLoading={isLoading}
-            sx={columns[0]?.sx}
+            sx={{
+              color: (theme) =>
+                disabled ? theme.palette.action.disabled : undefined,
+              ...columns[0]?.sx,
+            }}
             onAuxClick={handleClickRow}
           >
             {renderCell(columns[0], data, disabled)}
@@ -303,11 +309,15 @@ function Row<T, C>({
           return (
             <TableCell
               key={column.id.toString()}
-              align={column.align || "center"}
+              align={column.align || "left"}
             >
               <CellContainer
                 isLoading={isLoading}
-                sx={column.sx}
+                sx={{
+                  color: (theme) =>
+                    disabled ? theme.palette.action.disabled : undefined,
+                  ...column.sx,
+                }}
                 onAuxClick={handleClickRow}
               >
                 {column.sortable ? (
@@ -447,7 +457,6 @@ export const DataTable = <T extends Record<string, any>, C = T>({
   refreshInterval = null,
   retainSelectionsOnPageChange,
   footnote,
-  tableContainerElevation = 1,
   ...props
 }: DataTableProps<T, C>) => {
   const { setAlert } = useAppContext();
@@ -730,10 +739,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
           onChange={handleChangeSearchTerm}
         />
       )}
-      <Paper
-        elevation={tableContainerElevation}
-        sx={{ width: "100%", marginBottom: 2 }}
-      >
+      <Box sx={{ width: "100%", marginBottom: 2 }}>
         <TableContainer sx={containerSx}>
           <Table
             sx={{ minWidth: 750 }}
@@ -759,10 +765,12 @@ export const DataTable = <T extends Record<string, any>, C = T>({
               {!error &&
                 rowsInPage.map((row: DataTableRow<T>) => {
                   const isItemSelected = isSelected(row.uuid);
+                  const isRowDisabled =
+                    isTableDisabled || row.disabled || false;
                   return (
                     <Row<T, C>
                       isLoading={isFetchingData}
-                      disabled={isTableDisabled}
+                      disabled={isRowDisabled}
                       hover={hasValue(onRowClick) || hasValue(row.details)}
                       tableId={id}
                       data={composeRow(row, setData, fetchData)}
@@ -855,7 +863,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
             />
           )}
         </Stack>
-      </Paper>
+      </Box>
     </Box>
   );
 };
