@@ -8,10 +8,7 @@ type HostInfo = {
   };
 };
 
-export const useHostInfo = (shouldFetch?: boolean) => {
-  const { data } = useFetcher<HostInfo>(
-    shouldFetch ? "/async/host-info" : undefined
-  );
-
+export const useHostInfo = () => {
+  const { data } = useFetcher<HostInfo>("/async/host-info");
   return data;
 };
