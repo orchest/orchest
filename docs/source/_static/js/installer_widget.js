@@ -19,13 +19,13 @@ window.document.addEventListener("DOMContentLoaded", function () {
         <p>Then orchest can be installed via orchest-cli</p>
           <div class="highlight">
 <pre>
-pip install --upgrade orchest-cli 
+pip install --upgrade orchest-cli
 orchest install
 </pre>
         </div>
         <p>Now the cluster can be reached on the IP returned by:</p>
         <div class="highlight">
-          <pre>minikube ip</pre>        
+          <pre>minikube ip</pre>
         </div>
         <div class="admonition tip">
           <p class="admonition-title">Tip</p>
@@ -48,7 +48,7 @@ microk8s enable hostpath-storage \\
         <p>Then orchest can be installed via orchest-cli</p>
         <div class="highlight">
 <pre>
-pip install --upgrade orchest-cli 
+pip install --upgrade orchest-cli
 orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
 </pre>
         </div>`,
@@ -63,13 +63,13 @@ orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
         <p>Then orchest can be installed via orchest-cli</p>
           <div class="highlight">
 <pre>
-pip install --upgrade orchest-cli 
+pip install --upgrade orchest-cli
 orchest install
 </pre>
         </div>
         <p>Now the cluster can be reached on the IP returned by:</p>
         <div class="highlight">
-          <pre>minikube ip</pre>        
+          <pre>minikube ip</pre>
         </div>
         <div class="admonition tip">
           <p class="admonition-title">Tip</p>
@@ -92,7 +92,7 @@ microk8s enable hostpath-storage \\
         <p>Then orchest can be installed via orchest-cli</p>
         <div class="highlight">
 <pre>
-pip install --upgrade orchest-cli 
+pip install --upgrade orchest-cli
 orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
 </pre>
         </div>`,
@@ -115,13 +115,13 @@ orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
         <p>Then orchest can be installed via orchest-cli</p>
           <div class="highlight">
 <pre>
-pip install --upgrade orchest-cli 
+pip install --upgrade orchest-cli
 orchest install
 </pre>
         </div>
         <p>Now the cluster can be reached on the IP returned by:</p>
         <div class="highlight">
-          <pre>minikube ip</pre>        
+          <pre>minikube ip</pre>
         </div>
         <div class="admonition tip">
           <p class="admonition-title">Tip</p>
@@ -140,11 +140,11 @@ orchest install
   let OSs = Object.keys(installerData);
 
   let osHtml = OSs.map(
-    (os) => `<button 
+    (os) => `<button
     class="os"
   onclick="installer_widget.filter('${os}', '${
       Object.keys(installerData[os])[0]
-    }')" 
+    }')"
    data-os="${os}">${os}</button>`
   ).join(``);
 
@@ -169,15 +169,15 @@ orchest install
   installerContainer.innerHTML = `
     <div>
       <div class="section">
-        <div class="lhs-label">Operating system</div> 
+        <div class="lhs-label">Deployment environment</div>
         <div class="content">${osHtml}</div>
       </div>
       <div class="section">
-        <div class="lhs-label">K8s distribution</div> 
+        <div class="lhs-label">Kubernetes distribution</div>
         <div class="content">${platformHtml}</div>
       </div>
       <div class="section">
-        <div class="lhs-label">Installation</div> 
+        <div class="lhs-label"><strong>Installation</strong></div>
         <div class="content">${instructionsHtml}</div>
       </div>
     </div>

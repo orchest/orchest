@@ -16,15 +16,18 @@ To use Orchest you will need a running `Kubernetes (k8s) cluster
 <https://kubernetes.io/docs/setup/>`_. Any cluster should work. You can either pick a managed
 service by one of the certified `cloud platforms
 <https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/>`_ or create a cluster
-locally. Choose your operating system and Kubernetes distribution and follow the installation steps
+locally.
+
+Pick your deployment environment and Kubernetes distribution and follow the installation steps
 below.
 
 .. _regular installation:
 
 Install ``orchest``
 -------------------
-We recommend to install Orchest on a clean cluster to prevent clashes with existing cluster-level
-resources. The supported operating systems are:
+Even though installing Orchest on an existing cluster is fully supported, we recommend to install
+Orchest on a clean cluster to prevent clashes with existing cluster-level resources. The supported
+operating systems are:
 
 - Linux (``x86_64``)
 - `Windows Subsystem for Linux 2 <https://docs.microsoft.com/en-us/windows/wsl/about>`_ (WSL2)
