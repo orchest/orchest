@@ -6,39 +6,30 @@ Installation
 .. note::
    Orchest is in beta.
 
-We provide three installation paths, installation through:
-
-* our Python based CLI `orchest-cli <https://pypi.org/project/orchest-cli/>`_, or
-* `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_, or
-* `our Cloud offering <https://cloud.orchest.io/signup>`_ which comes with a free, fully configured
-  Orchest instance.
-
+Instead of self-hosting Orchest, try out `our Cloud offering <https://cloud.orchest.io/signup>`_
+which comes with a free, fully configured Orchest instance.
 
 Prerequisites
 -------------
 
-To use Orchest you will need a `Kubernetes (k8s) cluster <https://kubernetes.io/docs/setup/>`_. Any
-cluster should work. You can either pick a managed service by one of the certified `cloud platforms
+To use Orchest you will need a running `Kubernetes (k8s) cluster
+<https://kubernetes.io/docs/setup/>`_. Any cluster should work. You can either pick a managed
+service by one of the certified `cloud platforms
 <https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/>`_ or create a cluster
-locally, e.g. using `minikube
-<https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/cluster-intro/>`_.
-
-Do make sure that, no matter the cluster you choose, the ingress controller is configured.
-
-The supported operating systems are:
-
-- Linux (``x86_64``)
-- `Windows Subsystem for Linux 2 <https://docs.microsoft.com/en-us/windows/wsl/about>`_ (WSL2)
-- macOS (M1 Macs should use `Rosetta <https://support.apple.com/en-us/HT211861>`_ for emulation)
-
-.. note::
-   💡 We recommend to install Orchest on a clean cluster to prevent it clashing with existing
-   cluster-level resources.
+locally. Choose your operating system and Kubernetes distribution and follow the installation steps
+below.
 
 .. _regular installation:
 
 Install ``orchest``
 -------------------
+We recommend to install Orchest on a clean cluster to prevent clashes with existing cluster-level
+resources. The supported operating systems are:
+
+- Linux (``x86_64``)
+- `Windows Subsystem for Linux 2 <https://docs.microsoft.com/en-us/windows/wsl/about>`_ (WSL2)
+- macOS (M1 Macs should use `Rosetta <https://support.apple.com/en-us/HT211861>`_ for emulation)
+
 .. raw:: html
    :file: install-widget.html
 
