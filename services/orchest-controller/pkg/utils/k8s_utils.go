@@ -297,7 +297,7 @@ func UpsertEnvVariable(envVarList *[]corev1.EnvVar, defaultEnvVarMap map[string]
 	envVarMap := GetMapFromEnvVar(*envVarList)
 
 	for defaultName, defaultValue := range defaultEnvVarMap {
-		if _, ok := envVarMap[defaultName]; !ok || update {
+		if value, ok := envVarMap[defaultName]; !ok || (update && value != defaultValue) {
 			envVarMap[defaultName] = defaultValue
 			*envVarList = append(*envVarList, corev1.EnvVar{Name: defaultName, Value: defaultValue})
 			changed = true

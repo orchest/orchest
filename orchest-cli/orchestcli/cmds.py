@@ -26,6 +26,8 @@ from orchestcli import utils
 if t.TYPE_CHECKING:
     from multiprocessing.pool import AsyncResult
 
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 def echo(*args, **kwargs) -> None:
     """Wrapped `click.echo`.
