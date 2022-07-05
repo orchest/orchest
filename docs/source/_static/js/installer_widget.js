@@ -2,136 +2,154 @@ window.document.addEventListener("DOMContentLoaded", function () {
   const CONTAINER_CLASS = ".installer-container";
 
   let installerData = {
-    Cloud: {
-      GKE: {
-        instructions: ``,
-      },
-      EKS: {
-        instructions: ``,
-      },
-    },
+    // Cloud: {
+    //   GKE: {
+    //     instructions: ``,
+    //   },
+    //   EKS: {
+    //     instructions: ``,
+    //   },
+    // },
     Linux: {
       minikube: {
-        instructions: `<p>After <a href="https://minikube.sigs.k8s.io/docs/start/">minikube</a> installation. then create a minikube cluster and configure ingress</p>
-        <div class="highlight">
-          <pre>minikube start --cpus 4 --addons ingress</pre>
-        </div>
-        <p>Then orchest can be installed via orchest-cli</p>
-          <div class="highlight">
+        instructions: `
+<p>We provide an automated convenience script for a complete <a
+href="https://minikube.sigs.k8s.io/docs/start/">minikube</a> deployment. Taking care of installing
+minikube, installing the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code> and installing Orchest, run it with:</p>
+<div class="highlight">
 <pre>
-pip install --upgrade orchest-cli
-orchest install
+curl -fsSL https://get.orchest.io > convenience_install.sh \\
+    && bash convenience_install.sh
 </pre>
-        </div>
-        <p>Now the cluster can be reached on the IP returned by:</p>
-        <div class="highlight">
-          <pre>minikube ip</pre>
-        </div>
-        <div class="admonition tip">
-          <p class="admonition-title">Tip</p>
-          <p>👉 We provide an automated convenience script for a complete minikube deployment. Taking care of installing <code class="docutils literal notranslate"><span class="pre">minikube</span></code>, installing the <code class="docutils literal notranslate"><span class="pre">orchest-cli</span></code> and installing Orchest, run it with:</p>
-          <div class="highlight">
-          <pre>curl -fsSL https://get.orchest.io > convenience_install.sh \\
-&& bash convenience_install.sh</pre>
-          </div>
-        </div>`,
+</div>
+<p>In case any of these technologies is already installed on your machine, then the convenience script
+will simply proceed to the next step.</p>
+
+<p>Now that Orchest is installed, it can be reached on the IP returned by:</p>
+<div class="highlight">
+  <pre>minikube ip</pre>
+</div>
+        `,
       },
-      microK8s: {
-        instructions: `After <a href="https://microk8s.io/#install-microk8s">microk8s</a> installation. following addons have to be enabled</p>
-        <div class="highlight">
+      MicroK8s: {
+        instructions: `
+<p>Assuming you have already installed <a href="https://microk8s.io/#install-microk8s">MicroK8s</a>,
+proceed by installing the following addons:</p>
+<div class="highlight">
 <pre>
 microk8s enable hostpath-storage \\
-&& microk8s enable dns \\
-&& microk8s enable ingress
+    && microk8s enable dns \\
+    && microk8s enable ingress
 </pre>
-        </div>
-        <p>Then orchest can be installed via orchest-cli</p>
-        <div class="highlight">
+</div>
+<p>These make sure your MicroK8s cluster is properly configured for you to use Orchest.</p>
+
+<p>Next up, Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
 <pre>
 pip install --upgrade orchest-cli
 orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
 </pre>
-        </div>`,
+</div>
+<p>Passing the <code class="docutils literal notranslate"><span
+class="pre">--socket-path</span></code> flag is required for MicroK8s deployments for Orchest
+to know the location of the container runtime socket. Without it Orchest won't be able to pull
+your custom Environments to the MicroK8s node.
+
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost/">localhost</a>
+directly.</p>
+          `,
       },
     },
     macOS: {
       minikube: {
-        instructions: `<p>After <a href="https://minikube.sigs.k8s.io/docs/start/">minikube</a> installation. then create a minikube cluster and configure ingress</p>
-        <div class="highlight">
-          <pre>minikube start --cpus 4 --addons ingress</pre>
-        </div>
-        <p>Then orchest can be installed via orchest-cli</p>
-          <div class="highlight">
+        instructions: `
+<p>We provide an automated convenience script for a complete <a
+href="https://minikube.sigs.k8s.io/docs/start/">minikube</a> deployment. Taking care of installing
+minikube, installing the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code> and installing Orchest, run it with:</p>
+<div class="highlight">
 <pre>
-pip install --upgrade orchest-cli
-orchest install
+curl -fsSL https://get.orchest.io > convenience_install.sh \\
+    && bash convenience_install.sh
 </pre>
-        </div>
-        <p>Now the cluster can be reached on the IP returned by:</p>
-        <div class="highlight">
-          <pre>minikube ip</pre>
-        </div>
-        <div class="admonition tip">
-          <p class="admonition-title">Tip</p>
-          <p>👉 We provide an automated convenience script for a complete minikube deployment. Taking care of installing <code class="docutils literal notranslate"><span class="pre">minikube</span></code>, installing the <code class="docutils literal notranslate"><span class="pre">orchest-cli</span></code> and installing Orchest, run it with:</p>
-          <div class="highlight">
-          <pre>curl -fsSL https://get.orchest.io > convenience_install.sh \\
-&& bash convenience_install.sh</pre>
-          </div>
-        </div>`,
-      },
-      microK8s: {
-        instructions: `After <a href="https://microk8s.io/#install-microk8s">microk8s</a> installation. following addons have to be enabled</p>
-        <div class="highlight">
-<pre>
-microk8s enable hostpath-storage \\
-&& microk8s enable dns \\
-&& microk8s enable ingress
-</pre>
-        </div>
-        <p>Then orchest can be installed via orchest-cli</p>
-        <div class="highlight">
-<pre>
-pip install --upgrade orchest-cli
-orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
-</pre>
-        </div>`,
+</div>
+<p>In case any of these technologies is already installed on your machine, then the convenience script
+will simply proceed to the next step.</p>
+
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost/">localhost</a> by
+running the <code class="docutils literal notranslate"><span class="pre">minikube
+tunnel</span></code> daemon.
+          `,
       },
     },
     Windows: {
       minikube: {
         instructions: `
-        <div class="admonition note">
-        <p class="admonition-title">Note</p>
-        <p>💡 For Orchest to work on Windows, Docker has to be configured to use WSL 2 (<a class="reference external" href="https://docs.docker.com/desktop/windows/wsl/">Docker Desktop WSL 2
-        backend</a>).</p>
-        <p>For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
-        opening the distribution using the Start menu or by <a class="reference external" href="https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal">setting up the Windows Terminal</a>.</p>
-        </div>
-        <p>After <a href="https://minikube.sigs.k8s.io/docs/start/">minikube</a> installation. then create a minikube cluster and configure ingress</p>
-        <div class="highlight">
-          <pre>minikube start --cpus 4 --addons ingress</pre>
-        </div>
-        <p>Then orchest can be installed via orchest-cli</p>
-          <div class="highlight">
+<p>For Orchest to work on Windows, Docker has to be configured to use WSL 2 (<a class="reference
+external" href="https://docs.docker.com/desktop/windows/wsl/">Docker Desktop WSL 2 backend</a>).
+For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
+opening the distribution using the Start menu or by <a class="reference external"
+href="https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal">setting
+up the Windows Terminal</a>.</p>
+
+<p>We provide an automated convenience script for a complete <a
+href="https://minikube.sigs.k8s.io/docs/start/">minikube</a> deployment. Taking care of installing
+minikube, installing the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code> and installing Orchest, run it with:</p>
+<div class="highlight">
+<pre>
+curl -fsSL https://get.orchest.io > convenience_install.sh \\
+    && bash convenience_install.sh
+</pre>
+</div>
+<p>In case any of these technologies is already installed on your machine, then the convenience script
+will simply proceed to the next step.</p>
+
+<p>Now that Orchest is installed, it can be reached on the IP returned by:</p>
+<div class="highlight">
+  <pre>minikube ip</pre>
+</div>
+        `,
+      },
+      MicroK8s: {
+        instructions: `
+<p>For Orchest to work on Windows, Docker has to be configured to use WSL 2 (<a class="reference
+external" href="https://docs.docker.com/desktop/windows/wsl/">Docker Desktop WSL 2 backend</a>).
+For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
+opening the distribution using the Start menu or by <a class="reference external"
+href="https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal">setting
+up the Windows Terminal</a>.</p>
+
+<p>Assuming you have already installed <a href="https://microk8s.io/#install-microk8s">MicroK8s</a>,
+proceed by installing the following addons:</p>
+<div class="highlight">
+<pre>
+microk8s enable hostpath-storage \\
+    && microk8s enable dns \\
+    && microk8s enable ingress
+</pre>
+</div>
+<p>These make sure your MicroK8s cluster is properly configured for you to use Orchest.</p>
+
+<p>Next up, Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
 <pre>
 pip install --upgrade orchest-cli
-orchest install
+orchest install --socket-path=/var/snap/microk8s/common/run/containerd.sock
 </pre>
-        </div>
-        <p>Now the cluster can be reached on the IP returned by:</p>
-        <div class="highlight">
-          <pre>minikube ip</pre>
-        </div>
-        <div class="admonition tip">
-          <p class="admonition-title">Tip</p>
-          <p>👉 We provide an automated convenience script for a complete minikube deployment. Taking care of installing <code class="docutils literal notranslate"><span class="pre">minikube</span></code>, installing the <code class="docutils literal notranslate"><span class="pre">orchest-cli</span></code> and installing Orchest, run it with:</p>
-          <div class="highlight">
-          <pre>curl -fsSL https://get.orchest.io > convenience_install.sh \\
-&& bash convenience_install.sh</pre>
-          </div>
-        </div>
-        `,
+</div>
+<p>Passing the <code class="docutils literal notranslate"><span
+class="pre">--socket-path</span></code> flag is required for MicroK8s deployments for Orchest
+to know the location of the container runtime socket. Without it Orchest won't be able to pull
+your custom Environments to the MicroK8s node.
+
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost/">localhost</a>
+directly.</p>
+          `,
       },
     },
   };
