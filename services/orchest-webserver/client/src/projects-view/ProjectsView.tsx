@@ -14,6 +14,7 @@ import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
 import { wait } from "@/utils/dev-utils";
 import { fetcher } from "@/utils/fetcher";
+import { ellipsis } from "@/utils/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
@@ -21,13 +22,13 @@ import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import LinearProgress from "@mui/material/LinearProgress";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { HEADER } from "@orchest/lib-utils";
 import React from "react";
@@ -36,6 +37,7 @@ import { ExampleCard } from "./ExampleCard";
 import { useFetchExamples } from "./hooks/useFetchExamples";
 import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
+import { NoProject } from "./NoProject";
 import { ProjectTabPanel } from "./ProjectTabPanel";
 import { TempLayout } from "./TempLayout";
 
@@ -94,8 +96,6 @@ const ProjectsView: React.FC = () => {
     });
   };
 
-  console.log("DEV hey!");
-
   const closeProjectMenu = () => setSelectedProjectMenuButton(undefined);
 
   const openSettings = (e: React.MouseEvent) => {
@@ -114,20 +114,9 @@ const ProjectsView: React.FC = () => {
         sx: { margin: (theme) => theme.spacing(-0.5, 0) },
         render: function ProjectPath(row) {
           return (
-            <Stack
-              direction="row"
-              alignItems="center"
-              component="span"
-              sx={{
-                display: "inline-flex",
-                button: { visibility: "hidden" },
-                "&:hover": {
-                  button: { visibility: "visible" },
-                },
-              }}
-            >
-              {row.path}
-            </Stack>
+            <Tooltip title={row.path}>
+              <Box sx={ellipsis((theme) => theme.spacing(60))}>{row.path}</Box>
+            </Tooltip>
           );
         },
       },
@@ -357,8 +346,8 @@ const ProjectsView: React.FC = () => {
           value={projectTabIndex}
           index={PROJECT_TAB.MY_PROJECTS}
         >
-          {projectRows.length === 0 && isFetchingProjects ? (
-            <LinearProgress />
+          {projectRows.length === 0 && !isFetchingProjects ? (
+            <NoProject />
           ) : (
             <>
               <DataTable<ProjectRow>
