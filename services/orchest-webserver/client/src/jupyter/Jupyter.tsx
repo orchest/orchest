@@ -135,7 +135,10 @@ class Jupyter {
           );
           this.reloadIframe();
         } else if (this.isJupyterPage() && !this.isJupyterLoaded()) {
-          console.log("Still initializing page.");
+          // console.log("Still initializing page.");
+          // This can run 100+ times easily, hiding
+          // console.log to avoid cluttering
+          // the console.
         } else {
           // Fully loaded, no errors detected, we can stop checking.
           window.clearInterval(this.showCheckInterval);
