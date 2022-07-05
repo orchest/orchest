@@ -33,7 +33,7 @@ import Typography from "@mui/material/Typography";
 import { HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { CreateProjectDialog } from "./CreateProjectDialog";
-import { ExampleCard } from "./ExampleCard";
+import { ExampleList } from "./ExampleList";
 import { useFetchExamples } from "./hooks/useFetchExamples";
 import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
@@ -58,9 +58,6 @@ enum PROJECT_TAB {
   "MY_PROJECTS" = 0,
   "EXAMPLE_PROJECTS" = 1,
 }
-
-const isCuratedByOrchest = (owner: string) =>
-  ["orchest", "orchest-examples"].includes(owner.toLowerCase());
 
 const ProjectsView: React.FC = () => {
   const { state, setAlert, setConfirm } = useAppContext();
@@ -243,7 +240,7 @@ const ProjectsView: React.FC = () => {
   );
 
   const [projectTabIndex, setProjectTabIndex] = React.useState<PROJECT_TAB>(
-    PROJECT_TAB.MY_PROJECTS
+    PROJECT_TAB.EXAMPLE_PROJECTS
   );
   const onClickTab = React.useCallback(
     (tabIndex: number) => setProjectTabIndex(tabIndex),
@@ -391,15 +388,7 @@ const ProjectsView: React.FC = () => {
           index={PROJECT_TAB.EXAMPLE_PROJECTS}
         >
           <Box sx={{ display: "flex", flexWrap: "wrap" }}>
-            {examples.map((item) => {
-              return (
-                <ExampleCard
-                  key={item.url}
-                  {...item}
-                  startImport={importWithUrl}
-                />
-              );
-            })}
+            <ExampleList data={examples} imporProject={importWithUrl} />
           </Box>
         </ProjectTabPanel>
       </DropZone>
