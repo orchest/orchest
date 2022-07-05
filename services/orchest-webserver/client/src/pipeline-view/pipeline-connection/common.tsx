@@ -11,7 +11,7 @@ export const curvedHorizontal = (
   x2: number,
   y2: number
 ) => {
-  let line = [];
+  let line: (number | string)[] = [];
   let mx = x1 + (x2 - x1) / 2;
 
   line.push("M", x1, y1);
