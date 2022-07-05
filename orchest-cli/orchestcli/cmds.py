@@ -396,9 +396,8 @@ def install(
     else:
         echo(
             "Orchest is running without an FQDN. To access Orchest locally, simply"
-            " go to the IP returned by `minikube ip`. If you are on mac run the"
-            " `minikube tunnel` daemon and map '127.0.0.1' to `minikube ip` in the"
-            " '/etc/hosts' file instead."
+            " go to the IP returned by `minikube ip`. If you are on macOS run the"
+            " `minikube tunnel` daemon instead."
         )
 
 
