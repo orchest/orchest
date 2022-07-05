@@ -60,6 +60,13 @@ class Jupyter {
   _unhide() {
     // this method should only be called directly from main.js
     this.jupyterHolder.removeClass("hidden");
+
+    // Remove so we don't register twice
+    this.iframe?.contentWindow?.document?.removeEventListener(
+      "keydown",
+      passKeyboardEvent
+    );
+
     this.iframe?.contentWindow?.document?.addEventListener(
       "keydown",
       passKeyboardEvent
@@ -73,14 +80,52 @@ class Jupyter {
     }
 
     // make sure the baseAddress has loaded
-
     if (!this.iframe?.contentWindow?.location.href.includes(this.baseAddress)) {
       this._setJupyterAddress(this.baseAddress + "/lab");
     }
 
+    /*
+      Catching glitches of <iframe> rendered JupyterLab
+
+      There are a number of failure modes we need to take into account, and this 
+      requires a complicated set of conditions to be checked at various points in time.
+
+      First I'll describe how JupyterLab can fail to load:
+
+      1. The endpoint serving the JupyterLab <iframe> can be down and load a 5XX error 
+      HTML page. If not checked for the <iframe> will think it loaded successfully 
+      (it doesn't care about what's in the iframe, or whether that HTTP GET returned 
+      a non 2XX status code).
+
+      2. JupyterLab's UI rendering requires elements to be on the screen when loading 
+      UI components. Because of how we embed the <iframe> in Orchest (we leave it loaded
+         in the background and CSS display:none hide it to be able to return to it 
+         quickly) we don't always have the <iframe> on screen for the full duration of 
+         its application load. This can lead to a glitched load of the JupyterLab app 
+         and can only be detected by "introspecting" the JupyterLab UI elements and 
+         checking for the sizes (this detection mechanism is brittle and might fail as 
+          JupyterLab evolves, perhaps they'll evolve to avoid needing to be on screen 
+          to render too, but let's not get our hopes up.)
+
+      The basic approach below is to run a "health checker" setInterval loop when 
+      JupyterLab is loaded by the application (jupyter.show() is called).
+
+      It will keep checking the health by checking for the two failure modes above. 
+      If it detects either non-recoverable failure mode it will reload the <iframe> 
+      to attempt to get to a successfully loaded endstate.
+
+      1. Can't be recovered from without a reload because the page has completed the 
+      load and the error page has no retry mechanism built in.
+
+      2. Can't be recovered from without a reload because the JupyterLab UI can't be 
+      triggered to reinitialize itself without diving into 
+      brittle internal/private APIs.
+    */
     window.clearInterval(this.showCheckInterval);
     this.showCheckInterval = window.setInterval(() => {
       if (this.iframeHasLoaded) {
+        this._unhide();
+
         if (this.hasJupyterRenderingGlitched()) {
           console.log("Reloading iframe because JupyterLab failed to render");
           this.reloadIframe();
@@ -89,8 +134,10 @@ class Jupyter {
             "Reloading iframe page because JupyterLab page not loaded (4XX or 5XX)"
           );
           this.reloadIframe();
+        } else if (this.isJupyterPage() && !this.isJupyterLoaded()) {
+          console.log("Still initializing page.");
         } else {
-          this._unhide();
+          // Fully loaded, no errors detected, we can stop checking.
           window.clearInterval(this.showCheckInterval);
         }
       }
