@@ -24,7 +24,6 @@
 
 .installer-container .content {
   flex: 1;
-  max-width: 625px;
 }
 
 .installer-container button.active,
@@ -42,9 +41,8 @@
   flex-direction: column;
 }
 
-.installer-container .row {
-  flex-direction: row;
-  display: flex;
+.installer-container .section {
+  margin-bottom: 4px;
 }
 
 .installer-container .row > div:nth-child(1) {
