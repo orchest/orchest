@@ -102,6 +102,7 @@ const useCustomRoute = () => {
     "environment_uuid",
     "step_uuid",
     "file_path",
+    "tab",
   ]);
 
   const [
@@ -113,6 +114,7 @@ const useCustomRoute = () => {
     environmentUuid,
     stepUuid,
     filePath,
+    tab,
   ] = valueArray.map((value) => {
     // if value is `null` or `undefined`, return `undefined`
     // stringify the value for all the other cases.
@@ -172,6 +174,7 @@ const useCustomRoute = () => {
     initialTab,
     location,
     prevPathname,
+    tab,
   };
 };
 

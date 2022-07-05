@@ -2,6 +2,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { CreateProjectDialog } from "@/projects-view/CreateProjectDialog";
 import { ImportDialog } from "@/projects-view/ImportDialog";
+import { PROJECT_TAB } from "@/projects-view/ProjectsView";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
@@ -27,21 +28,26 @@ export const ProjectSelectorMenu = ({
   validProjectUuid: string | undefined;
   selectProject: (projectUuid: string) => void;
 }) => {
-  const { navigateTo, location } = useCustomRoute();
+  const { navigateTo, location, tab } = useCustomRoute();
 
   const customNavigation = React.useCallback(
-    (path: string) => {
+    (targetTab: PROJECT_TAB) => {
       onClose();
-      if (location.pathname !== path) navigateTo(path);
+      if (
+        location.pathname !== siteMap.projects.path ||
+        (location.pathname === siteMap.projects.path &&
+          tab !== targetTab.toString())
+      )
+        navigateTo(siteMap.projects.path, { query: { tab: targetTab } });
     },
-    [location.pathname, navigateTo, onClose]
+    [location.pathname, navigateTo, onClose, tab]
   );
 
   const goToProjects = () => {
-    customNavigation(siteMap.projects.path);
+    customNavigation(PROJECT_TAB.MY_PROJECTS);
   };
   const goToExamples = () => {
-    customNavigation(siteMap.examples.path);
+    customNavigation(PROJECT_TAB.EXAMPLE_PROJECTS);
   };
 
   const createButtonRef = React.useRef<HTMLButtonElement | null>(null);

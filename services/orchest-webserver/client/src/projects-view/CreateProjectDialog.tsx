@@ -62,7 +62,7 @@ export const CreateProjectDialog = ({
       dispatch((state) => ({
         type: "SET_PROJECTS",
         payload: [
-          ...state.projects,
+          ...(state.projects || []),
           {
             path: projectName,
             uuid: project_uuid,
