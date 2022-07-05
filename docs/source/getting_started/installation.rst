@@ -35,10 +35,24 @@ The supported operating systems are:
    💡 We recommend to install Orchest on a clean cluster to prevent it clashing with existing
    cluster-level resources.
 
+.. _regular installation:
+
 Install ``orchest``
 -------------------
 .. raw:: html
    :file: install-widget.html
+
+If you have **special requirements** (or preferences) for deploying Orchest on your Kubernetes
+cluster, then one of the following subsections might proof helpful:
+
+* :ref:`Installing using an FQDN <install fqdn>`: Reach Orchest using a Fully Qualified Domain Name
+  (FQDN) instead of the cluster's IP directly.
+* :ref:`Installing without Argo Workflows <install argo>`: Don't let Orchest manage Argo in case you
+  already have Argo Workflows installed on your Kubernetes cluster.
+* :ref:`Installing using kubectl <install kubectl>`: If you would rather use ``kubectl`` instead of
+  the ``orchest-cli``.
+
+.. _install fqdn:
 
 Installing using an FQDN
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,6 +73,8 @@ Next, make Orchest reachable locally through the FQDN:
    # /etc/hosts so that you can reach Orchest locally.
    echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
 
+.. _install argo:
+
 Installing without Argo Workflows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you already have `Argo Workflows <https://argoproj.github.io/argo-workflows/>`_ installed on your
@@ -77,12 +93,10 @@ need to make sure that the right set of permissions are configured for Orchest t
 Check out the permissions that the Orchest Controller sets for Argo `here
 <https://github.com/orchest/orchest/tree/v2022.06.5/services/orchest-controller/deploy/thirdparty/argo-workflows/templates>`_.
 
-Install ``orchest`` via ``kubectl``
------------------------------------
+.. _install kubectl:
 
-.. tip::
-   We recommend using the ``orchest-cli`` for installing and managing your Orchest Clusters
-   (:ref:`link <regular installation>`).
+Installing using ``kubectl``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The code snippet below will install Orchest in the ``orchest`` namespace. In case you want to
 install in another namespace you can use tools like `yq <https://github.com/mikefarah/yq>`_ to
