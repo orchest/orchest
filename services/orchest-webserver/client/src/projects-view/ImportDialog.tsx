@@ -303,7 +303,7 @@ export const ImportDialog = ({
         // Delete the temp project from ProjectsContext manually instead of relying on fetchProjects and the useEffect,
         // because fetchProjects is forbidden when open is false.
         dispatch((currentState) => {
-          const updatedProjects = currentState.projects.filter(
+          const updatedProjects = (currentState.projects || []).filter(
             (project) => project.uuid !== newProjectUuid
           );
           return { type: "SET_PROJECTS", payload: updatedProjects };

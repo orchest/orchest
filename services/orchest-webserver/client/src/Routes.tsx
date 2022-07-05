@@ -9,8 +9,7 @@ import { NotificationSettingsView } from "./notification-settings-view/Notificat
 import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
 import { LogsView } from "./pipeline-view/LogsView";
 import PipelineView from "./pipeline-view/PipelineView";
-import ExamplesView from "./projects-view/ExamplesView";
-import ProjectsView from "./projects-view/ProjectsView";
+import { ProjectsView } from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
 import SettingsView from "./settings-view/SettingsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
@@ -27,7 +26,6 @@ import UpdateView from "./views/UpdateView";
 // It will make it very difficult for unit testing
 const pathComponentMapping = {
   "/projects": ProjectsView,
-  "/examples": ExamplesView,
   "/project-settings": ProjectSettingsView,
   "/pipeline": PipelineView,
   "/jupyter-lab": JupyterLabView,

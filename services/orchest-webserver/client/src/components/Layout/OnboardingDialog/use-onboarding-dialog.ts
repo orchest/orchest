@@ -29,7 +29,6 @@ export const useOnboardingDialog = () => {
           project_uuid: findQuickstart.uuid,
           pipeline_uuid: "0915b350-b929-4cbd-b0d4-763cac0bb69f",
         };
-  const hasQuickstart = typeof quickstart !== "undefined";
 
   const setIsOnboardingDialogOpen = React.useCallback(
     (isOpen: boolean, onOpen?: (value: boolean) => void) => {
@@ -61,6 +60,5 @@ export const useOnboardingDialog = () => {
     setIsOnboardingDialogOpen,
     quickstart,
     hasImportUrl: hasValue(importUrl) && importUrl !== "",
-    hasQuickstart,
   };
 };

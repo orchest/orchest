@@ -91,7 +91,6 @@ export const OnboardingDialog: React.FC = () => {
     isOnboardingDialogOpen,
     setIsOnboardingDialogOpen,
     quickstart,
-    hasQuickstart,
     hasImportUrl,
   } = useOnboardingDialog();
 
@@ -109,7 +108,7 @@ export const OnboardingDialog: React.FC = () => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide({ index: 0, direction: 0 });
       if (!hasImportUrl) {
-        if (hasQuickstart) {
+        if (hasValue(quickstart)) {
           navigateTo(siteMap.pipeline.path, {
             query: {
               projectUuid: quickstart.project_uuid,
@@ -244,7 +243,7 @@ export const OnboardingDialog: React.FC = () => {
                         <Typography>
                           {hasImportUrl
                             ? item.description.importProject
-                            : hasQuickstart
+                            : hasValue(quickstart)
                             ? item.description.withQuickstart
                             : item.description.withoutQuickstart}
                         </Typography>
@@ -281,18 +280,18 @@ export const OnboardingDialog: React.FC = () => {
               <StyledButtonOutlined
                 {...(isLastSlide
                   ? {
-                      startIcon: (hasImportUrl || hasQuickstart) && (
+                      startIcon: (hasImportUrl || hasValue(quickstart)) && (
                         <OpenInNewIcon />
                       ),
                       children: hasImportUrl
                         ? "Import Project"
-                        : hasQuickstart
+                        : hasValue(quickstart)
                         ? "Open Quickstart Pipeline"
                         : "Get Started",
                       variant: "contained",
                       color: "primary",
                       onClick: onCompleteOnboarding,
-                      "data-test-id": hasQuickstart
+                      "data-test-id": hasValue(quickstart)
                         ? "onboarding-complete-with-quickstart"
                         : "onboarding-complete-without-quickstart",
                     }

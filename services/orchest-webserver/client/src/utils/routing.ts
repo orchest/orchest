@@ -1,3 +1,5 @@
+import { hasValue } from "@orchest/lib-utils";
+
 const snakeCase = (str: string, divider = "_") =>
   str
     .split(/(?=[A-Z])/)
@@ -19,10 +21,9 @@ export const toQueryString = <T extends string>(
     ? Object.entries<string | number | boolean | undefined | null>(query)
         .reduce((str, entry) => {
           const [key, value] = entry;
-          const encodedValue =
-            value && value !== "null" && value !== "undefined" // we don't pass along null or undefined since it doesn't mean much to the receiver
-              ? encodeURIComponent(value.toString())
-              : null;
+          const encodedValue = hasValue(value) // we don't pass along null or undefined since it doesn't mean much to the receiver
+            ? encodeURIComponent(value.toString())
+            : null;
           return encodedValue
             ? `${str}${snakeCase(key)}=${encodedValue}&`
             : str;

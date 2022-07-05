@@ -13,6 +13,8 @@ import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectName } from "./hooks/useProjectName";
 
+// TODO: move to project settings
+
 export const EditProjectPathDialog = ({
   projectUuid,
   onClose,
