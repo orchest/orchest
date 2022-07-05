@@ -84,7 +84,7 @@ export const NavigationTabsBase = ({
 
 export const NavigationTabs = () => {
   const {
-    state: { projects, hasLoadedProjects, projectUuid, pipeline },
+    state: { projects = [], hasLoadedProjects, projectUuid, pipeline },
   } = useProjectsContext();
 
   const disabled = hasLoadedProjects && projects.length === 0;

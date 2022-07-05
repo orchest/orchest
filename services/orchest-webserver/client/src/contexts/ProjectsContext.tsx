@@ -39,7 +39,7 @@ export type IProjectsContextState = {
   pipelineSaveStatus: "saved" | "saving";
   pipelines: PipelineMetaData[] | undefined;
   pipeline?: PipelineMetaData | undefined;
-  projects: Project[];
+  projects: Project[] | undefined;
   hasLoadedProjects: boolean;
   hasLoadedPipelinesInPipelineEditor: boolean;
   newPipelineUuid: string | undefined;
@@ -104,7 +104,7 @@ const initialState: IProjectsContextState = {
   pipelineIsReadOnly: true,
   pipelineSaveStatus: "saved",
   pipelines: undefined,
-  projects: [],
+  projects: undefined,
   hasLoadedProjects: false,
   hasLoadedPipelinesInPipelineEditor: false,
   newPipelineUuid: undefined,
@@ -261,7 +261,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           // Ensure that projectUuid is valid in the state.
           // So that we could show proper warnings in case user provides
           // an invalid projectUuid from the route args.
-          const foundProject = state.projects.find(
+          const foundProject = (state.projects || []).find(
             (project) => project.uuid === action.payload
           );
 
