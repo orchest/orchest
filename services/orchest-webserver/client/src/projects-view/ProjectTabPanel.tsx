@@ -14,7 +14,7 @@ export const ProjectTabPanel: React.FC<
       hidden={value !== index}
       id={`${id}-tabpanel-${index}`}
       aria-labelledby={`${id}-tab-${index}`}
-      sx={{ width: "100%", padding: (theme) => theme.spacing(4, 0), ...sx }}
+      sx={{ width: "100%", padding: (theme) => theme.spacing(1, 0), ...sx }}
       {...props}
     >
       {value === index && children}

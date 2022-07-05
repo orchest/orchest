@@ -2,7 +2,6 @@ import { findRouteMatch } from "./hooks/useMatchProjectRoot";
 
 export type RouteName =
   | "projects"
-  | "examples"
   | "projectSettings"
   | "pipeline"
   | "jupyterLab"
@@ -46,12 +45,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       name: "projects",
       path: "/projects",
       title: getTitle("Projects"),
-    },
-    {
-      name: "examples",
-      path: "/examples",
-      root: "/projects",
-      title: getTitle("Examples"),
     },
     {
       name: "projectSettings",
