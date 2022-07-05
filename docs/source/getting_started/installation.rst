@@ -55,7 +55,7 @@ After installing minikube, create a minikube cluster and continue with :ref:`ins
 .. code-block:: bash
 
    # Create a minikube cluster and configure ingress.
-   minikube start --cpus 4 --addons ingress
+   minikube start --cpus max --memory max --addons ingress
 
 Installing ``minikube`` and Orchest on Windows
 """"""""""""""""""""""""""""""""""""""""""""""
