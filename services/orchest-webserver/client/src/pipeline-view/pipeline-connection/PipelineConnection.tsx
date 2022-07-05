@@ -7,7 +7,7 @@ import { useUpdateZIndex } from "../hooks/useZIndexMax";
 import { getSvgProperties, getTransformProperty } from "./common";
 import { ConnectionLine } from "./ConnectionLine";
 
-const PipelineConnectionComponent: React.FC<{
+type PipelineConnectionProps = {
   shouldRedraw: boolean;
   isNew: boolean;
   startNodeX: number;
@@ -24,7 +24,9 @@ const PipelineConnectionComponent: React.FC<{
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   cursorControlledStep: string | undefined;
   newConnection: React.MutableRefObject<NewConnection | undefined>;
-}> = ({
+};
+
+const PipelineConnectionComponent = ({
   shouldRedraw,
   isNew,
   getPosition,
@@ -38,7 +40,7 @@ const PipelineConnectionComponent: React.FC<{
   cursorControlledStep,
   newConnection,
   ...props
-}) => {
+}: PipelineConnectionProps) => {
   const { keysDown } = usePipelineEditorContext();
   const [transformProperty, setTransformProperty] = React.useState(() =>
     getTransformProperty(props)
