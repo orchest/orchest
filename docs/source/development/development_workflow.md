@@ -68,7 +68,8 @@ minikube delete
 # Start minikube with the repository mounted in the required place
 # for hot reloading to work.
 minikube start \
-  --cpus 6 \
+  --cpus max \
+  --memory max \
   --addons ingress \
   --mount-string="$(pwd):/orchest-dev-repo" --mount
 ```

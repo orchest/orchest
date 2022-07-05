@@ -811,7 +811,7 @@ def patch(
         env_var_dev = {"name": "FLASK_ENV", "value": "development"}
 
         _cmd = (
-            "minikube start --memory 16000 --cpus 12 "
+            "minikube start --cpus max --memory max "
             '--mount-string="$(pwd):/orchest-dev-repo" --mount'
         )
         echo(
