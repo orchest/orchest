@@ -43,6 +43,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "hoverxref.extension",
+    "sphinx_design",
 ]
 
 hoverxref_auto_ref = True

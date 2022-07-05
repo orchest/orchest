@@ -28,6 +28,7 @@ class Config:
     SCHEDULER_INTERVAL = 10
     # Same as above, but for image deletion and GC.
     IMAGES_DELETION_INTERVAL = 120
+    CLEANUP_BUILDER_CACHE_INTERVAL = 3600 * 24 * 7
     NOTIFICATIONS_DELIVERIES_INTERVAL = 1
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
@@ -37,7 +38,7 @@ class Config:
     CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=30)
 
     # Image building.
-    IMAGE_BUILDER_IMAGE = "docker.io/orchest/buildah:1.26-experimental"
+    IMAGE_BUILDER_IMAGE = "docker.io/orchest/buildah:1.26.0-patched"
     BUILD_IMAGE_LOG_FLAG = "_ORCHEST_RESERVED_LOG_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
 
@@ -74,6 +75,7 @@ class Config:
         "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "jobs"},
         "app.core.tasks.delete_job_pipeline_run_directories": {"queue": "jobs"},
         "app.core.tasks.run_pipeline": {"queue": "celery"},
+        "app.core.tasks.cleanup_builder_cache": {"queue": "builds"},
         "app.core.tasks.build_environment_image": {"queue": "builds"},
         "app.core.tasks.build_jupyter_image": {"queue": "builds"},
         "app.core.tasks.registry_garbage_collection": {"queue": "builds"},

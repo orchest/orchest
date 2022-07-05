@@ -28,6 +28,8 @@ from orchestcli import utils
 if t.TYPE_CHECKING:
     from multiprocessing.pool import AsyncResult
 
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 def echo(*args, **kwargs) -> None:
     """Wrapped `click.echo`.
@@ -165,6 +167,9 @@ def install(
     no_argo: bool,
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
+    userdir_pvc_size: int,
+    builder_pvc_size: int,
+    registry_pvc_size: int,
     **kwargs,
 ) -> None:
     """Installs Orchest."""
@@ -297,7 +302,21 @@ def install(
             sys.exit(1)
 
     # Creating the OrchestCluster custom resource.
-    applications = [{"name": "docker-registry", "config": {}}]
+    applications = [
+        {
+            "name": "docker-registry",
+            "config": {
+                "helm": {
+                    "parameters": [
+                        {
+                            "name": "persistence.size",
+                            "value": f"{registry_pvc_size}Gi",
+                        }
+                    ]
+                }
+            },
+        }
+    ]
     if no_argo:
         echo(
             "Disabling 'Argo Workflows' installation."
@@ -338,6 +357,10 @@ def install(
                 "orchestHost": fqdn,
                 "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
+                "resources": {
+                    "userDirVolumeSize": f"{userdir_pvc_size}Gi",
+                    "builderCacheDirVolumeSize": f"{builder_pvc_size}Gi",
+                },
             },
         },
     }

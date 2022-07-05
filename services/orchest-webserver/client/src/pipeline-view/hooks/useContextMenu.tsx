@@ -1,103 +1,92 @@
 import { Position } from "@/types";
 import Divider from "@mui/material/Divider";
-import Menu from "@mui/material/Menu";
+import Menu, { MenuProps } from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-
-type MenuItemAction = {
+type ContextMenuItemAction = {
   type: "item";
   title: string;
   disabled?: boolean;
-  action: (props: {
-    event: React.MouseEvent;
-    itemId?: string;
-    contextMenuPosition: Position;
-  }) => void;
+  action: (props: { event: React.MouseEvent; position: Position }) => void;
 };
 
-type MenuItemSeparator = {
+type ContextMenuItemSeparator = {
   type: "separator";
 };
 
-export type MenuItem = MenuItemAction | MenuItemSeparator;
+export type ContextMenuItem = ContextMenuItemAction | ContextMenuItemSeparator;
 
-export function useContextMenu(
-  items: MenuItem[],
-  contextMenuState: [boolean, React.Dispatch<React.SetStateAction<boolean>>],
-  itemId?: string
-) {
-  const [contextMenu, setContextMenu] = React.useState<{
-    mouseX: number;
-    mouseY: number;
-  } | null>(null);
-
-  const [contextMenuIsOpen, setContextMenuIsOpen] = contextMenuState;
-
-  const handleClicked = (event: React.MouseEvent, item: MenuItemAction) => {
-    if (contextMenu === null) {
-      return;
-    }
-
-    item.action({
-      event,
-      itemId,
-      contextMenuPosition: { x: contextMenu.mouseX, y: contextMenu.mouseY },
-    });
-    handleClose();
-  };
-
-  const handleClose = () => {
-    setContextMenu(null);
-    setContextMenuIsOpen(false);
-  };
-
-  const handleContextMenu = (event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (contextMenuIsOpen) {
-      return;
-    }
-
-    setContextMenu(
-      contextMenu === null
-        ? {
-            mouseX: event.clientX,
-            mouseY: event.clientY,
-          }
-        : null
-    );
-
-    setContextMenuIsOpen(contextMenu === null);
-  };
-
-  const menu = (
+export const PipelineEditorContextMenu: React.FC<{
+  position: Position | undefined;
+  onClose: MenuProps["onClose"];
+  menuItems: ContextMenuItem[];
+  onSelectMenuItem: (
+    event: React.MouseEvent,
+    item: ContextMenuItemAction,
+    itemId?: string
+  ) => void;
+}> = ({ position, onClose, menuItems, onSelectMenuItem }) => {
+  return (
     <Menu
-      open={contextMenu !== null}
-      onClose={handleClose}
+      open={hasValue(position)}
+      onClose={onClose}
       anchorReference="anchorPosition"
       anchorPosition={
-        contextMenu !== null
-          ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-          : undefined
+        hasValue(position) ? { top: position.y, left: position.x } : undefined
       }
     >
-      {items.map((i) => {
-        switch (i.type) {
+      {menuItems.map((menuItem) => {
+        switch (menuItem.type) {
           case "item":
             return (
               <MenuItem
-                onClick={(e) => handleClicked(e, i)}
-                disabled={i.disabled}
+                key={menuItem.title}
+                onClick={(e) => onSelectMenuItem(e, menuItem)}
+                disabled={menuItem.disabled}
               >
-                {i.title}
+                {menuItem.title}
               </MenuItem>
             );
           case "separator":
             return <Divider />;
+          default:
+            return null;
         }
       })}
     </Menu>
   );
+};
 
-  return { handleContextMenu, menu };
+export function useContextMenu() {
+  const [position, setPosition] = React.useState<Position>();
+  const onClose = React.useCallback(() => {
+    setPosition(undefined);
+  }, []);
+  const onSelectMenuItem = React.useCallback(
+    (event: React.MouseEvent, item: ContextMenuItemAction) => {
+      if (!hasValue(position)) return;
+
+      item.action({ event, position });
+      onClose();
+    },
+    [position, onClose]
+  );
+
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    setPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  return {
+    position,
+    handleContextMenu,
+    onClose,
+    onSelectMenuItem,
+  };
 }

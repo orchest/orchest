@@ -27,9 +27,6 @@ import { useHostInfo } from "./hooks/useHostInfo";
 import { useOrchestStatus } from "./hooks/useOrchestStatus";
 import { useOrchestUserConfig } from "./hooks/useOrchestUserConfig";
 
-// TODO: remove this when Orchest supports changing disk size.
-const shouldShowHostInfo = false;
-
 const SettingsView: React.FC = () => {
   const { navigateTo } = useCustomRoute();
   const {
@@ -46,7 +43,7 @@ const SettingsView: React.FC = () => {
 
   const [status, setStatus] = useOrchestStatus();
 
-  const hostInfo = useHostInfo(shouldShowHostInfo);
+  const hostInfo = useHostInfo();
 
   const {
     userConfig,
@@ -195,7 +192,7 @@ const SettingsView: React.FC = () => {
           <div className="clear"></div>
         </div>
 
-        {shouldShowHostInfo && (
+        {orchestConfig?.CLOUD && (
           <>
             <div className="columns">
               <div className="column">

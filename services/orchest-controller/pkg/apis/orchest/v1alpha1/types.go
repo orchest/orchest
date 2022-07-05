@@ -74,7 +74,7 @@ const (
 
 type OrchestResourcesSpec struct {
 	// If specified, this components will be deployed provided image
-	UserDirVolumeSize string `json:"userDirvolumeSize,omitempty"`
+	UserDirVolumeSize string `json:"userDirVolumeSize,omitempty"`
 
 	// If specified, this components will be deployed provided image
 	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`

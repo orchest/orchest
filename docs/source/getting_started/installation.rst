@@ -86,7 +86,7 @@ Install ``orchest`` via ``kubectl``
 
 The code snippet below will install Orchest in the ``orchest`` namespace. In case you want to
 install in another namespace you can use tools like `yq <https://github.com/mikefarah/yq>`_ to
-change the specified namespace in ``orchest-controller.yaml``.
+change the specified namespace in ``orchest-controller.yaml`` and ``example-orchestcluster.yaml``.
 
 .. code-block:: bash
 
