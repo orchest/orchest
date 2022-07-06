@@ -181,7 +181,7 @@ class ContainerRuntime(object):
             except aiodocker.DockerError:
                 result = False
         elif self.container_runtime == RuntimeType.Containerd:
-            cmd = "crictl -r unix://{self.container_runtime_socket} rmi image_name"
+            cmd = f"crictl -r unix://{self.container_runtime_socket} rmi image_name"
             result, _ = await self.execute_cmd(cmd=cmd)
 
         self.logger.debug(f"Image is deleted: '{image_name} '")
