@@ -25,7 +25,6 @@ export const ProjectSelector = () => {
 
   const {
     validProjectUuid,
-    projects = [],
     onChangeProject,
     shouldShowInvalidProjectUuidAlert,
   } = useProjectSelector(
@@ -72,13 +71,11 @@ export const ProjectSelector = () => {
         onClick={toggle}
         tabIndex={0}
         isOpen={isOpen}
-        projects={projects}
         validProjectUuid={validProjectUuid}
       />
       <ProjectSelectorMenu
         open={isOpen}
         onClose={handleClose}
-        projects={projects}
         validProjectUuid={validProjectUuid}
         selectProject={selectProject}
       />
