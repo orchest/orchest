@@ -156,7 +156,7 @@ export const ProjectsView = () => {
               Orchest and could contain malicious code.
             </Alert>
           )}
-          <ExampleList data={examples} imporProject={importWithUrl} />
+          <ExampleList data={examples} importProject={importWithUrl} />
         </ProjectTabPanel>
       </ProjectTabsContextProvider>
     </TempLayout>

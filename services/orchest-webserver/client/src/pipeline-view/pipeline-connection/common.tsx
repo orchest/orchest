@@ -56,11 +56,11 @@ export const getSvgProperties = ({
   endNodeX?: number;
   endNodeY?: number;
 }) => {
-  let targetX = endNodeX - startNodeX;
-  let targetY = endNodeY - startNodeY;
+  const targetX = endNodeX - startNodeX;
+  const targetY = endNodeY - startNodeY;
 
-  let xOffset = Math.min(targetX, 0);
-  let yOffset = Math.min(targetY, 0);
+  const xOffset = Math.min(targetX, 0);
+  const yOffset = Math.min(targetY, 0);
 
   const width = Math.abs(targetX) + 2 * svgPadding + "px";
   const height = Math.abs(targetY) + 2 * svgPadding + "px";

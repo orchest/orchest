@@ -270,8 +270,6 @@ function Row<T, C>({
             ? { cursor: "pointer" }
             : null),
           height: data.details ? rowHeight - 1 : rowHeight,
-          // color: (theme) => theme.palette.action.disabled,
-          // disabled ? theme.palette.action.disabled : undefined,
         }}
         data-test-id={isLoading ? "loading-table-row" : `${tableId}-row`}
       >

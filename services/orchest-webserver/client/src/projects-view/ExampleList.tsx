@@ -55,10 +55,10 @@ const ENTRIES_PER_PAGE = 10;
 
 export const ExampleList = ({
   data = [],
-  imporProject,
+  importProject,
 }: {
   data: Example[] | undefined;
-  imporProject: (url: string) => void;
+  importProject: (url: string) => void;
 }) => {
   const [page, setPage] = React.useState(1);
   const renderedExamples = React.useMemo(() => {
@@ -190,7 +190,7 @@ export const ExampleList = ({
                     variant="text"
                     size="small"
                     startIcon={<DownloadOutlinedIcon />}
-                    onClick={() => imporProject(url)}
+                    onClick={() => importProject(url)}
                     data-test-id="import-project"
                     sx={{ marginLeft: (theme) => theme.spacing(2) }}
                   >
