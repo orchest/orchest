@@ -1486,9 +1486,7 @@ def _fetch_latest_available_version(
         return None
 
 
-def _fetch_orchest_controller_manifests(
-    version: t.Optional[str], manifest_file_name: str
-) -> str:
+def _fetch_orchest_controller_manifests(version: str, manifest_file_name: str) -> str:
     url = (
         "https://github.com/orchest/orchest"
         f"/releases/download/{version}/{manifest_file_name}"
