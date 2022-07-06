@@ -302,6 +302,13 @@ def install(
             sys.exit(1)
 
     # Creating the OrchestCluster custom resource.
+    metadata = {
+        "name": cluster_name,
+        "namespace": ns,
+    }
+    if socket_path is not None:
+        metadata["annotations"] = {"orchest.io/container-runtime-socket": socket_path}
+
     applications = [
         {
             "name": "docker-registry",
@@ -338,14 +345,6 @@ def install(
                 },
             }
         )
-
-    metadata = {
-        "name": cluster_name,
-        "namespace": ns,
-    }
-
-    if socket_path is not None:
-        metadata["annotations"] = {"orchest.io/container-runtime-socket": socket_path}
 
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
@@ -756,18 +755,14 @@ def patch(
                     if obj_item["name"] not in patch_items:
                         spec.append(obj_item)
 
-    def annotate_obj(anotations: t.Dict, obj: t.Dict) -> None:
+    def annotate_obj(anotations: t.Dict[str, str], obj: t.Dict) -> None:
         """Annotates the `object` with the provided `annotations`.
 
         `obj` is changed in-place.
 
-        Note:
-            The annotations have to be a string-to-string hashmap:
-
-                {"name1": "value1", ...}
-
         Precedence is given to `annotations`, for example if a key is
-        present in both, the one in annotations will be used.
+        present in both, the value in annotations will be assigned to
+        that key.
 
         """
         if "annotations" not in obj:
@@ -775,7 +770,6 @@ def patch(
             return
 
         for key, value in anotations.items():
-            print(key, value)
             obj["annotations"][key] = value
 
     def disable_telemetry() -> None:
@@ -866,7 +860,7 @@ def patch(
     if socket_path is not None:
         annotate_obj(
             {"orchest.io/container-runtime-socket": socket_path},
-            custom_object["metadata"],
+            custom_object["metadata"],  # type: ignore
         )
 
     try:
