@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import React from "react";
 
+// TODO: Replace the Layout component with this when other views are implemented
 export const TempLayout: React.FC<{
   disablePadding?: boolean;
   toolbarElements?: React.ReactNode;

@@ -1,5 +1,5 @@
 import { SearchField } from "@/components/SearchField";
-import { Project } from "@/types";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { ellipsis } from "@/utils/styles";
 import Box from "@mui/material/Box";
 import MenuItem from "@mui/material/MenuItem";
@@ -9,18 +9,19 @@ import React from "react";
 import { useProjectList } from "./useProjectList";
 
 export const ProjectSelectorMenuList = ({
-  projects,
   validProjectUuid,
   selectProject,
   onSearchKeydown,
 }: {
-  projects: Project[];
   validProjectUuid: string | undefined;
   selectProject: (projectUuid: string) => void;
   onSearchKeydown: React.KeyboardEventHandler<
     HTMLTextAreaElement | HTMLInputElement
   >;
 }) => {
+  const {
+    state: { projects = [] },
+  } = useProjectsContext();
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
   const { searchTerm, setSearchTerm, filteredProjects } = useProjectList(
     projects
