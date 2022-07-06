@@ -24,7 +24,6 @@ export const ProjectsTabs = ({
       }, 500);
     },
     [setProjectTabIndex, history]
-    // [setProjectTabIndex]
   );
   return (
     <>
