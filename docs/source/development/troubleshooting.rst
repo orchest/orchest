@@ -25,7 +25,7 @@ Minikube is unresponsive on Docker Desktop
 
 Sometimes Minikube becomes unresponsive on Docker Desktop. Some tell-tale signs of this are:
 
-- You're getting exit code ``137`` when building Orchest images (``scripts/build_containers.sh``),
+- You're getting exit code ``137`` when building Orchest images (``scripts/build_containers.sh``)
 - k9s fails to connect to minikube's context and ``docker logs minikube`` hangs, even though minikube is started
 - Minikube commands hang or are really slow
 
