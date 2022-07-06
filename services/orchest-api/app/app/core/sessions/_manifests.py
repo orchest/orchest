@@ -697,6 +697,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_REGISTRY": registry_ip,
         "ORCHEST_NAMESPACE": _config.ORCHEST_NAMESPACE,
         "ORCHEST_CLUSTER": _config.ORCHEST_CLUSTER,
+        "CONTAINER_RUNTIME_SOCKET": _config.CONTAINER_RUNTIME_SOCKET,
+        "CONTAINER_RUNTIME": _config.CONTAINER_RUNTIME,
+        "CONTAINER_RUNTIME_IMAGE": _config.CONTAINER_RUNTIME_IMAGE,
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
     user_defined_env_vars = [
