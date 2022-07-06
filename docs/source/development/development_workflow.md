@@ -34,32 +34,47 @@ Optional, but highly recommended:
 After installing the required software, you need to configure the tools and install additional
 dependencies.
 
-**Note**: Make sure you are inside the root of the `orchest` repository.
+```{note}
+Make sure you are inside the root of the `orchest` repository.
+```
 
 ```bash
-# This will get you:
-# - pre-commit hooks
-# - Dependencies to run unit tests
-# - Frontend dependencies for incremental development
-# - Dependencies to build the docs
-# - Orchest's CLI to manage the Orchest Cluster on k8s
-
-pre-commit install \
-    && sudo apt-get install -y default-libmysqlclient-dev \
-    && npm run setup --install && pnpm i \
-    && python3 -m pip install -r docs/requirements.txt \
-    && python3 -m pip install -e orchest-cli
+# Set-up pre-commit:
+pre-commit install
+# Install frontend dependencies for local development:
+npm run setup --install && pnpm i
+# Install the Orchest CLI to manage the Orchest Cluster in k8s:
+python3 -m pip install -e orchest-cli
+# Install dependencies to build the docs:
+python3 -m pip install -r docs/requirements.txt
 ```
+
+Orchest's integration tests require a MySQL client to be installed:
+
+`````{tab-set}
+````{tab-item} Linux
+```bash
+sudo apt install -y default-libmysqlclient-dev
+```
+````
+````{tab-item} macOS
+```bash
+brew install mysql
+```
+````
+`````
 
 (cluster-mount)=
 
 ### Cluster for development
 
-Currently, the development scripts/tools assume that you are have Orchest installed on a local
-`minikube` cluster. It is highly recommended, but not mandatory, to mount the Orchest repository to
-minikube, which allows redeploying services and {ref}`incremental development <incremental-development>`:
+Currently, the development tools assume that you are have Orchest installed on a local minikube cluster.
+To get the best development experience, it is recommended to mount the Orchest repository in minikube:
+this allows for redeploying services and {ref}`incremental development <incremental-development>`.
 
-**Note**: Make sure you are inside the root of the `orchest` repository.
+```{note}
+Make sure you are inside the root of the `orchest` repository.
+```
 
 ```bash
 # Delete any existing cluster
@@ -76,16 +91,18 @@ minikube start \
 
 ## Installing Orchest for development
 
-Now that you have all dependencies and your cluster set up, you can install Orchest!
+Now when all dependencies are installed and your cluster is set up, you can install Orchest!
 
-It is important to realize that the Docker daemon of your host is different from the Docker daemon
+But before doing so, it is important to realize that the Docker daemon of your host is different from the Docker daemon
 of minikube. This means that you need to build Orchest's images on the minikube node in order for
 minikube to be able to use them, otherwise it will pull the images from DockerHub. Note that
 DockerHub only contains images of Orchest releases and not active code changes from GitHub branches.
 Therefore it is important to configure your environment to use minikube's Docker daemon before
 building images.
 
-**Note**: The command below needs to be run in every terminal window you open!
+```{note}
+The command below needs to be run in every terminal window you open!
+```
 
 ```bash
 # Use minikube's Docker daemon:
@@ -127,11 +144,28 @@ orchest install --dev
 
 Take a look in [k9s](https://github.com/derailed/k9s) and see how Orchest is getting installed.
 
-```{note}
-🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
-{ref}`best practices <best practices>` and our [GitHub](https://github.com/orchest/orchest/issues)
-to find interesting issues to work on.
+Once the installation is completed you can reach Orchest using one of the following approaches,
+depending on your operating system:
+
+`````{tab-set}
+````{tab-item} Linux
+Simply access the Orchest UI by browsing to the IP returned by:
+```bash
+minikube ip
 ```
+````
+````{tab-item} macOS
+Run the tunnel daemon and browse to [localhost](http://localhost).
+```bash
+sudo minikube tunnel
+```
+````
+`````
+
+Does everything look good? _Awesome!_ You're all set up and ready to start coding now! 🎉
+
+Have a look at our {ref}`best practices <best practices>` and our [GitHub](https://github.com/orchest/orchest/issues)
+to find interesting issues to work on.
 
 ## Redeploying Orchest after code changes
 
