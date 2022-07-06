@@ -33,11 +33,12 @@ export const ProjectSelectorMenu = ({
   const customNavigation = React.useCallback(
     (targetTab: PROJECT_TAB) => {
       onClose();
-      if (
+      const didPathChange =
         location.pathname !== siteMap.projects.path ||
         (location.pathname === siteMap.projects.path &&
-          tab !== targetTab.toString())
-      )
+          tab !== targetTab.toString());
+
+      if (didPathChange)
         navigateTo(siteMap.projects.path, { query: { tab: targetTab } });
     },
     [location.pathname, navigateTo, onClose, tab]

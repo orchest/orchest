@@ -16,7 +16,7 @@ export type IProjectsContextState = {
   pipelineIsReadOnly: boolean;
   pipelineSaveStatus: "saved" | "saving";
   pipelines: PipelineMetaData[] | undefined;
-  pipeline?: PipelineMetaData | undefined;
+  pipeline: PipelineMetaData | undefined;
   projects: Project[] | undefined;
   examples: Example[] | undefined;
   hasLoadedProjects: boolean;
@@ -78,6 +78,7 @@ const initialState: IProjectsContextState = {
   pipelineIsReadOnly: false,
   pipelineSaveStatus: "saved",
   pipelines: undefined,
+  pipeline: undefined,
   projects: undefined,
   examples: undefined,
   hasLoadedProjects: false,
