@@ -28,11 +28,11 @@ export type ProjectRow = Pick<
 
 export const ProjectsTable = ({
   projects,
-  projectBeingDeleted,
+  projectsBeingDeleted,
   openProjectMenu,
 }: {
   projects: Project[] | undefined;
-  projectBeingDeleted: string | undefined;
+  projectsBeingDeleted: string[];
   openProjectMenu: (
     uuid: string
   ) => (event: React.MouseEvent<HTMLElement>) => void;
@@ -41,6 +41,7 @@ export const ProjectsTable = ({
   const onRowClick = (e: React.MouseEvent, projectUuid: string) => {
     navigateTo(siteMap.pipeline.path, { query: { projectUuid } }, e);
   };
+
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
     return [
       {
@@ -64,7 +65,7 @@ export const ProjectsTable = ({
         label: "",
         sx: { margin: (theme) => theme.spacing(-0.5, 0) },
         render: function ProjectSettingsButton(row, disabled) {
-          return projectBeingDeleted !== row.uuid ? (
+          return !projectsBeingDeleted.includes(row.uuid) ? (
             <IconButton
               title="settings"
               disabled={disabled}
@@ -80,7 +81,7 @@ export const ProjectsTable = ({
         },
       },
     ];
-  }, [projectBeingDeleted]);
+  }, [projectsBeingDeleted, openProjectMenu]);
 
   const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
     if (!projects) return [];
@@ -88,10 +89,10 @@ export const ProjectsTable = ({
       return {
         ...project,
         settings: project.path,
-        disabled: projectBeingDeleted === project.uuid,
+        disabled: projectsBeingDeleted.includes(project.uuid),
       };
     });
-  }, [projects, projectBeingDeleted]);
+  }, [projects, projectsBeingDeleted]);
 
   return projects && projectRows.length === 0 ? (
     <NoProject />
