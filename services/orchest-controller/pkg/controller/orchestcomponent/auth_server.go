@@ -13,11 +13,13 @@ import (
 
 type AuthServerReconciler struct {
 	*OrchestComponentController
+	ingressClass string
 }
 
 func NewAuthServerReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
 	return &AuthServerReconciler{
 		ctrl,
+		"",
 	}
 }
 
@@ -55,10 +57,17 @@ func (reconciler *AuthServerReconciler) Reconcile(ctx context.Context, component
 		return err
 	}
 
+	if reconciler.ingressClass == "" {
+		reconciler.ingressClass, err = detectIngressClass(ctx, reconciler.Client())
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err = reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			ing := getIngressManifest(metadata, "/login", false, false, component)
+			ing := getIngressManifest(metadata, "/login", reconciler.ingressClass, false, false, component)
 			_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Create(ctx, ing, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
 			return err

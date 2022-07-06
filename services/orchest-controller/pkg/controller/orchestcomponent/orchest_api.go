@@ -14,11 +14,13 @@ import (
 
 type OrchestApiReconciler struct {
 	*OrchestComponentController
+	ingressClass string
 }
 
 func NewOrchestApiReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
 	return &OrchestApiReconciler{
 		ctrl,
+		"",
 	}
 }
 
@@ -56,10 +58,17 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 		return err
 	}
 
+	if reconciler.ingressClass == "" {
+		reconciler.ingressClass, err = detectIngressClass(ctx, reconciler.Client())
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err = reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			ing := getIngressManifest(metadata, "/orchest-api", true, false, component)
+			ing := getIngressManifest(metadata, "/orchest-api", reconciler.ingressClass, true, false, component)
 			_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Create(ctx, ing, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
 			return err

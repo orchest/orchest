@@ -50,8 +50,8 @@ var (
 	RabbitSubPath   = ".orchest/rabbitmq-mnesia"
 
 	// Ingress constants
-	PrefixPathType          = netsv1.PathType("Prefix")
-	OrchestIngressClassName = "nginx"
+	PrefixPathType         = netsv1.PathType("Prefix")
+	IngressClassController = "k8s.io/ingress-nginx"
 
 	// Labels and Annotations
 	OrchestHashLabelKey    = "orchest.io/orchest-hash"
