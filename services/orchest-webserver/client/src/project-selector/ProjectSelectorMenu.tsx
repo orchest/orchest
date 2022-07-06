@@ -4,7 +4,6 @@ import { CreateProjectDialog } from "@/projects-view/CreateProjectDialog";
 import { ImportDialog } from "@/projects-view/ImportDialog";
 import { PROJECT_TAB } from "@/projects-view/ProjectTabsContext";
 import { siteMap } from "@/routingConfig";
-import { Project } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import Button from "@mui/material/Button";
@@ -18,13 +17,11 @@ import { ProjectSelectorPopover } from "./ProjectSelectorPopover";
 export const ProjectSelectorMenu = ({
   open,
   onClose,
-  projects,
   validProjectUuid,
   selectProject,
 }: {
   open: boolean;
   onClose: () => void;
-  projects: Project[];
   validProjectUuid: string | undefined;
   selectProject: (projectUuid: string) => void;
 }) => {
@@ -64,7 +61,7 @@ export const ProjectSelectorMenu = ({
           padding: (theme) => theme.spacing(1, 2, 0),
         }}
       >
-        <CreateProjectDialog projects={projects} postCreateCallback={onClose}>
+        <CreateProjectDialog postCreateCallback={onClose}>
           {(onOpen) => (
             <Button
               variant="text"
@@ -110,7 +107,6 @@ export const ProjectSelectorMenu = ({
         </ImportDialog>
       </Stack>
       <ProjectSelectorMenuList
-        projects={projects}
         validProjectUuid={validProjectUuid}
         selectProject={selectProject}
         onSearchKeydown={(e) => {

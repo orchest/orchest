@@ -1,5 +1,4 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -11,13 +10,10 @@ import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { ActionButtonsContainer } from "./ActionButtonsContainer";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { ExampleList } from "./ExampleList";
-import { useFetchExamples } from "./hooks/useFetchExamples";
-import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
 import { ProjectList } from "./ProjectList";
 import { ProjectsTabs } from "./ProjectsTabs";
@@ -31,14 +27,7 @@ export const ProjectsView = () => {
   } = useAppContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
 
-  const {
-    state: { projects, examples },
-  } = useProjectsContext();
-
-  const { fetchProjects } = useFetchProjectsForProjectsView();
-
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
-
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
 
   const onCreateClick = () => {
@@ -67,7 +56,6 @@ export const ProjectsView = () => {
     }
   }, [importUrl, hasCompletedOnboarding]);
 
-  useFetchExamples(!hasValue(examples));
   const navigateToOrchestExampleRepo = () => {
     window.open(
       "https://github.com/orchest/orchest-examples",
@@ -93,7 +81,6 @@ export const ProjectsView = () => {
         confirmButtonLabel={`Save & view`}
       />
       <CreateProjectDialog
-        projects={projects || []}
         open={isShowingCreateModal}
         onClose={onCloseCreateProjectModal}
       />
@@ -144,7 +131,7 @@ export const ProjectsView = () => {
           index={PROJECT_TAB.MY_PROJECTS}
           sx={{ padding: (theme) => theme.spacing(4, 0) }}
         >
-          <ProjectList refetch={fetchProjects} />
+          <ProjectList />
         </ProjectTabPanel>
         <ProjectTabPanel
           id="example-projects"
@@ -156,7 +143,7 @@ export const ProjectsView = () => {
               Orchest and could contain malicious code.
             </Alert>
           )}
-          <ExampleList data={examples} importProject={importWithUrl} />
+          <ExampleList importProject={importWithUrl} />
         </ProjectTabPanel>
       </ProjectTabsContextProvider>
     </TempLayout>
