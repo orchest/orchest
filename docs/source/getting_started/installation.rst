@@ -39,7 +39,7 @@ operating systems are:
 If you have **special requirements** (or preferences) for deploying Orchest on your Kubernetes
 cluster, then one of the following subsections might proof helpful:
 
-* :ref:`Installing using an FQDN <install fqdn>`: Reach Orchest using a Fully Qualified Domain Name
+* :ref:`Setting up an FQDN <install fqdn>`: Reach Orchest using a Fully Qualified Domain Name
   (FQDN) instead of the cluster's IP directly.
 * :ref:`Installing without Argo Workflows <install argo>`: Don't let Orchest manage Argo in case you
   already have Argo Workflows installed on your Kubernetes cluster.
@@ -48,8 +48,8 @@ cluster, then one of the following subsections might proof helpful:
 
 .. _install fqdn:
 
-Installing using an FQDN
-~~~~~~~~~~~~~~~~~~~~~~~~
+Setting up an FQDN
+~~~~~~~~~~~~~~~~~~
 If you would rather reach Orchest using a Fully Qualified Domain Name (FQDN) instead of using the
 cluster's IP directly, you can install Orchest using:
 
