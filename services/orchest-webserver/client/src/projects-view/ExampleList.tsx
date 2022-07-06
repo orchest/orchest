@@ -1,4 +1,4 @@
-import { Example } from "@/types";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import CheckIcon from "@mui/icons-material/Check";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import LaunchOutlinedIcon from "@mui/icons-material/LaunchOutlined";
@@ -13,7 +13,9 @@ import Pagination from "@mui/material/Pagination";
 import Stack from "@mui/material/Stack";
 import { alpha, SxProps, Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useFetchExamples } from "./hooks/useFetchExamples";
 
 const isCuratedByOrchest = (owner: string) =>
   ["orchest", "orchest-examples"].includes(owner.toLowerCase());
@@ -54,21 +56,26 @@ const ExampleTag = ({
 const ENTRIES_PER_PAGE = 10;
 
 export const ExampleList = ({
-  data = [],
   importProject,
 }: {
-  data: Example[] | undefined;
   importProject: (url: string) => void;
 }) => {
+  const {
+    state: { examples },
+  } = useProjectsContext();
+  useFetchExamples(!hasValue(examples));
+
   const [page, setPage] = React.useState(1);
   const renderedExamples = React.useMemo(() => {
+    if (!examples) return [];
     const range = [page - 1, page].map((i) => i * ENTRIES_PER_PAGE);
-    return data.slice(...range);
-  }, [data, page]);
+    return examples.slice(...range);
+  }, [examples, page]);
 
   const totalPageCount = React.useMemo(() => {
-    return Math.ceil(data.length / ENTRIES_PER_PAGE);
-  }, [data]);
+    if (!examples) return 0;
+    return Math.ceil(examples.length / ENTRIES_PER_PAGE);
+  }, [examples]);
   const goToPage = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
   };
@@ -89,7 +96,7 @@ export const ExampleList = ({
             <ListItem
               alignItems="flex-start"
               key={url}
-              divider={index < data.length - 1}
+              divider={index < renderedExamples.length - 1}
               sx={{ padding: (theme) => theme.spacing(2, 0, 1) }}
             >
               <Stack

@@ -11,7 +11,7 @@ export const useProjectSelector = (
   targetRoutePath: string | undefined,
   customNavigateTo: (projectUuid: string, path: string | undefined) => void
 ) => {
-  const projects = useFetchProjectsForSelector();
+  useFetchProjectsForSelector();
 
   const isMatchingProjectPaths = hasValue(targetRoutePath);
   const [
@@ -28,7 +28,6 @@ export const useProjectSelector = (
 
   return {
     validProjectUuid,
-    projects,
     shouldShowInvalidProjectUuidAlert,
     onChangeProject,
   };
