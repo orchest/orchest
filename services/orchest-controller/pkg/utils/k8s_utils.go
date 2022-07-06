@@ -29,6 +29,7 @@ import (
 	rbacinformers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
@@ -255,6 +256,17 @@ func GetInstanceOfObj(obj interface{}) client.Object {
 		return &networkingv1.Ingress{}
 	}
 	return nil
+}
+
+func GetFromFromEnvVar(envVars []corev1.EnvVar, key string) string {
+
+	for _, envVar := range envVars {
+		if envVar.Name == key {
+			return envVar.Value
+		}
+	}
+
+	return ""
 }
 
 func GetEnvVarFromMap(envVars map[string]string) []corev1.EnvVar {

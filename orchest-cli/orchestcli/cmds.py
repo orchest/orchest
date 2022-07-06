@@ -7,6 +7,8 @@ Object defining the Orchest Cluster to trigger actions in the
 `orchest-controller` that is watching the CR Object for changes.
 
 """
+from __future__ import annotations
+
 import enum
 import json
 import re
@@ -164,6 +166,7 @@ def install(
     dev_mode: bool,
     no_argo: bool,
     fqdn: t.Optional[str],
+    socket_path: t.Optional[str],
     userdir_pvc_size: int,
     builder_pvc_size: int,
     registry_pvc_size: int,
@@ -299,6 +302,13 @@ def install(
             sys.exit(1)
 
     # Creating the OrchestCluster custom resource.
+    metadata = {
+        "name": cluster_name,
+        "namespace": ns,
+    }
+    if socket_path is not None:
+        metadata["annotations"] = {"orchest.io/container-runtime-socket": socket_path}
+
     applications = [
         {
             "name": "docker-registry",
@@ -339,10 +349,7 @@ def install(
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
         "kind": "OrchestCluster",
-        "metadata": {
-            "name": cluster_name,
-            "namespace": ns,
-        },
+        "metadata": metadata,
         "spec": {
             "applications": applications,
             "orchest": {
@@ -388,9 +395,8 @@ def install(
     else:
         echo(
             "Orchest is running without an FQDN. To access Orchest locally, simply"
-            " go to the IP returned by `minikube ip`. If you are on mac run the"
-            " `minikube tunnel` daemon and map '127.0.0.1' to `minikube ip` in the"
-            " '/etc/hosts' file instead."
+            " go to the IP returned by `minikube ip`. If you are on macOS run the"
+            " `minikube tunnel` daemon instead."
         )
 
 
@@ -701,6 +707,7 @@ def patch(
     dev: t.Optional[bool],
     cloud: t.Optional[bool],
     log_level: t.Optional[LogLevel],
+    socket_path: t.Optional[str],
     **kwargs,
 ) -> None:
     """Patches the Orchest Cluster."""
@@ -747,6 +754,23 @@ def patch(
                 for obj_item in obj[key]:
                     if obj_item["name"] not in patch_items:
                         spec.append(obj_item)
+
+    def annotate_obj(anotations: t.Dict[str, str], obj: t.Dict) -> None:
+        """Annotates the `object` with the provided `annotations`.
+
+        `obj` is changed in-place.
+
+        Precedence is given to `annotations`, for example if a key is
+        present in both, the value in annotations will be assigned to
+        that key.
+
+        """
+        if "annotations" not in obj:
+            obj["annotations"] = anotations
+            return
+
+        for key, value in anotations.items():
+            obj["annotations"][key] = value
 
     def disable_telemetry() -> None:
         command = [
@@ -832,6 +856,12 @@ def patch(
         orchest_spec_patch,
         custom_object["spec"]["orchest"],  # type: ignore
     )
+
+    if socket_path is not None:
+        annotate_obj(
+            {"orchest.io/container-runtime-socket": socket_path},
+            custom_object["metadata"],  # type: ignore
+        )
 
     try:
         patch_namespaced_custom_object(
@@ -1450,9 +1480,7 @@ def _fetch_latest_available_version(
         return None
 
 
-def _fetch_orchest_controller_manifests(
-    version: t.Optional[str], manifest_file_name: str
-) -> str:
+def _fetch_orchest_controller_manifests(version: str, manifest_file_name: str) -> str:
     url = (
         "https://github.com/orchest/orchest"
         f"/releases/download/{version}/{manifest_file_name}"

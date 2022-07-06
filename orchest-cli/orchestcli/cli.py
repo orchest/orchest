@@ -179,6 +179,13 @@ def cli():
     help="Fully Qualified Domain Name that Orchest listens on.",
 )
 @click.option(
+    "--socket-path",
+    "socket_path",  # name for arg
+    default=None,
+    show_default=True,
+    help="The absolute path of the container runtime socket on the node.",
+)
+@click.option(
     "--userdir-pvc-size",
     "userdir_pvc_size",
     type=click.IntRange(min=5),
@@ -208,6 +215,7 @@ def install(
     dev_mode: bool,
     no_argo: bool,
     fqdn: t.Optional[str],
+    socket_path: t.Optional[str],
     userdir_pvc_size: int,
     builder_pvc_size: int,
     registry_pvc_size: int,
@@ -219,6 +227,7 @@ def install(
         dev_mode,
         no_argo,
         fqdn,
+        socket_path,
         userdir_pvc_size,
         builder_pvc_size,
         registry_pvc_size,
@@ -312,10 +321,18 @@ def update(
     type=click.Choice(cmds.LogLevel),
     help="Log level to set on Orchest services.",
 )
+@click.option(
+    "--socket-path",
+    "socket_path",  # name for arg
+    default=None,
+    show_default=True,
+    help="The absolute path of the container runtime socket on the node.",
+)
 def patch(
     dev: t.Optional[bool],
     cloud: t.Optional[bool],
     log_level: t.Optional[cmds.LogLevel],
+    socket_path: t.Optional[str],
     **common_options,
 ) -> None:
     """Patch the Orchest Cluster.
@@ -326,7 +343,7 @@ def patch(
         orchest patch --dev
 
     """
-    cmds.patch(dev, cloud, log_level, **common_options)
+    cmds.patch(dev, cloud, log_level, socket_path, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)

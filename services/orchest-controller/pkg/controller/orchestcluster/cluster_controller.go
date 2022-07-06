@@ -312,6 +312,7 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 			klog.Error(err)
 			return err
 		}
+
 	}
 
 	ok, err := occ.validateOrchestCluster(ctx, orchest)
@@ -355,6 +356,17 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 			return false, nil
 		}
 	}
+
+	// Detect runtime environment
+	runtime, socketPath, err := detectContainerRuntime(ctx, occ.Client(), orchest)
+	if err != nil {
+		return false, err
+	}
+	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME"] = runtime
+	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = socketPath
+	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
+		"image-puller", occ.config.OrchestDefaultVersion)
+
 	return true, err
 }
 

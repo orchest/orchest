@@ -2,6 +2,7 @@ package orchestcomponent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -96,7 +97,25 @@ func getDevVolumes(service string, mountApp, mountClient, mountInternalLib bool)
 	return volumes, volumeMounts
 }
 
-func getIngressManifest(metadata metav1.ObjectMeta, path string,
+func detectIngressClass(ctx context.Context, client kubernetes.Interface) (string, error) {
+
+	// Detect ingress class name
+	ingressClasses, err := client.NetworkingV1().IngressClasses().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	for _, ingressClass := range ingressClasses.Items {
+		if ingressClass.Spec.Controller == controller.IngressClassController {
+			return ingressClass.Name, nil
+		}
+	}
+
+	return "", errors.New("failed to detect ingress class name")
+
+}
+
+func getIngressManifest(metadata metav1.ObjectMeta, path, ingressClass string,
 	enableAuth, enableSignin bool, component *orchestv1alpha1.OrchestComponent) *netsv1.Ingress {
 
 	ingressMeta := *metadata.DeepCopy()
@@ -143,7 +162,7 @@ func getIngressManifest(metadata metav1.ObjectMeta, path string,
 	ingress := &netsv1.Ingress{
 		ObjectMeta: ingressMeta,
 		Spec: netsv1.IngressSpec{
-			IngressClassName: &controller.OrchestIngressClassName,
+			IngressClassName: &ingressClass,
 			Rules: []netsv1.IngressRule{
 				rule,
 			},

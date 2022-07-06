@@ -24,7 +24,10 @@ import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
+from _orchest.internals.utils import (
+    get_init_container_manifest,
+    get_step_and_kernel_volumes_and_volume_mounts,
+)
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
 from app.utils import get_logger
@@ -460,6 +463,13 @@ def _step_to_workflow_manifest_task(
     registry_ip = k8s_core_api.read_namespaced_service(
         _config.REGISTRY, _config.ORCHEST_NAMESPACE
     ).spec.cluster_ip
+
+    # The image of the step is the registry address plus the image name.
+    image = (
+        registry_ip
+        + "/"
+        + run_config["env_uuid_to_image"][step.properties["environment"]]
+    )
     task = {
         # "Name cannot begin with a digit when using either 'depends' or
         # 'dependencies'".
@@ -477,9 +487,7 @@ def _step_to_workflow_manifest_task(
                 },
                 {
                     "name": "image",
-                    "value": registry_ip
-                    + "/"
-                    + run_config["env_uuid_to_image"][step.properties["environment"]],
+                    "value": image,
                 },
                 {"name": "working_dir", "value": working_dir},
                 {
@@ -491,6 +499,14 @@ def _step_to_workflow_manifest_task(
                     # NOTE: only used by tests.
                     "name": "tests_uuid",
                     "value": step.properties["uuid"],
+                },
+                {
+                    "name": "container_runtime",
+                    "value": _config.CONTAINER_RUNTIME,
+                },
+                {
+                    "name": "container_runtime_image",
+                    "value": _config.CONTAINER_RUNTIME_IMAGE,
                 },
             ]
         },
@@ -510,6 +526,14 @@ def _pipeline_to_workflow_manifest(
         pipeline_file=run_config["pipeline_path"],
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
+        container_runtime_socket=_config.CONTAINER_RUNTIME_SOCKET,
+    )
+
+    # these parameters will be fed by _step_to_workflow_manifest_task
+    image_puller_manifest = get_init_container_manifest(
+        "{{inputs.parameters.image}}",
+        "{{inputs.parameters.container_runtime}}",
+        "{{inputs.parameters.container_runtime_image}}",
     )
 
     manifest = {
@@ -565,6 +589,8 @@ def _pipeline_to_workflow_manifest(
                                 "project_relative_file_path",
                                 "pod_spec_patch",
                                 "tests_uuid",
+                                "container_runtime",
+                                "container_runtime_image",
                             ]
                         ]
                     },
@@ -579,6 +605,9 @@ def _pipeline_to_workflow_manifest(
                         ],
                         "volumeMounts": volume_mounts,
                     },
+                    "initContainers": [
+                        image_puller_manifest,
+                    ],
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
