@@ -31,6 +31,7 @@ class ContainerRuntime(object):
 
         self._aclient: Optional[aiodocker.Docker] = None
 
+    @property
     def aclient(self):
         if self._aclient is None:
             self._aclient = aiodocker.Docker()
@@ -84,7 +85,7 @@ class ContainerRuntime(object):
 
         if self.container_runtime == RuntimeType.Docker:
             try:
-                await self.aclient().images.inspect(image_name)
+                await self.aclient.images.inspect(image_name)
             except aiodocker.DockerError:
                 result = False
         elif self.container_runtime == RuntimeType.Containerd:
@@ -115,7 +116,7 @@ class ContainerRuntime(object):
         self._curr_pulling_imgs.add(image_name)
         if self.container_runtime == RuntimeType.Docker:
             try:
-                await self.aclient().images.pull(image_name)
+                await self.aclient.images.pull(image_name)
             except aiodocker.DockerError:
                 result = False
             finally:
@@ -150,7 +151,7 @@ class ContainerRuntime(object):
                         f"maintainer={_config.ORCHEST_MAINTAINER_LABEL}",
                     ]
                 }
-                for img in await self.aclient().images.list(filters=filters):
+                for img in await self.aclient.images.list(filters=filters):
                     names = img.get("RepoTags")
                     # Unfortunately RepoTags is mapped to None
                     # instead of not being there in some cases.
@@ -177,7 +178,7 @@ class ContainerRuntime(object):
 
         if self.container_runtime == RuntimeType.Docker:
             try:
-                await self.aclient().images.delete(image_name, force=True)
+                await self.aclient.images.delete(image_name, force=True)
             except aiodocker.DockerError:
                 result = False
         elif self.container_runtime == RuntimeType.Containerd:
