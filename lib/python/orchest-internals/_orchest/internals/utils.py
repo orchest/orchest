@@ -11,6 +11,11 @@ from werkzeug.serving import is_running_from_reloader as _irfr
 
 logger = logging.getLogger(__name__)
 
+legacy_default_domain = "index.docker.io"
+default_domain = "docker.io"
+official_repo_name = "library"
+default_tag = "latest"
+
 
 def get_environment_capabilities(environment_uuid, project_uuid):
 
@@ -147,6 +152,32 @@ def get_init_container_manifest(
         ],
     }
     return init_container
+
+
+# splitDockerDomain splits a repository name to domain and remotename
+# string. If no valid domain is found, the default domain is used.
+# Repository name needs to be already validated before.
+# The logic of this function is borrowed from docker
+def split_docker_domain(name: str) -> Tuple[str, str]:
+    names = name.split("/")
+    if len(names) == 1 or (
+        not any(c in names[0] for c in [".", ":"]) and names[0] != "localhost"
+    ):
+        domain, remainder = default_domain, name
+    else:
+        domain, remainder = names[0], names[1]
+
+    if domain == legacy_default_domain:
+        domain = default_domain
+
+    if domain == default_domain and ("/" not in remainder):
+        remainder = official_repo_name + "/" + remainder
+
+    tagSep = remainder.split(":")
+    if len(tagSep) == 1:
+        remainder = remainder + f":{default_tag}"
+
+    return domain, remainder
 
 
 def is_running_from_reloader():
