@@ -1,6 +1,7 @@
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type {
   EnvironmentValidationData,
+  Example,
   PipelineMetaData,
   Project,
   ReducerActionWithCallback,
@@ -40,6 +41,7 @@ export type IProjectsContextState = {
   pipelines: PipelineMetaData[] | undefined;
   pipeline?: PipelineMetaData | undefined;
   projects: Project[] | undefined;
+  examples: Example[] | undefined;
   hasLoadedProjects: boolean;
   hasLoadedPipelinesInPipelineEditor: boolean;
   newPipelineUuid: string | undefined;
@@ -74,6 +76,10 @@ type Action =
       payload: Project[];
     }
   | {
+      type: "SET_EXAMPLES";
+      payload: Example[];
+    }
+  | {
       type: "SET_PIPELINE_IS_READONLY";
       payload: boolean;
     }
@@ -105,6 +111,7 @@ const initialState: IProjectsContextState = {
   pipelineSaveStatus: "saved",
   pipelines: undefined,
   projects: undefined,
+  examples: undefined,
   hasLoadedProjects: false,
   hasLoadedPipelinesInPipelineEditor: false,
   newPipelineUuid: undefined,
@@ -275,7 +282,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             hasLoadedPipelinesInPipelineEditor: false,
           };
         }
-        case "SET_PROJECTS":
+        case "SET_PROJECTS": {
           cleanProjectsFromLocalstorage(action.payload);
           const initialProjectUuid = action.payload.some(
             (project) => project.uuid === lastSeenProjectUuid
@@ -292,8 +299,12 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             projectUuid: initialProjectUuid,
             hasLoadedProjects: true,
           };
+        }
         case "SET_BUILD_REQUEST": {
           return { ...state, buildRequest: action.payload };
+        }
+        case "SET_EXAMPLES": {
+          return { ...state, examples: action.payload };
         }
         default: {
           console.log("Unknown action in ProjectsContext: ", action);

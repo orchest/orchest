@@ -2,7 +2,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { CreateProjectDialog } from "@/projects-view/CreateProjectDialog";
 import { ImportDialog } from "@/projects-view/ImportDialog";
-import { PROJECT_TAB } from "@/projects-view/ProjectsView";
+import { PROJECT_TAB } from "@/projects-view/ProjectTabsContext";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
