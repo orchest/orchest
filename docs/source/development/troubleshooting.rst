@@ -232,9 +232,3 @@ Missing environment variables in pods
      scale down and back up the controller deployment, or any other preferred solution.
    
    - start Orchest, ``orchest start``.
-
-   
-Minikube is unresponsive on MacOS
----------------------------------
-
-After leaving your computer locked/hibernated for a longer period of time
