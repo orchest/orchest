@@ -3,7 +3,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { Project } from "@/types";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -17,19 +16,20 @@ import { useProjectName } from "./hooks/useProjectName";
 export const CreateProjectDialog = ({
   open: isOpenByParent,
   onClose: onCloseByParent,
-  projects,
   postCreateCallback,
   children,
 }: {
   open?: boolean;
   onClose?: () => void;
-  projects: Project[];
   children?: (onOpen: () => void) => React.ReactNode;
   postCreateCallback?: () => void;
 }) => {
   const { setAlert } = useAppContext();
   const { navigateTo } = useCustomRoute();
-  const { dispatch } = useProjectsContext();
+  const {
+    state: { projects = [] },
+    dispatch,
+  } = useProjectsContext();
 
   const { isOpen, onClose, onOpen } = useControlledIsOpen(
     isOpenByParent,
