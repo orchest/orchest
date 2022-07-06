@@ -49,14 +49,20 @@ python3 -m pip install -e orchest-cli
 python3 -m pip install -r docs/requirements.txt
 ```
 
-Orchest integrations tests require a MySQL client to be installed:
+Orchest's integration tests require a MySQL client to be installed:
 
+`````{tab-set}
+````{tab-item} Linux
 ```bash
-# On apt-based systems (e.g. Ubuntu):
 sudo apt install -y default-libmysqlclient-dev
-# On Homebrew (MacOS/Linux)
+```
+````
+````{tab-item} macOS
+```bash
 brew install mysql
 ```
+````
+`````
 
 (cluster-mount)=
 
@@ -138,12 +144,23 @@ orchest install --dev
 
 Take a look in [k9s](https://github.com/derailed/k9s) and see how Orchest is getting installed.
 
-```{tip}
-Once the installation is completed you can run `minikube ip` and browse to it.
-If everything is working correctly, you should be welcomed by the Orchest UI!
+Once the installation is completed you can reach Orchest using one of the following approaches,
+depending on your operating system:
 
-**Note:** On MacOS, run `sudo minikube tunnel`, and browse to `localhost` instead.
+`````{tab-set}
+````{tab-item} Linux
+Simply access the Orchest UI by browsing to the IP returned by:
+```bash
+minikube ip
 ```
+````
+````{tab-item} macOS
+Run the tunnel daemon and browse to [localhost](http://localhost).
+```bash
+sudo minikube tunnel
+```
+````
+`````
 
 Does everything look good? _Awesome!_ You're all set up and ready to start coding now! 🎉
 
