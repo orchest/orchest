@@ -11,7 +11,11 @@ import traceback
 from typing import Any, Dict, Optional, Tuple
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_init_container_manifest, get_userdir_relpath
+from _orchest.internals.utils import (
+    get_init_container_manifest,
+    get_userdir_relpath,
+    split_docker_domain,
+)
 from app import utils
 from app.connections import k8s_core_api
 from app.types import SessionConfig, SessionType
@@ -897,8 +901,10 @@ def _get_user_service_deployment_service_manifest(
         },
     }
 
+    domain, name = split_docker_domain(image)
+
     image_puller_manifest = get_init_container_manifest(
-        image,
+        f"{domain}/{name}",
         _config.CONTAINER_RUNTIME,
         _config.CONTAINER_RUNTIME_IMAGE,
     )
