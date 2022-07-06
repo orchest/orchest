@@ -27,9 +27,9 @@ export const ProjectList = () => {
     setSelectedProjectMenuButton,
   ] = React.useState<{ element: HTMLElement; uuid: string }>();
 
-  const [projectBeingDeleted, setProjectBeingDeleted] = React.useState<
-    string
-  >();
+  const [projectsBeingDeleted, setProjectsBeingDeleted] = React.useState<
+    string[]
+  >([]);
 
   const closeProjectMenu = () => setSelectedProjectMenuButton(undefined);
 
@@ -59,7 +59,9 @@ export const ProjectList = () => {
       dispatch({ type: "SET_PROJECT", payload: undefined });
     }
 
-    setProjectBeingDeleted(toBeDeletedId);
+    setProjectsBeingDeleted((current) => {
+      return [...current, toBeDeletedId];
+    });
     setSelectedProjectMenuButton(undefined);
     try {
       await fetcher("/async/projects", {
@@ -76,7 +78,10 @@ export const ProjectList = () => {
     } catch (error) {
       setAlert("Error", `Could not delete project. ${error.message}`);
     }
-    setProjectBeingDeleted(undefined);
+
+    setProjectsBeingDeleted((current) => {
+      return current.filter((projectUuid) => projectUuid !== toBeDeletedId);
+    });
   };
 
   const deleteProject = async () => {
@@ -101,7 +106,7 @@ export const ProjectList = () => {
       <ProjectsTable
         projects={projects}
         openProjectMenu={openProjectMenu}
-        projectBeingDeleted={projectBeingDeleted}
+        projectsBeingDeleted={projectsBeingDeleted}
       />
       {selectedProjectMenuButton && (
         <Menu

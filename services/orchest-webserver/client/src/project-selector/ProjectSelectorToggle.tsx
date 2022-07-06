@@ -68,7 +68,6 @@ export const ProjectSelectorToggle = ({
         direction="column"
         justifyContent="center"
         alignItems="flex-start"
-        spacing={0.25}
         sx={{ flex: 1 }}
       >
         <Typography
@@ -88,7 +87,6 @@ export const ProjectSelectorToggle = ({
             sx={{
               ...ellipsis((theme) => theme.spacing(20.5)),
               textTransform: "initial",
-              lineHeight: 1,
               color: (theme) => theme.palette.common.black,
             }}
           >
