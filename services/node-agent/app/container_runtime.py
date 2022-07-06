@@ -95,7 +95,7 @@ class ContainerRuntime(object):
             result, _ = await self.execute_cmd(cmd=cmd)
 
         self.logger.debug(
-            f"Checked existence of image '{image_name} '" f"exists = {result}"
+            f"Checked existence of image '{image_name}': exists = {result}"
         )
         return result
 
