@@ -11,11 +11,6 @@ from werkzeug.serving import is_running_from_reloader as _irfr
 
 logger = logging.getLogger(__name__)
 
-legacy_default_domain = "index.docker.io"
-default_domain = "docker.io"
-official_repo_name = "library"
-default_tag = "latest"
-
 
 def get_environment_capabilities(environment_uuid, project_uuid):
 
@@ -159,6 +154,11 @@ def get_init_container_manifest(
 # Repository name needs to be already validated before.
 # The logic of this function is borrowed from docker
 def split_docker_domain(name: str) -> Tuple[str, str]:
+    legacy_default_domain = "index.docker.io"
+    default_domain = "docker.io"
+    official_repo_name = "library"
+    default_tag = "latest"
+
     names = name.split("/")
     if len(names) == 1 or (
         not any(c in names[0] for c in [".", ":"]) and names[0] != "localhost"
