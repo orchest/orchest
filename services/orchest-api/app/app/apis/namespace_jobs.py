@@ -48,12 +48,12 @@ class JobList(Resource):
         jobs = models.Job.query
         if "project_uuid" in request.args:
             jobs = jobs.filter_by(project_uuid=request.args["project_uuid"])
-        if "active" in request.args:
-            should_select_active = request.args["active"] == "true"
-            jobs = (
-                jobs.filter(models.Job.status == "STARTED")
-                if should_select_active
-                else jobs.filter(models.Job.status != "STARTED")
+        if request.args.get("active", "false") == "true":
+            jobs = jobs.filter(
+                any(
+                    models.Job.status == active_state
+                    for active_state in ["STARTED", "PENDING"]
+                )
             )
 
         jobs = jobs.order_by(desc(models.Job.created_time)).all()
