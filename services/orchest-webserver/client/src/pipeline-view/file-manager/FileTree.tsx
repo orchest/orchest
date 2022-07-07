@@ -28,6 +28,7 @@ import {
   generateTargetDescription,
   isFileByExtension,
   isWithinDataFolder,
+  prettifyRoot,
   queryArgs,
   ROOT_SEPARATOR,
   unpackCombinedPath,
@@ -671,7 +672,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                     : undefined,
               }}
               data-path={combinedPath}
-              labelText={root === "/project-dir" ? "Project files" : root}
+              labelText={prettifyRoot(root)}
             >
               <TreeRow
                 setDragFile={setDragFile}
