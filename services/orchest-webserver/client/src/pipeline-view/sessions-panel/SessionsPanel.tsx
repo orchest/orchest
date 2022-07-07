@@ -44,7 +44,6 @@ export const SessionsPanel = () => {
           const onClick = (e: React.MouseEvent) => {
             e.stopPropagation();
             e.preventDefault();
-            console.log("DEV hey!", projectUuid, pipeline.uuid);
             navigateTo(
               siteMap.pipeline.path,
               { query: { projectUuid, pipelineUuid: pipeline.uuid } },
@@ -62,7 +61,11 @@ export const SessionsPanel = () => {
                 margin: (theme) => theme.spacing(1, 0),
               }}
               label={
-                <Tooltip title={pipeline.path}>
+                <Tooltip
+                  title={pipeline.path}
+                  placement="bottom-start"
+                  followCursor // To prevent tooltip blocking the next item.
+                >
                   <Link
                     variant="body2"
                     underline="hover"
