@@ -1,9 +1,13 @@
 import SessionToggleButton from "@/components/SessionToggleButton";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/routingConfig";
 import { OrchestSession } from "@/types";
 import Box from "@mui/material/Box";
+import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
@@ -14,30 +18,43 @@ export const SessionsPanel = () => {
     state: { projectUuid, pipelines = [] },
   } = useProjectsContext();
   const { getSession } = useSessionsContext();
+  const { navigateTo } = useCustomRoute();
 
   return (
     <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
       <Typography
-        variant="subtitle2"
+        variant="body1"
         component="h3"
-        sx={{ padding: (theme) => theme.spacing(0.5, 0.5, 0.5, 1.5) }}
+        sx={{ padding: (theme) => theme.spacing(2) }}
       >
-        Sessions
+        Pipeline sessions
       </Typography>
       <Box
         sx={{
           flex: 1,
           minHeight: 0,
           overflowY: "auto",
-          paddingBottom: (theme) => theme.spacing(2),
+          padding: (theme) => theme.spacing(0, 1, 2, 2),
         }}
       >
         {pipelines.map((pipeline) => {
           const sessionStatus = (getSession(pipeline.uuid)?.status ||
             "") as SessionStatus;
 
+          const onClick = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log("DEV hey!", projectUuid, pipeline.uuid);
+            navigateTo(
+              siteMap.pipeline.path,
+              { query: { projectUuid, pipelineUuid: pipeline.uuid } },
+              e
+            );
+          };
+
           return (
             <SessionToggleButton
+              key={pipeline.uuid}
               pipelineUuid={pipeline.uuid}
               status={sessionStatus}
               sx={{
@@ -45,21 +62,23 @@ export const SessionsPanel = () => {
                 margin: (theme) => theme.spacing(1, 0),
               }}
               label={
-                <Typography
-                  variant="body2"
-                  component="span"
-                  sx={{
-                    whiteSpace: "nowrap",
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                    width: "100%",
-                  }}
-                >
-                  {pipeline.name}
-                </Typography>
+                <Tooltip title={pipeline.path}>
+                  <Link
+                    variant="body2"
+                    underline="hover"
+                    sx={{
+                      whiteSpace: "nowrap",
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      width: "100%",
+                    }}
+                    onClick={onClick}
+                    onAuxClick={onClick}
+                  >
+                    {pipeline.path}
+                  </Link>
+                </Tooltip>
               }
-              isSwitch
-              key={pipeline.uuid}
             />
           );
         })}
