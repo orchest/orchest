@@ -2,6 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import { Checkbox } from "@mui/material";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -13,107 +14,104 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
-import {
-  ALLOWED_STEP_EXTENSIONS,
-  fetcher,
-  FetchError,
-} from "@orchest/lib-utils";
+import { ALLOWED_STEP_EXTENSIONS, StepExtension } from "@orchest/lib-utils";
 import React from "react";
+import { useForm } from "react-hook-form";
 import { FileManagementRoot } from "../common";
-import {
-  allowedExtensionsMarkup,
-  FILE_MANAGEMENT_ENDPOINT,
-  lastSelectedFolderPath,
-  queryArgs,
-  ROOT_SEPARATOR,
-} from "./common";
+import { lastSelectedFolderPath, prettifyRoot } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
+import { useCreateFile } from "./useCreateFile";
+
+export type CreateFileDialogProps = {
+  isOpen: boolean;
+  root?: FileManagementRoot;
+  onClose(): void;
+  onSuccess(file: CreatedFile): void;
+};
+
+export type FileFormData = {
+  fileName: string;
+  extension: StepExtension;
+  createStep: boolean;
+};
+
+export type CreatedFile = {
+  /** The path, relative to `/project-dir:/`. */
+  projectPath: string;
+  /** The path, starting with `/project-dir:/`. */
+  fullPath: string;
+  /** Whether the user wants to add the file as a step to the pipeline immediately. */
+  createStep: boolean;
+};
+
+const DEFAULT_FORM_STATE: FileFormData = {
+  fileName: "",
+  extension: ALLOWED_STEP_EXTENSIONS[0],
+  createStep: true,
+};
+
+const combinePath = (
+  dirName: string,
+  fileName: string,
+  extension: StepExtension
+) => `${dirName}${fileName}.${extension}`;
 
 export const CreateFileDialog = ({
   isOpen,
   root = "/project-dir",
   onClose,
   onSuccess,
-  projectUuid,
-  initialFileName,
-}: {
-  isOpen: boolean;
-  root?: FileManagementRoot;
-  onClose: () => void;
-  onSuccess: (filePath: string) => void;
-  projectUuid: string | undefined;
-  initialFileName?: string;
-}) => {
-  // Global state
+}: CreateFileDialogProps) => {
   const { setAlert } = useAppContext();
   const { selectedFiles } = useFileManagerContext();
+  const { register, handleSubmit, watch } = useForm<FileFormData>({
+    defaultValues: DEFAULT_FORM_STATE,
+  });
+  const { run, setError, error, status } = useAsync<string>();
 
-  const lastSelectedFolder = React.useMemo(() => {
-    return lastSelectedFolderPath(selectedFiles);
-  }, [selectedFiles]);
-
-  // local states
-
-  // we don't want to apply toValidFilename here
-  // because user needs to use relative path as part of file name change the final path
-  // ? allow user to change file path, so user is not forced to abuse "file name"?
-  const [fileName, setFileName] = React.useState(() => "");
-  const [fileExtension, setFileExtension] = React.useState(
-    `.${ALLOWED_STEP_EXTENSIONS[0]}`
+  const selectedFolder = React.useMemo(
+    () => lastSelectedFolderPath(selectedFiles),
+    [selectedFiles]
   );
 
-  const rootFolderForDisplay = root === "/project-dir" ? "Project files" : root;
-  const fullFilePathForDisplay = `${rootFolderForDisplay}${lastSelectedFolder}${fileName}${fileExtension}`;
+  const createFile = useCreateFile(root);
 
-  const { run, setError, error, status: createFileStatus } = useAsync<
-    void,
-    FetchError
-  >();
-  const isCreating = createFileStatus === "PENDING";
-  const onSubmitModal = async () => {
-    if (isCreating || !projectUuid) return;
-
-    const fullFilePath = `${lastSelectedFolder}${fileName}${fileExtension}`;
-
-    await run(
-      fetcher(
-        `${FILE_MANAGEMENT_ENDPOINT}/create?${queryArgs({
-          project_uuid: projectUuid,
-          root,
-          path: fullFilePath,
-        })}`,
-        { method: "POST" }
-      ).then(() => {
-        const finalFilePath = `${root}${ROOT_SEPARATOR}${fullFilePath}`;
-        onSuccess(finalFilePath);
-      })
+  const onSubmit = async ({ createStep, ...file }: FileFormData) => {
+    const projectPath = combinePath(
+      selectedFolder,
+      file.fileName,
+      file.extension
     );
-    onClose();
+
+    await run(createFile(projectPath)).then((fullPath) => {
+      onSuccess({ projectPath, fullPath, createStep });
+      onClose();
+    });
   };
 
   React.useEffect(() => {
-    if (isOpen) {
-      setFileName(
-        initialFileName
-          ? initialFileName.split("/").slice(-1).join("/").split(".")[0]
-          : ""
-      );
-    }
-  }, [isOpen, initialFileName]);
-
-  React.useEffect(() => {
     if (error) {
-      setAlert(
-        "Error",
-        `Unable to create file. ${error.message}`,
-        (resolve) => {
-          setError(null);
-          resolve(true);
-          return true;
-        }
-      );
+      setAlert("Failed to create file", String(error), (resolve) => {
+        setError(null);
+        resolve(true);
+        return true;
+      });
     }
   }, [setAlert, setError, error]);
+
+  const [fileName, extension, createStep] = watch([
+    "fileName",
+    "extension",
+    "createStep",
+  ]);
+
+  const displayPath = combinePath(
+    `${prettifyRoot(root)}${selectedFolder}`,
+    fileName,
+    extension
+  );
+
+  const isCreating = status === "PENDING";
 
   return (
     <Dialog
@@ -123,68 +121,58 @@ export const CreateFileDialog = ({
       maxWidth="sm"
       fullWidth
     >
-      <form
-        id="create-file"
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onSubmitModal();
-        }}
-      >
-        <DialogTitle>Create a new file</DialogTitle>
+      <form onSubmit={handleSubmit(onSubmit)} id="create-file">
+        <DialogTitle>New file</DialogTitle>
         <DialogContent>
-          <div className="create-file-input">
-            <div className="push-down">
-              Supported file extensions are:&nbsp;
-              {allowedExtensionsMarkup}.
-            </div>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="File name"
-                  autoFocus
-                  value={fileName}
-                  fullWidth
-                  disabled={isCreating}
-                  onChange={(e) => setFileName(e.target.value)}
-                  data-test-id="file-manager-file-name-textfield"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <FormControl fullWidth>
-                  <InputLabel id="file-manager-file-extension-label">
-                    Extension
-                  </InputLabel>
-                  <Select
-                    label="Extension"
-                    labelId="file-manager-file-extension-label"
-                    id="file-manager-file-extension"
-                    disabled={isCreating}
-                    value={fileExtension}
-                    onChange={(e) => setFileExtension(e.target.value)}
-                  >
-                    {ALLOWED_STEP_EXTENSIONS.map((el) => {
-                      const value = `.${el}`;
-                      return (
-                        <MenuItem key={value} value={value}>
-                          {value}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="File path"
-                  value={fullFilePathForDisplay}
-                  fullWidth
-                  margin="normal"
-                  disabled
-                />
-              </Grid>
+          <Grid container spacing={2} paddingTop={(theme) => theme.spacing(2)}>
+            <Grid item xs={6}>
+              <TextField
+                {...register("fileName")}
+                label="File name"
+                disabled={isCreating}
+                autoFocus
+                fullWidth
+                data-test-id="file-manager-file-name-textfield"
+              />
             </Grid>
-          </div>
+
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel id="file-manager-file-extension-label">
+                  Extension
+                </InputLabel>
+                <Select
+                  {...register("extension")}
+                  value={extension}
+                  label="Extension"
+                  labelId="file-manager-file-extension-label"
+                  id="file-manager-file-extension"
+                  disabled={isCreating}
+                >
+                  {ALLOWED_STEP_EXTENSIONS.map((extension) => (
+                    <MenuItem key={extension} value={extension}>
+                      .{extension}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="File path"
+                value={displayPath}
+                disabled
+                fullWidth
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <InputLabel>
+                <Checkbox {...register("createStep")} checked={createStep} />
+                Create a new step for this file
+              </InputLabel>
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button

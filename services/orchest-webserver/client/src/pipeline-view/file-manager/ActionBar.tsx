@@ -1,7 +1,6 @@
 import { IconButton } from "@/components/common/IconButton";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUploadRounded";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
@@ -13,6 +12,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { FileManagementRoot } from "../common";
+import { useCreateStep } from "../hooks/useCreateStep";
 import { CreateFileDialog } from "./CreateFileDialog";
 import { CreateFolderDialog } from "./CreateFolderDialog";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -23,55 +23,47 @@ const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
   padding: theme.spacing(0.5),
 }));
 
+type Creating = "file" | "folder";
+
+type ActionBarProps = {
+  rootFolder: FileManagementRoot;
+  uploadFiles: (files: File[] | FileList) => void;
+  setExpanded: (items: string[]) => void;
+};
+
 export function ActionBar({
   uploadFiles,
   rootFolder,
   setExpanded,
-}: {
-  rootFolder: FileManagementRoot;
-  uploadFiles: (files: File[] | FileList) => void;
-  setExpanded: (items: string[]) => void;
-}) {
-  const { projectUuid } = useCustomRoute();
+}: ActionBarProps) {
+  const [creating, setCreating] = React.useState<Creating | null>(null);
   const { setSelectedFiles } = useFileManagerContext();
   const { reload } = useFileManagerLocalContext();
-
-  const [isCreateFileDialogOpen, setIsCreateFileDialogOpen] = React.useState(
-    false
-  );
-  const openCreateFileDialog = () => setIsCreateFileDialogOpen(true);
-  const closeCreateFileDialog = () => setIsCreateFileDialogOpen(false);
-
-  const [
-    isCreateFolderDialogOpen,
-    setIsCreateFolderDialogOpen,
-  ] = React.useState(false);
-  const openCreateFolderDialog = () => setIsCreateFolderDialogOpen(true);
-  const closeCreateFolderDialog = () => setIsCreateFolderDialogOpen(false);
-
   const {
     state: { pipelineIsReadOnly },
   } = useProjectsContext();
+  const createStep = useCreateStep();
 
   return (
     <>
       <CreateFileDialog
-        isOpen={!pipelineIsReadOnly && isCreateFileDialogOpen}
-        onClose={closeCreateFileDialog}
-        onSuccess={(fullFilePath: string) => {
-          setSelectedFiles([fullFilePath]);
-          reload();
-        }}
+        isOpen={!pipelineIsReadOnly && creating === "file"}
+        onClose={() => setCreating(null)}
         root={rootFolder}
-        projectUuid={projectUuid}
+        onSuccess={(file) => {
+          setSelectedFiles([file.fullPath]);
+          reload();
+
+          if (file.createStep) {
+            createStep(file.projectPath);
+          }
+        }}
       />
       <CreateFolderDialog
-        isOpen={!pipelineIsReadOnly && isCreateFolderDialogOpen}
-        onClose={closeCreateFolderDialog}
+        isOpen={!pipelineIsReadOnly && creating === "folder"}
+        onClose={() => setCreating(null)}
         root={rootFolder}
-        onSuccess={() => {
-          reload();
-        }}
+        onSuccess={reload}
       />
       <Stack
         direction="row"
@@ -84,12 +76,12 @@ export function ActionBar({
             <>
               <FileManagerActionButton
                 title="Create file"
-                onClick={openCreateFileDialog}
+                onClick={() => setCreating("file")}
               >
                 <NoteAddIcon />
               </FileManagerActionButton>
               <FileManagerActionButton
-                onClick={openCreateFolderDialog}
+                onClick={() => setCreating("folder")}
                 title="Create folder"
               >
                 <CreateNewFolderIcon />
