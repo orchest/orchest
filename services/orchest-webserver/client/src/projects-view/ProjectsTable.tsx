@@ -8,7 +8,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import { ellipsis } from "@/utils/styles";
-import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
+import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cspell:disable-line
 import Box from "@mui/material/Box";
 import Tooltip from "@mui/material/Tooltip";
 import { hasValue } from "@orchest/lib-utils";
@@ -17,11 +17,7 @@ import { NoProject } from "./NoProject";
 
 export type ProjectRow = Pick<
   Project,
-  | "path"
-  | "pipeline_count"
-  | "session_count"
-  | "job_count"
-  | "environment_count"
+  "path" | "pipeline_count" | "session_count" | "active_job_count"
 > & {
   settings: string;
 };
@@ -58,8 +54,7 @@ export const ProjectsTable = ({
       },
       { id: "pipeline_count", label: "Pipelines" },
       { id: "session_count", label: "Active sessions" },
-      { id: "job_count", label: "Jobs" },
-      { id: "environment_count", label: "Environments" },
+      { id: "active_job_count", label: "Active jobs" },
       {
         id: "settings",
         label: "",
