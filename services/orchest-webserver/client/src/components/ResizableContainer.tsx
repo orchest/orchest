@@ -6,6 +6,7 @@ import { getOffset } from "@/utils/jquery-replacement";
 import { isNumber } from "@/utils/webserver-utils";
 import Box, { BoxProps } from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 const ResizeBaseComponent = styled(Box)({
@@ -39,7 +40,7 @@ export const ResizableContainer = ({
   minWidth,
   maxWidth,
   ...props
-}: BoxProps & {
+}: Omit<BoxProps, "maxWidth" | "maxHeight"> & {
   initialWidth?: number;
   initialHeight?: number;
   onResized?: (size: ElementSize) => void;
@@ -57,15 +58,20 @@ export const ResizableContainer = ({
   });
 
   React.useEffect(() => {
-    if (size.height > maxHeight || size.width > maxWidth) {
+    if (
+      (hasValue(maxWidth) && size.width > maxWidth) ||
+      (hasValue(maxHeight) && size.height > maxHeight)
+    ) {
       setSize((current) => {
         return {
-          width: isNumber(current.width)
-            ? Math.min(current.width, maxWidth)
-            : current.width,
-          height: isNumber(current.height)
-            ? Math.min(current.height, maxHeight)
-            : current.height,
+          width:
+            isNumber(current.width) && hasValue(maxWidth)
+              ? Math.min(current.width, maxWidth)
+              : current.width,
+          height:
+            isNumber(current.height) && hasValue(maxHeight)
+              ? Math.min(current.height, maxHeight)
+              : current.height,
         };
       });
     }
@@ -230,7 +236,7 @@ export const ResizeHeightBar = React.forwardRef<
       sx={{
         width: "100%",
         height: (theme) => theme.spacing(1),
-        bottom: -5,
+        bottom: (theme) => theme.spacing(-1),
         cursor: "row-resize",
         ...sx,
       }}

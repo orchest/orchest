@@ -23,7 +23,7 @@ const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
       },
     },
     "&.Mui-focused, &.Mui-selected, &.Mui-selected.Mui-focused": {
-      backgroundColor: theme.palette.grey[100],
+      backgroundColor: theme.palette.grey[200],
       color: theme.palette.primary.main,
     },
   },
