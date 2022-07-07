@@ -5,7 +5,7 @@ import os
 import re
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 import requests
 from flask import current_app, safe_join
@@ -413,8 +413,9 @@ def project_entity_counts(project_uuid, get_job_count=False, get_session_count=F
     return counts
 
 
-def get_job_counts():
-    return get_api_entity_counts("/api/jobs/", "jobs")
+def get_job_counts(args: Optional[Dict[str, str]]):
+    query_args = request_args_to_string(args)
+    return get_api_entity_counts(f"/api/jobs/{query_args}", "jobs")
 
 
 def get_session_counts():
@@ -628,7 +629,7 @@ def create_file(
             file.write(file_content)
 
 
-def request_args_to_string(args):
+def request_args_to_string(args: Optional[Dict[str, str]]):
     if args is None or len(args) == 0:
         return ""
     return "?" + "&".join([key + "=" + value for key, value in args.items()])

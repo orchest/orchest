@@ -4,7 +4,7 @@ import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { useMounted } from "@/hooks/useMounted";
 import React from "react";
 
-export const useFetchProjectsForProjectsView = (shouldFetch: boolean) => {
+export const useFetchProjectsForProjectsView = () => {
   const { setAlert } = useAppContext();
   const { dispatch } = useProjectsContext();
   const {
@@ -13,7 +13,10 @@ export const useFetchProjectsForProjectsView = (shouldFetch: boolean) => {
     setProjects,
     error: fetchProjectsError,
     isFetchingProjects,
-  } = useFetchProjects({ sessionCounts: true, jobCounts: true, shouldFetch });
+  } = useFetchProjects({
+    sessionCounts: true,
+    activeJobCounts: true,
+  });
 
   const mounted = useMounted();
 

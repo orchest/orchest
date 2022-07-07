@@ -14,6 +14,7 @@ import React from "react";
 import { ActionButtonsContainer } from "./ActionButtonsContainer";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { ExampleList } from "./ExampleList";
+import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
 import { ProjectList } from "./ProjectList";
 import { ProjectsTabs } from "./ProjectsTabs";
@@ -26,6 +27,8 @@ export const ProjectsView = () => {
     state: { hasCompletedOnboarding },
   } = useAppContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
+
+  useFetchProjectsForProjectsView();
 
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
