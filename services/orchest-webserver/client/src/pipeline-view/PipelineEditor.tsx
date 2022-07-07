@@ -9,14 +9,13 @@ import { getOffset } from "@/utils/jquery-replacement";
 import { join } from "@/utils/path";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
-import { filterServices, validatePipeline } from "@/utils/webserver-utils";
+import { validatePipeline } from "@/utils/webserver-utils";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import CropFreeIcon from "@mui/icons-material/CropFree";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveIcon from "@mui/icons-material/Remove";
-import SettingsIcon from "@mui/icons-material/Settings";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -32,7 +31,6 @@ import {
 } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { CreateStepButton } from "./CreateStepButton";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
 import { useOpenNoteBook } from "./hooks/useOpenNoteBook";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
@@ -42,6 +40,7 @@ import {
   PipelineViewport,
 } from "./pipeline-viewport/PipelineViewport";
 import { PipelineActionButton } from "./PipelineActionButton";
+import { PipelineCanvasHeaderBar } from "./PipelineCanvasHeaderBar";
 import {
   ExecutionState,
   getStateText,
@@ -51,7 +50,6 @@ import {
   STEP_WIDTH,
 } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
-import { ServicesMenu } from "./ServicesMenu";
 import { StepDetails } from "./step-details/StepDetails";
 
 const deleteStepMessage =
@@ -203,7 +201,7 @@ export const PipelineEditor = () => {
     (steps?: StepsDict) => {
       if (!pipelineJson) return;
       if (isReadOnly) {
-        console.error("savePipeline should be uncallable in readOnly mode.");
+        console.error("savePipeline should be un-callable in readOnly mode.");
         return;
       }
 
@@ -307,16 +305,6 @@ export const PipelineEditor = () => {
     },
     [eventVars.steps]
   );
-
-  const [isShowingServices, setIsShowingServices] = React.useState(false);
-
-  const showServices = () => {
-    setIsShowingServices(true);
-  };
-
-  const hideServices = () => {
-    setIsShowingServices(false);
-  };
 
   const onDoubleClickStep = (stepUUID: string) => {
     if (isReadOnly) {
@@ -548,25 +536,6 @@ export const PipelineEditor = () => {
     deleteSelectedSteps,
   ]);
 
-  const services = React.useMemo(() => {
-    // not a job run, so it is an interactive run, services are only available if session is RUNNING
-    if (!isJobRun && session?.status !== "RUNNING") return null;
-    // it is a job run (non-interactive run), we are unable to check its actual session
-    // but we can check its job run status,
-    if (isJobRun && pipelineJson && !pipelineRunning) return null;
-    const allServices = isJobRun
-      ? pipelineJson?.services || {}
-      : session && session.user_services
-      ? session.user_services
-      : {};
-    // Filter services based on scope
-
-    return filterServices(
-      allServices,
-      jobUuid ? "noninteractive" : "interactive"
-    );
-  }, [pipelineJson, session, jobUuid, isJobRun, pipelineRunning]);
-
   // Check if there is an incoming step (that is not part of the
   // selection).
   // This is checked to conditionally render the
@@ -586,7 +555,6 @@ export const PipelineEditor = () => {
     }
   }
 
-  const servicesButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const flushPage = useHasChanged(hash.current);
   const shouldSave = useHasChanged(eventVars.timestamp);
 
@@ -890,9 +858,12 @@ export const PipelineEditor = () => {
             )}
           </div>
         )}
+        <PipelineCanvasHeaderBar
+          pipelineRunning={pipelineRunning}
+          pipelineViewportRef={pipelineViewportRef}
+        />
         {pipelineJson && (
           <div className={"pipeline-actions top-right"}>
-            {!isReadOnly && <CreateStepButton />}
             {isReadOnly && (
               <Button color="secondary" startIcon={<VisibilityIcon />} disabled>
                 Read only
@@ -905,20 +876,6 @@ export const PipelineEditor = () => {
             >
               Logs
             </PipelineActionButton>
-            <PipelineActionButton
-              id="running-services-button"
-              onClick={showServices}
-              startIcon={<SettingsIcon />}
-              ref={servicesButtonRef}
-            >
-              Services
-            </PipelineActionButton>
-            <ServicesMenu
-              isOpen={isShowingServices}
-              onClose={hideServices}
-              anchor={servicesButtonRef}
-              services={services}
-            />
             <PipelineActionButton
               onClick={openSettings}
               startIcon={<TuneIcon />}
