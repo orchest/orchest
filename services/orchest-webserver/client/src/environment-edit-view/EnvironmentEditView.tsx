@@ -256,10 +256,9 @@ const EnvironmentEditView: React.FC = () => {
   const build = React.useCallback(
     async (e?: React.MouseEvent) => {
       if (building || !projectUuid) return;
-      if (e) {
-        e.preventDefault();
-        e.nativeEvent.preventDefault();
-      }
+
+      e?.preventDefault();
+      e?.nativeEvent.preventDefault();
 
       setIgnoreIncomingLogs(true);
 

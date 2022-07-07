@@ -20,14 +20,33 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
-import { useFormik } from "formik";
 import React from "react";
+import { useForm } from "react-hook-form";
 import {
   DEFAULT_BASE_IMAGES,
   GPU_SUPPORT_ENABLED,
   LANGUAGE_MAP,
 } from "./common";
+
+type CustomImageDialogProps = {
+  initialValue: CustomImage | undefined;
+  isOpen: boolean;
+  onClose: () => void;
+  saveEnvironment: (data: CustomImage) => Promise<Environment | null>;
+  setCustomImage: (value: CustomImage) => void;
+};
+
+const DEFAULT_FORM_STATE: CustomImage = {
+  base_image: "",
+  language: Object.keys(LANGUAGE_MAP)[0] as Language,
+  gpu_support: false,
+};
+
+const isDefaultImage = (baseImage: string) => {
+  baseImage = baseImage.toLowerCase().trim();
+
+  return DEFAULT_BASE_IMAGES.some((image) => baseImage === image.base_image);
+};
 
 export const CustomImageDialog = ({
   isOpen,
@@ -35,75 +54,35 @@ export const CustomImageDialog = ({
   saveEnvironment,
   initialValue,
   setCustomImage,
-}: {
-  initialValue: CustomImage | undefined;
-  isOpen: boolean;
-  onClose: () => void;
-  saveEnvironment: ({
-    base_image,
-    language,
-    gpu_support,
-  }: {
-    base_image: string;
-    language: Language;
-    gpu_support: boolean;
-  }) => Promise<Environment | null>;
-  setCustomImage: (value: CustomImage) => void;
-}) => {
+}: CustomImageDialogProps) => {
   const { config } = useAppContext();
-  const {
-    handleSubmit,
-    handleChange,
-    handleBlur,
-    values,
-    errors,
-    isSubmitting,
-    touched,
-    isValid,
-  } = useFormik({
-    initialValues: initialValue || {
-      base_image: "",
-      language: "" as Language,
-      gpu_support: false,
-    },
-    isInitialValid: false,
-    validate: ({ base_image, language }) => {
-      const errors: Record<string, string> = {};
-      if (!base_image) errors.base_image = "Image path cannot be empty";
-      // prevent user enter the same path as the default images
-      // otherwise, the custom tile would be gone after refreshing the page (because default image paths are not considered as a custom one)
-      if (
-        DEFAULT_BASE_IMAGES.some(
-          (image) => image.base_image === base_image.toLowerCase().trim()
-        )
-      )
-        errors.base_image =
-          "Given path is part of the default images. No need to specify a custom one.";
-      if (!language) errors.language = "Please select a language";
-      return errors;
-    },
-    onSubmit: async (
-      { base_image, language, gpu_support },
-      { setSubmitting }
-    ) => {
-      setSubmitting(true);
-      const success = await saveEnvironment({
-        base_image,
-        language,
-        gpu_support,
-      });
-      if (success) {
-        setCustomImage({ base_image, language, gpu_support });
-        onClose();
-      }
-      setSubmitting(false);
-    },
-    enableReinitialize: true,
+  const { register, handleSubmit, watch, setValue, formState } = useForm({
+    defaultValues: DEFAULT_FORM_STATE,
+    mode: "onChange",
   });
 
+  const [language, gpuSupport] = watch(["language", "gpu_support"]);
+
+  const onSubmit = async (data: CustomImage) => {
+    const image = await saveEnvironment(data);
+
+    if (image) {
+      setCustomImage(image);
+      onClose();
+    }
+  };
+
+  React.useEffect(() => {
+    if (isOpen && initialValue) {
+      for (const [name, value] of Object.entries(initialValue)) {
+        setValue(name as keyof CustomImage, value);
+      }
+    }
+  }, [isOpen, initialValue, setValue]);
+
   return (
-    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="xs">
-      <form id="add-custom-base-image-form" onSubmit={handleSubmit}>
+    <Dialog open={isOpen} onClose={onClose} maxWidth="xs">
+      <form id="add-custom-base-image-form" onSubmit={handleSubmit(onSubmit)}>
         <DialogTitle>Add custom base image</DialogTitle>
         <DialogContent>
           <Stack spacing={3} direction="column">
@@ -117,28 +96,28 @@ export const CustomImageDialog = ({
               </Typography>
             </Stack>
             <TextField
+              {...register("base_image", {
+                validate: (value) =>
+                  isDefaultImage(value)
+                    ? "This is a default image."
+                    : undefined,
+              })}
               label="Image path"
-              autoFocus
               required
-              name="base_image"
-              error={touched.base_image && hasValue(errors.base_image)}
-              helperText={(touched.base_image && errors.base_image) || " "}
-              value={values.base_image}
-              onChange={handleChange}
-              onBlur={handleBlur}
+              autoFocus
+              error={Boolean(formState.errors.base_image)}
+              helperText={formState.errors.base_image?.message}
             />
             <FormControl fullWidth>
               <InputLabel id="select-language-label">Language</InputLabel>
               <Select
+                {...register("language")}
                 labelId="select-language-label"
                 id="select-language"
-                value={values.language}
                 label="Language"
+                value={language}
                 required
-                error={touched.language && hasValue(errors.language)}
-                name="language"
-                onChange={handleChange}
-                onBlur={handleBlur}
+                error={Boolean(formState.errors.language)}
               >
                 {Object.entries(LANGUAGE_MAP).map(([value, label]) => {
                   return (
@@ -149,7 +128,7 @@ export const CustomImageDialog = ({
                 })}
               </Select>
               <FormHelperText>
-                {touched.language && errors.language}
+                {formState.errors.language?.message}
               </FormHelperText>
             </FormControl>
             <Alert severity="info" tabIndex={-1}>
@@ -163,16 +142,15 @@ export const CustomImageDialog = ({
                   <FormControlLabel
                     label="GPU support"
                     data-test-id="pipeline-settings-configuration-memory-eviction"
-                    name="gpu_support"
                     control={
                       <Checkbox
-                        checked={values.gpu_support}
-                        onChange={handleChange}
+                        {...register("gpu_support")}
+                        checked={gpuSupport}
                       />
                     }
                   />
                 </FormGroup>
-                {values.gpu_support && (
+                {gpuSupport && (
                   <Alert severity="info" tabIndex={-1}>
                     {config?.GPU_ENABLED_INSTANCE && (
                       <>
@@ -220,7 +198,7 @@ export const CustomImageDialog = ({
             startIcon={<CheckIcon />}
             type="submit"
             variant="contained"
-            disabled={!isValid || isSubmitting}
+            disabled={!formState.isValid || formState.isSubmitting}
             form="add-custom-base-image-form"
           >
             Confirm
