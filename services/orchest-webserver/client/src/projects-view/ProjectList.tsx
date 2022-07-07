@@ -9,7 +9,6 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ProjectsTable } from "./ProjectsTable";
 
 export const ProjectList = () => {
@@ -19,8 +18,6 @@ export const ProjectList = () => {
     dispatch,
     state: { projectUuid, projects },
   } = useProjectsContext();
-
-  useFetchProjectsForProjectsView(!projects);
 
   const [
     selectedProjectMenuButton,
