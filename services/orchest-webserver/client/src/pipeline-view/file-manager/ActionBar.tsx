@@ -1,13 +1,13 @@
 import { IconButton } from "@/components/common/IconButton";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
-import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUploadRounded";
-import NoteAddIcon from "@mui/icons-material/NoteAdd";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
+import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
+import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
+import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-import UploadFileIcon from "@mui/icons-material/UploadFileRounded";
-import Box from "@mui/material/Box";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import React from "react";
@@ -77,55 +77,51 @@ export function ActionBar({
         direction="row"
         alignItems="center"
         justifyContent="flex-end"
-        sx={{ padding: (theme) => theme.spacing(0.5) }}
+        spacing={1.5}
+        sx={{ padding: (theme) => theme.spacing(0.5, 1.5, 1) }}
       >
-        <Box>
-          {!pipelineIsReadOnly && (
-            <>
-              <FileManagerActionButton
-                title="Create file"
-                onClick={() => setOpenDialog("file")}
-              >
-                <NoteAddIcon />
-              </FileManagerActionButton>
-              <FileManagerActionButton
-                onClick={() => setOpenDialog("folder")}
-                title="Create folder"
-              >
-                <CreateNewFolderIcon />
-              </FileManagerActionButton>
-              <UploadFilesForm multiple upload={uploadFiles}>
-                {(onClick) => (
-                  <FileManagerActionButton
-                    onClick={onClick}
-                    title="Upload file"
-                  >
-                    <UploadFileIcon />
-                  </FileManagerActionButton>
-                )}
-              </UploadFilesForm>
-              <UploadFilesForm folder upload={uploadFiles}>
-                {(onClick) => (
-                  <FileManagerActionButton
-                    onClick={onClick}
-                    title="Upload folder"
-                  >
-                    <DriveFolderUploadIcon />
-                  </FileManagerActionButton>
-                )}
-              </UploadFilesForm>
-            </>
-          )}
-          <FileManagerActionButton title="Refresh" onClick={reload}>
-            <RefreshIcon />
-          </FileManagerActionButton>
-          <FileManagerActionButton
-            title="Collapse all"
-            onClick={() => setExpanded([])}
-          >
-            <UnfoldLessIcon />
-          </FileManagerActionButton>
-        </Box>
+        {!pipelineIsReadOnly && (
+          <>
+            <FileManagerActionButton
+              title="Create file"
+              onClick={openCreateFileDialog}
+            >
+              <NoteAddOutlinedIcon />
+            </FileManagerActionButton>
+            <FileManagerActionButton
+              onClick={openCreateFolderDialog}
+              title="Create folder"
+            >
+              <CreateNewFolderOutlinedIcon />
+            </FileManagerActionButton>
+            <UploadFilesForm multiple upload={uploadFiles}>
+              {(onClick) => (
+                <FileManagerActionButton onClick={onClick} title="Upload file">
+                  <UploadFileOutlinedIcon />
+                </FileManagerActionButton>
+              )}
+            </UploadFilesForm>
+            <UploadFilesForm folder upload={uploadFiles}>
+              {(onClick) => (
+                <FileManagerActionButton
+                  onClick={onClick}
+                  title="Upload folder"
+                >
+                  <DriveFolderUploadOutlinedIcon />
+                </FileManagerActionButton>
+              )}
+            </UploadFilesForm>
+          </>
+        )}
+        <FileManagerActionButton title="Refresh" onClick={reload}>
+          <RefreshOutlinedIcon />
+        </FileManagerActionButton>
+        <FileManagerActionButton
+          title="Collapse all"
+          onClick={() => setExpanded([])}
+        >
+          <UnfoldLessIcon />
+        </FileManagerActionButton>
       </Stack>
     </>
   );

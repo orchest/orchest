@@ -2,9 +2,6 @@ import { generateUploadFiles } from "@/components/DropZone";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDebounce } from "@/hooks/useDebounce";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import LinearProgress, {
   LinearProgressProps,
 } from "@mui/material/LinearProgress";
@@ -26,6 +23,7 @@ import {
   TreeNode,
   unpackPath,
 } from "./common";
+import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
 import { useFileManagerContext } from "./FileManagerContext";
 import {
@@ -279,6 +277,13 @@ export function FileManager() {
           reload={reload}
           setContextMenu={setContextMenu}
         >
+          {!pipelineIsReadOnly && (
+            <CreatePipelineDialog>
+              {(onCreateClick) => (
+                <CreatePipelineButton onClick={onCreateClick} />
+              )}
+            </CreatePipelineDialog>
+          )}
           <ActionBar
             setExpanded={setExpanded}
             uploadFiles={uploadFiles}
@@ -315,35 +320,6 @@ export function FileManager() {
             )}
           </FileTreeContainer>
         </FileManagerLocalContextProvider>
-        {!pipelineIsReadOnly && (
-          <CreatePipelineDialog>
-            {(onCreateClick) => (
-              <Box
-                sx={{
-                  width: "100%",
-                  margin: (theme) => theme.spacing(0.5, 0, 1, 0),
-                  padding: (theme) => theme.spacing(1),
-                }}
-              >
-                <Button
-                  fullWidth
-                  startIcon={<AddCircleIcon />}
-                  onClick={onCreateClick}
-                  data-test-id="pipeline-create"
-                >
-                  <Box
-                    sx={{
-                      marginTop: (theme) => theme.spacing(0.25),
-                      marginRight: (theme) => theme.spacing(1),
-                    }}
-                  >
-                    Create pipeline
-                  </Box>
-                </Button>
-              </Box>
-            )}
-          </CreatePipelineDialog>
-        )}
       </FileManagerContainer>
     </>
   );

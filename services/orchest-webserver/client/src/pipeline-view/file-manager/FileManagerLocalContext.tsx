@@ -24,7 +24,7 @@ export type FileManagerLocalContextType = {
   handleClose: () => void;
   handleContextMenu: (
     event: React.MouseEvent,
-    combinedPath: string,
+    combinedPath: string | undefined,
     type?: ContextMenuType
   ) => void;
   handleSelect: (
@@ -105,7 +105,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [pipelines, pipelineUuid]);
 
   const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
-    string
+    string | undefined
   >();
   const [fileInRename, setFileInRename] = React.useState<string>();
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
@@ -113,7 +113,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   const handleContextMenu = React.useCallback(
     (
       event: React.MouseEvent,
-      combinedPath: string,
+      combinedPath: string | undefined,
       type: ContextMenuType = "tree"
     ) => {
       event.preventDefault();

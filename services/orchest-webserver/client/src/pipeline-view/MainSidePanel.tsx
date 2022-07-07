@@ -9,7 +9,7 @@ import Stack, { StackProps } from "@mui/material/Stack";
 import React from "react";
 
 const DEFAULT_PANEL_WIDTH = 300;
-const MIN_PANEL_WIDTH = 180;
+const MIN_PANEL_WIDTH = 252;
 
 export const MainSidePanel = React.forwardRef<typeof Stack, StackProps>(
   function PanelContainerComponent({ children }) {
@@ -29,12 +29,12 @@ export const MainSidePanel = React.forwardRef<typeof Stack, StackProps>(
 
     return (
       <ResizableContainer
-        initialWidth={storedPanelWidth}
+        initialWidth={Math.max(storedPanelWidth, MIN_PANEL_WIDTH)}
         minWidth={MIN_PANEL_WIDTH}
         maxWidth={window.innerWidth - 100}
         sx={{
           position: "relative",
-          backgroundColor: (theme) => theme.palette.background.paper,
+          backgroundColor: (theme) => theme.palette.grey[100],
           borderRight: (theme) => `1px solid ${theme.borderColor}`,
           display: "flex",
           flexDirection: "column",

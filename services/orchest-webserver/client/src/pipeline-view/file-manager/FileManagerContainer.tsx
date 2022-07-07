@@ -64,11 +64,7 @@ export const FileManagerContainer = React.forwardRef<
       initialHeight={initialHeight}
       minHeight={MIN_PANEL_HEIGHT}
       maxHeight={maxHeight}
-      sx={{
-        position: "relative",
-        backgroundColor: (theme) => theme.palette.background.paper,
-        ...sx,
-      }}
+      sx={{ position: "relative", ...sx }}
       onResized={saveHeight}
     >
       {({ size, resizeHeight }) => {
