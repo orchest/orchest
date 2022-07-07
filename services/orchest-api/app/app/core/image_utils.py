@@ -150,6 +150,8 @@ def _get_buildah_image_build_workflow_manifest(
                         "command": ["/bin/sh", "-c"],
                         "args": [
                             (
+                                # Change the UID/GID to jovyan/users
+                                "chown -R 1000:100 /pip-cache; "
                                 # Build
                                 f"buildah build -f {dockerfile_path} --layers=true "
                                 # Package managers caches.
