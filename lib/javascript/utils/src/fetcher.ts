@@ -1,16 +1,22 @@
-export type FetchError = {
-  status?: number;
-  message: string;
-  body?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-};
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export class FetchError<B = any> extends Error {
+  readonly status?: number;
+  readonly body?: B;
 
-const getExactUrl = (url: string) => `${__BASE_URL__}${url}`;
+  constructor(message: string, status?: number, body?: B) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
 
-export const fetcher = async <T, E = FetchError>(
+const getFullUrl = (url: string) => `${__BASE_URL__}${url}`;
+
+export const fetcher = async <T, E = any>(
   url: string,
   params?: RequestInit
 ) => {
-  const targetUrl = getExactUrl(url);
+  const targetUrl = getFullUrl(url);
 
   const response = await window.fetch(targetUrl, params);
   const responseAsString = await response.text();
@@ -18,12 +24,15 @@ export const fetcher = async <T, E = FetchError>(
     responseAsString === "" ? {} : JSON.parse(responseAsString);
 
   if (!response.ok || response.status >= 299) {
-    const { message, ...rest } = jsonResponse;
-    return Promise.reject({
-      status: response.status,
-      message: message || response.statusText,
-      ...rest, // pass along the payload of the error
-    } as E);
+    const { message } = jsonResponse;
+
+    return Promise.reject(
+      new FetchError<E>(
+        message || response.statusText,
+        response.status,
+        jsonResponse
+      )
+    );
   }
 
   return jsonResponse as Promise<T>;
