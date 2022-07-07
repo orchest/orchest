@@ -139,7 +139,7 @@ export type Project = {
   path: string;
   uuid: string;
   pipeline_count: number;
-  job_count: number | undefined;
+  active_job_count: number | undefined;
   environment_count: number;
   project_snapshot_size: number;
   env_variables: Record<string, string>;

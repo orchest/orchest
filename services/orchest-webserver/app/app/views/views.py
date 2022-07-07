@@ -522,8 +522,8 @@ def register_views(app, db):
         if request.args.get("session_counts") == "true":
             session_counts = get_session_counts()
 
-        if request.args.get("job_counts") == "true":
-            job_counts = get_job_counts()
+        if request.args.get("active_job_counts") == "true":
+            active_job_counts = get_job_counts({"active": "true"})
 
         for project in projects:
 
@@ -552,8 +552,10 @@ def register_views(app, db):
                     {"session_count": session_counts.get(project["uuid"], 0)}
                 )
 
-            if request.args.get("job_counts") == "true":
-                project.update({"job_count": job_counts.get(project["uuid"], 0)})
+            if request.args.get("active_job_counts") == "true":
+                project.update(
+                    {"active_job_count": active_job_counts.get(project["uuid"], 0)}
+                )
 
         return jsonify(projects)
 
