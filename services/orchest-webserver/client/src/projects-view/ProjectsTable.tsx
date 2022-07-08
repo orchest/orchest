@@ -62,7 +62,7 @@ export const ProjectsTable = ({
         render: function ProjectSettingsButton(row, disabled) {
           return !projectsBeingDeleted.includes(row.uuid) ? (
             <IconButton
-              title="settings"
+              title="More options"
               disabled={disabled}
               size="small"
               data-test-id={`settings-button-${row.path}`}
