@@ -564,9 +564,7 @@ const ServiceForm: React.FC<{
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button color="secondary" onClick={onCloseEditImageName}>
-              Cancel
-            </Button>
+            <Button onClick={onCloseEditImageName}>Cancel</Button>
             <Button
               startIcon={<CheckIcon />}
               variant="contained"

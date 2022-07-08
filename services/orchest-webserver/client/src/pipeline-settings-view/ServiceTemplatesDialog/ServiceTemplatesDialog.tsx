@@ -50,11 +50,7 @@ export const ServiceTemplatesDialog: React.FC<{
           </List>
         </DialogContent>
         <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            color="secondary"
-            onClick={() => setIsOpen(false)}
-          >
+          <Button startIcon={<CloseIcon />} onClick={() => setIsOpen(false)}>
             Cancel
           </Button>
         </DialogActions>
