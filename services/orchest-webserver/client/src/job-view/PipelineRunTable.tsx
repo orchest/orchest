@@ -6,6 +6,7 @@ import {
 import { NoParameterAlert } from "@/components/ParamTree";
 import { StatusInline } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
+import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Pagination, PipelineRun } from "@/types";
@@ -63,9 +64,9 @@ const getQueryString = ({
   rowsPerPage,
   searchTerm,
 }: {
-  page: number;
-  rowsPerPage: number;
-  searchTerm: string;
+  page: number | undefined;
+  rowsPerPage: number | undefined;
+  searchTerm: string | undefined;
 }) =>
   toQueryString({
     page,
@@ -85,11 +86,7 @@ export const PipelineRunTable: React.FC<{
   const cancelRun = React.useCallback(
     async (
       runUuid: string,
-      setData: (
-        callback: (
-          current: DataTableFetcherResponse<PipelineRun>
-        ) => DataTableFetcherResponse<PipelineRun>
-      ) => void,
+      setData: StateDispatcher<DataTableFetcherResponse<PipelineRun>>,
       fetchData: () => void
     ) => {
       return setConfirm(
@@ -100,7 +97,8 @@ export const PipelineRunTable: React.FC<{
             await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`, {
               method: "DELETE",
             });
-            setData((current: DataTableFetcherResponse<PipelineRun>) => {
+            setData((current) => {
+              if (!current) return current;
               const newRows = [...current.rows];
               const cancelled = newRows.find((row) => row.uuid === runUuid);
               if (cancelled) cancelled.status = "ABORTED";
