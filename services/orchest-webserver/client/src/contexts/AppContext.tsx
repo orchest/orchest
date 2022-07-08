@@ -7,6 +7,7 @@ import {
   OrchestUserConfig,
   ReducerActionWithCallback,
 } from "@/types";
+import { ButtonProps } from "@mui/material/Button";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
@@ -45,6 +46,7 @@ export type Alert = {
   content: string | React.ReactElement | JSX.Element[];
   onConfirm?: () => Promise<boolean | void> | boolean | void;
   confirmLabel?: string;
+  confirmButtonColor?: ButtonProps["color"];
 };
 
 export type Confirm = {
@@ -55,6 +57,7 @@ export type Confirm = {
   onCancel?: () => Promise<boolean | void> | void | boolean;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmButtonColor?: ButtonProps["color"];
 };
 
 export type PromptMessage = Alert | Confirm;
@@ -64,6 +67,7 @@ type AlertConverter = (props: {
   content: string | React.ReactElement | JSX.Element[];
   confirmHandler?: () => Promise<boolean> | boolean;
   confirmLabel?: string;
+  confirmButtonColor?: ButtonProps["color"];
 }) => Alert;
 
 type ConfirmConverter = (props: {
@@ -73,6 +77,7 @@ type ConfirmConverter = (props: {
   cancelHandler?: () => Promise<boolean | void> | void | boolean;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmButtonColor?: ButtonProps["color"];
 }) => Confirm;
 
 type PromptMessageConverter<T extends PromptMessage> = T extends Alert
@@ -128,6 +133,7 @@ export type AlertDispatcher = (
     | {
         onConfirm: ConfirmHandler;
         confirmLabel?: string;
+        confirmButtonColor?: ButtonProps["color"];
       }
 ) => Promise<boolean>;
 
@@ -141,6 +147,7 @@ export type ConfirmDispatcher = (
         onCancel?: CancelHandler;
         confirmLabel?: string;
         cancelLabel?: string;
+        confirmButtonColor?: ButtonProps["color"];
       }
 ) => Promise<boolean>;
 
@@ -251,6 +258,7 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
           onCancel?: CancelHandler;
           confirmLabel?: string;
           cancelLabel?: string;
+          confirmButtonColor?: ButtonProps["color"];
         }
   ) => {
     // NOTE: consumer could either provide a callback function for onConfirm (for most use cases), or provide an object for more detailed config
@@ -262,7 +270,7 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
         ? () => defaultOnConfirm(resolve)
         : callbackOrParams instanceof Function
         ? () => callbackOrParams(resolve)
-        : () => callbackOrParams.onConfirm(resolve);
+        : () => callbackOrParams?.onConfirm(resolve);
 
       const hasCustomOnCancel =
         !(callbackOrParams instanceof Function) && callbackOrParams?.onCancel;
@@ -280,6 +288,12 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
           ? "Cancel"
           : callbackOrParams?.cancelLabel || "Cancel";
 
+      const confirmButtonColor = !(callbackOrParams instanceof Function)
+        ? typeof callbackOrParams?.confirmButtonColor === "string"
+          ? callbackOrParams?.confirmButtonColor
+          : undefined
+        : undefined;
+
       const message = convert({
         title,
         content,
@@ -287,6 +301,7 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
         cancelHandler,
         confirmLabel,
         cancelLabel,
+        confirmButtonColor,
       });
 
       dispatch((store) => {
@@ -306,6 +321,7 @@ const convertAlert: PromptMessageConverter<Alert> = ({
   content,
   confirmHandler,
   confirmLabel,
+  confirmButtonColor,
 }) => {
   return {
     type: "alert",
@@ -313,6 +329,7 @@ const convertAlert: PromptMessageConverter<Alert> = ({
     content: contentParser(content),
     onConfirm: confirmHandler,
     confirmLabel,
+    confirmButtonColor,
   };
 };
 
@@ -323,6 +340,7 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
   cancelHandler,
   confirmLabel,
   cancelLabel,
+  confirmButtonColor,
 }) => {
   return {
     type: "confirm",
@@ -332,6 +350,7 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
     onCancel: cancelHandler,
     confirmLabel,
     cancelLabel,
+    confirmButtonColor,
   };
 };
 

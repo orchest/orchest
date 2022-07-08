@@ -121,6 +121,7 @@ export const SystemDialog: React.FC = () => {
             type="submit"
             form={`${promptMessage.type}-form`}
             variant="contained"
+            color={promptMessage.confirmButtonColor}
             data-test-id="confirm-dialog-ok"
           >
             {promptMessage.confirmLabel || "Confirm"}
