@@ -192,12 +192,7 @@ export const CreatePipelineDialog = ({
             />
           </DialogContent>
           <DialogActions>
-            <Button
-              startIcon={<CloseIcon />}
-              color="secondary"
-              onClick={onClose}
-              tabIndex={-1}
-            >
+            <Button startIcon={<CloseIcon />} onClick={onClose} tabIndex={-1}>
               Cancel
             </Button>
             <Button

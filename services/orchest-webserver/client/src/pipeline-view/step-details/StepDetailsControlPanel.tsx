@@ -63,7 +63,6 @@ export const StepDetailsControlPanel = ({
       >
         <Button
           startIcon={<CloseIcon />}
-          color="secondary"
           onClick={onClose}
           data-test-id="step-close-details"
         >
