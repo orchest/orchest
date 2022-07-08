@@ -269,6 +269,25 @@ def _get_buildah_image_build_workflow_manifest(
             # Check if there is a newer image, if so, pull it.
             "buildah build --pull=true",
         )
+
+    # For extensions that need access to the settings on install.
+    if _config.JUPYTER_IMAGE_NAME in image_name:
+        container = manifest["spec"]["templates"][0]["container"]
+        container["volumeMounts"].append(
+            {
+                "name": "userdir-pvc",
+                "mountPath": "/jupyterlab-user-settings",
+                "subPath": ".orchest/user-configurations/jupyterlab/user-settings",
+            }
+        )
+        container["args"][0] = container["args"][0].replace(
+            "buildah build",
+            (
+                "buildah build -v "
+                "/jupyterlab-user-settings:/root/.jupyter/lab/user-settings "
+            ),
+        )
+
     return manifest
 
 
