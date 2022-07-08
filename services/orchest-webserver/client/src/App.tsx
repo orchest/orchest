@@ -67,6 +67,7 @@ const App = () => {
       boot({
         email: user_config.INTERCOM_USER_EMAIL,
         createdAt: config.INTERCOM_DEFAULT_SIGNUP_DATE,
+        alignment: "right",
       });
     }
   }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
