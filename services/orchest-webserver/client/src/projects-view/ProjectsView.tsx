@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -26,6 +27,7 @@ export const ProjectsView = () => {
   const {
     state: { hasCompletedOnboarding },
   } = useAppContext();
+  const { navigateTo } = useCustomRoute();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
 
   useFetchProjectsForProjectsView();
@@ -42,11 +44,6 @@ export const ProjectsView = () => {
   };
 
   const onImport = () => {
-    setIsImportDialogOpen(true);
-  };
-
-  const importWithUrl = (url: string) => {
-    setImportUrl(url);
     setIsImportDialogOpen(true);
   };
 
@@ -74,6 +71,14 @@ export const ProjectsView = () => {
 
   const dismissWarning = () => setIsShowingWarning(false);
 
+  const [importWhenOpen, setImportWhenOpen] = React.useState(false);
+
+  const importExample = (url: string) => {
+    setImportUrl(url);
+    setIsImportDialogOpen(true);
+    setImportWhenOpen(true);
+  };
+
   return (
     <TempLayout>
       <ImportDialog
@@ -81,6 +86,13 @@ export const ProjectsView = () => {
         setImportUrl={setImportUrl}
         open={isImportDialogOpen}
         onClose={() => setIsImportDialogOpen(false)}
+        onImportComplete={({ uuid }) => {
+          setImportWhenOpen(false);
+          navigateTo(siteMap.pipeline.path, {
+            query: { projectUuid: uuid },
+          });
+        }}
+        importWhenOpen={importWhenOpen}
         confirmButtonLabel={`Save & view`}
       />
       <CreateProjectDialog
@@ -151,7 +163,7 @@ export const ProjectsView = () => {
               Orchest and could contain malicious code.
             </Alert>
           )}
-          <ExampleList importProject={importWithUrl} />
+          <ExampleList importProject={importExample} />
         </ProjectTabPanel>
       </ProjectTabsContextProvider>
     </TempLayout>
