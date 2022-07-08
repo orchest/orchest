@@ -49,6 +49,7 @@ const App = () => {
       boot({
         email: user_config.INTERCOM_USER_EMAIL,
         createdAt: config.INTERCOM_DEFAULT_SIGNUP_DATE,
+        alignment: "right",
       });
 
       const tracker = new OpenReplay({
