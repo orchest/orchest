@@ -120,7 +120,7 @@ export const EditProjectPathDialog = ({
           />
         </DialogContent>
         <DialogActions>
-          <Button color="secondary" startIcon={<CloseIcon />} onClick={onClose}>
+          <Button startIcon={<CloseIcon />} onClick={onClose}>
             Cancel
           </Button>
           <Button

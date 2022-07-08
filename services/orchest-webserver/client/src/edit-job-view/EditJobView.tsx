@@ -970,7 +970,6 @@ const EditJobView: React.FC = () => {
                 onClick={cancel}
                 onAuxClick={cancel}
                 startIcon={<CloseIcon />}
-                color="secondary"
                 data-test-id="update-job"
               >
                 Cancel

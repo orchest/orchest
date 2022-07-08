@@ -749,7 +749,7 @@ export const ImportDialog = ({
         </DialogContent>
         <DialogActions>
           {isShowingCancelButton && (
-            <Button color="secondary" onClick={closeDialog} tabIndex={-1}>
+            <Button onClick={closeDialog} tabIndex={-1}>
               {`Cancel${hideUploadOption ? "" : " upload"}`}
             </Button>
           )}

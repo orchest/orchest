@@ -113,7 +113,7 @@ export const LoadParametersDialog = ({
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button color="secondary" tabIndex={-1} onClick={onClose}>
+          <Button tabIndex={-1} onClick={onClose}>
             Cancel
           </Button>
           <Button variant="contained" type="submit" form="load-parameters">
