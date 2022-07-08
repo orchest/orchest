@@ -2,14 +2,60 @@ window.document.addEventListener("DOMContentLoaded", function () {
   const CONTAINER_CLASS = ".installer-container";
 
   let installerData = {
-    // Cloud: {
-    //   GKE: {
-    //     instructions: ``,
-    //   },
-    //   EKS: {
-    //     instructions: ``,
-    //   },
-    // },
+    Cloud: {
+      GKE: {
+        instructions: `
+<p>Assuming <a href="https://cloud.google.com/kubernetes-engine/docs/deploy-app-cluster#create_cluster">GKE</a> 
+is already installed and kubectl is 
+<a href="https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl">configured</a> 
+to access the cluster. proceed by installing the 
+<a href="https://kubernetes.github.io/ingress-nginx/deploy/#gce-gke">nginx ingress controller</a>.</p>
+
+<p>Next up, Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+
+<p>Now that Orchest is installed, it can be reached on the IP returned by:</p>
+<div class="highlight">
+<pre>
+kubectl get svc ingress-nginx-controller \\
+    -n ingress-nginx -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+</pre>
+</div>
+<p>
+`,
+      },
+      EKS: {
+        instructions: `
+<p>Assuming <a https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html">EKS</a> 
+and <a https://kubernetes.io/docs/tasks/tools/">kubectl</a> are already installed. proceed by installing the 
+<a href="https://kubernetes.github.io/ingress-nginx/deploy/#aws">nginx ingress controller</a>.</p>
+
+<p>Next up, Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+
+<p>Now that Orchest is installed, it can be reached on the address returned by:</p>
+<div class="highlight">
+<pre>
+kubectl get svc ingress-nginx-controller \\
+    -n ingress-nginx -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+</pre>
+</div>
+<p>
+        `,
+      },
+    },
     Linux: {
       minikube: {
         instructions: `
