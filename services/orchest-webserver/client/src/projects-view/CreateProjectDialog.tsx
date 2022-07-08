@@ -121,7 +121,7 @@ export const CreateProjectDialog = ({
             />
           </DialogContent>
           <DialogActions>
-            <Button color="secondary" tabIndex={-1} onClick={closeDialog}>
+            <Button tabIndex={-1} onClick={closeDialog}>
               Cancel
             </Button>
             <Button

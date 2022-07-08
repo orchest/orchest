@@ -23,9 +23,7 @@ const ImportSuccessDialog: React.FC<{
         </div>
       </DialogContent>
       <DialogActions>
-        <Button color="secondary" onClick={onClose}>
-          Continue browsing
-        </Button>
+        <Button onClick={onClose}>Continue browsing</Button>
         <Button
           variant="contained"
           autoFocus
