@@ -5,14 +5,18 @@ window.document.addEventListener("DOMContentLoaded", function () {
     Cloud: {
       GKE: {
         instructions: `
-<p>Assuming <a href="https://cloud.google.com/kubernetes-engine/docs/deploy-app-cluster#create_cluster">GKE</a> 
-is already installed and kubectl is 
-<a href="https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl">configured</a> 
-to access the cluster. proceed by installing the 
-<a href="https://kubernetes.github.io/ingress-nginx/deploy/#gce-gke">nginx ingress controller</a>.</p>
+<p>Make sure to first create a
+<a href="https://cloud.google.com/kubernetes-engine/docs/deploy-app-cluster#create_cluster">GKE cluster</a>
+and
+<a href="https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl">configure kubectl</a>
+to access the cluster. Next,
+<a href="https://kubernetes.github.io/ingress-nginx/deploy/#gce-gke">install the NGINX ingress controller</a>
+using <code class="docutils literal notranslate"><span class="pre">kubectl</span></code>.
+</p>
 
-<p>Next up, Orchest can be installed using the <code class="docutils literal notranslate"><span
-class="pre">orchest-cli</span></code>:</p>
+
+<p>Now that your GKE cluster is set up correctly, Orchest can be installed using the <code
+class="docutils literal notranslate"><span class="pre">orchest-cli</span></code>:</p>
 <div class="highlight">
 <pre>
 pip install --upgrade orchest-cli
@@ -20,11 +24,12 @@ orchest install
 </pre>
 </div>
 
-<p>Now that Orchest is installed, it can be reached on the IP returned by:</p>
+<p>After installing Orchest, you can reach it on the IP returned by:</p>
 <div class="highlight">
 <pre>
 kubectl get svc ingress-nginx-controller \\
-    -n ingress-nginx -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+    -n ingress-nginx \\
+    -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
 </pre>
 </div>
 <p>
@@ -32,11 +37,14 @@ kubectl get svc ingress-nginx-controller \\
       },
       EKS: {
         instructions: `
-<p>Assuming <a https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html">EKS</a> 
-and <a https://kubernetes.io/docs/tasks/tools/">kubectl</a> are already installed. proceed by installing the 
-<a href="https://kubernetes.github.io/ingress-nginx/deploy/#aws">nginx ingress controller</a>.</p>
+<p>
+Get started by installing <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> and setting up an
+<a href="https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html">EKS cluster</a>
+on AWS. Lastly, to properly set-up your cluster, install the
+<a href="https://kubernetes.github.io/ingress-nginx/deploy/#aws">NGINX ingress controller</a>.
+</p>
 
-<p>Next up, Orchest can be installed using the <code class="docutils literal notranslate"><span
+<p>All that is left is installing Orchest using the <code class="docutils literal notranslate"><span
 class="pre">orchest-cli</span></code>:</p>
 <div class="highlight">
 <pre>
@@ -45,11 +53,12 @@ orchest install
 </pre>
 </div>
 
-<p>Now that Orchest is installed, it can be reached on the address returned by:</p>
+<p>Now that Orchest is installed, it can be reached on the IP address returned by:</p>
 <div class="highlight">
 <pre>
 kubectl get svc ingress-nginx-controller \\
-    -n ingress-nginx -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+    -n ingress-nginx \\
+    -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
 </pre>
 </div>
 <p>
