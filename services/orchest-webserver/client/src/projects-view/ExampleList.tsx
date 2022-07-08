@@ -81,7 +81,9 @@ export const ExampleList = ({
   };
   return (
     <>
-      <List sx={{ width: "100%", bgcolor: "background.paper" }}>
+      <List
+        sx={{ width: "100%", backgroundColor: "background.paper", padding: 0 }}
+      >
         {renderedExamples.map((example, index) => {
           const {
             url,

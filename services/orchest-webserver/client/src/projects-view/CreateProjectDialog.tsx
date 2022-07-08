@@ -3,6 +3,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
+import { Project } from "@/types";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -59,22 +60,23 @@ export const CreateProjectDialog = ({
         }
       );
 
-      dispatch((state) => ({
-        type: "SET_PROJECTS",
-        payload: [
-          ...(state.projects || []),
-          {
-            path: projectName,
-            uuid: project_uuid,
-            pipeline_count: 0,
-            job_count: 0,
-            environment_count: 1, // by default, a project gets an environment Python 3
-            project_snapshot_size: 0,
-            env_variables: {},
-            status: "READY",
-          },
-        ],
-      }));
+      dispatch((state) => {
+        const currentProjects = state.projects || [];
+        const newProject: Project = {
+          path: projectName,
+          uuid: project_uuid,
+          pipeline_count: 0,
+          active_job_count: 0,
+          environment_count: 1, // by default, a project gets an environment Python 3
+          project_snapshot_size: 0,
+          env_variables: {},
+          status: "READY",
+        };
+        return {
+          type: "SET_PROJECTS",
+          payload: [...currentProjects, newProject],
+        };
+      });
 
       dispatch({ type: "SET_PROJECT", payload: project_uuid });
       postCreateCallback?.();
@@ -101,7 +103,7 @@ export const CreateProjectDialog = ({
             onClickCreateProject();
           }}
         >
-          <DialogTitle>Create a new project</DialogTitle>
+          <DialogTitle>New project</DialogTitle>
           <DialogContent>
             <TextField
               fullWidth
