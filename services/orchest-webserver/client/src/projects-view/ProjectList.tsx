@@ -22,7 +22,7 @@ export const ProjectList = () => {
   const [
     selectedProjectMenuButton,
     setSelectedProjectMenuButton,
-  ] = React.useState<{ element: HTMLElement; uuid: string }>();
+  ] = React.useState<{ element: HTMLElement; uuid: string; name: string }>();
 
   const [projectsBeingDeleted, setProjectsBeingDeleted] = React.useState<
     string[]
@@ -32,14 +32,19 @@ export const ProjectList = () => {
 
   const openProjectMenu = React.useCallback(
     (projectUuid: string) => (event: React.MouseEvent<HTMLElement>) => {
+      const selectedProject = projects?.find(
+        (project) => project.uuid === projectUuid
+      );
+      if (!selectedProject) return;
       event.preventDefault();
       event.stopPropagation();
       setSelectedProjectMenuButton({
         element: event.currentTarget,
         uuid: projectUuid,
+        name: selectedProject.path,
       });
     },
-    []
+    [projects]
   );
 
   const openSettings = (e: React.MouseEvent) => {
@@ -81,19 +86,22 @@ export const ProjectList = () => {
     });
   };
 
-  const deleteProject = async () => {
+  const deleteProject = async (projectName: string) => {
     if (!selectedProjectMenuButton) return;
     // setConfirm returns a Promise, which is then passed to DataTable deleteSelectedRows function
     // DataTable then is able to act upon the outcome of the deletion operation
     return setConfirm(
-      "Warning",
-      "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
-      async (resolve) => {
-        // we don't await this Promise on purpose
-        // because we want the dialog close first, and resolve setConfirm later
-        requestDeleteProject(selectedProjectMenuButton.uuid);
-        resolve(true);
-        return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
+      `Delete "${projectName}"?`,
+      "Warning: Deleting a Project is permanent. All associated Jobs and resources will be deleted and unrecoverable.",
+      {
+        onConfirm: async (resolve) => {
+          // we don't await this Promise on purpose
+          // because we want the dialog close first, and resolve setConfirm later
+          requestDeleteProject(selectedProjectMenuButton.uuid);
+          resolve(true);
+          return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
+        },
+        cancelLabel: "Keep project",
       }
     );
   };
@@ -120,11 +128,13 @@ export const ProjectList = () => {
             </ListItemIcon>
             Project settings
           </MenuItem>
-          <MenuItem onClick={deleteProject}>
+          <MenuItem
+            onClick={() => deleteProject(selectedProjectMenuButton.name)}
+          >
             <ListItemIcon>
               <DeleteOutlineOutlinedIcon fontSize="small" />
             </ListItemIcon>
-            Delete project
+            Delete Project
           </MenuItem>
         </Menu>
       )}
