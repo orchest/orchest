@@ -132,7 +132,7 @@ export const ProjectsView = () => {
         <ProjectTabPanel
           id="projects"
           index={PROJECT_TAB.MY_PROJECTS}
-          sx={{ padding: (theme) => theme.spacing(4, 0) }}
+          sx={{ padding: (theme) => theme.spacing(2, 0) }}
         >
           <ProjectList />
         </ProjectTabPanel>
@@ -141,7 +141,12 @@ export const ProjectsView = () => {
           index={PROJECT_TAB.EXAMPLE_PROJECTS}
         >
           {isShowingWarning && (
-            <Alert severity="warning" tabIndex={-1} onClose={dismissWarning}>
+            <Alert
+              severity="warning"
+              tabIndex={-1}
+              onClose={dismissWarning}
+              sx={{ marginTop: (theme) => theme.spacing(2) }}
+            >
               Warning: Unverified community content has not been checked by
               Orchest and could contain malicious code.
             </Alert>
