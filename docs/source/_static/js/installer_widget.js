@@ -53,7 +53,7 @@ orchest install
 </pre>
 </div>
 
-<p>Now that Orchest is installed, it can be reached on the IP address returned by:</p>
+<p>Now that Orchest is installed, it can be reached on the address returned by:</p>
 <div class="highlight">
 <pre>
 kubectl get svc ingress-nginx-controller \\
