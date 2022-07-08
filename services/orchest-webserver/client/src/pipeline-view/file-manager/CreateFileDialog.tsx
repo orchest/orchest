@@ -187,12 +187,7 @@ export const CreateFileDialog = ({
           </div>
         </DialogContent>
         <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            color="secondary"
-            onClick={onClose}
-            tabIndex={-1}
-          >
+          <Button startIcon={<CloseIcon />} onClick={onClose} tabIndex={-1}>
             Cancel
           </Button>
           <Button

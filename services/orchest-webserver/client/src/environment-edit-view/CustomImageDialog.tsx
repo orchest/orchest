@@ -213,7 +213,7 @@ export const CustomImageDialog = ({
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button color="secondary" onClick={onClose} tabIndex={-1}>
+          <Button onClick={onClose} tabIndex={-1}>
             Cancel
           </Button>
           <Button

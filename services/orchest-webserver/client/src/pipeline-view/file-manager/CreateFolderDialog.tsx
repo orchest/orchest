@@ -127,7 +127,6 @@ export const CreateFolderDialog = ({
         <DialogActions>
           <Button
             startIcon={<CloseIcon />}
-            color="secondary"
             onClick={isCreating ? undefined : onClose}
             tabIndex={-1}
           >
