@@ -43,7 +43,7 @@ const ProjectFilePicker: React.FC<{
   value: string;
   onChange: (value: string) => void;
   menuMaxWidth?: string;
-  allowedExtensions: string[];
+  allowedExtensions: readonly string[];
   doesFileExist: boolean;
   isCheckingFileValidity: boolean;
 }> = ({

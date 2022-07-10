@@ -6,25 +6,23 @@ import { extensionFromFilename, fetcher, hasValue } from "@orchest/lib-utils";
 import { useDebounce } from "./useDebounce";
 import { useFetcher } from "./useFetcher";
 
-export const pathValidator = (value: string, allowedExtension: string[]) => {
-  if (!hasValue(value)) return false;
-  if (value === "" || value.endsWith("/")) {
-    return false;
-  }
-  const ext = extensionFromFilename(value);
-
-  return allowedExtension.includes(ext);
-};
-
 type ValidateFileProps = {
   projectUuid: string | undefined;
   pipelineUuid: string | undefined;
   jobUuid?: string;
   runUuid?: string;
   path: string;
-  allowedExtensions: string[];
+  allowedExtensions: readonly string[];
   useProjectRoot?: boolean;
 };
+
+export const isValidPath = (
+  value: string,
+  allowedExtensions: readonly string[]
+) =>
+  Boolean(value) &&
+  !value.endsWith("/") &&
+  allowedExtensions.includes(extensionFromFilename(value));
 
 export const isValidFile = async ({
   path,
@@ -35,29 +33,29 @@ export const isValidFile = async ({
   allowedExtensions,
   useProjectRoot = false,
 }: ValidateFileProps) => {
-  // only check file existence if it passes rule-based validation
-  if (!projectUuid || !pipelineUuid || !pathValidator(path, allowedExtensions))
-    return false;
+  const validByConvention =
+    projectUuid && pipelineUuid && isValidPath(path, allowedExtensions);
 
-  const response = await fetcher(
-    `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
-      projectUuid,
-      pipelineUuid,
-      jobUuid,
-      runUuid,
-      path,
-      useProjectRoot,
-    })}`
-  );
-  return hasValue(response);
+  if (validByConvention) {
+    const response = await fetcher(
+      `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
+        projectUuid,
+        pipelineUuid,
+        jobUuid,
+        runUuid,
+        path,
+        useProjectRoot,
+      })}`
+    );
+
+    return hasValue(response);
+  } else {
+    return false;
+  }
 };
 
 /**
  * checks if a file exists with the given path, poll per 1000 ms
- * @param project_uuid {string|undefined}
- * @param pipeline_uuid {string|undefined}
- * @param path {string|undefined}
- * @returns boolean
  */
 export const useCheckFileValidity = ({
   path,
@@ -68,11 +66,11 @@ export const useCheckFileValidity = ({
   allowedExtensions,
   useProjectRoot = false,
 }: ValidateFileProps) => {
-  const isQueryArgsComplete =
+  const propsAreValid =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
   const isValidPathPattern =
-    isQueryArgsComplete && pathValidator(path, allowedExtensions);
+    propsAreValid && isValidPath(path, allowedExtensions);
 
   const delayedPath = useDebounce(path, 250);
 

@@ -109,8 +109,8 @@ export const PipelineViewport = React.forwardRef<
   );
 
   const getCurrentOrigin = React.useCallback(() => {
-    let canvasOffset = getOffset(pipelineCanvasRef.current);
-    let viewportOffset = getOffset(localRef.current ?? undefined);
+    const canvasOffset = getOffset(pipelineCanvasRef.current);
+    const viewportOffset = getOffset(localRef.current ?? undefined);
 
     const x = canvasOffset.left - viewportOffset.left;
     const y = canvasOffset.top - viewportOffset.top;
