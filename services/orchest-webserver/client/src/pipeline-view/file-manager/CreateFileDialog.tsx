@@ -1,7 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
-import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import { Checkbox } from "@mui/material";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -127,7 +125,7 @@ export const CreateFileDialog = ({
         <DialogTitle>New file</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} paddingTop={(theme) => theme.spacing(2)}>
-            <Grid item xs={6}>
+            <Grid item xs={8}>
               <TextField
                 {...register("fileName")}
                 label="File name"
@@ -138,7 +136,7 @@ export const CreateFileDialog = ({
               />
             </Grid>
 
-            <Grid item xs={6}>
+            <Grid item xs={4}>
               <FormControl fullWidth>
                 <InputLabel id="file-manager-file-extension-label">
                   Extension
@@ -169,34 +167,28 @@ export const CreateFileDialog = ({
               />
             </Grid>
             <Grid item xs={12}>
-              <InputLabel>
+              <label color="primary">
                 <Checkbox
                   {...register("shouldCreateStep")}
                   checked={shouldCreateStep}
                 />
                 Create a new step for this file
-              </InputLabel>
+              </label>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            color="secondary"
-            onClick={onClose}
-            tabIndex={-1}
-          >
+          <Button color="secondary" onClick={onClose} tabIndex={-1}>
             Cancel
           </Button>
           <Button
-            startIcon={<AddIcon />}
             variant="contained"
             type="submit"
             form="create-file"
             disabled={isCreating}
             data-test-id="file-manager-create-file"
           >
-            Create file
+            Save file
           </Button>
         </DialogActions>
       </form>
