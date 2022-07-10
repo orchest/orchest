@@ -83,10 +83,12 @@ export const CreateFileDialog = ({
       file.extension
     );
 
-    await run(createFile(projectPath)).then((fullPath) => {
-      onSuccess({ projectPath, fullPath, createStep });
-      onClose();
-    });
+    await run(createFile(projectPath))
+      .then((fullPath) => {
+        onSuccess({ projectPath, fullPath, createStep });
+        onClose();
+      })
+      .catch((error) => setAlert("Failed to create file", String(error)));
   };
 
   React.useEffect(() => {

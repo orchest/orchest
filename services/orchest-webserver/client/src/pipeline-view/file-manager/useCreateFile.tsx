@@ -1,5 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetcher } from "@orchest/lib-utils";
+import React from "react";
 import { FILE_MANAGEMENT_ENDPOINT, queryArgs, ROOT_SEPARATOR } from "./common";
 
 /**
@@ -11,17 +12,22 @@ import { FILE_MANAGEMENT_ENDPOINT, queryArgs, ROOT_SEPARATOR } from "./common";
 export const useCreateFile = (root: string) => {
   const { projectUuid } = useCustomRoute();
 
-  if (!projectUuid) {
-    throw new Error("A project UUID was not found in the route.");
-  }
+  const createFile = React.useMemo(
+    () => async (path: string) => {
+      if (!projectUuid) {
+        throw new Error("A project UUID was not found in the route.");
+      }
 
-  return async (path: string) => {
-    const query = queryArgs({ projectUuid, root: root, path });
+      const query = queryArgs({ projectUuid, root: root, path });
 
-    await fetcher(`${FILE_MANAGEMENT_ENDPOINT}/create?${query}`, {
-      method: "POST",
-    });
+      await fetcher(`${FILE_MANAGEMENT_ENDPOINT}/create?${query}`, {
+        method: "POST",
+      });
 
-    return `${root}${ROOT_SEPARATOR}${path}`;
-  };
+      return `${root}${ROOT_SEPARATOR}${path}`;
+    },
+    [projectUuid, root]
+  );
+
+  return createFile;
 };
