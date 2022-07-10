@@ -32,7 +32,7 @@ export type CreateFileDialogProps = {
 export type FileFormData = {
   fileName: string;
   extension: StepExtension;
-  createStep: boolean;
+  shouldCreateStep: boolean;
 };
 
 export type CreatedFile = {
@@ -41,13 +41,13 @@ export type CreatedFile = {
   /** The path, starting with `/project-dir:/`. */
   fullPath: string;
   /** Whether the user wants to add the file as a step to the pipeline immediately. */
-  createStep: boolean;
+  shouldCreateStep: boolean;
 };
 
 const DEFAULT_FORM_STATE: FileFormData = {
   fileName: "",
   extension: ALLOWED_STEP_EXTENSIONS[0],
-  createStep: true,
+  shouldCreateStep: true,
 };
 
 const combinePath = (
@@ -76,7 +76,7 @@ export const CreateFileDialog = ({
 
   const createFile = useCreateFile(root);
 
-  const onSubmit = async ({ createStep, ...file }: FileFormData) => {
+  const onSubmit = async ({ shouldCreateStep, ...file }: FileFormData) => {
     const projectPath = combinePath(
       selectedFolder,
       file.fileName,
@@ -85,7 +85,7 @@ export const CreateFileDialog = ({
 
     await run(createFile(projectPath))
       .then((fullPath) => {
-        onSuccess({ projectPath, fullPath, createStep });
+        onSuccess({ projectPath, fullPath, shouldCreateStep });
         onClose();
       })
       .catch((error) => setAlert("Failed to create file", String(error)));
@@ -101,10 +101,10 @@ export const CreateFileDialog = ({
     }
   }, [setAlert, setError, error]);
 
-  const [fileName, extension, createStep] = watch([
+  const [fileName, extension, shouldCreateStep] = watch([
     "fileName",
     "extension",
-    "createStep",
+    "shouldCreateStep",
   ]);
 
   const displayPath = combinePath(
@@ -170,7 +170,10 @@ export const CreateFileDialog = ({
             </Grid>
             <Grid item xs={12}>
               <InputLabel>
-                <Checkbox {...register("createStep")} checked={createStep} />
+                <Checkbox
+                  {...register("shouldCreateStep")}
+                  checked={shouldCreateStep}
+                />
                 Create a new step for this file
               </InputLabel>
             </Grid>
