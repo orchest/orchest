@@ -23,7 +23,7 @@ const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
   padding: theme.spacing(0.5),
 }));
 
-type Creating = "file" | "folder";
+type OpenDialog = "file" | "folder";
 
 type ActionBarProps = {
   rootFolder: FileManagementRoot;
@@ -36,7 +36,7 @@ export function ActionBar({
   rootFolder,
   setExpanded,
 }: ActionBarProps) {
-  const [creating, setCreating] = React.useState<Creating | null>(null);
+  const [openDialog, setOpenDialog] = React.useState<OpenDialog | null>(null);
   const { setSelectedFiles } = useFileManagerContext();
   const { reload } = useFileManagerLocalContext();
   const {
@@ -47,8 +47,8 @@ export function ActionBar({
   return (
     <>
       <CreateFileDialog
-        isOpen={!pipelineIsReadOnly && creating === "file"}
-        onClose={() => setCreating(null)}
+        isOpen={!pipelineIsReadOnly && openDialog === "file"}
+        onClose={() => setOpenDialog(null)}
         root={rootFolder}
         onSuccess={(file) => {
           setSelectedFiles([file.fullPath]);
@@ -60,8 +60,8 @@ export function ActionBar({
         }}
       />
       <CreateFolderDialog
-        isOpen={!pipelineIsReadOnly && creating === "folder"}
-        onClose={() => setCreating(null)}
+        isOpen={!pipelineIsReadOnly && openDialog === "folder"}
+        onClose={() => setOpenDialog(null)}
         root={rootFolder}
         onSuccess={reload}
       />
@@ -76,12 +76,12 @@ export function ActionBar({
             <>
               <FileManagerActionButton
                 title="Create file"
-                onClick={() => setCreating("file")}
+                onClick={() => setOpenDialog("file")}
               >
                 <NoteAddIcon />
               </FileManagerActionButton>
               <FileManagerActionButton
-                onClick={() => setCreating("folder")}
+                onClick={() => setOpenDialog("folder")}
                 title="Create folder"
               >
                 <CreateNewFolderIcon />
