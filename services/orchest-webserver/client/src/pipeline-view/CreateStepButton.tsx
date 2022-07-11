@@ -52,6 +52,7 @@ export const CreateStepButton = ({
 
   return (
     <Button
+      size="small"
       onClick={createStep}
       startIcon={<AddIcon />}
       data-test-id="step-create"
