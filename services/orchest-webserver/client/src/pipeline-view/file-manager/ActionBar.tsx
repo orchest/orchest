@@ -13,7 +13,7 @@ import Stack from "@mui/material/Stack";
 import React from "react";
 import { FileManagementRoot } from "../common";
 import { useCreateStep } from "../hooks/useCreateStep";
-import { CreateFileDialog } from "./CreateFileDialog";
+import { CreatedFile, CreateFileDialog } from "./CreateFileDialog";
 import { CreateFolderDialog } from "./CreateFolderDialog";
 import { useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
@@ -44,25 +44,32 @@ export function ActionBar({
   } = useProjectsContext();
   const createStep = useCreateStep();
 
+  const onFileCreated = React.useCallback(
+    (file: CreatedFile) => {
+      setSelectedFiles([file.fullPath]);
+      reload();
+
+      if (file.shouldCreateStep) {
+        createStep(file.projectPath);
+      }
+    },
+    [createStep, setSelectedFiles, reload]
+  );
+
+  const closeDialog = React.useCallback(() => setOpenDialog(null), []);
+
   return (
     <>
       <CreateFileDialog
         isOpen={!pipelineIsReadOnly && openDialog === "file"}
         canCreateStep={Boolean(pipeline)}
-        onClose={() => setOpenDialog(null)}
         root={rootFolder}
-        onSuccess={(file) => {
-          setSelectedFiles([file.fullPath]);
-          reload();
-
-          if (file.shouldCreateStep) {
-            createStep(file.projectPath);
-          }
-        }}
+        onClose={closeDialog}
+        onSuccess={onFileCreated}
       />
       <CreateFolderDialog
         isOpen={!pipelineIsReadOnly && openDialog === "folder"}
-        onClose={() => setOpenDialog(null)}
+        onClose={closeDialog}
         root={rootFolder}
         onSuccess={reload}
       />
