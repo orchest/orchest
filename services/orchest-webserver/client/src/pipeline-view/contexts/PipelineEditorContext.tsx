@@ -33,7 +33,7 @@ export type PipelineEditorContextType = {
   dispatch: (value: EventVarsAction) => void;
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   pipelineCanvasRef: React.MutableRefObject<HTMLDivElement | null>;
-  pipelineViewportRef: React.RefObject<HTMLDivElement | null>;
+  pipelineViewportRef: React.MutableRefObject<HTMLDivElement | null>;
   newConnection: React.MutableRefObject<NewConnection | undefined>;
   keysDown: Set<number | string>;
   trackMouseMovement: (clientX: number, clientY: number) => void;
