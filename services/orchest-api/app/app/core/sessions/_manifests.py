@@ -11,11 +11,7 @@ import traceback
 from typing import Any, Dict, Optional, Tuple
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import (
-    get_init_container_manifest,
-    get_userdir_relpath,
-    split_docker_domain,
-)
+from _orchest.internals.utils import add_image_puller_if_needed, get_userdir_relpath
 from app import utils
 from app.connections import k8s_core_api
 from app.types import SessionConfig, SessionType
@@ -411,12 +407,6 @@ def _get_jupyter_server_deployment_service_manifest(
         project_uuid, userdir_pvc, project_dir, pipeline_path
     )
 
-    image_puller_manifest = get_init_container_manifest(
-        utils.get_jupyter_server_image_to_use(),
-        _config.CONTAINER_RUNTIME,
-        _config.CONTAINER_RUNTIME_IMAGE,
-    )
-
     deployment_manifest = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -439,9 +429,6 @@ def _get_jupyter_server_deployment_service_manifest(
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                         volumes_dict["container-runtime-socket"],
-                    ],
-                    "initContainers": [
-                        image_puller_manifest,
                     ],
                     "containers": [
                         {
@@ -482,6 +469,13 @@ def _get_jupyter_server_deployment_service_manifest(
             },
         },
     }
+
+    add_image_puller_if_needed(
+        utils.get_jupyter_server_image_to_use(),
+        _config.CONTAINER_RUNTIME,
+        _config.CONTAINER_RUNTIME_IMAGE,
+        deployment_manifest,
+    )
 
     service_manifest = {
         "apiVersion": "v1",
@@ -901,14 +895,6 @@ def _get_user_service_deployment_service_manifest(
         },
     }
 
-    domain, name = split_docker_domain(image)
-
-    image_puller_manifest = get_init_container_manifest(
-        f"{domain}/{name}",
-        _config.CONTAINER_RUNTIME,
-        _config.CONTAINER_RUNTIME_IMAGE,
-    )
-
     deployment_manifest = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -929,9 +915,6 @@ def _get_user_service_deployment_service_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": volumes,
-                    "initContainers": [
-                        image_puller_manifest,
-                    ],
                     "containers": [
                         {
                             "name": metadata["name"],
@@ -949,6 +932,13 @@ def _get_user_service_deployment_service_manifest(
             },
         },
     }
+
+    add_image_puller_if_needed(
+        image,
+        _config.CONTAINER_RUNTIME,
+        _config.CONTAINER_RUNTIME_IMAGE,
+        deployment_manifest,
+    )
 
     # K8S doesn't like empty commands.
     if service_config.get("command", ""):

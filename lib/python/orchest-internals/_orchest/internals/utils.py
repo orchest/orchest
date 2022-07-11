@@ -149,6 +149,27 @@ def get_init_container_manifest(
     return init_container
 
 
+def add_image_puller_if_needed(
+    image_to_pull: str,
+    container_runtime: str,
+    container_runtime_image: str,
+    deployment_manifest: Dict[str, Any],
+):
+
+    global_domains = ["docker.io"]
+    domain, name = split_docker_domain(image_to_pull)
+
+    if domain not in global_domains:
+        image_puller_manifest = get_init_container_manifest(
+            f"{domain}/{name}",
+            container_runtime,
+            container_runtime_image,
+        )
+        deployment_manifest["spec"]["template"]["spec"]["initContainers"] = [
+            image_puller_manifest
+        ]
+
+
 # splitDockerDomain splits a repository name to domain and remotename
 # string. If no valid domain is found, the default domain is used.
 # Repository name needs to be already validated before.
