@@ -30,11 +30,14 @@ fi
 set -e
 
 echo "Checking out branch ${1}..."
-git checkout dev
-git branch -D $1
+
+if git show-ref refs/heads/$1 ; then
+    git checkout dev
+    git branch -D $1    
+fi
+exit 1
 git fetch --all
 git checkout $1
-git pull origin $1
 
 
 # Needed to get the auth users.
