@@ -178,7 +178,7 @@ export const CreateFileDialog = ({
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button color="secondary" onClick={onClose} tabIndex={-1}>
+          <Button variant="text" onClick={onClose} tabIndex={-1}>
             Cancel
           </Button>
           <Button
