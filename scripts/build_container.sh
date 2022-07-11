@@ -127,7 +127,7 @@ CLI_IMAGES=(
     "celery-worker"
 )
 
-TOOLS_IMAGES=(
+UTILITY_IMAGES=(
     "image-puller"
 )
 
@@ -438,13 +438,13 @@ do
             $build_ctx)
     fi
 
-    # building tools
+    # building utility-containers
     if [ $IMG == "image-puller" ]; then
-        build_ctx=$DIR/../tools/image-puller
+        build_ctx=$DIR/../utility-containers/image-puller
         build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/image-puller:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
-            -f $DIR/../tools/image-puller/Dockerfile \
+            -f $DIR/../utility-containers/image-puller/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
