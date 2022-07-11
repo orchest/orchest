@@ -1,6 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
-import { Checkbox } from "@mui/material";
+import { Checkbox, FormControlLabel } from "@mui/material";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -23,6 +23,7 @@ import { useCreateFile } from "./useCreateFile";
 export type CreateFileDialogProps = {
   isOpen: boolean;
   root?: FileManagementRoot;
+  canCreateStep: boolean;
   onClose(): void;
   onSuccess(file: CreatedFile): void;
 };
@@ -42,11 +43,11 @@ export type CreatedFile = {
   shouldCreateStep: boolean;
 };
 
-const DEFAULT_FORM_STATE: FileFormData = {
+const defaultFormState = (canCreateStep: boolean) => ({
   fileName: "",
   extension: ALLOWED_STEP_EXTENSIONS[0],
-  shouldCreateStep: true,
-};
+  shouldCreateStep: canCreateStep,
+});
 
 const combinePath = (
   dirName: string,
@@ -57,13 +58,14 @@ const combinePath = (
 export const CreateFileDialog = ({
   isOpen,
   root = "/project-dir",
+  canCreateStep,
   onClose,
   onSuccess,
 }: CreateFileDialogProps) => {
   const { setAlert } = useAppContext();
   const { selectedFiles } = useFileManagerContext();
-  const { register, handleSubmit, watch } = useForm<FileFormData>({
-    defaultValues: DEFAULT_FORM_STATE,
+  const { register, handleSubmit, watch, reset } = useForm<FileFormData>({
+    defaultValues: defaultFormState(canCreateStep),
   });
   const { run, setError, error, status } = useAsync<string>();
 
@@ -97,7 +99,13 @@ export const CreateFileDialog = ({
         return true;
       });
     }
-  }, [setAlert, setError, error]);
+  }, [error, setAlert, setError]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      reset(defaultFormState(canCreateStep));
+    }
+  }, [isOpen, canCreateStep]);
 
   const [fileName, extension, shouldCreateStep] = watch([
     "fileName",
@@ -110,8 +118,6 @@ export const CreateFileDialog = ({
     fileName,
     extension
   );
-
-  const isCreating = status === "PENDING";
 
   return (
     <Dialog
@@ -129,7 +135,6 @@ export const CreateFileDialog = ({
               <TextField
                 {...register("fileName")}
                 label="File name"
-                disabled={isCreating}
                 autoFocus
                 fullWidth
                 data-test-id="file-manager-file-name-textfield"
@@ -147,7 +152,6 @@ export const CreateFileDialog = ({
                   label="Extension"
                   labelId="file-manager-file-extension-label"
                   id="file-manager-file-extension"
-                  disabled={isCreating}
                 >
                   {ALLOWED_STEP_EXTENSIONS.map((extension) => (
                     <MenuItem key={extension} value={extension}>
@@ -167,13 +171,21 @@ export const CreateFileDialog = ({
               />
             </Grid>
             <Grid item xs={12}>
-              <label color="primary">
-                <Checkbox
-                  {...register("shouldCreateStep")}
-                  checked={shouldCreateStep}
-                />
-                Create a new step for this file
-              </label>
+              <FormControlLabel
+                label="Create a new step for this file"
+                title={
+                  canCreateStep
+                    ? "Add this file as a step in the pipeline directly"
+                    : "No pipelines are available"
+                }
+                disabled={!canCreateStep}
+                control={
+                  <Checkbox
+                    {...register("shouldCreateStep")}
+                    checked={shouldCreateStep}
+                  />
+                }
+              />
             </Grid>
           </Grid>
         </DialogContent>
@@ -185,7 +197,7 @@ export const CreateFileDialog = ({
             variant="contained"
             type="submit"
             form="create-file"
-            disabled={isCreating}
+            disabled={status === "PENDING"}
             data-test-id="file-manager-create-file"
           >
             Save file

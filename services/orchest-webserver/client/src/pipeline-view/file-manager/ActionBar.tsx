@@ -40,7 +40,7 @@ export function ActionBar({
   const { setSelectedFiles } = useFileManagerContext();
   const { reload } = useFileManagerLocalContext();
   const {
-    state: { pipelineIsReadOnly },
+    state: { pipelineIsReadOnly, pipeline },
   } = useProjectsContext();
   const createStep = useCreateStep();
 
@@ -48,6 +48,7 @@ export function ActionBar({
     <>
       <CreateFileDialog
         isOpen={!pipelineIsReadOnly && openDialog === "file"}
+        canCreateStep={Boolean(pipeline)}
         onClose={() => setOpenDialog(null)}
         root={rootFolder}
         onSuccess={(file) => {
