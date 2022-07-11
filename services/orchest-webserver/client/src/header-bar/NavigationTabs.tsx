@@ -57,13 +57,18 @@ export const NavigationTabsBase = ({
       {navItems.map((menuItem, index) => {
         const isDisabled = !menuItem.icon && disabled;
         const hideTooltip = !menuItem.icon && !disabled;
+        // CustomTab needs to be wrapped by Box because Tooltip will stop working if it detects its direct children is disabled.
         return (
           <Tooltip
             key={menuItem.label}
-            title={isDisabled ? "Create a project fist" : menuItem.label}
+            title={
+              isDisabled
+                ? "First create a Project to navigate here"
+                : menuItem.label
+            }
             disableHoverListener={hideTooltip}
           >
-            <Box>
+            <Box sx={{ cursor: isDisabled ? "not-allowed" : "initial" }}>
               <CustomTab
                 key={menuItem.label}
                 tabIndex={0}
