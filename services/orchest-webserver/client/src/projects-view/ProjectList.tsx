@@ -102,6 +102,7 @@ export const ProjectList = () => {
           return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
         },
         cancelLabel: "Keep project",
+        confirmLabel: "Confirm delete",
         confirmButtonColor: "error",
       }
     );
