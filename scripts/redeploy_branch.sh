@@ -30,6 +30,8 @@ fi
 set -e
 
 echo "Checking out branch ${1}..."
+git checkout dev
+git branch -D $1
 git fetch --all
 git checkout $1
 git pull origin $1
