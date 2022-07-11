@@ -4,12 +4,18 @@ import React from "react";
 import { FILE_MANAGEMENT_ENDPOINT, queryArgs, ROOT_SEPARATOR } from "./common";
 
 /**
+ * Creates a file and returns the absolute path of it.
+ *
+ * If a `projectUuid` is not found in the current route,
+ * this function will throw an error.
+ */
+type FileCreator = (path: string) => Promise<string>;
+
+/**
  * Returns a function which creates a file relative to the provided root.
  * The returned path will be an absolute project path, starting with `project-dir:/` or `data:/`.
- *
- * The hook throws if there is no `projectUuid` in the route.
  */
-export const useCreateFile = (root: string) => {
+export const useCreateFile = (root: string): FileCreator => {
   const { projectUuid } = useCustomRoute();
 
   const createFile = React.useMemo(
