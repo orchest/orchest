@@ -88,6 +88,11 @@ def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
         f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
     )
 
+    # Set the WORKDIR back to project-dir, so that terminals created
+    # through jupyter server have said WORKDIR, and extensions can rely
+    # on the process WORKDIR being the project directory.
+    statements.append("WORKDIR /project-dir")
+
     statements = "\n".join(statements)
 
     with open(path, "w") as dockerfile:

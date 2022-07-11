@@ -122,4 +122,5 @@ Orchest deployment! 🔥
 <a href="https://github.com/ncspost"><img src="https://avatars.githubusercontent.com/ncspost?v=4" title="ncspost" width="50" height="50"></a>
 <a href="https://github.com/cavriends"><img src="https://avatars.githubusercontent.com/u/4497501?v=4" title="cavriends" width="50" height="50"></a>
 <a href="https://github.com/astrojuanlu"><img src="https://avatars.githubusercontent.com/u/316517?v=4" title="astrojuanlu" width="50" height="50"></a>
+<a href="https://github.com/mausworks"><img src="https://avatars.githubusercontent.com/u/8259221?v=4" title="mausworks" width="50" height="50"></a>
 <a href="https://github.com/jerdna-regeiz"><img src="https://avatars.githubusercontent.com/u/7195718?v=4" title="jerdna-regeiz" width="50" height="50"></a>

@@ -1,11 +1,9 @@
 import asyncio
 import logging
-import time
 from enum import Enum
-from typing import Optional
 
-import aiodocker
 import aiohttp
+from container_runtime import ContainerRuntime
 
 
 class Policy(Enum):
@@ -46,10 +44,9 @@ class ImagePuller(object):
         self.num_retries = image_puller_retries
         self.threadiness = image_puller_threadiness
         self.orchest_api_host = orchest_api_host
+        self.container_runtime = ContainerRuntime()
         self.logger = logging.getLogger("IMAGE_PULLER")
         self.logger.setLevel(image_puller_log_level)
-
-        self._aclient: Optional[aiodocker.Docker] = None
 
         # Container to make sure that images that are already being
         # pulled are not pulled concurrently again.
@@ -105,8 +102,9 @@ class ImagePuller(object):
         while True:
             image_name = await queue.get()
             if self.policy == Policy.IfNotPresent:
-                if image_name in self._curr_pulling_imgs or await self.image_exists(
-                    image_name
+                if (
+                    image_name in self._curr_pulling_imgs
+                    or await self.container_runtime.image_exists(image_name)
                 ):
                     queue.task_done()
                     continue
@@ -118,7 +116,7 @@ class ImagePuller(object):
             for retry in range(self.num_retries):
                 try:
                     self.logger.info(f"Pulling image '{image_name}'...")
-                    if await self.download_image(image_name):
+                    if await self.container_runtime.download_image(image_name):
                         break
                     self.logger.warning(f"Image '{image_name}' was not downloaded!")
                 except Exception as ex:
@@ -128,58 +126,6 @@ class ImagePuller(object):
                         f"exception - retrying. Exception was: {ex}."
                     )
             queue.task_done()
-
-    async def image_exists(self, image_name: str) -> bool:
-        """Checks for the existence of the named image using
-        the configured container runtime.
-
-        Args:
-            image_name: The name of the image to be checked.
-
-        Returns:
-            True if exist locally, False otherwise.
-
-        """
-        result = True
-        try:
-            await self.aclient().images.inspect(image_name)
-        except aiodocker.DockerError:
-            result = False
-
-        self.logger.debug(
-            f"Checked existence of image '{image_name} '" f"exists = {result}"
-        )
-        return result
-
-    async def download_image(self, image_name: str) -> bool:
-        """Downloads (pulls) the named image.
-
-        Args:
-            image_name: The name of the image for downloading.
-
-        Returns:
-            True if download was successful, False otherwise.
-
-        """
-        result = True
-        t0 = time.time()
-        try:
-            self._curr_pulling_imgs.add(image_name)
-            await self.aclient().images.pull(image_name)
-        except aiodocker.DockerError:
-            result = False
-        finally:
-            self._curr_pulling_imgs.remove(image_name)
-        t1 = time.time()
-        if result is True:
-            self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
-        return result
-
-    def aclient(self):
-        if self._aclient is None:
-            self._aclient = aiodocker.Docker()
-
-        return self._aclient
 
     async def run(self):
         try:
@@ -193,6 +139,4 @@ class ImagePuller(object):
             ]
             await asyncio.gather(*pullers, get_images_task)
         finally:
-            if self._aclient is not None:
-                await self._aclient.close()
-                self._aclient = None
+            await self.container_runtime.close()

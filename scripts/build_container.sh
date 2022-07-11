@@ -81,6 +81,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "auth-server"
         "node-agent"
         "orchest-controller"
+        "image-puller"
     )
 fi
 
@@ -124,6 +125,10 @@ SDK_IMAGES=(
 CLI_IMAGES=(
     "orchest-api"
     "celery-worker"
+)
+
+UTILITY_IMAGES=(
+    "image-puller"
 )
 
 CLEANUP_BUILD_CTX=()
@@ -429,6 +434,17 @@ do
             -t "orchest/session-sidecar:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/session-sidecar/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    # building utility-containers
+    if [ $IMG == "image-puller" ]; then
+        build_ctx=$DIR/../utility-containers/image-puller
+        build=(docker build --platform linux/amd64 --progress=plain \
+            -t "orchest/image-puller:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../utility-containers/image-puller/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi

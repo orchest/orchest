@@ -19,11 +19,19 @@ Some other kubectl commands that can be useful when debugging Orchest:
    # Attach a shell in a particular service
    kubectl exec -n orchest -it deployment/orchest-api bash
 
-Exit code ``137`` when building Orchest images (scripts/build_containers.sh)
-----------------------------------------------------------------------------
-For Docker Desktop users, make sure increase the allocated memory to Docker Engine. This can be done
-by going to Docker Desktop > Settings > Advanced > Increase the *Memory* slider (`GitHub issue for
-reference <https://github.com/moby/moby/issues/22211>`_).
+   
+Minikube is unresponsive on Docker Desktop
+------------------------------------------
+
+Sometimes Minikube becomes unresponsive on Docker Desktop. Some tell-tale signs of this are:
+
+- You're getting exit code ``137`` when building Orchest images (``scripts/build_containers.sh``)
+- k9s fails to connect to minikube's context and ``docker logs minikube`` hangs, even though minikube is started
+- Minikube commands hang or are really slow
+
+This happens because too little memory is being allocated to Docker Engine. 
+To fix it: open Docker Desktop and go to `Settings > Advanced` and then increase the "Memory" slider 
+(`See this GitHub issue for reference <https://github.com/moby/moby/issues/22211>`_).
 
 Inspecting the ``orchest-api`` API schema
 -----------------------------------------
@@ -224,6 +232,3 @@ Missing environment variables in pods
      scale down and back up the controller deployment, or any other preferred solution.
    
    - start Orchest, ``orchest start``.
-
-   
-
