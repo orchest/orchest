@@ -154,7 +154,7 @@ def add_image_puller_if_needed(
     container_runtime: str,
     container_runtime_image: str,
     deployment_manifest: Dict[str, Any],
-):
+) -> None:
 
     global_domains = ["docker.io"]
     domain, name = split_docker_domain(image_to_pull)
