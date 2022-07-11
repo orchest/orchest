@@ -10,7 +10,9 @@ export const useCreateStep = () => {
     environments,
     pipelineViewportRef,
   } = usePipelineEditorContext();
-  const { pipelineCanvasState } = usePipelineCanvasContext();
+  const {
+    pipelineCanvasState: { pipelineOffset },
+  } = usePipelineCanvasContext();
 
   // Use the first environment as the default:
   // The user can change it later.
@@ -23,7 +25,7 @@ export const useCreateStep = () => {
         // them to be spawned on top of each other.
         // NOTE: we use the same offset for X and Y position.
         const { clientWidth, clientHeight } = pipelineViewportRef.current;
-        const [offsetX, offsetY] = pipelineCanvasState.pipelineOffset;
+        const [offsetX, offsetY] = pipelineOffset;
 
         const position = {
           x: -offsetX + clientWidth / 2 - STEP_WIDTH / 2,
@@ -35,7 +37,7 @@ export const useCreateStep = () => {
         console.error("Failed to create step: pipeline viewport not set");
       }
     },
-    [pipelineCanvasState, dispatch, pipelineViewportRef, environment]
+    [pipelineOffset, dispatch, pipelineViewportRef, environment]
   );
 
   return createStep;
