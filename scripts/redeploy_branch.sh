@@ -31,11 +31,10 @@ set -e
 
 echo "Checking out branch ${1}..."
 
-if git show-ref refs/heads/$1 ; then
+if git show-ref --quiet refs/heads/$1 ; then
     git checkout dev
     git branch -D $1    
 fi
-exit 1
 git fetch --all
 git checkout $1
 
