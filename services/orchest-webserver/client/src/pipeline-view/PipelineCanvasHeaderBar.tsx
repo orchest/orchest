@@ -1,10 +1,11 @@
 import ArrowDropDownOutlinedIcon from "@mui/icons-material/ArrowDropDownOutlined";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import React from "react";
 import { CreateStepButton } from "./CreateStepButton";
+import { PipelineMoreOptionsMenu } from "./PipelineMoreOptionsMenu";
 import { ServicesMenu } from "./services/ServicesMenu";
 import { useServices } from "./services/useServices";
 
@@ -27,15 +28,22 @@ export const PipelineCanvasHeaderBar = ({
     <Stack
       direction="row"
       alignItems="center"
+      spacing={1}
       sx={{
         backgroundColor: (theme) => theme.palette.background.paper,
         borderBottom: (theme) => `1px solid ${theme.borderColor}`,
         padding: (theme) => theme.spacing(0, 2),
       }}
     >
-      <Box sx={{ flex: 1 }}>Something.orchest</Box>
-      <Button>Logs</Button>
+      <Stack direction="row" alignItems="baseline" sx={{ flex: 1 }}>
+        <Typography component="h2" variant="subtitle2">
+          Something
+        </Typography>
+        <Typography variant="caption">.orchest</Typography>
+      </Stack>
+      <Button size="small">Logs</Button>
       <Button
+        size="small"
         id="running-services-button"
         onClick={showServices}
         endIcon={<ArrowDropDownOutlinedIcon />}
@@ -51,10 +59,10 @@ export const PipelineCanvasHeaderBar = ({
       />
       <Divider
         orientation="vertical"
-        flexItem
-        sx={{ height: (theme) => theme.spacing(4.5) }}
+        sx={{ height: (theme) => theme.spacing(3) }}
       />
       <CreateStepButton pipelineViewportRef={pipelineViewportRef} />
+      <PipelineMoreOptionsMenu />
     </Stack>
   );
 };

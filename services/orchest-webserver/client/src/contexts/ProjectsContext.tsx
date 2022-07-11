@@ -237,17 +237,20 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             (pipeline) => state.pipeline?.path === pipeline.path
           );
 
-          setLastSeenPipeline(
-            state.projectUuid,
-            action.payload[0]?.uuid || null
-          );
+          const targetPipeline = isCurrentPipelineRemoved
+            ? action.payload[0]
+            : state.pipeline;
+
+          if (isCurrentPipelineRemoved)
+            setLastSeenPipeline(
+              state.projectUuid,
+              targetPipeline?.uuid || null
+            );
 
           return {
             ...state,
             pipelines: action.payload,
-            pipeline: isCurrentPipelineRemoved
-              ? action.payload[0]
-              : state.pipeline,
+            pipeline: targetPipeline,
             hasLoadedPipelinesInPipelineEditor: true,
           };
         }

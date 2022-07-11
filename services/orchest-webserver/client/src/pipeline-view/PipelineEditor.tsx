@@ -16,9 +16,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import CropFreeIcon from "@mui/icons-material/CropFree";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveIcon from "@mui/icons-material/Remove";
-import TuneIcon from "@mui/icons-material/Tune";
-import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { activeElementIsInput, fetcher, hasValue } from "@orchest/lib-utils";
@@ -240,23 +237,6 @@ export const PipelineEditor = () => {
     },
     [mergeStepsIntoPipelineJson, savePipelineJson]
   );
-
-  const openSettings = (e: React.MouseEvent) => {
-    navigateTo(
-      isJobRun
-        ? siteMap.jobRunPipelineSettings.path
-        : siteMap.pipelineSettings.path,
-      {
-        query: {
-          projectUuid,
-          pipelineUuid,
-          ...(isJobRun ? jobRunQueryArgs : undefined),
-        },
-        state: { isReadOnly },
-      },
-      e
-    );
-  };
 
   const openLogs = (e: React.MouseEvent) => {
     navigateTo(
@@ -596,6 +576,10 @@ export const PipelineEditor = () => {
             <BackToJobButton onClick={returnToJob} />
           </div>
         )}
+        <PipelineCanvasHeaderBar
+          pipelineRunning={pipelineRunning}
+          pipelineViewportRef={pipelineViewportRef}
+        />
         <PipelineViewport
           ref={pipelineViewportRef}
           canvasFuncRef={canvasFuncRef}
@@ -856,33 +840,6 @@ export const PipelineEditor = () => {
                 </PipelineActionButton>
               </div>
             )}
-          </div>
-        )}
-        <PipelineCanvasHeaderBar
-          pipelineRunning={pipelineRunning}
-          pipelineViewportRef={pipelineViewportRef}
-        />
-        {pipelineJson && (
-          <div className={"pipeline-actions top-right"}>
-            {isReadOnly && (
-              <Button color="secondary" startIcon={<VisibilityIcon />} disabled>
-                Read only
-              </Button>
-            )}
-            <PipelineActionButton
-              onClick={openLogs}
-              onAuxClick={openLogs}
-              startIcon={<ViewHeadlineIcon />}
-            >
-              Logs
-            </PipelineActionButton>
-            <PipelineActionButton
-              onClick={openSettings}
-              startIcon={<TuneIcon />}
-              data-test-id="pipeline-settings"
-            >
-              Settings
-            </PipelineActionButton>
           </div>
         )}
       </div>
