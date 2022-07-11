@@ -1,3 +1,4 @@
+import "@/.wdyr";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { Checkbox, FormControlLabel } from "@mui/material";
@@ -76,20 +77,23 @@ export const CreateFileDialog = ({
 
   const createFile = useCreateFile(root);
 
-  const onSubmit = async ({ shouldCreateStep, ...file }: FileFormData) => {
-    const projectPath = combinePath(
-      selectedFolder,
-      file.fileName,
-      file.extension
-    );
+  const onSubmit = React.useCallback(
+    async ({ shouldCreateStep, ...file }: FileFormData) => {
+      const projectPath = combinePath(
+        selectedFolder,
+        file.fileName,
+        file.extension
+      );
 
-    await run(createFile(projectPath))
-      .then((fullPath) => {
-        onSuccess({ projectPath, fullPath, shouldCreateStep });
-        onClose();
-      })
-      .catch((error) => setAlert("Failed to create file", String(error)));
-  };
+      await run(createFile(projectPath))
+        .then((fullPath) => {
+          onSuccess({ projectPath, fullPath, shouldCreateStep });
+          onClose();
+        })
+        .catch((error) => setAlert("Failed to create file", String(error)));
+    },
+    [run, createFile]
+  );
 
   React.useEffect(() => {
     if (error) {
