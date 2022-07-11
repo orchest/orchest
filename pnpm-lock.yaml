@@ -159,6 +159,7 @@ importers:
       '@types/react-dom': ^17.0.11
       '@types/react-router-dom': ^5.3.2
       '@use-gesture/react': ^10.2.10
+      '@welldone-software/why-did-you-render': ^7.0.1
       ajv: ^8.6.0
       babel-jest: ^28.0.3
       chance: ^1.1.8
@@ -265,6 +266,7 @@ importers:
       '@types/react': 17.0.3
       '@types/react-dom': 17.0.11
       '@types/react-router-dom': 5.3.2
+      '@welldone-software/why-did-you-render': 7.0.1_react@17.0.2
       babel-jest: 28.0.3_@babel+core@7.16.7
       chance: 1.1.8
       cross-env: 7.0.3
@@ -2609,8 +2611,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
-      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
+      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
+      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
       '@mui/base': 5.0.0-alpha.59_ximryacsvt5dozm7hoqeulmuau
       '@mui/system': 5.2.3_tcke5zg5l5wp2mkeftxzzivvpy
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -2676,8 +2678,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
-      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
+      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
+      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -2720,8 +2722,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
-      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
+      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
+      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
       '@mui/private-theming': 5.2.3_mnzaipdkghwi2w6bgyhobeilpe
       '@mui/styled-engine': 5.2.0_hsu7jhncr42zbs7etkvvdkscdu
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -3533,6 +3535,15 @@ packages:
       '@use-gesture/core': 10.2.10
       react: 17.0.2
     dev: false
+
+  /@welldone-software/why-did-you-render/7.0.1_react@17.0.2:
+    resolution: {integrity: sha512-Qe/8Xxa2G+LMdI6VoazescPzjjkHYduCDa8aHOJR50e9Bgs8ihkfMBY+ev7B4oc3N59Zm547Sgjf8h5y0FOyoA==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+    dependencies:
+      lodash: 4.17.21
+      react: 17.0.2
+    dev: true
 
   /@xmldom/xmldom/0.7.5:
     resolution: {integrity: sha512-V3BIhmY36fXZ1OtVcI9W+FxQqxVLsPKcNjWigIaa81dLC9IolJl5Mt4Cvhmr0flUnjSpTdrbMTSbXqYqV5dT6A==}
