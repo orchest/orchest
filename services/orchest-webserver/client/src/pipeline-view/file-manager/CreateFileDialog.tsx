@@ -92,7 +92,7 @@ export const CreateFileDialog = ({
         })
         .catch((error) => setAlert("Failed to create file", String(error)));
     },
-    [run, createFile]
+    [run, createFile, onSuccess, onClose]
   );
 
   React.useEffect(() => {
