@@ -31,12 +31,19 @@ set -e
 
 echo "Checking out branch ${1}..."
 
-if git show-ref --quiet refs/heads/$1 ; then
+if [ "${1}" != "dev" ] && git show-ref --quiet refs/heads/$1 ; then
     git checkout dev
     git branch -D $1    
 fi
+
 git fetch --all
-git checkout $1
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "$BRANCH" != "${1}" ]]; then
+  git checkout $1
+fi
+
+git pull origin $1
 
 
 # Needed to get the auth users.
