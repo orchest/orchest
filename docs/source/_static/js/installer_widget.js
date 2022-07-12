@@ -90,7 +90,7 @@ will simply proceed to the next step.</p>
       MicroK8s: {
         instructions: `
 <p>Assuming you have already installed <a href="https://microk8s.io/#install-microk8s">MicroK8s</a>,
-Next, <a href="https://microk8s.io/docs/working-with-kubectl">configure kubectl</a> to access the cluster.
+<a href="https://microk8s.io/docs/working-with-kubectl">configure kubectl</a> to access the cluster
 and proceed by installing the following addons:</p>
 <div class="highlight">
 <pre>
@@ -180,7 +180,7 @@ href="https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-wind
 up the Windows Terminal</a>.</p>
 
 <p>Assuming you have already installed <a href="https://microk8s.io/#install-microk8s">MicroK8s</a>,
-Next, <a href="https://microk8s.io/docs/working-with-kubectl">configure kubectl</a> to access the cluster.
+<a href="https://microk8s.io/docs/working-with-kubectl">configure kubectl</a> to access the cluster
 and proceed by installing the following addons:</p>
 <div class="highlight">
 <pre>
