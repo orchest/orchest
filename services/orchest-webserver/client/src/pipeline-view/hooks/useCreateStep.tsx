@@ -1,20 +1,31 @@
+import { absoluteToRelativePath } from "@orchest/lib-utils";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
-/**
- * Removes leading slashes from file paths as the step API does not support them.
- */
-const stepPath = (path?: string) =>
+const toRoot = (path?: string) => (path?.startsWith("/") ? path : "/" + path);
+
+const unroot = (path?: string) =>
   path?.startsWith("/") ? path.substring(1) : path;
 
-export const useCreateStep = () => {
+const relativeToPipeline = (pipelineCwd?: string, path?: string) =>
+  path ? unroot(absoluteToRelativePath(path, toRoot(pipelineCwd))) : path;
+
+/**
+ * Creates a new step in the pipeline.
+ *
+ * @param filePath (Optional) the file path, relative to `project-dir:`, e.g. `/foo.py`.
+ */
+export type StepCreator = (filePath?: string) => void;
+
+export const useCreateStep = (): StepCreator => {
   const {
     dispatch,
     environments,
     pipelineViewportRef,
+    pipelineCwd,
   } = usePipelineEditorContext();
   const {
     pipelineCanvasState: { pipelineOffset },
@@ -38,12 +49,14 @@ export const useCreateStep = () => {
           y: -offsetY + clientHeight / 2 - STEP_HEIGHT / 2,
         };
 
-        dispatch(createStepAction(environment, position, stepPath(filePath)));
+        const stepPath = relativeToPipeline(pipelineCwd, filePath);
+
+        dispatch(createStepAction(environment, position, stepPath));
       } else {
         console.error("Failed to create step: pipeline viewport not set");
       }
     },
-    [pipelineOffset, dispatch, pipelineViewportRef, environment]
+    [pipelineOffset, dispatch, pipelineViewportRef, environment, pipelineCwd]
   );
 
   return createStep;
