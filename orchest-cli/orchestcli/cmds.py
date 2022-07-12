@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import enum
 import json
+import platform
 import re
 import sys
 import time
@@ -382,22 +383,40 @@ def install(
 
     echo("Setting up the Orchest Cluster...", nl=True)
     _display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
-    echo("Successfully installed Orchest!")
 
     if fqdn is not None:
-        echo(
-            f"Orchest is running with an FQDN equal to {fqdn}. To access it locally,"
-            " add an entry to your '/etc/hosts' file mapping the cluster ip"
-            f" (`minikube ip`) to '{fqdn}'. If you are on mac run the `minikube tunnel`"
-            f" daemon and map '127.0.0.1' to {fqdn} in the '/etc/hosts' file instead."
-            f" You will then be able to reach Orchest at http://{fqdn}."
-        )
+        echo(f"🚀 Done! Orchest is up with FQDN {fqdn}\n")
+
+        if platform.system() == "Darwin":
+            echo(
+                "💻 To access it locally, run `sudo minikube tunnel` "
+                f"and map 127.0.0.1 to {fqdn} in your hosts file:"
+            )
+            echo()
+            echo(f'  echo "127.0.0.1 {fqdn}" | sudo tee -a /etc/hosts')
+        else:
+            echo(
+                "💻 To access it locally, "
+                f"map `minikube ip` to {fqdn} in your hosts file:"
+            )
+            echo()
+            echo(f'  echo "$(minikube ip) {fqdn}" | sudo tee -a /etc/hosts')
+
+        echo()
+        echo(f"Once done, you can open http://{fqdn} in your browser.")
     else:
-        echo(
-            "Orchest is running without an FQDN. To access Orchest locally, simply"
-            " go to the IP returned by `minikube ip`. If you are on macOS run the"
-            " `minikube tunnel` daemon instead."
-        )
+        echo("🚀 Done! Orchest is up!\n")
+
+        if platform.system() == "Darwin":
+            echo(
+                "💻 To access it locally, "
+                "run `sudo minikube tunnel` and browse to http://localhost"
+            )
+        else:
+            echo(
+                "💻 To access it locally, "
+                "browse to the IP address returned by `minikube ip`"
+            )
 
 
 def uninstall(**kwargs) -> None:
