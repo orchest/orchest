@@ -464,12 +464,13 @@ def find_pipelines_in_dir(path, relative_to=None):
 
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
 
+            if relative_to is not None:
+                root = root[len(relative_to) :]
+                if root.startswith("/"):
+                    root = root[1:]
+
             for fName in files:
                 if fName.endswith(".orchest"):
-                    if relative_to is not None:
-                        root = root[len(relative_to) :]
-                        if root.startswith("/"):
-                            root = root[1:]
 
                     # Path normalization is important for correctly
                     # detecting pipelines that were deleted through the
