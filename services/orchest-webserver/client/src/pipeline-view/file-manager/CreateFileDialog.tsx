@@ -90,18 +90,14 @@ export const CreateFileDialog = ({
           onSuccess({ projectPath, fullPath, shouldCreateStep });
           onClose();
         })
-        .catch((error) => setAlert("Failed to create file", String(error)));
+        .catch(setError);
     },
     [run, createFile, onSuccess, onClose]
   );
 
   React.useEffect(() => {
     if (error) {
-      setAlert("Failed to create file", String(error), (resolve) => {
-        setError(null);
-        resolve(true);
-        return true;
-      });
+      setAlert("Failed to create file", String(error), () => setError(null));
     }
   }, [error, setAlert, setError]);
 
