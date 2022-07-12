@@ -97,7 +97,10 @@ export const CreateFileDialog = ({
 
   React.useEffect(() => {
     if (error) {
-      setAlert("Failed to create file", String(error), () => setError(null));
+      setAlert("Failed to create file", String(error), () => {
+        setError(null);
+        return true;
+      });
     }
   }, [error, setAlert, setError]);
 
