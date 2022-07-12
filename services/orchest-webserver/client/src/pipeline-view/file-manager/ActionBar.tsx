@@ -1,7 +1,6 @@
 import { IconButton } from "@/components/common/IconButton";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
@@ -84,12 +83,12 @@ export function ActionBar({
           <>
             <FileManagerActionButton
               title="Create file"
-              onClick={openCreateFileDialog}
+              onClick={() => setOpenDialog("file")}
             >
               <NoteAddOutlinedIcon />
             </FileManagerActionButton>
             <FileManagerActionButton
-              onClick={openCreateFolderDialog}
+              onClick={() => setOpenDialog("folder")}
               title="Create folder"
             >
               <CreateNewFolderOutlinedIcon />
