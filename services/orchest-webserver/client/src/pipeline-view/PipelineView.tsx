@@ -7,6 +7,7 @@ import { siteMap } from "@/routingConfig";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { InteractiveRunsContextProvider } from "./contexts/InteractiveRunsContext";
 import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext";
 import { PipelineEditorContextProvider } from "./contexts/PipelineEditorContext";
 import { FileManager } from "./file-manager/FileManager";
@@ -39,7 +40,9 @@ const PipelineView = () => {
                   <FileManager />
                   {!pipelineIsReadOnly && <SessionsPanel />}
                 </MainSidePanel>
-                <PipelineEditor />
+                <InteractiveRunsContextProvider>
+                  <PipelineEditor />
+                </InteractiveRunsContextProvider>
               </Stack>
             </PipelineCanvasContextProvider>
           </FileManagerContextProvider>
