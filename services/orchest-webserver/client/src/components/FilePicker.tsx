@@ -86,7 +86,7 @@ export type FilePickerProps = {
   value: string;
   menuMaxWidth?: string;
   onSelectMenuItem: (node: FileTree) => void;
-  allowedExtensions: string[];
+  allowedExtensions: readonly string[];
   generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
 };
 

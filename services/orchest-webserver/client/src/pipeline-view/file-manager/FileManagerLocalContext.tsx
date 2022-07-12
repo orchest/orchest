@@ -13,6 +13,7 @@ import {
   filterRedundantChildPaths,
   findPipelineFilePathsWithinFolders,
   getBaseNameFromPath,
+  prettifyRoot,
   queryArgs,
   unpackCombinedPath,
 } from "./common";
@@ -201,9 +202,7 @@ export const FileManagerLocalContextProvider: React.FC<{
             <ul>
               {pathsThatContainsPipelineFiles.map((file) => (
                 <Box key={`${file.root}/${file.path}`}>
-                  <Code>{`${
-                    file.root === "/project-dir" ? "Project files" : file.root
-                  }${file.path}`}</Code>
+                  <Code>{prettifyRoot(file.root) + file.path}</Code>
                 </Box>
               ))}
             </ul>

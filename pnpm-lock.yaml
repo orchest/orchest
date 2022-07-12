@@ -159,6 +159,7 @@ importers:
       '@types/react-dom': ^17.0.11
       '@types/react-router-dom': ^5.3.2
       '@use-gesture/react': ^10.2.10
+      '@welldone-software/why-did-you-render': ^7.0.1
       ajv: ^8.6.0
       babel-jest: ^28.0.3
       chance: ^1.1.8
@@ -172,7 +173,6 @@ importers:
       date-fns: ^2.25.0
       esbuild: ~0.14.0
       esbuild-jest: ^0.5.0
-      formik: ^2.2.9
       framer-motion: 4.1.17
       hotkeys-js: ^3.8.7
       immer: ^9.0.12
@@ -192,6 +192,7 @@ importers:
       react-dom: ^17.0.2
       react-dropzone: ^12.0.4
       react-github-btn: ^1.2.1
+      react-hook-form: ^7.33.1
       react-minimal-pie-chart: 8.2.0
       react-router-dom: ^5.3.0
       react-use-intercom: ^1.4.0
@@ -221,7 +222,6 @@ importers:
       d3-dag: 0.8.2
       dashify: 2.0.0
       date-fns: 2.25.0
-      formik: 2.2.9_react@17.0.2
       framer-motion: 4.1.17_sfoxds7t5ydpegc3knd667wn6m
       hotkeys-js: 3.8.7
       immer: 9.0.12
@@ -236,6 +236,7 @@ importers:
       react-dom: 17.0.2_react@17.0.2
       react-dropzone: 12.0.4_react@17.0.2
       react-github-btn: 1.2.1
+      react-hook-form: 7.33.1_react@17.0.2
       react-minimal-pie-chart: 8.2.0_sfoxds7t5ydpegc3knd667wn6m
       react-router-dom: 5.3.0_react@17.0.2
       react-use-intercom: 1.4.0_sfoxds7t5ydpegc3knd667wn6m
@@ -265,6 +266,7 @@ importers:
       '@types/react': 17.0.3
       '@types/react-dom': 17.0.11
       '@types/react-router-dom': 5.3.2
+      '@welldone-software/why-did-you-render': 7.0.1_react@17.0.2
       babel-jest: 28.0.3_@babel+core@7.16.7
       chance: 1.1.8
       cross-env: 7.0.3
@@ -2609,8 +2611,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
-      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
+      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
+      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
       '@mui/base': 5.0.0-alpha.59_ximryacsvt5dozm7hoqeulmuau
       '@mui/system': 5.2.3_tcke5zg5l5wp2mkeftxzzivvpy
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -2676,8 +2678,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
-      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
+      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
+      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -2720,8 +2722,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
-      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
+      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
+      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
       '@mui/private-theming': 5.2.3_mnzaipdkghwi2w6bgyhobeilpe
       '@mui/styled-engine': 5.2.0_hsu7jhncr42zbs7etkvvdkscdu
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -3533,6 +3535,15 @@ packages:
       '@use-gesture/core': 10.2.10
       react: 17.0.2
     dev: false
+
+  /@welldone-software/why-did-you-render/7.0.1_react@17.0.2:
+    resolution: {integrity: sha512-Qe/8Xxa2G+LMdI6VoazescPzjjkHYduCDa8aHOJR50e9Bgs8ihkfMBY+ev7B4oc3N59Zm547Sgjf8h5y0FOyoA==}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+    dependencies:
+      lodash: 4.17.21
+      react: 17.0.2
+    dev: true
 
   /@xmldom/xmldom/0.7.5:
     resolution: {integrity: sha512-V3BIhmY36fXZ1OtVcI9W+FxQqxVLsPKcNjWigIaa81dLC9IolJl5Mt4Cvhmr0flUnjSpTdrbMTSbXqYqV5dT6A==}
@@ -4897,11 +4908,6 @@ packages:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
     dev: true
 
-  /deepmerge/2.2.1:
-    resolution: {integrity: sha512-R9hc1Xa/NOBi9WRVUWg19rl1UB7Tt4kuPd+thNJgFZoxXsTz7ncaPaeIm+40oSGuP33DfMb4sZt1QIGiJzC4EA==}
-    engines: {node: '>=0.10.0'}
-    dev: false
-
   /deepmerge/4.2.2:
     resolution: {integrity: sha512-FJ3UgI4gIl+PHZm53knsuSFpE+nESMr7M4v9QcgB7S63Kj/6WqMiFQJpBBYz1Pt+66bZpP3Q7Lye0Oo9MPKEdg==}
     engines: {node: '>=0.10.0'}
@@ -5905,21 +5911,6 @@ packages:
       combined-stream: 1.0.8
       mime-types: 2.1.34
     dev: true
-
-  /formik/2.2.9_react@17.0.2:
-    resolution: {integrity: sha512-LQLcISMmf1r5at4/gyJigGn0gOwFbeEAlji+N9InZF6LIMXnFNkO42sCI8Jt84YZggpD4cPWObAZaxpEFtSzNA==}
-    peerDependencies:
-      react: '>=16.8.0'
-    dependencies:
-      deepmerge: 2.2.1
-      hoist-non-react-statics: 3.3.2
-      lodash: 4.17.21
-      lodash-es: 4.17.21
-      react: 17.0.2
-      react-fast-compare: 2.0.4
-      tiny-warning: 1.0.3
-      tslib: 1.14.1
-    dev: false
 
   /fragment-cache/0.2.1:
     resolution: {integrity: sha1-QpD60n8T6Jvn8zeZxrxaCr//DRk=}
@@ -7670,10 +7661,6 @@ packages:
       p-locate: 4.1.0
     dev: true
 
-  /lodash-es/4.17.21:
-    resolution: {integrity: sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==}
-    dev: false
-
   /lodash.clonedeep/4.5.0:
     resolution: {integrity: sha1-4j8/nE+Pvd6HJSnBBxhXoIblzO8=}
 
@@ -7702,6 +7689,7 @@ packages:
 
   /lodash/4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+    dev: true
 
   /log-symbols/4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
@@ -8522,14 +8510,19 @@ packages:
       react: 17.0.2
     dev: true
 
-  /react-fast-compare/2.0.4:
-    resolution: {integrity: sha512-suNP+J1VU1MWFKcyt7RtjiSWUjvidmQSlqu+eHslq+342xCbGTYmC0mEhPCOHxlW0CywylOC1u2DFAT+bv4dBw==}
-    dev: false
-
   /react-github-btn/1.2.1:
     resolution: {integrity: sha512-/gXD01mHAOhW0xYuNJFDn08OGjaMXOjcg6GCKVPdHvQcWzswH4aT85DLDAAJ6Zhw/71veSIH4Kx1BTBfy69SsA==}
     dependencies:
       github-buttons: 2.20.1
+    dev: false
+
+  /react-hook-form/7.33.1_react@17.0.2:
+    resolution: {integrity: sha512-ydTfTxEJdvgjCZBj5DDXRc58oTEfnFupEwwTAQ9FSKzykEJkX+3CiAkGtAMiZG7IPWHuzgT6AOBfogiKhUvKgg==}
+    engines: {node: '>=12.22.0'}
+    peerDependencies:
+      react: ^16.8.0 || ^17 || ^18
+    dependencies:
+      react: 17.0.2
     dev: false
 
   /react-is/16.13.1:

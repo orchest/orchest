@@ -33,6 +33,7 @@ export type PipelineEditorContextType = {
   dispatch: (value: EventVarsAction) => void;
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   pipelineCanvasRef: React.MutableRefObject<HTMLDivElement | null>;
+  pipelineViewportRef: React.MutableRefObject<HTMLDivElement | null>;
   newConnection: React.MutableRefObject<NewConnection | undefined>;
   keysDown: Set<number | string>;
   trackMouseMovement: (clientX: number, clientY: number) => void;
@@ -80,13 +81,13 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     state: { pipelines, projectUuid, pipeline },
   } = useProjectsContext();
   const pipelineUuid = pipeline?.uuid;
-
   const { jobUuid, runUuid: runUuidFromRoute } = useCustomRoute();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
   const disabled = hasValue(pipelines) && pipelines.length === 0;
 
   const pipelineCanvasRef = React.useRef<HTMLDivElement | null>(null);
+  const pipelineViewportRef = React.useRef<HTMLDivElement | null>(null);
 
   const {
     eventVars,
@@ -199,6 +200,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         dispatch,
         stepDomRefs,
         pipelineCanvasRef,
+        pipelineViewportRef,
         newConnection,
         keysDown,
         trackMouseMovement,

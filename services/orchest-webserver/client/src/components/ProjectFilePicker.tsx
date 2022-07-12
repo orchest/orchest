@@ -1,4 +1,7 @@
-import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
+import {
+  getFilePathForRelativeToProject,
+  prettifyRoot,
+} from "@/pipeline-view/file-manager/common";
 import { FileTree } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -40,7 +43,7 @@ const ProjectFilePicker: React.FC<{
   value: string;
   onChange: (value: string) => void;
   menuMaxWidth?: string;
-  allowedExtensions: string[];
+  allowedExtensions: readonly string[];
   doesFileExist: boolean;
   isCheckingFileValidity: boolean;
 }> = ({
@@ -65,8 +68,8 @@ const ProjectFilePicker: React.FC<{
         return {
           ...rootTree,
           root: false,
-          name: key === "/project-dir" ? "Project files" : key,
-          // Adding trailing ":/" to mark it as a root folder (note that the "root" of this tree is virtural, only for UI rendering).
+          name: prettifyRoot(key),
+          // Adding trailing ":/" to mark it as a root folder (note that the "root" of this tree is virtual, only for UI rendering).
           // for actual operations, we need to generate the right path by checking the actual roots: `/project-dir:/` and `/data:/`.
           path: `${key}:/`,
           depth: 0,

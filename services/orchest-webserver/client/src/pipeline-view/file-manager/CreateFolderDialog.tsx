@@ -16,6 +16,7 @@ import { FileManagementRoot } from "../common";
 import {
   FILE_MANAGEMENT_ENDPOINT,
   lastSelectedFolderPath,
+  prettifyRoot,
   queryArgs,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -116,9 +117,9 @@ export const CreateFolderDialog = ({
             data-test-id="file-manager-file-name-textfield"
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start">{`${
-                  root === "/project-dir" ? "Project files" : root
-                }${lastSelectedFolder}`}</InputAdornment>
+                <InputAdornment position="start">
+                  {prettifyRoot(root) + lastSelectedFolder}
+                </InputAdornment>
               ),
             }}
             sx={{ marginTop: (theme) => theme.spacing(2) }}

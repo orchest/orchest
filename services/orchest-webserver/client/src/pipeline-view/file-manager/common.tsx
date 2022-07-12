@@ -79,8 +79,8 @@ export const deriveParentPath = (path: string) => {
 };
 
 export const generateTargetDescription = (path: string) => {
-  let parentPath = deriveParentPath(path);
-  let nameFromPath = baseNameFromPath(parentPath);
+  const parentPath = deriveParentPath(path);
+  const nameFromPath = baseNameFromPath(parentPath);
 
   return (
     <Code>
@@ -227,6 +227,16 @@ export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
   filePath
     .replace(/^\/project-dir\:\//, replaceProjectDirWith)
     .replace(/^\/data\:\//, "/data/");
+
+/** Prettifies the root name for display purposes. */
+export const prettifyRoot = (root: string) => {
+  switch (root) {
+    case "/project-dir":
+      return "Project files";
+    default:
+      return root;
+  }
+};
 
 /**
  * remove leading "./" of a file path
