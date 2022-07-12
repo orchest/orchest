@@ -123,11 +123,11 @@ def get_step_and_kernel_volumes_and_volume_mounts(
 def get_init_container_manifest(
     image_to_pull: str,
     container_runtime: str,
-    container_runtime_image: str,
+    image_puller_image: str,
 ) -> Dict[str, Any]:
     init_container = {
         "name": "image-puller",
-        "image": container_runtime_image,
+        "image": image_puller_image,
         "env": [
             {
                 "name": "IMAGE_TO_PULL",
@@ -147,6 +147,47 @@ def get_init_container_manifest(
         ],
     }
     return init_container
+
+
+def add_image_puller_if_needed(
+    image_to_pull: str,
+    registry_ip: str,
+    container_runtime: str,
+    image_puller_image: str,
+    deployment_manifest: Dict[str, Any],
+) -> None:
+    """This function injects the image puller init Container into the
+    deployment manifest if the image is in our local docker-registry..
+
+    Args:
+        image_to_pull:
+            The image that image_puller has to pull.
+        registry_ip:
+            our registry ip address
+        container_runtime:
+            The container runtime of the node.
+        image_puller_image:
+            The image of the image puller.
+        deployment_manifest:
+            The deployment manifest.
+
+    """
+    domain, name = split_docker_domain(image_to_pull)
+
+    if domain == registry_ip:
+        image_puller_manifest = get_init_container_manifest(
+            f"{domain}/{name}",
+            container_runtime,
+            image_puller_image,
+        )
+        if deployment_manifest["spec"]["template"]["spec"]["initContainers"] is None:
+            deployment_manifest["spec"]["template"]["spec"]["initContainers"] = [
+                image_puller_manifest
+            ]
+        else:
+            deployment_manifest["spec"]["template"]["spec"]["initContainers"].append(
+                image_puller_manifest
+            )
 
 
 # splitDockerDomain splits a repository name to domain and remotename

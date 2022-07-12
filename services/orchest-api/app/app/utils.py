@@ -226,14 +226,18 @@ def get_jupyter_server_image_to_use() -> str:
     if active_custom_images:
         custom_image = active_custom_images[0]
         # K8S_TODO
-        registry_ip = k8s_core_api.read_namespaced_service(
-            _config.REGISTRY, _config.ORCHEST_NAMESPACE
-        ).spec.cluster_ip
+        registry_ip = get_registry_ip()
         return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{custom_image.tag}"
     else:
         # ctr needs full image name, including the registry
         # (even docker hub) to pull
         return f"docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+
+
+def get_registry_ip() -> str:
+    return k8s_core_api.read_namespaced_service(
+        _config.REGISTRY, _config.ORCHEST_NAMESPACE
+    ).spec.cluster_ip
 
 
 def _set_celery_worker_parallelism_at_runtime(
