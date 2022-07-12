@@ -2,7 +2,6 @@ import { IconButton } from "@/components/common/IconButton";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
-import { useHotKeys } from "@/hooks/useHotKeys";
 import { siteMap } from "@/routingConfig";
 import type { Connection, PipelineJson, Step, StepsDict } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
@@ -12,42 +11,31 @@ import { resolve } from "@/utils/resolve";
 import { validatePipeline } from "@/utils/webserver-utils";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import CropFreeIcon from "@mui/icons-material/CropFree";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveIcon from "@mui/icons-material/Remove";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import { activeElementIsInput, fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
-import {
-  getNodeCenter,
-  PIPELINE_RUN_STATUS_ENDPOINT,
-  updatePipelineJson,
-} from "./common";
+import { CancelInteractiveRunButton } from "./CancelInteractiveRunButton";
+import { getNodeCenter, updatePipelineJson } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
+import { useHotKeysInPipelineEditor } from "./hooks/useHotKeysInPipelineEditor";
 import { useOpenNoteBook } from "./hooks/useOpenNoteBook";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
+import { InteractiveRunButton } from "./InteractiveRunButton";
+import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import {
   CanvasFunctions,
   PipelineViewport,
 } from "./pipeline-viewport/PipelineViewport";
 import { PipelineActionButton } from "./PipelineActionButton";
-import { PipelineCanvasHeaderBar } from "./PipelineCanvasHeaderBar";
-import {
-  ExecutionState,
-  getStateText,
-  PipelineStep,
-  StepStatus,
-  STEP_HEIGHT,
-  STEP_WIDTH,
-} from "./PipelineStep";
+import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { StepDetails } from "./step-details/StepDetails";
+import { StepExecutionState } from "./StepExecutionState";
 
 const deleteStepMessage =
   "A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?";
@@ -84,6 +72,13 @@ export const PipelineEditor = () => {
     session,
   } = usePipelineEditorContext();
 
+  const isAllowedToRun =
+    !isReadOnly &&
+    eventVars.selectedSteps.length > 0 &&
+    !eventVars.stepSelector.active;
+
+  const isSessionRunning = session?.status === "RUNNING";
+
   const openNotebook = useOpenNoteBook();
 
   const removeSteps = React.useCallback(
@@ -110,37 +105,11 @@ export const PipelineEditor = () => {
     // but we also need real-time canvasOffset for calculation
   }, [JSON.stringify(canvasOffset), eventVars.scaleFactor]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [isHoverEditor, setIsHoverEditor] = React.useState(false);
-  const { setScope } = useHotKeys(
-    {
-      "pipeline-editor": {
-        "ctrl+a, command+a, ctrl+enter, command+enter": (e, hotKeyEvent) => {
-          if (["ctrl+a", "command+a"].includes(hotKeyEvent.key)) {
-            e.preventDefault();
-
-            dispatch({
-              type: "SELECT_STEPS",
-              payload: { uuids: Object.keys(eventVars.steps) },
-            });
-          }
-          if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key))
-            runSelectedSteps();
-        },
-      },
-    },
-    [isHoverEditor, eventVars.steps, eventVars.selectedSteps],
-    isHoverEditor
+  const { disableHotKeys, enableHotKeys } = useHotKeysInPipelineEditor(
+    isSessionRunning
   );
 
   const [isDeletingSteps, setIsDeletingSteps] = React.useState(false);
-
-  const {
-    stepExecutionState,
-    pipelineRunning,
-    isCancellingRun,
-    setIsCancellingRun,
-    executeRun,
-  } = useInteractiveRuns();
 
   React.useEffect(() => {
     // This case is hit when a user tries to load a pipeline that belongs
@@ -397,65 +366,6 @@ export const PipelineEditor = () => {
     recalibrate();
   }, [metadataPositions, recalibrate, dispatch]);
 
-  const runSelectedSteps = () => {
-    runStepUUIDs(eventVars.selectedSteps, "selection");
-  };
-  const onRunIncoming = () => {
-    runStepUUIDs(eventVars.selectedSteps, "incoming");
-  };
-
-  const cancelRun = async () => {
-    if (isJobRun) {
-      setConfirm(
-        "Warning",
-        "Are you sure that you want to cancel this job run?",
-        async (resolve) => {
-          setIsCancellingRun(true);
-          try {
-            await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`, {
-              method: "DELETE",
-            });
-            resolve(true);
-          } catch (error) {
-            setAlert("Error", `Failed to cancel this job run.`);
-            resolve(false);
-          }
-          setIsCancellingRun(false);
-          return true;
-        }
-      );
-      return;
-    }
-
-    if (!pipelineRunning) {
-      setAlert("Error", "There is no pipeline running.");
-      return;
-    }
-
-    try {
-      setIsCancellingRun(true);
-      await fetcher(`${PIPELINE_RUN_STATUS_ENDPOINT}/${runUuid}`, {
-        method: "DELETE",
-      });
-      setIsCancellingRun(false);
-    } catch (error) {
-      setAlert("Error", `Could not cancel pipeline run for runUuid ${runUuid}`);
-    }
-  };
-
-  const runStepUUIDs = (uuids: string[], type: RunStepsType) => {
-    if (!session || session.status !== "RUNNING") {
-      setAlert(
-        "Error",
-        "There is no active session. Please start the session first."
-      );
-      return;
-    }
-
-    saveSteps(eventVars.steps);
-    executeRun(uuids, type);
-  };
-
   const hasSelectedSteps = eventVars.selectedSteps.length > 0;
 
   const onSaveDetails = React.useCallback(
@@ -467,20 +377,6 @@ export const PipelineEditor = () => {
     },
     [dispatch]
   );
-
-  const enableHotKeys = () => {
-    setScope("pipeline-editor");
-    setIsHoverEditor(true);
-  };
-
-  const disableHotKeys = () => {
-    setIsHoverEditor(false);
-  };
-
-  React.useEffect(() => {
-    disableHotKeys();
-    return () => disableHotKeys();
-  }, []);
 
   React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
@@ -576,14 +472,10 @@ export const PipelineEditor = () => {
             <BackToJobButton onClick={returnToJob} />
           </div>
         )}
-        <PipelineCanvasHeaderBar
-          pipelineRunning={pipelineRunning}
-          pipelineViewportRef={pipelineViewportRef}
-        />
+        <PipelineCanvasHeaderBar />
         <PipelineViewport
           ref={pipelineViewportRef}
           canvasFuncRef={canvasFuncRef}
-          executeRun={executeRun}
           autoLayoutPipeline={autoLayoutPipeline}
         >
           {connections.map((connection) => {
@@ -681,19 +573,12 @@ export const PipelineEditor = () => {
               eventVars.selectedConnection?.startNodeUUID === step.uuid ||
               eventVars.selectedConnection?.endNodeUUID === step.uuid;
 
-            const executionState = stepExecutionState
-              ? stepExecutionState[step.uuid] || { status: "IDLE" }
-              : { status: "IDLE" };
-
-            const stateText = getStateText(executionState as ExecutionState);
-
             // only add steps to the component that have been properly
             // initialized
             return (
               <PipelineStep
                 key={`${step.uuid}-${hash.current}`}
                 data={step}
-                executeRun={executeRun}
                 onOpenFilePreviewView={onOpenFilePreviewView}
                 onOpenNotebook={onOpenNotebook}
                 selected={selected}
@@ -721,10 +606,7 @@ export const PipelineEditor = () => {
                     }
                   }}
                 />
-                <Box className={"execution-indicator"}>
-                  <StepStatus value={executionState.status} />
-                  {stateText}
-                </Box>
+                <StepExecutionState stepUuid={step.uuid} />
                 <div className="step-label-holder">
                   <div className={"step-label"}>
                     {step.title}
@@ -805,41 +687,25 @@ export const PipelineEditor = () => {
                 </IconButton>
               )}
             </div>
-            {!isReadOnly &&
-              !pipelineRunning &&
-              eventVars.selectedSteps.length > 0 &&
-              !eventVars.stepSelector.active && (
-                <div className="selection-buttons">
-                  <Button
-                    variant="contained"
-                    onClick={runSelectedSteps}
-                    data-test-id="interactive-run-run-selected-steps"
-                  >
-                    Run selected steps
-                  </Button>
-                  {selectedStepsHasIncoming && (
-                    <Button
-                      variant="contained"
-                      onClick={onRunIncoming}
-                      data-test-id="interactive-run-run-incoming-steps"
-                    >
-                      Run incoming steps
-                    </Button>
-                  )}
-                </div>
-              )}
-            {pipelineRunning && (
-              <div className="selection-buttons">
-                <PipelineActionButton
-                  onClick={cancelRun}
-                  startIcon={<CloseIcon />}
-                  disabled={isCancellingRun}
-                  data-test-id="interactive-run-cancel"
-                >
-                  Cancel run
-                </PipelineActionButton>
-              </div>
-            )}
+            <InteractiveRunButton
+              hidden={!isAllowedToRun}
+              isSessionRunning={isSessionRunning}
+              selectedSteps={eventVars.selectedSteps}
+              data-test-id="interactive-run-run-selected-steps"
+              stepsType="selection"
+            >
+              Run selected steps
+            </InteractiveRunButton>
+            <InteractiveRunButton
+              hidden={!isAllowedToRun || !selectedStepsHasIncoming}
+              isSessionRunning={isSessionRunning}
+              selectedSteps={eventVars.selectedSteps}
+              data-test-id="interactive-run-run-incoming-steps"
+              stepsType="incoming"
+            >
+              Run incoming steps
+            </InteractiveRunButton>
+            <CancelInteractiveRunButton />
           </div>
         )}
       </div>
