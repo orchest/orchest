@@ -21,14 +21,12 @@ const formatUrl = (url: string) => {
 };
 
 export const ServicesMenuComponent = ({
-  isOpen,
   onClose,
   anchor,
   services,
 }: {
-  isOpen: boolean;
   onClose: () => void;
-  anchor: React.MutableRefObject<Element | null>;
+  anchor: Element | undefined;
   services: Record<string, Partial<Service>> | null;
 }) => {
   const {
@@ -75,12 +73,12 @@ export const ServicesMenuComponent = ({
   return (
     <Menu
       id="running-services-menu"
-      anchorEl={anchor.current}
-      open={isOpen}
+      anchorEl={anchor}
+      open={hasValue(anchor)}
       onClose={onClose}
       MenuListProps={{
         dense: true,
-        "aria-labelledby": "running-services-button",
+        "aria-labelledby": "running-services",
       }}
       anchorOrigin={{
         vertical: "bottom",

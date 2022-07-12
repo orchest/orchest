@@ -8,12 +8,9 @@ import { useServices } from "./useServices";
 export const ServicesMenu = () => {
   const { pipelineRunning } = useInteractiveRunsContext();
   const servicesButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const {
-    isShowingServices,
-    services,
-    showServices,
-    hideServices,
-  } = useServices(pipelineRunning);
+  const { anchor, services, showServices, hideServices } = useServices(
+    pipelineRunning
+  );
   return (
     <>
       <Button
@@ -26,9 +23,8 @@ export const ServicesMenu = () => {
         Services
       </Button>
       <ServicesMenuComponent
-        isOpen={isShowingServices}
         onClose={hideServices}
-        anchor={servicesButtonRef}
+        anchor={anchor}
         services={services}
       />
     </>
