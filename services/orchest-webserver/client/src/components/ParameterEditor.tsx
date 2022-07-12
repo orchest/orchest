@@ -1,6 +1,7 @@
 import { StrategyJson } from "@/types";
 import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -59,6 +60,14 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
     }
   }, []);
 
+  const codeMirrorRef = React.useRef<CodeMirror | null>(null);
+  React.useEffect(() => {
+    if (activeParameter) {
+      // `editor` is not defined in CodeMirror. So we need this workaround.
+      (codeMirrorRef.current as any).editor.focus(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    }
+  }, [activeParameter]);
+
   return (
     <div className="parameter-editor">
       <div className="columns">
@@ -72,14 +81,16 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
           />
         </div>
         <div className="column">
-          {activeParameter !== undefined && props.readOnly !== true && (
+          {hasValue(activeParameter) && !props.readOnly && (
             <>
               <CodeMirror
+                ref={codeMirrorRef}
                 value={codeMirrorValue}
                 options={{
                   mode: "application/json",
                   theme: "jupyter",
                   lineNumbers: true,
+                  autofocus: true,
                 }}
                 onBeforeChange={(editor, data, value) => {
                   setStrategyJson((json) => {
@@ -88,15 +99,12 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
                     ] = value;
                     setCodeMirrorValue(value);
 
-                    // only call onParameterChange if valid JSON Array
-                    // put this block into event-loop to speed up the typing
+                    // Only call onParameterChange if valid JSON Array.
+                    // Put this block into event-loop to speed up the typing.
                     window.setTimeout(() => {
                       try {
-                        if (
-                          Array.isArray(JSON.parse(value)) &&
-                          props.onParameterChange
-                        ) {
-                          props.onParameterChange(json);
+                        if (Array.isArray(JSON.parse(value))) {
+                          props.onParameterChange?.(json);
                         }
                       } catch {
                         console.warn("Invalid JSON entered");

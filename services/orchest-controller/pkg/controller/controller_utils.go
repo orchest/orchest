@@ -50,8 +50,8 @@ var (
 	RabbitSubPath   = ".orchest/rabbitmq-mnesia"
 
 	// Ingress constants
-	PrefixPathType          = netsv1.PathType("Prefix")
-	OrchestIngressClassName = "nginx"
+	PrefixPathType         = netsv1.PathType("Prefix")
+	IngressClassController = "k8s.io/ingress-nginx"
 
 	// Labels and Annotations
 	OrchestHashLabelKey    = "orchest.io/orchest-hash"
@@ -61,6 +61,10 @@ var (
 	ControllerPartOfLabel  = "controller.orchest.io/part-of"
 	ComponentLabelKey      = "controller.orchest.io/component"
 	RestartAnnotationKey   = "orchest.io/restart"
+
+	// Runtime annotations
+	KubeAdmCRISocketAnnotationKey           = "kubeadm.alpha.kubernetes.io/cri-socket"
+	ContainerRuntimeSocketPathAnnotationKey = "orchest.io/container-runtime-socket"
 )
 
 // AddFinalizer adds specified finalizer string to object

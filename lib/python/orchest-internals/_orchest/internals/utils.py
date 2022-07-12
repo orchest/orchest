@@ -46,20 +46,31 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     pipeline_file: str,
     container_project_dir: str,
     container_pipeline_file: str,
+    container_runtime_socket: str,
 ) -> Tuple[List[dict], List[dict]]:
     """Gets volumes and volume mounts required to run steps and kernels.
 
     Args:
         userdir_pvc:
+            The PVC for the userdir.
         project_dir:
+            The project directory.
         pipeline_file:
+            The pipeline file.
         container_project_dir:
+            The container project directory.
         container_pipeline_file:
+            The container pipeline file.
+        container_runtime_socket:
+            The socket to use for the container runtime.
+
 
     Returns:
-        A pair of lists, the first element is a list of volumes, the
-        second a list of volume_mounts, valid in k8s pod manifest. The
-        two lists are coupled, each volume mount is related to a volume.
+        A pair of lists, the first element is a list of volumes the
+        step pod needs, the second a list of volume_mounts of the step
+        container, valid in k8s pod manifest. Each volume mount must
+        point to a volume, and multiple volume_mounts can point to
+        a single volume.
     """
     volumes = []
     volume_mounts = []
@@ -71,6 +82,13 @@ def get_step_and_kernel_volumes_and_volume_mounts(
         {
             "name": "userdir-pvc",
             "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
+        },
+    )
+
+    volumes.append(
+        {
+            "name": "container-runtime-socket",
+            "hostPath": {"path": container_runtime_socket, "type": "Socket"},
         }
     )
 
@@ -100,6 +118,110 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     )
 
     return volumes, volume_mounts
+
+
+def get_init_container_manifest(
+    image_to_pull: str,
+    container_runtime: str,
+    image_puller_image: str,
+) -> Dict[str, Any]:
+    init_container = {
+        "name": "image-puller",
+        "image": image_puller_image,
+        "env": [
+            {
+                "name": "IMAGE_TO_PULL",
+                "value": image_to_pull,
+            },
+            {
+                "name": "CONTAINER_RUNTIME",
+                "value": container_runtime,
+            },
+        ],
+        "command": ["/pull_image.sh"],
+        "volumeMounts": [
+            {
+                "name": "container-runtime-socket",
+                "mountPath": "/var/run/runtime.sock",
+            },
+        ],
+    }
+    return init_container
+
+
+def add_image_puller_if_needed(
+    image_to_pull: str,
+    registry_ip: str,
+    container_runtime: str,
+    image_puller_image: str,
+    deployment_manifest: Dict[str, Any],
+) -> None:
+    """This function injects the image puller init Container into the
+    deployment manifest if the image is in our local docker-registry..
+
+    Args:
+        image_to_pull:
+            The image that image_puller has to pull.
+        registry_ip:
+            our registry ip address
+        container_runtime:
+            The container runtime of the node.
+        image_puller_image:
+            The image of the image puller.
+        deployment_manifest:
+            The deployment manifest.
+
+    """
+    domain, name = split_docker_domain(image_to_pull)
+
+    if domain == registry_ip:
+        image_puller_manifest = get_init_container_manifest(
+            f"{domain}/{name}",
+            container_runtime,
+            image_puller_image,
+        )
+        if (
+            deployment_manifest["spec"]["template"]["spec"].get("initContainers")
+            is None
+        ):
+            deployment_manifest["spec"]["template"]["spec"]["initContainers"] = [
+                image_puller_manifest
+            ]
+        else:
+            deployment_manifest["spec"]["template"]["spec"]["initContainers"].append(
+                image_puller_manifest
+            )
+
+
+# splitDockerDomain splits a repository name to domain and remotename
+# string. If no valid domain is found, the default domain is used.
+# Repository name needs to be already validated before.
+# The logic of this function is borrowed from docker
+def split_docker_domain(name: str) -> Tuple[str, str]:
+    legacy_default_domain = "index.docker.io"
+    default_domain = "docker.io"
+    official_repo_name = "library"
+    default_tag = "latest"
+
+    names = name.split("/")
+    if len(names) == 1 or (
+        not any(c in names[0] for c in [".", ":"]) and names[0] != "localhost"
+    ):
+        domain, remainder = default_domain, name
+    else:
+        domain, remainder = names[0], names[1]
+
+    if domain == legacy_default_domain:
+        domain = default_domain
+
+    if domain == default_domain and ("/" not in remainder):
+        remainder = official_repo_name + "/" + remainder
+
+    tagSep = remainder.split(":")
+    if len(tagSep) == 1:
+        remainder = remainder + f":{default_tag}"
+
+    return domain, remainder
 
 
 def is_running_from_reloader():

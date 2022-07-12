@@ -24,7 +24,10 @@ from kubernetes import client as k8s_client
 from kubernetes import config
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
+from _orchest.internals.utils import (
+    get_init_container_manifest,
+    get_step_and_kernel_volumes_and_volume_mounts,
+)
 
 
 def _env_image_name_to_project_environment_uuid(image_name: str) -> Tuple[str, str]:
@@ -111,6 +114,7 @@ def _get_kernel_pod_manifest(
         pipeline_file=os.environ.get("ORCHEST_PIPELINE_FILE"),
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
+        container_runtime_socket=_config.CONTAINER_RUNTIME_SOCKET,
     )
 
     environment = dict()
@@ -136,6 +140,12 @@ def _get_kernel_pod_manifest(
     environment.pop("PATH")
     env = [{"name": k, "value": v} for k, v in environment.items()]
 
+    image_puller_manifest = get_init_container_manifest(
+        image_name,
+        _config.CONTAINER_RUNTIME,
+        _config.CONTAINER_RUNTIME_IMAGE,
+    )
+
     # K8S_TODO: device requests/gpus.
     pod_manifest = {
         "apiVersion": "v1",
@@ -154,6 +164,9 @@ def _get_kernel_pod_manifest(
             # behaviors."
             "restartPolicy": "Never",
             "volumes": vols,
+            "initContainers": [
+                image_puller_manifest,
+            ],
             "containers": [
                 {
                     "name": name,

@@ -11,7 +11,7 @@ import traceback
 from typing import Any, Dict, Optional, Tuple
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_userdir_relpath
+from _orchest.internals.utils import add_image_puller_if_needed, get_userdir_relpath
 from app import utils
 from app.connections import k8s_core_api
 from app.types import SessionConfig, SessionType
@@ -27,6 +27,7 @@ def _get_common_volumes_and_volume_mounts(
     container_project_dir: str = _config.PROJECT_DIR,
     container_pipeline_path: str = _config.PIPELINE_FILE,
     container_data_dir: str = _config.DATA_DIR,
+    container_runtime_socket: str = _config.CONTAINER_RUNTIME_SOCKET,
 ) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
     volumes = {}
     volume_mounts = {}
@@ -37,6 +38,11 @@ def _get_common_volumes_and_volume_mounts(
     volumes["userdir-pvc"] = {
         "name": "userdir-pvc",
         "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
+    }
+
+    volumes["container-runtime-socket"] = {
+        "name": "container-runtime-socket",
+        "hostPath": {"path": container_runtime_socket, "type": "Socket"},
     }
 
     volume_mounts["data"] = {
@@ -400,6 +406,7 @@ def _get_jupyter_server_deployment_service_manifest(
     volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
         project_uuid, userdir_pvc, project_dir, pipeline_path
     )
+
     deployment_manifest = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -421,6 +428,7 @@ def _get_jupyter_server_deployment_service_manifest(
                     },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
+                        volumes_dict["container-runtime-socket"],
                     ],
                     "containers": [
                         {
@@ -461,6 +469,14 @@ def _get_jupyter_server_deployment_service_manifest(
             },
         },
     }
+
+    add_image_puller_if_needed(
+        utils.get_jupyter_server_image_to_use(),
+        utils.get_registry_ip(),
+        _config.CONTAINER_RUNTIME,
+        _config.CONTAINER_RUNTIME_IMAGE,
+        deployment_manifest,
+    )
 
     service_manifest = {
         "apiVersion": "v1",
@@ -680,6 +696,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_REGISTRY": registry_ip,
         "ORCHEST_NAMESPACE": _config.ORCHEST_NAMESPACE,
         "ORCHEST_CLUSTER": _config.ORCHEST_CLUSTER,
+        "CONTAINER_RUNTIME_SOCKET": _config.CONTAINER_RUNTIME_SOCKET,
+        "CONTAINER_RUNTIME": _config.CONTAINER_RUNTIME,
+        "CONTAINER_RUNTIME_IMAGE": _config.CONTAINER_RUNTIME_IMAGE,
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
     user_defined_env_vars = [
@@ -849,6 +868,9 @@ def _get_user_service_deployment_service_manifest(
     if "/data" in sbinds or "/project-dir" in sbinds:
         volumes.append(volumes_dict["userdir-pvc"])
 
+    # Volume for init container puller image
+    volumes.append(volumes_dict["container-runtime-socket"])
+
     # To support orchest environments as services.
     image = service_config["image"]
     prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
@@ -911,6 +933,14 @@ def _get_user_service_deployment_service_manifest(
             },
         },
     }
+
+    add_image_puller_if_needed(
+        image,
+        utils.get_registry_ip(),
+        _config.CONTAINER_RUNTIME,
+        _config.CONTAINER_RUNTIME_IMAGE,
+        deployment_manifest,
+    )
 
     # K8S doesn't like empty commands.
     if service_config.get("command", ""):

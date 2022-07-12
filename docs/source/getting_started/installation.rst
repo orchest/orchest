@@ -6,89 +6,50 @@ Installation
 .. note::
    Orchest is in beta.
 
-We provide three installation paths, installation through:
-
-* our Python based CLI `orchest-cli <https://pypi.org/project/orchest-cli/>`_, or
-* `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_, or
-* `our Cloud offering <https://cloud.orchest.io/signup>`_ which comes with a free, fully configured
-  Orchest instance.
+Instead of self-hosting Orchest, try out `our Cloud offering <https://cloud.orchest.io/signup>`_
+which comes with a free, fully configured Orchest instance.
 
 Prerequisites
 -------------
 
-To use Orchest you will need a `Kubernetes (k8s) cluster <https://kubernetes.io/docs/setup/>`_. Any
-cluster should work. You can either pick a managed service by one of the certified `cloud platforms
+To use Orchest you will need a running `Kubernetes (k8s) cluster
+<https://kubernetes.io/docs/setup/>`_. Any cluster should work. You can either pick a managed
+service by one of the certified `cloud platforms
 <https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/>`_ or create a cluster
-locally, e.g. using `minikube
-<https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/cluster-intro/>`_.
+locally.
 
-Do make sure that, no matter the cluster you choose, the ingress controller is configured.
+Pick your deployment environment and Kubernetes distribution and follow the installation steps
+below.
 
-The supported operating systems are:
+.. _regular installation:
+
+Install ``orchest``
+-------------------
+Even though installing Orchest on an existing cluster is fully supported, we recommend to install
+Orchest on a clean cluster to prevent clashes with existing cluster-level resources. The supported
+operating systems are:
 
 - Linux (``x86_64``)
 - `Windows Subsystem for Linux 2 <https://docs.microsoft.com/en-us/windows/wsl/about>`_ (WSL2)
 - macOS (M1 Macs should use `Rosetta <https://support.apple.com/en-us/HT211861>`_ for emulation)
 
-.. note::
-   💡 We recommend to install Orchest on a clean cluster to prevent it clashing with existing
-   cluster-level resources.
+.. raw:: html
+   :file: install-widget.html
 
-Setting up a ``minikube`` cluster
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you already have a Kubernetes cluster to install Orchest on, then continue with :ref:`installing
-Orchest <regular installation>`. In case you don't have a cluster yet, then `installing minikube
-<https://minikube.sigs.k8s.io/docs/start/>`_ is a good solution in order to try out Orchest.
+If you have **special requirements** (or preferences) for deploying Orchest on your Kubernetes
+cluster, then one of the following subsections might proof helpful:
 
-.. tip::
-   👉 We provide an automated convenience script for a complete minikube deployment. Taking care of
-   installing ``minikube``, installing the ``orchest-cli`` and installing Orchest, run it with:
+* :ref:`Setting up an FQDN <install fqdn>`: Reach Orchest using a Fully Qualified Domain Name
+  (FQDN) instead of the cluster's IP directly.
+* :ref:`Installing without Argo Workflows <install argo>`: Don't let Orchest manage Argo in case you
+  already have Argo Workflows installed on your Kubernetes cluster.
+* :ref:`Installing using kubectl <install kubectl>`: If you would rather use ``kubectl`` instead of
+  the ``orchest-cli``.
 
-   .. code-block:: bash
+.. _install fqdn:
 
-      curl -fsSL https://get.orchest.io > convenience_install.sh
-      bash convenience_install.sh
-
-After installing minikube, create a minikube cluster and continue with :ref:`installing Orchest
-<regular installation>`.
-
-.. code-block:: bash
-
-   # Create a minikube cluster and configure ingress.
-   minikube start --cpus 4 --addons ingress
-
-Installing ``minikube`` and Orchest on Windows
-""""""""""""""""""""""""""""""""""""""""""""""
-
-For Orchest to work on Windows, Docker has to be configured to use WSL 2 (`Docker Desktop WSL 2
-backend <https://docs.docker.com/desktop/windows/wsl/>`_).
-
-For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
-opening the distribution using the Start menu or by `setting up the Windows Terminal
-<https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal>`_.
-
-.. _regular installation:
-
-Install ``orchest`` via ``orchest-cli``
----------------------------------------
-
-.. code-block:: bash
-
-   pip install --upgrade orchest-cli
-   orchest install
-
-Now the cluster can be reached on the IP returned by:
-
-.. code-block:: bash
-
-   minikube ip
-
-.. tip::
-   🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
-   <quickstart>`.
-
-Installing using an FQDN
-~~~~~~~~~~~~~~~~~~~~~~~~
+Setting up an FQDN
+~~~~~~~~~~~~~~~~~~
 If you would rather reach Orchest using a Fully Qualified Domain Name (FQDN) instead of using the
 cluster's IP directly, you can install Orchest using:
 
@@ -105,6 +66,8 @@ Next, make Orchest reachable locally through the FQDN:
    # Set up the default Fully Qualified Domain Name (FQDN) in your
    # /etc/hosts so that you can reach Orchest locally.
    echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
+
+.. _install argo:
 
 Installing without Argo Workflows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,12 +87,10 @@ need to make sure that the right set of permissions are configured for Orchest t
 Check out the permissions that the Orchest Controller sets for Argo `here
 <https://github.com/orchest/orchest/tree/v2022.06.5/services/orchest-controller/deploy/thirdparty/argo-workflows/templates>`_.
 
-Install ``orchest`` via ``kubectl``
------------------------------------
+.. _install kubectl:
 
-.. tip::
-   We recommend using the ``orchest-cli`` for installing and managing your Orchest Clusters
-   (:ref:`link <regular installation>`).
+Installing using ``kubectl``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The code snippet below will install Orchest in the ``orchest`` namespace. In case you want to
 install in another namespace you can use tools like `yq <https://github.com/mikefarah/yq>`_ to
