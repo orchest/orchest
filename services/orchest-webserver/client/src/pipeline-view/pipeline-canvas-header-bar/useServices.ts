@@ -7,14 +7,14 @@ import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 export const useServices = (pipelineRunning: boolean) => {
   const { jobUuid } = useCustomRoute();
   const { pipelineJson, session, runUuid } = usePipelineEditorContext();
-  const [isShowingServices, setIsShowingServices] = React.useState(false);
+  const [anchor, setAnchor] = React.useState<Element>();
 
-  const showServices = React.useCallback(() => {
-    setIsShowingServices(true);
+  const showServices = React.useCallback((e: React.MouseEvent) => {
+    setAnchor(e.currentTarget);
   }, []);
 
   const hideServices = React.useCallback(() => {
-    setIsShowingServices(false);
+    setAnchor(undefined);
   }, []);
 
   const isJobRun = hasValue(jobUuid) && hasValue(runUuid);
@@ -39,5 +39,10 @@ export const useServices = (pipelineRunning: boolean) => {
     );
   }, [pipelineJson, session, jobUuid, isJobRun, isServicesUnavailable]);
 
-  return { isShowingServices, services, showServices, hideServices };
+  return {
+    anchor,
+    services,
+    showServices,
+    hideServices,
+  };
 };
