@@ -103,9 +103,7 @@ export const useInteractiveRuns = () => {
 
   return {
     stepExecutionState,
-    setStepExecutionState,
     pipelineRunning,
-    setPipelineRunning,
     isCancellingRun,
     setIsCancellingRun,
     executeRun,
