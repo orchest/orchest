@@ -180,7 +180,10 @@ def add_image_puller_if_needed(
             container_runtime,
             image_puller_image,
         )
-        if deployment_manifest["spec"]["template"]["spec"]["initContainers"] is None:
+        if (
+            deployment_manifest["spec"]["template"]["spec"].get("initContainers")
+            is None
+        ):
             deployment_manifest["spec"]["template"]["spec"]["initContainers"] = [
                 image_puller_manifest
             ]

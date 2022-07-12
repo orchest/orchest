@@ -185,6 +185,8 @@ def create_required_directories() -> None:
         _config.USERDIR_ENV_IMG_BUILDS,
         _config.USERDIR_JUPYTER_IMG_BUILDS,
         _config.USERDIR_JUPYTERLAB,
+        os.path.join(_config.USERDIR_JUPYTERLAB, "user-settings"),
+        os.path.join(_config.USERDIR_JUPYTERLAB, "lab"),
     ]:
         Path(path).mkdir(parents=True, exist_ok=True)
 

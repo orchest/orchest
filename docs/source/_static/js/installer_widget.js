@@ -89,8 +89,9 @@ will simply proceed to the next step.</p>
       },
       MicroK8s: {
         instructions: `
-<p>Assuming you have already installed <a href="https://microk8s.io/#install-microk8s">MicroK8s</a>,
-proceed by installing the following addons:</p>
+<p>First, ensure you have <a href="https://microk8s.io/#install-microk8s">MicroK8s</a> installed. 
+Next, <a href="https://microk8s.io/docs/working-with-kubectl">configure kubectl</a> to access the cluster
+and install the following addons:</p>
 <div class="highlight">
 <pre>
 microk8s enable hostpath-storage \\
@@ -178,8 +179,9 @@ opening the distribution using the Start menu or by <a class="reference external
 href="https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal">setting
 up the Windows Terminal</a>.</p>
 
-<p>Assuming you have already installed <a href="https://microk8s.io/#install-microk8s">MicroK8s</a>,
-proceed by installing the following addons:</p>
+<p>First, ensure you have <a href="https://microk8s.io/#install-microk8s">MicroK8s</a> installed. 
+Next, <a href="https://microk8s.io/docs/working-with-kubectl">configure kubectl</a> to access the cluster
+and install the following addons:</p>
 <div class="highlight">
 <pre>
 microk8s enable hostpath-storage \\
