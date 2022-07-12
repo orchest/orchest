@@ -472,6 +472,7 @@ def _get_jupyter_server_deployment_service_manifest(
 
     add_image_puller_if_needed(
         utils.get_jupyter_server_image_to_use(),
+        utils.get_registry_ip(),
         _config.CONTAINER_RUNTIME,
         _config.CONTAINER_RUNTIME_IMAGE,
         deployment_manifest,
@@ -935,6 +936,7 @@ def _get_user_service_deployment_service_manifest(
 
     add_image_puller_if_needed(
         image,
+        utils.get_registry_ip(),
         _config.CONTAINER_RUNTIME,
         _config.CONTAINER_RUNTIME_IMAGE,
         deployment_manifest,
