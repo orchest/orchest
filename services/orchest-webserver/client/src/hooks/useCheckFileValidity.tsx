@@ -66,11 +66,11 @@ export const useCheckFileValidity = ({
   allowedExtensions,
   useProjectRoot = false,
 }: ValidateFileProps) => {
-  const propsAreValid =
+  const isValidProps =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
   const isValidPathPattern =
-    propsAreValid && isValidPath(path, allowedExtensions);
+    isValidProps && isValidPath(path, allowedExtensions);
 
   const delayedPath = useDebounce(path, 250);
 
