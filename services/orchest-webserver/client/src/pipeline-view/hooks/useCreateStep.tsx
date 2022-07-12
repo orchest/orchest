@@ -35,8 +35,8 @@ export const useCreateStep = (): StepCreator => {
   // The user can change it later.
   const [environment] = environments;
 
-  const createStep = React.useMemo(
-    () => (filePath?: string) => {
+  const createStep = React.useCallback(
+    (filePath?: string) => {
       if (pipelineViewportRef.current) {
         // When new steps are successively created then we don't want
         // them to be spawned on top of each other.

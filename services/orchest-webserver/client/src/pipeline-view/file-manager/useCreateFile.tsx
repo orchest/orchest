@@ -18,8 +18,8 @@ type FileCreator = (path: string) => Promise<string>;
 export const useCreateFile = (root: string): FileCreator => {
   const { projectUuid } = useCustomRoute();
 
-  const createFile = React.useMemo(
-    () => async (path: string) => {
+  const createFile = React.useCallback(
+    async (path: string) => {
       if (!projectUuid) {
         throw new Error("A project UUID was not found in the route.");
       }
