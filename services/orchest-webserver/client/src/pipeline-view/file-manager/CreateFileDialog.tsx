@@ -179,7 +179,7 @@ export const CreateFileDialog = ({
                 title={
                   canCreateStep
                     ? "Add this file as a step in the pipeline directly"
-                    : "No pipelines are available"
+                    : "No pipelines available to add step to"
                 }
                 disabled={!canCreateStep}
                 control={
