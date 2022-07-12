@@ -7,13 +7,13 @@ import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 
-export const CreateStepButton = ({
-  pipelineViewportRef,
-}: {
-  pipelineViewportRef: React.MutableRefObject<HTMLDivElement | null>;
-}) => {
+export const CreateStepButton = () => {
   const { setAlert } = useAppContext();
-  const { dispatch, environments } = usePipelineEditorContext();
+  const {
+    dispatch,
+    environments,
+    pipelineViewportRef,
+  } = usePipelineEditorContext();
   const { pipelineCanvasState } = usePipelineCanvasContext();
 
   const createStep = async () => {

@@ -20,7 +20,7 @@ const formatUrl = (url: string) => {
   return "Port " + url.split("/")[3].split("_").slice(-1)[0];
 };
 
-export const ServicesMenu = ({
+export const ServicesMenuComponent = ({
   isOpen,
   onClose,
   anchor,

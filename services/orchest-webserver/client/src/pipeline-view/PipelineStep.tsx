@@ -13,6 +13,7 @@ import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
+import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
@@ -23,7 +24,6 @@ import {
   PipelineEditorContextMenu,
   useContextMenu,
 } from "./hooks/useContextMenu";
-import { RunStepsType } from "./hooks/useInteractiveRuns";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
@@ -121,7 +121,6 @@ const PipelineStepComponent = React.forwardRef<
   {
     data: PipelineStepState;
     selected: boolean;
-    executeRun: (uuids: string[], type: RunStepsType) => Promise<void>;
     onOpenNotebook: (e: React.MouseEvent) => void;
     onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
     movedToTop: boolean;
@@ -136,7 +135,6 @@ const PipelineStepComponent = React.forwardRef<
   {
     data,
     selected,
-    executeRun,
     onOpenNotebook,
     onOpenFilePreviewView,
     movedToTop,
@@ -150,6 +148,7 @@ const PipelineStepComponent = React.forwardRef<
   },
   ref
 ) {
+  const { executeRun } = useInteractiveRunsContext();
   const [, forceUpdate] = useForceUpdate();
   const { setAlert } = useAppContext();
   const {
