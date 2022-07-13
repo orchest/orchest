@@ -1,6 +1,7 @@
 import argparse
 import os
 from enum import Enum
+from typing import Tuple
 
 import requests
 
@@ -12,21 +13,21 @@ class BackgroundTaskStatus(Enum):
     FAILURE = 3
 
 
-def git_clone_project(args):
+def git_clone_project(args) -> Tuple[int, str]:
     """Clone a git repo given a URL into the projects directory."""
 
     try:
-        # avoid collisions
+        # Avoid collisions.
         tmp_path = f"/tmp/{args.uuid}/"
         os.mkdir(tmp_path)
         os.chdir(tmp_path)
 
-        # this way we clone in a directory with the name of the repo
-        # if the project_name is not provided
+        # This way we clone in a directory with the name of the repo if
+        # the project_name is not provided.
         git_command = f"git clone {args.url}"
 
-        # args.path contains the desired project name,
-        # if the user specified it
+        # args.path contains the desired project name, if the user
+        # specified it.
         project_name = args.path
         if project_name:
             if "/" in project_name:
@@ -37,40 +38,34 @@ def git_clone_project(args):
 
         exit_code = os.system(git_command)
         if exit_code != 0:
-            msg = "git clone failed"
-        else:
-            # should be the only directory in there, also this way we
-            # get the directory without knowing the repo name if the
-            # project_name has not been provided
-            inferred_project_name = os.listdir(tmp_path)[0]
+            return exit_code, "git clone failed"
 
-            # The msg will contain the project name if the task succeeds
-            msg = inferred_project_name
+        # Should be the only directory in there, also this way we get
+        # the directory without knowing the repo name if the
+        # project_name has not been provided.
+        inferred_project_name = os.listdir(tmp_path)[0]
 
-            from_path = os.path.join(tmp_path, inferred_project_name)
-            exit_code = os.system(f'mv "{from_path}" /userdir/projects/')
-            if exit_code != 0:
-                msg = "project move failed"
+        from_path = os.path.join(tmp_path, inferred_project_name)
+        exit_code = os.system(f'mv "{from_path}" /userdir/projects/')
+        if exit_code != 0:
+            return exit_code, "project move failed"
 
-            # Set correct group permission as git clone ignores setgid
-            # on projects directory.
-            projects_gid = os.stat("/userdir/projects").st_gid
-            os.system(
-                'chown -R :%s "%s"'
-                % (
-                    projects_gid,
-                    os.path.join("/userdir/projects", inferred_project_name),
-                )
+        # Set correct group permission as git clone ignores setgid on
+        # projects directory.
+        projects_gid = os.stat("/userdir/projects").st_gid
+        os.system(
+            'chown -R :%s "%s"'
+            % (
+                projects_gid,
+                os.path.join("/userdir/projects", inferred_project_name),
             )
+        )
 
     except Exception as e:
-        msg = str(e)
-        exit_code = 1
-    # cleanup the tmp directory in any case
+        return 1, str(e)
+    # Cleanup the tmp directory in any case.
     finally:
         os.system(f'rm -rf "{tmp_path}"')
-
-    return exit_code, msg
 
 
 _tasks = {"git_clone_project": git_clone_project}
