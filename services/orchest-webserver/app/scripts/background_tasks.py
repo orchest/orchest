@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 from enum import Enum
 from typing import Tuple
 
@@ -60,6 +61,27 @@ def git_clone_project(args) -> Tuple[int, str]:
                 os.path.join("/userdir/projects", inferred_project_name),
             )
         )
+
+        # The task is considered done once the project has been
+        # discovered or if the project has been renamed/deleted (doesn't
+        # exist anymore at the desired path.). The project not being
+        # part of the projects returned by /async/projects is a rare
+        # occurrence that can happen if a concurrent request is leading
+        # to the discovery of the same project, which puts it in a
+        # INITIALIZING status.
+        for _ in range(5):
+            resp = requests.get("http://localhost/async/projects")
+            if resp.status_code != 200:
+                time.sleep(1)
+                continue
+
+            project = [proj for proj in resp.json() if proj["path"] == project_name]
+            if project or not os.path.exists(f"/userdir/projects/{project_name}"):
+                return 0, inferred_project_name
+            time.sleep(1)
+
+        # Assume a failure after 5 attempts.
+        return 1, "Project was not discovered by the webserver."
 
     except Exception as e:
         return 1, str(e)
