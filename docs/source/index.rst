@@ -61,3 +61,4 @@ Orchest
    development/troubleshooting
    development/implementation_best_practices
    development/feature_manuals
+   development/appendix
