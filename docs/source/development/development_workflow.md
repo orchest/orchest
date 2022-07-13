@@ -629,6 +629,59 @@ It's currently not possible to specify a custom tag, the back-end will always
 try to pull an image with a tag equal to the cluster version.
 ```
 
+### Test running Orchest on `containerd`
+
+To test running Orchest on `containerd`, we recommend [installing MicroK8s](https://microk8s.io/).
+Alternatively, you can also set up Orchest on GKE (see {ref}`installation <regular installation>`)
+or install MicroK8s in a VM (e.g. using [VirtualBox](https://www.virtualbox.org/)).
+
+Next, enable the following addons:
+
+```bash
+microk8s enable hostpath-storage \
+    && microk8s enable dns \
+    && microk8s enable ingress
+```
+
+Now that MicroK8s is correctly configured we need to rebuild Orchest's images and save them to a
+`.tar` file so that `containerd` can unpack the file and use the images.
+
+```bash
+export TAG=v2022.06.4
+scripts/build_container.sh -M -t $TAG -o $TAG
+docker save \
+    $(docker images | awk '{if ($1 ~ /^orchest\//) new_var=sprintf("%s:%s", $1, $2); print new_var}' | grep $TAG | sort | uniq) \
+    -o orchest-images.tar
+```
+
+````{dropdown} 👉 I didn't install MicroK8s on my host
+In case you didn't install MicroK8s on your host directly, you need to ship the images to the
+MicroK8s node:
+```bash
+scp ./orchest-images.tar {your_user}@${microk8s node ip}:~/
+```
+
+And set up the kubeconfig on your host so that you can use the `orchest-cli` like:
+```bash
+KUBECONFIG=/path/to/kubeconfig orchest install --dev
+```
+````
+
+Next, inside the MicroK8s node (which can be your host), you can import the images using:
+
+```bash
+microk8s ctr --namespace k8s.io --address /var/snap/microk8s/common/run/containerd.sock image import orchest-images.tar
+
+# OR, requires ctr to be installed: https://github.com/containerd/containerd/releases
+sudo ctr -n k8s.io -a /var/snap/microk8s/common/run/containerd.sock i import orchest-images.tar
+```
+
+Now you can install Orchest:
+
+```bash
+orchest install --dev --socket-path=/var/snap/microk8s/common/run/containerd.sock
+```
+
 ### Run Orchest Controller locally
 
 For easier debugging it is possible to run the `orchest-controller` locally with a debugger. We
