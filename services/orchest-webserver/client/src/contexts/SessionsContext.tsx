@@ -1,98 +1,61 @@
-import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { useAppContext } from "@/contexts/AppContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
-import type {
-  IOrchestSession,
-  IOrchestSessionUuid,
-  ReducerActionWithCallback,
-} from "@/types";
-import { checkGate } from "@/utils/webserver-utils";
+import {
+  BUILD_IMAGE_SOLUTION_VIEW,
+  useProjectsContext,
+} from "@/contexts/ProjectsContext";
+import type { OrchestSession, ReducerActionWithCallback } from "@/types";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
-import pascalcase from "pascalcase";
 import React from "react";
 
-type TSessionStatus = IOrchestSession["status"];
+type TSessionStatus = OrchestSession["status"];
 
-const ENDPOINT = "/catch/api-proxy/api/sessions/";
-
-/* Util functions
-  =========================================== */
-
-const lowerCaseFirstLetter = (str: string) =>
-  str.charAt(0).toLowerCase() + str.slice(1);
-
-function convertKeyToCamelCase<T>(data: T | undefined, keys?: string[]) {
-  if (!data) return data;
-  if (keys) {
-    for (const key of keys) {
-      data[lowerCaseFirstLetter(pascalcase(key))] = data[key];
-    }
-    return data as T;
-  }
-  return Object.entries(data).reduce((newData, curr) => {
-    const [key, value] = curr;
-    return {
-      ...newData,
-      [lowerCaseFirstLetter(pascalcase(key))]: value,
-    };
-  }, {}) as T;
-}
-
-type Session = {
-  project_uuid?: string;
-  pipeline_uuid?: string;
-  projectUuid?: string;
-  pipelineUuid?: string;
-};
-
-const getSessionValue = (session: Session) => {
-  return {
-    projectUuid: session.projectUuid || session.project_uuid,
-    pipelineUuid: session.pipelineUuid || session.pipeline_uuid,
-  };
-};
-
-// because project_uuid and pipeline_uuid can either be snake_case or camelCase,
-// isSameSession function should be able to compare either case.
-export function isSameSession(a: Session, b: Session) {
-  if (!a || !b) return false;
-  const sessionA = getSessionValue(a);
-  const sessionB = getSessionValue(b);
-
-  return !Object.keys(sessionA).some((key) => sessionA[key] !== sessionB[key]);
-}
-
-/* Matchers
-  =========================================== */
+const ENDPOINT = "/catch/api-proxy/api/sessions";
 
 const isStoppable = (status: TSessionStatus) =>
   ["RUNNING", "LAUNCHING"].includes(status || "");
 
-/* Fetchers
-  =========================================== */
+const launchSession = ({
+  projectUuid,
+  pipelineUuid,
+}: {
+  projectUuid: string;
+  pipelineUuid: string;
+}) => {
+  // NOTE: the trailing slash is required, otherwise the request will be picked up by other route.
+  return fetcher<OrchestSession>(`${ENDPOINT}/`, {
+    method: "POST",
+    headers: HEADER.JSON,
+    body: JSON.stringify({
+      pipeline_uuid: pipelineUuid,
+      project_uuid: projectUuid,
+    }),
+  });
+};
 
-const stopSession = ({ pipelineUuid, projectUuid }: IOrchestSessionUuid) =>
-  fetcher(`${ENDPOINT}${projectUuid}/${pipelineUuid}`, {
+const killSession = ({
+  projectUuid,
+  pipelineUuid,
+}: {
+  projectUuid: string;
+  pipelineUuid: string;
+}) => {
+  return fetcher(`${ENDPOINT}/${projectUuid}/${pipelineUuid}`, {
     method: "DELETE",
   });
+};
 
-/**
- *
- * Context
- */
+const isSessionStarted = (session?: OrchestSession) =>
+  ["LAUNCHING", "RUNNING"].includes(session?.status || "");
 
 type SessionsContextState = {
-  sessions: IOrchestSession[] | undefined;
-  sessionsIsLoading: boolean;
+  sessions?: Record<string, OrchestSession>;
   sessionsKillAllInProgress?: boolean;
 };
 
 type Action =
   | {
       type: "SET_SESSIONS";
-      payload: Pick<SessionsContextState, "sessions"> & {
-        sessionsIsLoading?: boolean;
-      };
+      payload: SessionsContextState["sessions"];
     }
   | { type: "SET_IS_KILLING_ALL_SESSIONS"; payload: boolean };
 
@@ -101,20 +64,26 @@ type SessionsContextAction = ReducerActionWithCallback<
   Action
 >;
 
-type ToggleSessionFunction = (
-  payload: IOrchestSessionUuid & {
-    shouldStart?: boolean;
-    requestedFromView?: BUILD_IMAGE_SOLUTION_VIEW;
-    onBuildComplete?: () => void;
-    onCancelBuild?: () => void;
-  }
-) => Promise<void>;
+/**
+ * Combine projectUuid and pipelineUuid as a key for session.
+ */
+export const getSessionKey = ({
+  projectUuid,
+  pipelineUuid,
+}: {
+  projectUuid: string;
+  pipelineUuid: string;
+}) => `${projectUuid}|${pipelineUuid}`;
 
 type SessionsContext = {
   state: SessionsContextState;
   dispatch: React.Dispatch<SessionsContextAction>;
-  getSession: (session: Session) => IOrchestSession | undefined;
-  toggleSession: ToggleSessionFunction;
+  getSession: (pipelineUuid?: string) => OrchestSession | undefined;
+  startSession: (
+    pipelineUuid: string,
+    requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
+  ) => Promise<boolean>;
+  stopSession: (pipelineUuid: string) => Promise<void>;
   deleteAllSessions: () => Promise<void>;
 };
 
@@ -130,15 +99,7 @@ const reducer = (
 
   switch (action.type) {
     case "SET_SESSIONS": {
-      const { sessionsIsLoading, sessions } = action.payload;
-
-      return {
-        ...state,
-        sessions,
-        sessionsIsLoading: hasValue(sessionsIsLoading)
-          ? sessionsIsLoading
-          : state.sessionsIsLoading,
-      };
+      return { ...state, sessions: action.payload };
     }
     case "SET_IS_KILLING_ALL_SESSIONS":
       return { ...state, sessionsKillAllInProgress: action.payload };
@@ -151,177 +112,132 @@ const reducer = (
 };
 
 const initialState: SessionsContextState = {
-  sessions: undefined,
-  sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
 };
 
-/* Provider
-  =========================================== */
-
 export const SessionsContextProvider: React.FC = ({ children }) => {
-  const { setAlert, requestBuild } = useAppContext();
-  const projectsContext = useProjectsContext();
+  const { setAlert } = useAppContext();
+  const {
+    state: { projectUuid },
+    ensureEnvironmentsAreBuilt,
+  } = useProjectsContext();
 
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
   const getSession = React.useCallback(
-    (session: Session) =>
-      state.sessions?.find((stateSession) =>
-        isSameSession(session, stateSession)
-      ),
-    [state]
+    (pipelineUuid?: string) =>
+      state.sessions && projectUuid && pipelineUuid
+        ? state.sessions[getSessionKey({ projectUuid, pipelineUuid })]
+        : undefined,
+    [projectUuid, state]
   );
 
-  /**
-   * a wrapper of SET_SESSIONS action dispatcher, used for updating single session
-   */
   const setSession = React.useCallback(
-    (newSessionData?: IOrchestSession) => {
-      if (!newSessionData) return;
-      dispatch((currentState) => {
-        let found = false;
-        const newSessions = (currentState.sessions || []).map((sessionData) => {
-          const isMatching = isSameSession(newSessionData, sessionData);
-          if (isMatching) found = true;
+    (pipelineUuid: string, sessionData?: OrchestSession) => {
+      if (!projectUuid) return;
+      const sessionKey = getSessionKey({ projectUuid, pipelineUuid });
+      const shouldDeleteSession = !hasValue(sessionData);
 
-          return isMatching
-            ? { ...sessionData, ...newSessionData }
-            : sessionData;
-        });
+      dispatch((current) => {
+        const currentSessions = current.sessions || {};
 
-        // not found, insert newSessionData as the temporary session
-        const outcome: IOrchestSession[] = found
-          ? newSessions
-          : [...newSessions, { ...newSessionData, status: "LAUNCHING" }];
+        const hasSession = hasValue(currentSessions[sessionKey]);
 
-        return {
-          type: "SET_SESSIONS",
-          payload: {
-            sessions: outcome,
-          },
+        if (!hasSession && shouldDeleteSession)
+          return { type: "SET_SESSIONS", payload: currentSessions };
+        if (shouldDeleteSession) {
+          delete currentSessions[sessionKey];
+          return { type: "SET_SESSIONS", payload: currentSessions };
+        }
+
+        const updatedSessionData: OrchestSession = hasSession
+          ? { ...currentSessions[sessionKey], ...sessionData }
+          : { ...sessionData, status: "LAUNCHING" };
+
+        const updatedSessions: Record<string, OrchestSession> = {
+          ...current.sessions,
+          [sessionKey]: updatedSessionData,
         };
+
+        return { type: "SET_SESSIONS", payload: updatedSessions };
       });
     },
-    [dispatch]
+    [dispatch, projectUuid]
+  );
+
+  const requestStartSession = React.useCallback(
+    async (pipelineUuid: string): Promise<boolean> => {
+      if (!projectUuid) return false;
+      setSession(pipelineUuid, { status: "LAUNCHING" });
+      try {
+        const sessionData = await launchSession({ projectUuid, pipelineUuid });
+        setSession(pipelineUuid, sessionData);
+        return true;
+      } catch (err) {
+        if (err?.message) {
+          setAlert("Error", `Error while starting the session: ${String(err)}`);
+        }
+        return false;
+      }
+    },
+    [setAlert, setSession, projectUuid]
   );
 
   const startSession = React.useCallback(
-    async (payload: IOrchestSessionUuid) => {
-      setSession({ ...payload, status: "LAUNCHING" });
+    async (
+      pipelineUuid: string,
+      requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
+    ) => {
+      const session = getSession(pipelineUuid);
+      if (isSessionStarted(session)) return true;
+
+      const hasBuilt = await ensureEnvironmentsAreBuilt(requestedFromView);
+      if (!hasBuilt) return false;
+      return requestStartSession(pipelineUuid);
+    },
+    [getSession, ensureEnvironmentsAreBuilt, requestStartSession]
+  );
+
+  const requestStopSession = React.useCallback(
+    async (pipelineUuid: string) => {
+      if (!projectUuid) return;
+      setSession(pipelineUuid, { status: "STOPPING" });
       try {
-        const sessionDetails = await fetcher<IOrchestSession>(ENDPOINT, {
-          method: "POST",
-          headers: HEADER.JSON,
-          body: JSON.stringify({
-            pipeline_uuid: payload.pipelineUuid,
-            project_uuid: payload.projectUuid,
-          }),
-        });
-        setSession(sessionDetails);
+        await killSession({ projectUuid, pipelineUuid });
       } catch (err) {
         if (err?.message) {
-          setAlert("Error", `Error while starting the session: ${err.message}`);
+          setAlert("Error", `Error while stopping the session: ${String(err)}`);
         }
-
-        console.error(err);
       }
     },
-    [setSession, setAlert]
+    [setAlert, setSession, projectUuid]
   );
 
-  const setReadOnly = React.useCallback(
-    (value: boolean) => {
-      projectsContext.dispatch({
-        type: "SET_PIPELINE_IS_READONLY",
-        payload: value,
-      });
+  // NOTE: Make sure that your view component is added to useSessionsPoller's list.
+  const stopSession = React.useCallback(
+    async (pipelineUuid: string) => {
+      if (!projectUuid) return;
+      const sessionKey = getSessionKey({ projectUuid, pipelineUuid });
+      const session = state.sessions?.[sessionKey];
+
+      if (!session || session?.status === "STOPPING") return;
+
+      requestStopSession(pipelineUuid);
     },
-    [projectsContext]
-  );
-
-  // NOTE: launch/delete session is an async operation from BE
-  // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
-  const toggleSession: ToggleSessionFunction = React.useCallback(
-    async (props) => {
-      const {
-        shouldStart,
-        onBuildComplete,
-        onCancelBuild,
-        requestedFromView,
-        ...payload
-      } = props;
-      const foundSession = state.sessions?.find((session) =>
-        isSameSession(session, payload)
-      );
-
-      /* use the cashed session from useSWR or create a temporary one out of previous one */
-      const session = convertKeyToCamelCase<IOrchestSession>(foundSession, [
-        "project_uuid",
-        "pipeline_uuid",
-      ]);
-
-      const isOperating =
-        session?.status && ["STOPPING"].includes(session.status);
-      const isAlreadyStopped = shouldStart === false && !session;
-
-      if (isOperating || isAlreadyStopped) return;
-
-      const desiredState: IOrchestSession["status"] =
-        shouldStart !== undefined
-          ? shouldStart
-            ? "LAUNCHING"
-            : "STOPPING"
-          : ["LAUNCHING", "RUNNING"].includes(session?.status || "")
-          ? "STOPPING"
-          : "LAUNCHING";
-
-      if (desiredState !== "STOPPING") {
-        try {
-          await checkGate(payload.projectUuid); // Ensure that environments are built.
-        } catch (error) {
-          setReadOnly(true);
-          requestBuild(
-            payload.projectUuid,
-            error.data,
-            requestedFromView || "",
-            () => {
-              startSession(payload);
-              setReadOnly(false);
-              if (onBuildComplete) onBuildComplete();
-            },
-            onCancelBuild
-          );
-          return;
-        }
-      }
-
-      if (hasValue(session) && desiredState === "STOPPING") {
-        setSession({ ...session, status: desiredState });
-        try {
-          await stopSession(session);
-        } catch (error) {
-          setAlert("Error", "Failed to stop session.");
-          console.error(error);
-        }
-        return;
-      }
-
-      if (!["LAUNCHING", "RUNNING"].includes(session?.status || "")) {
-        startSession(payload);
-      }
-    },
-    [setAlert, setSession, state, startSession, requestBuild, setReadOnly]
+    [state.sessions, requestStopSession, projectUuid]
   );
 
   const deleteAllSessions = React.useCallback(async () => {
     dispatch({ type: "SET_IS_KILLING_ALL_SESSIONS", payload: true });
     try {
       await Promise.all(
-        (state.sessions || [])
-          .map((sessionValue) => {
+        Object.entries(state.sessions || {})
+          .map(([sessionKey, sessionValue]) => {
             const shouldStop = isStoppable(sessionValue.status);
-            return shouldStop ? stopSession(sessionValue) : null;
+            const [projectUuid, pipelineUuid] = sessionKey.split("|");
+            return shouldStop
+              ? killSession({ projectUuid, pipelineUuid })
+              : null;
           })
           .filter((value) => hasValue(value))
       );
@@ -339,7 +255,8 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         state,
         dispatch,
         getSession,
-        toggleSession,
+        startSession,
+        stopSession,
         deleteAllSessions,
       }}
     >

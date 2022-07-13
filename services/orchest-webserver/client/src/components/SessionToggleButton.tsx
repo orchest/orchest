@@ -1,7 +1,7 @@
-import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
-import { IOrchestSession } from "@/types";
+import { OrchestSession } from "@/types";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { SxProps, Theme } from "@mui/material";
@@ -12,9 +12,8 @@ import React from "react";
 
 export type TSessionToggleButtonRef = HTMLButtonElement;
 type ISessionToggleButtonProps = {
-  status?: IOrchestSession["status"] | "";
+  status?: OrchestSession["status"] | "";
   pipelineUuid: string;
-  projectUuid: string;
   isSwitch?: boolean;
   label?: React.ReactElement | string | number;
   className?: string;
@@ -22,20 +21,14 @@ type ISessionToggleButtonProps = {
 };
 
 const SessionToggleButton = (props: ISessionToggleButtonProps) => {
-  const { state, getSession, toggleSession } = useSessionsContext();
+  const { getSession, startSession, stopSession } = useSessionsContext();
 
-  const { className, isSwitch, label, pipelineUuid, projectUuid, sx } = props;
+  const { className, isSwitch, label, pipelineUuid, sx } = props;
 
-  const status =
-    props.status ||
-    getSession({
-      pipelineUuid,
-      projectUuid,
-    })?.status ||
-    "";
+  const session = getSession(pipelineUuid);
+  const status = props.status || session?.status || "";
 
-  const disabled =
-    state.sessionsIsLoading || ["STOPPING", "LAUNCHING"].includes(status);
+  const disabled = ["STOPPING", "LAUNCHING"].includes(status);
   const statusLabel =
     {
       STOPPING: "Session stopping…",
@@ -43,14 +36,19 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       RUNNING: "Stop session",
     }[status] || "Start session";
 
-  const handleEvent = (e: React.MouseEvent | React.ChangeEvent) => {
+  const handleEvent = (
+    e: React.MouseEvent | React.ChangeEvent,
+    checked?: boolean
+  ) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleSession({
-      pipelineUuid,
-      projectUuid,
-      requestedFromView: BUILD_IMAGE_SOLUTION_VIEW.PIPELINE,
-    });
+
+    const shouldStart = checked === true || !session;
+    if (shouldStart) {
+      startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
+    } else {
+      stopSession(pipelineUuid);
+    }
   };
   const isSessionAlive = status === "RUNNING";
 

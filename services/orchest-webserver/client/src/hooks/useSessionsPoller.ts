@@ -1,43 +1,23 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useSessionsContext } from "@/contexts/SessionsContext";
+import { getSessionKey, useSessionsContext } from "@/contexts/SessionsContext";
 import { siteMap } from "@/routingConfig";
-import { IOrchestSession } from "@/types";
+import { OrchestSession } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
-import pascalcase from "pascalcase";
 import React from "react";
 import { matchPath, useLocation } from "react-router-dom";
 import { useInterval } from "./use-interval";
 import { useFetcher } from "./useFetcher";
 
-type TSessionStatus = IOrchestSession["status"];
+type TSessionStatus = OrchestSession["status"];
 
 type FetchSessionResponse = {
-  sessions: (IOrchestSession & {
+  sessions: (OrchestSession & {
     project_uuid: string;
     pipeline_uuid: string;
   })[];
   status: TSessionStatus;
 };
-
-const lowerCaseFirstLetter = (str: string) =>
-  str.charAt(0).toLowerCase() + str.slice(1);
-
-function convertKeyToCamelCase<T>(data: T, keys?: string[]): T {
-  if (keys) {
-    for (const key of keys) {
-      data[lowerCaseFirstLetter(pascalcase(key))] = data[key];
-    }
-    return data as T;
-  }
-  return Object.entries(data).reduce((newData, curr) => {
-    const [key, value] = curr;
-    return {
-      ...newData,
-      [lowerCaseFirstLetter(pascalcase(key))]: value,
-    };
-  }, {}) as T;
-}
 
 /**
  * NOTE: useSessionsPoller should only be placed in HeaderBar
@@ -71,13 +51,19 @@ export const useSessionsPoller = () => {
 
   const { data: sessions, error, fetchData: fetchSessions } = useFetcher<
     FetchSessionResponse,
-    FetchSessionResponse["sessions"]
+    Record<string, OrchestSession>
   >("/catch/api-proxy/api/sessions/", {
     disableFetchOnMount: true,
     transform: (data) =>
-      data.sessions.map((session) =>
-        convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-      ),
+      data.sessions.reduce((sessionsObj, session) => {
+        const {
+          project_uuid: projectUuid,
+          pipeline_uuid: pipelineUuid,
+          ...sessionData
+        } = session;
+        const sessionKey = getSessionKey({ projectUuid, pipelineUuid });
+        return { ...sessionsObj, [sessionKey]: sessionData };
+      }, {} as Record<string, OrchestSession>),
   });
 
   // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING
@@ -103,10 +89,7 @@ export const useSessionsPoller = () => {
   React.useEffect(() => {
     dispatch({
       type: "SET_SESSIONS",
-      payload: {
-        sessions: sessions,
-        sessionsIsLoading: isLoading,
-      },
+      payload: sessions,
     });
   }, [sessions, dispatch, isLoading]);
 };

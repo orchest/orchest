@@ -1,4 +1,7 @@
-import { useAppContext } from "@/contexts/AppContext";
+import {
+  BUILD_IMAGE_SOLUTION_VIEW,
+  useProjectsContext,
+} from "@/contexts/ProjectsContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -19,11 +22,6 @@ const buildFailMessage = `Some environment builds of this project have failed.
   but you might need to change the environment setup script in 
   order for the build to succeed.`;
 
-export enum BUILD_IMAGE_SOLUTION_VIEW {
-  PIPELINE = "Pipeline",
-  JUPYTER_LAB = "JupyterLab",
-}
-
 const solutionMessages = {
   [BUILD_IMAGE_SOLUTION_VIEW.PIPELINE]:
     " You can cancel to open the project in read-only mode.",
@@ -33,13 +31,13 @@ const solutionMessages = {
 
 const getInactiveEnvironmentsMessage = (
   inactiveEnvironments: string[],
-  requestedFromView: string | undefined
+  requestedFromView = ""
 ) => {
   const inactiveEnvironmentsMessage =
     inactiveEnvironments.length > 0
       ? `Not all environments of this project have been built. Would you like to build them?`
       : `Some environments of this project are still building. Please wait until the build is complete.`;
-  const solutionMessage = solutionMessages[requestedFromView || ""] || "";
+  const solutionMessage = solutionMessages[requestedFromView] || "";
 
   return `${inactiveEnvironmentsMessage}${solutionMessage}`;
 };
@@ -49,7 +47,7 @@ const BuildPendingDialog: React.FC = () => {
   const {
     state: { buildRequest },
     dispatch,
-  } = useAppContext();
+  } = useProjectsContext();
 
   const [gateInterval, setGateInterval] = React.useState<number | null>(null);
 
@@ -70,10 +68,7 @@ const BuildPendingDialog: React.FC = () => {
     checkGate(buildRequest.projectUuid)
       .then(() => {
         setBuilding(false);
-
-        if (buildRequest?.onBuildComplete) buildRequest.onBuildComplete();
-
-        onClose();
+        onComplete();
       })
       .catch((error) => {
         // Gate check failed, check why it failed and act
@@ -138,7 +133,13 @@ const BuildPendingDialog: React.FC = () => {
 
   if (!buildRequest) return null;
 
-  const onClose = () => {
+  const onComplete = () => {
+    buildRequest?.onComplete();
+    dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
+  };
+
+  const cancel = () => {
+    buildRequest?.onCancel();
     dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
   };
 
@@ -180,13 +181,7 @@ const BuildPendingDialog: React.FC = () => {
       e
     );
 
-    onClose();
-  };
-
-  const cancel = () => {
-    if (buildRequest?.onCancel) buildRequest.onCancel();
-
-    onClose();
+    cancel();
   };
 
   return (
