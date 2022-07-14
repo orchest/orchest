@@ -9,7 +9,7 @@ import React from "react";
 
 type TSessionStatus = OrchestSession["status"];
 
-const ENDPOINT = "/catch/api-proxy/api/sessions";
+export const SESSIONS_ENDPOINT = "/catch/api-proxy/api/sessions";
 
 const isStoppable = (status: TSessionStatus) =>
   ["RUNNING", "LAUNCHING"].includes(status || "");
@@ -21,8 +21,7 @@ const launchSession = ({
   projectUuid: string;
   pipelineUuid: string;
 }) => {
-  // NOTE: the trailing slash is required, otherwise the request will be picked up by other route.
-  return fetcher<OrchestSession>(`${ENDPOINT}/`, {
+  return fetcher<OrchestSession>(SESSIONS_ENDPOINT, {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({
@@ -39,7 +38,7 @@ const killSession = ({
   projectUuid: string;
   pipelineUuid: string;
 }) => {
-  return fetcher(`${ENDPOINT}/${projectUuid}/${pipelineUuid}`, {
+  return fetcher(`${SESSIONS_ENDPOINT}/${projectUuid}/${pipelineUuid}`, {
     method: "DELETE",
   });
 };

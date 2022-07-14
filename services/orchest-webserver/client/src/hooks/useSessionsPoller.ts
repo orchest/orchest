@@ -1,6 +1,10 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { getSessionKey, useSessionsContext } from "@/contexts/SessionsContext";
+import {
+  getSessionKey,
+  SESSIONS_ENDPOINT,
+  useSessionsContext,
+} from "@/contexts/SessionsContext";
 import { siteMap } from "@/routingConfig";
 import { OrchestSession } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
@@ -52,7 +56,7 @@ export const useSessionsPoller = () => {
   const { data: sessions, error, fetchData: fetchSessions } = useFetcher<
     FetchSessionResponse,
     Record<string, OrchestSession>
-  >("/catch/api-proxy/api/sessions/", {
+  >(SESSIONS_ENDPOINT, {
     disableFetchOnMount: true,
     transform: (data) =>
       data.sessions.reduce((sessionsObj, session) => {
