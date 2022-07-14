@@ -57,8 +57,7 @@ Orchest
 
    development/contributing
    development/development_workflow
-   development/how_orchest_works
    development/troubleshooting
    development/implementation_best_practices
-   development/feature_manuals
+   development/how_orchest_works
    development/appendix
