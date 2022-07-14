@@ -1,3 +1,11 @@
+"""Module containing background tasks of the orchest-webserver.
+
+The module runs as a short lived process which is created by the
+orchest-webserver when a particular background task is needed. It does
+not share it's codebase, thus re-using the existing models to interface
+with the database through sqlalchemy is not possible.
+
+"""
 import argparse
 import os
 import time
@@ -62,6 +70,9 @@ def git_clone_project(args) -> Tuple[int, str]:
             )
         )
 
+        # GETting the /async/projects endpoint triggers the discovering
+        # of projects that have been created or deleted through the file
+        # system, so that Orchest can re-sync projects.
         # The task is considered done once the project has been
         # discovered or if the project has been renamed/deleted (doesn't
         # exist anymore at the desired path.). The project not being
