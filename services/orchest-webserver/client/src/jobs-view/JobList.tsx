@@ -1,6 +1,10 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import {
+  BUILD_IMAGE_SOLUTION_VIEW,
+  useProjectsContext,
+} from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJobs } from "@/hooks/useFetchJobs";
@@ -110,7 +114,8 @@ const doCreateJob = async (
 
 const JobList = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
-  const { setAlert, setConfirm, requestBuild } = useAppContext();
+  const { setAlert, setConfirm } = useAppContext();
+  const { requestBuild } = useProjectsContext();
   const { webhooks } = useAppInnerContext();
 
   const goToNotificationSettings = () => {
@@ -224,16 +229,23 @@ const JobList = () => {
   );
 
   React.useEffect(() => {
-    if (projectUuid && createJobError) {
+    if (projectUuid && createJobError && selectedPipeline) {
       setIsCreateDialogOpen(false);
 
-      if (createJobError.reason === "gate-failed" && selectedPipeline) {
-        requestBuild(projectUuid, createJobError.data, "CreateJob", () => {
-          setIsCreateDialogOpen(true);
-          createJob(jobName, selectedPipeline);
+      if (createJobError.reason === "gate-failed") {
+        requestBuild(
+          projectUuid,
+          createJobError.data,
+          BUILD_IMAGE_SOLUTION_VIEW.JOBS
+        ).then((hasBuilt) => {
+          if (hasBuilt) {
+            setIsCreateDialogOpen(true);
+            createJob(jobName, selectedPipeline);
+          }
         });
         return;
       }
+
       setAlert("Error", `Failed to create job. ${createJobError.message}`);
     }
   }, [

@@ -101,12 +101,7 @@ export interface OrchestServerConfig {
   user_config: OrchestUserConfig;
 }
 
-export interface IOrchestSessionUuid {
-  projectUuid: string;
-  pipelineUuid: string;
-}
-
-export interface IOrchestSession extends IOrchestSessionUuid {
+export interface OrchestSession {
   status?: "RUNNING" | "LAUNCHING" | "STOPPING";
   base_url?: string;
   user_services?: {
@@ -390,14 +385,6 @@ export type EnvironmentValidationData = {
   fail: string[];
   pass: string[];
   validation: "fail" | "pass";
-};
-
-export type BuildRequest = {
-  projectUuid: string;
-  environmentValidationData: EnvironmentValidationData;
-  requestedFromView: string;
-  onBuildComplete: () => void;
-  onCancel?: () => void;
 };
 
 export type Pagination = {

@@ -185,10 +185,7 @@ const PipelineSettingsView: React.FC = () => {
   const [servicesChanged, setServicesChanged] = React.useState(false);
   const [envVarsChanged, setEnvVarsChanged] = React.useState(false);
 
-  const session = getSession({
-    pipelineUuid,
-    projectUuid,
-  });
+  const session = getSession(pipelineUuid);
   if (!session && !hasUnsavedChanges && (servicesChanged || envVarsChanged)) {
     setServicesChanged(false);
     setEnvVarsChanged(false);

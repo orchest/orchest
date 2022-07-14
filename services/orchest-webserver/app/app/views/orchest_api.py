@@ -281,7 +281,7 @@ def register_orchest_api_views(app, db):
         )
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/sessions/", methods=["GET"])
+    @app.route("/catch/api-proxy/api/sessions", methods=["GET"])
     def catch_api_proxy_sessions_get():
 
         resp = requests.get(
@@ -307,7 +307,7 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/sessions/", methods=["POST"])
+    @app.route("/catch/api-proxy/api/sessions", methods=["POST"])
     def catch_api_proxy_sessions_post():
 
         json_obj = request.json

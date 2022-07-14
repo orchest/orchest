@@ -2,7 +2,7 @@ import {
   DefaultEnvironment,
   Environment,
   EnvironmentImageBuild,
-  IOrchestSession,
+  OrchestSession,
 } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 
@@ -21,7 +21,7 @@ export const requestToRemoveEnvironment = (
 };
 
 export const fetchSessionsInProject = async (projectUuid: string) => {
-  const sessionData = await fetcher<{ sessions: IOrchestSession[] }>(
+  const sessionData = await fetcher<{ sessions: OrchestSession[] }>(
     `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
   );
   return sessionData.sessions;

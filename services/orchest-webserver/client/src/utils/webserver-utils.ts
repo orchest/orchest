@@ -207,6 +207,7 @@ export function getServiceURLs(
   );
 }
 
+// Ensure that environments in the project are ALL built.
 export function checkGate(project_uuid: string) {
   return new Promise<void>((resolve, reject) => {
     // we validate whether all environments have been built on the server

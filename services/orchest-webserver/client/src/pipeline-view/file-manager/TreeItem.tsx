@@ -3,7 +3,6 @@ import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import MuiTreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
 import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
@@ -51,9 +50,8 @@ export const TreeItem = ({
   const {
     state: { pipelines = [] },
   } = useProjectsContext();
-  const { projectUuid } = useCustomRoute();
   const { setConfirm } = useAppContext();
-  const { getSession, toggleSession } = useSessionsContext();
+  const { getSession, stopSession } = useSessionsContext();
 
   const icon = !fileName ? undefined : fileName.endsWith(".orchest") ? (
     <OrchestFileIcon size={22} />
@@ -88,10 +86,9 @@ export const TreeItem = ({
             const foundPipeline = pipelines.find(
               (pipeline) => pipeline.path === filePathRelativeToProjectDir
             );
-            const session = foundPipeline
-              ? getSession({ pipelineUuid: foundPipeline.uuid, projectUuid })
-              : null;
-            if (session) {
+            const session = getSession(foundPipeline?.uuid);
+
+            if (foundPipeline?.uuid && session) {
               setConfirm(
                 "Warning",
                 <>
@@ -102,7 +99,7 @@ export const TreeItem = ({
                 {
                   confirmLabel: "Stop session",
                   onConfirm: async (resolve) => {
-                    toggleSession(session);
+                    stopSession(foundPipeline.uuid);
                     resolve(true);
                     return true;
                   },

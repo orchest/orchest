@@ -1,8 +1,6 @@
 import { useAsync } from "@/hooks/useAsync";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
-  BuildRequest,
-  EnvironmentValidationData,
   OrchestConfig,
   OrchestServerConfig,
   OrchestUserConfig,
@@ -11,9 +9,6 @@ import {
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
-/** Utility functions
- =====================================================
- */
 function parseLineBreak(lines: string) {
   if (lines === undefined) return [];
 
@@ -84,7 +79,6 @@ type PromptMessageConverter<T extends PromptMessage> = T extends Alert
 
 type AppContextState = {
   promptMessages: PromptMessage[];
-  buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
   isShowingOnboarding: boolean;
   // we already store hasCompletedOnboarding in localstorage, which is enough for most cases,
@@ -105,10 +99,6 @@ type Action =
   | {
       type: "SET_PROMPT_MESSAGES";
       payload: PromptMessage[];
-    }
-  | {
-      type: "SET_BUILD_REQUEST";
-      payload: BuildRequest | undefined;
     }
   | {
       type: "SET_HAS_UNSAVED_CHANGES";
@@ -145,14 +135,6 @@ export type ConfirmDispatcher = (
       }
 ) => Promise<boolean>;
 
-export type RequestBuildDispatcher = (
-  projectUuid: string,
-  environmentValidationData: EnvironmentValidationData,
-  requestedFromView: string,
-  onBuildComplete: () => void,
-  onCancel?: () => void
-) => void;
-
 type PromptMessageDispatcher<T extends PromptMessage> = T extends Alert
   ? AlertDispatcher
   : T extends Confirm
@@ -164,7 +146,6 @@ type AppContext = {
   dispatch: React.Dispatch<AppContextAction>;
   setAlert: AlertDispatcher;
   setConfirm: ConfirmDispatcher;
-  requestBuild: RequestBuildDispatcher;
   deletePromptMessage: () => void;
   setAsSaved: (value?: boolean) => void;
   isDrawerOpen: boolean;
@@ -185,10 +166,6 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
     }
     case "SET_PROMPT_MESSAGES": {
       return { ...state, promptMessages: action.payload };
-    }
-
-    case "SET_BUILD_REQUEST": {
-      return { ...state, buildRequest: action.payload };
     }
 
     case "SET_HAS_UNSAVED_CHANGES": {
@@ -403,28 +380,6 @@ export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
     [dispatch]
   );
 
-  const requestBuild = React.useCallback(
-    (
-      projectUuid: string,
-      environmentValidationData: EnvironmentValidationData,
-      requestedFromView: string,
-      onBuildComplete: () => void,
-      onCancel?: () => void
-    ) => {
-      dispatch({
-        type: "SET_BUILD_REQUEST",
-        payload: {
-          projectUuid,
-          environmentValidationData,
-          requestedFromView,
-          onBuildComplete,
-          onCancel,
-        },
-      });
-    },
-    [dispatch]
-  );
-
   return (
     <Context.Provider
       value={{
@@ -434,7 +389,6 @@ export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
         dispatch,
         setAlert,
         setConfirm,
-        requestBuild,
         deletePromptMessage,
         setAsSaved,
         isDrawerOpen,

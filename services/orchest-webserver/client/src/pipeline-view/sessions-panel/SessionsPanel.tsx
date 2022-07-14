@@ -1,13 +1,13 @@
 import SessionToggleButton from "@/components/SessionToggleButton";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { IOrchestSession } from "@/types";
+import { OrchestSession } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
-type SessionStatus = IOrchestSession["status"] | "";
+type SessionStatus = OrchestSession["status"] | "";
 
 export const SessionsPanel = () => {
   const {
@@ -33,14 +33,11 @@ export const SessionsPanel = () => {
         }}
       >
         {pipelines.map((pipeline) => {
-          const sessionStatus = (getSession({
-            pipelineUuid: pipeline.uuid,
-            projectUuid,
-          })?.status || "") as SessionStatus;
+          const sessionStatus = (getSession(pipeline.uuid)?.status ||
+            "") as SessionStatus;
 
           return (
             <SessionToggleButton
-              projectUuid={projectUuid}
               pipelineUuid={pipeline.uuid}
               status={sessionStatus}
               sx={{

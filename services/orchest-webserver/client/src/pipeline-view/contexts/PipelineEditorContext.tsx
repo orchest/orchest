@@ -3,9 +3,9 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Environment,
-  IOrchestSession,
   MouseTracker,
   NewConnection,
+  OrchestSession,
   PipelineJson,
   Position,
   StepsDict,
@@ -61,7 +61,7 @@ export type PipelineEditorContextType = {
     startNodeUUID: string;
     endNodeUUID: string | undefined;
   };
-  session: IOrchestSession | undefined;
+  session: OrchestSession | undefined;
   getOnCanvasPosition: (offset: Position) => Position;
   disabled: boolean;
 };
