@@ -11,8 +11,8 @@ import { useFetchJobs } from "@/hooks/useFetchJobs";
 import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { siteMap } from "@/routingConfig";
-import { EnvironmentValidationData, Job, JobStatus } from "@/types";
-import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
+import { EnvironmentValidationData, JobStatus } from "@/types";
+import { formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
@@ -26,6 +26,7 @@ import React from "react";
 import { IconButton } from "../components/common/IconButton";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { StatusInline } from "../components/Status";
+import { requestCreateJob } from "./common";
 import { CreateJobDialog } from "./CreateJobDialog";
 import { EditJobNameDialog } from "./EditJobNameDialog";
 import { useFetchPipelinesOnCreateJob } from "./useFetchPipelinesOnCreateJob";
@@ -86,31 +87,6 @@ const createColumns = ({
     },
   },
 ];
-
-const doCreateJob = async (
-  projectUuid: string,
-  newJobName: string,
-  pipelineUuid: string,
-  pipelineName: string
-) => {
-  await checkGate(projectUuid);
-  return fetcher<Job>("/catch/api-proxy/api/jobs/", {
-    method: "POST",
-    headers: HEADER.JSON,
-    body: JSON.stringify({
-      pipeline_uuid: pipelineUuid,
-      project_uuid: projectUuid,
-      pipeline_name: pipelineName, // ? Question: why pipeline_name is needed when pipeline_uuid is given?
-      name: newJobName,
-      draft: true,
-      pipeline_run_spec: {
-        run_type: "full",
-        uuids: [],
-      },
-      parameters: [],
-    }),
-  });
-};
 
 const JobList = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
@@ -210,7 +186,7 @@ const JobList = () => {
       )?.name;
 
       return run(
-        doCreateJob(
+        requestCreateJob(
           projectUuid,
           newJobName,
           pipelineUuid,

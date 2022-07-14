@@ -12,7 +12,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { usePipelineDataContext } from "./contexts/PipelineDataContext";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
 const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
   return fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
@@ -98,8 +98,8 @@ export const PipelineMoreOptionsMenu = () => {
         id="pipeline-settings-menu"
         open={isOpen}
         onClose={handleClose}
-        transformOrigin={{ horizontal: "right", vertical: "top" }}
-        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <MenuItem disabled={!hasValue(pipeline)} onClick={openSettings}>
           <ListItemIcon>

@@ -3,9 +3,9 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { CreateStepButton } from "../CreateStepButton";
-import { PipelineMoreOptionsMenu } from "../PipelineMoreOptionsMenu";
 import { PipelineOperations } from "./pipeline-operations/PipelineOperations";
 import { PipelineFileName } from "./PipelineFileName";
+import { PipelineMoreOptionsMenu } from "./PipelineMoreOptionsMenu";
 import { ServicesMenu } from "./ServicesMenu";
 
 export const PipelineCanvasHeaderBar = () => {
@@ -13,11 +13,11 @@ export const PipelineCanvasHeaderBar = () => {
     <Stack
       direction="row"
       alignItems="center"
-      spacing={1}
+      spacing={2}
       sx={{
         backgroundColor: (theme) => theme.palette.background.paper,
         borderBottom: (theme) => `1px solid ${theme.borderColor}`,
-        padding: (theme) => theme.spacing(0, 2),
+        padding: (theme) => theme.spacing(0, 3, 0, 2),
         height: (theme) => theme.spacing(7),
       }}
     >
