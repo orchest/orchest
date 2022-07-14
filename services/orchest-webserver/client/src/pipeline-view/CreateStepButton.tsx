@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import AddIcon from "@mui/icons-material/Add";
 import Button from "@mui/material/Button";
 import React from "react";
@@ -11,8 +12,13 @@ import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 export const CreateStepButton = () => {
   const { setAlert } = useAppContext();
   const { environments } = usePipelineDataContext();
+  const {
+    state: { pipelineIsReadOnly: disabled },
+  } = useProjectsContext();
   const { dispatch, pipelineViewportRef } = usePipelineEditorContext();
-  const { pipelineCanvasState } = usePipelineCanvasContext();
+  const {
+    pipelineCanvasState: { pipelineOffset },
+  } = usePipelineCanvasContext();
 
   const createStep = async () => {
     if (!pipelineViewportRef.current) {
@@ -32,10 +38,7 @@ export const CreateStepButton = () => {
         clientWidth,
         clientHeight,
       } = (pipelineViewportRef.current as unknown) as HTMLDivElement;
-      const [
-        pipelineOffsetX,
-        pipelineOffsetY,
-      ] = pipelineCanvasState.pipelineOffset;
+      const [pipelineOffsetX, pipelineOffsetY] = pipelineOffset;
 
       const position = {
         x: -pipelineOffsetX + clientWidth / 2 - STEP_WIDTH / 2,
@@ -53,6 +56,7 @@ export const CreateStepButton = () => {
       size="small"
       onClick={createStep}
       startIcon={<AddIcon />}
+      disabled={disabled}
       data-test-id="step-create"
     >
       NEW STEP

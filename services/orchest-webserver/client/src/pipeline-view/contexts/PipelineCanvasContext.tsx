@@ -16,7 +16,7 @@ export type PipelineCanvasContextType = {
 
 export const PipelineCanvasContext = React.createContext<
   PipelineCanvasContextType
->(null);
+>({} as PipelineCanvasContextType);
 
 export const usePipelineCanvasContext = () =>
   React.useContext(PipelineCanvasContext);
