@@ -18,10 +18,14 @@ export const PipelineFileName = () => {
   return (
     <Tooltip title={`Project files/${path}`} placement="bottom-start">
       <Stack direction="row" alignItems="baseline" sx={{ flex: 1 }}>
-        <Typography component="h2" variant="h5">
-          {fileNameWithoutExtension}
-        </Typography>
-        <Typography variant="subtitle2">.orchest</Typography>
+        {path.length > 0 && (
+          <>
+            <Typography component="h2" variant="h5">
+              {fileNameWithoutExtension}
+            </Typography>
+            <Typography variant="subtitle2">.orchest</Typography>
+          </>
+        )}
       </Stack>
     </Tooltip>
   );
