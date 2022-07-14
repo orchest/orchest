@@ -86,8 +86,12 @@ def git_clone_project(args) -> Tuple[int, str]:
                 time.sleep(1)
                 continue
 
-            project = [proj for proj in resp.json() if proj["path"] == project_name]
-            if project or not os.path.exists(f"/userdir/projects/{project_name}"):
+            project = [
+                proj for proj in resp.json() if proj["path"] == inferred_project_name
+            ]
+            if project or not os.path.exists(
+                f"/userdir/projects/{inferred_project_name}"
+            ):
                 return 0, inferred_project_name
             time.sleep(1)
 
