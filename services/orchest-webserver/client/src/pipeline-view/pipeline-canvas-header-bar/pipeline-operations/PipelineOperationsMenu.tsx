@@ -103,8 +103,17 @@ export const PipelineOperationsMenu = ({
       transformOrigin={{ vertical: "top", horizontal: "right" }}
     >
       {operationOptions.map((option) => {
+        const disabled = !hasValue(option.action);
+        const handleClick = () => {
+          option.action?.();
+          onClose();
+        };
         return (
-          <MenuItem key={option.label} onClick={option.action}>
+          <MenuItem
+            key={option.label}
+            disabled={disabled}
+            onClick={handleClick}
+          >
             <ListItemIcon>{option.icon}</ListItemIcon>
             <ListItemText>{option.label}</ListItemText>
             <Typography variant="caption" color="text.secondary">
