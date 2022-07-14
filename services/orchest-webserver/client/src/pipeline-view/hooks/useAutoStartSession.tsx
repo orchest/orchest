@@ -33,18 +33,19 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
   // The only case that auto-start should be disabled is that
   // session.status was once set as "STOPPING",
   // because this state "STOPPING" can only happen if user clicks on "Stop Session" on purpose.
-  const stoppedPipelineUuid = React.useRef<string>();
+  const startedPipelineUuid = React.useRef<string>();
   React.useEffect(() => {
     if (session?.status === "STOPPING")
-      stoppedPipelineUuid.current = pipeline?.uuid;
+      startedPipelineUuid.current = pipeline?.uuid;
   }, [session, pipeline?.uuid]);
 
   React.useEffect(() => {
     if (
       pipeline?.uuid &&
       shouldCheckIfAutoStartIsNeeded &&
-      stoppedPipelineUuid.current !== pipeline?.uuid
+      startedPipelineUuid.current !== pipeline?.uuid
     ) {
+      startedPipelineUuid.current = pipeline?.uuid;
       startSession(pipeline.uuid, BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
     }
   }, [shouldCheckIfAutoStartIsNeeded, startSession, pipeline?.uuid]);
