@@ -1,3 +1,4 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import ArrowDropDownOutlinedIcon from "@mui/icons-material/ArrowDropDownOutlined";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 import Box from "@mui/material/Box";
@@ -11,6 +12,9 @@ export const PipelineOperationButton = React.forwardRef<
   HTMLButtonElement,
   PipelineOperationButtonProps
 >(function PipelineOperationButtonComponent({ openMenu }, ref) {
+  const {
+    state: { pipelineIsReadOnly: disabled },
+  } = useProjectsContext();
   const localRef = React.useRef<HTMLButtonElement>();
   const { runSelectedSteps, runAllSteps, shouldRunAll } = useRunSteps();
 
@@ -25,6 +29,7 @@ export const PipelineOperationButton = React.forwardRef<
           ref.current = node;
         }
       }}
+      disabled={disabled}
       sx={{
         marginLeft: (theme) => theme.spacing(1),
         ":hover": {
@@ -37,12 +42,15 @@ export const PipelineOperationButton = React.forwardRef<
           sx={{
             margin: (theme) => theme.spacing(-2, -1.5, -2, 0),
             width: (theme) => theme.spacing(4),
-            backgroundColor: (theme) => theme.palette.primary.dark,
+            backgroundColor: (theme) =>
+              !disabled
+                ? theme.palette.primary.dark
+                : theme.palette.action.disabledBackground,
           }}
         >
           <ArrowDropDownOutlinedIcon
             fontSize="small"
-            onClick={openMenu}
+            onClick={!disabled ? openMenu : undefined}
             sx={{
               transform: (theme) => `translate(0, ${theme.spacing(0.5)})`,
             }}
