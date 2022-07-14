@@ -8,19 +8,17 @@ import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 
 type TSessionStatus = OrchestSession["status"];
+type SessionIdentifier = {
+  projectUuid: string;
+  pipelineUuid: string;
+};
 
 export const SESSIONS_ENDPOINT = "/catch/api-proxy/api/sessions";
 
 const isStoppable = (status: TSessionStatus) =>
   ["RUNNING", "LAUNCHING"].includes(status || "");
 
-const launchSession = ({
-  projectUuid,
-  pipelineUuid,
-}: {
-  projectUuid: string;
-  pipelineUuid: string;
-}) => {
+const launchSession = ({ projectUuid, pipelineUuid }: SessionIdentifier) => {
   return fetcher<OrchestSession>(SESSIONS_ENDPOINT, {
     method: "POST",
     headers: HEADER.JSON,
@@ -31,13 +29,7 @@ const launchSession = ({
   });
 };
 
-const killSession = ({
-  projectUuid,
-  pipelineUuid,
-}: {
-  projectUuid: string;
-  pipelineUuid: string;
-}) => {
+const killSession = ({ projectUuid, pipelineUuid }: SessionIdentifier) => {
   return fetcher(`${SESSIONS_ENDPOINT}/${projectUuid}/${pipelineUuid}`, {
     method: "DELETE",
   });
@@ -69,10 +61,7 @@ type SessionsContextAction = ReducerActionWithCallback<
 export const getSessionKey = ({
   projectUuid,
   pipelineUuid,
-}: {
-  projectUuid: string;
-  pipelineUuid: string;
-}) => `${projectUuid}|${pipelineUuid}`;
+}: SessionIdentifier) => `${projectUuid}|${pipelineUuid}`;
 
 type SessionsContext = {
   state: SessionsContextState;
