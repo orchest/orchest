@@ -1,5 +1,3 @@
-.. _how orchest works:
-
 How Orchest works
 =================
 .. note::
@@ -84,8 +82,6 @@ step and press *Run selected steps* then you will see in JupyterLab that the cel
    will prompt you with a "File Changed" pop-up whether you want to "Overwrite" or "Revert" on the
    next save. "Overwrite" would let you keep the changes, however, it would then overwrite the
    changes made by the interactive run.
-
-.. _feature manuals:
 
 Feature manuals
 ===============
