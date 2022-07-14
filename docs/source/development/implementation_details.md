@@ -3,6 +3,25 @@
 These implementation details are great to consult when working on the product as they describe in
 detail how features work.
 
+## Orchest Controller
+
+Let's quickly go through how the Orchest Controller "reacts" on the state of the Kubernetes cluster.
+
+In `controller.go` a number of _Informers_ are set up. These _Informers_ (not written by us) store
+the applicable (depending on how you configure the informat) content from the k8s api in memory
+(functioning as cache). This in-memory store is kept in sync with the state of the cluster using a
+`watch` command. To minimize the load on the k8s api an `informerFactory` is used (again not
+implemented by us).
+
+Next, we add _event handlers_ on the informers to watch for particular events, e.g. the creation of
+a Pod. Whenever an event handler is triggered the respective event handler enqueues the task. This
+is where the `orchest-controller` comes in. The Orchest Controller consumes tasks from the respective
+queues and handles it accordingly. An important note to make is that the Orchest Controller will
+always make a deepcopy of objects as to not change the objects in the informer's cache.
+
+Note, that there is one go routine per queue as to not concurrently work on tasks from the same
+queue.
+
 ## Telemetry Events
 
 The Orchest shared library provides a module

@@ -84,6 +84,8 @@ Steps
 Environments
 : Dedicated section: {ref}`Environments`.
 
+    Glossary: {term}`Environments <environment>`.
+
     Because Orchest is a fully containerized application, all your code needs to run in a dedicated
     container. Combined with the fact that code can depend on additional dependencies (who hasn't
     used a library before) the container (the underlying image to be more precise) needs to be
