@@ -102,7 +102,7 @@ const StepDetailsComponent: React.FC<{
   return (
     <StepDetailsContextProvider>
       <StepDetailsContainer
-        style={{ width: panelWidth + "px" }}
+        style={{ width: panelWidth + "px", zIndex: 2147484000 }} // Intercom widget z-index: 2147483000
         className="pipeline-details pane"
       >
         <ResizeBar onMouseDown={startDragging} />
