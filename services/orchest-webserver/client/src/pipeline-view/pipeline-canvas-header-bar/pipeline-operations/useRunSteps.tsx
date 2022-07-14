@@ -1,14 +1,27 @@
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { useInteractiveRunsContext } from "@/pipeline-view/contexts/InteractiveRunsContext";
+import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "@/pipeline-view/contexts/PipelineEditorContext";
 import { RunStepsType } from "@/pipeline-view/hooks/useInteractiveRuns";
 import React from "react";
 
 export const useRunSteps = () => {
+  const { jobUuid } = useCustomRoute();
+  const { runUuid } = usePipelineDataContext();
   const {
     eventVars: { selectedSteps, steps },
   } = usePipelineEditorContext();
-  const { pipelineRunning, runSteps } = useInteractiveRunsContext();
+  const {
+    pipelineRunning,
+    runSteps,
+    cancelRun,
+    isCancellingRun,
+  } = useInteractiveRunsContext();
+
+  const doCancelRun = React.useCallback(() => {
+    return cancelRun({ jobUuid, runUuid });
+  }, [jobUuid, runUuid]);
 
   const doRunSteps = React.useCallback(
     (stepsToRun: string[], type: RunStepsType) => {
@@ -41,5 +54,13 @@ export const useRunSteps = () => {
     doRunSteps(selectedSteps, "incoming");
   }, [doRunSteps, selectedSteps]);
 
-  return { shouldRunAll, runIncomingSteps, runSelectedSteps, runAllSteps };
+  return {
+    pipelineRunning,
+    isCancellingRun,
+    shouldRunAll,
+    runIncomingSteps: selectedSteps.length > 0 ? runIncomingSteps : undefined,
+    runSelectedSteps: selectedSteps.length > 0 ? runSelectedSteps : undefined,
+    runAllSteps: allSteps.length > 0 ? runAllSteps : undefined,
+    cancelRun: doCancelRun,
+  };
 };
