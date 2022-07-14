@@ -54,6 +54,7 @@ export const CreateJobDialog = ({
         id="create-job"
         className="create-job-modal"
         onSubmit={async (e) => {
+          if (!selectedPipeline) return;
           e.preventDefault();
           e.stopPropagation();
           setIsCreatingJob(true);
