@@ -1,9 +1,12 @@
 How Orchest works
 =================
-.. note::
-   WIP (Should be readable for engineers and non-technical people)!
-   Notion that Orchest's views are just views on top of the project directory that lives on the
-   filesystem.
+
+This document tries to explain "How Orchest works". Starting with a high-level overview and later
+going into implementation details. These implementation details are great to consult when working on
+the product as they describe in detail how features work.
+
+High-level overview
+-------------------
 
 A pipeline in Orchest can be thought of as a graph, where the nodes are executable files that
 execute within their own isolated environment (powered by containerization), and the edges define
@@ -55,7 +58,7 @@ As you can see the pipeline steps point to the corresponding files: ``prep.ipynb
 easily change the Docker image, see :ref:`environments <environments>`.
 
 Concepts
---------
+~~~~~~~~
 At Orchest we believe that Jupyter Notebooks thank their popularity to their interactive nature. It
 is great to get immediate feedback and actively inspect your results without having to run the
 entire script.
@@ -82,12 +85,6 @@ step and press *Run selected steps* then you will see in JupyterLab that the cel
    will prompt you with a "File Changed" pop-up whether you want to "Overwrite" or "Revert" on the
    next save. "Overwrite" would let you keep the changes, however, it would then overwrite the
    changes made by the interactive run.
-
-Feature manuals
-===============
-
-A collection of guides on how to work on a given feature or piece of
-the codebase.
 
 Telemetry Events
 ----------------
