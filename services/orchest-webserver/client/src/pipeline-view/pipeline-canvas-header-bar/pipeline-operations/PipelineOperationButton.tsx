@@ -47,10 +47,10 @@ export const PipelineOperationButton = React.forwardRef<
                 ? theme.palette.primary.dark
                 : theme.palette.action.disabledBackground,
           }}
+          onClick={!disabled ? openMenu : undefined}
         >
           <ArrowDropDownOutlinedIcon
             fontSize="small"
-            onClick={!disabled ? openMenu : undefined}
             sx={{
               transform: (theme) => `translate(0, ${theme.spacing(0.5)})`,
             }}
