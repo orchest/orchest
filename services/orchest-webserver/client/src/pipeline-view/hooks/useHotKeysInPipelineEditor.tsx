@@ -8,6 +8,8 @@ export const useHotKeysInPipelineEditor = () => {
   const { runSteps } = useInteractiveRunsContext();
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
 
+  // TODO: add the new operations in `PipelineOperationsMenu`.
+
   const { setScope } = useHotKeys(
     {
       "pipeline-editor": {
