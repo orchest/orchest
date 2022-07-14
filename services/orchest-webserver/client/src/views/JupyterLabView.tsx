@@ -45,10 +45,6 @@ const JupyterLabView = () => {
   >(1000);
   const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
   const [pipelineCwd, setPipelineCwd] = React.useState<string>();
-  const [
-    hasEnvironmentCheckCompleted,
-    setHasEnvironmentCheckCompleted,
-  ] = React.useState(false);
 
   const session = React.useMemo(() => getSession(pipelineUuid), [
     pipelineUuid,
@@ -84,30 +80,13 @@ const JupyterLabView = () => {
     }
   }, [cancelableFetch, makeCancelable, pipelineUuid, projectUuid]);
 
-  const conditionalRenderingOfJupyterLab = React.useCallback(() => {
-    if (window.orchest.jupyter) {
-      if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
-        if (!window.orchest.jupyter?.isShowing()) {
-          window.orchest.jupyter?.show();
-          if (filePath) window.orchest.jupyter?.navigateTo(filePath);
-        }
-      } else {
-        window.orchest.jupyter?.hide();
-      }
-    }
-  }, [filePath, hasEnvironmentCheckCompleted, session?.status]);
+  const isSessionsLoaded = hasValue(sessions);
+  const hasSession = hasValue(session);
 
-  const updateJupyterInstance = React.useCallback(() => {
-    if (session?.base_url) {
-      let baseAddress = "//" + window.location.host + session.base_url;
-      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
-    }
-  }, [session?.base_url]);
-
-  const hasNoSession = hasValue(sessions) && !session;
   // Launch the session if it doesn't exist
   React.useEffect(() => {
-    if (hasNoSession && pipelineUuid && projectUuid) {
+    if (!isSessionsLoaded) return;
+    if (!hasSession && pipelineUuid && projectUuid) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB)
         .then((isSessionStarted) => {
           if (isSessionStarted) {
@@ -123,21 +102,45 @@ const JupyterLabView = () => {
         })
         .catch(() => {
           navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
-        })
-        .finally(() => {
-          setHasEnvironmentCheckCompleted(true);
         });
     }
-  }, [hasNoSession, startSession, pipelineUuid, projectUuid, navigateTo]);
+  }, [
+    isSessionsLoaded,
+    hasSession,
+    startSession,
+    pipelineUuid,
+    projectUuid,
+    navigateTo,
+  ]);
+
+  const conditionalRenderingOfJupyterLab = React.useCallback(() => {
+    if (window.orchest.jupyter) {
+      if (session?.status === "RUNNING" && hasSession) {
+        if (!window.orchest.jupyter?.isShowing()) {
+          window.orchest.jupyter?.show();
+          if (filePath) window.orchest.jupyter?.navigateTo(filePath);
+        }
+      } else {
+        window.orchest.jupyter?.hide();
+      }
+    }
+  }, [filePath, hasSession, session?.status]);
+
+  const updateJupyterInstance = React.useCallback(() => {
+    if (session?.base_url) {
+      let baseAddress = "//" + window.location.host + session.base_url;
+      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
+    }
+  }, [session?.base_url]);
 
   React.useEffect(() => {
-    if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
+    if (session?.status === "RUNNING" && hasSession) {
       conditionalRenderingOfJupyterLab();
       fetchPipeline();
     }
   }, [
     session?.status,
-    hasEnvironmentCheckCompleted,
+    hasSession,
     conditionalRenderingOfJupyterLab,
     fetchPipeline,
   ]);
@@ -157,7 +160,6 @@ const JupyterLabView = () => {
     navigateTo,
     projectUuid,
     updateJupyterInstance,
-    hasEnvironmentCheckCompleted,
   ]);
 
   useInterval(
