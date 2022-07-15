@@ -34,7 +34,7 @@ operating systems are:
 - macOS (M1 Macs should use `Rosetta <https://support.apple.com/en-us/HT211861>`_ for emulation)
 
 .. raw:: html
-   :file: install-widget.html
+   :file: install_widget.html
 
 If you have **special requirements** (or preferences) for deploying Orchest on your Kubernetes
 cluster, then one of the following subsections might proof helpful:
