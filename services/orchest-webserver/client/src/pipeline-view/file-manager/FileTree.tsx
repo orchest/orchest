@@ -22,11 +22,11 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
   filterRedundantChildPaths,
-  findFilesByExtension as findFilesWithExtension,
+  findFilesByExtension,
   findPipelineFiles,
   generateTargetDescription,
   getBaseNameFromPath,
-  getMoveFromDrop as movesFromDrop,
+  getMoveFromDrop,
   isCombinedPath,
   isInDataFolder,
   isInProjectFolder,
@@ -51,7 +51,7 @@ const isInFileManager = (element?: HTMLElement | null): boolean =>
   isInFileManager(element?.parentElement);
 
 /**
- * Finds the node with the specified path
+ * Finds the node with the specified path-
  * @param combinedPath The combined path, e.g: `/project-dir:/foo/bar.py`
  */
 const findNode = (combinedPath: string, fileTrees: FileTrees) => {
@@ -364,7 +364,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           (
             await Promise.all(
               draggedFiles.map((path) =>
-                findFilesWithExtension({
+                findFilesByExtension({
                   root: "/project-dir",
                   node: findNode(path, fileTrees),
                   extensions: ["ipynb", "orchest"],
@@ -412,7 +412,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       if (!projectUuid) return;
 
       const moves = draggedFiles
-        .map((sourcePath) => movesFromDrop(sourcePath, targetPath))
+        .map((sourcePath) => getMoveFromDrop(sourcePath, targetPath))
         .filter(([oldPath, newPath]) => oldPath !== newPath);
 
       await moveFiles(moves);
