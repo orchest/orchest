@@ -1338,6 +1338,16 @@ def _display_spinner(
         eventually and no concurrent/quick successive commands are
         issued.
 
+    Note:
+        Will run for at least 10 seconds as a safeguard to ensure that
+        the `end_status` wasn't reached prematurely, e.g. the current
+        status of the cluster is equal to end status on invocation of
+        this function. The user probably invoked a command to change
+        the state and thus the current state will probably soon change.
+
+        For example running the `orchest restart` command whilst the
+        cluster is in a RUNNING state.
+
     """
 
     def echo(*args, **kwargs):
