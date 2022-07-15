@@ -212,6 +212,10 @@ directly.</p>
   };
 
   let installerContainer = document.querySelector(CONTAINER_CLASS);
+  if(!installerContainer){
+    // Element not found, skip init.
+    return
+  }
   let OSs = Object.keys(installerData);
 
   let osHtml = OSs.map(
