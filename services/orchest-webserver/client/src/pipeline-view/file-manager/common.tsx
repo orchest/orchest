@@ -53,8 +53,8 @@ export type UnpackedPath = {
  * Unpacks an combined path into `root` and `path`.
  * For example `/project-dir:/a/b` will unpack into `/project-dir:` and `/a/b/`.
  *
- * If the input is not a combined path, this function will throw an error
- * to prevent potentially bad moves, renames and similar.
+ * Note: If the path provided is not a combined path, this function may return
+ * something nonsensical. You can use `isCombinedPath` to check.
  */
 export const unpackPath = (combinedPath: string): UnpackedPath => {
   const root = combinedPath.split(":")[0] as FileManagementRoot;
