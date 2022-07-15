@@ -1448,6 +1448,11 @@ def _display_spinner(
                 # command has finished.
                 if curr_status != end_status:
                     thread.wait()  # type: ignore
+
+        if prev_status == curr_status and curr_status == end_status:
+            echo("\r", nl=False)
+            echo("\033[K", nl=False)
+            echo(f"🏁 {curr_status.value}", nl=False)
     finally:
         echo("\033[?25h", nl=True)  # show cursor
 
