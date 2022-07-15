@@ -452,9 +452,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                 hoveredPath={hoveredPath}
                 root={root}
                 onOpen={onOpen}
-                handleRename={(oldPath, newPath) =>
-                  moveFiles([[oldPath, newPath]])
-                }
+                onRename={(oldPath, newPath) => moveFiles([[oldPath, newPath]])}
               />
             </TreeItem>
           );

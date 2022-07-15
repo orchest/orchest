@@ -10,10 +10,10 @@ import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 
 const RenameField = ({
-  handleRename,
+  onRename,
   combinedPath,
 }: {
-  handleRename: (oldPath: string, newPath: string) => void;
+  onRename: (oldPath: string, newPath: string) => void;
   combinedPath: string;
 }) => {
   const {
@@ -66,7 +66,9 @@ const RenameField = ({
               (isFolder ? "/" : "");
             const newCombinedPath = combinePath({ root, path: newPath });
 
-            handleRename(combinedPath, newCombinedPath);
+            if (combinedPath !== newCombinedPath) {
+              onRename(combinedPath, newCombinedPath);
+            }
             setFileInRename(undefined);
           }
         }}
@@ -80,14 +82,14 @@ const RenameField = ({
 
 export const TreeRow = ({
   treeNodes,
-  handleRename,
+  onRename,
   setDragFile,
   root,
   hoveredPath,
   onOpen,
 }: {
   treeNodes: TreeNode[];
-  handleRename: (oldPath: string, newPath: string) => void;
+  onRename: (oldPath: string, newPath: string) => void;
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   root: FileManagementRoot;
   hoveredPath: string | undefined;
@@ -119,10 +121,7 @@ export const TreeRow = ({
         return (
           <Box sx={{ position: "relative" }} key={combinedPath}>
             {fileInRename === combinedPath && (
-              <RenameField
-                handleRename={handleRename}
-                combinedPath={combinedPath}
-              />
+              <RenameField onRename={onRename} combinedPath={combinedPath} />
             )}
 
             <TreeItem
@@ -147,7 +146,7 @@ export const TreeRow = ({
                 root={root}
                 hoveredPath={hoveredPath}
                 onOpen={onOpen}
-                handleRename={handleRename}
+                onRename={onRename}
               />
             </TreeItem>
           </Box>
@@ -158,10 +157,7 @@ export const TreeRow = ({
         return (
           <div style={{ position: "relative" }} key={combinedPath}>
             {fileInRename === combinedPath && (
-              <RenameField
-                handleRename={handleRename}
-                combinedPath={combinedPath}
-              />
+              <RenameField onRename={onRename} combinedPath={combinedPath} />
             )}
             <TreeItem
               disableDragging={pipelineIsReadOnly}
