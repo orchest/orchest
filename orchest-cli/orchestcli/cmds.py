@@ -161,6 +161,9 @@ class ClusterStatus(enum.Enum):
     UNHEALTHY = "Unhealthy"
     DELETING = "Deleting"
 
+    # Added by CLI to indicate that we are fetching the ClusterStatus.
+    FETCHING = "Fetching Orchest Cluster status"
+
 
 def install(
     cloud: bool,
@@ -718,7 +721,7 @@ def update(
         sys.exit(1)
 
     if watch_flag:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
+        _display_spinner(None, ClusterStatus.RUNNING)
         echo("Successfully updated Orchest!")
 
 
@@ -855,7 +858,12 @@ def patch(
     # https://kubernetes.io/docs/reference/using-api/server-side-apply/#custom-resources
     # Therefore, we first GET the custom object, PATCH it at runtime
     # our selves, then send the PATCH request.
-    custom_object = _get_namespaced_custom_object(ns, cluster_name)
+    try:
+        custom_object = _get_namespaced_custom_object(ns, cluster_name)
+    except CRObjectNotFound as e:
+        echo("Failed to patch Orchest Cluster.", err=True)
+        echo(e, err=True)
+        sys.exit(1)
     orchest_spec_patch = {
         "authServer": {
             "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
@@ -900,7 +908,7 @@ def patch(
             echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
-    _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
+    _display_spinner(None, ClusterStatus.RUNNING)
     echo("Successfully patched the Orchest Cluster.")
 
 
@@ -990,7 +998,7 @@ def stop(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.STOPPED)
+        _display_spinner(None, ClusterStatus.STOPPED)
         echo("Successfully stopped Orchest.")
 
 
@@ -1018,7 +1026,7 @@ def start(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.STOPPED, ClusterStatus.RUNNING)
+        _display_spinner(None, ClusterStatus.RUNNING)
         echo("Successfully started Orchest.")
 
 
@@ -1303,7 +1311,7 @@ def _get_namespaced_custom_object(
 
 
 def _display_spinner(
-    curr_status: ClusterStatus,
+    curr_status: t.Optional[ClusterStatus],
     end_status: ClusterStatus,
     file: t.Optional[t.IO] = None,
 ) -> None:
@@ -1377,6 +1385,8 @@ def _display_spinner(
         # NOTE: Watching (using `watch.Watch().stream(...)`) is not
         # supported, thus we go for a loop instead:
         # https://github.com/kubernetes-client/python/issues/1679
+        if curr_status is None:
+            curr_status = ClusterStatus.FETCHING
         prev_status = curr_status
 
         # Use `async_req` to make sure spinner is always loading.
