@@ -290,16 +290,18 @@ export const searchFilePathsByExtension = ({
   root: string;
   path: string;
   extensions: string[];
-}) =>
-  fetcher<{ files: string[] }>(
-    `${FILE_MANAGEMENT_ENDPOINT}/extension-search?${queryArgs({
-      project_uuid: projectUuid,
-      root,
-      path,
-      extensions: extensions.join(","),
-    })}`
-  );
+}) => {
+  const query = queryArgs({
+    projectUuid,
+    root,
+    path,
+    extensions: extensions.join(","),
+  });
 
+  return fetcher<{ files: string[] }>(
+    `${FILE_MANAGEMENT_ENDPOINT}/extension-search?` + query
+  );
+};
 /**
  * This function returns a list of file_path that ends with the given extensions.
  */

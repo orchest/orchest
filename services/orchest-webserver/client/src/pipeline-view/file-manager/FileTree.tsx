@@ -25,6 +25,7 @@ import {
   findFilesByExtension as findFilesWithExtension,
   findPipelineFiles,
   generateTargetDescription,
+  getBaseNameFromPath,
   getMoveFromDrop as movesFromDrop,
   isCombinedPath,
   isInDataFolder,
@@ -51,17 +52,21 @@ const isInFileManager = (element?: HTMLElement | null): boolean =>
 
 /**
  * Finds the node with the specified path
- * @param path The combined path, e.g: `/project-dir:/foo/bar.py`
+ * @param combinedPath The combined path, e.g: `/project-dir:/foo/bar.py`
  */
-const findNode = (path: string, fileTrees: FileTrees) => {
-  const [root, filePathStr] = path.split(":");
-  const segments = filePathStr.split("/").filter(Boolean);
+const findNode = (combinedPath: string, fileTrees: FileTrees) => {
+  const { root, path } = unpackPath(combinedPath);
+  const segments = path.split("/").filter(Boolean);
   let head = fileTrees[root];
 
   for (const segment of segments) {
-    const found = head.children.find((item) => item.name === segment);
-    if (!found) break;
-    head = found;
+    const node = head.children.find(({ name }) => name === segment);
+
+    if (!node) {
+      break;
+    }
+
+    head = node;
   }
 
   return head;
@@ -198,6 +203,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       openNotebook(undefined, cleanFilePath(path));
     },
     [
+      getPipelineFromPath,
       pipelines,
       projectUuid,
       pipelineUuid,
@@ -282,7 +288,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
       }
     },
-    [setAlert, projectUuid, pipelines]
+    [getPipelineFromPath, setAlert, projectUuid, pipelines]
   );
 
   const afterMove = React.useCallback(
@@ -317,11 +323,27 @@ export const FileTree = React.memo(function FileTreeComponent({
         moves.map(([oldPath]) => oldPath)
       );
 
+      const overwrites = moves
+        .filter(
+          ([, newPath]) =>
+            findNode(newPath, fileTrees).name === getBaseNameFromPath(newPath)
+        )
+        .map(([, newPath]) => newPath);
+
       const isRename =
         moves.length === 1 &&
         deriveParentPath(moves[0][0]) === deriveParentPath(moves[0][1]);
 
-      if (lockedFiles.length) {
+      if (overwrites.length) {
+        setAlert(
+          isRename ? "Rename cancelled" : "Move cancelled",
+          <OverwriteMessage files={overwrites} />,
+          {
+            confirmLabel: "OK",
+            onConfirm: () => true,
+          }
+        );
+      } else if (lockedFiles.length) {
         setConfirm(
           "Warning",
           <StopSessionMessage files={lockedFiles} isRename={isRename} />,
@@ -359,12 +381,12 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
 
         if (isRename) {
-          await Promise.all(moves.map((move) => handleMove(move)));
+          await Promise.all(moves.map(handleMove));
           afterMove(moves);
         } else {
           setConfirm("Warning", message, {
             onConfirm: async (resolve) => {
-              await Promise.all(moves.map((move) => handleMove(move)));
+              await Promise.all(moves.map(handleMove));
               afterMove(moves);
               resolve(true);
               return true;
@@ -461,6 +483,21 @@ export const FileTree = React.memo(function FileTreeComponent({
     </>
   );
 });
+
+const OverwriteMessage = ({ files }: { files: readonly string[] }) => (
+  <Stack spacing={2} direction="column">
+    <Box>
+      {files.map((path) => (
+        <Code key={path}>{cleanFilePath(path, "Project files/")}</Code>
+      ))}{" "}
+      would be overwritten.
+    </Box>
+    <Box>
+      Move or delete {files.length > 1 ? "these files" : "this file"} first, and
+      try again.
+    </Box>
+  </Stack>
+);
 
 const BrickFileMessage = () => (
   <Stack spacing={2} direction="column">
