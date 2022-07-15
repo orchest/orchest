@@ -910,6 +910,12 @@ def patch(
     else:
         echo("Successfully patched the Orchest Cluster.")
 
+    # Depending on the current cluster's state, `orchest patch` should
+    # not wait for the cluster's state to reach the same state again.
+    # For example, when in RUNNING state then users expect `orchest
+    # patch` to succeed once the cluster is in a RUNNING state again.
+    # However, when the cluster is in an ERROR state then we don't know
+    # what the user wants to wait for.
     curr_status = _parse_cluster_status_from_custom_object(
         custom_object  # type: ignore
     )
@@ -1464,11 +1470,16 @@ def _display_spinner(
                 echo(f"🏁 {prev_status.value}", nl=True)
                 prev_status = curr_status
 
-                # Otherwise we would wait without reason once the
-                # command has finished.
+                # Otherwise the loading spinner could again be shown
+                # with `curr_status` (even though we just indicated it
+                # was finished, i.e. the cluster is now in a new state).
                 if curr_status != end_status:
                     thread.wait()  # type: ignore
 
+        # In the case where the spinner is running just because of the
+        # minimal time limit, the loading spinner would be the last
+        # printed line. Thus we redraw the line to make sure the last
+        # status is indicated as finished/reached.
         if prev_status == curr_status and curr_status == end_status:
             echo("\r", nl=False)
             echo("\033[K", nl=False)
