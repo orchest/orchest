@@ -68,11 +68,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const pipelineUuid =
     pipeline?.uuid === pipelineUuidFromRoute ? pipeline?.uuid : undefined;
 
-  const { runUuid, setRunUuid } = useFetchInteractiveRun(
-    projectUuid,
-    pipelineUuid,
-    runUuidFromRoute
-  );
+  const { runUuid, setRunUuid } = useFetchInteractiveRun();
 
   const pipelineReadOnlyReason = useIsReadOnly();
   const isReadOnly = Boolean(pipelineReadOnlyReason);
