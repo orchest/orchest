@@ -383,18 +383,31 @@ def version(json_flag: bool, latest_flag: bool, **common_options) -> None:
     show_default=False,
     help="Get output in json.",
 )
-def status(json_flag: bool, **common_options) -> None:
+@click.option(
+    "--wait",
+    "wait_for_status",  # name for arg
+    default=None,
+    show_default=True,
+    type=click.Choice(cmds.ClusterStatus),
+    help="Wait for cluster status to be e.g. Stopped.",
+)
+def status(
+    json_flag: bool, wait_for_status: t.Optional[cmds.ClusterStatus], **common_options
+) -> None:
     """Get Orchest Cluster status.
 
-    If invoked with `--json`, then failure to get Orchest Cluster status
-    will return an empty JSON Object, i.e. `{}`.
+    \b
+    If invoked with `--json`, then:
+        - failure to get Orchest Cluster status will return an empty
+          JSON Object, i.e. `{}`.
+        - `--wait` doesn't have any effect.
 
     \b
     Equivalent `kubectl` command:
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.status.message}"
 
     """
-    cmds.status(json_flag, **common_options)
+    cmds.status(json_flag, wait_for_status, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)

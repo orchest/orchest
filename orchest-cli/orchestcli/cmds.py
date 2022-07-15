@@ -143,7 +143,7 @@ class CRObjectNotFound(Exception):
 
 # NOTE: Schema to be kept in sync with `OrchestClusterPhase` from:
 # `services/orchest-controller/pkg/apis/orchest/v1alpha1/types.go`
-class ClusterStatus(enum.Enum):
+class ClusterStatus(str, enum.Enum):
     INITIALIZING = "Initializing"
     DEPLOYINGTHIRDPARTIES = "Deploying Third Parties"
     DEPLOYEDTHIRDPARTIES = "Deployed Third Parties"
@@ -907,9 +907,24 @@ def patch(
         else:
             echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
+    else:
+        echo("Successfully patched the Orchest Cluster.")
 
-    _display_spinner(None, ClusterStatus.RUNNING)
-    echo("Successfully patched the Orchest Cluster.")
+    curr_status = _parse_cluster_status_from_custom_object(
+        custom_object  # type: ignore
+    )
+    if curr_status in [ClusterStatus.RUNNING, ClusterStatus.STOPPED]:
+        echo(f"Waiting for Orchest Cluster status to become: {curr_status.value}.")
+        # In case of STOPPED the spinner will run for 10s anyways.
+        _display_spinner(None, curr_status)
+    else:
+        if curr_status is None:
+            curr_status = ClusterStatus.UNKNOWN
+        echo(f"Orchest Cluster status is: {curr_status.value}")
+        echo(
+            "You might want to try running:"
+            f"\n\torchest status --wait={ClusterStatus.RUNNING.value}"
+        )
 
 
 def version(json_flag: bool, latest_flag: bool, **kwargs) -> None:
@@ -949,7 +964,9 @@ def version(json_flag: bool, latest_flag: bool, **kwargs) -> None:
         echo(version)
 
 
-def status(json_flag: bool, **kwargs) -> None:
+def status(
+    json_flag: bool, wait_for_status: t.Optional[ClusterStatus], **kwargs
+) -> None:
     """Gets Orchest Cluster status."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
@@ -971,7 +988,10 @@ def status(json_flag: bool, **kwargs) -> None:
         if json_flag:
             jecho({"status": status.value})
         else:
-            echo(status.value)
+            if wait_for_status is not None:
+                _display_spinner(status, wait_for_status)
+            else:
+                echo(status.value)
 
 
 def stop(watch: bool, **kwargs) -> None:
