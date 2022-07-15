@@ -8,6 +8,9 @@
   padding: 1em;
   text-align: center;
   border-radius: 9px;
+  width: 100%;
+  max-width: 260px;
+  z-index: 20;
 }
 
 .rate-form a {
