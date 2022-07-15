@@ -1,9 +1,4 @@
 import { RunIncomingIcon } from "@/components/common/icons/RunIncomingIcon";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { requestCreateJob } from "@/jobs-view/common";
-import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
-import { siteMap } from "@/routingConfig";
 import { isMacOs } from "@/utils/isMacOs";
 import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
@@ -26,13 +21,12 @@ export const PipelineOperationsMenu = ({
   anchor: Element | undefined;
   onClose: () => void;
 }) => {
-  const { pipelineUuid, pipelineJson } = usePipelineDataContext();
   const {
-    state: { pipeline },
-    dispatch,
-  } = useProjectsContext();
-  const { runSelectedSteps, runAllSteps, runIncomingSteps } = useRunSteps();
-  const { navigateTo, projectUuid } = useCustomRoute();
+    runSelectedSteps,
+    runAllSteps,
+    runIncomingSteps,
+    scheduleJob,
+  } = useRunSteps();
 
   const operationOptions = React.useMemo(
     () =>
@@ -59,33 +53,10 @@ export const PipelineOperationsMenu = ({
           label: "Schedule Job",
           icon: <MoreTimeOutlinedIcon fontSize="small" />,
           hotKey: "J",
-          action: async () => {
-            if (!projectUuid || !pipelineUuid || !pipelineJson?.name) return;
-            dispatch({ type: "SET_PIPELINE_IS_READONLY", payload: true });
-            const job = await requestCreateJob(
-              projectUuid,
-              `Job for ${pipeline?.path}`,
-              pipelineUuid,
-              pipelineJson?.name
-            );
-            dispatch({ type: "SET_PIPELINE_IS_READONLY", payload: false });
-            navigateTo(siteMap.editJob.path, {
-              query: { projectUuid, jobUuid: job.uuid },
-            });
-          },
+          action: scheduleJob,
         },
       ] as const,
-    [
-      runAllSteps,
-      runIncomingSteps,
-      runSelectedSteps,
-      navigateTo,
-      pipelineUuid,
-      pipelineJson?.name,
-      pipeline?.path,
-      projectUuid,
-      dispatch,
-    ]
+    [runAllSteps, runIncomingSteps, runSelectedSteps, scheduleJob]
   );
 
   return (

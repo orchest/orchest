@@ -1,17 +1,31 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
+import { requestCreateJob } from "@/jobs-view/common";
 import { useInteractiveRunsContext } from "@/pipeline-view/contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "@/pipeline-view/contexts/PipelineEditorContext";
 import { RunStepsType } from "@/pipeline-view/hooks/useInteractiveRuns";
+import { siteMap } from "@/routingConfig";
 import React from "react";
 
 export const useRunSteps = () => {
-  const { jobUuid } = useCustomRoute();
-  const { runUuid } = usePipelineDataContext();
+  const { jobUuid, navigateTo, projectUuid } = useCustomRoute();
+  const {
+    runUuid,
+    isReadOnly,
+    pipelineUuid,
+    pipelineJson,
+  } = usePipelineDataContext();
   const {
     eventVars: { selectedSteps, steps },
   } = usePipelineEditorContext();
+
+  const {
+    state: { pipeline },
+    dispatch,
+  } = useProjectsContext();
+
   const {
     displayedPipelineStatus,
     runSteps,
@@ -53,12 +67,34 @@ export const useRunSteps = () => {
     doRunSteps(selectedSteps, "incoming");
   }, [doRunSteps, selectedSteps]);
 
+  const scheduleJob = React.useCallback(async () => {
+    if (!projectUuid || !pipelineUuid || !pipelineJson?.name) return;
+    dispatch({ type: "SET_PIPELINE_IS_READONLY", payload: true });
+    const job = await requestCreateJob(
+      projectUuid,
+      `Job for ${pipeline?.path}`,
+      pipelineUuid,
+      pipelineJson?.name
+    );
+    dispatch({ type: "SET_PIPELINE_IS_READONLY", payload: false });
+    navigateTo(siteMap.editJob.path, {
+      query: { projectUuid, jobUuid: job.uuid },
+    });
+  }, [pipelineUuid, pipelineJson?.name, pipeline?.path, projectUuid, dispatch]);
+
+  // No operation is allowed when read-only.
+  if (isReadOnly) return {};
+
+  const hasSelectedSteps = selectedSteps.length > 0;
+  const hasSteps = allSteps.length > 0;
+
   return {
     displayedPipelineStatus,
     shouldRunAll,
-    runIncomingSteps: selectedSteps.length > 0 ? runIncomingSteps : undefined,
-    runSelectedSteps: selectedSteps.length > 0 ? runSelectedSteps : undefined,
-    runAllSteps: allSteps.length > 0 ? runAllSteps : undefined,
+    runIncomingSteps: hasSelectedSteps ? runIncomingSteps : undefined,
+    runSelectedSteps: hasSelectedSteps ? runSelectedSteps : undefined,
+    runAllSteps: hasSteps ? runAllSteps : undefined,
     cancelRun: doCancelRun,
+    scheduleJob,
   };
 };

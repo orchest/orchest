@@ -6,7 +6,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import React from "react";
 
 type PipelineOperationButtonIconProps = {
-  status: DisplayedPipelineStatus;
+  status?: DisplayedPipelineStatus;
 };
 
 export const PipelineOperationButtonIcon = ({

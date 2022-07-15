@@ -100,6 +100,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
 
   const runSteps = React.useCallback(
     (uuids: string[], type: RunStepsType) => {
+      if (uuids.length === 0) return;
       if (!isSessionRunning && pipelineJson) {
         setConfirm(
           "Notice",
