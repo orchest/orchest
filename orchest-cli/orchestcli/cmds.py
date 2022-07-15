@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import enum
 import json
+import os
 import platform
 import re
 import sys
@@ -992,7 +993,26 @@ def status(
         echo("Failed to fetch Orchest Cluster status. Please try again.", err=True)
     else:
         if json_flag:
-            jecho({"status": status.value})
+            if wait_for_status is not None:
+                f = open(os.devnull, "w")
+                try:
+                    visited_states = _display_spinner(status, wait_for_status, file=f)
+                finally:
+                    f.close()
+                jecho(
+                    {
+                        "status": wait_for_status.value,
+                        "previous_status": [
+                            # Last state is current state so don't
+                            # include it.
+                            s.value
+                            for s in visited_states[:-1]
+                        ],
+                    }
+                )
+
+            else:
+                jecho({"status": status.value})
         else:
             if wait_for_status is not None:
                 _display_spinner(status, wait_for_status)
@@ -1340,7 +1360,7 @@ def _display_spinner(
     curr_status: t.Optional[ClusterStatus],
     end_status: ClusterStatus,
     file: t.Optional[t.IO] = None,
-) -> None:
+) -> t.List[ClusterStatus]:
     """Displays a spinner until the end status is reached.
 
     The spinner is displayed in `file` which defaults to `STDOUT`.
@@ -1423,6 +1443,10 @@ def _display_spinner(
         # https://github.com/kubernetes-client/python/issues/1679
         if curr_status is None:
             curr_status = ClusterStatus.FETCHING
+            # FETCHING isn't actually a state of the cluster.
+            visited_states = []
+        else:
+            visited_states = [curr_status]
         prev_status = curr_status
 
         # Use `async_req` to make sure spinner is always loading.
@@ -1469,6 +1493,7 @@ def _display_spinner(
                 echo("\033[K", nl=False)
                 echo(f"🏁 {prev_status.value}", nl=True)
                 prev_status = curr_status
+                visited_states.append(curr_status)
 
                 # Otherwise the loading spinner could again be shown
                 # with `curr_status` (even though we just indicated it
@@ -1484,6 +1509,8 @@ def _display_spinner(
             echo("\r", nl=False)
             echo("\033[K", nl=False)
             echo(f"🏁 {curr_status.value}", nl=False)
+
+        return visited_states
     finally:
         echo("\033[?25h", nl=True)  # show cursor
 

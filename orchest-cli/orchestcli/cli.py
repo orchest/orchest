@@ -396,11 +396,8 @@ def status(
 ) -> None:
     """Get Orchest Cluster status.
 
-    \b
-    If invoked with `--json`, then:
-        - failure to get Orchest Cluster status will return an empty
-          JSON Object, i.e. `{}`.
-        - `--wait` doesn't have any effect.
+    If invoked with `--json`, then failure to get Orchest Cluster status
+    will return an empty JSON Object, i.e. `{}`.
 
     \b
     Equivalent `kubectl` command:
