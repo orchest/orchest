@@ -1,3 +1,12 @@
+/*
+  Simple widget to the docs.
+
+  Inspiration taken from (and some MIT code copied from):
+  https://github.com/medmunds/rate-the-docs
+
+  Thank you Mike Edmunds!
+*/
+
 const READTHEDOCS_DATA = window.READTHEDOCS_DATA || {};
 
 const DEBUG = window.location.hostname === "localhost";
