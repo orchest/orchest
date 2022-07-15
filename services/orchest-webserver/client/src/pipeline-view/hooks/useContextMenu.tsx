@@ -4,6 +4,7 @@ import Menu, { MenuProps } from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 type ContextMenuItemAction = {
   type: "item";
   title: string;
@@ -59,9 +60,11 @@ export const PipelineEditorContextMenu: React.FC<{
 };
 
 export function useContextMenu() {
+  const { setIsContextMenuOpen } = usePipelineEditorContext();
   const [position, setPosition] = React.useState<Position>();
   const onClose = React.useCallback(() => {
     setPosition(undefined);
+    setIsContextMenuOpen(false);
   }, []);
   const onSelectMenuItem = React.useCallback(
     (event: React.MouseEvent, item: ContextMenuItemAction) => {
@@ -81,6 +84,7 @@ export function useContextMenu() {
       x: event.clientX,
       y: event.clientY,
     });
+    setIsContextMenuOpen(true);
   };
 
   return {
