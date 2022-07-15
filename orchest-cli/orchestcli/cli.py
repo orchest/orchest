@@ -258,7 +258,7 @@ def uninstall(**common_options) -> None:
     is_flag=True,
     default=True,
     show_default=True,
-    help="Watch cluster status changes.",
+    help="Watch status changes until Orchest has updated.",
 )
 @click.option(
     "--dev/--no-dev",
@@ -417,7 +417,7 @@ def status(
     is_flag=True,
     default=True,
     show_default=True,
-    help="Watch status changes.",
+    help="Watch status changes until Orchest is stopped.",
 )
 def stop(watch: bool, **common_options) -> None:
     """Stop Orchest.
@@ -438,7 +438,7 @@ def stop(watch: bool, **common_options) -> None:
     is_flag=True,
     default=True,
     show_default=True,
-    help="Watch status changes.",
+    help="Watch status changes until Orchest is started.",
 )
 def start(watch: bool, **common_options) -> None:
     """Start Orchest.
@@ -457,7 +457,7 @@ def start(watch: bool, **common_options) -> None:
     is_flag=True,
     default=True,
     show_default=True,
-    help="Watch status changes.",
+    help="Watch status changes until Orchest has restarted.",
 )
 def restart(watch: bool, **common_options) -> None:
     """Restart Orchest.
