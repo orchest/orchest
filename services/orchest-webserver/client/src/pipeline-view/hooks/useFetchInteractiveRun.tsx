@@ -2,7 +2,9 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetcher } from "@/hooks/useFetcher";
 import { PipelineRun } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
+import React from "react";
 import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
+import { queryArgs } from "../file-manager/common";
 
 export const useFetchInteractiveRun = () => {
   const { projectUuid, pipelineUuid, runUuid: jobRunUuid } = useCustomRoute();
@@ -10,27 +12,26 @@ export const useFetchInteractiveRun = () => {
   const shouldFetchRunUuid =
     !jobRunUuid && hasValue(projectUuid) && hasValue(pipelineUuid);
 
-  const {
-    data: interactiveRunUuid,
-    setData: setRunUuid,
-    error: fetchRunUuidError,
-    status,
-  } = useFetcher<
-    {
-      runs: PipelineRun[];
-    },
+  const { data: latestRunUuid } = useFetcher<
+    { runs: PipelineRun[] },
     string | undefined
   >(
     shouldFetchRunUuid
-      ? `${PIPELINE_RUN_STATUS_ENDPOINT}?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
+      ? `${PIPELINE_RUN_STATUS_ENDPOINT}?${queryArgs({
+          projectUuid,
+          pipelineUuid,
+        })}`
       : undefined,
     { transform: (data) => data.runs[0]?.uuid }
   );
 
-  return {
-    runUuid: interactiveRunUuid || jobRunUuid,
-    setRunUuid,
-    fetchRunUuidError,
-    isFetchingRunUuid: status === "PENDING",
-  };
+  const [runUuid, setRunUuid] = React.useState<string | undefined>(
+    !shouldFetchRunUuid ? jobRunUuid : undefined
+  );
+
+  React.useEffect(() => {
+    if (!runUuid && latestRunUuid) setRunUuid(latestRunUuid);
+  }, [runUuid, latestRunUuid]);
+
+  return { runUuid, setRunUuid };
 };
