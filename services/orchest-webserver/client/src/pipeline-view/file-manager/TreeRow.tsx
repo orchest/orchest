@@ -4,12 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import produce from "immer";
 import React from "react";
-import {
-  createCombinedPath,
-  deriveParentPath,
-  TreeNode,
-  unpackCombinedPath,
-} from "./common";
+import { FileManagementRoot } from "../common";
+import { combinePath, deriveParentPath, TreeNode, unpackPath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 
@@ -62,13 +58,13 @@ const RenameField = ({
           if (e.code === "Escape") {
             setFileInRename(undefined);
           } else if (e.code === "Enter") {
-            let isFolder = combinedPath.endsWith("/");
-            let { root, path } = unpackCombinedPath(combinedPath);
-            let newPath =
+            const isFolder = combinedPath.endsWith("/");
+            const { root, path } = unpackPath(combinedPath);
+            const newPath =
               deriveParentPath(path) +
               fileRenameNewName +
               (isFolder ? "/" : "");
-            let newCombinedPath = createCombinedPath(root, newPath);
+            const newCombinedPath = combinePath({ root, path: newPath });
 
             handleRename(combinedPath, newCombinedPath);
             setFileInRename(undefined);
@@ -93,7 +89,7 @@ export const TreeRow = ({
   treeNodes: TreeNode[];
   handleRename: (oldPath: string, newPath: string) => void;
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
-  root: string;
+  root: FileManagementRoot;
   hoveredPath: string | undefined;
   onOpen: (filePath: string) => void;
 }) => {
@@ -118,7 +114,7 @@ export const TreeRow = ({
   return (
     <>
       {directories.map((e) => {
-        const combinedPath = createCombinedPath(root, e.path);
+        const combinedPath = combinePath({ root, path: e.path });
 
         return (
           <Box sx={{ position: "relative" }} key={combinedPath}>
@@ -158,7 +154,7 @@ export const TreeRow = ({
         );
       })}
       {files.map((e) => {
-        const combinedPath = createCombinedPath(root, e.path);
+        const combinedPath = combinePath({ root, path: e.path });
         return (
           <div style={{ position: "relative" }} key={combinedPath}>
             {fileInRename === combinedPath && (

@@ -42,28 +42,58 @@ export const searchTree = (
   return res;
 };
 
+export type UnpackedPath = {
+  /** Either `/project-dir` or `/data` */
+  root: FileManagementRoot;
+  /** The path to the file, always starts with "/" */
+  path: string;
+};
+
 /**
- * `path` always starts with "/"
+ * Unpacks an combined path into `root` and `path`.
+ * For example `/project-dir:/a/b` will unpack into `/project-dir:` and `/a/b/`.
+ *
+ * If the input is not a combined path, this function will throw an error
+ * to prevent potentially bad moves, renames and similar.
  */
-export type UnpackedPath = { root: FileManagementRoot; path: string };
+export const unpackPath = (combinedPath: string): UnpackedPath => {
+  const root = combinedPath.split(":")[0] as FileManagementRoot;
+  const path = combinedPath.slice(root.length + ":".length);
 
-export const unpackCombinedPath = (combinedPath: string): UnpackedPath => {
-  // combinedPath includes the root
-  // e.g. /project-dir:/abc/def
-  // => root: /project-dir
-  // => path: /abc/def
-
-  let root = combinedPath.split(ROOT_SEPARATOR)[0] as FileManagementRoot;
-  let path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
   return { root, path };
 };
 
-export const createCombinedPath = (root: string, path: string) => {
-  return root + ROOT_SEPARATOR + path;
+/**
+ * A tuple that describes a move.
+ * The first value is the old path,
+ * the second is the new path.
+ */
+export type Move = readonly [string, string];
+
+export type UnpackedMove = {
+  oldRoot: FileManagementRoot;
+  oldPath: string;
+  newRoot: FileManagementRoot;
+  newPath: string;
 };
 
+export const unpackMove = ([source, target]: Move): UnpackedMove => {
+  const { root: oldRoot, path: oldPath } = unpackPath(source);
+  const { root: newRoot, path: newPath } = unpackPath(target);
+
+  return { oldRoot, oldPath, newRoot, newPath };
+};
+
+export const isDirectory = (path: string) => path.endsWith("/");
+
+export const isPipelineFile = (path: string) =>
+  isFileByExtension(["orchest"], path);
+
+export const combinePath = ({ root, path }: UnpackedPath) =>
+  root + ROOT_SEPARATOR + path;
+
 export const baseNameFromPath = (combinedPath: string) => {
-  const { root, path } = unpackCombinedPath(combinedPath);
+  const { root, path } = unpackPath(combinedPath);
 
   let baseName = path.endsWith("/")
     ? path.split("/").slice(-2)[0]
@@ -92,34 +122,21 @@ export const generateTargetDescription = (path: string) => {
 const getFolderPathOfFile = (path: string) =>
   `${path.split("/").slice(0, -1).join("/")}/`;
 
-export const deduceRenameFromDragOperation = (
-  sourcePath: string,
-  targetPath: string
-): [string, string] => {
-  // Check if target is sourceDir or a child of sourceDir
-  if (sourcePath === targetPath || targetPath.startsWith(sourcePath)) {
-    // Break out with no-op. Illegal move
+export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
+  if (sourcePath === dropPath || dropPath.startsWith(sourcePath)) {
     return [sourcePath, sourcePath];
   }
 
   const isSourceDir = sourcePath.endsWith("/");
-  const isTargetDir = targetPath.endsWith("/");
+  const isTargetDir = dropPath.endsWith("/");
 
   const sourceBasename = baseNameFromPath(sourcePath);
-  const targetFolderPath = isTargetDir
-    ? targetPath
-    : getFolderPathOfFile(targetPath);
+  const dropFolderPath = isTargetDir ? dropPath : getFolderPathOfFile(dropPath);
 
-  const newPath = `${targetFolderPath}${sourceBasename}${
-    isSourceDir ? "/" : ""
-  }`;
+  const newPath = dropFolderPath + sourceBasename + (isSourceDir ? "/" : "");
 
   return [sourcePath, newPath];
 };
-
-/**
- * File API functions
- */
 
 export function isDirectoryEntry(
   entry: FileSystemEntry
@@ -171,12 +188,12 @@ export const queryArgs = (
 
 export const getActiveRoot = (
   selected: string[],
-  treeRoots: FileManagementRoot[]
+  treeRoots: readonly FileManagementRoot[]
 ): FileManagementRoot => {
   if (selected.length === 0) {
     return treeRoots[0];
   } else {
-    const { root } = unpackCombinedPath(selected[0]);
+    const { root } = unpackPath(selected[0]);
     return root as FileManagementRoot;
   }
 };
@@ -193,7 +210,7 @@ export const isCombinedPathChildLess = (
   combinedPath: string,
   fileTrees: FileTrees
 ) => {
-  let { root, path } = unpackCombinedPath(combinedPath);
+  const { root, path } = unpackPath(combinedPath);
   return isPathChildLess(path, fileTrees[root]);
 };
 
@@ -203,14 +220,14 @@ export const searchTrees = ({
   fileTrees,
 }: {
   combinedPath: string;
-  treeRoots: string[];
+  treeRoots: readonly FileManagementRoot[];
   fileTrees: Record<string, TreeNode>;
 }) => {
-  if (treeRoots.includes(combinedPath)) {
+  if (treeRoots.includes(combinedPath as FileManagementRoot)) {
     return { node: combinedPath };
   }
 
-  let { root, path } = unpackCombinedPath(combinedPath);
+  let { root, path } = unpackPath(combinedPath);
   if (!fileTrees[root]) {
     return {};
   }
@@ -222,6 +239,8 @@ export const searchTrees = ({
     return {};
   }
 };
+
+export const isCombinedPath = (path: string) => /^\/([a-z]|\-)+:\//.test(path);
 
 export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
   filePath
@@ -404,21 +423,21 @@ export const getRelativePathTo = (filePath: string, targetFolder: string) => {
   return `${leadingString}${remainingFilePathComponents.join("/")}`;
 };
 
-export const filePathFromHTMLElement = (element: HTMLElement) => {
-  let dataPath = element.getAttribute("data-path");
-  if (dataPath) {
-    return dataPath;
+export const pathFromElement = (element: HTMLElement): string | undefined => {
+  const path = element.getAttribute("data-path");
+  if (path) {
+    return path;
   } else if (element.parentElement) {
-    return filePathFromHTMLElement(element.parentElement);
+    return pathFromElement(element.parentElement);
   } else {
     return undefined;
   }
 };
 
-const dataFolderRegex = /^\/data\:?\//;
+export const isInDataFolder = (path: string) => /^\/data\:?\//.test(path);
 
-export const isWithinDataFolder = (filePath: string) =>
-  dataFolderRegex.test(filePath);
+export const isInProjectFolder = (path: string) =>
+  /^\/project-dir\:?\//.test(path);
 
 const getFilePathInDataFolder = (dragFilePath: string) =>
   cleanFilePath(dragFilePath);
@@ -427,7 +446,7 @@ export const getFilePathForRelativeToProject = (
   absFilePath: string,
   pipelineCwd: string
 ) => {
-  return isWithinDataFolder(absFilePath)
+  return isInDataFolder(absFilePath)
     ? getFilePathInDataFolder(absFilePath)
     : getRelativePathTo(cleanFilePath(absFilePath), pipelineCwd);
 };
@@ -445,34 +464,28 @@ export const lastSelectedFolderPath = (selectedFiles: string[]) => {
   return matches ? matches[1] : "/";
 };
 
-// ancesterPath has to be an folder because a file cannot be a parent
-const isAncester = (ancesterPath: string, childPath: string) =>
-  ancesterPath.endsWith("/") && childPath.startsWith(ancesterPath);
+export const hasAncestor = (path: string, ancestor: string) =>
+  ancestor.endsWith("/") && path.startsWith(ancestor);
 
 /**
- * This function removes the child path if its ancester path already appears in the list.
+ * This function removes the child path if its ancestor path already appears in the list.
  * e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed.
- * @param list {string[]}
- * @returns {string[]}
  */
-export const filterRedundantChildPaths = (list: string[]) => {
-  // ancestor will be processed first
-  const sortedList = list.sort();
+export const filterRedundantChildPaths = (paths: readonly string[]) => {
+  const ancestors: string[] = [];
 
-  const listSet = new Set<string>([]);
-
-  for (let item of sortedList) {
-    const filteredList = [...listSet];
-
-    // If filteredItem is an ancestor of item
-    const hasIncluded = filteredList.some((filteredItem) =>
-      isAncester(filteredItem, item)
+  // Sort the list so that ancestors are traversed first.
+  for (const path of [...paths].sort()) {
+    const includedByAncestor = !ancestors.some((ancestor) =>
+      hasAncestor(path, ancestor)
     );
 
-    if (!hasIncluded) listSet.add(item);
+    if (includedByAncestor) {
+      ancestors.push(path);
+    }
   }
 
-  return [...listSet];
+  return ancestors;
 };
 
 export const getBaseNameFromPath = (combinedPath: string) => {
@@ -483,29 +496,31 @@ export const getBaseNameFromPath = (combinedPath: string) => {
   return pathComponents.slice(-1)[0];
 };
 
-export const findPipelineFilePathsWithinFolders = async (
+export const findPipelineFiles = async (
   projectUuid: string,
   filePaths: UnpackedPath[]
 ): Promise<UnpackedPath[]> => {
-  const files = await Promise.all(
+  const paths = await Promise.all(
     filePaths.map(({ root, path }) => {
-      if (!path.endsWith("/"))
-        return isFileByExtension(["orchest"], path) ? { root, path } : null;
-      return searchFilePathsByExtension({
-        projectUuid,
-        extensions: ["orchest"],
-        root,
-        path,
-      }).then((response) =>
-        response.files.map((file) => ({
+      if (!path.endsWith("/")) {
+        return isPipelineFile(path) ? { root, path } : null;
+      } else {
+        return searchFilePathsByExtension({
+          projectUuid,
+          extensions: ["orchest"],
           root,
-          path: `/${file}`,
-        }))
-      );
+          path,
+        }).then((response) =>
+          response.files.map((file) => ({
+            root,
+            path: `/${file}`,
+          }))
+        );
+      }
     })
   );
 
-  return (files.filter((value) => hasValue(value)) as UnpackedPath[]).flatMap(
-    (value) => value
-  );
+  return paths
+    .filter((value) => hasValue(value))
+    .flatMap((value) => value as UnpackedPath);
 };

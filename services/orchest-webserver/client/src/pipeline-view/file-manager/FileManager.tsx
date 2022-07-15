@@ -24,7 +24,7 @@ import {
   queryArgs,
   searchTrees,
   TreeNode,
-  unpackCombinedPath,
+  unpackPath,
 } from "./common";
 import { FileManagerContainer } from "./FileManagerContainer";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -41,7 +41,7 @@ const deepestExpand = (expanded: string[]) => {
     return 0;
   }
   return Math.max(
-    ...expanded.map((e) => unpackCombinedPath(e).path.split("/").length - 1)
+    ...expanded.map((e) => unpackPath(e).path.split("/").length - 1)
   );
 };
 
@@ -49,7 +49,7 @@ const createInvalidEntryFilter = ({
   treeRoots,
   fileTrees,
 }: {
-  treeRoots: string[];
+  treeRoots: readonly FileManagementRoot[];
   fileTrees: Record<string, TreeNode>;
 }) => (combinedPathList: string[]): [string[], boolean] => {
   let invalid = new Set();
@@ -136,7 +136,7 @@ export function FileManager() {
       setProgressType("determinate");
       setInProgress(true);
 
-      let { root, path } = unpackCombinedPath(combinedPath);
+      const { root, path } = unpackPath(combinedPath);
 
       const url = `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
         projectUuid,
@@ -247,7 +247,7 @@ export function FileManager() {
     hasValue(fileTrees[root])
   );
 
-  const onRename = React.useCallback(
+  const onMoved = React.useCallback(
     (oldPath: string, newPath: string) => {
       if (!selectedFiles.includes(newPath)) {
         setSelectedFiles((current) => {
@@ -290,7 +290,7 @@ export function FileManager() {
                 <FileTree
                   treeRoots={treeRoots}
                   expanded={expanded}
-                  onRename={onRename}
+                  onMoved={onMoved}
                   handleToggle={handleToggle}
                 />
                 <FileManagerContextMenu metadata={contextMenu}>

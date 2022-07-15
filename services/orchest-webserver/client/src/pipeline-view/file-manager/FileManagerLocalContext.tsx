@@ -11,11 +11,11 @@ import {
   baseNameFromPath,
   FILE_MANAGEMENT_ENDPOINT,
   filterRedundantChildPaths,
-  findPipelineFilePathsWithinFolders,
+  findPipelineFiles,
   getBaseNameFromPath,
   prettifyRoot,
   queryArgs,
-  unpackCombinedPath,
+  unpackPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuMetadata, ContextMenuType } from "./FileManagerContextMenu";
@@ -51,7 +51,7 @@ export const useFileManagerLocalContext = () =>
   React.useContext(FileManagerLocalContext);
 
 const deleteFetch = (projectUuid: string, combinedPath: string) => {
-  let { root, path } = unpackCombinedPath(combinedPath);
+  const { root, path } = unpackPath(combinedPath);
   return fetch(
     `${FILE_MANAGEMENT_ENDPOINT}/delete?${queryArgs({
       project_uuid: projectUuid,
@@ -67,9 +67,9 @@ const downloadFile = (
   combinedPath: string,
   downloadLink: string
 ) => {
-  let { root, path } = unpackCombinedPath(combinedPath);
+  const { root, path } = unpackPath(combinedPath);
 
-  let downloadUrl = `${FILE_MANAGEMENT_ENDPOINT}/download?${queryArgs({
+  const downloadUrl = `${FILE_MANAGEMENT_ENDPOINT}/download?${queryArgs({
     path,
     root,
     project_uuid: projectUuid,
@@ -177,9 +177,9 @@ export const FileManagerLocalContextProvider: React.FC<{
         <Code>{fileBaseName}</Code>
       );
 
-    const pathsThatContainsPipelineFiles = await findPipelineFilePathsWithinFolders(
+    const pathsThatContainsPipelineFiles = await findPipelineFiles(
       projectUuid,
-      filesToDelete.map((combinedPath) => unpackCombinedPath(combinedPath))
+      filesToDelete.map((combinedPath) => unpackPath(combinedPath))
     );
 
     const shouldShowPipelineFilePaths =
@@ -221,7 +221,7 @@ export const FileManagerLocalContextProvider: React.FC<{
         dispatch({ type: "SET_PIPELINES", payload: updatedPipelines });
 
         const shouldRedirect = filesToDelete.some((fileToDelete) => {
-          const { path } = unpackCombinedPath(fileToDelete);
+          const { path } = unpackPath(fileToDelete);
           const pathToDelete = path.replace(/^\//, "");
 
           const isDeletingPipelineFileDirectly =
