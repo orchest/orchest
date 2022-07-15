@@ -1,4 +1,5 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
@@ -23,6 +24,13 @@ const RenameField = ({
     setFileRenameNewName,
   } = useFileManagerLocalContext();
   const textFieldRef = React.useRef<HTMLInputElement>(null);
+
+  const cancelEdit = React.useCallback(() => {
+    setFileInRename(undefined);
+  }, [setFileInRename]);
+
+  useOnClickOutside(textFieldRef, cancelEdit);
+
   const theme = useTheme();
 
   React.useEffect(() => {
@@ -56,7 +64,7 @@ const RenameField = ({
         value={fileRenameNewName}
         onKeyDown={(e) => {
           if (e.code === "Escape") {
-            setFileInRename(undefined);
+            cancelEdit();
           } else if (e.code === "Enter") {
             const isFolder = combinedPath.endsWith("/");
             const { root, path } = unpackPath(combinedPath);
@@ -69,12 +77,11 @@ const RenameField = ({
             if (combinedPath !== newCombinedPath) {
               onRename(combinedPath, newCombinedPath);
             }
-            setFileInRename(undefined);
+
+            cancelEdit();
           }
         }}
-        onChange={(e) => {
-          setFileRenameNewName(e.target.value);
-        }}
+        onChange={(e) => setFileRenameNewName(e.target.value)}
       />
     </form>
   );
