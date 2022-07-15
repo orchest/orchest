@@ -478,11 +478,11 @@ export const filterRedundantChildPaths = (paths: readonly string[]) => {
 
   // Sort the list so that ancestors are traversed first.
   for (const path of [...paths].sort()) {
-    const includedByAncestor = !ancestors.some((ancestor) =>
-      hasAncestor(path, ancestor)
+    const isIncluded = !ancestors.some(
+      (ancestor) => hasAncestor(path, ancestor) || path === ancestor
     );
 
-    if (includedByAncestor) {
+    if (isIncluded) {
       ancestors.push(path);
     }
   }
