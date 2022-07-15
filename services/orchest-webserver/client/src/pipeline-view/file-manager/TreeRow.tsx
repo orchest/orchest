@@ -76,9 +76,9 @@ const RenameField = ({
 
             if (combinedPath !== newCombinedPath) {
               onRename(combinedPath, newCombinedPath);
+            } else {
+              cancelEdit();
             }
-
-            cancelEdit();
           }
         }}
         onChange={(e) => setFileRenameNewName(e.target.value)}
