@@ -59,11 +59,7 @@ export const PipelineViewport = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & {
     canvasFuncRef: React.MutableRefObject<CanvasFunctions | undefined>;
     executeRun: (uuids: string[], type: RunStepsType) => Promise<void>;
-    autoLayoutPipeline;
-    isContextMenuOpenState: [
-      boolean,
-      React.Dispatch<React.SetStateAction<boolean>>
-    ];
+    autoLayoutPipeline: () => void;
   }
 >(function PipelineViewportComponent(
   {
@@ -72,7 +68,6 @@ export const PipelineViewport = React.forwardRef<
     canvasFuncRef,
     executeRun,
     autoLayoutPipeline,
-    isContextMenuOpenState,
     style,
     ...props
   },
@@ -90,6 +85,7 @@ export const PipelineViewport = React.forwardRef<
     environments,
     pipelineCanvasRef,
     getOnCanvasPosition,
+    isContextMenuOpen,
   } = usePipelineEditorContext();
   const {
     pipelineCanvasState: {
@@ -193,7 +189,7 @@ export const PipelineViewport = React.forwardRef<
   }, [resizeCanvas, localRef]);
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if (disabled || isContextMenuOpenState[0]) return;
+    if (disabled || isContextMenuOpen) return;
     if (eventVars.selectedConnection) {
       dispatch({ type: "DESELECT_CONNECTION" });
     }
@@ -209,7 +205,7 @@ export const PipelineViewport = React.forwardRef<
   };
 
   const onMouseUp = (e: React.MouseEvent) => {
-    if (disabled || isContextMenuOpenState[0]) return;
+    if (disabled || isContextMenuOpen) return;
     if (e.button === 0) {
       if (eventVars.stepSelector.active) {
         dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });

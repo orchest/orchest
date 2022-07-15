@@ -130,10 +130,6 @@ const PipelineStepComponent = React.forwardRef<
     onDoubleClick: (stepUUID: string) => void;
     interactiveConnections: Connection[];
     getPosition: (node: HTMLElement | undefined | null) => Position | null;
-    isContextMenuOpenState: [
-      boolean,
-      React.Dispatch<React.SetStateAction<boolean>>
-    ];
     children: React.ReactNode;
   }
 >(function PipelineStep(
@@ -150,7 +146,6 @@ const PipelineStepComponent = React.forwardRef<
     // the cursor-controlled step also renders all the interactive connections, to ensure the precision of the positions
     interactiveConnections,
     getPosition,
-    isContextMenuOpenState,
     children, // expose children, so that children doesn't re-render when step is being dragged
   },
   ref
@@ -178,6 +173,7 @@ const PipelineStepComponent = React.forwardRef<
       stepSelector,
       selectedConnection,
     },
+    isContextMenuOpen,
   } = usePipelineEditorContext();
   const { selectedFiles, dragFile, resetMove } = useFileManagerContext();
 
@@ -296,7 +292,7 @@ const PipelineStepComponent = React.forwardRef<
   const onMouseDown = React.useCallback(
     (e: React.MouseEvent) => {
       // user is panning the canvas or context menu is open
-      if (keysDown.has("Space") || isContextMenuOpenState[0]) return;
+      if (keysDown.has("Space") || isContextMenuOpen) return;
 
       e.stopPropagation();
       e.preventDefault();
@@ -305,7 +301,7 @@ const PipelineStepComponent = React.forwardRef<
         forceUpdate();
       }
     },
-    [forceUpdate, keysDown, isContextMenuOpenState]
+    [forceUpdate, keysDown, isContextMenuOpen]
   );
 
   const { handleContextMenu, ...contextMenuProps } = useContextMenu();
@@ -322,7 +318,7 @@ const PipelineStepComponent = React.forwardRef<
 
   const onClick = async (e: React.MouseEvent) => {
     // user is panning the canvas or context menu is open
-    if (keysDown.has("Space") || isContextMenuOpenState[0]) return;
+    if (keysDown.has("Space") || isContextMenuOpen) return;
 
     e.stopPropagation();
     e.preventDefault();
