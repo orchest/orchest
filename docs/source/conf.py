@@ -96,7 +96,4 @@ html_css_files = [
     "css/rate_widget.css",
 ]
 
-html_js_files = [
-    "js/installer_widget.js",
-    "js/rate_widget.js"
-]
+html_js_files = ["js/installer_widget.js", "js/rate_widget.js"]
