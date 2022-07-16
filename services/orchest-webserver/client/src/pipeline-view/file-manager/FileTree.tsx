@@ -115,7 +115,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   onMoved,
 }: FileTreeProps) {
   const { setConfirm, setAlert } = useAppContext();
-  const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
+  const { projectUuid, navigateTo } = useCustomRoute();
   const { getSession, stopSession } = useSessionsContext();
   const {
     state: { pipelines = [] },
@@ -152,10 +152,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           "Notice",
           "In order to open a file in JupyterLab, you need to create a pipeline first."
         );
-        return;
-      }
-
-      if (isInDataFolder(path)) {
+      } else if (isInDataFolder(path)) {
         setAlert(
           "Notice",
           <>
@@ -163,55 +160,19 @@ export const FileTree = React.memo(function FileTreeComponent({
             move it to <Code>Project files</Code>.
           </>
         );
-        return;
+      } else if (isPipelineFile(path)) {
+        const newPipelineUuid = pipelineByPath(path)?.uuid;
+
+        if (newPipelineUuid) {
+          navigateTo(siteMap.pipeline.path, {
+            query: { projectUuid, pipelineUuid: newPipelineUuid },
+          });
+        }
+      } else {
+        openNotebook(undefined, cleanFilePath(path));
       }
-
-      const foundPipeline = isPipelineFile(path)
-        ? getPipelineFromPath(path)
-        : null;
-
-      if (foundPipeline && foundPipeline.uuid !== pipelineUuid) {
-        setConfirm(
-          "Confirm",
-          <>
-            Are you sure you want to open pipeline <b>{foundPipeline.name}</b>?
-          </>,
-          {
-            onConfirm: async (resolve) => {
-              navigateTo(siteMap.pipeline.path, {
-                query: { projectUuid, pipelineUuid: foundPipeline.uuid },
-              });
-              resolve(true);
-              return true;
-            },
-            onCancel: async (resolve) => {
-              resolve(false);
-              return false;
-            },
-            confirmLabel: "Open pipeline",
-            cancelLabel: "Cancel",
-          }
-        );
-        return;
-      }
-
-      if (foundPipeline && foundPipeline.uuid === pipelineUuid) {
-        setAlert("Notice", "This pipeline is already open.");
-        return;
-      }
-
-      openNotebook(undefined, cleanFilePath(path));
     },
-    [
-      getPipelineFromPath,
-      pipelines,
-      projectUuid,
-      pipelineUuid,
-      setAlert,
-      setConfirm,
-      navigateTo,
-      openNotebook,
-    ]
+    [pipelineByPath, pipelines, projectUuid, setAlert, navigateTo, openNotebook]
   );
 
   const draggedFiles = React.useMemo(() => {
