@@ -9,6 +9,10 @@ const COMMANDS = {
   RUN_SELECTED: ["ctrl+enter", "command+enter"],
   RUN_INCOMING: ["ctrl+i", "command+i"],
   SCHEDULE_JOB: ["ctrl+j", "command+j"],
+  ZOOM_IN: ["ctrl++", "command++"],
+  ZOOM_OUT: ["ctrl+-", "command+-"],
+  CENTER_VIEW: ["h"],
+  AUTO_LAYOUT: ["ctrl+shift+l", "command+shift+l"],
 };
 
 const commandsString = Object.values(COMMANDS).join(", ");

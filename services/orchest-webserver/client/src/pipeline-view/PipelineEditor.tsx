@@ -15,19 +15,18 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import { activeElementIsInput, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
-import { getNodeCenter, updatePipelineJson } from "./common";
+import { getNodeCenter, SCALE_UNIT, updatePipelineJson } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
+import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { usePipelineUiParamsContext } from "./contexts/PipelineUiParamsContext";
 import { useHotKeysInPipelineEditor } from "./hooks/useHotKeysInPipelineEditor";
 import { useOpenNoteBook } from "./hooks/useOpenNoteBook";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
 import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
-import {
-  CanvasFunctions,
-  PipelineViewport,
-} from "./pipeline-viewport/PipelineViewport";
+import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { PipelineActionButton } from "./PipelineActionButton";
 import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
@@ -55,8 +54,6 @@ export const PipelineEditor = () => {
     eventVars,
     dispatch,
     stepDomRefs,
-    pipelineCanvasRef,
-    pipelineViewportRef,
     newConnection,
     pipelineJson,
     setPipelineJson,
@@ -66,10 +63,7 @@ export const PipelineEditor = () => {
     metadataPositions,
   } = usePipelineEditorContext();
 
-  const isAllowedToRun =
-    !isReadOnly &&
-    eventVars.selectedSteps.length > 0 &&
-    !eventVars.stepSelector.active;
+  const { centerPipelineOrigin, centerView } = usePipelineCanvasContext();
 
   const openNotebook = useOpenNoteBook();
 
@@ -86,16 +80,21 @@ export const PipelineEditor = () => {
     runUuid,
   ]);
 
-  const canvasFuncRef = React.useRef<CanvasFunctions>();
+  const {
+    uiParams: { scaleFactor, stepSelector },
+    uiParamsDispatch,
+    pipelineCanvasRef,
+    pipelineViewportRef,
+  } = usePipelineUiParamsContext();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
   const canvasOffset = getOffset(pipelineCanvasRef.current);
 
   const getPosition = React.useMemo(() => {
-    return getNodeCenter(canvasOffset, eventVars.scaleFactor);
+    return getNodeCenter(canvasOffset, scaleFactor);
     // we need to memoize getPosition to prevent potential re-rendering,
     // but we also need real-time canvasOffset for calculation
-  }, [JSON.stringify(canvasOffset), eventVars.scaleFactor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(canvasOffset), scaleFactor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { disableHotKeys, enableHotKeys } = useHotKeysInPipelineEditor();
 
@@ -285,8 +284,8 @@ export const PipelineEditor = () => {
   React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (activeElementIsInput()) return;
-      if (eventVars.stepSelector.active) {
-        dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      if (stepSelector.active) {
+        uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
       }
 
       if (
@@ -312,8 +311,9 @@ export const PipelineEditor = () => {
     isReadOnly,
     eventVars.selectedConnection,
     eventVars.selectedSteps,
-    eventVars.stepSelector.active,
+    stepSelector.active,
     deleteSelectedSteps,
+    uiParamsDispatch,
   ]);
 
   // Check if there is an incoming step (that is not part of the
@@ -370,7 +370,6 @@ export const PipelineEditor = () => {
         <PipelineCanvasHeaderBar />
         <PipelineViewport
           ref={pipelineViewportRef}
-          canvasFuncRef={canvasFuncRef}
           autoLayoutPipeline={autoLayoutPipeline}
         >
           {connections.map((connection) => {
@@ -528,8 +527,8 @@ export const PipelineEditor = () => {
               </PipelineStep>
             );
           })}
-          {eventVars.stepSelector.active && (
-            <Rectangle {...getStepSelectorRectangle(eventVars.stepSelector)} />
+          {stepSelector.active && (
+            <Rectangle {...getStepSelectorRectangle(stepSelector)} />
           )}
         </PipelineViewport>
         {pipelineJson && (
@@ -538,7 +537,7 @@ export const PipelineEditor = () => {
               <IconButton
                 title="Center"
                 data-test-id="pipeline-center"
-                onPointerDown={canvasFuncRef.current?.centerView}
+                onPointerDown={centerView}
               >
                 <CropFreeIcon />
               </IconButton>
@@ -548,11 +547,11 @@ export const PipelineEditor = () => {
                   // NOTE: onClick also listens to space bar press when button is focused
                   // it causes issue when user press space bar to navigate the canvas
                   // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
-                  canvasFuncRef.current?.centerPipelineOrigin();
-                  dispatch((current) => {
+                  centerPipelineOrigin();
+                  uiParamsDispatch((current) => {
                     return {
                       type: "SET_SCALE_FACTOR",
-                      payload: current.scaleFactor - 0.25,
+                      payload: current.scaleFactor - SCALE_UNIT,
                     };
                   });
                 }}
@@ -562,11 +561,11 @@ export const PipelineEditor = () => {
               <IconButton
                 title="Zoom in"
                 onPointerDown={() => {
-                  canvasFuncRef.current?.centerPipelineOrigin();
-                  dispatch((current) => {
+                  centerPipelineOrigin();
+                  uiParamsDispatch((current) => {
                     return {
                       type: "SET_SCALE_FACTOR",
-                      payload: current.scaleFactor + 0.25,
+                      payload: current.scaleFactor + SCALE_UNIT,
                     };
                   });
                 }}

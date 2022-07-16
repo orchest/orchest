@@ -6,12 +6,14 @@ import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
 import { Environment, OrchestSession, PipelineJson } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
 
 export type PipelineDataContextType = {
+  disabled: boolean;
   pipelineUuid?: string;
   pipelineCwd?: string;
   environments: Environment[];
@@ -43,8 +45,11 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   } = useCustomRoute();
 
   const {
-    state: { pipeline },
+    state: { pipeline, pipelines },
   } = useProjectsContext();
+
+  // No pipeline found. Editor is frozen and shows "Pipeline not found".
+  const disabled = hasValue(pipelines) && pipelines.length === 0;
 
   const pipelineCwd = pipeline?.path.replace(/\/?[^\/]*.orchest$/, "/");
 
@@ -109,6 +114,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   return (
     <PipelineDataContext.Provider
       value={{
+        disabled,
         pipelineUuid,
         pipelineCwd,
         environments,

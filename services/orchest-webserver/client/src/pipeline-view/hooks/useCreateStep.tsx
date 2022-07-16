@@ -4,6 +4,7 @@ import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
 const toRoot = (path?: string) => (path?.startsWith("/") ? path : "/" + path);
@@ -22,7 +23,8 @@ export type StepCreator = (filePath?: string) => void;
 
 export const useCreateStep = (): StepCreator => {
   const { pipelineCwd, environments } = usePipelineDataContext();
-  const { dispatch, pipelineViewportRef } = usePipelineEditorContext();
+  const { dispatch } = usePipelineEditorContext();
+  const { pipelineViewportRef } = usePipelineUiParamsContext();
   const {
     pipelineCanvasState: { pipelineOffset },
   } = usePipelineCanvasContext();

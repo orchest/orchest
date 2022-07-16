@@ -4,7 +4,8 @@ import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import React from "react";
 import { scaleCorrected } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
 
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
@@ -19,7 +20,7 @@ const isTouchpad = (event: WheelEvent) => {
 };
 
 /**
- * This hook is responsible for pinching and panning on PiplineCanvas
+ * This hook is responsible for pinching and panning on PipelineCanvas
  *
  * It seems that useGesture in one place will intercept all gesture events.
  * So, for example, useWheel in other places in the same view would not work.
@@ -29,13 +30,13 @@ export const useGestureOnViewport = (
   ref: React.MutableRefObject<HTMLDivElement | null>,
   pipelineSetHolderOrigin: (newOrigin: [number, number]) => void
 ) => {
+  const { disabled } = usePipelineDataContext();
   const {
-    disabled,
-    eventVars,
-    trackMouseMovement,
-    dispatch,
+    uiParams: { scaleFactor },
     pipelineCanvasRef,
-  } = usePipelineEditorContext();
+    uiParamsDispatch,
+    trackMouseMovement,
+  } = usePipelineUiParamsContext();
 
   const {
     pipelineCanvasState: { pipelineOrigin },
@@ -48,11 +49,11 @@ export const useGestureOnViewport = (
       let canvasOffset = getOffset(pipelineCanvasRef.current);
 
       return {
-        x: scaleCorrected(x - canvasOffset.left, eventVars.scaleFactor),
-        y: scaleCorrected(y - canvasOffset.top, eventVars.scaleFactor),
+        x: scaleCorrected(x - canvasOffset.left, scaleFactor),
+        y: scaleCorrected(y - canvasOffset.top, scaleFactor),
       };
     },
-    [pipelineCanvasRef, eventVars.scaleFactor, trackMouseMovement]
+    [pipelineCanvasRef, scaleFactor, trackMouseMovement]
   );
 
   React.useEffect(() => {
@@ -77,7 +78,7 @@ export const useGestureOnViewport = (
         pipelineSetHolderOrigin([x, y]);
       }
 
-      dispatch((current) => {
+      uiParamsDispatch((current) => {
         return {
           type: "SET_SCALE_FACTOR",
           payload: current.scaleFactor + scaleDiff,
@@ -86,7 +87,7 @@ export const useGestureOnViewport = (
     },
     [
       disabled,
-      dispatch,
+      uiParamsDispatch,
       pipelineOrigin,
       getPositionRelativeToCanvas,
       pipelineSetHolderOrigin,
