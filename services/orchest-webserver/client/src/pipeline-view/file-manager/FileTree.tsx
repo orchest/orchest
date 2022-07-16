@@ -255,7 +255,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       return lockedFiles;
     },
-    [getSession, pipelines]
+    [getSession, getPipelineFromPath]
   );
 
   const handleMove = React.useCallback(
@@ -288,7 +288,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
       }
     },
-    [getPipelineFromPath, setAlert, projectUuid, pipelines]
+    [getPipelineFromPath, setAlert, projectUuid]
   );
 
   const afterMove = React.useCallback(
@@ -398,12 +398,13 @@ export const FileTree = React.memo(function FileTreeComponent({
     [
       projectUuid,
       getFilesLockedBySessions,
+      fileTrees,
+      setAlert,
       setConfirm,
       stopSession,
       draggedFiles,
-      fileTrees,
-      afterMove,
       handleMove,
+      afterMove,
     ]
   );
 
