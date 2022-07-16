@@ -1,7 +1,7 @@
 import { NewConnection, Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
 import { EventVarsAction } from "../hooks/useEventVars";
 import { useUpdateZIndex } from "../hooks/useZIndexMax";
 import { getSvgProperties, getTransformProperty } from "./common";
@@ -41,7 +41,7 @@ const PipelineConnectionComponent = ({
   newConnection,
   ...props
 }: PipelineConnectionProps) => {
-  const { keysDown } = usePipelineEditorContext();
+  const { keysDown } = usePipelineUiParamsContext();
   const [transformProperty, setTransformProperty] = React.useState(() =>
     getTransformProperty(props)
   );

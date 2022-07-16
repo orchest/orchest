@@ -11,6 +11,7 @@ import { InteractiveRunsContextProvider } from "./contexts/InteractiveRunsContex
 import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext";
 import { PipelineDataContextProvider } from "./contexts/PipelineDataContext";
 import { PipelineEditorContextProvider } from "./contexts/PipelineEditorContext";
+import { PipelineUiParamsContextProvider } from "./contexts/PipelineUiParamsContext";
 import { FileManager } from "./file-manager/FileManager";
 import { FileManagerContextProvider } from "./file-manager/FileManagerContext";
 import { MainSidePanel } from "./MainSidePanel";
@@ -30,25 +31,29 @@ const PipelineView = () => {
       {projectUuid ? (
         <PipelineDataContextProvider>
           <InteractiveRunsContextProvider>
-            <PipelineEditorContextProvider>
-              <FileManagerContextProvider
-                projectUuid={projectUuid}
-                pipelineUuid={pipeline?.uuid}
-                jobUuid={jobUuid}
-                runUuid={runUuid}
-              >
-                <PipelineCanvasContextProvider>
-                  <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
-                    <MainSidePanel>
-                      <FileManager />
-                      {!pipelineIsReadOnly && <SessionsPanel />}
-                    </MainSidePanel>
-
-                    <PipelineEditor />
-                  </Stack>
-                </PipelineCanvasContextProvider>
-              </FileManagerContextProvider>
-            </PipelineEditorContextProvider>
+            <PipelineUiParamsContextProvider>
+              <PipelineEditorContextProvider>
+                <FileManagerContextProvider
+                  projectUuid={projectUuid}
+                  pipelineUuid={pipeline?.uuid}
+                  jobUuid={jobUuid}
+                  runUuid={runUuid}
+                >
+                  <PipelineCanvasContextProvider>
+                    <Stack
+                      direction="row"
+                      sx={{ height: "100%", width: "100%" }}
+                    >
+                      <MainSidePanel>
+                        <FileManager />
+                        {!pipelineIsReadOnly && <SessionsPanel />}
+                      </MainSidePanel>
+                      <PipelineEditor />
+                    </Stack>
+                  </PipelineCanvasContextProvider>
+                </FileManagerContextProvider>
+              </PipelineEditorContextProvider>
+            </PipelineUiParamsContextProvider>
           </InteractiveRunsContextProvider>
         </PipelineDataContextProvider>
       ) : (

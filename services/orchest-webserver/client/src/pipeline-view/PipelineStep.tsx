@@ -18,6 +18,7 @@ import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { usePipelineUiParamsContext } from "./contexts/PipelineUiParamsContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
@@ -165,19 +166,21 @@ const PipelineStepComponent = React.forwardRef<
     stepDomRefs,
     zIndexMax,
     dispatch,
-    mouseTracker,
     newConnection,
-    keysDown,
-
     eventVars: {
       cursorControlledStep,
       steps,
       selectedSteps,
-      stepSelector,
       selectedConnection,
     },
     isContextMenuOpen,
   } = usePipelineEditorContext();
+  const {
+    uiParams: { stepSelector },
+    uiParamsDispatch,
+    mouseTracker,
+    keysDown,
+  } = usePipelineUiParamsContext();
   const { selectedFiles, dragFile, resetMove } = useFileManagerContext();
 
   const {
@@ -263,7 +266,7 @@ const PipelineStepComponent = React.forwardRef<
     }
 
     if (isSelectorActive) {
-      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
 
     if (newConnection.current) {
@@ -503,7 +506,7 @@ const PipelineStepComponent = React.forwardRef<
       type: "item",
       title: "Properties",
       action: () => {
-        dispatch({ type: "SELECT_SUB_VIEW", payload: 0 });
+        uiParamsDispatch({ type: "OPEN_STEP_DETAILS" });
       },
     },
     {
