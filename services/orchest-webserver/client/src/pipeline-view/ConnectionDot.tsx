@@ -3,7 +3,7 @@ import Box, { BoxProps } from "@mui/material/Box";
 import { alpha, styled } from "@mui/material/styles";
 import classNames from "classnames";
 import React from "react";
-import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { usePipelineUiParamsContext } from "./contexts/PipelineUiParamsContext";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 
 const DOT_SIZE = "10px";
@@ -51,7 +51,7 @@ export const ConnectionDot = React.forwardRef<
   },
   ref
 ) {
-  const { keysDown } = usePipelineEditorContext();
+  const { keysDown } = usePipelineUiParamsContext();
 
   const typeClassName = incoming
     ? "incoming-connections"
