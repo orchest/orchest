@@ -1,9 +1,11 @@
+import { Position } from "@/types";
 import React from "react";
 import {
   INITIAL_PIPELINE_POSITION,
   PipelineCanvasState,
   usePipelineCanvasState,
 } from "../hooks/usePipelineCanvasState";
+import { useKeyboardEventsOnViewport } from "../pipeline-viewport/useKeyboardEventsOnViewport";
 
 export type PipelineCanvasContextType = {
   pipelineCanvasState: PipelineCanvasState;
@@ -12,6 +14,10 @@ export type PipelineCanvasContextType = {
     | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
   >;
   resetPipelineCanvas: () => void;
+  setPipelineHolderOrigin: (newOrigin: [number, number]) => void;
+  centerView: () => void;
+  centerPipelineOrigin: () => void;
+  zoom: (mousePosition: Position, scaleDiff: number) => void;
 };
 
 export const PipelineCanvasContext = React.createContext<
@@ -35,12 +41,23 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
     });
   }, [setPipelineCanvasState]);
 
+  const {
+    setPipelineHolderOrigin,
+    centerView,
+    centerPipelineOrigin,
+    zoom,
+  } = useKeyboardEventsOnViewport(setPipelineCanvasState, resetPipelineCanvas);
+
   return (
     <PipelineCanvasContext.Provider
       value={{
         pipelineCanvasState,
         setPipelineCanvasState,
         resetPipelineCanvas,
+        setPipelineHolderOrigin,
+        centerView,
+        centerPipelineOrigin,
+        zoom,
       }}
     >
       {children}

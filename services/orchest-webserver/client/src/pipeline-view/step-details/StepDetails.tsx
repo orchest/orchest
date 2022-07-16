@@ -15,6 +15,7 @@ import {
 import { ResizeBar } from "../components/ResizeBar";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
 import { StepDetailsContextProvider } from "./StepDetailsContext";
 import { StepDetailsControlPanel } from "./StepDetailsControlPanel";
 import { StepDetailsLogs } from "./StepDetailsLogs";
@@ -55,10 +56,13 @@ const StepDetailsComponent: React.FC<{
 }> = ({ onOpenNotebook, onOpenFilePreviewView, onSave, onDelete }) => {
   const { jobUuid, projectUuid } = useCustomRoute();
   const { pipelineCwd, runUuid, isReadOnly } = usePipelineDataContext();
-  const { eventVars, pipelineJson, dispatch } = usePipelineEditorContext();
+  const { eventVars, pipelineJson } = usePipelineEditorContext();
+  const {
+    uiParams: { subViewIndex, shouldAutoFocus },
+    uiParamsDispatch,
+  } = usePipelineUiParamsContext();
 
   const step = eventVars.steps[eventVars.openedStep || ""];
-  const subViewIndex = eventVars.subViewIndex;
 
   const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
     "pipelinedetails.panelWidth",
@@ -94,7 +98,7 @@ const StepDetailsComponent: React.FC<{
     e: React.SyntheticEvent<Element, Event>,
     index: number
   ) => {
-    dispatch({ type: "SELECT_SUB_VIEW", payload: index });
+    uiParamsDispatch({ type: "SELECT_SUB_VIEW", payload: index });
   };
 
   if (!eventVars.openedStep || !step || !pipelineJson) return null;
@@ -130,7 +134,7 @@ const StepDetailsComponent: React.FC<{
             <StepDetailsProperties
               pipelineCwd={pipelineCwd}
               readOnly={isReadOnly}
-              shouldAutoFocus={eventVars.shouldAutoFocus}
+              shouldAutoFocus={shouldAutoFocus}
               onSave={onSave}
               menuMaxWidth={`${panelWidth - 48}px`}
             />
