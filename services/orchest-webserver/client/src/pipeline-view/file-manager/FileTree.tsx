@@ -238,6 +238,8 @@ export const FileTree = React.memo(function FileTreeComponent({
         } else {
           await moveFile(projectUuid, [oldPath, newPath]);
         }
+
+        onMoved(oldPath, newPath);
       } catch (error) {
         setAlert(
           "Error",
@@ -255,8 +257,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   const afterMove = React.useCallback(
     async (moves: readonly Move[]) => {
       await reload();
-
-      moves.forEach(([oldPath, newPath]) => onMoved(oldPath, newPath));
 
       const didMovePipeline = moves.some(
         ([oldPath, newPath]) =>
