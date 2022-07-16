@@ -46,54 +46,6 @@ import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 import { TreeRow } from "./TreeRow";
 
-const isInFileManager = (element?: HTMLElement | null): boolean =>
-  (element && element.classList.contains(FILE_MANAGER_ROOT_CLASS)) ||
-  isInFileManager(element?.parentElement);
-
-/**
- * Finds the node with the specified path-
- * @param combinedPath The combined path, e.g: `/project-dir:/foo/bar.py`
- */
-const findNode = (combinedPath: string, fileTrees: FileTrees) => {
-  const { root, path } = unpackPath(combinedPath);
-  const segments = path.split("/").filter(Boolean);
-  let head = fileTrees[root];
-
-  for (const segment of segments) {
-    const node = head.children.find(({ name }) => name === segment);
-
-    if (!node) {
-      break;
-    }
-
-    head = node;
-  }
-
-  return head;
-};
-
-export const movePipeline = async (
-  projectUuid: string,
-  pipelineUuid: string,
-  move: Move
-) => {
-  const { newPath } = unpackMove(move);
-
-  await fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
-    method: "PUT",
-    headers: HEADER.JSON,
-    body: JSON.stringify({ path: newPath.replace(/^\//, "") }), // The path should be relative to `/project-dir:/`.
-  });
-};
-
-export const moveFile = async (projectUuid: string, move: Move) => {
-  const query = queryArgs({ ...unpackMove(move), projectUuid });
-
-  await fetcher(`${FILE_MANAGEMENT_ENDPOINT}/rename?${query}`, {
-    method: "POST",
-  });
-};
-
 export type FileTreeProps = {
   treeRoots: readonly FileManagementRoot[];
   expanded: string[];
@@ -519,3 +471,51 @@ const ConfirmMoveMessage = ({ moves }: { moves: readonly Move[] }) => (
     {generateTargetDescription(moves[0][1])} ?
   </>
 );
+
+const isInFileManager = (element?: HTMLElement | null): boolean =>
+  (element && element.classList.contains(FILE_MANAGER_ROOT_CLASS)) ||
+  isInFileManager(element?.parentElement);
+
+/**
+ * Finds the node with the specified path in the file tree.
+ * @param combinedPath The combined path, e.g: `/project-dir:/foo/bar.py`
+ */
+const findNode = (combinedPath: string, fileTrees: FileTrees) => {
+  const { root, path } = unpackPath(combinedPath);
+  const segments = path.split("/").filter(Boolean);
+  let head = fileTrees[root];
+
+  for (const segment of segments) {
+    const node = head.children.find(({ name }) => name === segment);
+
+    if (!node) {
+      break;
+    }
+
+    head = node;
+  }
+
+  return head;
+};
+
+export const movePipeline = async (
+  projectUuid: string,
+  pipelineUuid: string,
+  move: Move
+) => {
+  const { newPath } = unpackMove(move);
+
+  await fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
+    method: "PUT",
+    headers: HEADER.JSON,
+    body: JSON.stringify({ path: newPath.replace(/^\//, "") }), // The path should be relative to `/project-dir:/`.
+  });
+};
+
+export const moveFile = async (projectUuid: string, move: Move) => {
+  const query = queryArgs({ ...unpackMove(move), projectUuid });
+
+  await fetcher(`${FILE_MANAGEMENT_ENDPOINT}/rename?${query}`, {
+    method: "POST",
+  });
+};
