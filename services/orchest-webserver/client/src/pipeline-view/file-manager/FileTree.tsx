@@ -147,7 +147,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const onOpen = React.useCallback(
     (path: string) => {
-      if (pipelines.length === 0) {
+      if (pipelines.length) {
         setAlert(
           "Notice",
           "In order to open a file in JupyterLab, you need to create a pipeline first."
@@ -161,11 +161,11 @@ export const FileTree = React.memo(function FileTreeComponent({
           </>
         );
       } else if (isPipelineFile(path)) {
-        const newPipelineUuid = pipelineByPath(path)?.uuid;
+        const pipelineUuid = pipelineByPath(path)?.uuid;
 
-        if (newPipelineUuid) {
+        if (pipelineUuid) {
           navigateTo(siteMap.pipeline.path, {
-            query: { projectUuid, pipelineUuid: newPipelineUuid },
+            query: { projectUuid, pipelineUuid },
           });
         }
       } else {
@@ -320,14 +320,14 @@ export const FileTree = React.memo(function FileTreeComponent({
           }
         );
       } else {
-        const willBrickSomeFile =
+        const willBreakSomeFile =
           isInDataFolder(moves[0][1]) &&
           (
             await Promise.all(
-              draggedFiles.map((path) =>
+              moves.map(([oldPath]) =>
                 findFilesByExtension({
                   root: "/project-dir",
-                  node: findNode(path, fileTrees),
+                  node: findNode(oldPath, fileTrees),
                   extensions: ["ipynb", "orchest"],
                   projectUuid,
                 })
@@ -335,24 +335,30 @@ export const FileTree = React.memo(function FileTreeComponent({
             )
           ).some((files) => files.length);
 
-        const message = willBrickSomeFile ? (
-          <BrickFileMessage />
-        ) : (
-          <ConfirmMoveMessage moves={moves} />
-        );
-
         if (isRename) {
           await Promise.all(moves.map(handleMove));
           afterMove(moves);
         } else {
-          setConfirm("Warning", message, {
-            onConfirm: async (resolve) => {
-              await Promise.all(moves.map(handleMove));
-              afterMove(moves);
-              resolve(true);
-              return true;
-            },
-          });
+          setConfirm(
+            willBreakSomeFile ? "File type warning" : "Warning",
+            willBreakSomeFile ? (
+              <BreakFileMessage />
+            ) : (
+              <ConfirmMoveMessage moves={moves} />
+            ),
+            {
+              confirmLabel:
+                (isRename ? "Rename " : "Move ") +
+                (moves.length === 1 ? "file" : "files"),
+
+              onConfirm: async (resolve) => {
+                await Promise.all(moves.map(handleMove));
+                afterMove(moves);
+                resolve(true);
+                return true;
+              },
+            }
+          );
         }
       }
     },
@@ -461,7 +467,7 @@ const OverwriteMessage = ({ files }: { files: readonly string[] }) => (
   </Stack>
 );
 
-const BrickFileMessage = () => (
+const BreakFileMessage = () => (
   <Stack spacing={2} direction="column">
     <Box>
       You are trying to move <Code>{".ipynb"}</Code>
