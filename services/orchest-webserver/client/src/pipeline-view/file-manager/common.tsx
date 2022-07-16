@@ -28,9 +28,7 @@ export const searchTree = (
   tree: TreeNode,
   res: { parent?: TreeNode; node?: TreeNode } = {}
 ) => {
-  // This search returns early
-  for (let x = 0; x < tree.children.length; x++) {
-    let node = tree.children[x];
+  for (const node of tree.children) {
     if (node.path === path) {
       res.parent = tree;
       res.node = node;
@@ -58,7 +56,7 @@ export type UnpackedPath = {
  */
 export const unpackPath = (combinedPath: string): UnpackedPath => {
   const root = combinedPath.split(":")[0] as FileManagementRoot;
-  const path = combinedPath.slice(root.length + ":".length);
+  const path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
 
   return { root, path };
 };
@@ -86,8 +84,7 @@ export const unpackMove = ([source, target]: Move): UnpackedMove => {
 
 export const isDirectory = (path: string) => path.endsWith("/");
 
-export const isPipelineFile = (path: string) =>
-  isFileByExtension(["orchest"], path);
+export const isPipelineFile = (path: string) => hasExtension(path, "orchest");
 
 export const combinePath = ({ root, path }: UnpackedPath) =>
   root + ROOT_SEPARATOR + path;
@@ -151,14 +148,12 @@ export function isFileEntry(
 }
 
 export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
-  // Modifies tree
-  // subTree root path
-  let { parent } = searchTree(subTree.path, tree);
+  const { parent } = searchTree(subTree.path, tree);
   if (!parent) return;
-  for (let x = 0; x < parent.children.length; x++) {
-    let child = parent.children[x];
+  for (let i = 0; i < parent.children.length; i++) {
+    const child = parent.children[i];
     if (child.path === subTree.path) {
-      parent.children[x] = subTree;
+      parent.children[i] = subTree;
       break;
     }
   }
@@ -182,10 +177,6 @@ export const queryArgs = (
   }, "");
 };
 
-/**
- * Path helpers
- */
-
 export const getActiveRoot = (
   selected: string[],
   treeRoots: readonly FileManagementRoot[]
@@ -193,25 +184,23 @@ export const getActiveRoot = (
   if (selected.length === 0) {
     return treeRoots[0];
   } else {
-    const { root } = unpackPath(selected[0]);
-    return root as FileManagementRoot;
+    return unpackPath(selected[0]).root;
   }
 };
 
-const isPathChildLess = (path: string, fileTree: TreeNode) => {
-  let { node } = searchTree(path, fileTree);
-  if (!node) {
-    return false;
-  } else {
-    return node.children.length === 0;
-  }
+const isPathChildless = (path: string, tree: TreeNode) => {
+  const { node } = searchTree(path, tree);
+
+  return Boolean(node?.children.length);
 };
-export const isCombinedPathChildLess = (
+
+export const isCombinedPathChildless = (
   combinedPath: string,
-  fileTrees: FileTrees
+  roots: FileTrees
 ) => {
   const { root, path } = unpackPath(combinedPath);
-  return isPathChildLess(path, fileTrees[root]);
+
+  return isPathChildless(path, roots[root]);
 };
 
 export const searchTrees = ({
@@ -257,11 +246,7 @@ export const prettifyRoot = (root: string) => {
   }
 };
 
-/**
- * remove leading "./" of a file path
- * @param filePath {string}
- * @returns {string}
- */
+/** Remove leading "./" of a file path */
 export const removeLeadingSymbols = (filePath: string) =>
   filePath.replace(/^\.\//, "");
 
@@ -270,14 +255,14 @@ export const removeLeadingSymbols = (filePath: string) =>
 export const getStepFilePath = (step: Step) =>
   removeLeadingSymbols(step.file_path);
 
-export const isFileByExtension = (extensions: string[], filePath: string) => {
+export const hasExtension = (path: string, ...extensions: string[]) => {
   const regex = new RegExp(
     `\.(${extensions
       .map((extension) => extension.replace(/^\./, "")) // in case user add a leading dot
       .join("|")})$`,
     "i"
   );
-  return regex.test(filePath);
+  return regex.test(path);
 };
 
 export const searchFilePathsByExtension = ({
@@ -302,9 +287,8 @@ export const searchFilePathsByExtension = ({
     `${FILE_MANAGEMENT_ENDPOINT}/extension-search?` + query
   );
 };
-/**
- * This function returns a list of file_path that ends with the given extensions.
- */
+
+/** This function returns a list of file_path that ends with the given extensions. */
 export const findFilesByExtension = async ({
   root,
   projectUuid,
@@ -317,10 +301,9 @@ export const findFilesByExtension = async ({
   node: TreeNode;
 }) => {
   if (node.type === "file") {
-    const isFileType = isFileByExtension(extensions, node.name);
+    const isFileType = hasExtension(node.name, ...extensions);
     return isFileType ? [node.name] : [];
-  }
-  if (node.type === "directory") {
+  } else if (node.type === "directory") {
     const response = await searchFilePathsByExtension({
       projectUuid,
       root,
@@ -345,7 +328,7 @@ export const validateFiles = (
   const allNotebookFileSteps = Object.values(steps || {}).reduce(
     (all, step) => {
       const filePath = getStepFilePath(step);
-      if (isFileByExtension(["ipynb"], filePath)) {
+      if (hasExtension(filePath, "ipynb")) {
         return [...all, { ...step, file_path: filePath }];
       }
       return all;

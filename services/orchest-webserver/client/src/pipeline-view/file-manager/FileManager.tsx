@@ -18,7 +18,7 @@ import { ActionBar } from "./ActionBar";
 import {
   FILE_MANAGEMENT_ENDPOINT,
   getActiveRoot,
-  isCombinedPathChildLess,
+  isCombinedPathChildless,
   lastSelectedFolderPath,
   mergeTrees,
   queryArgs,
@@ -207,7 +207,7 @@ export function FileManager() {
 
         // Note, nodeIds are absolute paths
         addedIds.forEach((combinedPath) => {
-          if (isCombinedPathChildLess(combinedPath, fileTrees)) {
+          if (isCombinedPathChildless(combinedPath, fileTrees)) {
             // Attempt path load
             browsePath(combinedPath);
           }

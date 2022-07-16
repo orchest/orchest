@@ -134,7 +134,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const openNotebook = useOpenNoteBook();
 
-  const getPipelineFromPath = React.useCallback(
+  const pipelineByPath = React.useCallback(
     (path) => {
       path = isCombinedPath(path) ? unpackPath(path).path : path;
 
@@ -238,7 +238,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       const lockedFiles: LockedFile[] = [];
 
       for (const { path, root } of pipelineFiles) {
-        const pipelineUuid = getPipelineFromPath(path)?.uuid;
+        const pipelineUuid = pipelineByPath(path)?.uuid;
 
         if (!pipelineUuid) {
           continue;
@@ -255,7 +255,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       return lockedFiles;
     },
-    [getSession, getPipelineFromPath]
+    [getSession, pipelineByPath]
   );
 
   const handleMove = React.useCallback(
@@ -269,7 +269,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           isInProjectFolder(newPath);
 
         if (movedPipelineWithinProject) {
-          const pipeline = getPipelineFromPath(oldPath);
+          const pipeline = pipelineByPath(oldPath);
 
           if (pipeline) {
             await movePipeline(projectUuid, pipeline.uuid, [oldPath, newPath]);
