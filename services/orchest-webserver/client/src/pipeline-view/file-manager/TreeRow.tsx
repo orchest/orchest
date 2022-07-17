@@ -1,5 +1,6 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useOnClickOutside } from "@/hooks/useOnClickOutside";
+import { firstAncestor } from "@/utils/element";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
@@ -140,16 +141,25 @@ const RenameField = ({
       deriveParentPath(path) + fileRenameNewName + (isFolder ? "/" : "");
     const newCombinedPath = combinePath({ root, path: newPath });
 
-    if (combinedPath === newCombinedPath) {
-      cancel();
-    } else {
+    if (newCombinedPath !== combinedPath) {
       onRename(combinedPath, newCombinedPath);
+    } else {
+      cancel();
     }
   };
 
   React.useEffect(() => inputRef.current?.focus(), [fileInRename]);
 
-  useOnClickOutside(inputRef, save);
+  useOnClickOutside(inputRef, (event) => {
+    // NOTE:
+    //  We never want clicks in modals to trigger a save,
+    //  since modals must be clicked to be dismissed.
+    //  We leverage that modals don't share the same mount point,
+    //  as the rest of the app.
+    if (sharesMount(inputRef.current, event.target as Element)) {
+      save();
+    }
+  });
 
   return (
     <TextField
@@ -177,5 +187,16 @@ const RenameField = ({
       }}
       onChange={({ target }) => setFileRenameNewName(target.value)}
     />
+  );
+};
+
+const isMountPoint = (element: Element) =>
+  element.parentElement?.tagName === "BODY";
+
+const sharesMount = (...[first, ...elements]: readonly (Element | null)[]) => {
+  const mountPoint = firstAncestor(first, isMountPoint);
+
+  return elements.every(
+    (element) => firstAncestor(element, isMountPoint) === mountPoint
   );
 };
