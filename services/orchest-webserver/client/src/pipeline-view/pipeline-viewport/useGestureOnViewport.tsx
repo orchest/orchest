@@ -3,9 +3,10 @@ import { getOffset } from "@/utils/jquery-replacement";
 import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import React from "react";
 import { scaleCorrected } from "../common";
-import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
+import { useScaleFactor } from "../contexts/ScaleFactorContext";
+import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
 
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
@@ -27,21 +28,18 @@ const isTouchpad = (event: WheelEvent) => {
  * All the gesture events for PipelineEditor should be implemented in this hook.
  */
 export const useGestureOnViewport = (
+  pipelineCanvasState: PipelineCanvasState,
+  setPipelineCanvasState: React.Dispatch<
+    | Partial<PipelineCanvasState>
+    | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
+  >,
   ref: React.MutableRefObject<HTMLDivElement | null>,
   pipelineSetHolderOrigin: (newOrigin: [number, number]) => void
 ) => {
   const { disabled } = usePipelineDataContext();
-  const {
-    uiParams: { scaleFactor },
-    pipelineCanvasRef,
-    uiParamsDispatch,
-    trackMouseMovement,
-  } = usePipelineUiParamsContext();
-
-  const {
-    pipelineCanvasState: { pipelineOrigin },
-    setPipelineCanvasState,
-  } = usePipelineCanvasContext();
+  const { scaleFactor, setScaleFactor, trackMouseMovement } = useScaleFactor();
+  const { pipelineCanvasRef } = usePipelineRefs();
+  const { pipelineOrigin } = pipelineCanvasState;
 
   const getPositionRelativeToCanvas = React.useCallback(
     ({ x, y }: Position): Position => {
@@ -78,16 +76,11 @@ export const useGestureOnViewport = (
         pipelineSetHolderOrigin([x, y]);
       }
 
-      uiParamsDispatch((current) => {
-        return {
-          type: "SET_SCALE_FACTOR",
-          payload: current.scaleFactor + scaleDiff,
-        };
-      });
+      setScaleFactor((current) => current + scaleDiff);
     },
     [
       disabled,
-      uiParamsDispatch,
+      setScaleFactor,
       pipelineOrigin,
       getPositionRelativeToCanvas,
       pipelineSetHolderOrigin,

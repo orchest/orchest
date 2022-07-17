@@ -112,5 +112,5 @@ export const useAutoStartSession = () => {
     }
   }, [session]);
 
-  return session;
+  return { session, startSession };
 };

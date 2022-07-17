@@ -8,7 +8,7 @@ import React from "react";
 import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { usePipelineUiParamsContext } from "./contexts/PipelineUiParamsContext";
+import { usePipelineUiStatesContext } from "./contexts/PipelineUiStatesContext";
 import { useOpenFile } from "./hooks/useOpenFile";
 
 type PipelineStepContextMenuProps = { stepUuid: string };
@@ -27,7 +27,7 @@ export const PipelineStepContextMenu = ({
     eventVars: { steps, selectedSteps },
   } = usePipelineEditorContext();
   const { isReadOnly } = usePipelineDataContext();
-  const { uiParamsDispatch } = usePipelineUiParamsContext();
+  const { uiStatesDispatch } = usePipelineUiStatesContext();
 
   const selectionContainsNotebooks = React.useMemo(
     () =>
@@ -60,7 +60,7 @@ export const PipelineStepContextMenu = ({
       type: "item",
       title: "Properties",
       action: () => {
-        uiParamsDispatch({ type: "OPEN_STEP_DETAILS" });
+        uiStatesDispatch({ type: "OPEN_STEP_DETAILS" });
       },
     },
     {

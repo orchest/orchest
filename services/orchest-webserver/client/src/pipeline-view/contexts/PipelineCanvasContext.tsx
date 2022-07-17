@@ -46,7 +46,11 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
     centerView,
     centerPipelineOrigin,
     zoom,
-  } = useKeyboardEventsOnViewport(setPipelineCanvasState, resetPipelineCanvas);
+  } = useKeyboardEventsOnViewport(
+    pipelineCanvasState,
+    setPipelineCanvasState,
+    resetPipelineCanvas
+  );
 
   return (
     <PipelineCanvasContext.Provider
