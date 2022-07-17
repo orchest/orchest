@@ -11,7 +11,7 @@ import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
+import { usePipelineUiStatesContext } from "../contexts/PipelineUiStatesContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
 type PipelineViewportContextMenuProps = { autoLayoutPipeline: () => void };
@@ -25,7 +25,7 @@ export const PipelineViewportContextMenu = ({
 }: PipelineViewportContextMenuProps) => {
   const { handleContextMenu, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
   const { isReadOnly, environments } = usePipelineDataContext();
-  const { getOnCanvasPosition } = usePipelineUiParamsContext();
+  const { getOnCanvasPosition } = usePipelineUiStatesContext();
   const { eventVars, dispatch } = usePipelineEditorContext();
   const { executeRun } = useInteractiveRunsContext();
 

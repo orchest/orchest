@@ -5,20 +5,20 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { Environment, OrchestSession, PipelineJson } from "@/types";
+import { Environment, PipelineJson } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
 
 export type PipelineDataContextType = {
   disabled: boolean;
+  projectUuid?: string;
   pipelineUuid?: string;
   pipelineCwd?: string;
   environments: Environment[];
-  session: OrchestSession | undefined;
   runUuid?: string;
+  jobUuid?: string;
   setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   isReadOnly: boolean;
   pipelineJson?: PipelineJson;
@@ -37,7 +37,6 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const { setAlert } = useAppContext();
 
   const {
-    projectUuid,
     pipelineUuid: pipelineUuidFromRoute,
     jobUuid,
     runUuid: runUuidFromRoute,
@@ -45,7 +44,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   } = useCustomRoute();
 
   const {
-    state: { pipeline, pipelines },
+    state: { pipeline, pipelines, projectUuid },
   } = useProjectsContext();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
@@ -66,7 +65,6 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   );
 
   const isReadOnly = useIsReadOnly(projectUuid, jobUuid, runUuid);
-  const session = useAutoStartSession({ isReadOnly });
 
   const {
     pipelineJson,
@@ -115,10 +113,11 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     <PipelineDataContext.Provider
       value={{
         disabled,
+        projectUuid,
         pipelineUuid,
         pipelineCwd,
         environments,
-        session,
+        jobUuid,
         runUuid,
         setRunUuid,
         isReadOnly,

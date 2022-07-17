@@ -11,7 +11,7 @@ export type PipelineCanvasState = {
   pipelineOffset: [number, number];
   panningState: PanningState;
 };
-let initialState: PipelineCanvasState = {
+const initialState: PipelineCanvasState = {
   pipelineOrigin: [0, 0],
   pipelineStepsHolderOffsetLeft: 0,
   pipelineStepsHolderOffsetTop: 0,
