@@ -14,7 +14,6 @@ import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
-import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
@@ -22,13 +21,13 @@ import { usePipelineUiParamsContext } from "./contexts/PipelineUiParamsContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
-import {
-  ContextMenuItem,
-  PipelineEditorContextMenu,
-  useContextMenu,
-} from "./hooks/useContextMenu";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
+import {
+  PipelineStepContextMenu,
+  PipelineStepContextMenuProvider,
+  usePipelineStepContextMenu,
+} from "./PipelineStepContextMenu";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
@@ -119,27 +118,29 @@ export const getStateText = (executionState: ExecutionState) => {
   return stateText;
 };
 
+type PipelineStepProps = {
+  data: PipelineStepState;
+  selected: boolean;
+  movedToTop: boolean;
+  isStartNodeOfNewConnection: boolean;
+  savePositions: () => void;
+  onDoubleClick: (stepUUID: string) => void;
+  interactiveConnections: Connection[];
+  getPosition: (node: HTMLElement | undefined | null) => Position | null;
+  isContextMenuOpenState: [
+    boolean,
+    React.Dispatch<React.SetStateAction<boolean>>
+  ];
+  children: React.ReactNode;
+};
+
 const PipelineStepComponent = React.forwardRef<
   HTMLDivElement,
-  {
-    data: PipelineStepState;
-    selected: boolean;
-    onOpenNotebook: (e: React.MouseEvent) => void;
-    onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
-    movedToTop: boolean;
-    isStartNodeOfNewConnection: boolean;
-    savePositions: () => void;
-    onDoubleClick: (stepUUID: string) => void;
-    interactiveConnections: Connection[];
-    getPosition: (node: HTMLElement | undefined | null) => Position | null;
-    children: React.ReactNode;
-  }
+  PipelineStepProps
 >(function PipelineStep(
   {
     data,
     selected,
-    onOpenNotebook,
-    onOpenFilePreviewView,
     movedToTop,
     isStartNodeOfNewConnection,
     savePositions,
@@ -151,7 +152,6 @@ const PipelineStepComponent = React.forwardRef<
   },
   ref
 ) {
-  const { executeRun } = useInteractiveRunsContext();
   const [, forceUpdate] = useForceUpdate();
   const { setAlert } = useAppContext();
   const { projectUuid, jobUuid } = useCustomRoute();
@@ -167,12 +167,7 @@ const PipelineStepComponent = React.forwardRef<
     zIndexMax,
     dispatch,
     newConnection,
-    eventVars: {
-      cursorControlledStep,
-      steps,
-      selectedSteps,
-      selectedConnection,
-    },
+    eventVars: { cursorControlledStep, selectedSteps, selectedConnection },
     isContextMenuOpen,
   } = usePipelineEditorContext();
   const {
@@ -310,7 +305,8 @@ const PipelineStepComponent = React.forwardRef<
     [forceUpdate, keysDown, isContextMenuOpen]
   );
 
-  const { handleContextMenu, ...contextMenuProps } = useContextMenu();
+  const { handleContextMenu } = usePipelineStepContextMenu();
+
   const onContextMenu = async (e: React.MouseEvent) => {
     const ctrlKeyPressed = e.ctrlKey || e.metaKey;
     if (!selected) {
@@ -477,75 +473,6 @@ const PipelineStepComponent = React.forwardRef<
     setIsHovering(false);
   };
 
-  const selectionContainsNotebooks = React.useMemo(
-    () =>
-      selectedSteps
-        .map((s) => steps[s])
-        .filter((step) => step.file_path.endsWith(".ipynb")).length > 0,
-    [selectedSteps, steps]
-  );
-
-  const menuItems: ContextMenuItem[] = [
-    {
-      type: "item",
-      title: "Duplicate",
-      disabled: isReadOnly || selectionContainsNotebooks,
-      action: () => {
-        dispatch({ type: "DUPLICATE_STEPS", payload: [uuid] });
-      },
-    },
-    {
-      type: "item",
-      title: "Delete",
-      disabled: isReadOnly,
-      action: () => {
-        dispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
-      },
-    },
-    {
-      type: "item",
-      title: "Properties",
-      action: () => {
-        uiParamsDispatch({ type: "OPEN_STEP_DETAILS" });
-      },
-    },
-    {
-      type: "item",
-      title: "Open in JupyterLab",
-      disabled: isReadOnly,
-      action: ({ event }) => {
-        dispatch({ type: "SET_OPENED_STEP", payload: uuid });
-        onOpenNotebook(event);
-      },
-    },
-    {
-      type: "item",
-      title: "Open in File Viewer",
-      action: ({ event }) => {
-        onOpenFilePreviewView(event, uuid);
-      },
-    },
-    {
-      type: "separator",
-    },
-    {
-      type: "item",
-      title: "Run this step",
-      disabled: isReadOnly,
-      action: () => {
-        executeRun([uuid], "selection");
-      },
-    },
-    {
-      type: "item",
-      title: "Run incoming",
-      disabled: isReadOnly,
-      action: () => {
-        executeRun([uuid], "incoming");
-      },
-    },
-  ];
-
   return (
     <>
       <Box
@@ -570,7 +497,7 @@ const PipelineStepComponent = React.forwardRef<
       >
         {children}
       </Box>
-      <PipelineEditorContextMenu {...contextMenuProps} menuItems={menuItems} />
+      <PipelineStepContextMenu stepUuid={uuid} />
       {isCursorControlled && // the cursor-controlled step also renders all the interactive connections
         interactiveConnections.map((connection) => {
           if (!connection) return null;
@@ -631,4 +558,12 @@ const PipelineStepComponent = React.forwardRef<
   );
 });
 
-export const PipelineStep = React.memo(PipelineStepComponent);
+export const PipelineStep = React.forwardRef<HTMLDivElement, PipelineStepProps>(
+  function PipelineStepWithContextMenuProvider(props, ref) {
+    return (
+      <PipelineStepContextMenuProvider>
+        <PipelineStepComponent {...props} ref={ref} />
+      </PipelineStepContextMenuProvider>
+    );
+  }
+);
