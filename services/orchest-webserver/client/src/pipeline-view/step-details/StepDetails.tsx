@@ -49,11 +49,9 @@ const tabs = [
 ];
 
 const StepDetailsComponent: React.FC<{
-  onOpenNotebook: (e: React.MouseEvent) => void;
-  onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
   onDelete: () => void;
   onSave: (stepChanges: Partial<Step>, uuid: string, replace?: boolean) => void;
-}> = ({ onOpenNotebook, onOpenFilePreviewView, onSave, onDelete }) => {
+}> = ({ onSave, onDelete }) => {
   const { jobUuid, projectUuid } = useCustomRoute();
   const { pipelineCwd, runUuid, isReadOnly } = usePipelineDataContext();
   const { eventVars, pipelineJson } = usePipelineEditorContext();
@@ -149,11 +147,7 @@ const StepDetailsComponent: React.FC<{
             />
           </CustomTabPanel>
         </Overflowable>
-        <StepDetailsControlPanel
-          onDelete={onDelete}
-          onOpenFilePreviewView={onOpenFilePreviewView}
-          onOpenNotebook={onOpenNotebook}
-        />
+        <StepDetailsControlPanel onDelete={onDelete} />
       </StepDetailsContainer>
     </StepDetailsContextProvider>
   );
