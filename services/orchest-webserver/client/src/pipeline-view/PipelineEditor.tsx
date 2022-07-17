@@ -1,5 +1,4 @@
 import { IconButton } from "@/components/common/IconButton";
-import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
@@ -10,9 +9,8 @@ import { layoutPipeline } from "@/utils/pipeline-layout";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import CropFreeIcon from "@mui/icons-material/CropFree";
-import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveIcon from "@mui/icons-material/Remove";
-import { activeElementIsInput, hasValue } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
 import { getNodeCenter, SCALE_UNIT, updatePipelineJson } from "./common";
@@ -20,26 +18,32 @@ import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { usePipelineUiParamsContext } from "./contexts/PipelineUiParamsContext";
-import { useHotKeysInPipelineEditor } from "./hooks/useHotKeysInPipelineEditor";
+import { usePipelineRefs } from "./contexts/PipelineRefsContext";
+import { usePipelineUiStatesContext } from "./contexts/PipelineUiStatesContext";
+import { useScaleFactor } from "./contexts/ScaleFactorContext";
+import { DeleteStepsButton } from "./DeleteStepsButton";
 import { useOpenFile } from "./hooks/useOpenFile";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
+import { HotKeysBoundary } from "./HotKeysBoundary";
 import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
-import { PipelineActionButton } from "./PipelineActionButton";
 import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
 
-const deleteStepMessage =
-  "A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?";
-
 export const PipelineEditor = () => {
-  const { setConfirm } = useAppContext();
+  const { navigateTo } = useCustomRoute();
 
-  const { projectUuid, pipelineUuid, jobUuid, navigateTo } = useCustomRoute();
+  const {
+    pipelineCwd,
+    runUuid,
+    isReadOnly,
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+  } = usePipelineDataContext();
 
   const returnToJob = React.useCallback(
     (e?: React.MouseEvent) => {
@@ -47,8 +51,6 @@ export const PipelineEditor = () => {
     },
     [projectUuid, jobUuid, navigateTo]
   );
-
-  const { pipelineCwd, runUuid, isReadOnly } = usePipelineDataContext();
 
   const {
     eventVars,
@@ -67,25 +69,17 @@ export const PipelineEditor = () => {
 
   const { openNotebook, openFilePreviewView } = useOpenFile();
 
-  const removeSteps = React.useCallback(
-    (uuids: string[]) => {
-      dispatch({ type: "REMOVE_STEPS", payload: uuids });
-    },
-    [dispatch]
-  );
-
   const isJobRun = jobUuid && runUuid;
   const jobRunQueryArgs = React.useMemo(() => ({ jobUuid, runUuid }), [
     jobUuid,
     runUuid,
   ]);
 
+  const { scaleFactor, setScaleFactor } = useScaleFactor();
+  const { pipelineCanvasRef, pipelineViewportRef } = usePipelineRefs();
   const {
-    uiParams: { scaleFactor, stepSelector },
-    uiParamsDispatch,
-    pipelineCanvasRef,
-    pipelineViewportRef,
-  } = usePipelineUiParamsContext();
+    uiStates: { stepSelector },
+  } = usePipelineUiStatesContext();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
   const canvasOffset = getOffset(pipelineCanvasRef.current);
@@ -95,10 +89,6 @@ export const PipelineEditor = () => {
     // we need to memoize getPosition to prevent potential re-rendering,
     // but we also need real-time canvasOffset for calculation
   }, [JSON.stringify(canvasOffset), scaleFactor]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const { disableHotKeys, enableHotKeys } = useHotKeysInPipelineEditor();
-
-  const [isDeletingSteps, setIsDeletingSteps] = React.useState(false);
 
   useSavePipelineJson();
 
@@ -132,44 +122,6 @@ export const PipelineEditor = () => {
       openNotebook(undefined, stepUUID);
     }
   };
-
-  const deleteSelectedSteps = React.useCallback(() => {
-    // The if is to avoid the dialog appearing when no steps are
-    // selected and the delete button is pressed.
-    if (eventVars.selectedSteps.length > 0) {
-      setIsDeletingSteps(true);
-
-      setConfirm("Warning", deleteStepMessage, {
-        onConfirm: async (resolve) => {
-          dispatch({ type: "SET_OPENED_STEP", payload: undefined });
-          removeSteps([...eventVars.selectedSteps]);
-          setIsDeletingSteps(false);
-          resolve(true);
-          return true;
-        },
-        onCancel: (resolve) => {
-          setIsDeletingSteps(false);
-          resolve(false);
-          return false;
-        },
-      });
-    }
-  }, [dispatch, eventVars.selectedSteps, removeSteps, setConfirm]);
-
-  const onDetailsDelete = React.useCallback(() => {
-    setIsDeletingSteps(true);
-    setConfirm("Warning", deleteStepMessage, async (resolve) => {
-      if (!eventVars.openedStep) {
-        setIsDeletingSteps(false);
-        resolve(false);
-        return false;
-      }
-      removeSteps([eventVars.openedStep]);
-      setIsDeletingSteps(false);
-      resolve(true);
-      return true;
-    });
-  }, [eventVars.openedStep, removeSteps, setConfirm]);
 
   const recalibrate = React.useCallback(() => {
     // ensure that connections are re-rendered against the final positions of the steps
@@ -240,41 +192,6 @@ export const PipelineEditor = () => {
     [dispatch]
   );
 
-  React.useEffect(() => {
-    const keyDownHandler = (event: KeyboardEvent) => {
-      if (activeElementIsInput()) return;
-      if (stepSelector.active) {
-        uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
-      }
-
-      if (
-        !isReadOnly &&
-        (event.key === "Backspace" || event.key === "Delete")
-      ) {
-        if (eventVars.selectedSteps.length > 0) deleteSelectedSteps();
-        if (eventVars.selectedConnection)
-          dispatch({
-            type: "REMOVE_CONNECTION",
-            payload: eventVars.selectedConnection,
-          });
-      }
-    };
-
-    document.body.addEventListener("keydown", keyDownHandler);
-
-    return () => {
-      document.body.removeEventListener("keydown", keyDownHandler);
-    };
-  }, [
-    dispatch,
-    isReadOnly,
-    eventVars.selectedConnection,
-    eventVars.selectedSteps,
-    stepSelector.active,
-    deleteSelectedSteps,
-    uiParamsDispatch,
-  ]);
-
   // Check if there is an incoming step (that is not part of the
   // selection).
   // This is checked to conditionally render the
@@ -316,11 +233,7 @@ export const PipelineEditor = () => {
 
   return (
     <div className="pipeline-view">
-      <div
-        className="pane pipeline-view-pane"
-        onMouseOver={enableHotKeys}
-        onMouseLeave={disableHotKeys}
-      >
+      <HotKeysBoundary>
         {jobUuid && isReadOnly && (
           <div className="pipeline-actions top-left">
             <BackToJobButton onClick={returnToJob} />
@@ -505,12 +418,7 @@ export const PipelineEditor = () => {
                   // it causes issue when user press space bar to navigate the canvas
                   // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
                   centerPipelineOrigin();
-                  uiParamsDispatch((current) => {
-                    return {
-                      type: "SET_SCALE_FACTOR",
-                      payload: current.scaleFactor - SCALE_UNIT,
-                    };
-                  });
+                  setScaleFactor((current) => current - SCALE_UNIT);
                 }}
               >
                 <RemoveIcon />
@@ -519,12 +427,7 @@ export const PipelineEditor = () => {
                 title="Zoom in"
                 onPointerDown={() => {
                   centerPipelineOrigin();
-                  uiParamsDispatch((current) => {
-                    return {
-                      type: "SET_SCALE_FACTOR",
-                      payload: current.scaleFactor + SCALE_UNIT,
-                    };
-                  });
+                  setScaleFactor((current) => current + SCALE_UNIT);
                 }}
               >
                 <AddIcon />
@@ -540,23 +443,11 @@ export const PipelineEditor = () => {
             </div>
           </div>
         )}
-      </div>
-      <StepDetails
-        key={eventVars.openedStep}
-        onSave={onSaveDetails}
-        onDelete={onDetailsDelete}
-      />
-
+      </HotKeysBoundary>
+      <StepDetails key={eventVars.openedStep} onSave={onSaveDetails} />
       {hasSelectedSteps && !isReadOnly && (
         <div className={"pipeline-actions bottom-right"}>
-          <PipelineActionButton
-            onClick={deleteSelectedSteps}
-            startIcon={<DeleteIcon />}
-            disabled={isDeletingSteps}
-            data-test-id="step-delete-multi"
-          >
-            Delete
-          </PipelineActionButton>
+          <DeleteStepsButton />
         </div>
       )}
     </div>

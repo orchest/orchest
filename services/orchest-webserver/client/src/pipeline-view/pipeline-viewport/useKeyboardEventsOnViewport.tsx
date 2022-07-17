@@ -6,12 +6,14 @@ import {
   originTransformScaling,
   scaleCorrected,
 } from "../common";
-import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
+import { useScaleFactor } from "../contexts/ScaleFactorContext";
 import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
 import { CanvasFunctions } from "./PipelineViewport";
 import { useGestureOnViewport } from "./useGestureOnViewport";
 
 export const useKeyboardEventsOnViewport = (
+  pipelineCanvasState: PipelineCanvasState,
   setPipelineCanvasState: React.Dispatch<
     | Partial<PipelineCanvasState>
     | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
@@ -19,13 +21,12 @@ export const useKeyboardEventsOnViewport = (
   resetPipelineCanvas: () => void
 ) => {
   const canvasFuncRef = React.useRef<CanvasFunctions>();
+  const { scaleFactor, setScaleFactor } = useScaleFactor();
   const {
     pipelineCanvasRef,
     pipelineViewportRef,
-    uiParams: { scaleFactor },
-    uiParamsDispatch,
     keysDown,
-  } = usePipelineUiParamsContext();
+  } = usePipelineRefs();
 
   React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
@@ -95,11 +96,8 @@ export const useKeyboardEventsOnViewport = (
 
   const centerView = React.useCallback(() => {
     resetPipelineCanvas();
-    uiParamsDispatch({
-      type: "SET_SCALE_FACTOR",
-      payload: DEFAULT_SCALE_FACTOR,
-    });
-  }, [uiParamsDispatch, resetPipelineCanvas]);
+    setScaleFactor(DEFAULT_SCALE_FACTOR);
+  }, [setScaleFactor, resetPipelineCanvas]);
 
   const centerPipelineOrigin = React.useCallback(() => {
     let viewportOffset = getOffset(pipelineViewportRef.current ?? undefined);
@@ -138,6 +136,8 @@ export const useKeyboardEventsOnViewport = (
   );
 
   const zoom = useGestureOnViewport(
+    pipelineCanvasState,
+    setPipelineCanvasState,
     pipelineViewportRef,
     setPipelineHolderOrigin
   );
