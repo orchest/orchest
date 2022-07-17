@@ -82,32 +82,26 @@ export const unpackMove = ([source, target]: Move): UnpackedMove => {
   return { oldRoot, oldPath, newRoot, newPath };
 };
 
-export const isDirectory = (path: string) => path.endsWith("/");
-
 export const isPipelineFile = (path: string) => hasExtension(path, "orchest");
 
 export const combinePath = ({ root, path }: UnpackedPath) =>
   root + ROOT_SEPARATOR + path;
 
-export const baseNameFromPath = (combinedPath: string) => {
-  const { root, path } = unpackPath(combinedPath);
+export const isDirectory = (path: string) => path.endsWith("/");
 
-  let baseName = path.endsWith("/")
+export const basename = (path: string) =>
+  isDirectory(path)
     ? path.split("/").slice(-2)[0]
     : path.split("/").slice(-1)[0];
 
-  return baseName === "" ? root.slice(1) : baseName;
-};
-
-export const deriveParentPath = (path: string) => {
-  return path.endsWith("/")
+export const dirname = (path: string) =>
+  isDirectory(path)
     ? path.split("/").slice(0, -2).join("/") + "/"
     : path.split("/").slice(0, -1).join("/") + "/";
-};
 
 export const generateTargetDescription = (path: string) => {
-  const parentPath = deriveParentPath(path);
-  const nameFromPath = baseNameFromPath(parentPath);
+  const parentPath = dirname(path);
+  const nameFromPath = basename(parentPath);
 
   return (
     <Code>
@@ -116,19 +110,16 @@ export const generateTargetDescription = (path: string) => {
   );
 };
 
-const getFolderPathOfFile = (path: string) =>
-  `${path.split("/").slice(0, -1).join("/")}/`;
-
 export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
   if (sourcePath === dropPath || dropPath.startsWith(sourcePath)) {
     return [sourcePath, sourcePath];
   }
 
-  const isSourceDir = sourcePath.endsWith("/");
-  const isTargetDir = dropPath.endsWith("/");
+  const isSourceDir = isDirectory(sourcePath);
+  const isTargetDir = isDirectory(dropPath);
 
-  const sourceBasename = baseNameFromPath(sourcePath);
-  const dropFolderPath = isTargetDir ? dropPath : getFolderPathOfFile(dropPath);
+  const sourceBasename = basename(sourcePath);
+  const dropFolderPath = isTargetDir ? dropPath : dirname(dropPath);
 
   const newPath = dropFolderPath + sourceBasename + (isSourceDir ? "/" : "");
 
@@ -471,14 +462,6 @@ export const filterRedundantChildPaths = (paths: readonly string[]) => {
   }
 
   return ancestors;
-};
-
-export const getBaseNameFromPath = (combinedPath: string) => {
-  let pathComponents = combinedPath.split("/");
-  if (combinedPath.endsWith("/")) {
-    pathComponents = pathComponents.slice(0, -1);
-  }
-  return pathComponents.slice(-1)[0];
 };
 
 export const findPipelineFiles = async (

@@ -8,11 +8,10 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import {
-  baseNameFromPath,
+  basename,
   FILE_MANAGEMENT_ENDPOINT,
   filterRedundantChildPaths,
   findPipelineFiles,
-  getBaseNameFromPath,
   prettifyRoot,
   queryArgs,
   unpackPath,
@@ -157,7 +156,7 @@ export const FileManagerLocalContextProvider: React.FC<{
 
     handleClose();
     setFileInRename(contextMenuCombinedPath);
-    setFileRenameNewName(baseNameFromPath(contextMenuCombinedPath));
+    setFileRenameNewName(basename(contextMenuCombinedPath));
   }, [contextMenuCombinedPath, handleClose, pipelineIsReadOnly]);
 
   const handleDelete = React.useCallback(async () => {
@@ -169,7 +168,7 @@ export const FileManagerLocalContextProvider: React.FC<{
       ? selectedFilesWithoutRedundantChildPaths
       : [contextMenuCombinedPath];
 
-    const fileBaseName = getBaseNameFromPath(filesToDelete[0]);
+    const fileBaseName = basename(filesToDelete[0]);
     const filesToDeleteString =
       filesToDelete.length > 1 ? (
         `${filesToDelete.length} files`
@@ -265,7 +264,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     if (!contextMenuCombinedPath || !projectUuid) return;
     handleClose();
 
-    const downloadLink = getBaseNameFromPath(contextMenuCombinedPath);
+    const downloadLink = basename(contextMenuCombinedPath);
 
     if (selectedFiles.includes(contextMenuCombinedPath)) {
       selectedFilesWithoutRedundantChildPaths.forEach((combinedPath, i) => {

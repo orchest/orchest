@@ -1,7 +1,7 @@
 import { Position } from "@/types";
 import Box from "@mui/material/Box";
 import React from "react";
-import { baseNameFromPath, deriveParentPath, pathFromElement } from "./common";
+import { basename, dirname, pathFromElement } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 
 const DRAG_INIT_OFFSET_X = 10;
@@ -25,7 +25,7 @@ export const DragIndicator = ({
     (e: MouseEvent) => {
       let path = pathFromElement(e.target as HTMLElement);
       if (path) {
-        setHoveredPath(!path.endsWith("/") ? deriveParentPath(path) : path);
+        setHoveredPath(!path.endsWith("/") ? dirname(path) : path);
       }
       setDragOffset({
         x: e.clientX + DRAG_INIT_OFFSET_X,
@@ -121,9 +121,7 @@ export const DragIndicator = ({
           color: (theme) => theme.palette.primary.main,
         }}
       >
-        {dragFiles.length === 1
-          ? baseNameFromPath(dragFiles[0])
-          : dragFiles.length}
+        {dragFiles.length === 1 ? basename(dragFiles[0]) : dragFiles.length}
       </Box>
     </Box>
   );

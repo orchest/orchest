@@ -9,7 +9,7 @@ import React from "react";
 import { FileManagementRoot } from "../common";
 import {
   combinePath,
-  deriveParentPath,
+  dirname,
   isDirectory,
   TreeNode,
   unpackPath,
@@ -137,8 +137,7 @@ const RenameField = ({
   const save = () => {
     const isFolder = isDirectory(combinedPath);
     const { root, path } = unpackPath(combinedPath);
-    const newPath =
-      deriveParentPath(path) + fileRenameNewName + (isFolder ? "/" : "");
+    const newPath = dirname(path) + fileRenameNewName + (isFolder ? "/" : "");
     const newCombinedPath = combinePath({ root, path: newPath });
 
     if (newCombinedPath !== combinedPath) {

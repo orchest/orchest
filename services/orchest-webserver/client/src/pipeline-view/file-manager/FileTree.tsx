@@ -5,6 +5,7 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
+import { firstAncestor } from "@/utils/element";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -15,9 +16,9 @@ import React from "react";
 import { FileManagementRoot } from "../common";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
 import {
-  baseNameFromPath,
+  basename,
   cleanFilePath,
-  deriveParentPath,
+  dirname,
   FileTrees,
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
@@ -25,7 +26,6 @@ import {
   findFilesByExtension,
   findPipelineFiles,
   generateTargetDescription,
-  getBaseNameFromPath,
   getMoveFromDrop,
   isCombinedPath,
   isInDataFolder,
@@ -239,13 +239,12 @@ export const FileTree = React.memo(function FileTreeComponent({
       const overwrites = moves
         .filter(
           ([, newPath]) =>
-            findNode(newPath, fileTrees).name === getBaseNameFromPath(newPath)
+            findNode(newPath, fileTrees).name === basename(newPath)
         )
         .map(([, newPath]) => newPath);
 
       const isRename =
-        moves.length === 1 &&
-        deriveParentPath(moves[0][0]) === deriveParentPath(moves[0][1]);
+        moves.length === 1 && dirname(moves[0][0]) === dirname(moves[0][1]);
 
       if (overwrites.length) {
         setAlert(
@@ -318,6 +317,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       projectUuid,
       getFilesLockedBySessions,
       fileTrees,
+      setAlert,
       setConfirm,
       stopSession,
       handleMove,
@@ -465,7 +465,7 @@ const ConfirmMoveMessage = ({ moves }: { moves: readonly Move[] }) => (
     {moves.length > 1 ? (
       `${moves.length} files`
     ) : (
-      <Code>{baseNameFromPath(moves[0][0])}</Code>
+      <Code>{basename(moves[0][0])}</Code>
     )}
     {` to `}
     {generateTargetDescription(moves[0][1])} ?
@@ -473,8 +473,9 @@ const ConfirmMoveMessage = ({ moves }: { moves: readonly Move[] }) => (
 );
 
 const isInFileManager = (element?: HTMLElement | null): boolean =>
-  (element && element.classList.contains(FILE_MANAGER_ROOT_CLASS)) ||
-  isInFileManager(element?.parentElement);
+  !!firstAncestor(element, ({ classList }) =>
+    classList.contains(FILE_MANAGER_ROOT_CLASS)
+  );
 
 /**
  * Finds the node with the specified path in the file tree.
