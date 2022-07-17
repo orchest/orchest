@@ -1,7 +1,11 @@
 import { useHotKeys } from "@/hooks/useHotKeys";
+import { activeElementIsInput } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineUiStatesContext } from "../contexts/PipelineUiStatesContext";
 import { useRunSteps } from "../pipeline-canvas-header-bar/pipeline-operations/useRunSteps";
+import { useDeleteSteps } from "./useDeleteSteps";
 
 const COMMANDS = {
   SELECT_ALL: ["ctrl+a", "command+a"],
@@ -19,6 +23,11 @@ const commandsString = Object.values(COMMANDS).join(", ");
 
 export const useHotKeysInPipelineEditor = () => {
   const { eventVars, dispatch } = usePipelineEditorContext();
+  const { isReadOnly } = usePipelineDataContext();
+  const {
+    uiStatesDispatch,
+    uiStates: { stepSelector },
+  } = usePipelineUiStatesContext();
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
   const {
     runAllSteps,
@@ -71,6 +80,42 @@ export const useHotKeysInPipelineEditor = () => {
     disableHotKeys();
     return () => disableHotKeys();
   }, []);
+  const { deleteSelectedSteps } = useDeleteSteps();
+
+  React.useEffect(() => {
+    const keyDownHandler = (event: KeyboardEvent) => {
+      if (activeElementIsInput()) return;
+      if (stepSelector.active) {
+        uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      }
+
+      if (
+        !isReadOnly &&
+        (event.key === "Backspace" || event.key === "Delete")
+      ) {
+        if (eventVars.selectedSteps.length > 0) deleteSelectedSteps();
+        if (eventVars.selectedConnection)
+          dispatch({
+            type: "REMOVE_CONNECTION",
+            payload: eventVars.selectedConnection,
+          });
+      }
+    };
+
+    document.body.addEventListener("keydown", keyDownHandler);
+
+    return () => {
+      document.body.removeEventListener("keydown", keyDownHandler);
+    };
+  }, [
+    dispatch,
+    isReadOnly,
+    eventVars.selectedConnection,
+    eventVars.selectedSteps,
+    stepSelector.active,
+    deleteSelectedSteps,
+    uiStatesDispatch,
+  ]);
 
   return { enableHotKeys, disableHotKeys };
 };

@@ -7,7 +7,7 @@ import { createStepAction } from "./action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { usePipelineUiParamsContext } from "./contexts/PipelineUiParamsContext";
+import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 
 export const CreateStepButton = () => {
@@ -17,7 +17,7 @@ export const CreateStepButton = () => {
     state: { pipelineIsReadOnly: disabled },
   } = useProjectsContext();
   const { dispatch } = usePipelineEditorContext();
-  const { pipelineViewportRef } = usePipelineUiParamsContext();
+  const { pipelineViewportRef } = usePipelineRefs();
   const {
     pipelineCanvasState: { pipelineOffset },
   } = usePipelineCanvasContext();

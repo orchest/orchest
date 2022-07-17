@@ -5,7 +5,9 @@ import { getScaleCorrectedPosition } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
+import { usePipelineUiStatesContext } from "../contexts/PipelineUiStatesContext";
+import { useScaleFactor } from "../contexts/ScaleFactorContext";
 
 /**
  * A hook that handles all mouse events that are binded to document.body within PipelineViewport
@@ -13,14 +15,13 @@ import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext"
 export const useMouseEventsOnViewport = () => {
   const { disabled } = usePipelineDataContext();
   const { dispatch, newConnection } = usePipelineEditorContext();
+  const { scaleFactor, trackMouseMovement } = useScaleFactor();
+  const { keysDown, mouseTracker, pipelineCanvasRef } = usePipelineRefs();
+
   const {
-    keysDown,
-    mouseTracker,
-    trackMouseMovement,
-    pipelineCanvasRef,
-    uiParamsDispatch,
-    uiParams: { scaleFactor, stepSelector },
-  } = usePipelineUiParamsContext();
+    uiStatesDispatch,
+    uiStates: { stepSelector },
+  } = usePipelineUiStatesContext();
 
   const {
     pipelineCanvasState: { panningState },
@@ -47,7 +48,7 @@ export const useMouseEventsOnViewport = () => {
     }
 
     if (stepSelector.active) {
-      uiParamsDispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
+      uiStatesDispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
     }
 
     if (panningState === "panning") {
@@ -62,7 +63,7 @@ export const useMouseEventsOnViewport = () => {
       }));
     }
   }, [
-    uiParamsDispatch,
+    uiStatesDispatch,
     pipelineCanvasRef,
     scaleFactor,
     stepSelector.active,
@@ -74,12 +75,12 @@ export const useMouseEventsOnViewport = () => {
 
   const onMouseLeaveViewport = React.useCallback(() => {
     if (stepSelector.active) {
-      uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
     if (newConnection.current) {
       dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
     }
-  }, [dispatch, uiParamsDispatch, stepSelector.active, newConnection]);
+  }, [dispatch, uiStatesDispatch, stepSelector.active, newConnection]);
 
   const onMouseDownDocument = React.useCallback(
     (e: MouseEvent) => {

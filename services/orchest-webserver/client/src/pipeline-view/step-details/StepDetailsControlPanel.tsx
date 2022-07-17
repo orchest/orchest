@@ -8,14 +8,11 @@ import Stack from "@mui/material/Stack";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { useDeleteSteps } from "../hooks/useDeleteSteps";
 import { useOpenFile } from "../hooks/useOpenFile";
 import { useStepDetailsContext } from "./StepDetailsContext";
 
-export const StepDetailsControlPanel = ({
-  onDelete,
-}: {
-  onDelete: () => void;
-}) => {
+export const StepDetailsControlPanel = () => {
   const { doesStepFileExist, step } = useStepDetailsContext();
   const { isReadOnly } = usePipelineDataContext();
   const { dispatch } = usePipelineEditorContext();
@@ -25,6 +22,9 @@ export const StepDetailsControlPanel = ({
   const onClose = () => {
     dispatch({ type: "SET_OPENED_STEP", payload: undefined });
   };
+
+  const { deleteSteps } = useDeleteSteps();
+  const onDelete = () => deleteSteps([step.uuid]);
 
   return (
     <Box sx={{ padding: (theme) => theme.spacing(2, 3, 0) }}>

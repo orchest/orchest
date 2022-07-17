@@ -17,7 +17,8 @@ import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { usePipelineUiParamsContext } from "./contexts/PipelineUiParamsContext";
+import { usePipelineRefs } from "./contexts/PipelineRefsContext";
+import { usePipelineUiStatesContext } from "./contexts/PipelineUiStatesContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
@@ -170,12 +171,11 @@ const PipelineStepComponent = React.forwardRef<
     eventVars: { cursorControlledStep, selectedSteps, selectedConnection },
     isContextMenuOpen,
   } = usePipelineEditorContext();
+  const { mouseTracker, keysDown } = usePipelineRefs();
   const {
-    uiParams: { stepSelector },
-    uiParamsDispatch,
-    mouseTracker,
-    keysDown,
-  } = usePipelineUiParamsContext();
+    uiStates: { stepSelector },
+    uiStatesDispatch,
+  } = usePipelineUiStatesContext();
   const { selectedFiles, dragFile, resetMove } = useFileManagerContext();
 
   const {
@@ -261,7 +261,7 @@ const PipelineStepComponent = React.forwardRef<
     }
 
     if (isSelectorActive) {
-      uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
 
     if (newConnection.current) {

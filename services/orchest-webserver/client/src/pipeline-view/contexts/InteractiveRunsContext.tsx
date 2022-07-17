@@ -1,10 +1,9 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
-import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
+import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import { RunStepsType, useInteractiveRuns } from "../hooks/useInteractiveRuns";
 import { usePipelineDataContext } from "./PipelineDataContext";
 
@@ -31,15 +30,14 @@ export const useInteractiveRunsContext = () =>
 export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
   const { setConfirm, setAlert } = useAppContext();
 
-  const { projectUuid } = useCustomRoute();
-
   const {
-    session,
+    projectUuid,
     pipelineJson,
     runUuid,
     setRunUuid,
+    isReadOnly,
   } = usePipelineDataContext();
-  const { startSession } = useSessionsContext();
+  const { session, startSession } = useAutoStartSession({ isReadOnly });
   const isSessionRunning = session?.status === "RUNNING";
 
   const {

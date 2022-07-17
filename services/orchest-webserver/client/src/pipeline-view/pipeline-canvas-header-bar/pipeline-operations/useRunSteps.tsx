@@ -34,7 +34,7 @@ export const useRunSteps = () => {
 
   const doCancelRun = React.useCallback(() => {
     return cancelRun({ jobUuid, runUuid });
-  }, [jobUuid, runUuid]);
+  }, [jobUuid, runUuid, cancelRun]);
 
   const doRunSteps = React.useCallback(
     (stepsToRun: string[], type: RunStepsType) => {

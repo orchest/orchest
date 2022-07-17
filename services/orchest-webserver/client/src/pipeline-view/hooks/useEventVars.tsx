@@ -13,7 +13,7 @@ import produce from "immer";
 import merge from "lodash.merge";
 import React from "react";
 import { willCreateCycle } from "../common";
-import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
+import { usePipelineUiStatesContext } from "../contexts/PipelineUiStatesContext";
 import { getStepSelectorRectangle } from "../Rectangle";
 
 export type EventVars = {
@@ -166,9 +166,9 @@ export const useEventVars = () => {
   const newConnection = React.useRef<NewConnection>();
 
   const {
-    uiParams: { stepSelector },
-    uiParamsDispatch,
-  } = usePipelineUiParamsContext();
+    uiStates: { stepSelector },
+    uiStatesDispatch,
+  } = usePipelineUiStatesContext();
 
   const memoizedReducer = React.useCallback(
     (state: EventVars, _action: EventVarsAction): EventVars => {
@@ -335,7 +335,7 @@ export const useEventVars = () => {
             draft.steps[newStep.uuid] = newStep;
           });
 
-          uiParamsDispatch({ type: "OPEN_STEP_DETAILS" });
+          uiStatesDispatch({ type: "OPEN_STEP_DETAILS" });
           return withTimestamp({
             ...state,
             ...updated,
@@ -368,7 +368,7 @@ export const useEventVars = () => {
             });
           });
 
-          uiParamsDispatch({ type: "OPEN_STEP_DETAILS" });
+          uiStatesDispatch({ type: "OPEN_STEP_DETAILS" });
 
           return withTimestamp({
             ...state,
@@ -388,7 +388,7 @@ export const useEventVars = () => {
           const { uuids, inclusive } = action.payload;
           // cancel all selected steps
           if (uuids.length === 0) {
-            uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+            uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
             return { ...state, ...deselectAllSteps() };
           }
           // select only one step and non-inclusive
@@ -405,7 +405,7 @@ export const useEventVars = () => {
             : uuids;
           const uniqueSteps = [...new Set(stepsToSelect)];
 
-          uiParamsDispatch({ type: "CLOSE_STEP_DETAILS" });
+          uiStatesDispatch({ type: "CLOSE_STEP_DETAILS" });
           return {
             ...state,
             ...selectSteps(uniqueSteps),
@@ -418,7 +418,7 @@ export const useEventVars = () => {
           if (remainder.length > 0) {
             return { ...state, selectedSteps: remainder };
           }
-          uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+          uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
           return { ...state, ...deselectAllSteps() };
         }
         case "DESELECT_CONNECTION": {
@@ -434,7 +434,7 @@ export const useEventVars = () => {
           if (!found) {
             console.error("Unable to find the connection to select");
           }
-          uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+          uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
           return {
             ...state,
             selectedSteps: [],
@@ -460,7 +460,7 @@ export const useEventVars = () => {
         // this means that the connection might not yet complete, as endNodeUUID is optional
         // this action creates an instance
         case "INSTANTIATE_CONNECTION": {
-          uiParamsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+          uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
           return {
             ...state,
             connections: [...state.connections, action.payload],
@@ -571,7 +571,7 @@ export const useEventVars = () => {
         }
       }
     },
-    [uiParamsDispatch]
+    [uiStatesDispatch]
   );
 
   const [eventVars, dispatch] = React.useReducer(memoizedReducer, {
