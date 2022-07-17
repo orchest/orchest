@@ -15,7 +15,7 @@ import Stack from "@mui/material/Stack";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot } from "../common";
-import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
+import { useOpenFile } from "../hooks/useOpenFile";
 import {
   cleanFilePath,
   FileTrees,
@@ -80,12 +80,14 @@ export const FileTree = React.memo(function FileTreeComponent({
     isDragging,
     fileTrees,
   } = useFileManagerContext();
+
   const {
     handleSelect,
     reload,
     setFileInRename,
   } = useFileManagerLocalContext();
-  const openNotebook = useOpenNoteBook();
+
+  const { navigateToJupyterLab } = useOpenFile();
 
   const pipelineByPath = React.useCallback(
     (path) => {
@@ -122,10 +124,17 @@ export const FileTree = React.memo(function FileTreeComponent({
           });
         }
       } else {
-        openNotebook(undefined, cleanFilePath(path));
+        navigateToJupyterLab(undefined, cleanFilePath(path));
       }
     },
-    [pipelineByPath, pipelines, projectUuid, setAlert, navigateTo, openNotebook]
+    [
+      pipelineByPath,
+      pipelines,
+      projectUuid,
+      setAlert,
+      navigateTo,
+      navigateToJupyterLab,
+    ]
   );
 
   const draggedFiles = React.useMemo(() => {

@@ -8,20 +8,19 @@ import Stack from "@mui/material/Stack";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { useOpenFile } from "../hooks/useOpenFile";
 import { useStepDetailsContext } from "./StepDetailsContext";
 
 export const StepDetailsControlPanel = ({
-  onOpenNotebook,
-  onOpenFilePreviewView,
   onDelete,
 }: {
-  onOpenNotebook: (e: React.MouseEvent) => void;
-  onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
   onDelete: () => void;
 }) => {
   const { doesStepFileExist, step } = useStepDetailsContext();
   const { isReadOnly } = usePipelineDataContext();
   const { dispatch } = usePipelineEditorContext();
+
+  const { openFilePreviewView, openNotebook } = useOpenFile();
 
   const onClose = () => {
     dispatch({ type: "SET_OPENED_STEP", payload: undefined });
@@ -38,8 +37,8 @@ export const StepDetailsControlPanel = ({
           <Button
             startIcon={<LaunchIcon />}
             variant="contained"
-            onClick={onOpenNotebook}
-            onAuxClick={onOpenNotebook}
+            onClick={(e) => openNotebook(e, step.uuid)}
+            onAuxClick={(e) => openNotebook(e, step.uuid)}
             data-test-id="step-view-in-jupyterlab"
             disabled={!doesStepFileExist}
           >
@@ -50,8 +49,8 @@ export const StepDetailsControlPanel = ({
           startIcon={<VisibilityIcon />}
           variant="contained"
           color="secondary"
-          onClick={(e) => onOpenFilePreviewView(e, step.uuid)}
-          onAuxClick={(e) => onOpenFilePreviewView(e, step.uuid)}
+          onClick={(e) => openFilePreviewView(e, step.uuid)}
+          onAuxClick={(e) => openFilePreviewView(e, step.uuid)}
           data-test-id="step-view-file"
           disabled={!isReadOnly && !doesStepFileExist} // file exists endpoint doesn't consider job runs
         >
