@@ -7,22 +7,21 @@ import Typography from "@mui/material/Typography";
 import classNames from "classnames";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
-import { DEFAULT_SCALE_FACTOR, SCALE_UNIT } from "../common";
-import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
+import { DEFAULT_SCALE_FACTOR } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { usePipelineUiParamsContext } from "../contexts/PipelineUiParamsContext";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
-import {
-  ContextMenuItem,
-  PipelineEditorContextMenu,
-  useContextMenu,
-} from "../hooks/useContextMenu";
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { PipelineCanvas } from "./PipelineCanvas";
+import {
+  PipelineViewportContextMenu,
+  PipelineViewportContextMenuProvider,
+  usePipelineViewportContextMenu,
+} from "./PipelineViewportContextMenu";
 import { useMouseEventsOnViewport } from "./useMouseEventsOnViewport";
 
 const CANVAS_VIEW_MULTIPLE = 3;
@@ -50,23 +49,19 @@ const Overlay = () => (
 // but some drag-n-drop behaviors requires the offset of PipelineCanvas, so we put usePipelineCanvasState in the context
 // so PipelineEditor can use these state
 
-export const PipelineViewport = React.forwardRef<
+type PipelineViewportProps = React.HTMLAttributes<HTMLDivElement> & {
+  autoLayoutPipeline: () => void;
+};
+
+const PipelineViewportComponent = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & {
-    autoLayoutPipeline: () => void;
-  }
+  PipelineViewportProps
 >(function PipelineViewportComponent(
   { children, className, autoLayoutPipeline, style, ...props },
   ref
 ) {
-  const { executeRun } = useInteractiveRunsContext();
   const { dragFile } = useFileManagerContext();
-  const {
-    disabled,
-    pipelineCwd,
-    isReadOnly,
-    environments,
-  } = usePipelineDataContext();
+  const { disabled, pipelineCwd, environments } = usePipelineDataContext();
   const {
     eventVars,
     dispatch,
@@ -89,8 +84,6 @@ export const PipelineViewport = React.forwardRef<
       pipelineStepsHolderOffsetTop,
     },
     setPipelineHolderOrigin,
-    centerView,
-    zoom,
   } = usePipelineCanvasContext();
 
   const localRef = React.useRef<HTMLDivElement | null>(null);
@@ -198,74 +191,7 @@ export const PipelineViewport = React.forwardRef<
     };
   }, [pipelineSetHolderSize]);
 
-  const menuItems: ContextMenuItem[] = [
-    {
-      type: "item",
-      title: "Create new step",
-      disabled: isReadOnly,
-      action: () => {
-        const environment = environments.length > 0 ? environments[0] : null;
-        const canvasPosition = getOnCanvasPosition({
-          x: STEP_WIDTH / 2,
-          y: STEP_HEIGHT / 2,
-        });
-        dispatch(createStepAction(environment, canvasPosition));
-      },
-    },
-    {
-      type: "item",
-      title: "Select all steps",
-      disabled: isReadOnly,
-      action: () => {
-        dispatch({
-          type: "SELECT_STEPS",
-          payload: { uuids: Object.keys(eventVars.steps) },
-        });
-      },
-    },
-    {
-      type: "item",
-      title: "Run selected steps",
-      disabled: isReadOnly || eventVars.selectedSteps.length === 0,
-      action: () => {
-        executeRun(eventVars.selectedSteps, "selection");
-      },
-    },
-    {
-      type: "separator",
-    },
-    {
-      type: "item",
-      title: "Center view",
-      action: () => {
-        centerView();
-      },
-    },
-    {
-      type: "item",
-      title: "Auto layout pipeline",
-      disabled: isReadOnly,
-      action: () => {
-        autoLayoutPipeline();
-      },
-    },
-    {
-      type: "item",
-      title: "Zoom in",
-      action: ({ position }) => {
-        zoom(position, SCALE_UNIT);
-      },
-    },
-    {
-      type: "item",
-      title: "Zoom out",
-      action: ({ position }) => {
-        zoom(position, -SCALE_UNIT);
-      },
-    },
-  ];
-
-  const { handleContextMenu, ...contextMenuProps } = useContextMenu();
+  const { handleContextMenu } = usePipelineViewportContextMenu();
 
   return (
     <div
@@ -341,11 +267,19 @@ export const PipelineViewport = React.forwardRef<
       >
         {disabled && <Overlay />}
         {children}
-        <PipelineEditorContextMenu
-          {...contextMenuProps}
-          menuItems={menuItems}
-        />
+        <PipelineViewportContextMenu autoLayoutPipeline={autoLayoutPipeline} />
       </PipelineCanvas>
     </div>
+  );
+});
+
+export const PipelineViewport = React.forwardRef<
+  HTMLDivElement,
+  PipelineViewportProps
+>(function PipelineViewportWithContextMenuProvider(props, ref) {
+  return (
+    <PipelineViewportContextMenuProvider>
+      <PipelineViewportComponent {...props} ref={ref} />
+    </PipelineViewportContextMenuProvider>
   );
 });

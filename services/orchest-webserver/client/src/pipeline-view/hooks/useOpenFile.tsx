@@ -1,0 +1,83 @@
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/routingConfig";
+import { joinRelativePaths } from "@orchest/lib-utils";
+import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+
+export const useOpenFile = () => {
+  const { navigateTo, pipelineUuid, projectUuid, jobUuid } = useCustomRoute();
+  const { pipelineCwd, runUuid, isReadOnly } = usePipelineDataContext();
+  const { eventVars } = usePipelineEditorContext();
+
+  const isJobRun = jobUuid && runUuid;
+  const jobRunQueryArgs = React.useMemo(() => ({ jobUuid, runUuid }), [
+    jobUuid,
+    runUuid,
+  ]);
+
+  const navigateToJupyterLab = React.useCallback(
+    (e: React.MouseEvent | undefined, filePathRelativeToRoot: string) => {
+      // JupyterLabView will start the session automatically,
+      // so no need to check if there's a running session.
+      navigateTo(
+        siteMap.jupyterLab.path,
+        {
+          query: {
+            projectUuid,
+            pipelineUuid,
+            filePath: filePathRelativeToRoot,
+          },
+        },
+        e
+      );
+    },
+    [navigateTo, pipelineUuid, projectUuid]
+  );
+
+  const notebookFilePath = React.useCallback(
+    (pipelineCwd: string, stepUUID: string) => {
+      return joinRelativePaths(
+        pipelineCwd,
+        eventVars.steps[stepUUID].file_path
+      );
+    },
+    [eventVars.steps]
+  );
+
+  const openNotebook = React.useCallback(
+    (e: React.MouseEvent | undefined, stepUuid?: string) => {
+      if (pipelineCwd && stepUuid)
+        navigateToJupyterLab(e, notebookFilePath(pipelineCwd, stepUuid));
+    },
+    [notebookFilePath, navigateToJupyterLab, pipelineCwd]
+  );
+
+  const openFilePreviewView = React.useCallback(
+    (e: React.MouseEvent | undefined, stepUuid: string) => {
+      navigateTo(
+        isJobRun ? siteMap.jobRunFilePreview.path : siteMap.filePreview.path,
+        {
+          query: {
+            projectUuid,
+            pipelineUuid,
+            stepUuid,
+            ...(isJobRun ? jobRunQueryArgs : undefined),
+          },
+          state: { isReadOnly },
+        },
+        e
+      );
+    },
+    [
+      isJobRun,
+      isReadOnly,
+      jobRunQueryArgs,
+      navigateTo,
+      pipelineUuid,
+      projectUuid,
+    ]
+  );
+
+  return { navigateToJupyterLab, openNotebook, openFilePreviewView };
+};
