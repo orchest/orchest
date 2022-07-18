@@ -1,19 +1,12 @@
-import { IconButton } from "@/components/common/IconButton";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
 import type { Connection, Step } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
-import { join } from "@/utils/path";
-import { layoutPipeline } from "@/utils/pipeline-layout";
-import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import AddIcon from "@mui/icons-material/Add";
-import CropFreeIcon from "@mui/icons-material/CropFree";
-import RemoveIcon from "@mui/icons-material/Remove";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
-import { getNodeCenter, SCALE_UNIT, updatePipelineJson } from "./common";
+import { getNodeCenter } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
@@ -26,8 +19,9 @@ import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
 import { HotKeysBoundary } from "./HotKeysBoundary";
 import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
+import { PipelineViewingOptions } from "./pipeline-viewing-opions/PipelineViewingOptions";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
-import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
+import { PipelineStep } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
@@ -43,7 +37,6 @@ export const PipelineEditor = () => {
     pipelineUuid,
     jobUuid,
     pipelineJson,
-    setPipelineJson,
     hash,
   } = usePipelineDataContext();
 
@@ -54,7 +47,7 @@ export const PipelineEditor = () => {
     [projectUuid, jobUuid, navigateTo]
   );
 
-  const { centerPipelineOrigin, centerView } = usePipelineCanvasContext();
+  const { zoomIn, zoomOut, centerView } = usePipelineCanvasContext();
 
   const { openNotebook, openFilePreviewView } = useOpenFile();
 
@@ -84,6 +77,8 @@ export const PipelineEditor = () => {
     },
     uiStateDispatch,
     instantiateConnection,
+    recalibrate,
+    autoLayoutPipeline,
   } = usePipelineUiStateContext();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
@@ -126,44 +121,6 @@ export const PipelineEditor = () => {
     } else if (pipelineCwd) {
       openNotebook(undefined, stepUUID);
     }
-  };
-
-  const recalibrate = React.useCallback(() => {
-    // ensure that connections are re-rendered against the final positions of the steps
-    setPipelineJson((value) => value, true);
-  }, [setPipelineJson]);
-
-  const autoLayoutPipeline = () => {
-    const spacingFactor = 0.7;
-    const gridMargin = 20;
-
-    setPipelineJson((current) => {
-      if (!current) return current;
-      const updatedSteps = layoutPipeline(
-        // Use the pipeline definition from the editor
-        steps,
-        STEP_HEIGHT,
-        (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
-          (STEP_WIDTH / STEP_HEIGHT),
-        1 + spacingFactor,
-        gridMargin,
-        gridMargin * 4, // don't put steps behind top buttons
-        gridMargin,
-        STEP_HEIGHT
-      );
-
-      const updated = updatePipelineJson(current, updatedSteps);
-
-      // Save `steps`.
-      uiStateDispatch({ type: "SAVE_STEPS", payload: updated.steps });
-      return updated;
-    }, true); // flush page, re-instantiate all UI elements with new local state for dragging
-    // the rendering of connection lines depend on the positions of the steps
-    // so we need another render to redraw the connections lines
-    // here we intentionally break the React built-in event batching
-    window.setTimeout(() => {
-      recalibrate();
-    }, 0);
   };
 
   const savePositions = React.useCallback(() => {
@@ -245,10 +202,7 @@ export const PipelineEditor = () => {
           </div>
         )}
         <PipelineCanvasHeaderBar />
-        <PipelineViewport
-          ref={pipelineViewportRef}
-          autoLayoutPipeline={autoLayoutPipeline}
-        >
+        <PipelineViewport ref={pipelineViewportRef}>
           {fixedConnections.map((connection) => {
             const { startNodeUUID, endNodeUUID } = connection;
             const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
@@ -395,44 +349,7 @@ export const PipelineEditor = () => {
         </PipelineViewport>
         {pipelineJson && (
           <div className="pipeline-actions bottom-left">
-            <div className="navigation-buttons">
-              <IconButton
-                title="Center"
-                data-test-id="pipeline-center"
-                onPointerDown={centerView}
-              >
-                <CropFreeIcon />
-              </IconButton>
-              <IconButton
-                title="Zoom out"
-                onPointerDown={() => {
-                  // NOTE: onClick also listens to space bar press when button is focused
-                  // it causes issue when user press space bar to navigate the canvas
-                  // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
-                  centerPipelineOrigin();
-                  setScaleFactor((current) => current - SCALE_UNIT);
-                }}
-              >
-                <RemoveIcon />
-              </IconButton>
-              <IconButton
-                title="Zoom in"
-                onPointerDown={() => {
-                  centerPipelineOrigin();
-                  setScaleFactor((current) => current + SCALE_UNIT);
-                }}
-              >
-                <AddIcon />
-              </IconButton>
-              {!isReadOnly && (
-                <IconButton
-                  title="Auto layout"
-                  onPointerDown={autoLayoutPipeline}
-                >
-                  <AccountTreeOutlinedIcon />
-                </IconButton>
-              )}
-            </div>
+            <PipelineViewingOptions />
           </div>
         )}
       </HotKeysBoundary>

@@ -1039,19 +1039,6 @@ button.themed-secondary {
       bottom: 0;
       right: auto;
       left: 0;
-
-      button {
-        margin-top: var(--space-5);
-      }
-
-      .navigation-buttons {
-        display: inline-block;
-      }
-
-      .selection-buttons {
-        display: inline-block;
-        padding-left: var(--space-5);
-      }
     }
   }
 
@@ -1427,4 +1414,16 @@ button.themed-secondary {
   .pipeline-settings .columns {
     margin-bottom: 0;
   }
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
 }
