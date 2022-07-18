@@ -8,6 +8,7 @@ import React from "react";
 import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
+import { useDeleteSteps } from "./hooks/useDeleteSteps";
 import { useOpenFile } from "./hooks/useOpenFile";
 
 type PipelineStepContextMenuProps = { stepUuid: string };
@@ -26,6 +27,8 @@ export const PipelineStepContextMenu = ({
     uiState: { steps, selectedSteps },
     uiStateDispatch,
   } = usePipelineUiStateContext();
+
+  const { deleteSelectedSteps } = useDeleteSteps();
 
   const selectionContainsNotebooks = React.useMemo(
     () =>
@@ -50,9 +53,7 @@ export const PipelineStepContextMenu = ({
       type: "item",
       title: "Delete",
       disabled: isReadOnly,
-      action: () => {
-        uiStateDispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
-      },
+      action: deleteSelectedSteps,
     },
     {
       type: "item",
