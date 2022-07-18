@@ -82,6 +82,9 @@ export const unpackMove = ([source, target]: Move): UnpackedMove => {
   return { oldRoot, oldPath, newRoot, newPath };
 };
 
+export const isRename = (moves: readonly Move[]) =>
+  moves.length === 1 && dirname(moves[0][0]) === dirname(moves[0][1]);
+
 export const isPipelineFile = (path: string) => hasExtension(path, "orchest");
 
 export const combinePath = ({ root, path }: UnpackedPath) =>

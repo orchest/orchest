@@ -18,7 +18,6 @@ import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
 import {
   basename,
   cleanFilePath,
-  dirname,
   FileTrees,
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
@@ -31,6 +30,7 @@ import {
   isInDataFolder,
   isInProjectFolder,
   isPipelineFile,
+  isRename,
   Move,
   pathFromElement,
   prettifyRoot,
@@ -137,8 +137,8 @@ export const FileTree = React.memo(function FileTreeComponent({
     }
   }, [dragFile, selectedFiles]);
 
-  const getFilesLockedBySessions = React.useCallback(
-    async (projectUuid: string, paths: string[]): Promise<LockedFile[]> => {
+  const getFilesLockedBySession = React.useCallback(
+    async (paths: string[]): Promise<LockedFile[]> => {
       if (!projectUuid) {
         return [];
       }
@@ -168,7 +168,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       return lockedFiles;
     },
-    [getSession, pipelineByPath]
+    [getSession, pipelineByPath, projectUuid]
   );
 
   const handleMove = React.useCallback(
@@ -206,8 +206,9 @@ export const FileTree = React.memo(function FileTreeComponent({
     [pipelineByPath, onMoved, setAlert, projectUuid]
   );
 
-  const afterMove = React.useCallback(
+  const saveMoves = React.useCallback(
     async (moves: readonly Move[]) => {
+      await Promise.all(moves.map(handleMove));
       await reload();
 
       const didMovePipeline = moves.some(
@@ -216,113 +217,140 @@ export const FileTree = React.memo(function FileTreeComponent({
       );
 
       if (didMovePipeline && projectUuid) {
-        const newPipelines = await fetchPipelines(projectUuid);
-
         dispatch({
           type: "SET_PIPELINES",
-          payload: newPipelines,
+          payload: await fetchPipelines(projectUuid),
         });
       }
     },
-    [projectUuid, dispatch, reload]
+    [handleMove, reload, dispatch, projectUuid]
   );
 
-  const moveFiles = React.useCallback(
-    async (moves: readonly Move[]) => {
-      if (!projectUuid) return;
+  const checks = React.useMemo(
+    () => ({
+      lockedFiles: (moves: readonly Move[]) =>
+        new Promise<boolean>(async (resolve) => {
+          const lockedFiles = await getFilesLockedBySession(
+            moves.map(([oldPath]) => oldPath)
+          );
 
-      const lockedFiles = await getFilesLockedBySessions(
-        projectUuid,
-        moves.map(([oldPath]) => oldPath)
-      );
-
-      const overwrites = moves
-        .filter(
-          ([, newPath]) =>
-            findNode(newPath, fileTrees).name === basename(newPath)
-        )
-        .map(([, newPath]) => newPath);
-
-      const isRename =
-        moves.length === 1 && dirname(moves[0][0]) === dirname(moves[0][1]);
-
-      if (overwrites.length) {
-        setAlert(
-          isRename ? "Rename cancelled" : "Move cancelled",
-          <OverwriteMessage files={overwrites} />,
-          {
-            confirmLabel: "OK",
-            onConfirm: () => true,
+          if (!lockedFiles.length) {
+            resolve(true);
+          } else {
+            setConfirm(
+              "Warning",
+              <StopSessionMessage
+                files={lockedFiles}
+                isRename={isRename(moves)}
+              />,
+              {
+                confirmLabel:
+                  lockedFiles.length === 1 ? "Stop session" : "Stop sessions",
+                onCancel: () => resolve(false),
+                onConfirm: async () => {
+                  resolve(false);
+                  await Promise.all(
+                    lockedFiles.map(({ pipelineUuid }) =>
+                      stopSession(pipelineUuid)
+                    )
+                  );
+                  return true;
+                },
+              }
+            );
           }
-        );
-      } else if (lockedFiles.length) {
-        setConfirm(
-          "Warning",
-          <StopSessionMessage files={lockedFiles} isRename={isRename} />,
-          {
-            confirmLabel: isRename ? "Stop session" : "Stop sessions",
-            onConfirm: async (resolve) => {
+        }),
+      breakages: (moves: readonly Move[]) =>
+        new Promise<boolean>(async (resolve) => {
+          const willBreakSomeFile =
+            projectUuid &&
+            isInDataFolder(moves[0][1]) &&
+            (
               await Promise.all(
-                lockedFiles.map(({ pipelineUuid }) => stopSession(pipelineUuid))
-              );
-              resolve(true);
-              return true;
-            },
-          }
-        );
-      } else {
-        const willBreakSomeFile =
-          isInDataFolder(moves[0][1]) &&
-          (
-            await Promise.all(
-              moves.map(([oldPath]) =>
-                findFilesByExtension({
-                  root: "/project-dir",
-                  node: findNode(oldPath, fileTrees),
-                  extensions: ["ipynb", "orchest"],
-                  projectUuid,
-                })
+                moves.map(([oldPath]) =>
+                  findFilesByExtension({
+                    root: "/project-dir",
+                    node: findNode(oldPath, fileTrees),
+                    extensions: ["ipynb", "orchest"],
+                    projectUuid,
+                  })
+                )
               )
-            )
-          ).some((files) => files.length);
+            ).some((files) => files.length);
 
-        if (isRename) {
-          await Promise.all(moves.map(handleMove));
-          afterMove(moves);
-        } else {
-          setConfirm(
-            willBreakSomeFile ? "File type warning" : "Warning",
-            willBreakSomeFile ? (
-              <BreakFileMessage />
-            ) : (
-              <ConfirmMoveMessage moves={moves} />
-            ),
-            {
+          if (!willBreakSomeFile) {
+            resolve(true);
+          } else {
+            setConfirm("File type warning", <BreakFileMessage />, {
               confirmLabel:
-                (isRename ? "Rename " : "Move ") +
+                (isRename(moves) ? "Rename " : "Move ") +
                 (moves.length === 1 ? "file" : "files"),
-
-              onConfirm: async (resolve) => {
-                await Promise.all(moves.map(handleMove));
-                afterMove(moves);
+              onCancel: () => resolve(false),
+              onConfirm: () => {
                 resolve(true);
                 return true;
               },
-            }
+            });
+          }
+        }),
+      overwrites: (moves: readonly Move[]) =>
+        new Promise<boolean>(async (resolve) => {
+          const overwrites = moves.filter(
+            ([, newPath]) =>
+              findNode(newPath, fileTrees).name === basename(newPath)
           );
+          if (!overwrites.length) {
+            resolve(true);
+          } else {
+            setConfirm(
+              overwrites.length === 1
+                ? `File ${basename(overwrites[0][1])} already exists`
+                : `Files already exist`,
+              <OverwriteMessage
+                overwrites={overwrites}
+                isRename={isRename(moves)}
+              />,
+              {
+                confirmLabel: "Overwrite",
+                onCancel: () => resolve(false),
+                onConfirm: () => {
+                  resolve(true);
+                  return true;
+                },
+              }
+            );
+          }
+        }),
+      confirm: (moves: readonly Move[]) =>
+        new Promise<boolean>((resolve) => {
+          if (isRename(moves)) {
+            resolve(true);
+          } else {
+            setConfirm("Warning", <ConfirmMoveMessage moves={moves} />, {
+              confirmLabel: "Move " + (moves.length === 1 ? "file" : "files"),
+              onCancel: () => resolve(false),
+              onConfirm: () => {
+                resolve(true);
+                return true;
+              },
+            });
+          }
+        }),
+    }),
+    [fileTrees, getFilesLockedBySession, projectUuid, setConfirm, stopSession]
+  );
+
+  const handleMoves = React.useCallback(
+    async (moves: readonly Move[]) => {
+      for (const check of Object.values(checks)) {
+        if (!(await check(moves))) {
+          return;
         }
       }
+
+      await saveMoves(moves);
     },
-    [
-      projectUuid,
-      getFilesLockedBySessions,
-      fileTrees,
-      setAlert,
-      setConfirm,
-      stopSession,
-      handleMove,
-      afterMove,
-    ]
+    [saveMoves, checks]
   );
 
   const handleDrop = React.useCallback(
@@ -333,9 +361,9 @@ export const FileTree = React.memo(function FileTreeComponent({
         .map((sourcePath) => getMoveFromDrop(sourcePath, targetPath))
         .filter(([oldPath, newPath]) => oldPath !== newPath);
 
-      await moveFiles(moves);
+      await handleMoves(moves);
     },
-    [draggedFiles, projectUuid, moveFiles]
+    [draggedFiles, projectUuid, handleMoves]
   );
 
   const handleMouseUp = React.useCallback(
@@ -392,7 +420,9 @@ export const FileTree = React.memo(function FileTreeComponent({
                 hoveredPath={hoveredPath}
                 root={root}
                 onOpen={onOpen}
-                onRename={(oldPath, newPath) => moveFiles([[oldPath, newPath]])}
+                onRename={(oldPath, newPath) =>
+                  handleMoves([[oldPath, newPath]])
+                }
               />
             </TreeItem>
           );
@@ -402,18 +432,36 @@ export const FileTree = React.memo(function FileTreeComponent({
   );
 });
 
-const OverwriteMessage = ({ files }: { files: readonly string[] }) => (
+const OverwriteMessage = ({
+  overwrites,
+  isRename,
+}: {
+  overwrites: readonly Move[];
+  isRename: boolean;
+}) => (
   <Stack spacing={2} direction="column">
-    <Box>
-      {files.map((path) => (
-        <Code key={path}>{cleanFilePath(path, "Project files/")}</Code>
-      ))}{" "}
-      would be overwritten.
-    </Box>
-    <Box>
-      Move or delete {files.length > 1 ? "these files" : "this file"} first, and
-      try again.
-    </Box>
+    {isRename ? (
+      <Box>
+        {"Renaming "}
+        <Code>{basename(overwrites[0][0])}</Code>
+        {" to "}
+        <Code>{basename(overwrites[0][1])}</Code>{" "}
+        {" will overwrite the existing file. Would you like to do this?"}
+      </Box>
+    ) : (
+      <Box>
+        {"This move will overwrite "}
+        {overwrites.map(([, newPath], i) => (
+          <>
+            <Code key={newPath}>{basename(newPath)}</Code>
+            {i === overwrites.length - 1 ? "" : ", "}
+          </>
+        ))}
+        {"."}
+        <br />
+        {"Would you like to do this?"}
+      </Box>
+    )}
   </Stack>
 );
 
@@ -479,7 +527,7 @@ const isInFileManager = (element?: HTMLElement | null): boolean =>
 
 /**
  * Finds the node with the specified path in the file tree.
- * @param combinedPath The combined path, e.g: `/project-dir:/foo/bar.py`
+ * @param combinedPath The combined path, e.g: `/project-dir:/a/b.py`
  */
 const findNode = (combinedPath: string, fileTrees: FileTrees) => {
   const { root, path } = unpackPath(combinedPath);
