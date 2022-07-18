@@ -100,8 +100,10 @@ function appendRateElement() {
   let buttons = Array.from(rateForm.querySelectorAll("button"));
   buttons.forEach((el) => el.addEventListener("mouseenter", handleEnter));
   let buttonBlock = rateForm.querySelector(".button-block");
+  buttons.map((el) => (el.style.opacity = 0.5));
+  
   buttonBlock.addEventListener("mouseleave", () => {
-    buttons.map((el) => (el.style.opacity = 1));
+    buttons.map((el) => (el.style.opacity = 0.5));
   });
 
   let closeEl = rateForm.querySelector("a.close");
