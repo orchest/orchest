@@ -1,21 +1,37 @@
 import { Layout } from "@/components/Layout";
+import ProjectBasedView from "@/components/ProjectBasedView";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { PipelineContextProviders } from "@/pipeline-view/contexts/PipelineContextProviders";
+import { FileManager } from "@/pipeline-view/file-manager/FileManager";
+import { MainSidePanel } from "@/pipeline-view/MainSidePanel";
+import { SessionsPanel } from "@/pipeline-view/sessions-panel/SessionsPanel";
 import { siteMap } from "@/routingConfig";
+import Stack from "@mui/material/Stack";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { PipelineCanvasContextProvider } from "../pipeline-view/contexts/PipelineCanvasContext";
-import { PipelineEditorContextProvider } from "../pipeline-view/contexts/PipelineEditorContext";
 import { PipelineEditor } from "../pipeline-view/PipelineEditor";
 
 const PipelineView: React.FC = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.jobRun.path });
-
+  const {
+    state: { pipelineIsReadOnly, projectUuid },
+  } = useProjectsContext();
   return (
-    <Layout disablePadding>
-      <PipelineEditorContextProvider>
-        <PipelineCanvasContextProvider>
-          <PipelineEditor />
-        </PipelineCanvasContextProvider>
-      </PipelineEditorContextProvider>
+    <Layout disablePadding={hasValue(projectUuid)}>
+      {projectUuid ? (
+        <PipelineContextProviders>
+          <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
+            <MainSidePanel>
+              <FileManager />
+              {!pipelineIsReadOnly && <SessionsPanel />}
+            </MainSidePanel>
+            <PipelineEditor />
+          </Stack>
+        </PipelineContextProviders>
+      ) : (
+        <ProjectBasedView />
+      )}
     </Layout>
   );
 };
