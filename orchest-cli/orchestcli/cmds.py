@@ -480,10 +480,17 @@ def uninstall(**kwargs) -> None:
 
     # Delete cluster level resources.
     echo("Removing Orchest's cluster-level resources...")
-    RBAC_API.delete_cluster_role(name="orchest-controller")
-    RBAC_API.delete_cluster_role_binding(name="orchest-controller")
-    EXT_API.delete_custom_resource_definition(name="orchestclusters.orchest.io")
-    EXT_API.delete_custom_resource_definition(name="orchestcomponents.orchest.io")
+    funcs = [
+        [RBAC_API.delete_cluster_role, ("orchest-controller",)],
+        [RBAC_API.delete_cluster_role_binding, ("orchest-controller",)],
+        [EXT_API.delete_custom_resource_definition, ("orchestclusters.orchest.io",)],
+        [EXT_API.delete_custom_resource_definition, ("orchestcomponents.orchest.io",)],
+    ]
+    for f, args in funcs:
+        try:
+            f(*args)
+        except client.ApiException:
+            pass
 
     echo("\nSuccessfully uninstalled Orchest.")
 
