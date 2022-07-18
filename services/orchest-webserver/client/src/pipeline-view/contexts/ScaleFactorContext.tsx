@@ -21,8 +21,11 @@ export const ScaleFactorContext = React.createContext<ScaleFactorContextType>(
 
 export const useScaleFactor = () => React.useContext(ScaleFactorContext);
 
+export const SCALE_FACTOR_MIN = 0.25;
+export const SCALE_FACTOR_MAX = 2;
+
 const getRangedScaleFactor = (value: number) =>
-  Math.min(Math.max(value, 0.25), 2);
+  Math.min(Math.max(value, SCALE_FACTOR_MIN), SCALE_FACTOR_MAX);
 
 export const ScaleFactorProvider: React.FC = ({ children }) => {
   const { mouseTracker, pipelineCanvasRef } = usePipelineRefs();

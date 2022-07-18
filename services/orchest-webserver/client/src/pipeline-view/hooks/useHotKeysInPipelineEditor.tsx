@@ -1,11 +1,9 @@
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { activeElementIsInput } from "@orchest/lib-utils";
 import React from "react";
-import { SCALE_UNIT } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { useScaleFactor } from "../contexts/ScaleFactorContext";
 import { useRunSteps } from "../pipeline-canvas-header-bar/pipeline-operations/useRunSteps";
 import { useDeleteSteps } from "./useDeleteSteps";
 
@@ -17,7 +15,7 @@ const COMMANDS = {
   CENTER_VIEW: ["h"],
   ZOOM_IN: ["ctrl+up", "command+up"],
   ZOOM_OUT: ["ctrl+down", "command+down"],
-  // AUTO_LAYOUT: ["ctrl+shift+l", "command+shift+l"], // TODO
+  AUTO_LAYOUT: ["ctrl+shift+o", "command+shift+o"],
 };
 
 const IN_CANVAS_COMMANDS = {
@@ -28,12 +26,17 @@ const commandsString = Object.values(COMMANDS).join(", ");
 const inCanvasCommandsString = Object.values(IN_CANVAS_COMMANDS).join(", ");
 
 export const useHotKeysInPipelineEditor = () => {
-  const { setScaleFactor } = useScaleFactor();
   const { isReadOnly } = usePipelineDataContext();
-  const { centerView, centerPipelineOrigin } = usePipelineCanvasContext();
+  const {
+    centerView,
+    centerPipelineOrigin,
+    zoomIn,
+    zoomOut,
+  } = usePipelineCanvasContext();
   const {
     uiStateDispatch,
     uiState: { stepSelector, steps, selectedSteps, selectedConnection },
+    autoLayoutPipeline,
   } = usePipelineUiStateContext();
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
   const {
@@ -63,12 +66,13 @@ export const useHotKeysInPipelineEditor = () => {
             centerView();
           }
           if (COMMANDS.ZOOM_IN.includes(hotKeyEvent.key)) {
-            centerPipelineOrigin();
-            setScaleFactor((current) => current + SCALE_UNIT);
+            zoomIn();
           }
           if (COMMANDS.ZOOM_OUT.includes(hotKeyEvent.key)) {
-            centerPipelineOrigin();
-            setScaleFactor((current) => current - SCALE_UNIT);
+            zoomOut();
+          }
+          if (COMMANDS.AUTO_LAYOUT.includes(hotKeyEvent.key)) {
+            autoLayoutPipeline();
           }
         },
       },
@@ -80,6 +84,7 @@ export const useHotKeysInPipelineEditor = () => {
       scheduleJob,
       centerView,
       centerPipelineOrigin,
+      autoLayoutPipeline,
     ]
   );
 
@@ -149,7 +154,6 @@ export const useHotKeysInPipelineEditor = () => {
     selectedSteps,
     stepSelector.active,
     deleteSelectedSteps,
-    uiStateDispatch,
   ]);
 
   return { enableHotKeys, disableHotKeys };
