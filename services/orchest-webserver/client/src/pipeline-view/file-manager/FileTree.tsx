@@ -260,6 +260,44 @@ export const FileTree = React.memo(function FileTreeComponent({
             );
           }
         }),
+      confirm: (moves: readonly Move[]) =>
+        new Promise<boolean>(async (resolve) => {
+          const overwrites = moves.filter(
+            ([, newPath]) =>
+              findNode(newPath, fileTrees).name === basename(newPath)
+          );
+
+          if (overwrites.length) {
+            setConfirm(
+              overwrites.length === 1
+                ? `File ${basename(overwrites[0][1])} already exists`
+                : `Files already exist`,
+              <OverwriteMessage
+                overwrites={overwrites}
+                isRename={isRename(moves)}
+              />,
+              {
+                confirmLabel: "Overwrite",
+                onCancel: () => resolve(false),
+                onConfirm: () => {
+                  resolve(true);
+                  return true;
+                },
+              }
+            );
+          } else if (!isRename(moves)) {
+            setConfirm("Warning", <ConfirmMoveMessage moves={moves} />, {
+              confirmLabel: "Move " + (moves.length === 1 ? "file" : "files"),
+              onCancel: () => resolve(false),
+              onConfirm: () => {
+                resolve(true);
+                return true;
+              },
+            });
+          } else {
+            resolve(true);
+          }
+        }),
       breakages: (moves: readonly Move[]) =>
         new Promise<boolean>(async (resolve) => {
           const willBreakSomeFile =
@@ -278,55 +316,8 @@ export const FileTree = React.memo(function FileTreeComponent({
               )
             ).some((files) => files.length);
 
-          if (!willBreakSomeFile) {
-            resolve(true);
-          } else {
+          if (willBreakSomeFile) {
             setConfirm("File type warning", <BreakFileMessage />, {
-              confirmLabel:
-                (isRename(moves) ? "Rename " : "Move ") +
-                (moves.length === 1 ? "file" : "files"),
-              onCancel: () => resolve(false),
-              onConfirm: () => {
-                resolve(true);
-                return true;
-              },
-            });
-          }
-        }),
-      overwrites: (moves: readonly Move[]) =>
-        new Promise<boolean>(async (resolve) => {
-          const overwrites = moves.filter(
-            ([, newPath]) =>
-              findNode(newPath, fileTrees).name === basename(newPath)
-          );
-          if (!overwrites.length) {
-            resolve(true);
-          } else {
-            setConfirm(
-              overwrites.length === 1
-                ? `File ${basename(overwrites[0][1])} already exists`
-                : `Files already exist`,
-              <OverwriteMessage
-                overwrites={overwrites}
-                isRename={isRename(moves)}
-              />,
-              {
-                confirmLabel: "Overwrite",
-                onCancel: () => resolve(false),
-                onConfirm: () => {
-                  resolve(true);
-                  return true;
-                },
-              }
-            );
-          }
-        }),
-      confirm: (moves: readonly Move[]) =>
-        new Promise<boolean>((resolve) => {
-          if (isRename(moves)) {
-            resolve(true);
-          } else {
-            setConfirm("Warning", <ConfirmMoveMessage moves={moves} />, {
               confirmLabel: "Move " + (moves.length === 1 ? "file" : "files"),
               onCancel: () => resolve(false),
               onConfirm: () => {
@@ -334,6 +325,8 @@ export const FileTree = React.memo(function FileTreeComponent({
                 return true;
               },
             });
+          } else {
+            resolve(true);
           }
         }),
     }),
@@ -438,32 +431,42 @@ const OverwriteMessage = ({
 }: {
   overwrites: readonly Move[];
   isRename: boolean;
-}) => (
-  <Stack spacing={2} direction="column">
-    {isRename ? (
-      <Box>
-        {"Renaming "}
-        <Code>{basename(overwrites[0][0])}</Code>
-        {" to "}
-        <Code>{basename(overwrites[0][1])}</Code>{" "}
-        {" will overwrite the existing file. Would you like to do this?"}
-      </Box>
-    ) : (
-      <Box>
-        {"This move will overwrite "}
-        {overwrites.map(([, newPath], i) => (
-          <>
-            <Code key={newPath}>{basename(newPath)}</Code>
-            {i === overwrites.length - 1 ? "" : ", "}
-          </>
-        ))}
-        {"."}
-        <br />
-        {"Would you like to do this?"}
-      </Box>
-    )}
-  </Stack>
-);
+}) => {
+  const last = overwrites[overwrites.length - 1];
+
+  return (
+    <Stack spacing={2} direction="column">
+      {isRename ? (
+        <Box>
+          {"Renaming "}
+          <Code>{basename(overwrites[0][0])}</Code>
+          {" to "}
+          <Code>{basename(overwrites[1][1])}</Code>{" "}
+          {" will overwrite the existing file. Would you like to do this?"}
+        </Box>
+      ) : (
+        <Box>
+          {"This move will overwrite "}
+          {overwrites.slice(0, -1).map(([, newPath], i) => (
+            <>
+              <Code key={newPath}>{basename(newPath)}</Code>
+              {i === overwrites.length - 2 ? "" : ", "}
+            </>
+          ))}
+          {last ? (
+            <>
+              {overwrites.length > 1 ? " and " : ""}
+              <Code key={last[1]}>{basename(last[1])}</Code>
+            </>
+          ) : null}
+          {"."}
+          <br />
+          {"Would you like to do this?"}
+        </Box>
+      )}
+    </Stack>
+  );
+};
 
 const BreakFileMessage = () => (
   <Stack spacing={2} direction="column">
