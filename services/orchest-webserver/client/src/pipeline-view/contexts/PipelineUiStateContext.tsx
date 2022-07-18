@@ -1,3 +1,4 @@
+import { useForceUpdate } from "@/hooks/useForceUpdate";
 import { StepsDict } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -30,9 +31,9 @@ export const usePipelineUiStateContext = () =>
   React.useContext(PipelineUiStateContext);
 
 export const PipelineUiStateContextProvider: React.FC = ({ children }) => {
-  const { zIndexMax } = usePipelineRefs();
+  const { zIndexMax, stepRefs } = usePipelineRefs();
   const { uiState, uiStateDispatch } = usePipelineUiState();
-  const { pipelineJson } = usePipelineDataContext();
+  const { pipelineJson, isReadOnly } = usePipelineDataContext();
 
   const instantiateConnection = React.useCallback(
     (startNodeUUID: string, endNodeUUID?: string | undefined) => {
@@ -75,6 +76,19 @@ export const PipelineUiStateContextProvider: React.FC = ({ children }) => {
       initializeUiState(newSteps);
     }
   }, [initializeUiState, pipelineJson]);
+
+  // in read-only mode, PipelineEditor doesn't re-render after stepDomRefs collects all DOM elements of the steps
+  // we need to force re-render one more time to show the connection lines
+  const shouldForceRerender =
+    isReadOnly &&
+    uiState.connections.length > 0 &&
+    Object.keys(stepRefs.current).length === 0;
+
+  const [, forceUpdate] = useForceUpdate();
+
+  React.useLayoutEffect(() => {
+    if (shouldForceRerender) forceUpdate();
+  }, [shouldForceRerender, forceUpdate]);
 
   return (
     <PipelineUiStateContext.Provider

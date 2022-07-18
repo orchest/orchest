@@ -10,7 +10,6 @@ import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { DEFAULT_SCALE_FACTOR } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useScaleFactor } from "../contexts/ScaleFactorContext";
@@ -59,7 +58,6 @@ const PipelineViewportComponent = React.forwardRef<
 ) {
   const { dragFile } = useFileManagerContext();
   const { disabled, pipelineCwd, environments } = usePipelineDataContext();
-  const { isContextMenuOpen } = usePipelineEditorContext();
 
   const {
     scaleFactor,
@@ -68,7 +66,12 @@ const PipelineViewportComponent = React.forwardRef<
   } = useScaleFactor();
   const { pipelineCanvasRef, newConnection } = usePipelineRefs();
   const {
-    uiState: { stepSelector, selectedConnection, openedStep },
+    uiState: {
+      stepSelector,
+      selectedConnection,
+      openedStep,
+      isContextMenuOpen,
+    },
     uiStateDispatch,
   } = usePipelineUiStateContext();
 

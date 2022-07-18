@@ -1,4 +1,4 @@
-import { usePipelineEditorContext } from "@/pipeline-view/contexts/PipelineEditorContext";
+import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
 import { Position } from "@/types";
 import Divider from "@mui/material/Divider";
 import Menu from "@mui/material/Menu";
@@ -23,7 +23,7 @@ export const ContextMenuContext = React.createContext<ContextMenuContextType>(
 export const useContextMenuContext = () => React.useContext(ContextMenuContext);
 
 export const ContextMenuContextProvider: React.FC = ({ children }) => {
-  const { setIsContextMenuOpen } = usePipelineEditorContext();
+  const { uiStateDispatch } = usePipelineUiStateContext();
   const [position, setPosition] = React.useState<Position>();
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -33,13 +33,13 @@ export const ContextMenuContextProvider: React.FC = ({ children }) => {
       x: event.clientX,
       y: event.clientY,
     });
-    setIsContextMenuOpen(true);
+    uiStateDispatch({ type: "SET_IS_CONTEXT_MENU_OPEN", payload: true });
   };
 
   const onClose = React.useCallback(() => {
     setPosition(undefined);
-    setIsContextMenuOpen(false);
-  }, [setIsContextMenuOpen]);
+    uiStateDispatch({ type: "SET_IS_CONTEXT_MENU_OPEN", payload: false });
+  }, [uiStateDispatch]);
 
   const onSelectMenuItem = React.useCallback(
     (event: React.MouseEvent, item: ContextMenuItemAction) => {

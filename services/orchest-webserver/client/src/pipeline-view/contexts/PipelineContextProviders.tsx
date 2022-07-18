@@ -2,7 +2,6 @@ import React from "react";
 import { InteractiveRunsContextProvider } from "./InteractiveRunsContext";
 import { PipelineCanvasContextProvider } from "./PipelineCanvasContext";
 import { PipelineDataContextProvider } from "./PipelineDataContext";
-import { PipelineEditorContextProvider } from "./PipelineEditorContext";
 import { PipelineRefsProvider } from "./PipelineRefsContext";
 import { PipelineUiStateContextProvider } from "./PipelineUiStateContext";
 import { ProjectFileManagerContextProvider } from "./ProjectFileManagerContext";
@@ -16,11 +15,9 @@ export const PipelineContextProviders: React.FC = ({ children }) => {
           <PipelineUiStateContextProvider>
             <ProjectFileManagerContextProvider>
               <InteractiveRunsContextProvider>
-                <PipelineEditorContextProvider>
-                  <PipelineCanvasContextProvider>
-                    {children}
-                  </PipelineCanvasContextProvider>
-                </PipelineEditorContextProvider>
+                <PipelineCanvasContextProvider>
+                  {children}
+                </PipelineCanvasContextProvider>
               </InteractiveRunsContextProvider>
             </ProjectFileManagerContextProvider>
           </PipelineUiStateContextProvider>
