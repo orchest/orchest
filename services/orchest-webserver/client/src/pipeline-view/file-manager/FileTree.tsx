@@ -340,15 +340,15 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const handleMoves = React.useCallback(
     async (moves: readonly Move[]) => {
-      if (moves) {
-        for (const check of Object.values(checks)) {
-          if (!(await check(moves))) {
-            return;
-          }
-        }
+      if (!moves) return;
 
-        await saveMoves(moves);
+      for (const check of Object.values(checks)) {
+        if (!(await check(moves))) {
+          return;
+        }
       }
+
+      await saveMoves(moves);
     },
     [saveMoves, checks]
   );
@@ -448,7 +448,7 @@ const OverwriteMessage = ({
           {"Renaming "}
           <Code>{basename(overwrites[0][0])}</Code>
           {" to "}
-          <Code>{basename(overwrites[1][1])}</Code>{" "}
+          <Code>{basename(overwrites[0][1])}</Code>{" "}
           {" will overwrite the existing file. Would you like to do this?"}
         </Box>
       ) : (
