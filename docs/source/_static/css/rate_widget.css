@@ -1,0 +1,46 @@
+.rate-form {
+  position: fixed;
+  margin-left: 50%;
+  transform: translateX(-50%);
+  bottom: 20px;
+  background: rgba(30, 30, 40, 0.9);
+  color: #fff;
+  padding: 1em;
+  text-align: center;
+  border-radius: 9px;
+  width: 100%;
+  max-width: 260px;
+  z-index: 20;
+}
+
+.rate-form a {
+  display: block;
+  text-align: center;
+  color: #999;
+  margin-top: 0.5em;
+  transition: color 0.1s ease;
+}
+
+.rate-form a:hover {
+  color: #fff !important;
+}
+
+.rate-form .thank-you {
+  display: none;
+}
+
+.rate-form h2 {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font-size: 1.35em;
+  margin-bottom: 0.5em;
+}
+
+.rate-form button {
+  border: 0;
+  background: none;
+  font-size: 1.5em;
+  cursor: pointer;
+  transition: opacity 0.1s ease;
+}

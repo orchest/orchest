@@ -17,10 +17,6 @@
   box-sizing: border-box;
 }
 
-#searchbox {
-  width: 100%;
-}
-
 /* Algolia search overlay fix */
 .DocSearch-Button {
   margin: 0 !important;
@@ -66,5 +62,9 @@ a:hover {
 @media (max-width: 800px) {
   img {
     width: 100% !important;
+  }
+
+  .DocSearch-SearchBar {
+    padding-top: 10px;
   }
 }
