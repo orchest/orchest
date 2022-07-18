@@ -1083,6 +1083,12 @@ def restart(watch: bool, **kwargs) -> None:
     echo("Restarting the Orchest Cluster.")
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
+    except CRObjectNotFound as e:
+        echo("Failed to restart the Orchest Cluster.", err=True)
+        echo(e, err=True)
+        sys.exit(1)
+
+    try:
         if status == ClusterStatus.STOPPED:
             start(**kwargs)
         else:
@@ -1100,14 +1106,7 @@ def restart(watch: bool, **kwargs) -> None:
             )
     except client.ApiException as e:
         echo("Failed to restart the Orchest Cluster.", err=True)
-        if e.status == 404:  # not found
-            echo(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found.",
-                err=True,
-            )
-        else:
-            echo(f"Reason: {e.reason}", err=True)
+        echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
     if watch:
