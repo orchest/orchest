@@ -45,15 +45,11 @@ const Overlay = () => (
 // but some drag-n-drop behaviors requires the offset of PipelineCanvas, so we put usePipelineCanvasState in the context
 // so PipelineEditor can use these state
 
-type PipelineViewportProps = React.HTMLAttributes<HTMLDivElement> & {
-  autoLayoutPipeline: () => void;
-};
-
 const PipelineViewportComponent = React.forwardRef<
   HTMLDivElement,
-  PipelineViewportProps
+  React.HTMLAttributes<HTMLDivElement>
 >(function PipelineViewportComponent(
-  { children, className, autoLayoutPipeline, style, ...props },
+  { children, className, style, ...props },
   ref
 ) {
   const { dragFile } = useFileManagerContext();
@@ -73,6 +69,7 @@ const PipelineViewportComponent = React.forwardRef<
       isContextMenuOpen,
     },
     uiStateDispatch,
+    autoLayoutPipeline,
   } = usePipelineUiStateContext();
 
   const {

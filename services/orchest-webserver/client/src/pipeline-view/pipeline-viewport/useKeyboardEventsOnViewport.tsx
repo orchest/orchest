@@ -5,6 +5,7 @@ import {
   DEFAULT_SCALE_FACTOR,
   originTransformScaling,
   scaleCorrected,
+  SCALE_UNIT,
 } from "../common";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { useScaleFactor } from "../contexts/ScaleFactorContext";
@@ -97,6 +98,22 @@ export const useKeyboardEventsOnViewport = () => {
     setPipelineHolderOrigin,
   ]);
 
+  const zoomIn = React.useCallback(
+    (value: number = SCALE_UNIT) => {
+      centerPipelineOrigin();
+      setScaleFactor((current) => current + value);
+    },
+    [centerPipelineOrigin, setScaleFactor]
+  );
+
+  const zoomOut = React.useCallback(
+    (value: number = SCALE_UNIT) => {
+      centerPipelineOrigin();
+      setScaleFactor((current) => current - value);
+    },
+    [centerPipelineOrigin, setScaleFactor]
+  );
+
   const zoom = useGestureOnViewport(
     pipelineCanvasState,
     setPipelineCanvasState,
@@ -141,5 +158,7 @@ export const useKeyboardEventsOnViewport = () => {
     centerPipelineOrigin,
     setPipelineHolderOrigin,
     zoom,
+    zoomIn,
+    zoomOut,
   };
 };
