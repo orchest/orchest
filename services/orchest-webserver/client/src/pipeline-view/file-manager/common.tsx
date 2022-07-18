@@ -102,17 +102,6 @@ export const dirname = (path: string) =>
     ? path.split("/").slice(0, -2).join("/") + "/"
     : path.split("/").slice(0, -1).join("/") + "/";
 
-export const generateTargetDescription = (path: string) => {
-  const parentPath = dirname(path);
-  const nameFromPath = basename(parentPath);
-
-  return (
-    <Code>
-      {nameFromPath === "project-dir" ? "Project files" : nameFromPath}
-    </Code>
-  );
-};
-
 export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
   if (sourcePath === dropPath || dropPath.startsWith(sourcePath)) {
     return [sourcePath, sourcePath];
@@ -233,8 +222,11 @@ export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
 /** Prettifies the root name for display purposes. */
 export const prettifyRoot = (root: string) => {
   switch (root) {
+    case "project-dir:":
     case "/project-dir":
       return "Project files";
+    case "data:":
+      return "/data";
     default:
       return root;
   }

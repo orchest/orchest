@@ -18,13 +18,13 @@ import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
 import {
   basename,
   cleanFilePath,
+  dirname,
   FileTrees,
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
   filterRedundantChildPaths,
   findFilesByExtension,
   findPipelineFiles,
-  generateTargetDescription,
   getMoveFromDrop,
   isCombinedPath,
   isInDataFolder,
@@ -517,14 +517,14 @@ const StopSessionMessage = ({
 
 const ConfirmMoveMessage = ({ moves }: { moves: readonly Move[] }) => (
   <>
-    {`Do you want move `}
+    {"Do you want to move "}
     {moves.length > 1 ? (
       `${moves.length} files`
     ) : (
       <Code>{basename(moves[0][0])}</Code>
     )}
-    {` to `}
-    {generateTargetDescription(moves[0][1])} ?
+    {" to "}
+    <Code>{prettifyRoot(basename(dirname(moves[0][1])))}</Code> ?
   </>
 );
 
