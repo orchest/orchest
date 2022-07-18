@@ -5,7 +5,7 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
-import { IOrchestSessionUuid, PipelineMetaData } from "@/types";
+import { OrchestSession, PipelineMetaData } from "@/types";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -155,7 +155,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 }) {
   const { setConfirm, setAlert } = useAppContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
-  const { getSession, toggleSession } = useSessionsContext();
+  const { getSession, stopSession } = useSessionsContext();
   const {
     state: { pipelines = [], pipeline },
     dispatch,
@@ -289,18 +289,14 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       if (filePaths.length === 0) return [true, []];
 
-      const pipelinesWithSession: (IOrchestSessionUuid &
-        PipelineMetaData)[] = [];
+      const pipelinesWithSession: (OrchestSession & PipelineMetaData)[] = [];
 
       for (let filePath of filePaths) {
         const foundPipeline = pipelineDics[filePath.path.replace(/^\//, "")];
 
         if (!foundPipeline) continue;
 
-        const session = getSession({
-          pipelineUuid: foundPipeline.uuid,
-          projectUuid,
-        });
+        const session = getSession(foundPipeline.uuid);
 
         if (session) {
           pipelinesWithSession.push({
@@ -332,7 +328,7 @@ export const FileTree = React.memo(function FileTreeComponent({
             }`,
             onConfirm: async (resolve) => {
               await Promise.all(
-                pipelinesWithSession.map((session) => toggleSession(session))
+                pipelinesWithSession.map((session) => stopSession(session.uuid))
               );
               resolve(true);
               return true;
@@ -343,7 +339,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       return [pipelinesWithSession.length === 0, pipelinesWithSession];
     },
-    [getSession, projectUuid, setConfirm, toggleSession, pipelineDics]
+    [getSession, projectUuid, setConfirm, stopSession, pipelineDics]
   );
 
   // by default, handleChangeFilePath will reload

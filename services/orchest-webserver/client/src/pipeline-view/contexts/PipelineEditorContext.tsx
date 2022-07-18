@@ -3,9 +3,9 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Environment,
-  IOrchestSession,
   MouseTracker,
   NewConnection,
+  OrchestSession,
   PipelineJson,
   Position,
   StepsDict,
@@ -61,9 +61,11 @@ export type PipelineEditorContextType = {
     startNodeUUID: string;
     endNodeUUID: string | undefined;
   };
-  session: IOrchestSession | undefined;
+  session: OrchestSession | undefined;
   getOnCanvasPosition: (offset: Position) => Position;
   disabled: boolean;
+  isContextMenuOpen: boolean;
+  setIsContextMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export const PipelineEditorContext = React.createContext<PipelineEditorContextType | null>(
@@ -191,6 +193,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     [eventVars.scaleFactor, mouseTracker, pipelineCanvasRef]
   );
 
+  const [isContextMenuOpen, setIsContextMenuOpen] = React.useState(false);
+
   return (
     <PipelineEditorContext.Provider
       value={{
@@ -221,6 +225,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         session,
         getOnCanvasPosition,
         disabled,
+        isContextMenuOpen,
+        setIsContextMenuOpen,
       }}
     >
       {children}

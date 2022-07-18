@@ -3,9 +3,6 @@
 Implementation best practices
 =============================
 
-.. note::
-   WIP!
-
 To keep the codebase consistent whilst adding new code, please try to stick to the following best
 practices that have served us well so far (grouped by topic). For example, these best practices make
 sure it is clear which services touch the filesystem state of Orchest.
