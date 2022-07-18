@@ -209,7 +209,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   const saveMoves = React.useCallback(
     async (moves: readonly Move[]) => {
       await Promise.all(moves.map(handleMove));
-      await reload();
 
       const didMovePipeline = moves.some(
         ([oldPath, newPath]) =>
@@ -217,11 +216,17 @@ export const FileTree = React.memo(function FileTreeComponent({
       );
 
       if (didMovePipeline && projectUuid) {
+        // Re-fetch pipelines to force the back-end
+        // to re-discover pipelines from .orchest files
+        // before performing a reload.
+
         dispatch({
           type: "SET_PIPELINES",
           payload: await fetchPipelines(projectUuid),
         });
       }
+
+      await reload();
     },
     [handleMove, reload, dispatch, projectUuid]
   );
