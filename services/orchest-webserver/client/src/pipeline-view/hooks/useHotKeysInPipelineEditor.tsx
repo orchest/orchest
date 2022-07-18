@@ -73,7 +73,14 @@ export const useHotKeysInPipelineEditor = () => {
         },
       },
     },
-    [runAllSteps, runSelectedSteps, runIncomingSteps, scheduleJob, centerView]
+    [
+      runAllSteps,
+      runSelectedSteps,
+      runIncomingSteps,
+      scheduleJob,
+      centerView,
+      centerPipelineOrigin,
+    ]
   );
 
   const { setScope } = useHotKeys(
