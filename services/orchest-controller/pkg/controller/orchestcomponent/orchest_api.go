@@ -24,12 +24,20 @@ func NewOrchestApiReconciler(ctrl *OrchestComponentController) OrchestComponentR
 	}
 }
 
-func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (err error) {
+
+	if reconciler.ingressClass == "" {
+		reconciler.ingressClass, err = detectIngressClass(ctx, reconciler.Client())
+		if err != nil {
+			return err
+		}
+	}
 
 	hash := controller.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestApi, component)
 	metadata := controller.GetMetadata(controller.OrchestApi, hash, component, OrchestComponentKind)
-	newDep := getOrchestApiDeployment(metadata, matchLabels, component)
+	newDep := getOrchestApiDeployment(metadata, matchLabels, component,
+		[]corev1.EnvVar{{Name: "INGRESS_CLASS", Value: reconciler.ingressClass}})
 
 	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
@@ -57,14 +65,6 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 		}
 		return err
 	}
-
-	if reconciler.ingressClass == "" {
-		reconciler.ingressClass, err = detectIngressClass(ctx, reconciler.Client())
-		if err != nil {
-			return err
-		}
-	}
-
 	_, err = reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
@@ -126,11 +126,12 @@ func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component
 }
 
 func getOrchestApiDeployment(metadata metav1.ObjectMeta,
-	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *appsv1.Deployment {
+	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent,
+	extraEnvVars []corev1.EnvVar) *appsv1.Deployment {
 
 	image := component.Spec.Template.Image
 
-	envMap := utils.GetMapFromEnvVar(component.Spec.Template.Env)
+	envMap := utils.GetMapFromEnvVar(component.Spec.Template.Env, extraEnvVars)
 
 	volumes := []corev1.Volume{
 		{
@@ -195,7 +196,7 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 							ContainerPort: 80,
 						},
 					},
-					Env:          component.Spec.Template.Env,
+					Env:          utils.GetEnvVarFromMap(envMap),
 					VolumeMounts: volumeMounts,
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
