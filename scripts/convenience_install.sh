@@ -26,7 +26,13 @@ fi
 
 if ! [ -x "$(command -v minikube)" ]; then
     echo "Minikube is not installed. Installing minikube..."
-    BIN_NAME="minikube-${OS}-$(uname -m)"
+    MACHINE_NAME=$(uname -m)
+    if [[ "$MACHINE_NAME" == "x86_64" ]]; then
+        echo "Detected amd64"
+        MACHINE_NAME="amd64"
+    fi
+    BIN_NAME="minikube-${OS}-${MACHINE_NAME}"
+
     echo "Downloading the minikube installer..."
     curl -LOs "https://storage.googleapis.com/minikube/releases/latest/${BIN_NAME}" > /dev/null
     echo "Installing minikube..."
