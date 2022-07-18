@@ -9,7 +9,6 @@ import MenuItem from "@mui/material/MenuItem";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useOpenFile } from "../hooks/useOpenFile";
 import {
   cleanFilePath,
@@ -38,8 +37,8 @@ export const FileManagerContextMenu: React.FC<{
     pipelineCwd,
     isReadOnly,
     runUuid,
+    pipelineJson,
   } = usePipelineDataContext();
-  const { pipelineJson } = usePipelineEditorContext();
 
   const { navigateToJupyterLab } = useOpenFile();
 

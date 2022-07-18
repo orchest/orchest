@@ -8,20 +8,23 @@ import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { updatePipelineJson } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useSavingIndicator } from "./useSavingIndicator";
 
 export const useSavePipelineJson = () => {
   const { setAlert } = useAppContext();
   const { projectUuid } = useCustomRoute();
-  const { isReadOnly, pipelineUuid } = usePipelineDataContext();
   const {
+    isReadOnly,
+    pipelineUuid,
     pipelineJson,
     setPipelineJson,
-    eventVars,
-  } = usePipelineEditorContext();
+  } = usePipelineDataContext();
+  const {
+    uiState: { timestamp, steps },
+  } = usePipelineUiStateContext();
 
-  const shouldSave = useHasChanged(eventVars.timestamp);
+  const shouldSave = useHasChanged(timestamp);
   const setOngoingSaves = useSavingIndicator();
   const savePipelineJson = React.useCallback(
     async (data: PipelineJson) => {
@@ -84,11 +87,11 @@ export const useSavePipelineJson = () => {
     [mergeStepsIntoPipelineJson, savePipelineJson]
   );
 
-  // if timestamp is changed, auto-save
-  // check useEventVars to see if the action return value is wrapped by withTimestamp
+  // If timestamp is changed, auto-save.
+  // check usePipelineUiState to see if the action return value is wrapped by withTimestamp
   React.useEffect(() => {
-    if (hasValue(eventVars.timestamp) && shouldSave) {
-      saveSteps(eventVars.steps);
+    if (hasValue(timestamp) && shouldSave) {
+      saveSteps(steps);
     }
-  }, [saveSteps, eventVars.timestamp, eventVars.steps, shouldSave]);
+  }, [saveSteps, timestamp, steps, shouldSave]);
 };

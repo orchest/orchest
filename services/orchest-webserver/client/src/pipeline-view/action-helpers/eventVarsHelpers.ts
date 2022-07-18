@@ -1,6 +1,6 @@
 import { Environment, Position } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
-import { Action } from "../hooks/useEventVars";
+import { Action } from "../hooks/usePipelineUiState";
 
 export const createStepAction = (
   environment: Environment | null,

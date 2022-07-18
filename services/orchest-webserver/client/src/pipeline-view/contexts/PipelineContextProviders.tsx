@@ -4,7 +4,7 @@ import { PipelineCanvasContextProvider } from "./PipelineCanvasContext";
 import { PipelineDataContextProvider } from "./PipelineDataContext";
 import { PipelineEditorContextProvider } from "./PipelineEditorContext";
 import { PipelineRefsProvider } from "./PipelineRefsContext";
-import { PipelineUiStatesContextProvider } from "./PipelineUiStatesContext";
+import { PipelineUiStateContextProvider } from "./PipelineUiStateContext";
 import { ProjectFileManagerContextProvider } from "./ProjectFileManagerContext";
 import { ScaleFactorProvider } from "./ScaleFactorContext";
 
@@ -12,8 +12,8 @@ export const PipelineContextProviders: React.FC = ({ children }) => {
   return (
     <PipelineRefsProvider>
       <ScaleFactorProvider>
-        <PipelineUiStatesContextProvider>
-          <PipelineDataContextProvider>
+        <PipelineDataContextProvider>
+          <PipelineUiStateContextProvider>
             <ProjectFileManagerContextProvider>
               <InteractiveRunsContextProvider>
                 <PipelineEditorContextProvider>
@@ -23,8 +23,8 @@ export const PipelineContextProviders: React.FC = ({ children }) => {
                 </PipelineEditorContextProvider>
               </InteractiveRunsContextProvider>
             </ProjectFileManagerContextProvider>
-          </PipelineDataContextProvider>
-        </PipelineUiStatesContextProvider>
+          </PipelineUiStateContextProvider>
+        </PipelineDataContextProvider>
       </ScaleFactorProvider>
     </PipelineRefsProvider>
   );

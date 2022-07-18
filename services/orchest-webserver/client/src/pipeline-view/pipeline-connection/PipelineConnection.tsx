@@ -1,8 +1,8 @@
-import { NewConnection, Position } from "@/types";
+import { Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
-import { EventVarsAction } from "../hooks/useEventVars";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useUpdateZIndex } from "../hooks/useZIndexMax";
 import { getSvgProperties, getTransformProperty } from "./common";
 import { ConnectionLine } from "./ConnectionLine";
@@ -17,31 +17,25 @@ type PipelineConnectionProps = {
   startNodeUUID: string;
   endNodeUUID?: string;
   getPosition: (element: HTMLElement | undefined | null) => Position | null;
-  eventVarsDispatch: React.Dispatch<EventVarsAction>;
   selected: boolean;
-  zIndexMax: React.MutableRefObject<number>;
   shouldUpdate: [boolean, boolean];
-  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
-  cursorControlledStep: string | undefined;
-  newConnection: React.MutableRefObject<NewConnection | undefined>;
 };
 
 const PipelineConnectionComponent = ({
   shouldRedraw,
   isNew,
   getPosition,
-  eventVarsDispatch,
   selected,
-  zIndexMax,
   startNodeUUID,
   endNodeUUID,
   shouldUpdate,
-  stepDomRefs,
-  cursorControlledStep,
-  newConnection,
   ...props
 }: PipelineConnectionProps) => {
-  const { keysDown } = usePipelineRefs();
+  const { keysDown, newConnection, stepRefs, zIndexMax } = usePipelineRefs();
+  const {
+    uiState: { cursorControlledStep },
+    uiStateDispatch,
+  } = usePipelineUiStateContext();
   const [transformProperty, setTransformProperty] = React.useState(() =>
     getTransformProperty(props)
   );
@@ -53,8 +47,8 @@ const PipelineConnectionComponent = ({
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
-  const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
-  const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
+  const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
+  const endNode = stepRefs.current[`${endNodeUUID}-incoming`];
   const startNodePosition = getPosition(startNode);
   const endNodePosition = getPosition(endNode) || {
     x: newConnection.current?.xEnd,
@@ -124,13 +118,13 @@ const PipelineConnectionComponent = ({
       if (keysDown.has("Space")) return;
       if (e.button === 0 && endNodeUUID) {
         e.stopPropagation();
-        eventVarsDispatch({
+        uiStateDispatch({
           type: "SELECT_CONNECTION",
           payload: { startNodeUUID, endNodeUUID },
         });
       }
     },
-    [eventVarsDispatch, startNodeUUID, endNodeUUID, keysDown]
+    [uiStateDispatch, startNodeUUID, endNodeUUID, keysDown]
   );
 
   const { className, width, height, drawn } = svgProperties;

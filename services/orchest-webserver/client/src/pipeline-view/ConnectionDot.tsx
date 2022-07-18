@@ -29,139 +29,138 @@ type DotType = BoxProps & {
   endCreateConnection?: () => void;
 };
 
-export const ConnectionDot = React.forwardRef<
-  Extract<BoxProps, "ref">,
-  DotType
->(function Dot(
-  {
-    incoming,
-    outgoing,
-    newConnection,
-    active,
-    className,
-    disabled,
-    isReadOnly,
-    onMouseUp,
-    onMouseOver,
-    onMouseLeave,
-    startCreateConnection,
-    endCreateConnection,
-    sx,
-    ...props
-  },
-  ref
-) {
-  const { keysDown } = usePipelineRefs();
+export const ConnectionDot = React.forwardRef<HTMLElement, DotType>(
+  function Dot(
+    {
+      incoming,
+      outgoing,
+      newConnection,
+      active,
+      className,
+      disabled,
+      isReadOnly,
+      onMouseUp,
+      onMouseOver,
+      onMouseLeave,
+      startCreateConnection,
+      endCreateConnection,
+      sx,
+      ...props
+    },
+    ref
+  ) {
+    const { keysDown } = usePipelineRefs();
 
-  const typeClassName = incoming
-    ? "incoming-connections"
-    : outgoing
-    ? "outgoing-connections"
-    : "";
+    const typeClassName = incoming
+      ? "incoming-connections"
+      : outgoing
+      ? "outgoing-connections"
+      : "";
 
-  const [isHovering, setIsHovering] = React.useState(false);
-  const [isMouseDown, setIsMouseDown] = React.useState(false);
+    const [isHovering, setIsHovering] = React.useState(false);
+    const [isMouseDown, setIsMouseDown] = React.useState(false);
 
-  const onMouseOverContainer = (
-    e: React.MouseEvent<HTMLDivElement, MouseEvent>
-  ) => {
-    // user is panning the canvas
-    if (keysDown.has("Space")) return;
-    e.stopPropagation();
-    e.preventDefault();
-    if (onMouseOver) onMouseOver(e);
+    const onMouseOverContainer = (
+      e: React.MouseEvent<HTMLDivElement, MouseEvent>
+    ) => {
+      // user is panning the canvas
+      if (keysDown.has("Space")) return;
+      e.stopPropagation();
+      e.preventDefault();
+      if (onMouseOver) onMouseOver(e);
 
-    const shouldShowHoverEffect =
-      (newConnection.current && incoming) ||
-      (!newConnection.current && outgoing);
+      const shouldShowHoverEffect =
+        (newConnection.current && incoming) ||
+        (!newConnection.current && outgoing);
 
-    if (shouldShowHoverEffect) setIsHovering(true);
-  };
+      if (shouldShowHoverEffect) setIsHovering(true);
+    };
 
-  const onMouseDownContainer = (
-    e: React.MouseEvent<HTMLDivElement, MouseEvent>
-  ) => {
-    // user is panning the canvas
-    if (keysDown.has("Space")) return;
-    e.stopPropagation();
-    e.preventDefault();
-    setIsMouseDown(true);
-  };
+    const onMouseDownContainer = (
+      e: React.MouseEvent<HTMLDivElement, MouseEvent>
+    ) => {
+      // user is panning the canvas
+      if (keysDown.has("Space")) return;
+      e.stopPropagation();
+      e.preventDefault();
+      setIsMouseDown(true);
+    };
 
-  const { dragFile, resetMove } = useFileManagerContext();
+    const { dragFile, resetMove } = useFileManagerContext();
 
-  const onMouseUpContainer = (
-    e: React.MouseEvent<HTMLDivElement, MouseEvent>
-  ) => {
-    // user is panning the canvas
-    if (keysDown.has("Space")) return;
-    e.stopPropagation();
-    e.preventDefault();
-    if (dragFile) resetMove();
-    if (onMouseUp) onMouseUp(e);
-    if (
-      e.button === 0 &&
-      incoming &&
-      !outgoing &&
-      !isMouseDown && // because user drag the connection line into this dot, onMouseUp was not triggered in the first place
-      endCreateConnection
-    )
-      endCreateConnection();
-    setIsMouseDown(false);
-  };
+    const onMouseUpContainer = (
+      e: React.MouseEvent<HTMLDivElement, MouseEvent>
+    ) => {
+      // user is panning the canvas
+      if (keysDown.has("Space")) return;
+      e.stopPropagation();
+      e.preventDefault();
+      if (dragFile) resetMove();
+      if (onMouseUp) onMouseUp(e);
+      if (
+        e.button === 0 &&
+        incoming &&
+        !outgoing &&
+        !isMouseDown && // because user drag the connection line into this dot, onMouseUp was not triggered in the first place
+        endCreateConnection
+      )
+        endCreateConnection();
+      setIsMouseDown(false);
+    };
 
-  const onMouseLeaveContainer = (
-    e: React.MouseEvent<HTMLDivElement, MouseEvent>
-  ) => {
-    // user is panning the canvas
-    if (keysDown.has("Space")) return;
-    e.stopPropagation();
-    e.preventDefault();
-    // user is trying to create a new connection
-    if (onMouseLeave) onMouseLeave(e);
-    if (
-      e.button === 0 &&
-      !incoming &&
-      outgoing &&
-      isMouseDown &&
-      startCreateConnection
-    )
-      startCreateConnection();
-    setIsMouseDown(false);
-    setIsHovering(false);
-  };
+    const onMouseLeaveContainer = (
+      e: React.MouseEvent<HTMLDivElement, MouseEvent>
+    ) => {
+      // user is panning the canvas
+      if (keysDown.has("Space")) return;
+      e.stopPropagation();
+      e.preventDefault();
+      // user is trying to create a new connection
+      if (onMouseLeave) onMouseLeave(e);
+      if (
+        e.button === 0 &&
+        !incoming &&
+        outgoing &&
+        isMouseDown &&
+        startCreateConnection
+      )
+        startCreateConnection();
+      setIsMouseDown(false);
+      setIsHovering(false);
+    };
 
-  return (
-    <Box
-      ref={ref}
-      className={classNames(typeClassName, className, "connection-point")}
-      sx={sx}
-      onMouseOver={onMouseOverContainer}
-      onMouseUp={onMouseUpContainer}
-      onMouseLeave={onMouseLeaveContainer}
-      onMouseDown={onMouseDownContainer}
-      {...props}
-    >
-      <InnerDot active={active} />
+    return (
       <Box
-        sx={{
-          position: "absolute",
-          width: 24,
-          height: 24,
-          top: 3,
-          left: 3,
-          borderRadius: "100%",
-          backgroundColor: (theme) =>
-            isHovering && !isReadOnly
-              ? alpha(
-                  !disabled
-                    ? theme.palette.primary.main
-                    : theme.palette.error.light,
-                  0.2
-                )
-              : "transparent",
-        }}
-      ></Box>
-    </Box>
-  );
-});
+        ref={ref}
+        className={classNames(typeClassName, className, "connection-point")}
+        sx={sx}
+        onMouseOver={onMouseOverContainer}
+        onMouseUp={onMouseUpContainer}
+        onMouseLeave={onMouseLeaveContainer}
+        onMouseDown={onMouseDownContainer}
+        {...props}
+      >
+        <InnerDot active={active} />
+        <Box
+          sx={{
+            position: "absolute",
+            width: 24,
+            height: 24,
+            top: 3,
+            left: 3,
+            borderRadius: "100%",
+            backgroundColor: (theme) =>
+              isHovering && !isReadOnly
+                ? alpha(
+                    !disabled
+                      ? theme.palette.primary.main
+                      : theme.palette.error.light,
+                    0.2
+                  )
+                : "transparent",
+          }}
+        ></Box>
+      </Box>
+    );
+  }
+);

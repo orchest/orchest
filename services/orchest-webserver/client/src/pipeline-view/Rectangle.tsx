@@ -1,6 +1,6 @@
 import React from "react";
 
-const getStepSelectorRectangle = (stepSelector: {
+export const getStepSelectorRectangle = (stepSelector: {
   active: boolean;
   x1: number;
   y1: number;
@@ -15,17 +15,14 @@ const getStepSelectorRectangle = (stepSelector: {
   };
 };
 
-const Rectangle = ({
-  width,
-  height,
-  x,
-  y,
-}: {
+export type RectangleProps = {
   width: number;
   height: number;
   x: number;
   y: number;
-}) => {
+};
+
+export const Rectangle = ({ width, height, x, y }: RectangleProps) => {
   return (
     <div
       className="step-selector"
@@ -38,5 +35,3 @@ const Rectangle = ({
     ></div>
   );
 };
-
-export { getStepSelectorRectangle, Rectangle };
