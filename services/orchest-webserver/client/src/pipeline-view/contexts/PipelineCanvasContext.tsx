@@ -14,6 +14,8 @@ export type PipelineCanvasContextType = {
   centerView: () => void;
   centerPipelineOrigin: () => void;
   zoom: (mousePosition: Position, scaleDiff: number) => void;
+  zoomIn: (value?: number) => void;
+  zoomOut: (value?: number) => void;
 };
 
 export const PipelineCanvasContext = React.createContext<
@@ -32,6 +34,8 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
     centerPipelineOrigin,
     setPipelineHolderOrigin,
     zoom,
+    zoomIn,
+    zoomOut,
   } = useKeyboardEventsOnViewport();
 
   return (
@@ -44,6 +48,8 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
         centerView,
         centerPipelineOrigin,
         zoom,
+        zoomIn,
+        zoomOut,
       }}
     >
       {children}
