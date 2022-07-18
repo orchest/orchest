@@ -108,13 +108,6 @@ export function absoluteToRelativePath(path: string, cwd: string) {
   return relativePath;
 }
 
-export function someParentHasClass(element, classname) {
-  if (element.classList && element.classList.contains(classname)) return true;
-  return (
-    element.parentNode && someParentHasClass(element.parentNode, classname)
-  );
-}
-
 // used in mdc-components only
 export function checkHeartbeat(url: string, retries = 250) {
   let tries = 0;

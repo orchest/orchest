@@ -8,14 +8,13 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import {
-  baseNameFromPath,
+  basename,
   FILE_MANAGEMENT_ENDPOINT,
   filterRedundantChildPaths,
-  findPipelineFilePathsWithinFolders,
-  getBaseNameFromPath,
+  findPipelineFiles,
   prettifyRoot,
   queryArgs,
-  unpackCombinedPath,
+  unpackPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuMetadata, ContextMenuType } from "./FileManagerContextMenu";
@@ -51,7 +50,7 @@ export const useFileManagerLocalContext = () =>
   React.useContext(FileManagerLocalContext);
 
 const deleteFetch = (projectUuid: string, combinedPath: string) => {
-  let { root, path } = unpackCombinedPath(combinedPath);
+  const { root, path } = unpackPath(combinedPath);
   return fetch(
     `${FILE_MANAGEMENT_ENDPOINT}/delete?${queryArgs({
       project_uuid: projectUuid,
@@ -67,9 +66,9 @@ const downloadFile = (
   combinedPath: string,
   downloadLink: string
 ) => {
-  let { root, path } = unpackCombinedPath(combinedPath);
+  const { root, path } = unpackPath(combinedPath);
 
-  let downloadUrl = `${FILE_MANAGEMENT_ENDPOINT}/download?${queryArgs({
+  const downloadUrl = `${FILE_MANAGEMENT_ENDPOINT}/download?${queryArgs({
     path,
     root,
     project_uuid: projectUuid,
@@ -157,7 +156,7 @@ export const FileManagerLocalContextProvider: React.FC<{
 
     handleClose();
     setFileInRename(contextMenuCombinedPath);
-    setFileRenameNewName(baseNameFromPath(contextMenuCombinedPath));
+    setFileRenameNewName(basename(contextMenuCombinedPath));
   }, [contextMenuCombinedPath, handleClose, pipelineIsReadOnly]);
 
   const handleDelete = React.useCallback(async () => {
@@ -169,7 +168,7 @@ export const FileManagerLocalContextProvider: React.FC<{
       ? selectedFilesWithoutRedundantChildPaths
       : [contextMenuCombinedPath];
 
-    const fileBaseName = getBaseNameFromPath(filesToDelete[0]);
+    const fileBaseName = basename(filesToDelete[0]);
     const filesToDeleteString =
       filesToDelete.length > 1 ? (
         `${filesToDelete.length} files`
@@ -177,9 +176,9 @@ export const FileManagerLocalContextProvider: React.FC<{
         <Code>{fileBaseName}</Code>
       );
 
-    const pathsThatContainsPipelineFiles = await findPipelineFilePathsWithinFolders(
+    const pathsThatContainsPipelineFiles = await findPipelineFiles(
       projectUuid,
-      filesToDelete.map((combinedPath) => unpackCombinedPath(combinedPath))
+      filesToDelete.map((combinedPath) => unpackPath(combinedPath))
     );
 
     const shouldShowPipelineFilePaths =
@@ -221,7 +220,7 @@ export const FileManagerLocalContextProvider: React.FC<{
         dispatch({ type: "SET_PIPELINES", payload: updatedPipelines });
 
         const shouldRedirect = filesToDelete.some((fileToDelete) => {
-          const { path } = unpackCombinedPath(fileToDelete);
+          const { path } = unpackPath(fileToDelete);
           const pathToDelete = path.replace(/^\//, "");
 
           const isDeletingPipelineFileDirectly =
@@ -265,7 +264,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     if (!contextMenuCombinedPath || !projectUuid) return;
     handleClose();
 
-    const downloadLink = getBaseNameFromPath(contextMenuCombinedPath);
+    const downloadLink = basename(contextMenuCombinedPath);
 
     if (selectedFiles.includes(contextMenuCombinedPath)) {
       selectedFilesWithoutRedundantChildPaths.forEach((combinedPath, i) => {

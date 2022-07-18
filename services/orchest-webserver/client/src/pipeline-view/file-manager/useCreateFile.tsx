@@ -24,7 +24,7 @@ export const useCreateFile = (root: string): FileCreator => {
         throw new Error("A project UUID was not found in the route.");
       }
 
-      const query = queryArgs({ projectUuid, root: root, path });
+      const query = queryArgs({ projectUuid, root, path });
 
       await fetcher(`${FILE_MANAGEMENT_ENDPOINT}/create?${query}`, {
         method: "POST",

@@ -1,5 +1,5 @@
-import { useClickOutside } from "@/hooks/useClickOutside";
 import { useHasChanged } from "@/hooks/useHasChanged";
+import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { FileTree } from "@/types";
 import FolderIcon from "@mui/icons-material/Folder";
 import TurnLeftOutlinedIcon from "@mui/icons-material/TurnLeftOutlined";
@@ -196,7 +196,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
   const inputRef = React.useRef<HTMLInputElement>();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
-  useClickOutside(menuRef, () => setIsDropdownOpen(false));
+  useOnClickOutside(menuRef, () => setIsDropdownOpen(false));
 
   const {
     absoluteFolderPath,

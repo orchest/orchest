@@ -16,7 +16,7 @@ export const FileTreeContainer: React.FC = ({ children }) => {
         paddingBottom: (theme) => theme.spacing(2),
       }}
       onContextMenu={(e) => {
-        handleContextMenu(e, undefined, "background");
+        handleContextMenu(e, "", "background");
       }}
       onClick={(e) => {
         e.preventDefault();
