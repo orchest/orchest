@@ -1,10 +1,6 @@
 import { Position } from "@/types";
 import React from "react";
-import {
-  INITIAL_PIPELINE_POSITION,
-  PipelineCanvasState,
-  usePipelineCanvasState,
-} from "../hooks/usePipelineCanvasState";
+import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
 import { useKeyboardEventsOnViewport } from "../pipeline-viewport/useKeyboardEventsOnViewport";
 
 export type PipelineCanvasContextType = {
@@ -28,29 +24,15 @@ export const usePipelineCanvasContext = () =>
   React.useContext(PipelineCanvasContext);
 
 export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
-  const [
+  const {
     pipelineCanvasState,
     setPipelineCanvasState,
-  ] = usePipelineCanvasState();
-
-  const resetPipelineCanvas = React.useCallback(() => {
-    setPipelineCanvasState({
-      pipelineOffset: INITIAL_PIPELINE_POSITION,
-      pipelineStepsHolderOffsetLeft: 0,
-      pipelineStepsHolderOffsetTop: 0,
-    });
-  }, [setPipelineCanvasState]);
-
-  const {
-    setPipelineHolderOrigin,
+    resetPipelineCanvas,
     centerView,
     centerPipelineOrigin,
+    setPipelineHolderOrigin,
     zoom,
-  } = useKeyboardEventsOnViewport(
-    pipelineCanvasState,
-    setPipelineCanvasState,
-    resetPipelineCanvas
-  );
+  } = useKeyboardEventsOnViewport();
 
   return (
     <PipelineCanvasContext.Provider

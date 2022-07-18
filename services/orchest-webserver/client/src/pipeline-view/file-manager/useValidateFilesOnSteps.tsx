@@ -3,7 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import {
   allowedExtensionsMarkup,
   cleanFilePath,
@@ -13,14 +13,15 @@ import { useFileManagerContext } from "./FileManagerContext";
 
 export const useValidateFilesOnSteps = () => {
   const { setAlert } = useAppContext();
-  const { pipelineJson } = usePipelineEditorContext();
+  const { pipelineJson } = usePipelineDataContext();
   const { selectedFiles, dragFile } = useFileManagerContext();
 
-  const filesToProcess = React.useMemo(
-    () =>
-      selectedFiles.includes(dragFile?.path) ? selectedFiles : [dragFile?.path],
-    [selectedFiles, dragFile?.path]
-  );
+  const filesToProcess = React.useMemo(() => {
+    if (!dragFile?.path) return selectedFiles;
+    return selectedFiles.includes(dragFile.path)
+      ? selectedFiles
+      : [dragFile.path];
+  }, [selectedFiles, dragFile?.path]);
 
   const getApplicableStepFiles = React.useCallback(
     (stepUuid?: string) => {

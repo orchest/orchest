@@ -6,8 +6,8 @@ import React from "react";
 import { createStepAction } from "./action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
+import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 
 export const CreateStepButton = () => {
@@ -16,7 +16,7 @@ export const CreateStepButton = () => {
   const {
     state: { pipelineIsReadOnly: disabled },
   } = useProjectsContext();
-  const { dispatch } = usePipelineEditorContext();
+  const { uiStateDispatch } = usePipelineUiStateContext();
   const { pipelineViewportRef } = usePipelineRefs();
   const {
     pipelineCanvasState: { pipelineOffset },
@@ -47,7 +47,7 @@ export const CreateStepButton = () => {
         y: -pipelineOffsetY + clientHeight / 2 - STEP_HEIGHT / 2,
       };
 
-      dispatch(createStepAction(environment, position));
+      uiStateDispatch(createStepAction(environment, position));
     } catch (error) {
       setAlert("Error", `Unable to create a new step. ${error}`);
     }

@@ -4,9 +4,8 @@ import React from "react";
 import { getScaleCorrectedPosition } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
-import { usePipelineUiStatesContext } from "../contexts/PipelineUiStatesContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useScaleFactor } from "../contexts/ScaleFactorContext";
 
 /**
@@ -14,14 +13,18 @@ import { useScaleFactor } from "../contexts/ScaleFactorContext";
  */
 export const useMouseEventsOnViewport = () => {
   const { disabled } = usePipelineDataContext();
-  const { dispatch, newConnection } = usePipelineEditorContext();
   const { scaleFactor, trackMouseMovement } = useScaleFactor();
-  const { keysDown, mouseTracker, pipelineCanvasRef } = usePipelineRefs();
+  const {
+    keysDown,
+    mouseTracker,
+    pipelineCanvasRef,
+    newConnection,
+  } = usePipelineRefs();
 
   const {
-    uiStatesDispatch,
-    uiStates: { stepSelector },
-  } = usePipelineUiStatesContext();
+    uiStateDispatch,
+    uiState: { stepSelector },
+  } = usePipelineUiStateContext();
 
   const {
     pipelineCanvasState: { panningState },
@@ -48,7 +51,7 @@ export const useMouseEventsOnViewport = () => {
     }
 
     if (stepSelector.active) {
-      uiStatesDispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
+      uiStateDispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
     }
 
     if (panningState === "panning") {
@@ -63,7 +66,7 @@ export const useMouseEventsOnViewport = () => {
       }));
     }
   }, [
-    uiStatesDispatch,
+    uiStateDispatch,
     pipelineCanvasRef,
     scaleFactor,
     stepSelector.active,
@@ -75,12 +78,15 @@ export const useMouseEventsOnViewport = () => {
 
   const onMouseLeaveViewport = React.useCallback(() => {
     if (stepSelector.active) {
-      uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
     if (newConnection.current) {
-      dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
+      uiStateDispatch({
+        type: "REMOVE_CONNECTION",
+        payload: newConnection.current,
+      });
     }
-  }, [dispatch, uiStatesDispatch, stepSelector.active, newConnection]);
+  }, [uiStateDispatch, stepSelector.active, newConnection]);
 
   const onMouseDownDocument = React.useCallback(
     (e: MouseEvent) => {
