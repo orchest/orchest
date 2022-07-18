@@ -3,8 +3,8 @@ import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
 const toRoot = (path?: string) => (path?.startsWith("/") ? path : "/" + path);
@@ -23,7 +23,7 @@ export type StepCreator = (filePath?: string) => void;
 
 export const useCreateStep = (): StepCreator => {
   const { pipelineCwd, environments } = usePipelineDataContext();
-  const { dispatch } = usePipelineEditorContext();
+  const { uiStateDispatch } = usePipelineUiStateContext();
   const { pipelineViewportRef } = usePipelineRefs();
   const {
     pipelineCanvasState: { pipelineOffset },
@@ -49,12 +49,18 @@ export const useCreateStep = (): StepCreator => {
 
         const stepPath = relativeToPipeline(pipelineCwd, filePath);
 
-        dispatch(createStepAction(environment, position, stepPath));
+        uiStateDispatch(createStepAction(environment, position, stepPath));
       } else {
         console.error("Failed to create step: pipeline viewport not set");
       }
     },
-    [pipelineOffset, dispatch, pipelineViewportRef, environment, pipelineCwd]
+    [
+      pipelineOffset,
+      uiStateDispatch,
+      pipelineViewportRef,
+      environment,
+      pipelineCwd,
+    ]
   );
 
   return createStep;

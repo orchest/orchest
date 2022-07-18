@@ -1,6 +1,7 @@
 import { Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { getSvgProperties, getTransformProperty } from "./common";
 import { ConnectionLine } from "./ConnectionLine";
 
@@ -10,7 +11,6 @@ export const InteractiveConnection = ({
   endNodeUUID,
   selected,
   shouldUpdate,
-  stepDomRefs,
   ...props
 }: {
   startNodeX: number;
@@ -22,8 +22,8 @@ export const InteractiveConnection = ({
   endNodeUUID?: string;
   getPosition: (element: HTMLElement | undefined | null) => Position | null;
   shouldUpdate: [boolean, boolean];
-  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) => {
+  const { stepRefs } = usePipelineRefs();
   const [transformProperty, setTransformProperty] = React.useState(() =>
     getTransformProperty(props)
   );
@@ -35,8 +35,8 @@ export const InteractiveConnection = ({
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
-  const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
-  const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
+  const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
+  const endNode = stepRefs.current[`${endNodeUUID}-incoming`];
   const startNodePosition = getPosition(startNode);
   const endNodePosition = getPosition(endNode);
 

@@ -8,61 +8,36 @@ import {
 } from "../common";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { useScaleFactor } from "../contexts/ScaleFactorContext";
-import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
-import { CanvasFunctions } from "./PipelineViewport";
+import {
+  INITIAL_PIPELINE_POSITION,
+  usePipelineCanvasState,
+} from "../hooks/usePipelineCanvasState";
 import { useGestureOnViewport } from "./useGestureOnViewport";
 
-export const useKeyboardEventsOnViewport = (
-  pipelineCanvasState: PipelineCanvasState,
-  setPipelineCanvasState: React.Dispatch<
-    | Partial<PipelineCanvasState>
-    | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
-  >,
-  resetPipelineCanvas: () => void
-) => {
-  const canvasFuncRef = React.useRef<CanvasFunctions>();
-  const { scaleFactor, setScaleFactor } = useScaleFactor();
+export const useKeyboardEventsOnViewport = () => {
   const {
-    pipelineCanvasRef,
     pipelineViewportRef,
+    pipelineCanvasRef,
     keysDown,
   } = usePipelineRefs();
+  const { scaleFactor, setScaleFactor } = useScaleFactor();
+  const [
+    pipelineCanvasState,
+    setPipelineCanvasState,
+  ] = usePipelineCanvasState();
 
-  React.useEffect(() => {
-    const keyDownHandler = (event: KeyboardEvent) => {
-      if (activeElementIsInput()) return;
+  const resetPipelineCanvas = React.useCallback(() => {
+    setPipelineCanvasState({
+      pipelineOffset: INITIAL_PIPELINE_POSITION,
+      pipelineStepsHolderOffsetLeft: 0,
+      pipelineStepsHolderOffsetTop: 0,
+    });
+  }, [setPipelineCanvasState]);
 
-      if (event.key === " " && !keysDown.has("Space")) {
-        // if any element is on focus, pressing space bar is equivalent to mouse click
-        // therefore it's needed to remove all "focus" state
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-        setPipelineCanvasState({ panningState: "ready-to-pan" });
-        keysDown.add("Space");
-      }
-      if (canvasFuncRef.current && event.key === "h" && !keysDown.has("h")) {
-        canvasFuncRef.current.centerView();
-        keysDown.add("h");
-      }
-    };
-    const keyUpHandler = (event: KeyboardEvent) => {
-      if (event.key === " ") {
-        setPipelineCanvasState({ panningState: "idle" });
-        keysDown.delete("Space");
-      }
-      if (event.key === "h") {
-        keysDown.delete("h");
-      }
-    };
-
-    document.body.addEventListener("keydown", keyDownHandler);
-    document.body.addEventListener("keyup", keyUpHandler);
-    return () => {
-      document.body.removeEventListener("keydown", keyDownHandler);
-      document.body.removeEventListener("keyup", keyUpHandler);
-    };
-  }, [keysDown, canvasFuncRef, setPipelineCanvasState]);
+  const centerView = React.useCallback(() => {
+    resetPipelineCanvas();
+    setScaleFactor(DEFAULT_SCALE_FACTOR);
+  }, [setScaleFactor, resetPipelineCanvas]);
 
   const getCurrentOrigin = React.useCallback(() => {
     const canvasOffset = getOffset(pipelineCanvasRef.current);
@@ -94,25 +69,22 @@ export const useKeyboardEventsOnViewport = (
     [scaleFactor, setPipelineCanvasState, getCurrentOrigin]
   );
 
-  const centerView = React.useCallback(() => {
-    resetPipelineCanvas();
-    setScaleFactor(DEFAULT_SCALE_FACTOR);
-  }, [setScaleFactor, resetPipelineCanvas]);
-
   const centerPipelineOrigin = React.useCallback(() => {
-    let viewportOffset = getOffset(pipelineViewportRef.current ?? undefined);
+    const viewportOffset = getOffset(pipelineViewportRef.current ?? undefined);
     const canvasOffset = getOffset(pipelineCanvasRef.current ?? undefined);
 
     if (pipelineViewportRef.current === null) {
       return;
     }
-    let viewportWidth = getWidth(pipelineViewportRef.current);
-    let viewportHeight = getHeight(pipelineViewportRef.current);
+    const viewportWidth = getWidth(pipelineViewportRef.current);
+    const viewportHeight = getHeight(pipelineViewportRef.current);
 
-    let originalX = viewportOffset.left - canvasOffset.left + viewportWidth / 2;
-    let originalY = viewportOffset.top - canvasOffset.top + viewportHeight / 2;
+    const originalX =
+      viewportOffset.left - canvasOffset.left + viewportWidth / 2;
+    const originalY =
+      viewportOffset.top - canvasOffset.top + viewportHeight / 2;
 
-    let centerOrigin = [
+    const centerOrigin = [
       scaleCorrected(originalX, scaleFactor),
       scaleCorrected(originalY, scaleFactor),
     ] as [number, number];
@@ -125,16 +97,6 @@ export const useKeyboardEventsOnViewport = (
     setPipelineHolderOrigin,
   ]);
 
-  // NOTE: React.useImperativeHandle should only be used in special cases
-  // here we have to use it to allow parent component (i.e. PipelineEditor) to center pipeline canvas
-  // otherwise, we have to use renderProps, but then we will have more issues
-  // e.g. we cannot keep the action buttons above PipelineCanvas
-  React.useImperativeHandle(
-    canvasFuncRef,
-    () => ({ centerPipelineOrigin, centerView }),
-    [centerPipelineOrigin, centerView]
-  );
-
   const zoom = useGestureOnViewport(
     pipelineCanvasState,
     setPipelineCanvasState,
@@ -142,5 +104,42 @@ export const useKeyboardEventsOnViewport = (
     setPipelineHolderOrigin
   );
 
-  return { setPipelineHolderOrigin, centerPipelineOrigin, centerView, zoom };
+  React.useEffect(() => {
+    const keyDownHandler = (event: KeyboardEvent) => {
+      if (activeElementIsInput()) return;
+
+      if (event.key === " " && !keysDown.has("Space")) {
+        // if any element is on focus, pressing space bar is equivalent to mouse click
+        // therefore it's needed to remove all "focus" state
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        setPipelineCanvasState({ panningState: "ready-to-pan" });
+        keysDown.add("Space");
+      }
+    };
+    const keyUpHandler = (event: KeyboardEvent) => {
+      if (event.key === " ") {
+        setPipelineCanvasState({ panningState: "idle" });
+        keysDown.delete("Space");
+      }
+    };
+
+    document.body.addEventListener("keydown", keyDownHandler);
+    document.body.addEventListener("keyup", keyUpHandler);
+    return () => {
+      document.body.removeEventListener("keydown", keyDownHandler);
+      document.body.removeEventListener("keyup", keyUpHandler);
+    };
+  }, [keysDown, centerView, setPipelineCanvasState]);
+
+  return {
+    pipelineCanvasState,
+    setPipelineCanvasState,
+    resetPipelineCanvas,
+    centerView,
+    centerPipelineOrigin,
+    setPipelineHolderOrigin,
+    zoom,
+  };
 };

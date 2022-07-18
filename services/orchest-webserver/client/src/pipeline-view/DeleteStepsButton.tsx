@@ -1,13 +1,13 @@
 import DeleteIcon from "@mui/icons-material/Delete";
 import React from "react";
 import { PipelineActionButton } from "./components/PipelineActionButton";
-import { usePipelineUiStatesContext } from "./contexts/PipelineUiStatesContext";
+import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { useDeleteSteps } from "./hooks/useDeleteSteps";
 
 export const DeleteStepsButton = () => {
   const {
-    uiStates: { isDeletingSteps },
-  } = usePipelineUiStatesContext();
+    uiState: { isDeletingSteps },
+  } = usePipelineUiStateContext();
   const { deleteSelectedSteps } = useDeleteSteps();
   return (
     <PipelineActionButton

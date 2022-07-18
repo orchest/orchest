@@ -1,10 +1,9 @@
 import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { PipelineStepState } from "@/types";
 import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { ConnectionDict } from "./StepDetailsProperties";
 
 export type StepDetailsContextType = {
@@ -20,11 +19,17 @@ export const StepDetailsContext = React.createContext<StepDetailsContextType>(
 
 export const useStepDetailsContext = () => React.useContext(StepDetailsContext);
 export const StepDetailsContextProvider: React.FC = ({ children }) => {
-  const { projectUuid, jobUuid } = useCustomRoute();
-  const { pipelineUuid, runUuid } = usePipelineDataContext();
-  const { eventVars } = usePipelineEditorContext();
+  const {
+    projectUuid,
+    jobUuid,
+    pipelineUuid,
+    runUuid,
+  } = usePipelineDataContext();
+  const {
+    uiState: { steps, openedStep },
+  } = usePipelineUiStateContext();
 
-  const step = eventVars.steps[eventVars.openedStep || ""];
+  const step = steps[openedStep || ""];
   const [doesStepFileExist, isCheckingFileValidity] = useCheckFileValidity({
     projectUuid,
     pipelineUuid,
@@ -40,10 +45,10 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
     const { incoming_connections = [] } = step;
 
     return incoming_connections.reduce((all, id: string) => {
-      const { title, file_path } = eventVars.steps[id];
+      const { title, file_path } = steps[id];
       return { ...all, [id]: { title, file_path } };
     }, {} as ConnectionDict);
-  }, [eventVars.steps, step]);
+  }, [steps, step]);
 
   return (
     <StepDetailsContext.Provider

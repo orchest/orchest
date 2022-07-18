@@ -14,8 +14,7 @@ import {
 } from "../../hooks/useDragElementWithPosition";
 import { ResizeBar } from "../components/ResizeBar";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { usePipelineUiStatesContext } from "../contexts/PipelineUiStatesContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { StepDetailsContextProvider } from "./StepDetailsContext";
 import { StepDetailsControlPanel } from "./StepDetailsControlPanel";
 import { StepDetailsLogs } from "./StepDetailsLogs";
@@ -52,14 +51,18 @@ const StepDetailsComponent: React.FC<{
   onSave: (stepChanges: Partial<Step>, uuid: string, replace?: boolean) => void;
 }> = ({ onSave }) => {
   const { jobUuid, projectUuid } = useCustomRoute();
-  const { pipelineCwd, runUuid, isReadOnly } = usePipelineDataContext();
-  const { eventVars, pipelineJson } = usePipelineEditorContext();
   const {
-    uiStates: { subViewIndex, shouldAutoFocus },
-    uiStatesDispatch,
-  } = usePipelineUiStatesContext();
+    pipelineCwd,
+    runUuid,
+    isReadOnly,
+    pipelineJson,
+  } = usePipelineDataContext();
+  const {
+    uiState: { subViewIndex, shouldAutoFocus, stepSelector, steps, openedStep },
+    uiStateDispatch,
+  } = usePipelineUiStateContext();
 
-  const step = eventVars.steps[eventVars.openedStep || ""];
+  const step = steps[openedStep || ""];
 
   const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
     "pipelinedetails.panelWidth",
@@ -95,10 +98,10 @@ const StepDetailsComponent: React.FC<{
     e: React.SyntheticEvent<Element, Event>,
     index: number
   ) => {
-    uiStatesDispatch({ type: "SELECT_SUB_VIEW", payload: index });
+    uiStateDispatch({ type: "SELECT_SUB_VIEW", payload: index });
   };
 
-  if (!eventVars.openedStep || !step || !pipelineJson) return null;
+  if (!openedStep || !step || !pipelineJson || stepSelector.active) return null;
 
   return (
     <StepDetailsContextProvider>

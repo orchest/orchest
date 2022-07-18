@@ -1,6 +1,6 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useThrottle } from "@/hooks/useThrottle";
-import { usePipelineEditorContext } from "@/pipeline-view/contexts/PipelineEditorContext";
+import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
 import ArrowDropDownOutlinedIcon from "@mui/icons-material/ArrowDropDownOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -18,8 +18,8 @@ export const PipelineOperationButton = React.forwardRef<
     state: { pipelineIsReadOnly },
   } = useProjectsContext();
   const {
-    eventVars: { steps },
-  } = usePipelineEditorContext();
+    uiState: { steps },
+  } = usePipelineUiStateContext();
   const hasNoStep = Object.keys(steps).length === 0;
 
   const localRef = React.useRef<HTMLButtonElement>();

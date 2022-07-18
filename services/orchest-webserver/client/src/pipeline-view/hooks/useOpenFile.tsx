@@ -3,12 +3,15 @@ import { siteMap } from "@/routingConfig";
 import { joinRelativePaths } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
 export const useOpenFile = () => {
   const { navigateTo, pipelineUuid, projectUuid, jobUuid } = useCustomRoute();
   const { pipelineCwd, runUuid, isReadOnly } = usePipelineDataContext();
-  const { eventVars } = usePipelineEditorContext();
+
+  const {
+    uiState: { steps },
+  } = usePipelineUiStateContext();
 
   const isJobRun = jobUuid && runUuid;
   const jobRunQueryArgs = React.useMemo(() => ({ jobUuid, runUuid }), [
@@ -37,12 +40,9 @@ export const useOpenFile = () => {
 
   const notebookFilePath = React.useCallback(
     (pipelineCwd: string, stepUUID: string) => {
-      return joinRelativePaths(
-        pipelineCwd,
-        eventVars.steps[stepUUID].file_path
-      );
+      return joinRelativePaths(pipelineCwd, steps[stepUUID].file_path);
     },
-    [eventVars.steps]
+    [steps]
   );
 
   const openNotebook = React.useCallback(

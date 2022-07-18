@@ -2,32 +2,45 @@ import { useAppContext } from "@/contexts/AppContext";
 import type {
   Connection,
   NewConnection,
+  Offset,
   PipelineStepState,
   ReducerActionWithCallback,
   Step,
   StepsDict,
 } from "@/types";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
-import { hasValue, uuidv4 } from "@orchest/lib-utils";
+import { hasValue, intersectRect, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
 import merge from "lodash.merge";
 import React from "react";
-import { willCreateCycle } from "../common";
-import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { getStepSelectorRectangle, RectangleProps } from "../Rectangle";
+import { getScaleCorrectedPosition, willCreateCycle } from "../common";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
+import { useScaleFactor } from "../contexts/ScaleFactorContext";
+import { getStepSelectorRectangle } from "../Rectangle";
 
-export type EventVars = {
-  initialized: boolean;
-  doubleClickFirstClick: boolean;
+type StepSelectorData = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  active: boolean;
+};
+
+export type PipelineUiState = {
   steps: StepsDict;
   connections: Connection[];
+  doubleClickFirstClick: boolean;
   selectedSteps: string[];
   cursorControlledStep: string | undefined;
   selectedConnection: Pick<Connection, "endNodeUUID" | "startNodeUUID"> | null;
   openedMultiStep?: boolean;
   openedStep?: string;
+  stepSelector: StepSelectorData;
+  shouldAutoFocus: boolean;
   error?: string | null;
   timestamp: number | undefined;
+  subViewIndex: number;
+  isDeletingSteps: boolean;
 };
 
 export type Action =
@@ -100,19 +113,56 @@ export type Action =
       };
     }
   | {
+      type: "CREATE_SELECTOR";
+      payload: Offset;
+    }
+  | {
+      type: "SET_SCALE_FACTOR";
+      payload: number;
+    }
+  | {
+      type: "CENTER_VIEW";
+    }
+  | {
+      type: "UPDATE_STEP_SELECTOR";
+      payload: Offset;
+    }
+  | {
+      type: "SET_STEP_SELECTOR_INACTIVE";
+    }
+  | {
       type: "SET_ERROR";
       payload: string | null;
     }
   | {
-      type: "DESELECT_ALL_STEPS";
+      type: "SELECT_SUB_VIEW";
+      payload: number;
+    }
+  | {
+      type: "OPEN_STEP_DETAILS";
+    }
+  | {
+      type: "CLOSE_STEP_DETAILS";
+    }
+  | {
+      type: "SET_IS_DELETING_STEPS";
+      payload: boolean;
     };
 
-export type EventVarsAction =
-  | ReducerActionWithCallback<EventVars, Action>
+export type PipelineUiStateAction =
+  | ReducerActionWithCallback<PipelineUiState, Action>
   | undefined;
 
+const DEFAULT_STEP_SELECTOR: StepSelectorData = {
+  x1: Number.MIN_VALUE,
+  y1: Number.MIN_VALUE,
+  x2: Number.MIN_VALUE,
+  y2: Number.MIN_VALUE,
+  active: false,
+};
+
 export function removeConnection<
-  T extends Pick<EventVars, "steps" | "connections">
+  T extends Pick<PipelineUiState, "steps" | "connections">
 >(baseState: T, connectionToDelete: Connection | NewConnection | null): T {
   if (!connectionToDelete) return baseState;
 
@@ -147,10 +197,6 @@ export function removeConnection<
   return updatedState;
 }
 
-type StepRect = RectangleProps & {
-  uuid: string;
-};
-
 // use timestamp to trigger saving to BE
 function withTimestamp<T extends Record<string, unknown>>(obj: T) {
   return {
@@ -159,25 +205,21 @@ function withTimestamp<T extends Record<string, unknown>>(obj: T) {
   };
 }
 
-export const useEventVars = () => {
+export const usePipelineUiState = () => {
   const { setAlert } = useAppContext();
-
-  // Ref's
-  const stepDomRefs = React.useRef<Record<string, HTMLDivElement>>({});
-  // this is used for temporarily saving dragged steps' positions
-  const draggedStepPositions = React.useRef<Record<string, [number, number]>>(
-    {}
-  );
-
-  const newConnection = React.useRef<NewConnection>();
-
   const {
-    uiState: { stepSelector },
-    uiStateDispatch,
-  } = usePipelineUiStateContext();
+    stepRefs,
+    mouseTracker,
+    newConnection,
+    zIndexMax,
+  } = usePipelineRefs();
+  const { scaleFactor } = useScaleFactor();
 
   const memoizedReducer = React.useCallback(
-    (state: EventVars, _action: EventVarsAction): EventVars => {
+    (
+      state: PipelineUiState,
+      _action: PipelineUiStateAction
+    ): PipelineUiState => {
       const action = _action instanceof Function ? _action(state) : _action;
 
       if (!action) return state;
@@ -198,7 +240,7 @@ export const useEventVars = () => {
         });
       };
 
-      const makeConnection = (endNodeUUID: string): EventVars => {
+      const makeConnection = (endNodeUUID: string): PipelineUiState => {
         // Prerequisites
         // 1. mousedown on a node (i.e. startNodeUUID is confirmed)
         // 2. mousemove -> start dragging, drawing an connection line, the end of the line is following mouse curser
@@ -282,8 +324,8 @@ export const useEventVars = () => {
       const deselectAllSteps = () => {
         return {
           selectedSteps: [],
+          stepSelector: DEFAULT_STEP_SELECTOR,
           openedMultiStep: false,
-          cursorControlledStep: undefined,
           // deselecting will close the detail view
           openedStep: undefined,
         };
@@ -312,6 +354,9 @@ export const useEventVars = () => {
         return position as [number, number];
       };
 
+      if (process.env.NODE_ENV === "development")
+        console.log("(Dev Mode) useUiState: action ", action);
+
       /**
        * ========================== action handlers
        */
@@ -338,11 +383,12 @@ export const useEventVars = () => {
             draft.steps[newStep.uuid] = newStep;
           });
 
-          uiStateDispatch({ type: "OPEN_STEP_DETAILS" });
           return withTimestamp({
             ...state,
             ...updated,
             openedStep: newStep.uuid,
+            subViewIndex: 0,
+            shouldAutoFocus: true,
             ...selectSteps([newStep.uuid]),
           });
         }
@@ -371,11 +417,10 @@ export const useEventVars = () => {
             });
           });
 
-          uiStateDispatch({ type: "OPEN_STEP_DETAILS" });
-
           return withTimestamp({
             ...state,
             ...updated,
+            shouldAutoFocus: true,
             ...selectSteps(newSteps.map((s) => s.uuid)),
           });
         }
@@ -387,42 +432,70 @@ export const useEventVars = () => {
           });
           return withTimestamp({ ...state, ...updated });
         }
-        // case "SELECT_STEPS": {
-        //   const { uuids, inclusive } = action.payload;
-        //   // cancel all selected steps
-        //   if (uuids.length === 0) {
-        //     return { ...state, ...deselectAllSteps() };
-        //   }
-        //   // select only one step and non-inclusive
-        //   // i.e. user intends to open the detail of the step
-        //   if (uuids.length === 1 && !inclusive) {
-        //     return {
-        //       ...state,
-        //       openedStep: uuids[0],
-        //       ...selectSteps(uuids),
-        //     };
-        //   }
-        //   const stepsToSelect = inclusive
-        //     ? [...state.selectedSteps, ...uuids]
-        //     : uuids;
-        //   const uniqueSteps = [...new Set(stepsToSelect)];
 
-        //   uiStateDispatch({ type: "CLOSE_STEP_DETAILS" });
-        //   return {
-        //     ...state,
-        //     ...selectSteps(uniqueSteps),
-        //   };
-        // }
-        // case "DESELECT_STEPS": {
-        //   const remainder = state.selectedSteps.filter(
-        //     (stepUuid) => !action.payload.includes(stepUuid)
-        //   );
-        //   if (remainder.length > 0) {
-        //     return { ...state, selectedSteps: remainder };
-        //   }
-        //   uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
-        //   return { ...state, ...deselectAllSteps() };
-        // }
+        case "CREATE_SELECTOR": {
+          // not dragging the canvas, so user must be creating a selection rectangle
+          // NOTE: this also deselect all steps
+          const selectorOrigin = getScaleCorrectedPosition({
+            offset: action.payload,
+            position: mouseTracker.current.client,
+            scaleFactor,
+          });
+
+          return {
+            ...state,
+            cursorControlledStep: undefined,
+            selectedSteps: [],
+            shouldAutoFocus: false,
+            stepSelector: {
+              x1: selectorOrigin.x,
+              x2: selectorOrigin.x,
+              y1: selectorOrigin.y,
+              y2: selectorOrigin.y,
+              active: true,
+            },
+          };
+        }
+        case "SET_STEP_SELECTOR_INACTIVE": {
+          return produce(state, (draft) => {
+            draft.stepSelector.active = false;
+          });
+        }
+        case "SELECT_STEPS": {
+          const { uuids, inclusive } = action.payload;
+          // cancel all selected steps
+          if (uuids.length === 0) {
+            return { ...state, ...deselectAllSteps() };
+          }
+          // select only one step and non-inclusive
+          // i.e. user intends to open the detail of the step
+          if (uuids.length === 1 && !inclusive) {
+            return {
+              ...state,
+              openedStep: uuids[0],
+              ...selectSteps(uuids),
+            };
+          }
+          const stepsToSelect = inclusive
+            ? [...state.selectedSteps, ...uuids]
+            : uuids;
+          const uniqueSteps = [...new Set(stepsToSelect)];
+
+          return {
+            ...state,
+            shouldAutoFocus: false,
+            ...selectSteps(uniqueSteps),
+          };
+        }
+        case "DESELECT_STEPS": {
+          const remainder = state.selectedSteps.filter(
+            (stepUuid) => !action.payload.includes(stepUuid)
+          );
+          if (remainder.length > 0) {
+            return { ...state, selectedSteps: remainder };
+          }
+          return { ...state, ...deselectAllSteps() };
+        }
         case "DESELECT_CONNECTION": {
           return { ...state, selectedConnection: null };
         }
@@ -436,10 +509,11 @@ export const useEventVars = () => {
           if (!found) {
             console.error("Unable to find the connection to select");
           }
-          uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+
           return {
             ...state,
             selectedSteps: [],
+            stepSelector: DEFAULT_STEP_SELECTOR,
             selectedConnection: found ? { startNodeUUID, endNodeUUID } : null,
           };
         }
@@ -459,15 +533,50 @@ export const useEventVars = () => {
           return { ...state, cursorControlledStep: action.payload };
         }
 
+        case "UPDATE_STEP_SELECTOR": {
+          const { x, y } = getScaleCorrectedPosition({
+            offset: action.payload,
+            position: mouseTracker.current.client,
+            scaleFactor,
+          });
+
+          const updatedSelector = { ...state.stepSelector, x2: x, y2: y };
+
+          let rect = getStepSelectorRectangle(updatedSelector);
+          return produce(state, (draft) => {
+            draft.stepSelector = updatedSelector;
+            // for each step perform intersect
+            if (updatedSelector.active) {
+              draft.selectedSteps = [];
+              Object.values(state.steps).forEach((step) => {
+                // guard against ref existing, in case step is being added
+                const stepContainer = stepRefs.current[step.uuid];
+                if (stepContainer) {
+                  const stepRect = {
+                    x: step.meta_data.position[0],
+                    y: step.meta_data.position[1],
+                    width: getOuterWidth(stepContainer),
+                    height: getOuterHeight(stepContainer),
+                  };
+
+                  if (intersectRect(rect, stepRect)) {
+                    draft.selectedSteps.push(step.uuid);
+                  }
+                }
+              });
+            }
+          });
+        }
+
         // this means that the connection might not yet complete, as endNodeUUID is optional
         // this action creates an instance
         case "INSTANTIATE_CONNECTION": {
-          uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
           return {
             ...state,
             connections: [...state.connections, action.payload],
             selectedSteps: [],
             selectedConnection: null,
+            stepSelector: DEFAULT_STEP_SELECTOR,
           };
         }
 
@@ -523,7 +632,7 @@ export const useEventVars = () => {
             [] as Connection[]
           );
           newConnection.current = undefined;
-          const updatedState: EventVars = connectionsToDelete.reduce(
+          const updatedState: PipelineUiState = connectionsToDelete.reduce(
             (final, connection) => removeConnection(final, connection),
             state
           );
@@ -556,97 +665,57 @@ export const useEventVars = () => {
           });
         }
 
-        case "DESELECT_ALL_STEPS": {
-          return {
-            ...state,
-            ...deselectAllSteps(),
-          };
-        }
-
         case "SET_ERROR": {
           return { ...state, error: action.payload };
         }
 
+        case "SELECT_SUB_VIEW": {
+          return { ...state, subViewIndex: action.payload };
+        }
+
         default: {
-          console.error(`[EventVars] Unknown action: "${action}"`);
+          console.error(`[UiState] Unknown action: "${action}"`);
           return state;
         }
       }
     },
-    [uiStateDispatch]
+    [mouseTracker, newConnection, scaleFactor, stepRefs]
   );
 
-  const [eventVars, dispatch] = React.useReducer(memoizedReducer, {
-    initialized: false,
+  const [uiState, uiStateDispatch] = React.useReducer(memoizedReducer, {
     doubleClickFirstClick: false,
     openedStep: undefined,
     openedMultiStep: undefined,
     selectedSteps: [],
     cursorControlledStep: undefined,
+    stepSelector: {
+      active: false,
+      x1: 0,
+      y1: 0,
+      x2: 0,
+      y2: 0,
+    },
     steps: {},
     connections: [],
     selectedConnection: null,
     timestamp: undefined,
+    subViewIndex: 0,
+    shouldAutoFocus: false,
+    isDeletingSteps: false,
   });
 
-  // Clear all selected steps when user creates stepSelector.
   React.useEffect(() => {
-    if (stepSelector.active) {
-      dispatch({ type: "DESELECT_ALL_STEPS" });
-    }
-  }, [stepSelector.active]);
-
-  const stepRects = React.useMemo(() => {
-    const rects: StepRect[] = [];
-    Object.values(eventVars.steps).forEach((step) => {
-      // guard against ref existing, in case step is being added
-      if (!stepDomRefs.current[step.uuid]) return;
-
-      const stepContainer = stepDomRefs.current[step.uuid];
-      rects.push({
-        uuid: step.uuid,
-        x: step.meta_data.position[0],
-        y: step.meta_data.position[1],
-        width: getOuterWidth(stepContainer),
-        height: getOuterHeight(stepContainer),
-      });
-    });
-    return rects;
-  }, [stepSelector.active]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const selectorRec = React.useMemo(() => {
-    return stepSelector.active
-      ? getStepSelectorRectangle(stepSelector)
-      : undefined;
-  }, [stepSelector.active, stepSelector.x2, stepSelector.y2]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Update selectedSteps while user is dragging stepSelector.
-  React.useEffect(() => {
-    // if (selectorRec) {
-    //   const selectedSteps = stepRects.reduce((selectedUuids, stepRect) => {
-    //     if (intersectRect(selectorRec, stepRect))
-    //       selectedUuids.push(stepRect.uuid);
-    //     return selectedUuids;
-    //   }, [] as string[]);
-    //   dispatch({ type: "SELECT_STEPS", payload: { uuids: selectedSteps } });
-    // }
-  }, [selectorRec, stepRects]);
-
-  React.useEffect(() => {
-    if (eventVars.error) {
-      setAlert("Error", eventVars.error, (resolve) => {
-        dispatch({ type: "SET_ERROR", payload: null });
+    if (uiState.error) {
+      setAlert("Error", uiState.error, (resolve) => {
+        uiStateDispatch({ type: "SET_ERROR", payload: null });
         resolve(true);
         return true;
       });
     }
-  }, [eventVars.error, setAlert]);
+  }, [uiState.error, setAlert]);
 
   return {
-    eventVars,
-    newConnection,
-    dispatch,
-    stepDomRefs,
-    draggedStepPositions,
+    uiState,
+    uiStateDispatch,
   };
 };

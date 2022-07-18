@@ -10,8 +10,8 @@ import { SCALE_UNIT } from "../common";
 import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { usePipelineUiStatesContext } from "../contexts/PipelineUiStatesContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
+import { useScaleFactor } from "../contexts/ScaleFactorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
 type PipelineViewportContextMenuProps = { autoLayoutPipeline: () => void };
@@ -25,8 +25,11 @@ export const PipelineViewportContextMenu = ({
 }: PipelineViewportContextMenuProps) => {
   const { handleContextMenu, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
   const { isReadOnly, environments } = usePipelineDataContext();
-  const { getOnCanvasPosition } = usePipelineUiStatesContext();
-  const { eventVars, dispatch } = usePipelineEditorContext();
+  const { getOnCanvasPosition } = useScaleFactor();
+  const {
+    uiState: { steps, selectedSteps },
+    uiStateDispatch,
+  } = usePipelineUiStateContext();
   const { executeRun } = useInteractiveRunsContext();
 
   const { centerView, zoom } = usePipelineCanvasContext();
@@ -42,7 +45,7 @@ export const PipelineViewportContextMenu = ({
           x: STEP_WIDTH / 2,
           y: STEP_HEIGHT / 2,
         });
-        dispatch(createStepAction(environment, canvasPosition));
+        uiStateDispatch(createStepAction(environment, canvasPosition));
       },
     },
     {
@@ -50,18 +53,18 @@ export const PipelineViewportContextMenu = ({
       title: "Select all steps",
       disabled: isReadOnly,
       action: () => {
-        dispatch({
+        uiStateDispatch({
           type: "SELECT_STEPS",
-          payload: { uuids: Object.keys(eventVars.steps) },
+          payload: { uuids: Object.keys(steps) },
         });
       },
     },
     {
       type: "item",
       title: "Run selected steps",
-      disabled: isReadOnly || eventVars.selectedSteps.length === 0,
+      disabled: isReadOnly || selectedSteps.length === 0,
       action: () => {
-        executeRun(eventVars.selectedSteps, "selection");
+        executeRun(selectedSteps, "selection");
       },
     },
     {
