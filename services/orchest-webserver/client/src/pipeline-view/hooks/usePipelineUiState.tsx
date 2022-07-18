@@ -207,12 +207,7 @@ function withTimestamp<T extends Record<string, unknown>>(obj: T) {
 
 export const usePipelineUiState = () => {
   const { setAlert } = useAppContext();
-  const {
-    stepRefs,
-    mouseTracker,
-    newConnection,
-    zIndexMax,
-  } = usePipelineRefs();
+  const { stepRefs, mouseTracker, newConnection } = usePipelineRefs();
   const { scaleFactor } = useScaleFactor();
 
   const memoizedReducer = React.useCallback(
@@ -673,8 +668,14 @@ export const usePipelineUiState = () => {
           return { ...state, subViewIndex: action.payload };
         }
 
+        case "SET_IS_DELETING_STEPS": {
+          return { ...state, isDeletingSteps: action.payload };
+        }
+
         default: {
-          console.error(`[UiState] Unknown action: "${action}"`);
+          console.error(
+            `[UiState] Unknown action: "${JSON.stringify(action)}"`
+          );
           return state;
         }
       }
