@@ -41,6 +41,7 @@ export type PipelineUiState = {
   timestamp: number | undefined;
   subViewIndex: number;
   isDeletingSteps: boolean;
+  isContextMenuOpen: boolean;
 };
 
 export type Action =
@@ -146,6 +147,10 @@ export type Action =
     }
   | {
       type: "SET_IS_DELETING_STEPS";
+      payload: boolean;
+    }
+  | {
+      type: "SET_IS_CONTEXT_MENU_OPEN";
       payload: boolean;
     };
 
@@ -672,6 +677,10 @@ export const usePipelineUiState = () => {
           return { ...state, isDeletingSteps: action.payload };
         }
 
+        case "SET_IS_CONTEXT_MENU_OPEN": {
+          return { ...state, isContextMenuOpen: action.payload };
+        }
+
         default: {
           console.error(
             `[UiState] Unknown action: "${JSON.stringify(action)}"`
@@ -703,6 +712,7 @@ export const usePipelineUiState = () => {
     subViewIndex: 0,
     shouldAutoFocus: false,
     isDeletingSteps: false,
+    isContextMenuOpen: false,
   });
 
   React.useEffect(() => {

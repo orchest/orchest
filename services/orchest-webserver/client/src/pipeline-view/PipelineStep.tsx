@@ -16,7 +16,6 @@ import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
@@ -158,7 +157,9 @@ const PipelineStepComponent = React.forwardRef<
     isReadOnly,
     runUuid,
   } = usePipelineDataContext();
-  const { isContextMenuOpen } = usePipelineEditorContext();
+  const {
+    uiState: { isContextMenuOpen },
+  } = usePipelineUiStateContext();
   const {
     mouseTracker,
     keysDown,
