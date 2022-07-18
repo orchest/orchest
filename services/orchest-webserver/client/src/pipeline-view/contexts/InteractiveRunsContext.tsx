@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
+import { OrchestSession } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
@@ -18,6 +19,7 @@ export type InteractiveRunsContextType = ReturnType<
     runUuid?: string | undefined;
   }) => Promise<void>;
   runSteps: (uuids: string[], type: RunStepsType) => void;
+  session: OrchestSession | undefined;
 };
 
 export const InteractiveRunsContext = React.createContext<
@@ -124,6 +126,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
         executeRun,
         cancelRun,
         runSteps,
+        session,
       }}
     >
       {children}

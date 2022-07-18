@@ -18,7 +18,7 @@ import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
-import { usePipelineUiStatesContext } from "./contexts/PipelineUiStatesContext";
+import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
@@ -128,10 +128,6 @@ type PipelineStepProps = {
   onDoubleClick: (stepUUID: string) => void;
   interactiveConnections: Connection[];
   getPosition: (node: HTMLElement | undefined | null) => Position | null;
-  isContextMenuOpenState: [
-    boolean,
-    React.Dispatch<React.SetStateAction<boolean>>
-  ];
   children: React.ReactNode;
 };
 
@@ -162,20 +158,24 @@ const PipelineStepComponent = React.forwardRef<
     isReadOnly,
     runUuid,
   } = usePipelineDataContext();
+  const { isContextMenuOpen } = usePipelineEditorContext();
   const {
-    metadataPositions,
-    stepDomRefs,
+    mouseTracker,
+    keysDown,
+    draggedStepPositions,
+    stepRefs,
     zIndexMax,
-    dispatch,
     newConnection,
-    eventVars: { cursorControlledStep, selectedSteps, selectedConnection },
-    isContextMenuOpen,
-  } = usePipelineEditorContext();
-  const { mouseTracker, keysDown } = usePipelineRefs();
+  } = usePipelineRefs();
   const {
-    uiStates: { stepSelector },
-    uiStatesDispatch,
-  } = usePipelineUiStatesContext();
+    uiState: {
+      stepSelector,
+      cursorControlledStep,
+      selectedSteps,
+      selectedConnection,
+    },
+    uiStateDispatch,
+  } = usePipelineUiStateContext();
   const { selectedFiles, dragFile, resetMove } = useFileManagerContext();
 
   const {
@@ -208,7 +208,7 @@ const PipelineStepComponent = React.forwardRef<
 
   const resetDraggingVariables = React.useCallback(() => {
     if (hasValue(cursorControlledStep)) {
-      dispatch({
+      uiStateDispatch({
         type: "SET_CURSOR_CONTROLLED_STEP",
         payload: undefined,
       });
@@ -216,7 +216,7 @@ const PipelineStepComponent = React.forwardRef<
     isMouseDown.current = false;
     dragCount.current = 0;
     forceUpdate();
-  }, [dragCount, forceUpdate, dispatch, cursorControlledStep]);
+  }, [dragCount, forceUpdate, uiStateDispatch, cursorControlledStep]);
 
   const finishDragging = React.useCallback(() => {
     savePositions();
@@ -250,7 +250,7 @@ const PipelineStepComponent = React.forwardRef<
       }
 
       if (!pipelineCwd) return;
-      dispatch({
+      uiStateDispatch({
         type: "ASSIGN_FILE_TO_STEP",
         payload: {
           stepUuid: uuid,
@@ -261,11 +261,11 @@ const PipelineStepComponent = React.forwardRef<
     }
 
     if (isSelectorActive) {
-      uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
 
     if (newConnection.current) {
-      dispatch({ type: "MAKE_CONNECTION", payload: uuid });
+      uiStateDispatch({ type: "MAKE_CONNECTION", payload: uuid });
     }
 
     // this condition means user is just done dragging
@@ -310,7 +310,7 @@ const PipelineStepComponent = React.forwardRef<
   const onContextMenu = async (e: React.MouseEvent) => {
     const ctrlKeyPressed = e.ctrlKey || e.metaKey;
     if (!selected) {
-      dispatch({
+      uiStateDispatch({
         type: "SELECT_STEPS",
         payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
       });
@@ -339,18 +339,18 @@ const PipelineStepComponent = React.forwardRef<
       // if this step (and possibly other steps) are selected,
       // press ctrl/cmd and select this step => remove this step from the selection
       if (selected && ctrlKeyPressed) {
-        dispatch({ type: "DESELECT_STEPS", payload: [uuid] });
+        uiStateDispatch({ type: "DESELECT_STEPS", payload: [uuid] });
         return;
       }
       // only need to re-render if step is not selected
       if (!selected) {
-        dispatch({
+        uiStateDispatch({
           type: "SELECT_STEPS",
           payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
         });
       }
       if (selected) {
-        dispatch({ type: "SET_OPENED_STEP", payload: uuid });
+        uiStateDispatch({ type: "SET_OPENED_STEP", payload: uuid });
       }
       resetDraggingVariables();
     }
@@ -392,12 +392,12 @@ const PipelineStepComponent = React.forwardRef<
     }
 
     if (!cursorControlledStep) {
-      dispatch({
+      uiStateDispatch({
         type: "SET_CURSOR_CONTROLLED_STEP",
         payload: uuid,
       });
     }
-  }, [cursorControlledStep, dispatch, uuid]);
+  }, [cursorControlledStep, uiStateDispatch, uuid]);
 
   const onMouseMove = React.useCallback(() => {
     // user is panning the canvas
@@ -427,7 +427,7 @@ const PipelineStepComponent = React.forwardRef<
           current.position[0] + x,
           current.position[1] + y,
         ] as [number, number];
-        metadataPositions.current[uuid] = updatedPosition;
+        draggedStepPositions.current[uuid] = updatedPosition;
         return { ...current, position: updatedPosition };
       });
     }
@@ -440,7 +440,7 @@ const PipelineStepComponent = React.forwardRef<
     cursorControlledStep,
     disabledDragging,
     selectedSteps,
-    metadataPositions,
+    draggedStepPositions,
     detectDraggingBehavior,
   ]);
 
@@ -503,9 +503,9 @@ const PipelineStepComponent = React.forwardRef<
           if (!connection) return null;
 
           const { startNodeUUID, endNodeUUID } = connection;
-          const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
+          const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
           const endNode = endNodeUUID
-            ? stepDomRefs.current[`${endNodeUUID}-incoming`]
+            ? stepRefs.current[`${endNodeUUID}-incoming`]
             : undefined;
 
           // startNode is required
@@ -544,7 +544,6 @@ const PipelineStepComponent = React.forwardRef<
                 endNodeUUID={endNodeUUID}
                 getPosition={getPosition}
                 selected={selected}
-                stepDomRefs={stepDomRefs}
                 startNodeX={startNodePosition.x}
                 startNodeY={startNodePosition.y}
                 endNodeX={endNodePosition?.x}

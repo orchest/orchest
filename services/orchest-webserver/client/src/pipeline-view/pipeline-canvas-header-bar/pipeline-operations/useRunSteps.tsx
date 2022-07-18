@@ -4,7 +4,7 @@ import { useHasChanged } from "@/hooks/useHasChanged";
 import { requestCreateJob } from "@/jobs-view/common";
 import { useInteractiveRunsContext } from "@/pipeline-view/contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "@/pipeline-view/contexts/PipelineEditorContext";
+import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
 import { RunStepsType } from "@/pipeline-view/hooks/useInteractiveRuns";
 import { siteMap } from "@/routingConfig";
 import React from "react";
@@ -18,8 +18,8 @@ export const useRunSteps = () => {
     pipelineJson,
   } = usePipelineDataContext();
   const {
-    eventVars: { selectedSteps, steps },
-  } = usePipelineEditorContext();
+    uiState: { selectedSteps, steps },
+  } = usePipelineUiStateContext();
 
   const {
     state: { pipeline },

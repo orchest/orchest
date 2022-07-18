@@ -2,13 +2,13 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { filterServices } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 
 export const useServices = (jobRunRunning: boolean) => {
   const { jobUuid } = useCustomRoute();
-  const { pipelineJson } = usePipelineEditorContext();
-  const { session, runUuid } = usePipelineDataContext();
+  const { runUuid, pipelineJson } = usePipelineDataContext();
+  const { session } = useInteractiveRunsContext();
   const [anchor, setAnchor] = React.useState<Element>();
 
   const showServices = React.useCallback((e: React.MouseEvent) => {

@@ -7,8 +7,7 @@ import {
 import React from "react";
 import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { usePipelineUiStatesContext } from "./contexts/PipelineUiStatesContext";
+import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { useOpenFile } from "./hooks/useOpenFile";
 
 type PipelineStepContextMenuProps = { stepUuid: string };
@@ -22,12 +21,11 @@ export const PipelineStepContextMenu = ({
 }: PipelineStepContextMenuProps) => {
   const { handleContextMenu, ...props } = usePipelineStepContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
   const { executeRun } = useInteractiveRunsContext();
-  const {
-    dispatch,
-    eventVars: { steps, selectedSteps },
-  } = usePipelineEditorContext();
   const { isReadOnly } = usePipelineDataContext();
-  const { uiStatesDispatch } = usePipelineUiStatesContext();
+  const {
+    uiState: { steps, selectedSteps },
+    uiStateDispatch,
+  } = usePipelineUiStateContext();
 
   const selectionContainsNotebooks = React.useMemo(
     () =>
@@ -45,7 +43,7 @@ export const PipelineStepContextMenu = ({
       title: "Duplicate",
       disabled: isReadOnly || selectionContainsNotebooks,
       action: () => {
-        dispatch({ type: "DUPLICATE_STEPS", payload: [stepUuid] });
+        uiStateDispatch({ type: "DUPLICATE_STEPS", payload: [stepUuid] });
       },
     },
     {
@@ -53,14 +51,14 @@ export const PipelineStepContextMenu = ({
       title: "Delete",
       disabled: isReadOnly,
       action: () => {
-        dispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
+        uiStateDispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
       },
     },
     {
       type: "item",
       title: "Properties",
       action: () => {
-        uiStatesDispatch({ type: "OPEN_STEP_DETAILS" });
+        uiStateDispatch({ type: "OPEN_STEP_DETAILS" });
       },
     },
     {
@@ -68,7 +66,7 @@ export const PipelineStepContextMenu = ({
       title: "Open in JupyterLab",
       disabled: isReadOnly,
       action: ({ event }) => {
-        dispatch({ type: "SET_OPENED_STEP", payload: stepUuid });
+        uiStateDispatch({ type: "SET_OPENED_STEP", payload: stepUuid });
         openNotebook(event, stepUuid);
       },
     },

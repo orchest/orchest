@@ -17,9 +17,8 @@ import { getNodeCenter, SCALE_UNIT, updatePipelineJson } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
-import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
-import { usePipelineUiStatesContext } from "./contexts/PipelineUiStatesContext";
+import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { useScaleFactor } from "./contexts/ScaleFactorContext";
 import { DeleteStepsButton } from "./DeleteStepsButton";
 import { useOpenFile } from "./hooks/useOpenFile";
@@ -43,6 +42,9 @@ export const PipelineEditor = () => {
     projectUuid,
     pipelineUuid,
     jobUuid,
+    pipelineJson,
+    setPipelineJson,
+    hash,
   } = usePipelineDataContext();
 
   const returnToJob = React.useCallback(
@@ -51,19 +53,6 @@ export const PipelineEditor = () => {
     },
     [projectUuid, jobUuid, navigateTo]
   );
-
-  const {
-    eventVars,
-    dispatch,
-    stepDomRefs,
-    newConnection,
-    pipelineJson,
-    setPipelineJson,
-    hash,
-    zIndexMax,
-    instantiateConnection,
-    metadataPositions,
-  } = usePipelineEditorContext();
 
   const { centerPipelineOrigin, centerView } = usePipelineCanvasContext();
 
@@ -76,10 +65,26 @@ export const PipelineEditor = () => {
   ]);
 
   const { scaleFactor, setScaleFactor } = useScaleFactor();
-  const { pipelineCanvasRef, pipelineViewportRef } = usePipelineRefs();
   const {
-    uiStates: { stepSelector },
-  } = usePipelineUiStatesContext();
+    pipelineCanvasRef,
+    pipelineViewportRef,
+    stepRefs,
+    newConnection,
+    draggedStepPositions,
+  } = usePipelineRefs();
+  const {
+    uiState: {
+      stepSelector,
+      steps,
+      selectedSteps,
+      connections,
+      cursorControlledStep,
+      selectedConnection,
+      openedStep,
+    },
+    uiStateDispatch,
+    instantiateConnection,
+  } = usePipelineUiStateContext();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
   const canvasOffset = getOffset(pipelineCanvasRef.current);
@@ -95,9 +100,9 @@ export const PipelineEditor = () => {
   const onMouseUpPipelineStep = React.useCallback(
     (endNodeUUID: string) => {
       // finish creating connection
-      dispatch({ type: "MAKE_CONNECTION", payload: endNodeUUID });
+      uiStateDispatch({ type: "MAKE_CONNECTION", payload: endNodeUUID });
     },
-    [dispatch]
+    [uiStateDispatch]
   );
 
   const openLogs = (e: React.MouseEvent) => {
@@ -136,7 +141,7 @@ export const PipelineEditor = () => {
       if (!current) return current;
       const updatedSteps = layoutPipeline(
         // Use the pipeline definition from the editor
-        eventVars.steps,
+        steps,
         STEP_HEIGHT,
         (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
           (STEP_WIDTH / STEP_HEIGHT),
@@ -149,8 +154,8 @@ export const PipelineEditor = () => {
 
       const updated = updatePipelineJson(current, updatedSteps);
 
-      // Save `eventVars.steps`.
-      dispatch({ type: "SAVE_STEPS", payload: updated.steps });
+      // Save `steps`.
+      uiStateDispatch({ type: "SAVE_STEPS", payload: updated.steps });
       return updated;
     }, true); // flush page, re-instantiate all UI elements with new local state for dragging
     // the rendering of connection lines depend on the positions of the steps
@@ -162,10 +167,10 @@ export const PipelineEditor = () => {
   };
 
   const savePositions = React.useCallback(() => {
-    const mutations = metadataPositions.current;
+    const mutations = draggedStepPositions.current;
 
     Object.entries(mutations).forEach(([key, position]) => {
-      dispatch((state) => ({
+      uiStateDispatch((state) => ({
         type: "SAVE_STEP_DETAILS",
         payload: {
           stepChanges: {
@@ -176,20 +181,20 @@ export const PipelineEditor = () => {
       }));
     });
 
-    metadataPositions.current = {};
+    draggedStepPositions.current = {};
     recalibrate();
-  }, [metadataPositions, recalibrate, dispatch]);
+  }, [draggedStepPositions, recalibrate, uiStateDispatch]);
 
-  const hasSelectedSteps = eventVars.selectedSteps.length > 0;
+  const hasSelectedSteps = selectedSteps.length > 0;
 
   const onSaveDetails = React.useCallback(
     (stepChanges: Partial<Step>, uuid: string, replace = false) => {
-      dispatch({
+      uiStateDispatch({
         type: "SAVE_STEP_DETAILS",
         payload: { stepChanges, uuid, replace },
       });
     },
-    [dispatch]
+    [uiStateDispatch]
   );
 
   // Check if there is an incoming step (that is not part of the
@@ -197,11 +202,11 @@ export const PipelineEditor = () => {
   // This is checked to conditionally render the
   // 'Run incoming steps' button.
   let selectedStepsHasIncoming = false;
-  for (let x = 0; x < eventVars.selectedSteps.length; x++) {
-    const selectedStep = eventVars.steps[eventVars.selectedSteps[x]];
+  for (let x = 0; x < selectedSteps.length; x++) {
+    const selectedStep = steps[selectedSteps[x]];
     for (let i = 0; i < selectedStep.incoming_connections.length; i++) {
       let incomingStepUUID = selectedStep.incoming_connections[i];
-      if (!eventVars.selectedSteps.includes(incomingStepUUID)) {
+      if (!selectedSteps.includes(incomingStepUUID)) {
         selectedStepsHasIncoming = true;
         break;
       }
@@ -213,14 +218,14 @@ export const PipelineEditor = () => {
 
   const flushPage = useHasChanged(hash.current);
 
-  const [connections, interactiveConnections] = React.useMemo(() => {
+  const [fixedConnections, interactiveConnections] = React.useMemo(() => {
     const nonInteractive: Connection[] = [];
     const interactive: Connection[] = [];
-    eventVars.connections.forEach((connection) => {
+    connections.forEach((connection) => {
       const { startNodeUUID, endNodeUUID } = connection;
       const isInteractive =
-        hasValue(eventVars.cursorControlledStep) &&
-        [startNodeUUID, endNodeUUID].includes(eventVars.cursorControlledStep);
+        hasValue(cursorControlledStep) &&
+        [startNodeUUID, endNodeUUID].includes(cursorControlledStep);
 
       if (isInteractive) {
         interactive.push(connection);
@@ -229,7 +234,7 @@ export const PipelineEditor = () => {
       }
     });
     return [nonInteractive, interactive];
-  }, [eventVars.connections, eventVars.cursorControlledStep]);
+  }, [connections, cursorControlledStep]);
 
   return (
     <div className="pipeline-view">
@@ -244,11 +249,11 @@ export const PipelineEditor = () => {
           ref={pipelineViewportRef}
           autoLayoutPipeline={autoLayoutPipeline}
         >
-          {connections.map((connection) => {
+          {fixedConnections.map((connection) => {
             const { startNodeUUID, endNodeUUID } = connection;
-            const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
+            const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
             const endNode = endNodeUUID
-              ? stepDomRefs.current[`${endNodeUUID}-incoming`]
+              ? stepRefs.current[`${endNodeUUID}-incoming`]
               : undefined;
 
             // startNode is required
@@ -261,20 +266,16 @@ export const PipelineEditor = () => {
             // the connection should update its start/end node, to move along with the step
             const shouldUpdateStart =
               flushPage ||
-              eventVars.cursorControlledStep === startNodeUUID ||
-              (eventVars.selectedSteps.includes(startNodeUUID) &&
-                eventVars.selectedSteps.includes(
-                  eventVars.cursorControlledStep || ""
-                ));
+              cursorControlledStep === startNodeUUID ||
+              (selectedSteps.includes(startNodeUUID) &&
+                selectedSteps.includes(cursorControlledStep || ""));
 
             const shouldUpdateEnd =
               flushPage ||
-              eventVars.cursorControlledStep === endNodeUUID ||
+              cursorControlledStep === endNodeUUID ||
               isNew ||
-              (eventVars.selectedSteps.includes(endNodeUUID || "") &&
-                eventVars.selectedSteps.includes(
-                  eventVars.cursorControlledStep || ""
-                ));
+              (selectedSteps.includes(endNodeUUID || "") &&
+                selectedSteps.includes(cursorControlledStep || ""));
 
             const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as [
               boolean,
@@ -294,8 +295,8 @@ export const PipelineEditor = () => {
 
             const isSelected =
               !hasSelectedSteps &&
-              eventVars.selectedConnection?.startNodeUUID === startNodeUUID &&
-              eventVars.selectedConnection?.endNodeUUID === endNodeUUID;
+              selectedConnection?.startNodeUUID === startNodeUUID &&
+              selectedConnection?.endNodeUUID === endNodeUUID;
 
             const key = `${startNodeUUID}-${endNodeUUID}-${hash.current}`;
 
@@ -308,36 +309,31 @@ export const PipelineEditor = () => {
                   selected={isSelected}
                   startNodeUUID={startNodeUUID}
                   endNodeUUID={endNodeUUID}
-                  zIndexMax={zIndexMax}
                   getPosition={getPosition}
-                  eventVarsDispatch={dispatch}
-                  stepDomRefs={stepDomRefs}
                   startNodeX={startNodePosition.x}
                   startNodeY={startNodePosition.y}
                   endNodeX={endNodePosition?.x}
                   endNodeY={endNodePosition?.y}
-                  newConnection={newConnection}
                   shouldUpdate={shouldUpdate}
-                  cursorControlledStep={eventVars.cursorControlledStep}
                 />
               )
             );
           })}
-          {Object.entries(eventVars.steps).map((entry) => {
+          {Object.entries(steps).map((entry) => {
             const [uuid, step] = entry;
-            const selected = eventVars.selectedSteps.includes(uuid);
+            const selected = selectedSteps.includes(uuid);
 
             const isIncomingActive =
-              hasValue(eventVars.selectedConnection) &&
-              eventVars.selectedConnection.endNodeUUID === step.uuid;
+              hasValue(selectedConnection) &&
+              selectedConnection.endNodeUUID === step.uuid;
 
             const isOutgoingActive =
-              hasValue(eventVars.selectedConnection) &&
-              eventVars.selectedConnection.startNodeUUID === step.uuid;
+              hasValue(selectedConnection) &&
+              selectedConnection.startNodeUUID === step.uuid;
 
             const movedToTop =
-              eventVars.selectedConnection?.startNodeUUID === step.uuid ||
-              eventVars.selectedConnection?.endNodeUUID === step.uuid;
+              selectedConnection?.startNodeUUID === step.uuid ||
+              selectedConnection?.endNodeUUID === step.uuid;
 
             // only add steps to the component that have been properly
             // initialized
@@ -348,7 +344,7 @@ export const PipelineEditor = () => {
                 selected={selected}
                 savePositions={savePositions}
                 movedToTop={movedToTop}
-                ref={(el) => (stepDomRefs.current[step.uuid] = el)}
+                ref={(el) => (stepRefs.current[step.uuid] = el)}
                 isStartNodeOfNewConnection={
                   newConnection.current?.startNodeUUID === step.uuid
                 }
@@ -360,9 +356,7 @@ export const PipelineEditor = () => {
                   incoming
                   newConnection={newConnection}
                   isReadOnly={isReadOnly}
-                  ref={(el) =>
-                    (stepDomRefs.current[`${step.uuid}-incoming`] = el)
-                  }
+                  ref={(el) => (stepRefs.current[`${step.uuid}-incoming`] = el)}
                   active={isIncomingActive}
                   endCreateConnection={() => {
                     if (newConnection.current) {
@@ -381,9 +375,7 @@ export const PipelineEditor = () => {
                   outgoing
                   isReadOnly={isReadOnly}
                   newConnection={newConnection}
-                  ref={(el) =>
-                    (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
-                  }
+                  ref={(el) => (stepRefs.current[`${step.uuid}-outgoing`] = el)}
                   active={isOutgoingActive}
                   startCreateConnection={() => {
                     if (!isReadOnly && !newConnection.current) {
@@ -444,7 +436,7 @@ export const PipelineEditor = () => {
           </div>
         )}
       </HotKeysBoundary>
-      <StepDetails key={eventVars.openedStep} onSave={onSaveDetails} />
+      <StepDetails key={openedStep} onSave={onSaveDetails} />
       {hasSelectedSteps && !isReadOnly && (
         <div className={"pipeline-actions bottom-right"}>
           <DeleteStepsButton />

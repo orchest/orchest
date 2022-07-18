@@ -1,12 +1,13 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { StateDispatcher } from "@/hooks/useAsync";
+import { SetStateAction } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
 import { Environment, PipelineJson } from "@/types";
-import { hasValue } from "@orchest/lib-utils";
+import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
@@ -22,7 +23,11 @@ export type PipelineDataContextType = {
   setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   isReadOnly: boolean;
   pipelineJson?: PipelineJson;
-  setPipelineJson: StateDispatcher<PipelineJson>;
+  hash: React.MutableRefObject<string>;
+  setPipelineJson: (
+    value: SetStateAction<PipelineJson>,
+    flushPage?: boolean
+  ) => void;
   isFetchingPipelineJson: boolean;
 };
 
@@ -35,6 +40,7 @@ export const usePipelineDataContext = () =>
 
 export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const { setAlert } = useAppContext();
+  useEnsureValidPipeline();
 
   const {
     pipelineUuid: pipelineUuidFromRoute,
@@ -68,7 +74,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
 
   const {
     pipelineJson,
-    setPipelineJson,
+    setPipelineJson: originalSetPipelineJson,
     isFetchingPipelineJson,
     error,
   } = useFetchPipelineJson({
@@ -79,6 +85,17 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     jobUuid,
     runUuid,
   });
+
+  const hash = React.useRef<string>(uuidv4());
+  const setPipelineJson = React.useCallback(
+    (data: SetStateAction<PipelineJson>, flushPage?: boolean) => {
+      // in case you want to re-initialize all components according to the new PipelineJson
+      // to be part of the re-initialization, you need to assign hash.current as part of the key of your component
+      if (flushPage) hash.current = uuidv4();
+      originalSetPipelineJson(data);
+    },
+    [originalSetPipelineJson]
+  );
 
   React.useEffect(() => {
     // This case is hit when a user tries to load a pipeline that belongs
@@ -122,6 +139,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         setRunUuid,
         isReadOnly,
         pipelineJson,
+        hash,
         setPipelineJson,
         isFetchingPipelineJson,
       }}

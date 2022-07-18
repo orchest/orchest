@@ -12,7 +12,7 @@ import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
-import { usePipelineUiStatesContext } from "../contexts/PipelineUiStatesContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useScaleFactor } from "../contexts/ScaleFactorContext";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
@@ -27,11 +27,6 @@ import {
 import { useMouseEventsOnViewport } from "./useMouseEventsOnViewport";
 
 const CANVAS_VIEW_MULTIPLE = 3;
-
-export type CanvasFunctions = {
-  centerPipelineOrigin: () => void;
-  centerView: () => void;
-};
 
 const Overlay = () => (
   <Box
@@ -64,22 +59,19 @@ const PipelineViewportComponent = React.forwardRef<
 ) {
   const { dragFile } = useFileManagerContext();
   const { disabled, pipelineCwd, environments } = usePipelineDataContext();
-  const {
-    eventVars,
-    dispatch,
-    newConnection,
-    isContextMenuOpen,
-  } = usePipelineEditorContext();
+  const { isContextMenuOpen } = usePipelineEditorContext();
+
   const {
     scaleFactor,
     getOnCanvasPosition,
     trackMouseMovement,
   } = useScaleFactor();
-  const { pipelineCanvasRef } = usePipelineRefs();
+  const { pipelineCanvasRef, newConnection } = usePipelineRefs();
   const {
-    uiStates: { stepSelector },
-    uiStatesDispatch,
-  } = usePipelineUiStatesContext();
+    uiState: { stepSelector, selectedConnection, openedStep },
+    uiStateDispatch,
+  } = usePipelineUiStateContext();
+
   const {
     pipelineCanvasState: {
       panningState,
@@ -118,14 +110,14 @@ const PipelineViewportComponent = React.forwardRef<
 
   const onMouseDown = (e: React.MouseEvent) => {
     if (disabled || isContextMenuOpen) return;
-    if (eventVars.selectedConnection) {
-      dispatch({ type: "DESELECT_CONNECTION" });
+    if (selectedConnection) {
+      uiStateDispatch({ type: "DESELECT_CONNECTION" });
     }
     // not dragging the canvas, so user must be creating a selection rectangle
     // we need to save the offset of cursor against pipeline canvas
     if (e.button === 0 && panningState === "idle") {
       trackMouseMovement(e.clientX, e.clientY);
-      uiStatesDispatch({
+      uiStateDispatch({
         type: "CREATE_SELECTOR",
         payload: getOffset(pipelineCanvasRef.current),
       });
@@ -136,17 +128,20 @@ const PipelineViewportComponent = React.forwardRef<
     if (disabled || isContextMenuOpen) return;
     if (e.button === 0) {
       if (stepSelector.active) {
-        uiStatesDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+        uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
       } else {
-        dispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
+        uiStateDispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
       }
 
-      if (eventVars.openedStep) {
-        dispatch({ type: "SET_OPENED_STEP", payload: undefined });
+      if (openedStep) {
+        uiStateDispatch({ type: "SET_OPENED_STEP", payload: undefined });
       }
 
       if (newConnection.current) {
-        dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
+        uiStateDispatch({
+          type: "REMOVE_CONNECTION",
+          payload: newConnection.current,
+        });
       }
 
       if (dragFile) onDropFiles();
@@ -169,12 +164,12 @@ const PipelineViewportComponent = React.forwardRef<
           filePath,
           pipelineCwd
         );
-        dispatch(
+        uiStateDispatch(
           createStepAction(environment, dropPosition, pipelineRelativeFilePath)
         );
       });
     },
-    [dispatch, pipelineCwd, environments, getApplicableStepFiles]
+    [uiStateDispatch, pipelineCwd, environments, getApplicableStepFiles]
   );
 
   const onDropFiles = React.useCallback(() => {

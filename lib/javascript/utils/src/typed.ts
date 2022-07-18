@@ -46,7 +46,13 @@ export function checkHeartbeat(url: string, retries = 250) {
 }
 
 // used in orchest-webserver only
-export function intersectRect(r1, r2) {
+type Rectangle = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+export function intersectRect(r1: Rectangle, r2: Rectangle) {
   return !(
     r2.x > r1.x + r1.width ||
     r2.x + r2.width < r1.x ||
