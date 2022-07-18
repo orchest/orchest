@@ -4,10 +4,12 @@ import { firstAncestor } from "@/utils/element";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
+import { extensionFromFilename } from "@orchest/lib-utils";
 import produce from "immer";
 import React from "react";
 import { FileManagementRoot } from "../common";
 import {
+  basename,
   combinePath,
   dirname,
   isDirectory,
@@ -149,12 +151,21 @@ const RenameField = ({
 
   React.useEffect(() => inputRef.current?.focus(), [fileInRename]);
 
+  React.useEffect(() => {
+    const name = basename(combinedPath);
+    const ext = extensionFromFilename(name);
+    const isDotFile = name.substring(1) === ext;
+    const end = !isDotFile ? name.length - ext.length - 1 : name.length;
+
+    inputRef.current?.setSelectionRange(0, end, "forward");
+  }, [combinedPath]);
+
   useOnClickOutside(inputRef, (event) => {
     // NOTE:
     //  We never want clicks in modals to trigger a save,
     //  since modals must be clicked to be dismissed.
-    //  We leverage that modals don't share the same mount point,
-    //  as the rest of the app.
+    //  We leverage that modals don't share the same
+    //  mount point as the rest of the app.
     if (sharesMount(inputRef.current, event.target as Element)) {
       save();
     }
