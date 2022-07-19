@@ -1,5 +1,6 @@
 import { useInterval } from "@/hooks/use-interval";
 import { LogType } from "@/types";
+import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
@@ -16,6 +17,7 @@ export interface ILogViewerProps {
   runUuid: string | undefined | null;
   type: LogType;
   logId: string;
+  terminalSx?: SxProps<Theme>;
 }
 
 export const LogViewer = ({
@@ -25,6 +27,7 @@ export const LogViewer = ({
   projectUuid,
   runUuid,
   type,
+  terminalSx,
 }: ILogViewerProps) => {
   const sessionUuid = React.useMemo<string>(() => uuidv4(), []);
   const [heartbeatInterval, setHeartbeatInterval] = React.useState<
@@ -166,6 +169,7 @@ export const LogViewer = ({
         "> div": {
           height: "100%",
         },
+        ...terminalSx,
       }}
     >
       <XTerm addons={[fitAddon]} ref={xtermRef} />

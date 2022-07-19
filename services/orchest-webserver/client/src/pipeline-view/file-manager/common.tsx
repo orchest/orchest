@@ -151,9 +151,12 @@ const camelToSnakeCase = (str: string) =>
     .replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
     .replace(/^_+(.*?)_+$/g, (_, group1) => group1); // Remove leading and trailing underscores.
 
-export const queryArgs = (
-  obj: Record<string, string | number | boolean | undefined | null>
-) => {
+export type QueryArgsProps = Record<
+  string,
+  string | number | boolean | undefined | null
+>;
+
+export const queryArgs = (obj: QueryArgsProps) => {
   return Object.entries(obj).reduce((str, [key, value]) => {
     if (!hasValue(value)) return str;
     const leadingCharts = str === "" ? str : `${str}&`;

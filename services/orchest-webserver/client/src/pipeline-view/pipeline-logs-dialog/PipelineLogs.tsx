@@ -1,25 +1,9 @@
-import { IconButton } from "@/components/common/IconButton";
-import { Layout } from "@/components/Layout";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchJob } from "@/hooks/useFetchJob";
-import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { LogViewer } from "@/pipeline-view/LogViewer";
-import { siteMap } from "@/routingConfig";
-import type {
-  LogType,
-  PipelineStepState,
-  Step,
-  StepsDict,
-  TViewPropsWithRequiredQueryArgs,
-} from "@/types";
-import {
-  addOutgoingConnections,
-  filterServices,
-} from "@/utils/webserver-utils";
-import CloseIcon from "@mui/icons-material/Close";
+import type { LogType } from "@/types";
+import { filterServices } from "@/utils/webserver-utils";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -33,104 +17,26 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { topologicalSort } from "./common";
+import { LogViewerPlaceHolder } from "./LogViewerPlaceHolder";
 
-export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
-  "pipeline_uuid" | "project_uuid"
->;
-
-const LogViewerPlaceHolder = () => (
-  <Stack
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      backgroundColor: (theme) => theme.palette.common.black,
-      width: "100%",
-      height: "100%",
-      color: (theme) => theme.palette.grey[800],
-    }}
-  >
-    <Typography variant="h3" component="span">
-      No logs available
-    </Typography>
-  </Stack>
-);
-
-const topologicalSort = (pipelineSteps: Record<string, Step>) => {
-  let sortedStepKeys: string[] = [];
-
-  const mutatedPipelineSteps = addOutgoingConnections(
-    pipelineSteps as StepsDict
-  );
-
-  let conditionalAdd = (step: PipelineStepState) => {
-    // add if all parents are already in the sortedStepKeys
-    let parentsAdded = true;
-    for (let connection of step.incoming_connections) {
-      if (!sortedStepKeys.includes(connection)) {
-        parentsAdded = false;
-        break;
-      }
-    }
-
-    if (!sortedStepKeys.includes(step.uuid) && parentsAdded) {
-      sortedStepKeys.push(step.uuid);
-    }
-  };
-
-  // Add self and children (breadth first)
-  let addSelfAndChildren = (step: PipelineStepState) => {
-    conditionalAdd(step);
-
-    step.outgoing_connections = step.outgoing_connections || ([] as string[]);
-
-    for (let childStepUUID of step.outgoing_connections) {
-      let childStep = mutatedPipelineSteps[childStepUUID];
-
-      conditionalAdd(childStep);
-    }
-
-    // Recurse down
-    for (let childStepUUID of step.outgoing_connections) {
-      addSelfAndChildren(mutatedPipelineSteps[childStepUUID]);
-    }
-  };
-
-  // Find roots
-  for (let stepUUID in mutatedPipelineSteps) {
-    let step = mutatedPipelineSteps[stepUUID];
-    if (step.incoming_connections.length == 0) {
-      addSelfAndChildren(step);
-    }
-  }
-
-  return sortedStepKeys.map((stepUUID) => mutatedPipelineSteps[stepUUID]);
-};
-
-export const LogsView: React.FC = () => {
-  // global states
-
-  useSendAnalyticEvent("view:loaded", { name: siteMap.logs.path });
-
-  // data from route
+export const PipelineLogs = () => {
   const {
     projectUuid,
     pipelineUuid,
     jobUuid,
     runUuid,
-    navigateTo,
-  } = useCustomRoute();
+    pipelineJson,
+    isJobRun,
+  } = usePipelineDataContext();
 
-  const isQueryArgsComplete = hasValue(pipelineUuid) && hasValue(projectUuid);
-
-  const { job } = useFetchJob({ jobUuid });
-  const { pipelineJson } = useFetchPipelineJson({
-    pipelineUuid,
-    projectUuid,
-    jobUuid,
-    runUuid,
+  useSendAnalyticEvent("view:loaded", {
+    name: isJobRun ? "/job-run/logs" : "/logs",
   });
 
-  useEnsureValidPipeline();
+  const { job } = useFetchJob({ jobUuid });
+  const isQueryArgsComplete = hasValue(pipelineUuid) && hasValue(projectUuid);
 
   const sortedSteps = React.useMemo(() => {
     if (!pipelineJson) return undefined;
@@ -139,30 +45,12 @@ export const LogsView: React.FC = () => {
 
   const { getSession } = useSessionsContext();
 
-  const isJobRun = hasValue(jobUuid && runUuid);
-
   const [selectedLog, setSelectedLog] = React.useState<{
     type: LogType;
     logId: string;
   } | null>(null);
 
-  // Conditional fetch session
-  let session =
-    !jobUuid && hasValue(projectUuid) && hasValue(pipelineUuid)
-      ? getSession(pipelineUuid)
-      : undefined;
-
-  const close = () => {
-    if (isQueryArgsComplete)
-      navigateTo(isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path, {
-        query: {
-          projectUuid,
-          pipelineUuid,
-          jobUuid,
-          runUuid,
-        },
-      });
-  };
+  const session = getSession(pipelineUuid);
 
   const onClickLog = (uuid: string, type: LogType) => {
     setSelectedLog({ type, logId: uuid });
@@ -208,11 +96,17 @@ export const LogsView: React.FC = () => {
   }, [sortedSteps, selectedLog, session, services]);
 
   return (
-    <Layout disablePadding>
+    <>
       {!hasLoaded ? (
         <LinearProgress />
       ) : (
-        <Stack direction="row" sx={{ position: "relative", height: "100%" }}>
+        <Stack
+          direction="row"
+          sx={{
+            position: "relative",
+            height: (theme) => `calc(100vh - ${theme.spacing(21)})`,
+          }}
+        >
           <Box
             sx={{
               width: "20%",
@@ -221,7 +115,10 @@ export const LogsView: React.FC = () => {
           >
             <List
               dense
-              sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
+              sx={{
+                width: "100%",
+                maxWidth: 360,
+              }}
               subheader={
                 <ListSubheader component="div">Step logs</ListSubheader>
               }
@@ -259,7 +156,11 @@ export const LogsView: React.FC = () => {
             </List>
             <List
               dense
-              sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
+              sx={{
+                width: "100%",
+                maxWidth: 360,
+                bgcolor: "background.paper",
+              }}
               subheader={
                 <ListSubheader component="div">Service logs</ListSubheader>
               }
@@ -306,7 +207,13 @@ export const LogsView: React.FC = () => {
               })}
             </List>
           </Box>
-          <Box sx={{ flex: 1 }}>
+          <Box
+            sx={{
+              flex: 1,
+              backgroundColor: (theme) => theme.palette.common.black,
+              borderBottomRightRadius: (theme) => theme.spacing(1),
+            }}
+          >
             {isQueryArgsComplete && selectedLog ? (
               <LogViewer
                 key={selectedLog.logId}
@@ -315,36 +222,16 @@ export const LogsView: React.FC = () => {
                 jobUuid={jobUuid}
                 runUuid={runUuid}
                 {...selectedLog}
+                terminalSx={{
+                  height: (theme) => `calc(100vh - ${theme.spacing(22)})`,
+                }}
               />
             ) : (
               <LogViewerPlaceHolder />
             )}
           </Box>
-          <Box
-            sx={{
-              position: "absolute",
-              top: (theme) => theme.spacing(2),
-              right: (theme) => theme.spacing(2),
-              zIndex: 20,
-            }}
-          >
-            <IconButton
-              size="large"
-              sx={{
-                color: (theme) => theme.palette.common.white,
-                backgroundColor: (theme) => theme.palette.grey[900],
-                "&:hover": {
-                  backgroundColor: (theme) => theme.palette.grey[800],
-                },
-              }}
-              title="Close"
-              onClick={close}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
         </Stack>
       )}
-    </Layout>
+    </>
   );
 };
