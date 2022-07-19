@@ -6,7 +6,8 @@ import (
 )
 
 type HelmArgBuilder struct {
-	args []string
+	command []string
+	args    []string
 }
 
 func NewHelmArgBuilder() *HelmArgBuilder {
@@ -18,17 +19,27 @@ func NewHelmArgBuilder() *HelmArgBuilder {
 }
 
 func (builder *HelmArgBuilder) WithUpgradeInstall() *HelmArgBuilder {
-	builder.args = append(builder.args, "upgrade", "--install")
+	builder.command = []string{"upgrade", "--install"}
 	return builder
 }
 
 func (builder *HelmArgBuilder) WithUnInstall() *HelmArgBuilder {
-	builder.args = append(builder.args, "uninstall")
+	builder.command = []string{"uninstall", "--install"}
+	return builder
+}
+
+func (builder *HelmArgBuilder) WithTemplate() *HelmArgBuilder {
+	builder.command = []string{"template", "--debug"}
+	return builder
+}
+
+func (builder *HelmArgBuilder) WithGetManifest() *HelmArgBuilder {
+	builder.command = []string{"get", "manifest"}
 	return builder
 }
 
 func (builder *HelmArgBuilder) WithStatus() *HelmArgBuilder {
-	builder.args = append(builder.args, "status")
+	builder.command = []string{"status"}
 	return builder
 }
 
@@ -83,5 +94,5 @@ func (builder *HelmArgBuilder) WithRepository(repo string) *HelmArgBuilder {
 }
 
 func (builder *HelmArgBuilder) Build() []string {
-	return builder.args
+	return append(builder.command, builder.args...)
 }
