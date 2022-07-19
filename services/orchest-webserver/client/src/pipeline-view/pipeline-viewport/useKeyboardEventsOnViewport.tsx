@@ -1,14 +1,13 @@
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import { activeElementIsInput } from "@orchest/lib-utils";
 import React from "react";
+import { originTransformScaling, scaleCorrected } from "../common";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import {
   DEFAULT_SCALE_FACTOR,
-  originTransformScaling,
-  scaleCorrected,
   SCALE_UNIT,
-} from "../common";
-import { usePipelineRefs } from "../contexts/PipelineRefsContext";
-import { useScaleFactor } from "../contexts/ScaleFactorContext";
+  useScaleFactor,
+} from "../contexts/ScaleFactorContext";
 import {
   INITIAL_PIPELINE_POSITION,
   usePipelineCanvasState,
