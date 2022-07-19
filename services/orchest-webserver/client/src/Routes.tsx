@@ -6,7 +6,6 @@ import EnvironmentsView from "./environments-view/EnvironmentsView";
 import JobView from "./job-view/JobView";
 import JobsView from "./jobs-view/JobsView";
 import { NotificationSettingsView } from "./notification-settings-view/NotificationSettingsView";
-import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import { ProjectsView } from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
@@ -28,14 +27,12 @@ const pathComponentMapping = {
   "/project-settings": ProjectSettingsView,
   "/pipeline": PipelineView,
   "/jupyter-lab": JupyterLabView,
-  "/pipeline-settings": PipelineSettingsView,
   "/file-preview": FilePreviewView,
   "/environments": EnvironmentsView,
   "/environment": EnvironmentEditView,
   "/jobs": JobsView,
   "/job": JobView,
   "/job-run": PipelineView,
-  "/job-run/pipeline-settings": PipelineSettingsView,
   "/job-run/file-preview": FilePreviewView,
   "/edit-job": EditJobView,
   "/settings": SettingsView,

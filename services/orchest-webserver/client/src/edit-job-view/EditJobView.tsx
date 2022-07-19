@@ -834,10 +834,11 @@ const EditJobView: React.FC = () => {
                     <Link
                       sx={{ cursor: "pointer" }}
                       onClick={() => {
-                        navigateTo(siteMap.pipelineSettings.path, {
+                        navigateTo(siteMap.pipeline.path, {
                           query: {
                             projectUuid,
                             pipelineUuid: job.pipeline_uuid,
+                            tab: "configuration",
                           },
                         });
                       }}

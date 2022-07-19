@@ -39,7 +39,7 @@ export const TabPanel: React.FC<{
 // Add the bottom border
 export const Tabs: React.FC<{
   label: string;
-  value: number;
+  value: number | string;
   onChange: (e: React.SyntheticEvent<Element, Event>, tabIndex: number) => void;
   ["data-test-id"]?: string;
   style?: React.CSSProperties;

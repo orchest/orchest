@@ -84,10 +84,11 @@ const generatePipelineCommands = (
       title: `Settings: ${pipelineDisplay}`,
       action: "openPage",
       data: {
-        path: siteMap.pipelineSettings.path,
+        path: siteMap.pipeline.path,
         query: {
           pipelineUuid: uuid,
           projectUuid: project_uuid,
+          tab: "configuration",
         },
       },
     },
