@@ -6,7 +6,7 @@ import {
   ReducerActionWithCallback,
 } from "@/types";
 import { ButtonProps } from "@mui/material/Button";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 function parseLineBreak(lines: string) {
@@ -156,6 +156,8 @@ type AppContext = {
   setAsSaved: (value?: boolean) => void;
   config: OrchestConfig | undefined;
   user_config: OrchestUserConfig | undefined;
+  hideIntercom: () => void;
+  showIntercom: () => void;
 };
 
 const Context = React.createContext<AppContext | null>(null);
@@ -391,6 +393,23 @@ export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
     [dispatch]
   );
 
+  const setDisplayOfIntercom = React.useCallback((value: "block" | "none") => {
+    const intercomElement = document.querySelector(
+      ".intercom-lightweight-app"
+    ) as HTMLElement;
+
+    if (hasValue(intercomElement?.style?.display))
+      intercomElement.style.display = value;
+  }, []);
+
+  const hideIntercom = React.useCallback(() => {
+    setDisplayOfIntercom("none");
+  }, [setDisplayOfIntercom]);
+
+  const showIntercom = React.useCallback(() => {
+    setDisplayOfIntercom("block");
+  }, [setDisplayOfIntercom]);
+
   return (
     <Context.Provider
       value={{
@@ -402,6 +421,8 @@ export const AppContextProvider: React.FC<{ shouldStart?: boolean }> = ({
         setConfirm,
         deletePromptMessage,
         setAsSaved,
+        hideIntercom,
+        showIntercom,
       }}
     >
       {children}
