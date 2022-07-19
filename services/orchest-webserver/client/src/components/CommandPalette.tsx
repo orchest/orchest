@@ -95,10 +95,11 @@ const generatePipelineCommands = (
       title: `Logs: ${pipelineDisplay}`,
       action: "openPage",
       data: {
-        path: siteMap.logs.path,
+        path: siteMap.pipeline.path,
         query: {
           pipelineUuid: uuid,
           projectUuid: project_uuid,
+          tab: "logs",
         },
       },
     },

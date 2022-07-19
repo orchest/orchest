@@ -251,7 +251,6 @@ const excludedPaths = [
   siteMap.projectSettings.path,
   siteMap.jupyterLab.path,
   siteMap.filePreview.path,
-  siteMap.logs.path,
   siteMap.job.path,
   siteMap.editJob.path,
 ];

@@ -29,6 +29,7 @@ export type PipelineDataContextType = {
     flushPage?: boolean
   ) => void;
   isFetchingPipelineJson: boolean;
+  isJobRun: boolean;
 };
 
 export const PipelineDataContext = React.createContext<PipelineDataContextType>(
@@ -126,6 +127,8 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     !isReadOnly ? projectUuid : undefined
   );
 
+  const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
+
   return (
     <PipelineDataContext.Provider
       value={{
@@ -142,6 +145,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         hash,
         setPipelineJson,
         isFetchingPipelineJson,
+        isJobRun,
       }}
     >
       {children}

@@ -1,8 +1,6 @@
 import { IconButton } from "@/components/common/IconButton";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/routingConfig";
 import { fetcher } from "@/utils/fetcher";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cspell:disable-line
@@ -12,6 +10,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
 const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
@@ -22,8 +21,7 @@ const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
 
 export const PipelineMoreOptionsMenu = () => {
   const { setConfirm } = useAppContext();
-  const { navigateTo, pipelineUuid, jobUuid } = useCustomRoute();
-  const { runUuid, isReadOnly } = usePipelineDataContext();
+  const { isReadOnly } = usePipelineDataContext();
   const {
     state: { projectUuid, pipeline },
     dispatch,
@@ -63,23 +61,9 @@ export const PipelineMoreOptionsMenu = () => {
       }
     );
   };
-  const isJobRun = jobUuid && runUuid;
-  const openSettings = (e: React.MouseEvent) => {
-    navigateTo(
-      isJobRun
-        ? siteMap.jobRunPipelineSettings.path
-        : siteMap.pipelineSettings.path,
-      {
-        query: {
-          projectUuid,
-          pipelineUuid,
-          ...(isJobRun ? { jobUuid, runUuid } : undefined),
-        },
-        state: { isReadOnly },
-      },
-      e
-    );
-  };
+
+  const { setFullscreenTab } = usePipelineCanvasContext();
+  const openSettings = () => setFullscreenTab("settings");
 
   const isOpen = hasValue(anchorElement);
 

@@ -1,29 +1,27 @@
-import { siteMap } from "@/routingConfig";
+import { useUpdateQueryArgs } from "@/hooks/useUpdateQueryArgs";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useHistory } from "react-router-dom";
 import { useProjectTabsContext } from "./ProjectTabsContext";
 
 const projectTabs = ["My projects", "Example projects"];
 
-export const ProjectsTabs = ({
-  children,
-}: {
+type ProjectsTabsProps = {
   children?: (projectTabIndex: number) => React.ReactNode;
-}) => {
+};
+
+export const ProjectsTabs = ({ children }: ProjectsTabsProps) => {
   const { projectTabIndex, setProjectTabIndex } = useProjectTabsContext();
-  const history = useHistory();
+  const updateQueryArgs = useUpdateQueryArgs();
+
   const selectTab = React.useCallback(
     (tabIndex: number) => {
       setProjectTabIndex(tabIndex);
       // This is to persist the nice MUI Tabs transition.
-      window.setTimeout(() => {
-        history.replace(`${siteMap.projects.path}?tab=${tabIndex}`);
-      }, 500);
+      updateQueryArgs({ tab: tabIndex });
     },
-    [setProjectTabIndex, history]
+    [setProjectTabIndex, updateQueryArgs]
   );
   return (
     <>

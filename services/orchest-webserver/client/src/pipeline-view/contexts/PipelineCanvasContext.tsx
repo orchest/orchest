@@ -1,7 +1,10 @@
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Position } from "@/types";
 import React from "react";
 import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
 import { useKeyboardEventsOnViewport } from "../pipeline-viewport/useKeyboardEventsOnViewport";
+
+export type PipelineFullscreenTabType = "logs" | "settings" | undefined;
 
 export type PipelineCanvasContextType = {
   pipelineCanvasState: PipelineCanvasState;
@@ -16,6 +19,10 @@ export type PipelineCanvasContextType = {
   zoom: (mousePosition: Position, scaleDiff: number) => void;
   zoomIn: (value?: number) => void;
   zoomOut: (value?: number) => void;
+  fullscreenTab: PipelineFullscreenTabType;
+  setFullscreenTab: React.Dispatch<
+    React.SetStateAction<PipelineFullscreenTabType>
+  >;
 };
 
 export const PipelineCanvasContext = React.createContext<
@@ -26,6 +33,12 @@ export const usePipelineCanvasContext = () =>
   React.useContext(PipelineCanvasContext);
 
 export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
+  const { tab } = useCustomRoute();
+
+  const [fullscreenTab, setFullscreenTab] = React.useState(
+    tab as PipelineFullscreenTabType
+  );
+
   const {
     pipelineCanvasState,
     setPipelineCanvasState,
@@ -50,6 +63,8 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
         zoom,
         zoomIn,
         zoomOut,
+        fullscreenTab,
+        setFullscreenTab,
       }}
     >
       {children}
