@@ -99,8 +99,12 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 	if !orchest.GetDeletionTimestamp().IsZero() {
 		// If the cluster is removed, we enter deleting phase
 		nextPhase = orchestv1alpha1.Deleting
-	}
-	if *orchest.Spec.Orchest.Pause && curPhase != orchestv1alpha1.Stopped {
+	} else if curPhase == orchestv1alpha1.Initializing {
+		// If the object is just created the third-parties should be deployed
+		nextPhase = orchestv1alpha1.DeployingThirdParties
+
+		endPhase = orchestv1alpha1.DeployedThirdParties
+	} else if *orchest.Spec.Orchest.Pause && curPhase != orchestv1alpha1.Stopped {
 		// If the cluster needs to be paused but not paused yet
 		nextPhase = orchestv1alpha1.Stopping
 
@@ -119,13 +123,13 @@ func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 		endPhase = orchestv1alpha1.Running
 
 	} else if (curPhase == orchestv1alpha1.Starting || curPhase == orchestv1alpha1.DeployingOrchest) &&
-		(orchest.Status.ObservedHash == controller.ComputeHash(&orchest.Spec)) {
+		(orchest.Status.ObservedHash == utils.ComputeHash(&orchest.Spec)) {
 		// If cluster is starting, and the hash is not changed, then the next phase would be Starting again
 		nextPhase = curPhase
 
 		endPhase = orchestv1alpha1.Running
 	} else if curPhase == orchestv1alpha1.DeployingThirdParties {
-		// If the cluster is deploying third parties, it continue deploying, and
+		// If the cluster is deploying third parties, it should continue deploying, and
 		// will enter deployed once finished
 		nextPhase = curPhase
 
