@@ -8,7 +8,6 @@ import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
 import { getNodeCenter } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
-import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
@@ -27,7 +26,7 @@ import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
 
 export const PipelineEditor = () => {
-  const { navigateTo } = useCustomRoute();
+  const { navigateTo, runUuid: runUuidFromRoute } = useCustomRoute();
 
   const {
     pipelineCwd,
@@ -38,6 +37,7 @@ export const PipelineEditor = () => {
     jobUuid,
     pipelineJson,
     hash,
+    isJobRun,
   } = usePipelineDataContext();
 
   const returnToJob = React.useCallback(
@@ -47,17 +47,14 @@ export const PipelineEditor = () => {
     [projectUuid, jobUuid, navigateTo]
   );
 
-  const { zoomIn, zoomOut, centerView } = usePipelineCanvasContext();
-
   const { openNotebook, openFilePreviewView } = useOpenFile();
 
-  const isJobRun = jobUuid && runUuid;
   const jobRunQueryArgs = React.useMemo(() => ({ jobUuid, runUuid }), [
     jobUuid,
     runUuid,
   ]);
 
-  const { scaleFactor, setScaleFactor } = useScaleFactor();
+  const { scaleFactor } = useScaleFactor();
   const {
     pipelineCanvasRef,
     pipelineViewportRef,
@@ -99,21 +96,6 @@ export const PipelineEditor = () => {
     },
     [uiStateDispatch]
   );
-
-  const openLogs = (e: React.MouseEvent) => {
-    navigateTo(
-      isJobRun ? siteMap.jobRunLogs.path : siteMap.logs.path,
-      {
-        query: {
-          projectUuid,
-          pipelineUuid,
-          ...(isJobRun ? jobRunQueryArgs : undefined),
-        },
-        state: { isReadOnly },
-      },
-      e
-    );
-  };
 
   const onDoubleClickStep = (stepUUID: string) => {
     if (isReadOnly) {

@@ -7,12 +7,14 @@ import Typography from "@mui/material/Typography";
 import classNames from "classnames";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
-import { DEFAULT_SCALE_FACTOR } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { useScaleFactor } from "../contexts/ScaleFactorContext";
+import {
+  DEFAULT_SCALE_FACTOR,
+  useScaleFactor,
+} from "../contexts/ScaleFactorContext";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
@@ -275,7 +277,7 @@ const PipelineViewportComponent = React.forwardRef<
 
 export const PipelineViewport = React.forwardRef<
   HTMLDivElement,
-  PipelineViewportProps
+  React.HTMLAttributes<HTMLDivElement>
 >(function PipelineViewportWithContextMenuProvider(props, ref) {
   return (
     <PipelineViewportContextMenuProvider>
