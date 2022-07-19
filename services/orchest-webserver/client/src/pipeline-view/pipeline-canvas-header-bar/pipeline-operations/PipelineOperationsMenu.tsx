@@ -1,5 +1,5 @@
 import { RunIncomingIcon } from "@/components/common/icons/RunIncomingIcon";
-import { isMacOs } from "@/utils/isMacOs";
+import { osSpecificHotKey } from "@/utils/isMacOs";
 import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
@@ -11,8 +11,6 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useRunSteps } from "./useRunSteps";
-
-const osSpecificHotKey = isMacOs() ? "⌘" : "Ctrl";
 
 export const PipelineOperationsMenu = ({
   anchor,
