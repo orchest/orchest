@@ -24,7 +24,7 @@ func (builder *HelmArgBuilder) WithUpgradeInstall() *HelmArgBuilder {
 }
 
 func (builder *HelmArgBuilder) WithUnInstall() *HelmArgBuilder {
-	builder.command = []string{"uninstall", "--install"}
+	builder.command = []string{"uninstall"}
 	return builder
 }
 
