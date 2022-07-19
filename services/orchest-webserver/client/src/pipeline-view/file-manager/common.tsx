@@ -1,11 +1,14 @@
 import { Code } from "@/components/common/Code";
 import { Step } from "@/types";
 import {
-  ALLOWED_STEP_EXTENSIONS,
-  extensionFromFilename,
-  fetcher,
-  hasValue,
-} from "@orchest/lib-utils";
+  basename,
+  dirname,
+  hasAncestor,
+  hasExtension,
+  isDirectory,
+  join,
+} from "@/utils/path";
+import { ALLOWED_STEP_EXTENSIONS, fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot } from "../common";
 
@@ -13,7 +16,6 @@ export type FileTrees = Record<string, TreeNode>;
 
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
-export const ROOT_SEPARATOR = ":";
 
 export type TreeNode = {
   children: TreeNode[];
@@ -40,12 +42,25 @@ export const searchTree = (
   return res;
 };
 
+export const ROOT_SEPARATOR = ":";
+
 export type UnpackedPath = {
   /** Either `/project-dir` or `/data` */
   root: FileManagementRoot;
   /** The path to the file, always starts with "/" */
   path: string;
 };
+
+/** Returns true if the path has the `.orchest` extension. */
+export const isPipelineFile = (path: string) => hasExtension(path, "orchest");
+
+/** Returns true if the combined path is in the `/data:` file management root. */
+export const isInDataFolder = (combinedPath: string) =>
+  /^\/data\:?\//.test(combinedPath);
+
+/** Returns true if the combined path is in the `/project-dir:` file management root. */
+export const isInProjectFolder = (combinedPath: string) =>
+  /^\/project-dir\:?\//.test(combinedPath);
 
 /**
  * Unpacks an combined path into `root` and `path`.
@@ -61,6 +76,11 @@ export const unpackPath = (combinedPath: string): UnpackedPath => {
   return { root, path };
 };
 
+export const isCombinedPath = (path: string) => /^\/([a-z]|\-)+:\//.test(path);
+
+export const combinePath = ({ root, path }: UnpackedPath) =>
+  join(root + ROOT_SEPARATOR, path);
+
 /**
  * A tuple that describes a move.
  * The first value is the old path,
@@ -75,32 +95,15 @@ export type UnpackedMove = {
   newPath: string;
 };
 
+export const isRename = (moves: readonly Move[]) =>
+  moves.length === 1 && dirname(moves[0][0]) === dirname(moves[0][1]);
+
 export const unpackMove = ([source, target]: Move): UnpackedMove => {
   const { root: oldRoot, path: oldPath } = unpackPath(source);
   const { root: newRoot, path: newPath } = unpackPath(target);
 
   return { oldRoot, oldPath, newRoot, newPath };
 };
-
-export const isRename = (moves: readonly Move[]) =>
-  moves.length === 1 && dirname(moves[0][0]) === dirname(moves[0][1]);
-
-export const isPipelineFile = (path: string) => hasExtension(path, "orchest");
-
-export const combinePath = ({ root, path }: UnpackedPath) =>
-  root + ROOT_SEPARATOR + path;
-
-export const isDirectory = (path: string) => path.endsWith("/");
-
-export const basename = (path: string) =>
-  isDirectory(path)
-    ? path.split("/").slice(-2)[0]
-    : path.split("/").slice(-1)[0];
-
-export const dirname = (path: string) =>
-  isDirectory(path)
-    ? path.split("/").slice(0, -2).join("/") + "/"
-    : path.split("/").slice(0, -1).join("/") + "/";
 
 export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
   if (sourcePath === dropPath || dropPath.startsWith(sourcePath)) {
@@ -145,7 +148,7 @@ export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
 const camelToSnakeCase = (str: string) =>
   str
     .replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
-    .replace(/^_+(.*?)_+$/g, (match, group1) => group1); // Remove leading and trailing underscors.
+    .replace(/^_+(.*?)_+$/g, (_, group1) => group1); // Remove leading and trailing underscores.
 
 export const queryArgs = (
   obj: Record<string, string | number | boolean | undefined | null>
@@ -212,8 +215,6 @@ export const searchTrees = ({
   }
 };
 
-export const isCombinedPath = (path: string) => /^\/([a-z]|\-)+:\//.test(path);
-
 export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
   filePath
     .replace(/^\/project-dir\:\//, replaceProjectDirWith)
@@ -240,16 +241,6 @@ export const removeLeadingSymbols = (filePath: string) =>
 // this function cleans up the leading "./"
 export const getStepFilePath = (step: Step) =>
   removeLeadingSymbols(step.file_path);
-
-export const hasExtension = (path: string, ...extensions: string[]) => {
-  const regex = new RegExp(
-    `\.(${extensions
-      .map((extension) => extension.replace(/^\./, "")) // in case user add a leading dot
-      .join("|")})$`,
-    "i"
-  );
-  return regex.test(path);
-};
 
 export const searchFilePathsByExtension = ({
   projectUuid,
@@ -324,11 +315,6 @@ export const validateFiles = (
 
   return selectedFiles.reduce(
     (all, curr) => {
-      const fileExtension = extensionFromFilename(curr);
-      const isAllowed = ALLOWED_STEP_EXTENSIONS.some(
-        (allowedExtension) =>
-          allowedExtension.toLowerCase() === fileExtension.toLowerCase()
-      );
       const usedNotebookFiles = allNotebookFileSteps.find((step) => {
         return (
           step.file_path === cleanFilePath(curr) &&
@@ -341,7 +327,7 @@ export const validateFiles = (
             ...all,
             usedNotebookFiles: [...all.usedNotebookFiles, cleanFilePath(curr)],
           }
-        : !isAllowed
+        : !hasExtension(curr, ...ALLOWED_STEP_EXTENSIONS)
         ? { ...all, forbidden: [...all.forbidden, cleanFilePath(curr)] }
         : { ...all, allowed: [...all.allowed, cleanFilePath(curr)] };
     },
@@ -405,11 +391,6 @@ export const pathFromElement = (element: HTMLElement): string | undefined => {
   }
 };
 
-export const isInDataFolder = (path: string) => /^\/data\:?\//.test(path);
-
-export const isInProjectFolder = (path: string) =>
-  /^\/project-dir\:?\//.test(path);
-
 const getFilePathInDataFolder = (dragFilePath: string) =>
   cleanFilePath(dragFilePath);
 
@@ -434,9 +415,6 @@ export const lastSelectedFolderPath = (selectedFiles: string[]) => {
   const matches = lastSelected.match(/^\/[^\/]+:((\/[^\/]+)*\/)([^\/]*)/);
   return matches ? matches[1] : "/";
 };
-
-export const hasAncestor = (path: string, ancestor: string) =>
-  ancestor.endsWith("/") && path.startsWith(ancestor);
 
 /**
  * This function removes the child path if its ancestor path already appears in the list.
@@ -465,9 +443,7 @@ export const findPipelineFiles = async (
 ): Promise<UnpackedPath[]> => {
   const paths = await Promise.all(
     filePaths.map(({ root, path }) => {
-      if (!path.endsWith("/")) {
-        return isPipelineFile(path) ? { root, path } : null;
-      } else {
+      if (isDirectory(path)) {
         return searchFilePathsByExtension({
           projectUuid,
           extensions: ["orchest"],
@@ -479,6 +455,8 @@ export const findPipelineFiles = async (
             path: `/${file}`,
           }))
         );
+      } else {
+        return isPipelineFile(path) ? { root, path } : null;
       }
     })
   );

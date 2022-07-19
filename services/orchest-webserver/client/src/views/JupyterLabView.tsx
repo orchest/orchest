@@ -16,11 +16,12 @@ import type {
   PipelineJson,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
+import { join } from "@/utils/path";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { hasValue, joinRelativePaths } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
@@ -174,7 +175,7 @@ const JupyterLabView = () => {
             step.environment.length > 0
           ) {
             window.orchest.jupyter?.setNotebookKernel(
-              joinRelativePaths(pipelineCwd, step.file_path),
+              join(pipelineCwd, step.file_path),
               `orchest-kernel-${step.environment}`
             );
           }

@@ -8,18 +8,14 @@ import {
   Step,
 } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
-import {
-  extensionFromFilename,
-  fetcher,
-  hasValue,
-  HEADER,
-} from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
 import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
+import { hasExtension } from "./path";
 
 const ajv = new Ajv({
   allowUnionTypes: true,
@@ -89,7 +85,7 @@ export function validatePipeline(pipelineJson: PipelineJson) {
   outerLoop: for (let stepKey in pipelineJson.steps) {
     let step = pipelineJson.steps[stepKey];
 
-    if (extensionFromFilename(step.file_path) === "ipynb") {
+    if (hasExtension(step.file_path, "ipynb")) {
       for (let otherStepKey in pipelineJson.steps) {
         let otherStep = pipelineJson.steps[otherStepKey];
 

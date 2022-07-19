@@ -3,13 +3,10 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Position } from "@/types";
+import { join } from "@/utils/path";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import {
-  ALLOWED_STEP_EXTENSIONS,
-  hasValue,
-  joinRelativePaths,
-} from "@orchest/lib-utils";
+import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
@@ -92,7 +89,7 @@ export const FileManagerContextMenu: React.FC<{
     if (!pipelineUuid || !pipelineCwd) return;
 
     const foundStep = Object.values(pipelineJson?.steps || {}).find((step) => {
-      const filePath = joinRelativePaths(pipelineCwd, step.file_path);
+      const filePath = join(pipelineCwd, step.file_path);
       return filePath === cleanFilePath(contextMenuCombinedPath);
     });
 

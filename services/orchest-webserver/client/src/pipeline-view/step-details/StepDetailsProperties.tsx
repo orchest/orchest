@@ -1,6 +1,7 @@
 import ProjectFilePicker from "@/components/ProjectFilePicker";
 import { Step } from "@/types";
 import { isValidJson } from "@/utils/isValidJson";
+import { hasExtension, join } from "@/utils/path";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -13,8 +14,6 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
   ALLOWED_STEP_EXTENSIONS,
-  extensionFromFilename,
-  joinRelativePaths,
   kernelNameToLanguage,
   RefManager,
 } from "@orchest/lib-utils";
@@ -76,7 +75,7 @@ export const StepDetailsProperties = ({
 
   const refManager = React.useMemo(() => new RefManager(), []);
 
-  const isNotebookStep = extensionFromFilename(step.file_path) === "ipynb";
+  const isNotebookStep = hasExtension(step.file_path, "ipynb");
 
   const onChangeEnvironment = React.useCallback(
     (
@@ -99,7 +98,7 @@ export const StepDetailsProperties = ({
           step.file_path.length > 0
         ) {
           window.orchest.jupyter?.setNotebookKernel(
-            joinRelativePaths(pipelineCwd, step.file_path),
+            join(pipelineCwd, step.file_path),
             `orchest-kernel-${updatedEnvironmentUUID}`
           );
         }

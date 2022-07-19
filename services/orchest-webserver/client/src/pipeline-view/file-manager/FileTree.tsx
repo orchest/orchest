@@ -6,6 +6,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
+import { basename, dirname } from "@/utils/path";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -16,9 +17,7 @@ import React from "react";
 import { FileManagementRoot } from "../common";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
 import {
-  basename,
   cleanFilePath,
-  dirname,
   FileTrees,
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
