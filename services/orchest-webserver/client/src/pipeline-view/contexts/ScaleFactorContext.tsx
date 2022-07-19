@@ -21,7 +21,7 @@ export const ScaleFactorContext = React.createContext<ScaleFactorContextType>(
 
 export const useScaleFactor = () => React.useContext(ScaleFactorContext);
 
-export const SCALE_FACTOR_MIN = 0.25;
+export const SCALE_FACTOR_MIN = 0.05;
 export const SCALE_FACTOR_MAX = 2;
 
 const getRangedScaleFactor = (value: number) =>
