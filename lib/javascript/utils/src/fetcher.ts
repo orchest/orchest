@@ -19,23 +19,18 @@ export const fetcher = async <T, E = any>(
   const targetUrl = getFullUrl(url);
 
   const response = await window.fetch(targetUrl, params);
-  const responseAsString = await response.text();
-  const jsonResponse =
-    responseAsString === "" ? {} : JSON.parse(responseAsString);
+  const body = await response.text();
+  const data = body === "" ? {} : JSON.parse(body);
 
   if (!response.ok || response.status >= 299) {
-    const { message } = jsonResponse;
+    const { message } = data;
 
     return Promise.reject(
-      new FetchError<E>(
-        message || response.statusText,
-        response.status,
-        jsonResponse
-      )
+      new FetchError<E>(message || response.statusText, response.status, data)
     );
   }
 
-  return jsonResponse as Promise<T>;
+  return data as T;
 };
 
 export type Fetcher<T = void> = (
