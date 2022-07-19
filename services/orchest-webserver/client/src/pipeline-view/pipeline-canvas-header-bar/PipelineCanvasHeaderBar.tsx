@@ -2,6 +2,7 @@ import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import React from "react";
+import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { CreateStepButton } from "../CreateStepButton";
 import { PipelineOperations } from "./pipeline-operations/PipelineOperations";
 import { PipelineFileName } from "./PipelineFileName";
@@ -9,6 +10,9 @@ import { PipelineMoreOptionsMenu } from "./PipelineMoreOptionsMenu";
 import { ServicesMenu } from "./ServicesMenu";
 
 export const PipelineCanvasHeaderBar = () => {
+  const { setFullscreenTab } = usePipelineCanvasContext();
+  const openLogs = () => setFullscreenTab("logs");
+
   return (
     <Stack
       direction="row"
@@ -22,7 +26,9 @@ export const PipelineCanvasHeaderBar = () => {
       }}
     >
       <PipelineFileName />
-      <Button size="small">Logs</Button>
+      <Button size="small" onClick={openLogs}>
+        Logs
+      </Button>
       <ServicesMenu />
       <Divider
         orientation="vertical"
