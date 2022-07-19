@@ -25,7 +25,7 @@ func NewAuthServerReconciler(ctrl *OrchestComponentController) OrchestComponentR
 
 func (reconciler *AuthServerReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
 
-	hash := controller.ComputeHash(component)
+	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.AuthServer, component)
 	metadata := controller.GetMetadata(controller.AuthServer, hash, component, OrchestComponentKind)
 	newDep := getAuthServerDeployment(metadata, matchLabels, component)
@@ -148,7 +148,7 @@ func getAuthServerDeployment(metadata metav1.ObjectMeta,
 	}
 
 	deployment.Labels = utils.CloneAndAddLabel(metadata.Labels, map[string]string{
-		controller.DeploymentHashLabelKey: controller.ComputeHash(&deployment.Spec),
+		controller.DeploymentHashLabelKey: utils.ComputeHash(&deployment.Spec),
 	})
 
 	return deployment

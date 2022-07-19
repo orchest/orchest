@@ -7,6 +7,7 @@ import (
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netsv1 "k8s.io/api/networking/v1"
@@ -173,7 +174,7 @@ func getIngressManifest(metadata metav1.ObjectMeta, path, ingressClass string,
 }
 
 func isDeploymentUpdated(newDep *appsv1.Deployment, oldDep *appsv1.Deployment) bool {
-	if oldHash, _ := oldDep.Labels[controller.DeploymentHashLabelKey]; oldHash == controller.ComputeHash(&newDep.Spec) {
+	if oldHash, _ := oldDep.Labels[controller.DeploymentHashLabelKey]; oldHash == utils.ComputeHash(&newDep.Spec) {
 		return true
 	}
 	return false
