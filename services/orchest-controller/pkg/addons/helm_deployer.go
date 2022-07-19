@@ -3,6 +3,7 @@ package addons
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -60,8 +61,7 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []func() erro
 			return err
 		}
 		// Unfortunately, the value returned from helm get manifest has 1 extra byte,
-		// so in order to compare it with the new config, we have to remove the tail of it.
-		if newConfig == oldConfig[:len(oldConfig)-1] {
+		if strings.TrimSpace(newConfig) == strings.TrimSpace(oldConfig) {
 			// There is no need for update, return without err
 			return nil
 		}
