@@ -1,5 +1,6 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Step } from "@/types";
@@ -101,7 +102,20 @@ const StepDetailsComponent: React.FC<{
     uiStateDispatch({ type: "SELECT_SUB_VIEW", payload: index });
   };
 
-  if (!openedStep || !step || !pipelineJson || stepSelector.active) return null;
+  const shouldHideStepDetails =
+    !openedStep || !step || !pipelineJson || stepSelector.active;
+
+  const { hideIntercom, showIntercom } = useAppContext();
+
+  React.useEffect(() => {
+    if (shouldHideStepDetails) {
+      showIntercom();
+    } else {
+      hideIntercom();
+    }
+  }, [shouldHideStepDetails, hideIntercom, showIntercom]);
+
+  if (shouldHideStepDetails) return null;
 
   return (
     <StepDetailsContextProvider>
