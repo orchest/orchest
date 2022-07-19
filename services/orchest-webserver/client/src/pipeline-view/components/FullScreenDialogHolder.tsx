@@ -1,5 +1,4 @@
 import { IconButton } from "@/components/common/IconButton";
-import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import CloseIcon from "@mui/icons-material/Close";
 import Backdrop from "@mui/material/Backdrop";
 import Box from "@mui/material/Box";
@@ -16,30 +15,19 @@ type CloseButtonProps = {
 
 const CloseButton = ({ onClick }: CloseButtonProps) => {
   return (
-    <Box
-      sx={
-        {
-          // position: "absolute",
-          // top: (theme) => theme.spacing(1),
-          // right: (theme) => theme.spacing(1),
-          // zIndex: 20,
-        }
-      }
+    <IconButton
+      size="large"
+      sx={{ color: (theme) => theme.palette.grey[700] }}
+      title="Close"
+      onClick={onClick}
     >
-      <IconButton
-        size="large"
-        sx={{ color: (theme) => theme.palette.grey[700] }}
-        title="Close"
-        onClick={onClick}
-      >
-        <CloseIcon />
-      </IconButton>
-    </Box>
+      <CloseIcon />
+    </IconButton>
   );
 };
 
 type FullScreenDialogHolderProps = {
-  dialogId: PipelineFullscreenTabType;
+  dialogId: PipelineFullscreenTabType | PipelineFullscreenTabType[];
   title: string | React.ReactNode;
 };
 
@@ -48,12 +36,11 @@ export const FullScreenDialogHolder: React.FC<FullScreenDialogHolderProps> = ({
   dialogId,
   title,
 }) => {
-  const containerRef = React.useRef<HTMLElement>();
   const { fullscreenTab, setFullscreenTab } = usePipelineCanvasContext();
-  const isOpen = fullscreenTab === dialogId;
+  const isOpen = Array.isArray(dialogId)
+    ? dialogId.includes(fullscreenTab)
+    : fullscreenTab === dialogId;
   const onClose = () => setFullscreenTab(undefined);
-
-  useOnClickOutside(containerRef, () => onClose());
 
   return (
     <>
@@ -66,9 +53,9 @@ export const FullScreenDialogHolder: React.FC<FullScreenDialogHolderProps> = ({
                 margin: (theme) => theme.spacing(8, 0, 0),
                 height: (theme) => `calc(100vh - ${theme.spacing(13)})`,
               }}
-              ref={containerRef}
             >
-              <Box
+              <Stack
+                direction="column"
                 sx={{
                   backgroundColor: (theme) => theme.palette.background.paper,
                   borderRadius: (theme) => theme.spacing(1),
@@ -94,8 +81,10 @@ export const FullScreenDialogHolder: React.FC<FullScreenDialogHolderProps> = ({
                   </Stack>
                   <CloseButton onClick={onClose} />
                 </Stack>
-                {isOpen ? children : null}
-              </Box>
+                <Box sx={{ overflow: "hidden auto", flex: 1 }}>
+                  {isOpen ? children : null}
+                </Box>
+              </Stack>
             </Box>
           </Backdrop>
         </>

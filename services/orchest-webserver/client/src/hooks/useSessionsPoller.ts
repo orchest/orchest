@@ -40,7 +40,6 @@ export const useSessionsPoller = () => {
     siteMap.configureJupyterLab.path,
   ]);
   const matchPipelineViews = matchPath(location.pathname, [
-    siteMap.pipelineSettings.path,
     siteMap.pipeline.path,
     siteMap.jupyterLab.path,
   ]);
