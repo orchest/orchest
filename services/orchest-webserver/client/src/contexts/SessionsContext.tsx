@@ -4,7 +4,7 @@ import {
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import type { OrchestSession, ReducerActionWithCallback } from "@/types";
-import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+import { fetcher, FetchError, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 
 type TSessionStatus = OrchestSession["status"];
@@ -70,7 +70,7 @@ type SessionsContext = {
   startSession: (
     pipelineUuid: string,
     requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
-  ) => Promise<boolean>;
+  ) => Promise<[true] | [false, FetchError]>;
   stopSession: (pipelineUuid: string) => Promise<void>;
   deleteAllSessions: () => Promise<void>;
 };
@@ -154,33 +154,30 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
   );
 
   const requestStartSession = React.useCallback(
-    async (pipelineUuid: string): Promise<boolean> => {
-      if (!projectUuid) return false;
+    async (pipelineUuid: string): Promise<[true] | [false, FetchError]> => {
+      if (!projectUuid) return [false, new Error("Project UUID unavailable")];
       setSession(pipelineUuid, { status: "LAUNCHING" });
       try {
         const sessionData = await launchSession({ projectUuid, pipelineUuid });
         setSession(pipelineUuid, sessionData);
-        return true;
+        return [true];
       } catch (err) {
-        if (err?.message) {
-          setAlert("Error", `Error while starting the session: ${String(err)}`);
-        }
-        return false;
+        return [false, err];
       }
     },
-    [setAlert, setSession, projectUuid]
+    [setSession, projectUuid]
   );
 
   const startSession = React.useCallback(
     async (
       pipelineUuid: string,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
-    ) => {
+    ): Promise<[true] | [false, FetchError]> => {
       const session = getSession(pipelineUuid);
-      if (isSessionStarted(session)) return true;
+      if (isSessionStarted(session)) return [true];
 
       const hasBuilt = await ensureEnvironmentsAreBuilt(requestedFromView);
-      if (!hasBuilt) return false;
+      if (!hasBuilt) return [false, new Error("Environment not built")];
       return requestStartSession(pipelineUuid);
     },
     [getSession, ensureEnvironmentsAreBuilt, requestStartSession]

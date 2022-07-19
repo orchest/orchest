@@ -1,9 +1,11 @@
+import { useAppContext } from "@/contexts/AppContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
@@ -16,7 +18,8 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
   const {
     state: { pipeline },
   } = useProjectsContext();
-  const { pipelineUuid: pipelineUuidFromRoute } = useCustomRoute();
+  const { setAlert, setConfirm } = useAppContext();
+  const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();
 
   const session = React.useMemo(() => getSession(pipeline?.uuid), [
     getSession,
@@ -39,6 +42,35 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
       startedPipelineUuid.current = pipeline?.uuid;
   }, [session, pipeline?.uuid]);
 
+  const requestStartSession = React.useCallback(
+    async (pipelineUuid: string) => {
+      const [hasStartedOperation, error] = await startSession(
+        pipelineUuid,
+        BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
+      );
+      if (
+        !hasStartedOperation &&
+        error.status === 423 &&
+        error.message === "JupyterEnvironmentBuildInProgress"
+      ) {
+        setConfirm(
+          "Notice",
+          "JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
+          {
+            onConfirm: () => {
+              navigateTo(siteMap.configureJupyterLab.path);
+              return true;
+            },
+            confirmLabel: "Go to Configure JupyterLab",
+          }
+        );
+      } else if (error?.message) {
+        setAlert("Error", `Error while starting the session: ${String(error)}`);
+      }
+    },
+    [navigateTo, setAlert, setConfirm, startSession]
+  );
+
   React.useEffect(() => {
     if (
       pipeline?.uuid &&
@@ -46,9 +78,14 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
       startedPipelineUuid.current !== pipeline?.uuid
     ) {
       startedPipelineUuid.current = pipeline?.uuid;
-      startSession(pipeline.uuid, BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
+      requestStartSession(pipeline.uuid);
     }
-  }, [shouldCheckIfAutoStartIsNeeded, startSession, pipeline?.uuid]);
+  }, [
+    shouldCheckIfAutoStartIsNeeded,
+    startSession,
+    pipeline?.uuid,
+    requestStartSession,
+  ]);
 
   /**
    * ! session related global side effect
