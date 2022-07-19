@@ -13,6 +13,7 @@ import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
+import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
@@ -187,7 +188,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       hasStartedKillingSessions && // attempted to build image but got stuck, so started to kill sessions
       !sessionsKillAllInProgress && // the operation of deleting sessions is done
       sessions &&
-      sessions.length === 0; // all sessions are finally cleaned up;
+      Object.keys(sessions).length === 0; // all sessions are finally cleaned up;
 
     if (isAllSessionsDeletedForBuildingImage) {
       setHasStartedKillingSessions(false);
@@ -199,6 +200,12 @@ const ConfigureJupyterLabView: React.FC = () => {
     hasStartedKillingSessions,
     buildImage,
   ]);
+
+  const showStoppingAllSessionsWarning =
+    hasStartedKillingSessions && // attempted to build image but got stuck, so started to kill sessions
+    !sessionsKillAllInProgress && // the operation of deleting sessions is done
+    sessions &&
+    Object.keys(sessions).length > 0;
 
   return (
     <Layout>
@@ -296,6 +303,11 @@ const ConfigureJupyterLabView: React.FC = () => {
           <LinearProgress />
         )}
       </div>
+      <Snackbar
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        open={showStoppingAllSessionsWarning}
+        message="Stopping all active sessions..."
+      />
     </Layout>
   );
 };
