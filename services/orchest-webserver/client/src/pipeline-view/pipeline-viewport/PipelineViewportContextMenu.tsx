@@ -6,12 +6,11 @@ import {
 } from "@/components/ContextMenu";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
-import { SCALE_UNIT } from "../common";
 import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { useScaleFactor } from "../contexts/ScaleFactorContext";
+import { SCALE_UNIT, useScaleFactor } from "../contexts/ScaleFactorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
 type PipelineViewportContextMenuProps = { autoLayoutPipeline: () => void };
