@@ -41,7 +41,7 @@ storage: filesystem
 
 tlsSecretName: registry-tls-secret
 secrets:
-  haSharedSecret: ""
+  haSharedSecret: "haSharedSecret"
   htpasswd: ""
 # Secrets for Azure
 #   azure:
