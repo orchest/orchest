@@ -1,11 +1,7 @@
 import { Position } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import React from "react";
-import {
-  DEFAULT_SCALE_FACTOR,
-  getScaleCorrectedPosition,
-  scaleCorrected,
-} from "../common";
+import { getScaleCorrectedPosition, scaleCorrected } from "../common";
 import { usePipelineRefs } from "./PipelineRefsContext";
 
 export type ScaleFactorContextType = {
@@ -21,11 +17,13 @@ export const ScaleFactorContext = React.createContext<ScaleFactorContextType>(
 
 export const useScaleFactor = () => React.useContext(ScaleFactorContext);
 
-export const SCALE_FACTOR_MIN = 0.05;
-export const SCALE_FACTOR_MAX = 2;
+export const DEFAULT_SCALE_FACTOR = 1;
+export const SCALE_UNIT = 0.25;
+export const MIN_SCALE_FACTOR = 0.25;
+export const MAX_SCALE_FACTOR = 2;
 
 const getRangedScaleFactor = (value: number) =>
-  Math.min(Math.max(value, SCALE_FACTOR_MIN), SCALE_FACTOR_MAX);
+  Math.min(Math.max(value, MIN_SCALE_FACTOR), MAX_SCALE_FACTOR);
 
 export const ScaleFactorProvider: React.FC = ({ children }) => {
   const { mouseTracker, pipelineCanvasRef } = usePipelineRefs();

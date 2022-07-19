@@ -2,7 +2,11 @@ import { isNumber } from "@/utils/webserver-utils";
 import InputAdornment from "@mui/material/InputAdornment";
 import InputBase from "@mui/material/InputBase";
 import React from "react";
-import { useScaleFactor } from "../contexts/ScaleFactorContext";
+import {
+  MAX_SCALE_FACTOR,
+  MIN_SCALE_FACTOR,
+  useScaleFactor,
+} from "../contexts/ScaleFactorContext";
 
 export const ScaleFactorField = () => {
   const { scaleFactor, setScaleFactor } = useScaleFactor();
@@ -24,6 +28,9 @@ export const ScaleFactorField = () => {
       value={scaleFactorInPercentage}
       inputProps={{
         inputMode: "numeric",
+        step: 1,
+        min: MIN_SCALE_FACTOR * 100,
+        max: MAX_SCALE_FACTOR * 100,
         sx: {
           padding: 0,
           width: (theme) => theme.spacing(4),
