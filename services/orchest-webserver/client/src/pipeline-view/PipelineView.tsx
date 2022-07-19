@@ -7,6 +7,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { PipelineSettingsView } from "../pipeline-settings-view/PipelineSettingsView";
 import { FullScreenDialogHolder } from "./components/FullScreenDialogHolder";
 import { PipelineContextProviders } from "./contexts/PipelineContextProviders";
 import { FileManager } from "./file-manager/FileManager";
@@ -16,24 +17,28 @@ import { PipelineLogs } from "./pipeline-logs-dialog/PipelineLogs";
 import { PipelineEditor } from "./PipelineEditor";
 import { SessionsPanel } from "./sessions-panel/SessionsPanel";
 
-const PipelineView = () => {
-  useSendAnalyticEvent("view:loaded", { name: siteMap.pipeline.path });
-  const {
-    state: { pipelineIsReadOnly, projectUuid, pipeline },
-  } = useProjectsContext();
+type FullScreenDialogHeaderProps = { title: string };
 
-  const displayFileName = pipeline?.path.replace(/\.orchest$/, "");
-  const fileName = displayFileName ? (
+const FullScreenDialogHeader = ({ title }: FullScreenDialogHeaderProps) => {
+  const printTitle = `${title}:`;
+  return (
     <Stack direction="row" alignItems="baseline">
       <Typography
         variant="h5"
         sx={{ marginRight: (theme) => theme.spacing(1) }}
       >
-        Logs:
+        {printTitle}
       </Typography>
       <PipelineFileName />
     </Stack>
-  ) : null;
+  );
+};
+
+const PipelineView = () => {
+  useSendAnalyticEvent("view:loaded", { name: siteMap.pipeline.path });
+  const {
+    state: { pipelineIsReadOnly, projectUuid },
+  } = useProjectsContext();
 
   return (
     <Layout disablePadding={hasValue(projectUuid)}>
@@ -46,8 +51,17 @@ const PipelineView = () => {
             </MainSidePanel>
             <PipelineEditor />
           </Stack>
-          <FullScreenDialogHolder dialogId="logs" title={fileName}>
+          <FullScreenDialogHolder
+            dialogId="logs"
+            title={<FullScreenDialogHeader title="Logs" />}
+          >
             <PipelineLogs />
+          </FullScreenDialogHolder>
+          <FullScreenDialogHolder
+            dialogId={["configuration", "environment-variables", "services"]}
+            title={<FullScreenDialogHeader title="Pipeline settings" />}
+          >
+            <PipelineSettingsView />
           </FullScreenDialogHolder>
         </PipelineContextProviders>
       ) : (

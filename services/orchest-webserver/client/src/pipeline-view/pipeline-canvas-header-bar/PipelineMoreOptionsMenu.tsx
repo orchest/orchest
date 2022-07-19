@@ -63,7 +63,10 @@ export const PipelineMoreOptionsMenu = () => {
   };
 
   const { setFullscreenTab } = usePipelineCanvasContext();
-  const openSettings = () => setFullscreenTab("settings");
+  const openSettings = () => {
+    setFullscreenTab("configuration");
+    handleClose();
+  };
 
   const isOpen = hasValue(anchorElement);
 

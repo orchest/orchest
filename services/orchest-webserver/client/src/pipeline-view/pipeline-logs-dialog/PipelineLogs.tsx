@@ -111,6 +111,8 @@ export const PipelineLogs = () => {
             sx={{
               width: "20%",
               minWidth: "250px",
+              height: "100%",
+              overflow: "hidden auto",
             }}
           >
             <List
