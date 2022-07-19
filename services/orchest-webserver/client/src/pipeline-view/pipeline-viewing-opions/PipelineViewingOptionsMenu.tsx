@@ -1,4 +1,4 @@
-import { isMacOs } from "@/utils/isMacOs";
+import { osSpecificHotKey } from "@/utils/isMacOs";
 import Divider from "@mui/material/Divider";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
@@ -8,8 +8,6 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-
-const osSpecificHotKey = isMacOs() ? "⌘" : "Ctrl";
 
 type MenuItemData =
   | {
