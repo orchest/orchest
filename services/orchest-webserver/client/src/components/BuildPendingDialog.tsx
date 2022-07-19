@@ -24,7 +24,7 @@ const buildFailMessage = `Some environment builds of this project have failed.
 
 const solutionMessages = {
   [BUILD_IMAGE_SOLUTION_VIEW.PIPELINE]:
-    " You can cancel to open the project in read-only mode.",
+    " You can cancel to view the pipeline in read-only mode.",
   [BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB]:
     " To start JupyterLab all environments in the project need to be built.",
 };
