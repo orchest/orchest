@@ -44,6 +44,9 @@ CONTAINER_RUNTIME = os.environ.get("CONTAINER_RUNTIME")
 CONTAINER_RUNTIME_IMAGE = os.environ.get("CONTAINER_RUNTIME_IMAGE")
 CONTAINER_RUNTIME_SOCKET = os.environ.get("CONTAINER_RUNTIME_SOCKET")
 
+# Ingress configs
+INGRESS_CLASS = os.environ.get("INGRESS_CLASS", "nginx")
+
 # Databases
 database_naming_convention = {
     # The _N_, e.g. (column_0_N_label) is there so that the name will
