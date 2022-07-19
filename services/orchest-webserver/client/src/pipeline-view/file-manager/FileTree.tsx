@@ -81,9 +81,11 @@ export const FileTree = React.memo(function FileTreeComponent({
     isDragging,
     fileTrees,
   } = useFileManagerContext();
-
-  const { handleSelect, reload } = useFileManagerLocalContext();
-
+  const {
+    handleSelect,
+    reload,
+    setFileInRename,
+  } = useFileManagerLocalContext();
   const openNotebook = useOpenNoteBook();
 
   const pipelineByPath = React.useCallback(
@@ -344,13 +346,14 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       for (const check of Object.values(checks)) {
         if (!(await check(moves))) {
+          setFileInRename(undefined);
           return;
         }
       }
 
       await saveMoves(moves);
     },
-    [saveMoves, checks]
+    [saveMoves, checks, setFileInRename]
   );
 
   const handleDrop = React.useCallback(
