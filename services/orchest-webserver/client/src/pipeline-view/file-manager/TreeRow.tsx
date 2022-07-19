@@ -1,102 +1,41 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useOnClickOutside } from "@/hooks/useOnClickOutside";
+import { firstAncestor } from "@/utils/element";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
+import { extensionFromFilename } from "@orchest/lib-utils";
 import produce from "immer";
 import React from "react";
+import { FileManagementRoot } from "../common";
 import {
-  createCombinedPath,
-  deriveParentPath,
+  basename,
+  combinePath,
+  dirname,
+  isDirectory,
   TreeNode,
-  unpackCombinedPath,
+  unpackPath,
 } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 
-const RenameField = ({
-  handleRename,
-  combinedPath,
-}: {
-  handleRename: (oldPath: string, newPath: string) => void;
-  combinedPath: string;
-}) => {
-  const {
-    fileInRename,
-    setFileInRename,
-    fileRenameNewName,
-    setFileRenameNewName,
-  } = useFileManagerLocalContext();
-  const textFieldRef = React.useRef<HTMLInputElement>(null);
-  const theme = useTheme();
-
-  React.useEffect(() => {
-    if (textFieldRef.current) {
-      textFieldRef.current.focus();
-    }
-  }, [fileInRename]);
-
-  return (
-    <form
-      noValidate
-      autoComplete="off"
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
-      <TextField
-        sx={{
-          position: "absolute",
-          zIndex: 9,
-          width: "calc(100% - 23px)",
-          marginLeft: "23px",
-          backgroundColor: (theme) => theme.palette.grey[100],
-        }}
-        autoFocus
-        inputProps={{
-          style: { fontSize: theme.typography.body2.fontSize, padding: 0 },
-        }}
-        inputRef={textFieldRef}
-        variant="standard"
-        value={fileRenameNewName}
-        onKeyDown={(e) => {
-          if (e.code === "Escape") {
-            setFileInRename(undefined);
-          } else if (e.code === "Enter") {
-            let isFolder = combinedPath.endsWith("/");
-            let { root, path } = unpackCombinedPath(combinedPath);
-            let newPath =
-              deriveParentPath(path) +
-              fileRenameNewName +
-              (isFolder ? "/" : "");
-            let newCombinedPath = createCombinedPath(root, newPath);
-
-            handleRename(combinedPath, newCombinedPath);
-            setFileInRename(undefined);
-          }
-        }}
-        onChange={(e) => {
-          setFileRenameNewName(e.target.value);
-        }}
-      />
-    </form>
-  );
+type TreeRowProps = {
+  treeNodes: TreeNode[];
+  root: FileManagementRoot;
+  hoveredPath: string | undefined;
+  setDragFile: (dragFileData: { labelText: string; path: string }) => void;
+  onRename: (oldPath: string, newPath: string) => void;
+  onOpen: (filePath: string) => void;
 };
 
 export const TreeRow = ({
   treeNodes,
-  handleRename,
+  onRename,
   setDragFile,
   root,
   hoveredPath,
   onOpen,
-}: {
-  treeNodes: TreeNode[];
-  handleRename: (oldPath: string, newPath: string) => void;
-  setDragFile: (dragFileData: { labelText: string; path: string }) => void;
-  root: string;
-  hoveredPath: string | undefined;
-  onOpen: (filePath: string) => void;
-}) => {
+}: TreeRowProps) => {
   const {
     state: { pipelineIsReadOnly },
   } = useProjectsContext();
@@ -104,12 +43,11 @@ export const TreeRow = ({
   const { directories, files } = React.useMemo(
     () =>
       treeNodes.reduce(
-        (all, node) => {
-          return produce(all, (draft) => {
+        (all, node) =>
+          produce(all, (draft) => {
             if (node.type === "directory") draft.directories.push(node);
             if (node.type === "file") draft.files.push(node);
-          });
-        },
+          }),
         { directories: [] as TreeNode[], files: [] as TreeNode[] }
       ),
     [treeNodes]
@@ -117,21 +55,18 @@ export const TreeRow = ({
 
   return (
     <>
-      {directories.map((e) => {
-        const combinedPath = createCombinedPath(root, e.path);
+      {directories.map((node) => {
+        const combinedPath = combinePath({ root, path: node.path });
 
         return (
           <Box sx={{ position: "relative" }} key={combinedPath}>
             {fileInRename === combinedPath && (
-              <RenameField
-                handleRename={handleRename}
-                combinedPath={combinedPath}
-              />
+              <RenameField onRename={onRename} combinedPath={combinedPath} />
             )}
 
             <TreeItem
               disableDragging={pipelineIsReadOnly}
-              onContextMenu={(e) => handleContextMenu(e, combinedPath)}
+              onContextMenu={(event) => handleContextMenu(event, combinedPath)}
               sx={{
                 cursor: "context-menu",
                 backgroundColor:
@@ -143,45 +78,135 @@ export const TreeRow = ({
               nodeId={combinedPath}
               data-path={combinedPath}
               path={combinedPath}
-              labelText={e.name}
+              labelText={node.name}
             >
               <TreeRow
-                treeNodes={e.children}
+                treeNodes={node.children}
                 setDragFile={setDragFile}
                 root={root}
                 hoveredPath={hoveredPath}
                 onOpen={onOpen}
-                handleRename={handleRename}
+                onRename={onRename}
               />
             </TreeItem>
           </Box>
         );
       })}
-      {files.map((e) => {
-        const combinedPath = createCombinedPath(root, e.path);
+      {files.map((node) => {
+        const combinedPath = combinePath({ root, path: node.path });
+
         return (
           <div style={{ position: "relative" }} key={combinedPath}>
             {fileInRename === combinedPath && (
-              <RenameField
-                handleRename={handleRename}
-                combinedPath={combinedPath}
-              />
+              <RenameField onRename={onRename} combinedPath={combinedPath} />
             )}
             <TreeItem
               disableDragging={pipelineIsReadOnly}
-              onContextMenu={(e) => handleContextMenu(e, combinedPath)}
+              onContextMenu={(event) => handleContextMenu(event, combinedPath)}
               sx={{ cursor: "context-menu" }}
               key={combinedPath}
               nodeId={combinedPath}
               data-path={combinedPath}
               path={combinedPath}
-              labelText={e.name}
-              fileName={e.name}
+              labelText={node.name}
+              fileName={node.name}
               onDoubleClick={() => !pipelineIsReadOnly && onOpen(combinedPath)}
             />
           </div>
         );
       })}
     </>
+  );
+};
+
+const RenameField = ({
+  onRename,
+  combinedPath,
+}: {
+  onRename: (oldPath: string, newPath: string) => void;
+  combinedPath: string;
+}) => {
+  const {
+    fileInRename,
+    setFileInRename,
+    fileRenameNewName,
+    setFileRenameNewName,
+  } = useFileManagerLocalContext();
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const theme = useTheme();
+
+  const cancel = () => setFileInRename(undefined);
+  const save = () => {
+    const isFolder = isDirectory(combinedPath);
+    const { root, path } = unpackPath(combinedPath);
+    const newPath = dirname(path) + fileRenameNewName + (isFolder ? "/" : "");
+    const newCombinedPath = combinePath({ root, path: newPath });
+
+    if (newCombinedPath !== combinedPath) {
+      onRename(combinedPath, newCombinedPath);
+    } else {
+      cancel();
+    }
+  };
+
+  React.useEffect(() => inputRef.current?.focus(), [fileInRename]);
+
+  React.useEffect(() => {
+    const name = basename(combinedPath);
+    const ext = extensionFromFilename(name);
+    const isDotFile = name.substring(1) === ext;
+    const end = !isDotFile ? name.length - ext.length - 1 : name.length;
+
+    inputRef.current?.setSelectionRange(0, end, "forward");
+  }, [combinedPath]);
+
+  useOnClickOutside(inputRef, (event) => {
+    // NOTE:
+    //  We never want clicks in modals to trigger a save,
+    //  since modals must be clicked to be dismissed.
+    //  We leverage that modals don't share the same
+    //  mount point as the rest of the app.
+    if (sharesMount(inputRef.current, event.target as Element)) {
+      save();
+    }
+  });
+
+  return (
+    <TextField
+      sx={{
+        position: "absolute",
+        zIndex: 9,
+        width: "calc(100% - 23px)",
+        marginLeft: "23px",
+        backgroundColor: (theme) => theme.palette.grey[100],
+      }}
+      autoFocus
+      autoComplete="off"
+      inputProps={{
+        style: { fontSize: theme.typography.body2.fontSize, padding: 0 },
+      }}
+      inputRef={inputRef}
+      variant="standard"
+      value={fileRenameNewName}
+      onKeyDown={({ code }) => {
+        if (code === "Enter") {
+          save();
+        } else if (code === "Escape") {
+          cancel();
+        }
+      }}
+      onChange={({ target }) => setFileRenameNewName(target.value)}
+    />
+  );
+};
+
+const isMountPoint = (element: Element) =>
+  element.parentElement?.tagName === "BODY";
+
+const sharesMount = (...[first, ...elements]: readonly (Element | null)[]) => {
+  const mountPoint = firstAncestor(first, isMountPoint);
+
+  return elements.every(
+    (element) => firstAncestor(element, isMountPoint) === mountPoint
   );
 };

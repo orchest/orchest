@@ -94,7 +94,7 @@ export const TreeItem = ({
                 <>
                   {`Before moving `}
                   <Code>{cleanFilePath(path, "Project files/")}</Code>
-                  {` , you need to stop its session. Do you want to continue?`}
+                  {`, you need to stop its session. Do you want to continue?`}
                 </>,
                 {
                   confirmLabel: "Stop session",

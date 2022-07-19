@@ -513,7 +513,7 @@ def _get_jupyter_server_deployment_service_manifest(
         "kind": "Ingress",
         "metadata": metadata,
         "spec": {
-            "ingressClassName": "nginx",
+            "ingressClassName": _config.INGRESS_CLASS,
             "rules": [ingress_rule],
         },
     }
@@ -1014,7 +1014,7 @@ def _get_user_service_deployment_service_manifest(
             "kind": "Ingress",
             "metadata": ingress_metadata,
             "spec": {
-                "ingressClassName": "nginx",
+                "ingressClassName": _config.INGRESS_CLASS,
                 "rules": [ingress_rule],
             },
         }
