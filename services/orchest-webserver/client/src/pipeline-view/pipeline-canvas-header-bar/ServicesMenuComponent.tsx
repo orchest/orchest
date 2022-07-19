@@ -15,6 +15,7 @@ import MenuList from "@mui/material/MenuList";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 
 const formatUrl = (url: string) => {
   return "Port " + url.split("/")[3].split("_").slice(-1)[0];
@@ -38,25 +39,29 @@ export const ServicesMenuComponent = ({
     navigateTo,
   } = useCustomRoute();
 
-  const isJobRun = hasValue(jobUuid && runUuid);
+  const { setFullscreenTab } = usePipelineCanvasContext();
 
-  const openSettings = (e: React.MouseEvent) => {
+  const openSettings = () => {
+    setFullscreenTab("services");
+    onClose();
+  };
+
+  const openSettingsInNewTab = (e: React.MouseEvent) => {
     navigateTo(
-      isJobRun
-        ? siteMap.jobRunPipelineSettings.path
-        : siteMap.pipelineSettings.path,
+      siteMap.pipeline.path,
       {
         query: {
           projectUuid,
           pipelineUuid,
           jobUuid,
-          runUuid: runUuid,
-          initialTab: "services",
+          runUuid,
+          tab: "services",
         },
         state: { isReadOnly },
       },
       e
     );
+    onClose();
   };
 
   const serviceLinks =
@@ -145,7 +150,7 @@ export const ServicesMenuComponent = ({
       )}
       <Divider />
       <MenuList dense>
-        <MenuItem onClick={openSettings} onAuxClick={openSettings}>
+        <MenuItem onClick={openSettings} onAuxClick={openSettingsInNewTab}>
           <ListItemIcon>
             <TuneIcon fontSize="small" />
           </ListItemIcon>

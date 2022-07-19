@@ -5,16 +5,12 @@ export type RouteName =
   | "projectSettings"
   | "pipeline"
   | "jupyterLab"
-  | "pipelineSettings"
   | "filePreview"
-  | "logs"
   | "environments"
   | "environment"
   | "jobs"
   | "job"
   | "jobRun"
-  | "jobRunPipelineSettings"
-  | "jobRunLogs"
   | "jobRunFilePreview"
   | "pipelineReadonly"
   | "editJob"
@@ -63,12 +59,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       title: getTitle("JupyterLab"),
     },
     {
-      name: "pipelineSettings",
-      path: "/pipeline-settings",
-      root: "/pipeline",
-      title: getTitle("Pipeline Settings"),
-    },
-    {
       name: "filePreview",
       path: "/file-preview",
       root: "/pipeline",
@@ -107,12 +97,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       path: "/job-run",
       root: "/jobs",
       title: getTitle("Job Run"),
-    },
-    {
-      name: "jobRunPipelineSettings",
-      path: "/job-run/pipeline-settings",
-      root: "/jobs",
-      title: getTitle("Job Run Pipeline Settings"),
     },
     {
       name: "jobRunLogs",
@@ -247,7 +231,6 @@ export const generatePathFromRoute = <T extends string>(
 const excludedPaths = [
   siteMap.pipeline.path,
   siteMap.environment.path,
-  siteMap.pipelineSettings.path,
   siteMap.projectSettings.path,
   siteMap.jupyterLab.path,
   siteMap.filePreview.path,

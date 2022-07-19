@@ -96,7 +96,6 @@ const useCustomRoute = () => {
   const valueArray = useLocationQuery([
     "job_uuid",
     "run_uuid",
-    "initial_tab",
     "project_uuid",
     "pipeline_uuid",
     "environment_uuid",
@@ -108,7 +107,6 @@ const useCustomRoute = () => {
   const [
     jobUuid,
     runUuid,
-    initialTab,
     projectUuid,
     pipelineUuid,
     environmentUuid,
@@ -171,7 +169,6 @@ const useCustomRoute = () => {
     jobUuid,
     runUuid,
     filePath,
-    initialTab,
     location,
     prevPathname,
     tab,
