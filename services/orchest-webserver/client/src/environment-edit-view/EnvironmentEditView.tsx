@@ -25,7 +25,6 @@ import Typography from "@mui/material/Typography";
 import { fetcher, hasValue, HEADER, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
-import { useFormik } from "formik";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { DEFAULT_BASE_IMAGES } from "./common";
@@ -35,49 +34,45 @@ import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
 import { useCustomImage } from "./useCustomImage";
 import { useRequestEnvironmentImageBuild } from "./useRequestEnvironmentImageBuild";
 
-const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
+const canCancel = (status = "NONE") => ["PENDING", "STARTED"].includes(status);
 
-const DOUBLE_QUOTATION_MARK_ERROR =
-  'Please escape double quotation marks using a "\\".';
 const validateEnvironmentName = (name: string | undefined) => {
-  if (name === undefined) return { valid: false, reason: "" };
   if (!name || !/\S/.test(name)) {
     return { valid: false, reason: "Cannot be blank" };
   }
+
   // Negative lookbehind. Check that every " is escaped with \
-  for (let x = 0; x < name.length; x++) {
-    if (name[x] === '"' && (x == 0 || name[x - 1] != "\\"))
-      return { valid: false, reason: DOUBLE_QUOTATION_MARK_ERROR };
+  for (let i = 0; i < name.length; i++) {
+    if (name[i] === '"' && (i === 0 || name[i - 1] !== "\\"))
+      return {
+        valid: false,
+        reason: 'Please escape double quotation marks using "\\".',
+      };
   }
+
   return { valid: true };
 };
-
-/**
- * in this view we use auto-save with a debounced time
- * so we still need setAsSaved to ensure that user's change is saved
- */
 
 const ENVIRONMENT_BUILDS_BASE_ENDPOINT =
   "/catch/api-proxy/api/environment-builds";
 
 const EnvironmentEditView: React.FC = () => {
-  // global states
+  // In this view we do a debounced auto-save
+  // so we still need setAsSaved to ensure that user's change is saved
+
   const { setAlert, setAsSaved, config } = useAppContext();
   const { orchestVersion } = useAppInnerContext();
 
   useSendAnalyticEvent("view:loaded", { name: siteMap.environment.path });
 
-  // data from route
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
 
   const returnToEnvironments = React.useCallback(
-    (e?: React.MouseEvent) => {
-      navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
-    },
+    (e?: React.MouseEvent) =>
+      navigateTo(siteMap.environments.path, { query: { projectUuid } }, e),
     [navigateTo, projectUuid]
   );
 
-  // local states
   const {
     environment,
     setEnvironment,
@@ -146,10 +141,7 @@ const EnvironmentEditView: React.FC = () => {
     EnvironmentImageBuild | undefined
   >(undefined);
   const building = React.useMemo(() => {
-    return (
-      ignoreIncomingLogs ||
-      CANCELABLE_STATUSES.includes(environmentBuild?.status || "")
-    );
+    return ignoreIncomingLogs || canCancel(environmentBuild?.status || "");
   }, [environmentBuild, ignoreIncomingLogs]);
 
   const [isCancellingBuild, setIsCancellingBuild] = React.useState(false);
@@ -160,8 +152,9 @@ const EnvironmentEditView: React.FC = () => {
 
   const saveEnvironment = React.useCallback(
     async (payload?: Partial<Environment>) => {
-      if (!environmentNameValidation.valid || !environment?.uuid)
-        return Promise.reject();
+      if (!environmentNameValidation.valid || !environment?.uuid) {
+        throw new Error("The environment information is not valid");
+      }
 
       // Saving an environment will invalidate the Jupyter <iframe>
       // TODO: perhaps this can be fixed with coordination between JLab +
@@ -195,42 +188,14 @@ const EnvironmentEditView: React.FC = () => {
     [environment, setAsSaved, projectUuid, setAlert, environmentNameValidation]
   );
 
-  const {
-    handleSubmit,
-    handleBlur,
-    values,
-    setFieldValue,
-    submitForm,
-  } = useFormik({
-    initialValues: environment || { name: "" },
-    isInitialValid: false,
-    validate: ({ name }) => {
-      const errors: Record<string, string> = {};
-      const environmentNameValidation = validateEnvironmentName(name);
-      if (!environmentNameValidation.valid)
-        errors.name = environmentNameValidation.reason || "";
-      return errors;
-    },
-    onSubmit: async (payload, { setSubmitting }) => {
-      setSubmitting(true);
-      const outcome = await saveEnvironment(payload);
-      setAsSaved(hasValue(outcome));
-      setSubmitting(false);
-    },
-    enableReinitialize: true,
-  });
-
-  useAutoSaveEnvironment(environment, submitForm);
+  useAutoSaveEnvironment(environment, saveEnvironment);
 
   const onChangeEnvironment = React.useCallback(
     (payload: Partial<Environment>) => {
-      Object.entries(payload).forEach(([key, value]) => {
-        setFieldValue(key, value);
-      });
       setAsSaved(false);
       setEnvironment((prev) => ({ ...prev, ...payload } as Environment));
     },
-    [setAsSaved, setEnvironment, setFieldValue]
+    [setAsSaved, setEnvironment]
   );
 
   const setCustomImageInEnvironment = (updatedCustomImage: CustomImage) => {
@@ -256,10 +221,9 @@ const EnvironmentEditView: React.FC = () => {
   const build = React.useCallback(
     async (e?: React.MouseEvent) => {
       if (building || !projectUuid) return;
-      if (e) {
-        e.preventDefault();
-        e.nativeEvent.preventDefault();
-      }
+
+      e?.preventDefault();
+      e?.nativeEvent.preventDefault();
 
       setIgnoreIncomingLogs(true);
 
@@ -289,6 +253,7 @@ const EnvironmentEditView: React.FC = () => {
       setEnvironmentImageBuild(newEnvironmentImageBuild);
     }
   }, [newEnvironmentImageBuild]);
+
   React.useEffect(() => {
     if (requestBuildError) {
       setIgnoreIncomingLogs(false);
@@ -298,11 +263,7 @@ const EnvironmentEditView: React.FC = () => {
   const mounted = useMounted();
 
   const cancelBuild = () => {
-    // send DELETE to cancel ongoing build
-    if (
-      environmentBuild &&
-      CANCELABLE_STATUSES.includes(environmentBuild.status)
-    ) {
+    if (environmentBuild && canCancel(environmentBuild.status)) {
       setIsCancellingBuild(true);
 
       fetcher(
@@ -316,9 +277,7 @@ const EnvironmentEditView: React.FC = () => {
           // why we're querying it again.
           setBuildFetchHash(uuidv4());
         })
-        .catch((error) => {
-          console.error(error);
-        })
+        .catch((error) => console.error(error))
         .finally(() => {
           if (mounted.current) setIsCancellingBuild(false);
         });
@@ -359,54 +318,47 @@ const EnvironmentEditView: React.FC = () => {
               flexDirection: { xs: "column", md: "row" },
             }}
           >
-            <form
-              id="environment-edit-form"
-              onSubmit={handleSubmit}
-              style={{ height: "100%" }}
-            >
-              <Stack direction="column" spacing={3}>
-                <Stack direction="row" alignItems="center" spacing={2}>
-                  <TuneIcon />
-                  <PageTitle sx={{ textTransform: "uppercase" }}>
-                    Environment properties
-                  </PageTitle>
-                </Stack>
-                <Paper
-                  elevation={3}
-                  sx={{
-                    padding: (theme) => theme.spacing(3),
-                    minWidth: (theme) => theme.spacing(48),
-                    width: (theme) => ({ xs: "100%", md: theme.spacing(48) }),
-                  }}
-                >
-                  <Stack direction="column" spacing={3}>
-                    <TextField
-                      fullWidth
-                      autoFocus
-                      required
-                      label="Environment name"
-                      error={!environmentNameValidation.valid}
-                      helperText={environmentNameValidation.reason || " "}
-                      disabled={building}
-                      onChange={(e) =>
-                        onChangeEnvironment({ name: e.target.value })
-                      }
-                      onBlur={handleBlur}
-                      value={values.name || ""}
-                      data-test-id="environments-env-name"
-                    />
-                    <ContainerImagesRadioGroup
-                      disabled={building}
-                      orchestVersion={orchestVersion}
-                      value={selectedImage}
-                      onChange={onChangeEnvironment}
-                      customImage={customImage}
-                      onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}
-                    />
-                  </Stack>
-                </Paper>
+            <Stack direction="column" spacing={3}>
+              <Stack direction="row" alignItems="center" spacing={2}>
+                <TuneIcon />
+                <PageTitle sx={{ textTransform: "uppercase" }}>
+                  Environment properties
+                </PageTitle>
               </Stack>
-            </form>
+              <Paper
+                elevation={3}
+                sx={{
+                  padding: (theme) => theme.spacing(3),
+                  minWidth: (theme) => theme.spacing(48),
+                  width: (theme) => ({ xs: "100%", md: theme.spacing(48) }),
+                }}
+              >
+                <Stack direction="column" spacing={3}>
+                  <TextField
+                    label="Environment name"
+                    value={environment?.name || ""}
+                    onChange={(event) =>
+                      onChangeEnvironment({ name: event.target.value })
+                    }
+                    fullWidth
+                    autoFocus
+                    required
+                    error={!environmentNameValidation.valid}
+                    helperText={environmentNameValidation.reason || " "}
+                    disabled={building}
+                    data-test-id="environments-env-name"
+                  />
+                  <ContainerImagesRadioGroup
+                    disabled={building}
+                    orchestVersion={orchestVersion}
+                    value={selectedImage}
+                    onChange={onChangeEnvironment}
+                    customImage={customImage}
+                    onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}
+                  />
+                </Stack>
+              </Paper>
+            </Stack>
             <Box
               sx={{
                 width: "100%",
@@ -441,15 +393,15 @@ const EnvironmentEditView: React.FC = () => {
                 </Box>
                 <CodeMirror
                   value={environment?.setup_script || ""}
+                  onBeforeChange={(_, __, value) =>
+                    onChangeEnvironment({ setup_script: value })
+                  }
                   options={{
                     mode: "application/x-sh",
                     theme: "dracula",
                     lineNumbers: true,
                     viewportMargin: Infinity,
                     readOnly: building,
-                  }}
-                  onBeforeChange={(editor, data, value) => {
-                    onChangeEnvironment({ setup_script: value });
                   }}
                 />
                 <Stack direction="row" spacing={3} alignItems="center">

@@ -41,8 +41,8 @@ Pipeline definition
     * The JSON inside the file uniquely defines the {term}`pipeline <(Data science) pipeline>`.
     * Every pipeline definition in a project is automatically detected and listed in the Orchest UI
       under *Pipelines*.
-    * A full [JSON Schema](https://json-schema.org/) definition can be found in the
-      {ref}`implementation details <pipeline-json-schema>`.
+    * A full [JSON Schema](https://json-schema.org/) definition can be found
+      {ref}`here <pipeline-json-schema>`.
 
 Interactive session
     Some notion of a session that you can boot and shut down which gives you additional functionality
@@ -72,8 +72,9 @@ Job
     A set of pipeline runs (where each pipeline will run for a different set of parameters). Currently
     we support the following types of jobs:
 
-    * Grid search like jobs: a collection of {term}`non-interactive pipeline runs <Non-interactive
-      (pipeline) run>` that is scheduled to run at a later time. The user can specify values for the
+    * Grid search like jobs: a collection of
+      {term}`non-interactive pipeline runs <Non-interactive (pipeline) run>`
+      that is scheduled to run at a later time. The user can specify values for the
       parameters other than the default values. The [scikit-learn docs] are a great resource to read more
       about grid searches.
     * Cron jobs: similar to grid search like jobs, but running on a cron schedule.

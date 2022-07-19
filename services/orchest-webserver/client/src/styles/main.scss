@@ -37,6 +37,11 @@ $pipelineStepWidth: 190px;
   outline: none;
 }
 
+.Mui-disabled,
+*[disabled] {
+  cursor: not-allowed;
+}
+
 html,
 body {
   height: 100%;
@@ -349,12 +354,6 @@ p > i.material-icons.float-left {
 
 .select-button-columns {
   display: flex;
-}
-
-.create-file-input {
-  .field-select-combo {
-    display: flex;
-  }
 }
 
 .largeText {

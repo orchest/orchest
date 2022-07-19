@@ -4,6 +4,10 @@ import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
+import {
+  BUILD_IMAGE_SOLUTION_VIEW,
+  useProjectsContext,
+} from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
@@ -11,7 +15,6 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type { Job } from "@/types";
 import {
-  checkGate,
   envVariablesDictToArray,
   formatServerDateTime,
 } from "@/utils/webserver-utils";
@@ -45,7 +48,8 @@ const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
 
 const JobView: React.FC = () => {
   // global states
-  const { setAlert, requestBuild } = useAppContext();
+  const { setAlert } = useAppContext();
+  const { ensureEnvironmentsAreBuilt } = useProjectsContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.job.path });
 
   // data from route
@@ -61,7 +65,9 @@ const JobView: React.FC = () => {
     return job ? envVariablesDictToArray(job.env_variables) : [];
   }, [job]);
 
-  // monitor if there's any operations ongoing, if so, disable action buttons
+  // Monitor if there's any operations ongoing, if so, disable action buttons.
+  // Since it is shared, we cannot directly use `error` of it.
+  // We need to catch the rejection per Promise.
   const { run, status } = useAsync<void | { next_scheduled_time: string }>();
   const isOperating = status === "PENDING" || isFetchingJob;
 
@@ -154,44 +160,37 @@ const JobView: React.FC = () => {
     if (!job) return;
 
     run(
-      checkGate(job.project_uuid)
-        .then(() => {
-          fetcher<Job>("/catch/api-proxy/api/jobs/duplicate", {
-            method: "POST",
-            headers: HEADER.JSON,
-            body: JSON.stringify({ job_uuid: job.uuid }),
-          })
-            .then((response) => {
-              // we need to re-navigate to ensure the URL is with correct job uuid
-              navigateTo(
-                siteMap.editJob.path,
-                {
-                  query: {
-                    projectUuid: response.project_uuid,
-                    jobUuid: response.uuid,
-                  },
-                },
-                e
-              );
+      ensureEnvironmentsAreBuilt(BUILD_IMAGE_SOLUTION_VIEW.JOB).then(
+        (hasBuilt) => {
+          if (hasBuilt)
+            fetcher<Job>("/catch/api-proxy/api/jobs/duplicate", {
+              method: "POST",
+              headers: HEADER.JSON,
+              body: JSON.stringify({ job_uuid: job.uuid }),
             })
-            .catch((error) => {
-              try {
-                let result = JSON.parse(error.body);
-                setTimeout(() => {
+              .then((response) => {
+                // we need to re-navigate to ensure the URL is with correct job uuid
+                navigateTo(
+                  siteMap.editJob.path,
+                  {
+                    query: {
+                      projectUuid: response.project_uuid,
+                      jobUuid: response.uuid,
+                    },
+                  },
+                  e
+                );
+              })
+              .catch((error) => {
+                try {
+                  let result = JSON.parse(error.body);
                   setAlert("Error", `Failed to create job. ${result.message}`);
-                });
-              } catch (error) {
-                console.log(error);
-              }
-            });
-        })
-        .catch((result) => {
-          if (result.reason === "gate-failed") {
-            requestBuild(job.project_uuid, result.data, "DuplicateJob", () => {
-              onJobDuplicate(e);
-            });
-          }
-        })
+                } catch (error) {
+                  console.log(error);
+                }
+              });
+        }
+      )
     );
   };
   const [totalRunCount, setTotalRunCount] = React.useState<number>();

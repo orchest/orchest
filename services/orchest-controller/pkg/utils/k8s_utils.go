@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -258,7 +259,7 @@ func GetInstanceOfObj(obj interface{}) client.Object {
 	return nil
 }
 
-func GetFromFromEnvVar(envVars []corev1.EnvVar, key string) string {
+func GetKeyFromEnvVar(envVars []corev1.EnvVar, key string) string {
 
 	for _, envVar := range envVars {
 		if envVar.Name == key {
@@ -275,6 +276,10 @@ func GetEnvVarFromMap(envVars map[string]string) []corev1.EnvVar {
 	for name, value := range envVars {
 		result = append(result, corev1.EnvVar{Name: name, Value: value})
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
 
 	return result
 }
@@ -303,12 +308,12 @@ func MergeEnvVars(envVarLists ...[]corev1.EnvVar) []corev1.EnvVar {
 
 // UpsertEnvVariable inserts the env variable from map to the list is not exist or update it
 // if replace it true and returns true if changed the envVarList
-func UpsertEnvVariable(envVarList *[]corev1.EnvVar, defaultEnvVarMap map[string]string, update bool) bool {
+func UpsertEnvVariable(envVarList *[]corev1.EnvVar, eEnvVarMap map[string]string, update bool) bool {
 
 	changed := false
 	envVarMap := GetMapFromEnvVar(*envVarList)
 
-	for defaultName, defaultValue := range defaultEnvVarMap {
+	for defaultName, defaultValue := range eEnvVarMap {
 		if value, ok := envVarMap[defaultName]; !ok || (update && value != defaultValue) {
 			envVarMap[defaultName] = defaultValue
 			*envVarList = append(*envVarList, corev1.EnvVar{Name: defaultName, Value: defaultValue})

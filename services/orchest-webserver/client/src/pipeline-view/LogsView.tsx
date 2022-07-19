@@ -149,7 +149,7 @@ export const LogsView: React.FC = () => {
   // Conditional fetch session
   let session =
     !jobUuid && hasValue(projectUuid) && hasValue(pipelineUuid)
-      ? getSession({ projectUuid, pipelineUuid })
+      ? getSession(pipelineUuid)
       : undefined;
 
   const close = () => {

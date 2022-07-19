@@ -93,6 +93,7 @@ html_static_path = ["_static"]
 html_css_files = [
     "css/custom_styles.css",
     "css/installer_widget.css",
+    "css/rate_widget.css",
 ]
 
-html_js_files = ["js/installer_widget.js"]
+html_js_files = ["js/installer_widget.js", "js/rate_widget.js"]

@@ -6,7 +6,7 @@ on:
     types: [published]
 
 jobs:
-  uploadsdk:
+  upload-to-pypi:
     runs-on: ubuntu-latest
     env:
       TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}

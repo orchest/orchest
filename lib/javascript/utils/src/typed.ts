@@ -8,7 +8,16 @@ export function uuidv4() {
 }
 
 // used in orchest-webserver only
-export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl", "js"];
+export const ALLOWED_STEP_EXTENSIONS = [
+  "ipynb",
+  "py",
+  "R",
+  "sh",
+  "jl",
+  "js",
+] as const;
+
+export type StepExtension = typeof ALLOWED_STEP_EXTENSIONS[number];
 
 // used in orchest-webserver only
 export function collapseDoubleDots(path: string) {
@@ -97,13 +106,6 @@ export function absoluteToRelativePath(path: string, cwd: string) {
   }
 
   return relativePath;
-}
-
-export function someParentHasClass(element, classname) {
-  if (element.classList && element.classList.contains(classname)) return true;
-  return (
-    element.parentNode && someParentHasClass(element.parentNode, classname)
-  );
 }
 
 // used in mdc-components only

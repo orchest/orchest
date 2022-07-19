@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import enum
 import json
+import os
+import platform
 import re
 import sys
 import time
@@ -142,7 +144,7 @@ class CRObjectNotFound(Exception):
 
 # NOTE: Schema to be kept in sync with `OrchestClusterPhase` from:
 # `services/orchest-controller/pkg/apis/orchest/v1alpha1/types.go`
-class ClusterStatus(enum.Enum):
+class ClusterStatus(str, enum.Enum):
     INITIALIZING = "Initializing"
     DEPLOYINGTHIRDPARTIES = "Deploying Third Parties"
     DEPLOYEDTHIRDPARTIES = "Deployed Third Parties"
@@ -159,6 +161,9 @@ class ClusterStatus(enum.Enum):
     UNKNOWN = "Unknown"
     UNHEALTHY = "Unhealthy"
     DELETING = "Deleting"
+
+    # Added by CLI to indicate that we are fetching the ClusterStatus.
+    FETCHING = "Fetching Orchest Cluster status"
 
 
 def install(
@@ -382,22 +387,40 @@ def install(
 
     echo("Setting up the Orchest Cluster...", nl=True)
     _display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
-    echo("Successfully installed Orchest!")
 
     if fqdn is not None:
-        echo(
-            f"Orchest is running with an FQDN equal to {fqdn}. To access it locally,"
-            " add an entry to your '/etc/hosts' file mapping the cluster ip"
-            f" (`minikube ip`) to '{fqdn}'. If you are on mac run the `minikube tunnel`"
-            f" daemon and map '127.0.0.1' to {fqdn} in the '/etc/hosts' file instead."
-            f" You will then be able to reach Orchest at http://{fqdn}."
-        )
+        echo(f"🚀 Done! Orchest is up with FQDN {fqdn}\n")
+
+        if platform.system() == "Darwin":
+            echo(
+                "💻 To access it locally, run `sudo minikube tunnel` "
+                f"and map 127.0.0.1 to {fqdn} in your hosts file:"
+            )
+            echo()
+            echo(f'  echo "127.0.0.1 {fqdn}" | sudo tee -a /etc/hosts')
+        else:
+            echo(
+                "💻 To access it locally, "
+                f"map `minikube ip` to {fqdn} in your hosts file:"
+            )
+            echo()
+            echo(f'  echo "$(minikube ip) {fqdn}" | sudo tee -a /etc/hosts')
+
+        echo()
+        echo(f"Once done, you can open http://{fqdn} in your browser.")
     else:
-        echo(
-            "Orchest is running without an FQDN. To access Orchest locally, simply"
-            " go to the IP returned by `minikube ip`. If you are on macOS run the"
-            " `minikube tunnel` daemon instead."
-        )
+        echo("🚀 Done! Orchest is up!\n")
+
+        if platform.system() == "Darwin":
+            echo(
+                "💻 To access it locally, "
+                "run `sudo minikube tunnel` and browse to http://localhost"
+            )
+        else:
+            echo(
+                "💻 To access it locally, "
+                "browse to the IP address returned by `minikube ip`"
+            )
 
 
 def uninstall(**kwargs) -> None:
@@ -457,10 +480,17 @@ def uninstall(**kwargs) -> None:
 
     # Delete cluster level resources.
     echo("Removing Orchest's cluster-level resources...")
-    RBAC_API.delete_cluster_role(name="orchest-controller")
-    RBAC_API.delete_cluster_role_binding(name="orchest-controller")
-    EXT_API.delete_custom_resource_definition(name="orchestclusters.orchest.io")
-    EXT_API.delete_custom_resource_definition(name="orchestcomponents.orchest.io")
+    funcs = [
+        [RBAC_API.delete_cluster_role, ("orchest-controller",)],
+        [RBAC_API.delete_cluster_role_binding, ("orchest-controller",)],
+        [EXT_API.delete_custom_resource_definition, ("orchestclusters.orchest.io",)],
+        [EXT_API.delete_custom_resource_definition, ("orchestcomponents.orchest.io",)],
+    ]
+    for f, args in funcs:
+        try:
+            f(*args)
+        except client.ApiException:
+            pass
 
     echo("\nSuccessfully uninstalled Orchest.")
 
@@ -699,7 +729,7 @@ def update(
         sys.exit(1)
 
     if watch_flag:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
+        _display_spinner(None, ClusterStatus.RUNNING)
         echo("Successfully updated Orchest!")
 
 
@@ -836,7 +866,12 @@ def patch(
     # https://kubernetes.io/docs/reference/using-api/server-side-apply/#custom-resources
     # Therefore, we first GET the custom object, PATCH it at runtime
     # our selves, then send the PATCH request.
-    custom_object = _get_namespaced_custom_object(ns, cluster_name)
+    try:
+        custom_object = _get_namespaced_custom_object(ns, cluster_name)
+    except CRObjectNotFound as e:
+        echo("Failed to patch Orchest Cluster.", err=True)
+        echo(e, err=True)
+        sys.exit(1)
     orchest_spec_patch = {
         "authServer": {
             "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
@@ -880,9 +915,30 @@ def patch(
         else:
             echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
+    else:
+        echo("Successfully patched the Orchest Cluster.")
 
-    _display_spinner(ClusterStatus.RUNNING, ClusterStatus.RUNNING)
-    echo("Successfully patched the Orchest Cluster.")
+    # Depending on the current cluster's state, `orchest patch` should
+    # not wait for the cluster's state to reach the same state again.
+    # For example, when in RUNNING state then users expect `orchest
+    # patch` to succeed once the cluster is in a RUNNING state again.
+    # However, when the cluster is in an ERROR state then we don't know
+    # what the user wants to wait for.
+    curr_status = _parse_cluster_status_from_custom_object(
+        custom_object  # type: ignore
+    )
+    if curr_status in [ClusterStatus.RUNNING, ClusterStatus.STOPPED]:
+        echo(f"Waiting for Orchest Cluster status to become: {curr_status.value}.")
+        # In case of STOPPED the spinner will run for 10s anyways.
+        _display_spinner(None, curr_status)
+    else:
+        if curr_status is None:
+            curr_status = ClusterStatus.UNKNOWN
+        echo(f"Orchest Cluster status is: {curr_status.value}")
+        echo(
+            "You might want to try running:"
+            f"\n\torchest status --wait={ClusterStatus.RUNNING.value}"
+        )
 
 
 def version(json_flag: bool, latest_flag: bool, **kwargs) -> None:
@@ -922,7 +978,9 @@ def version(json_flag: bool, latest_flag: bool, **kwargs) -> None:
         echo(version)
 
 
-def status(json_flag: bool, **kwargs) -> None:
+def status(
+    json_flag: bool, wait_for_status: t.Optional[ClusterStatus], **kwargs
+) -> None:
     """Gets Orchest Cluster status."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
@@ -942,9 +1000,31 @@ def status(json_flag: bool, **kwargs) -> None:
         echo("Failed to fetch Orchest Cluster status. Please try again.", err=True)
     else:
         if json_flag:
-            jecho({"status": status.value})
+            if wait_for_status is not None:
+                f = open(os.devnull, "w")
+                try:
+                    visited_states = _display_spinner(status, wait_for_status, file=f)
+                finally:
+                    f.close()
+                jecho(
+                    {
+                        "status": wait_for_status.value,
+                        "previous_status": [
+                            # Last state is current state so don't
+                            # include it.
+                            s.value
+                            for s in visited_states[:-1]
+                        ],
+                    }
+                )
+
+            else:
+                jecho({"status": status.value})
         else:
-            echo(status.value)
+            if wait_for_status is not None:
+                _display_spinner(status, wait_for_status)
+            else:
+                echo(status.value)
 
 
 def stop(watch: bool, **kwargs) -> None:
@@ -971,7 +1051,7 @@ def stop(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.RUNNING, ClusterStatus.STOPPED)
+        _display_spinner(None, ClusterStatus.STOPPED)
         echo("Successfully stopped Orchest.")
 
 
@@ -999,7 +1079,7 @@ def start(watch: bool, **kwargs) -> None:
         sys.exit(1)
 
     if watch:
-        _display_spinner(ClusterStatus.STOPPED, ClusterStatus.RUNNING)
+        _display_spinner(None, ClusterStatus.RUNNING)
         echo("Successfully started Orchest.")
 
 
@@ -1010,6 +1090,12 @@ def restart(watch: bool, **kwargs) -> None:
     echo("Restarting the Orchest Cluster.")
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
+    except CRObjectNotFound as e:
+        echo("Failed to restart the Orchest Cluster.", err=True)
+        echo(e, err=True)
+        sys.exit(1)
+
+    try:
         if status == ClusterStatus.STOPPED:
             start(**kwargs)
         else:
@@ -1027,14 +1113,7 @@ def restart(watch: bool, **kwargs) -> None:
             )
     except client.ApiException as e:
         echo("Failed to restart the Orchest Cluster.", err=True)
-        if e.status == 404:  # not found
-            echo(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found.",
-                err=True,
-            )
-        else:
-            echo(f"Reason: {e.reason}", err=True)
+        echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
     if watch:
@@ -1284,10 +1363,10 @@ def _get_namespaced_custom_object(
 
 
 def _display_spinner(
-    curr_status: ClusterStatus,
+    curr_status: t.Optional[ClusterStatus],
     end_status: ClusterStatus,
     file: t.Optional[t.IO] = None,
-) -> None:
+) -> t.List[ClusterStatus]:
     """Displays a spinner until the end status is reached.
 
     The spinner is displayed in `file` which defaults to `STDOUT`.
@@ -1310,6 +1389,16 @@ def _display_spinner(
         The implementation assumes the `end_status` is reached
         eventually and no concurrent/quick successive commands are
         issued.
+
+    Note:
+        Will run for at least 10 seconds as a safeguard to ensure that
+        the `end_status` wasn't reached prematurely, e.g. the current
+        status of the cluster is equal to end status on invocation of
+        this function. The user probably invoked a command to change
+        the state and thus the current state will probably soon change.
+
+        For example running the `orchest restart` command whilst the
+        cluster is in a RUNNING state.
 
     """
 
@@ -1358,6 +1447,12 @@ def _display_spinner(
         # NOTE: Watching (using `watch.Watch().stream(...)`) is not
         # supported, thus we go for a loop instead:
         # https://github.com/kubernetes-client/python/issues/1679
+        if curr_status is None:
+            curr_status = ClusterStatus.FETCHING
+            # FETCHING isn't actually a state of the cluster.
+            visited_states = []
+        else:
+            visited_states = [curr_status]
         prev_status = curr_status
 
         # Use `async_req` to make sure spinner is always loading.
@@ -1404,11 +1499,24 @@ def _display_spinner(
                 echo("\033[K", nl=False)
                 echo(f"🏁 {prev_status.value}", nl=True)
                 prev_status = curr_status
+                visited_states.append(curr_status)
 
-                # Otherwise we would wait without reason once the
-                # command has finished.
+                # Otherwise the loading spinner could again be shown
+                # with `curr_status` (even though we just indicated it
+                # was finished, i.e. the cluster is now in a new state).
                 if curr_status != end_status:
                     thread.wait()  # type: ignore
+
+        # In the case where the spinner is running just because of the
+        # minimal time limit, the loading spinner would be the last
+        # printed line. Thus we redraw the line to make sure the last
+        # status is indicated as finished/reached.
+        if prev_status == curr_status and curr_status == end_status:
+            echo("\r", nl=False)
+            echo("\033[K", nl=False)
+            echo(f"🏁 {curr_status.value}", nl=False)
+
+        return visited_states
     finally:
         echo("\033[?25h", nl=True)  # show cursor
 

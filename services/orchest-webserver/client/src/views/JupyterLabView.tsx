@@ -1,5 +1,5 @@
-import { BUILD_IMAGE_SOLUTION_VIEW } from "@/components/BuildPendingDialog";
 import { Layout } from "@/components/Layout";
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import {
@@ -20,44 +20,36 @@ import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { joinRelativePaths } from "@orchest/lib-utils";
+import { hasValue, joinRelativePaths } from "@orchest/lib-utils";
 import React from "react";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
-const JupyterLabView: React.FC = () => {
-  // global states
+const JupyterLabView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.jupyterLab.path });
   const { makeCancelable } = useCancelablePromise();
   const { cancelableFetch } = useCancelableFetch();
   useEnsureValidPipeline();
 
-  // data from route
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
+  const {
+    getSession,
+    startSession,
+    state: { sessions },
+  } = useSessionsContext();
 
-  const { getSession, toggleSession, state } = useSessionsContext();
-
-  // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState<
     number | undefined
   >(1000);
   const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
   const [pipelineCwd, setPipelineCwd] = React.useState<string>();
-  const [
-    hasEnvironmentCheckCompleted,
-    setHasEnvironmentCheckCompleted,
-  ] = React.useState(false);
 
-  const session = React.useMemo(
-    () =>
-      getSession({
-        pipelineUuid,
-        projectUuid,
-      }),
-    [pipelineUuid, projectUuid, getSession]
-  );
+  const session = React.useMemo(() => getSession(pipelineUuid), [
+    pipelineUuid,
+    getSession,
+  ]);
 
   React.useEffect(() => {
     return () => {
@@ -88,9 +80,42 @@ const JupyterLabView: React.FC = () => {
     }
   }, [cancelableFetch, makeCancelable, pipelineUuid, projectUuid]);
 
+  const isSessionsLoaded = hasValue(sessions);
+  const hasSession = hasValue(session);
+
+  // Launch the session if it doesn't exist
+  React.useEffect(() => {
+    if (!isSessionsLoaded) return;
+    if (!hasSession && pipelineUuid && projectUuid) {
+      startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB)
+        .then((isSessionStarted) => {
+          if (isSessionStarted) {
+            // Force reloading the view.
+            navigateTo(siteMap.jupyterLab.path, {
+              query: { projectUuid, pipelineUuid },
+            });
+          } else {
+            // When failed, it could be that the pipeline does no loner exist.
+            // Navigate back to PipelineEditor.
+            navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+          }
+        })
+        .catch(() => {
+          navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+        });
+    }
+  }, [
+    isSessionsLoaded,
+    hasSession,
+    startSession,
+    pipelineUuid,
+    projectUuid,
+    navigateTo,
+  ]);
+
   const conditionalRenderingOfJupyterLab = React.useCallback(() => {
     if (window.orchest.jupyter) {
-      if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
+      if (session?.status === "RUNNING" && hasSession) {
         if (!window.orchest.jupyter?.isShowing()) {
           window.orchest.jupyter?.show();
           if (filePath) window.orchest.jupyter?.navigateTo(filePath);
@@ -99,7 +124,7 @@ const JupyterLabView: React.FC = () => {
         window.orchest.jupyter?.hide();
       }
     }
-  }, [filePath, hasEnvironmentCheckCompleted, session?.status]);
+  }, [filePath, hasSession, session?.status]);
 
   const updateJupyterInstance = React.useCallback(() => {
     if (session?.base_url) {
@@ -108,44 +133,14 @@ const JupyterLabView: React.FC = () => {
     }
   }, [session?.base_url]);
 
-  // Launch the session if it doesn't exist
   React.useEffect(() => {
-    if (!state.sessionsIsLoading && pipelineUuid && projectUuid) {
-      toggleSession({
-        pipelineUuid,
-        projectUuid,
-        requestedFromView: BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB,
-        shouldStart: true,
-        onBuildComplete: () => {
-          // Force reloading the view.
-          navigateTo(siteMap.jupyterLab.path, {
-            query: { projectUuid, pipelineUuid },
-          });
-        },
-        onCancelBuild: () => {
-          // If user decides to cancel building the image, navigate back to Pipeline Editor.
-          navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
-        },
-      }).then(() => {
-        setHasEnvironmentCheckCompleted(true);
-      });
-    }
-  }, [
-    toggleSession,
-    state.sessionsIsLoading,
-    pipelineUuid,
-    projectUuid,
-    navigateTo,
-  ]);
-
-  React.useEffect(() => {
-    if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
+    if (session?.status === "RUNNING" && hasSession) {
       conditionalRenderingOfJupyterLab();
       fetchPipeline();
     }
   }, [
     session?.status,
-    hasEnvironmentCheckCompleted,
+    hasSession,
     conditionalRenderingOfJupyterLab,
     fetchPipeline,
   ]);
@@ -157,9 +152,7 @@ const JupyterLabView: React.FC = () => {
     conditionalRenderingOfJupyterLab();
 
     if (session?.status === "STOPPING") {
-      navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid },
-      });
+      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
     }
   }, [
     session?.status,
@@ -167,7 +160,6 @@ const JupyterLabView: React.FC = () => {
     navigateTo,
     projectUuid,
     updateJupyterInstance,
-    hasEnvironmentCheckCompleted,
   ]);
 
   useInterval(

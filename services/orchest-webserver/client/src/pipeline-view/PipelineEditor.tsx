@@ -36,7 +36,7 @@ import {
 } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { CreateNextStepButton } from "./CreateNextStepButton";
+import { CreateStepButton } from "./CreateStepButton";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
 import { useOpenNoteBook } from "./hooks/useOpenNoteBook";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
@@ -78,6 +78,7 @@ export const PipelineEditor = () => {
     dispatch,
     stepDomRefs,
     pipelineCanvasRef,
+    pipelineViewportRef,
     newConnection,
     pipelineCwd,
     pipelineJson,
@@ -107,7 +108,6 @@ export const PipelineEditor = () => {
     runUuid,
   ]);
 
-  const pipelineViewportRef = React.useRef<HTMLDivElement | null>(null);
   const canvasFuncRef = React.useRef<CanvasFunctions>();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
@@ -384,8 +384,6 @@ export const PipelineEditor = () => {
     setPipelineJson((value) => value, true);
   }, [setPipelineJson]);
 
-  const isContextMenuOpenState = React.useState(false);
-
   const autoLayoutPipeline = () => {
     const spacingFactor = 0.7;
     const gridMargin = 20;
@@ -642,7 +640,6 @@ export const PipelineEditor = () => {
           canvasFuncRef={canvasFuncRef}
           executeRun={executeRun}
           autoLayoutPipeline={autoLayoutPipeline}
-          isContextMenuOpenState={isContextMenuOpenState}
         >
           {connections.map((connection) => {
             const { startNodeUUID, endNodeUUID } = connection;
@@ -764,7 +761,6 @@ export const PipelineEditor = () => {
                 interactiveConnections={interactiveConnections}
                 onDoubleClick={onDoubleClickStep}
                 getPosition={getPosition}
-                isContextMenuOpenState={isContextMenuOpenState}
               >
                 <ConnectionDot
                   incoming
@@ -903,9 +899,7 @@ export const PipelineEditor = () => {
         )}
         {pipelineJson && (
           <div className={"pipeline-actions top-right"}>
-            {!isReadOnly && (
-              <CreateNextStepButton pipelineViewportRef={pipelineViewportRef} />
-            )}
+            {!isReadOnly && <CreateStepButton />}
             {isReadOnly && (
               <Button color="secondary" startIcon={<VisibilityIcon />} disabled>
                 Read only

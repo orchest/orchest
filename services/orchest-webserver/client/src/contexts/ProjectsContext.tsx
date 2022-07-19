@@ -1,9 +1,32 @@
 import type {
+  EnvironmentValidationData,
   PipelineMetaData,
   Project,
   ReducerActionWithCallback,
 } from "@/types";
+import { checkGate } from "@/utils/webserver-utils";
 import React from "react";
+
+export enum BUILD_IMAGE_SOLUTION_VIEW {
+  PIPELINE = "Pipeline",
+  JOBS = "Jobs",
+  JOB = "Job",
+  JUPYTER_LAB = "JupyterLab",
+}
+
+export type BuildRequest = {
+  projectUuid: string;
+  environmentValidationData: EnvironmentValidationData;
+  requestedFromView: string;
+  onComplete: () => void;
+  onCancel: () => void;
+};
+
+export type RequestBuildDispatcher = (
+  projectUuid: string,
+  environmentValidationData: EnvironmentValidationData,
+  requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
+) => Promise<boolean>;
 
 const ProjectsContext = React.createContext<IProjectsContext>(
   {} as IProjectsContext
@@ -19,6 +42,7 @@ export type IProjectsContextState = {
   hasLoadedProjects: boolean;
   hasLoadedPipelinesInPipelineEditor: boolean;
   newPipelineUuid: string | undefined;
+  buildRequest?: BuildRequest;
 };
 
 export const useProjectsContext = () => React.useContext(ProjectsContext);
@@ -55,6 +79,10 @@ type Action =
   | {
       type: "UPDATE_PIPELINE";
       payload: { uuid: string } & Partial<PipelineMetaData>;
+    }
+  | {
+      type: "SET_BUILD_REQUEST";
+      payload: BuildRequest | undefined;
     };
 
 export type ProjectsContextAction = ReducerActionWithCallback<
@@ -65,6 +93,10 @@ export type ProjectsContextAction = ReducerActionWithCallback<
 export interface IProjectsContext {
   state: IProjectsContextState;
   dispatch: (value: ProjectsContextAction) => void;
+  ensureEnvironmentsAreBuilt: (
+    requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
+  ) => Promise<boolean>;
+  requestBuild: RequestBuildDispatcher;
 }
 
 const reducer = (
@@ -164,6 +196,9 @@ const reducer = (
     }
     case "SET_PROJECTS":
       return { ...state, projects: action.payload, hasLoadedProjects: true };
+    case "SET_BUILD_REQUEST": {
+      return { ...state, buildRequest: action.payload };
+    }
     default: {
       console.log(action);
       return state;
@@ -184,8 +219,81 @@ const initialState: IProjectsContextState = {
 export const ProjectsContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
+  const requestBuild = React.useCallback(
+    (
+      projectUuid: string,
+      environmentValidationData: EnvironmentValidationData,
+      requestedFromView?: BUILD_IMAGE_SOLUTION_VIEW
+    ) => {
+      return new Promise<boolean>((resolve) =>
+        dispatch({
+          type: "SET_BUILD_REQUEST",
+          payload: {
+            projectUuid,
+            environmentValidationData,
+            requestedFromView: requestedFromView || "",
+            onComplete: () => resolve(true),
+            onCancel: () => resolve(false),
+          },
+        })
+      );
+    },
+    [dispatch]
+  );
+
+  const doRequestBuild = React.useCallback(
+    async (
+      environmentValidationData: EnvironmentValidationData,
+      requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
+    ) => {
+      if (!state.projectUuid) return false;
+      const shouldSetReadOnly =
+        requestedFromView &&
+        [
+          BUILD_IMAGE_SOLUTION_VIEW.PIPELINE,
+          BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB,
+        ].includes(requestedFromView);
+
+      if (shouldSetReadOnly)
+        dispatch({
+          type: "SET_PIPELINE_IS_READONLY",
+          payload: true,
+        });
+
+      const hasBuilt = await requestBuild(
+        state.projectUuid,
+        environmentValidationData,
+        requestedFromView
+      );
+
+      if (shouldSetReadOnly && hasBuilt) {
+        dispatch({
+          type: "SET_PIPELINE_IS_READONLY",
+          payload: false,
+        });
+      }
+      return hasBuilt;
+    },
+    [requestBuild, state.projectUuid]
+  );
+
+  const ensureEnvironmentsAreBuilt = React.useCallback(
+    async (requestedFromView: BUILD_IMAGE_SOLUTION_VIEW): Promise<boolean> => {
+      if (!state.projectUuid) return false;
+      try {
+        await checkGate(state.projectUuid);
+        return true;
+      } catch (error) {
+        return doRequestBuild(error.data, requestedFromView);
+      }
+    },
+    [state.projectUuid, doRequestBuild]
+  );
+
   return (
-    <ProjectsContext.Provider value={{ state, dispatch }}>
+    <ProjectsContext.Provider
+      value={{ state, dispatch, ensureEnvironmentsAreBuilt, requestBuild }}
+    >
       {children}
     </ProjectsContext.Provider>
   );

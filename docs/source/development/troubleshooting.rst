@@ -19,7 +19,7 @@ Some other kubectl commands that can be useful when debugging Orchest:
    # Attach a shell in a particular service
    kubectl exec -n orchest -it deployment/orchest-api bash
 
-   
+
 Minikube is unresponsive on Docker Desktop
 ------------------------------------------
 
@@ -29,8 +29,8 @@ Sometimes Minikube becomes unresponsive on Docker Desktop. Some tell-tale signs 
 - k9s fails to connect to minikube's context and ``docker logs minikube`` hangs, even though minikube is started
 - Minikube commands hang or are really slow
 
-This happens because too little memory is being allocated to Docker Engine. 
-To fix it: open Docker Desktop and go to `Settings > Advanced` and then increase the "Memory" slider 
+This happens because too little memory is being allocated to Docker Engine.
+To fix it: open Docker Desktop and go to `Settings > Advanced` and then increase the "Memory" slider
 (`See this GitHub issue for reference <https://github.com/moby/moby/issues/22211>`_).
 
 Inspecting the ``orchest-api`` API schema
@@ -139,57 +139,6 @@ Dev mode not working
 * If you have changed some dependencies (i.e. requirements.txt files) you have to rebuild the image and
   kill the pod to get it redeployed.
 
-Test updating Orchest
----------------------
-Through the CLI
-~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   orchest uninstall
-   scripts/build_container.sh -M -t "v2022.04.4" -o "v2022.04.4"
-   orchest install --dev
-   scripts/build_container.sh -M -t "v2022.04.5" -o "v2022.04.5"
-   orchest update --dev --version=v2022.04.5
-   scripts/build_container.sh -M -t "v2022.04.6" -o "v2022.04.6"
-   orchest update --dev --version=v2022.04.6
-
-Through the UI
-~~~~~~~~~~~~~~
-For this to work you need to be running in dev mode and have the ``orchest-dev-repo`` mounted (as
-per :ref:`setting up minikube for development <cluster-mount>`).
-
-.. code-block:: bash
-
-   # Start from a clean slate so that we know what version we are on
-   # before invoking the update.
-   orchest uninstall
-
-   # Build whatever version you like! In case you want to test out
-   # the product after the update, build the X-1 latest release
-   # tag.
-   scripts/build_container.sh -m -t "v2022.04.4" -o "v2022.04.4"
-
-   # Installing and making sure running in dev.
-   orchest install --dev
-   orchest patch --dev
-   pnpm run dev
-
-   # Build the version to update to
-   scripts/build_container.sh -M -t "v2022.04.5" -o "v2022.04.5"
-
-   # Invoke the update through the UI go to:
-   # http://localorchest.io/update
-   ...
-
-   # In case you want to test it again
-   scripts/build_container.sh -M -t "v2022.04.6" -o "v2022.04.6"
-   # Invoke the update through the UI go to:
-   # http://localorchest.io/update
-   ...
-
-   # And repeat if you like.
-
 Can't log-in to authentication enabled instance
 -----------------------------------------------
 Open ``k9s`` and open a shell (``s`` shortcut) on the ``orchest-database`` pod.
@@ -230,5 +179,5 @@ Missing environment variables in pods
    - cause a redeployment of the controller image by killing the controller pod,
      ``kubectl delete pod -n orchest -l app.kubernetes.io/name=orchest-controller``, or
      scale down and back up the controller deployment, or any other preferred solution.
-   
+
    - start Orchest, ``orchest start``.

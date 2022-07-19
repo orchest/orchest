@@ -3,9 +3,9 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Environment,
-  IOrchestSession,
   MouseTracker,
   NewConnection,
+  OrchestSession,
   PipelineJson,
   Position,
   StepsDict,
@@ -33,6 +33,7 @@ export type PipelineEditorContextType = {
   dispatch: (value: EventVarsAction) => void;
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   pipelineCanvasRef: React.MutableRefObject<HTMLDivElement | null>;
+  pipelineViewportRef: React.MutableRefObject<HTMLDivElement | null>;
   newConnection: React.MutableRefObject<NewConnection | undefined>;
   keysDown: Set<number | string>;
   trackMouseMovement: (clientX: number, clientY: number) => void;
@@ -60,9 +61,11 @@ export type PipelineEditorContextType = {
     startNodeUUID: string;
     endNodeUUID: string | undefined;
   };
-  session: IOrchestSession | undefined;
+  session: OrchestSession | undefined;
   getOnCanvasPosition: (offset: Position) => Position;
   disabled: boolean;
+  isContextMenuOpen: boolean;
+  setIsContextMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export const PipelineEditorContext = React.createContext<PipelineEditorContextType | null>(
@@ -80,13 +83,13 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     state: { pipelines, projectUuid, pipeline },
   } = useProjectsContext();
   const pipelineUuid = pipeline?.uuid;
-
   const { jobUuid, runUuid: runUuidFromRoute } = useCustomRoute();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
   const disabled = hasValue(pipelines) && pipelines.length === 0;
 
   const pipelineCanvasRef = React.useRef<HTMLDivElement | null>(null);
+  const pipelineViewportRef = React.useRef<HTMLDivElement | null>(null);
 
   const {
     eventVars,
@@ -190,6 +193,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     [eventVars.scaleFactor, mouseTracker, pipelineCanvasRef]
   );
 
+  const [isContextMenuOpen, setIsContextMenuOpen] = React.useState(false);
+
   return (
     <PipelineEditorContext.Provider
       value={{
@@ -199,6 +204,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         dispatch,
         stepDomRefs,
         pipelineCanvasRef,
+        pipelineViewportRef,
         newConnection,
         keysDown,
         trackMouseMovement,
@@ -219,6 +225,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         session,
         getOnCanvasPosition,
         disabled,
+        isContextMenuOpen,
+        setIsContextMenuOpen,
       }}
     >
       {children}

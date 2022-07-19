@@ -17,7 +17,7 @@ import {
   cleanFilePath,
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
-  unpackCombinedPath,
+  unpackPath,
 } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
@@ -67,7 +67,7 @@ export const FileManagerContextMenu: React.FC<{
 
     handleClose();
 
-    let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
+    const { root, path } = unpackPath(contextMenuCombinedPath);
 
     await fetch(
       `${FILE_MANAGEMENT_ENDPOINT}/duplicate?${queryArgs({

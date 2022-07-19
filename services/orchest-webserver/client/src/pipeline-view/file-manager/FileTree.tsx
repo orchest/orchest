@@ -5,7 +5,7 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
-import { IOrchestSessionUuid, PipelineMetaData } from "@/types";
+import { firstAncestor } from "@/utils/element";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -13,25 +13,32 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
+import { FileManagementRoot } from "../common";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
 import {
-  baseNameFromPath,
+  basename,
   cleanFilePath,
-  deduceRenameFromDragOperation,
-  filePathFromHTMLElement,
+  dirname,
   FileTrees,
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
   filterRedundantChildPaths,
   findFilesByExtension,
-  findPipelineFilePathsWithinFolders,
-  generateTargetDescription,
-  isFileByExtension,
-  isWithinDataFolder,
+  findPipelineFiles,
+  getMoveFromDrop,
+  isCombinedPath,
+  isInDataFolder,
+  isInProjectFolder,
+  isPipelineFile,
+  isRename,
+  Move,
+  pathFromElement,
+  prettifyRoot,
   queryArgs,
   ROOT_SEPARATOR,
-  unpackCombinedPath,
   UnpackedPath,
+  unpackMove,
+  unpackPath,
 } from "./common";
 import { DragIndicator } from "./DragIndicator";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -39,127 +46,33 @@ import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 import { TreeRow } from "./TreeRow";
 
-const isInFileManager = (element: HTMLElement) => {
-  if (element.classList.contains(FILE_MANAGER_ROOT_CLASS)) return true;
-
-  if (element.parentElement) {
-    return isInFileManager(element.parentElement);
-  }
-
-  return false;
+export type FileTreeProps = {
+  treeRoots: readonly FileManagementRoot[];
+  expanded: string[];
+  handleToggle: (
+    event: React.SyntheticEvent<Element, Event>,
+    nodeIds: string[]
+  ) => void;
+  onMoved: (oldPath: string, newPath: string) => void;
 };
 
-const findFileViaPath = (path: string, fileTrees: FileTrees) => {
-  // example: /project-dir:/hello-world/folder/my-file.py
-  const [root, filePathStr] = path.split(":");
-  const filePath = filePathStr.split("/").filter((value) => value !== "");
-  let head = fileTrees[root];
-
-  for (let token of filePath) {
-    const found = head.children.find((item) => item.name === token);
-    if (!found) break;
-    head = found;
-  }
-  return head;
-};
-
-const getFilePathChangeParams = (oldFilePath: string, newFilePath: string) => {
-  const { root: oldRoot, path: oldPath } = unpackCombinedPath(oldFilePath);
-  const { root: newRoot, path: newPath } = unpackCombinedPath(newFilePath);
-  return { oldRoot, oldPath, newRoot, newPath };
-};
-
-const sendChangeFilePathRequest = ({
-  oldPath,
-  newPath,
-  oldRoot,
-  newRoot,
-  projectUuid,
-}: {
-  oldPath: string;
-  newPath: string;
-  oldRoot: string;
-  newRoot: string;
-  projectUuid: string;
-}) => {
-  return fetcher(
-    `${FILE_MANAGEMENT_ENDPOINT}/rename?${queryArgs({
-      old_path: oldPath,
-      new_path: newPath,
-      old_root: oldRoot,
-      new_root: newRoot,
-      project_uuid: projectUuid,
-    })}`,
-    { method: "POST" }
-  );
-};
-
-const sendChangePipelineFilePathRequest = (
-  projectUuid: string,
-  pipelineUuid: string,
-  newPath: string
-) => {
-  return fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
-    method: "PUT",
-    headers: HEADER.JSON,
-    body: JSON.stringify({ path: newPath.replace(/^\//, "") }), // The path should be relative to `/project-dir:/`.
-  });
-};
-
-const doChangeFilePath = async ({
-  pipelineUuid,
-  projectUuid,
-  ...params
-}: {
-  oldRoot: string;
-  oldPath: string;
-  newRoot: string;
-  newPath: string;
-  projectUuid: string;
-  pipelineUuid?: string;
-}) => {
-  // sendChangePipelineFilePathRequest can only move a pipeline file within /project-dir:/ folder
-  // to move .orchest file from /project-dir:/ to /data:/, use /async/file-management/rename endpoint, and delete the pipeline from state.pipelines.
-  if (
-    isFileByExtension(["orchest"], params.newPath) &&
-    params.newRoot === "/project-dir" &&
-    pipelineUuid
-  ) {
-    // `pipeline_uuid` is only needed when newRoot is  "/project-dir:/".
-    if (!pipelineUuid) throw new Error("pipeline_uuid is required.");
-
-    return sendChangePipelineFilePathRequest(
-      projectUuid,
-      pipelineUuid,
-      params.newPath
-    );
-  }
-
-  return sendChangeFilePathRequest({ ...params, projectUuid });
+export type LockedFile = UnpackedPath & {
+  pipelineUuid: string;
 };
 
 export const FileTree = React.memo(function FileTreeComponent({
   treeRoots,
   expanded,
   handleToggle,
-  onRename,
-}: {
-  treeRoots: string[];
-  expanded: string[];
-  handleToggle: (
-    event: React.SyntheticEvent<Element, Event>,
-    nodeIds: string[]
-  ) => void;
-  onRename: (oldPath: string, newPath: string) => void;
-}) {
+  onMoved,
+}: FileTreeProps) {
   const { setConfirm, setAlert } = useAppContext();
-  const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
-  const { getSession, toggleSession } = useSessionsContext();
+  const { projectUuid, navigateTo } = useCustomRoute();
+  const { getSession, stopSession } = useSessionsContext();
   const {
-    state: { pipelines = [], pipeline },
+    state: { pipelines = [] },
     dispatch,
   } = useProjectsContext();
-
   const {
     selectedFiles,
     dragFile,
@@ -168,22 +81,32 @@ export const FileTree = React.memo(function FileTreeComponent({
     isDragging,
     fileTrees,
   } = useFileManagerContext();
-
-  const { handleSelect, reload } = useFileManagerLocalContext();
-
+  const {
+    handleSelect,
+    reload,
+    setFileInRename,
+  } = useFileManagerLocalContext();
   const openNotebook = useOpenNoteBook();
 
+  const pipelineByPath = React.useCallback(
+    (path) => {
+      path = isCombinedPath(path) ? unpackPath(path).path : path;
+
+      return pipelines.find(
+        (pipeline) => pipeline.path === path.replace(/^\//, "")
+      );
+    },
+    [pipelines]
+  );
+
   const onOpen = React.useCallback(
-    (filePath: string) => {
-      if (pipelines.length === 0) {
+    (path: string) => {
+      if (!pipelines.length) {
         setAlert(
           "Notice",
           "In order to open a file in JupyterLab, you need to create a pipeline first."
         );
-        return;
-      }
-
-      if (isWithinDataFolder(filePath)) {
+      } else if (isInDataFolder(path)) {
         setAlert(
           "Notice",
           <>
@@ -191,461 +114,282 @@ export const FileTree = React.memo(function FileTreeComponent({
             move it to <Code>Project files</Code>.
           </>
         );
-        return;
+      } else if (isPipelineFile(path)) {
+        const pipelineUuid = pipelineByPath(path)?.uuid;
+
+        if (pipelineUuid) {
+          navigateTo(siteMap.pipeline.path, {
+            query: { projectUuid, pipelineUuid },
+          });
+        }
+      } else {
+        openNotebook(undefined, cleanFilePath(path));
       }
-
-      const foundPipeline = isFileByExtension(["orchest"], filePath)
-        ? pipelines.find(
-            (pipeline) => pipeline.path === cleanFilePath(filePath)
-          )
-        : null;
-
-      if (foundPipeline && foundPipeline.uuid !== pipelineUuid) {
-        setConfirm(
-          "Confirm",
-          <>
-            Are you sure you want to open pipeline <b>{foundPipeline.name}</b>?
-          </>,
-          {
-            onConfirm: async (resolve) => {
-              navigateTo(siteMap.pipeline.path, {
-                query: { projectUuid, pipelineUuid: foundPipeline.uuid },
-              });
-              resolve(true);
-              return true;
-            },
-            onCancel: async (resolve) => {
-              resolve(false);
-              return false;
-            },
-            confirmLabel: "Open pipeline",
-            cancelLabel: "Cancel",
-          }
-        );
-        return;
-      }
-
-      if (foundPipeline && foundPipeline.uuid === pipelineUuid) {
-        setAlert("Notice", "This pipeline is already open.");
-        return;
-      }
-
-      openNotebook(undefined, cleanFilePath(filePath));
     },
-    [
-      pipelines,
-      projectUuid,
-      pipelineUuid,
-      setAlert,
-      setConfirm,
-      navigateTo,
-      openNotebook,
-    ]
+    [pipelineByPath, pipelines, projectUuid, setAlert, navigateTo, openNotebook]
   );
 
-  const dragFiles = React.useMemo(() => {
-    if (!dragFile) return [];
-    if (!selectedFiles.includes(dragFile.path)) return [dragFile.path];
-
-    // dragFiles cannot have nodes that are ancester/offspring of each other
-    // because offspring nodes will be moved along with their ancesters.
-    // e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed
-    return filterRedundantChildPaths(selectedFiles);
+  const draggedFiles = React.useMemo(() => {
+    if (!dragFile) {
+      return [];
+    } else if (!selectedFiles.includes(dragFile.path)) {
+      return [dragFile.path];
+    } else {
+      return filterRedundantChildPaths(selectedFiles);
+    }
   }, [dragFile, selectedFiles]);
 
-  const pipelineDics = React.useMemo(
-    () =>
-      pipelines.reduce((all, curr) => {
-        return { ...all, [curr.path]: curr };
-      }, {} as Record<string, PipelineMetaData>),
-    [pipelines]
-  );
+  const getFilesLockedBySession = React.useCallback(
+    async (paths: string[]): Promise<LockedFile[]> => {
+      if (!projectUuid) {
+        return [];
+      }
 
-  const checkSessionForMovingPipelineFiles = React.useCallback(
-    async (combinedPaths: string[]): Promise<[boolean, PipelineMetaData[]]> => {
-      if (!projectUuid) return [false, []];
-      const { folderPaths, pipelineFilePaths } = combinedPaths.reduce(
-        (all, dragPath) => {
-          if (dragPath.endsWith("/"))
-            all.folderPaths.push(unpackCombinedPath(dragPath));
-          if (dragPath.endsWith(".orchest")) {
-            all.pipelineFilePaths.push(unpackCombinedPath(dragPath));
-          }
-          return all;
-        },
-        {
-          folderPaths: [] as UnpackedPath[],
-          pipelineFilePaths: [] as UnpackedPath[],
-        }
-      );
-
-      const foundPipelineFilePaths = await findPipelineFilePathsWithinFolders(
+      const pipelineFiles = await findPipelineFiles(
         projectUuid,
-        folderPaths
+        paths.map(unpackPath)
       );
 
-      const filePaths = [...pipelineFilePaths, ...foundPipelineFilePaths];
+      const lockedFiles: LockedFile[] = [];
 
-      if (filePaths.length === 0) return [true, []];
+      for (const { path, root } of pipelineFiles) {
+        const pipelineUuid = pipelineByPath(path)?.uuid;
 
-      const pipelinesWithSession: (IOrchestSessionUuid &
-        PipelineMetaData)[] = [];
-
-      for (let filePath of filePaths) {
-        const foundPipeline = pipelineDics[filePath.path.replace(/^\//, "")];
-
-        if (!foundPipeline) continue;
-
-        const session = getSession({
-          pipelineUuid: foundPipeline.uuid,
-          projectUuid,
-        });
-
-        if (session) {
-          pipelinesWithSession.push({
-            ...foundPipeline,
-            ...session,
-          });
+        if (!pipelineUuid) {
+          continue;
         }
+
+        const session = getSession(pipelineUuid);
+
+        if (!session) {
+          continue;
+        }
+
+        lockedFiles.push({ path, root, pipelineUuid });
       }
 
-      if (pipelinesWithSession.length > 0) {
-        setConfirm(
-          "Warning",
-          <Stack spacing={2} direction="column">
-            <Box>
-              Following pipeline files will also be moved. You need to stop
-              their sessions before moving them. Do you want to proceed?
-            </Box>
-            <ul>
-              {pipelinesWithSession.map((file) => (
-                <Box key={file.path}>
-                  <Code>{`Project files/${file.path}`}</Code>
-                </Box>
-              ))}
-            </ul>
-          </Stack>,
-          {
-            confirmLabel: `Stop session${
-              pipelinesWithSession.length > 1 ? "s" : ""
-            }`,
-            onConfirm: async (resolve) => {
-              await Promise.all(
-                pipelinesWithSession.map((session) => toggleSession(session))
-              );
-              resolve(true);
-              return true;
-            },
-          }
-        );
-      }
-
-      return [pipelinesWithSession.length === 0, pipelinesWithSession];
+      return lockedFiles;
     },
-    [getSession, projectUuid, setConfirm, toggleSession, pipelineDics]
+    [getSession, pipelineByPath, projectUuid]
   );
 
-  // by default, handleChangeFilePath will reload
-  // when moving multiple files, we manually call reload after Promise.all
-  const handleChangeFilePath = React.useCallback(
-    async ({
-      oldFilePath,
-      newFilePath,
-      pipelineUuid,
-      skipReload = false,
-    }: {
-      oldFilePath: string;
-      newFilePath: string;
-      pipelineUuid?: string;
-      skipReload?: boolean;
-    }) => {
-      if (!projectUuid) return;
-      const params = getFilePathChangeParams(oldFilePath, newFilePath);
+  const handleMove = React.useCallback(
+    async ([oldPath, newPath]: Move) => {
       try {
-        await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
+        if (!projectUuid) return;
 
-        const isMovingPipelineFile = isFileByExtension(
-          ["orchest"],
-          params.newPath
-        );
+        const movedPipelineWithinProject =
+          isPipelineFile(oldPath) &&
+          isInProjectFolder(oldPath) &&
+          isInProjectFolder(newPath);
 
-        // Moving a pipeline file from /data to /project-dir is equivalent to create new pipeline out of the .orchest file.
-        // Thus, fire a fetch pipelines request to force BE to dicover the .orchest file.
-        // and then update ProjectsContext and reload.
-        const shouldReloadImmediately =
-          isMovingPipelineFile && params.newRoot === "/project-dir";
+        if (movedPipelineWithinProject) {
+          const pipeline = pipelineByPath(oldPath);
 
-        if (shouldReloadImmediately) {
-          const updatedPipelines = await fetchPipelines(projectUuid);
-          dispatch({ type: "SET_PIPELINES", payload: updatedPipelines });
-          reload();
-          return;
+          if (pipeline) {
+            await movePipeline(projectUuid, pipeline.uuid, [oldPath, newPath]);
+          }
+        } else {
+          await moveFile(projectUuid, [oldPath, newPath]);
         }
 
-        // If `.orchest` file is moved into `/data`, the pipeline cannot be opened.
-        const shouldRemovePipeline =
-          isMovingPipelineFile && params.newRoot === "/data";
-
-        if (shouldRemovePipeline) {
-          const pipelineFilePath = cleanFilePath(params.newPath);
-          dispatch((current) => {
-            const currentPipelines = current.pipelines || [];
-
-            // Find the to-be-removed pipeline via path
-            const pipelineToRemove = shouldRemovePipeline
-              ? currentPipelines.find(
-                  (p) => p.path === params.oldPath.replace(/^\//, "")
-                )
-              : undefined;
-
-            const payload = shouldRemovePipeline
-              ? currentPipelines.filter((pipeline) => {
-                  return pipeline.uuid !== pipelineToRemove?.uuid;
-                })
-              : currentPipelines.map((pipeline) => {
-                  return pipeline.uuid === pipelineUuid
-                    ? { ...pipeline, path: pipelineFilePath }
-                    : pipeline;
-                });
-
-            return {
-              type: "SET_PIPELINES",
-              payload,
-            };
-          });
-        }
-
-        const isEditingCurrentPipelineFile =
-          pipelineUuid &&
-          pipeline &&
-          cleanFilePath(oldFilePath) === pipeline.path;
-
-        if (isEditingCurrentPipelineFile) {
-          dispatch({
-            type: "UPDATE_PIPELINE",
-            payload: { uuid: pipelineUuid, path: cleanFilePath(newFilePath) },
-          });
-        }
-
-        onRename(oldFilePath, newFilePath);
-
-        if (!skipReload) reload();
-
-        return params;
+        onMoved(oldPath, newPath);
       } catch (error) {
         setAlert(
           "Error",
           <>
-            {`Failed to rename file `}
-            <Code>{cleanFilePath(oldFilePath, "Project files/")}</Code>
+            {`Failed to move file `}
+            <Code>{cleanFilePath(oldPath, "Project files/")}</Code>
             {`. ${error?.message || ""}`}
           </>
         );
       }
     },
-    [onRename, dispatch, reload, setAlert, projectUuid, pipeline]
+    [pipelineByPath, onMoved, setAlert, projectUuid]
   );
 
-  const startRename = React.useCallback(
-    async (oldFilePath: string, newFilePath: string, skipReload = false) => {
-      const [isSafeToProceed] = await checkSessionForMovingPipelineFiles([
-        oldFilePath,
-      ]);
+  const saveMoves = React.useCallback(
+    async (moves: readonly Move[]) => {
+      await Promise.all(moves.map(handleMove));
 
-      if (!isSafeToProceed || !pipeline) return;
+      const didMovePipeline = moves.some(
+        ([oldPath, newPath]) =>
+          isPipelineFile(oldPath) || isPipelineFile(newPath)
+      );
 
-      const foundPipeline = pipelineDics[pipeline.path];
+      if (didMovePipeline && projectUuid) {
+        // Re-fetch pipelines to force the back-end
+        // to re-discover pipelines from .orchest files
+        // before performing a reload.
 
-      await handleChangeFilePath({
-        oldFilePath,
-        newFilePath,
-        skipReload,
-        pipelineUuid: foundPipeline.uuid,
-      });
+        dispatch({
+          type: "SET_PIPELINES",
+          payload: await fetchPipelines(projectUuid),
+        });
+      }
+
+      await reload();
     },
-    [
-      pipeline,
-      pipelineDics,
-      handleChangeFilePath,
-      checkSessionForMovingPipelineFiles,
-    ]
+    [handleMove, reload, dispatch, projectUuid]
   );
 
-  const moveFiles = React.useCallback(
-    async (deducedPaths: [string, string][]) => {
-      const [sourcePath, targetPath] = deducedPaths[0];
-
-      const [isSafeToProceed] = await checkSessionForMovingPipelineFiles(
-        deducedPaths.map((paths) => paths[0]) // only check sourcePath
-      );
-
-      if (!isSafeToProceed) return;
-
-      let targetDescription = generateTargetDescription(targetPath);
-
-      const confirmMessage = (
-        <>
-          {`Do you want move `}
-          {dragFiles.length > 1 ? (
-            `${dragFiles.length} files`
-          ) : (
-            <Code>{baseNameFromPath(sourcePath)}</Code>
-          )}
-          {` to `}
-          {targetDescription} ?
-        </>
-      );
-
-      setConfirm("Warning", confirmMessage, async (resolve) => {
-        await Promise.all(
-          deducedPaths.map(async ([sourcePath, newPath]) => {
-            const filePathRelativeToProjectDir = cleanFilePath(sourcePath);
-            const foundPipeline = pipelines.find(
-              (pipeline) => pipeline.path === filePathRelativeToProjectDir
-            );
-
-            const change = await handleChangeFilePath({
-              oldFilePath: sourcePath,
-              newFilePath: newPath,
-              pipelineUuid: foundPipeline?.uuid,
-              skipReload: true,
-            });
-
-            if (pipelineUuid && foundPipeline?.uuid === pipelineUuid) {
-              dispatch({
-                type: "UPDATE_PIPELINE",
-                payload: { uuid: pipelineUuid, path: cleanFilePath(newPath) },
-              });
-            }
-
-            return change;
-          })
-        );
-
-        reload();
-        resolve(true);
-        return true;
-      });
-    },
-    [
-      dragFiles,
-      dispatch,
-      pipelineUuid,
-      handleChangeFilePath,
-      pipelines,
-      reload,
-      setConfirm,
-      checkSessionForMovingPipelineFiles,
-    ]
-  );
-
-  const handleDropInside = React.useCallback(
-    async (targetPath: string) => {
-      const deducedPaths = dragFiles.map((path) =>
-        deduceRenameFromDragOperation(path, targetPath)
-      );
-      const hasPathChanged = deducedPaths.some(
-        ([sourcePath, newPath]) => sourcePath !== newPath
-      );
-
-      if (!projectUuid || !hasPathChanged) return;
-
-      // if user attempts to move .ipynb or .orchest files to /data
-      if (isWithinDataFolder(targetPath)) {
-        const foundPathWithForbiddenFiles = await Promise.all(
-          dragFiles.map(async (dragFilePath) => {
-            const foundFile = findFileViaPath(dragFilePath, fileTrees);
-            const files = await findFilesByExtension({
-              root: "/project-dir",
-              projectUuid,
-              extensions: ["ipynb", "orchest"],
-              node: foundFile,
-            });
-            return files.length > 0;
-          })
-        );
-
-        if (foundPathWithForbiddenFiles.some((response) => response)) {
-          setConfirm(
-            "Warning",
-            <Stack spacing={2} direction="column">
-              <Box>
-                You are trying to move <Code>{".ipynb"}</Code>
-                {` or `}
-                <Code>{".orchest"}</Code>
-                {` files into `}
-                <Code>{"/data"}</Code> folder.
-              </Box>
-              <Box>
-                {`Please note that these files cannot be opened within `}
-                <Code>{"/data"}</Code>. Do you want to proceed?
-              </Box>
-            </Stack>,
-            async (resolve) => {
-              await Promise.all(
-                deducedPaths.map(([sourcePath, newPath]) => {
-                  // When moving a pipeline file, the pipelineUuid of this file should be used.
-                  const pipelineUuidInPayload = !sourcePath.endsWith(".orchest")
-                    ? pipelineUuid
-                    : pipelines.find(
-                        (pipeline) =>
-                          pipeline.path === cleanFilePath(sourcePath)
-                      )?.uuid;
-
-                  return handleChangeFilePath({
-                    oldFilePath: sourcePath,
-                    newFilePath: newPath,
-                    pipelineUuid: pipelineUuidInPayload,
-                    skipReload: true,
-                  });
-                })
-              );
-              reload();
-              resolve(true);
-              return true;
-            }
+  const checks = React.useMemo(
+    () => ({
+      lockedFiles: (moves: readonly Move[]) =>
+        new Promise<boolean>(async (resolve) => {
+          const lockedFiles = await getFilesLockedBySession(
+            moves.map(([oldPath]) => oldPath)
           );
+
+          if (!lockedFiles.length) {
+            resolve(true);
+          } else {
+            setConfirm(
+              "Warning",
+              <StopSessionMessage
+                files={lockedFiles}
+                isRename={isRename(moves)}
+              />,
+              {
+                confirmLabel:
+                  lockedFiles.length === 1 ? "Stop session" : "Stop sessions",
+                onCancel: () => resolve(false),
+                onConfirm: async () => {
+                  resolve(false);
+                  await Promise.all(
+                    lockedFiles.map(({ pipelineUuid }) =>
+                      stopSession(pipelineUuid)
+                    )
+                  );
+                  return true;
+                },
+              }
+            );
+          }
+        }),
+      confirm: (moves: readonly Move[]) =>
+        new Promise<boolean>(async (resolve) => {
+          const overwrites = moves.filter(
+            ([, newPath]) =>
+              findNode(newPath, fileTrees).name === basename(newPath)
+          );
+
+          if (overwrites.length) {
+            setConfirm(
+              overwrites.length === 1
+                ? `File ${basename(overwrites[0][1])} already exists`
+                : `Files already exist`,
+              <OverwriteMessage
+                overwrites={overwrites}
+                isRename={isRename(moves)}
+              />,
+              {
+                confirmLabel: "Overwrite",
+                onCancel: () => resolve(false),
+                onConfirm: () => {
+                  resolve(true);
+                  return true;
+                },
+              }
+            );
+          } else if (!isRename(moves)) {
+            setConfirm("Warning", <ConfirmMoveMessage moves={moves} />, {
+              confirmLabel: "Move " + (moves.length === 1 ? "file" : "files"),
+              onCancel: () => resolve(false),
+              onConfirm: () => {
+                resolve(true);
+                return true;
+              },
+            });
+          } else {
+            resolve(true);
+          }
+        }),
+      breakages: (moves: readonly Move[]) =>
+        new Promise<boolean>(async (resolve) => {
+          const willBreakSomeFile =
+            projectUuid &&
+            isInDataFolder(moves[0][1]) &&
+            (
+              await Promise.all(
+                moves.map(([oldPath]) =>
+                  findFilesByExtension({
+                    root: "/project-dir",
+                    node: findNode(oldPath, fileTrees),
+                    extensions: ["ipynb", "orchest"],
+                    projectUuid,
+                  })
+                )
+              )
+            ).some((files) => files.length);
+
+          if (willBreakSomeFile) {
+            setConfirm("File type warning", <BreakFileMessage />, {
+              confirmLabel: "Move " + (moves.length === 1 ? "file" : "files"),
+              onCancel: () => resolve(false),
+              onConfirm: () => {
+                resolve(true);
+                return true;
+              },
+            });
+          } else {
+            resolve(true);
+          }
+        }),
+    }),
+    [fileTrees, getFilesLockedBySession, projectUuid, setConfirm, stopSession]
+  );
+
+  const handleMoves = React.useCallback(
+    async (moves: readonly Move[]) => {
+      if (!moves) return;
+
+      for (const check of Object.values(checks)) {
+        if (!(await check(moves))) {
+          setFileInRename(undefined);
           return;
         }
       }
 
-      moveFiles(deducedPaths);
+      await saveMoves(moves);
     },
-    [
-      dragFiles,
-      fileTrees,
-      setConfirm,
-      projectUuid,
-      pipelineUuid,
-      pipelines,
-      moveFiles,
-      handleChangeFilePath,
-      reload,
-    ]
+    [saveMoves, checks, setFileInRename]
+  );
+
+  const handleDrop = React.useCallback(
+    async (targetPath: string) => {
+      if (!projectUuid) return;
+
+      const moves = draggedFiles
+        .map((sourcePath) => getMoveFromDrop(sourcePath, targetPath))
+        .filter(([oldPath, newPath]) => oldPath !== newPath);
+
+      await handleMoves(moves);
+    },
+    [draggedFiles, projectUuid, handleMoves]
   );
 
   const handleMouseUp = React.useCallback(
     (target: HTMLElement) => {
-      // dropped outside of the tree view
-      // PipelineViewport will take care of the operation
-      if (!isInFileManager(target)) return;
+      if (!isInFileManager(target)) {
+        // dropped outside of the tree view
+        // PipelineViewport will take care of the operation
+        return;
+      }
 
-      let targetFilePath = filePathFromHTMLElement(target);
-      if (!targetFilePath) return;
+      const newPath = pathFromElement(target);
 
-      // dropped inside of the tree view
-      if (dragFiles.length > 0) {
-        handleDropInside(targetFilePath);
+      if (newPath && draggedFiles.length > 0) {
+        handleDrop(newPath);
       }
     },
-
-    [dragFiles, handleDropInside]
+    [draggedFiles, handleDrop]
   );
 
   return (
     <>
       {isDragging && (
-        <DragIndicator dragFiles={dragFiles} handleMouseUp={handleMouseUp} />
+        <DragIndicator dragFiles={draggedFiles} handleMouseUp={handleMouseUp} />
       )}
       <TreeView
         aria-label="file system navigator"
@@ -671,7 +415,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                     : undefined,
               }}
               data-path={combinedPath}
-              labelText={root === "/project-dir" ? "Project files" : root}
+              labelText={prettifyRoot(root)}
             >
               <TreeRow
                 setDragFile={setDragFile}
@@ -679,7 +423,9 @@ export const FileTree = React.memo(function FileTreeComponent({
                 hoveredPath={hoveredPath}
                 root={root}
                 onOpen={onOpen}
-                handleRename={startRename}
+                onRename={(oldPath, newPath) =>
+                  handleMoves([[oldPath, newPath]])
+                }
               />
             </TreeItem>
           );
@@ -688,3 +434,150 @@ export const FileTree = React.memo(function FileTreeComponent({
     </>
   );
 });
+
+const OverwriteMessage = ({
+  overwrites,
+  isRename,
+}: {
+  overwrites: readonly Move[];
+  isRename: boolean;
+}) => {
+  const last = overwrites[overwrites.length - 1];
+
+  return (
+    <Stack spacing={2} direction="column">
+      {isRename ? (
+        <Box>
+          {"Renaming "}
+          <Code>{basename(overwrites[0][0])}</Code>
+          {" to "}
+          <Code>{basename(overwrites[0][1])}</Code>{" "}
+          {" will overwrite the existing file. Would you like to do this?"}
+        </Box>
+      ) : (
+        <Box>
+          {"This move will overwrite "}
+          {overwrites.slice(0, -1).map(([, newPath], i) => (
+            <>
+              <Code key={newPath}>{basename(newPath)}</Code>
+              {i === overwrites.length - 2 ? "" : ", "}
+            </>
+          ))}
+          {last ? (
+            <>
+              {overwrites.length > 1 ? " and " : ""}
+              <Code key={last[1]}>{basename(last[1])}</Code>
+            </>
+          ) : null}
+          {"."}
+          <br />
+          {"Would you like to do this?"}
+        </Box>
+      )}
+    </Stack>
+  );
+};
+
+const BreakFileMessage = () => (
+  <Stack spacing={2} direction="column">
+    <Box>
+      You are trying to move <Code>{".ipynb"}</Code>
+      {` or `}
+      <Code>{".orchest"}</Code>
+      {` files into `}
+      <Code>{"/data"}</Code> folder.
+    </Box>
+    <Box>
+      {`Please note that these files cannot be opened within `}
+      <Code>{"/data"}</Code>. Do you want to proceed?
+    </Box>
+  </Stack>
+);
+
+const StopSessionMessage = ({
+  files,
+  isRename,
+}: {
+  files: readonly LockedFile[];
+  isRename: boolean;
+}) => (
+  <Stack spacing={2} direction="column">
+    <Box>
+      {isRename
+        ? "You are renaming a pipeline file. " +
+          "Its session will have to be stopped before proceeding"
+        : "You are moving pipeline files. " +
+          "Their sessions have to be stopped before proceeding"}
+      Do you want to proceed?
+    </Box>
+    <ul>
+      {files.map(({ path }) => (
+        <Box key={path}>
+          <Code>{`Project files${path}`}</Code>
+        </Box>
+      ))}
+    </ul>
+  </Stack>
+);
+
+const ConfirmMoveMessage = ({ moves }: { moves: readonly Move[] }) => (
+  <>
+    {"Do you want to move "}
+    {moves.length > 1 ? (
+      `${moves.length} files`
+    ) : (
+      <Code>{basename(moves[0][0])}</Code>
+    )}
+    {" to "}
+    <Code>{prettifyRoot(basename(dirname(moves[0][1])))}</Code> ?
+  </>
+);
+
+const isInFileManager = (element?: HTMLElement | null): boolean =>
+  !!firstAncestor(element, ({ classList }) =>
+    classList.contains(FILE_MANAGER_ROOT_CLASS)
+  );
+
+/**
+ * Finds the node with the specified path in the file tree.
+ * @param combinedPath The combined path, e.g: `/project-dir:/a/b.py`
+ */
+const findNode = (combinedPath: string, fileTrees: FileTrees) => {
+  const { root, path } = unpackPath(combinedPath);
+  const segments = path.split("/").filter(Boolean);
+  let head = fileTrees[root];
+
+  for (const segment of segments) {
+    const node = head.children.find(({ name }) => name === segment);
+
+    if (!node) {
+      break;
+    }
+
+    head = node;
+  }
+
+  return head;
+};
+
+export const movePipeline = async (
+  projectUuid: string,
+  pipelineUuid: string,
+  move: Move
+) => {
+  const { newPath } = unpackMove(move);
+
+  await fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
+    method: "PUT",
+    headers: HEADER.JSON,
+    body: JSON.stringify({ path: newPath.replace(/^\//, "") }), // The path should be relative to `/project-dir:/`.
+  });
+};
+
+export const moveFile = async (projectUuid: string, move: Move) => {
+  const query = queryArgs({ ...unpackMove(move), projectUuid });
+
+  await fetcher(`${FILE_MANAGEMENT_ENDPOINT}/rename?${query}`, {
+    method: "POST",
+  });
+};
