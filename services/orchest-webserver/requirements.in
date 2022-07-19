@@ -1,25 +1,27 @@
-nbconvert~=6.0.0
-# ipython is required for consistent HTML rendering, see:
+-e file:../../lib/python/orchest-internals
 # https://github.com/jupyter/nbconvert/issues/1443
+# ipython is required for consistent HTML rendering, see:
+APScheduler
+flask_sqlalchemy
+flask-marshmallow
+Flask-Migrate==2.6.0
+Flask-RESTful
+flask-script
+Flask-SocketIO
+Flask<2
 ipython
+ipython_genutils
 itsdangerous
 jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
-Flask<2
-flask_sqlalchemy
-Flask-RESTful
-flask-marshmallow
-Flask-SocketIO
-eventlet
+MarkupSafe<2.1.0
 marshmallow-sqlalchemy
-Flask-Migrate
-flask-script
-requests
-APScheduler
+nbconvert~=6.0.0
 nbformat
-six>=1.13.0
-Werkzeug<2.1.0  # Newer versions are broken with old Flask
+psycopg2-binary
 python-engineio
 python-socketio
+requests
+simple-websocket
+six>=1.13.0
 SQLAlchemy-Utils
-psycopg2-binary
--e file:../../lib/python/orchest-internals
+Werkzeug<2.1.0  # Newer versions are broken with old Flask
