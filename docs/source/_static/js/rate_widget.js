@@ -37,10 +37,12 @@ function rateWidgetBlock() {
     } else {
       // Either attempt to submit feedback before GA loads (unlikely),
       // or user is blocking GA but has not enabled doNotTrack.
-      alert("Unable to register your docs feedback: Google Analytics not loaded");
+      alert(
+        "Unable to register your docs feedback: Google Analytics not loaded"
+      );
     }
   }
-  
+
   const canUseGA = () => {
     // Return true if recording is available and can be used.
     // (Google Analytics loads async, and the ReadTheDocs code that kicks
@@ -54,7 +56,7 @@ function rateWidgetBlock() {
       window.doNotTrack === "1"; // Safari, IE 11, Edge
     return !doNotTrack;
   };
-  
+
   let rateHtml = `<div class="rate-form">
       <form action="/" method="POST">
           <h2>Please rate our docs:</h2>
@@ -69,48 +71,48 @@ function rateWidgetBlock() {
       </form>
       <div class="thank-you">Thank you for rating.</div>
   </div>`;
-  
+
   const LOCALSTORAGE_PREFIX = "RATE_WIDGET_ORCHEST_";
   const WIDGET_SHOW_DELAY = 20;
-  
+
   function localStorageGet(key) {
     return localStorage.getItem(LOCALSTORAGE_PREFIX + key);
   }
-  
+
   function localStorageSet(key, value) {
     localStorage.setItem(LOCALSTORAGE_PREFIX + key, value.toString());
   }
-  
+
   function appendRateElement() {
     let div = document.createElement("div");
     div.innerHTML = rateHtml;
     window.document.body.appendChild(div);
-  
+
     // Attach listeners
     let rateForm = document.querySelector(".rate-form");
     let rateFormFormEl = rateForm.querySelector("form");
     rateFormFormEl.addEventListener("submit", (e) => {
       e.preventDefault();
     });
-  
+
     let buttons = Array.from(rateForm.querySelectorAll("button"));
     buttons.forEach((el) => el.addEventListener("mouseenter", handleEnter));
     let buttonBlock = rateForm.querySelector(".button-block");
     buttons.map((el) => (el.style.opacity = 0.5));
-  
+
     buttonBlock.addEventListener("mouseleave", () => {
       buttons.map((el) => (el.style.opacity = 0.5));
     });
-  
+
     let closeEl = rateForm.querySelector("a.close");
     closeEl.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-  
+
       markFormFilled();
       hideForm();
     });
-  
+
     function handleEnter(e) {
       let thisIndex = buttons.indexOf(e.target);
       buttons.map((el) =>
@@ -119,41 +121,41 @@ function rateWidgetBlock() {
           : (el.style.opacity = 0.5)
       );
     }
-  
+
     buttons.forEach((el) => el.addEventListener("click", handleButtonClick));
-  
+
     function rateCallback(rating) {
       recordEvent("RateTheDocsCustom", "GeneralRating", rating);
-  
+
       markFormFilled();
       showThankYou();
     }
-  
+
     function hideForm() {
       rateForm.style.display = "none";
     }
-  
+
     function markFormFilled() {
       // Set vote localStorage
       localStorageSet("rated", "true");
     }
-  
+
     function showThankYou() {
       // Hide form, show thank you
       rateForm.querySelector(".thank-you").style.display = "block";
       rateForm.querySelector("form").style.display = "none";
-  
+
       setTimeout(() => {
         hideForm();
       }, 3000);
     }
-  
+
     function handleButtonClick(e) {
       let el = e.target;
-  
+
       e.preventDefault();
       e.stopPropagation();
-  
+
       // We count 1 to 5, see form HTML.
       try {
         let rating = parseInt(el.attributes.getNamedItem("value").value);
@@ -163,41 +165,40 @@ function rateWidgetBlock() {
       }
     }
   }
-  
+
   function incrementViewCount() {
     let count = parseInt(localStorageGet("count")) || 0;
     localStorageSet("count", count + 1);
   }
-  
+
   function init() {
     if (localStorageGet("rated") !== null) {
       // Only ask users to rate once in each browser
       return;
     }
-  
+
     if (!canUseGA()) {
       // Use blocks GA tracking
       return;
     }
-  
+
     // Start counting
     // NOTE: this will count faster when multiple tabs are open
     let incrementInterval = setInterval(() => {
       incrementViewCount();
       let count = parseInt(localStorageGet("count"));
-  
+
       if (count >= WIDGET_SHOW_DELAY) {
         clearInterval(incrementInterval);
         appendRateElement();
       }
     }, 1000);
   }
-  
+
   window.document.addEventListener("DOMContentLoaded", function () {
     window.READTHEDOCS_DATA = window.READTHEDOCS_DATA || {};
     init();
   });
-  
 }
 
 rateWidgetBlock();
