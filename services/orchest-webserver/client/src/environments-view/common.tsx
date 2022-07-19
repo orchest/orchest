@@ -22,7 +22,7 @@ export const requestToRemoveEnvironment = (
 
 export const fetchSessionsInProject = async (projectUuid: string) => {
   const sessionData = await fetcher<{ sessions: OrchestSession[] }>(
-    `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
+    `/catch/api-proxy/api/sessions?project_uuid=${projectUuid}`
   );
   return sessionData.sessions;
 };
