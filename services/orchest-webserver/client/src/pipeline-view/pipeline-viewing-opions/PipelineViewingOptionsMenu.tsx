@@ -1,4 +1,3 @@
-import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { isMacOs } from "@/utils/isMacOs";
 import Divider from "@mui/material/Divider";
 import ListItemText from "@mui/material/ListItemText";
@@ -33,9 +32,6 @@ export const PipelineViewingOptionsMenu = ({
   onClose,
 }: PipelineViewingOptionsMenuProps) => {
   const menuRef = React.useRef<HTMLDivElement | null>(null);
-  useOnClickOutside([menuRef], () => {
-    onClose;
-  });
 
   const { zoomIn, zoomOut, centerView } = usePipelineCanvasContext();
   const { autoLayoutPipeline } = usePipelineUiStateContext();
