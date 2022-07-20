@@ -17,6 +17,7 @@ export const useAutoStartSession = () => {
   } = useSessionsContext();
   const {
     state: { pipeline, pipelineIsReadOnly },
+    dispatch,
   } = useProjectsContext();
   const { setAlert, setConfirm } = useAppContext();
   const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();
@@ -52,9 +53,12 @@ export const useAutoStartSession = () => {
       const isBuildingJupyterEnvironment =
         !hasStartedOperation &&
         error.status === 423 &&
-        error.message === "JupyterEnvironmentBuildInProgress";
-
-      if (isBuildingJupyterEnvironment) {
+        error.message === "JupyterEnvironmentBuildInProgress"
+      ) {
+        dispatch({
+          type: "SET_PIPELINE_IS_READONLY",
+          payload: true,
+        });
         setConfirm(
           "Notice",
           "A JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
@@ -68,7 +72,7 @@ export const useAutoStartSession = () => {
         );
       }
     },
-    [navigateTo, setConfirm, startSession]
+    [navigateTo, setAlert, setConfirm, startSession, dispatch]
   );
 
   React.useEffect(() => {
