@@ -1,38 +1,34 @@
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetcher } from "@/hooks/useFetcher";
 import { PipelineRun } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
-import React from "react";
 import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
 
-export const useFetchInteractiveRun = (
-  projectUuid: string | undefined,
-  pipelineUuid: string | undefined,
-  runUuidFromRoute: string | undefined
-) => {
+export const useFetchInteractiveRun = () => {
+  const { projectUuid, pipelineUuid, runUuid: jobRunUuid } = useCustomRoute();
   // Edit mode fetches latest interactive run
   const shouldFetchRunUuid =
-    !runUuidFromRoute && hasValue(projectUuid) && hasValue(pipelineUuid);
+    !jobRunUuid && hasValue(projectUuid) && hasValue(pipelineUuid);
 
-  const { data, error: fetchRunUuidError, status } = useFetcher<{
-    runs: PipelineRun[];
-  }>(
+  const {
+    data: interactiveRunUuid,
+    setData: setRunUuid,
+    error: fetchRunUuidError,
+    status,
+  } = useFetcher<
+    {
+      runs: PipelineRun[];
+    },
+    string | undefined
+  >(
     shouldFetchRunUuid
       ? `${PIPELINE_RUN_STATUS_ENDPOINT}/?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
-      : undefined
+      : undefined,
+    { transform: (data) => data.runs[0]?.uuid }
   );
-
-  const [runUuid, setRunUuid] = React.useState<string | undefined>(
-    !shouldFetchRunUuid ? runUuidFromRoute : undefined
-  );
-
-  React.useEffect(() => {
-    if (!runUuid && data) {
-      setRunUuid(data.runs[0]?.uuid || runUuidFromRoute);
-    }
-  }, [runUuid, data, runUuidFromRoute]);
 
   return {
-    runUuid,
+    runUuid: interactiveRunUuid || jobRunUuid,
     setRunUuid,
     fetchRunUuidError,
     isFetchingRunUuid: status === "PENDING",

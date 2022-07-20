@@ -9,14 +9,14 @@ import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
-export const useAutoStartSession = ({ isReadOnly = false }) => {
+export const useAutoStartSession = () => {
   const {
     state: { sessions },
     getSession,
     startSession,
   } = useSessionsContext();
   const {
-    state: { pipeline },
+    state: { pipeline, pipelineIsReadOnly },
   } = useProjectsContext();
   const { setAlert, setConfirm } = useAppContext();
   const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();
@@ -30,7 +30,7 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
     hasValue(sessions) && // `sessions` is available to look up
     hasValue(pipeline?.uuid) && // `pipeline` is loaded.
     pipelineUuidFromRoute === pipeline?.uuid && // Only auto-start the pipeline that user is viewing.
-    !isReadOnly &&
+    !pipelineIsReadOnly &&
     !hasValue(session); // `session` of the current pipeline is not yet launched.
 
   // The only case that auto-start should be disabled is that
