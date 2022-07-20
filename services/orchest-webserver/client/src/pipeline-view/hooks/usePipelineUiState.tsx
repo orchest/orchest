@@ -118,13 +118,6 @@ export type Action =
       payload: Offset;
     }
   | {
-      type: "SET_SCALE_FACTOR";
-      payload: number;
-    }
-  | {
-      type: "CENTER_VIEW";
-    }
-  | {
       type: "UPDATE_STEP_SELECTOR";
       payload: Offset;
     }
@@ -138,12 +131,6 @@ export type Action =
   | {
       type: "SELECT_SUB_VIEW";
       payload: number;
-    }
-  | {
-      type: "OPEN_STEP_DETAILS";
-    }
-  | {
-      type: "CLOSE_STEP_DETAILS";
     }
   | {
       type: "SET_IS_DELETING_STEPS";
