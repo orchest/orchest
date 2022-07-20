@@ -1,5 +1,6 @@
 import ProjectFilePicker from "@/components/ProjectFilePicker";
 import { Step } from "@/types";
+import { firstAncestor } from "@/utils/element";
 import { isValidJson } from "@/utils/isValidJson";
 import { hasExtension, join } from "@/utils/path";
 import { toValidFilename } from "@/utils/toValidFilename";
@@ -18,7 +19,6 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
-import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -168,37 +168,43 @@ export const StepDetailsProperties = ({
     let oldConnectionIndex = 0;
     let newConnectionIndex = 0;
 
-    let numConnectionListItems = $(refManager.refs.connectionList).find(
-      ".connection-item"
-    ).length;
+    const connectionItems = [
+      ...refManager.refs.connectionList.querySelectorAll(".connection-item"),
+    ];
 
-    $(refManager.refs.connectionList).on(
-      "mousedown",
-      ".connection-item",
-      function (e) {
-        previousPosition = e.clientY;
-        connectionItemOffset = 0;
+    let numConnectionListItems = connectionItems.length;
 
-        $(refManager.refs.connectionList).addClass("dragging");
+    const mouseDown = (event: MouseEvent) => {
+      const item = firstAncestor(event.target as HTMLElement, (element) =>
+        element.classList.contains("connection-item")
+      );
 
-        oldConnectionIndex = $(this).index();
+      if (!item) return;
 
-        $(this).addClass("selected");
-      }
-    );
+      previousPosition = event.clientY;
+      connectionItemOffset = 0;
 
-    $(document).on("mousemove.connectionList", function (e) {
-      let selectedConnection = $(refManager.refs.connectionList).find(
+      refManager.refs.connectionList.classList.add("dragging");
+      oldConnectionIndex =
+        [...(item.parentNode?.children || [])].findIndex(
+          (node) => node === item
+        ) || 0;
+
+      item.classList.add("selected");
+    };
+
+    const mouseMove = (event: MouseEvent) => {
+      const selectedConnection = refManager.refs.connectionList.querySelector(
         ".connection-item.selected"
       );
 
-      if (selectedConnection.length > 0) {
-        const clientY = e.clientY as number;
-        let positionDelta = clientY - previousPosition;
+      if (selectedConnection) {
+        const clientY = event.clientY as number;
+        const positionDelta = clientY - previousPosition;
 
         previousPosition = clientY;
 
-        let itemHeight = selectedConnection.outerHeight() as number;
+        const itemHeight = selectedConnection.clientHeight;
 
         connectionItemOffset += positionDelta;
 
@@ -213,12 +219,10 @@ export const StepDetailsProperties = ({
             itemHeight * (numConnectionListItems - oldConnectionIndex - 1);
         }
 
-        selectedConnection.css({
-          transform: "translateY(" + connectionItemOffset + "px)",
-        });
+        selectedConnection.style.transform = `translateY(${connectionItemOffset}px)`;
 
         // find new index based on current position
-        let elementYPosition =
+        const elementYPosition =
           (oldConnectionIndex * itemHeight + connectionItemOffset) / itemHeight;
 
         newConnectionIndex = Math.min(
@@ -226,46 +230,63 @@ export const StepDetailsProperties = ({
           numConnectionListItems - 1
         );
 
-        // evaluate swap classes for all elements in list besides selectedConnection
-        for (let i = 0; i < numConnectionListItems; i++) {
-          if (i != oldConnectionIndex) {
-            let connectionListItem = $(refManager.refs.connectionList)
-              .find(".connection-item")
-              .eq(i);
+        refManager.refs.connectionList
+          .querySelectorAll(".connection-item")
+          .forEach((conn: HTMLElement, index: number) => {
+            conn.classList.remove("swapped-up");
+            conn.classList.remove("swapped-down");
 
-            connectionListItem.removeClass("swapped-up");
-            connectionListItem.removeClass("swapped-down");
-
-            if (newConnectionIndex >= i && i > oldConnectionIndex) {
-              connectionListItem.addClass("swapped-up");
-            } else if (newConnectionIndex <= i && i < oldConnectionIndex) {
-              connectionListItem.addClass("swapped-down");
+            if (newConnectionIndex >= index && index > oldConnectionIndex) {
+              conn.classList.add("swapped-up");
+            } else if (
+              newConnectionIndex <= index &&
+              index < oldConnectionIndex
+            ) {
+              conn.classList.add("swapped-down");
             }
-          }
-        }
+          });
       }
-    });
+    };
 
-    // Note, listener should be unmounted
-    $(document).on("mouseup.connectionList", function () {
-      let selectedConnection = $(refManager.refs.connectionList).find(
+    const mouseUp = () => {
+      const selectedConnection = refManager.refs.connectionList.querySelector(
         ".connection-item.selected"
       );
 
-      if (selectedConnection.length > 0) {
-        selectedConnection.css({ transform: "" });
-        selectedConnection.removeClass("selected");
+      if (selectedConnection) {
+        selectedConnection.style.transform = "";
+        selectedConnection.classList.remove("selected");
 
-        $(refManager.refs.connectionList)
-          .find(".connection-item")
-          .removeClass("swapped-up")
-          .removeClass("swapped-down");
+        refManager.refs.connectionList
+          .querySelectorAll(".connection-item")
+          .forEach((conn: HTMLElement) => {
+            conn.classList.remove("swapped-up");
+            conn.classList.remove("swapped-down");
+          });
 
-        $(refManager.refs.connectionList).removeClass("dragging");
+        refManager.refs.connectionList.classList.remove("dragging");
 
         swapConnectionOrder(oldConnectionIndex, newConnectionIndex);
       }
-    });
+    };
+
+    refManager.refs.connectionList.addEventListener("mousemove", mouseMove);
+    refManager.refs.connectionList.addEventListener("mouseup", mouseUp);
+    connectionItems.forEach((item) =>
+      item.addEventListener("mousedown", mouseDown)
+    );
+
+    return () => {
+      refManager.refs.connectionList.removeEventListener(
+        "mousemove",
+        mouseMove
+      );
+      refManager.refs.connectionList.removeEventListener("mouseup", mouseUp);
+
+      connectionItems.forEach((item) =>
+        item.removeEventListener("mousedown", mouseDown)
+      );
+    };
   };
 
   React.useEffect(() => {
@@ -278,16 +299,7 @@ export const StepDetailsProperties = ({
     }
   }, []);
 
-  const clearConnectionListener = () => {
-    $(document).off("mouseup.connectionList");
-    $(document).off("mousemove.connectionList");
-  };
-
-  React.useEffect(() => {
-    clearConnectionListener();
-    setupConnectionListener();
-    return () => clearConnectionListener();
-  }, [step.uuid]);
+  React.useEffect(setupConnectionListener, [step.uuid]);
 
   const isParametersValidJson = React.useMemo(() => {
     return isValidJson(editableParameters);
