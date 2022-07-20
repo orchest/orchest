@@ -2,7 +2,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Position } from "@/types";
 import React from "react";
 import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
-import { useKeyboardEventsOnViewport } from "../pipeline-viewport/useKeyboardEventsOnViewport";
+import { useKeyboardEventsOnViewport } from "../pipeline-viewport/hooks/useKeyboardEventsOnViewport";
 
 export type PipelineSettingsTab =
   | "configuration"
