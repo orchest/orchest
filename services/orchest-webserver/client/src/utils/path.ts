@@ -21,10 +21,13 @@ export const basename = (path: string) => segments(path).pop() ?? "";
  * Returns the path up until the last segment.
  * **Note:** The returned path ends with `/`.
  */
-export const dirname = (path: string) =>
-  isDirectory(path)
+export const dirname = (path: string) => {
+  if (!path) return ".";
+
+  return isDirectory(path)
     ? path.split("/").slice(0, -2).join("/") + "/"
     : path.split("/").slice(0, -1).join("/") + "/";
+};
 
 /**
  * Returns the extension of the path if there is one (e.g. `.py`).
