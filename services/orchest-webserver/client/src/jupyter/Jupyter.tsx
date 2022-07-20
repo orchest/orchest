@@ -1,6 +1,5 @@
 import { ConfirmDispatcher } from "@/contexts/AppContext";
 import { tryUntilTrue } from "@/utils/webserver-utils";
-import $ from "jquery";
 
 // This is to enable using hotkeys to open CommandPalette.
 // Proxy all the keydown events in the iframe to the hosting document object.
@@ -26,7 +25,7 @@ const passKeyboardEvent = (event: KeyboardEvent) => {
 };
 
 class Jupyter {
-  jupyterHolder: JQuery<HTMLElement>;
+  jupyterHolder: HTMLElement;
   iframe: HTMLIFrameElement | undefined;
   baseAddress: string;
   reloadOnShow: boolean;
@@ -35,8 +34,8 @@ class Jupyter {
   iframeHasLoaded: boolean;
   setConfirm: ConfirmDispatcher;
 
-  constructor(jupyterHolderJEl: HTMLElement, setConfirm: ConfirmDispatcher) {
-    this.jupyterHolder = $(jupyterHolderJEl);
+  constructor(jupyterHolder: HTMLElement, setConfirm: ConfirmDispatcher) {
+    this.jupyterHolder = jupyterHolder;
     this.iframe = undefined;
     this.baseAddress = "";
     this.reloadOnShow = false;
@@ -59,7 +58,7 @@ class Jupyter {
 
   _unhide() {
     // this method should only be called directly from main.js
-    this.jupyterHolder.removeClass("hidden");
+    this.jupyterHolder.classList.remove("hidden");
 
     // Remove so we don't register twice
     this.iframe?.contentWindow?.document?.removeEventListener(
@@ -151,12 +150,12 @@ class Jupyter {
     return (
       this.isJupyterPage() &&
       this.isJupyterLoaded() &&
-      !this.jupyterHolder.hasClass("hidden")
+      !this.jupyterHolder.classList.contains("hidden")
     );
   }
 
   hide() {
-    this.jupyterHolder.addClass("hidden");
+    this.jupyterHolder.classList.add("hidden");
     window.clearInterval(this.showCheckInterval);
     this.iframe?.contentWindow?.document?.removeEventListener(
       "keydown",
@@ -406,9 +405,9 @@ class Jupyter {
     this.iframeHasLoaded = false;
     this.iframe.onload = this._loadIframe.bind(this);
 
-    $(this.iframe).attr("width", "100%");
-    $(this.iframe).attr("height", "100%");
-    $(this.iframe).attr("data-test-id", "jupyterlab-iframe");
+    this.iframe.setAttribute("width", "100%");
+    this.iframe.setAttribute("height", "100%");
+    this.iframe.setAttribute("data-test-id", "jupyterlab-iframe");
 
     this.jupyterHolder.append(this.iframe);
   }
