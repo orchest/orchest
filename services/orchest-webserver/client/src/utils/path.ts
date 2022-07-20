@@ -6,6 +6,9 @@
  * We also never perform any type checking within these functions
  * since we're using TypeScript for that: passing an illegal type to these
  * functions is for all intents & purposes "undefined behavior".
+ *
+ * Some algorithms are from https://github.com/jinder/path
+ * with slight tweaks and  modification.
  */
 
 /** Returns true if the path starts with `/`. */
