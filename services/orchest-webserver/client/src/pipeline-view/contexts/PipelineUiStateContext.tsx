@@ -86,7 +86,7 @@ export const PipelineUiStateContextProvider: React.FC = ({ children }) => {
     }
   }, [initializeUiState, pipelineJson]);
 
-  // in read-only mode, PipelineEditor doesn't re-render after stepDomRefs collects all DOM elements of the steps
+  // in read-only mode, PipelineEditor doesn't re-render after stepRefs collects all DOM elements of the steps
   // we need to force re-render one more time to show the connection lines
   const shouldForceRerender =
     isReadOnly &&
