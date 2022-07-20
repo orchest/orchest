@@ -1,12 +1,12 @@
+import { getScaleCorrectedPosition } from "@/pipeline-view/common";
+import { usePipelineCanvasContext } from "@/pipeline-view/contexts/PipelineCanvasContext";
+import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
+import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
+import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
+import { useScaleFactor } from "@/pipeline-view/contexts/ScaleFactorContext";
 import { getOffset } from "@/utils/jquery-replacement";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { getScaleCorrectedPosition } from "../common";
-import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
-import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineRefs } from "../contexts/PipelineRefsContext";
-import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { useScaleFactor } from "../contexts/ScaleFactorContext";
 
 /**
  * A hook that handles all mouse events that are binded to document.body within PipelineViewport

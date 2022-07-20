@@ -2,11 +2,11 @@ import { Position } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import React from "react";
-import { scaleCorrected } from "../common";
-import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineRefs } from "../contexts/PipelineRefsContext";
-import { useScaleFactor } from "../contexts/ScaleFactorContext";
-import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
+import { scaleCorrected } from "../../common";
+import { usePipelineDataContext } from "../../contexts/PipelineDataContext";
+import { usePipelineRefs } from "../../contexts/PipelineRefsContext";
+import { useScaleFactor } from "../../contexts/ScaleFactorContext";
+import { PipelineCanvasState } from "../../hooks/usePipelineCanvasState";
 
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
