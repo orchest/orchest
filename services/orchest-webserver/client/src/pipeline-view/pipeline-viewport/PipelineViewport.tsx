@@ -66,7 +66,12 @@ const PipelineViewportComponent = React.forwardRef<
   ref
 ) {
   const { dragFile } = useFileManagerContext();
-  const { disabled, pipelineCwd, environments } = usePipelineDataContext();
+  const {
+    disabled,
+    pipelineCwd,
+    environments,
+    isFetchingPipelineJson,
+  } = usePipelineDataContext();
 
   const {
     scaleFactor,
@@ -207,11 +212,12 @@ const PipelineViewportComponent = React.forwardRef<
 
   const { handleContextMenu } = usePipelineViewportContextMenu();
 
-  const hasNoStep = React.useMemo(() => Object.keys(steps).length === 0, [
-    steps,
-  ]);
+  const hasNoStep = React.useMemo(
+    () => pipelineCwd && Object.keys(steps).length === 0,
+    [steps, pipelineCwd]
+  );
 
-  const showIllustration = disabled || hasNoStep;
+  const showIllustration = !isFetchingPipelineJson && (disabled || hasNoStep);
 
   return (
     <div
