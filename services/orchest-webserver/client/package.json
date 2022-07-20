@@ -35,7 +35,6 @@
     "hotkeys-js": "^3.8.7",
     "immer": "^9.0.12",
     "isomorphic-unfetch": "3.1.0",
-    "jquery": "^3.5.1",
     "lodash.clonedeep": "^4.5.0",
     "lodash.isstring": "^4.0.1",
     "lodash.merge": "^4.6.2",

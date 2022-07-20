@@ -181,7 +181,6 @@ importers:
       jest-fetch-mock: ^3.0.3
       jest-junit: ^13.0.0
       jest-localstorage-mock: ^2.4.21
-      jquery: ^3.5.1
       lodash.clonedeep: ^4.5.0
       lodash.isstring: ^4.0.1
       lodash.merge: ^4.6.2
@@ -226,7 +225,6 @@ importers:
       hotkeys-js: 3.8.7
       immer: 9.0.12
       isomorphic-unfetch: 3.1.0
-      jquery: 3.6.0
       lodash.clonedeep: 4.5.0
       lodash.isstring: 4.0.1
       lodash.merge: 4.6.2
@@ -2611,8 +2609,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
-      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
+      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
+      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
       '@mui/base': 5.0.0-alpha.59_ximryacsvt5dozm7hoqeulmuau
       '@mui/system': 5.2.3_tcke5zg5l5wp2mkeftxzzivvpy
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -2678,8 +2676,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
-      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
+      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
+      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -2722,8 +2720,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_wmpc5eybsecsnfvv3l4n7gxxq4
-      '@emotion/styled': 11.6.0_bkm36nezcsmumv2pimhpg6tudu
+      '@emotion/react': 11.6.0_ejgaawu2vzl45uwofwtip5tgcq
+      '@emotion/styled': 11.6.0_w53kbgfpc6eelongq7apdyevki
       '@mui/private-theming': 5.2.3_mnzaipdkghwi2w6bgyhobeilpe
       '@mui/styled-engine': 5.2.0_hsu7jhncr42zbs7etkvvdkscdu
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -7438,10 +7436,6 @@ packages:
       - ts-node
       - utf-8-validate
     dev: true
-
-  /jquery/3.6.0:
-    resolution: {integrity: sha512-JVzAR/AjBvVt2BmYhxRCSYysDsPcssdmTFnzyLEts9qNwmjmu4JTAMYubEfwVOSwpQ1I1sKKFcxhZCI2buerfw==}
-    dev: false
 
   /js-levenshtein/1.1.6:
     resolution: {integrity: sha512-X2BB11YZtrRqY4EnQcLX5Rh373zbK4alC1FW7D7MBhL2gtcC17cTnr6DmfHZeS0s2rTHjUTMMHfG7gO8SSdw+g==}
