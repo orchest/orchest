@@ -90,14 +90,6 @@ export const useFetchPipelineSettings = ({
    * hooks for persisting local mutations without changing the initial data
    */
 
-  // Because the fetch hooks uses SWR and they cache fetched value,
-  // pipeline properties might be initialized with cached value.
-  // But if the initialization depends on the fetched value, it will easily lead to indefinite re-rendering.
-  // Therefore, per update of the fetched value (either new value or cached value), a hash is generated.
-  // Inside of `usePipelineProperty` compares the hash and only re-init values accordingly.
-  // ? Question: why not clear the cache?
-  // Beacuse `SWR` cache is not scoped. If we clear cashe here, it might break all the other components using the same fetch hook.
-
   const [hash, updateHash] = React.useReducer(() => uuidv4(), uuidv4());
 
   const refetch = React.useCallback(() => {

@@ -1,9 +1,8 @@
 import { useForceUpdate } from "@/hooks/useForceUpdate";
-import { StepsDict } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { extractStepsFromPipelineJson, updatePipelineJson } from "../common";
+import { updatePipelineJson } from "../common";
+import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
 import {
   PipelineUiState,
   PipelineUiStateAction,
@@ -35,14 +34,12 @@ export const usePipelineUiStateContext = () =>
   React.useContext(PipelineUiStateContext);
 
 export const PipelineUiStateContextProvider: React.FC = ({ children }) => {
-  const { zIndexMax, stepRefs } = usePipelineRefs();
+  const { stepRefs } = usePipelineRefs();
   const { uiState, uiStateDispatch } = usePipelineUiState();
   const { steps, connections } = uiState;
-  const {
-    pipelineJson,
-    isReadOnly,
-    setPipelineJson,
-  } = usePipelineDataContext();
+  const { isReadOnly, setPipelineJson } = usePipelineDataContext();
+
+  useInitializePipelineEditor(uiStateDispatch);
 
   const instantiateConnection = React.useCallback(
     (startNodeUUID: string, endNodeUUID?: string | undefined) => {
@@ -57,34 +54,6 @@ export const PipelineUiStateContextProvider: React.FC = ({ children }) => {
     },
     [uiStateDispatch]
   );
-
-  // this is only called once when pipelineJson is loaded in the beginning
-  const initializeUiState = React.useCallback(
-    (initialSteps: StepsDict) => {
-      uiStateDispatch({ type: "SET_STEPS", payload: initialSteps });
-      zIndexMax.current = Object.keys(initialSteps).length;
-      Object.values(initialSteps).forEach((step) => {
-        step.incoming_connections.forEach((startNodeUUID) => {
-          let endNodeUUID = step.uuid;
-
-          instantiateConnection(startNodeUUID, endNodeUUID);
-
-          zIndexMax.current += 1;
-        });
-      });
-    },
-    [uiStateDispatch, instantiateConnection, zIndexMax]
-  );
-
-  // const initialized = React.useRef(false);
-  React.useEffect(() => {
-    // if (hasValue(pipelineJson) && !initialized.current) {
-    if (hasValue(pipelineJson)) {
-      // initialized.current = true;
-      const newSteps = extractStepsFromPipelineJson(pipelineJson);
-      initializeUiState(newSteps);
-    }
-  }, [initializeUiState, pipelineJson]);
 
   // in read-only mode, PipelineEditor doesn't re-render after stepRefs collects all DOM elements of the steps
   // we need to force re-render one more time to show the connection lines
