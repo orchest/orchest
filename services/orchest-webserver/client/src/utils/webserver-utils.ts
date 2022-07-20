@@ -12,7 +12,6 @@ import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
-import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 import { hasExtension } from "./path";
@@ -225,42 +224,6 @@ export function checkGate(project_uuid: string) {
       }
     });
   });
-}
-
-export class OverflowListener {
-  private observer: ResizeObserver | undefined;
-  private triggerOverflow: HTMLElement | undefined;
-
-  constructor() {} // eslint-disable-line @typescript-eslint/no-empty-function
-
-  attach() {
-    // check if ResizeObserver is defined
-    if (window.ResizeObserver) {
-      // trigger-overflow only supports a single element on the page
-
-      let triggerOverflow = $(".trigger-overflow").first()[0];
-      if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
-        this.triggerOverflow = triggerOverflow;
-        this.observer = new ResizeObserver(() => {
-          if (!this.triggerOverflow) return;
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          if ($(this.triggerOverflow).overflowing()) {
-            $(".observe-overflow").addClass("overflowing");
-          } else {
-            $(".observe-overflow").removeClass("overflowing");
-          }
-        });
-        this.observer.observe(this.triggerOverflow);
-      }
-    }
-  }
-
-  detach() {
-    if (this.observer && this.triggerOverflow) {
-      this.observer.unobserve(this.triggerOverflow);
-    }
-  }
 }
 
 export type CreateProjectError =

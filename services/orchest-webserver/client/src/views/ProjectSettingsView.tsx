@@ -4,7 +4,6 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { RouteName, siteMap } from "@/routingConfig";
 import { Project } from "@/types";
@@ -96,8 +95,6 @@ const ProjectSettingsView: React.FC = () => {
         console.error(response);
       });
   };
-
-  useOverflowListener();
 
   const fetchSettings = () => {
     cancelableFetch<Project>(`/async/projects/${projectUuid}`)
@@ -211,7 +208,7 @@ const ProjectSettingsView: React.FC = () => {
                   data-test-id="project"
                 />
               </div>
-              <div className="bottom-buttons observe-overflow">
+              <div className="bottom-buttons">
                 <Button
                   variant="contained"
                   startIcon={<SaveIcon />}
