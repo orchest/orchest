@@ -4,14 +4,23 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
-export const NoProject = () => {
+export const NoStep = () => {
   return (
     <Stack
       direction="column"
       alignItems="center"
       sx={{ marginTop: (theme) => theme.spacing(4) }}
     >
-      <Typography variant="h5">No Projects</Typography>
+      <Box
+        component="img"
+        src="/image/no-step.svg"
+        sx={{
+          width: "24%",
+          maxWidth: (theme) => theme.spacing(40),
+          margin: (theme) => theme.spacing(2, 0, 0, 0),
+        }}
+      />
+      <Typography variant="h5">No Pipeline Steps</Typography>
       <Typography
         variant="body1"
         align="center"
@@ -20,18 +29,9 @@ export const NoProject = () => {
           marginTop: (theme) => theme.spacing(1),
         }}
       >
-        Projects are the main container for organizing related Pipelines, Jobs,
-        Environments and code.
+        A Pipeline Step is an executable file running in its own isolated
+        environment. Drag & drop files from the side panel to get started.
       </Typography>
-      <Box
-        component="img"
-        src="/image/no-project.svg"
-        sx={{
-          width: "24%",
-          maxWidth: (theme) => theme.spacing(40),
-          margin: (theme) => theme.spacing(2, 0, 0, 0),
-        }}
-      />
       <ViewDocsLink sx={{ marginTop: (theme) => theme.spacing(4) }} />
     </Stack>
   );

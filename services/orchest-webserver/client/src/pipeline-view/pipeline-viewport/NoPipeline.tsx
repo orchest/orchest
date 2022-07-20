@@ -4,14 +4,23 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
-export const NoProject = () => {
+export const NoPipeline = () => {
   return (
     <Stack
       direction="column"
       alignItems="center"
       sx={{ marginTop: (theme) => theme.spacing(4) }}
     >
-      <Typography variant="h5">No Projects</Typography>
+      <Box
+        component="img"
+        src="/image/no-pipeline.svg"
+        sx={{
+          width: "24%",
+          maxWidth: (theme) => theme.spacing(40),
+          margin: (theme) => theme.spacing(2, 0, 0, 0),
+        }}
+      />
+      <Typography variant="h5">No Pipelines in Project</Typography>
       <Typography
         variant="body1"
         align="center"
@@ -20,18 +29,9 @@ export const NoProject = () => {
           marginTop: (theme) => theme.spacing(1),
         }}
       >
-        Projects are the main container for organizing related Pipelines, Jobs,
-        Environments and code.
+        Pipelines are an interactive tool for creating and experimenting with
+        your data workflow. They are made up of steps and connections.
       </Typography>
-      <Box
-        component="img"
-        src="/image/no-project.svg"
-        sx={{
-          width: "24%",
-          maxWidth: (theme) => theme.spacing(40),
-          margin: (theme) => theme.spacing(2, 0, 0, 0),
-        }}
-      />
       <ViewDocsLink sx={{ marginTop: (theme) => theme.spacing(4) }} />
     </Stack>
   );

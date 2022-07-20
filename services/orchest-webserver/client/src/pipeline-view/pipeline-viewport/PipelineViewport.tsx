@@ -2,8 +2,6 @@ import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/co
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
 import classNames from "classnames";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
@@ -19,6 +17,8 @@ import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
+import { NoPipeline } from "./NoPipeline";
+import { NoStep } from "./NoStep";
 import { PipelineCanvas } from "./PipelineCanvas";
 import {
   PipelineViewportContextMenu,
@@ -29,15 +29,26 @@ import { useMouseEventsOnViewport } from "./useMouseEventsOnViewport";
 
 const CANVAS_VIEW_MULTIPLE = 3;
 
-const Overlay = () => (
+const FullAreaHolder: React.FC = ({ children }) => (
   <Box
     sx={{
-      width: "100vw",
-      height: "100vh",
-      backgroundColor: "rgba(0, 0, 0, 0.03)",
-      display: "block",
+      width: "100%" /* Full width (cover the whole page) */,
+      height: "100%" /* Full height (cover the whole page) */,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
     }}
-  />
+  >
+    {children}
+  </Box>
+);
+
+const Overlay = () => (
+  <Box sx={{ width: "100vw", height: "100vh", display: "block" }} />
 );
 
 // scaling and drag-n-drop behaviors can be (almost) entirely separated
@@ -69,6 +80,7 @@ const PipelineViewportComponent = React.forwardRef<
       selectedConnection,
       openedStep,
       isContextMenuOpen,
+      steps,
     },
     uiStateDispatch,
     autoLayoutPipeline,
@@ -195,6 +207,12 @@ const PipelineViewportComponent = React.forwardRef<
 
   const { handleContextMenu } = usePipelineViewportContextMenu();
 
+  const hasNoStep = React.useMemo(() => Object.keys(steps).length === 0, [
+    steps,
+  ]);
+
+  const showIllustration = disabled || hasNoStep;
+
   return (
     <div
       id="pipeline-viewport"
@@ -218,42 +236,17 @@ const PipelineViewportComponent = React.forwardRef<
       style={{ ...style, touchAction: "none" }}
       {...props}
     >
-      {disabled && (
-        <Box
-          sx={{
-            width: "100%" /* Full width (cover the whole page) */,
-            height: "100%" /* Full height (cover the whole page) */,
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Paper
-            elevation={0}
-            sx={{
-              backgroundColor: "transparent",
-              zIndex: 1,
-              padding: (theme) => theme.spacing(10),
-              color: (theme) => theme.palette.grey[400],
-              borderRadius: (theme) => theme.spacing(1),
-            }}
-          >
-            <Typography
-              variant="h4"
-              component="h3"
-              sx={{
-                color: (theme) => theme.palette.grey[400],
-              }}
-            >
-              No pipeline found
-            </Typography>
-          </Paper>
-        </Box>
+      {showIllustration && (
+        <FullAreaHolder>
+          {disabled && (
+            <Box sx={{ zIndex: 1, padding: (theme) => theme.spacing(10) }}>
+              <NoPipeline />
+            </Box>
+          )}
+          {hasNoStep && <NoStep />}
+        </FullAreaHolder>
       )}
+
       <PipelineCanvas
         ref={pipelineCanvasRef}
         style={{
@@ -267,7 +260,7 @@ const PipelineViewportComponent = React.forwardRef<
           ...canvasResizeStyle,
         }}
       >
-        {disabled && <Overlay />}
+        {showIllustration && <Overlay />}
         {children}
         <PipelineViewportContextMenu autoLayoutPipeline={autoLayoutPipeline} />
       </PipelineCanvas>
