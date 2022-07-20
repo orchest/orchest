@@ -13,6 +13,7 @@ import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { useScaleFactor } from "./contexts/ScaleFactorContext";
 import { DeleteStepsButton } from "./DeleteStepsButton";
+import { useInitializeConnections } from "./hooks/useInitializeConnections";
 import { useOpenFile } from "./hooks/useOpenFile";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
 import { HotKeysBoundary } from "./HotKeysBoundary";
@@ -34,7 +35,6 @@ export const PipelineEditor = () => {
     projectUuid,
     jobUuid,
     pipelineJson,
-    hash,
   } = usePipelineDataContext();
 
   const returnToJob = React.useCallback(
@@ -146,7 +146,9 @@ export const PipelineEditor = () => {
     }
   }
 
-  const flushPage = useHasChanged(hash.current);
+  const { hash = "" } = pipelineJson || {};
+
+  const flushPage = useHasChanged(hash);
 
   const [fixedConnections, interactiveConnections] = React.useMemo(() => {
     const nonInteractive: Connection[] = [];
@@ -165,6 +167,8 @@ export const PipelineEditor = () => {
     });
     return [nonInteractive, interactive];
   }, [connections, cursorControlledStep]);
+
+  useInitializeConnections();
 
   return (
     <div className="pipeline-view">
@@ -209,9 +213,9 @@ export const PipelineEditor = () => {
               boolean
             ];
 
-            let startNodePosition = getPosition(startNode);
+            const startNodePosition = getPosition(startNode);
 
-            let endNodePosition =
+            const endNodePosition =
               getPosition(endNode) ||
               (newConnection.current
                 ? {
@@ -225,7 +229,7 @@ export const PipelineEditor = () => {
               selectedConnection?.startNodeUUID === startNodeUUID &&
               selectedConnection?.endNodeUUID === endNodeUUID;
 
-            const key = `${startNodeUUID}-${endNodeUUID}-${hash.current}`;
+            const key = `${startNodeUUID}-${endNodeUUID}-${hash}`;
 
             return (
               startNodePosition && (
@@ -266,7 +270,7 @@ export const PipelineEditor = () => {
             // initialized
             return (
               <PipelineStep
-                key={`${step.uuid}-${hash.current}`}
+                key={`${step.uuid}-${hash}`}
                 data={step}
                 selected={selected}
                 savePositions={savePositions}

@@ -23,7 +23,6 @@ export type PipelineDataContextType = {
   setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   isReadOnly: boolean;
   pipelineJson?: PipelineJson;
-  hash: React.MutableRefObject<string>;
   setPipelineJson: (
     value: SetStateAction<PipelineJson>,
     flushPage?: boolean
@@ -87,13 +86,15 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     runUuid,
   });
 
-  const hash = React.useRef<string>(uuidv4());
   const setPipelineJson = React.useCallback(
     (data: SetStateAction<PipelineJson>, flushPage?: boolean) => {
       // in case you want to re-initialize all components according to the new PipelineJson
       // to be part of the re-initialization, you need to assign hash.current as part of the key of your component
-      if (flushPage) hash.current = uuidv4();
-      originalSetPipelineJson(data);
+      originalSetPipelineJson((current) => {
+        const newData = data instanceof Function ? data(current) : data;
+        if (flushPage && newData) newData.hash = uuidv4();
+        return newData;
+      });
     },
     [originalSetPipelineJson]
   );
@@ -142,7 +143,6 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         setRunUuid,
         isReadOnly,
         pipelineJson,
-        hash,
         setPipelineJson,
         isFetchingPipelineJson,
         isJobRun,
