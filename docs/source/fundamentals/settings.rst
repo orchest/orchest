@@ -23,12 +23,25 @@ Orchest is configured through *Settings*. Some settings require Orchest to be re
 ``MAX_JOB_RUNS_PARALLELISM``
     Integer between: ``[1, 25]``.
 
-    Controls the number of Job runs that can be run in parallel across all Jobs. For example, if this is set to 3, then only 3 Pipeline runs can run in parallel.
+    Controls the number of Job runs that can be run in parallel across all Jobs. For example, if
+    this is set to 3, then only 3 Pipeline runs can run in parallel.
+
+    .. note::
+        Do not set an arbitrarily high value as every worker comes with a certain memory overhead,
+        even when sitting idle.
+
 
 ``MAX_INTERACTIVE_RUNS_PARALLELISM``
     Integer between: ``[1, 25]``.
 
-    Controls the number of :term:`interactive runs <interactive (pipeline) run>` that can be run in parallel for different Pipelines at a given time. For example, if this is set to ``2``, then only ``2`` different Pipelines can have interactive runs at the same time. This is useful when multiple users are using Orchest.
+    Controls the number of :term:`interactive runs <interactive (pipeline) run>` that can be run in
+    parallel for different Pipelines at a given time. For example, if this is set to ``2``, then
+    only ``2`` different Pipelines can have interactive runs at the same time. This is useful when
+    multiple users are using Orchest.
+
+    .. note::
+        Do not set an arbitrarily high value as every worker comes with a certain memory overhead,
+        even when sitting idle.
 
 ``TELEMETRY_DISABLED``
     Boolean: ``true`` or ``false``.
