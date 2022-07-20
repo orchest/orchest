@@ -480,10 +480,17 @@ def uninstall(**kwargs) -> None:
 
     # Delete cluster level resources.
     echo("Removing Orchest's cluster-level resources...")
-    RBAC_API.delete_cluster_role(name="orchest-controller")
-    RBAC_API.delete_cluster_role_binding(name="orchest-controller")
-    EXT_API.delete_custom_resource_definition(name="orchestclusters.orchest.io")
-    EXT_API.delete_custom_resource_definition(name="orchestcomponents.orchest.io")
+    funcs = [
+        [RBAC_API.delete_cluster_role, ("orchest-controller",)],
+        [RBAC_API.delete_cluster_role_binding, ("orchest-controller",)],
+        [EXT_API.delete_custom_resource_definition, ("orchestclusters.orchest.io",)],
+        [EXT_API.delete_custom_resource_definition, ("orchestcomponents.orchest.io",)],
+    ]
+    for f, args in funcs:
+        try:
+            f(*args)
+        except client.ApiException:
+            pass
 
     echo("\nSuccessfully uninstalled Orchest.")
 
@@ -1083,6 +1090,12 @@ def restart(watch: bool, **kwargs) -> None:
     echo("Restarting the Orchest Cluster.")
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
+    except CRObjectNotFound as e:
+        echo("Failed to restart the Orchest Cluster.", err=True)
+        echo(e, err=True)
+        sys.exit(1)
+
+    try:
         if status == ClusterStatus.STOPPED:
             start(**kwargs)
         else:
@@ -1100,14 +1113,7 @@ def restart(watch: bool, **kwargs) -> None:
             )
     except client.ApiException as e:
         echo("Failed to restart the Orchest Cluster.", err=True)
-        if e.status == 404:  # not found
-            echo(
-                f"The Orchest Cluster named '{cluster_name}' in namespace"
-                f" '{ns}' could not be found.",
-                err=True,
-            )
-        else:
-            echo(f"Reason: {e.reason}", err=True)
+        echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
     if watch:

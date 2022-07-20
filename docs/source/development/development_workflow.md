@@ -132,6 +132,31 @@ export TAG="$(orchest version --latest)"
 scripts/build_container.sh -M -t $TAG -o $TAG
 ```
 
+```{dropdown} 💡 Additional notes on the "scripts/build_container.sh" script
+In this section we will quickly go over the most important options that can be passed to the
+`scripts/build_container.sh` script. Note that, because Orchest is a fully containerized
+application, the new images (the ones with your code changes) need to be build and used by the
+cluster in order to reflect your changes.
+
+- `-n`: Build the specified images but without using the existing Docker cache. Might be useful in
+  case you are experiencing trouble building an image.
+- `-i`: Build a specific image, e.g. `... -i orchest-api`
+- `-m`: Build a minified set of images, that is, all images except base Environment images.
+  Environment images don't need to be explicitly build in case you didn't make any changes to them
+  (see {ref}`making Environment base image changes <environment-base-images-changes>`) and instead
+  can be pulled in from DockerHub. Do note that the `$TAG` you are building Orchest with needs to be
+  a valid image tag that exists for the image on [Orchest's
+  DockerHub](https://hub.docker.com/u/orchest).
+- `-M`: Build the absolute minimal set of images required by Orchest to run. On top of the `-m`
+  option this also excludes all images for Sessions.
+- `-v`: Run the script in verbose mode (useful for debugging), which will also disable parallel
+  building of the images.
+
+Any number of these options can be passed to the script.
+
+Of course, all details about the script can be found by checking out its source code.
+```
+
 And finally, install Orchest:
 
 ```bash

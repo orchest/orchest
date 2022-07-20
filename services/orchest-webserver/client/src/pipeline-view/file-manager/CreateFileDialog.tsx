@@ -87,12 +87,12 @@ export const CreateFileDialog = ({
 
       await run(createFile(projectPath))
         .then((fullPath) => {
-          onSuccess({ projectPath, fullPath, shouldCreateStep });
           onClose();
+          onSuccess({ projectPath, fullPath, shouldCreateStep });
         })
         .catch(setError);
     },
-    [run, createFile, onSuccess, onClose]
+    [selectedFolder, run, createFile, setError, onSuccess, onClose]
   );
 
   React.useEffect(() => {
@@ -108,7 +108,7 @@ export const CreateFileDialog = ({
     if (isOpen) {
       reset(defaultFormState(canCreateStep));
     }
-  }, [isOpen, canCreateStep]);
+  }, [isOpen, canCreateStep, reset]);
 
   const [fileName, extension, shouldCreateStep] = watch([
     "fileName",

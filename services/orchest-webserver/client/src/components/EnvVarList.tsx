@@ -74,7 +74,7 @@ export const EnvVarList: React.FC<{
             key={elementKey}
           >
             <Tooltip
-              title="Must be numbers or alphabets concatenate with underscores or hyphen"
+              title="Must be alphanumeric characters mixed with underscores or hyphens"
               open={!isValidName}
               arrow
             >
