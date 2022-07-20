@@ -14,5 +14,5 @@ if [ "$FLASK_ENV" = "development" ]; then
         sleep 1
     done
 else
-    exec gunicorn -w 1 --threads 100 -c "$GUNICORN_CONF" "$APP_MODULE"
+    exec gunicorn -k gthread -w 1 --threads 100 -c "$GUNICORN_CONF" "$APP_MODULE"
 fi
