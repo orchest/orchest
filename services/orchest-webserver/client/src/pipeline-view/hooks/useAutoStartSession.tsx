@@ -48,27 +48,27 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
         pipelineUuid,
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
-      if (
+
+      const isBuildingJupiterEnvironment =
         !hasStartedOperation &&
         error.status === 423 &&
-        error.message === "JupyterEnvironmentBuildInProgress"
-      ) {
+        error.message === "JupyterEnvironmentBuildInProgress";
+
+      if (isBuildingJupiterEnvironment) {
         setConfirm(
           "Notice",
-          "JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
+          "A JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
           {
             onConfirm: () => {
               navigateTo(siteMap.configureJupyterLab.path);
               return true;
             },
-            confirmLabel: "Go to Configure JupyterLab",
+            confirmLabel: "Configure JupyterLab",
           }
         );
-      } else if (error?.message) {
-        setAlert("Error", `Error while starting the session: ${String(error)}`);
       }
     },
-    [navigateTo, setAlert, setConfirm, startSession]
+    [navigateTo, setConfirm, startSession]
   );
 
   React.useEffect(() => {
