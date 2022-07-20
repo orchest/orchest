@@ -7,7 +7,7 @@ flask-marshmallow
 Flask-Migrate==2.6.0
 Flask-RESTful
 flask-script
-Flask-SocketIO
+Flask-SocketIO>=5.0.0
 Flask<2
 ipython
 ipython_genutils
@@ -20,6 +20,7 @@ nbformat
 psycopg2-binary
 python-engineio
 python-socketio
+python-socketio[client]>=5.0.0
 requests
 simple-websocket
 six>=1.13.0

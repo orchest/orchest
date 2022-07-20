@@ -18,7 +18,7 @@ kubernetes
 MarkupSafe<2.1.0
 psycopg2-binary
 python-engineio
-python-socketio[client]
+python-socketio[client]>=5.0.0
 PyYAML
 requests
 six>=1.13.0

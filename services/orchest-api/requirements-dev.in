@@ -5,7 +5,7 @@ amqp
 APScheduler
 celery
 croniter
-Flask
+Flask<2
 Flask-Cors
 flask-migrate
 Flask-Migrate==2.6.0
@@ -13,14 +13,14 @@ flask-restx
 flask-script
 Flask-SQLAlchemy
 itsdangerous
-Jinja2
+Jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
 kubernetes
 MarkupSafe<2.1.0
 psycopg2-binary
 pytest-mock
 python-engineio
-python-socketio[client]
+python-socketio[client]>=5.0.0
 requests
 six>=1.13.0
 SQLAlchemy-Utils
-Werkzeug
+Werkzeug<2.1.0  # Newer versions are broken with old Flask
