@@ -342,7 +342,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const handleMoves = React.useCallback(
     async (moves: readonly Move[]) => {
-      if (!moves) return;
+      if (!moves?.length) return;
 
       for (const check of Object.values(checks)) {
         if (!(await check(moves))) {

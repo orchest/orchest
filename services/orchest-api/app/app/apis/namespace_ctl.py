@@ -69,6 +69,7 @@ class OrchestImagesToPrePull(Resource):
             f"orchest/session-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
             CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
             utils.get_jupyter_server_image_to_use(),
+            _config.CONTAINER_RUNTIME_IMAGE,
         ]
         pre_pull_orchest_images = {"pre_pull_images": pre_pull_orchest_images}
 
