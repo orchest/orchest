@@ -1,6 +1,6 @@
 import { StackProps } from "@mui/material/Stack";
 import React from "react";
-import { ViewportCenterMessage } from "./ViewportCenterMessage";
+import { ViewportCenterMessage } from "./components/ViewportCenterMessage";
 
 export const NoPipeline = (props: StackProps) => {
   return (
