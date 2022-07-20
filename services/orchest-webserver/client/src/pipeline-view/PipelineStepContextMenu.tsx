@@ -59,7 +59,10 @@ export const PipelineStepContextMenu = ({
       type: "item",
       title: "Properties",
       action: () => {
-        uiStateDispatch({ type: "OPEN_STEP_DETAILS" });
+        uiStateDispatch({
+          type: "SELECT_STEPS",
+          payload: { uuids: [stepUuid] },
+        });
       },
     },
     {
