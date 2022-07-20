@@ -26,18 +26,15 @@ import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
 
 export const PipelineEditor = () => {
-  const { navigateTo, runUuid: runUuidFromRoute } = useCustomRoute();
+  const { navigateTo } = useCustomRoute();
 
   const {
     pipelineCwd,
-    runUuid,
     isReadOnly,
     projectUuid,
-    pipelineUuid,
     jobUuid,
     pipelineJson,
     hash,
-    isJobRun,
   } = usePipelineDataContext();
 
   const returnToJob = React.useCallback(
@@ -48,11 +45,6 @@ export const PipelineEditor = () => {
   );
 
   const { openNotebook, openFilePreviewView } = useOpenFile();
-
-  const jobRunQueryArgs = React.useMemo(() => ({ jobUuid, runUuid }), [
-    jobUuid,
-    runUuid,
-  ]);
 
   const { scaleFactor } = useScaleFactor();
   const {
@@ -75,7 +67,6 @@ export const PipelineEditor = () => {
     uiStateDispatch,
     instantiateConnection,
     recalibrate,
-    autoLayoutPipeline,
   } = usePipelineUiStateContext();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
