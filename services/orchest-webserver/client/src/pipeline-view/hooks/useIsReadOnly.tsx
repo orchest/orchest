@@ -26,10 +26,10 @@ export const useIsReadOnly = (
     [dispatch]
   );
 
-  const hasActiveRun = hasValue(runUuid && jobUuid);
+  const hasActiveRun = Boolean(runUuid && jobUuid);
 
   React.useEffect(() => {
-    if (hasActiveRun) setIsReadOnly(true);
+    setIsReadOnly(hasActiveRun);
   }, [hasActiveRun, setIsReadOnly]);
 
   React.useEffect(() => {
