@@ -87,7 +87,7 @@ describe("relative", () => {
     expect(path.relative("/a/b/d/e/f/", "/a/b/c.py")).toBe("../../../c.py");
   });
 
-  it("returns an empty string for two inputs", () => {
+  it("returns an empty string for two empty inputs", () => {
     expect(path.relative("", "")).toBe("");
   });
 });
