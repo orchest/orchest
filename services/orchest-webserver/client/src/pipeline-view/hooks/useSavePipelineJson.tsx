@@ -32,6 +32,7 @@ export const useSavePipelineJson = () => {
       setOngoingSaves((current) => current + 1);
 
       let formData = new FormData();
+      delete data.hash;
       formData.append("pipeline_json", JSON.stringify(data));
       const response = await resolve(() =>
         fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {

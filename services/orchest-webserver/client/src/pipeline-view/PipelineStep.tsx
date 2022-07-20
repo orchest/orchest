@@ -558,12 +558,15 @@ const PipelineStepComponent = React.forwardRef<
   );
 });
 
-export const PipelineStep = React.forwardRef<HTMLDivElement, PipelineStepProps>(
-  function PipelineStepWithContextMenuProvider(props, ref) {
-    return (
-      <PipelineStepContextMenuProvider>
-        <PipelineStepComponent {...props} ref={ref} />
-      </PipelineStepContextMenuProvider>
-    );
-  }
-);
+const PipelineStepWithContextMenu = React.forwardRef<
+  HTMLDivElement,
+  PipelineStepProps
+>(function PipelineStepWithContextMenuProvider(props, ref) {
+  return (
+    <PipelineStepContextMenuProvider>
+      <PipelineStepComponent {...props} ref={ref} />
+    </PipelineStepContextMenuProvider>
+  );
+});
+
+export const PipelineStep = React.memo(PipelineStepWithContextMenu);

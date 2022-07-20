@@ -93,6 +93,10 @@ export type Action =
       payload: string | undefined;
     }
   | {
+      type: "INSTANTIATE_CONNECTIONS";
+      payload: Connection[];
+    }
+  | {
       type: "INSTANTIATE_CONNECTION";
       payload: Connection;
     }
@@ -553,6 +557,16 @@ export const usePipelineUiState = () => {
               });
             }
           });
+        }
+
+        case "INSTANTIATE_CONNECTIONS": {
+          return {
+            ...state,
+            connections: action.payload,
+            selectedSteps: [],
+            selectedConnection: null,
+            stepSelector: DEFAULT_STEP_SELECTOR,
+          };
         }
 
         // this means that the connection might not yet complete, as endNodeUUID is optional
