@@ -1,6 +1,7 @@
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { FileTree } from "@/types";
+import { hasExtension, join } from "@/utils/path";
 import FolderIcon from "@mui/icons-material/Folder";
 import TurnLeftOutlinedIcon from "@mui/icons-material/TurnLeftOutlined";
 import Box from "@mui/material/Box";
@@ -11,7 +12,6 @@ import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import { extensionFromFilename } from "@orchest/lib-utils";
 import React from "react";
 
 export const validatePathInTree = (path: string, tree: FileTree) => {
@@ -162,7 +162,7 @@ const useFilePicker = ({
       options: currentNode.children.filter((childNode) => {
         return (
           childNode.type === "directory" ||
-          allowedExtensions.includes(extensionFromFilename(childNode.name))
+          hasExtension(childNode.name, ...allowedExtensions)
         );
       }),
     };
@@ -243,7 +243,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
         if (["/project-dir:/", "/data:/"].includes(selectedNodePath))
           return selectedNodePath;
 
-        return `${oldPath}${selectedNode.name}/`;
+        return join(oldPath, selectedNode.name + "/");
       });
     } else {
       e.preventDefault(); // To prevent trigger `onFocusTextField`.

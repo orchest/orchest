@@ -2,7 +2,8 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
-import { extensionFromFilename, fetcher, hasValue } from "@orchest/lib-utils";
+import { hasExtension, isDirectory } from "@/utils/path";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import { useDebounce } from "./useDebounce";
 import { useFetcher } from "./useFetcher";
 
@@ -17,12 +18,12 @@ type ValidateFileProps = {
 };
 
 export const isValidPath = (
-  value: string,
+  path: string,
   allowedExtensions: readonly string[]
 ) =>
-  Boolean(value) &&
-  !value.endsWith("/") &&
-  allowedExtensions.includes(extensionFromFilename(value));
+  Boolean(path) &&
+  !isDirectory(path) &&
+  hasExtension(path, ...allowedExtensions);
 
 export const isValidFile = async ({
   path,

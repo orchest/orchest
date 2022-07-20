@@ -1,7 +1,8 @@
 import { Position } from "@/types";
+import { basename, dirname } from "@/utils/path";
 import Box from "@mui/material/Box";
 import React from "react";
-import { basename, dirname, pathFromElement } from "./common";
+import { pathFromElement } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 
 const DRAG_INIT_OFFSET_X = 10;
