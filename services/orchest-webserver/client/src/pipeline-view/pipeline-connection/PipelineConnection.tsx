@@ -90,7 +90,7 @@ const PipelineConnectionComponent = ({
   }, [endNodeX, endNodeY, startNodeX, startNodeY, transform]);
 
   // Similar to PipelineStep, here we track the positions of startNode and endNode
-  // via stepDomRefs, and update the SVG accordingly
+  // via stepRefs, and update the SVG accordingly
   // so that we can ONLY re-render relevant connections and get away from performance penalty
 
   const shouldRedrawSvg =
