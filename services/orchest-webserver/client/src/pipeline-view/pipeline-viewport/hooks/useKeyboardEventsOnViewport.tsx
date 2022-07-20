@@ -1,17 +1,17 @@
-import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
-import { activeElementIsInput } from "@orchest/lib-utils";
-import React from "react";
-import { originTransformScaling, scaleCorrected } from "../common";
-import { usePipelineRefs } from "../contexts/PipelineRefsContext";
+import { originTransformScaling, scaleCorrected } from "@/pipeline-view/common";
+import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
 import {
   DEFAULT_SCALE_FACTOR,
   SCALE_UNIT,
   useScaleFactor,
-} from "../contexts/ScaleFactorContext";
+} from "@/pipeline-view/contexts/ScaleFactorContext";
 import {
   INITIAL_PIPELINE_POSITION,
   usePipelineCanvasState,
-} from "../hooks/usePipelineCanvasState";
+} from "@/pipeline-view/hooks/usePipelineCanvasState";
+import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
+import { activeElementIsInput } from "@orchest/lib-utils";
+import React from "react";
 import { useGestureOnViewport } from "./useGestureOnViewport";
 
 export const useKeyboardEventsOnViewport = () => {

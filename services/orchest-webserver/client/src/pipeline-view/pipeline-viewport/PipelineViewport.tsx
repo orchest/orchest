@@ -1,7 +1,6 @@
 import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
-import Box from "@mui/material/Box";
 import classNames from "classnames";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
@@ -17,6 +16,9 @@ import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
+import { FullViewportHolder } from "./components/FullViewportHolder";
+import { Overlay } from "./components/Overlay";
+import { useMouseEventsOnViewport } from "./hooks/useMouseEventsOnViewport";
 import { NoPipeline } from "./NoPipeline";
 import { NoStep } from "./NoStep";
 import { PipelineCanvas } from "./PipelineCanvas";
@@ -25,31 +27,8 @@ import {
   PipelineViewportContextMenuProvider,
   usePipelineViewportContextMenu,
 } from "./PipelineViewportContextMenu";
-import { useMouseEventsOnViewport } from "./useMouseEventsOnViewport";
 
 const CANVAS_VIEW_MULTIPLE = 3;
-
-const FullAreaHolder: React.FC = ({ children }) => (
-  <Box
-    sx={{
-      width: "100%" /* Full width (cover the whole page) */,
-      height: "100%" /* Full height (cover the whole page) */,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    {children}
-  </Box>
-);
-
-const Overlay = () => (
-  <Box sx={{ width: "100vw", height: "100vh", display: "block" }} />
-);
 
 // scaling and drag-n-drop behaviors can be (almost) entirely separated
 // scaling is only mutating the css properties of PipelineCanvas, it has nothing to do with drag-n-drop.
@@ -243,10 +222,10 @@ const PipelineViewportComponent = React.forwardRef<
       {...props}
     >
       {showIllustration && (
-        <FullAreaHolder>
+        <FullViewportHolder>
           {disabled && <NoPipeline />}
           {!disabled && hasNoStep && <NoStep />}
-        </FullAreaHolder>
+        </FullViewportHolder>
       )}
       <PipelineCanvas
         ref={pipelineCanvasRef}
