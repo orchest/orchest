@@ -1,6 +1,4 @@
 -e file:../../lib/python/orchest-internals
-# https://github.com/jupyter/nbconvert/issues/1443
-# ipython is required for consistent HTML rendering, see:
 APScheduler
 flask_sqlalchemy
 flask-marshmallow
@@ -9,7 +7,7 @@ Flask-RESTful
 flask-script
 Flask-SocketIO>=5.0.0
 Flask<2
-ipython
+ipython  # required for consistent HTML rendering, see: https://github.com/jupyter/nbconvert/issues/1443
 ipython_genutils
 itsdangerous
 jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
