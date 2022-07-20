@@ -7,6 +7,7 @@ import {
   hasExtension,
   isDirectory,
   join,
+  relative,
 } from "@/utils/path";
 import { ALLOWED_STEP_EXTENSIONS, fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -357,29 +358,6 @@ export const findFirstDiffIndex = (arrA: string[], arrB: string[]) => {
   return i;
 };
 
-const getRelativePathComponents = (path: string) =>
-  path.replace(/^\//, "").split("/");
-
-export const getRelativePathTo = (filePath: string, targetFolder: string) => {
-  const cleanFilePathComponents = getRelativePathComponents(filePath);
-  const cleanTargetFolderComponents = getRelativePathComponents(targetFolder);
-
-  const firstDiffIndex = findFirstDiffIndex(
-    cleanFilePathComponents,
-    cleanTargetFolderComponents
-  );
-
-  const remainingFilePathComponents = cleanFilePathComponents.slice(
-    firstDiffIndex
-  );
-
-  const upLevels = cleanTargetFolderComponents.length - firstDiffIndex - 1;
-
-  const leadingString = upLevels >= 0 ? "../".repeat(upLevels) : "";
-
-  return `${leadingString}${remainingFilePathComponents.join("/")}`;
-};
-
 export const pathFromElement = (element: HTMLElement): string | undefined => {
   const path = element.getAttribute("data-path");
   if (path) {
@@ -400,7 +378,7 @@ export const getFilePathForRelativeToProject = (
 ) => {
   return isInDataFolder(absFilePath)
     ? getFilePathInDataFolder(absFilePath)
-    : getRelativePathTo(cleanFilePath(absFilePath), pipelineCwd);
+    : relative(pipelineCwd, cleanFilePath(absFilePath));
 };
 
 export const lastSelectedFolderPath = (selectedFiles: string[]) => {
