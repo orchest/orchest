@@ -325,8 +325,8 @@ def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
 def rmtree(path, ignore_errors=False) -> None:
     """A wrapped rm -rf.
 
-    If eventlet is being used and it's either patching all modules or
-    patchng subprocess, this function is not going to block the thread.
+    Alternative to `shutil.rmtree` to prevent it blocking the main
+    thread by running it in a subprocess.
 
     Raises:
         OSError if it failed to copy.
@@ -342,8 +342,8 @@ def copytree(
 ) -> None:
     """Copies content from source to target.
 
-    If eventlet is being used and it's either patching all modules or
-    patching subprocess, this function is not going to block the thread.
+    Alternative to `shutil.copytree` to prevent it blocking the main
+    thread by running it in a subprocess.
 
     Args:
         source:

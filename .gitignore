@@ -15,6 +15,7 @@ orchest.code-workspace
 services/*/.dockerignore
 services/*/lib
 services/orchest-webserver/app/core
+services/orchest-api/orchest-cli/
 
 # Distribution / packaging
 .Python
