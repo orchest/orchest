@@ -22,9 +22,9 @@ social:
 execution_environment:
   interfaces:
     - Command line
+    - Web GUI
   #   - HTTP REST API
   resource_managers:
     - kubernetes
-    - <resource_manager_2>
   # transfer_protocols:
   #   - SSH
