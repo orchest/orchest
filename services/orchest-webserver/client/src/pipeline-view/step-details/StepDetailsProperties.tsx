@@ -161,7 +161,7 @@ export const StepDetailsProperties = ({
   };
 
   const setupConnectionListener = () => {
-    // initiate draggable connections
+    if (!refManager.refs.connectionList) return;
 
     let previousPosition = 0;
     let connectionItemOffset = 0;
