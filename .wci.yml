@@ -1,0 +1,30 @@
+name: Orchest
+headline: "A GUI for developing, running and managing container workflows"
+description: >
+  Orchest is a tool for building data pipelines, made to be easy to use.
+  - Visually construct pipelines through our user-friendly UI
+  - Code in notebooks and scripts
+  - Run any subset of a pipelines directly or periodically
+  - Easily define your dependencies to run on any machine
+  - Spin up services whose lifetime spans across the entire pipeline run
+  - Version your projects using git
+
+language: Python, Bash, R, Julia, JavaScript
+
+documentation:
+  general: https://docs.orchest.io/en/stable/
+  installation: https://docs.orchest.io/en/stable/getting_started/installation.html
+  tutorial: https://docs.orchest.io/en/stable/getting_started/quickstart.html
+
+social:
+  twitter: orchestofficial
+
+execution_environment:
+  interfaces:
+    - Command line
+    - Web GUI
+  #   - HTTP REST API
+  resource_managers:
+    - kubernetes
+  # transfer_protocols:
+  #   - SSH
