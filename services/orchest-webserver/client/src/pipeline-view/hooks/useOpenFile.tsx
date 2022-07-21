@@ -1,6 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { joinRelativePaths } from "@orchest/lib-utils";
+import { join } from "@/utils/path";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
@@ -40,7 +40,7 @@ export const useOpenFile = () => {
 
   const notebookFilePath = React.useCallback(
     (pipelineCwd: string, stepUUID: string) => {
-      return joinRelativePaths(pipelineCwd, steps[stepUUID].file_path);
+      return join(pipelineCwd, steps[stepUUID].file_path);
     },
     [steps]
   );
