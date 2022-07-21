@@ -51,7 +51,8 @@ versionwarning_body_selector = 'div.content[role="main"]'
 versionwarning_messages = {
     "latest": (
         'You are reading the "latest" documentation, '
-        "which corresponds to an unreleased version of Orchest."
+        "which corresponds to an unreleased version of Orchest. "
+        'Consider browsing the <a href="/en/stable/">stable</a> documentation instead.'
     ),
 }
 
