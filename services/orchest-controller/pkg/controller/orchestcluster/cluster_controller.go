@@ -339,11 +339,6 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 		return nil
 	}
 
-	err = occ.ensureThirdPartyDependencies(ctx, orchest)
-	if err != nil {
-		return err
-	}
-
 	return occ.manageOrchestCluster(ctx, orchest)
 }
 
@@ -562,21 +557,9 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster) (err error) {
 
-	switch orchest.Status.Phase {
-	case orchestv1alpha1.Initializing:
-		err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.DeployingThirdParties, "")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-		fallthrough
-	case orchestv1alpha1.DeployingThirdParties:
-		defer func() {
-			if err == nil {
-				err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.DeployedThirdParties, "")
-			}
-		}()
+	preInstallHooks := []func() error{}
 
+	registryPreInstall := func() error {
 		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
 		if err != nil {
 			klog.Error(err)
@@ -589,45 +572,68 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			return err
 		}
 
-		for _, application := range orchest.Spec.Applications {
+		return nil
+	}
+
+	for _, application := range orchest.Spec.Applications {
+		preInstallHooks = append(preInstallHooks, func() error {
 			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
 				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", application.Name)))
 			if err != nil {
 				klog.Error(err)
 				return err
 			}
+			return nil
+		})
 
-			err = occ.addonManager.Get(application.Name).Enable(ctx, orchest.Namespace, &application.Config)
-			if err != nil {
-				klog.Error(err)
-				return err
-			}
-
+		if application.Name == addons.DockerRegistry {
+			preInstallHooks = append(preInstallHooks, registryPreInstall)
 		}
+
+		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application.Config)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
 	}
 
 	return nil
+
 }
 
 // Installs deployer if the config is changed
 func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (err error) {
 
-	if orchest.Status == nil || orchest.Status.Phase == orchestv1alpha1.Initializing {
+	if orchest.Status == nil {
 		return errors.Errorf("status object is not initialzed yet %s", orchest.Name)
 	}
 	stopped := false
 	nextPhase, endPhase := determineNextPhase(orchest)
+
 	if nextPhase == endPhase {
 		return
 	}
+
 	err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, nextPhase, "")
 	defer func() {
-		if err == nil && stopped {
+		if err == nil && (stopped || endPhase == orchestv1alpha1.DeployedThirdParties) {
 			err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, endPhase, "")
 		}
 	}()
 	if err != nil {
 		return err
+	}
+
+	// we should check for third parties to see if they need to be updated
+	err = occ.ensureThirdPartyDependencies(ctx, orchest)
+	if err != nil {
+		return err
+	}
+
+	// If endPhase is DeployedThirdParties return early to update phase
+	if endPhase == orchestv1alpha1.DeployedThirdParties {
+		return
 	}
 
 	// If endPhase is Paused or nextPhase is Pausing the cluster should be paused first
@@ -815,7 +821,7 @@ func (occ *OrchestClusterController) updatePhase(ctx context.Context,
 		orchest.Status.Phase == orchestv1alpha1.DeployingOrchest ||
 		orchest.Status.Phase == orchestv1alpha1.Stopped {
 
-		orchest.Status.ObservedHash = controller.ComputeHash(&orchest.Spec)
+		orchest.Status.ObservedHash = utils.ComputeHash(&orchest.Spec)
 
 		if orchest.Status.Phase != orchestv1alpha1.Starting &&
 			orchest.Status.Phase != orchestv1alpha1.DeployingOrchest {

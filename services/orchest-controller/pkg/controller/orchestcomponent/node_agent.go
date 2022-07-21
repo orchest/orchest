@@ -23,7 +23,7 @@ func NewNodeAgentReconciler(ctrl *OrchestComponentController) OrchestComponentRe
 
 func (reconciler *NodeAgentReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
 
-	hash := controller.ComputeHash(component)
+	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.NodeAgent, component)
 	metadata := controller.GetMetadata(controller.NodeAgent, hash, component, OrchestComponentKind)
 	newDs := getNodeAgentDaemonset(metadata, matchLabels, component)

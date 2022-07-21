@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"fmt"
 	"hash"
+	"hash/fnv"
 
 	"github.com/davecgh/go-spew/spew"
+	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 func Contains(list []string, s string) bool {
@@ -23,6 +26,13 @@ func Remove(list []string, s string) []string {
 		}
 	}
 	return list
+}
+
+func ComputeHash(object interface{}) string {
+	hasher := fnv.New32a()
+	DeepHashObject(hasher, object)
+
+	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
 }
 
 func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {

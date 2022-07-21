@@ -23,7 +23,7 @@ func NewRabbitmqServerReconciler(ctrl *OrchestComponentController) OrchestCompon
 
 func (reconciler *RabbitmqServerReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
 
-	hash := controller.ComputeHash(component)
+	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.Rabbitmq, component)
 	metadata := controller.GetMetadata(controller.Rabbitmq, hash, component, OrchestComponentKind)
 	newDep := getRabbitMqDeployment(metadata, matchLabels, component)
@@ -127,7 +127,7 @@ func getRabbitMqDeployment(metadata metav1.ObjectMeta,
 	}
 
 	deployment.Labels = utils.CloneAndAddLabel(metadata.Labels, map[string]string{
-		controller.DeploymentHashLabelKey: controller.ComputeHash(&deployment.Spec),
+		controller.DeploymentHashLabelKey: utils.ComputeHash(&deployment.Spec),
 	})
 
 	return deployment

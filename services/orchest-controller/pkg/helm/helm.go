@@ -3,53 +3,22 @@ package helm
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os/exec"
-	"reflect"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 )
 
-type Values map[string]interface{}
-
-func StructToValues(valuesStruct interface{}) Values {
-
-	values := Values{}
-	if valuesStruct == nil {
-		return values
-	}
-	v := reflect.TypeOf(valuesStruct)
-	reflectValue := reflect.ValueOf(valuesStruct)
-	reflectValue = reflect.Indirect(reflectValue)
-
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	for i := 0; i < v.NumField(); i++ {
-		tag := v.Field(i).Tag.Get("helm")
-		field := reflectValue.Field(i).Interface()
-		if tag != "" && tag != "-" {
-			if v.Field(i).Type.Kind() == reflect.Struct {
-				values[tag] = StructToValues(field)
-			} else {
-				values[tag] = field
-			}
-		}
-	}
-	return values
-}
-
-func GetReleaseConfig(ctx context.Context, name, namespace string) (Values, error) {
+func GetReleaseConfig(ctx context.Context, name, namespace string) (string, error) {
 
 	klog.V(2).Infof("Attempting to get the status of release: %s, namespace: %s", name, namespace)
 
 	args := NewHelmArgBuilder().
-		WithStatus().
+		WithGetManifest().
 		WithName(name).
 		WithNamespace(namespace).
-		WithJsonOutput().Build()
+		Build()
 
 	cmd := exec.CommandContext(ctx, "helm", args...)
 
@@ -60,20 +29,21 @@ func GetReleaseConfig(ctx context.Context, name, namespace string) (Values, erro
 	err := cmd.Run()
 	_, ok := err.(*exec.ExitError)
 	if ok {
-		return nil, errors.Wrapf(err, "failed to get the helm deployment release: %s, namespace: %s", name, namespace)
+		return "", errors.Wrapf(err, "failed to get the helm deployment release: %s, namespace: %s", name, namespace)
 	}
 
-	var result map[string]interface{}
-
-	err = json.Unmarshal(stdout.Bytes(), &result)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed unmarshal the helm release: %s, namespace: %s", name, namespace)
-	}
-
-	return result, nil
+	return stdout.String(), nil
 }
 
-func DeployRelease(ctx context.Context, args []string) error {
+func GetTemplate(ctx context.Context, name, namespace string) ([]byte, error) {
+
+	klog.V(2).Infof("Attempting to render the templates of release: %s, namespace: %s", name, namespace)
+
+	args := NewHelmArgBuilder().
+		WithTemplate().
+		WithName(name).
+		WithNamespace(namespace).
+		Build()
 
 	cmd := exec.CommandContext(ctx, "helm", args...)
 
@@ -84,10 +54,27 @@ func DeployRelease(ctx context.Context, args []string) error {
 	err := cmd.Run()
 	_, ok := err.(*exec.ExitError)
 	if ok {
-		return fmt.Errorf("failed to deploy helm deployment %s", stderr.String())
+		return nil, errors.Wrapf(err, "failed to render the templates of release: %s, namespace: %s", name, namespace)
 	}
 
-	return err
+	return stdout.Bytes(), nil
+}
+
+func RunCommand(ctx context.Context, args []string) (string, error) {
+
+	cmd := exec.CommandContext(ctx, "helm", args...)
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	err := cmd.Run()
+	_, ok := err.(*exec.ExitError)
+	if ok {
+		return "", fmt.Errorf("failed to deploy helm deployment %s", stderr.String())
+	}
+
+	return stdout.String(), err
 }
 
 func RemoveRelease(ctx context.Context, name, namespace string) error {

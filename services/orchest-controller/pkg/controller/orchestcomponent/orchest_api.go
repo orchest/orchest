@@ -33,7 +33,7 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 		}
 	}
 
-	hash := controller.ComputeHash(component)
+	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestApi, component)
 	metadata := controller.GetMetadata(controller.OrchestApi, hash, component, OrchestComponentKind)
 	newDep := getOrchestApiDeployment(metadata, matchLabels, component,
@@ -106,7 +106,7 @@ func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component
 		return false, err
 	} else if kerrors.IsNotFound(err) {
 		// Cleanup pod is not found, we should create it
-		hash := controller.ComputeHash(component)
+		hash := utils.ComputeHash(component)
 		matchLabels := controller.GetResourceMatchLables(controller.OrchestApiCleanup, component)
 		metadata := controller.GetMetadata(controller.OrchestApiCleanup, hash, component, OrchestComponentKind)
 		cleanupPod := getCleanupPod(metadata, matchLabels, component)
@@ -230,7 +230,7 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 	}
 
 	deployment.Labels = utils.CloneAndAddLabel(metadata.Labels, map[string]string{
-		controller.DeploymentHashLabelKey: controller.ComputeHash(&deployment.Spec),
+		controller.DeploymentHashLabelKey: utils.ComputeHash(&deployment.Spec),
 	})
 
 	return deployment

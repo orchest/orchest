@@ -35,8 +35,8 @@ func NewDefaultAddonsConfig() AddonsConfig {
 }
 
 type Addon interface {
-	// Installs addon if the config is changed
-	Enable(ctx context.Context, namespace string, config *orchestv1alpha1.ApplicationConfig) error
+	// Enable the addon. preInstallHooks should be called, before enabling the addon
+	Enable(ctx context.Context, preInstallHooks []func() error, namespace string, config *orchestv1alpha1.ApplicationConfig) error
 
 	// Uninstall the addon
 	Uninstall(ctx context.Context, namespace string) error
@@ -104,7 +104,7 @@ func (m *AddonManager) EnableAddon(ctx context.Context, addonName, namespace str
 	go func(ctx context.Context, cancel context.CancelFunc) {
 		if addon, ok := m.addons[addonName]; ok {
 			// addon is registered with the addon manager
-			err := addon.Enable(ctx, namespace, nil)
+			err := addon.Enable(ctx, nil, namespace, nil)
 			if err != nil {
 				klog.Errorf("failed to deploy addon: %s, err: %s", addonName, err)
 				cancel()
