@@ -430,6 +430,7 @@ export const PipelineEditor = () => {
   }, [metadataPositions, recalibrate, dispatch]);
 
   const runSelectedSteps = () => {
+    console.log("-------------------- Run selected steps", Date.now() / 1000);
     runStepUUIDs(eventVars.selectedSteps, "selection");
   };
   const onRunIncoming = () => {

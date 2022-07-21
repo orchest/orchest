@@ -77,6 +77,8 @@ async def run_pipeline_async(
     session_uuid: str, run_config: RunConfig, pipeline: Pipeline, task_id: str
 ):
     try:
+        import time
+        print("-------------------- Celery task executing", time.time(), flush=True);
         await run_pipeline_workflow(
             session_uuid, task_id, pipeline, run_config=run_config
         )
@@ -93,6 +95,8 @@ async def run_pipeline_async(
             "workflows",
             f"pipeline-run-task-{task_id}",
         )
+        import time
+        print("-------------------- Celery task FINISHED", time.time(), flush=True);
 
     # The celery task has completed successfully. This is not
     # related to the success or failure of the pipeline itself.

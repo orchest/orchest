@@ -67,6 +67,7 @@ export const useInteractiveRuns = () => {
             }),
           }
         );
+        console.log("-------------------- /catch/api-proxy/api/runs POST", Date.now() / 1000);
 
         setStepExecutionState((current) => ({
           ...current,

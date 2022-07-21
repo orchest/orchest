@@ -638,6 +638,8 @@ async def run_pipeline_workflow(
             manifest = _pipeline_to_workflow_manifest(
                 session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
             )
+            import time
+            print("-------------------- CUSTOM OBJECT CREATED", time.time(), flush=True);
             k8s_custom_obj_api.create_namespaced_custom_object(
                 "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
             )
@@ -685,12 +687,16 @@ async def run_pipeline_workflow(
                     ):
                         step_status_update = "FAILURE"
                     elif step_status == "Running" and step_uuid in steps_to_start:
+                        import time
+                        print("-------------------- Step was STARTED", time.time(), flush=True);
                         step_status_update = "STARTED"
                         steps_to_start.remove(step_uuid)
                     elif (
                         step_status in ["Succeeded", "Failed", "Error"]
                         and step_uuid in steps_to_finish
                     ):
+                        import time
+                        print("-------------------- Step has FINISHED", time.time(), flush=True);
                         step_status_update = {
                             "Succeeded": "SUCCESS",
                             "Failed": "FAILURE",
@@ -745,6 +751,9 @@ async def run_pipeline_workflow(
                     run_endpoint=run_config["run_endpoint"],
                     uuid=step_uuid,
                 )
+
+            import time
+            print("-------------------- Pipeline has FINISHED", time.time(), flush=True);
 
             pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
             await update_status(

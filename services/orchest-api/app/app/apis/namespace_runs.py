@@ -338,6 +338,9 @@ class CreateInteractiveRun(TwoPhaseFunction):
             task_id=task_id,
         )
 
+        import time
+        print("-------------------- Celery task sent", time.time(), flush=True);
+
         # NOTE: this is only if a backend is configured.  The task does
         # not return anything. Therefore we can forget its result and
         # make sure that the Celery backend releases recourses (for
