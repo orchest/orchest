@@ -2,7 +2,6 @@ import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
 import Box from "@mui/material/Box";
 import { makeRequest } from "@orchest/lib-utils";
-import $ from "jquery";
 import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
@@ -15,24 +14,6 @@ import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
 import { AppInnerContextProvider } from "./contexts/AppInnerContext";
 import Jupyter from "./jupyter/Jupyter";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-$.fn.overflowing = function () {
-  let overflowed = false;
-
-  this.each(function () {
-    let el = $(this)[0];
-
-    if (el.offsetHeight < el.scrollHeight || el.offsetWidth < el.scrollWidth) {
-      overflowed = true;
-    } else {
-      overflowed = false;
-    }
-  });
-
-  return overflowed;
-};
 
 const App = () => {
   const [jupyter, setJupyter] = React.useState<Jupyter | null>(null);
