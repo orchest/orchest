@@ -2,14 +2,12 @@ import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
-import { hasValue } from "@orchest/lib-utils";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import React from "react";
 
-export const useIsReadOnly = (
-  projectUuid: string | undefined,
-  jobUuid: string | undefined,
-  runUuid: string | undefined
-) => {
+export const useIsReadOnly = () => {
+  const { jobUuid, runUuid: jobRunUuid } = useCustomRoute();
+
   const {
     dispatch,
     state: { pipelineIsReadOnly },
@@ -26,17 +24,26 @@ export const useIsReadOnly = (
     [dispatch]
   );
 
-  const hasActiveRun = Boolean(runUuid && jobUuid);
+  /**
+   * Note that runUuid could be two kinds:
+   * - job run (always read-only): the UUID is retrieved from a job, so FE always gets it from the URL.
+   * - interactive run (not read-only): the UUID of this run is only useful until the run is finished.
+   *   So this kind of runUuid is NEVER from the URL.
+   */
+  const isJobRun = Boolean(jobRunUuid && jobUuid);
 
   React.useEffect(() => {
-    setIsReadOnly(hasActiveRun);
-  }, [hasActiveRun, setIsReadOnly]);
-
-  React.useEffect(() => {
-    if (!hasActiveRun && hasValue(projectUuid)) {
-      ensureEnvironmentsAreBuilt(BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
+    // For inspecting a job run, it is ALWAYS read-only.
+    if (isJobRun) {
+      setIsReadOnly(true);
     }
-  }, [hasActiveRun, projectUuid, ensureEnvironmentsAreBuilt]);
+    // For interactive runs, set it to read-only if any environment is not built.
+    if (!isJobRun) {
+      ensureEnvironmentsAreBuilt(
+        BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
+      ).then((hasBuilt) => setIsReadOnly(!hasBuilt));
+    }
+  }, [isJobRun, ensureEnvironmentsAreBuilt, setIsReadOnly]);
 
   return pipelineIsReadOnly;
 };

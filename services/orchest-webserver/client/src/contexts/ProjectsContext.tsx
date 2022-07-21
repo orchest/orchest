@@ -207,7 +207,7 @@ const reducer = (
 };
 
 const initialState: IProjectsContextState = {
-  pipelineIsReadOnly: false,
+  pipelineIsReadOnly: true,
   pipelineSaveStatus: "saved",
   pipelines: undefined,
   projects: [],

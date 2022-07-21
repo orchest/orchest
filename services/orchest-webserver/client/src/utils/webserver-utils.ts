@@ -352,17 +352,17 @@ export function getPipelineJSONEndpoint({
   pipelineUuid,
   jobUuid,
   projectUuid,
-  runUuid,
+  jobRunUuid,
 }: {
   pipelineUuid: string | undefined;
   projectUuid: string | undefined;
   jobUuid?: string | undefined;
-  runUuid?: string | undefined;
+  jobRunUuid?: string | undefined;
 }) {
   if (!pipelineUuid || !projectUuid) return "";
   let pipelineURL = `/async/pipelines/json/${projectUuid}/${pipelineUuid}`;
 
-  const queryArgs = { job_uuid: jobUuid, pipeline_run_uuid: runUuid };
+  const queryArgs = { job_uuid: jobUuid, pipeline_run_uuid: jobRunUuid };
   // NOTE: pipeline_run_uuid only makes sense if job_uuid is given
   // i.e. a job run requires both uuid's
   const queryString = jobUuid
