@@ -49,8 +49,7 @@ export const useAutoStartSession = () => {
         pipelineUuid,
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
-
-      const isBuildingJupyterEnvironment =
+      if (
         !hasStartedOperation &&
         error.status === 423 &&
         error.message === "JupyterEnvironmentBuildInProgress"
@@ -70,6 +69,8 @@ export const useAutoStartSession = () => {
             confirmLabel: "Configure JupyterLab",
           }
         );
+      } else if (error?.message) {
+        setAlert("Error", `Error while starting the session: ${String(error)}`);
       }
     },
     [navigateTo, setAlert, setConfirm, startSession, dispatch]
