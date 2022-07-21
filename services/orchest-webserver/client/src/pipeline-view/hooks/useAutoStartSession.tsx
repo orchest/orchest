@@ -49,12 +49,12 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
 
-      const isBuildingJupiterEnvironment =
+      const isBuildingJupyterEnvironment =
         !hasStartedOperation &&
         error.status === 423 &&
         error.message === "JupyterEnvironmentBuildInProgress";
 
-      if (isBuildingJupiterEnvironment) {
+      if (isBuildingJupyterEnvironment) {
         setConfirm(
           "Notice",
           "A JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
