@@ -1,10 +1,6 @@
-# How to...
+# Frequently Asked Questions (FAQ)
 
-## Pass data between pipeline steps
-
-Please refer to the dedicated section on {ref}`data passing <data passing>`.
-
-## Install new packages
+## How to install new packages?
 
 ```{tip}
 👉 Would you rather watch a short video tutorial? Check it our here: [installing additional
@@ -27,17 +23,9 @@ Do **not** install new packages by running bash commands inside the Notebooks. T
 packages to be installed every time you do a pipeline run, since the state of the kernel environment
 is ephemeral.
 
-## Use `git` inside Orchest
-
-Please refer to the dedicated section on {ref}`using git inside Orchest <git inside Orchest>`.
-
 (how-to-import-a-project)=
 
-## Import a project
-
-Check out our video: [importing a project](https://www.tella.tv/video/cknr7of9c000409jr5gx4efjy/view).
-
-## Share code between steps
+## How to share code between steps?
 
 ```{note}
 💡 This approach also works to share code between pipelines.
@@ -57,7 +45,7 @@ import utils
 utils.transform(...)
 ```
 
-## Minimize Orchest's disk size
+## How to minimize Orchest's disk size?
 
 To keep Orchest's disk footprint to a minimal you can use the following best practices:
 
@@ -70,101 +58,13 @@ To keep Orchest's disk footprint to a minimal you can use the following best pra
   number of pipeline runs and automatically delete the older ones. Steps: (1) edit an existing job
   or create a new one, (2) go to _pipeline runs_, and (3) select _auto clean-up_.
 
-## Use a GPU in Orchest
+## How to use a GPU in Orchest?
 
 Currently GPU support is not yet available. Coming soon!
 
-## Use the Orchest CLI
-
-Below you will find the most important `orchest-cli` commands that you need to know (you can also get all this
-information by running `orchest -h`):
-
-```sh
-orchest start
-
-# Stop Orchest (shuts down Orchest completely).
-orchest stop
-
-# Install Orchest (check out the dedicated `Installation` guide in
-# the `Getting started` section).
-orchest install
-
-# Update Orchest to a newer version (NOTE: this can also be done
-# through the settings in the UI).
-orchest update
-
-# Get extensive version information. Useful to see whether the
-# installation was successful.
-orchest version
-```
-
-## Use Orchest shortcuts like a pro
-
-### Command palette
-
-```{eval-rst}
-.. list-table::
-   :widths: 25 25
-   :header-rows: 1
-   :align: left
-
-   * - Key(s)
-     - Action
-
-   * - :kbd:`Control`/:kbd:`Command` + :kbd:`K`
-     - Open command palette
-
-   * - :kbd:`↑`/:kbd:`↓`
-     - Navigate command palette commands
-
-   * - :kbd:`PageUp`/:kbd:`PageDown`
-     - Navigate command palette commands
-
-   * - :kbd:`Escape`
-     - Dismiss command palette
-```
-
-### Pipeline editor
-
-```{eval-rst}
-.. list-table::
-   :widths: 25 25
-   :header-rows: 1
-   :align: left
-
-   * - Key(s)
-     - Action
-
-   * - :kbd:`Space` + click + drag
-     - Pan canvas*
-
-   * - :kbd:`Ctrl` + click
-     - Select multiple steps
-
-   * - :kbd:`Ctrl` + :kbd:`A`
-     - Select all steps*
-
-   * - :kbd:`Ctrl` + :kbd:`Enter`
-     - Run selected steps*
-
-   * - :kbd:`H`
-     - Center view and reset zoom
-
-   * - :kbd:`Escape`
-     - Deselect steps
-
-   * - :kbd:`Delete`/:kbd:`Backspace`
-     - Delete selected step(s)
-
-   * - Double click a step
-     - Open file in JupyterLab
-```
-
-\* Requires mouse to hover the canvas
-
 (skip-notebook-cells)=
 
-## Skip notebook cells
+## How to skip notebook cells?
 
 Notebooks facilitate an experimental workflow, meaning that there will be cells that should not be
 run when executing the notebook (from top to bottom). Since {term}`pipeline runs <pipeline run>`
@@ -180,7 +80,7 @@ To skip a cell during pipeline runs:
 The cells with the _skip_ tag are still runnable through JupyterLab, but when executing these
 notebooks as part of pipelines in Orchest they will not be run.
 
-## Migrate to Kubernetes
+## How to migrate to Kubernetes?
 
 The moment we have moved to a Kubernetes backed Orchest version (and deprecated the Docker based
 version), we will update this section of the documentation to include steps on how to migrate your

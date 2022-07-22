@@ -38,7 +38,6 @@
 getting_started/installation
 getting_started/quickstart
 getting_started/when_to_use_orchest
-getting_started/how_to
 ```
 
 ```{toctree}
@@ -54,9 +53,19 @@ fundamentals/notifications
 fundamentals/environments
 fundamentals/environment_variables
 fundamentals/services
-fundamentals/sdk/index
 fundamentals/settings
 fundamentals/glossary
+getting_started/faq
+```
+
+```{toctree}
+:caption: Reference
+:hidden: true
+:maxdepth: 1
+
+reference/shortcuts
+reference/sdk/index
+reference/cli/index
 ```
 
 ```{toctree}
