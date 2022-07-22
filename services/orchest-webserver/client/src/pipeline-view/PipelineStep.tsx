@@ -23,11 +23,7 @@ import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
-import {
-  PipelineStepContextMenu,
-  PipelineStepContextMenuProvider,
-  usePipelineStepContextMenu,
-} from "./PipelineStepContextMenu";
+import { usePipelineViewportContextMenu } from "./pipeline-viewport/PipelineViewportContextMenu";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
@@ -158,7 +154,7 @@ const PipelineStepComponent = React.forwardRef<
     runUuid,
   } = usePipelineDataContext();
   const {
-    uiState: { isContextMenuOpen },
+    uiState: { contextMenuUuid },
   } = usePipelineUiStateContext();
   const {
     mouseTracker,
@@ -294,7 +290,7 @@ const PipelineStepComponent = React.forwardRef<
   const onMouseDown = React.useCallback(
     (e: React.MouseEvent) => {
       // user is panning the canvas or context menu is open
-      if (keysDown.has("Space") || isContextMenuOpen) return;
+      if (keysDown.has("Space") || Boolean(contextMenuUuid)) return;
 
       e.stopPropagation();
       e.preventDefault();
@@ -303,10 +299,10 @@ const PipelineStepComponent = React.forwardRef<
         forceUpdate();
       }
     },
-    [forceUpdate, keysDown, isContextMenuOpen]
+    [forceUpdate, keysDown, contextMenuUuid]
   );
 
-  const { handleContextMenu } = usePipelineStepContextMenu();
+  const { handleContextMenu } = usePipelineViewportContextMenu();
 
   const onContextMenu = async (e: React.MouseEvent) => {
     const ctrlKeyPressed = e.ctrlKey || e.metaKey;
@@ -316,12 +312,12 @@ const PipelineStepComponent = React.forwardRef<
         payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
       });
     }
-    handleContextMenu(e);
+    handleContextMenu(e, uuid);
   };
 
   const onClick = async (e: React.MouseEvent) => {
     // user is panning the canvas or context menu is open
-    if (keysDown.has("Space") || isContextMenuOpen) return;
+    if (keysDown.has("Space") || Boolean(contextMenuUuid)) return;
 
     e.stopPropagation();
     e.preventDefault();
@@ -498,7 +494,6 @@ const PipelineStepComponent = React.forwardRef<
       >
         {children}
       </Box>
-      <PipelineStepContextMenu stepUuid={uuid} />
       {isCursorControlled && // the cursor-controlled step also renders all the interactive connections
         interactiveConnections.map((connection) => {
           if (!connection) return null;
@@ -558,15 +553,4 @@ const PipelineStepComponent = React.forwardRef<
   );
 });
 
-const PipelineStepWithContextMenu = React.forwardRef<
-  HTMLDivElement,
-  PipelineStepProps
->(function PipelineStepWithContextMenuProvider(props, ref) {
-  return (
-    <PipelineStepContextMenuProvider>
-      <PipelineStepComponent {...props} ref={ref} />
-    </PipelineStepContextMenuProvider>
-  );
-});
-
-export const PipelineStep = React.memo(PipelineStepWithContextMenu);
+export const PipelineStep = React.memo(PipelineStepComponent);

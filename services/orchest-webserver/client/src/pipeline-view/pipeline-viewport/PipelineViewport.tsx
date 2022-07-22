@@ -63,11 +63,10 @@ const PipelineViewportComponent = React.forwardRef<
       stepSelector,
       selectedConnection,
       openedStep,
-      isContextMenuOpen,
+      contextMenuUuid,
       steps,
     },
     uiStateDispatch,
-    autoLayoutPipeline,
   } = usePipelineUiStateContext();
 
   const {
@@ -107,7 +106,7 @@ const PipelineViewportComponent = React.forwardRef<
   }, [resizeCanvas, localRef]);
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if (disabled || isContextMenuOpen) return;
+    if (disabled || Boolean(contextMenuUuid)) return;
     if (selectedConnection) {
       uiStateDispatch({ type: "DESELECT_CONNECTION" });
     }
@@ -123,7 +122,7 @@ const PipelineViewportComponent = React.forwardRef<
   };
 
   const onMouseUp = (e: React.MouseEvent) => {
-    if (disabled || isContextMenuOpen) return;
+    if (disabled || Boolean(contextMenuUuid)) return;
     if (e.button === 0) {
       if (stepSelector.active) {
         uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
@@ -217,7 +216,7 @@ const PipelineViewportComponent = React.forwardRef<
       }}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
-      onContextMenu={handleContextMenu}
+      onContextMenu={(e) => handleContextMenu(e, "viewport")}
       style={{ ...style, touchAction: "none" }}
       {...props}
     >
@@ -242,7 +241,7 @@ const PipelineViewportComponent = React.forwardRef<
       >
         {showIllustration && <Overlay />}
         {children}
-        <PipelineViewportContextMenu autoLayoutPipeline={autoLayoutPipeline} />
+        <PipelineViewportContextMenu />
       </PipelineCanvas>
     </div>
   );
