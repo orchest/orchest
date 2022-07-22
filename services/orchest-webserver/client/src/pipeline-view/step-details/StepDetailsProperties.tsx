@@ -1,8 +1,9 @@
+import { OrderableList } from "@/components/OrderableList";
 import ProjectFilePicker from "@/components/ProjectFilePicker";
 import { Step } from "@/types";
-import { firstAncestor } from "@/utils/element";
 import { hasExtension, join } from "@/utils/path";
 import { toValidFilename } from "@/utils/toValidFilename";
+import DragIndicator from "@mui/icons-material/DragIndicator";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
@@ -16,7 +17,6 @@ import {
   kernelNameToLanguage,
   RefManager,
 } from "@orchest/lib-utils";
-import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { SelectEnvironment } from "./SelectEnvironment";
 import { useStepDetailsContext } from "./StepDetailsContext";
@@ -38,8 +38,7 @@ const ConnectionItem = ({
 }) => {
   return (
     <div className="connection-item" data-uuid={uuid}>
-      <i className="material-icons">drag_indicator</i> <span>{title}</span>{" "}
-      <span className="filename">({filePath})</span>
+      <span>{title}</span> <span className="filename">({filePath})</span>
     </div>
   );
 };
@@ -61,7 +60,11 @@ export const StepDetailsProperties = ({
   pipelineCwd: string | undefined;
   readOnly: boolean;
   shouldAutoFocus: boolean;
-  onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
+  onSave: (
+    payload: Partial<Step>,
+    uuid: string,
+    replace?: boolean
+  ) => Promise<void>;
   menuMaxWidth?: string;
 }) => {
   const {
@@ -139,145 +142,16 @@ export const StepDetailsProperties = ({
     newConnectionIndex: number
   ) => {
     // check if there is work to do
-    if (oldConnectionIndex != newConnectionIndex) {
+    if (oldConnectionIndex !== newConnectionIndex) {
       // note it's creating a reference
-      let connectionList = cloneDeep(step.incoming_connections);
+      const connections = [...step.incoming_connections];
 
-      let tmp = connectionList[oldConnectionIndex];
-      connectionList.splice(oldConnectionIndex, 1);
-      connectionList.splice(newConnectionIndex, 0, tmp);
+      let tmp = connections[oldConnectionIndex];
+      connections.splice(oldConnectionIndex, 1);
+      connections.splice(newConnectionIndex, 0, tmp);
 
-      onSave({ incoming_connections: connectionList }, step.uuid);
+      onSave({ incoming_connections: connections }, step.uuid);
     }
-  };
-
-  const setupConnectionListener = () => {
-    if (!refManager.refs.connectionList) return;
-
-    let previousPosition = 0;
-    let connectionItemOffset = 0;
-    let oldConnectionIndex = 0;
-    let newConnectionIndex = 0;
-
-    const connectionItems = [
-      ...refManager.refs.connectionList.querySelectorAll(".connection-item"),
-    ];
-
-    let numConnectionListItems = connectionItems.length;
-
-    const mouseDown = (event: MouseEvent) => {
-      const item = firstAncestor(event.target as HTMLElement, (element) =>
-        element.classList.contains("connection-item")
-      );
-
-      if (!item) return;
-
-      previousPosition = event.clientY;
-      connectionItemOffset = 0;
-
-      refManager.refs.connectionList.classList.add("dragging");
-      oldConnectionIndex =
-        [...(item.parentNode?.children || [])].findIndex(
-          (node) => node === item
-        ) || 0;
-
-      item.classList.add("selected");
-    };
-
-    const mouseMove = (event: MouseEvent) => {
-      const selectedConnection = refManager.refs.connectionList.querySelector(
-        ".connection-item.selected"
-      );
-
-      if (selectedConnection) {
-        const clientY = event.clientY as number;
-        const positionDelta = clientY - previousPosition;
-
-        previousPosition = clientY;
-
-        const itemHeight = selectedConnection.clientHeight;
-
-        connectionItemOffset += positionDelta;
-
-        // limit connectionItemOffset
-        if (connectionItemOffset < -itemHeight * oldConnectionIndex) {
-          connectionItemOffset = -itemHeight * oldConnectionIndex;
-        } else if (
-          connectionItemOffset >
-          itemHeight * (numConnectionListItems - oldConnectionIndex - 1)
-        ) {
-          connectionItemOffset =
-            itemHeight * (numConnectionListItems - oldConnectionIndex - 1);
-        }
-
-        selectedConnection.style.transform = `translateY(${connectionItemOffset}px)`;
-
-        // find new index based on current position
-        const elementYPosition =
-          (oldConnectionIndex * itemHeight + connectionItemOffset) / itemHeight;
-
-        newConnectionIndex = Math.min(
-          Math.max(0, Math.round(elementYPosition)),
-          numConnectionListItems - 1
-        );
-
-        refManager.refs.connectionList
-          .querySelectorAll(".connection-item")
-          .forEach((conn: HTMLElement, index: number) => {
-            conn.classList.remove("swapped-up");
-            conn.classList.remove("swapped-down");
-
-            if (newConnectionIndex >= index && index > oldConnectionIndex) {
-              conn.classList.add("swapped-up");
-            } else if (
-              newConnectionIndex <= index &&
-              index < oldConnectionIndex
-            ) {
-              conn.classList.add("swapped-down");
-            }
-          });
-      }
-    };
-
-    const mouseUp = () => {
-      const selectedConnection = refManager.refs.connectionList.querySelector(
-        ".connection-item.selected"
-      );
-
-      if (selectedConnection) {
-        selectedConnection.style.transform = "";
-        selectedConnection.classList.remove("selected");
-
-        refManager.refs.connectionList
-          .querySelectorAll(".connection-item")
-          .forEach((conn: HTMLElement) => {
-            conn.classList.remove("swapped-up");
-            conn.classList.remove("swapped-down");
-          });
-
-        refManager.refs.connectionList.classList.remove("dragging");
-
-        swapConnectionOrder(oldConnectionIndex, newConnectionIndex);
-      }
-    };
-
-    refManager.refs.connectionList.addEventListener("mousemove", mouseMove);
-    refManager.refs.connectionList.addEventListener("mouseup", mouseUp);
-    connectionItems.forEach((item) =>
-      item.addEventListener("mousedown", mouseDown)
-    );
-
-    return () => {
-      refManager.refs.connectionList?.removeEventListener(
-        "mousemove",
-        mouseMove
-      );
-      refManager.refs.connectionList?.removeEventListener("mouseup", mouseUp);
-
-      connectionItems.forEach((item) =>
-        item.removeEventListener("mousedown", mouseDown)
-      );
-    };
   };
 
   React.useEffect(() => {
@@ -289,8 +163,6 @@ export const StepDetailsProperties = ({
       onChangeFilePath(toValidFilename(step.title));
     }
   }, []);
-
-  React.useEffect(setupConnectionListener, [step.uuid]);
 
   return (
     <div className={"detail-subview"}>
@@ -367,19 +239,31 @@ export const StepDetailsProperties = ({
               Connections
             </Typography>
 
-            <div
-              className="connection-list"
-              ref={refManager.nrefs.connectionList}
+            <OrderableList
+              onUpdate={async (oldIndex, newIndex) =>
+                swapConnectionOrder(oldIndex, newIndex)
+              }
             >
               {step.incoming_connections.map((startNodeUUID: string) => (
-                <ConnectionItem
-                  title={connections[startNodeUUID].title}
-                  filePath={connections[startNodeUUID].file_path}
-                  uuid={startNodeUUID}
+                <Stack
+                  flexDirection="row"
                   key={startNodeUUID}
-                />
+                  sx={{
+                    backgroundColor: (theme) =>
+                      `${theme.palette.background.paper}`,
+                    width: "100%",
+                  }}
+                >
+                  <DragIndicator />
+                  <ConnectionItem
+                    title={connections[startNodeUUID].title}
+                    filePath={connections[startNodeUUID].file_path}
+                    uuid={startNodeUUID}
+                    key={startNodeUUID}
+                  />
+                </Stack>
               ))}
-            </div>
+            </OrderableList>
           </Box>
         )}
       </Stack>
