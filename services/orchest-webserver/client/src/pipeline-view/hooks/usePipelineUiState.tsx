@@ -26,6 +26,8 @@ type StepSelectorData = {
   active: boolean;
 };
 
+export type ContextMenuUuid = "viewport" | string | undefined;
+
 export type PipelineUiState = {
   steps: StepsDict;
   connections: Connection[];
@@ -41,7 +43,7 @@ export type PipelineUiState = {
   timestamp: number | undefined;
   subViewIndex: number;
   isDeletingSteps: boolean;
-  isContextMenuOpen: boolean;
+  contextMenuUuid?: ContextMenuUuid;
 };
 
 export type Action =
@@ -141,8 +143,8 @@ export type Action =
       payload: boolean;
     }
   | {
-      type: "SET_IS_CONTEXT_MENU_OPEN";
-      payload: boolean;
+      type: "SET_CONTEXT_MENU_UUID";
+      payload: ContextMenuUuid;
     };
 
 export type PipelineUiStateAction =
@@ -678,8 +680,8 @@ export const usePipelineUiState = () => {
           return { ...state, isDeletingSteps: action.payload };
         }
 
-        case "SET_IS_CONTEXT_MENU_OPEN": {
-          return { ...state, isContextMenuOpen: action.payload };
+        case "SET_CONTEXT_MENU_UUID": {
+          return { ...state, contextMenuUuid: action.payload };
         }
 
         default: {
@@ -713,7 +715,6 @@ export const usePipelineUiState = () => {
     subViewIndex: 0,
     shouldAutoFocus: false,
     isDeletingSteps: false,
-    isContextMenuOpen: false,
   });
 
   React.useEffect(() => {
