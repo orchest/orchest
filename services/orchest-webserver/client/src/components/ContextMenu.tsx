@@ -1,4 +1,5 @@
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
+import { ContextMenuUuid } from "@/pipeline-view/hooks/usePipelineUiState";
 import { Position } from "@/types";
 import Divider from "@mui/material/Divider";
 import Menu from "@mui/material/Menu";
@@ -8,7 +9,7 @@ import React from "react";
 
 export type ContextMenuContextType = {
   position: Position | undefined;
-  handleContextMenu: (event: React.MouseEvent) => void;
+  handleContextMenu: (event: React.MouseEvent, uuid: ContextMenuUuid) => void;
   onClose: () => void;
   onSelectMenuItem: (
     event: React.MouseEvent,
@@ -25,20 +26,41 @@ export const useContextMenuContext = () => React.useContext(ContextMenuContext);
 export const ContextMenuContextProvider: React.FC = ({ children }) => {
   const { uiStateDispatch } = usePipelineUiStateContext();
   const [position, setPosition] = React.useState<Position>();
-  const handleContextMenu = (event: React.MouseEvent) => {
+  const handleContextMenu = (
+    event: React.MouseEvent,
+    uuid: ContextMenuUuid
+  ) => {
     event.preventDefault();
     event.stopPropagation();
 
-    setPosition({
-      x: event.clientX,
-      y: event.clientY,
+    uiStateDispatch((current) => {
+      // When there is already a ContextMenu open, it's transparent backdrop will cover the whole screen.
+      // Therefore, the immediate right-click will always on the target of the first right-click.
+      // E.g. right click on Step A, and then right click on the canvas, the second context menu is still on Step A.
+      // The current workaround is closing the current context menu if the immediate second right-click occurs.
+      const isOpen = Boolean(current.contextMenuUuid);
+      if (!isOpen) {
+        setPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+        return {
+          type: "SET_CONTEXT_MENU_UUID",
+          payload: uuid,
+        };
+      } else {
+        setPosition(undefined);
+        return {
+          type: "SET_CONTEXT_MENU_UUID",
+          payload: undefined,
+        };
+      }
     });
-    uiStateDispatch({ type: "SET_IS_CONTEXT_MENU_OPEN", payload: true });
   };
 
   const onClose = React.useCallback(() => {
     setPosition(undefined);
-    uiStateDispatch({ type: "SET_IS_CONTEXT_MENU_OPEN", payload: false });
+    uiStateDispatch({ type: "SET_CONTEXT_MENU_UUID", payload: undefined });
   }, [uiStateDispatch]);
 
   const onSelectMenuItem = React.useCallback(
@@ -73,14 +95,16 @@ type ContextMenuItemSeparator = {
 
 export type ContextMenuItem = ContextMenuItemAction | ContextMenuItemSeparator;
 
+type ContextMenuProps = Omit<ContextMenuContextType, "handleContextMenu"> & {
+  menuItems: ContextMenuItem[];
+};
+
 export const ContextMenu = ({
   position,
   onClose,
   onSelectMenuItem,
   menuItems,
-}: Omit<ContextMenuContextType, "handleContextMenu"> & {
-  menuItems: ContextMenuItem[];
-}) => {
+}: ContextMenuProps) => {
   return (
     <Menu
       open={hasValue(position)}
