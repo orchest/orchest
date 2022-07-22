@@ -942,75 +942,8 @@ button.themed-secondary {
     top: 0;
     padding: var(--space-5);
 
-    .services-status {
-      position: absolute;
-      right: 0;
-      padding: var(--space-5);
-      background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 3px 4px 2px rgb(0 0 0 / 10%);
-      margin: 0 var(--space-5);
-
-      h3 {
-        font-weight: 500;
-        margin-bottom: calc(var(--space-5) / 2);
-      }
-
-      h4 {
-        margin-top: calc(var(--space-5) / 2);
-        &:first-of-type {
-          margin-top: 0;
-        }
-      }
-
-      .link-holder {
-        i {
-          display: block;
-          margin-top: calc(var(--space-5) / 2);
-        }
-      }
-
-      .edit-button-holder {
-        border-top: 1px solid $borderColor;
-        padding-top: calc(var(--space-5) / 2);
-        margin-top: calc(var(--space-5) / 2);
-        text-align: center;
-
-        button {
-          margin-bottom: 0;
-        }
-      }
-
-      div.link-holder {
-        margin-top: calc(var(--space-5) / 2);
-        overflow: auto;
-
-        a {
-          color: #000;
-          text-decoration: none;
-
-          span.material-icons {
-            font-size: 22px;
-            float: left;
-            padding-right: 8px;
-            margin-top: -2px;
-          }
-        }
-      }
-    }
-
     button {
       min-width: 0;
-    }
-
-    &,
-    .selection-buttons {
-      button {
-        min-width: 0;
-        & + button {
-          margin-left: var(--space-5);
-        }
-      }
     }
 
     &.bottom-right {
