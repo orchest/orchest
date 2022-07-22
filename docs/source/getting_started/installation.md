@@ -2,16 +2,23 @@
 
 # Installation
 
+```{eval-rst}
+.. meta::
+   :description: This page contains the installation instructions for Orchest.
+```
+
+This page contains the installation instructions for self-hosting the open source version of Orchest.
+
+Alternatively, you can try out [our Cloud offering](https://cloud.orchest.io/signup)
+which comes with a free, fully configured Orchest instance.
+
 ```{note}
 Orchest is in beta.
 ```
 
-Instead of self-hosting Orchest, try out [our Cloud offering](https://cloud.orchest.io/signup)
-which comes with a free, fully configured Orchest instance.
-
 ## Prerequisites
 
-To use Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). Any cluster should work. You can either pick a managed
+To install Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). Any cluster should work. You can either pick a managed
 service by one of the certified [cloud platforms](https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/) or create a cluster
 locally.
 
@@ -20,11 +27,11 @@ below.
 
 (regular-installation)=
 
-## Install `orchest`
+## Installing Orchest
 
-Even though installing Orchest on an existing cluster is fully supported, we recommend to install
-Orchest on a clean cluster to prevent clashes with existing cluster-level resources. The supported
-operating systems are:
+We recommend installing Orchest on a clean cluster to prevent clashes with existing cluster-level resources,
+even though installing Orchest on an existing cluster is fully supported.
+The supported operating systems are:
 
 - Linux (`x86_64`)
 - [Windows Subsystem for Linux 2](https://docs.microsoft.com/en-us/windows/wsl/about) (WSL2)
@@ -67,7 +74,7 @@ echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
 
 (install-argo)=
 
-### Installing without Argo Workflows
+### Installing Orchest without Argo Workflows
 
 If you already have [Argo Workflows](https://argoproj.github.io/argo-workflows/) installed on your
 Kubernetes cluster, then you need to explicitly tell Orchest not to install it again:
@@ -86,7 +93,7 @@ Check out the permissions that the Orchest Controller sets for Argo [here](https
 
 (install-kubectl)=
 
-### Installing using `kubectl`
+### Installing Orchest using `kubectl`
 
 The code snippet below will install Orchest in the `orchest` namespace. In case you want to
 install in another namespace you can use tools like [yq](https://github.com/mikefarah/yq) to
