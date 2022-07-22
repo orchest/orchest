@@ -40,12 +40,14 @@ export const PipelineOperationButton = React.forwardRef<
   const disabled = pipelineIsReadOnly || hasNoStep;
 
   const [buttonLabel, executeOperation] = React.useMemo(() => {
+    if (pipelineIsReadOnly) return ["Run all", undefined];
     if (displayedPipelineStatus === "RUNNING") return ["Cancel run", cancelRun];
     if (displayedPipelineStatus === "CANCELING")
       return ["Cancelling...", undefined];
     if (shouldRunAll) return ["Run all", runAllSteps];
     return ["Run selected", runSelectedSteps];
   }, [
+    pipelineIsReadOnly,
     cancelRun,
     displayedPipelineStatus,
     runAllSteps,

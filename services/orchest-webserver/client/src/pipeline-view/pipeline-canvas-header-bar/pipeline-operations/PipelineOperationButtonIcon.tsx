@@ -1,3 +1,4 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { DisplayedPipelineStatus } from "@/pipeline-view/hooks/useInteractiveRuns";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 import StopCircleOutlinedIcon from "@mui/icons-material/StopCircleOutlined";
@@ -12,6 +13,9 @@ type PipelineOperationButtonIconProps = {
 export const PipelineOperationButtonIcon = ({
   status,
 }: PipelineOperationButtonIconProps) => {
+  const {
+    state: { pipelineIsReadOnly },
+  } = useProjectsContext();
   const isCanceling = status === "CANCELING";
   const pipelineIdling = status === "IDLING";
   return (
@@ -33,7 +37,7 @@ export const PipelineOperationButtonIcon = ({
           }}
         />
       )}
-      {pipelineIdling ? (
+      {pipelineIdling || pipelineIsReadOnly ? (
         <PlayCircleOutlineOutlinedIcon fontSize="small" />
       ) : (
         <StopCircleOutlinedIcon fontSize="small" />
