@@ -7,20 +7,19 @@ import {
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { isNumber } from "@/utils/webserver-utils";
-import Box, { BoxProps } from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
+import { BoxProps } from "@mui/material/Box";
 import React from "react";
 import { FILE_MANAGER_ROOT_CLASS } from "./common";
 
 const MIN_PANEL_HEIGHT = 100;
 
 export const FileManagerContainer = React.forwardRef<
-  typeof Box,
+  HTMLDivElement,
   BoxProps & {
     uploadFiles: (files: File[] | FileList) => Promise<void>;
   }
 >(function FileManagerContainerComponent({ children, uploadFiles, sx }, ref) {
-  const localRef = React.useRef<typeof Stack | null>(null);
+  const localRef = React.useRef<HTMLDivElement>();
 
   const { pipelineUuid } = useCustomRoute();
   const disabled = !pipelineUuid;
@@ -71,7 +70,7 @@ export const FileManagerContainer = React.forwardRef<
         return (
           <DropZone
             uploadFiles={uploadFiles}
-            ref={(node: typeof Stack) => {
+            ref={(node: HTMLDivElement) => {
               localRef.current = node;
               if (typeof ref === "function") {
                 ref(node);
