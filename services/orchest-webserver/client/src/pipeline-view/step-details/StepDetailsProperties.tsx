@@ -268,11 +268,11 @@ export const StepDetailsProperties = ({
     );
 
     return () => {
-      refManager.refs.connectionList.removeEventListener(
+      refManager.refs.connectionList?.removeEventListener(
         "mousemove",
         mouseMove
       );
-      refManager.refs.connectionList.removeEventListener("mouseup", mouseUp);
+      refManager.refs.connectionList?.removeEventListener("mouseup", mouseUp);
 
       connectionItems.forEach((item) =>
         item.removeEventListener("mousedown", mouseDown)
