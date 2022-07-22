@@ -30,142 +30,161 @@ const getSizeValue = (value: string | number) =>
  * Assign the appropriate function to `onMouseDown` of the matching element.
  * For example, assign `resizeWidth` to `ResizeWidthBar`.
  */
-export const ResizableContainer = ({
-  children,
-  onResized,
-  initialWidth,
-  initialHeight,
-  minHeight,
-  maxHeight,
-  minWidth,
-  maxWidth,
-  ...props
-}: Omit<BoxProps, "maxWidth" | "maxHeight"> & {
-  initialWidth?: number;
-  initialHeight?: number;
-  onResized?: (size: ElementSize) => void;
-  minWidth?: number;
-  maxWidth?: number;
-  minHeight?: number;
-  maxHeight?: number;
-  children: (props: ResizeContextType) => React.ReactNode;
-}) => {
-  const containerRef = React.useRef<HTMLElement>();
-
-  const [size, setSize] = React.useState<ElementSize>({
-    width: initialWidth || "100%",
-    height: initialHeight || "100%",
-  });
-
-  React.useEffect(() => {
-    if (
-      (hasValue(maxWidth) && size.width > maxWidth) ||
-      (hasValue(maxHeight) && size.height > maxHeight)
-    ) {
-      setSize((current) => {
-        return {
-          width:
-            isNumber(current.width) && hasValue(maxWidth)
-              ? Math.min(current.width, maxWidth)
-              : current.width,
-          height:
-            isNumber(current.height) && hasValue(maxHeight)
-              ? Math.min(current.height, maxHeight)
-              : current.height,
-        };
-      });
-    }
-  }, [maxWidth, maxHeight, size]);
-
-  const getNewWidth = React.useCallback(
-    (position: React.MutableRefObject<ClientPosition>): number => {
-      const { left } = getOffset(containerRef.current);
-      // Offset 5 pixels to get cursor above drag handler (to show appropriate mouse cursor)
-      let newWidth = minWidth
-        ? Math.max(minWidth, position.current.prev.x - left)
-        : position.current.prev.x - left;
-
-      return maxWidth ? Math.min(newWidth, maxWidth) : newWidth;
+export const ResizableContainer = React.forwardRef<
+  HTMLDivElement,
+  Omit<BoxProps, "maxWidth" | "maxHeight"> & {
+    initialWidth?: number;
+    initialHeight?: number;
+    onResized?: (size: ElementSize) => void;
+    minWidth?: number;
+    maxWidth?: number;
+    minHeight?: number;
+    maxHeight?: number;
+    children: (props: ResizeContextType) => React.ReactNode;
+  }
+>(
+  (
+    {
+      children,
+      onResized,
+      initialWidth,
+      initialHeight,
+      minHeight,
+      maxHeight,
+      minWidth,
+      maxWidth,
+      ...props
     },
-    [maxWidth, minWidth, containerRef]
-  );
+    ref
+  ) => {
+    const localRef = React.useRef<HTMLDivElement>();
 
-  const getNewHeight = React.useCallback(
-    (position: React.MutableRefObject<ClientPosition>): number => {
-      const { top } = getOffset(containerRef.current);
+    const [size, setSize] = React.useState<ElementSize>({
+      width: initialWidth || "100%",
+      height: initialHeight || "100%",
+    });
 
-      let newHeight = minHeight
-        ? Math.max(minHeight, position.current.prev.y - top)
-        : position.current.prev.y - top;
+    React.useEffect(() => {
+      if (
+        (hasValue(maxWidth) && size.width > maxWidth) ||
+        (hasValue(maxHeight) && size.height > maxHeight)
+      ) {
+        setSize((current) => {
+          return {
+            width:
+              isNumber(current.width) && hasValue(maxWidth)
+                ? Math.min(current.width, maxWidth)
+                : current.width,
+            height:
+              isNumber(current.height) && hasValue(maxHeight)
+                ? Math.min(current.height, maxHeight)
+                : current.height,
+          };
+        });
+      }
+    }, [maxWidth, maxHeight, size]);
 
-      return maxHeight ? Math.min(newHeight, maxHeight) : newHeight;
-    },
-    [maxHeight, minHeight, containerRef]
-  );
+    const getNewWidth = React.useCallback(
+      (position: React.MutableRefObject<ClientPosition>): number => {
+        const { left } = getOffset(localRef.current);
+        // Offset 5 pixels to get cursor above drag handler (to show appropriate mouse cursor)
+        let newWidth = minWidth
+          ? Math.max(minWidth, position.current.prev.x - left)
+          : position.current.prev.x - left;
 
-  const onResizeWidth = React.useCallback(
-    (position: React.MutableRefObject<ClientPosition>) => {
-      const width = getNewWidth(position);
+        return maxWidth ? Math.min(newWidth, maxWidth) : newWidth;
+      },
+      [maxWidth, minWidth, localRef]
+    );
 
-      setSize((current) => ({ ...current, width: width + 5 }));
-    },
-    [getNewWidth]
-  );
+    const getNewHeight = React.useCallback(
+      (position: React.MutableRefObject<ClientPosition>): number => {
+        const { top } = getOffset(localRef.current);
 
-  const onResizeHeight = React.useCallback(
-    (position: React.MutableRefObject<ClientPosition>) => {
-      const height = getNewHeight(position);
+        let newHeight = minHeight
+          ? Math.max(minHeight, position.current.prev.y - top)
+          : position.current.prev.y - top;
 
-      setSize((current) => ({ ...current, height }));
-    },
-    [getNewHeight]
-  );
+        return maxHeight ? Math.min(newHeight, maxHeight) : newHeight;
+      },
+      [maxHeight, minHeight, localRef]
+    );
 
-  const onResize = React.useCallback(
-    (position: React.MutableRefObject<ClientPosition>) => {
-      const width = getNewWidth(position);
-      const height = getNewHeight(position);
+    const onResizeWidth = React.useCallback(
+      (position: React.MutableRefObject<ClientPosition>) => {
+        const width = getNewWidth(position);
 
-      setSize({ width, height });
-    },
-    [getNewWidth, getNewHeight]
-  );
+        setSize((current) => ({ ...current, width: width + 5 }));
+      },
+      [getNewWidth]
+    );
 
-  const onStopDragging = React.useCallback(() => {
-    if (onResized) {
-      setSize((current) => {
-        onResized(current);
-        return current;
-      });
-    }
-  }, [onResized]);
+    const onResizeHeight = React.useCallback(
+      (position: React.MutableRefObject<ClientPosition>) => {
+        const height = getNewHeight(position);
 
-  const resize = useDragElementWithPosition(onResize, onStopDragging);
-  const resizeWidth = useDragElementWithPosition(onResizeWidth, onStopDragging);
-  const resizeHeight = useDragElementWithPosition(
-    onResizeHeight,
-    onStopDragging
-  );
-  return (
-    <Box
-      ref={containerRef}
-      style={{
-        minWidth: getSizeValue(size.width),
-        maxWidth: getSizeValue(size.width),
-        minHeight: getSizeValue(size.height),
-        maxHeight: getSizeValue(size.height),
-      }}
-      {...props}
-    >
-      {children({
-        size,
-        resize,
-        resizeWidth,
-        resizeHeight,
-      })}
-    </Box>
-  );
-};
+        setSize((current) => ({ ...current, height }));
+      },
+      [getNewHeight]
+    );
+
+    const onResize = React.useCallback(
+      (position: React.MutableRefObject<ClientPosition>) => {
+        const width = getNewWidth(position);
+        const height = getNewHeight(position);
+
+        setSize({ width, height });
+      },
+      [getNewWidth, getNewHeight]
+    );
+
+    const onStopDragging = React.useCallback(() => {
+      if (onResized) {
+        setSize((current) => {
+          onResized(current);
+          return current;
+        });
+      }
+    }, [onResized]);
+
+    const resize = useDragElementWithPosition(onResize, onStopDragging);
+    const resizeWidth = useDragElementWithPosition(
+      onResizeWidth,
+      onStopDragging
+    );
+    const resizeHeight = useDragElementWithPosition(
+      onResizeHeight,
+      onStopDragging
+    );
+    return (
+      <Box
+        ref={(node: HTMLDivElement) => {
+          // in order to manipulate a forwarded ref, we need to create a local ref to capture it
+          localRef.current = node;
+          if (typeof ref === "function") {
+            ref(node);
+          } else if (ref) {
+            ref.current = node;
+          }
+        }}
+        style={{
+          minWidth: getSizeValue(size.width),
+          maxWidth: getSizeValue(size.width),
+          minHeight: getSizeValue(size.height),
+          maxHeight: getSizeValue(size.height),
+        }}
+        {...props}
+      >
+        {children({
+          size,
+          resize,
+          resizeWidth,
+          resizeHeight,
+        })}
+      </Box>
+    );
+  }
+);
 
 export const ResizeCorner = React.forwardRef<
   typeof Box,

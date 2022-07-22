@@ -9,7 +9,7 @@ export const useNavTabIndex = ({
   matchRoute: Pick<RouteData, "path" | "root"> | null;
   navItems: NavItem[];
 }) => {
-  const [navTabIndex, setNavTabIndex] = React.useState(-1);
+  const [navTabIndex, setNavTabIndex] = React.useState(0);
   const { path, root } = matchRoute || {};
 
   React.useEffect(() => {

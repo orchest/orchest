@@ -127,8 +127,7 @@ export const useGestureOnViewport = (
     },
     {
       target: ref,
-      preventDefault: true,
-      eventOptions: { passive: false, capture: true },
+      eventOptions: { passive: false, capture: true, preventDefault: true },
     }
   );
 
