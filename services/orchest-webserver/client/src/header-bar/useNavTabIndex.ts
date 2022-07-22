@@ -17,7 +17,7 @@ export const useNavTabIndex = ({
       const pathWithoutQueryString = item.path.split("?")[0];
       return [path, root].includes(pathWithoutQueryString);
     });
-    setNavTabIndex(newNavTabIndex);
+    setNavTabIndex(Math.max(0, newNavTabIndex));
   }, [path, root, navItems]);
 
   return navTabIndex;
