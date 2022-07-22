@@ -18,7 +18,7 @@ type PipelineConnectionProps = {
   endNodeUUID?: string;
   getPosition: (element: HTMLElement | undefined | null) => Position | null;
   selected: boolean;
-  shouldUpdate: [boolean, boolean];
+  shouldUpdate: readonly [boolean, boolean];
 };
 
 const PipelineConnectionComponent = ({

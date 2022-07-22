@@ -5,7 +5,6 @@ import type { Connection, Step } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { BackToJobButton } from "./BackToJobButton";
 import { getNodeCenter } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
@@ -21,6 +20,7 @@ import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCa
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import { PipelineViewingOptions } from "./pipeline-viewing-opions/PipelineViewingOptions";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
+import { SnapshotBanner } from "./PipelineBanner";
 import { PipelineStep } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { StepDetails } from "./step-details/StepDetails";
@@ -173,11 +173,6 @@ export const PipelineEditor = () => {
   return (
     <div className="pipeline-view">
       <HotKeysBoundary>
-        {jobUuid && isReadOnly && (
-          <div className="pipeline-actions top-left">
-            <BackToJobButton onClick={returnToJob} />
-          </div>
-        )}
         <PipelineCanvasHeaderBar />
         <PipelineViewport ref={pipelineViewportRef}>
           {fixedConnections.map((connection) => {
@@ -321,6 +316,11 @@ export const PipelineEditor = () => {
             <Rectangle {...getStepSelectorRectangle(stepSelector)} />
           )}
         </PipelineViewport>
+        {jobUuid && isReadOnly && (
+          <div className="pipeline-actions top-left">
+            <SnapshotBanner />
+          </div>
+        )}
         {pipelineJson && (
           <div className="pipeline-actions bottom-left">
             <PipelineViewingOptions />
