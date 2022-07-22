@@ -17,6 +17,7 @@ export const PipelineCanvasHeaderBar = () => {
     <Stack
       direction="row"
       alignItems="center"
+      justifyContent="space-between"
       spacing={2}
       sx={{
         backgroundColor: (theme) => theme.palette.background.paper,
@@ -25,18 +26,22 @@ export const PipelineCanvasHeaderBar = () => {
         height: (theme) => theme.spacing(7),
       }}
     >
-      <PipelineFileName />
-      <Button size="small" onClick={openLogs}>
-        Logs
-      </Button>
-      <ServicesMenu />
-      <Divider
-        orientation="vertical"
-        sx={{ height: (theme) => theme.spacing(3) }}
-      />
-      <CreateStepButton />
-      <PipelineOperations />
-      <PipelineMoreOptionsMenu />
+      <Stack direction="row" alignItems="baseline" flexShrink={1}>
+        <PipelineFileName />
+      </Stack>
+      <Stack direction="row" flexShrink={0}>
+        <Button size="small" onClick={openLogs}>
+          Logs
+        </Button>
+        <ServicesMenu />
+        <Divider
+          orientation="vertical"
+          sx={{ height: (theme) => theme.spacing(3) }}
+        />
+        <CreateStepButton />
+        <PipelineOperations />
+        <PipelineMoreOptionsMenu />
+      </Stack>
     </Stack>
   );
 };

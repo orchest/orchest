@@ -208,10 +208,7 @@ export const PipelineEditor = () => {
               (selectedSteps.includes(endNodeUUID || "") &&
                 selectedSteps.includes(cursorControlledStep || ""));
 
-            const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as [
-              boolean,
-              boolean
-            ];
+            const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as const;
 
             const startNodePosition = getPosition(startNode);
 
