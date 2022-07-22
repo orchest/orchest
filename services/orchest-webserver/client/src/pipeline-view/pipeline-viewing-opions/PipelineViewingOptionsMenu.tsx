@@ -4,7 +4,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
+import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
@@ -80,7 +80,7 @@ export const PipelineViewingOptionsMenu = ({
       transformOrigin={{ vertical: "bottom", horizontal: "center" }}
     >
       {menuItems.map((option) => {
-        if (option.type === "separator") return <Divider />;
+        if (option.type === "separator") return <Divider key={uuidv4()} />;
         const disabled = !hasValue(option.action);
         return (
           <MenuItem

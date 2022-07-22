@@ -72,7 +72,6 @@ export const FileManagerContainer = React.forwardRef<
           <DropZone
             uploadFiles={uploadFiles}
             ref={(node: typeof Stack) => {
-              // in order to manipulate a forwarded ref, we need to create a local ref to capture it
               localRef.current = node;
               if (typeof ref === "function") {
                 ref(node);
