@@ -41,8 +41,19 @@ The supported operating systems are:
 :file: install_widget.html
 ```
 
+## Starting Orchest
+
+The installation procedures will leave Orchest up and running.
+To manually start Orchest from the command line, run this command:
+
+```bash
+orchest start
+```
+
+## Special requirements
+
 If you have **special requirements** (or preferences) for deploying Orchest on your Kubernetes
-cluster, then one of the following subsections might proof helpful:
+cluster, then one of the following subsections might be helpful:
 
 - {ref}`Setting up an FQDN <install-fqdn>`: Reach Orchest using a Fully Qualified Domain Name
   (FQDN) instead of the cluster's IP directly.

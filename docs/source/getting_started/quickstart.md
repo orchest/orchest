@@ -39,14 +39,8 @@ To get started in Orchest you can import the GitHub repository URL
 
 ## Your first project
 
-To start, make sure you have {ref}`installed Orchest <regular installation>` and started it:
-
-```bash
-# Make sure to be in the root-level orchest directory.
-orchest start
-```
-
-Next create a new {ref}`project <projects>` named `quickstart`. After creating the project, you will see that it
+To start, make sure you have {ref}`installed Orchest <regular-installation>` or go to your [Orchest Cloud](https://cloud.orchest.io/) account.
+Next, create a new {ref}`project <projects>` named `quickstart`. After creating the project, you will see that it
 does not yet have any {term}`pipelines <(Data science) pipeline>`.
 
 ```{figure} ../img/quickstart/project-creation.png
