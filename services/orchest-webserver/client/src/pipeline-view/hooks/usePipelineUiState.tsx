@@ -347,8 +347,8 @@ export const usePipelineUiState = () => {
         return position as [number, number];
       };
 
-      if (process.env.NODE_ENV === "development")
-        console.log("(Dev Mode) useUiState: action ", action);
+      // if (process.env.NODE_ENV === "development")
+      //   console.log("(Dev Mode) useUiState: action ", action);
 
       /**
        * ========================== action handlers

@@ -3,6 +3,7 @@ import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
 import type { Connection, Step } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
+import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getNodeCenter } from "./common";
@@ -11,7 +12,6 @@ import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { useScaleFactor } from "./contexts/ScaleFactorContext";
-import { DeleteStepsButton } from "./DeleteStepsButton";
 import { useInitializeConnections } from "./hooks/useInitializeConnections";
 import { useOpenFile } from "./hooks/useOpenFile";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
@@ -23,6 +23,7 @@ import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { SnapshotBanner } from "./PipelineBanner";
 import { PipelineStep } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
+import { SaveStatus } from "./SaveStatus";
 import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
 
@@ -323,16 +324,14 @@ export const PipelineEditor = () => {
         )}
         {pipelineJson && (
           <div className="pipeline-actions bottom-left">
-            <PipelineViewingOptions />
+            <Stack spacing={2} direction="row" alignItems="center">
+              <PipelineViewingOptions />
+              <SaveStatus />
+            </Stack>
           </div>
         )}
       </HotKeysBoundary>
       <StepDetails key={openedStep} onSave={onSaveDetails} />
-      {hasSelectedSteps && !isReadOnly && (
-        <div className={"pipeline-actions bottom-right"}>
-          <DeleteStepsButton />
-        </div>
-      )}
     </div>
   );
 };
