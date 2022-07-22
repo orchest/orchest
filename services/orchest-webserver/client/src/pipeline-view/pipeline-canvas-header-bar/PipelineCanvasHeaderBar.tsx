@@ -26,7 +26,7 @@ export const PipelineCanvasHeaderBar = () => {
         height: (theme) => theme.spacing(7),
       }}
     >
-      <Stack direction="row" alignItems="baseline" flexShrink={1}>
+      <Stack direction="row" alignItems="baseline" minWidth={0} flexShrink={1}>
         <PipelineFileName />
       </Stack>
       <Stack direction="row" flexShrink={0}>
