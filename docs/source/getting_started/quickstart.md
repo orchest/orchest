@@ -1,23 +1,29 @@
 (quickstart)=
 
-# Quickstart tutorial
+# Orchest quickstart tutorial
 
-```{tip}
-👉 Building data pipelines in Orchest is really that easy! Check out our [introductory video](https://vimeo.com/589879082).
+```{eval-rst}
+.. meta::
+   :description: This page contains the quickstart tutorial for Orchest with steps to quickly get started with Orchest.
 ```
 
-This quickstart will follow an example explaining how to build data science pipelines in Orchest and
+This quickstart follows an example explaining how to build data science pipelines in Orchest and
 touches upon some core principles that will be helpful when you get to building your own pipelines.
-The example pipeline will download the [sklearn California housing dataset], explore the
-data, train some classifiers, and in the final step collect the results from those classifiers.
+The example pipeline will download the [sklearn California housing dataset], explore the data,
+train some classifiers, and in the final step collect the results from those classifiers.
 
 [sklearn california housing dataset]: https://scikit-learn.org/stable/modules/generated/sklearn.datasets.fetch_california_housing.html
 
 ```{figure} ../img/quickstart/final-pipeline.png
 :align: center
 :width: 800
+:alt: The resulting data pipeline from this Orchest quickstart
 
 The resulting pipeline from this quickstart.
+```
+
+```{tip}
+👉 Building data pipelines in Orchest is easy! Check out our [introductory video](https://vimeo.com/589879082).
 ```
 
 (impatient)=
@@ -35,9 +41,10 @@ To get started in Orchest you can import the GitHub repository URL
 ```{figure} ../img/quickstart/import-project.png
 :align: center
 :width: 800
+:alt: Import existing project in Orchest
 ```
 
-## Your first project
+## Create your first project
 
 To start, make sure you have {ref}`installed Orchest <regular-installation>` or go to your [Orchest Cloud](https://cloud.orchest.io/) account.
 Next, create a new {ref}`project <projects>` named `quickstart`. After creating the project, you will see that it
@@ -46,18 +53,19 @@ does not yet have any {term}`pipelines <(Data science) pipeline>`.
 ```{figure} ../img/quickstart/project-creation.png
 :align: center
 :width: 800
+:alt: List of projects in Orchest
 ```
 
 ```{note}
-All code in this quickstart is written in Python, nevertheless, we do also support other
-languages such as R.
+All code in this quickstart is written in Python, nevertheless,
+Orchest also supports other languages such as R.
 ```
 
 ## Get California housing data
 
 The logical next step is to create the first pipeline called `California housing` and open the
 pipeline editor. This will automatically boot an {term}`interactive session <Interactive session>` so
-you can interactively edit the Python script we create (the other steps will be Jupyter Notebooks!):
+you can interactively edit the Python script Orchest creates. The rest of the steps will be Jupyter Notebooks!
 
 1. Create a new step by clicking: _+ new step_.
 2. Enter a _Title_ and _File path_, respectively `Get housing data` and `get-data.py`.
@@ -65,13 +73,14 @@ you can interactively edit the Python script we create (the other steps will be 
 ```{figure} ../img/quickstart/step-properties.png
 :align: center
 :width: 300
+:alt: Step properties of an Orchest pipeline
 ```
 
 ```{note}
 The changes you make to the pipeline (through the pipeline editor) are saved automatically.
 ```
 
-Now we can start writing our code through the familiar JupyterLab interface, simply press _edit in
+Now you can start writing our code through the familiar JupyterLab interface, simply press _edit in
 JupyterLab_ (making sure you have the step selected) and paste in the following code:
 
 ```{code-block} python
@@ -100,44 +109,44 @@ orchest.output((df_data, df_target), name="data")
 print("Success!")
 ```
 
-As you can see, we have highlighted a few lines in the code to emphasize important nuts and bolts to
+A few lines in the code above are highlighted to emphasize important nuts and bolts to
 get a better understanding of building pipelines in Orchest. These nuts and bolts are explained
 below:
 
-> First we start with explaining line `11` in which we cache the data in the `/data`
-> directory. This is actually the `userdir/data` directory (from the Orchest GitHub repository)
-> that gets bind mounted in the respective Docker container running your code. This allows you to
-> access the data from any pipeline, even from pipelines in different projects. Data should be
-> stored in `/data` not only for sharing purposes, but also to make sure that {ref}`jobs <jobs>`
-> do not unnecessarily copy the data when creating the snapshot for reprodicibility
-> reasons.
+> Line `11` caches the data in the `/data` directory. This is actually the `userdir/data` directory
+> (from the Orchest GitHub repository) that gets mounted in the respective Docker container running your code.
+> This allows you to access the data from any pipeline, even from pipelines in different projects.
+> Data should be stored in `/data` not only for sharing purposes, but also to make sure that {ref}`jobs <jobs>`
+> do not unnecessarily copy the data when creating the snapshot for reproducibility reasons.
 >
 > Secondly, line `19` showcases the usage of the {ref}`Orchest SDK <orchest sdk>` to
 > {ref}`pass data between pipeline steps <data passing>`. Keep in mind that calling
-> {meth}`orchest.transfer.output` multiple times will result in the data getting overwritten, in
-> other words: only output data once per step!
+> {meth}`orchest.transfer.output` multiple times will result in the data getting overwritten,
+> in other words: only output data once per step!
 
 To run the code, switch back to the pipeline editor, select the step and press _run selected steps_.
-After just a few seconds you should see that the step completed successfully. Let's check the logs
-to confirm - the logs contain the latest STDOUT of the script.
+After just a few seconds you should see that the step completed successfully. Check the logs
+to confirm - they contain the latest STDOUT of the script.
 
 ```{figure} ../img/quickstart/step-logs.png
 :align: center
 :width: 300
+:alt: Step logs of an Orchest pipeline
 ```
 
-Remember that running the code will output the converted housing data, so in the next step we can
+Remember that running the code will output the converted housing data, so in the next step you can
 now retrieve and explore that data!
 
 ## Data exploration
 
-Now that we have downloaded the data, the next pipeline step can explore it. Create another pipeline
+Now that you have downloaded the data, the next pipeline step can explore it. Create another pipeline
 step with _Title_ `Data exploration` and _File path_ `explore-data.ipynb`, and connect the two
 pipeline steps.
 
 ```{figure} ../img/quickstart/pipeline-two-steps.png
 :align: center
 :width: 400
+:alt: Pipeline with two steps in Orchest
 ```
 
 You can get the code for this pipeline step from the `explore-data.ipynb` [file in the GitHub
@@ -168,6 +177,7 @@ to import the pipeline. You can also build the pipeline from scratch yourself!
 ```{figure} ../img/quickstart/final-pipeline-completed.png
 :align: center
 :width: 800
+:alt: Successful pipeline run of the final pipeline in Orchest
 
 A successful pipeline run of the final pipeline.
 ```
@@ -176,5 +186,5 @@ A successful pipeline run of the final pipeline.
 The {term}`interactive session <Interactive session>` does not shut down automatically and thus the
 resources will keep running when editing another pipeline, you can shut down the session manually
 by clicking on the shut down button. Of course all resources are shut down when you shut down
-Orchest with `orchest stop`.
+your self-hosted Orchest by running the command `orchest stop`.
 ```
