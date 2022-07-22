@@ -8,7 +8,7 @@ export function SnapshotBanner() {
     <Alert color="info" icon={<VisibilityIcon />}>
       <AlertTitle>Read-only: pipeline snapshot</AlertTitle>
       This is a read-only pipeline snapshot from a job. To make edits, go to the{" "}
-      <Link to="/pipeline">pipeline editor</Link>
+      <Link to="/pipeline">pipeline editor</Link>.
     </Alert>
   );
 }
