@@ -657,7 +657,7 @@ try to pull an image with a tag equal to the cluster version.
 ### Test running Orchest on `containerd`
 
 To test running Orchest on `containerd`, we recommend [installing MicroK8s](https://microk8s.io/).
-Alternatively, you can also set up Orchest on GKE (see {ref}`installation <regular installation>`)
+Alternatively, you can also set up Orchest on GKE (see {ref}`installation <regular-installation>`)
 or install MicroK8s in a VM (e.g. using [VirtualBox](https://www.virtualbox.org/)).
 
 Next, enable the following addons:
