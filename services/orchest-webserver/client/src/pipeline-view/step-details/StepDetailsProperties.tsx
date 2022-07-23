@@ -1,10 +1,12 @@
-import { OrderableList } from "@/components/OrderableList";
 import ProjectFilePicker from "@/components/ProjectFilePicker";
+import { SortableStack } from "@/components/SortableStack";
 import { Step } from "@/types";
 import { isValidJson } from "@/utils/isValidJson";
 import { hasExtension, join } from "@/utils/path";
+import { ellipsis } from "@/utils/styles";
 import { toValidFilename } from "@/utils/toValidFilename";
-import DragIndicator from "@mui/icons-material/DragIndicator";
+import { CloseOutlined, DragHandleOutlined } from "@mui/icons-material";
+import { IconButton } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
@@ -29,22 +31,6 @@ export type ConnectionDict = Record<
   string,
   { title: string; file_path: string }
 >;
-
-const ConnectionItem = ({
-  uuid,
-  title,
-  filePath,
-}: {
-  uuid: string;
-  title: string;
-  filePath: string;
-}) => {
-  return (
-    <div className="connection-item" data-uuid={uuid}>
-      <span>{title}</span> <span className="filename">({filePath})</span>
-    </div>
-  );
-};
 
 const KERNEL_OPTIONS = [
   { value: "python", label: "Python" },
@@ -163,6 +149,12 @@ export const StepDetailsProperties = ({
     }
   };
 
+  const removeConnection = (index: number) => {
+    const connections = [...step.incoming_connections].splice(index, 1);
+
+    onSave({ incoming_connections: connections }, step.uuid);
+  };
+
   React.useEffect(() => {
     if (!readOnly) {
       // set focus on first field
@@ -278,31 +270,48 @@ export const StepDetailsProperties = ({
               Connections
             </Typography>
 
-            <OrderableList
+            <SortableStack
               onUpdate={async (oldIndex, newIndex) =>
                 swapConnectionOrder(oldIndex, newIndex)
               }
             >
-              {step.incoming_connections.map((startNodeUUID: string) => (
+              {step.incoming_connections.map((startNodeUUID, i) => (
                 <Stack
                   flexDirection="row"
                   key={startNodeUUID}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      `${theme.palette.background.paper}`,
-                    width: "100%",
-                  }}
+                  alignItems="center"
+                  justifyContent="space-between"
+                  padding={(theme) => theme.spacing(1, 0)}
+                  sx={{ width: "100%" }}
                 >
-                  <DragIndicator />
-                  <ConnectionItem
-                    title={connections[startNodeUUID].title}
-                    filePath={connections[startNodeUUID].file_path}
-                    uuid={startNodeUUID}
-                    key={startNodeUUID}
-                  />
+                  <Stack
+                    flexShrink={1}
+                    flexDirection="row"
+                    gap={1.5}
+                    minWidth="0"
+                  >
+                    <DragHandleOutlined
+                      style={{ width: "24px", height: "24px" }}
+                    />
+                    <Typography sx={ellipsis()} variant="body2" fontSize={14}>
+                      {i + 1}. {connections[startNodeUUID].title}
+                    </Typography>
+                    <Typography
+                      sx={ellipsis()}
+                      variant="body2"
+                      fontSize={14}
+                      color="text.secondary"
+                    >
+                      {connections[startNodeUUID].file_path}
+                    </Typography>
+                  </Stack>
+
+                  <IconButton onClick={() => removeConnection(i)}>
+                    <CloseOutlined style={{ width: "20px", height: "20px" }} />
+                  </IconButton>
                 </Stack>
               ))}
-            </OrderableList>
+            </SortableStack>
           </Box>
         )}
       </Stack>

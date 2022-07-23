@@ -67,31 +67,29 @@ export const SelectEnvironment = ({
   return (
     <FormControl fullWidth>
       <InputLabel id="environment-label">Environment</InputLabel>
-      <Select
-        label="Environment"
-        labelId="environment-label"
-        id="environment"
-        value={value}
-        disabled={disabled}
-        onChange={(e) => {
-          const selected = (environmentOptions || []).find(
-            (option) => option.value === e.target.value
-          );
-          if (selected) onChange(selected.value, selected.label);
-        }}
-      >
-        {!environmentOptions ? (
-          <MenuItem>Loading...</MenuItem>
-        ) : (
-          environmentOptions.map((option) => {
-            return (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
+      {environmentOptions?.length ? (
+        <Select
+          label="Environment"
+          labelId="environment-label"
+          id="environment"
+          value={value}
+          disabled={disabled}
+          onChange={({ target }) => {
+            const selected = environmentOptions.find(
+              (option) => option.value === target.value
             );
-          })
-        )}
-      </Select>
+            if (selected) onChange(selected.value, selected.label);
+          }}
+        >
+          {environmentOptions.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      ) : (
+        <Select label="Environment" placeholder="Loading …" value="" />
+      )}
     </FormControl>
   );
 };
