@@ -10,7 +10,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { Job } from "@/types";
+import { Job, Step } from "@/types";
 import {
   getPipelineJSONEndpoint,
   getPipelineStepChildren,
@@ -21,7 +21,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import { hasValue, RefManager } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/python/python";
 import "codemirror/mode/r/r";
 import "codemirror/mode/shell/shell";
@@ -58,23 +58,28 @@ const FilePreviewView: React.FC = () => {
 
   // local states
   const [state, setState] = React.useState({
-    notebookHtml: undefined,
-    fileDescription: undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    notebookHtml: undefined as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fileDescription: undefined as any,
     loadingFile: true,
-    parentSteps: [],
-    childSteps: [],
+    parentSteps: [] as Step[],
+    childSteps: [] as Step[],
   });
 
-  const [cachedScrollPosition, setCachedScrollPosition] = React.useState(
-    undefined
-  );
+  const [cachedScrollPosition, setCachedScrollPosition] = React.useState<
+    number
+  >();
   const [
     isRestoringScrollPosition,
     setIsRestoringScrollPosition,
   ] = React.useState(false);
-  const [retryIntervals, setRetryIntervals] = React.useState([]);
+  const [retryIntervals, setRetryIntervals] = React.useState<
+    (number | undefined)[]
+  >([]);
 
-  const [refManager] = React.useState(new RefManager());
+  const htmlNotebookIframeRef = React.useRef<HTMLIFrameElement | null>(null);
+  const fileViewerRef = React.useRef<HTMLDivElement | null>(null);
 
   const loadPipelineView = (e: React.MouseEvent) => {
     const isJobRun = jobUuid && runUuid;
@@ -116,11 +121,15 @@ const FilePreviewView: React.FC = () => {
       payload: { uuid: pipelineUuid, path: pipelineFilePath },
     });
 
-    setState((prevState) => ({
-      ...prevState,
-      parentSteps: getPipelineStepParents(stepUuid, pipelineJson),
-      childSteps: getPipelineStepChildren(stepUuid, pipelineJson),
-    }));
+    setState((prevState) =>
+      stepUuid
+        ? {
+            ...prevState,
+            parentSteps: getPipelineStepParents(stepUuid, pipelineJson),
+            childSteps: getPipelineStepChildren(stepUuid, pipelineJson),
+          }
+        : prevState
+    );
   };
 
   const fetchAll = () =>
@@ -197,35 +206,35 @@ const FilePreviewView: React.FC = () => {
 
       if (
         state.fileDescription.ext == "ipynb" &&
-        refManager.refs.htmlNotebookIframe
+        htmlNotebookIframeRef.current
       ) {
         setRetryIntervals((prevRetryIntervals) => [
           ...prevRetryIntervals,
           setWithRetry(
             cachedScrollPosition,
             (value) => {
-              refManager.refs.htmlNotebookIframe.contentWindow.scrollTo(
-                refManager.refs.htmlNotebookIframe.contentWindow.scrollX,
+              if (!value) return;
+              htmlNotebookIframeRef.current?.contentWindow?.scrollTo(
+                htmlNotebookIframeRef.current.contentWindow.scrollX,
                 value
               );
             },
-            () => {
-              return refManager.refs.htmlNotebookIframe.contentWindow.scrollY;
-            },
+            () => htmlNotebookIframeRef.current?.contentWindow?.scrollY,
             25,
             100
           ),
         ]);
-      } else if (refManager.refs.fileViewer) {
+      } else if (fileViewerRef.current) {
         setRetryIntervals((prevRetryIntervals) => [
           ...prevRetryIntervals,
           setWithRetry(
             cachedScrollPosition,
             (value) => {
-              refManager.refs.fileViewer.scrollTop = value;
+              if (!fileViewerRef.current || !value) return;
+              fileViewerRef.current.scrollTop = value;
             },
             () => {
-              return refManager.refs.fileViewer.scrollTop;
+              return fileViewerRef.current?.scrollTop;
             },
             25,
             100
@@ -233,9 +242,13 @@ const FilePreviewView: React.FC = () => {
         ]);
       }
     }
-  }, [isRestoringScrollPosition]);
+  }, [
+    cachedScrollPosition,
+    isRestoringScrollPosition,
+    state.fileDescription.ext,
+  ]);
 
-  const loadFile = () => {
+  const loadFile = React.useCallback(() => {
     // cache scroll position
     let attemptRestore = false;
 
@@ -245,13 +258,13 @@ const FilePreviewView: React.FC = () => {
       setCachedScrollPosition(0);
       if (
         state.fileDescription.ext == "ipynb" &&
-        refManager.refs.htmlNotebookIframe
+        htmlNotebookIframeRef.current
       ) {
         setCachedScrollPosition(
-          refManager.refs.htmlNotebookIframe.contentWindow.scrollY
+          htmlNotebookIframeRef.current?.contentWindow?.scrollY
         );
-      } else if (refManager.refs.fileViewer) {
-        setCachedScrollPosition(refManager.refs.fileViewer.scrollTop);
+      } else if (fileViewerRef.current) {
+        setCachedScrollPosition(fileViewerRef.current?.scrollTop);
       }
     }
 
@@ -267,7 +280,7 @@ const FilePreviewView: React.FC = () => {
           "Failed to load file. Make sure the path of the pipeline step is correct."
         );
       });
-  };
+  }, [fetchAll, setAlert, state.fileDescription]);
 
   React.useEffect(() => {
     loadFile();
@@ -275,16 +288,16 @@ const FilePreviewView: React.FC = () => {
     return () => {
       retryIntervals.map((retryInterval) => clearInterval(retryInterval));
     };
-  }, []);
+  }, [loadFile, retryIntervals]);
 
   React.useEffect(() => {
     setState((prevState) => ({
       ...prevState,
-      fileDescription: undefined,
-      notebookHtml: undefined,
+      fileDescription: "",
+      notebookHtml: "",
     }));
     loadFile();
-  }, [stepUuid, pipelineUuid]);
+  }, [stepUuid, pipelineUuid, loadFile]);
 
   let parentStepElements = renderNavStep(state.parentSteps);
   let childStepElements = renderNavStep(state.childSteps);
@@ -293,7 +306,7 @@ const FilePreviewView: React.FC = () => {
     <Layout>
       <div
         className={"view-page file-viewer no-padding fullheight relative"}
-        ref={refManager.nrefs.fileViewer}
+        ref={fileViewerRef}
       >
         <div className="top-buttons">
           <IconButton title="refresh" onClick={loadFile}>
@@ -327,7 +340,7 @@ const FilePreviewView: React.FC = () => {
               fileComponent = (
                 <CodeMirror
                   value={state.fileDescription.content}
-                  onBeforeChange={undefined}
+                  onBeforeChange={() => undefined}
                   options={{
                     mode: fileMode,
                     theme: "jupyter",
@@ -339,8 +352,8 @@ const FilePreviewView: React.FC = () => {
             } else if (state.fileDescription.ext == "ipynb") {
               fileComponent = (
                 <iframe
-                  ref={refManager.nrefs.htmlNotebookIframe}
-                  className={"notebook-iframe borderless fullsize"}
+                  ref={htmlNotebookIframeRef}
+                  className="notebook-iframe borderless fullsize"
                   srcDoc={state.fileDescription.content}
                 ></iframe>
               );
