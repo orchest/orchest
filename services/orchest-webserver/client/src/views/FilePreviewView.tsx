@@ -35,14 +35,13 @@ const MODE_MAPPING = {
 } as const;
 
 const FilePreviewView: React.FC = () => {
-  // global states
   const { setAlert } = useAppContext();
   const { state: projectsState, dispatch } = useProjectsContext();
-  useSendAnalyticEvent("view:loaded", { name: siteMap.filePreview.path });
   const { cancelableFetch } = useCancelableFetch();
   const { makeCancelable } = useCancelablePromise();
 
-  // data from route
+  useSendAnalyticEvent("view:loaded", { name: siteMap.filePreview.path });
+
   const {
     navigateTo,
     projectUuid,
@@ -56,7 +55,6 @@ const FilePreviewView: React.FC = () => {
   const isJobRun = hasValue(jobUuid && runUuid);
   const isReadOnly = isJobRun || isReadOnlyFromQueryString;
 
-  // local states
   const [state, setState] = React.useState({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     notebookHtml: undefined as any,
@@ -94,7 +92,7 @@ const FilePreviewView: React.FC = () => {
     );
   };
 
-  const fetchPipeline = async () => {
+  const fetchPipeline = React.useCallback(async () => {
     if (!pipelineUuid) return;
     setState((prevState) => ({
       ...prevState,
@@ -130,33 +128,20 @@ const FilePreviewView: React.FC = () => {
           }
         : prevState
     );
-  };
+  }, [
+    cancelableFetch,
+    dispatch,
+    isJobRun,
+    jobUuid,
+    makeCancelable,
+    pipelineUuid,
+    projectUuid,
+    projectsState?.pipeline?.path,
+    runUuid,
+    stepUuid,
+  ]);
 
-  const fetchAll = () =>
-    new Promise((resolve, reject) => {
-      setState((prevState) => ({
-        ...prevState,
-        loadingFile: true,
-      }));
-
-      Promise.all([fetchFile(), fetchPipeline()])
-        .then(() => {
-          setState((prevState) => ({
-            ...prevState,
-            loadingFile: false,
-          }));
-          resolve(undefined);
-        })
-        .catch(() => {
-          setState((prevState) => ({
-            ...prevState,
-            loadingFile: false,
-          }));
-          reject();
-        });
-    });
-
-  const fetchFile = () => {
+  const fetchFile = React.useCallback(() => {
     let fileURL = `/async/file-viewer/${projectUuid}/${pipelineUuid}/${stepUuid}`;
     if (isJobRun) {
       fileURL += "?pipeline_run_uuid=" + runUuid;
@@ -169,43 +154,80 @@ const FilePreviewView: React.FC = () => {
         fileDescription: response,
       }));
     });
-  };
+  }, [
+    cancelableFetch,
+    isJobRun,
+    jobUuid,
+    pipelineUuid,
+    projectUuid,
+    runUuid,
+    stepUuid,
+  ]);
 
-  const stepNavigate = (e: React.MouseEvent, newStepUuid: string) => {
-    navigateTo(
-      siteMap.filePreview.path,
-      {
-        query: {
-          projectUuid,
-          pipelineUuid,
-          stepUuid: newStepUuid,
-          jobUuid,
-          runUuid,
+  const stepNavigate = React.useCallback(
+    (event: React.MouseEvent, newStepUuid: string) => {
+      navigateTo(
+        siteMap.filePreview.path,
+        {
+          query: {
+            projectUuid,
+            pipelineUuid,
+            stepUuid: newStepUuid,
+            jobUuid,
+            runUuid,
+          },
         },
-      },
-      e
-    );
-  };
+        event
+      );
+    },
+    [jobUuid, navigateTo, pipelineUuid, projectUuid, runUuid]
+  );
 
-  const renderNavStep = (steps) => {
-    return steps.map((step) => (
+  const fetchAll = React.useCallback(
+    () =>
+      new Promise((resolve, reject) => {
+        setState((prevState) => ({
+          ...prevState,
+          loadingFile: true,
+        }));
+
+        Promise.all([fetchFile(), fetchPipeline()])
+          .then(() => {
+            setState((prevState) => ({
+              ...prevState,
+              loadingFile: false,
+            }));
+            resolve(undefined);
+          })
+          .catch(() => {
+            setState((prevState) => ({
+              ...prevState,
+              loadingFile: false,
+            }));
+            reject();
+          });
+      }),
+    [fetchFile, fetchPipeline]
+  );
+
+  const renderNavStep = (steps: readonly Step[]) =>
+    steps.map((step) => (
       <Button
         variant="text"
         key={step.uuid}
-        onClick={(e) => stepNavigate(e, step.uuid)}
-        onAuxClick={(e) => stepNavigate(e, step.uuid)}
+        onClick={(event) => stepNavigate(event, step.uuid)}
+        onAuxClick={(event) => stepNavigate(event, step.uuid)}
       >
         {step.title}
       </Button>
     ));
-  };
 
   React.useEffect(() => {
     if (isRestoringScrollPosition) {
       setIsRestoringScrollPosition(false);
 
       if (
-        state.fileDescription.ext == "ipynb" &&
+        state.fileDescription.ext === "ipynb" &&
         htmlNotebookIframeRef.current
       ) {
         setRetryIntervals((prevRetryIntervals) => [
@@ -257,7 +279,7 @@ const FilePreviewView: React.FC = () => {
       attemptRestore = true;
       setCachedScrollPosition(0);
       if (
-        state.fileDescription.ext == "ipynb" &&
+        state.fileDescription.ext === "ipynb" &&
         htmlNotebookIframeRef.current
       ) {
         setCachedScrollPosition(
@@ -299,13 +321,13 @@ const FilePreviewView: React.FC = () => {
     loadFile();
   }, [stepUuid, pipelineUuid, loadFile]);
 
-  let parentStepElements = renderNavStep(state.parentSteps);
-  let childStepElements = renderNavStep(state.childSteps);
+  const parentStepElements = renderNavStep(state.parentSteps);
+  const childStepElements = renderNavStep(state.childSteps);
 
   return (
     <Layout>
       <div
-        className={"view-page file-viewer no-padding fullheight relative"}
+        className="view-page file-viewer no-padding full height relative"
         ref={fileViewerRef}
       >
         <div className="top-buttons">
@@ -324,18 +346,12 @@ const FilePreviewView: React.FC = () => {
         {(() => {
           if (state.loadingFile) {
             return <LinearProgress />;
-          } else if (
-            state.fileDescription != undefined &&
-            state.parentSteps != undefined
-          ) {
-            let fileComponent;
+          } else if (state.fileDescription && state.parentSteps) {
+            let fileComponent: React.ReactNode;
 
-            if (state.fileDescription.ext != "ipynb") {
-              let fileMode =
-                MODE_MAPPING[state.fileDescription.ext.toLowerCase()];
-              if (!fileMode) {
-                fileMode = null;
-              }
+            if (state.fileDescription.ext !== "ipynb") {
+              const fileMode =
+                MODE_MAPPING[state.fileDescription.ext.toLowerCase()] || null;
 
               fileComponent = (
                 <CodeMirror
