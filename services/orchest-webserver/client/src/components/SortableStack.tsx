@@ -3,7 +3,7 @@ import { firstAncestor } from "@/utils/element";
 import { Stack, useTheme } from "@mui/material";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-export interface OrderableListProps {
+export interface SortableStackProps {
   onUpdate: (oldIndex: number, newIndex: number) => Promise<void>;
   children: React.ReactChild[];
 }
@@ -14,7 +14,7 @@ const isDragItem = (element: Element) =>
 const isDragContainer = (element: Element) =>
   element.classList.contains("drag-container");
 
-export function OrderableList({ children, onUpdate }: OrderableListProps) {
+export const SortableStack = ({ children, onUpdate }: SortableStackProps) => {
   const [[startX, startY], setStart] = useState([NaN, NaN] as const);
   const [[x, y], setPosition] = useState([NaN, NaN] as const);
   const [startIndex, setStartIndex] = useState(-1);
@@ -53,9 +53,8 @@ export function OrderableList({ children, onUpdate }: OrderableListProps) {
 
   const onStopDragging = React.useCallback(() => {
     if (isUpdating) return;
-
     setIsUpdating(true);
-    onUpdate(startIndex, index).finally(() => {
+    onUpdate(startIndex, index).then(() => {
       setPosition([NaN, NaN]);
       setStart([NaN, NaN]);
       setStartIndex(-1);
@@ -141,9 +140,6 @@ export function OrderableList({ children, onUpdate }: OrderableListProps) {
       {children.map((child, i) => (
         <Stack
           style={{
-            transition: isUpdating
-              ? undefined
-              : "transform 100ms, border-top-width 150ms, border-bottom-width 150ms",
             userSelect: "none",
             borderBottom: `0px solid ${theme.palette.primary.main}`,
             borderTop: `0px solid ${theme.palette.primary.main}`,
@@ -158,4 +154,4 @@ export function OrderableList({ children, onUpdate }: OrderableListProps) {
       ))}
     </Stack>
   );
-}
+};
