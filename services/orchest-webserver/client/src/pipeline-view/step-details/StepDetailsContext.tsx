@@ -6,13 +6,14 @@ import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { ConnectionDict } from "./StepDetailsProperties";
+
+type ConnectionByUuid = Record<string, { title: string; file_path: string }>;
 
 export type StepDetailsContextType = {
   doesStepFileExist: boolean;
   isCheckingFileValidity: boolean;
   step: PipelineStepState;
-  connections: ConnectionDict;
+  connections: ConnectionByUuid;
   parameterSchema?: JsonSchema;
   isReadingSchemaFile: boolean;
   parameterUiSchema?: UISchemaElement;
@@ -73,7 +74,7 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
     return incoming_connections.reduce((all, id: string) => {
       const { title, file_path } = steps[id];
       return { ...all, [id]: { title, file_path } };
-    }, {} as ConnectionDict);
+    }, {} as ConnectionByUuid);
   }, [steps, step]);
 
   return (

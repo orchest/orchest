@@ -133,12 +133,7 @@ export const SortableStack = ({ children, onUpdate }: SortableStackProps) => {
   }, [index, startIndex, theme]);
 
   return (
-    <Stack
-      ref={containerRef}
-      direction="column"
-      className="drag-container"
-      paddingBottom="80px"
-    >
+    <Stack ref={containerRef} direction="column" className="drag-container">
       {children.map((child, i) => (
         <Stack
           style={{
