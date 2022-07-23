@@ -243,7 +243,6 @@ export const StepDetailsProperties = ({
                   key={startNodeUUID}
                   alignItems="center"
                   justifyContent="space-between"
-                  padding={(theme) => theme.spacing(1, 0)}
                   sx={{ width: "100%" }}
                 >
                   <Stack
