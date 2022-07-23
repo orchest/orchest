@@ -210,18 +210,6 @@ const FilePreviewView: React.FC = () => {
     [fetchFile, fetchPipeline]
   );
 
-  const renderNavStep = (steps: readonly Step[]) =>
-    steps.map((step) => (
-      <Button
-        variant="text"
-        key={step.uuid}
-        onClick={(event) => stepNavigate(event, step.uuid)}
-        onAuxClick={(event) => stepNavigate(event, step.uuid)}
-      >
-        {step.title}
-      </Button>
-    ));
-
   React.useEffect(() => {
     if (isRestoringScrollPosition) {
       setIsRestoringScrollPosition(false);
@@ -320,6 +308,18 @@ const FilePreviewView: React.FC = () => {
     }));
     loadFile();
   }, [stepUuid, pipelineUuid, loadFile]);
+
+  const renderNavStep = (steps: readonly Step[]) =>
+    steps.map((step) => (
+      <Button
+        variant="text"
+        key={step.uuid}
+        onClick={(event) => stepNavigate(event, step.uuid)}
+        onAuxClick={(event) => stepNavigate(event, step.uuid)}
+      >
+        {step.title}
+      </Button>
+    ));
 
   const parentStepElements = renderNavStep(state.parentSteps);
   const childStepElements = renderNavStep(state.childSteps);
