@@ -466,7 +466,7 @@ export function setWithRetry<T>(
   getter: () => T,
   retries: number,
   delay: number
-) {
+): number | undefined {
   if (retries == 0) {
     console.warn("Failed to set with retry for setter (timeout):", setter);
     return;
@@ -483,7 +483,8 @@ export function setWithRetry<T>(
   } catch (error) {
     console.warn("Getter produced an error.", getter, error);
   }
-  return setTimeout(() => {
+
+  return window.setTimeout(() => {
     retries -= 1;
     setWithRetry(value, setter, getter, retries, delay);
   }, delay);
