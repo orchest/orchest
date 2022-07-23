@@ -91,18 +91,18 @@ export const SortableStack = ({ children, onUpdate }: SortableStackProps) => {
   }, [x, y, startX, startY, element, shouldReset]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    if (!element) return;
+    if (!containerRef.current || !element) return;
 
     if (x && y) {
       const underCursor = document.elementFromPoint(x, y);
 
       if (!underCursor) return;
 
-      const children = [...containerRef.current.children];
       const newItem = firstAncestor(underCursor, isDragItem);
 
       if (newItem) {
+        const children = [...containerRef.current.children];
+
         setIndex(children.findIndex((child) => child === newItem));
       } else {
         const outsideContainer = !firstAncestor(underCursor, isDragContainer);
@@ -121,11 +121,13 @@ export const SortableStack = ({ children, onUpdate }: SortableStackProps) => {
       if (!(child instanceof HTMLElement)) return;
 
       if (i === index) {
-        child.style[i < startIndex ? "borderTopWidth" : "borderBottomWidth"] =
-          "2px";
+        child.style[i < startIndex ? "borderTopColor" : "borderBottomColor"] =
+          theme.palette.primary.main;
+        child.style.opacity = "0.4";
       } else {
-        child.style.borderTopWidth = "0px";
-        child.style.borderBottomWidth = "0px";
+        child.style.borderTopColor = "transparent";
+        child.style.borderBottomColor = "transparent";
+        child.style.opacity = "1";
       }
     });
   }, [index, startIndex, theme]);
@@ -141,8 +143,8 @@ export const SortableStack = ({ children, onUpdate }: SortableStackProps) => {
         <Stack
           style={{
             userSelect: "none",
-            borderBottom: `0px solid ${theme.palette.primary.main}`,
-            borderTop: `0px solid ${theme.palette.primary.main}`,
+            borderBottom: `2px solid transparent`,
+            borderTop: `2px solid transparent`,
           }}
           className="drag-item"
           onMouseDown={onMouseDown}
