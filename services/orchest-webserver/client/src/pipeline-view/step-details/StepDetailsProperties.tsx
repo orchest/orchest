@@ -18,7 +18,6 @@ import Typography from "@mui/material/Typography";
 import {
   ALLOWED_STEP_EXTENSIONS,
   kernelNameToLanguage,
-  RefManager,
 } from "@orchest/lib-utils";
 import React from "react";
 import { SelectEnvironment } from "./SelectEnvironment";
@@ -54,16 +53,14 @@ export const StepDetailsProperties = ({
   ) => Promise<void>;
   menuMaxWidth?: string;
 }) => {
-  const {
-    step,
-    connections,
-    doesStepFileExist,
-    isCheckingFileValidity,
-  } = useStepDetailsContext();
-
-  const refManager = React.useMemo(() => new RefManager(), []);
+  const { step, connections } = useStepDetailsContext();
+  // Allows user to edit JSON while typing the text will not be valid JSON.
+  const [editableParameters, setEditableParameters] = React.useState(
+    JSON.stringify(step.parameters, null, 2)
+  );
 
   const isNotebookStep = hasExtension(step.file_path, "ipynb");
+  const titleInputRef = React.useRef<HTMLInputElement>();
 
   const onChangeEnvironment = React.useCallback(
     (
@@ -148,17 +145,19 @@ export const StepDetailsProperties = ({
   };
 
   React.useEffect(() => {
-    if (!readOnly) {
-      // set focus on first field
-      refManager.refs.titleTextField.focus();
-    }
     if (step.file_path.length === 0) {
       onChangeFilePath(toValidFilename(step.title));
     }
-  }, []);
+  }, [onChangeFilePath, step.file_path.length, step.title]);
+
+  React.useEffect(() => {
+    if (!step.title) {
+      titleInputRef.current?.focus();
+    }
+  });
 
   return (
-    <div className={"detail-subview"}>
+    <div className="detail-subview">
       <Stack direction="column" spacing={3}>
         <TextField
           autoFocus={shouldAutoFocus}
@@ -167,7 +166,7 @@ export const StepDetailsProperties = ({
           label="Title"
           disabled={readOnly}
           fullWidth
-          ref={refManager.nrefs.titleTextField}
+          inputRef={titleInputRef}
           data-test-id="step-title-textfield"
         />
         {readOnly ? (
