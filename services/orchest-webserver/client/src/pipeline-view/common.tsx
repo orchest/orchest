@@ -152,16 +152,17 @@ export const willCreateCycle = (
   const [startNodeUUID, endNodeUUID] = newConnection;
   // make a new copy of original steps, because we are checking this as a side effect
   // we don't want to mutate the original steps.
-  const steps = Object.entries(_steps).reduce((newCopy, [uuid, step]) => {
-    return {
+  const steps = Object.entries(_steps).reduce(
+    (newCopy, [uuid, step]) => ({
       ...newCopy,
       [uuid]: {
         uuid,
         incoming_connections: [...step.incoming_connections],
       } as Step,
-    };
-  }, {} as StepsDict);
-  // add new connection
+    }),
+    {} as StepsDict
+  );
+
   steps[endNodeUUID].incoming_connections = [
     ...steps[endNodeUUID].incoming_connections,
     startNodeUUID,
@@ -175,10 +176,9 @@ export const willCreateCycle = (
   let cycles = false;
 
   while (whiteSet.size > 0) {
-    // take first element left in whiteSet
-    let step_uuid = whiteSet.values().next().value;
+    const stepUuid = whiteSet.values().next().value;
 
-    if (dfsWithSets(steps, step_uuid, whiteSet, greySet)) {
+    if (dfsWithSets(steps, stepUuid, whiteSet, greySet)) {
       cycles = true;
     }
   }

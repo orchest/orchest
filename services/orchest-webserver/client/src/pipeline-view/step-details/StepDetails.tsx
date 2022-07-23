@@ -4,8 +4,8 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Step } from "@/types";
-import TuneIcon from "@mui/icons-material/Tune";
-import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
+import { CloseOutlined } from "@mui/icons-material";
+import { IconButton, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import React from "react";
@@ -16,8 +16,9 @@ import {
 import { ResizeBar } from "../components/ResizeBar";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
+import { StepDetailsActions } from "./StepDetailsActions";
+import { StepDetailsConnections } from "./StepDetailsConnections";
 import { StepDetailsContextProvider } from "./StepDetailsContext";
-import { StepDetailsControlPanel } from "./StepDetailsControlPanel";
 import { StepDetailsLogs } from "./StepDetailsLogs";
 import { StepDetailsProperties } from "./StepDetailsProperties";
 
@@ -39,18 +40,23 @@ const tabs = [
   {
     id: "pipeline-properties",
     label: "Properties",
-    icon: <TuneIcon />,
+  },
+  {
+    id: "connections",
+    label: "Connections",
   },
   {
     id: "pipeline-logs",
     label: "Logs",
-    icon: <ViewHeadlineIcon />,
   },
 ];
 
-const StepDetailsComponent: React.FC<{
+type StepDetailsProps = {
   onSave: (stepChanges: Partial<Step>, uuid: string, replace?: boolean) => void;
-}> = ({ onSave }) => {
+  onClose: () => void;
+};
+
+const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
   const { jobUuid, projectUuid } = useCustomRoute();
   const {
     pipelineCwd,
@@ -96,11 +102,9 @@ const StepDetailsComponent: React.FC<{
   const startDragging = useDragElementWithPosition(onDragging, onStopDragging);
 
   const onSelectSubView = (
-    e: React.SyntheticEvent<Element, Event>,
+    _: React.SyntheticEvent<Element, Event>,
     index: number
-  ) => {
-    uiStateDispatch({ type: "SELECT_SUB_VIEW", payload: index });
-  };
+  ) => uiStateDispatch({ type: "SELECT_SUB_VIEW", payload: index });
 
   const shouldHideStepDetails =
     !openedStep || !step || !pipelineJson || stepSelector.active;
@@ -119,12 +123,22 @@ const StepDetailsComponent: React.FC<{
 
   return (
     <StepDetailsContextProvider>
-      <StepDetailsContainer
-        style={{ width: panelWidth + "px" }}
-        className="pipeline-details pane"
-      >
+      <StepDetailsContainer style={{ width: panelWidth + "px" }}>
         <ResizeBar onMouseDown={startDragging} />
         <Overflowable sx={{ display: "flex", flexDirection: "column" }}>
+          <Typography
+            component="div"
+            variant="h6"
+            sx={{ padding: (theme) => theme.spacing(2, 3) }}
+            display="flex"
+            flexDirection="row"
+            justifyContent="space-between"
+          >
+            {step.title}
+            <IconButton onClick={onClose}>
+              <CloseOutlined />
+            </IconButton>
+          </Typography>
           <Tabs
             label="pipeline-details"
             value={subViewIndex}
@@ -134,7 +148,7 @@ const StepDetailsComponent: React.FC<{
               <Tab
                 key={tab.id}
                 id={tab.id}
-                label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                label={<TabLabel>{tab.label}</TabLabel>}
                 aria-controls={tab.id}
                 data-test-id={`${tab.id}-tab`}
               />
@@ -153,7 +167,10 @@ const StepDetailsComponent: React.FC<{
               menuMaxWidth={`${panelWidth - 48}px`}
             />
           </CustomTabPanel>
-          <CustomTabPanel value={subViewIndex} index={1} name="pipeline-logs">
+          <CustomTabPanel value={subViewIndex} index={1} name="connections">
+            <StepDetailsConnections onSave={onSave} />
+          </CustomTabPanel>
+          <CustomTabPanel value={subViewIndex} index={2} name="pipeline-logs">
             <StepDetailsLogs
               projectUuid={projectUuid}
               jobUuid={jobUuid}
@@ -163,7 +180,7 @@ const StepDetailsComponent: React.FC<{
             />
           </CustomTabPanel>
         </Overflowable>
-        <StepDetailsControlPanel />
+        <StepDetailsActions />
       </StepDetailsContainer>
     </StepDetailsContextProvider>
   );
