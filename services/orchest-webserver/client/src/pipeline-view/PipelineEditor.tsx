@@ -171,6 +171,10 @@ export const PipelineEditor = () => {
 
   useInitializeConnections();
 
+  const closeDetails = React.useCallback(() => {
+    uiStateDispatch({ type: "SET_OPENED_STEP", payload: undefined });
+  }, [uiStateDispatch]);
+
   return (
     <div className="pipeline-view">
       <HotKeysBoundary>
@@ -331,7 +335,11 @@ export const PipelineEditor = () => {
           </div>
         )}
       </HotKeysBoundary>
-      <StepDetails key={openedStep} onSave={onSaveDetails} />
+      <StepDetails
+        key={openedStep}
+        onSave={onSaveDetails}
+        onClose={closeDetails}
+      />
     </div>
   );
 };
