@@ -139,9 +139,9 @@ export const StepDetailsProperties = ({
   };
 
   const removeConnection = (index: number) => {
-    const connections = [...step.incoming_connections].splice(index, 1);
+    const connections = step.incoming_connections.filter((_, i) => i !== index);
 
-    onSave({ incoming_connections: connections }, step.uuid);
+    onSave({ incoming_connections: connections }, step.uuid, true);
   };
 
   React.useEffect(() => {
