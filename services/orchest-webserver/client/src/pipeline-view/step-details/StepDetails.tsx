@@ -5,7 +5,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Step } from "@/types";
 import { CloseOutlined } from "@mui/icons-material";
-import { IconButton, Typography } from "@mui/material";
+import { IconButton, Stack, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import React from "react";
@@ -125,35 +125,36 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
     <StepDetailsContextProvider>
       <StepDetailsContainer style={{ width: panelWidth + "px" }}>
         <ResizeBar onMouseDown={startDragging} />
+
+        <Typography
+          component="div"
+          variant="h6"
+          sx={{ padding: (theme) => theme.spacing(2, 3) }}
+          display="flex"
+          flexDirection="row"
+          justifyContent="space-between"
+        >
+          {step.title}
+          <IconButton onClick={onClose}>
+            <CloseOutlined />
+          </IconButton>
+        </Typography>
+        <Tabs
+          label="pipeline-details"
+          value={subViewIndex}
+          onChange={onSelectSubView}
+        >
+          {tabs.map((tab) => (
+            <Tab
+              key={tab.id}
+              id={tab.id}
+              label={<TabLabel>{tab.label}</TabLabel>}
+              aria-controls={tab.id}
+              data-test-id={`${tab.id}-tab`}
+            />
+          ))}
+        </Tabs>
         <Overflowable sx={{ display: "flex", flexDirection: "column" }}>
-          <Typography
-            component="div"
-            variant="h6"
-            sx={{ padding: (theme) => theme.spacing(2, 3) }}
-            display="flex"
-            flexDirection="row"
-            justifyContent="space-between"
-          >
-            {step.title}
-            <IconButton onClick={onClose}>
-              <CloseOutlined />
-            </IconButton>
-          </Typography>
-          <Tabs
-            label="pipeline-details"
-            value={subViewIndex}
-            onChange={onSelectSubView}
-          >
-            {tabs.map((tab) => (
-              <Tab
-                key={tab.id}
-                id={tab.id}
-                label={<TabLabel>{tab.label}</TabLabel>}
-                aria-controls={tab.id}
-                data-test-id={`${tab.id}-tab`}
-              />
-            ))}
-          </Tabs>
           <CustomTabPanel
             value={subViewIndex}
             index={0}
@@ -180,7 +181,9 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
             />
           </CustomTabPanel>
         </Overflowable>
-        <StepDetailsActions />
+        <Stack marginTop="auto">
+          <StepDetailsActions />
+        </Stack>
       </StepDetailsContainer>
     </StepDetailsContextProvider>
   );

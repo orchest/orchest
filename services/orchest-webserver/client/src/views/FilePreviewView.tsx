@@ -215,7 +215,7 @@ const FilePreviewView: React.FC = () => {
       setIsRestoringScrollPosition(false);
 
       if (
-        state.fileDescription.ext === "ipynb" &&
+        state.fileDescription?.ext === "ipynb" &&
         htmlNotebookIframeRef.current
       ) {
         setRetryIntervals((prevRetryIntervals) => [
@@ -255,7 +255,7 @@ const FilePreviewView: React.FC = () => {
   }, [
     cachedScrollPosition,
     isRestoringScrollPosition,
-    state.fileDescription.ext,
+    state.fileDescription?.ext,
   ]);
 
   const loadFile = React.useCallback(() => {
@@ -267,7 +267,7 @@ const FilePreviewView: React.FC = () => {
       attemptRestore = true;
       setCachedScrollPosition(0);
       if (
-        state.fileDescription.ext === "ipynb" &&
+        state.fileDescription?.ext === "ipynb" &&
         htmlNotebookIframeRef.current
       ) {
         setCachedScrollPosition(
@@ -349,9 +349,9 @@ const FilePreviewView: React.FC = () => {
           } else if (state.fileDescription && state.parentSteps) {
             let fileComponent: React.ReactNode;
 
-            if (state.fileDescription.ext !== "ipynb") {
+            if (state.fileDescription?.ext !== "ipynb") {
               const fileMode =
-                MODE_MAPPING[state.fileDescription.ext.toLowerCase()] || null;
+                MODE_MAPPING[state.fileDescription?.ext.toLowerCase()] || null;
 
               fileComponent = (
                 <CodeMirror
@@ -365,7 +365,7 @@ const FilePreviewView: React.FC = () => {
                   }}
                 />
               );
-            } else if (state.fileDescription.ext == "ipynb") {
+            } else if (state.fileDescription?.ext == "ipynb") {
               fileComponent = (
                 <iframe
                   ref={htmlNotebookIframeRef}
