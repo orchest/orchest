@@ -2,26 +2,41 @@
 
 # Environments
 
-Environments define the conditions in which Pipeline Steps execute scripts and kernels. Environments are:
+```{eval-rst}
+.. meta::
+   :description: This page contains information about how to manage different environments and programming languages in Orchest.
+```
 
-- Chosen in the Pipeline Step properties panel in the Pipeline Editor.
-- Configurable through their set-up script (on the Environments page) to install additional packages.
-- Versioned and belong to a single Project.
+Environments define the conditions in which pipeline steps execute scripts and kernels. Environments are:
+
+- Chosen in the pipeline step properties panel in the {ref}`pipeline editor <pipelines>`.
+- Configurable through their set-up script (on the environments page) to install additional packages.
+- Versioned and belong to a single {ref}`project <projects>`.
+
+```{figure} ../img/environments-list.png
+:align: center
+:width: 758
+:alt: List of environments for a given Orchest project
+
+The list of environments for a given Orchest project.
+```
 
 (languages)=
 
-## Choosing a programming language
+## Choosing a programming language in Orchest
 
-An Environment only uses one programming language to avoid bloating its container image with too many dependencies. Orchest has built in support for environments with the languages:
+An environment only uses one programming language to avoid bloating its container image with too many dependencies.
+Orchest has built in support for environments with the languages:
 
 - Python
 - R
 - JavaScript
 - Julia
 
-Each environment supports `Bash` scripts to invoke any other language indirectly. For example: `Java`, `Scala`, `Go` or `C++`.
+Each environment supports `Bash` scripts to invoke any other language indirectly.
+For example: `Java`, `Scala`, `Go` or `C++`.
 
-## Building an Environment
+## Building an environment
 
 1. Go to the _Environments_ page.
 2. Create a new _Environment_.
@@ -32,15 +47,23 @@ Each environment supports `Bash` scripts to invoke any other language indirectly
    or {code}`sudo apt-get install gcc`.
 7. Press the _Build_ button.
 
-Updated Environments will automatically be used in the Pipeline editor and {term}`interactive pipeline runs <interactive (pipeline) run>`.
+```{figure} ../img/environment-config.png
+:align: center
+:width: 800
+:alt: Configuration page for an environment in Orchest
 
-## Important Environment Paths
+Configuration page for an environment in Orchest.
+```
 
-Executed code can access important Environment paths:
+Updated environments will automatically be used in the Pipeline editor and {term}`interactive pipeline runs <interactive (pipeline) run>`.
+
+## Important environment paths
+
+Executed code can access important environment paths:
 
 `/data`
 
-: Use this directory to write large artifacts and/or data to. Writing to other locations might result in data loss (since the Environments are stateless) or bloat your Project directory (which slows down {ref}`job <jobs>`).
+: Use this directory to write large artifacts and/or data to. Writing to other locations might result in data loss (since the environments are stateless) or bloat your Project directory (which slows down {ref}`job <jobs>`).
 
 `/project-dir`
 
@@ -77,21 +100,21 @@ pip install black
 Installing packages with `conda` is also supported but might take longer (due to known conda issues regarding dependency solving). We recommmend using [mamba](https://mamba.readthedocs.io/) as a user-friendly and fast drop-in conda replacement. `pip`, `mamba` and `conda` caches are persisted across builds for quicker iterations. This cache can be ignored or removed using the respective flags (e.g. `pip install --no-cache`) or commands.
 
 ```{warning}
-🚨 Do not install packages by running {code}`!pip install <package-name>` inside your Jupyter Notebook. This causes the package to be installed every time you run the Pipeline Step. It is not saved in the Environment as containers are stateless!
+🚨 Do not install packages by running {code}`!pip install <package-name>` inside your Jupyter Notebook. This causes the package to be installed every time you run the pipeline step. It is not saved in the environment as containers are stateless!
 ```
 
-## Custom Environment images
+## Custom environment images
 
-Fully custom environment images are not recommended. This is because Environments require a particular image structure to cater for Jupyter Docker stacks dependencies, Pipeline runs and hosting active Jupyter kernels. Instead, use our default base images and customize them via the _set-up script_.
+Fully custom environment images are not recommended. This is because environments require a particular image structure to cater for Jupyter Docker stacks dependencies, pipeline runs and hosting active Jupyter kernels. Instead, use our default base images and customize them via the _set-up script_.
 
 ### Using a different Python version
 
 To use a different Python version:
 
-1. Create the new conda Environment in your setup script with the desired Python version.
+1. Create the new conda environment in your setup script with the desired Python version.
 2. Store the relevant environment variables in `/home/jovyan/.orchestrc` which will be sourced on startup.
 
-For example, configuring an Environment with Python 3.10 using mamba:
+For example, configuring an environment with Python 3.10 using mamba:
 
 ```bash
 #!/bin/bash
