@@ -52,7 +52,7 @@ Pipelines take parameters as input (e.g. the data source connection URL) to vary
 pipeline. Parameters can be set in the visual pipeline editor.
 
 ```{tip}
-👉 For secrets, use {ref}`environment variables <environment variables>` since parameters are versioned.
+👉 For secrets, use {ref}`environment variables <environment-variables>` since parameters are versioned.
 ```
 
 ## Data passing

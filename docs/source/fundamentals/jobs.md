@@ -84,7 +84,7 @@ You can think of job parameters as a [grid search](https://scikit-learn.org/stab
 i.e. looping over all combinations of values for different parameters.
 
 ```{note}
-💡 Unlike {ref}`environment variables <environment variables>`, you can define
+💡 Unlike {ref}`environment variables <environment-variables>`, you can define
 pipeline and step level parameters with the same name without one (automatically) overwriting
 the other, you can access both values.
 ```

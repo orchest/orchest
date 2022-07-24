@@ -45,7 +45,7 @@ A project's `.orchest` directory should be versioned since it defines the {ref}`
 
 The `/data` directory can be used to store data locally that is accessible by all pipelines across all projects, even by jobs.
 
-Secrets should be set with {ref}`environment variables <environment variables>` to avoid them being versioned.
+Secrets should be set with {ref}`environment variables <environment-variables>` to avoid them being versioned.
 
 (git-inside-orchest)=
 
@@ -55,7 +55,8 @@ Secrets should be set with {ref}`environment variables <environment variables>` 
 👉 See video tutorial: [versioning using git in Orchest](https://www.tella.tv/video/cknr9z9x0000709kz7vzh0wdx/view).
 ```
 
-You can use `git` inside Orchest with the pre-installed [jupyterlab-git](https://github.com/jupyterlab/jupyterlab-git) extension. Get started by adding your `user.name` and `user.email` in {ref}`configure JupyterLab <configuration jupyterlab>`. For example:
+You can use `git` inside Orchest with the pre-installed [jupyterlab-git](https://github.com/jupyterlab/jupyterlab-git) extension.
+Get started by adding your `user.name` and `user.email` in {ref}`configure JupyterLab <configuration-jupyterlab>`. For example:
 
 ```sh
 git config --global user.name "John Doe"
