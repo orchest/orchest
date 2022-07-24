@@ -3,6 +3,7 @@ import { styled } from "@mui/material/styles";
 
 export const HUD = styled(Stack)`
   position: absolute;
+  top: 0;
   left: 0;
   right: 0;
   left: 0;
