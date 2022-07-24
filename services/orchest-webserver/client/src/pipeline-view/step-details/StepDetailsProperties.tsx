@@ -122,7 +122,7 @@ export const StepDetailsProperties = ({
       <TextField
         autoFocus={shouldAutoFocus}
         value={step.title}
-        onChange={(e) => onChangeTitle(e.target.value)}
+        onChange={(event) => onChangeTitle(event.target.value)}
         label="Step name"
         disabled={readOnly}
         fullWidth
@@ -158,7 +158,7 @@ export const StepDetailsProperties = ({
             id="kernel-language"
             value={step.kernel.name}
             disabled={readOnly}
-            onChange={(e) => onChangeKernel(e.target.value)}
+            onChange={(event) => onChangeKernel(event.target.value)}
           >
             {KERNEL_OPTIONS.map((option) => {
               return (
