@@ -2,22 +2,29 @@
 
 # Jobs
 
-```{tip}
-👉 Check out our short video tutorials:
-
-- [Adding parameters to a pipeline](https://app.tella.tv/story/cknrahyn9000409kyf4s2d3xm)
-- [Running a pipeline as a job](https://app.tella.tv/story/cknr9nq1u000609kz9h0advvk)
+```{eval-rst}
+.. meta::
+   :description: This page contains information about how to run and schedule jobs in Orchest.
 ```
 
-Jobs are a way to schedule one off or recurring {term}`pipelines <(data science) pipeline>` runs.
+Jobs are a way to schedule one-off or recurring {term}`pipelines <(data science) pipeline>` runs in Orchest.
 
-A Job can run multiple iterations of the same pipeline over time or by using different parameters as
-inputs. For example, you could create a Job which uses the same ETL pipeline but extracts data from
-a different data source for each pipeline run.
+A job can run multiple iterations of the same pipeline over time
+or small variations by using different parameters as inputs.
+For example, you could create a job which uses the same ETL pipeline
+but extracts data from a different data source for each pipeline run.
+
+```{figure} ../img/jobs-list.png
+:align: center
+:width: 768
+:alt: List of jobs for a given Orchest project
+
+The list of jobs for a given Orchest project.
+```
 
 Jobs take a snapshot of your project directory when they are created. Each of the job’s pipeline
 runs copy the project directory snapshot and execute the files without changing the original
-snapshot. This means Jobs run consistently throughout their entire lifetime.
+snapshot. This means jobs run consistently throughout their entire lifetime.
 
 Different pipeline runs that are part of the same job are completely isolated from a scheduling
 perspective and do not affect each others' state.
@@ -28,16 +35,57 @@ not including them in the project directory snapshot. Alternatively, you can add
 `.gitignore` as the ignored patterns are not copied to the snapshot.
 ```
 
+```{tip}
+👉 Check out our short video tutorials:
+
+- [Adding parameters to a pipeline](https://app.tella.tv/story/cknrahyn9000409kyf4s2d3xm)
+- [Running a pipeline as a job](https://app.tella.tv/story/cknr9nq1u000609kz9h0advvk)
+```
+
+(running-a-job)=
+
+## Running a job in Orchest
+
+To create and run a job in Orchest, follow these instructions:
+
+1. Click on _Jobs_ in the left menu pane.
+2. Click the _+ Create job_ button to configure your job.
+3. Choose a _Job name_ and the _Pipeline_ you want to run the job for.
+4. By default, the job is configured to run once immediately (_Now_).
+   Alternatively, use the radio buttons to either schedule it for _Later_, or set a _Recurring_ schedule.
+5. Press _Run job_.
+
+```{figure} ../img/job-new.png
+:align: center
+:width: 428
+:alt: Dialog that shows how to create a new job in Orchest
+
+New job dialog.
+```
+
+To inspect the result of your job; click on the job you just created, choose a specific pipeline run
+(the one you want to inspect) and click on _View pipeline_. The pipeline is now opened in
+{term}`read-only mode` giving you the opportunity to check the logs or to open the
+HTML version of you notebooks.
+
+```{note}
+💡 Upon job creation, Orchest (under the hood) takes a snapshot of the required environments.
+This way you can freely iterate on and update your existing environments without worrying about
+breaking your existing jobs.
+```
+
 (parametrize-pipeline-section)=
 
-## Parameterizing pipelines and steps
+## Parametrizing pipelines and steps
 
 Jobs run a specific pipeline for a given set of parameters. If you define multiple values for the
 same parameter, then the job will run the pipeline once for every combination of parameter values.
+You can think of job parameters as a [grid search](https://scikit-learn.org/stable/modules/grid_search.html),
+i.e. looping over all combinations of values for different parameters.
 
 ```{note}
 💡 Unlike {ref}`environment variables <environment variables>`, you can define
-pipeline and step level parameters with the same name without one (automatically) overwritting
+pipeline and step level parameters with the same name without one (automatically) overwriting
 the other, you can access both values.
 ```
 
@@ -96,7 +144,7 @@ fruit = orchest.get_step_param("fruit")               # "apple"
 vegetable = orchest.get_pipeline_param("vegetable")   # "carrot"
 ```
 
-## Specify job parameters with a file
+### Specify job parameters with a file
 
 You can easily run a pipeline for multiple parameter configurations by creating
 a job parameters file.
@@ -123,19 +171,16 @@ The JSON file should be formatted as below. **Note that wrapping the values in a
 
 You can find the step UUIDs in the pipeline file (e.g. `main.orchest`), pipelines are regular JSON files.
 
-(running-a-job)=
+(running-a-parametrized-job)=
 
-## Running a job
+### Running a parametrized job
 
-Make sure you have read the previous section on how to parametrize your pipeline. With jobs you get
-to run the same pipeline for different parameter values. For now you can think of it as a [grid
-search](https://scikit-learn.org/stable/modules/grid_search.html), i.e. looping over all
-combinations of values for different parameters. To run a job:
+The procedure to run a parametrized job is very similar to running a job without any parameters.
+Once you have followed any of the procedures above to parametrize your pipeline:
 
-1. Make sure you have defined some parameters or you will only be able to schedule the pipeline as
-   is.
+1. Make sure you have defined some parameters or you will only be able to schedule the pipeline as is.
 2. Click on _Jobs_ in the left menu pane.
-3. Click the "+" sign to configure your job.
+3. Click the _+ Create job_ button to configure your job.
 4. Choose a _Job name_ and the _Pipeline_ you want to run the job for.
 5. Your default set of parameters are pre-loaded. By clicking on the values a JSON editor opens,
    allowing you to add additional values you would like the pipeline to run for.
@@ -143,14 +188,3 @@ combinations of values for different parameters. To run a job:
    case you don't want your job to run every combination of your parameter values, you can
    deselect them through the _Pipeline runs_ option.
 7. Press _Run job_.
-
-To inspect the result of your job; click on the job you just created, choose a specific pipeline run
-(the one you want to inspect) and click on _View pipeline_. The pipeline is now opened in
-{term}`read-only mode` giving you the opportunity to check the logs or to open the
-HTML version of you notebooks.
-
-```{note}
-💡 Upon job creation, Orchest (under the hood) takes a snapshot of the required environments.
-This way you can freely iterate on and update your existing environments without worrying about
-breaking your existing jobs.
-```
