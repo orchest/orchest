@@ -1,4 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
+import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -19,8 +20,10 @@ import {
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/python/python";
 import "codemirror/mode/r/r";
@@ -34,7 +37,7 @@ const MODE_MAPPING = {
   r: "text/x-rsrc",
 } as const;
 
-const FilePreviewView: React.FC = () => {
+const FilePreviewView = () => {
   const { setAlert } = useAppContext();
   const { state: projectsState, dispatch } = useProjectsContext();
   const { cancelableFetch } = useCancelableFetch();
@@ -311,103 +314,112 @@ const FilePreviewView: React.FC = () => {
 
   const renderNavStep = (steps: readonly Step[]) =>
     steps.map((step) => (
-      <Button
-        variant="text"
+      <Link
+        fontSize="16px"
+        fontWeight="medium"
+        style={{ cursor: "pointer" }}
         key={step.uuid}
         onClick={(event) => stepNavigate(event, step.uuid)}
-        onAuxClick={(event) => stepNavigate(event, step.uuid)}
+        underline="hover"
       >
         {step.title}
-      </Button>
+      </Link>
     ));
-
-  const parentStepElements = renderNavStep(state.parentSteps);
-  const childStepElements = renderNavStep(state.childSteps);
 
   return (
     <Layout>
-      <div
-        className="view-page file-viewer no-padding full height relative"
-        ref={fileViewerRef}
-      >
-        <div className="top-buttons">
-          <IconButton title="refresh" onClick={loadFile}>
-            <RefreshIcon />
-          </IconButton>
-          <IconButton
-            title="Close"
-            onClick={loadPipelineView}
-            onAuxClick={loadPipelineView}
-          >
-            <CloseIcon />
-          </IconButton>
-        </div>
-
-        {(() => {
-          if (state.loadingFile) {
-            return <LinearProgress />;
-          } else if (state.fileDescription && state.parentSteps) {
-            let fileComponent: React.ReactNode;
-
-            if (state.fileDescription?.ext !== "ipynb") {
-              const fileMode =
-                MODE_MAPPING[state.fileDescription?.ext.toLowerCase()] || null;
-
-              fileComponent = (
+      <Stack height="100%">
+        {state.loadingFile ? (
+          <LinearProgress />
+        ) : (
+          <>
+            <Stack>
+              <Stack direction="row" alignItems="start">
+                <PageTitle>
+                  Step: {state.fileDescription.step_title} (
+                  {state.fileDescription.filename})
+                </PageTitle>
+                <IconButton
+                  title="refresh"
+                  onClick={loadFile}
+                  style={{ marginLeft: "auto" }}
+                >
+                  <RefreshIcon />
+                </IconButton>
+                <IconButton
+                  title="Close"
+                  onClick={loadPipelineView}
+                  onAuxClick={loadPipelineView}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Stack>
+              <Stack direction="row" justifyContent="space-between">
+                <Stack>
+                  {Boolean(state.parentSteps?.length) && (
+                    <Typography
+                      component="div"
+                      variant="subtitle2"
+                      fontSize="14px"
+                      color="text.secondary"
+                    >
+                      Incoming connections
+                    </Typography>
+                  )}
+                  <Stack direction="row" spacing={2}>
+                    {renderNavStep(state.parentSteps)}
+                  </Stack>
+                </Stack>
+                <Stack alignItems="flex-end">
+                  {Boolean(state.childSteps?.length) && (
+                    <Typography
+                      component="div"
+                      variant="subtitle2"
+                      fontSize="14px"
+                      color="text.secondary"
+                    >
+                      Outgoing connections
+                    </Typography>
+                  )}
+                  <Stack direction="row" spacing={2}>
+                    {renderNavStep(state.childSteps)}
+                  </Stack>
+                </Stack>
+              </Stack>
+            </Stack>
+            <Stack height="100%">
+              {state.fileDescription && state.fileDescription.ext !== "ipynb" && (
                 <CodeMirror
                   value={state.fileDescription.content}
                   onBeforeChange={() => undefined}
                   options={{
-                    mode: fileMode,
+                    mode:
+                      MODE_MAPPING[state.fileDescription?.ext.toLowerCase()] ||
+                      null,
                     theme: "jupyter",
                     lineNumbers: true,
                     readOnly: true,
                   }}
                 />
-              );
-            } else if (state.fileDescription?.ext == "ipynb") {
-              fileComponent = (
+              )}
+              {state.fileDescription?.ext === "ipynb" && (
                 <iframe
+                  height="100%"
                   ref={htmlNotebookIframeRef}
                   className="notebook-iframe borderless fullsize"
                   srcDoc={state.fileDescription.content}
                 ></iframe>
-              );
-            } else {
-              fileComponent = (
-                <div>
-                  <p>
-                    Something went wrong loading the file. Please try again by
-                    reloading the page.
-                  </p>
-                </div>
-              );
-            }
-
-            return (
-              <React.Fragment>
-                <div className="file-description">
-                  <h3>
-                    Step: {state.fileDescription.step_title} (
-                    {state.fileDescription.filename})
-                  </h3>
-                  <div className="step-navigation">
-                    <div className="parents">
-                      <span>Parent steps</span>
-                      {parentStepElements}
-                    </div>
-                    <div className="children">
-                      <span>Child steps</span>
-                      {childStepElements}
-                    </div>
-                  </div>
-                </div>
-                <div className="file-holder">{fileComponent}</div>
-              </React.Fragment>
-            );
-          }
-        })()}
-      </div>
+              )}
+              {!state.fileDescription && (
+                <>
+                  Something went wrong loading the file. Please try again by
+                  reloading the page.
+                </>
+              )}
+            </Stack>
+          </>
+        )}
+      </Stack>
     </Layout>
   );
 };

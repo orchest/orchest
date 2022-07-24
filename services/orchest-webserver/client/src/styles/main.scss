@@ -196,10 +196,6 @@ a.button {
     height: 100%;
   }
 
-  &.relative {
-    position: relative;
-  }
-
   &:not(.job-view) {
     p {
       line-height: 1.5;
@@ -227,54 +223,6 @@ a.button {
           width: 70%;
           font-weight: 500;
         }
-      }
-    }
-  }
-
-  &.logs-view {
-    .top-buttons {
-      button {
-        background-color: #fff;
-      }
-    }
-    .logs {
-      display: flex;
-      flex-direction: row;
-      height: 100%;
-
-      .log-title {
-        font-weight: 500;
-      }
-
-      .log-section {
-        line-height: 24px;
-        padding: 0 8px;
-        padding-bottom: calc(var(--space-5) / 2);
-        i.material-icons {
-          float: left;
-          margin-right: 10px;
-        }
-      }
-
-      .log-selector {
-        width: 20%;
-        min-width: 250px;
-        max-width: 400px;
-        padding: var(--space-5) calc(var(--space-5) / 2);
-        display: flex;
-        flex-direction: column;
-        border-right: 1px solid $borderColor;
-
-        i.note {
-          font-size: 14px;
-          padding: 8px;
-        }
-      }
-
-      .log-selector-divider {
-        border-bottom: 1px solid $borderColor;
-        width: 100%;
-        height: 0;
       }
     }
   }
@@ -463,73 +411,6 @@ p > i.material-icons.float-left {
   }
 }
 
-.file-viewer {
-  .file-description,
-  p {
-    padding: var(--space-5);
-
-    h3 {
-      font-weight: 500;
-    }
-  }
-
-  .file-description {
-    border-bottom: 1px solid $borderColor;
-    z-index: 9;
-
-    .step-navigation {
-      overflow: auto;
-      padding-top: var(--space-5);
-
-      .parents {
-        float: left;
-        button {
-          margin-right: $mdcComponentPadding;
-          &:last-of-type {
-            margin-right: 0;
-          }
-        }
-      }
-      .children {
-        float: right;
-        text-align: right;
-
-        button {
-          margin-left: $mdcComponentPadding;
-          &:first-of-type {
-            margin-left: 0;
-          }
-        }
-      }
-      span {
-        font-size: $codeSize;
-        display: block;
-        color: #999;
-      }
-    }
-  }
-
-  display: flex;
-  flex-direction: column;
-
-  .file-holder {
-    flex: 1;
-    flex-grow: 1;
-  }
-
-  .react-codemirror2 {
-    padding: var(--space-5);
-
-    .CodeMirror {
-      width: 100%;
-      height: 100%;
-    }
-
-    width: 100%;
-    height: 100%;
-  }
-}
-
 iframe.borderless {
   border: 0;
   display: block;
@@ -558,20 +439,6 @@ button.text-button {
     border-bottom: 1px solid black;
   }
   cursor: pointer;
-}
-
-.top-buttons {
-  position: absolute;
-  top: var(--space-5);
-  right: var(--space-5);
-  z-index: 99;
-
-  button {
-    margin-left: 10px;
-    &:first-of-type {
-      margin-left: 0;
-    }
-  }
 }
 
 .bottom-buttons {
