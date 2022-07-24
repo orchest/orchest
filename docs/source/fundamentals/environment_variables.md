@@ -2,16 +2,22 @@
 
 # Environment variables
 
-Environment variables let you exclude sensitive data from your versioning system.
+```{eval-rst}
+.. meta::
+   :description: This page contains information about how to use environment variables in Orchest.
+```
 
-Environment variables are injected in your pipeline steps, and can be natively retrieved with your chosen language. For example, in Python:
+Environment variables let you exclude sensitive data from the versioning system of your Orchest projects.
+
+Environment variables are injected in your pipeline steps, and can be natively retrieved with your chosen language.
+For example, in Python:
 
 ```python
 import os
 secret = os.environ["MY_VAR"]
 ```
 
-You can define environment variables for Projects, Pipelines and Jobs.
+You can define environment variables for {ref}`projects`, {ref}`pipelines`, and {ref}`jobs`.
 
 Pipeline variables overwrite Project variables. For example, if `MY_VAR=PROJ_VALUE` is defined at the Project level and `MY_VAR=PIP_VALUE`
 at the Pipeline level, the value of `MY_VAR` for an {term}`interactive pipeline runs <interactive (pipeline) run>` is `PIP_VALUE`.
@@ -25,7 +31,8 @@ your instance. See how to setup authentication in the {ref}`settings <settings>`
 
 ## Project environment variables
 
-Project environment variables are visible to all Pipelines in that respective Project (including Pipelines in Jobs). Access your Project environment variables through Project settings:
+Project environment variables are visible to all pipelines in that respective project (including pipelines in jobs).
+Access your project environment variables through project settings:
 
 1. Open the _Projects_ view in the left menu pane.
 2. Click on gear icon (in the _settings_ column) in the row representing the project of interest.
@@ -35,9 +42,9 @@ Project environment variables are visible to all Pipelines in that respective Pr
 
 ## Pipeline environment variables
 
-Access your Pipeline environment variables through the Pipeline settings:
+Access your pipeline environment variables through the pipeline settings:
 
-1. Open a Pipeline via the _Pipelines_ option in the left menu pane.
+1. Open a pipeline via the _Pipelines_ option in the left menu pane.
 2. Click on _Settings_ in the top right corner.
 3. Click on the _Environment variables_ tab.
 4. Set your variables.
@@ -45,7 +52,8 @@ Access your Pipeline environment variables through the Pipeline settings:
 
 ## Job environment variables
 
-Job environment variables are initialized by merging the Project and Pipeline environment variables when a Job is run. Add to/edit these variables before running the Job. Every Pipeline run belonging to this Job will include these environment variables.
+Job environment variables are initialized by merging the project and pipeline environment variables when a job is run.
+Add to/edit these variables before running the job. Every pipeline run belonging to this job will include these environment variables.
 
 ```{note}
 💡 Only recurring scheduled jobs can have their environment variables edited after they have started.
