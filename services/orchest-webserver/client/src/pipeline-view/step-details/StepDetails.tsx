@@ -154,7 +154,13 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
             />
           ))}
         </Tabs>
-        <Overflowable sx={{ display: "flex", flexDirection: "column" }}>
+        <Overflowable
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            flex: "1 1 0",
+          }}
+        >
           <CustomTabPanel
             value={subViewIndex}
             index={0}
