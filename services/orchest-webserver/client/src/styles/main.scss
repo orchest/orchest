@@ -988,10 +988,9 @@ button.themed-secondary {
     position: absolute;
     user-select: none;
     -webkit-user-select: none;
-    background-size: 40px 40px;
-    background-image: url("/image/cross-fill.png");
+    background-size: 32px 32px;
+    background-image: url("/image/grid-dot.svg");
     background-repeat: repeat;
-    border: 1px solid #e5e5e5;
 
     .step-selector {
       position: absolute;
