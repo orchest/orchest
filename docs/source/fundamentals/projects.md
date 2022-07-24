@@ -2,9 +2,14 @@
 
 # Projects
 
-A project is the main container for organizing related {ref}`pipelines <pipelines>`, {ref}`jobs <jobs>`, {ref}`environments <environments>` and code.
+```{eval-rst}
+.. meta::
+   :description: This page contains information about how to create and use projects in Orchest.
+```
 
-A project is basically a `git` repository. For example, a Project might be organized like:
+A **project** is the main container for organizing related {ref}`pipelines <pipelines>`, {ref}`jobs <jobs>`, {ref}`environments <environments>` and code in Orchest.
+
+A project is based on a `git` repository. For example, a Project might be organized like:
 
 ```sh
 .
@@ -17,13 +22,14 @@ A project is basically a `git` repository. For example, a Project might be organ
 └── get-data.py
 ```
 
-Projects also contain {ref}`jobs <jobs>`, however, these are not stored in the project's filesystem.
+Projects also contain {ref}`jobs <jobs>`, however, these are not stored in the project filesystem.
 
-You can access Project files in your code running inside {ref}`environments <environments>` using relative paths. For absolute paths, all files of a project are mounted to the `/project-dir` directory.
+You can access project files in your code running inside {ref}`environments <environments>` using relative paths.
+For absolute paths, all files of a project are mounted to the `/project-dir` directory.
 
-## Getting started
+## Getting started with projects in Orchest
 
-You can get started with Projects by:
+You can get started with projects by:
 
 - Creating a new project
 - Importing an existing project using its git repository URL (see {ref}`how-to-import-a-project <how-to-import-a-project>`).
@@ -35,15 +41,15 @@ You can get started with Projects by:
 
 ## Project versioning
 
-A Project's `.orchest` directory should be versioned since it defines the {ref}`environment <environments>` in use. This enables the Project to run on every machine.
+A project's `.orchest` directory should be versioned since it defines the {ref}`environment <environments>` in use. This enables the project to run on every machine.
 
-The `/data` directory can be used to store data locally. The `/data` directory can be accessed by all pipelines across all projects, even by jobs.
+The `/data` directory can be used to store data locally that is accessible by all pipelines across all projects, even by jobs.
 
 Secrets should be set with {ref}`environment variables <environment variables>` to avoid them being versioned.
 
 (git-inside-orchest)=
 
-## Using `git` inside Orchest
+## Using `git` inside Orchest projects
 
 ```{tip}
 👉 See video tutorial: [versioning using git in Orchest](https://www.tella.tv/video/cknr9z9x0000709kz7vzh0wdx/view).
