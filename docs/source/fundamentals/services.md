@@ -2,29 +2,38 @@
 
 # Services
 
+```{eval-rst}
+.. meta::
+   :description: This page contains information about how to use services in Orchest.
+```
+
 _Services_ allow you to run a service, e.g. a database, Redis instance or Tensorboard, as part of
 your pipeline. To ease development, services have a lifetime that spans across the entire
 {term}`session <interactive session>`. Services can be configured to persist to disk and to be
 reachable from your browser.
 
-To add a service to your Orchest pipeline, go to the `pipeline settings` and check out the
-`services` tab.
+```{figure} ../img/services-pointer.png
+:align: center
+:width: 600
+:alt: List of running services from the Orchest pipeline editor
+```
 
 ```{warning}
-Since the services lifetime span the interactive session,
+🚨 Since the services lifetime span the interactive session,
 every time it stops all the state of the services is deleted.
 If you need to store persistent data, use an external database.
 ```
 
 (services-templates)=
 
-## Ready to go templates
+## Ready to go service templates
 
 For ease of use, we provide some commonly used services as templates:
 
 ```{figure} ../img/services.png
 :align: center
 :width: 400
+:alt: Ready to go service templates in Orchest
 ```
 
 Tensorboard, Streamlit and VSCode are set up to be reachable from your browser, the link will be
@@ -32,50 +41,13 @@ available both in the pipeline editor under `services` and in the service config
 Redis will only be reachable from within Orchest, i.e. from pipeline steps, notebooks
 and other services.
 
-### Connectivity
+(creating-service)=
 
-Connection details for configured services can be obtained using the
-{py:meth}`orchest.services.get_service` function. For example, after adding Redis as service,
-you can use the following snippets of code to verify connectivity, assuming `redis-py` has been
-installed in the environment used by the step (see the {ref}`environments <environments>` section):
+## Creating a service in Orchest
 
-```python
-import orchest
-import redis
-
-redis_host = orchest.get_service("redis")["internal_hostname"]
-redis_client = redis.Redis(host=redis_host, port=6379, db=0)
-redis_client.set("hello", "there")
-redis_client.get("hello")
-```
-
-(logs)=
-
-## Logs
-
-You can keep track of all your services (and steps) logs through the `LOGS` button in the pipeline
-editor.
-
-```{figure} ../img/logs-pointer.png
-:align: center
-:width: 600
-```
-
-```{figure} ../img/service-logs.png
-:align: center
-:width: 600
-```
-
-(the-details)=
-
-## The details
-
+If none of the service templates work for you, you can create your own services.
 After going to `pipeline settings` > `services` > `add service`, you will
 have the option to create a custom service, where you can pin down your specs.
-
-```{tip}
-👉 The service templates can serve as a starting point, be sure to check them out!
-```
 
 ### Required fields
 
@@ -141,16 +113,47 @@ such as images, javascript code, and CSS. Others will expect the base path to be
 being proxied. The need for toggling this is based on the specific application at hand, and it's
 only of interest for external connectivity.
 
-```{figure} ../img/services-pointer.png
-:align: center
-:width: 600
-```
-
 ```{tip}
 👉 Most services that run some sort of server are already set to bind to the required interfaces
 to expose said server. This might not be always the case and so you have to explicitly set it
 while changing the **command**. The way bindings are set is application dependant, for example,
 `Tensorboard` provides the flag `--bind_all` to bind on all interfaces.
+```
+
+### Connectivity
+
+Connection details for configured services can be obtained using the
+{py:meth}`orchest.services.get_service` function. For example, after adding Redis as service,
+you can use the following snippets of code to verify connectivity, assuming `redis-py` has been
+installed in the environment used by the step (see the {ref}`environments <environments>` section):
+
+```python
+import orchest
+import redis
+
+redis_host = orchest.get_service("redis")["internal_hostname"]
+redis_client = redis.Redis(host=redis_host, port=6379, db=0)
+redis_client.set("hello", "there")
+redis_client.get("hello")
+```
+
+(logs)=
+
+## Logs
+
+You can keep track of all your services (and steps) logs through the `LOGS` button in the pipeline
+editor.
+
+```{figure} ../img/logs-pointer.png
+:align: center
+:width: 600
+:alt: Button to get to the service logs
+```
+
+```{figure} ../img/service-logs.png
+:align: center
+:width: 600
+:alt: Service logs in Orchest
 ```
 
 ## Permissions of files written by a service
