@@ -290,7 +290,7 @@ const FilePreviewView: React.FC = () => {
           "Failed to load file. Make sure the path of the pipeline step is correct."
         );
       });
-  }, [fetchAll, setAlert, state.fileDescription]);
+  }, []);
 
   React.useEffect(() => {
     loadFile();
