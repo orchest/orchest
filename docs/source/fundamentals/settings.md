@@ -2,6 +2,11 @@
 
 # Settings
 
+```{eval-rst}
+.. meta::
+   :description: This page contains information about how configure Orchest through settings.
+```
+
 Orchest is configured through _Settings_. Some settings require Orchest to be restarted for changes to take effect. For example:
 
 ```json
@@ -57,15 +62,16 @@ Disables telemetry.
 : UUID to track usage across user sessions.
 
 ```{note}
-💡 We do not use any third-party to track telemetry, see what telemetry we track and how in
-[our codebase](https://github.com/orchest/orchest/blob/2fb57b8c6ed699fa5f6529a38b838a5670a91a97/services/orchest-webserver/app/app/analytics.py#L26-L53).
+💡 We do not use any third-party to track telemetry, see what telemetry we track and how in [our codebase].
 All telemetry is anonymized through the `TELEMETRY_UUID`. We do not store any IP
 information on our servers.
 ```
 
+[our codebase]: https://github.com/orchest/orchest/blob/4dc2b4fb6a4766de7ff4cb7d3096a56b0a5c5f6c/lib/python/orchest-internals/_orchest/internals/analytics.py#L42-L136
+
 (configuration-jupyterlab)=
 
-## Configuring JupyterLab
+## Configuring JupyterLab in Orchest
 
 ### Extensions
 
