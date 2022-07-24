@@ -1,3 +1,4 @@
+import { HUD } from "@/components/HUD";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
@@ -15,12 +16,12 @@ import { useScaleFactor } from "./contexts/ScaleFactorContext";
 import { useInitializeConnections } from "./hooks/useInitializeConnections";
 import { useOpenFile } from "./hooks/useOpenFile";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
-import { HotKeysBoundary } from "./HotKeysBoundary";
 import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import { PipelineViewingOptions } from "./pipeline-viewing-opions/PipelineViewingOptions";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { SnapshotBanner } from "./PipelineBanner";
+import { PipelineEditorRoot } from "./PipelineEditorRoot";
 import { PipelineStep } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { SaveStatus } from "./SaveStatus";
@@ -176,151 +177,160 @@ export const PipelineEditor = () => {
   }, [uiStateDispatch]);
 
   return (
-    <div className="pipeline-view">
-      <HotKeysBoundary>
-        <PipelineCanvasHeaderBar />
-        <PipelineViewport ref={pipelineViewportRef}>
-          {fixedConnections.map((connection) => {
-            const { startNodeUUID, endNodeUUID } = connection;
-            const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
-            const endNode = endNodeUUID
-              ? stepRefs.current[`${endNodeUUID}-incoming`]
-              : undefined;
+    <PipelineEditorRoot>
+      <PipelineViewport ref={pipelineViewportRef}>
+        {fixedConnections.map((connection) => {
+          const { startNodeUUID, endNodeUUID } = connection;
+          const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
+          const endNode = endNodeUUID
+            ? stepRefs.current[`${endNodeUUID}-incoming`]
+            : undefined;
 
-            // startNode is required
-            if (!startNode) return null;
+          // startNode is required
+          if (!startNode) return null;
 
-            // user is trying to make a new connection
-            const isNew = !endNodeUUID && hasValue(newConnection.current);
+          // user is trying to make a new connection
+          const isNew = !endNodeUUID && hasValue(newConnection.current);
 
-            // if the connection is attached to a selected step,
-            // the connection should update its start/end node, to move along with the step
-            const shouldUpdateStart =
-              flushPage ||
-              cursorControlledStep === startNodeUUID ||
-              (selectedSteps.includes(startNodeUUID) &&
-                selectedSteps.includes(cursorControlledStep || ""));
+          // if the connection is attached to a selected step,
+          // the connection should update its start/end node, to move along with the step
+          const shouldUpdateStart =
+            flushPage ||
+            cursorControlledStep === startNodeUUID ||
+            (selectedSteps.includes(startNodeUUID) &&
+              selectedSteps.includes(cursorControlledStep || ""));
 
-            const shouldUpdateEnd =
-              flushPage ||
-              cursorControlledStep === endNodeUUID ||
-              isNew ||
-              (selectedSteps.includes(endNodeUUID || "") &&
-                selectedSteps.includes(cursorControlledStep || ""));
+          const shouldUpdateEnd =
+            flushPage ||
+            cursorControlledStep === endNodeUUID ||
+            isNew ||
+            (selectedSteps.includes(endNodeUUID || "") &&
+              selectedSteps.includes(cursorControlledStep || ""));
 
-            const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as const;
+          const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as const;
 
-            const startNodePosition = getPosition(startNode);
+          const startNodePosition = getPosition(startNode);
 
-            const endNodePosition =
-              getPosition(endNode) ||
-              (newConnection.current
-                ? {
-                    x: newConnection.current.xEnd,
-                    y: newConnection.current.yEnd,
-                  }
-                : null);
-
-            const isSelected =
-              !hasSelectedSteps &&
-              selectedConnection?.startNodeUUID === startNodeUUID &&
-              selectedConnection?.endNodeUUID === endNodeUUID;
-
-            const key = `${startNodeUUID}-${endNodeUUID}-${hash}`;
-
-            return (
-              startNodePosition && (
-                <PipelineConnection
-                  key={key}
-                  shouldRedraw={flushPage}
-                  isNew={isNew}
-                  selected={isSelected}
-                  startNodeUUID={startNodeUUID}
-                  endNodeUUID={endNodeUUID}
-                  getPosition={getPosition}
-                  startNodeX={startNodePosition.x}
-                  startNodeY={startNodePosition.y}
-                  endNodeX={endNodePosition?.x}
-                  endNodeY={endNodePosition?.y}
-                  shouldUpdate={shouldUpdate}
-                />
-              )
-            );
-          })}
-          {Object.entries(steps).map((entry) => {
-            const [uuid, step] = entry;
-            const selected = selectedSteps.includes(uuid);
-
-            const isIncomingActive =
-              hasValue(selectedConnection) &&
-              selectedConnection.endNodeUUID === step.uuid;
-
-            const isOutgoingActive =
-              hasValue(selectedConnection) &&
-              selectedConnection.startNodeUUID === step.uuid;
-
-            const movedToTop =
-              selectedConnection?.startNodeUUID === step.uuid ||
-              selectedConnection?.endNodeUUID === step.uuid;
-
-            // only add steps to the component that have been properly
-            // initialized
-            return (
-              <PipelineStep
-                key={`${step.uuid}-${hash}`}
-                data={step}
-                selected={selected}
-                savePositions={savePositions}
-                movedToTop={movedToTop}
-                ref={(el) => (stepRefs.current[step.uuid] = el)}
-                isStartNodeOfNewConnection={
-                  newConnection.current?.startNodeUUID === step.uuid
+          const endNodePosition =
+            getPosition(endNode) ||
+            (newConnection.current
+              ? {
+                  x: newConnection.current.xEnd,
+                  y: newConnection.current.yEnd,
                 }
-                interactiveConnections={interactiveConnections}
-                onDoubleClick={onDoubleClickStep}
+              : null);
+
+          const isSelected =
+            !hasSelectedSteps &&
+            selectedConnection?.startNodeUUID === startNodeUUID &&
+            selectedConnection?.endNodeUUID === endNodeUUID;
+
+          const key = `${startNodeUUID}-${endNodeUUID}-${hash}`;
+
+          return (
+            startNodePosition && (
+              <PipelineConnection
+                key={key}
+                shouldRedraw={flushPage}
+                isNew={isNew}
+                selected={isSelected}
+                startNodeUUID={startNodeUUID}
+                endNodeUUID={endNodeUUID}
                 getPosition={getPosition}
-              >
-                <ConnectionDot
-                  incoming
-                  newConnection={newConnection}
-                  isReadOnly={isReadOnly}
-                  ref={(el) => (stepRefs.current[`${step.uuid}-incoming`] = el)}
-                  active={isIncomingActive}
-                  endCreateConnection={() => {
-                    if (newConnection.current) {
-                      onMouseUpPipelineStep(step.uuid);
-                    }
-                  }}
-                />
-                <StepExecutionState stepUuid={step.uuid} />
-                <div className="step-label-holder">
-                  <div className={"step-label"}>
-                    {step.title}
-                    <span className="filename">{step.file_path}</span>
-                  </div>
+                startNodeX={startNodePosition.x}
+                startNodeY={startNodePosition.y}
+                endNodeX={endNodePosition?.x}
+                endNodeY={endNodePosition?.y}
+                shouldUpdate={shouldUpdate}
+              />
+            )
+          );
+        })}
+        {Object.entries(steps).map((entry) => {
+          const [uuid, step] = entry;
+          const selected = selectedSteps.includes(uuid);
+
+          const isIncomingActive =
+            hasValue(selectedConnection) &&
+            selectedConnection.endNodeUUID === step.uuid;
+
+          const isOutgoingActive =
+            hasValue(selectedConnection) &&
+            selectedConnection.startNodeUUID === step.uuid;
+
+          const movedToTop =
+            selectedConnection?.startNodeUUID === step.uuid ||
+            selectedConnection?.endNodeUUID === step.uuid;
+
+          // only add steps to the component that have been properly
+          // initialized
+          return (
+            <PipelineStep
+              key={`${step.uuid}-${hash}`}
+              data={step}
+              selected={selected}
+              savePositions={savePositions}
+              movedToTop={movedToTop}
+              ref={(el) => (stepRefs.current[step.uuid] = el)}
+              isStartNodeOfNewConnection={
+                newConnection.current?.startNodeUUID === step.uuid
+              }
+              interactiveConnections={interactiveConnections}
+              onDoubleClick={onDoubleClickStep}
+              getPosition={getPosition}
+            >
+              <ConnectionDot
+                incoming
+                newConnection={newConnection}
+                isReadOnly={isReadOnly}
+                ref={(el) => (stepRefs.current[`${step.uuid}-incoming`] = el)}
+                active={isIncomingActive}
+                endCreateConnection={() => {
+                  if (newConnection.current) {
+                    onMouseUpPipelineStep(step.uuid);
+                  }
+                }}
+              />
+              <StepExecutionState stepUuid={step.uuid} />
+              <div className="step-label-holder">
+                <div className={"step-label"}>
+                  {step.title}
+                  <span className="filename">{step.file_path}</span>
                 </div>
-                <ConnectionDot
-                  outgoing
-                  isReadOnly={isReadOnly}
-                  newConnection={newConnection}
-                  ref={(el) => (stepRefs.current[`${step.uuid}-outgoing`] = el)}
-                  active={isOutgoingActive}
-                  startCreateConnection={() => {
-                    if (!isReadOnly && !newConnection.current) {
-                      newConnection.current = {
-                        startNodeUUID: step.uuid,
-                      };
-                      instantiateConnection(step.uuid);
-                    }
-                  }}
-                />
-              </PipelineStep>
-            );
-          })}
-          {stepSelector.active && (
-            <Rectangle {...getStepSelectorRectangle(stepSelector)} />
-          )}
-        </PipelineViewport>
+              </div>
+              <ConnectionDot
+                outgoing
+                isReadOnly={isReadOnly}
+                newConnection={newConnection}
+                ref={(el) => (stepRefs.current[`${step.uuid}-outgoing`] = el)}
+                active={isOutgoingActive}
+                startCreateConnection={() => {
+                  if (!isReadOnly && !newConnection.current) {
+                    newConnection.current = {
+                      startNodeUUID: step.uuid,
+                    };
+                    instantiateConnection(step.uuid);
+                  }
+                }}
+              />
+            </PipelineStep>
+          );
+        })}
+        {stepSelector.active && (
+          <Rectangle {...getStepSelectorRectangle(stepSelector)} />
+        )}
+      </PipelineViewport>
+      <HUD>
+        <Stack flex="0 0 auto" width="100%">
+          <PipelineCanvasHeaderBar />
+        </Stack>
+        <Stack marginLeft="auto" flex="1 1 auto">
+          <StepDetails
+            key={openedStep}
+            onSave={onSaveDetails}
+            onClose={closeDetails}
+          />
+        </Stack>
         {jobUuid && isReadOnly && (
           <div className="pipeline-actions top-left">
             <SnapshotBanner />
@@ -334,12 +344,7 @@ export const PipelineEditor = () => {
             </Stack>
           </div>
         )}
-      </HotKeysBoundary>
-      <StepDetails
-        key={openedStep}
-        onSave={onSaveDetails}
-        onClose={closeDetails}
-      />
-    </div>
+      </HUD>
+    </PipelineEditorRoot>
   );
 };
