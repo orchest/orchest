@@ -140,7 +140,7 @@ export const StepDetailsProperties = ({
       <TextField
         autoFocus={shouldAutoFocus}
         value={step.title}
-        onChange={(e) => onChangeTitle(e.target.value)}
+        onChange={(event) => onChangeTitle(event.target.value)}
         label="Step name"
         disabled={readOnly}
         fullWidth
@@ -176,7 +176,7 @@ export const StepDetailsProperties = ({
             id="kernel-language"
             value={step.kernel.name}
             disabled={readOnly}
-            onChange={(e) => onChangeKernel(e.target.value)}
+            onChange={(event) => onChangeKernel(event.target.value)}
           >
             {KERNEL_OPTIONS.map((option) => {
               return (
@@ -214,7 +214,7 @@ export const StepDetailsProperties = ({
             lineNumbers: true,
             readOnly,
           }}
-          onBeforeChange={(editor, data, value) => onChangeParameterJSON(value)}
+          onBeforeChange={(_, __, value) => onChangeParameterJSON(value)}
         />
         {!isParametersValidJson && (
           <Alert severity="warning">Your input is not valid JSON.</Alert>
