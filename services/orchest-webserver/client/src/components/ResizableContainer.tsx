@@ -30,18 +30,25 @@ const getSizeValue = (value: string | number) =>
  * Assign the appropriate function to `onMouseDown` of the matching element.
  * For example, assign `resizeWidth` to `ResizeWidthBar`.
  */
+
+export type ResizableContainerProps = Omit<
+  BoxProps,
+  "maxWidth" | "maxHeight" | "minWidth" | "minHeight" | "ref"
+> & {
+  ref?: React.Ref<HTMLDivElement>;
+  initialWidth?: number;
+  initialHeight?: number;
+  onResized?: (size: ElementSize) => void;
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  children: (props: ResizeContextType) => React.ReactNode;
+};
+
 export const ResizableContainer = React.forwardRef<
   HTMLDivElement,
-  Omit<BoxProps, "maxWidth" | "maxHeight"> & {
-    initialWidth?: number;
-    initialHeight?: number;
-    onResized?: (size: ElementSize) => void;
-    minWidth?: number;
-    maxWidth?: number;
-    minHeight?: number;
-    maxHeight?: number;
-    children: (props: ResizeContextType) => React.ReactNode;
-  }
+  ResizableContainerProps
 >(
   (
     {
@@ -139,13 +146,8 @@ export const ResizableContainer = React.forwardRef<
     );
 
     const onStopDragging = React.useCallback(() => {
-      if (onResized) {
-        setSize((current) => {
-          onResized(current);
-          return current;
-        });
-      }
-    }, [onResized]);
+      onResized?.(size);
+    }, [onResized, size]);
 
     const resize = useDragElementWithPosition(onResize, onStopDragging);
     const resizeWidth = useDragElementWithPosition(
@@ -158,6 +160,7 @@ export const ResizableContainer = React.forwardRef<
     );
     return (
       <Box
+        {...props}
         ref={(node: HTMLDivElement) => {
           // in order to manipulate a forwarded ref, we need to create a local ref to capture it
           localRef.current = node;
@@ -173,7 +176,6 @@ export const ResizableContainer = React.forwardRef<
           minHeight: getSizeValue(size.height),
           maxHeight: getSizeValue(size.height),
         }}
-        {...props}
       >
         {children({
           size,
