@@ -115,19 +115,27 @@ class ContainerRuntime(object):
         t0 = time.time()
 
         self._curr_pulling_imgs.add(image_name)
+
+        # Pull the image with ctr
+        cmd = (
+            f"ctr -n k8s.io -a {self.container_runtime_socket} "
+            f"i pull {image_name} --skip-verify"
+        )
+        result, _ = await self.execute_cmd(cmd=cmd)
+
+        # If the runtime is docker, load it to docker
         if self.container_runtime == RuntimeType.Docker:
-            try:
-                await self.aclient.images.pull(image_name)
-            except aiodocker.DockerError:
-                result = False
-            finally:
-                self._curr_pulling_imgs.remove(image_name)
-        elif self.container_runtime == RuntimeType.Containerd:
+            pulled_image = f"pulled-{image_name.replace('/', '_')}.tar"
             cmd = (
                 f"ctr -n k8s.io -a {self.container_runtime_socket} "
-                f"i pull {image_name} --skip-verify "
+                f"i export export  {pulled_image} {image_name}"
             )
             result, _ = await self.execute_cmd(cmd=cmd)
+            if result:
+                try:
+                    await self.aclient.images.load(pulled_image)
+                except aiodocker.DockerError:
+                    result = False
 
         self._curr_pulling_imgs.remove(image_name)
 
