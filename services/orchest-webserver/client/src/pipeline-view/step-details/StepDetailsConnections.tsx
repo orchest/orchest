@@ -105,7 +105,7 @@ export const StepDetailsConnections = ({
                     style={{ width: "24px", height: "24px" }}
                   />
                   <Typography sx={ellipsis()} variant="body2" fontSize={14}>
-                    {i + 1}. {connections[startNodeUUID].title}
+                    {connections[startNodeUUID].title}
                   </Typography>
                   <Typography
                     sx={ellipsis()}
