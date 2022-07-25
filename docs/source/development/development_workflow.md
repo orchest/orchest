@@ -29,7 +29,7 @@ Optional, but highly recommended:
 - [jq](https://stedolan.github.io/jq/): Useful when working with JSON in your terminal.
 - [gron](https://github.com/tomnomnom/gron): Make JSON greppable.
 
-`````{dropdown} 🎉 In case you dare to run a script to install all of the above
+````{dropdown} 🎉 In case you dare to run a script to install all of the above
 **Requires to be on Linux**
 ```sh
 cd ~/Downloads
@@ -77,7 +77,7 @@ sudo npm install -g pnpm
 curl -L https://github.com/derailed/k9s/releases/download/v0.25.21/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz
 tar -C ~/.local/bin -xzf k9s.tar.gz
 ```
-`````
+````
 
 ### Dependencies
 
