@@ -3,13 +3,12 @@ import { siteMap } from "@/routingConfig";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import { Alert, AlertTitle } from "@mui/material";
 import Box from "@mui/material/Box";
-import Link from "@mui/material/Link";
-import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 
-const generateReadOnlyMessage = (jobName?: string) =>
+const generateReadOnlyMessage = (jobName: string | undefined) =>
   jobName ? (
     <>
       {`This is a read-only pipeline snapshot from `}
@@ -47,6 +46,15 @@ export const ReadOnlyBanner = () => {
       sx={{ padding: (theme) => theme.spacing(2.5) }}
     >
       <Alert
+        action={
+          <Button
+            sx={{ cursor: "pointer", whiteSpace: "nowrap" }}
+            onClick={goToPipeline}
+            onAuxClick={goToPipeline}
+          >
+            OPEN IN EDITOR
+          </Button>
+        }
         color="info"
         icon={<VisibilityIcon />}
         sx={{
@@ -55,20 +63,7 @@ export const ReadOnlyBanner = () => {
         }}
       >
         <AlertTitle sx={{ width: "100%" }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            sx={{ width: "100%" }}
-          >
-            Read-only: pipeline snapshot
-            <Link
-              sx={{ cursor: "pointer" }}
-              onClick={goToPipeline}
-              onAuxClick={goToPipeline}
-            >
-              {`VIEW ${pipeline.path}`}
-            </Link>
-          </Stack>
+          Read-only: pipeline snapshot
         </AlertTitle>
         {generateReadOnlyMessage(job.name)}
       </Alert>
