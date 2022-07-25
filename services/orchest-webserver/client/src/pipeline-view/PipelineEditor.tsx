@@ -20,9 +20,9 @@ import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCa
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import { PipelineViewingOptions } from "./pipeline-viewing-options/PipelineViewingOptions";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
-import { SnapshotBanner } from "./PipelineBanner";
 import { PipelineEditorRoot } from "./PipelineEditorRoot";
 import { PipelineStep } from "./PipelineStep";
+import { ReadOnlyBanner } from "./ReadOnlyBanner";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { SaveStatus } from "./SaveStatus";
 import { StepDetails } from "./step-details/StepDetails";
@@ -324,6 +324,7 @@ export const PipelineEditor = () => {
         <Stack flex="0 0 auto" width="100%">
           <PipelineCanvasHeaderBar />
         </Stack>
+        <ReadOnlyBanner />
         <Stack marginLeft="auto" flex="1 1 auto">
           <StepDetails
             key={openedStep}
@@ -331,18 +332,22 @@ export const PipelineEditor = () => {
             onClose={closeDetails}
           />
         </Stack>
-        {jobUuid && isReadOnly && (
-          <div className="pipeline-actions top-left">
-            <SnapshotBanner />
-          </div>
-        )}
         {pipelineJson && (
-          <div className="pipeline-actions bottom-left">
-            <Stack spacing={2} direction="row" alignItems="center">
-              <PipelineViewingOptions />
-              <SaveStatus />
-            </Stack>
-          </div>
+          <Stack
+            spacing={2}
+            direction="row"
+            alignItems="center"
+            sx={{
+              top: "auto",
+              bottom: 0,
+              right: "auto",
+              left: 0,
+              padding: (theme) => theme.spacing(2.5),
+            }}
+          >
+            <PipelineViewingOptions />
+            <SaveStatus />
+          </Stack>
         )}
       </HUD>
     </PipelineEditorRoot>
