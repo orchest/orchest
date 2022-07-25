@@ -405,7 +405,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	}
 
 	envChanged := utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
-		occ.config.OrchestDefaultEnvVars, false)
+		occ.config.OrchestDefaultEnvVars, true)
 	if envChanged {
 		changed = true
 	}
@@ -414,7 +414,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		map[string]string{
 			"ORCHEST_CLUSTER":   orchest.Name,
 			"ORCHEST_NAMESPACE": orchest.Namespace,
-		}, false)
+		}, true)
 	if envChanged {
 		changed = true
 	}

@@ -277,15 +277,16 @@ func getContainerRuntimeConfig(ctx context.Context,
 	// Get the container runtime socket path
 	containerdSocket, ok := orchest.Annotations[controller.ContainerRuntimeSocketPathAnnotationKey]
 	if !ok {
+		containerdSocket = "/var/run/containerd/containerd.sock"
+
 		// The socket path is not provided in the annotation, so we need to detect it
 		// Get the first node
-		node := nodeList.Items[0]
-		containerdSocket, ok = node.Annotations[controller.KubeAdmCRISocketAnnotationKey]
-		if !ok {
-			// kubeadm CRI socket is not provided in the annotation, so we use the default socket path
-			containerdSocket = "/var/run/containerd/containerd.sock"
+		//node := nodeList.Items[0]
+		//containerdSocket, ok = node.Annotations[controller.KubeAdmCRISocketAnnotationKey]
+		//if !ok {
+		// kubeadm CRI socket is not provided in the annotation, so we use the default socket path
 
-		}
+		//}
 	}
 
 	socketPaths["CONTAINERD_SOCKET"] = containerdSocket
