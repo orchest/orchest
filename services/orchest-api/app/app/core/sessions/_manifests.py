@@ -42,7 +42,7 @@ def _get_common_volumes_and_volume_mounts(
     }
 
     volumes["containerd_socket"] = {
-        "name": "containerd_socket",
+        "name": "containerd-socket",
         "hostPath": {"path": containerd_socket, "type": "Socket"},
     }
 
@@ -930,7 +930,7 @@ def _get_user_service_deployment_service_manifest(
                         # add_image_puller_if_needed
                         volumes[name]
                         for name in volumes
-                        if name not in ["containerd_socket", "docker-socket"]
+                        if name not in ["containerd-socket", "docker-socket"]
                     ],
                     "containers": [
                         {
