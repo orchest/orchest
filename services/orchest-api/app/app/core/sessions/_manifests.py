@@ -27,7 +27,8 @@ def _get_common_volumes_and_volume_mounts(
     container_project_dir: str = _config.PROJECT_DIR,
     container_pipeline_path: str = _config.PIPELINE_FILE,
     container_data_dir: str = _config.DATA_DIR,
-    container_runtime_socket: str = _config.CONTAINER_RUNTIME_SOCKET,
+    containerd_socket: str = _config.CONTAINERD_SOCKET,
+    docker_socket: str = _config.DOCKER_SOCKET,
 ) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
     volumes = {}
     volume_mounts = {}
@@ -40,9 +41,16 @@ def _get_common_volumes_and_volume_mounts(
         "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
     }
 
-    volumes["container-runtime-socket"] = {
-        "name": "container-runtime-socket",
-        "hostPath": {"path": container_runtime_socket, "type": "Socket"},
+    volumes["containerd-socket"] = {
+        "name": "containerd-socket",
+        "hostPath": {"path": containerd_socket, "type": "Socket"},
+    }
+
+    # Will be added to the final manifest if only the container runtime
+    # is docker
+    volumes["docker-socket"] = {
+        "name": "docker-socket",
+        "hostPath": {"path": docker_socket, "type": "Socket"},
     }
 
     volume_mounts["data"] = {
@@ -428,7 +436,6 @@ def _get_jupyter_server_deployment_service_manifest(
                     },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
-                        volumes_dict["container-runtime-socket"],
                     ],
                     "containers": [
                         {
@@ -475,6 +482,7 @@ def _get_jupyter_server_deployment_service_manifest(
         utils.get_registry_ip(),
         _config.CONTAINER_RUNTIME,
         _config.CONTAINER_RUNTIME_IMAGE,
+        volumes_dict,
         deployment_manifest,
     )
 
@@ -696,7 +704,8 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_REGISTRY": registry_ip,
         "ORCHEST_NAMESPACE": _config.ORCHEST_NAMESPACE,
         "ORCHEST_CLUSTER": _config.ORCHEST_CLUSTER,
-        "CONTAINER_RUNTIME_SOCKET": _config.CONTAINER_RUNTIME_SOCKET,
+        "CONTAINERD_SOCKET": _config.CONTAINERD_SOCKET,
+        "DOCKER_SOCKET": _config.DOCKER_SOCKET,
         "CONTAINER_RUNTIME": _config.CONTAINER_RUNTIME,
         "CONTAINER_RUNTIME_IMAGE": _config.CONTAINER_RUNTIME_IMAGE,
     }
@@ -915,7 +924,14 @@ def _get_user_service_deployment_service_manifest(
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
-                    "volumes": volumes,
+                    "volumes": [
+                        # only add required volumes, if containerd or
+                        # docker socket is needed, it will be added by
+                        # add_image_puller_if_needed
+                        volumes[name]
+                        for name in volumes
+                        if name not in ["containerd-socket", "docker-socket"]
+                    ],
                     "containers": [
                         {
                             "name": metadata["name"],
@@ -939,6 +955,7 @@ def _get_user_service_deployment_service_manifest(
         utils.get_registry_ip(),
         _config.CONTAINER_RUNTIME,
         _config.CONTAINER_RUNTIME_IMAGE,
+        volumes,
         deployment_manifest,
     )
 

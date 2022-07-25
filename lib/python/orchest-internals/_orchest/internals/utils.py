@@ -46,7 +46,8 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     pipeline_file: str,
     container_project_dir: str,
     container_pipeline_file: str,
-    container_runtime_socket: str,
+    containerd_socket: Optional[str],
+    docker_socket: Optional[str],
 ) -> Tuple[List[dict], List[dict]]:
     """Gets volumes and volume mounts required to run steps and kernels.
 
@@ -61,8 +62,6 @@ def get_step_and_kernel_volumes_and_volume_mounts(
             The container project directory.
         container_pipeline_file:
             The container pipeline file.
-        container_runtime_socket:
-            The socket to use for the container runtime.
 
 
     Returns:
@@ -85,12 +84,21 @@ def get_step_and_kernel_volumes_and_volume_mounts(
         },
     )
 
-    volumes.append(
-        {
-            "name": "container-runtime-socket",
-            "hostPath": {"path": container_runtime_socket, "type": "Socket"},
-        }
-    )
+    if containerd_socket is not None:
+        volumes.append(
+            {
+                "name": "containerd-socket",
+                "hostPath": {"path": containerd_socket, "type": "Socket"},
+            }
+        )
+
+    if docker_socket is not None:
+        volumes.append(
+            {
+                "name": "docker-socket",
+                "hostPath": {"path": docker_socket, "type": "Socket"},
+            }
+        )
 
     volume_mounts.append(
         {"name": "userdir-pvc", "mountPath": "/data", "subPath": "data"}
@@ -141,11 +149,21 @@ def get_init_container_manifest(
         "command": ["/pull_image.sh"],
         "volumeMounts": [
             {
-                "name": "container-runtime-socket",
-                "mountPath": "/var/run/runtime.sock",
+                "name": "containerd-socket",
+                "mountPath": "/var/run/containerd.sock",
             },
         ],
     }
+
+    # If container runtime is docker, we need to add the docker socket
+    if container_runtime == "docker":
+        init_container["volumeMounts"].append(
+            {
+                "name": "docker-socket",
+                "mountPath": "/var/run/docker.sock",
+            }
+        )
+
     return init_container
 
 
@@ -154,6 +172,7 @@ def add_image_puller_if_needed(
     registry_ip: str,
     container_runtime: str,
     image_puller_image: str,
+    volumes_dic: Dict[str, Dict],
     deployment_manifest: Dict[str, Any],
 ) -> None:
     """This function injects the image puller init Container into the
@@ -180,6 +199,21 @@ def add_image_puller_if_needed(
             container_runtime,
             image_puller_image,
         )
+
+        # containerd socket is always needed as we use ctr to pull the
+        # image not matter what is the environment, if the runtime is
+        # docker, we add the docker-socket later
+        deployment_manifest["spec"]["template"]["spec"]["volumes"].append(
+            volumes_dic["containerd_socket"]
+        )
+
+        # if container_runtime is docker we need to
+        # add the docker socket
+        if container_runtime == "docker":
+            deployment_manifest["spec"]["template"]["spec"]["volumes"].append(
+                volumes_dic["docker_socket"]
+            )
+
         if (
             deployment_manifest["spec"]["template"]["spec"].get("initContainers")
             is None

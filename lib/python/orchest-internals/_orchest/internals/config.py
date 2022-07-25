@@ -42,7 +42,8 @@ REGISTRY_FQDN = f"docker-registry.{ORCHEST_NAMESPACE}.svc.cluster.local"
 # Container Runtime configs.
 CONTAINER_RUNTIME = os.environ.get("CONTAINER_RUNTIME")
 CONTAINER_RUNTIME_IMAGE = os.environ.get("CONTAINER_RUNTIME_IMAGE")
-CONTAINER_RUNTIME_SOCKET = os.environ.get("CONTAINER_RUNTIME_SOCKET")
+CONTAINERD_SOCKET = os.environ.get("CONTAINERD_SOCKET")
+DOCKER_SOCKET = os.environ.get("DOCKER_SOCKET")
 
 # Ingress configs
 INGRESS_CLASS = os.environ.get("INGRESS_CLASS", "nginx")

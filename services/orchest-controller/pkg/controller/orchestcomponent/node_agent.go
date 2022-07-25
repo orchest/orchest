@@ -59,7 +59,7 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 
 	var one int64 = 1
 
-	socketPath := utils.GetKeyFromEnvVar(component.Spec.Template.Env, "CONTAINER_RUNTIME_SOCKET")
+	socketPath := utils.GetKeyFromEnvVar(component.Spec.Template.Env, "CONTAINERD_SOCKET")
 	hostPathSocket := corev1.HostPathType("Socket")
 
 	template := corev1.PodTemplateSpec{

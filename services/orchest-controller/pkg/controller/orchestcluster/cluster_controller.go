@@ -353,14 +353,16 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 	}
 
 	// Detect runtime environment
-	runtime, socketPath, err := detectContainerRuntime(ctx, occ.Client(), orchest)
+	runtime, socketPaths, err := getContainerRuntimeConfig(ctx, occ.Client(), orchest)
 	if err != nil {
 		return false, err
 	}
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME"] = runtime
-	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = socketPath
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
 		"image-puller", occ.config.OrchestDefaultVersion)
+	for name, socketPath := range socketPaths {
+		occ.config.OrchestDefaultEnvVars[name] = socketPath
+	}
 
 	return true, err
 }

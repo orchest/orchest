@@ -236,17 +236,17 @@ func getOrchestComponent(name, hash string,
 
 }
 
-// detectContainerRuntime detects the container runtime of the cluster and the socket path
+// getContainerRuntimeConfig detects the container runtime of the cluster and the required socket paths
 // returns error if the container runtime is not supported or the cluster is not homogeneous
 // If the socket path is not set or not detected, it will use the default socket path based on
 // the container runtime
-func detectContainerRuntime(ctx context.Context,
-	client kubernetes.Interface, orchest *orchestv1alpha1.OrchestCluster) (string, string, error) {
+func getContainerRuntimeConfig(ctx context.Context,
+	client kubernetes.Interface, orchest *orchestv1alpha1.OrchestCluster) (string, map[string]string, error) {
 
 	// Get the node list
 	nodeList, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to get node list")
+		return "", nil, errors.Wrapf(err, "failed to get node list")
 	}
 
 	var runtime = ""
@@ -254,13 +254,13 @@ func detectContainerRuntime(ctx context.Context,
 		// Get the node container runtime
 		runtimeVersion := node.Status.NodeInfo.ContainerRuntimeVersion
 		if runtimeVersion == "" {
-			return "", "", errors.Errorf("failed to get container runtime version")
+			return "", nil, errors.Errorf("failed to get container runtime version")
 		}
 
 		// Get the container runtime name
 		runtimeName := strings.Split(runtimeVersion, ":")[0]
 		if runtimeName != "docker" && runtimeName != "containerd" {
-			return "", "", errors.Errorf("unsupported container runtime %s", runtimeName)
+			return "", nil, errors.Errorf("unsupported container runtime %s", runtimeName)
 		}
 
 		if runtime == "" {
@@ -269,28 +269,30 @@ func detectContainerRuntime(ctx context.Context,
 		}
 
 		if runtime != runtimeName {
-			return "", "", errors.Errorf("cluster is not homogeneous")
+			return "", nil, errors.Errorf("cluster is not homogeneous")
 		}
 	}
 
+	socketPaths := make(map[string]string, 1)
 	// Get the container runtime socket path
-	runtimeSocket, ok := orchest.Annotations[controller.ContainerRuntimeSocketPathAnnotationKey]
+	containerdSocket, ok := orchest.Annotations[controller.ContainerRuntimeSocketPathAnnotationKey]
 	if !ok {
 		// The socket path is not provided in the annotation, so we need to detect it
-		if runtime == "containerd" {
-			// Get the first node
-			node := nodeList.Items[0]
-			runtimeSocket, ok = node.Annotations[controller.KubeAdmCRISocketAnnotationKey]
-			if !ok {
-				// kubeadm CRi socket is not provided in the annotation, so we use the default socket path
-				runtimeSocket = "/var/run/containerd/containerd.sock"
+		// Get the first node
+		node := nodeList.Items[0]
+		containerdSocket, ok = node.Annotations[controller.KubeAdmCRISocketAnnotationKey]
+		if !ok {
+			// kubeadm CRI socket is not provided in the annotation, so we use the default socket path
+			containerdSocket = "/var/run/containerd/containerd.sock"
 
-			}
-		} else {
-			// The socket path is not provided in the annotation of OrchestCluster, so we use the default socket path
-			runtimeSocket = "/var/run/docker.sock"
 		}
 	}
 
-	return runtime, runtimeSocket, nil
+	socketPaths["CONTAINERD_SOCKET"] = containerdSocket
+	if runtime == "docker" {
+		// The only supported k8s platform which uses docker is EKS which has a fixed docker socket path
+		socketPaths["DOCKER_SOCKET"] = "/var/run/docker.sock"
+	}
+
+	return runtime, socketPaths, nil
 }

@@ -500,14 +500,6 @@ def _step_to_workflow_manifest_task(
                     "name": "tests_uuid",
                     "value": step.properties["uuid"],
                 },
-                {
-                    "name": "container_runtime",
-                    "value": _config.CONTAINER_RUNTIME,
-                },
-                {
-                    "name": "container_runtime_image",
-                    "value": _config.CONTAINER_RUNTIME_IMAGE,
-                },
             ]
         },
     }
@@ -526,14 +518,15 @@ def _pipeline_to_workflow_manifest(
         pipeline_file=run_config["pipeline_path"],
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
-        container_runtime_socket=_config.CONTAINER_RUNTIME_SOCKET,
+        containerd_socket=_config.CONTAINERD_SOCKET,
+        docker_socket=_config.DOCKER_SOCKET,
     )
 
     # these parameters will be fed by _step_to_workflow_manifest_task
     image_puller_manifest = get_init_container_manifest(
         "{{inputs.parameters.image}}",
-        "{{inputs.parameters.container_runtime}}",
-        "{{inputs.parameters.container_runtime_image}}",
+        _config.CONTAINER_RUNTIME,
+        _config.CONTAINER_RUNTIME_IMAGE,
     )
 
     manifest = {
@@ -589,8 +582,6 @@ def _pipeline_to_workflow_manifest(
                                 "project_relative_file_path",
                                 "pod_spec_patch",
                                 "tests_uuid",
-                                "container_runtime",
-                                "container_runtime_image",
                             ]
                         ]
                     },

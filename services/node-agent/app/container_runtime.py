@@ -21,7 +21,8 @@ class ContainerRuntime(object):
     def __init__(self) -> None:
 
         self.container_runtime = RuntimeType(os.getenv("CONTAINER_RUNTIME"))
-        self.container_runtime_socket = os.getenv("CONTAINER_RUNTIME_SOCKET")
+        self.containerd_socket = os.getenv("CONTAINERD_SOCKET")
+        self.docker_socket = os.getenv("DOCKER_SOCKET")
         self.logger = logging.getLogger("CONTAINER_RUNTIME_CLI")
         self.logger.setLevel(os.getenv("CONTAINER_RUNTIME_LOG_LEVEL", "INFO"))
 

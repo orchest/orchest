@@ -114,7 +114,8 @@ def _get_kernel_pod_manifest(
         pipeline_file=os.environ.get("ORCHEST_PIPELINE_FILE"),
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
-        container_runtime_socket=_config.CONTAINER_RUNTIME_SOCKET,
+        containerd_socket=_config.CONTAINERD_SOCKET,
+        docker_socket=_config.DOCKER_SOCKET,
     )
 
     environment = dict()
