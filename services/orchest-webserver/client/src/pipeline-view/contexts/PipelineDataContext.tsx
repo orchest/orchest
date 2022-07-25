@@ -4,9 +4,10 @@ import { SetStateAction } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
+import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { Environment, PipelineJson } from "@/types";
+import { Environment, Job, PipelineJson, PipelineMetaData } from "@/types";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
@@ -29,6 +30,8 @@ export type PipelineDataContextType = {
   ) => void;
   isFetchingPipelineJson: boolean;
   isJobRun: boolean;
+  pipeline?: PipelineMetaData;
+  job?: Job;
 };
 
 export const PipelineDataContext = React.createContext<PipelineDataContextType>(
@@ -130,12 +133,15 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
 
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
 
+  const { job } = useFetchJob({ jobUuid: isJobRun ? jobUuid : undefined });
+
   return (
     <PipelineDataContext.Provider
       value={{
         disabled,
         projectUuid,
         pipelineUuid,
+        pipeline,
         pipelineCwd,
         environments,
         jobUuid,
@@ -146,6 +152,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         setPipelineJson,
         isFetchingPipelineJson,
         isJobRun,
+        job,
       }}
     >
       {children}

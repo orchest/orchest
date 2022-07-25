@@ -789,11 +789,6 @@ button.themed-secondary {
   flex-direction: row;
 
   .pipeline-actions {
-    position: absolute;
-    right: 0;
-    top: 0;
-    padding: var(--space-5);
-
     button {
       min-width: 0;
     }
@@ -804,25 +799,10 @@ button.themed-secondary {
       right: 0;
       left: auto;
     }
-
-    &.top-left {
-      top: 48px;
-      left: 0;
-      bottom: auto;
-      right: auto;
-    }
-
     &.top-right {
       button {
         margin-bottom: var(--space-5);
       }
-    }
-
-    &.bottom-left {
-      top: auto;
-      bottom: 0;
-      right: auto;
-      left: 0;
     }
   }
 
