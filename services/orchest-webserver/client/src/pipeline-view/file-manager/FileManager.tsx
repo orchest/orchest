@@ -6,7 +6,6 @@ import LinearProgress, {
   LinearProgressProps,
 } from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
-import Stack from "@mui/material/Stack";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot, treeRoots } from "../common";
@@ -89,7 +88,7 @@ export function FileManager() {
     setFileTrees,
   } = useFileManagerContext();
 
-  const containerRef = React.useRef<typeof Stack | null>(null);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   // only show the progress if it takes longer than 125 ms
   const [_inProgress, setInProgress] = React.useState(false);

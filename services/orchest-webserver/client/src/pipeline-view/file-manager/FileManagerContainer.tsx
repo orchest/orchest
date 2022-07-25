@@ -7,24 +7,26 @@ import {
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { isNumber } from "@/utils/webserver-utils";
-import { BoxProps } from "@mui/material/Box";
 import React from "react";
 import { FILE_MANAGER_ROOT_CLASS } from "./common";
 
 const MIN_PANEL_HEIGHT = 100;
 
+type FileManagerContainerProps = {
+  uploadFiles: (files: File[] | FileList) => Promise<void>;
+  children: React.ReactNode;
+};
+
 export const FileManagerContainer = React.forwardRef<
   HTMLDivElement,
-  BoxProps & {
-    uploadFiles: (files: File[] | FileList) => Promise<void>;
-  }
->(function FileManagerContainerComponent({ children, uploadFiles, sx }, ref) {
+  FileManagerContainerProps
+>(function FileManagerContainerComponent({ children, uploadFiles }, ref) {
   const localRef = React.useRef<HTMLDivElement>();
 
   const { pipelineUuid } = useCustomRoute();
   const disabled = !pipelineUuid;
 
-  const [storedHeight, setStoredHeight] = useLocalStorage(
+  const [storedHeight, , saveToLocalstorage] = useLocalStorage(
     "pipelineEditor.fileManagerHeight",
     (window.innerHeight * 2) / 3
   );
@@ -44,10 +46,10 @@ export const FileManagerContainer = React.forwardRef<
   const saveHeight = React.useCallback(
     ({ height }: ElementSize) => {
       if (!disabled && isNumber(height)) {
-        setStoredHeight(Number(height));
+        saveToLocalstorage(Number(height));
       }
     },
-    [disabled, setStoredHeight]
+    [disabled, saveToLocalstorage]
   );
 
   React.useEffect(() => {
@@ -63,7 +65,7 @@ export const FileManagerContainer = React.forwardRef<
       initialHeight={initialHeight}
       minHeight={MIN_PANEL_HEIGHT}
       maxHeight={maxHeight}
-      sx={{ position: "relative", ...sx }}
+      sx={{ position: "relative" }}
       onResized={saveHeight}
     >
       {({ size, resizeHeight }) => {
