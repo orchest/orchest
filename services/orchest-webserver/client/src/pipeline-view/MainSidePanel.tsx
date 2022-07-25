@@ -11,7 +11,7 @@ const DEFAULT_PANEL_WIDTH = 300;
 const MIN_PANEL_WIDTH = 252;
 
 export const MainSidePanel: React.FC = ({ children }) => {
-  const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
+  const [storedPanelWidth, , saveToLocalstorage] = useLocalStorage(
     "pipelineEditor.panelWidth",
     DEFAULT_PANEL_WIDTH
   );
@@ -19,10 +19,10 @@ export const MainSidePanel: React.FC = ({ children }) => {
   const saveWidth = React.useCallback(
     ({ width }: ElementSize) => {
       if (isNumber(width)) {
-        setStoredPanelWidth(Number(width));
+        saveToLocalstorage(Number(width));
       }
     },
-    [setStoredPanelWidth]
+    [saveToLocalstorage]
   );
 
   return (
