@@ -32,10 +32,10 @@ elif [ "$CONTAINER_RUNTIME" = docker ]; then
 
     log "attempting to pull image ${IMAGE_TO_PULL}}"
 
-    ctr -a=/var/run/containerd.sock i pull "${IMAGE_TO_PULL}" --skip-verify
-    ctr -a=/var/run/containerd.sock i export pulled-image.tar "${IMAGE_TO_PULL}"
-    docker -H unix:///var/run/docker.sock image import pulled-image.tar "${IMAGE_TO_PULL}"
-
+    ctr -a=/var/run/containerd.sock i pull "${IMAGE_TO_PULL}" --skip-verify && \
+    ctr -a=/var/run/containerd.sock i export pulled-image.tar "${IMAGE_TO_PULL}" && \
+    docker -H unix:///var/run/docker.sock load -i pulled-image.tar && \
+    rm -rf pulled-image.tar && ctr -a=/var/run/containerd.sock i rm "${IMAGE_TO_PULL}"
 
 else
     echo "Container runtime is not supported"
