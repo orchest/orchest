@@ -45,10 +45,7 @@ const getInactiveEnvironmentsMessage = (
 const BuildPendingDialog: React.FC = () => {
   const { navigateTo } = useCustomRoute();
   const {
-    state: { projectUuid },
-  } = useProjectsContext();
-  const {
-    state: { buildRequest },
+    state: { projectUuid, buildRequest },
     dispatch,
   } = useProjectsContext();
 
@@ -157,17 +154,15 @@ const BuildPendingDialog: React.FC = () => {
     setShowBuildStatus(true);
     setAllowBuild(false);
 
-    let environment_image_build_requests = environmentsToBeBuilt.map(
-      (environmentUuid) => ({
-        environment_uuid: environmentUuid,
-        project_uuid: buildRequest.projectUuid,
-      })
-    );
+    const buildRequests = environmentsToBeBuilt.map((environmentUuid) => ({
+      environment_uuid: environmentUuid,
+      project_uuid: buildRequest.projectUuid,
+    }));
 
     fetcher("/catch/api-proxy/api/environment-builds", {
       method: "POST",
       headers: HEADER.JSON,
-      body: JSON.stringify({ environment_image_build_requests }),
+      body: JSON.stringify({ environment_image_build_requests: buildRequests }),
     })
       .then(() => startPollingGate())
       .catch((error) => {
