@@ -87,7 +87,7 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     if containerd_socket is not None:
         volumes.append(
             {
-                "name": "containerd_socket",
+                "name": "containerd-socket",
                 "hostPath": {"path": containerd_socket, "type": "Socket"},
             }
         )
@@ -149,7 +149,7 @@ def get_init_container_manifest(
         "command": ["/pull_image.sh"],
         "volumeMounts": [
             {
-                "name": "containerd_socket",
+                "name": "containerd-socket",
                 "mountPath": "/var/run/containerd.sock",
             },
         ],
