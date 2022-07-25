@@ -59,8 +59,47 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 
 	var one int64 = 1
 
-	socketPath := utils.GetKeyFromEnvVar(component.Spec.Template.Env, "CONTAINERD_SOCKET")
+	envVarMap := utils.GetMapFromEnvVar(component.Spec.Template.Env)
+	volumes := make([]corev1.Volume, 0, 2)
+	volumeMounts := make([]corev1.VolumeMount, 0, 2)
+
 	hostPathSocket := corev1.HostPathType("Socket")
+	if _, ok := envVarMap["CONTAINERD_SOCKET"]; ok {
+		volumes = append(volumes, corev1.Volume{
+			Name: "containerd-socket",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: envVarMap["CONTAINERD_SOCKET"],
+					Type: &hostPathSocket,
+				},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "containerd-socket",
+			MountPath: envVarMap["CONTAINERD_SOCKET"],
+			ReadOnly:  false,
+		})
+	}
+
+	if _, ok := envVarMap["DOCKER_SOCKET"]; ok {
+		volumes = append(volumes, corev1.Volume{
+			Name: "docker-socket",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: envVarMap["DOCKER_SOCKET"],
+					Type: &hostPathSocket,
+				},
+			},
+		})
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "docker-socket",
+			MountPath: envVarMap["DOCKER_SOCKET"],
+			ReadOnly:  false,
+		})
+
+	}
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -68,17 +107,7 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 		},
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: &one,
-			Volumes: []corev1.Volume{
-				{
-					Name: "runtimesocket",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: socketPath,
-							Type: &hostPathSocket,
-						},
-					},
-				},
-			},
+			Volumes:                       volumes,
 			Containers: []corev1.Container{
 				{
 					Name:            controller.NodeAgent,
@@ -96,12 +125,7 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 						"--image-puller-policy=IfNotPresent",
 						"--image-puller-retries=3",
 					},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "runtimesocket",
-							MountPath: socketPath,
-						},
-					},
+					VolumeMounts: volumeMounts,
 				},
 			},
 		},
