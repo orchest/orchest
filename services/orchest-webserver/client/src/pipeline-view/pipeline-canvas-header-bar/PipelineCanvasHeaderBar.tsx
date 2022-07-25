@@ -3,6 +3,7 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { CreateStepButton } from "../CreateStepButton";
 import { PipelineOperations } from "./pipeline-operations/PipelineOperations";
 import { PipelineFileName } from "./PipelineFileName";
@@ -10,6 +11,7 @@ import { PipelineMoreOptionsMenu } from "./PipelineMoreOptionsMenu";
 import { ServicesMenu } from "./ServicesMenu";
 
 export const PipelineCanvasHeaderBar = () => {
+  const { isJobRun } = usePipelineDataContext();
   const { setFullscreenTab } = usePipelineCanvasContext();
   const openLogs = () => setFullscreenTab("logs");
 
@@ -34,12 +36,16 @@ export const PipelineCanvasHeaderBar = () => {
           Logs
         </Button>
         <ServicesMenu />
-        <Divider
-          orientation="vertical"
-          sx={{ height: (theme) => theme.spacing(3) }}
-        />
-        <CreateStepButton />
-        <PipelineOperations />
+        {!isJobRun && (
+          <>
+            <Divider
+              orientation="vertical"
+              sx={{ height: (theme) => theme.spacing(3) }}
+            />
+            <CreateStepButton />
+            <PipelineOperations />
+          </>
+        )}
         <PipelineMoreOptionsMenu />
       </Stack>
     </Stack>
