@@ -51,8 +51,8 @@ export const useAutoStartSession = () => {
       );
       if (
         !hasStartedOperation &&
-        error.status === 423 &&
-        error.message === "JupyterEnvironmentBuildInProgress"
+        error?.status === 423 &&
+        error?.message === "JupyterEnvironmentBuildInProgress"
       ) {
         dispatch({
           type: "SET_PIPELINE_IS_READONLY",

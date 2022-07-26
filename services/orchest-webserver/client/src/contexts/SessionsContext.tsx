@@ -70,7 +70,7 @@ type SessionsContext = {
   startSession: (
     pipelineUuid: string,
     requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
-  ) => Promise<[true] | [false, FetchError]>;
+  ) => Promise<[true] | [false] | [false, FetchError]>;
   stopSession: (pipelineUuid: string) => Promise<void>;
   deleteAllSessions: () => Promise<void>;
 };
@@ -172,12 +172,12 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
     async (
       pipelineUuid: string,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
-    ): Promise<[true] | [false, FetchError]> => {
+    ): Promise<[true] | [false] | [false, FetchError]> => {
       const session = getSession(pipelineUuid);
       if (isSessionStarted(session)) return [true];
 
       const hasBuilt = await ensureEnvironmentsAreBuilt(requestedFromView);
-      if (!hasBuilt) return [false, new Error("Environment not built")];
+      if (!hasBuilt) return [false];
       return requestStartSession(pipelineUuid);
     },
     [getSession, ensureEnvironmentsAreBuilt, requestStartSession]

@@ -2,7 +2,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   INITIAL_PIPELINE_NAME,
   INITIAL_PIPELINE_PATH,
@@ -55,10 +54,6 @@ export const CreateProjectDialog = ({
   };
 
   const isFormValid = projectName.length > 0 && validation.length === 0;
-  const [lastSeenPipelines] = useLocalStorage<Record<string, string>>(
-    "pipelineEditor.lastSeenPipelines",
-    {}
-  );
   const onClickCreateProject = async () => {
     if (!isFormValid) return;
 

@@ -79,23 +79,21 @@ const BuildPendingDialog: React.FC = () => {
 
   const processValidationData = React.useCallback(
     (data: EnvironmentValidationData) => {
-      let inactiveEnvironments: string[] = [];
+      const inactiveEnvironments: string[] = [];
       let buildHasFailed = false;
       let environmentsBuilding = 0;
       let buildingValue = false;
 
-      for (let x = 0; x < data.actions.length; x++) {
-        const action = data.actions[x];
-
+      data.actions.forEach((action, index) => {
         if (["BUILD", "RETRY"].includes(action))
-          inactiveEnvironments.push(data.fail[x]);
+          inactiveEnvironments.push(data.fail[index]);
 
         if (action === "RETRY") buildHasFailed = true;
         if (action === "WAIT") {
           buildingValue = true;
           environmentsBuilding++;
         }
-      }
+      });
 
       let message = buildHasFailed
         ? buildFailMessage
