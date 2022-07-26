@@ -311,6 +311,7 @@ export const usePipelineUiState = () => {
           selectedConnection: null,
           selectedSteps: uuids,
           openedMultiStep: uuids.length > 1,
+          shouldAutoFocus: uuids.length === 1,
         };
       };
 
@@ -381,7 +382,6 @@ export const usePipelineUiState = () => {
             ...updated,
             openedStep: newStep.uuid,
             subViewIndex: 0,
-            shouldAutoFocus: true,
             ...selectSteps([newStep.uuid]),
           });
         }
@@ -413,7 +413,6 @@ export const usePipelineUiState = () => {
           return withTimestamp({
             ...state,
             ...updated,
-            shouldAutoFocus: true,
             ...selectSteps(newSteps.map((s) => s.uuid)),
           });
         }
@@ -476,7 +475,6 @@ export const usePipelineUiState = () => {
 
           return {
             ...state,
-            shouldAutoFocus: false,
             ...selectSteps(uniqueSteps),
           };
         }
