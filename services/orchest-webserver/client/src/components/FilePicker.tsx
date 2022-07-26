@@ -290,7 +290,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
         isDropdownOpen &&
         menuFirstItemRef.current !== document.activeElement
       ) {
-        // Some other MUI might aggresively grab the focus.
+        // Some other MUI might aggressively grab the focus.
         // As long as pressing Enter when Dropdown is open, force focusing the first menu element.
         event.preventDefault();
         menuFirstItemRef.current?.focus();
