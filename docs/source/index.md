@@ -38,6 +38,7 @@
 getting_started/installation
 getting_started/quickstart
 getting_started/when_to_use_orchest
+getting_started/faq
 ```
 
 ```{toctree}
@@ -55,7 +56,6 @@ fundamentals/environment_variables
 fundamentals/services
 fundamentals/settings
 fundamentals/glossary
-getting_started/faq
 ```
 
 ```{toctree}
