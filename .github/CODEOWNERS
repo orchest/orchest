@@ -5,7 +5,6 @@
 services/base-images/*  @fruttasecca @yannickperrenet
 services/jupyter-enterprise-gateway/*  @fruttasecca @yannickperrenet
 services/jupyter-server/*  @fruttasecca @yannickperrenet
-services/memory-server/*  @fruttasecca @yannickperrenet
 services/node-agent/*  @fruttasecca @yannickperrenet
 services/orchest-api/*  @fruttasecca @yannickperrenet
 services/session-sidecar/*  @fruttasecca @yannickperrenet

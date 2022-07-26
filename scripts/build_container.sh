@@ -33,7 +33,6 @@ while getopts "s:i:t:no:vemM" opt; do
     m)
       # Build minimal set of images.
       SKIP_IMGS+=("base-kernel-py")
-      SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
       SKIP_IMGS+=("base-kernel-javascript")
       SKIP_IMGS+=("base-kernel-r")
@@ -41,13 +40,11 @@ while getopts "s:i:t:no:vemM" opt; do
     M)
       # Build absolute minimal set of images.
       SKIP_IMGS+=("base-kernel-py")
-      SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
       SKIP_IMGS+=("base-kernel-javascript")
       SKIP_IMGS+=("base-kernel-r")
       SKIP_IMGS+=("jupyter-server")
       SKIP_IMGS+=("jupyter-enterprise-gateway")
-      SKIP_IMGS+=("memory-server")
       SKIP_IMGS+=("session-sidecar")
       ;;
     t)
@@ -70,13 +67,11 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "jupyter-enterprise-gateway"
         "celery-worker"
         "base-kernel-py"
-        "base-kernel-py-gpu"
         "base-kernel-r"
         "base-kernel-julia"
         "base-kernel-javascript"
         "orchest-api"
         "orchest-webserver"
-        "memory-server"
         "session-sidecar"
         "auth-server"
         "node-agent"
@@ -87,13 +82,11 @@ fi
 
 LIB_IMAGES=(
     "base-kernel-py"
-    "base-kernel-py-gpu"
     "base-kernel-r"
     "base-kernel-julia"
     "base-kernel-javascript"
     "orchest-api"
     "orchest-webserver"
-    "memory-server"
     "session-sidecar"
     "auth-server"
     "celery-worker"
@@ -116,7 +109,6 @@ PNPM_IMAGES=(
 
 SDK_IMAGES=(
     "base-kernel-py"
-    "base-kernel-py-gpu"
     "base-kernel-r"
     "base-kernel-julia"
     "base-kernel-javascript"
@@ -327,18 +319,6 @@ do
 
     fi
 
-    if [ $IMG == "base-kernel-py-gpu" ]; then
-
-        build_ctx=$DIR/../services/base-images
-        build=(docker build --platform linux/amd64 --progress=plain \
-            -t "orchest/base-kernel-py-gpu:$BUILD_TAG" \
-            -f $DIR/../services/base-images/base-kernel-py-gpu/Dockerfile \
-            --no-cache=$NO_CACHE \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-
-    fi
-
     if [ $IMG == "base-kernel-r" ]; then
 
         build_ctx=$DIR/../services/base-images
@@ -415,17 +395,6 @@ do
             echo "To develop Orchest you need to satisfy the prerequisites listed at:"
             echo "https://docs.orchest.io/en/latest/development/development_workflow.html#prerequisites"
         fi
-    fi
-
-    # installs orchest-sdk
-    if [ $IMG == "memory-server" ]; then
-        build_ctx=$DIR/../services/memory-server
-        build=(docker build --platform linux/amd64 --progress=plain \
-            -t "orchest/memory-server:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/memory-server/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
     fi
 
     if [ $IMG == "session-sidecar" ]; then

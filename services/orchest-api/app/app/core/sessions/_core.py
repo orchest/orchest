@@ -29,7 +29,7 @@ def launch(
             which is where all related resources will be deployed.
         session_type: Implies which orchest session services are part
             of the session. For "noninteractive" sessions these are
-            the memory-server and session-sidecar, "interactive"
+            the session-sidecar, "interactive"
             sessions also include jupyter-eg and jupyter-server. These
             services, along with any user defined service, can be
             interacted with using the functions in this module through
@@ -348,13 +348,6 @@ def restart_session_service(
     session_uuid: str, service_name: str, wait_for_readiness: bool = True
 ) -> None:
     """Restarts a session service by name.
-
-    Especially for the `memory-server` this comes in handy. Because
-    the user should be able to clear the server. Which internally we
-    do by restarting it, since clearing would also lose all state.
-    Note that restarting the `memory-server` resets its eviction
-    state, which is exactly what we want.
-
     """
     ns = _config.ORCHEST_NAMESPACE
     k8s_core_api.delete_collection_namespaced_pod(

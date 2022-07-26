@@ -357,43 +357,15 @@ def register_orchest_api_views(app, db):
         "/catch/api-proxy/api/sessions/<project_uuid>/<pipeline_uuid>", methods=["PUT"]
     )
     def catch_api_proxy_session_put(project_uuid, pipeline_uuid):
-
         # check whether session is running
         try:
-            resp = requests.get(
+            resp = requests.put(
                 "http://"
                 + app.config["ORCHEST_API_ADDRESS"]
-                + "/api/runs/?project_uuid=%s&pipeline_uuid=%s"
-                % (project_uuid, pipeline_uuid)
+                + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
             )
 
-            runs = resp.json()["runs"]
-
-            active_runs = False
-            for run in runs:
-                if run["status"] in ["PENDING", "STARTED"]:
-                    active_runs = True
-
-            if active_runs:
-                return (
-                    jsonify(
-                        {
-                            "message": (
-                                "Cannot restart the memory "
-                                "server while the pipeline is running."
-                            )
-                        }
-                    ),
-                    423,
-                )
-            else:
-                resp = requests.put(
-                    "http://"
-                    + app.config["ORCHEST_API_ADDRESS"]
-                    + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
-                )
-
-                return resp.content, resp.status_code, resp.headers.items()
+            return resp.content, resp.status_code, resp.headers.items()
         except Exception as e:
             app.logger.error(
                 "Could not get session information from orchest-api. Error: %s (%s)"
