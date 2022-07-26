@@ -86,3 +86,18 @@ current deployment to a Kubernetes based one.
 
 Just know that we are super excited to make the Kubernetes version available part of the open core
 and we are invested to provide a smooth migration experience 🔥
+
+## I'm getting `ModuleNotFoundError: No module named` exceptions even after declaring my dependencies
+
+If you are getting weird `ModuleNotFoundError` exceptions
+for libraries that supposedly you declared already,
+there is a chance that you might have reinstalled `ipykernel` with `pip`,
+[which causes a known incompatibility].
+There are two ways to fix this issue:
+
+1. Add `python -m ipykernel install --sys-prefix` at the end of your setup script,
+   which restores the paths `ipykernel` needs to work.
+2. Use mamba (or conda) instead of pip to install your dependencies,
+   which avoid this incompatibility.
+
+[which causes a known incompatibility]: https://github.com/orchest/orchest/issues/425
