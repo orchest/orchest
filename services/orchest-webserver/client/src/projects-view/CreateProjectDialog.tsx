@@ -2,6 +2,11 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import {
+  INITIAL_PIPELINE_NAME,
+  INITIAL_PIPELINE_PATH,
+} from "@/pipeline-view/CreatePipelineDialog";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import Button from "@mui/material/Button";
@@ -13,6 +18,11 @@ import TextField from "@mui/material/TextField";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectName } from "./hooks/useProjectName";
+
+const defaultPipeline = {
+  name: INITIAL_PIPELINE_NAME,
+  pipeline_path: INITIAL_PIPELINE_PATH,
+};
 
 export const CreateProjectDialog = ({
   open: isOpenByParent,
@@ -45,26 +55,36 @@ export const CreateProjectDialog = ({
   };
 
   const isFormValid = projectName.length > 0 && validation.length === 0;
-
+  const [lastSeenPipelines] = useLocalStorage<Record<string, string>>(
+    "pipelineEditor.lastSeenPipelines",
+    {}
+  );
   const onClickCreateProject = async () => {
     if (!isFormValid) return;
 
     onClose();
     try {
-      const { project_uuid } = await fetcher<{ project_uuid: string }>(
-        "/async/projects",
-        {
-          method: "POST",
-          headers: HEADER.JSON,
-          body: JSON.stringify({ name: projectName }),
-        }
-      );
+      const { project_uuid: projectUuid } = await fetcher<{
+        project_uuid: string;
+      }>("/async/projects", {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify({ name: projectName }),
+      });
+
+      const { pipeline_uuid: pipelineUuid } = await fetcher<{
+        pipeline_uuid: string;
+      }>(`/async/pipelines/create/${projectUuid}`, {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify(defaultPipeline),
+      });
 
       dispatch((state) => {
         const currentProjects = state.projects || [];
         const newProject: Project = {
           path: projectName,
-          uuid: project_uuid,
+          uuid: projectUuid,
           pipeline_count: 0,
           active_job_count: 0,
           environment_count: 1, // by default, a project gets an environment Python 3
@@ -78,10 +98,21 @@ export const CreateProjectDialog = ({
         };
       });
 
-      dispatch({ type: "SET_PROJECT", payload: project_uuid });
+      dispatch({ type: "SET_PROJECT", payload: projectUuid });
+      dispatch({
+        type: "SET_PIPELINES",
+        payload: [
+          {
+            uuid: pipelineUuid,
+            name: defaultPipeline.name,
+            path: defaultPipeline.pipeline_path,
+          },
+        ],
+      });
+
       postCreateCallback?.();
       navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid: project_uuid },
+        query: { projectUuid, pipelineUuid },
       });
     } catch (error) {
       postCreateCallback?.();
