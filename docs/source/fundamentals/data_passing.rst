@@ -21,7 +21,7 @@ Using the following pipeline:
 
 .. figure:: ../img/pipeline.png
    :width: 400
-   :alt: Orchest pipeline defined as three steps, where both step 1 and 2 send output to step 3
+   :alt: Orchest Pipeline defined as three Steps, where both step 1 and 2 send output to step 3
    :align: center
 
 Create and name data in steps 1 and 2, and pass it to step 3 using the Orchest SDK:

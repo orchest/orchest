@@ -7,9 +7,9 @@
    :description: This page contains information about how to manage different environments and programming languages in Orchest.
 ```
 
-Environments define the conditions in which pipeline steps execute scripts and kernels. Environments are:
+Environments define the conditions in which Pipeline steps execute scripts and kernels. Environments are:
 
-- Chosen in the pipeline step properties panel in the {ref}`pipeline editor <pipelines>`.
+- Chosen in the Pipeline step properties panel in the {ref}`pipeline editor <pipelines>`.
 - Configurable through their set-up script (on the environments page) to install additional packages.
 - Versioned and belong to a single {ref}`project <projects>`.
 
@@ -100,12 +100,12 @@ pip install black
 Installing packages with `conda` is also supported but might take longer (due to known conda issues regarding dependency solving). We recommmend using [mamba](https://mamba.readthedocs.io/) as a user-friendly and fast drop-in conda replacement. `pip`, `mamba` and `conda` caches are persisted across builds for quicker iterations. This cache can be ignored or removed using the respective flags (e.g. `pip install --no-cache`) or commands.
 
 ```{warning}
-🚨 Do not install packages by running {code}`!pip install <package-name>` inside your Jupyter Notebook. This causes the package to be installed every time you run the pipeline step. It is not saved in the environment as containers are stateless!
+🚨 Do not install packages by running {code}`!pip install <package-name>` inside your Jupyter Notebook. This causes the package to be installed every time you run the Pipeline step. It is not saved in the environment as containers are stateless!
 ```
 
 ## Custom environment images
 
-Fully custom environment images are not recommended. This is because environments require a particular image structure to cater for Jupyter Docker stacks dependencies, pipeline runs and hosting active Jupyter kernels. Instead, use our default base images and customize them via the _set-up script_.
+Fully custom environment images are not recommended. This is because environments require a particular image structure to cater for Jupyter Docker stacks dependencies, Pipeline runs and hosting active Jupyter kernels. Instead, use our default base images and customize them via the _set-up script_.
 
 ### Using a different Python version
 

@@ -9,7 +9,7 @@
 
 Environment variables let you exclude sensitive data from the versioning system of your Orchest projects.
 
-Environment variables are injected in your pipeline steps, and can be natively retrieved with your chosen language.
+Environment variables are injected in your Pipeline Steps, and can be natively retrieved with your chosen language.
 For example, in Python:
 
 ```python
@@ -44,7 +44,7 @@ Access your project environment variables through project settings:
 
 Access your pipeline environment variables through the pipeline settings:
 
-1. Open a pipeline via the _Pipelines_ option in the left menu pane.
+1. Open a Pipeline via the _Pipelines_ option in the left menu pane.
 2. Click on _Settings_ in the top right corner.
 3. Click on the _Environment variables_ tab.
 4. Set your variables.
@@ -53,7 +53,7 @@ Access your pipeline environment variables through the pipeline settings:
 ## Job environment variables
 
 Job environment variables are initialized by merging the project and pipeline environment variables when a job is run.
-Add to/edit these variables before running the job. Every pipeline run belonging to this job will include these environment variables.
+Add to/edit these variables before running the job. Every Pipeline run belonging to this job will include these environment variables.
 
 ```{note}
 💡 Only recurring scheduled jobs can have their environment variables edited after they have started.

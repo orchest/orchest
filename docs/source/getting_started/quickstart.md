@@ -9,7 +9,7 @@
 
 This quickstart follows an example explaining how to build data science pipelines in Orchest and
 touches upon some core principles that will be helpful when you get to building your own pipelines.
-The example pipeline will download the [sklearn California housing dataset], explore the data,
+The example Pipeline will download the [sklearn California housing dataset], explore the data,
 train some classifiers, and in the final step collect the results from those classifiers.
 
 [sklearn california housing dataset]: https://scikit-learn.org/stable/modules/generated/sklearn.datasets.fetch_california_housing.html
@@ -17,9 +17,9 @@ train some classifiers, and in the final step collect the results from those cla
 ```{figure} ../img/quickstart/final-pipeline.png
 :align: center
 :width: 800
-:alt: The resulting data pipeline from this Orchest quickstart
+:alt: The resulting Pipeline from this Orchest quickstart
 
-The resulting pipeline from this quickstart.
+The resulting Pipeline from this quickstart.
 ```
 
 ```{tip}
@@ -63,7 +63,7 @@ Orchest also supports other languages such as R.
 
 ## Get California housing data
 
-The logical next step is to create the first pipeline called `California housing` and open the
+The logical next step is to create the first Pipeline called `California housing` and open the
 pipeline editor. This will automatically boot an {term}`interactive session <Interactive session>` so
 you can interactively edit the Python script Orchest creates. The rest of the steps will be Jupyter Notebooks!
 
@@ -73,11 +73,11 @@ you can interactively edit the Python script Orchest creates. The rest of the st
 ```{figure} ../img/quickstart/step-properties.png
 :align: center
 :width: 300
-:alt: Step properties of an Orchest pipeline
+:alt: Step properties of an Orchest Pipeline
 ```
 
 ```{note}
-The changes you make to the pipeline (through the pipeline editor) are saved automatically.
+The changes you make to the Pipeline (through the pipeline editor) are saved automatically.
 ```
 
 Now you can start writing our code through the familiar JupyterLab interface, simply press _edit in
@@ -131,7 +131,7 @@ to confirm - they contain the latest STDOUT of the script.
 ```{figure} ../img/quickstart/step-logs.png
 :align: center
 :width: 300
-:alt: Step logs of an Orchest pipeline
+:alt: Step logs of an Orchest Pipeline
 ```
 
 Remember that running the code will output the converted housing data, so in the next step you can
@@ -139,9 +139,9 @@ now retrieve and explore that data!
 
 ## Data exploration
 
-Now that you have downloaded the data, the next pipeline step can explore it. Create another pipeline
-step with _Title_ `Data exploration` and _File path_ `explore-data.ipynb`, and connect the two
-pipeline steps.
+Now that you have downloaded the data, the next Pipeline Step can explore it. Create another Pipeline
+Step with _Title_ `Data exploration` and _File path_ `explore-data.ipynb`, and connect the two
+Pipeline Steps.
 
 ```{figure} ../img/quickstart/pipeline-two-steps.png
 :align: center
@@ -149,7 +149,7 @@ pipeline steps.
 :alt: Pipeline with two steps in Orchest
 ```
 
-You can get the code for this pipeline step from the `explore-data.ipynb` [file in the GitHub
+You can get the code for this Pipeline Step from the `explore-data.ipynb` [file in the GitHub
 repository](https://github.com/orchest/quickstart/blob/main/explore-data.ipynb).
 
 Maybe you already noticed the imports in the previous step:
@@ -171,20 +171,20 @@ Adding additional dependencies (even system level dependencies) can be done by u
 
 ## Finalizing the pipeline
 
-To end up with the final pipeline, please refer to the {ref}`For the impatient <impatient>` section
-to import the pipeline. You can also build the pipeline from scratch yourself!
+To end up with the final Pipeline, please refer to the {ref}`For the impatient <impatient>` section
+to import the Pipeline. You can also build the Pipeline from scratch yourself!
 
 ```{figure} ../img/quickstart/final-pipeline-completed.png
 :align: center
 :width: 800
-:alt: Successful pipeline run of the final pipeline in Orchest
+:alt: Successful Pipeline run of the final Pipeline in Orchest
 
-A successful pipeline run of the final pipeline.
+A successful Pipeline run of the final Pipeline.
 ```
 
 ```{note}
 The {term}`interactive session <Interactive session>` does not shut down automatically and thus the
-resources will keep running when editing another pipeline, you can shut down the session manually
+resources will keep running when editing another P ipeline, you can shut down the session manually
 by clicking on the shut down button. Of course all resources are shut down when you shut down
 your self-hosted Orchest by running the command `orchest stop`.
 ```

@@ -9,10 +9,10 @@
 
 Jobs are a way to schedule one-off or recurring {term}`pipelines <(data science) pipeline>` runs in Orchest.
 
-A job can run multiple iterations of the same pipeline over time
+A job can run multiple iterations of the same Pipeline over time
 or small variations by using different parameters as inputs.
 For example, you could create a job which uses the same ETL pipeline
-but extracts data from a different data source for each pipeline run.
+but extracts data from a different data source for each Pipeline run.
 
 ```{figure} ../img/jobs-list.png
 :align: center
@@ -26,7 +26,7 @@ Jobs take a snapshot of your project directory when they are created. Each of th
 runs copy the project directory snapshot and execute the files without changing the original
 snapshot. This means jobs run consistently throughout their entire lifetime.
 
-Different pipeline runs that are part of the same job are completely isolated from a scheduling
+Different Pipeline runs that are part of the same job are completely isolated from a scheduling
 perspective and do not affect each others' state.
 
 ```{note}
@@ -63,8 +63,8 @@ To create and run a job in Orchest, follow these instructions:
 New job dialog.
 ```
 
-To inspect the result of your job; click on the job you just created, choose a specific pipeline run
-(the one you want to inspect) and click on _View pipeline_. The pipeline is now opened in
+To inspect the result of your job; click on the job you just created, choose a specific Pipeline run
+(the one you want to inspect) and click on _View pipeline_. The Pipeline is now opened in
 {term}`read-only mode` giving you the opportunity to check the logs or to open the
 HTML version of you notebooks.
 
@@ -78,25 +78,25 @@ breaking your existing jobs.
 
 ## Parametrizing pipelines and steps
 
-Jobs run a specific pipeline for a given set of parameters. If you define multiple values for the
-same parameter, then the job will run the pipeline once for every combination of parameter values.
+Jobs run a specific Pipeline for a given set of parameters. If you define multiple values for the
+same parameter, then the job will run the Pipeline once for every combination of parameter values.
 You can think of job parameters as a [grid search](https://scikit-learn.org/stable/modules/grid_search.html),
 i.e. looping over all combinations of values for different parameters.
 
 ```{note}
 💡 Unlike {ref}`environment variables <environment-variables>`, you can define
-pipeline and step level parameters with the same name without one (automatically) overwriting
+Pipeline and step level parameters with the same name without one (automatically) overwriting
 the other, you can access both values.
 ```
 
-You can define pipeline parameters at two levels:
+You can define Pipeline parameters at two levels:
 
-- Pipelines: The parameters and their values will be available across every pipeline step.
+- Pipelines: The parameters and their values will be available across every Pipeline step.
 - Pipeline steps: The parameters will only be available in which they are defined.
 
 ### Editing pipeline parameters
 
-1. Open a pipeline via the _Pipelines_ option in the left menu pane.
+1. Open a Pipeline via the _Pipelines_ option in the left menu pane.
 2. Click on _SETTINGS_ in the top right corner.
 3. Towards the top you will find the _Pipeline parameters_ section.
 4. Input some JSON like {code}`{"my-param": <param-value>}`.
@@ -104,8 +104,8 @@ You can define pipeline parameters at two levels:
 
 ### Editing pipeline step parameters
 
-1. Open a pipeline via the _Pipelines_ option in the left menu pane.
-2. Click on a pipeline step to open its _Properties_.
+1. Open a Pipeline via the _Pipelines_ option in the left menu pane.
+2. Click on a Pipeline step to open its _Properties_.
 3. Towards the bottom you will find the _Parameters_ section.
 4. Input some JSON like {code}`{"my-param": <param-value>}`.
 
@@ -113,10 +113,10 @@ You can define pipeline parameters at two levels:
 
 ### Interacting with parameters through code
 
-After you have set parameters for your pipeline and/or steps you can use their values inside your
+After you have set parameters for your Pipeline and/or steps you can use their values inside your
 scripts (see {ref}`parameters API reference <api parameters>`).
 
-Let's say you have set the following parameters on your pipeline:
+Let's say you have set the following parameters on your Pipeline:
 
 ```json
 {
@@ -125,7 +125,7 @@ Let's say you have set the following parameters on your pipeline:
 }
 ```
 
-And for your pipeline step:
+And for your Pipeline step:
 
 ```json
 {
@@ -134,7 +134,7 @@ And for your pipeline step:
 }
 ```
 
-Then inside the pipeline step you can access the parameters as follows:
+Then inside the Pipeline step you can access the parameters as follows:
 
 ```python
 import orchest
@@ -146,12 +146,12 @@ vegetable = orchest.get_pipeline_param("vegetable")   # "carrot"
 
 ### Specify job parameters with a file
 
-You can easily run a pipeline for multiple parameter configurations by creating
+You can easily run a Pipeline for multiple parameter configurations by creating
 a job parameters file.
 
-If you place the file in the same folder as your pipeline file the job parameters file will automatically be detected when creating a job.
+If you place the file in the same folder as your Pipeline file the job parameters file will automatically be detected when creating a job.
 
-For a pipeline called `main.orchest` the job parameters file should be named `main.parameters.json`, and be put in the same folder as the pipeline file (both in the project directory).
+For a Pipeline called `main.orchest` the job parameters file should be named `main.parameters.json`, and be put in the same folder as the pipeline file (both in the project directory).
 
 You can also select a file manually when creating a job.
 
@@ -176,14 +176,14 @@ You can find the step UUIDs in the pipeline file (e.g. `main.orchest`), pipeline
 ### Running a parametrized job
 
 The procedure to run a parametrized job is very similar to running a job without any parameters.
-Once you have followed any of the procedures above to parametrize your pipeline:
+Once you have followed any of the procedures above to parametrize your Pipeline:
 
-1. Make sure you have defined some parameters or you will only be able to schedule the pipeline as is.
+1. Make sure you have defined some parameters or you will only be able to schedule the Pipeline as is.
 2. Click on _Jobs_ in the left menu pane.
 3. Click the _+ Create job_ button to configure your job.
 4. Choose a _Job name_ and the _Pipeline_ you want to run the job for.
 5. Your default set of parameters are pre-loaded. By clicking on the values a JSON editor opens,
-   allowing you to add additional values you would like the pipeline to run for.
+   allowing you to add additional values you would like the Pipeline to run for.
 6. If you would like to schedule the job to run at a specific time have a look at _Scheduling_. In
    case you don't want your job to run every combination of your parameter values, you can
    deselect them through the _Pipeline runs_ option.
