@@ -120,19 +120,19 @@ const initialState: IProjectsContextState = {
 
 export const ProjectsContextProvider: React.FC = ({ children }) => {
   // Read and write localstorage in the context to ensure that the state
-  // is updated synchronosely.
-  const [lastSeenProjectUuid, setlastSeenProjectUuid] = useLocalStorage<string>(
+  // is updated synchronously.
+  const [lastSeenProjectUuid, setLastSeenProjectUuid] = useLocalStorage<string>(
     "pipelineEditor.lastSeenProjectUuid",
     ""
   );
-  const [lastSeenPipelines, setlastSeenPipelines] = useLocalStorage<
+  const [lastSeenPipelines, setLastSeenPipelines] = useLocalStorage<
     Record<string, string>
   >("pipelineEditor.lastSeenPipelines", {});
 
   const setLastSeenPipeline = React.useCallback(
     (projectUuid: string | undefined, pipelineUuid: string | null) => {
       if (!projectUuid) return;
-      setlastSeenPipelines((current) => {
+      setLastSeenPipelines((current) => {
         if (!pipelineUuid) {
           delete current[projectUuid];
           return current;
@@ -141,7 +141,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         return { ...current, [projectUuid]: pipelineUuid };
       });
     },
-    [setlastSeenPipelines]
+    [setLastSeenPipelines]
   );
 
   const cleanProjectsFromLocalstorage = React.useCallback(
@@ -149,7 +149,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
       const currentProjectUuids = new Set(
         projects.map((project) => project.uuid)
       );
-      setlastSeenPipelines((current) => {
+      setLastSeenPipelines((current) => {
         if (!current) return {};
 
         return Object.entries(current).reduce(
@@ -162,7 +162,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         );
       });
     },
-    [setlastSeenPipelines]
+    [setLastSeenPipelines]
   );
 
   const stringifiedLastSeenPipelines = React.useMemo(
@@ -260,7 +260,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           return { ...state, pipelineIsReadOnly: action.payload };
         case "SET_PROJECT": {
           if (!action.payload) {
-            setlastSeenProjectUuid("");
+            setLastSeenProjectUuid("");
             return {
               ...state,
               projectUuid: undefined,
@@ -276,7 +276,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             (project) => project.uuid === action.payload
           );
 
-          setlastSeenProjectUuid(foundProject ? foundProject.uuid : "");
+          setLastSeenProjectUuid(foundProject ? foundProject.uuid : "");
           if (!foundProject) return state;
           return {
             ...state,
@@ -295,7 +295,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             : action.payload[0]?.uuid;
 
           if (initialProjectUuid !== lastSeenProjectUuid)
-            setlastSeenProjectUuid(initialProjectUuid);
+            setLastSeenProjectUuid(initialProjectUuid);
 
           return {
             ...state,
