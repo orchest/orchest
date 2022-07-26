@@ -6,7 +6,8 @@ Orchest SDK reference
 .. note::
    💡 The Orchest SDK comes pre-installed when using Orchest.
 
-To see how to use the SDK, please refer to the dedicated section on :ref:`data passing <data passing>`.
+To see how to use the SDK in different progamming languages,
+refer to the dedicated section on :ref:`data passing <data passing>`.
 
 .. _api transfer:
 
