@@ -23,8 +23,6 @@ Do **not** install new packages by running bash commands inside the Notebooks. T
 packages to be installed every time you do a pipeline run, since the state of the kernel environment
 is ephemeral.
 
-(how-to-import-a-project)=
-
 ## How to share code between steps?
 
 ```{note}

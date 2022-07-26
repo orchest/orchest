@@ -32,12 +32,30 @@ For absolute paths, all files of a project are mounted to the `/project-dir` dir
 You can get started with projects by:
 
 - Creating a new project
-- Importing an existing project using its git repository URL (see {ref}`how-to-import-a-project <how-to-import-a-project>`).
+- Importing an existing project using its git repository URL (see {ref}`how to import a project <how-to-import-a-project>`).
 - Importing Orchest curated or community contributed examples.
 
 ```{tip}
 👉 See {ref}`quickstart tutorial <quickstart>`.
 ```
+
+(how-to-import-a-project)=
+
+## Importing a project
+
+To import an existing project into Orchest, go the the _Projects_ section, then click the _Import Project_ button.
+
+```{figure} ../img/project-import.png
+:align: center
+:alt: Importing a project in Orchest.
+:width: 800
+```
+
+```{tip}
+👉 See video tutorial: [importing a project].
+```
+
+[importing a project]: https://www.tella.tv/video/cknr7of9c000409jr5gx4efjy/view
 
 ## Project versioning
 
