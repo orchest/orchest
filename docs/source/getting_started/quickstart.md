@@ -1,6 +1,6 @@
 (quickstart)=
 
-# Orchest quickstart tutorial
+# Quickstart tutorial
 
 ```{eval-rst}
 .. meta::
@@ -44,7 +44,7 @@ To get started in Orchest you can import the GitHub repository URL
 :alt: Import existing project in Orchest
 ```
 
-## Create your first project
+## Create your first project in Orchest
 
 To start, make sure you have {ref}`installed Orchest <regular-installation>` or go to your [Orchest Cloud](https://cloud.orchest.io/) account.
 Next, create a new {ref}`project <projects>` named `quickstart`. After creating the project, you will see that it
