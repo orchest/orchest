@@ -27,7 +27,7 @@ Projects
     Projects. You can think of a Project as a folder on your filesystem that contains a bunch of
     Files, some of which are "special" (hinting at Pipeline files with a `.orchest` extension). In
     addition to the filesystem state, Orchest saves state in a database. This state includes things
-    such as {ref}`environment variables <environment variables>`.
+    such as {ref}`environment variables <environment-variables>`.
 
     ```{image} ../img/concepts/Project.png
     :width: 200
