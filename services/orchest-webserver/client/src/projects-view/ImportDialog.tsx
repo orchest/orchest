@@ -440,7 +440,8 @@ export const ImportDialog = ({
 
   const progressStyle = React.useMemo<LinearProgressProps["variant"]>(() => {
     if (progress === "unknown") return "indeterminate";
-    return "determinate";
+    if (isNumber(progress) || progress === "imported") return "determinate";
+    return "indeterminate";
   }, [progress]);
 
   const updateProgress = React.useCallback(
@@ -717,8 +718,14 @@ export const ImportDialog = ({
                 )}
                 <Stack direction="row" spacing={1} alignItems="center">
                   <LinearProgress
-                    value={isNumber(progress) ? progress : undefined}
                     variant={progressStyle}
+                    value={
+                      progress === "imported"
+                        ? 100
+                        : isNumber(progress)
+                        ? progress
+                        : undefined
+                    }
                     sx={{ margin: (theme) => theme.spacing(1, 0), flex: 1 }}
                   />
                   <Typography variant="caption">
