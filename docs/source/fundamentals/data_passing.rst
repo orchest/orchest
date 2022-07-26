@@ -11,7 +11,7 @@ The SDK wraps `Apache Arrow <https://arrow.apache.org/>`_ so that you don't have
 
 See the full :ref:`data passing API reference <api transfer>` for more information.
 
-Passing data in Python
+Data passing in Python
 ----------------------
 
 In this section you will see to pass data between different pipeline steps in Orchest using Python.
@@ -73,7 +73,7 @@ Step 3's ``input_data`` will be:
 
 To know more about the ``unnamed``, key, read on.
 
-Passing data without a name
+Data passing without a name
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It is more explicit to pass data with a name. However, sometimes you may want to use a list
@@ -155,7 +155,7 @@ Top-to-bottom in the visual editor corresponds to left-to-right in ``unnamed``.
 
 .. _r:
 
-Passing data in R
+Data passing in R
 -----------------
 
 .. tip::
@@ -204,13 +204,13 @@ In a child step you will be able to retrieve the output:
    step_inputs = orchest$transfer$get_inputs()
    step_inputs$Test
 
-Passing data in Julia
+Data passing in Julia
 ---------------------
 
 Refer to the `Julia example project <https://github.com/orchest-examples/julia-orchest-sdk>`_
 showcasing **Julia** in Orchest (:ref:`how to import a project <how-to-import-a-project>`).
 
-Passing data in JavaScript
+Data passing in JavaScript
 --------------------------
 
 Refer to the `JavaScript example project <https://github.com/orchest-examples/javascript-orchest-sdk>`_
