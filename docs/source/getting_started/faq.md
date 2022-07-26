@@ -1,4 +1,4 @@
-# Frequently Asked Questions (FAQ)
+# FAQ
 
 ## How to install new packages?
 
