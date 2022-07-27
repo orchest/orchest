@@ -100,7 +100,6 @@ export const useBuildEnvironmentImages = () => {
 
       setEnvironmentsToBeBuilt(inactiveEnvironments);
       setIsBuilding(buildingValue);
-
       setAllowViewBuildStatus(inactiveEnvironments.length === 0);
       setAllowBuild(inactiveEnvironments.length > 0);
       setState((prevState) => ({
