@@ -95,6 +95,10 @@ const JupyterLabView = () => {
         .then(([isSessionStarted, error]) => {
           if (isSessionStarted) {
             // Force reloading the view.
+            dispatch({
+              type: "SET_PIPELINE_READONLY_REASON",
+              payload: undefined,
+            });
             navigateTo(siteMap.jupyterLab.path, {
               query: { projectUuid, pipelineUuid },
             });
@@ -108,7 +112,7 @@ const JupyterLabView = () => {
           navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
         });
     }
-  }, [startSession, pipelineUuid, projectUuid, navigateTo, sessions]);
+  }, [startSession, pipelineUuid, projectUuid, navigateTo, sessions, dispatch]);
 
   const conditionalRenderingOfJupyterLab = React.useCallback(() => {
     if (session?.status === "RUNNING") {
