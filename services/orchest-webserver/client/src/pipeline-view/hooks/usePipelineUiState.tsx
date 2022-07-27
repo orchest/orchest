@@ -30,6 +30,7 @@ export type ContextMenuUuid = "viewport" | string | undefined;
 
 export type PipelineUiState = {
   steps: StepsDict;
+  isStepsLoaded?: boolean;
   connections: Connection[];
   doubleClickFirstClick: boolean;
   selectedSteps: string[];
@@ -379,6 +380,7 @@ export const usePipelineUiState = () => {
           return {
             ...state,
             steps,
+            isStepsLoaded: true,
             connections,
             selectedSteps: [],
             selectedConnection: null,
