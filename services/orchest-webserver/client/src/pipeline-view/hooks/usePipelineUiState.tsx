@@ -40,7 +40,7 @@ export type PipelineUiState = {
   stepSelector: StepSelectorData;
   shouldAutoFocus: boolean;
   error?: string | null;
-  timestamp: number | undefined;
+  hash?: string;
   subViewIndex: number;
   isDeletingSteps: boolean;
   contextMenuUuid?: ContextMenuUuid;
@@ -195,17 +195,22 @@ export function removeConnection<
   return updatedState;
 }
 
-// use timestamp to trigger saving to BE
-function withTimestamp<T extends Record<string, unknown>>(obj: T) {
+// Update hash to trigger saving to BE
+function withHash<T extends Record<string, unknown>>(obj: T) {
   return {
     ...obj,
-    timestamp: new Date().getTime(),
+    hash: uuidv4(),
   };
 }
 
 export const usePipelineUiState = () => {
   const { setAlert } = useAppContext();
-  const { stepRefs, mouseTracker, newConnection } = usePipelineRefs();
+  const {
+    stepRefs,
+    mouseTracker,
+    newConnection,
+    zIndexMax,
+  } = usePipelineRefs();
   const { scaleFactor } = useScaleFactor();
 
   const memoizedReducer = React.useCallback(
@@ -348,6 +353,18 @@ export const usePipelineUiState = () => {
         return position as [number, number];
       };
 
+      const generateConnections = (steps: StepsDict) => {
+        zIndexMax.current = Object.keys(steps).length;
+
+        return Object.values(steps).flatMap((step) => {
+          const connections = step.incoming_connections.map((startNodeUUID) => {
+            return { startNodeUUID, endNodeUUID: step.uuid };
+          });
+          zIndexMax.current += connections.length;
+          return connections;
+        });
+      };
+
       // if (process.env.NODE_ENV === "development")
       //   console.log("(Dev Mode) useUiState: action ", action);
 
@@ -356,10 +373,23 @@ export const usePipelineUiState = () => {
        */
       switch (action.type) {
         case "SET_STEPS": {
-          return { ...state, steps: action.payload };
+          const steps = action.payload;
+          const connections = generateConnections(action.payload);
+
+          return {
+            ...state,
+            steps,
+            connections,
+            selectedSteps: [],
+            selectedConnection: null,
+            stepSelector: DEFAULT_STEP_SELECTOR,
+          };
         }
         case "SAVE_STEPS": {
-          return withTimestamp({ ...state, steps: action.payload });
+          return withHash({
+            ...state,
+            steps: action.payload,
+          });
         }
         case "CREATE_STEP": {
           const newStep = action.payload;
@@ -377,7 +407,7 @@ export const usePipelineUiState = () => {
             draft.steps[newStep.uuid] = newStep;
           });
 
-          return withTimestamp({
+          return withHash({
             ...state,
             ...updated,
             openedStep: newStep.uuid,
@@ -410,7 +440,7 @@ export const usePipelineUiState = () => {
             });
           });
 
-          return withTimestamp({
+          return withHash({
             ...state,
             ...updated,
             ...selectSteps(newSteps.map((s) => s.uuid)),
@@ -422,7 +452,7 @@ export const usePipelineUiState = () => {
           const updated = produce(state, (draft) => {
             draft.steps[stepUuid].file_path = filePath;
           });
-          return withTimestamp({ ...state, ...updated });
+          return withHash({ ...state, ...updated });
         }
 
         case "CREATE_SELECTOR": {
@@ -582,7 +612,7 @@ export const usePipelineUiState = () => {
         }
 
         case "MAKE_CONNECTION": {
-          return withTimestamp(makeConnection(action.payload));
+          return withHash(makeConnection(action.payload));
         }
 
         case "REMOVE_CONNECTION": {
@@ -592,7 +622,7 @@ export const usePipelineUiState = () => {
           const shouldSave = hasValue(action.payload.endNodeUUID);
           const outcome = removeConnection(state, action.payload);
 
-          return shouldSave ? withTimestamp(outcome) : outcome;
+          return shouldSave ? withHash(outcome) : outcome;
         }
 
         case "REMOVE_STEPS": {
@@ -638,7 +668,7 @@ export const usePipelineUiState = () => {
             state
           );
 
-          return produce(withTimestamp(updatedState), (draft) => {
+          return produce(withHash(updatedState), (draft) => {
             stepsToDelete.forEach(
               (uuidToDelete) => delete draft.steps[uuidToDelete]
             );
@@ -653,7 +683,7 @@ export const usePipelineUiState = () => {
         case "SAVE_STEP_DETAILS": {
           const { replace, stepChanges, uuid } = action.payload;
           // Mutate step with changes
-          return produce(withTimestamp(state), (draft) => {
+          return produce(withHash(state), (draft) => {
             if (replace) {
               // Replace works on the top level keys that are provided
               Object.entries(stepChanges).forEach(([propKey, mutation]) => {
@@ -709,7 +739,6 @@ export const usePipelineUiState = () => {
     steps: {},
     connections: [],
     selectedConnection: null,
-    timestamp: undefined,
     subViewIndex: 0,
     shouldAutoFocus: false,
     isDeletingSteps: false,
