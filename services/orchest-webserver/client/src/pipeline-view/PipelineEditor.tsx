@@ -13,7 +13,6 @@ import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { useScaleFactor } from "./contexts/ScaleFactorContext";
-import { useInitializeConnections } from "./hooks/useInitializeConnections";
 import { useOpenFile } from "./hooks/useOpenFile";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
 import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
@@ -21,7 +20,7 @@ import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import { PipelineViewingOptions } from "./pipeline-viewing-options/PipelineViewingOptions";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { PipelineEditorRoot } from "./PipelineEditorRoot";
-import { PipelineStep } from "./PipelineStep";
+import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { ReadOnlyBanner } from "./ReadOnlyBanner";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { SaveStatus } from "./SaveStatus";
@@ -65,10 +64,10 @@ export const PipelineEditor = () => {
       cursorControlledStep,
       selectedConnection,
       openedStep,
+      hash,
     },
     uiStateDispatch,
     instantiateConnection,
-    recalibrate,
   } = usePipelineUiStateContext();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
@@ -114,8 +113,7 @@ export const PipelineEditor = () => {
     });
 
     draggedStepPositions.current = {};
-    recalibrate();
-  }, [draggedStepPositions, recalibrate, uiStateDispatch]);
+  }, [draggedStepPositions, uiStateDispatch]);
 
   const hasSelectedSteps = selectedSteps.length > 0;
 
@@ -148,8 +146,6 @@ export const PipelineEditor = () => {
     }
   }
 
-  const { hash = "" } = pipelineJson || {};
-
   const flushPage = useHasChanged(hash);
 
   const [fixedConnections, interactiveConnections] = React.useMemo(() => {
@@ -168,9 +164,7 @@ export const PipelineEditor = () => {
       }
     });
     return [nonInteractive, interactive];
-  }, [connections, cursorControlledStep]);
-
-  useInitializeConnections();
+  }, [connections, cursorControlledStep, flushPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeDetails = React.useCallback(() => {
     uiStateDispatch({ type: "SET_OPENED_STEP", payload: undefined });
@@ -181,27 +175,18 @@ export const PipelineEditor = () => {
       <PipelineViewport ref={pipelineViewportRef}>
         {fixedConnections.map((connection) => {
           const { startNodeUUID, endNodeUUID } = connection;
-          const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
-          const endNode = endNodeUUID
-            ? stepRefs.current[`${endNodeUUID}-incoming`]
-            : undefined;
-
-          // startNode is required
-          if (!startNode) return null;
-
           // user is trying to make a new connection
-          const isNew = !endNodeUUID && hasValue(newConnection.current);
+          const isNew =
+            !hasValue(endNodeUUID) && hasValue(newConnection.current);
 
           // if the connection is attached to a selected step,
           // the connection should update its start/end node, to move along with the step
           const shouldUpdateStart =
-            flushPage ||
             cursorControlledStep === startNodeUUID ||
             (selectedSteps.includes(startNodeUUID) &&
               selectedSteps.includes(cursorControlledStep || ""));
 
           const shouldUpdateEnd =
-            flushPage ||
             cursorControlledStep === endNodeUUID ||
             isNew ||
             (selectedSteps.includes(endNodeUUID || "") &&
@@ -209,16 +194,22 @@ export const PipelineEditor = () => {
 
           const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as const;
 
-          const startNodePosition = getPosition(startNode);
+          const startNodePosition = {
+            x: steps[startNodeUUID].meta_data.position[0] + STEP_WIDTH,
+            y: steps[startNodeUUID].meta_data.position[1] + STEP_HEIGHT / 2,
+          };
 
-          const endNodePosition =
-            getPosition(endNode) ||
-            (newConnection.current
-              ? {
-                  x: newConnection.current.xEnd,
-                  y: newConnection.current.yEnd,
-                }
-              : null);
+          const endNodePosition = hasValue(endNodeUUID)
+            ? {
+                x: steps[endNodeUUID].meta_data.position[0],
+                y: steps[endNodeUUID].meta_data.position[1] + STEP_HEIGHT / 2,
+              }
+            : newConnection.current
+            ? {
+                x: newConnection.current.xEnd,
+                y: newConnection.current.yEnd,
+              }
+            : null;
 
           const isSelected =
             !hasSelectedSteps &&
@@ -316,6 +307,7 @@ export const PipelineEditor = () => {
             </PipelineStep>
           );
         })}
+
         {stepSelector.active && (
           <Rectangle {...getStepSelectorRectangle(stepSelector)} />
         )}
