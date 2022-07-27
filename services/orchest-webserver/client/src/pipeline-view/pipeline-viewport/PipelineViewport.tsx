@@ -65,6 +65,7 @@ const PipelineViewportComponent = React.forwardRef<
       openedStep,
       contextMenuUuid,
       steps,
+      isStepsLoaded,
     },
     uiStateDispatch,
   } = usePipelineUiStateContext();
@@ -191,8 +192,8 @@ const PipelineViewportComponent = React.forwardRef<
   const { handleContextMenu } = usePipelineViewportContextMenu();
 
   const hasNoStep = React.useMemo(
-    () => pipelineCwd && Object.keys(steps).length === 0,
-    [steps, pipelineCwd]
+    () => isStepsLoaded && Object.keys(steps).length === 0,
+    [steps, isStepsLoaded]
   );
 
   const showIllustration = !isFetchingPipelineJson && (disabled || hasNoStep);
