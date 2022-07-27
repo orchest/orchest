@@ -1,5 +1,5 @@
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { FileTree } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { treeRoots } from "../common";
 import type { FileTrees } from "./common";
@@ -99,6 +99,8 @@ export const FileManagerContextProvider: React.FC<{
     )}`;
   }, [projectUuid, pipelineUuid, jobUuid, runUuid]);
 
+  const { cancelableFetch } = useCancelableFetch();
+
   const fetchFileTrees = React.useCallback(
     async (depth?: number) => {
       if (!browseUrl) return;
@@ -108,20 +110,24 @@ export const FileManagerContextProvider: React.FC<{
 
       const newFiles = await Promise.all(
         treeRoots.map(async (root) => {
-          const file = await fetcher<FileTree>(
-            `${browseUrl}&${queryArgs({ root })}`
-          );
-          return { key: root, file };
+          try {
+            const file = await cancelableFetch<FileTree>(
+              `${browseUrl}&${queryArgs({ root })}`
+            );
+            return { key: root, file };
+          } catch (error) {
+            return undefined;
+          }
         })
       );
 
       setFileTrees(
         newFiles.reduce((obj, curr) => {
-          return { ...obj, [curr.key]: curr.file };
+          return curr ? { ...obj, [curr.key]: curr.file } : obj;
         }, {})
       );
     },
-    [browseUrl]
+    [browseUrl, cancelableFetch]
   );
 
   return (
