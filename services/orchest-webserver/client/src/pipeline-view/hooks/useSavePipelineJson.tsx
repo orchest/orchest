@@ -1,6 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useHasChanged } from "@/hooks/useHasChanged";
 import type { PipelineJson, StepsDict } from "@/types";
 import { resolve } from "@/utils/resolve";
 import { validatePipeline } from "@/utils/webserver-utils";
@@ -14,25 +13,18 @@ import { useSavingIndicator } from "./useSavingIndicator";
 export const useSavePipelineJson = () => {
   const { setAlert } = useAppContext();
   const { projectUuid } = useCustomRoute();
+  const { isReadOnly, pipelineUuid, pipelineJson } = usePipelineDataContext();
   const {
-    isReadOnly,
-    pipelineUuid,
-    pipelineJson,
-    setPipelineJson,
-  } = usePipelineDataContext();
-  const {
-    uiState: { timestamp, steps },
+    uiState: { hash, steps },
   } = usePipelineUiStateContext();
 
-  const shouldSave = useHasChanged(timestamp);
   const setOngoingSaves = useSavingIndicator();
   const savePipelineJson = React.useCallback(
     async (data: PipelineJson) => {
       if (!data || isReadOnly) return;
       setOngoingSaves((current) => current + 1);
 
-      let formData = new FormData();
-      delete data.hash;
+      const formData = new FormData();
       formData.append("pipeline_json", JSON.stringify(data));
       const response = await resolve(() =>
         fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {
@@ -53,31 +45,27 @@ export const useSavePipelineJson = () => {
   );
 
   const mergeStepsIntoPipelineJson = React.useCallback(
-    (steps?: StepsDict) => {
+    (steps: StepsDict) => {
       if (!pipelineJson) return;
       if (isReadOnly) {
         console.error("savePipeline should be un-callable in readOnly mode.");
         return;
       }
 
-      const updatedPipelineJson = steps
-        ? updatePipelineJson(pipelineJson, steps)
-        : pipelineJson;
+      const updatedPipelineJson = updatePipelineJson(pipelineJson, steps);
 
-      // validate pipelineJSON
-      let pipelineValidation = validatePipeline(updatedPipelineJson);
+      const pipelineValidation = validatePipeline(updatedPipelineJson);
 
       if (!pipelineValidation.valid) {
-        // Just show the first error
+        // Show the fist error until valid.
         setAlert("Error", pipelineValidation.errors[0]);
         return;
       }
 
-      setPipelineJson(updatedPipelineJson);
-
       return updatedPipelineJson;
     },
-    [isReadOnly, setAlert, pipelineJson, setPipelineJson]
+
+    [isReadOnly, setAlert, pipelineJson]
   );
 
   const saveSteps = React.useCallback(
@@ -88,11 +76,10 @@ export const useSavePipelineJson = () => {
     [mergeStepsIntoPipelineJson, savePipelineJson]
   );
 
-  // If timestamp is changed, auto-save.
   // check usePipelineUiState to see if the action return value is wrapped by withTimestamp
   React.useEffect(() => {
-    if (hasValue(timestamp) && shouldSave) {
+    if (hasValue(hash)) {
       saveSteps(steps);
     }
-  }, [saveSteps, timestamp, steps, shouldSave]);
+  }, [saveSteps, hash, steps]);
 };
