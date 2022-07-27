@@ -10,7 +10,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import {
@@ -134,8 +133,6 @@ export const PipelineSettingsView: React.FC = () => {
   } = useAppContext();
 
   useSendAnalyticEvent("view:loaded", { name: "/pipeline-settings" });
-
-  useEnsureValidPipeline();
 
   // data from route
   const {
