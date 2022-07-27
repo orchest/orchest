@@ -1,5 +1,4 @@
 import { generateUploadFiles } from "@/components/DropZone";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDebounce } from "@/hooks/useDebounce";
 import LinearProgress, {
   LinearProgressProps,
@@ -73,9 +72,13 @@ export function FileManager() {
    * States
    */
 
-  const { pipelineUuid, jobUuid, runUuid } = useCustomRoute();
-
-  const { projectUuid, isReadOnly } = usePipelineDataContext();
+  const {
+    projectUuid,
+    isReadOnly,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+  } = usePipelineDataContext();
 
   const {
     isDragging,
@@ -220,7 +223,9 @@ export function FileManager() {
 
   React.useEffect(() => {
     reload();
-  }, [reload]);
+    // Only load once when on mount.
+    // Put `reload` in the deps would trigger unwanted requests.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     const filterInvalidEntries = createInvalidEntryFilter({
