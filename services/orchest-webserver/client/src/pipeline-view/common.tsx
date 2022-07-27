@@ -9,7 +9,6 @@ import type {
 } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
-import cloneDeep from "lodash.clonedeep";
 
 export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs";
 export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs";
@@ -24,25 +23,17 @@ export const updatePipelineJson = (
   pipelineJson: PipelineJson,
   steps: StepsDict
 ): PipelineJson => {
-  let clonedPipelineJson: PipelineJson = cloneDeep(pipelineJson);
-  clonedPipelineJson.steps = {};
+  pipelineJson.steps = Object.entries(steps).reduce(
+    (stepsToSave, [stepUuid, stepData]) => {
+      if (stepData.outgoing_connections) {
+        delete stepData.outgoing_connections;
+      }
+      return { ...stepsToSave, [stepUuid]: stepData };
+    },
+    {}
+  );
 
-  Object.values(steps).forEach((step) => {
-    // remove private meta_data (prefixed with underscore)
-    Object.keys(step.meta_data).forEach((key) => {
-      if (/^_/.test(key)) delete step.meta_data[key];
-    });
-
-    // we do not encode outgoing connections explicitly according to
-    // pipeline.json spec.
-    if (step.outgoing_connections) {
-      delete step.outgoing_connections;
-    }
-
-    clonedPipelineJson.steps[step.uuid] = step;
-  });
-
-  return clonedPipelineJson;
+  return pipelineJson;
 };
 
 export const extractStepsFromPipelineJson = (
