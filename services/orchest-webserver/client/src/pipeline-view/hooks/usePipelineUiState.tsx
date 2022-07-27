@@ -32,7 +32,6 @@ export type PipelineUiState = {
   steps: StepsDict;
   isStepsLoaded?: boolean;
   connections: Connection[];
-  doubleClickFirstClick: boolean;
   selectedSteps: string[];
   cursorControlledStep: string | undefined;
   selectedConnection: Pick<Connection, "endNodeUUID" | "startNodeUUID"> | null;
@@ -94,10 +93,6 @@ export type Action =
   | {
       type: "SET_CURSOR_CONTROLLED_STEP";
       payload: string | undefined;
-    }
-  | {
-      type: "INSTANTIATE_CONNECTIONS";
-      payload: Connection[];
     }
   | {
       type: "INSTANTIATE_CONNECTION";
@@ -591,16 +586,6 @@ export const usePipelineUiState = () => {
           });
         }
 
-        case "INSTANTIATE_CONNECTIONS": {
-          return {
-            ...state,
-            connections: action.payload,
-            selectedSteps: [],
-            selectedConnection: null,
-            stepSelector: DEFAULT_STEP_SELECTOR,
-          };
-        }
-
         // this means that the connection might not yet complete, as endNodeUUID is optional
         // this action creates an instance
         case "INSTANTIATE_CONNECTION": {
@@ -722,11 +707,10 @@ export const usePipelineUiState = () => {
         }
       }
     },
-    [mouseTracker, newConnection, scaleFactor, stepRefs]
+    [mouseTracker, newConnection, scaleFactor, stepRefs, zIndexMax]
   );
 
   const [uiState, uiStateDispatch] = React.useReducer(memoizedReducer, {
-    doubleClickFirstClick: false,
     openedStep: undefined,
     openedMultiStep: undefined,
     selectedSteps: [],
