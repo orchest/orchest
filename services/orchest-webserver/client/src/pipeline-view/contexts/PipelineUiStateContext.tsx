@@ -1,5 +1,6 @@
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import { layoutPipeline } from "@/utils/pipeline-layout";
+import { setOutgoingConnections } from "@/utils/webserver-utils";
 import React from "react";
 import { updatePipelineJson } from "../common";
 import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
@@ -87,7 +88,10 @@ export const PipelineUiStateContextProvider: React.FC = ({ children }) => {
 
     const updated = updatePipelineJson(pipelineJson, updatedSteps);
 
-    uiStateDispatch({ type: "SAVE_STEPS", payload: updated.steps });
+    uiStateDispatch({
+      type: "SAVE_STEPS",
+      payload: setOutgoingConnections(updated.steps),
+    });
   }, [pipelineJson, steps, uiStateDispatch]);
 
   return (

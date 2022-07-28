@@ -11,7 +11,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { Job, Step } from "@/types";
+import { Job, StepData } from "@/types";
 import {
   getPipelineJSONEndpoint,
   getPipelineStepChildren,
@@ -64,8 +64,8 @@ const FilePreviewView = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     fileDescription: undefined as any,
     loadingFile: true,
-    parentSteps: [] as Step[],
-    childSteps: [] as Step[],
+    parentSteps: [] as StepData[],
+    childSteps: [] as StepData[],
   });
 
   const [cachedScrollPosition, setCachedScrollPosition] = React.useState<
@@ -312,7 +312,7 @@ const FilePreviewView = () => {
     loadFile();
   }, [stepUuid, pipelineUuid, loadFile]);
 
-  const renderNavStep = (steps: readonly Step[]) =>
+  const renderNavStep = (steps: readonly StepData[]) =>
     steps.map((step) => (
       <Link
         fontSize="16px"

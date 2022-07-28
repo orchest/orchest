@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { Step } from "@/types";
+import { StepState } from "@/types";
 import {
   basename,
   dirname,
@@ -243,7 +243,7 @@ export const removeLeadingSymbols = (filePath: string) =>
 
 // user might enter "./foo.ipynb", but it's equivalent to "foo.ipynb".
 // this function cleans up the leading "./"
-export const getStepFilePath = (step: Step) =>
+export const getStepFilePath = (step: StepState) =>
   removeLeadingSymbols(step.file_path);
 
 export const searchFilePathsByExtension = ({
@@ -303,7 +303,7 @@ export const findFilesByExtension = async ({
  */
 export const validateFiles = (
   currentStepUuid: string | undefined,
-  steps: Record<string, Step> | undefined,
+  steps: Record<string, StepState> | undefined,
   selectedFiles: string[]
 ) => {
   const allNotebookFileSteps = Object.values(steps || {}).reduce(
@@ -314,7 +314,7 @@ export const validateFiles = (
       }
       return all;
     },
-    [] as Step[]
+    [] as StepState[]
   );
 
   return selectedFiles.reduce(

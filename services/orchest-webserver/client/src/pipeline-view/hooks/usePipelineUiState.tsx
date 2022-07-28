@@ -3,17 +3,16 @@ import type {
   Connection,
   NewConnection,
   Offset,
-  PipelineStepState,
   ReducerActionWithCallback,
-  Step,
   StepsDict,
+  StepState,
 } from "@/types";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
 import { hasValue, intersectRect, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
 import merge from "lodash.merge";
 import React from "react";
-import { getScaleCorrectedPosition, willCreateCycle } from "../common";
+import { createsLoop, getScaleCorrectedPosition } from "../common";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { useScaleFactor } from "../contexts/ScaleFactorContext";
 import { getStepSelectorRectangle } from "../Rectangle";
@@ -57,7 +56,7 @@ export type Action =
     }
   | {
       type: "CREATE_STEP";
-      payload: PipelineStepState;
+      payload: StepState;
     }
   | {
       type: "DUPLICATE_STEPS";
@@ -95,6 +94,10 @@ export type Action =
       payload: string | undefined;
     }
   | {
+      type: "INSTANTIATE_CONNECTIONS";
+      payload: Connection[];
+    }
+  | {
       type: "INSTANTIATE_CONNECTION";
       payload: Connection;
     }
@@ -110,7 +113,7 @@ export type Action =
   | {
       type: "SAVE_STEP_DETAILS";
       payload: {
-        stepChanges: Partial<Step>;
+        stepChanges: Partial<StepState>;
         uuid: string;
         replace?: boolean;
       };
@@ -162,12 +165,11 @@ export function removeConnection<
 
   const { startNodeUUID, endNodeUUID } = connectionToDelete;
 
-  const updatedConnections = baseState.connections.filter((connection) => {
-    return (
+  const updatedConnections = baseState.connections.filter(
+    (connection) =>
       connection.startNodeUUID !== startNodeUUID ||
       connection.endNodeUUID !== endNodeUUID
-    );
-  });
+  );
 
   const subsequentStep = endNodeUUID ? baseState.steps[endNodeUUID] : undefined;
 
@@ -279,12 +281,9 @@ export const usePipelineUiState = () => {
 
         // ==== check whether connection will create a cycle in Pipeline graph
 
-        let connectionCreatesCycle = willCreateCycle(state.steps, [
-          startNodeUUID,
-          endNodeUUID,
-        ]);
+        const isLoop = createsLoop(state.steps, [startNodeUUID, endNodeUUID]);
 
-        if (connectionCreatesCycle && newConnection.current) {
+        if (isLoop && newConnection.current) {
           const error =
             "Connecting this step will create a cycle in your pipeline which is not supported.";
 
@@ -302,8 +301,10 @@ export const usePipelineUiState = () => {
             (connection) => !connection.endNodeUUID
           );
           draft.connections[index].endNodeUUID = endNodeUUID;
-          if (startNodeUUID)
+          if (startNodeUUID) {
             draft.steps[endNodeUUID].incoming_connections.push(startNodeUUID);
+            draft.steps[startNodeUUID].outgoing_connections.push(endNodeUUID);
+          }
         });
       };
 
@@ -383,10 +384,7 @@ export const usePipelineUiState = () => {
           };
         }
         case "SAVE_STEPS": {
-          return withHash({
-            ...state,
-            steps: action.payload,
-          });
+          return withHash({ ...state, steps: action.payload });
         }
         case "CREATE_STEP": {
           const newStep = action.payload;
@@ -598,9 +596,8 @@ export const usePipelineUiState = () => {
           };
         }
 
-        case "MAKE_CONNECTION": {
+        case "MAKE_CONNECTION":
           return withHash(makeConnection(action.payload));
-        }
 
         case "REMOVE_CONNECTION": {
           newConnection.current = undefined;
@@ -667,38 +664,28 @@ export const usePipelineUiState = () => {
           });
         }
 
-        case "SAVE_STEP_DETAILS": {
+        case "SAVE_STEP_DETAILS":
           const { replace, stepChanges, uuid } = action.payload;
-          // Mutate step with changes
+
           return produce(withHash(state), (draft) => {
             if (replace) {
               // Replace works on the top level keys that are provided
-              Object.entries(stepChanges).forEach(([propKey, mutation]) => {
-                draft.steps[uuid][propKey] = mutation;
-              });
+              Object.entries(stepChanges).forEach(
+                ([key, change]) => (draft.steps[uuid][key] = change)
+              );
             } else {
               // lodash merge mutates the object
               merge(draft.steps[uuid], stepChanges);
             }
           });
-        }
-
-        case "SET_ERROR": {
+        case "SET_ERROR":
           return { ...state, error: action.payload };
-        }
-
-        case "SELECT_SUB_VIEW": {
+        case "SELECT_SUB_VIEW":
           return { ...state, subViewIndex: action.payload };
-        }
-
-        case "SET_IS_DELETING_STEPS": {
+        case "SET_IS_DELETING_STEPS":
           return { ...state, isDeletingSteps: action.payload };
-        }
-
-        case "SET_CONTEXT_MENU_UUID": {
+        case "SET_CONTEXT_MENU_UUID":
           return { ...state, contextMenuUuid: action.payload };
-        }
-
         default: {
           console.error(
             `[UiState] Unknown action: "${JSON.stringify(action)}"`

@@ -23,7 +23,6 @@ export const useRunSteps = () => {
 
   const {
     state: { pipeline },
-    dispatch,
   } = useProjectsContext();
 
   const {

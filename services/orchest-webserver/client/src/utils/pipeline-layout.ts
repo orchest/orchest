@@ -1,4 +1,4 @@
-import { PipelineStepState, StepsDict } from "@/types";
+import { StepsDict, StepState } from "@/types";
 import {
   coordCenter,
   dagStratify,
@@ -8,7 +8,6 @@ import {
   sugiyama,
 } from "d3-dag";
 import cloneDeep from "lodash.clonedeep";
-import { addOutgoingConnections } from "./webserver-utils";
 
 type Component = {
   uuid: string;
@@ -172,10 +171,10 @@ const layoutComponent = (
 };
 
 const traverseGraph = (
-  step: PipelineStepState,
-  allSteps: { [uuid: string]: PipelineStepState },
+  step: StepState,
+  allSteps: StepsDict,
   seenNodes: Set<string>,
-  component: PipelineStepState[]
+  component: StepState[]
 ) => {
   step.outgoing_connections.forEach((stepUuid) => {
     if (!seenNodes.has(stepUuid)) {
@@ -203,7 +202,10 @@ const traverseGraph = (
 const collectComponents = (steps: StepsDict) => {
   // Traverse graph
   let seenNodes: Set<string> = new Set();
-  let components: { uuid: string; incoming_connections: string[] }[][] = [];
+  let components: {
+    uuid: string;
+    incoming_connections: string[];
+  }[][] = [];
 
   Object.entries(steps).forEach(([stepUuid, step]) => {
     if (!seenNodes.has(stepUuid)) {
@@ -233,9 +235,6 @@ export const layoutPipeline = (
   stepHeight: number
 ) => {
   const stepsCopy = cloneDeep(steps);
-
-  addOutgoingConnections(stepsCopy);
-
   const components = collectComponents(stepsCopy);
 
   // layout each component top left

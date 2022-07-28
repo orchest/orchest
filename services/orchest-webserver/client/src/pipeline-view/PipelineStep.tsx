@@ -4,10 +4,10 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Connection,
-  PipelineStepMetaData,
-  PipelineStepState,
   PipelineStepStatus,
   Position,
+  StepMetaData,
+  StepState,
 } from "@/types";
 import Box from "@mui/material/Box";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
@@ -115,7 +115,7 @@ export const getStateText = (executionState: ExecutionState) => {
 };
 
 type PipelineStepProps = {
-  data: PipelineStepState;
+  data: StepState;
   selected: boolean;
   movedToTop: boolean;
   isStartNodeOfNewConnection: boolean;
@@ -185,7 +185,7 @@ const PipelineStepComponent = React.forwardRef<
   // only persist meta_data for manipulating location with a local state
   // the rest will be updated together with pipelineJson (i.e. data)
   const { uuid, title, meta_data, file_path } = data;
-  const [metadata, setMetadata] = React.useState<PipelineStepMetaData>(() => ({
+  const [metadata, setMetadata] = React.useState<StepMetaData>(() => ({
     ...meta_data,
   }));
 
