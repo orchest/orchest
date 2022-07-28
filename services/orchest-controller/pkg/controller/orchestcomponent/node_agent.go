@@ -151,28 +151,44 @@ func getNodeAgentDaemonset(registryIP string, metadata metav1.ObjectMeta,
 		}
 
 		// The registry ca.crt also needs to be injected into the container
-		template.Spec.Volumes = append(template.Spec.Volumes, corev1.Volume{
-			Name: "tls-secret",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: "registry-tls-secret",
-					Items: []corev1.KeyToPath{
-						{
-							Key:  "ca.crt",
-							Path: "ca.crt",
+		template.Spec.Volumes = append(template.Spec.Volumes,
+			corev1.Volume{
+				Name: "tls-secret",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "registry-tls-secret",
+						Items: []corev1.KeyToPath{
+							{
+								Key:  "ca.crt",
+								Path: "ca.crt",
+							},
 						},
 					},
 				},
 			},
-		})
+			corev1.Volume{
+				Name: "docker-certs",
+				VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{
+						Path: "/etc/docker/certs.d",
+					},
+				},
+			},
+		)
 
 		// And the secret needs to be mounted into the container
-		template.Spec.Containers[0].VolumeMounts = append(template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      "tls-secret",
-			MountPath: "/tls-secret/ca.crt",
-			SubPath:   "ca.crt",
-			ReadOnly:  true,
-		})
+		template.Spec.Containers[0].VolumeMounts = append(template.Spec.Containers[0].VolumeMounts,
+			corev1.VolumeMount{
+				Name:      "tls-secret",
+				MountPath: "/tls-secret/ca.crt",
+				SubPath:   "ca.crt",
+				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      "docker-certs",
+				MountPath: "/etc/docker/certs.d",
+			},
+		)
 	}
 
 	daemonSet := &appsv1.DaemonSet{
