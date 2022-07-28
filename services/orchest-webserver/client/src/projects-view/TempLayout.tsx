@@ -1,4 +1,4 @@
-import Box from "@mui/material/Box";
+import { MainContainer } from "@/components/Layout/MainContainer";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
@@ -33,19 +33,15 @@ export const TempLayout: React.FC<{
           {toolbarElements}
         </Toolbar>
       )}
-      <Box
+      <MainContainer
+        disablePadding={disablePadding}
         sx={{
-          padding: (theme) => (disablePadding ? 0 : theme.spacing(4)),
-          overflow: "hidden auto",
-          flex: 1,
           marginTop: (theme) =>
             loading && !toolbarElements ? theme.spacing(-0.5) : 0,
         }}
       >
-        <Box sx={{ maxWidth: (theme) => theme.spacing(144), margin: "0 auto" }}>
-          {children}
-        </Box>
-      </Box>
+        {children}
+      </MainContainer>
     </Stack>
   );
 };

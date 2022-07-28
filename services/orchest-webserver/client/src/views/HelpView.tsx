@@ -1,6 +1,6 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
-import { useOnboardingDialog } from "@/components/Layout/OnboardingDialog";
+import { useOnboardingDialog } from "@/components/Layout/legacy/OnboardingDialog";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
