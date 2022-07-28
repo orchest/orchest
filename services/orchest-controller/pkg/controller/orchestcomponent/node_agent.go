@@ -1,9 +1,9 @@
 package orchestcomponent
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
@@ -26,10 +26,18 @@ func NewNodeAgentReconciler(ctrl *OrchestComponentController) OrchestComponentRe
 
 func (reconciler *NodeAgentReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
 
+	// first retrive the registry IP
+	registryService, err := reconciler.Client().CoreV1().Services(component.Namespace).Get(ctx, addons.DockerRegistry, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	registryIP := registryService.Spec.ClusterIP
+
 	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.NodeAgent, component)
 	metadata := controller.GetMetadata(controller.NodeAgent, hash, component, OrchestComponentKind)
-	newDs, err := getNodeAgentDaemonset(metadata, matchLabels, component)
+	newDs, err := getNodeAgentDaemonset(registryIP, metadata, matchLabels, component)
 	if err != nil {
 		return err
 	}
@@ -58,7 +66,7 @@ func (reconciler *NodeAgentReconciler) Uninstall(ctx context.Context, component 
 	return true, nil
 }
 
-func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
+func getNodeAgentDaemonset(registryIP string, metadata metav1.ObjectMeta,
 	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) (
 	*appsv1.DaemonSet, error) {
 
@@ -118,11 +126,6 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 
 	// If container runtime is docker add required volumes to inject the certificates with lifecycle hooks
 	if containerRuntime == "docker" {
-
-		registryIP := utils.GetKeyFromEnvVar(component.Spec.Template.Env, "REGISTRY_IP")
-		if registryIP == "" {
-			return nil, errors.New("REGISTRY_IP env var is not set")
-		}
 		certificateDirectory := fmt.Sprintf("/etc/docker/certs.d/%s/", registryIP)
 
 		template.Spec.Containers[0].Lifecycle = &corev1.Lifecycle{
@@ -131,7 +134,7 @@ func getNodeAgentDaemonset(metadata metav1.ObjectMeta,
 					Command: []string{
 						"/bin/sh",
 						"-c",
-						"mkdir " + certificateDirectory +
+						"mkdir -p " + certificateDirectory +
 							" && cp /tls-secret/ca.crt " + certificateDirectory,
 					},
 				},
