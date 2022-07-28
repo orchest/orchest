@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Button, { ButtonProps } from "@mui/material/Button";
 import React from "react";
 
-type CreateEntityButtonProps = ButtonProps & {
+export type CreateEntityButtonProps = ButtonProps & {
   onClick: (e: React.MouseEvent) => void;
   disabled?: boolean;
   children: React.ReactNode;
@@ -13,6 +13,7 @@ type CreateEntityButtonProps = ButtonProps & {
 export const CreateEntityButton = ({
   onClick,
   children,
+  sx,
   ...props
 }: CreateEntityButtonProps) => {
   return (
@@ -33,6 +34,7 @@ export const CreateEntityButton = ({
           ":hover": {
             backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
           },
+          ...sx,
         }}
         {...props}
       >

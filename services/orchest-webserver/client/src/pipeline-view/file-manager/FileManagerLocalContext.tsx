@@ -87,7 +87,8 @@ export const FileManagerLocalContextProvider: React.FC<{
 }> = ({ children, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
   const {
-    state: { pipelines = [] },
+    state: { pipelines = [], pipelineReadOnlyReason },
+    dispatch,
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
@@ -145,11 +146,6 @@ export const FileManagerLocalContextProvider: React.FC<{
   const handleClose = React.useCallback(() => {
     setContextMenu(undefined);
   }, [setContextMenu]);
-
-  const {
-    state: { pipelineReadOnlyReason },
-    dispatch,
-  } = useProjectsContext();
 
   const handleContextRename = React.useCallback(() => {
     if (pipelineReadOnlyReason || !contextMenuCombinedPath) return;
