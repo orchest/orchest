@@ -1,4 +1,4 @@
-import { MainContainer } from "@/components/Layout/MainContainer";
+import { MainContainer } from "@/components/Layout/layout-with-side-panel/MainContainer";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
