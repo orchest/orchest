@@ -16,20 +16,20 @@ export const SelectEnvironment = ({
   value,
   onChange,
   disabled,
-  queryString,
+  language,
 }: {
   value: string;
   onChange: (
     updatedEnvironmentUUID: string,
     updatedEnvironmentName: string,
-    skipSave?: boolean | undefined
+    skipSave?: boolean
   ) => void;
   disabled: boolean;
-  queryString: string;
+  language?: string;
 }) => {
   const { projectUuid } = useCustomRoute();
 
-  const { environments } = useFetchEnvironments(projectUuid, queryString);
+  const { environments } = useFetchEnvironments(projectUuid, language);
 
   const environmentOptions = React.useMemo<
     EnvironmentOption[] | undefined

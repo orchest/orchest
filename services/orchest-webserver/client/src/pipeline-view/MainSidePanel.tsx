@@ -4,8 +4,8 @@ import {
   MIN_MAIN_SIDE_PANEL_WIDTH,
   usePipelineCanvasDimensionsContext,
 } from "./contexts/PipelineCanvasDimensionsContext";
-
-export const MainSidePanel: React.FC = ({ children }) => {
+type MainSidePanelProps = { children: React.ReactNode };
+export const MainSidePanel = ({ children }: MainSidePanelProps) => {
   const {
     mainSidePanelWidth,
     setMainSidePanelWidth,

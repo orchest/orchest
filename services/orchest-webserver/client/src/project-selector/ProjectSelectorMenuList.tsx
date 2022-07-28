@@ -40,6 +40,7 @@ export const ProjectSelectorMenuList = ({
         sx={{
           padding: (theme) => theme.spacing(0, 2),
           marginBottom: (theme) => theme.spacing(1),
+          flexShrink: 0,
         }}
       >
         <SearchField
@@ -58,8 +59,8 @@ export const ProjectSelectorMenuList = ({
       </Box>
       <MenuList
         sx={{
-          minHeight: (theme) => `calc(100vh - ${theme.spacing(25.75)})`,
-          maxHeight: (theme) => `calc(100vh - ${theme.spacing(25.75)})`,
+          minHeight: (theme) => `calc(100vh - ${theme.spacing(27)})`,
+          flexShrink: 1,
           overflowY: "auto",
         }}
       >

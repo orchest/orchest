@@ -1,10 +1,12 @@
+import { queryArgs } from "@/pipeline-view/file-manager/common";
 import { Environment } from "@/types";
 import { useFetcher } from "./useFetcher";
 
-export function useFetchEnvironments(
+export const useFetchEnvironments = (
   projectUuid: string | undefined,
-  queryString = ""
-) {
+  language?: string
+) => {
+  const queryString = language ? `?${queryArgs({ language })}` : "";
   const { fetchData, data, setData, error, status } = useFetcher<Environment[]>(
     projectUuid ? `/store/environments/${projectUuid}${queryString}` : undefined
   );
@@ -16,4 +18,4 @@ export function useFetchEnvironments(
     fetchEnvironments: fetchData,
     setEnvironments: setData,
   };
-}
+};
