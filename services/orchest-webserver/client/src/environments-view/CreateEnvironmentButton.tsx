@@ -1,4 +1,7 @@
-import { CreateEntityButton } from "@/blocks/CreateEntityButton";
+import {
+  CreateEntityButton,
+  CreateEntityButtonProps,
+} from "@/blocks/CreateEntityButton";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import React from "react";
@@ -6,7 +9,14 @@ import { getNewEnvironmentName } from "./common";
 import { usePostNewEnvironment } from "./hooks/usePostNewEnvironment";
 import { useEnvironmentsStore } from "./stores/useEnvironmentsStore";
 
-export const CreateEnvironmentButton = () => {
+type CreateEnvironmentButtonProps = Omit<
+  CreateEntityButtonProps,
+  "children" | "onClick" | "disabled"
+>;
+
+export const CreateEnvironmentButton = (
+  props: CreateEnvironmentButtonProps
+) => {
   const {
     state: { projectUuid },
   } = useProjectsContext();
@@ -45,7 +55,11 @@ export const CreateEnvironmentButton = () => {
   };
 
   return (
-    <CreateEntityButton onClick={createEnvironment} disabled={disabled}>
+    <CreateEntityButton
+      onClick={createEnvironment}
+      disabled={disabled}
+      {...props}
+    >
       New environment
     </CreateEntityButton>
   );
