@@ -8,7 +8,6 @@ import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot, treeRoots } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { CreatePipelineDialog } from "../CreatePipelineDialog";
 import { ActionBar } from "./ActionBar";
 import {
   FILE_MANAGEMENT_ENDPOINT,
@@ -74,7 +73,6 @@ export function FileManager() {
 
   const {
     projectUuid,
-    isReadOnly,
     pipelineUuid,
     jobUuid,
     runUuid,
@@ -281,14 +279,7 @@ export function FileManager() {
           reload={reload}
           setContextMenu={setContextMenu}
         >
-          <CreatePipelineDialog>
-            {(onCreateClick) => (
-              <CreatePipelineButton
-                disabled={isReadOnly}
-                onClick={onCreateClick}
-              />
-            )}
-          </CreatePipelineDialog>
+          <CreatePipelineButton />
           <ActionBar
             setExpanded={setExpanded}
             uploadFiles={uploadFiles}
