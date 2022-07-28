@@ -166,7 +166,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	addonManager *addons.AddonManager,
 ) *OrchestClusterController {
 
-	informerSyncedList := make([]cache.InformerSynced, 0, 0)
+	informerSyncedList := make([]cache.InformerSynced, 0)
 
 	ctrl := controller.NewController[*orchestv1alpha1.OrchestCluster](
 		"orchest-cluster",
@@ -540,6 +540,23 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Applications = occ.config.DefaultApplications
 	}
 
+	// set docker-registry default values
+	for i := 0; i < len(copy.Spec.Applications); i++ {
+		app := &copy.Spec.Applications[i]
+		if app.Name == addons.DockerRegistry {
+
+			registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), app)
+			if err != nil {
+				klog.Error(err)
+				return changed, err
+			}
+
+			if registryChanged {
+				changed = true
+			}
+		}
+	}
+
 	if changed || !reflect.DeepEqual(copy.Spec, orchest.Spec) {
 		_, err := occ.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
 
@@ -566,9 +583,12 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			return err
 		}
 
-		serviceIP, err := setRegistryServiceIP(ctx, occ.Client(), config)
 		if err != nil {
-			klog.Error(err)
+			return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
+		}
+
+		serviceIP, err := getRegistryServiceIP(config)
+		if err != nil {
 			return err
 		}
 

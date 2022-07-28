@@ -244,22 +244,38 @@ func getOrchestComponent(name, hash string,
 
 }
 
-// setRegistryServiceIP defines the registry service IP if not defined
-func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface, config *orchestv1alpha1.ApplicationConfig) (string, error) {
-	if config == nil {
-		return "", errors.Errorf("docker-registry application config is not defined")
-	}
-
+// getRegistryServiceIP retrives the defined registry service IP from config
+func getRegistryServiceIP(config *orchestv1alpha1.ApplicationConfig) (string, error) {
 	for _, param := range config.Helm.Parameters {
 		if param.Name == registryServiceIP {
 			return param.Value, nil
 		}
 	}
 
+	return "", errors.Errorf("registry service IP not found in config")
+}
+
+// setRegistryServiceIP defines the registry service IP if not defined
+func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
+	app *orchestv1alpha1.ApplicationSpec) (bool, error) {
+
+	var changed = false
+
+	if app.Config.Helm == nil {
+		changed = true
+		app.Config.Helm = &orchestv1alpha1.ApplicationConfigHelm{}
+	}
+
+	for _, param := range app.Config.Helm.Parameters {
+		if param.Name == registryServiceIP {
+			return changed, nil
+		}
+	}
+
 	// the service ip is not defined, let's find a free IP
 	serviceList, err := client.CoreV1().Services("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return "", err
+		return changed, err
 	}
 
 	// Sort the ip addresses
@@ -306,17 +322,17 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface, conf
 			Spec.ClusterIP).To4(), 1).To4().String()
 	}
 
-	if config.Helm.Parameters == nil {
-		config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
+	if app.Config.Helm.Parameters == nil {
+		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
 	}
 
-	config.Helm.Parameters = append(config.Helm.Parameters,
+	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
 		orchestv1alpha1.HelmParameter{
 			Name:  registryServiceIP,
 			Value: serviceIP,
 		})
 
-	return serviceIP, nil
+	return changed, nil
 }
 
 // nextIP returns the next ip address
