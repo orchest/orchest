@@ -26,7 +26,7 @@ func NewHelmDeployer(name, deployDir string, valuesPath string) Addon {
 }
 
 // Installs deployer if the config is changed
-func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []func() error,
+func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallHookFn,
 	namespace string,
 	config *orchestv1alpha1.ApplicationConfig) error {
 
@@ -73,7 +73,7 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []func() erro
 	}
 
 	for _, preInstall := range preInstallHooks {
-		err = preInstall()
+		err = preInstall(config)
 		if err != nil {
 			return nil
 		}
