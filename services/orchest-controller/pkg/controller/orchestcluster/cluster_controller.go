@@ -557,16 +557,22 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster) (err error) {
 
-	preInstallHooks := []func() error{}
+	preInstallHooks := []addons.PreInstallHookFn{}
 
-	registryPreInstall := func() error {
+	registryPreInstall := func(config *orchestv1alpha1.ApplicationConfig) error {
 		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 
-		err = registryCertgen(ctx, occ.Client(), orchest)
+		serviceIP, err := setRegistryServiceIP(ctx, occ.Client(), config)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		err = registryCertgen(ctx, occ.Client(), serviceIP, orchest)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -576,7 +582,7 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 	}
 
 	for _, application := range orchest.Spec.Applications {
-		preInstallHooks = append(preInstallHooks, func() error {
+		preInstallHooks = append(preInstallHooks, func(*orchestv1alpha1.ApplicationConfig) error {
 			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
 				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", application.Name)))
 			if err != nil {
