@@ -36,21 +36,6 @@ export const updatePipelineJson = (
   return pipelineJson;
 };
 
-export const extractStepsFromPipelineJson = (
-  pipelineJson: PipelineJson,
-  steps: StepsDict = {}
-) => {
-  Object.entries(pipelineJson.steps).forEach(([key, step]) => {
-    steps[key] = {
-      ...step,
-      // augmenting state with runtime data in meta_data
-      meta_data: step.meta_data,
-    };
-  });
-
-  return steps;
-};
-
 export const instantiateNewConnection = (
   startNodeUUID: string
 ): NewConnection => {

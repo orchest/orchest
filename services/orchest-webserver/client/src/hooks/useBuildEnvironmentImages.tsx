@@ -100,6 +100,7 @@ export const useBuildEnvironmentImages = () => {
 
       setEnvironmentsToBeBuilt(inactiveEnvironments);
       setIsBuilding(buildingValue);
+
       setAllowViewBuildStatus(inactiveEnvironments.length === 0);
       setAllowBuild(inactiveEnvironments.length > 0);
       setState((prevState) => ({
@@ -108,6 +109,15 @@ export const useBuildEnvironmentImages = () => {
         message,
         environmentsBuilding,
       }));
+      dispatch({
+        type: "SET_PIPELINE_READONLY_REASON",
+        payload:
+          inactiveEnvironments.length > 0
+            ? "environmentsNotYetBuilt"
+            : buildingValue
+            ? "environmentsBuildInProgress"
+            : undefined,
+      });
 
       if (environmentsBuilding > 0) {
         startPollingGate();
@@ -115,7 +125,7 @@ export const useBuildEnvironmentImages = () => {
         setGateInterval(null);
       }
     },
-    [buildRequest?.requestedFromView]
+    [buildRequest?.requestedFromView, dispatch]
   );
 
   React.useEffect(() => {
