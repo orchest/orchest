@@ -1,7 +1,6 @@
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { StepsDict } from "@/types";
 import React from "react";
-import { extractStepsFromPipelineJson } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { PipelineUiStateAction } from "./usePipelineUiState";
 
@@ -24,8 +23,8 @@ export const useInitializePipelineEditor = (
 
   React.useEffect(() => {
     if (pipelineJson) {
-      const initialSteps = extractStepsFromPipelineJson(pipelineJson);
-      initializeUiState(initialSteps);
+      const { steps } = pipelineJson;
+      initializeUiState(steps);
     }
   }, [initializeUiState, hasFetchedPipelineJsonOnMount]); // eslint-disable-line react-hooks/exhaustive-deps
 };
