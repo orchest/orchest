@@ -22,12 +22,7 @@ export type StepDetailsConnectionsProps = {
 export const StepDetailsConnections = ({
   onSave,
 }: StepDetailsConnectionsProps) => {
-  const {
-    step,
-    steps,
-    disconnect: severConnection,
-    connections,
-  } = useStepDetailsContext();
+  const { step, steps, disconnect, connections } = useStepDetailsContext();
 
   // Mostly for new steps, where user is assumed to start typing Step Title,
   // then Step File Path is then automatically generated.
@@ -58,7 +53,7 @@ export const StepDetailsConnections = ({
     const startNodeUUID = step.incoming_connections[index];
 
     if (startNodeUUID) {
-      severConnection(startNodeUUID, step.uuid);
+      disconnect(startNodeUUID, step.uuid);
     }
   };
 
@@ -70,10 +65,7 @@ export const StepDetailsConnections = ({
     );
 
     if (startNodeUUID) {
-      severConnection(startNodeUUID, endNodeUUID);
-      const newConn = step.outgoing_connections.filter((_, i) => i !== index);
-
-      onSave({ outgoing_connections: newConn }, step.uuid, true);
+      disconnect(startNodeUUID, endNodeUUID);
     }
   };
 
