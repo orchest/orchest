@@ -1,17 +1,12 @@
-import { SortableStack } from "@/components/SortableStack";
 import { StepState } from "@/types";
-import { ellipsis } from "@/utils/styles";
 import { toValidFilename } from "@/utils/toValidFilename";
-import { CloseOutlined, DragHandleOutlined } from "@mui/icons-material";
-import { IconButton } from "@mui/material";
-import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
+import { ConnectionList } from "./ConnectionList";
 import { useStepDetailsContext } from "./StepDetailsContext";
 
-export type StepDetailsConnectionsProps = {
+export type StepConnectionProps = {
   onSave: (
     payload: Partial<StepState>,
     uuid: string,
@@ -19,9 +14,7 @@ export type StepDetailsConnectionsProps = {
   ) => void;
 };
 
-export const StepDetailsConnections = ({
-  onSave,
-}: StepDetailsConnectionsProps) => {
+export const StepConnections = ({ onSave }: StepConnectionProps) => {
   const { step, steps, disconnect, connections } = useStepDetailsContext();
 
   // Mostly for new steps, where user is assumed to start typing Step Title,
@@ -39,7 +32,7 @@ export const StepDetailsConnections = ({
     [onSave, step.uuid, step.file_path]
   );
 
-  const reorder = (ia: number, ib: number) => {
+  const reorderIncoming = (ia: number, ib: number) => {
     if (ia !== ib) {
       const connections = [...step.incoming_connections];
       const [old] = connections.splice(ia, 1);
@@ -65,7 +58,7 @@ export const StepDetailsConnections = ({
     );
 
     if (startNodeUUID) {
-      disconnect(startNodeUUID, endNodeUUID);
+      disconnect(step.uuid, endNodeUUID);
     }
   };
 
@@ -77,87 +70,25 @@ export const StepDetailsConnections = ({
 
   return (
     <Stack direction="column" spacing={3}>
-      <Box>
-        <Typography
-          component="div"
-          variant="subtitle2"
-          fontSize="14px"
-          color="text.secondary"
-          sx={{ padding: (theme) => theme.spacing(0, 0) }}
-        >
-          Incoming
-        </Typography>
-        <SortableStack
-          onUpdate={async (oldIndex, newIndex) => reorder(oldIndex, newIndex)}
-        >
-          {step.incoming_connections.map((uuid, i) => (
-            <Stack
-              flexDirection="row"
-              key={uuid}
-              alignItems="center"
-              justifyContent="space-between"
-              sx={{ width: "100%" }}
-            >
-              <Stack flexShrink={1} flexDirection="row" gap={1.5} minWidth="0">
-                <DragHandleOutlined style={{ width: "24px", height: "24px" }} />
-                <Typography sx={ellipsis()} variant="body2" fontSize={14}>
-                  {connections[uuid].title}
-                </Typography>
-                <Typography
-                  sx={ellipsis()}
-                  variant="body2"
-                  fontSize={14}
-                  color="text.secondary"
-                >
-                  {connections[uuid].file_path}
-                </Typography>
-              </Stack>
-
-              <IconButton onClick={() => removeIncoming(i)}>
-                <CloseOutlined style={{ width: "20px", height: "20px" }} />
-              </IconButton>
-            </Stack>
-          ))}
-        </SortableStack>
-      </Box>
-      <Box>
-        <Typography
-          component="div"
-          variant="subtitle2"
-          fontSize="14px"
-          color="text.secondary"
-          sx={{ padding: (theme) => theme.spacing(0, 0) }}
-        >
-          Outgoing
-        </Typography>
-        {step.outgoing_connections?.map((uuid, i) => (
-          <Stack
-            flexDirection="row"
-            key={uuid}
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ width: "100%" }}
-          >
-            <Stack flexShrink={1} flexDirection="row" gap={1.5} minWidth="0">
-              <Typography sx={ellipsis()} variant="body2" fontSize={14}>
-                {connections[uuid].title}
-              </Typography>
-              <Typography
-                sx={ellipsis()}
-                variant="body2"
-                fontSize={14}
-                color="text.secondary"
-              >
-                {connections[uuid].file_path}
-              </Typography>
-            </Stack>
-
-            <IconButton onClick={() => removeOutgoing(i)}>
-              <CloseOutlined style={{ width: "20px", height: "20px" }} />
-            </IconButton>
-          </Stack>
-        ))}
-      </Box>
+      <ConnectionList
+        title="Incoming"
+        sortable={true}
+        onRemove={removeIncoming}
+        onSwap={reorderIncoming}
+        connections={step.incoming_connections.map((uuid) => ({
+          ...connections[uuid],
+          uuid,
+        }))}
+      />
+      <ConnectionList
+        title="Outgoing"
+        sortable={false}
+        onRemove={removeOutgoing}
+        connections={step.outgoing_connections.map((uuid) => ({
+          ...connections[uuid],
+          uuid,
+        }))}
+      />
     </Stack>
   );
 };

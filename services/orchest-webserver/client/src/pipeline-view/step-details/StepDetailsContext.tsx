@@ -5,7 +5,7 @@ import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
-type ConnectionByUuid = Record<string, { title: string; file_path: string }>;
+type ConnectionByUuid = Record<string, { title: string; filePath: string }>;
 
 export type StepDetailsContextType = {
   doesStepFileExist: boolean;
@@ -62,7 +62,7 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
       .reduce((all, id) => {
         const { title, file_path } = steps[id];
 
-        return { ...all, [id]: { title, file_path } };
+        return { ...all, [id]: { title, filePath: file_path } };
       }, {} as ConnectionByUuid);
   }, [steps, step]);
 
