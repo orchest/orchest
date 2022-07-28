@@ -236,7 +236,7 @@ export type Job = {
       data_passing_memory_size: string;
     };
     uuid: string;
-    steps: Record<string, Step>;
+    steps: Record<string, StepState>;
     version: string;
     services: Record<string, Service>;
   };
@@ -265,19 +265,35 @@ export type Job = {
   pipeline_run_status_counts: Record<TStatus, number | undefined>;
 };
 
-export type Step = {
+export type UnidirectionalStepNode = {
   uuid: string;
-  title: string;
   incoming_connections: string[];
+};
+
+export type StepNode = UnidirectionalStepNode & {
+  outgoing_connections: string[];
+};
+
+export type StepMetaData = {
+  hidden: boolean;
+  position: [number, number];
+};
+
+export type StepState = StepNode & {
+  title: string;
   environment: string;
   file_path: string;
+  parameters: Record<string, any>;
+  meta_data: StepMetaData;
   kernel: {
     display_name?: string;
     name?: string;
   };
-  meta_data: { hidden: boolean; position: [number, number] };
-  parameters: Record<string, Json>;
 };
+
+export type StepData = Omit<StepState, "outgoing_connections">;
+
+export type StepsDict = Record<string, StepState>;
 
 export type MouseTracker = {
   client: Position;
@@ -300,18 +316,6 @@ export type NewConnection = Connection & {
 export type Position = { x: number; y: number };
 
 export type LogType = "step" | "service";
-
-export type PipelineStepMetaData = {
-  hidden: boolean;
-  position: [number, number];
-};
-
-export type PipelineStepState = Step & {
-  outgoing_connections?: string[];
-  meta_data?: PipelineStepMetaData;
-};
-
-export type StepsDict = Record<string, PipelineStepState>;
 
 export type Offset = { top: number; left: number };
 
@@ -365,12 +369,14 @@ export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
   settings: PipelineSettings;
-  steps: StepsDict;
+  steps: Record<string, StepData>;
   uuid: string;
   version: string;
   services?: Record<string, Service>;
   hash?: string;
 };
+
+export type PipelineState = PipelineJson & { steps: Record<string, StepState> };
 
 export type Example = {
   description: string; // 280 characters
