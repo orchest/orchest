@@ -5,9 +5,11 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { StepState } from "@/types";
 import { CloseOutlined } from "@mui/icons-material";
-import { IconButton, Stack, Typography } from "@mui/material";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
+import Typography from "@mui/material/Typography";
 import React from "react";
 import {
   ClientPosition,
@@ -17,7 +19,7 @@ import { ResizeBar } from "../components/ResizeBar";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { StepDetailsActions } from "./StepDetailsActions";
-import { StepDetailsConnections } from "./StepDetailsConnections";
+import { StepConnections } from "./StepDetailsConnections";
 import { StepDetailsContextProvider } from "./StepDetailsContext";
 import { StepDetailsLogs } from "./StepDetailsLogs";
 import { StepDetailsProperties } from "./StepDetailsProperties";
@@ -179,7 +181,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
             />
           </CustomTabPanel>
           <CustomTabPanel value={subViewIndex} index={1} name="connections">
-            <StepDetailsConnections onSave={onSave} />
+            <StepConnections onSave={onSave} />
           </CustomTabPanel>
           <CustomTabPanel value={subViewIndex} index={2} name="pipeline-logs">
             <StepDetailsLogs

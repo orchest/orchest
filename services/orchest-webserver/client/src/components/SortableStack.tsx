@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 export interface SortableStackProps {
   onUpdate: (oldIndex: number, newIndex: number) => Promise<void>;
   children: React.ReactChild[];
+  disabled?: boolean;
 }
 
 const isDragItem = (element: Element) =>
@@ -14,7 +15,11 @@ const isDragItem = (element: Element) =>
 const isDragContainer = (element: Element) =>
   element.classList.contains("drag-container");
 
-export const SortableStack = ({ children, onUpdate }: SortableStackProps) => {
+export const SortableStack = ({
+  children,
+  onUpdate,
+  disabled = false,
+}: SortableStackProps) => {
   const [[startX, startY], setStart] = useState([NaN, NaN] as const);
   const [[x, y], setPosition] = useState([NaN, NaN] as const);
   const [startIndex, setStartIndex] = useState(-1);
@@ -138,11 +143,11 @@ export const SortableStack = ({ children, onUpdate }: SortableStackProps) => {
         <Stack
           style={{
             userSelect: "none",
-            borderBottom: `2px solid transparent`,
-            borderTop: `2px solid transparent`,
+            borderBottom: "2px solid transparent",
+            borderTop: "2px solid transparent",
           }}
           className="drag-item"
-          onMouseDown={onMouseDown}
+          onMouseDown={!disabled ? onMouseDown : undefined}
           direction="row"
           key={i}
         >
