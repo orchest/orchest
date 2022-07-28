@@ -5,10 +5,10 @@ import { HEADER } from "@orchest/lib-utils";
 import React from "react";
 
 export const usePostNewEnvironment = () => {
-  const { config } = useAppContext();
   const { cancelableFetch } = useCancelableFetch();
   const [isPostingEnvironment, setIsPostingEnvironment] = React.useState(false);
 
+  const { config } = useAppContext();
   const defaultEnvironments = config?.ENVIRONMENT_DEFAULTS;
 
   const postEnvironment = React.useCallback(

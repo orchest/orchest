@@ -1,5 +1,6 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { ellipsis } from "@/utils/styles";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -9,39 +10,39 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { CreateEnvironmentButton } from "./CreateEnvironmentButton";
-import { useEnvironmentsStore } from "./stores/useEnvironmentsStore";
+import {
+  EnvironmentsState,
+  useEnvironmentsStore,
+} from "./stores/useEnvironmentsStore";
+
+const selector = (state: EnvironmentsState) =>
+  [
+    state.environments,
+    state.selectedEnvironment,
+    state.select,
+    state.fetch,
+    state.isFetching,
+  ] as const;
 
 export const EnvironmentMenuList = () => {
+  const { navigateTo } = useCustomRoute();
   const {
     state: { projectUuid },
   } = useProjectsContext();
   const [
-    environmentStoreProjectUuid,
-    environments,
+    environments = [],
     selectedEnvironment,
     selectEnvironment,
-    initEnvironmentStore,
-  ] = useEnvironmentsStore((state) => [
-    state.projectUuid,
-    state.environments,
-    state.selectedEnvironment,
-    state.select,
-    state.init,
-  ]);
-
-  const shouldInitStore =
-    projectUuid && environmentStoreProjectUuid !== projectUuid;
-
-  const {
-    environments: fetchedEnvironments,
+    fetchEnvironments,
     isFetchingEnvironments,
-  } = useFetchEnvironments(shouldInitStore ? projectUuid : undefined);
+  ] = useEnvironmentsStore(selector);
+  const { cancelableFetch } = useCancelableFetch();
 
   React.useEffect(() => {
-    if (shouldInitStore && fetchedEnvironments) {
-      initEnvironmentStore(projectUuid, fetchedEnvironments);
+    if (projectUuid) {
+      fetchEnvironments(projectUuid);
     }
-  }, [shouldInitStore, projectUuid, fetchedEnvironments, initEnvironmentStore]);
+  }, [fetchEnvironments, cancelableFetch, projectUuid, navigateTo]);
 
   return (
     <Stack
@@ -60,7 +61,7 @@ export const EnvironmentMenuList = () => {
           paddingTop: 0,
         }}
       >
-        {(environments || []).map((environment) => {
+        {environments.map((environment) => {
           const selected = selectedEnvironment?.uuid === environment.uuid;
           return (
             <MenuItem
