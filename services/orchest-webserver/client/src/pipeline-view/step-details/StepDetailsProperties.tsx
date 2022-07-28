@@ -1,5 +1,6 @@
 import ProjectFilePicker from "@/components/ProjectFilePicker";
-import { Step } from "@/types";
+import { StepState } from "@/types";
+import { isValidJson } from "@/utils/isValidJson";
 import { hasExtension, join } from "@/utils/path";
 import { toValidFilename } from "@/utils/toValidFilename";
 import FormControl from "@mui/material/FormControl";
@@ -34,7 +35,11 @@ export const StepDetailsProperties = ({
   pipelineCwd: string | undefined;
   readOnly: boolean;
   shouldAutoFocus: boolean;
-  onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
+  onSave: (
+    payload: Partial<StepState>,
+    uuid: string,
+    replace?: boolean
+  ) => void;
   menuMaxWidth?: string;
 }) => {
   const {

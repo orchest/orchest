@@ -1,9 +1,10 @@
+import { setOutgoingConnections } from "@/utils/webserver-utils";
 import type {
   Pipeline,
   PipelineJson,
   PipelineMetaData,
   Project,
-  Step,
+  StepData,
 } from "../types";
 import { chance } from "./common.mock";
 
@@ -30,17 +31,17 @@ const generatePipelineDefinition = (
   pipelineName: string,
   stepCount = 2
 ): PipelineJson => {
-  const stepsObj: Record<string, Step> = {};
+  const stepsDataDict: Record<string, StepData> = {};
 
   let prevStepUUid = "";
 
   for (let i = 0; i < stepCount; i++) {
     const stepName = chance.name();
     const stepUuid = chance.guid();
-    stepsObj[stepUuid] = {
+    stepsDataDict[stepUuid] = {
       title: stepName,
       uuid: chance.guid(),
-      incoming_connections: prevStepUUid.length > 0 ? [prevStepUUid] : [],
+      incoming_connections: prevStepUUid ? [prevStepUUid] : [],
       file_path: `${stepName.toLowerCase().replace(/ /g, "-")}.ipynb`,
       kernel: {
         name: "python",
@@ -66,7 +67,7 @@ const generatePipelineDefinition = (
       auto_eviction: false,
       data_passing_memory_size: "1GB",
     },
-    steps: stepsObj,
+    steps: setOutgoingConnections(stepsDataDict),
     uuid: pipelineUuid,
     version: "1.2.0",
     services: {
@@ -148,7 +149,6 @@ const generateMockProjectData = (projectUuid: string): Project => {
     uuid: projectUuid,
     path: "dummy-project",
     pipeline_count: 1,
-    job_count: 1,
     active_job_count: 1,
     environment_count: 1,
     project_snapshot_size: 30, // used
@@ -194,7 +194,7 @@ export const generateMockProjectCollection = () => {
 
 export const mockProjects = generateMockProjectCollection();
 
-export const getPipelineMedadatas = (projectUuid: string) =>
+export const listPipelineMetadata = (projectUuid: string) =>
   Object.values(mockProjects.get(projectUuid).pipelines.getAll()).map(
     (pipelineData) => pipelineData.metadata
   );

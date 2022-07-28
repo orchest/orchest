@@ -1,5 +1,8 @@
 import { PipelineJson } from "@/types";
-import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import {
+  getPipelineJSONEndpoint,
+  setOutgoingConnections,
+} from "@/utils/webserver-utils";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import { useFetcher } from "./useFetcher";
 
@@ -17,7 +20,9 @@ type PipelineJsonResponse = {
   success: boolean;
 };
 
-const transformResponse = async (response: PipelineJsonResponse) => {
+const transformResponse = async (
+  response: PipelineJsonResponse
+): Promise<PipelineJson> => {
   if (!response.success) {
     return Promise.reject("Failed to fetch pipeline.json");
   }
@@ -70,6 +75,8 @@ const transformResponse = async (response: PipelineJsonResponse) => {
     pipelineObj.services[sorted[0]].order = maxOrder + 1;
     maxOrder += 1;
   }
+
+  pipelineObj.steps = setOutgoingConnections(pipelineObj.steps);
 
   return pipelineObj;
 };

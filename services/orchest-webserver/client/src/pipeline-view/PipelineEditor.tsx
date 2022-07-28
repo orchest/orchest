@@ -2,7 +2,7 @@ import { HUD } from "@/components/HUD";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
-import type { Connection, Step } from "@/types";
+import type { Connection, StepState } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
@@ -118,7 +118,7 @@ export const PipelineEditor = () => {
   const hasSelectedSteps = selectedSteps.length > 0;
 
   const onSaveDetails = React.useCallback(
-    (stepChanges: Partial<Step>, uuid: string, replace = false) => {
+    (stepChanges: Partial<StepState>, uuid: string, replace = false) => {
       uiStateDispatch({
         type: "SAVE_STEP_DETAILS",
         payload: { stepChanges, uuid, replace },

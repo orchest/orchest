@@ -1,17 +1,13 @@
-import type { PipelineStepState, Step, StepsDict } from "@/types";
-import { addOutgoingConnections } from "@/utils/webserver-utils";
+import type { StepsDict, StepState } from "@/types";
 
-export const topologicalSort = (pipelineSteps: Record<string, Step>) => {
+export const topologicalSort = (steps: StepsDict) => {
   const sortedStepKeys: string[] = [];
 
-  const mutatedPipelineSteps = addOutgoingConnections(
-    pipelineSteps as StepsDict
-  );
-
-  const conditionalAdd = (step: PipelineStepState) => {
+  const conditionalAdd = (step: StepState) => {
     // add if all parents are already in the sortedStepKeys
     let parentsAdded = true;
-    for (let connection of step.incoming_connections) {
+
+    for (const connection of step.incoming_connections) {
       if (!sortedStepKeys.includes(connection)) {
         parentsAdded = false;
         break;
@@ -24,30 +20,29 @@ export const topologicalSort = (pipelineSteps: Record<string, Step>) => {
   };
 
   // Add self and children (breadth first)
-  let addSelfAndChildren = (step: PipelineStepState) => {
+  let addSelfAndChildren = (step: StepState) => {
     conditionalAdd(step);
 
     step.outgoing_connections = step.outgoing_connections || ([] as string[]);
 
-    for (let childStepUUID of step.outgoing_connections) {
-      let childStep = mutatedPipelineSteps[childStepUUID];
+    for (const childStepUUID of step.outgoing_connections) {
+      let childStep = steps[childStepUUID];
 
       conditionalAdd(childStep);
     }
 
     // Recurse down
-    for (let childStepUUID of step.outgoing_connections) {
-      addSelfAndChildren(mutatedPipelineSteps[childStepUUID]);
+    for (const childStepUUID of step.outgoing_connections) {
+      addSelfAndChildren(steps[childStepUUID]);
     }
   };
 
   // Find roots
-  for (let stepUUID in mutatedPipelineSteps) {
-    let step = mutatedPipelineSteps[stepUUID];
+  for (const step of Object.values(steps)) {
     if (step.incoming_connections.length == 0) {
       addSelfAndChildren(step);
     }
   }
 
-  return sortedStepKeys.map((stepUUID) => mutatedPipelineSteps[stepUUID]);
+  return sortedStepKeys.map((stepUUID) => steps[stepUUID]);
 };

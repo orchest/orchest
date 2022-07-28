@@ -1,14 +1,16 @@
-import type {
+import {
   NewConnection,
   Offset,
   PipelineJson,
-  PipelineStepState,
+  PipelineState,
   Position,
-  Step,
+  StepNode,
   StepsDict,
+  UnidirectionalStepNode,
 } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
-import { addOutgoingConnections } from "@/utils/webserver-utils";
+import { omit } from "@/utils/record";
+import { setOutgoingConnections } from "@/utils/webserver-utils";
 
 export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs";
 export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs";
@@ -20,16 +22,14 @@ export type FileManagementRoot = "/project-dir" | "/data";
 export const treeRoots = ["/project-dir", "/data"] as const;
 
 export const updatePipelineJson = (
-  pipelineJson: PipelineJson,
+  pipelineJson: PipelineState | PipelineJson,
   steps: StepsDict
 ): PipelineJson => {
   pipelineJson.steps = Object.entries(steps).reduce(
-    (stepsToSave, [stepUuid, stepData]) => {
-      if (stepData.outgoing_connections) {
-        delete stepData.outgoing_connections;
-      }
-      return { ...stepsToSave, [stepUuid]: stepData };
-    },
+    (newSteps, [stepUuid, step]) => ({
+      ...newSteps,
+      [stepUuid]: omit(step, "outgoing_connections"),
+    }),
     {}
   );
 
@@ -97,19 +97,19 @@ export const getScaleCorrectedPosition = ({
   };
 };
 
-function dfsWithSets<
-  T extends Record<
-    string,
-    Pick<PipelineStepState, "incoming_connections" | "outgoing_connections">
-  >
->(steps: T, step_uuid: string, whiteSet: Set<string>, greySet: Set<string>) {
+function depthFirstSearch<N extends StepNode>(
+  steps: Record<string, N>,
+  step_uuid: string,
+  whiteSet: Set<string>,
+  greySet: Set<string>
+) {
   // move from white to grey
   whiteSet.delete(step_uuid);
   greySet.add(step_uuid);
 
   for (let childUuid of steps[step_uuid].outgoing_connections || []) {
     if (whiteSet.has(childUuid)) {
-      if (dfsWithSets(steps, childUuid, whiteSet, greySet)) {
+      if (depthFirstSearch(steps, childUuid, whiteSet, greySet)) {
         return true;
       }
     } else if (greySet.has(childUuid)) {
@@ -121,45 +121,37 @@ function dfsWithSets<
   greySet.delete(step_uuid);
 }
 
-export const willCreateCycle = (
-  _steps: StepsDict,
-  newConnection: [string, string]
-) => {
-  const [startNodeUUID, endNodeUUID] = newConnection;
-  // make a new copy of original steps, because we are checking this as a side effect
-  // we don't want to mutate the original steps.
-  const steps = Object.entries(_steps).reduce(
-    (newCopy, [uuid, step]) => ({
-      ...newCopy,
-      [uuid]: {
-        uuid,
-        incoming_connections: [...step.incoming_connections],
-      } as Step,
-    }),
-    {} as StepsDict
+const copyNodes = (steps: StepsDict): Record<string, UnidirectionalStepNode> =>
+  Object.fromEntries(
+    Object.entries(steps).map(([uuid, step]) => [
+      uuid,
+      { uuid, incoming_connections: [...step.incoming_connections] },
+    ])
   );
 
-  steps[endNodeUUID].incoming_connections = [
-    ...steps[endNodeUUID].incoming_connections,
-    startNodeUUID,
-  ];
+export const createsLoop = (
+  steps: StepsDict,
+  [startNodeUUID, endNodeUUID]: [string, string]
+) => {
+  // make a new copy of original steps, because we are checking this as a side effect
+  // we don't want to mutate the original steps.
+  const uniNodes = copyNodes(steps);
+  const end = uniNodes[endNodeUUID];
+  end.incoming_connections = [...end.incoming_connections, startNodeUUID];
+  const nodes = setOutgoingConnections(uniNodes);
 
-  addOutgoingConnections(steps);
-
-  let whiteSet = new Set(Object.keys(steps));
-  let greySet = new Set<string>();
-
-  let cycles = false;
+  const whiteSet = new Set(Object.keys(nodes));
+  const greySet = new Set<string>();
 
   while (whiteSet.size > 0) {
     const stepUuid = whiteSet.values().next().value;
 
-    if (dfsWithSets(steps, stepUuid, whiteSet, greySet)) {
-      cycles = true;
+    if (depthFirstSearch(nodes, stepUuid, whiteSet, greySet)) {
+      return true;
     }
   }
 
-  return cycles;
+  return false;
 };
 
 export const originTransformScaling = (

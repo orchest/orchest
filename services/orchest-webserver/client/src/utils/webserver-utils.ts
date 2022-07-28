@@ -3,9 +3,9 @@ import {
   EnvironmentValidationData,
   Json,
   PipelineJson,
-  PipelineStepState,
   Service,
-  Step,
+  StepData,
+  UnidirectionalStepNode,
 } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 import { hasExtension } from "./path";
+import { omit } from "./record";
 
 const ajv = new Ajv({
   allowUnionTypes: true,
@@ -126,45 +127,41 @@ export function filterServices(
 }
 
 /**
- * Augment incoming_connections with outgoing_connections to be able
- * to traverse from root nodes. Reset outgoing_connections state.
- * Note: this function mutates the original steps object
- * @param steps
- * @returns stepsWithOutgoingConnections
+ * Returns a shallow copy of the steps which includes `outgoing_connections` alongside
+ * the `incoming_connections` for each step.
  */
-export function addOutgoingConnections<
-  T extends Record<
-    string,
-    Pick<PipelineStepState, "incoming_connections" | "outgoing_connections">
-  >
->(steps: T) {
-  Object.keys(steps).forEach((stepUuid) => {
-    // Every step NEEDs to have an `.outgoing_connections` defined.
-    steps[stepUuid].outgoing_connections =
-      steps[stepUuid].outgoing_connections || [];
+export function setOutgoingConnections<N extends UnidirectionalStepNode>(
+  steps: Record<string, N>
+): Record<string, N & { outgoing_connections: string[] }> {
+  const newSteps = Object.fromEntries(
+    Object.entries(steps).map(([uuid, step]) => [
+      uuid,
+      { ...step, outgoing_connections: [] as string[] },
+    ])
+  );
 
-    steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
-      const outgoingConnections = new Set(
-        steps[incomingConnectionUuid].outgoing_connections || []
-      );
-      outgoingConnections.add(stepUuid);
-      steps[incomingConnectionUuid].outgoing_connections = [
-        ...outgoingConnections,
-      ];
+  Object.entries(newSteps).forEach(([uuid, step]) => {
+    step.incoming_connections.forEach((incomingUuid) => {
+      const outgoing = newSteps[incomingUuid].outgoing_connections;
+
+      if (!outgoing.includes(uuid)) {
+        newSteps[incomingUuid].outgoing_connections = [...outgoing, uuid];
+      }
     });
   });
-  return steps;
+
+  return newSteps;
 }
 
-export function clearOutgoingConnections<
-  T,
-  K extends Omit<T, "outgoing_connections">
->(steps: T): K {
-  return Object.entries(steps).reduce((newObj, [stepUuid, step]) => {
-    const { outgoing_connections, ...cleanStep } = step; // eslint-disable-line @typescript-eslint/no-unused-vars
-
-    return { ...newObj, [stepUuid]: cleanStep };
-  }, {} as K);
+export function clearOutgoingConnections<S extends UnidirectionalStepNode>(
+  steps: Record<string, S>
+): Record<string, Omit<S, "outgoing_connections">> {
+  return Object.fromEntries(
+    Object.entries(steps).map(([uuid, step]) => [
+      uuid,
+      { ...omit(step, "outgoing_connections") },
+    ])
+  );
 }
 
 export function getServiceURLs(
@@ -380,18 +377,14 @@ export function getPipelineJSONEndpoint({
 
 export function getPipelineStepParents(
   stepUUID: string,
-  pipelineJSON: PipelineJson
-) {
-  let incomingConnections: string[] = [];
-  for (let step of Object.values(pipelineJSON.steps)) {
-    if (step.uuid === stepUUID) {
-      incomingConnections = step.incoming_connections;
-      break;
-    }
-  }
+  data: PipelineJson
+): StepData[] {
+  const step = Object.values(data.steps).find((step) => step.uuid === stepUUID);
 
-  return incomingConnections.map(
-    (parentStepUUID) => pipelineJSON.steps[parentStepUUID]
+  if (!step) return [];
+
+  return step.incoming_connections.map(
+    (parentStepUUID) => data.steps[parentStepUUID]
   );
 }
 
@@ -447,17 +440,11 @@ export const generateStrategyJson = (
 
 export function getPipelineStepChildren(
   stepUUID: string,
-  pipelineJSON: PipelineJson
-) {
-  let childSteps: Step[] = [];
-
-  for (let step of Object.values(pipelineJSON.steps)) {
-    if (step.incoming_connections.includes(stepUUID)) {
-      childSteps.push(step);
-    }
-  }
-
-  return childSteps;
+  pipelineState: PipelineJson
+): StepData[] {
+  return Object.values(pipelineState.steps).filter((step) =>
+    step.incoming_connections.includes(stepUUID)
+  );
 }
 
 export function setWithRetry<T>(

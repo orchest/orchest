@@ -7,7 +7,7 @@ import {
 import { PipelineMetaData } from "@/types";
 import { chance } from "@/__mocks__/common.mock";
 import {
-  getPipelineMedadatas,
+  listPipelineMetadata,
   mockProjects,
 } from "@/__mocks__/mockProjects.mock";
 import { server } from "@/__mocks__/server.mock";
@@ -60,8 +60,8 @@ const resetMock = () => {
     mockProjects.get(project2Uuid).pipelines.get(chance.guid());
   });
 
-  const project1Pipelines = getPipelineMedadatas(project1Uuid);
-  const project2Pipelines = getPipelineMedadatas(project2Uuid);
+  const project1Pipelines = listPipelineMetadata(project1Uuid);
+  const project2Pipelines = listPipelineMetadata(project2Uuid);
 
   mockData = {
     project1Uuid,
@@ -232,7 +232,7 @@ describe("useEnsureValidPipeline", () => {
 
     expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
     expect(result.current.state.pipelines).toEqual(
-      getPipelineMedadatas(mockData.project1Uuid)
+      listPipelineMetadata(mockData.project1Uuid)
     );
     expect(result.current.state.pipeline).toEqual(
       mockProjects.get(mockData.project1Uuid).pipelines.get(newPipelineUuid)
