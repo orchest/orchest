@@ -8,6 +8,7 @@ import type {
   StepState,
 } from "@/types";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
+import { setOutgoingConnections } from "@/utils/webserver-utils";
 import { hasValue, intersectRect, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
 import merge from "lodash.merge";
@@ -158,38 +159,38 @@ const DEFAULT_STEP_SELECTOR: StepSelectorData = {
   active: false,
 };
 
-export function removeConnection<
-  T extends Pick<PipelineUiState, "steps" | "connections">
->(baseState: T, connectionToDelete: Connection | NewConnection | null): T {
-  if (!connectionToDelete) return baseState;
-
-  const { startNodeUUID, endNodeUUID } = connectionToDelete;
-
-  const updatedConnections = baseState.connections.filter(
+export function removeConnection(
+  current: PipelineUiState,
+  { startNodeUUID, endNodeUUID }: Connection | NewConnection
+): PipelineUiState {
+  const updatedConnections = current.connections.filter(
     (connection) =>
       connection.startNodeUUID !== startNodeUUID ||
       connection.endNodeUUID !== endNodeUUID
   );
 
-  const subsequentStep = endNodeUUID ? baseState.steps[endNodeUUID] : undefined;
+  const nextStep = endNodeUUID ? current.steps[endNodeUUID] : undefined;
 
   const updatedState = {
-    ...baseState,
+    ...current,
     connections: updatedConnections,
     selectedConnection: null,
   };
 
-  if (!endNodeUUID || !subsequentStep) return updatedState;
+  if (!endNodeUUID || !nextStep) return updatedState;
 
   // remove it from the incoming_connections of its subsequent nodes
   // we don't have to clean up outgoing_connections
-  const subsequentStepIncomingConnections = subsequentStep.incoming_connections.filter(
+  const subsequentStepIncomingConnections = nextStep.incoming_connections.filter(
     (incomingConnectionUuid) => incomingConnectionUuid !== startNodeUUID
   );
 
   updatedState.steps = produce(updatedState.steps, (draft) => {
     draft[endNodeUUID].incoming_connections = subsequentStepIncomingConnections;
   });
+
+  updatedState.steps = setOutgoingConnections(updatedState.steps);
+
   return updatedState;
 }
 
