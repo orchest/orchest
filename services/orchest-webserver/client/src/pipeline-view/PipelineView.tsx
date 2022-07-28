@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import { MainSidePanel } from "@/components/Layout/layout-with-side-panel/MainSidePanel";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -7,7 +8,6 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { MainSidePanel } from "../components/Layout/MainSidePanel";
 import { PipelineSettingsView } from "../pipeline-settings-view/PipelineSettingsView";
 import { FullScreenDialogHolder } from "./components/FullScreenDialogHolder";
 import { PipelineContextProviders } from "./contexts/PipelineContextProviders";
