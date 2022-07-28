@@ -72,6 +72,7 @@ export const StepConnections = ({ onSave }: StepConnectionProps) => {
     <Stack direction="column" spacing={3}>
       <ConnectionList
         title="Incoming"
+        hint="Drag & drop to order incoming data passing for this step"
         sortable={true}
         onRemove={removeIncoming}
         onSwap={reorderIncoming}
@@ -82,6 +83,7 @@ export const StepConnections = ({ onSave }: StepConnectionProps) => {
       />
       <ConnectionList
         title="Outgoing"
+        hint="Outgoing data passing can't be ordered"
         sortable={false}
         onRemove={removeOutgoing}
         connections={step.outgoing_connections.map((uuid) => ({
