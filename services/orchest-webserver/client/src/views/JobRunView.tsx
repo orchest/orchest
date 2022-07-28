@@ -1,10 +1,10 @@
 import { Layout } from "@/components/Layout";
+import { MainSidePanel } from "@/components/Layout/MainSidePanel";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { PipelineContextProviders } from "@/pipeline-view/contexts/PipelineContextProviders";
 import { FileManager } from "@/pipeline-view/file-manager/FileManager";
-import { MainSidePanel } from "@/pipeline-view/MainSidePanel";
 import { SessionsPanel } from "@/pipeline-view/sessions-panel/SessionsPanel";
 import { siteMap } from "@/routingConfig";
 import Stack from "@mui/material/Stack";
