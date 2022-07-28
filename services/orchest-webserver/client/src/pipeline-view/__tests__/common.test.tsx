@@ -1,12 +1,11 @@
-import { PipelineStepState, StepsDict } from "@/types";
-import { willCreateCycle } from "../common";
+import { StepsDict, StepState } from "@/types";
+import { createsLoop } from "../common";
 
-export const getMockStep = (
-  payload: Partial<PipelineStepState>
-): PipelineStepState => ({
+export const getMockStep = (payload: Partial<StepState>): StepState => ({
   environment: "environment",
   file_path: "file_path",
   incoming_connections: [],
+  outgoing_connections: [],
   kernel: {},
   title: "title",
   parameters: {},
@@ -34,18 +33,18 @@ const mockSteps: StepsDict = {
   3: getMockStep({ uuid: "3", incoming_connections: ["1"] }),
 };
 
-describe("willCreateCycle", () => {
+describe("createsLoop", () => {
   it("should not mutate the original steps", () => {
     const original = mockSteps;
-    willCreateCycle(mockSteps, ["0", "2"]);
+    createsLoop(mockSteps, ["0", "2"]);
     expect(original === mockSteps).toBe(true);
   });
   it("should return false if newConnection makes a cycle", () => {
-    expect(willCreateCycle(mockSteps, ["3", "0"])).toBe(false);
-    expect(willCreateCycle(mockSteps, ["3", "2"])).toBe(false);
+    expect(createsLoop(mockSteps, ["3", "0"])).toBe(false);
+    expect(createsLoop(mockSteps, ["3", "2"])).toBe(false);
   });
   it("should return true if newConnection does not make a cycle", () => {
-    expect(willCreateCycle(mockSteps, ["0", "3"])).toBe(false);
-    expect(willCreateCycle(mockSteps, ["2", "3"])).toBe(false);
+    expect(createsLoop(mockSteps, ["0", "3"])).toBe(false);
+    expect(createsLoop(mockSteps, ["2", "3"])).toBe(false);
   });
 });

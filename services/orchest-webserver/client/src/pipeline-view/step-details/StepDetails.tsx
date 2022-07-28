@@ -3,7 +3,7 @@ import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { Step } from "@/types";
+import { StepState } from "@/types";
 import { CloseOutlined } from "@mui/icons-material";
 import { IconButton, Stack, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
@@ -52,7 +52,11 @@ const tabs = [
 ];
 
 type StepDetailsProps = {
-  onSave: (stepChanges: Partial<Step>, uuid: string, replace?: boolean) => void;
+  onSave: (
+    stepChanges: Partial<StepState>,
+    uuid: string,
+    replace?: boolean
+  ) => void;
   onClose: () => void;
 };
 

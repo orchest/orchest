@@ -1,8 +1,11 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import type { PipelineJson, StepsDict } from "@/types";
+import type { PipelineJson, StepData, StepsDict } from "@/types";
 import { resolve } from "@/utils/resolve";
-import { validatePipeline } from "@/utils/webserver-utils";
+import {
+  clearOutgoingConnections,
+  validatePipeline,
+} from "@/utils/webserver-utils";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { updatePipelineJson } from "../common";
@@ -23,9 +26,14 @@ export const useSavePipelineJson = () => {
     async (data: PipelineJson) => {
       if (!data || isReadOnly) return;
       setOngoingSaves((current) => current + 1);
+      const saveData: PipelineJson = {
+        ...data,
+        steps: clearOutgoingConnections<StepData>(data.steps),
+      };
 
       const formData = new FormData();
-      formData.append("pipeline_json", JSON.stringify(data));
+      formData.append("pipeline_json", JSON.stringify(saveData));
+
       const response = await resolve(() =>
         fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {
           method: "POST",
