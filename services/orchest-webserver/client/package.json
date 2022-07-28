@@ -54,7 +54,8 @@
     "socket.io-client": "^4.5.1",
     "xterm": "^4.0.0",
     "xterm-addon-fit": "^0.4.0",
-    "xterm-for-react": "^1.0.4"
+    "xterm-for-react": "^1.0.4",
+    "zustand": "^4.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",

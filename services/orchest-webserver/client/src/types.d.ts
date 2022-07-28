@@ -62,12 +62,12 @@ export type ColorScale = PartialRecord<
   string
 >;
 
-export type DefaultEnvironment = Omit<Environment, "uuid" | "project_uuid">;
+export type EnvironmentSpecs = Omit<Environment, "uuid" | "project_uuid">;
 
 export type OrchestConfig = {
   CLOUD: boolean;
   CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
-  ENVIRONMENT_DEFAULTS: DefaultEnvironment;
+  ENVIRONMENT_DEFAULTS: EnvironmentSpecs;
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;
   OPENREPLAY_PROJECT_KEY: string;
