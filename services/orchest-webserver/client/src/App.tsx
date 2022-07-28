@@ -7,7 +7,7 @@ import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
 import { CommandPalette } from "./components/CommandPalette";
-import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
+import { OnboardingDialog } from "./components/Layout/legacy/OnboardingDialog";
 import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
 import { AppInnerContextProvider } from "./contexts/AppInnerContext";
