@@ -1,7 +1,7 @@
 import {
-  DefaultEnvironment,
   Environment,
   EnvironmentImageBuild,
+  EnvironmentSpecs,
   OrchestSession,
 } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
@@ -66,8 +66,9 @@ export const hasSuccessfulBuild = async (
 
 export const getNewEnvironmentName = (
   defaultName: string,
-  environments: Environment[]
+  environments?: Environment[]
 ) => {
+  if (!environments) return;
   let count = 0;
   let finalName = defaultName;
   const allNames = new Set(environments.map((e) => e.name));
@@ -85,7 +86,7 @@ export const getNewEnvironmentName = (
 export const postEnvironment = (
   projectUuid: string,
   environmentName: string,
-  defaultEnvironments: DefaultEnvironment
+  defaultEnvironments: EnvironmentSpecs
 ) =>
   fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
     method: "POST",

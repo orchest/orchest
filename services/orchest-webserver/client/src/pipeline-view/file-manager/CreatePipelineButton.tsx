@@ -1,49 +1,17 @@
-import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
-import { alpha } from "@mui/material";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
+import { CreateEntityButton } from "@/blocks/CreateEntityButton";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { CreatePipelineDialog } from "../CreatePipelineDialog";
 
-type CreatePipelineButtonProps = {
-  onClick: () => void;
-  disabled: boolean;
-};
-
-export const CreatePipelineButton = ({
-  onClick,
-  disabled,
-}: CreatePipelineButtonProps) => {
+export const CreatePipelineButton = () => {
+  const { isReadOnly } = usePipelineDataContext();
   return (
-    <Box
-      sx={{
-        width: "100%",
-        padding: (theme) => theme.spacing(1, 2),
-      }}
-    >
-      <Button
-        fullWidth
-        disabled={disabled}
-        variant="contained"
-        startIcon={<AddOutlinedIcon />}
-        onClick={onClick}
-        data-test-id="pipeline-create"
-        sx={{
-          backgroundColor: (theme) => theme.palette.background.paper,
-          color: (theme) => theme.palette.primary.main,
-          ":hover": {
-            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
-          },
-        }}
-      >
-        <Box
-          sx={{
-            marginTop: (theme) => theme.spacing(0.25),
-            marginRight: (theme) => theme.spacing(1),
-          }}
-        >
+    <CreatePipelineDialog>
+      {(onCreateClick) => (
+        <CreateEntityButton disabled={isReadOnly} onClick={onCreateClick}>
           New pipeline
-        </Box>
-      </Button>
-    </Box>
+        </CreateEntityButton>
+      )}
+    </CreatePipelineDialog>
   );
 };
