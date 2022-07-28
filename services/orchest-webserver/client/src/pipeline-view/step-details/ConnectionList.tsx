@@ -2,9 +2,11 @@ import { SortableStack } from "@/components/SortableStack";
 import { ellipsis } from "@/utils/styles";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import DragHandleOutlined from "@mui/icons-material/DragHandleOutlined";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
@@ -16,6 +18,7 @@ type ConnectionInfo = {
 
 export type ConnectionListProps = {
   title: string;
+  hint?: string;
   sortable: boolean;
   connections: readonly ConnectionInfo[];
   onRemove(index: number): void;
@@ -24,6 +27,7 @@ export type ConnectionListProps = {
 
 export const ConnectionList = ({
   title: listTitle,
+  hint,
   connections,
   sortable,
   onRemove,
@@ -31,15 +35,21 @@ export const ConnectionList = ({
 }: ConnectionListProps) => {
   return (
     <Box>
-      <Typography
-        component="div"
-        variant="subtitle2"
-        fontSize="14px"
-        color="text.secondary"
-        sx={{ padding: (theme) => theme.spacing(0, 0) }}
-      >
-        {listTitle}
-      </Typography>
+      <Stack direction="row" alignItems="center" gap={1.5}>
+        <Typography
+          component="div"
+          variant="subtitle2"
+          fontSize="14px"
+          color="text.secondary"
+        >
+          {listTitle}
+        </Typography>
+        {hint && (
+          <Tooltip title={hint} placement="left-end" arrow>
+            <InfoOutlined color="primary" width={20} height={20} />
+          </Tooltip>
+        )}
+      </Stack>
       <SortableStack
         disabled={!sortable}
         onUpdate={async (oldIndex, newIndex) => onSwap(oldIndex, newIndex)}
