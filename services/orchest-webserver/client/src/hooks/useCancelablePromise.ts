@@ -7,7 +7,7 @@ export type CancelablePromise<T> = {
 };
 
 // https://reactjs.org/blog/2015/12/16/ismounted-antipattern.html
-function _makeCancelable<T>(promise: Promise<T>, callback?: () => void) {
+function makePromiseCancelable<T>(promise: Promise<T>, callback?: () => void) {
   let isCanceled = false;
   const wrappedPromise = new Promise<T>((resolve, reject) => {
     promise
@@ -38,7 +38,7 @@ export function useCancelablePromise() {
 
   const makeCancelable = React.useCallback(function <T = void>(p: Promise<T>) {
     const uuid = uuidv4();
-    const cPromise = _makeCancelable(p, () => {
+    const cPromise = makePromiseCancelable(p, () => {
       delete cancelablePromises.current[uuid]; // Use the callback to clean up the promise.
     });
     cancelablePromises.current[uuid] = cPromise;
@@ -56,6 +56,11 @@ export function useCancelablePromise() {
 
   return { makeCancelable, cancelAll };
 }
+
+export type CancelableFetch<T> = (
+  url: string,
+  params?: RequestInit | undefined
+) => Promise<T>;
 
 export function useCancelableFetch() {
   const { makeCancelable, cancelAll } = useCancelablePromise();
