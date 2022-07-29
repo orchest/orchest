@@ -176,3 +176,11 @@ def migrate_pipeline(pipeline: dict) -> None:
         ]
         migration_func(pipeline)
         pipeline["version"] = migrate_to_version
+
+
+def latest_pipeline_version() -> str:
+    """Gets the latest version of the pipeline schema."""
+    version = "1.0.0"
+    while version in _version_to_migration_function:
+        _, version = _version_to_migration_function[version]
+    return version
