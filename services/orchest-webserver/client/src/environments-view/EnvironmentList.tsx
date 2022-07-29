@@ -103,7 +103,8 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
       const response = await makeCancelable(
         postEnvironment(
           projectUuid,
-          getNewEnvironmentName(defaultEnvironments.name, environments),
+          getNewEnvironmentName(defaultEnvironments.name, environments) ||
+            "New environment",
           defaultEnvironments
         )
       );
