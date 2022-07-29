@@ -92,6 +92,12 @@ def _migrate_1_1_0(pipeline: dict) -> None:
                 service["ports"] = [5672]
             elif "tensorflow" in image:
                 service["ports"] = [6006]
+            elif "voila" in image:
+                service["ports"] = [8866]
+            elif "mlflow" in image:
+                service["ports"] = [5000]
+            elif "shiny" in image:
+                service["ports"] = [8000]
             else:
                 service["ports"] = [8080]
 
