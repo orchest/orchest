@@ -6,13 +6,11 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Environment } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useReportEnvironmentsError } from "./useReportEnvironmentsError";
 
 const selector = (state: EnvironmentsApiState) =>
   [state.environments, state.put, state.isPutting] as const;
 
 export const useEditEnvironment = () => {
-  useReportEnvironmentsError();
   const { environmentUuid } = useCustomRoute();
 
   const [environments, put, isUpdating] = useEnvironmentsApi(selector);

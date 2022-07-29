@@ -159,6 +159,10 @@ export type Environment = {
   setup_script: string;
 };
 
+export type EnvironmentState = Environment & {
+  action?: EnvironmentAction;
+};
+
 export type CustomImage = Pick<
   Environment,
   "base_image" | "language" | "gpu_support"

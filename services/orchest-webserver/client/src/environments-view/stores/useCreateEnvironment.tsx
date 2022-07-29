@@ -6,13 +6,11 @@ import { useAppContext } from "@/contexts/AppContext";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getNewEnvironmentName } from "../common";
-import { useReportEnvironmentsError } from "./useReportEnvironmentsError";
 
 const selector = (state: EnvironmentsApiState) =>
   [state.environments, state.post, state.isPosting] as const;
 
 export const useCreateEnvironment = () => {
-  useReportEnvironmentsError();
   const { config } = useAppContext();
 
   const [environments, post, isCreating] = useEnvironmentsApi(selector);

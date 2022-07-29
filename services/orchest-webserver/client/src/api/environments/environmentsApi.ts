@@ -1,5 +1,9 @@
 import { queryArgs } from "@/pipeline-view/file-manager/common";
-import { Environment, EnvironmentSpec } from "@/types";
+import {
+  Environment,
+  EnvironmentSpec,
+  EnvironmentValidationData,
+} from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 
 export const environmentsApi = {
@@ -30,4 +34,13 @@ export const environmentsApi = {
     fetcher<void>(`/store/environments/${projectUuid}/${environmentUuid}`, {
       method: "DELETE",
     }),
+  validate: async (projectUuid: string) =>
+    fetcher<EnvironmentValidationData>(
+      `/catch/api-proxy/api/validations/environments`,
+      {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify({ project_uuid: projectUuid }),
+      }
+    ),
 };
