@@ -6,6 +6,7 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
+import copy
 import json
 import os
 from logging.config import dictConfig
@@ -17,8 +18,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request
 from flask_cors import CORS
 from flask_migrate import Migrate
+from sqlalchemy import or_
+from sqlalchemy.orm import attributes
 from sqlalchemy_utils import create_database, database_exists
 
+from _orchest.internals import compat as _compat
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
@@ -108,6 +112,29 @@ def create_app(
             settings = utils.OrchestSettings()
             settings.save(app)
             app.config.update(settings.as_dict())
+
+            # Migrate Jobs pipeline definitions. Needed to be sure that
+            # an update to the pipeline schema won't break jobs.
+            jobs_with_ppl_defs_to_migrate = (
+                Job.query.with_for_update()
+                .filter(
+                    or_(
+                        Job.pipeline_definition.op("->")("version").astext
+                        != _compat.latest_pipeline_version(),
+                        Job.pipeline_definition.op("->")("version").is_(None),
+                    )
+                )
+                .all()
+            )
+            for job in jobs_with_ppl_defs_to_migrate:
+                # See
+                # https://github.com/sqlalchemy/sqlalchemy/issues/5218
+                # https://github.com/sqlalchemy/sqlalchemy/discussions/6473
+                ppl_def = copy.deepcopy(job.pipeline_definition)
+                _compat.migrate_pipeline(ppl_def)
+                job.pipeline_definition = ppl_def
+                attributes.flag_modified(job, "pipeline_definition")
+                db.session.commit()
 
     # Keep analytics subscribed to all events of interest.
     with app.app_context():
