@@ -4,6 +4,13 @@ set -euo pipefail
 if [ "$CONTAINER_RUNTIME" = containerd ]; then
     ctr -n=k8s.io -a=/var/run/runtime.sock i pull "${IMAGE_TO_PULL}" --skip-verify
 elif [ "$CONTAINER_RUNTIME" = docker ]; then
+
+    image_exist=$(docker -H unix:///var/run/runtime.sock images -q "${IMAGE_TO_PULL}")
+    if [ -n "${image_exist}" ]; then
+        echo "Image ${IMAGE_TO_PULL} exists, skip pulling."
+        exit 0
+    fi
+
     set +e
     docker -H unix:///var/run/runtime.sock pull "${IMAGE_TO_PULL}" --disable-content-trust
 
