@@ -1,7 +1,7 @@
 import {
   Environment,
   EnvironmentImageBuild,
-  EnvironmentSpecs,
+  EnvironmentSpec,
   OrchestSession,
 } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
@@ -86,7 +86,7 @@ export const getNewEnvironmentName = (
 export const postEnvironment = (
   projectUuid: string,
   environmentName: string,
-  defaultEnvironments: EnvironmentSpecs
+  defaultEnvironments: EnvironmentSpec
 ) =>
   fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
     method: "POST",

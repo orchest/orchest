@@ -1,6 +1,3 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCancelableFetch } from "@/hooks/useCancelablePromise";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { ellipsis } from "@/utils/styles";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -10,39 +7,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { CreateEnvironmentButton } from "./CreateEnvironmentButton";
-import {
-  EnvironmentsState,
-  useEnvironmentsStore,
-} from "./stores/useEnvironmentsStore";
-
-const selector = (state: EnvironmentsState) =>
-  [
-    state.environments,
-    state.selectedEnvironment,
-    state.select,
-    state.fetch,
-    state.isFetching,
-  ] as const;
+import { useSelectEnvironment } from "./stores/useSelectEnvironment";
 
 export const EnvironmentMenuList = () => {
-  const { navigateTo } = useCustomRoute();
   const {
-    state: { projectUuid },
-  } = useProjectsContext();
-  const [
-    environments = [],
-    selectedEnvironment,
     selectEnvironment,
-    fetchEnvironments,
-    isFetchingEnvironments,
-  ] = useEnvironmentsStore(selector);
-  const { cancelableFetch } = useCancelableFetch();
-
-  React.useEffect(() => {
-    if (projectUuid) {
-      fetchEnvironments(projectUuid);
-    }
-  }, [fetchEnvironments, cancelableFetch, projectUuid, navigateTo]);
+    environmentOnEdit,
+    environments = [],
+  } = useSelectEnvironment();
 
   return (
     <Stack
@@ -62,7 +34,7 @@ export const EnvironmentMenuList = () => {
         }}
       >
         {environments.map((environment) => {
-          const selected = selectedEnvironment?.uuid === environment.uuid;
+          const selected = environmentOnEdit?.uuid === environment.uuid;
           return (
             <MenuItem
               key={environment.uuid}
