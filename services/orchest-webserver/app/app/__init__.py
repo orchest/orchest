@@ -73,7 +73,12 @@ def create_app(to_migrate_db=False):
     if os.getenv("FLASK_ENV") == "development":
         app = register_teardown_request(app)
 
-    socketio = SocketIO(app, cors_allowed_origins="*")
+    # Force threading async_mode in non-development mode
+    socketio_kwargs = {}
+    if os.getenv("FLASK_ENV") != "development":
+        socketio_kwargs["async_mode"] = "threading"
+
+    socketio = SocketIO(app, cors_allowed_origins="*", **socketio_kwargs)
 
     if not to_migrate_db:
         orchest_config = requests.get(

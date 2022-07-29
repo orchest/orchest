@@ -11,7 +11,7 @@ if __name__ == "__main__":
         )
         app.logger.info("Running from if __name__ == '__main__'")
         socketio.run(
-            app, host="0.0.0.0", port=80, use_reloader=True, debug=True, log=app.logger
+            app, host="0.0.0.0", port=80, use_reloader=True, debug=True
         )
 
 else:
