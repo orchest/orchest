@@ -1,19 +1,19 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
 import { Point2D } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import Button from "@mui/material/Button";
 import React from "react";
 import { createStepAction } from "./action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
-import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 
 export const CreateStepButton = () => {
   const { setAlert } = useAppContext();
-  const { environments } = usePipelineDataContext();
+  const { environments = [] } = useGetEnvironments();
   const {
     state: { pipelineReadOnlyReason },
   } = useProjectsContext();

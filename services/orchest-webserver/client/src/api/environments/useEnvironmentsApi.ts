@@ -6,7 +6,6 @@ import {
   EnvironmentValidationData,
 } from "@/types";
 import { FetchError } from "@orchest/lib-utils";
-import produce from "immer";
 import create from "zustand";
 
 type EnvironmentBuildStatus =
@@ -76,7 +75,7 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
     fetch: async (projectUuid, language) => {
       try {
         set({ projectUuid, isFetching: true, error: undefined });
-        const environments = await environmentsApi.getAll(
+        const environments = await environmentsApi.fetchAll(
           projectUuid,
           language
         );
@@ -159,27 +158,24 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
       try {
         const projectUuid = getProjectUuid();
         set({ isValidating: true, error: undefined });
-        const response = await environmentsApi.validate(projectUuid);
+        const results = await environmentsApi.validate(
+          projectUuid,
+          get().environments
+        );
 
-        set((state) => {
-          const envMap = new Map(
-            (state.environments || []).map((env) => [env.uuid, env])
-          );
+        if (results instanceof Error) {
+          set({ error: results, isValidating: false });
+          return;
+        }
 
-          const updatedEnvironments = produce(envMap, (draft) => {
-            response.actions.forEach((action, index) => {
-              const uuid = response.fail[index];
-              const environment = draft.get(uuid);
-              if (environment) environment.action = action;
-            });
-          });
+        const [validatedEnvironments, response] = results;
 
-          return {
-            environments: Array.from(updatedEnvironments, ([, value]) => value),
-            isValidating: false,
-            status: getEnvironmentBuildStatus(response),
-          };
+        set({
+          environments: validatedEnvironments,
+          isValidating: false,
+          status: getEnvironmentBuildStatus(response),
         });
+
         return getEnvironmentBuildStatus(response);
       } catch (error) {
         set({ error, isValidating: false });

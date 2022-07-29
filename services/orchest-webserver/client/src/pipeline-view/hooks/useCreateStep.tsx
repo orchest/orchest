@@ -1,3 +1,4 @@
+import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
 import { Point2D } from "@/types";
 import { relative } from "@/utils/path";
 import React from "react";
@@ -23,7 +24,8 @@ const relativeToPipeline = (pipelinePath?: string, path?: string) =>
 export type StepCreator = (filePath?: string) => void;
 
 export const useCreateStep = (): StepCreator => {
-  const { pipelineCwd, environments } = usePipelineDataContext();
+  const { environments = [] } = useGetEnvironments();
+  const { pipelineCwd } = usePipelineDataContext();
   const { uiStateDispatch } = usePipelineUiStateContext();
   const { pipelineViewportRef } = usePipelineRefs();
   const {

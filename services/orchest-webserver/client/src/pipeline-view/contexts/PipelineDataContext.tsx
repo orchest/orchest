@@ -3,14 +3,14 @@ import {
   PipelineReadOnlyReason,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
-import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
+import { useFetchEnvironments } from "@/environments-view/stores/useFetchEnvironments";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { Environment, Job, PipelineJson, PipelineMetaData } from "@/types";
+import { Job, PipelineJson, PipelineMetaData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
@@ -21,7 +21,6 @@ export type PipelineDataContextType = {
   projectUuid?: string;
   pipelineUuid?: string;
   pipelineCwd?: string;
-  environments: Environment[];
   runUuid?: string;
   jobUuid?: string;
   setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
@@ -112,7 +111,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
       );
   }, [error, setAlert, navigateTo, projectUuid, jobUuid]);
 
-  const { environments = [] } = useGetEnvironments();
+  useFetchEnvironments(projectUuid);
 
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
 
@@ -126,7 +125,6 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         pipelineUuid,
         pipeline,
         pipelineCwd,
-        environments,
         jobUuid,
         runUuid,
         setRunUuid,
