@@ -7,8 +7,9 @@ import uuid
 import requests
 from flask.globals import current_app
 
+from _orchest.internals import compat as _compat
 from _orchest.internals.two_phase_executor import TwoPhaseFunction
-from app import compat, error
+from app import error
 from app.connections import db
 from app.models import Pipeline
 from app.utils import (
@@ -332,7 +333,7 @@ class MovePipeline(TwoPhaseFunction):
             with open(old_path, "r") as json_file:
                 pipeline_def = json.load(json_file)
                 # Ensures that pipeline_def applies the right schema
-                compat.migrate_pipeline(pipeline_def)
+                _compat.migrate_pipeline(pipeline_def)
                 self.collateral_kwargs["pipeline_def_backup"] = copy.deepcopy(
                     pipeline_def
                 )

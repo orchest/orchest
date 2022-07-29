@@ -1,5 +1,3 @@
-from typing import Any, Dict, List, Optional, Tuple
-
 """Provides a simple migration layer for pipeline jsons.
 
 Given a pipeline version, a mapping will be used to establish if the
@@ -15,6 +13,8 @@ which it will migrate.
 Note that the system only supports forward migrations.
 
 """
+from typing import Any, Dict, List, Optional, Tuple
+
 from _orchest.internals import utils as _utils
 
 
@@ -79,7 +79,27 @@ def _migrate_1_1_0(pipeline: dict) -> None:
             del service["entrypoint"]
 
         if not service.get("ports", []):
-            service["ports"] = [8080]
+            image = service["image"].lower()
+            if "redis" in image:
+                service["ports"] = [6379]
+            elif "postgres" in image:
+                service["ports"] = [5432]
+            elif "streamlit" in image:
+                service["ports"] = [8501]
+            elif "mysql" in image:
+                service["ports"] = [3306]
+            elif "rabbitmq" in image:
+                service["ports"] = [5672]
+            elif "tensorflow" in image:
+                service["ports"] = [6006]
+            elif "voila" in image:
+                service["ports"] = [8866]
+            elif "mlflow" in image:
+                service["ports"] = [5000]
+            elif "shiny" in image:
+                service["ports"] = [8000]
+            else:
+                service["ports"] = [8080]
 
         service["exposed"] = service.get("exposed", False)
         service["requires_authentication"] = service.get(
@@ -176,3 +196,11 @@ def migrate_pipeline(pipeline: dict) -> None:
         ]
         migration_func(pipeline)
         pipeline["version"] = migrate_to_version
+
+
+def latest_pipeline_version() -> str:
+    """Gets the latest version of the pipeline schema."""
+    version = "1.0.0"
+    while version in _version_to_migration_function:
+        _, version = _version_to_migration_function[version]
+    return version
