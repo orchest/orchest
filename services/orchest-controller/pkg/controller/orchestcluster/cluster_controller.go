@@ -574,9 +574,17 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster) (err error) {
 
-	preInstallHooks := []addons.PreInstallHookFn{}
+	updateConditionPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
+		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
+			orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", app.Name)))
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		return nil
+	}
 
-	registryPreInstall := func(config *orchestv1alpha1.ApplicationConfig) error {
+	registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
 		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
 		if err != nil {
 			klog.Error(err)
@@ -587,7 +595,7 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
 		}
 
-		serviceIP, err := getRegistryServiceIP(config)
+		serviceIP, err := getRegistryServiceIP(&app.Config)
 		if err != nil {
 			return err
 		}
@@ -602,21 +610,15 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 	}
 
 	for _, application := range orchest.Spec.Applications {
-		preInstallHooks = append(preInstallHooks, func(*orchestv1alpha1.ApplicationConfig) error {
-			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
-				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", application.Name)))
-			if err != nil {
-				klog.Error(err)
-				return err
-			}
-			return nil
-		})
+		preInstallHooks := []addons.PreInstallHookFn{
+			updateConditionPreInstall,
+		}
 
 		if application.Name == addons.DockerRegistry {
 			preInstallHooks = append(preInstallHooks, registryPreInstall)
 		}
 
-		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application.Config)
+		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
 		if err != nil {
 			klog.Error(err)
 			return err

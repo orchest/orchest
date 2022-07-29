@@ -34,11 +34,11 @@ func NewDefaultAddonsConfig() AddonsConfig {
 	}
 }
 
-type PreInstallHookFn func(config *orchestv1alpha1.ApplicationConfig) error
+type PreInstallHookFn func(config *orchestv1alpha1.ApplicationSpec) error
 
 type Addon interface {
 	// Enable the addon. preInstallHooks should be called, before enabling the addon
-	Enable(ctx context.Context, preInstallHooks []PreInstallHookFn, namespace string, config *orchestv1alpha1.ApplicationConfig) error
+	Enable(ctx context.Context, preInstallHooks []PreInstallHookFn, namespace string, app *orchestv1alpha1.ApplicationSpec) error
 
 	// Uninstall the addon
 	Uninstall(ctx context.Context, namespace string) error
