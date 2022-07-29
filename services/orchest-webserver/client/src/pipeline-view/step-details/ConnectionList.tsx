@@ -54,11 +54,6 @@ export const ConnectionList = ({
     [connections, direction, uiState.openedStep, uiState.steps]
   );
 
-  const availableSteps = React.useMemo(
-    () => Object.values(uiState.steps).filter(canConnect),
-    [uiState.steps, canConnect]
-  );
-
   const connect = React.useCallback(
     (uuid: string) => {
       if (!uiState.openedStep) return;
@@ -72,6 +67,17 @@ export const ConnectionList = ({
     },
     [direction, uiState.openedStep, uiStateDispatch]
   );
+
+  const availableSteps = React.useMemo(
+    () => Object.values(uiState.steps).filter(canConnect),
+    [uiState.steps, canConnect]
+  );
+
+  React.useEffect(() => {
+    if (availableSteps.length === 0) {
+      setMenuAnchor(undefined);
+    }
+  }, [availableSteps]);
 
   return (
     <Box>
