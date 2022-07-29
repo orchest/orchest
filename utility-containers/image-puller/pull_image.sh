@@ -19,7 +19,7 @@ elif [ "$CONTAINER_RUNTIME" = docker ]; then
         echo "Docker pull failed, pulling with buildah."
         buildah pull --tls-verify=false "${IMAGE_TO_PULL}"
         echo "Pushing from buildah to docker-daemon."
-        # Expected by builda when docker-daemon is specified.
+        # Expected by buildah when docker-daemon is specified.
         ln -s /var/run/runtime.sock /var/run/docker.sock
         buildah push --disable-compression "${IMAGE_TO_PULL}" "docker-daemon:${IMAGE_TO_PULL}"
     fi
