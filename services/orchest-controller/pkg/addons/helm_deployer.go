@@ -79,8 +79,8 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 		}
 	}
 
-	helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
-	return nil
+	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
+	return err
 
 }
 
