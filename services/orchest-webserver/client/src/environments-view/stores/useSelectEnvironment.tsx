@@ -9,7 +9,7 @@ import React from "react";
 const selector = (state: EnvironmentsApiState) => state.environments;
 
 export const useSelectEnvironment = () => {
-  const { environmentUuid, navigateTo } = useCustomRoute();
+  const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
 
   const environments = useEnvironmentsApi(selector);
 
@@ -24,10 +24,10 @@ export const useSelectEnvironment = () => {
   const selectEnvironment = React.useCallback(
     (uuid: string) => {
       navigateTo(siteMap.environments.path, {
-        query: { environmentUuid: uuid },
+        query: { projectUuid, environmentUuid: uuid },
       });
     },
-    [navigateTo]
+    [navigateTo, projectUuid]
   );
 
   return { selectEnvironment, environments, environmentOnEdit };
