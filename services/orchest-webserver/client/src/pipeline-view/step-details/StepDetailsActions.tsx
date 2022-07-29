@@ -1,3 +1,4 @@
+import { ellipsis } from "@/utils/styles";
 import { DeleteOutline } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
 import Box from "@mui/material/Box";
@@ -37,6 +38,7 @@ export const StepDetailsActions = () => {
             onAuxClick={(event) => openNotebook(event, step.uuid)}
             data-test-id="step-view-in-jupyterlab"
             disabled={!doesStepFileExist || isReadOnly}
+            sx={{ ...ellipsis(), flex: "1 1 auto", display: "flex" }}
           >
             Edit in JupyterLab
           </Button>
@@ -47,7 +49,7 @@ export const StepDetailsActions = () => {
             data-test-id="step-view-file"
             disabled={!doesStepFileExist || isReadOnly}
           >
-            View file
+            Preview
           </Button>
         </Stack>
         <IconButton
