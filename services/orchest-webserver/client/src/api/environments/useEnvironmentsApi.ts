@@ -1,11 +1,22 @@
 import { environmentsApi } from "@/api/environments/environmentsApi";
-import { Environment, EnvironmentSpec } from "@/types";
+import {
+  Environment,
+  EnvironmentSpec,
+  EnvironmentState,
+  EnvironmentValidationData,
+} from "@/types";
 import { FetchError } from "@orchest/lib-utils";
+import produce from "immer";
 import create from "zustand";
+
+type EnvironmentBuildStatus =
+  | "allEnvironmentsBuilt"
+  | "environmentsNotYetBuilt"
+  | "environmentsBuildInProgress";
 
 export type EnvironmentsApiState = {
   projectUuid?: string;
-  environments?: Environment[];
+  environments?: EnvironmentState[];
   isFetching: boolean;
   fetch: (projectUuid: string, language?: string) => Promise<void>;
   isPosting: boolean;
@@ -17,8 +28,23 @@ export type EnvironmentsApiState = {
   ) => Promise<void>;
   isDeleting: boolean;
   delete: (environmentUuid: string) => Promise<void>;
+  isValidating: boolean;
+  validate: () => Promise<EnvironmentBuildStatus | undefined>;
+  status: EnvironmentBuildStatus;
   error?: FetchError;
   clearError: () => void;
+};
+
+const getEnvironmentBuildStatus = (
+  validationData: EnvironmentValidationData
+): EnvironmentBuildStatus => {
+  return validationData.validation === "pass"
+    ? "allEnvironmentsBuilt"
+    : validationData.actions.some((action) =>
+        ["BUILD", "RETRY"].includes(action)
+      )
+    ? "environmentsNotYetBuilt"
+    : "environmentsBuildInProgress";
 };
 
 export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
@@ -49,7 +75,7 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
     isFetching: false,
     fetch: async (projectUuid, language) => {
       try {
-        set({ isFetching: true, error: undefined });
+        set({ projectUuid, isFetching: true, error: undefined });
         const environments = await environmentsApi.getAll(
           projectUuid,
           language
@@ -125,6 +151,38 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
         });
       } catch (error) {
         set({ error, isDeleting: false });
+      }
+    },
+    status: "environmentsNotYetBuilt",
+    isValidating: false,
+    validate: async () => {
+      try {
+        const projectUuid = getProjectUuid();
+        set({ isValidating: true, error: undefined });
+        const response = await environmentsApi.validate(projectUuid);
+
+        set((state) => {
+          const envMap = new Map(
+            (state.environments || []).map((env) => [env.uuid, env])
+          );
+
+          const updatedEnvironments = produce(envMap, (draft) => {
+            response.actions.forEach((action, index) => {
+              const uuid = response.fail[index];
+              const environment = draft.get(uuid);
+              if (environment) environment.action = action;
+            });
+          });
+
+          return {
+            environments: Array.from(updatedEnvironments, ([, value]) => value),
+            isValidating: false,
+            status: getEnvironmentBuildStatus(response),
+          };
+        });
+        return getEnvironmentBuildStatus(response);
+      } catch (error) {
+        set({ error, isValidating: false });
       }
     },
     clearError: () => {
