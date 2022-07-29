@@ -5,14 +5,19 @@ import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
-type ConnectionByUuid = Record<string, { title: string; filePath: string }>;
+/** Represents all the connection a single step has. */
+export type StepConnection = {
+  targetUuid: string;
+  title: string;
+  filePath: string;
+  direction: "incoming" | "outgoing";
+};
 
 export type StepDetailsContextType = {
   doesStepFileExist: boolean;
   isCheckingFileValidity: boolean;
   step: StepState;
-  steps: StepsDict;
-  connections: ConnectionByUuid;
+  connections: StepConnection[];
   disconnect(startStepUUID: string, endStepUUID: string): void;
 };
 
@@ -21,6 +26,16 @@ export const StepDetailsContext = React.createContext<StepDetailsContextType>(
 );
 
 export const useStepDetailsContext = () => React.useContext(StepDetailsContext);
+
+const toStepConnection = (
+  direction: "incoming" | "outgoing",
+  steps: StepsDict
+) => (targetUuid: string): StepConnection => ({
+  targetUuid,
+  direction,
+  title: steps[targetUuid].title,
+  filePath: steps[targetUuid].file_path,
+});
 
 export const StepDetailsContextProvider: React.FC = ({ children }) => {
   const {
@@ -53,17 +68,13 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
   });
 
   const connections = React.useMemo(() => {
-    if (!step) return {};
+    if (!step) return [];
 
-    const { incoming_connections = [], outgoing_connections = [] } = step;
+    const { incoming_connections, outgoing_connections } = step;
 
     return incoming_connections
-      .concat(outgoing_connections)
-      .reduce((all, id) => {
-        const { title, file_path } = steps[id];
-
-        return { ...all, [id]: { title, filePath: file_path } };
-      }, {} as ConnectionByUuid);
+      .map(toStepConnection("incoming", steps))
+      .concat(outgoing_connections.map(toStepConnection("outgoing", steps)));
   }, [steps, step]);
 
   return (
@@ -74,7 +85,6 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
         isCheckingFileValidity,
         connections,
         step,
-        steps,
       }}
     >
       {children}
