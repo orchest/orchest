@@ -23,6 +23,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"net"
 	"time"
 )
 
@@ -148,6 +149,7 @@ func newCert(caCertPEM, caKeyPEM []byte, expiry time.Time, IP, service, namespac
 		NotBefore:    now.UTC().AddDate(0, 0, -1),
 		NotAfter:     expiry.UTC(),
 		SubjectKeyId: bigIntHash(newKey.N),
+		IPAddresses:  []net.IP{net.ParseIP(IP)},
 		KeyUsage: x509.KeyUsageDigitalSignature |
 			x509.KeyUsageDataEncipherment |
 			x509.KeyUsageKeyEncipherment |

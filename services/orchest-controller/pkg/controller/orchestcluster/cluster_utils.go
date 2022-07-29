@@ -318,8 +318,14 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 	}
 
 	if serviceIP == "" {
-		serviceIP = nextIP(net.ParseIP(serviceList.Items[len(serviceList.Items)-1].
-			Spec.ClusterIP).To4(), 1).To4().String()
+		lastIP := net.ParseIP(serviceList.Items[len(serviceList.Items)-1].
+			Spec.ClusterIP)
+		if lastIP != nil {
+			return changed, errors.Errorf("no free IP found in the cluster %s", lastIP.String())
+		}
+		lastIP = lastIP.To4()
+
+		serviceIP = nextIP(lastIP, 1).To4().String()
 	}
 
 	if app.Config.Helm.Parameters == nil {
