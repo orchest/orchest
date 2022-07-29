@@ -170,7 +170,6 @@ def cli():
     is_flag=True,
     default=False,
     show_default=True,
-    hidden=True,
     help="Deploy orchest in a multi node setup.",
 )
 @click.option(
