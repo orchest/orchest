@@ -75,7 +75,7 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 	for _, preInstall := range preInstallHooks {
 		err = preInstall(app)
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 
