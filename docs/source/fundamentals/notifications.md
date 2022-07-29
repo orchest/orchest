@@ -2,6 +2,11 @@
 
 # Notifications
 
+```{eval-rst}
+.. meta::
+   :description: This page contains information about how to receive notifications for job runs and other events in Orchest.
+```
+
 You can receive webhook notifications when specific events happen in Orchest. For example, when a job fails. Whenever an events triggers, Orchest will send an HTTP request to your desired endpoint with a payload of information. For example:
 
 ```json

@@ -166,7 +166,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	addonManager *addons.AddonManager,
 ) *OrchestClusterController {
 
-	informerSyncedList := make([]cache.InformerSynced, 0, 0)
+	informerSyncedList := make([]cache.InformerSynced, 0)
 
 	ctrl := controller.NewController[*orchestv1alpha1.OrchestCluster](
 		"orchest-cluster",
@@ -540,6 +540,23 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Applications = occ.config.DefaultApplications
 	}
 
+	// set docker-registry default values
+	for i := 0; i < len(copy.Spec.Applications); i++ {
+		app := &copy.Spec.Applications[i]
+		if app.Name == addons.DockerRegistry {
+
+			registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), app)
+			if err != nil {
+				klog.Error(err)
+				return changed, err
+			}
+
+			if registryChanged {
+				changed = true
+			}
+		}
+	}
+
 	if changed || !reflect.DeepEqual(copy.Spec, orchest.Spec) {
 		_, err := occ.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
 
@@ -557,16 +574,33 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster) (err error) {
 
-	preInstallHooks := []func() error{}
+	updateConditionPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
+		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
+			orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", app.Name)))
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		return nil
+	}
 
-	registryPreInstall := func() error {
+	registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
 		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 
-		err = registryCertgen(ctx, occ.Client(), orchest)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
+		}
+
+		serviceIP, err := getRegistryServiceIP(&app.Config)
+		if err != nil {
+			return err
+		}
+
+		err = registryCertgen(ctx, occ.Client(), serviceIP, orchest)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -576,21 +610,15 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 	}
 
 	for _, application := range orchest.Spec.Applications {
-		preInstallHooks = append(preInstallHooks, func() error {
-			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
-				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", application.Name)))
-			if err != nil {
-				klog.Error(err)
-				return err
-			}
-			return nil
-		})
+		preInstallHooks := []addons.PreInstallHookFn{
+			updateConditionPreInstall,
+		}
 
 		if application.Name == addons.DockerRegistry {
 			preInstallHooks = append(preInstallHooks, registryPreInstall)
 		}
 
-		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application.Config)
+		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
 		if err != nil {
 			klog.Error(err)
 			return err

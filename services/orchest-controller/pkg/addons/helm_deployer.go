@@ -26,9 +26,9 @@ func NewHelmDeployer(name, deployDir string, valuesPath string) Addon {
 }
 
 // Installs deployer if the config is changed
-func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []func() error,
+func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallHookFn,
 	namespace string,
-	config *orchestv1alpha1.ApplicationConfig) error {
+	app *orchestv1alpha1.ApplicationSpec) error {
 
 	releaseName := fmt.Sprintf("%s-%s", namespace, d.name)
 
@@ -43,8 +43,8 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []func() erro
 		deployArgs.WithValuesFile(d.valuesPath)
 	}
 
-	if config.Helm != nil && config.Helm.Parameters != nil {
-		for _, parameter := range config.Helm.Parameters {
+	if app.Config.Helm != nil && app.Config.Helm.Parameters != nil {
+		for _, parameter := range app.Config.Helm.Parameters {
 			deployArgs.WithSetValue(parameter.Name, parameter.Value)
 		}
 	}
@@ -73,14 +73,14 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []func() erro
 	}
 
 	for _, preInstall := range preInstallHooks {
-		err = preInstall()
+		err = preInstall(app)
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 
-	helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
-	return nil
+	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
+	return err
 
 }
 

@@ -1,6 +1,12 @@
 # When to use Orchest
 
-There are several workflow management and pipeline orchestration solutions out there.
+```{eval-rst}
+.. meta::
+   :description: This page contains advice on when to use Orchest, who is Orchest good for, and when you might want to look for alternatives.
+```
+
+You might be wondering when to use Orchest since there are several workflow management
+and pipeline orchestration solutions out there.
 They all share some similarities: they all provide some way to define a {term}`DAG` of tasks,
 and infrastructure to monitor its results. However, there are notable differences between tools.
 
