@@ -5,6 +5,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { StepState } from "@/types";
 import { CloseOutlined } from "@mui/icons-material";
+import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
@@ -140,7 +141,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
           flexDirection="row"
           justifyContent="space-between"
         >
-          {step.title}
+          <Box flex={1}>{step.title}</Box>
           <IconButton onClick={onClose}>
             <CloseOutlined />
           </IconButton>
