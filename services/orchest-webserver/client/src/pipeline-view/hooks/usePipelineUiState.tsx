@@ -93,6 +93,7 @@ export type Action =
       type: "SET_CURSOR_CONTROLLED_STEP";
       payload: string | undefined;
     }
+  | { type: "CONNECT"; payload: Required<Connection> }
   | {
       type: "INSTANTIATE_CONNECTIONS";
       payload: Connection[];
@@ -235,6 +236,24 @@ export const usePipelineUiState = () => {
         });
       };
 
+      const connect = ({
+        startNodeUUID,
+        endNodeUUID,
+      }: Required<Connection>) => {
+        const index = state.connections.findIndex((c) => !c.endNodeUUID);
+
+        return produce(state, (draft) => {
+          if (index === -1) {
+            draft.connections.push({ startNodeUUID, endNodeUUID });
+          } else {
+            draft.connections[index].endNodeUUID = endNodeUUID;
+          }
+
+          draft.steps[endNodeUUID].incoming_connections.push(startNodeUUID);
+          draft.steps[startNodeUUID].outgoing_connections.push(endNodeUUID);
+        });
+      };
+
       const makeConnection = (endNodeUUID: string): PipelineUiState => {
         // Prerequisites
         // 1. mousedown on a node (i.e. startNodeUUID is confirmed)
@@ -295,26 +314,16 @@ export const usePipelineUiState = () => {
 
         // first find the index from the array, at the moment, the connection is incomplete
         newConnection.current = undefined;
-        return produce(state, (draft) => {
-          const index = draft.connections.findIndex(
-            (connection) => !connection.endNodeUUID
-          );
-          draft.connections[index].endNodeUUID = endNodeUUID;
-          if (startNodeUUID) {
-            draft.steps[endNodeUUID].incoming_connections.push(startNodeUUID);
-            draft.steps[startNodeUUID].outgoing_connections.push(endNodeUUID);
-          }
-        });
+
+        return connect({ startNodeUUID, endNodeUUID });
       };
 
-      const selectSteps = (uuids: string[]) => {
-        return {
-          selectedConnection: null,
-          selectedSteps: uuids,
-          openedMultiStep: uuids.length > 1,
-          shouldAutoFocus: uuids.length === 1,
-        };
-      };
+      const selectSteps = (uuids: string[]) => ({
+        selectedConnection: null,
+        selectedSteps: uuids,
+        openedMultiStep: uuids.length > 1,
+        shouldAutoFocus: uuids.length === 1,
+      });
 
       const deselectAllSteps = () => {
         return {
@@ -595,6 +604,8 @@ export const usePipelineUiState = () => {
           };
         }
 
+        case "CONNECT":
+          return withHash(connect(action.payload));
         case "MAKE_CONNECTION":
           return withHash(makeConnection(action.payload));
 
