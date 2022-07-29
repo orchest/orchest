@@ -1,5 +1,3 @@
-from typing import Any, Dict, List, Optional, Tuple
-
 """Provides a simple migration layer for pipeline jsons.
 
 Given a pipeline version, a mapping will be used to establish if the
@@ -15,6 +13,8 @@ which it will migrate.
 Note that the system only supports forward migrations.
 
 """
+from typing import Any, Dict, List, Optional, Tuple
+
 from _orchest.internals import utils as _utils
 
 
