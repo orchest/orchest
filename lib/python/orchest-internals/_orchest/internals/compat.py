@@ -79,7 +79,21 @@ def _migrate_1_1_0(pipeline: dict) -> None:
             del service["entrypoint"]
 
         if not service.get("ports", []):
-            service["ports"] = [8080]
+            image = service["image"].lower()
+            if "redis" in image:
+                service["ports"] = [6379]
+            elif "postgres" in image:
+                service["ports"] = [5432]
+            elif "streamlit" in image:
+                service["ports"] = [8501]
+            elif "mysql" in image:
+                service["ports"] = [3306]
+            elif "rabbitmq" in image:
+                service["ports"] = [5672]
+            elif "tensorflow" in image:
+                service["ports"] = [6006]
+            else:
+                service["ports"] = [8080]
 
         service["exposed"] = service.get("exposed", False)
         service["requires_authentication"] = service.get(
