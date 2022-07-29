@@ -7,11 +7,11 @@ import { ConnectionList } from "./ConnectionList";
 import { useStepDetailsContext } from "./StepDetailsContext";
 
 export type StepConnectionProps = {
-  onSave: (payload: Partial<StepState>, uuid: string) => void;
+  onSave(payload: Partial<StepState>, uuid: string): void;
 };
 
 export const StepConnections = ({ onSave }: StepConnectionProps) => {
-  const { step, steps, disconnect, connections } = useStepDetailsContext();
+  const { step, disconnect, connections } = useStepDetailsContext();
 
   // Mostly for new steps, where user is assumed to start typing Step Title,
   // then Step File Path is then automatically generated.
@@ -38,26 +38,6 @@ export const StepConnections = ({ onSave }: StepConnectionProps) => {
     }
   };
 
-  const removeIncoming = (index: number) => {
-    const startNodeUUID = step.incoming_connections[index];
-
-    if (startNodeUUID) {
-      disconnect(startNodeUUID, step.uuid);
-    }
-  };
-
-  const removeOutgoing = (index: number) => {
-    const endNodeUUID = step.outgoing_connections[index];
-    const endStep = steps[endNodeUUID];
-    const startNodeUUID = endStep?.incoming_connections.find(
-      (uuid) => uuid === step.uuid
-    );
-
-    if (startNodeUUID) {
-      disconnect(step.uuid, endNodeUUID);
-    }
-  };
-
   React.useEffect(() => {
     if (step.file_path.length === 0) {
       onChangeFilePath(toValidFilename(step.title));
@@ -67,25 +47,23 @@ export const StepConnections = ({ onSave }: StepConnectionProps) => {
   return (
     <Stack direction="column" spacing={3}>
       <ConnectionList
-        title="Incoming"
+        direction="incoming"
         hint="Drag & drop to order incoming data passing for this step"
         sortable={true}
-        onRemove={removeIncoming}
+        onRemove={(uuid) => disconnect(uuid, step.uuid)}
         onSwap={reorderIncoming}
-        connections={step.incoming_connections.map((uuid) => ({
-          ...connections[uuid],
-          uuid,
-        }))}
+        connections={connections.filter(
+          ({ direction }) => direction === "incoming"
+        )}
       />
       <ConnectionList
-        title="Outgoing"
         hint="Outgoing data passing can't be ordered"
+        direction="outgoing"
         sortable={false}
-        onRemove={removeOutgoing}
-        connections={step.outgoing_connections.map((uuid) => ({
-          ...connections[uuid],
-          uuid,
-        }))}
+        onRemove={(uuid) => disconnect(step.uuid, uuid)}
+        connections={connections.filter(
+          ({ direction }) => direction === "outgoing"
+        )}
       />
     </Stack>
   );
