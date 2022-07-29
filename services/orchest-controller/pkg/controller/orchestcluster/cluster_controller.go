@@ -392,6 +392,12 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Orchest.Version = occ.config.OrchestDefaultVersion
 	}
 
+	if copy.Spec.SingleNode == nil {
+		changed = true
+		True := true
+		copy.Spec.SingleNode = &True
+	}
+
 	if copy.Spec.Orchest.Pause == nil {
 		changed = true
 		copy.Spec.Orchest.Pause = &occ.config.DefaultPause

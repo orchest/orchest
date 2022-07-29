@@ -167,6 +167,7 @@ class ClusterStatus(str, enum.Enum):
 
 
 def install(
+    multi_node: bool,
     cloud: bool,
     dev_mode: bool,
     no_argo: bool,
@@ -351,22 +352,27 @@ def install(
             }
         )
 
+    spec = {
+        "applications": applications,
+        "orchest": {
+            "orchestHost": fqdn,
+            "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
+            "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
+            "resources": {
+                "userDirVolumeSize": f"{userdir_pvc_size}Gi",
+                "builderCacheDirVolumeSize": f"{builder_pvc_size}Gi",
+            },
+        },
+    }
+
+    if multi_node:
+        spec["singleNode"] = False
+
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
         "kind": "OrchestCluster",
         "metadata": metadata,
-        "spec": {
-            "applications": applications,
-            "orchest": {
-                "orchestHost": fqdn,
-                "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
-                "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
-                "resources": {
-                    "userDirVolumeSize": f"{userdir_pvc_size}Gi",
-                    "builderCacheDirVolumeSize": f"{builder_pvc_size}Gi",
-                },
-            },
-        },
+        "spec": spec,
     }
 
     # Once the CR is created, the operator will read it and start

@@ -67,7 +67,7 @@ func getPersistentVolumeClaim(name, volumeSize, hash string,
 	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
 
 	accessMode := corev1.ReadWriteMany
-	if orchest.Spec.SingleNode {
+	if orchest.Spec.SingleNode != nil && *orchest.Spec.SingleNode {
 		accessMode = corev1.ReadWriteOnce
 	}
 
