@@ -13,7 +13,6 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
-import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type {
@@ -195,9 +194,6 @@ const PipelineSettingsView: React.FC = () => {
     pipelineJson &&
     envVariables &&
     (isReadOnly || hasValue(projectEnvVariables));
-
-  // If the component has loaded, attach the resize listener
-  useOverflowListener(hasLoaded);
 
   const [
     isGenerateParametersDialogOpen,

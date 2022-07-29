@@ -41,7 +41,11 @@ storage: filesystem
 
 tlsSecretName: registry-tls-secret
 secrets:
-  haSharedSecret: ""
+  # If this value is not specified, the docker-registry helm chart (./helm/templates/secret.yaml) 
+  # randomly generates a new one, so each time the controller compares the deployed manifests with 
+  # the new manifest (to decide whether it needs an update or not), it thinks the manifest is 
+  # changed and re-deploy docker-registry 
+  haSharedSecret: "haSharedSecret"
   htpasswd: ""
 # Secrets for Azure
 #   azure:

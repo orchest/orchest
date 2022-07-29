@@ -40,10 +40,16 @@ kubectl get svc ingress-nginx-controller \\
 <p>
 Get started by installing <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> and setting up an
 <a href="https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html">EKS cluster</a>
-on AWS. Lastly, to properly set-up your cluster, install the
-<a href="https://kubernetes.github.io/ingress-nginx/deploy/#aws">NGINX ingress controller</a>.
+on AWS. then, to properly set-up your cluster, install the
+<a href="https://kubernetes.github.io/ingress-nginx/deploy/#aws">NGINX ingress controller</a> and make it the
+default ingress class by running the following command.
 </p>
-
+<div class="highlight">
+<pre>
+kubectl patch ingressclass nginx  -p \\
+    '{"metadata":{"annotations":{"ingressclass.kubernetes.io/is-default-class":"true"}}}'
+</pre>
+</div>
 <p>All that is left is installing Orchest using the <code class="docutils literal notranslate"><span
 class="pre">orchest-cli</span></code>:</p>
 <div class="highlight">

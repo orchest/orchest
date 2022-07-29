@@ -23,6 +23,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"net"
 	"time"
 )
 
@@ -65,6 +66,9 @@ type Configuration struct {
 	// configuring Subject Alt Names on the certificates.
 	DNSName string
 
+	// IP address of the certificate
+	IP string
+
 	// ContourServiceName holds the name of the docker-registry service name.
 	RegistryServiceName string
 }
@@ -96,6 +100,7 @@ func GenerateCerts(config *Configuration) (*Certificates, error) {
 	registryCert, registryKey, err := newCert(caCertPEM,
 		caKeyPEM,
 		expiry,
+		config.IP,
 		stringOrDefault(config.RegistryServiceName, DefaultRegistryServiceName),
 		stringOrDefault(config.Namespace, DefaultNamespace),
 		stringOrDefault(config.DNSName, DefaultDNSName),
@@ -115,7 +120,7 @@ func GenerateCerts(config *Configuration) (*Certificates, error) {
 // ("contour" or "envoy"), and the Kubernetes namespace the service will run in (because
 // of the Kubernetes DNS schema.)
 // The return values are cert, key, err.
-func newCert(caCertPEM, caKeyPEM []byte, expiry time.Time, service, namespace, dnsname string) ([]byte, []byte, error) {
+func newCert(caCertPEM, caKeyPEM []byte, expiry time.Time, IP, service, namespace, dnsname string) ([]byte, []byte, error) {
 
 	caKeyPair, err := tls.X509KeyPair(caCertPEM, caKeyPEM)
 	if err != nil {
@@ -144,11 +149,12 @@ func newCert(caCertPEM, caKeyPEM []byte, expiry time.Time, service, namespace, d
 		NotBefore:    now.UTC().AddDate(0, 0, -1),
 		NotAfter:     expiry.UTC(),
 		SubjectKeyId: bigIntHash(newKey.N),
+		IPAddresses:  []net.IP{net.ParseIP(IP)},
 		KeyUsage: x509.KeyUsageDigitalSignature |
 			x509.KeyUsageDataEncipherment |
 			x509.KeyUsageKeyEncipherment |
 			x509.KeyUsageContentCommitment,
-		DNSNames: serviceNames(service, namespace, dnsname),
+		DNSNames: serviceNames(IP, service, namespace, dnsname),
 	}
 	newCert, err := x509.CreateCertificate(rand.Reader, template, caCert, &newKey.PublicKey, caKey)
 	if err != nil {
@@ -224,8 +230,9 @@ func bigIntHash(n *big.Int) []byte {
 	return h.Sum(nil)
 }
 
-func serviceNames(service, namespace, dnsname string) []string {
+func serviceNames(IP, service, namespace, dnsname string) []string {
 	return []string{
+		IP,
 		service,
 		fmt.Sprintf("%s.%s", service, namespace),
 		fmt.Sprintf("%s.%s.svc", service, namespace),

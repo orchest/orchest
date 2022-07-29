@@ -165,6 +165,14 @@ def cli():
     help="Run install in dev mode.",
 )
 @click.option(
+    "--multi-node",
+    "multi_node",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Deploy orchest in a multi node setup.",
+)
+@click.option(
     "--no-argo",
     "no_argo",  # name for arg
     is_flag=True,
@@ -211,6 +219,7 @@ def cli():
 )
 @cli.command(cls=ClickCommonOptionsCmd)
 def install(
+    multi_node: bool,
     cloud: bool,
     dev_mode: bool,
     no_argo: bool,
@@ -223,6 +232,7 @@ def install(
 ) -> None:
     """Install Orchest."""
     cmds.install(
+        multi_node,
         cloud,
         dev_mode,
         no_argo,

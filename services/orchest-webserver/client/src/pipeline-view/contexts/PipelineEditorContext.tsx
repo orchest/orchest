@@ -83,7 +83,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     state: { pipelines, projectUuid, pipeline },
   } = useProjectsContext();
   const pipelineUuid = pipeline?.uuid;
-  const { jobUuid, runUuid: runUuidFromRoute } = useCustomRoute();
+  const { jobUuid } = useCustomRoute();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
   const disabled = hasValue(pipelines) && pipelines.length === 0;
@@ -137,13 +137,9 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     [dispatch, instantiateConnection]
   );
 
-  const { runUuid, setRunUuid } = useFetchInteractiveRun(
-    projectUuid,
-    pipelineUuid,
-    runUuidFromRoute
-  );
+  const { runUuid, setRunUuid } = useFetchInteractiveRun();
 
-  const isReadOnly = useIsReadOnly(projectUuid, jobUuid, runUuid);
+  const isReadOnly = useIsReadOnly();
 
   const {
     pipelineCwd,
@@ -154,7 +150,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     error: fetchDataError,
   } = useInitializePipelineEditor(runUuid, isReadOnly, initializeEventVars);
 
-  const session = useAutoStartSession({ isReadOnly });
+  const session = useAutoStartSession();
 
   React.useEffect(() => {
     const startTracking = (e: MouseEvent) =>

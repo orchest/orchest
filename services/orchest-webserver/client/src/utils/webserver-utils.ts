@@ -8,18 +8,13 @@ import {
   Step,
 } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
-import {
-  extensionFromFilename,
-  fetcher,
-  hasValue,
-  HEADER,
-} from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
-import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
+import { hasExtension } from "./path";
 
 const ajv = new Ajv({
   allowUnionTypes: true,
@@ -89,7 +84,7 @@ export function validatePipeline(pipelineJson: PipelineJson) {
   outerLoop: for (let stepKey in pipelineJson.steps) {
     let step = pipelineJson.steps[stepKey];
 
-    if (extensionFromFilename(step.file_path) === "ipynb") {
+    if (hasExtension(step.file_path, "ipynb")) {
       for (let otherStepKey in pipelineJson.steps) {
         let otherStep = pipelineJson.steps[otherStepKey];
 
@@ -231,42 +226,6 @@ export function checkGate(project_uuid: string) {
   });
 }
 
-export class OverflowListener {
-  private observer: ResizeObserver | undefined;
-  private triggerOverflow: HTMLElement | undefined;
-
-  constructor() {} // eslint-disable-line @typescript-eslint/no-empty-function
-
-  attach() {
-    // check if ResizeObserver is defined
-    if (window.ResizeObserver) {
-      // trigger-overflow only supports a single element on the page
-
-      let triggerOverflow = $(".trigger-overflow").first()[0];
-      if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
-        this.triggerOverflow = triggerOverflow;
-        this.observer = new ResizeObserver(() => {
-          if (!this.triggerOverflow) return;
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          if ($(this.triggerOverflow).overflowing()) {
-            $(".observe-overflow").addClass("overflowing");
-          } else {
-            $(".observe-overflow").removeClass("overflowing");
-          }
-        });
-        this.observer.observe(this.triggerOverflow);
-      }
-    }
-  }
-
-  detach() {
-    if (this.observer && this.triggerOverflow) {
-      this.observer.unobserve(this.triggerOverflow);
-    }
-  }
-}
-
 export type CreateProjectError =
   | "project move failed"
   | "project name contains illegal character";
@@ -393,17 +352,17 @@ export function getPipelineJSONEndpoint({
   pipelineUuid,
   jobUuid,
   projectUuid,
-  runUuid,
+  jobRunUuid,
 }: {
   pipelineUuid: string | undefined;
   projectUuid: string | undefined;
   jobUuid?: string | undefined;
-  runUuid?: string | undefined;
+  jobRunUuid?: string | undefined;
 }) {
   if (!pipelineUuid || !projectUuid) return "";
   let pipelineURL = `/async/pipelines/json/${projectUuid}/${pipelineUuid}`;
 
-  const queryArgs = { job_uuid: jobUuid, pipeline_run_uuid: runUuid };
+  const queryArgs = { job_uuid: jobUuid, pipeline_run_uuid: jobRunUuid };
   // NOTE: pipeline_run_uuid only makes sense if job_uuid is given
   // i.e. a job run requires both uuid's
   const queryString = jobUuid

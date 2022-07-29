@@ -24,7 +24,7 @@ func NewOrchestDatabaseReconciler(ctrl *OrchestComponentController) OrchestCompo
 
 func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
 
-	hash := controller.ComputeHash(component)
+	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestDatabase, component)
 	metadata := controller.GetMetadata(controller.OrchestDatabase, hash, component, OrchestComponentKind)
 	newDep := getOrchestDatabaseDeployment(metadata, matchLabels, component)
@@ -146,7 +146,7 @@ func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 	}
 
 	deployment.Labels = utils.CloneAndAddLabel(metadata.Labels, map[string]string{
-		controller.DeploymentHashLabelKey: controller.ComputeHash(&deployment.Spec),
+		controller.DeploymentHashLabelKey: utils.ComputeHash(&deployment.Spec),
 	})
 
 	return deployment

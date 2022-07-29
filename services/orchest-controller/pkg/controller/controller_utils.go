@@ -3,8 +3,6 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"hash/fnv"
 	"reflect"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -18,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -77,7 +74,7 @@ func AddFinalizerIfNotPresent(ctx context.Context,
 		return false, nil
 	}
 
-	klog.Infof("Object does not have finalzier, Object: %s", object.GetName())
+	klog.Infof("Object does not have finalizer, Object: %s", object.GetName())
 	copy := object.DeepCopyObject().(client.Object)
 
 	copy.SetFinalizers(append(copy.GetFinalizers(), finalizer))
@@ -183,13 +180,6 @@ func UpsertObject(ctx context.Context, generalClient client.Client, object clien
 	}
 
 	return nil
-}
-
-func ComputeHash(object interface{}) string {
-	hasher := fnv.New32a()
-	utils.DeepHashObject(hasher, object)
-
-	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
 }
 
 func GetMetadata(resourceName, hash string,

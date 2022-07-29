@@ -3,16 +3,13 @@ import {
   prettifyRoot,
 } from "@/pipeline-view/file-manager/common";
 import { FileTree } from "@/types";
+import { dirname, isDirectory, join } from "@/utils/path";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningIcon from "@mui/icons-material/Warning";
 import CircularProgress from "@mui/material/CircularProgress";
-import { collapseDoubleDots } from "@orchest/lib-utils";
 import React from "react";
 import { useFileManagerContext } from "../pipeline-view/file-manager/FileManagerContext";
 import FilePicker, { FilePickerProps, validatePathInTree } from "./FilePicker";
-
-const getFolderPath = (filePath: string) =>
-  filePath.split("/").slice(0, -1).join("/") + "/";
 
 const getAbsoluteFolderPath = ({
   value: relativeFilePath,
@@ -21,21 +18,20 @@ const getAbsoluteFolderPath = ({
 }: Pick<FilePickerProps, "cwd" | "value" | "tree">) => {
   // The path for /data/ folder is absolute
   if (relativeFilePath.startsWith("/data/")) {
-    return getFolderPath(relativeFilePath.replace(/^\/data\//, "/data:/"));
+    return dirname(relativeFilePath.replace(/^\/data\//, "/data:/"));
+  } else {
+    const absCwd = `/project-dir:/${cwd === "/" ? "" : cwd}`;
+
+    // The rest is a relative path to pipelineCwd
+    const projectFilePath = join(absCwd, relativeFilePath);
+    const directoryPath = isDirectory(projectFilePath)
+      ? projectFilePath
+      : dirname(projectFilePath);
+
+    // Check if directoryPath exists.
+    // If not, use pipelineCwd as fallback.
+    return validatePathInTree(directoryPath, tree) ? directoryPath : absCwd;
   }
-
-  const absCwd = `/project-dir:/${cwd === "/" ? "" : cwd}`;
-
-  // The rest is a relative path to pipelineCwd
-  const projectFilePath = collapseDoubleDots(`${absCwd}${relativeFilePath}`);
-  const isFile = !projectFilePath.endsWith("/");
-  const directoryPath = isFile
-    ? getFolderPath(projectFilePath)
-    : projectFilePath;
-
-  // Check if directoryPath exists.
-  // If not, use pipelineCwd as fallback.
-  return validatePathInTree(directoryPath, tree) ? directoryPath : absCwd;
 };
 
 const ProjectFilePicker: React.FC<{

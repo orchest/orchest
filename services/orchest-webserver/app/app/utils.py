@@ -10,11 +10,11 @@ from typing import Optional
 import requests
 from flask import current_app, safe_join
 
+from _orchest.internals import compat as _compat
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
 from app import error
-from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
 from app.schemas import EnvironmentSchema
@@ -315,8 +315,8 @@ def get_pipeline_json(pipeline_uuid=None, project_uuid=None, pipeline_path=None)
         with open(pipeline_path, "r") as json_file:
             pipeline_json = json.load(json_file)
 
-            # Apply pipeline migrations
-            migrate_pipeline(pipeline_json)
+            # Apply pipeline migrations.
+            _compat.migrate_pipeline(pipeline_json)
 
             return pipeline_json
     except Exception as e:

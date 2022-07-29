@@ -22,17 +22,17 @@ export const useInitializePipelineEditor = (
   const {
     navigateTo,
     projectUuid: projectUuidFromRoute,
-    pipelineUuid: pipelineuuidFromRoute,
+    pipelineUuid: pipelineUuidFromRoute,
     jobUuid,
   } = useCustomRoute();
 
   useEnsureValidPipeline();
 
-  // Because `useEnsureValidPipeline` will auto-redirect if pipelineuuidFromRoute is invalid,
-  // `pipelineUuid` is only valid until `pipeline?.uuid === pipelineuuidFromRoute`,
+  // Because `useEnsureValidPipeline` will auto-redirect if pipelineUuidFromRoute is invalid,
+  // `pipelineUuid` is only valid until `pipeline?.uuid === pipelineUuidFromRoute`,
   // During the transition, it shouldn't fetch pipelineJson.
   const pipelineUuid =
-    pipeline?.uuid === pipelineuuidFromRoute ? pipeline?.uuid : undefined;
+    pipeline?.uuid === pipelineUuidFromRoute ? pipeline?.uuid : undefined;
 
   const {
     pipelineJson,
@@ -89,8 +89,8 @@ export const useInitializePipelineEditor = (
   // Because pipelineJson will be cached by SWR, initialization should only starts when uuid matches.
   const shouldInitialize =
     !isFetchingPipelineJson &&
-    pipelineuuidFromRoute &&
-    pipelineuuidFromRoute === pipelineJson?.uuid;
+    pipelineUuidFromRoute &&
+    pipelineUuidFromRoute === pipelineJson?.uuid;
 
   // initialize eventVars.steps
   React.useEffect(() => {

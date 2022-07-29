@@ -6,6 +6,7 @@ import { useHotKeys } from "@/hooks/useHotKeys";
 import { siteMap } from "@/routingConfig";
 import type { Connection, PipelineJson, Step, StepsDict } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
+import { join } from "@/utils/path";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
 import { filterServices, validatePipeline } from "@/utils/webserver-utils";
@@ -21,12 +22,7 @@ import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import {
-  activeElementIsInput,
-  fetcher,
-  hasValue,
-  joinRelativePaths,
-} from "@orchest/lib-utils";
+import { activeElementIsInput, fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { BackToJobButton } from "./BackToJobButton";
 import {
@@ -307,10 +303,7 @@ export const PipelineEditor = () => {
 
   const notebookFilePath = React.useCallback(
     (pipelineCwd: string, stepUUID: string) => {
-      return joinRelativePaths(
-        pipelineCwd,
-        eventVars.steps[stepUUID].file_path
-      );
+      return join(pipelineCwd, eventVars.steps[stepUUID].file_path);
     },
     [eventVars.steps]
   );

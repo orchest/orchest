@@ -1,4 +1,4 @@
-import { absoluteToRelativePath } from "@orchest/lib-utils";
+import { relative } from "@/utils/path";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
@@ -10,12 +10,11 @@ const toRoot = (path?: string) => (path?.startsWith("/") ? path : "/" + path);
 const unroot = (path?: string) =>
   path?.startsWith("/") ? path.substring(1) : path;
 
-const relativeToPipeline = (pipelineCwd?: string, path?: string) =>
-  path ? unroot(absoluteToRelativePath(path, toRoot(pipelineCwd))) : path;
+const relativeToPipeline = (pipelinePath?: string, path?: string) =>
+  path ? unroot(relative(toRoot(pipelinePath), path)) : path;
 
 /**
  * Creates a new step in the pipeline.
- *
  * @param filePath (Optional) the file path, relative to `project-dir:`, e.g. `/foo.py`.
  */
 export type StepCreator = (filePath?: string) => void;

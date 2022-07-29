@@ -4,11 +4,11 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
+import { basename } from "@/utils/path";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import {
-  basename,
   FILE_MANAGEMENT_ENDPOINT,
   filterRedundantChildPaths,
   findPipelineFiles,
@@ -214,7 +214,7 @@ export const FileManagerLocalContextProvider: React.FC<{
             deleteFetch(projectUuid, combinedPath)
           )
         );
-        // Send a GET request for file dicovery
+        // Send a GET request for file discovery
         // to ensure that the pipeline is removed from DB.
         const updatedPipelines = await fetchPipelines(projectUuid);
         dispatch({ type: "SET_PIPELINES", payload: updatedPipelines });

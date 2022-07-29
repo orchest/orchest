@@ -9,14 +9,15 @@ import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
-export const useAutoStartSession = ({ isReadOnly = false }) => {
+export const useAutoStartSession = () => {
   const {
     state: { sessions },
     getSession,
     startSession,
   } = useSessionsContext();
   const {
-    state: { pipeline },
+    state: { pipeline, pipelineIsReadOnly },
+    dispatch,
   } = useProjectsContext();
   const { setAlert, setConfirm } = useAppContext();
   const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();
@@ -30,7 +31,7 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
     hasValue(sessions) && // `sessions` is available to look up
     hasValue(pipeline?.uuid) && // `pipeline` is loaded.
     pipelineUuidFromRoute === pipeline?.uuid && // Only auto-start the pipeline that user is viewing.
-    !isReadOnly &&
+    !pipelineIsReadOnly &&
     !hasValue(session); // `session` of the current pipeline is not yet launched.
 
   // The only case that auto-start should be disabled is that
@@ -53,22 +54,26 @@ export const useAutoStartSession = ({ isReadOnly = false }) => {
         error.status === 423 &&
         error.message === "JupyterEnvironmentBuildInProgress"
       ) {
+        dispatch({
+          type: "SET_PIPELINE_IS_READONLY",
+          payload: true,
+        });
         setConfirm(
           "Notice",
-          "JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
+          "A JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
           {
             onConfirm: () => {
               navigateTo(siteMap.configureJupyterLab.path);
               return true;
             },
-            confirmLabel: "Go to Configure JupyterLab",
+            confirmLabel: "Configure JupyterLab",
           }
         );
       } else if (error?.message) {
         setAlert("Error", `Error while starting the session: ${String(error)}`);
       }
     },
-    [navigateTo, setAlert, setConfirm, startSession]
+    [navigateTo, setAlert, setConfirm, startSession, dispatch]
   );
 
   React.useEffect(() => {

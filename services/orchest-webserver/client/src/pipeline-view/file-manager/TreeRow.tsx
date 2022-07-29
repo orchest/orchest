@@ -1,21 +1,14 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { firstAncestor } from "@/utils/element";
+import { basename, dirname, extname, isDirectory } from "@/utils/path";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
-import { extensionFromFilename } from "@orchest/lib-utils";
 import produce from "immer";
 import React from "react";
 import { FileManagementRoot } from "../common";
-import {
-  basename,
-  combinePath,
-  dirname,
-  isDirectory,
-  TreeNode,
-  unpackPath,
-} from "./common";
+import { combinePath, TreeNode, unpackPath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 
@@ -153,9 +146,8 @@ const RenameField = ({
 
   React.useEffect(() => {
     const name = basename(combinedPath);
-    const ext = extensionFromFilename(name);
-    const isDotFile = name.substring(1) === ext;
-    const end = !isDotFile ? name.length - ext.length - 1 : name.length;
+    const ext = extname(name);
+    const end = ext ? name.length - ext.length : name.length;
 
     inputRef.current?.setSelectionRange(0, end, "forward");
   }, [combinedPath]);

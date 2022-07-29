@@ -29,6 +29,56 @@ Optional, but highly recommended:
 - [jq](https://stedolan.github.io/jq/): Useful when working with JSON in your terminal.
 - [gron](https://github.com/tomnomnom/gron): Make JSON greppable.
 
+````{dropdown} 🎉 In case you dare to run a script to install all of the above
+**Requires to be on Linux**
+```sh
+cd ~/Downloads
+
+# go
+curl -L https://go.dev/dl/go1.18.3.linux-amd64.tar.gz -o go.tar.gz
+sudo tar -C /usr/local -xzf go.tar.gz
+
+# Docker
+# https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script
+# https://docs.docker.com/engine/install/linux-postinstall/
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo groupadd docker
+sudo usermod -aG docker $USER
+newgrp docker
+
+# minikube
+# https://minikube.sigs.k8s.io/docs/start/
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+# kubectl
+# https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-kubectl-binary-with-curl-on-linux
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# helm
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh -v v3.9.0
+
+# pre-commit
+pip install pre-commit
+
+# Node and npm
+curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# pnpm
+sudo npm install -g pnpm
+
+## --- Extra's
+# k9s
+curl -L https://github.com/derailed/k9s/releases/download/v0.25.21/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz
+tar -C ~/.local/bin -xzf k9s.tar.gz
+```
+````
+
 ### Dependencies
 
 After installing the required software, you need to configure the tools and install additional
@@ -657,7 +707,7 @@ try to pull an image with a tag equal to the cluster version.
 ### Test running Orchest on `containerd`
 
 To test running Orchest on `containerd`, we recommend [installing MicroK8s](https://microk8s.io/).
-Alternatively, you can also set up Orchest on GKE (see {ref}`installation <regular installation>`)
+Alternatively, you can also set up Orchest on GKE (see {ref}`installation <regular-installation>`)
 or install MicroK8s in a VM (e.g. using [VirtualBox](https://www.virtualbox.org/)).
 
 Next, enable the following addons:
