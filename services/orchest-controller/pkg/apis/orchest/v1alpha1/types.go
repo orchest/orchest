@@ -177,20 +177,6 @@ type OrchestSpec struct {
 	AuthServer OrchestComponentTemplate `json:"authServer,omitempty"`
 }
 
-// RegistrySpec describes the attributes of docker-registry which will be used by step containers.
-type DockerRegistrySpec struct {
-	Name string `json:"image,omitempty"`
-
-	// NodeSelector is a selector which must be true for the pod to fit on a node.
-	// Selector which must match a node's labels for the pod to be scheduled on that node.
-	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	VolumeSize string `json:"volumeSize,omitempty"`
-
-	StorageClass string `json:"storageClass,omitempty"`
-}
-
 // Partially borrowed from argocd
 // ApplicationConfig contains all required information about the source of an application
 type ApplicationConfig struct {
@@ -240,8 +226,6 @@ type OrchestClusterSpec struct {
 	DefaultNodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	Orchest OrchestSpec `json:"orchest,omitempty"`
-
-	Registry DockerRegistrySpec `json:"registry,omitempty"`
 
 	Postgres OrchestComponentTemplate `json:"postgres,omitempty"`
 

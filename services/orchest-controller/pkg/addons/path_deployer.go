@@ -109,8 +109,8 @@ func NewPathDeployer(name, root string, gClient client.Client, scheme *runtime.S
 }
 
 // Installs deployer if the config is changed
-func (d *PathDeployer) Enable(ctx context.Context, preInstall []func() error,
-	namespace string, config *orchestv1alpha1.ApplicationConfig) error {
+func (d *PathDeployer) Enable(ctx context.Context, preInstall []PreInstallHookFn,
+	namespace string, _ *orchestv1alpha1.ApplicationSpec) error {
 
 	for _, obj := range d.objects {
 		err := d.gClient.Create(ctx, obj, &client.CreateOptions{})

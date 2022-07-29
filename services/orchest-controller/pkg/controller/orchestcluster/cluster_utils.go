@@ -1,6 +1,9 @@
 package orchestcluster
 
 import (
+	"bytes"
+	"net"
+	"sort"
 	"strings"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -27,14 +30,19 @@ var (
 		controller.OrchestWebserver,
 		controller.NodeAgent,
 	}
+
+	// Registry helm parameters
+	registryServiceIP = "service.clusterIP"
 )
 
 // This function is borrowed from projectcountour
 func registryCertgen(ctx context.Context,
 	client kubernetes.Interface,
+	serviceIP string,
 	orchest *orchestv1alpha1.OrchestCluster) error {
 	generatedCerts, err := certs.GenerateCerts(
 		&certs.Configuration{
+			IP:        serviceIP,
 			Lifetime:  365,
 			Namespace: orchest.Namespace,
 		})
@@ -234,6 +242,114 @@ func getOrchestComponent(name, hash string,
 		},
 	}
 
+}
+
+// getRegistryServiceIP retrives the defined registry service IP from config
+func getRegistryServiceIP(config *orchestv1alpha1.ApplicationConfig) (string, error) {
+	for _, param := range config.Helm.Parameters {
+		if param.Name == registryServiceIP {
+			return param.Value, nil
+		}
+	}
+
+	return "", errors.Errorf("registry service IP not found in config")
+}
+
+// setRegistryServiceIP defines the registry service IP if not defined
+func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
+	app *orchestv1alpha1.ApplicationSpec) (bool, error) {
+
+	var changed = false
+
+	if app.Config.Helm == nil {
+		changed = true
+		app.Config.Helm = &orchestv1alpha1.ApplicationConfigHelm{}
+	}
+
+	for _, param := range app.Config.Helm.Parameters {
+		if param.Name == registryServiceIP {
+			return changed, nil
+		}
+	}
+
+	// the service ip is not defined, let's find a free IP
+	serviceList, err := client.CoreV1().Services("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return changed, err
+	}
+
+	// Sort the ip addresses
+	sort.Slice(serviceList.Items, func(i, j int) bool {
+
+		ip1 := net.ParseIP(serviceList.Items[i].Spec.ClusterIP).To4()
+		if ip1 == nil {
+			return false
+		}
+
+		ip2 := net.ParseIP(serviceList.Items[j].Spec.ClusterIP).To4()
+		if ip2 == nil {
+			return false
+		}
+
+		return bytes.Compare(ip1, ip2) < 0
+
+	})
+
+	// Find the first free IP
+	var serviceIP string
+	for i := 0; i < len(serviceList.Items)-1; i++ {
+
+		if serviceList.Items[i].Spec.ClusterIP == "" {
+			continue
+		}
+
+		nextIP := nextIP(net.ParseIP(serviceList.Items[i].Spec.ClusterIP).To4(), 1)
+		if nextIP == nil {
+			continue
+		}
+
+		// If next ip is not free
+		if bytes.Compare(nextIP, net.ParseIP(serviceList.Items[i+1].Spec.ClusterIP).To4()) == 0 {
+			continue
+		}
+
+		serviceIP = nextIP.To4().String()
+		break
+	}
+
+	if serviceIP == "" {
+		lastIP := net.ParseIP(serviceList.Items[len(serviceList.Items)-1].
+			Spec.ClusterIP)
+		if lastIP != nil {
+			return changed, errors.Errorf("no free IP found in the cluster %s", lastIP.String())
+		}
+		lastIP = lastIP.To4()
+
+		serviceIP = nextIP(lastIP, 1).To4().String()
+	}
+
+	if app.Config.Helm.Parameters == nil {
+		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
+	}
+
+	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
+		orchestv1alpha1.HelmParameter{
+			Name:  registryServiceIP,
+			Value: serviceIP,
+		})
+
+	return changed, nil
+}
+
+// nextIP returns the next ip address
+func nextIP(ip net.IP, inc uint) net.IP {
+	v := uint(ip[0])<<24 + uint(ip[1])<<16 + uint(ip[2])<<8 + uint(ip[3])
+	v += inc
+	v3 := byte(v & 0xFF)
+	v2 := byte((v >> 8) & 0xFF)
+	v1 := byte((v >> 16) & 0xFF)
+	v0 := byte((v >> 24) & 0xFF)
+	return net.IPv4(v0, v1, v2, v3)
 }
 
 // detectContainerRuntime detects the container runtime of the cluster and the socket path

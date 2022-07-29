@@ -28,5 +28,8 @@ FROM ubuntu:22.04
 COPY --from=base /bin/ctr /bin/ctr
 COPY --from=base /bin/docker /bin/docker
 
+RUN apt-get update && apt-get install -y buildah && buildah version && \
+    apt-get clean
+
 COPY ./pull_image.sh /pull_image.sh
 RUN chmod +x /pull_image.sh
