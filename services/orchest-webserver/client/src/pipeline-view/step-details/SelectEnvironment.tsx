@@ -1,5 +1,4 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
+import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -27,9 +26,12 @@ export const SelectEnvironment = ({
   disabled: boolean;
   language?: string;
 }) => {
-  const { projectUuid } = useCustomRoute();
-
-  const { environments } = useFetchEnvironments(projectUuid, language);
+  const { environments: allEnvironments = [] } = useGetEnvironments();
+  const environments = React.useMemo(() => {
+    return allEnvironments.filter(
+      (environment) => environment.language === language
+    );
+  }, [allEnvironments, language]);
 
   const environmentOptions = React.useMemo<
     EnvironmentOption[] | undefined

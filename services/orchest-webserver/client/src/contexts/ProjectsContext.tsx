@@ -1,3 +1,4 @@
+import { useFetchEnvironments } from "@/environments-view/stores/useFetchEnvironments";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type {
   EnvironmentValidationData,
@@ -329,6 +330,8 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     ]
   );
   const [state, dispatch] = React.useReducer(memoizedReducer, initialState);
+
+  useFetchEnvironments(state.projectUuid);
 
   const requestBuild = React.useCallback(
     (

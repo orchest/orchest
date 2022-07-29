@@ -3,10 +3,10 @@ import {
   PipelineReadOnlyReason,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
+import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
@@ -112,9 +112,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
       );
   }, [error, setAlert, navigateTo, projectUuid, jobUuid]);
 
-  const { environments = [] } = useFetchEnvironments(
-    !isReadOnly ? projectUuid : undefined
-  );
+  const { environments = [] } = useGetEnvironments();
 
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
 
