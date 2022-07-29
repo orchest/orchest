@@ -8,17 +8,17 @@ import React from "react";
 const selector = (state: EnvironmentsApiState) =>
   [state.error, state.clearError] as const;
 
-export const useReportEnvironmentsError = () => {
+export const useReportEnvironmentsError = (heading = "") => {
   const { setAlert } = useAppContext();
 
   const [error, clearError] = useEnvironmentsApi(selector);
 
   React.useEffect(() => {
     if (error) {
-      setAlert("Error", String(error), () => {
+      setAlert("Error", heading + String(error), () => {
         clearError();
         return true;
       });
     }
-  }, [error, clearError, setAlert]);
+  }, [heading, error, clearError, setAlert]);
 };

@@ -3,6 +3,7 @@ import { Routes } from "@/Routes";
 import Box from "@mui/material/Box";
 import OpenReplay from "@openreplay/tracker";
 import { makeRequest } from "@orchest/lib-utils";
+import { enableMapSet } from "immer";
 import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
@@ -13,6 +14,8 @@ import { useAppContext } from "./contexts/AppContext";
 import { AppInnerContextProvider } from "./contexts/AppInnerContext";
 import { HeaderBar } from "./header-bar/HeaderBar";
 import Jupyter from "./jupyter/Jupyter";
+
+enableMapSet();
 
 const App = () => {
   const [jupyter, setJupyter] = React.useState<Jupyter | null>(null);

@@ -3,15 +3,22 @@ import {
   useEnvironmentsApi,
 } from "@/api/environments/useEnvironmentsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/routingConfig";
+import { useUpdateQueryArgs } from "@/hooks/useUpdateQueryArgs";
 import React from "react";
 
-const selector = (state: EnvironmentsApiState) => state.environments;
+const selector = (state: EnvironmentsApiState) =>
+  [state.projectUuid, state.environments] as const;
 
 export const useSelectEnvironment = () => {
-  const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
+  const { environmentUuid: environmentUuidFromRoute } = useCustomRoute();
 
-  const environments = useEnvironmentsApi(selector);
+  const [environmentUuid, setSelectedUuid] = React.useState<string | undefined>(
+    environmentUuidFromRoute
+  );
+
+  const updateQueryArgs = useUpdateQueryArgs(250);
+
+  const [projectUuid, environments] = useEnvironmentsApi(selector);
 
   const environmentOnEdit = React.useMemo(() => {
     const found = environmentUuid
@@ -23,11 +30,10 @@ export const useSelectEnvironment = () => {
 
   const selectEnvironment = React.useCallback(
     (uuid: string) => {
-      navigateTo(siteMap.environments.path, {
-        query: { projectUuid, environmentUuid: uuid },
-      });
+      setSelectedUuid(uuid);
+      updateQueryArgs({ projectUuid, environmentUuid: uuid });
     },
-    [navigateTo, projectUuid]
+    [updateQueryArgs, projectUuid]
   );
 
   return { selectEnvironment, environments, environmentOnEdit };
