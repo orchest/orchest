@@ -130,7 +130,9 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
 
   return (
     <StepDetailsContextProvider>
-      <StepDetailsContainer style={{ width: panelWidth + "px" }}>
+      <StepDetailsContainer
+        style={{ width: `${panelWidth}px`, minWidth: "420px" }}
+      >
         <ResizeBar onMouseDown={startDragging} />
 
         <Typography
