@@ -330,6 +330,7 @@ export const PipelineEditor = () => {
             direction="row"
             alignItems="center"
             sx={{
+              position: "absolute",
               top: "auto",
               bottom: 0,
               right: "auto",
