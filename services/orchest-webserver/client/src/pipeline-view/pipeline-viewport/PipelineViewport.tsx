@@ -1,3 +1,4 @@
+import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
 import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
 import { getOffset } from "@/utils/element";
 import {
@@ -56,9 +57,9 @@ const PipelineViewportComponent = React.forwardRef<
   const {
     disabled,
     pipelineCwd,
-    environments,
     isFetchingPipelineJson,
   } = usePipelineDataContext();
+  const { environments = [] } = useGetEnvironments();
 
   const { scaleFactor, canvasPointAtPointer } = useCanvasScaling();
   const { pipelineCanvasRef, newConnection } = usePipelineRefs();
