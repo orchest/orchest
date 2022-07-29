@@ -95,6 +95,7 @@ export const ConnectionList = ({
         )}
         <IconButton
           sx={{ marginLeft: "auto" }}
+          disabled={availableSteps.length === 0}
           onClick={(event) => setMenuAnchor(event.target as Element)}
         >
           <AddOutlined
