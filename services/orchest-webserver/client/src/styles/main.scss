@@ -788,24 +788,6 @@ button.themed-secondary {
   display: flex;
   flex-direction: row;
 
-  .pipeline-actions {
-    button {
-      min-width: 0;
-    }
-
-    &.bottom-right {
-      top: auto;
-      bottom: 0;
-      right: 0;
-      left: auto;
-    }
-    &.top-right {
-      button {
-        margin-bottom: var(--space-5);
-      }
-    }
-  }
-
   .pipeline-steps-outer-holder {
     height: 100%;
     width: 100%;
