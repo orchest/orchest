@@ -1,6 +1,4 @@
 import type { CustomImage, Environment } from "@/types";
-import "codemirror/mode/shell/shell";
-import "codemirror/theme/dracula.css";
 import React from "react";
 
 /**
