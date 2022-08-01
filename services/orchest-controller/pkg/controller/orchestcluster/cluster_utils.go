@@ -272,6 +272,13 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
 	}
 
+	// We first check if there is an IP assigned by the controller for the service in Config
+	// then we check the actual IP of the service if exists, and if they are different the actual
+	// IP takes precedence and the configured IP will be changed to the actual one, (this is to
+	// fix the issue of the instances updated to v2022.07.6 because, controller in that version
+	// assigned the service IP, regardless of the IP of the present service.) If there was
+	// no service, we just find a free IP and set it in the configs
+
 	// We check the current controller assigned service IP first
 	serviceIpIndex := -1
 	for index, param := range app.Config.Helm.Parameters {
