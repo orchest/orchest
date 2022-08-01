@@ -9,13 +9,22 @@ import type {
 } from "@/types";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
 import { setOutgoingConnections } from "@/utils/webserver-utils";
-import { hasValue, intersectRect, uuidv4 } from "@orchest/lib-utils";
+import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
 import React from "react";
 import { createsLoop, getScaleCorrectedPosition } from "../common";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { useScaleFactor } from "../contexts/ScaleFactorContext";
-import { getStepSelectorRectangle } from "../Rectangle";
+import { getStepSelectorRectangle, RectangleProps } from "../Rectangle";
+
+const intersectRect = (r1: RectangleProps, r2: RectangleProps) => {
+  return !(
+    r2.x > r1.x + r1.width ||
+    r2.x + r2.width < r1.x ||
+    r2.y > r1.y + r1.height ||
+    r2.y + r2.height < r1.y
+  );
+};
 
 type StepSelectorData = {
   x1: number;

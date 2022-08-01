@@ -46,22 +46,6 @@ export function checkHeartbeat(url: string, retries = 250) {
 }
 
 // used in orchest-webserver only
-type Rectangle = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-export function intersectRect(r1: Rectangle, r2: Rectangle) {
-  return !(
-    r2.x > r1.x + r1.width ||
-    r2.x + r2.width < r1.x ||
-    r2.y > r1.y + r1.height ||
-    r2.y + r2.height < r1.y
-  );
-}
-
-// used in orchest-webserver only
 export function activeElementIsInput() {
   return document.activeElement
     ? ["TEXTAREA", "INPUT"].includes(document.activeElement.tagName)
