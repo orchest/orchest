@@ -36,7 +36,6 @@ type StepDetailsPropertiesProps = {
   readOnly: boolean;
   shouldAutoFocus: boolean;
   onSave: (payload: Partial<StepState>, uuid: string) => void;
-  menuMaxWidth?: string;
 };
 
 export const StepDetailsProperties = ({
@@ -44,7 +43,6 @@ export const StepDetailsProperties = ({
   readOnly,
   shouldAutoFocus,
   onSave,
-  menuMaxWidth,
 }: StepDetailsPropertiesProps) => {
   const { step, setStepChanges } = useDelayedSavingStepChanges(onSave);
   // Allows user to edit JSON while typing the text will not be valid JSON.
@@ -162,7 +160,6 @@ export const StepDetailsProperties = ({
           allowedExtensions={ALLOWED_STEP_EXTENSIONS}
           pipelineCwd={pipelineCwd}
           onChange={onChangeFilePath}
-          menuMaxWidth={menuMaxWidth}
           doesFileExist={doesStepFileExist}
           isCheckingFileValidity={isCheckingFileValidity}
         />
