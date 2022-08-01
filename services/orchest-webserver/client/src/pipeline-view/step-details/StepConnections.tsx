@@ -1,7 +1,6 @@
 import { StepState } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Stack from "@mui/material/Stack";
-import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { ConnectionList } from "./ConnectionList";
 import { useStepDetailsContext } from "./StepDetailsContext";

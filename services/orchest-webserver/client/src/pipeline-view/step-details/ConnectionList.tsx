@@ -14,6 +14,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { createsLoop } from "../common";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { StepConnection } from "./StepDetailsContext";
 
@@ -36,6 +37,7 @@ export const ConnectionList = ({
 }: ConnectionListProps) => {
   const [menuAnchor, setMenuAnchor] = React.useState<Element>();
   const { uiState, uiStateDispatch } = usePipelineUiStateContext();
+  const { isReadOnly } = usePipelineDataContext();
 
   const canConnect = React.useCallback(
     (step: StepState) =>
@@ -100,13 +102,20 @@ export const ConnectionList = ({
           </Tooltip>
         )}
         <IconButton
+          title="Add connection"
           sx={{ marginLeft: "auto" }}
-          disabled={availableSteps.length === 0}
+          disabled={isReadOnly || availableSteps.length === 0}
           onClick={(event) => setMenuAnchor(event.target as Element)}
         >
           <AddOutlined
-            color="primary"
-            style={{ width: "20px", height: "20px" }}
+            sx={{
+              width: (theme) => theme.spacing(2.5),
+              height: (theme) => theme.spacing(2.5),
+              color: (theme) =>
+                isReadOnly || availableSteps.length === 0
+                  ? theme.palette.action.disabled
+                  : theme.palette.primary.main,
+            }}
           />
         </IconButton>
         <Menu
@@ -116,13 +125,13 @@ export const ConnectionList = ({
         >
           {availableSteps.map(({ title, uuid }) => (
             <MenuItem onClick={() => connect(uuid)} key={uuid}>
-              {title}
+              {title || "(Unnamed)"}
             </MenuItem>
           ))}
         </Menu>
       </Stack>
       <SortableStack
-        disabled={!sortable}
+        disabled={isReadOnly || !sortable}
         onUpdate={async (oldIndex, newIndex) => onSwap(oldIndex, newIndex)}
       >
         {connections.map(({ targetUuid, title, filePath }) => (
@@ -149,9 +158,16 @@ export const ConnectionList = ({
                 {filePath}
               </Typography>
             </Stack>
-
-            <IconButton onClick={() => onRemove(targetUuid)}>
-              <CloseOutlined style={{ width: "20px", height: "20px" }} />
+            <IconButton
+              disabled={isReadOnly}
+              onClick={() => onRemove(targetUuid)}
+            >
+              <CloseOutlined
+                sx={{
+                  width: (theme) => theme.spacing(2.5),
+                  height: (theme) => theme.spacing(2.5),
+                }}
+              />
             </IconButton>
           </Stack>
         ))}
