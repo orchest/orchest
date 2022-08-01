@@ -272,24 +272,45 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
 	}
 
-	for _, param := range app.Config.Helm.Parameters {
+	// We check the current controller assigned service IP first
+	serviceIpIndex := -1
+	for index, param := range app.Config.Helm.Parameters {
 		if param.Name == registryServiceIP {
-			return changed, nil
+			serviceIpIndex = index
+			break
 		}
 	}
 
+	//Now we get the ClusterIP of the service if present
+	var currentIP string
 	registryService, err := client.CoreV1().Services(namespace).Get(ctx, addons.DockerRegistry, metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
 			return changed, err
 		}
 	} else {
-		changed = true
-		app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
-			orchestv1alpha1.HelmParameter{
-				Name:  registryServiceIP,
-				Value: registryService.Spec.ClusterIP,
-			})
+		currentIP = registryService.Spec.ClusterIP
+	}
+
+	// If the service is present
+	if currentIP != "" {
+		if serviceIpIndex >= 0 {
+			changed = app.Config.Helm.Parameters[serviceIpIndex].Value != currentIP && changed
+			app.Config.Helm.Parameters[serviceIpIndex].Value = currentIP
+			return changed, nil
+		} else {
+			changed = true
+			app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
+				orchestv1alpha1.HelmParameter{
+					Name:  registryServiceIP,
+					Value: currentIP,
+				})
+			return changed, nil
+		}
+	}
+
+	if serviceIpIndex >= 0 {
+		// If we are here, it means the the ip is already configured
 		return changed, nil
 	}
 
@@ -330,7 +351,7 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 		}
 
 		// If next ip is not free
-		if bytes.Compare(nextIP, net.ParseIP(serviceList.Items[i+1].Spec.ClusterIP).To4()) == 0 {
+		if nextIP.Equal(net.ParseIP(serviceList.Items[i+1].Spec.ClusterIP)) {
 			continue
 		}
 
@@ -348,6 +369,13 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 
 		serviceIP = nextIP(lastIP, 1).To4().String()
 	}
+
+	changed = true
+	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
+		orchestv1alpha1.HelmParameter{
+			Name:  registryServiceIP,
+			Value: serviceIP,
+		})
 
 	return changed, nil
 }
