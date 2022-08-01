@@ -1,7 +1,7 @@
 import { Stack } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
-export const HUD = styled(Stack)`
+export const HeadsUpDisplay = styled(Stack)`
   position: absolute;
   top: 0;
   left: 0;

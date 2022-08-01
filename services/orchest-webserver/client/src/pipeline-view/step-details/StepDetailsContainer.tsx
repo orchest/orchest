@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import React from "react";
-import { ResizeStepDetailsBar } from "../components/ResizeStepDetailsBar";
+import { StepDetailsResizeBar } from "../components/StepDetailsResizeBar";
 import { usePipelineCanvasDimensionsContext } from "../contexts/PipelineCanvasDimensionsContext";
 
 type StepDetailsContainerBoxProps = {
@@ -38,7 +38,7 @@ export const StepDetailsContainer = ({
 }: StepDetailsContainerProps) => {
   return (
     <StepDetailsContainerBox>
-      <ResizeStepDetailsBar />
+      <StepDetailsResizeBar />
       {children}
     </StepDetailsContainerBox>
   );
