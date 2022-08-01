@@ -85,7 +85,7 @@ func RemoveRelease(ctx context.Context, name, namespace string) error {
 		WithUnInstall().
 		WithName(name).
 		WithNamespace(namespace).
-		WithJsonOutput().Build()
+		Build()
 
 	cmd := exec.CommandContext(ctx, "helm", args...)
 
