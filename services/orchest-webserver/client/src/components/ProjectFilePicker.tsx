@@ -1,3 +1,4 @@
+import { usePipelineCanvasDimensionsContext } from "@/pipeline-view/contexts/PipelineCanvasDimensionsContext";
 import {
   getFilePathForRelativeToProject,
   prettifyRoot,
@@ -38,7 +39,6 @@ const ProjectFilePicker: React.FC<{
   pipelineCwd: string | undefined;
   value: string;
   onChange: (value: string) => void;
-  menuMaxWidth?: string;
   allowedExtensions: readonly string[];
   doesFileExist: boolean;
   isCheckingFileValidity: boolean;
@@ -46,13 +46,14 @@ const ProjectFilePicker: React.FC<{
   onChange,
   pipelineCwd,
   value,
-  menuMaxWidth,
   allowedExtensions,
   doesFileExist,
   isCheckingFileValidity,
 }) => {
   // ProjectFilePicker uses the same endpoint for fetching FileTree
   const { fileTrees, fetchFileTrees } = useFileManagerContext();
+  const { stepDetailsPanelWidth } = usePipelineCanvasDimensionsContext();
+  const menuMaxWidth = stepDetailsPanelWidth - 48;
 
   const tree = React.useMemo<FileTree>(() => {
     return {
@@ -113,7 +114,7 @@ const ProjectFilePicker: React.FC<{
               : "Warning: this file wasn't found in the given path."
           }
           onChangeValue={onChange}
-          menuMaxWidth={menuMaxWidth}
+          menuMaxWidth={`${menuMaxWidth}px`}
           onSelectMenuItem={onSelectMenuItem}
           generateRelativePath={getFilePathForRelativeToProject}
         />
