@@ -25,12 +25,16 @@ func NewHelmDeployer(name, deployDir string, valuesPath string) Addon {
 	}
 }
 
+func (d *HelmDeployer) getReleaseName(namespace string) string {
+	return fmt.Sprintf("%s-%s", namespace, d.name)
+}
+
 // Installs deployer if the config is changed
 func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallHookFn,
 	namespace string,
 	app *orchestv1alpha1.ApplicationSpec) error {
 
-	releaseName := fmt.Sprintf("%s-%s", namespace, d.name)
+	releaseName := d.getReleaseName(namespace)
 
 	// Generate the deploy args
 	deployArgsBuilder := helm.NewHelmArgBuilder()
@@ -80,11 +84,16 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 	}
 
 	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
-	return err
+	if err != nil {
+		// If we are here, it means helm stuck in upgrading phase, it is safe to delete it,
+		d.Uninstall(ctx, namespace)
+		return err
+	}
+	return nil
 
 }
 
 // Uninstall the addon
 func (d *HelmDeployer) Uninstall(ctx context.Context, namespace string) error {
-	return helm.RemoveRelease(ctx, d.name, namespace)
+	return helm.RemoveRelease(ctx, d.getReleaseName(namespace), namespace)
 }

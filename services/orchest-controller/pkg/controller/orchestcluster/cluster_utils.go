@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/certs"
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
@@ -14,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -257,7 +259,7 @@ func getRegistryServiceIP(config *orchestv1alpha1.ApplicationConfig) (string, er
 
 // setRegistryServiceIP defines the registry service IP if not defined
 func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
-	app *orchestv1alpha1.ApplicationSpec) (bool, error) {
+	namespace string, app *orchestv1alpha1.ApplicationSpec) (bool, error) {
 
 	var changed = false
 
@@ -266,10 +268,57 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 		app.Config.Helm = &orchestv1alpha1.ApplicationConfigHelm{}
 	}
 
-	for _, param := range app.Config.Helm.Parameters {
+	if app.Config.Helm.Parameters == nil {
+		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
+	}
+
+	// We first check if there is an IP assigned by the controller for the service in Config
+	// then we check the actual IP of the service if exists, and if they are different the actual
+	// IP takes precedence and the configured IP will be changed to the actual one, (this is to
+	// fix the issue of the instances updated to v2022.07.6 because, controller in that version
+	// assigned the service IP, regardless of the IP of the present service.) If there was
+	// no service, we just find a free IP and set it in the configs
+
+	// We check the current controller assigned service IP first
+	serviceIpIndex := -1
+	for index, param := range app.Config.Helm.Parameters {
 		if param.Name == registryServiceIP {
+			serviceIpIndex = index
+			break
+		}
+	}
+
+	//Now we get the ClusterIP of the service if present
+	var currentIP string
+	registryService, err := client.CoreV1().Services(namespace).Get(ctx, addons.DockerRegistry, metav1.GetOptions{})
+	if err != nil {
+		if !kerrors.IsNotFound(err) {
+			return changed, err
+		}
+	} else {
+		currentIP = registryService.Spec.ClusterIP
+	}
+
+	// If the service is present
+	if currentIP != "" {
+		if serviceIpIndex >= 0 {
+			changed = app.Config.Helm.Parameters[serviceIpIndex].Value != currentIP || changed
+			app.Config.Helm.Parameters[serviceIpIndex].Value = currentIP
+			return changed, nil
+		} else {
+			changed = true
+			app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
+				orchestv1alpha1.HelmParameter{
+					Name:  registryServiceIP,
+					Value: currentIP,
+				})
 			return changed, nil
 		}
+	}
+
+	if serviceIpIndex >= 0 {
+		// If we are here, it means the the ip is already configured
+		return changed, nil
 	}
 
 	// the service ip is not defined, let's find a free IP
@@ -309,7 +358,7 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 		}
 
 		// If next ip is not free
-		if bytes.Compare(nextIP, net.ParseIP(serviceList.Items[i+1].Spec.ClusterIP).To4()) == 0 {
+		if nextIP.Equal(net.ParseIP(serviceList.Items[i+1].Spec.ClusterIP)) {
 			continue
 		}
 
@@ -328,10 +377,7 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 		serviceIP = nextIP(lastIP, 1).To4().String()
 	}
 
-	if app.Config.Helm.Parameters == nil {
-		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
-	}
-
+	changed = true
 	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
 		orchestv1alpha1.HelmParameter{
 			Name:  registryServiceIP,
