@@ -74,7 +74,7 @@ func AddFinalizerIfNotPresent(ctx context.Context,
 		return false, nil
 	}
 
-	klog.Infof("Object does not have finalizer, Object: %s", object.GetName())
+	klog.V(2).Infof("Object does not have finalizer, Object: %s", object.GetName())
 	copy := object.DeepCopyObject().(client.Object)
 
 	copy.SetFinalizers(append(copy.GetFinalizers(), finalizer))
