@@ -121,7 +121,7 @@ export const ResizableContainer = React.forwardRef<
       (position: React.MutableRefObject<ClientPosition>): number => {
         const { top } = getOffset(localRef.current);
 
-        let newHeight = minHeight
+        const newHeight = minHeight
           ? Math.max(minHeight, position.current.prev.y - top)
           : position.current.prev.y - top;
 
