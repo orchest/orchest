@@ -31,6 +31,37 @@ const generateReadOnlyMessage = (jobName: string | undefined) =>
     </>
   ) : null;
 
+type ReadOnlyBannerContainerProps = { children: React.ReactNode };
+
+const ReadOnlyBannerContainer = ({
+  children,
+}: ReadOnlyBannerContainerProps) => {
+  const {
+    uiState: { openedStep },
+  } = usePipelineUiStateContext();
+
+  const {
+    mainSidePanelWidth,
+    stepDetailsPanelWidth,
+  } = usePipelineCanvasDimensionsContext();
+
+  const widthDiff = openedStep
+    ? mainSidePanelWidth + stepDetailsPanelWidth
+    : mainSidePanelWidth;
+  return (
+    <Box
+      style={{ maxWidth: `calc(100vw - ${widthDiff}px)`, width: "100%" }}
+      sx={{
+        padding: (theme) => theme.spacing(2.5),
+        position: "absolute",
+        top: (theme) => theme.spacing(7),
+      }}
+    >
+      {children}
+    </Box>
+  );
+};
+
 export const ReadOnlyBanner = () => {
   const { navigateTo } = useCustomRoute();
 
@@ -90,28 +121,8 @@ export const ReadOnlyBanner = () => {
     triggerBuild,
   ]);
 
-  const {
-    uiState: { openedStep },
-  } = usePipelineUiStateContext();
-
-  const {
-    mainSidePanelWidth,
-    stepDetailsPanelWidth,
-  } = usePipelineCanvasDimensionsContext();
-
-  const widthDiff = openedStep
-    ? mainSidePanelWidth + stepDetailsPanelWidth
-    : mainSidePanelWidth;
-
   return hasValue(pipelineReadOnlyReason) ? (
-    <Box
-      style={{ maxWidth: `calc(100vw - ${widthDiff}px)`, width: "100%" }}
-      sx={{
-        padding: (theme) => theme.spacing(2.5),
-        position: "absolute",
-        top: (theme) => theme.spacing(7),
-      }}
-    >
+    <ReadOnlyBannerContainer>
       <Alert
         severity="info"
         action={
@@ -139,6 +150,6 @@ export const ReadOnlyBanner = () => {
           </Typography>
         )}
       </Alert>
-    </Box>
+    </ReadOnlyBannerContainer>
   ) : null;
 };

@@ -1,4 +1,4 @@
-import { HUD } from "@/components/HUD";
+import { HeadsUpDisplay } from "@/components/HeadsUpDisplay";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
@@ -314,7 +314,7 @@ export const PipelineEditor = () => {
           <Rectangle {...getStepSelectorRectangle(stepSelector)} />
         )}
       </PipelineViewport>
-      <HUD>
+      <HeadsUpDisplay>
         <Stack flex="0 0 auto" width="100%">
           <PipelineCanvasHeaderBar />
         </Stack>
@@ -344,7 +344,7 @@ export const PipelineEditor = () => {
             <SaveStatus />
           </Stack>
         )}
-      </HUD>
+      </HeadsUpDisplay>
     </PipelineEditorRoot>
   );
 };
