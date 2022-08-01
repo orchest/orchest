@@ -9,7 +9,7 @@ export const useNavTabIndex = ({
   matchRoute: Pick<RouteData, "path" | "root"> | null;
   navItems: NavItem[];
 }) => {
-  const [navTabIndex, setNavTabIndex] = React.useState(0);
+  const [navTabIndex, setNavTabIndex] = React.useState<false | number>(false);
   const { path, root } = matchRoute || {};
 
   React.useEffect(() => {
@@ -17,7 +17,8 @@ export const useNavTabIndex = ({
       const pathWithoutQueryString = item.path.split("?")[0];
       return [path, root].includes(pathWithoutQueryString);
     });
-    setNavTabIndex(Math.max(0, newNavTabIndex));
+
+    setNavTabIndex(newNavTabIndex > -1 ? newNavTabIndex : false);
   }, [path, root, navItems]);
 
   return navTabIndex;
