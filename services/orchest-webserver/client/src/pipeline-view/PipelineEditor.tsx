@@ -119,12 +119,14 @@ export const PipelineEditor = () => {
 
   const onSaveDetails = React.useCallback(
     (stepChanges: Partial<StepState>, uuid: string) => {
-      uiStateDispatch({
-        type: "SAVE_STEP_DETAILS",
-        payload: { stepChanges, uuid },
-      });
+      if (!isReadOnly) {
+        uiStateDispatch({
+          type: "SAVE_STEP_DETAILS",
+          payload: { stepChanges, uuid },
+        });
+      }
     },
-    [uiStateDispatch]
+    [uiStateDispatch, isReadOnly]
   );
 
   // Check if there is an incoming step (that is not part of the

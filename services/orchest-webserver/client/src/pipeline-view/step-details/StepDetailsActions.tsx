@@ -47,7 +47,7 @@ export const StepDetailsActions = () => {
             onClick={(event) => openFilePreviewView(event, step.uuid)}
             onAuxClick={(event) => openFilePreviewView(event, step.uuid)}
             data-test-id="step-view-file"
-            disabled={!doesStepFileExist || isReadOnly}
+            disabled={!doesStepFileExist}
           >
             Preview
           </Button>
