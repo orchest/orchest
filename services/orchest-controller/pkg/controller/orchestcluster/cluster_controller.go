@@ -551,7 +551,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		app := &copy.Spec.Applications[i]
 		if app.Name == addons.DockerRegistry {
 
-			registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), app)
+			registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), copy.Namespace, app)
 			if err != nil {
 				klog.Error(err)
 				return changed, err

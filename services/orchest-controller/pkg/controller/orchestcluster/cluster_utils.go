@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/certs"
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
@@ -14,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -257,7 +259,7 @@ func getRegistryServiceIP(config *orchestv1alpha1.ApplicationConfig) (string, er
 
 // setRegistryServiceIP defines the registry service IP if not defined
 func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
-	app *orchestv1alpha1.ApplicationSpec) (bool, error) {
+	namespace string, app *orchestv1alpha1.ApplicationSpec) (bool, error) {
 
 	var changed = false
 
@@ -266,10 +268,29 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 		app.Config.Helm = &orchestv1alpha1.ApplicationConfigHelm{}
 	}
 
+	if app.Config.Helm.Parameters == nil {
+		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
+	}
+
 	for _, param := range app.Config.Helm.Parameters {
 		if param.Name == registryServiceIP {
 			return changed, nil
 		}
+	}
+
+	registryService, err := client.CoreV1().Services(namespace).Get(ctx, addons.DockerRegistry, metav1.GetOptions{})
+	if err != nil {
+		if !kerrors.IsNotFound(err) {
+			return changed, err
+		}
+	} else {
+		changed = true
+		app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
+			orchestv1alpha1.HelmParameter{
+				Name:  registryServiceIP,
+				Value: registryService.Spec.ClusterIP,
+			})
+		return changed, nil
 	}
 
 	// the service ip is not defined, let's find a free IP
@@ -327,16 +348,6 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 
 		serviceIP = nextIP(lastIP, 1).To4().String()
 	}
-
-	if app.Config.Helm.Parameters == nil {
-		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
-	}
-
-	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
-		orchestv1alpha1.HelmParameter{
-			Name:  registryServiceIP,
-			Value: serviceIP,
-		})
 
 	return changed, nil
 }
