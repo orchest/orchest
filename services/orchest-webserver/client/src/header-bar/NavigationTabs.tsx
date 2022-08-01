@@ -26,13 +26,15 @@ const systemMenuItems: NavItem[] = [
   },
 ];
 
+type NavigationTabsBaseProps = {
+  disabled?: boolean;
+  navItems: NavItem[];
+};
+
 export const NavigationTabsBase = ({
   disabled,
   navItems,
-}: {
-  disabled?: boolean;
-  navItems: NavItem[];
-}) => {
+}: NavigationTabsBaseProps) => {
   const { navigateTo } = useCustomRoute();
 
   const matchRoute = useMatchRoutePaths(navigationRoutes);
