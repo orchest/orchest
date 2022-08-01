@@ -295,7 +295,7 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 	// If the service is present
 	if currentIP != "" {
 		if serviceIpIndex >= 0 {
-			changed = app.Config.Helm.Parameters[serviceIpIndex].Value != currentIP && changed
+			changed = app.Config.Helm.Parameters[serviceIpIndex].Value != currentIP || changed
 			app.Config.Helm.Parameters[serviceIpIndex].Value = currentIP
 			return changed, nil
 		} else {
