@@ -3,11 +3,11 @@ import { firstAncestor } from "@/utils/element";
 import { Stack, useTheme } from "@mui/material";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-export interface SortableStackProps {
+export type SortableStackProps = {
   onUpdate: (oldIndex: number, newIndex: number) => Promise<void>;
   children: React.ReactChild[];
   disabled?: boolean;
-}
+};
 
 const isDragItem = (element: Element) =>
   element.classList.contains("drag-item");
@@ -83,7 +83,9 @@ export const SortableStack = ({
   useEffect(() => {
     if (!element) return;
 
-    if (x && y && startX && startY && !shouldReset) {
+    const canMove = !isNaN(x) && !isNaN(y) && !isNaN(startX) && !isNaN(startY);
+
+    if (canMove && !shouldReset) {
       const dx = x - startX;
       const dy = y - startY;
 
