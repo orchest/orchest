@@ -1,34 +1,21 @@
 import {
-  ElementSize,
   ResizableContainer,
   ResizeWidthBar,
 } from "@/components/ResizableContainer";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { isNumber } from "@/utils/webserver-utils";
 import React from "react";
-
-const DEFAULT_PANEL_WIDTH = 300;
-const MIN_PANEL_WIDTH = 252;
+import { usePipelineCanvasDimensionsContext } from "./contexts/PipelineCanvasDimensionsContext";
 
 export const MainSidePanel: React.FC = ({ children }) => {
-  const [storedPanelWidth, , saveToLocalstorage] = useLocalStorage(
-    "pipelineEditor.panelWidth",
-    DEFAULT_PANEL_WIDTH
-  );
-
-  const saveWidth = React.useCallback(
-    ({ width }: ElementSize) => {
-      if (isNumber(width)) {
-        saveToLocalstorage(Number(width));
-      }
-    },
-    [saveToLocalstorage]
-  );
+  const {
+    mainSidePanelWidth,
+    minMainSidePanelWidth,
+    saveMainSidePanelWidth,
+  } = usePipelineCanvasDimensionsContext();
 
   return (
     <ResizableContainer
-      initialWidth={Math.max(storedPanelWidth, MIN_PANEL_WIDTH)}
-      minWidth={MIN_PANEL_WIDTH}
+      initialWidth={Math.max(mainSidePanelWidth, minMainSidePanelWidth)}
+      minWidth={minMainSidePanelWidth}
       maxWidth={window.innerWidth - 100}
       sx={{
         position: "relative",
@@ -38,7 +25,7 @@ export const MainSidePanel: React.FC = ({ children }) => {
         flexDirection: "column",
         height: "100%",
       }}
-      onResized={saveWidth}
+      onResized={saveMainSidePanelWidth}
     >
       {({ resizeWidth }) => {
         return (

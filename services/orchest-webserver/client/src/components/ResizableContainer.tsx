@@ -95,7 +95,7 @@ export const ResizableContainer = React.forwardRef<
       (position: React.MutableRefObject<ClientPosition>): number => {
         const { left } = getOffset(localRef.current);
         // Offset 5 pixels to get cursor above drag handler (to show appropriate mouse cursor)
-        let newWidth = minWidth
+        const newWidth = minWidth
           ? Math.max(minWidth, position.current.prev.x - left)
           : position.current.prev.x - left;
 
@@ -229,7 +229,7 @@ export const ResizeWidthBar = React.forwardRef<
         height: "100%",
         width: (theme) => theme.spacing(1),
         top: 0,
-        [side]: 5,
+        [side]: (theme) => theme.spacing(0.5),
         cursor: "col-resize",
         ...sx,
       }}

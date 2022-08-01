@@ -9,7 +9,9 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineCanvasDimensionsContext } from "./contexts/PipelineCanvasDimensionsContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
+import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 
 const titleMapping: Record<PipelineReadOnlyReason, string> = {
   isJobRun: "pipeline snapshot",
@@ -88,10 +90,27 @@ export const ReadOnlyBanner = () => {
     triggerBuild,
   ]);
 
+  const {
+    uiState: { openedStep },
+  } = usePipelineUiStateContext();
+
+  const {
+    mainSidePanelWidth,
+    stepDetailsPanelWidth,
+  } = usePipelineCanvasDimensionsContext();
+
+  const widthDiff = openedStep
+    ? mainSidePanelWidth + stepDetailsPanelWidth
+    : mainSidePanelWidth;
+
   return hasValue(pipelineReadOnlyReason) ? (
     <Box
-      className="pipeline-actions"
-      sx={{ padding: (theme) => theme.spacing(2.5) }}
+      style={{ maxWidth: `calc(100vw - ${widthDiff}px)`, width: "100%" }}
+      sx={{
+        padding: (theme) => theme.spacing(2.5),
+        position: "absolute",
+        top: (theme) => theme.spacing(7),
+      }}
     >
       <Alert
         severity="info"
