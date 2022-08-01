@@ -8,26 +8,65 @@ const MIN_MAIN_SIDE_PANEL_WIDTH = 252;
 const DEFAULT_STEP_DETAILS_PANEL_WIDTH = 450;
 const MIN_STEP_DETAILS_PANEL_WIDTH = 420;
 
-const useCanvasContainerWidth = (key: string, defaultValue: number) => {
-  const [width, , setWidth] = useLocalStorage(key, defaultValue);
+const getRangedValue = (
+  value: number,
+  min: number | undefined,
+  max: number | undefined
+) => {
+  const validMin = min ?? value;
+  const validMax = max ?? value;
+  return Math.min(validMax, Math.max(value, validMin));
+};
+
+type UseCanvasContainerWidthParams = {
+  key: string;
+  defaultValue: number;
+  min?: number;
+  max?: number;
+};
+
+const useCanvasContainerWidth = ({
+  key,
+  defaultValue,
+  min,
+  max,
+}: UseCanvasContainerWidthParams) => {
+  const [storedWidth, , saveWidthToLocalstorage] = useLocalStorage(
+    key,
+    defaultValue
+  );
+
+  const [width, setWidth] = React.useState(storedWidth);
+  const setRangedWidth = React.useCallback(
+    (value: React.SetStateAction<number>) => {
+      setWidth((prevPanelWidth) => {
+        const newValue =
+          value instanceof Function ? value(prevPanelWidth) : value;
+        return getRangedValue(newValue, min, max);
+      });
+    },
+    [min, max]
+  );
 
   const saveWidth = React.useCallback(
     ({ width }: Pick<ElementSize, "width">) => {
       if (isNumber(width)) {
-        setWidth(Number(width));
+        saveWidthToLocalstorage(Number(width));
       }
     },
-    [setWidth]
+    [saveWidthToLocalstorage]
   );
 
-  return [width, saveWidth] as const;
+  return [width, setRangedWidth, saveWidth] as const;
 };
 
 export type PipelineCanvasDimensionsContextType = {
   mainSidePanelWidth: number;
+  setMainSidePanelWidth: React.Dispatch<React.SetStateAction<number>>;
   readonly minMainSidePanelWidth: number;
   saveMainSidePanelWidth: ({ width }: Pick<ElementSize, "width">) => void;
   stepDetailsPanelWidth: number;
+  setStepDetailsPanelWidth: React.Dispatch<React.SetStateAction<number>>;
   readonly minStepDetailsPanelWidth: number;
   saveStepDetailsPanelWidth: ({ width }: Pick<ElementSize, "width">) => void;
 };
@@ -42,26 +81,35 @@ export const usePipelineCanvasDimensionsContext = () =>
 export const PipelineCanvasDimensionsContextProvider: React.FC = ({
   children,
 }) => {
-  const [mainSidePanelWidth, saveMainSidePanelWidth] = useCanvasContainerWidth(
-    "pipelineEditor.panelWidth",
-    DEFAULT_MAIN_SIDE_PANEL_WIDTH
-  );
+  const [
+    mainSidePanelWidth,
+    setMainSidePanelWidth,
+    saveMainSidePanelWidth,
+  ] = useCanvasContainerWidth({
+    key: "pipelineEditor.panelWidth",
+    defaultValue: DEFAULT_MAIN_SIDE_PANEL_WIDTH,
+    min: MIN_MAIN_SIDE_PANEL_WIDTH,
+  });
 
   const [
     stepDetailsPanelWidth,
+    setStepDetailsPanelWidth,
     saveStepDetailsPanelWidth,
-  ] = useCanvasContainerWidth(
-    "pipelineDetails.panelWidth",
-    DEFAULT_STEP_DETAILS_PANEL_WIDTH
-  );
+  ] = useCanvasContainerWidth({
+    key: "pipelineDetails.panelWidth",
+    defaultValue: DEFAULT_STEP_DETAILS_PANEL_WIDTH,
+    min: MIN_STEP_DETAILS_PANEL_WIDTH,
+  });
 
   return (
     <PipelineCanvasDimensionsContext.Provider
       value={{
         mainSidePanelWidth,
+        setMainSidePanelWidth,
         minMainSidePanelWidth: MIN_MAIN_SIDE_PANEL_WIDTH,
         saveMainSidePanelWidth,
         stepDetailsPanelWidth,
+        setStepDetailsPanelWidth,
         minStepDetailsPanelWidth: MIN_STEP_DETAILS_PANEL_WIDTH,
         saveStepDetailsPanelWidth,
       }}
