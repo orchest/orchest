@@ -31,7 +31,6 @@ type StepDetailsPropertiesProps = {
   readOnly: boolean;
   shouldAutoFocus: boolean;
   onSave: (payload: Partial<StepState>, uuid: string) => void;
-  menuMaxWidth?: string;
 };
 
 export const StepDetailsProperties = ({
@@ -39,7 +38,6 @@ export const StepDetailsProperties = ({
   readOnly,
   shouldAutoFocus,
   onSave,
-  menuMaxWidth,
 }: StepDetailsPropertiesProps) => {
   const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
   const { step, setStepChanges } = useDelayedSavingStepChanges(onSave);
@@ -141,7 +139,6 @@ export const StepDetailsProperties = ({
           allowedExtensions={ALLOWED_STEP_EXTENSIONS}
           pipelineCwd={pipelineCwd}
           onChange={onChangeFilePath}
-          menuMaxWidth={menuMaxWidth}
           doesFileExist={doesStepFileExist}
           isCheckingFileValidity={isCheckingFileValidity}
         />

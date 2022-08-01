@@ -2,7 +2,6 @@ import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { StepState } from "@/types";
 import { CloseOutlined } from "@mui/icons-material";
 import Box from "@mui/material/Box";
@@ -12,31 +11,17 @@ import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import {
-  ClientPosition,
-  useDragElementWithPosition,
-} from "../../hooks/useDragElementWithPosition";
-import { ResizeBar } from "../components/ResizeBar";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { StepConnections } from "./StepConnections";
 import { StepDetailsActions } from "./StepDetailsActions";
+import { StepDetailsContainer } from "./StepDetailsContainer";
 import { StepDetailsContextProvider } from "./StepDetailsContext";
 import { StepDetailsLogs } from "./StepDetailsLogs";
 import { StepDetailsProperties } from "./StepDetailsProperties";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 3),
-}));
-
-const StepDetailsContainer = styled("div")(({ theme }) => ({
-  height: "100%",
-  backgroundColor: theme.palette.common.white,
-  borderLeft: `1px solid ${theme.palette.grey[300]}`,
-  zIndex: 12,
-  width: 0,
-  display: "flex",
-  flexDirection: "column",
 }));
 
 const tabs = [
@@ -78,36 +63,6 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
 
   const step = steps[openedStep || ""];
 
-  const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
-    "pipelinedetails.panelWidth",
-    450
-  );
-
-  const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth ?? 450);
-
-  const onDragging = React.useCallback(
-    (position: React.MutableRefObject<ClientPosition>) => {
-      setPanelWidth((prevPanelWidth) => {
-        let newPanelWidth = Math.max(
-          50, // panelWidth min: 50px
-          prevPanelWidth - position.current.delta.x
-        );
-        position.current.delta.x = 0;
-        return newPanelWidth;
-      });
-    },
-    []
-  );
-
-  const onStopDragging = React.useCallback(() => {
-    setPanelWidth((panelWidth) => {
-      setStoredPanelWidth(panelWidth);
-      return panelWidth;
-    });
-  }, [setStoredPanelWidth]);
-
-  const startDragging = useDragElementWithPosition(onDragging, onStopDragging);
-
   const onSelectSubView = (
     _: React.SyntheticEvent<Element, Event>,
     index: number
@@ -130,11 +85,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
 
   return (
     <StepDetailsContextProvider>
-      <StepDetailsContainer
-        style={{ width: `${panelWidth}px`, minWidth: "420px" }}
-      >
-        <ResizeBar onMouseDown={startDragging} />
-
+      <StepDetailsContainer>
         <Typography
           component="div"
           variant="h6"
@@ -180,7 +131,6 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
               readOnly={isReadOnly}
               shouldAutoFocus={shouldAutoFocus}
               onSave={onSave}
-              menuMaxWidth={`${panelWidth - 48}px`}
             />
           </CustomTabPanel>
           <CustomTabPanel value={subViewIndex} index={1} name="connections">
