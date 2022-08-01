@@ -6,7 +6,7 @@ import Box from "@mui/material/Box";
 import React from "react";
 import { usePipelineCanvasDimensionsContext } from "../contexts/PipelineCanvasDimensionsContext";
 
-export const ResizeStepDetailsBar = () => {
+export const StepDetailsResizeBar = () => {
   const {
     setStepDetailsPanelWidth,
     saveStepDetailsPanelWidth,
