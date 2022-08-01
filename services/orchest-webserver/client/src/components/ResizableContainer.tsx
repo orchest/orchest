@@ -39,6 +39,7 @@ export type ResizableContainerProps = Omit<
   initialWidth?: number;
   initialHeight?: number;
   onResized?: (size: ElementSize) => void;
+  onSetSize?: (size: ElementSize) => void;
   minWidth?: number;
   maxWidth?: number;
   minHeight?: number;
@@ -53,6 +54,7 @@ export const ResizableContainer = React.forwardRef<
   (
     {
       children,
+      onSetSize,
       onResized,
       initialWidth,
       initialHeight,
@@ -66,10 +68,21 @@ export const ResizableContainer = React.forwardRef<
   ) => {
     const localRef = React.useRef<HTMLDivElement>();
 
-    const [size, setSize] = React.useState<ElementSize>({
+    const [size, originalSetSize] = React.useState<ElementSize>({
       width: initialWidth || "100%",
       height: initialHeight || "100%",
     });
+
+    const setSize = React.useCallback(
+      (value: React.SetStateAction<ElementSize>) => {
+        originalSetSize((current) => {
+          const newSize = value instanceof Function ? value(current) : value;
+          onSetSize?.(newSize);
+          return newSize;
+        });
+      },
+      [onSetSize]
+    );
 
     React.useEffect(() => {
       if (
@@ -89,7 +102,7 @@ export const ResizableContainer = React.forwardRef<
           };
         });
       }
-    }, [maxWidth, maxHeight, size]);
+    }, [maxWidth, maxHeight, size, setSize]);
 
     const getNewWidth = React.useCallback(
       (position: React.MutableRefObject<ClientPosition>): number => {
@@ -123,7 +136,7 @@ export const ResizableContainer = React.forwardRef<
 
         setSize((current) => ({ ...current, width: width + 5 }));
       },
-      [getNewWidth]
+      [getNewWidth, setSize]
     );
 
     const onResizeHeight = React.useCallback(
@@ -132,7 +145,7 @@ export const ResizableContainer = React.forwardRef<
 
         setSize((current) => ({ ...current, height }));
       },
-      [getNewHeight]
+      [getNewHeight, setSize]
     );
 
     const onResize = React.useCallback(
@@ -142,7 +155,7 @@ export const ResizableContainer = React.forwardRef<
 
         setSize({ width, height });
       },
-      [getNewWidth, getNewHeight]
+      [getNewWidth, getNewHeight, setSize]
     );
 
     const onStopDragging = React.useCallback(() => {
