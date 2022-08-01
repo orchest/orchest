@@ -3,19 +3,21 @@ import {
   ResizeWidthBar,
 } from "@/components/ResizableContainer";
 import React from "react";
-import { usePipelineCanvasDimensionsContext } from "./contexts/PipelineCanvasDimensionsContext";
+import {
+  MIN_MAIN_SIDE_PANEL_WIDTH,
+  usePipelineCanvasDimensionsContext,
+} from "./contexts/PipelineCanvasDimensionsContext";
 
 export const MainSidePanel: React.FC = ({ children }) => {
   const {
     mainSidePanelWidth,
-    minMainSidePanelWidth,
     saveMainSidePanelWidth,
   } = usePipelineCanvasDimensionsContext();
 
   return (
     <ResizableContainer
-      initialWidth={Math.max(mainSidePanelWidth, minMainSidePanelWidth)}
-      minWidth={minMainSidePanelWidth}
+      initialWidth={Math.max(mainSidePanelWidth, MIN_MAIN_SIDE_PANEL_WIDTH)}
+      minWidth={MIN_MAIN_SIDE_PANEL_WIDTH}
       maxWidth={window.innerWidth - 100}
       sx={{
         position: "relative",

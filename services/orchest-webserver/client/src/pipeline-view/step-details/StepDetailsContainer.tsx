@@ -1,52 +1,20 @@
 import Box from "@mui/material/Box";
 import React from "react";
-import {
-  ClientPosition,
-  useDragElementWithPosition,
-} from "../../hooks/useDragElementWithPosition";
-import { ResizeBar } from "../components/ResizeBar";
+import { ResizeStepDetailsBar } from "../components/ResizeStepDetailsBar";
 import { usePipelineCanvasDimensionsContext } from "../contexts/PipelineCanvasDimensionsContext";
 
-type StepDetailsContainerProps = {
+type StepDetailsContainerBoxProps = {
   children: React.ReactNode;
 };
 
-export const StepDetailsContainer = ({
+const StepDetailsContainerBox = ({
   children,
-}: StepDetailsContainerProps) => {
-  const {
-    stepDetailsPanelWidth,
-    saveStepDetailsPanelWidth,
-    minStepDetailsPanelWidth,
-  } = usePipelineCanvasDimensionsContext();
-  const [panelWidth, setPanelWidth] = React.useState(stepDetailsPanelWidth);
-
-  const onDragging = React.useCallback(
-    (position: React.MutableRefObject<ClientPosition>) => {
-      setPanelWidth((prevPanelWidth) => {
-        const newPanelWidth = Math.max(
-          minStepDetailsPanelWidth,
-          prevPanelWidth - position.current.delta.x
-        );
-        position.current.delta.x = 0;
-        return newPanelWidth;
-      });
-    },
-    [minStepDetailsPanelWidth]
-  );
-
-  const onStopDragging = React.useCallback(() => {
-    setPanelWidth((panelWidth) => {
-      saveStepDetailsPanelWidth({ width: panelWidth });
-      return panelWidth;
-    });
-  }, [saveStepDetailsPanelWidth]);
-
-  const resizeWidth = useDragElementWithPosition(onDragging, onStopDragging);
+}: StepDetailsContainerBoxProps) => {
+  const { stepDetailsPanelWidth } = usePipelineCanvasDimensionsContext();
 
   return (
     <Box
-      style={{ width: `${panelWidth}px`, minWidth: minStepDetailsPanelWidth }}
+      style={{ width: `${stepDetailsPanelWidth}px` }}
       sx={{
         height: "100%",
         backgroundColor: (theme) => theme.palette.common.white,
@@ -56,8 +24,22 @@ export const StepDetailsContainer = ({
         flexDirection: "column",
       }}
     >
-      <ResizeBar onMouseDown={resizeWidth} />
       {children}
     </Box>
+  );
+};
+
+type StepDetailsContainerProps = {
+  children: React.ReactNode;
+};
+
+export const StepDetailsContainer = ({
+  children,
+}: StepDetailsContainerProps) => {
+  return (
+    <StepDetailsContainerBox>
+      <ResizeStepDetailsBar />
+      {children}
+    </StepDetailsContainerBox>
   );
 };
