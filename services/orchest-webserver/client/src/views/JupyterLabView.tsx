@@ -202,7 +202,6 @@ const JupyterLabView = () => {
       </ProjectBasedView>
       <BuildPendingDialog
         onCancel={() => {
-          console.log("DEV hey!");
           navigateTo(siteMap.pipeline.path, {
             query: { projectUuid, pipelineUuid },
           });
