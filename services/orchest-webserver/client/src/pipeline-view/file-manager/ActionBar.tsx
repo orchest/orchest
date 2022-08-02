@@ -74,7 +74,7 @@ export function ActionBar({
       <Stack
         direction="row"
         alignItems="center"
-        justifyContent="flex-end"
+        justifyContent="space-evenly"
         spacing={1.5}
         sx={{ padding: (theme) => theme.spacing(0.5, 1.5, 1) }}
       >
