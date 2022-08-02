@@ -1,6 +1,4 @@
-import { ElementSize } from "@/components/ResizableContainer";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { isNumber } from "@/utils/webserver-utils";
 import React from "react";
 
 const DEFAULT_MAIN_SIDE_PANEL_WIDTH = 300;
@@ -29,7 +27,7 @@ const useCanvasContainerWidth = ({
   min,
   max,
 }: UseCanvasContainerWidthParams) => {
-  const [width, setWidth, saveWidthToLocalstorage] = useLocalStorage(
+  const [width, setWidth, saveWidthToLocalStorage] = useLocalStorage(
     key,
     defaultValue
   );
@@ -46,12 +44,9 @@ const useCanvasContainerWidth = ({
   );
 
   const saveWidth = React.useCallback(
-    ({ width }: Pick<ElementSize, "width">) => {
-      if (isNumber(width)) {
-        saveWidthToLocalstorage(Number(width));
-      }
-    },
-    [saveWidthToLocalstorage]
+    (width: number) => saveWidthToLocalStorage(width),
+
+    [saveWidthToLocalStorage]
   );
 
   return [width, setRangedWidth, saveWidth] as const;
@@ -60,10 +55,10 @@ const useCanvasContainerWidth = ({
 export type PipelineCanvasDimensionsContextType = {
   mainSidePanelWidth: number;
   setMainSidePanelWidth: React.Dispatch<React.SetStateAction<number>>;
-  saveMainSidePanelWidth: ({ width }: Pick<ElementSize, "width">) => void;
+  saveMainSidePanelWidth: (width: number) => void;
   stepDetailsPanelWidth: number;
   setStepDetailsPanelWidth: React.Dispatch<React.SetStateAction<number>>;
-  saveStepDetailsPanelWidth: ({ width }: Pick<ElementSize, "width">) => void;
+  saveStepDetailsPanelWidth: (width: number) => void;
 };
 
 export const PipelineCanvasDimensionsContext = React.createContext<

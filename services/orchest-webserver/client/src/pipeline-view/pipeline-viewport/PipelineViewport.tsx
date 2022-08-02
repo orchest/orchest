@@ -1,6 +1,7 @@
 import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
+import { setRefs } from "@/utils/refs";
 import classNames from "classnames";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
@@ -206,15 +207,7 @@ const PipelineViewportComponent = React.forwardRef<
         panningState,
         className
       )}
-      ref={(node) => {
-        // in order to manipulate a forwarded ref, we need to create a local ref to capture it
-        localRef.current = node;
-        if (typeof ref === "function") {
-          ref(node);
-        } else if (ref) {
-          ref.current = node;
-        }
-      }}
+      ref={setRefs(localRef, ref)}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       onContextMenu={(e) => handleContextMenu(e, "viewport")}
