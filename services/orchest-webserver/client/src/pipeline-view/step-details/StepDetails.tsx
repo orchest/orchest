@@ -1,5 +1,11 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import {
+  LayoutState,
+  MAX_WIDTH,
+  MIN_SECONDARY_SIDE_PANEL_WIDTH,
+  useLayoutStore,
+} from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -12,10 +18,6 @@ import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import {
-  MIN_STEP_DETAILS_PANEL_WIDTH,
-  usePipelineCanvasDimensionsContext,
-} from "../contexts/PipelineCanvasDimensionsContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { StepConnections } from "./StepConnections";
@@ -52,6 +54,9 @@ type StepDetailsProps = {
   onClose: () => void;
 };
 
+const selector = (state: LayoutState) =>
+  [state.secondarySidePanelWidth, state.setSecondarySidePanelWidth] as const;
+
 const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
   const { jobUuid, projectUuid } = useCustomRoute();
   const {
@@ -64,14 +69,8 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
     uiState: { subViewIndex, shouldAutoFocus, stepSelector, steps, openedStep },
     uiStateDispatch,
   } = usePipelineUiStateContext();
-  const {
-    setStepDetailsPanelWidth,
-    stepDetailsPanelWidth,
-  } = usePipelineCanvasDimensionsContext();
-
-  const onSetSize = React.useCallback(
-    (width) => setStepDetailsPanelWidth(width),
-    [setStepDetailsPanelWidth]
+  const [stepDetailsPanelWidth, setStepDetailsPanelWidth] = useLayoutStore(
+    selector
   );
 
   const step = steps[openedStep || ""];
@@ -101,10 +100,10 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
       <ResizablePane
         direction="horizontal"
         anchor="right"
-        onSetSize={onSetSize}
+        onSetSize={setStepDetailsPanelWidth}
         initialSize={stepDetailsPanelWidth}
-        minWidth={MIN_STEP_DETAILS_PANEL_WIDTH}
-        maxWidth={Math.max(window.innerWidth / 2, MIN_STEP_DETAILS_PANEL_WIDTH)}
+        minWidth={MIN_SECONDARY_SIDE_PANEL_WIDTH}
+        maxWidth={MAX_WIDTH}
         sx={{
           position: "relative",
           display: "flex",
