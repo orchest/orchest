@@ -64,6 +64,7 @@ export const FileManagerContainer = React.forwardRef<
         position: "relative",
         minHeight: MIN_PANEL_HEIGHT,
         maxHeight,
+        borderBottom: (theme) => `1px solid ${theme.borderColor}`,
       }}
     >
       <DropZone
