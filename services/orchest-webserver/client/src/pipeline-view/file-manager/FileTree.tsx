@@ -6,7 +6,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
-import { basename, dirname } from "@/utils/path";
+import { basename, dirname, join } from "@/utils/path";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -410,7 +410,8 @@ export const FileTree = React.memo(function FileTreeComponent({
         multiSelect
       >
         {treeRoots.map((root) => {
-          let combinedPath = `${root}${ROOT_SEPARATOR}/`;
+          const combinedPath = join(root, ROOT_SEPARATOR + "/");
+
           return (
             <TreeItem
               disableDragging
