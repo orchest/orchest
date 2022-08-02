@@ -1,3 +1,4 @@
+import { useLayoutStore } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -7,7 +8,6 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { usePipelineCanvasDimensionsContext } from "./contexts/PipelineCanvasDimensionsContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 
@@ -28,9 +28,9 @@ const ReadOnlyBannerContainer = ({
     uiState: { openedStep },
   } = usePipelineUiStateContext();
 
-  const { stepDetailsPanelWidth } = usePipelineCanvasDimensionsContext();
+  const { secondarySidePanelWidth } = useLayoutStore();
 
-  const widthDiff = openedStep ? stepDetailsPanelWidth : 0;
+  const widthDiff = openedStep ? secondarySidePanelWidth : 0;
 
   return (
     <Box

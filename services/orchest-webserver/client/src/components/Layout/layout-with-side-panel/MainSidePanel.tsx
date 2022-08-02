@@ -1,15 +1,14 @@
 import { ResizablePane } from "@/components/ResizablePane";
 import React from "react";
 import {
+  MAX_WIDTH,
   MIN_MAIN_SIDE_PANEL_WIDTH,
-  usePipelineCanvasDimensionsContext,
-} from "./contexts/PipelineCanvasDimensionsContext";
+  useMainSidePanelWidth,
+} from "./stores/useLayoutStore";
+
 type MainSidePanelProps = { children: React.ReactNode };
 export const MainSidePanel = ({ children }: MainSidePanelProps) => {
-  const {
-    mainSidePanelWidth,
-    setMainSidePanelWidth,
-  } = usePipelineCanvasDimensionsContext();
+  const [mainSidePanelWidth, setMainSidePanelWidth] = useMainSidePanelWidth();
 
   const onSetSize = React.useCallback(
     (width: number) => setMainSidePanelWidth(width),
@@ -19,9 +18,9 @@ export const MainSidePanel = ({ children }: MainSidePanelProps) => {
   return (
     <ResizablePane
       direction="horizontal"
-      initialSize={Math.max(mainSidePanelWidth, MIN_MAIN_SIDE_PANEL_WIDTH)}
+      initialSize={mainSidePanelWidth}
       minWidth={MIN_MAIN_SIDE_PANEL_WIDTH}
-      maxWidth={Math.max(window.innerWidth / 3, MIN_MAIN_SIDE_PANEL_WIDTH)}
+      maxWidth={MAX_WIDTH}
       position="relative"
       sx={{
         backgroundColor: (theme) => theme.palette.grey[100],
