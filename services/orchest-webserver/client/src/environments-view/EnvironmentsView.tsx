@@ -3,6 +3,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";
+import { EditEnvironment } from "./EditEnvironment";
 import { EnvironmentMenuList } from "./EnvironmentMenuList";
 import { useFetchEnvironments } from "./stores/useFetchEnvironments";
 
@@ -13,7 +14,7 @@ export const EnvironmentsView = () => {
 
   return (
     <LayoutWithSidePanel sidePanel={<EnvironmentMenuList />}>
-      {/* <EnvironmentList projectUuid={projectUuid} /> */}
+      <EditEnvironment />
     </LayoutWithSidePanel>
   );
 };

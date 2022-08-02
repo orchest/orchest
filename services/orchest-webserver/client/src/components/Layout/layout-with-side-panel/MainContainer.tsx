@@ -15,7 +15,7 @@ export const MainContainer = ({
   return (
     <Box
       sx={{
-        padding: (theme) => (disablePadding ? 0 : theme.spacing(4)),
+        padding: (theme) => (disablePadding ? 0 : theme.spacing(5)),
         overflow: "hidden auto",
         flex: 1,
         ...sx,
