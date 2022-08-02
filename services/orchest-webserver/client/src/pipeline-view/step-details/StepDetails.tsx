@@ -1,5 +1,6 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import { ResizablePane } from "@/components/ResizablePane";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { StepState } from "@/types";
@@ -11,11 +12,11 @@ import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { usePipelineCanvasDimensionsContext } from "../contexts/PipelineCanvasDimensionsContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { StepConnections } from "./StepConnections";
 import { StepDetailsActions } from "./StepDetailsActions";
-import { StepDetailsContainer } from "./StepDetailsContainer";
 import { StepDetailsContextProvider } from "./StepDetailsContext";
 import { StepDetailsLogs } from "./StepDetailsLogs";
 import { StepDetailsProperties } from "./StepDetailsProperties";
@@ -60,6 +61,12 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
     uiState: { subViewIndex, shouldAutoFocus, stepSelector, steps, openedStep },
     uiStateDispatch,
   } = usePipelineUiStateContext();
+  const { setStepDetailsPanelWidth } = usePipelineCanvasDimensionsContext();
+
+  const onResize = React.useCallback(
+    (width) => setStepDetailsPanelWidth(width),
+    [setStepDetailsPanelWidth]
+  );
 
   const step = steps[openedStep || ""];
 
@@ -85,7 +92,22 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
 
   return (
     <StepDetailsContextProvider>
-      <StepDetailsContainer>
+      <ResizablePane
+        direction="horizontal"
+        anchor="right"
+        onSetSize={onResize}
+        initialSize={420}
+        minWidth={420}
+        maxWidth={window.innerWidth / 2}
+        sx={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          backgroundColor: (theme) => theme.palette.common.white,
+          borderLeft: (theme) => `1px solid ${theme.palette.grey[300]}`,
+        }}
+      >
         <Typography
           component="div"
           variant="h6"
@@ -149,7 +171,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
         <Stack marginTop="auto">
           <StepDetailsActions />
         </Stack>
-      </StepDetailsContainer>
+      </ResizablePane>
     </StepDetailsContextProvider>
   );
 };

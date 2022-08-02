@@ -1,6 +1,7 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useThrottle } from "@/hooks/useThrottle";
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
+import { setRefs } from "@/utils/refs";
 import ArrowDropDownOutlinedIcon from "@mui/icons-material/ArrowDropDownOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -65,14 +66,7 @@ export const PipelineOperationButton = React.forwardRef<
       variant="contained"
       disableRipple
       color={displayedPipelineStatus === "IDLING" ? "primary" : "secondary"}
-      ref={(node: HTMLButtonElement) => {
-        localRef.current = node;
-        if (typeof ref === "function") {
-          ref(node);
-        } else if (ref) {
-          ref.current = node;
-        }
-      }}
+      ref={setRefs(localRef, ref)}
       disabled={disabled}
       sx={{
         marginLeft: (theme) => theme.spacing(1),
