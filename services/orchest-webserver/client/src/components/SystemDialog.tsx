@@ -5,6 +5,7 @@ import {
   useAppContext,
 } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { setRefs } from "@/utils/refs";
 import Button, { ButtonProps } from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -39,19 +40,7 @@ const DelayedFocusButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
       return () => window.clearTimeout(timeout);
     }, []);
 
-    return (
-      <Button
-        ref={(node: HTMLButtonElement) => {
-          localRef.current = node;
-          if (typeof ref === "function") {
-            ref(node);
-          } else if (ref) {
-            ref.current = node;
-          }
-        }}
-        {...props}
-      />
-    );
+    return <Button ref={setRefs(localRef, ref)} {...props} />;
   }
 );
 
