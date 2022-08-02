@@ -21,11 +21,11 @@ export const useSelectEnvironment = () => {
   const [projectUuid, environments] = useEnvironmentsApi(selector);
 
   const environmentOnEdit = React.useMemo(() => {
-    const found = environmentUuid
+    const foundEnvironment = environmentUuid
       ? environments?.find((env) => env.uuid === environmentUuid)
       : environments?.[0];
 
-    return found || environments?.[0];
+    return foundEnvironment?.uuid;
   }, [environments, environmentUuid]);
 
   const selectEnvironment = React.useCallback(

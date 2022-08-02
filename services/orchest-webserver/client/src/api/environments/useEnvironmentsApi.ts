@@ -19,7 +19,10 @@ export type EnvironmentsApiState = {
   isFetching: boolean;
   fetch: (projectUuid: string, language?: string) => Promise<void>;
   isPosting: boolean;
-  post: (environmentName: string, specs: EnvironmentSpec) => Promise<void>;
+  post: (
+    environmentName: string,
+    specs: EnvironmentSpec
+  ) => Promise<Environment | undefined>;
   isPutting: boolean;
   put: (
     environmentUuid: string,
@@ -27,7 +30,6 @@ export type EnvironmentsApiState = {
   ) => Promise<void>;
   isDeleting: boolean;
   delete: (environmentUuid: string) => Promise<void>;
-  isValidating: boolean;
   validate: () => Promise<EnvironmentBuildStatus | undefined>;
   status: EnvironmentBuildStatus;
   error?: FetchError;
@@ -46,7 +48,7 @@ const getEnvironmentBuildStatus = (
     : "environmentsBuildInProgress";
 };
 
-export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
+export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
   const getProjectUuid = (): string => {
     const projectUuid = get().projectUuid;
     if (!projectUuid) {
@@ -80,11 +82,7 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
           language
         );
 
-        set({
-          projectUuid,
-          environments,
-          isFetching: false,
-        });
+        set({ projectUuid, environments, isFetching: false });
       } catch (error) {
         if (!error?.isCanceled) set({ error, isFetching: false });
       }
@@ -99,14 +97,22 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
           environmentName,
           spec
         );
+        const newEnvironmentWithAction: EnvironmentState = {
+          ...newEnvironment,
+          action: "BUILD",
+        };
         set((state) => {
+          const environments = state.environments
+            ? [newEnvironmentWithAction, ...state.environments]
+            : [newEnvironmentWithAction];
           return {
-            environments: state.environments
-              ? [newEnvironment, ...state.environments]
-              : [newEnvironment],
+            environments: environments.sort(
+              (a, b) => -1 * a.name.localeCompare(b.name)
+            ),
             isPosting: false,
           };
         });
+        return newEnvironmentWithAction;
       } catch (error) {
         set({ error, isPosting: false });
       }
@@ -153,32 +159,34 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>()((set, get) => {
       }
     },
     status: "environmentsNotYetBuilt",
-    isValidating: false,
     validate: async () => {
       try {
         const projectUuid = getProjectUuid();
-        set({ isValidating: true, error: undefined });
         const results = await environmentsApi.validate(
           projectUuid,
           get().environments
         );
 
         if (results instanceof Error) {
-          set({ error: results, isValidating: false });
           return;
         }
 
-        const [validatedEnvironments, response] = results;
+        const [
+          validatedEnvironments,
+          response,
+          shouldUpdateEnvironments,
+        ] = results;
 
-        set({
-          environments: validatedEnvironments,
-          isValidating: false,
-          status: getEnvironmentBuildStatus(response),
-        });
+        if (shouldUpdateEnvironments) {
+          set({
+            environments: validatedEnvironments,
+            status: getEnvironmentBuildStatus(response),
+          });
+        }
 
         return getEnvironmentBuildStatus(response);
       } catch (error) {
-        set({ error, isValidating: false });
+        console.error("Failed to validate environments.");
       }
     },
     clearError: () => {
