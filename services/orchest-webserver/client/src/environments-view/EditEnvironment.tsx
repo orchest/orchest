@@ -9,11 +9,16 @@ import { NoEnvironment } from "./NoEnvironment";
 import { useEditEnvironment } from "./stores/useEditEnvironment";
 import { useGetEnvironments } from "./stores/useGetEnvironments";
 
-export const EditEnvironment = () => {
+const useHasEnvironment = () => {
   const { environments } = useGetEnvironments();
-  const { environment } = useEditEnvironment();
-
   const hasNoEnvironment = environments?.length === 0;
+
+  return hasNoEnvironment;
+};
+
+export const EditEnvironment = () => {
+  const { environment } = useEditEnvironment();
+  const hasNoEnvironment = useHasEnvironment();
 
   return hasNoEnvironment ? (
     <NoEnvironment />
