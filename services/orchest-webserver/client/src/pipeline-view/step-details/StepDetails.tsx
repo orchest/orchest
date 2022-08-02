@@ -12,7 +12,10 @@ import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { usePipelineCanvasDimensionsContext } from "../contexts/PipelineCanvasDimensionsContext";
+import {
+  MIN_STEP_DETAILS_PANEL_WIDTH,
+  usePipelineCanvasDimensionsContext,
+} from "../contexts/PipelineCanvasDimensionsContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { StepConnections } from "./StepConnections";
@@ -61,9 +64,12 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
     uiState: { subViewIndex, shouldAutoFocus, stepSelector, steps, openedStep },
     uiStateDispatch,
   } = usePipelineUiStateContext();
-  const { setStepDetailsPanelWidth } = usePipelineCanvasDimensionsContext();
+  const {
+    setStepDetailsPanelWidth,
+    stepDetailsPanelWidth,
+  } = usePipelineCanvasDimensionsContext();
 
-  const onResize = React.useCallback(
+  const onSetSize = React.useCallback(
     (width) => setStepDetailsPanelWidth(width),
     [setStepDetailsPanelWidth]
   );
@@ -95,10 +101,10 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
       <ResizablePane
         direction="horizontal"
         anchor="right"
-        onSetSize={onResize}
-        initialSize={420}
-        minWidth={420}
-        maxWidth={window.innerWidth / 2}
+        onSetSize={onSetSize}
+        initialSize={stepDetailsPanelWidth}
+        minWidth={MIN_STEP_DETAILS_PANEL_WIDTH}
+        maxWidth={Math.max(window.innerWidth / 2, MIN_STEP_DETAILS_PANEL_WIDTH)}
         sx={{
           position: "relative",
           display: "flex",
