@@ -17,7 +17,7 @@ export type LayoutState = {
 const DEFAULT_MAIN_SIDE_PANEL_WIDTH = 300;
 export const MIN_MAIN_SIDE_PANEL_WIDTH = 252;
 const DEFAULT_SECONDARY_SIDE_PANEL_WIDTH = 450;
-const MIN_SECONDARY_SIDE_PANEL_WIDTH = 420;
+export const MIN_SECONDARY_SIDE_PANEL_WIDTH = 420;
 export const MAX_WIDTH = window.innerWidth / 2;
 
 export const useLayoutStore = create(
