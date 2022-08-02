@@ -255,8 +255,10 @@ export function FileManager() {
         });
       }
 
-      // Expand if was expanded prior
-      if (expanded.includes(oldPath) && !expanded.includes(newPath)) {
+      const wasExpandedBeforeMove =
+        expanded.includes(oldPath) && !expanded.includes(newPath);
+
+      if (wasExpandedBeforeMove) {
         setExpanded((expanded) => {
           return [...expanded, newPath];
         });

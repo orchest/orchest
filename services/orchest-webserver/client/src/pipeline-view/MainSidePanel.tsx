@@ -21,7 +21,7 @@ export const MainSidePanel: React.FC = ({ children }) => {
       direction="horizontal"
       initialSize={Math.max(mainSidePanelWidth, MIN_MAIN_SIDE_PANEL_WIDTH)}
       minWidth={MIN_MAIN_SIDE_PANEL_WIDTH}
-      maxWidth={window.innerWidth / 2}
+      maxWidth={Math.max(window.innerWidth / 3, MIN_MAIN_SIDE_PANEL_WIDTH)}
       position="relative"
       sx={{
         backgroundColor: (theme) => theme.palette.grey[100],
