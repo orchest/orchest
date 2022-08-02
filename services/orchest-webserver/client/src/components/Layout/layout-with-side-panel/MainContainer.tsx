@@ -22,7 +22,13 @@ export const MainContainer = ({
       }}
       {...props}
     >
-      <Box sx={{ maxWidth: (theme) => theme.spacing(144), margin: "0 auto" }}>
+      <Box
+        sx={{
+          maxWidth: (theme) => theme.spacing(144),
+          margin: "0 auto",
+          height: "100%",
+        }}
+      >
         {children}
       </Box>
     </Box>
