@@ -8,11 +8,12 @@ import {
 import { fetcher, FetchError, HEADER } from "@orchest/lib-utils";
 import produce from "immer";
 
-const fetchAll = (projectUuid: string, language?: string) => {
+const fetchAll = async (projectUuid: string, language?: string) => {
   const queryString = language ? `?${queryArgs({ language })}` : "";
-  return fetcher<Environment[]>(
+  const unsortedEnvironment = await fetcher<Environment[]>(
     `/store/environments/${projectUuid}${queryString}`
   );
+  return unsortedEnvironment.sort((a, b) => -1 * a.name.localeCompare(b.name));
 };
 const post = (projectUuid: string, name: string, spec: EnvironmentSpec) =>
   fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
@@ -48,7 +49,10 @@ const validate = async (projectUuid: string) =>
 const validateLatest = async (
   projectUuid: string,
   existingEnvironments: EnvironmentState[] = []
-): Promise<[EnvironmentState[], EnvironmentValidationData] | FetchError> => {
+): Promise<
+  [EnvironmentState[], EnvironmentValidationData, boolean] | FetchError
+> => {
+  let hasActionChanged = false;
   try {
     const response = await validate(projectUuid);
     const envMap = new Map(existingEnvironments.map((env) => [env.uuid, env]));
@@ -56,18 +60,16 @@ const validateLatest = async (
       for (const [index, action] of response.actions.entries()) {
         const uuid = response.fail[index];
         const environment = draft.get(uuid);
-        if (environment) {
-          environment.action = action;
-        } else {
-          throw "refetch";
-        }
+        if (!environment) throw "refetch";
+        if (environment.action !== action) hasActionChanged = true;
+        environment.action = action;
       }
     });
     const environments = Array.from(
       updatedEnvironmentMap,
       ([, value]) => value
     );
-    return [environments, response];
+    return [environments, response, hasActionChanged];
   } catch (error) {
     if (error === "refetch") {
       const latestEnvironments = await fetchAll(projectUuid);

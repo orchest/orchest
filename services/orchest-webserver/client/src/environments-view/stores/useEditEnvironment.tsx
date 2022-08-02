@@ -34,5 +34,5 @@ export const useEditEnvironment = () => {
     [environment?.uuid, isAllowedToUpdate, isUpdating, put]
   );
 
-  return { updateEnvironment, isUpdating, isAllowedToUpdate };
+  return { environment, updateEnvironment, isUpdating, isAllowedToUpdate };
 };
