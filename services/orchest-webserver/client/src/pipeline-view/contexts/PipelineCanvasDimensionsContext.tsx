@@ -1,18 +1,13 @@
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import React from "react";
 
-const DEFAULT_MAIN_SIDE_PANEL_WIDTH = 300;
+export const DEFAULT_MAIN_SIDE_PANEL_WIDTH = 300;
 export const MIN_MAIN_SIDE_PANEL_WIDTH = 252;
-const DEFAULT_STEP_DETAILS_PANEL_WIDTH = 450;
-const MIN_STEP_DETAILS_PANEL_WIDTH = 420;
+export const DEFAULT_STEP_DETAILS_PANEL_WIDTH = 450;
+export const MIN_STEP_DETAILS_PANEL_WIDTH = 420;
 
-const getRangedValue = (
-  value: number,
-  min: number = value,
-  max: number = value
-) => {
-  return Math.min(Math.max(value, min), max);
-};
+const clamp = (value: number, min: number = value, max: number = value) =>
+  Math.min(Math.max(value, min), max);
 
 type UseCanvasContainerWidthParams = {
   key: string;
@@ -32,12 +27,12 @@ const useCanvasContainerWidth = ({
     defaultValue
   );
 
-  const setRangedWidth = React.useCallback(
+  const setClampedWidth = React.useCallback(
     (value: React.SetStateAction<number>) => {
       setWidth((prevPanelWidth) => {
         const newValue =
           value instanceof Function ? value(prevPanelWidth) : value;
-        return getRangedValue(newValue, min, max);
+        return clamp(newValue, min, max);
       });
     },
     [min, max, setWidth]
@@ -49,7 +44,7 @@ const useCanvasContainerWidth = ({
     [saveWidthToLocalStorage]
   );
 
-  return [width, setRangedWidth, saveWidth] as const;
+  return [width, setClampedWidth, saveWidth] as const;
 };
 
 export type PipelineCanvasDimensionsContextType = {
