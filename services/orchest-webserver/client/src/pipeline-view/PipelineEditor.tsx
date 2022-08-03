@@ -1,7 +1,6 @@
 import { HeadsUpDisplay } from "@/components/HeadsUpDisplay";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
-import { siteMap } from "@/routingConfig";
 import type { Connection, StepState } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import Stack from "@mui/material/Stack";
@@ -37,13 +36,6 @@ export const PipelineEditor = () => {
     jobUuid,
     pipelineJson,
   } = usePipelineDataContext();
-
-  const returnToJob = React.useCallback(
-    (e?: React.MouseEvent) => {
-      navigateTo(siteMap.job.path, { query: { projectUuid, jobUuid } }, e);
-    },
-    [projectUuid, jobUuid, navigateTo]
-  );
 
   const { openNotebook, openFilePreviewView } = useOpenFile();
 
