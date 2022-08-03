@@ -54,7 +54,6 @@ const App = () => {
         createdAt: config.INTERCOM_DEFAULT_SIGNUP_DATE,
       });
 
-      // Initialize OpenReplay
       const tracker = new OpenReplay({
         projectKey: config.OPENREPLAY_PROJECT_KEY,
         ingestPoint: config.OPENREPLAY_INGEST_POINT,
