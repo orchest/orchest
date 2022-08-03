@@ -3,7 +3,8 @@ import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import MuiTreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
+import TreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
+import { alpha } from "@mui/material";
 import Box from "@mui/material/Box";
 import { styled, SxProps, Theme } from "@mui/material/styles";
 import React from "react";
@@ -11,7 +12,7 @@ import { cleanFilePath } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { getIcon, SVGFileIcon } from "./SVGFileIcon";
 
-const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
+const StyledTreeItemRoot = styled(TreeItem)(({ theme }) => ({
   [`& .${treeItemClasses.content}`]: {
     padding: theme.spacing(0, 0.5),
     [`.${treeItemClasses.label}`]: {
@@ -23,28 +24,34 @@ const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
       },
     },
     "&.Mui-focused, &.Mui-selected, &.Mui-selected.Mui-focused": {
-      backgroundColor: theme.palette.grey[200],
-      color: theme.palette.primary.main,
+      backgroundColor: alpha(theme.palette.primary[700], 0.12),
+      borderRadius: "4px",
+
+      ["& + .Mui-selected"]: {
+        backgroundColor: "red !important",
+      },
     },
   },
 }));
 
 const DRAG_THRESHOLD = 3;
 
-export const TreeItem = ({
+type FileTreeItemProps = TreeItemProps & {
+  disableDragging?: boolean;
+  fileName?: string;
+  path?: string;
+  labelText: string;
+  sx: SxProps<Theme>;
+};
+
+export const FileTreeItem = ({
   disableDragging,
   fileName = "",
   path = "",
   labelText,
   onContextMenu,
   ...other
-}: TreeItemProps & {
-  disableDragging?: boolean;
-  fileName?: string;
-  path?: string;
-  labelText: string;
-  sx: SxProps<Theme>;
-}) => {
+}: FileTreeItemProps) => {
   const { setIsDragging, setDragFile } = useFileManagerContext();
   const {
     state: { pipelines = [] },
