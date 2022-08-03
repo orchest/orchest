@@ -48,9 +48,10 @@ const ReadOnlyBannerContainer = ({
   const widthDiff = openedStep
     ? mainSidePanelWidth + stepDetailsPanelWidth
     : mainSidePanelWidth;
+
   return (
     <Box
-      style={{ maxWidth: `calc(100vw - ${widthDiff}px)`, width: "100%" }}
+      style={{ maxWidth: `calc(100% - ${widthDiff}px)`, width: "100%" }}
       sx={{
         padding: (theme) => theme.spacing(2.5),
         position: "absolute",
@@ -77,41 +78,35 @@ export const ReadOnlyBanner = () => {
   const { action, label } = React.useMemo(() => {
     if (pipelineReadOnlyReason === "isJobRun") {
       return {
-        action: (e: React.MouseEvent) => {
+        action: (event: React.MouseEvent) => {
           navigateTo(
             siteMap.pipeline.path,
             { query: { projectUuid, pipelineUuid } },
-            e
+            event
           );
         },
         label: "Open in editor",
       };
-    }
-
-    if (pipelineReadOnlyReason === "JupyterEnvironmentBuildInProgress") {
+    } else if (pipelineReadOnlyReason === "JupyterEnvironmentBuildInProgress") {
       return {
-        action: (e: React.MouseEvent) => {
-          navigateTo(siteMap.configureJupyterLab.path, undefined, e);
+        action: (event: React.MouseEvent) => {
+          navigateTo(siteMap.configureJupyterLab.path, undefined, event);
         },
         label: "JupyterLab configuration",
       };
-    }
-
-    if (pipelineReadOnlyReason === "environmentsNotYetBuilt") {
+    } else if (pipelineReadOnlyReason === "environmentsNotYetBuilt") {
       return {
         action: triggerBuild,
         label: "Start Building",
       };
-    }
-
-    if (pipelineReadOnlyReason === "environmentsBuildInProgress") {
+    } else if (pipelineReadOnlyReason === "environmentsBuildInProgress") {
       return {
         action: viewBuildStatus,
         label: "Open Environments",
       };
+    } else {
+      return {};
     }
-
-    return {};
   }, [
     navigateTo,
     pipelineReadOnlyReason,
