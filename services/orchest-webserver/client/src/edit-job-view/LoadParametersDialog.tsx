@@ -52,7 +52,6 @@ const ProjectFilePickerHolder = ({
       allowedExtensions={["json"]}
       pipelineCwd={pipelineCwd}
       onChange={onChangeFilePath}
-      menuMaxWidth={"100%"}
       doesFileExist={doesFileExist}
       isCheckingFileValidity={isCheckingFileValidity}
     />

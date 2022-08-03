@@ -84,7 +84,6 @@ export type FilePickerProps = {
   onChangeValue: (value: FilePickerProps["value"]) => void;
   tree: FileTree;
   value: string;
-  menuMaxWidth?: string;
   onSelectMenuItem: (node: FileTree) => void;
   allowedExtensions: readonly string[];
   generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
@@ -187,7 +186,6 @@ const FilePicker: React.FC<FilePickerProps> = ({
   onChangeValue,
   helperText,
   icon,
-  menuMaxWidth,
   onSelectMenuItem,
   generateRelativePath,
   allowedExtensions,
@@ -331,7 +329,6 @@ const FilePicker: React.FC<FilePickerProps> = ({
           sx={{
             maxHeight: ITEM_HEIGHT * 4.5,
             overflowY: "auto",
-            width: menuMaxWidth || "24ch",
             position: "absolute",
             top: (theme) => theme.spacing(7),
             zIndex: 10,
