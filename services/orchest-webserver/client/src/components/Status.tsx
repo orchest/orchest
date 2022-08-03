@@ -91,16 +91,16 @@ export const StatusInline: React.FC<{
   size?: IconSize;
 }> = ({ status, size = "medium" }) => {
   return (
-    <Tooltip title={statusMapping[status].text}>
+    <Tooltip title={statusMapping?.[status]?.text || ""}>
       <Stack
         component="span"
         direction="row"
         alignItems="center"
         justifyContent="center"
       >
-        {statusMapping[status].icon(size)}
+        {statusMapping?.[status]?.icon(size)}
         <Typography component="span" sx={visuallyHidden}>
-          {statusMapping[status].text}
+          {statusMapping?.[status]?.text}
         </Typography>
       </Stack>
     </Tooltip>
