@@ -39,14 +39,9 @@ const ReadOnlyBannerContainer = ({
     uiState: { openedStep },
   } = usePipelineUiStateContext();
 
-  const {
-    mainSidePanelWidth,
-    stepDetailsPanelWidth,
-  } = usePipelineCanvasDimensionsContext();
+  const { stepDetailsPanelWidth } = usePipelineCanvasDimensionsContext();
 
-  const widthDiff = openedStep
-    ? mainSidePanelWidth + stepDetailsPanelWidth
-    : mainSidePanelWidth;
+  const widthDiff = openedStep ? stepDetailsPanelWidth : 0;
 
   return (
     <Box
