@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { EnvironmentMoreOptions } from "./EnvironmentMoreOptions";
 import { NoEnvironment } from "./NoEnvironment";
-import { useEditEnvironment } from "./stores/useEditEnvironment";
+import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
 import { useGetEnvironments } from "./stores/useGetEnvironments";
 
 const useHasEnvironment = () => {
@@ -17,7 +17,7 @@ const useHasEnvironment = () => {
 };
 
 export const EditEnvironment = () => {
-  const { environment } = useEditEnvironment();
+  const { environmentOnEdit } = useEnvironmentOnEdit();
   const hasNoEnvironment = useHasEnvironment();
 
   return hasNoEnvironment ? (
@@ -26,7 +26,7 @@ export const EditEnvironment = () => {
     <Stack direction="column">
       <Stack direction="row" spacing={2} alignItems="center">
         <Typography variant="h4" flex={1} sx={ellipsis()}>
-          {environment?.name}
+          {environmentOnEdit?.name}
         </Typography>
         <Button variant="contained" startIcon={<BuildCircleOutlinedIcon />}>
           Build
