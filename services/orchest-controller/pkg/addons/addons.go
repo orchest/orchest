@@ -5,6 +5,7 @@ import (
 	"path"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
 
@@ -50,7 +51,7 @@ type AddonManager struct {
 	addons map[string]Addon
 }
 
-func NewAddonManager(config AddonsConfig) *AddonManager {
+func NewAddonManager(client kubernetes.Interface, config AddonsConfig) *AddonManager {
 
 	addonManager := AddonManager{
 		config: config,
@@ -58,12 +59,12 @@ func NewAddonManager(config AddonsConfig) *AddonManager {
 	}
 
 	addonManager.AddAddon(ArgoWorkflow,
-		NewHelmDeployer(ArgoWorkflow,
+		NewHelmDeployer(client, ArgoWorkflow,
 			path.Join(config.AssetDir, "thirdparty/argo-workflows/helm"),
 			path.Join(config.AssetDir, "thirdparty/argo-workflows/orchest-values.yaml")))
 
 	addonManager.AddAddon(DockerRegistry,
-		NewHelmDeployer(DockerRegistry,
+		NewHelmDeployer(client, DockerRegistry,
 			path.Join(config.AssetDir, "thirdparty/docker-registry/helm"),
 			path.Join(config.AssetDir, "thirdparty/docker-registry/orchest-values.yaml")))
 

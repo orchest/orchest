@@ -7,22 +7,31 @@ import (
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/helm"
 )
 
 type HelmDeployer struct {
 	name       string
+	client     kubernetes.Interface
 	deployDir  string
 	valuesPath string
 }
 
-func NewHelmDeployer(name, deployDir string, valuesPath string) Addon {
+func NewHelmDeployer(client kubernetes.Interface,
+	name, deployDir string,
+	valuesPath string) Addon {
 	return &HelmDeployer{
 		name:       name,
+		client:     client,
 		deployDir:  deployDir,
 		valuesPath: valuesPath,
 	}
+}
+
+func (d *HelmDeployer) getReleaseName(namespace string) string {
+	return fmt.Sprintf("%s-%s", namespace, d.name)
 }
 
 // Installs deployer if the config is changed
@@ -30,7 +39,7 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 	namespace string,
 	app *orchestv1alpha1.ApplicationSpec) error {
 
-	releaseName := fmt.Sprintf("%s-%s", namespace, d.name)
+	releaseName := d.getReleaseName(namespace)
 
 	// Generate the deploy args
 	deployArgsBuilder := helm.NewHelmArgBuilder()
@@ -79,6 +88,11 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 		}
 	}
 
+	err = helm.RemoveHelmHistoryIfNeeded(ctx, d.client, releaseName, namespace)
+	if err != nil {
+		return err
+	}
+
 	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
 	return err
 
@@ -86,5 +100,5 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 
 // Uninstall the addon
 func (d *HelmDeployer) Uninstall(ctx context.Context, namespace string) error {
-	return helm.RemoveRelease(ctx, d.name, namespace)
+	return helm.RemoveRelease(ctx, d.getReleaseName(namespace), namespace)
 }

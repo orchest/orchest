@@ -3,16 +3,21 @@ package helm
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
 
+type Json map[string]interface{}
+
 func GetReleaseConfig(ctx context.Context, name, namespace string) (string, error) {
 
-	klog.V(2).Infof("Attempting to get the status of release: %s, namespace: %s", name, namespace)
+	klog.V(2).Infof("Attempting to get the manifests of release: %s, namespace: %s", name, namespace)
 
 	args := NewHelmArgBuilder().
 		WithGetManifest().
@@ -33,6 +38,58 @@ func GetReleaseConfig(ctx context.Context, name, namespace string) (string, erro
 	}
 
 	return stdout.String(), nil
+}
+
+func RemoveHelmHistoryIfNeeded(ctx context.Context,
+	client kubernetes.Interface,
+	name, namespace string) error {
+
+	klog.V(2).Infof("Attempting to get the state of release: %s, namespace: %s", name, namespace)
+	args := NewHelmArgBuilder().
+		WithStatus().
+		WithName(name).
+		WithNamespace(namespace).
+		WithJsonOutput().
+		Build()
+
+	status, err := RunCommand(ctx, args)
+	if err != nil {
+		return err
+	}
+
+	var statusJson Json
+
+	err = json.Unmarshal([]byte(status), &statusJson)
+	if err != nil {
+		return err
+	}
+
+	if getStatusFromStatusJson(statusJson) != "pending-rollback" {
+		return nil
+	}
+
+	// Rollingback most probably won't work and results in a
+	// Helm: Error: has no deployed releases, since there is no
+	// helm version with deployed status, we remove the helm secrets
+	// to be able to create the release again.
+
+	klog.V(2).Infof("Attempting to remove the helm secrets for release: %s, namespace: %s", name, namespace)
+
+	secrets, err := client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, secret := range secrets.Items {
+		if secret.Type == "helm.sh/release.v1" && secret.Labels["name"] == name {
+			err = client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func GetTemplate(ctx context.Context, name, namespace string) ([]byte, error) {
@@ -85,7 +142,7 @@ func RemoveRelease(ctx context.Context, name, namespace string) error {
 		WithUnInstall().
 		WithName(name).
 		WithNamespace(namespace).
-		WithJsonOutput().Build()
+		Build()
 
 	cmd := exec.CommandContext(ctx, "helm", args...)
 
@@ -100,4 +157,17 @@ func RemoveRelease(ctx context.Context, name, namespace string) error {
 	}
 
 	return nil
+}
+
+func getStatusFromStatusJson(statusJson map[string]interface{}) string {
+	if statusJson["info"] != nil {
+		info := statusJson["info"].(map[string]interface{})
+		if info != nil {
+			if info["status"] != nil {
+				klog.Info(info["status"].(string))
+				return info["status"].(string)
+			}
+		}
+	}
+	return ""
 }

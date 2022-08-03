@@ -207,9 +207,7 @@ class AbortPipelineRun(TwoPhaseFunction):
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
 
-        run = models.InteractivePipelineRun.query.filter(
-            models.InteractivePipelineRun.uuid == run_uuid
-        ).one()
+        run = models.PipelineRun.query.filter(models.PipelineRun.uuid == run_uuid).one()
         events.register_interactive_pipeline_run_cancelled(
             run.project_uuid, run.pipeline_uuid, run_uuid
         )

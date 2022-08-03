@@ -410,25 +410,19 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 	envChanged := utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
 		occ.config.OrchestDefaultEnvVars, false)
-	if envChanged {
-		changed = true
-	}
+	changed = changed || envChanged
 
 	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
 		map[string]string{
 			"ORCHEST_CLUSTER":   orchest.Name,
 			"ORCHEST_NAMESPACE": orchest.Namespace,
 		}, false)
-	if envChanged {
-		changed = true
-	}
+	changed = changed || envChanged
 
 	if copy.Spec.Orchest.OrchestHost != nil {
 		envChanged := utils.UpsertEnvVariable(&copy.Spec.Orchest.Env,
 			map[string]string{"ORCHEST_FQDN": *copy.Spec.Orchest.OrchestHost}, true)
-		if envChanged {
-			changed = true
-		}
+		changed = changed || envChanged
 	}
 
 	// Orchest-API configs
@@ -445,9 +439,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.OrchestApi.Env,
 		occ.config.OrchestApiDefaultEnvVars, false)
-	if envChanged {
-		changed = true
-	}
+	changed = changed || envChanged
 
 	// Orchest-Webserver configs
 	webserverImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.OrchestWebserver, copy.Spec.Orchest.Version)
@@ -463,9 +455,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.OrchestWebServer.Env,
 		occ.config.OrchestWebserverDefaultEnvVars, false)
-	if envChanged {
-		changed = true
-	}
+	changed = changed || envChanged
 
 	// Celery-Worker configs
 	celeryWorkerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.CeleryWorker, copy.Spec.Orchest.Version)
@@ -481,9 +471,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.CeleryWorker.Env,
 		occ.config.CeleryWorkerDefaultEnvVars, false)
-	if envChanged {
-		changed = true
-	}
+	changed = changed || envChanged
 
 	// Auth-Server configs
 	authServerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.AuthServer, copy.Spec.Orchest.Version)
@@ -551,15 +539,13 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		app := &copy.Spec.Applications[i]
 		if app.Name == addons.DockerRegistry {
 
-			registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), app)
+			registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), copy.Namespace, app)
 			if err != nil {
 				klog.Error(err)
 				return changed, err
 			}
 
-			if registryChanged {
-				changed = true
-			}
+			changed = changed || registryChanged
 		}
 	}
 
