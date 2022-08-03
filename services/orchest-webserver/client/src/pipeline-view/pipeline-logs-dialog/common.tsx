@@ -1,9 +1,11 @@
-import type { StepsDict, StepState } from "@/types";
+import type { StepData, StepState } from "@/types";
 
-export const topologicalSort = (steps: StepsDict) => {
+export const topologicalSort = (
+  steps: Record<string, StepData | StepState>
+) => {
   const sortedStepKeys: string[] = [];
 
-  const conditionalAdd = (step: StepState) => {
+  const conditionalAdd = (step: StepData | StepState) => {
     // add if all parents are already in the sortedStepKeys
     let parentsAdded = true;
 
@@ -20,19 +22,19 @@ export const topologicalSort = (steps: StepsDict) => {
   };
 
   // Add self and children (breadth first)
-  let addSelfAndChildren = (step: StepState) => {
+  let addSelfAndChildren = (step: StepData | StepState) => {
     conditionalAdd(step);
 
-    step.outgoing_connections = step.outgoing_connections || ([] as string[]);
+    const outgoingConnections = (step as StepState).outgoing_connections || [];
 
-    for (const childStepUUID of step.outgoing_connections) {
+    for (const childStepUUID of outgoingConnections) {
       let childStep = steps[childStepUUID];
 
       conditionalAdd(childStep);
     }
 
     // Recurse down
-    for (const childStepUUID of step.outgoing_connections) {
+    for (const childStepUUID of outgoingConnections) {
       addSelfAndChildren(steps[childStepUUID]);
     }
   };

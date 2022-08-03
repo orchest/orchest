@@ -13,6 +13,7 @@ export const createStepAction = (
       title: "",
       uuid: uuidv4(),
       incoming_connections: [],
+      outgoing_connections: [],
       file_path: filePath,
       kernel: {
         name: environment?.language || "python",

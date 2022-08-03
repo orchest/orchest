@@ -6,7 +6,7 @@ import React from "react";
 export type ServiceTemplate = {
   label: string;
   icon: React.ReactNode;
-  config: Service;
+  config: Omit<Service, "order">;
 };
 
 export type ServiceTemplates = Record<string, ServiceTemplate>;
