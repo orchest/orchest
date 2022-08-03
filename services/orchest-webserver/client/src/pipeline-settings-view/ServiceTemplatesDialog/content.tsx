@@ -1,6 +1,6 @@
 import { IconRedis, IconStreamlit, IconTensorBoard, IconVSCode } from "@/icons";
 import { Service } from "@/types";
-import { IconDraftOutline } from "@orchest/design-system";
+import DraftsOutlined from "@mui/icons-material/DraftsOutlined";
 import React from "react";
 
 export type ServiceTemplate = {
@@ -84,7 +84,7 @@ export const templates: ServiceTemplates = {
   },
   empty: {
     label: "Create custom service",
-    icon: <IconDraftOutline />,
+    icon: <DraftsOutlined fontSize="small" />,
     config: {
       exposed: false,
       requires_authentication: true,
