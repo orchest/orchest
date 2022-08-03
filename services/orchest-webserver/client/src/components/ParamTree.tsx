@@ -1,9 +1,9 @@
 import { useAppContext } from "@/contexts/AppContext";
+import LightbulbOutlined from "@mui/icons-material/LightbulbOutlined";
 import {
   Alert,
   AlertDescription,
   AlertHeader,
-  IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
 import isString from "lodash.isstring";
@@ -25,7 +25,7 @@ export const NoParameterAlert = () => {
   return (
     <Alert status="info">
       <AlertHeader>
-        <IconLightBulbOutline />
+        <LightbulbOutlined fontSize="small" />
         {`This pipeline doesn't have any parameters defined`}
       </AlertHeader>
       <AlertDescription>
