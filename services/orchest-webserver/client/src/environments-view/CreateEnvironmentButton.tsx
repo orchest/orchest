@@ -12,13 +12,14 @@ type CreateEnvironmentButtonProps = Omit<
   onCreated: (uuid: string) => void;
 };
 
-export const CreateEnvironmentButton = (
-  props: CreateEnvironmentButtonProps
-) => {
+export const CreateEnvironmentButton = ({
+  onCreated,
+  ...props
+}: CreateEnvironmentButtonProps) => {
   const { createEnvironment, isAllowedToCreate } = useCreateEnvironment();
   const onCreate = async () => {
     const newEnvironment = await createEnvironment();
-    if (newEnvironment) props.onCreated(newEnvironment.uuid);
+    if (newEnvironment) onCreated(newEnvironment.uuid);
   };
 
   return (

@@ -6,6 +6,12 @@ import {
 } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 
+export const isEnvironmentBuilding = (build?: EnvironmentImageBuild) =>
+  build && ["PENDING", "STARTED"].includes(build.status);
+
+export const isEnvironmentFailedToBuild = (build?: EnvironmentImageBuild) =>
+  build && ["ABORTED", "FAILED"].includes(build.status);
+
 export const BUILD_POLL_FREQUENCY = 1000;
 
 export const requestToRemoveEnvironment = (

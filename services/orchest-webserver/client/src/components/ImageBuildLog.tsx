@@ -10,17 +10,19 @@ import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
 import { ImageBuildStatus } from "./ImageBuildStatus";
 
+type UseFetchEnvironmentBuildParams = {
+  url: string;
+  buildsKey: string;
+  buildFetchHash: string;
+  refreshInterval: number;
+};
+
 const useFetchEnvironmentBuild = ({
   url,
   buildsKey,
   buildFetchHash, // This allows external components to fire fetchData.
   refreshInterval,
-}: {
-  url: string;
-  buildsKey: string;
-  buildFetchHash: string;
-  refreshInterval: number;
-}): EnvironmentImageBuild | undefined => {
+}: UseFetchEnvironmentBuildParams): EnvironmentImageBuild | undefined => {
   const { data = [], fetchData, status } = useFetcher<
     Record<string, EnvironmentImageBuild[]>,
     EnvironmentImageBuild[]
@@ -46,6 +48,18 @@ const useFetchEnvironmentBuild = ({
   return data[0]; // Return the latest build.
 };
 
+type ImageBuildLogProps = {
+  build: EnvironmentImageBuild | undefined;
+  ignoreIncomingLogs: boolean;
+  buildRequestEndpoint: string;
+  buildsKey: string;
+  onUpdateBuild: (newBuild: EnvironmentImageBuild) => void;
+  socketIONamespace: string | undefined;
+  streamIdentity: string;
+  buildFetchHash: string;
+  hideDefaultStatus?: boolean;
+};
+
 export const ImageBuildLog = ({
   onUpdateBuild,
   buildRequestEndpoint,
@@ -56,18 +70,8 @@ export const ImageBuildLog = ({
   build,
   buildFetchHash,
   hideDefaultStatus,
-}: {
-  build: EnvironmentImageBuild | undefined;
-  ignoreIncomingLogs: boolean;
-  buildRequestEndpoint: string;
-  buildsKey: string;
-  onUpdateBuild: (newBuild: EnvironmentImageBuild) => void;
-  socketIONamespace: string | undefined;
-  streamIdentity: string;
-  buildFetchHash: string;
-  hideDefaultStatus?: boolean;
-}) => {
-  const [fitAddon] = React.useState(new FitAddon());
+}: ImageBuildLogProps) => {
+  const fitAddon = React.useMemo(() => new FitAddon(), []);
   const xtermRef = React.useRef<XTerm | null>(null);
 
   const fetchedBuild = useFetchEnvironmentBuild({
