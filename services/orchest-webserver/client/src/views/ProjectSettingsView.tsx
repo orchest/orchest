@@ -49,10 +49,9 @@ const ProjectSettingsView: React.FC = () => {
 
   // local states
   const [state, setState] = React.useState<
-    Pick<Project, "pipeline_count" | "job_count" | "environment_count" | "path">
+    Pick<Project, "pipeline_count" | "environment_count" | "path">
   >({
     pipeline_count: 0,
-    job_count: 0,
     environment_count: 0,
     path: "",
   });
@@ -102,7 +101,6 @@ const ProjectSettingsView: React.FC = () => {
         const {
           env_variables,
           pipeline_count,
-          job_count,
           environment_count,
           path,
         } = result;
@@ -111,7 +109,6 @@ const ProjectSettingsView: React.FC = () => {
         setState((prevState) => ({
           ...prevState,
           pipeline_count,
-          job_count,
           environment_count,
           path,
         }));
@@ -172,16 +169,6 @@ const ProjectSettingsView: React.FC = () => {
                           (state.pipeline_count == 1
                             ? "pipeline"
                             : "pipelines")}
-                      </Link>
-                    </h3>
-                  </div>
-                  <div className="column">
-                    <br />
-                    <h3>
-                      <Link to={paths.jobs} className="text-button">
-                        {state.job_count +
-                          " " +
-                          (state.job_count == 1 ? "job" : "jobs")}
                       </Link>
                     </h3>
                   </div>
