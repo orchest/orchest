@@ -1,4 +1,5 @@
 import CloseIcon from "@mui/icons-material/Close";
+import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -9,7 +10,6 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import { IconServicesSolid } from "@orchest/design-system";
 import React from "react";
 import { ServiceTemplate, templates } from "./content";
 
@@ -40,7 +40,9 @@ export const ServiceTemplatesDialog: React.FC<{
                     }}
                   >
                     <ListItemIcon>
-                      {template?.icon || <IconServicesSolid />}
+                      {template?.icon || (
+                        <MiscellaneousServicesIcon fontSize="small" />
+                      )}
                     </ListItemIcon>
                     <ListItemText primary={template.label} />
                   </ListItemButton>
