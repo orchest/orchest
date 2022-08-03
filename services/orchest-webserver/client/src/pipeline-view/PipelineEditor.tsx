@@ -1,5 +1,4 @@
 import { HeadsUpDisplay } from "@/components/HeadsUpDisplay";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import type { Connection, StepState } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
@@ -27,15 +26,7 @@ import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
 
 export const PipelineEditor = () => {
-  const { navigateTo } = useCustomRoute();
-
-  const {
-    pipelineCwd,
-    isReadOnly,
-    projectUuid,
-    jobUuid,
-    pipelineJson,
-  } = usePipelineDataContext();
+  const { pipelineCwd, isReadOnly, pipelineJson } = usePipelineDataContext();
 
   const { openNotebook, openFilePreviewView } = useOpenFile();
 
