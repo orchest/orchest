@@ -2,7 +2,6 @@ import { PipelineReadOnlyReason } from "@/contexts/ProjectsContext";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import { Alert } from "@mui/material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -53,7 +52,7 @@ const ReadOnlyBannerContainer = ({
     <Box
       style={{ maxWidth: `calc(100% - ${widthDiff}px)`, width: "100%" }}
       sx={{
-        padding: (theme) => theme.spacing(2.5),
+        padding: (theme) => theme.spacing(1),
         position: "absolute",
         top: (theme) => theme.spacing(7),
       }}
@@ -120,6 +119,7 @@ export const ReadOnlyBanner = () => {
     <ReadOnlyBannerContainer>
       <Alert
         severity="info"
+        icon={false}
         action={
           <Button
             sx={{ cursor: "pointer", whiteSpace: "nowrap" }}
@@ -129,10 +129,7 @@ export const ReadOnlyBanner = () => {
             {label}
           </Button>
         }
-        icon={<VisibilityIcon />}
-        sx={{
-          width: "100%",
-        }}
+        sx={{ width: "100%" }}
       >
         <Box
           sx={{ fontWeight: (theme) => theme.typography.subtitle2.fontWeight }}
