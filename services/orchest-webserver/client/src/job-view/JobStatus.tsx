@@ -26,7 +26,7 @@ const getIcon = ({
   status: RenderedJobStatus;
   totalPendingCount: number;
   totalFailureCount: number;
-  count: Record<TStatus, number>;
+  count: Record<TStatus, number | undefined>;
 }) => {
   if (["MIXED_FAILURE", "MIXED_PENDING"].includes(status))
     return (
@@ -68,9 +68,16 @@ const statusTitleMapping: Partial<Record<RenderedJobStatus, string>> = {
   MIXED_FAILURE: "Some pipeline runs were unsuccessful",
 };
 
-export const JobStatus: React.FC<
-  { totalCount?: number } & Pick<Job, "status" | "pipeline_run_status_counts">
-> = ({ status, totalCount, pipeline_run_status_counts: count }) => {
+type JobStatusProps = { totalCount?: number } & Pick<
+  Job,
+  "status" | "pipeline_run_status_counts"
+>;
+
+export const JobStatus = ({
+  status,
+  totalCount = 0,
+  pipeline_run_status_counts: count,
+}: JobStatusProps) => {
   const isJobDone =
     status === "SUCCESS" || status === "ABORTED" || status === "FAILURE";
   const totalPendingCount = getSummedCount(count, ["PENDING", "STARTED"]);
@@ -102,25 +109,26 @@ export const JobStatus: React.FC<
     count,
   });
 
+  const description =
+    ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
+    [
+      commaSeparatedString(
+        [
+          (count.PENDING && [count.PENDING, "pending"].join(" ")) || "",
+          (count.FAILURE && [count.FAILURE, "failed"].join(" ")) || "",
+          (count.SUCCESS && [count.SUCCESS, "successful"].join(" ")) || "",
+        ].filter(Boolean)
+      ),
+      `pipeline run${totalCount === 1 ? "" : "s"}`,
+    ].join(" ");
+
   return (
     <StatusGroup
       status={variant}
       icon={icon}
       title={statusTitleMapping[variant] || ""}
-      description={
-        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
-        [
-          commaSeparatedString(
-            [
-              count.PENDING && [count.PENDING, "pending"].join(" "),
-              count.FAILURE && [count.FAILURE, "failed"].join(" "),
-              count.SUCCESS && [count.SUCCESS, "successful"].join(" "),
-            ].filter(Boolean)
-          ),
-          `pipeline run${totalCount > 1 ? "s" : ""}`,
-        ].join(" ")
-      }
       data-test-id="job-status"
+      description={description ? description : ""}
     />
   );
 };
