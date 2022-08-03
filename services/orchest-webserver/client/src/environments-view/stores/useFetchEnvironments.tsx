@@ -9,7 +9,7 @@ import React from "react";
 import { useReportEnvironmentsError } from "./useReportEnvironmentsError";
 
 const selector = (state: EnvironmentsApiState) =>
-  [!Boolean(state.environments) && !state.isFetching, state.fetch] as const;
+  [!Boolean(state.environments) && !state.isFetchingAll, state.fetch] as const;
 
 /**
  * Fetch all environments of a project. Will re-fetch when the browser tab regains focus.

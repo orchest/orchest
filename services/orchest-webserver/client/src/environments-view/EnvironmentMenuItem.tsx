@@ -1,28 +1,34 @@
 import { EnvironmentState } from "@/types";
 import { ellipsis } from "@/utils/styles";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import PlayCircleFilledWhiteOutlinedIcon from "@mui/icons-material/PlayCircleFilledWhiteOutlined";
+import NoteAltOutlinedIcon from "@mui/icons-material/NoteAltOutlined";
 import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { isEnvironmentBuilding, isEnvironmentFailedToBuild } from "./common";
 
-type ElementStatusIconProps = {
+type BuildStatusIconProps = {
   selected: boolean;
-  action?: EnvironmentState["action"];
+  latestBuild?: EnvironmentState["latestBuild"];
 };
 
-const ElementStatusIcon = ({ selected, action }: ElementStatusIconProps) => {
+const BuildStatusIcon = ({ selected, latestBuild }: BuildStatusIconProps) => {
   if (selected) return <EditOutlinedIcon fontSize="small" color="action" />;
-  if (action === "WAIT") return <CircularProgress size={20} />;
-  if (action === "RETRY") return <ReplayOutlinedIcon fontSize="small" />;
-  if (action === "BUILD")
-    return <PlayCircleFilledWhiteOutlinedIcon fontSize="small" />;
+  if (latestBuild?.status === "INITIALIZING") return null;
+  if (latestBuild?.status === "SUCCESS")
+    return <CheckCircleOutlineOutlinedIcon fontSize="small" color="success" />;
+  if (isEnvironmentBuilding(latestBuild)) return <CircularProgress size={20} />;
+  if (isEnvironmentFailedToBuild(latestBuild))
+    return <CancelOutlinedIcon fontSize="small" color="error" />;
+  if (latestBuild?.status === "PAUSED")
+    return <ReplayOutlinedIcon fontSize="small" />;
 
-  return <CheckCircleOutlineOutlinedIcon fontSize="small" color="success" />;
+  return <NoteAltOutlinedIcon fontSize="small" />;
 };
 
 type EnvironmentMenuItemProps = EnvironmentState & {
@@ -34,7 +40,7 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
   uuid,
   name,
   language,
-  action,
+  latestBuild,
   selected,
   onClick,
 }: EnvironmentMenuItemProps) {
@@ -79,7 +85,7 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
         alignItems="center"
         sx={{ paddingLeft: (theme) => theme.spacing(1) }}
       >
-        <ElementStatusIcon selected={selected} action={action} />
+        <BuildStatusIcon selected={selected} latestBuild={latestBuild} />
       </Stack>
     </MenuItem>
   );

@@ -161,6 +161,8 @@ export type Environment = {
 
 export type EnvironmentState = Environment & {
   action?: EnvironmentAction;
+  hash?: string;
+  latestBuild?: EnvironmentImageBuild | { status: "INITIALIZING" };
 };
 
 export type CustomImage = Pick<

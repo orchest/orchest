@@ -1,12 +1,11 @@
 import { ellipsis } from "@/utils/styles";
-import BuildCircleOutlinedIcon from "@mui/icons-material/BuildCircleOutlined";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { BuildEnvironmentButton } from "./BuildEnvironmentButton";
 import { EnvironmentMoreOptions } from "./EnvironmentMoreOptions";
 import { NoEnvironment } from "./NoEnvironment";
-import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
+import { useSaveEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
 import { useGetEnvironments } from "./stores/useGetEnvironments";
 
 const useHasEnvironment = () => {
@@ -17,7 +16,7 @@ const useHasEnvironment = () => {
 };
 
 export const EditEnvironment = () => {
-  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentOnEdit } = useSaveEnvironmentOnEdit();
   const hasNoEnvironment = useHasEnvironment();
 
   return hasNoEnvironment ? (
@@ -28,9 +27,7 @@ export const EditEnvironment = () => {
         <Typography variant="h4" flex={1} sx={ellipsis()}>
           {environmentOnEdit?.name}
         </Typography>
-        <Button variant="contained" startIcon={<BuildCircleOutlinedIcon />}>
-          Build
-        </Button>
+        <BuildEnvironmentButton environmentOnEdit={environmentOnEdit} />
         <EnvironmentMoreOptions />
       </Stack>
     </Stack>

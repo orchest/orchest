@@ -1,6 +1,7 @@
 import { environmentsApi } from "@/api/environments/environmentsApi";
 import {
   Environment,
+  EnvironmentImageBuild,
   EnvironmentSpec,
   EnvironmentState,
   EnvironmentValidationData,
@@ -16,7 +17,7 @@ type EnvironmentBuildStatus =
 export type EnvironmentsApiState = {
   projectUuid?: string;
   environments?: EnvironmentState[];
-  isFetching: boolean;
+  isFetchingAll: boolean;
   fetch: (projectUuid: string, language?: string) => Promise<void>;
   isPosting: boolean;
   post: (
@@ -32,6 +33,11 @@ export type EnvironmentsApiState = {
   delete: (environmentUuid: string) => Promise<void>;
   validate: () => Promise<EnvironmentBuildStatus | undefined>;
   status: EnvironmentBuildStatus;
+  updateBuildStatus: () => Promise<void>;
+  isTriggeringBuild: boolean;
+  triggerBuild: (environmentUuid: string) => Promise<void>;
+  isCancelingBuild: boolean;
+  cancelBuild: (environmentUuid: string) => Promise<void>;
   error?: FetchError;
   clearError: () => void;
 };
@@ -56,35 +62,36 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
     }
     return projectUuid;
   };
-  const getEnvironments = (): Environment[] => {
+  const getEnvironments = (): EnvironmentState[] => {
     const environments = get().environments;
     if (!environments) {
       throw new Error("Environments not yet fetched.");
     }
     return environments;
   };
-  const getEnvironment = (uuid: string): Environment => {
+  const getEnvironment = (uuid: string): EnvironmentState => {
     const environment = getEnvironments().find(
       (environment) => environment.uuid === uuid
     );
     if (!environment) {
-      throw new Error("Failed to put. Environment not found.");
+      throw new Error("Environment not found.");
     }
     return environment;
   };
+
   return {
-    isFetching: false,
+    isFetchingAll: false,
     fetch: async (projectUuid, language) => {
       try {
-        set({ projectUuid, isFetching: true, error: undefined });
+        set({ projectUuid, isFetchingAll: true, error: undefined });
         const environments = await environmentsApi.fetchAll(
           projectUuid,
           language
         );
 
-        set({ projectUuid, environments, isFetching: false });
+        set({ projectUuid, environments, isFetchingAll: false });
       } catch (error) {
-        if (!error?.isCanceled) set({ error, isFetching: false });
+        if (!error?.isCanceled) set({ error, isFetchingAll: false });
       }
     },
     isPosting: false,
@@ -187,6 +194,91 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
         return getEnvironmentBuildStatus(response);
       } catch (error) {
         console.error("Failed to validate environments.");
+      }
+    },
+    updateBuildStatus: async () => {
+      try {
+        const projectUuid = getProjectUuid();
+        const environmentStates = getEnvironments();
+        const results = await environmentsApi.checkLatestBuilds({
+          projectUuid,
+          environmentStates,
+        });
+
+        if (results instanceof Error) {
+          return;
+        }
+
+        const [
+          environmentsWithLatestBuildStatus,
+          shouldUpdateEnvironments,
+        ] = results;
+        if (shouldUpdateEnvironments) {
+          set({ environments: environmentsWithLatestBuildStatus });
+        }
+      } catch (error) {
+        console.error(
+          `Failed to fetch most recent environment builds. ${String(error)}`
+        );
+      }
+    },
+    isTriggeringBuild: false,
+    triggerBuild: async (environmentUuid: string) => {
+      try {
+        const projectUuid = getProjectUuid();
+        set({ isTriggeringBuild: true, error: undefined });
+        const environmentImageBuild = await environmentsApi.triggerBuild(
+          projectUuid,
+          environmentUuid
+        );
+
+        set((state) => {
+          const updatedEnvironments = (state.environments || []).map((env) =>
+            env.uuid === environmentUuid
+              ? { ...env, latestBuild: environmentImageBuild }
+              : env
+          );
+          return {
+            environments: updatedEnvironments,
+            isTriggeringBuild: false,
+          };
+        });
+      } catch (error) {
+        set({ error, isTriggeringBuild: false });
+      }
+    },
+    isCancelingBuild: false,
+    cancelBuild: async (environmentUuid: string) => {
+      try {
+        const environment = getEnvironment(environmentUuid);
+        if (
+          !environment.latestBuild ||
+          environment.latestBuild.status === "INITIALIZING"
+        ) {
+          throw new Error("Environment has no ongoing build.");
+        }
+
+        set({ isCancelingBuild: true, error: undefined });
+        await environmentsApi.cancelBuild(environment.latestBuild);
+        set((state) => {
+          const updatedEnvironments = (state.environments || []).map((env) =>
+            env.uuid === environmentUuid
+              ? {
+                  ...env,
+                  latestBuild: {
+                    ...env.latestBuild,
+                    status: "ABORTED",
+                  } as EnvironmentImageBuild,
+                }
+              : env
+          );
+          return {
+            environments: updatedEnvironments,
+            isCancelingBuild: false,
+          };
+        });
+      } catch (error) {
+        set({ error, isCancelingBuild: false });
       }
     },
     clearError: () => {
