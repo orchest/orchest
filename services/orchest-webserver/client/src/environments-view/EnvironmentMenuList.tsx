@@ -5,7 +5,7 @@ import React from "react";
 import { CreateEnvironmentButton } from "./CreateEnvironmentButton";
 import { EnvironmentMenuItem } from "./EnvironmentMenuItem";
 import { useSelectEnvironment } from "./stores/useSelectEnvironment";
-import { useValidateEnvironments } from "./stores/useValidateEnvironments";
+import { useUpdateBuildStatus } from "./stores/useUpdateBuildStatus";
 
 export const EnvironmentMenuList = () => {
   const {
@@ -14,7 +14,7 @@ export const EnvironmentMenuList = () => {
     environmentOnEdit,
   } = useSelectEnvironment();
 
-  useValidateEnvironments();
+  useUpdateBuildStatus();
 
   return (
     <Stack
