@@ -28,6 +28,7 @@ import {
 } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import LightbulbOutlined from "@mui/icons-material/LightbulbOutlined";
 import ListIcon from "@mui/icons-material/List";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import SaveIcon from "@mui/icons-material/Save";
@@ -45,7 +46,6 @@ import {
   Alert as CustomAlert,
   AlertDescription,
   AlertHeader,
-  IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
@@ -634,7 +634,7 @@ export const PipelineSettingsView: React.FC = () => {
                   />
                   <CustomAlert status="info">
                     <AlertHeader>
-                      <IconLightBulbOutline />
+                      <LightbulbOutlined fontSize="small" />
                       Want to start using Services?
                     </AlertHeader>
                     <AlertDescription>
