@@ -10,9 +10,9 @@ import { FileManagementRoot } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { combinePath, TreeNode, unpackPath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
-import { TreeItem } from "./TreeItem";
+import { FileTreeItem } from "./FileTreeItem";
 
-type TreeRowProps = {
+type FileTreeRowProps = {
   treeNodes: TreeNode[];
   root: FileManagementRoot;
   hoveredPath: string | undefined;
@@ -21,14 +21,14 @@ type TreeRowProps = {
   onOpen: (filePath: string) => void;
 };
 
-export const TreeRow = ({
+export const FileTreeRow = ({
   treeNodes,
   onRename,
   setDragFile,
   root,
   hoveredPath,
   onOpen,
-}: TreeRowProps) => {
+}: FileTreeRowProps) => {
   const { isReadOnly } = usePipelineDataContext();
   const { handleContextMenu, fileInRename } = useFileManagerLocalContext();
   const { directories, files } = React.useMemo(
@@ -55,7 +55,7 @@ export const TreeRow = ({
               <RenameField onRename={onRename} combinedPath={combinedPath} />
             )}
 
-            <TreeItem
+            <FileTreeItem
               disableDragging={isReadOnly}
               onContextMenu={(event) => handleContextMenu(event, combinedPath)}
               sx={{
@@ -71,7 +71,7 @@ export const TreeRow = ({
               path={combinedPath}
               labelText={node.name}
             >
-              <TreeRow
+              <FileTreeRow
                 treeNodes={node.children}
                 setDragFile={setDragFile}
                 root={root}
@@ -79,7 +79,7 @@ export const TreeRow = ({
                 onOpen={onOpen}
                 onRename={onRename}
               />
-            </TreeItem>
+            </FileTreeItem>
           </Box>
         );
       })}
@@ -91,7 +91,7 @@ export const TreeRow = ({
             {fileInRename === combinedPath && (
               <RenameField onRename={onRename} combinedPath={combinedPath} />
             )}
-            <TreeItem
+            <FileTreeItem
               disableDragging={isReadOnly}
               onContextMenu={(event) => handleContextMenu(event, combinedPath)}
               sx={{ cursor: "context-menu" }}
