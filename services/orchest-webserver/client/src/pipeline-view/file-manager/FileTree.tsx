@@ -42,8 +42,8 @@ import {
 import { DragIndicator } from "./DragIndicator";
 import { useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
-import { TreeItem } from "./TreeItem";
-import { TreeRow } from "./TreeRow";
+import { FileTreeItem } from "./FileTreeItem";
+import { FileTreeRow } from "./FileTreeRow";
 
 export type FileTreeProps = {
   treeRoots: readonly FileManagementRoot[];
@@ -413,7 +413,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           const combinedPath = join(root, ROOT_SEPARATOR + "/");
 
           return (
-            <TreeItem
+            <FileTreeItem
               disableDragging
               key={root}
               nodeId={root}
@@ -426,7 +426,7 @@ export const FileTree = React.memo(function FileTreeComponent({
               data-path={combinedPath}
               labelText={prettifyRoot(root)}
             >
-              <TreeRow
+              <FileTreeRow
                 setDragFile={setDragFile}
                 treeNodes={fileTrees[root].children}
                 hoveredPath={hoveredPath}
@@ -436,7 +436,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                   handleMoves([[oldPath, newPath]])
                 }
               />
-            </TreeItem>
+            </FileTreeItem>
           );
         })}
       </TreeView>
