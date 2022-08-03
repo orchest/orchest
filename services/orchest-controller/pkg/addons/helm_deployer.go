@@ -79,6 +79,12 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 			// There is no need for update, return without err
 			return nil
 		}
+
+		err = helm.RemoveHelmHistoryIfNeeded(ctx, d.client, releaseName, namespace)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	for _, preInstall := range preInstallHooks {
@@ -86,11 +92,6 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 		if err != nil {
 			return err
 		}
-	}
-
-	err = helm.RemoveHelmHistoryIfNeeded(ctx, d.client, releaseName, namespace)
-	if err != nil {
-		return err
 	}
 
 	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
