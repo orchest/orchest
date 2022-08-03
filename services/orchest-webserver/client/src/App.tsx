@@ -1,6 +1,7 @@
 import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
 import Box from "@mui/material/Box";
+import OpenReplay from "@openreplay/tracker";
 import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
@@ -52,6 +53,16 @@ const App = () => {
         email: user_config.INTERCOM_USER_EMAIL,
         createdAt: config.INTERCOM_DEFAULT_SIGNUP_DATE,
       });
+
+      // Initialize OpenReplay
+      const tracker = new OpenReplay({
+        projectKey: config.OPENREPLAY_PROJECT_KEY,
+        ingestPoint: config.OPENREPLAY_INGEST_POINT,
+        obscureTextEmails: true,
+        obscureTextNumbers: true,
+        obscureInputEmails: true,
+      });
+      tracker.start();
     }
   }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
