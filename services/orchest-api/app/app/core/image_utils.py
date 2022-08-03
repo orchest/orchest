@@ -349,7 +349,24 @@ class ImageBuildSidecar:
         resp = k8s_core_api.read_namespaced_pod(
             name=pod_name, namespace=_config.ORCHEST_NAMESPACE
         )
-        if resp.status.phase == "Failed":
+        resp_status = resp.status.to_dict()
+
+        # Necessary because the stream() loop might exit due to an error
+        # without the resp.status.phase being necessarily read as
+        # "Failed" later, i.e. we want to avoid a race condition.
+        exit_code = None
+        for status in resp_status.get("container_statuses", []):
+            terminated_status = status.get("state", {}).get("terminated")
+            # It can be set to None.
+            if terminated_status is None:
+                continue
+            exit_code = terminated_status.get("exit_code")
+            if exit_code is not None:
+                break
+
+        if (exit_code is not None and exit_code != 0) or resp_status.get(
+            "phase"
+        ) == "Failed":
             self._handle_error()
         else:
             self._log_storage_phase(pod_name)
