@@ -2,6 +2,7 @@ package helm
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -25,6 +26,11 @@ func (builder *HelmArgBuilder) WithUpgradeInstall() *HelmArgBuilder {
 
 func (builder *HelmArgBuilder) WithUnInstall() *HelmArgBuilder {
 	builder.command = []string{"uninstall"}
+	return builder
+}
+
+func (builder *HelmArgBuilder) WithRollback() *HelmArgBuilder {
+	builder.command = []string{"rollback"}
 	return builder
 }
 
@@ -75,6 +81,11 @@ func (builder *HelmArgBuilder) WithNamespace(namespace string) *HelmArgBuilder {
 
 func (builder *HelmArgBuilder) WithCreateNamespace() *HelmArgBuilder {
 	builder.args = append(builder.args, "--create-namespace")
+	return builder
+}
+
+func (builder *HelmArgBuilder) WithVersion(version int) *HelmArgBuilder {
+	builder.args = append(builder.args, strconv.Itoa(version))
 	return builder
 }
 

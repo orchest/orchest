@@ -7,19 +7,24 @@ import (
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/helm"
 )
 
 type HelmDeployer struct {
 	name       string
+	client     kubernetes.Interface
 	deployDir  string
 	valuesPath string
 }
 
-func NewHelmDeployer(name, deployDir string, valuesPath string) Addon {
+func NewHelmDeployer(client kubernetes.Interface,
+	name, deployDir string,
+	valuesPath string) Addon {
 	return &HelmDeployer{
 		name:       name,
+		client:     client,
 		deployDir:  deployDir,
 		valuesPath: valuesPath,
 	}
@@ -83,13 +88,13 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 		}
 	}
 
-	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
+	err = helm.RemoveHelmHistoryIfNeeded(ctx, d.client, releaseName, namespace)
 	if err != nil {
-		// If we are here, it means helm stuck in upgrading phase, it is safe to delete it,
-		d.Uninstall(ctx, namespace)
 		return err
 	}
-	return nil
+
+	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
+	return err
 
 }
 
