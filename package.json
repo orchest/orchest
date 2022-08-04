@@ -3,7 +3,7 @@
   "scripts": {
     "build": "pnpm run build --r --stream",
     "check": "pnpm run pkg:check && pnpm run pkg:format && pnpm exec eslint --fix --quiet --ext .ts,.tsx .",
-    "dev": "pnpm run dev --filter '@orchest/client-*...' --r --parallel",
+    "dev": "pnpm run --filter '@orchest/client-*...' --r --parallel dev",
     "pkg:check": "syncpack list-mismatches",
     "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
