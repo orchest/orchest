@@ -55,6 +55,27 @@ const getEnvironmentBuildStatus = (
     : "environmentsBuildInProgress";
 };
 
+const getEnvironmentFromState = (state: EnvironmentState): Environment => {
+  const {
+    uuid,
+    name,
+    base_image,
+    gpu_support,
+    language,
+    project_uuid,
+    setup_script,
+  } = state;
+  return {
+    uuid,
+    name,
+    base_image,
+    gpu_support,
+    language,
+    project_uuid,
+    setup_script,
+  };
+};
+
 export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
   const getProjectUuid = (): string => {
     const projectUuid = get().projectUuid;
@@ -130,17 +151,21 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
       try {
         const projectUuid = getProjectUuid();
         const environments = getEnvironments();
-        const environment = getEnvironment(environmentUuid);
-
-        const updatedEnvironment = { ...environment, ...payload };
-        const updatedEnvironments = environments.map((env) =>
-          env.uuid === environmentUuid ? updatedEnvironment : env
-        );
+        const environmentState = getEnvironment(environmentUuid);
 
         set({ error: undefined, isPutting: true });
-        await environmentsApi.put(projectUuid, updatedEnvironment);
+        const updatedEnvironment = await environmentsApi.put(
+          projectUuid,
+          getEnvironmentFromState({ ...environmentState, ...payload })
+        );
+
+        const updatedEnvironmentStates = environments.map((env) =>
+          env.uuid === environmentUuid
+            ? { ...environmentState, ...updatedEnvironment }
+            : env
+        );
         set({
-          environments: updatedEnvironments,
+          environments: updatedEnvironmentStates,
           isPutting: false,
         });
       } catch (error) {

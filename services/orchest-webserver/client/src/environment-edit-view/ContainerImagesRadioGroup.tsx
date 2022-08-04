@@ -1,8 +1,12 @@
 import { IconButton } from "@/components/common/IconButton";
-import { CustomImage } from "@/types";
+import { useAppContext } from "@/contexts/AppContext";
+import { isEnvironmentBuilding } from "@/environments-view/common";
+import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
+import { Environment } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import EditIcon from "@mui/icons-material/Edit";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -24,6 +28,7 @@ import {
 } from "./common";
 import { ContainerImageTile } from "./ContainerImageTile";
 import { LabeledText } from "./LabeledText";
+import { useCustomImage } from "./useCustomImage";
 
 const ImageOption: React.FC<{
   supportGpu: boolean;
@@ -81,25 +86,50 @@ const ImageOption: React.FC<{
 
 const Image = styled("img")({ maxHeight: "70px" });
 
-export const ContainerImagesRadioGroup = ({
-  value,
-  orchestVersion,
-  onChange,
-  onOpenCustomBaseImageDialog,
-  customImage,
-  disabled,
-}: {
-  value: string | undefined;
-  orchestVersion: string | null | undefined;
-  onChange: (newImage: CustomImage) => void;
+type ContainerImagesRadioGroupProps = {
   onOpenCustomBaseImageDialog: () => void;
-  customImage: CustomImage | undefined;
-  disabled: boolean;
-}) => {
+};
+
+/**
+ * Check if the base image is part of the default images.
+ * Note: when saving the environment, BE will attach the current Orchest version to the image name.
+ * A default base image with a different version is considered as a custom image.
+ */
+const getDefaultImageFromEnvironment = (
+  environmentBaseImage: Environment["base_image"] | undefined,
+  orchestVersion: string | null | undefined
+) => {
+  if (!environmentBaseImage) return undefined;
+  return DEFAULT_BASE_IMAGES.find(({ base_image }) => {
+    const versionedImage = `${base_image}:${orchestVersion}`;
+    return [versionedImage, base_image].includes(environmentBaseImage);
+  });
+};
+
+export const ContainerImagesRadioGroup = ({
+  onOpenCustomBaseImageDialog,
+}: ContainerImagesRadioGroupProps) => {
+  const { orchestVersion } = useAppContext();
+  const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
+  const disabled = isEnvironmentBuilding(environmentOnEdit?.latestBuild);
+
+  const selectedDefaultImage = React.useMemo(() => {
+    return getDefaultImageFromEnvironment(
+      environmentOnEdit?.base_image,
+      orchestVersion
+    );
+  }, [environmentOnEdit?.base_image, orchestVersion]);
+
+  const [customImage, setCustomImage] = useCustomImage(
+    hasValue(orchestVersion),
+    hasValue(selectedDefaultImage),
+    environmentOnEdit
+  );
+
   const onChangeSelection = (baseImage: string) => {
     if (disabled) return;
     if (customImage && baseImage === customImage.base_image) {
-      onChange(customImage);
+      setEnvironmentOnEdit(customImage);
       return;
     }
     const foundDefaultImage = DEFAULT_BASE_IMAGES.find((image) =>
@@ -109,30 +139,51 @@ export const ContainerImagesRadioGroup = ({
     );
     if (foundDefaultImage) {
       // Always return a un-versioned image, and let BE fill the version.
-      onChange({
-        ...foundDefaultImage,
-        base_image: foundDefaultImage.base_image,
-      });
+      setEnvironmentOnEdit({ base_image: foundDefaultImage.base_image });
     }
   };
 
+  const selectedImage = environmentOnEdit?.base_image || DEFAULT_BASE_IMAGES[0];
+
   return (
-    <RadioGroup value={value} onChange={(e, value) => onChangeSelection(value)}>
+    <RadioGroup
+      value={selectedImage}
+      onChange={(e, value) => onChangeSelection(value)}
+    >
       <Box>
-        <Typography component="h2" variant="h6">
-          Choose a base image
-        </Typography>
-        <Typography variant="body2">
-          The base image can be extended using the environment set-up script (
-          <Link
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://docs.orchest.io/en/latest/fundamentals/environments.html"
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography
+            component="h2"
+            variant="body1"
+            sx={{ color: (theme) => theme.palette.action.active }}
           >
-            learn more
-          </Link>
-          ).
-        </Typography>
+            Base image
+          </Typography>
+          <Tooltip
+            title={
+              <Typography variant="caption">
+                The base image can be extended using the environment set-up
+                script (
+                <Link
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href="https://docs.orchest.io/en/latest/fundamentals/environments.html"
+                >
+                  learn more
+                </Link>
+                ).
+              </Typography>
+            }
+            placement="right"
+            arrow
+          >
+            <InfoOutlinedIcon
+              fontSize="small"
+              color="primary"
+              style={{ width: "24px", height: "24px" }}
+            />
+          </Tooltip>
+        </Stack>
       </Box>
       <Grid
         container
