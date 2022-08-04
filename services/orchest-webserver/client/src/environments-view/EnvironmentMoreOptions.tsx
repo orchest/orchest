@@ -1,7 +1,4 @@
-import {
-  EnvironmentsApiState,
-  useEnvironmentsApi,
-} from "@/api/environments/useEnvironmentsApi";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { IconButton } from "@/components/common/IconButton";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -13,13 +10,13 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
 
-const selector = (state: EnvironmentsApiState) =>
-  [state.delete, state.isDeleting] as const;
-
 export const EnvironmentMoreOptions = () => {
   const { setConfirm } = useGlobalContext();
   const { environmentOnEdit } = useEnvironmentOnEdit();
-  const [deleteEnvironment, isDeleting] = useEnvironmentsApi(selector);
+  const [deleteEnvironment, isDeleting] = useEnvironmentsApi((state) => [
+    state.delete,
+    state.isDeleting,
+  ]);
 
   const [anchorElement, setAnchorElement] = React.useState<
     Element | undefined

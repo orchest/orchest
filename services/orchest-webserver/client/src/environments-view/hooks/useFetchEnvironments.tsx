@@ -8,9 +8,6 @@ import { useHasChanged } from "@/hooks/useHasChanged";
 import React from "react";
 import { useReportEnvironmentsError } from "./useReportEnvironmentsError";
 
-const selector = (state: EnvironmentsApiState) =>
-  [!Boolean(state.environments) && !state.isFetchingAll, state.fetch] as const;
-
 /**
  * Fetch all environments of a project. Will re-fetch when the browser tab regains focus.
  */
@@ -23,7 +20,13 @@ export const useFetchEnvironments = () => {
 
   const shouldRefetch = isTabFocused && hasBrowserFocusChanged;
 
-  const [shouldFetch, fetchEnvironments] = useEnvironmentsApi(selector);
+  const [
+    shouldFetch,
+    fetchEnvironments,
+  ] = useEnvironmentsApi((state: EnvironmentsApiState) => [
+    !Boolean(state.environments) && !state.isFetchingAll,
+    state.fetch,
+  ]);
 
   React.useEffect(() => {
     if (projectUuid && (shouldFetch || shouldRefetch)) {
