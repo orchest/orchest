@@ -19,7 +19,7 @@ import {
   hasSuccessfulBuild,
   postEnvironment,
 } from "./common";
-import { useEnvironmentList } from "./hooks/useEnvironmentList";
+import { useEnvironmentList } from "./old-hooks/useEnvironmentList";
 
 export interface IEnvironmentListProps {
   projectUuid: string | undefined;

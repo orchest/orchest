@@ -1,4 +1,4 @@
-import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
+import { useGetEnvironments } from "@/environments-view/hooks/useGetEnvironments";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";

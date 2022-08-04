@@ -3,7 +3,6 @@ import {
   PipelineReadOnlyReason,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
-import { useFetchEnvironments } from "@/environments-view/stores/useFetchEnvironments";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
@@ -110,8 +109,6 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         }
       );
   }, [error, setAlert, navigateTo, projectUuid, jobUuid]);
-
-  useFetchEnvironments(projectUuid);
 
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
 

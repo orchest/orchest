@@ -1,6 +1,6 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
+import { useGetEnvironments } from "@/environments-view/hooks/useGetEnvironments";
 import { Point2D } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import Button from "@mui/material/Button";
@@ -34,6 +34,7 @@ export const CreateStepButton = () => {
       // Assume the first environment as the default
       // user can change it afterwards
       const environment = environments.length > 0 ? environments[0] : null;
+
       // When new steps are successively created then we don't want
       // them to be spawned on top of each other. NOTE: we use the
       // same offset for X and Y position.

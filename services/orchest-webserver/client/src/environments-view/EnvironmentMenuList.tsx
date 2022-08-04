@@ -4,8 +4,8 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { CreateEnvironmentButton } from "./CreateEnvironmentButton";
 import { EnvironmentMenuItem } from "./EnvironmentMenuItem";
-import { useSelectEnvironment } from "./stores/useSelectEnvironment";
-import { useUpdateBuildStatus } from "./stores/useUpdateBuildStatus";
+import { useSelectEnvironment } from "./hooks/useSelectEnvironment";
+import { useUpdateBuildStatus } from "./hooks/useUpdateBuildStatus";
 
 export const EnvironmentMenuList = () => {
   const {
