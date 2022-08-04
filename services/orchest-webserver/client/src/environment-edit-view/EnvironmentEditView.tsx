@@ -28,10 +28,10 @@ import "codemirror/theme/dracula.css";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { EnvironmentImagesRadioGroup } from "../environments-view/edit-environment/EnvironmentImagesRadioGroup";
-import { useCustomImage } from "../environments-view/edit-environment/hooks/useCustomImage";
 import { DEFAULT_BASE_IMAGES } from "./common";
 import { CustomImageDialog } from "./CustomImageDialog";
 import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
+import { useCustomImage } from "./useCustomImage";
 import { useRequestEnvironmentImageBuild } from "./useRequestEnvironmentImageBuild";
 
 const canCancel = (status = "NONE") => ["PENDING", "STARTED"].includes(status);

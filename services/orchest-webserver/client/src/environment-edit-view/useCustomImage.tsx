@@ -1,3 +1,4 @@
+import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
 import type { CustomImage, EnvironmentState } from "@/types";
 import React from "react";
 
@@ -12,6 +13,11 @@ export const useCustomImage = (
   environmentOnEdit: EnvironmentState | undefined
 ) => {
   const [customImage, setCustomImage] = React.useState<CustomImage>();
+  const { setEnvironmentOnEdit } = useEnvironmentOnEdit();
+
+  React.useEffect(() => {
+    if (customImage) setEnvironmentOnEdit(customImage);
+  }, [customImage, setEnvironmentOnEdit]);
 
   React.useEffect(() => {
     const shouldLoadCurrentCustomImage =
