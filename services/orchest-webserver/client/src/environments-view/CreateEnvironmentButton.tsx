@@ -3,7 +3,7 @@ import {
   CreateEntityButtonProps,
 } from "@/blocks/CreateEntityButton";
 import React from "react";
-import { useCreateEnvironment } from "./stores/useCreateEnvironment";
+import { useCreateEnvironment } from "./hooks/useCreateEnvironment";
 
 type CreateEnvironmentButtonProps = Omit<
   CreateEntityButtonProps,

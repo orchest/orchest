@@ -1,4 +1,4 @@
-import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
+import { useGetEnvironments } from "@/environments-view/hooks/useGetEnvironments";
 import { Point2D } from "@/types";
 import { relative } from "@/utils/path";
 import React from "react";

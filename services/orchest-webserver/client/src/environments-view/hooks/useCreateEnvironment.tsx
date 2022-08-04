@@ -1,19 +1,13 @@
-import {
-  EnvironmentsApiState,
-  useEnvironmentsApi,
-} from "@/api/environments/useEnvironmentsApi";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getNewEnvironmentName } from "../common";
 
-const selector = (state: EnvironmentsApiState) =>
-  [state.environments, state.post, state.isPosting] as const;
-
 export const useCreateEnvironment = () => {
   const { config } = useGlobalContext();
 
-  const [environments, post, isCreating] = useEnvironmentsApi(selector);
+  const { environments, post, isPosting } = useEnvironmentsApi();
 
   const defaultEnvironment = config?.ENVIRONMENT_DEFAULTS;
   const newEnvironmentName = getNewEnvironmentName(
@@ -24,16 +18,16 @@ export const useCreateEnvironment = () => {
     hasValue(newEnvironmentName) && hasValue(defaultEnvironment);
 
   const createEnvironment = React.useCallback(() => {
-    if (!isCreating && isAllowedToCreate) {
+    if (!isPosting && isAllowedToCreate) {
       return post(newEnvironmentName, defaultEnvironment);
     }
   }, [
     post,
-    isCreating,
+    isPosting,
     defaultEnvironment,
     isAllowedToCreate,
     newEnvironmentName,
   ]);
 
-  return { createEnvironment, isCreating, isAllowedToCreate };
+  return { createEnvironment, isCreating: isPosting, isAllowedToCreate };
 };

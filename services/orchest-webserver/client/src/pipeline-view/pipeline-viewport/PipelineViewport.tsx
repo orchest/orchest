@@ -1,4 +1,4 @@
-import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
+import { useGetEnvironments } from "@/environments-view/hooks/useGetEnvironments";
 import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
 import { getOffset } from "@/utils/element";
 import {

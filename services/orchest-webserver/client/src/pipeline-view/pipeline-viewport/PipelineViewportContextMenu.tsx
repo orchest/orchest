@@ -4,7 +4,7 @@ import {
   ContextMenuItem,
   useContextMenuContext,
 } from "@/components/ContextMenu";
-import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
+import { useGetEnvironments } from "@/environments-view/hooks/useGetEnvironments";
 import { subtractPoints } from "@/utils/geometry";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
