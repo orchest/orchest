@@ -127,7 +127,9 @@ export const ReadOnlyBanner = () => {
         sx={{ width: "100%" }}
       >
         <Box
-          sx={{ fontWeight: (theme) => theme.typography.subtitle2.fontWeight }}
+          sx={{
+            fontWeight: (theme) => theme.typography.subtitle2.fontWeight,
+          }}
         >
           Read-only: {titleMapping[pipelineReadOnlyReason]}
         </Box>
