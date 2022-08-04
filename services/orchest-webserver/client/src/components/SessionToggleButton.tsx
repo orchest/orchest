@@ -23,7 +23,10 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
   const session = getSession(pipelineUuid);
   const status = props.status || session?.status || "";
 
-  const disabled = ["STOPPING", "LAUNCHING"].includes(status);
+  const isLaunching = status === "LAUNCHING";
+  const isStopping = status === "STOPPING";
+  const isRunning = status === "RUNNING";
+
   const statusLabel =
     {
       STOPPING: "Session stopping…",
@@ -31,21 +34,18 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       RUNNING: "Stop session",
     }[status] || "Start session";
 
-  const handleEvent = (
-    e: React.MouseEvent | React.ChangeEvent,
-    checked?: boolean
+  const onChange = (
+    _: React.MouseEvent | React.ChangeEvent,
+    checked: boolean
   ) => {
-    e.preventDefault();
-    e.stopPropagation();
+    const shouldStart = checked || !session;
 
-    const shouldStart = checked === true || !session;
     if (shouldStart) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
     } else {
       stopSession(pipelineUuid);
     }
   };
-  const isSessionAlive = status === "RUNNING";
 
   return (
     <FormControlLabel
@@ -53,15 +53,16 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       labelPlacement="start"
       control={
         <Switch
-          disabled={disabled}
+          classes={{ root: isLaunching ? "launching" : "" }}
+          disabled={isLaunching || isStopping}
           size="small"
           inputProps={{
-            "aria-label": `Switch ${isSessionAlive ? "off" : "on"} session`,
+            "aria-label": `Switch ${isRunning ? "off" : "on"} session`,
           }}
           sx={{ margin: (theme) => theme.spacing(0, 1) }}
           className={className}
-          checked={isSessionAlive}
-          onChange={handleEvent}
+          checked={isRunning || isLaunching}
+          onChange={onChange}
         />
       }
       label={label || statusLabel}
