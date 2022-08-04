@@ -23,7 +23,7 @@ const useHasEnvironmentChanged = (environment: Environment | undefined) => {
 
 export const useAutoSaveEnvironment = (
   value: Environment | undefined,
-  save: (newValue?: Environment) => Promise<Environment | null>
+  save: (newValue?: Environment) => unknown
 ) => {
   const valuesForSaving = useDebounce(value, 500);
   const shouldSave = useHasEnvironmentChanged(valuesForSaving);
