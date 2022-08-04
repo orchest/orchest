@@ -1,4 +1,4 @@
-import { ContainerImagesRadioGroup } from "@/environment-edit-view/ContainerImagesRadioGroup";
+import { EnvironmentImagesRadioGroup } from "@/environment-edit-view/EnvironmentImagesRadioGroup";
 import { ellipsis } from "@/utils/styles";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -19,7 +19,7 @@ export const EditEnvironment = () => {
   return hasNoEnvironment ? (
     <NoEnvironment />
   ) : (
-    <Stack direction="column" spacing={2}>
+    <Stack direction="column" spacing={3}>
       <Stack direction="row" spacing={2} alignItems="center">
         <Typography variant="h4" flex={1} sx={ellipsis()}>
           {environmentOnEdit?.name}
@@ -32,9 +32,7 @@ export const EditEnvironment = () => {
         Properties
       </Typography>
       <EnvironmentName />
-      <ContainerImagesRadioGroup
-        onOpenCustomBaseImageDialog={() => console.log("DEV hey")}
-      />
+      <EnvironmentImagesRadioGroup />
     </Stack>
   );
 };
