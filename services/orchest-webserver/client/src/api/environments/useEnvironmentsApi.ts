@@ -17,7 +17,6 @@ type EnvironmentBuildStatus =
 export type EnvironmentsApiState = {
   projectUuid?: string;
   environments?: EnvironmentState[];
-  hasLoadedBuildStatus: boolean;
   isFetchingAll: boolean;
   fetch: (projectUuid: string, language?: string) => Promise<void>;
   isPosting: boolean;
@@ -34,6 +33,7 @@ export type EnvironmentsApiState = {
   delete: (environmentUuid: string) => Promise<void>;
   validate: () => Promise<EnvironmentBuildStatus | undefined>;
   status: EnvironmentBuildStatus;
+  hasLoadedBuildStatus: boolean;
   updateBuildStatus: () => Promise<void>;
   isTriggeringBuild: boolean;
   triggerBuild: (environmentUuid: string) => Promise<void>;
