@@ -1,4 +1,4 @@
-import { EnvironmentImagesRadioGroup } from "@/environment-edit-view/EnvironmentImagesRadioGroup";
+import { EnvironmentImagesRadioGroup } from "@/environments-view/edit-environment/EnvironmentImagesRadioGroup";
 import { ellipsis } from "@/utils/styles";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";

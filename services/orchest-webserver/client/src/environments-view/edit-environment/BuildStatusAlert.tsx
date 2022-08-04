@@ -9,12 +9,16 @@ type BuildStatusAlertProps = {
 };
 
 const alertMessageMapping: Record<
-  "FAILURE" | "SUCCESS",
+  "FAILURE" | "SUCCESS" | "ABORTED",
   { severity: AlertProps["severity"]; message: string }
 > = {
   FAILURE: {
     severity: "error",
     message: "Build failed",
+  },
+  ABORTED: {
+    severity: "error",
+    message: "Build cancelled",
   },
   SUCCESS: {
     severity: "success",
@@ -23,7 +27,6 @@ const alertMessageMapping: Record<
 };
 
 export const BuildStatusAlert = ({ latestBuild }: BuildStatusAlertProps) => {
-  console.log("DEV latestBuild?.status: ", latestBuild?.status);
   const alert = alertMessageMapping[latestBuild?.status || ""];
   return (
     <Collapse in={Boolean(alert)}>

@@ -3,7 +3,9 @@ import { isEnvironmentBuilding } from "@/environments-view/common";
 import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
 import { Environment } from "@/types";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import FormLabel from "@mui/material/FormLabel";
 import Link from "@mui/material/Link";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
@@ -13,8 +15,11 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { DEFAULT_BASE_IMAGES, GPU_SUPPORT_ENABLED } from "./common";
-import { useCustomImage } from "./useCustomImage";
+import {
+  DEFAULT_BASE_IMAGES,
+  GPU_SUPPORT_ENABLED,
+} from "../../environment-edit-view/common";
+import { useCustomImage } from "./hooks/useCustomImage";
 
 type ImageOptionProps = {
   disabled: boolean;
@@ -34,6 +39,7 @@ const ImageOption = ({
       disabled={disabled}
       label={children}
       control={<Radio />}
+      sx={{ marginLeft: (theme) => theme.spacing(1) }}
     />
   );
 
@@ -61,11 +67,7 @@ const getDefaultImageFromEnvironment = (
 const BaseImageHeader = () => {
   return (
     <Stack direction="row" spacing={1} alignItems="center">
-      <Typography
-        component="h2"
-        variant="body1"
-        sx={{ color: (theme) => theme.palette.action.active }}
-      >
+      <Typography component="h3" variant="body1">
         Base image
       </Typography>
       <Tooltip
@@ -130,15 +132,27 @@ export const EnvironmentImagesRadioGroup = () => {
     }
   };
 
-  const selectedImage = environmentOnEdit?.base_image || DEFAULT_BASE_IMAGES[0];
+  const selectedImage =
+    selectedDefaultImage?.base_image || customImage || DEFAULT_BASE_IMAGES[0];
 
   return (
-    <RadioGroup
-      value={selectedImage}
-      onChange={(e, value) => onChangeSelection(value)}
-    >
-      <BaseImageHeader />
-      <Stack direction="row" alignItems="center" flexWrap="wrap" spacing={3}>
+    <FormControl margin="normal" fullWidth>
+      <FormLabel
+        id="base-image"
+        sx={{ marginBottom: (theme) => theme.spacing(1) }}
+      >
+        <BaseImageHeader />
+      </FormLabel>
+      <RadioGroup
+        aria-labelledby="base-image"
+        value={selectedImage}
+        onChange={(e, value) => {
+          console.log("DEV value: ", value);
+          onChangeSelection(value);
+        }}
+        sx={{ marginLeft: (theme) => theme.spacing(-2) }}
+        row
+      >
         {DEFAULT_BASE_IMAGES.map(({ base_image, img_src, label }) => {
           const isUnavailable =
             !GPU_SUPPORT_ENABLED && base_image === "orchest/base-kernel-py-gpu";
@@ -154,7 +168,6 @@ export const EnvironmentImagesRadioGroup = () => {
                 spacing={1}
                 alignItems="center"
                 justifyContent="flex-start"
-                // sx={{ minWidth: (theme) => theme.spacing(16) }}
               >
                 <Image
                   src={`${img_src}`}
@@ -167,10 +180,14 @@ export const EnvironmentImagesRadioGroup = () => {
             </ImageOption>
           );
         })}
-        <ImageOption value={customImage?.base_image || ""} disabled={disabled}>
+        <ImageOption
+          key="custom-image"
+          value={customImage?.base_image || ""}
+          disabled={disabled}
+        >
           <>{`Custom`}</>
         </ImageOption>
-      </Stack>
-    </RadioGroup>
+      </RadioGroup>
+    </FormControl>
   );
 };
