@@ -14,7 +14,8 @@ import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 
 const titleMapping: Record<PipelineReadOnlyReason, string> = {
   isJobRun: "pipeline snapshot",
-  environmentsNotYetBuilt: "Environments still building",
+  environmentsNotYetBuilt:
+    "Not all environments of this project have been built",
   environmentsBuildInProgress: "Environment build is in progress...",
   JupyterEnvironmentBuildInProgress:
     "JupyterLab environment build is in progress",
