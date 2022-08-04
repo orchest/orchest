@@ -41,13 +41,11 @@ export const SessionsPanel = () => {
           const sessionStatus = (getSession(pipeline.uuid)?.status ||
             "") as SessionStatus;
 
-          const onClick = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            e.preventDefault();
+          const onClick = (event: React.MouseEvent) => {
             navigateTo(
               siteMap.pipeline.path,
               { query: { projectUuid, pipelineUuid: pipeline.uuid } },
-              e
+              event
             );
           };
 
@@ -70,6 +68,7 @@ export const SessionsPanel = () => {
                     variant="body2"
                     underline="hover"
                     sx={{
+                      cursor: "pointer !important",
                       whiteSpace: "nowrap",
                       textOverflow: "ellipsis",
                       overflow: "hidden",
