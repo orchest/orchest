@@ -5,10 +5,10 @@ import {
   EnvironmentState,
   OrchestSession,
 } from "@/types";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
 export const isEnvironmentBuilding = (build?: EnvironmentImageBuild) =>
-  build && ["PENDING", "STARTED"].includes(build.status);
+  hasValue(build) && ["PENDING", "STARTED"].includes(build.status);
 
 export const isEnvironmentFailedToBuild = (build?: EnvironmentImageBuild) =>
   build && ["ABORTED", "FAILED"].includes(build.status);

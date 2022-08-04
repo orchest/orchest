@@ -1,3 +1,4 @@
+import { ContainerImagesRadioGroup } from "@/environment-edit-view/ContainerImagesRadioGroup";
 import { ellipsis } from "@/utils/styles";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -27,8 +28,13 @@ export const EditEnvironment = () => {
         <EnvironmentMoreOptions />
       </Stack>
       <BuildStatusAlert latestBuild={environmentOnEdit?.latestBuild} />
-      <Typography variant="body1">Properties</Typography>
+      <Typography component="h3" variant="h6">
+        Properties
+      </Typography>
       <EnvironmentName />
+      <ContainerImagesRadioGroup
+        onOpenCustomBaseImageDialog={() => console.log("DEV hey")}
+      />
     </Stack>
   );
 };
