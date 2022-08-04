@@ -17,6 +17,7 @@ type EnvironmentBuildStatus =
 export type EnvironmentsApiState = {
   projectUuid?: string;
   environments?: EnvironmentState[];
+  hasLoadedBuildStatus: boolean;
   isFetchingAll: boolean;
   fetch: (projectUuid: string, language?: string) => Promise<void>;
   isPosting: boolean;
@@ -196,6 +197,7 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
         console.error("Failed to validate environments.");
       }
     },
+    hasLoadedBuildStatus: false,
     updateBuildStatus: async () => {
       try {
         const projectUuid = getProjectUuid();
@@ -214,7 +216,12 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
           shouldUpdateEnvironments,
         ] = results;
         if (shouldUpdateEnvironments) {
-          set({ environments: environmentsWithLatestBuildStatus });
+          set({
+            environments: environmentsWithLatestBuildStatus,
+            hasLoadedBuildStatus: true,
+          });
+        } else if (!get().hasLoadedBuildStatus) {
+          set({ hasLoadedBuildStatus: true });
         }
       } catch (error) {
         console.error(
@@ -251,10 +258,7 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
     cancelBuild: async (environmentUuid: string) => {
       try {
         const environment = getEnvironment(environmentUuid);
-        if (
-          !environment.latestBuild ||
-          environment.latestBuild.status === "INITIALIZING"
-        ) {
+        if (!environment.latestBuild) {
           throw new Error("Environment has no ongoing build.");
         }
 

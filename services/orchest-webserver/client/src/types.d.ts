@@ -161,8 +161,7 @@ export type Environment = {
 
 export type EnvironmentState = Environment & {
   action?: EnvironmentAction;
-  hash?: string;
-  latestBuild?: EnvironmentImageBuild | { status: "INITIALIZING" };
+  latestBuild?: EnvironmentImageBuild;
 };
 
 export type CustomImage = Pick<
@@ -182,6 +181,18 @@ export type EnvironmentImageBuild = {
   status: TStatus;
   celery_task_uuid: string;
 };
+// | {
+//     uuid?: string;
+//     environment_uuid?: string;
+//     finished_time?: string;
+//     project_path?: string;
+//     project_uuid?: string;
+//     image_tag?: string;
+//     requested_time?: string;
+//     started_time?: string;
+//     celery_task_uuid?: string;
+//     status: "INITIALIZING";
+//   };
 
 export type PipelineStepStatus =
   | "STARTED"

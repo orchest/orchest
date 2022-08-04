@@ -7,7 +7,7 @@ import React from "react";
 import { useBuildEnvironmentImage } from "./stores/useBuildEnvironmentImage";
 
 type BuildEnvironmentButtonProps = {
-  environmentOnEdit: EnvironmentState | Partial<EnvironmentState>;
+  environmentOnEdit?: EnvironmentState;
 };
 
 export const BuildEnvironmentButton = ({
@@ -15,13 +15,13 @@ export const BuildEnvironmentButton = ({
 }: BuildEnvironmentButtonProps) => {
   const { triggerBuild, cancelBuild } = useBuildEnvironmentImage();
 
-  const buildStatus = environmentOnEdit.latestBuild?.status;
+  const buildStatus = environmentOnEdit?.latestBuild?.status;
 
   const isBuilding =
     hasValue(buildStatus) && ["PENDING", "STARTED"].includes(buildStatus);
 
   const handleClick = () => {
-    if (!environmentOnEdit.uuid) return;
+    if (!environmentOnEdit) return;
 
     if (isBuilding) {
       cancelBuild(environmentOnEdit.uuid);

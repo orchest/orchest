@@ -1,52 +1,29 @@
-import {
-  EnvironmentsApiState,
-  useEnvironmentsApi,
-} from "@/api/environments/useEnvironmentsApi";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useAutoSaveEnvironment } from "@/environment-edit-view/useAutoSaveEnvironment";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useDebounce } from "@/hooks/useDebounce";
-import { useHasChanged } from "@/hooks/useHasChanged";
-import { Environment, EnvironmentState } from "@/types";
-import { hasValue, uuidv4 } from "@orchest/lib-utils";
+import { EnvironmentState } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import create from "zustand";
-
-export const isCompleteEnvironmentState = (
-  value: Partial<EnvironmentState>
-): value is EnvironmentState => hasValue(value.uuid);
+import { getPutEnvironmentPayload } from "../common";
 
 export const useEnvironmentOnEdit = create<{
-  environmentOnEdit: EnvironmentState | Partial<EnvironmentState>;
-  setEnvironmentOnEdit: (
-    payload: EnvironmentState | Partial<EnvironmentState>,
-    init?: boolean
-  ) => void;
+  environmentOnEdit?: EnvironmentState;
+  initEnvironmentOnEdit: (payload: EnvironmentState | undefined) => void;
+  setEnvironmentOnEdit: (payload: Partial<EnvironmentState>) => void;
 }>((set) => ({
-  environmentOnEdit: {},
-  setEnvironmentOnEdit: (payload, init = false) => {
-    const payloadWithHash = init ? payload : { ...payload, hash: uuidv4() };
-    set((state) => ({
-      environmentOnEdit: state.environmentOnEdit
-        ? { ...state.environmentOnEdit, ...payloadWithHash }
-        : payloadWithHash,
-    }));
+  initEnvironmentOnEdit: (value) => {
+    set({ environmentOnEdit: value });
+  },
+  setEnvironmentOnEdit: (value) => {
+    set((state) => {
+      if (!state.environmentOnEdit) return state;
+      return {
+        environmentOnEdit: { ...state.environmentOnEdit, ...value },
+      };
+    });
   },
 }));
-
-const selector = (state: EnvironmentsApiState) =>
-  [state.environments, state.put, state.isPutting] as const;
-
-const getPutEnvironmentPayload = (
-  environmentState: EnvironmentState
-): Environment => {
-  const {
-    action, // eslint-disable-line @typescript-eslint/no-unused-vars
-    hash, // eslint-disable-line @typescript-eslint/no-unused-vars
-    latestBuild: latestBuildStatus, // eslint-disable-line @typescript-eslint/no-unused-vars
-    ...environmentData
-  } = environmentState;
-
-  return environmentData;
-};
 
 /**
  * Load the environmentOnEdit to the store based on the query arg environment_uuid.
@@ -56,35 +33,38 @@ const getPutEnvironmentPayload = (
 export const useSaveEnvironmentOnEdit = () => {
   const { environmentUuid } = useCustomRoute();
 
-  const [environments, put, isUpdating] = useEnvironmentsApi(selector);
+  const { environments, put } = useEnvironmentsApi();
 
-  const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentOnEdit, initEnvironmentOnEdit } = useEnvironmentOnEdit();
+
+  const shouldInit =
+    (hasValue(environments) && !environmentOnEdit) ||
+    environmentOnEdit?.uuid !== environmentUuid;
 
   React.useEffect(() => {
-    const found = environmentUuid
+    if (!shouldInit) return;
+    const initialValue = environmentUuid
       ? environments?.find((env) => env.uuid === environmentUuid)
       : environments?.[0];
+    if (initialValue) {
+      initEnvironmentOnEdit(initialValue);
+    }
+  }, [shouldInit, environments, environmentUuid, initEnvironmentOnEdit]);
 
-    setEnvironmentOnEdit(found || environments?.[0] || {}, true);
-  }, [environments, environmentUuid, setEnvironmentOnEdit]);
-
-  const environmentState = useDebounce(environmentOnEdit, 250);
-
-  const shouldSave = useHasChanged(
-    environmentState,
-    (prev, curr) => Boolean(prev?.hash) && prev?.hash !== curr.hash
-  );
-
-  React.useEffect(() => {
-    if (shouldSave && isCompleteEnvironmentState(environmentState)) {
-      const environmentData = getPutEnvironmentPayload(environmentState);
+  const save = React.useCallback(() => {
+    const environmentData = environmentOnEdit
+      ? getPutEnvironmentPayload(environmentOnEdit)
+      : undefined;
+    if (environmentData) {
       // Saving an environment will invalidate the Jupyter <iframe>
       // TODO: perhaps this can be fixed with coordination between JLab +
       // Enterprise Gateway team.
       window.orchest.jupyter?.unload();
       put(environmentData.uuid, environmentData);
     }
-  }, [shouldSave, put, environmentState]);
+  }, [environmentOnEdit, put]);
 
-  return { environmentOnEdit, isUpdating };
+  useAutoSaveEnvironment(environmentOnEdit, save);
+
+  return { environmentOnEdit };
 };
