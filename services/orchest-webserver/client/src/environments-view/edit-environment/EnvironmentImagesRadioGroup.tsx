@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { isEnvironmentBuilding } from "@/environments-view/common";
+import { ContainerImageTile } from "@/environments-view/edit-environment/ContainerImageTile";
 import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
 import { Environment } from "@/types";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -8,11 +9,12 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
 import Link from "@mui/material/Link";
 import Radio from "@mui/material/Radio";
-import RadioGroup from "@mui/material/RadioGroup";
+import RadioGroup, { useRadioGroup } from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { visuallyHidden } from "@mui/utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import {
@@ -33,13 +35,29 @@ const ImageOption = ({
   children,
   disabled,
 }: ImageOptionProps) => {
+  const radioGroup = useRadioGroup();
+  const checked = hasValue(radioGroup) && radioGroup.value === value;
+  const icon = (
+    <>
+      <ContainerImageTile checked={checked}>
+        {children || value}
+      </ContainerImageTile>
+    </>
+  );
   const content = (
     <FormControlLabel
       value={value}
       disabled={disabled}
-      label={children}
-      control={<Radio />}
-      sx={{ marginLeft: (theme) => theme.spacing(1) }}
+      label={<Typography style={visuallyHidden}>{value}</Typography>}
+      control={
+        <Radio
+          disableRipple
+          sx={{ width: "100%" }}
+          icon={icon}
+          checkedIcon={icon}
+        />
+      }
+      sx={{ width: (theme) => theme.spacing(30) }}
     />
   );
 
@@ -150,8 +168,7 @@ export const EnvironmentImagesRadioGroup = () => {
           console.log("DEV value: ", value);
           onChangeSelection(value);
         }}
-        sx={{ marginLeft: (theme) => theme.spacing(-2) }}
-        row
+        sx={{ display: "flex", flexFlow: "row wrap" }}
       >
         {DEFAULT_BASE_IMAGES.map(({ base_image, img_src, label }) => {
           const isUnavailable =
@@ -175,7 +192,7 @@ export const EnvironmentImagesRadioGroup = () => {
                   loading="lazy"
                   sx={isUnavailable ? { filter: "grayscale(100%)" } : undefined}
                 />
-                <Typography variant="body1">{label}</Typography>
+                <Typography variant="body2">{label}</Typography>
               </Stack>
             </ImageOption>
           );
@@ -185,7 +202,7 @@ export const EnvironmentImagesRadioGroup = () => {
           value={customImage?.base_image || ""}
           disabled={disabled}
         >
-          <>{`Custom`}</>
+          <Typography variant="body2">Custom</Typography>
         </ImageOption>
       </RadioGroup>
     </FormControl>
