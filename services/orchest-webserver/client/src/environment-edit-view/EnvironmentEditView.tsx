@@ -28,8 +28,8 @@ import "codemirror/theme/dracula.css";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { DEFAULT_BASE_IMAGES } from "./common";
-import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
 import { CustomImageDialog } from "./CustomImageDialog";
+import { EnvironmentImagesRadioGroup } from "./EnvironmentImagesRadioGroup";
 import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
 import { useCustomImage } from "./useCustomImage";
 import { useRequestEnvironmentImageBuild } from "./useRequestEnvironmentImageBuild";
@@ -348,7 +348,7 @@ const EnvironmentEditView: React.FC = () => {
                     disabled={building}
                     data-test-id="environments-env-name"
                   />
-                  <ContainerImagesRadioGroup
+                  <EnvironmentImagesRadioGroup
                     disabled={building}
                     orchestVersion={orchestVersion}
                     value={selectedImage}
