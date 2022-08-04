@@ -91,7 +91,7 @@ export const ReadOnlyBanner = () => {
     } else if (pipelineReadOnlyReason === "environmentsNotYetBuilt") {
       return {
         action: triggerBuild,
-        label: "Start Building",
+        label: "Build environments",
       };
     } else if (pipelineReadOnlyReason === "environmentsBuildInProgress") {
       return {
