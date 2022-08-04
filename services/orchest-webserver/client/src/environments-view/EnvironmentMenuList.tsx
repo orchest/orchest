@@ -14,7 +14,7 @@ export const EnvironmentMenuList = () => {
     environmentOnEdit,
   } = useSelectEnvironment();
 
-  useUpdateBuildStatus();
+  const { hasLoadedBuildStatus } = useUpdateBuildStatus();
 
   return (
     <Stack
@@ -44,6 +44,7 @@ export const EnvironmentMenuList = () => {
             <EnvironmentMenuItem
               key={environment.uuid}
               {...environment}
+              showStatusIcon={hasLoadedBuildStatus}
               onClick={selectEnvironment}
               selected={selected}
             />

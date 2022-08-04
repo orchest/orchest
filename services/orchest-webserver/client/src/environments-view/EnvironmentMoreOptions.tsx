@@ -11,10 +11,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import {
-  isCompleteEnvironmentState,
-  useEnvironmentOnEdit,
-} from "./stores/useEnvironmentOnEdit";
+import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
 
 const selector = (state: EnvironmentsApiState) =>
   [state.delete, state.isDeleting] as const;
@@ -33,8 +30,7 @@ export const EnvironmentMoreOptions = () => {
 
   const showDeleteEnvironmentDialog = () => {
     handleClose();
-    if (!environmentOnEdit || !isCompleteEnvironmentState(environmentOnEdit))
-      return;
+    if (!environmentOnEdit) return;
     setConfirm(
       `Delete "${environmentOnEdit.name}"`,
       "Are you sure you want to delete this Environment?",

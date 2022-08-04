@@ -2,6 +2,7 @@ import {
   Environment,
   EnvironmentImageBuild,
   EnvironmentSpec,
+  EnvironmentState,
   OrchestSession,
 } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
@@ -105,3 +106,15 @@ export const postEnvironment = (
       },
     }),
   });
+
+export const getPutEnvironmentPayload = (
+  environmentState: EnvironmentState
+): Environment => {
+  const {
+    action, // eslint-disable-line @typescript-eslint/no-unused-vars
+    latestBuild: latestBuildStatus, // eslint-disable-line @typescript-eslint/no-unused-vars
+    ...environmentData
+  } = environmentState;
+
+  return environmentData;
+};

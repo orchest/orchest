@@ -19,7 +19,6 @@ type BuildStatusIconProps = {
 
 const BuildStatusIcon = ({ selected, latestBuild }: BuildStatusIconProps) => {
   if (selected) return <EditOutlinedIcon fontSize="small" color="action" />;
-  if (latestBuild?.status === "INITIALIZING") return null;
   if (latestBuild?.status === "SUCCESS")
     return <CheckCircleOutlineOutlinedIcon fontSize="small" color="success" />;
   if (isEnvironmentBuilding(latestBuild)) return <CircularProgress size={20} />;
@@ -33,6 +32,7 @@ const BuildStatusIcon = ({ selected, latestBuild }: BuildStatusIconProps) => {
 
 type EnvironmentMenuItemProps = EnvironmentState & {
   selected: boolean;
+  showStatusIcon: boolean;
   onClick: (uuid: string) => void;
 };
 
@@ -43,6 +43,7 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
   latestBuild,
   selected,
   onClick,
+  showStatusIcon,
 }: EnvironmentMenuItemProps) {
   return (
     <MenuItem
@@ -85,7 +86,9 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
         alignItems="center"
         sx={{ paddingLeft: (theme) => theme.spacing(1) }}
       >
-        <BuildStatusIcon selected={selected} latestBuild={latestBuild} />
+        {showStatusIcon && (
+          <BuildStatusIcon selected={selected} latestBuild={latestBuild} />
+        )}
       </Stack>
     </MenuItem>
   );

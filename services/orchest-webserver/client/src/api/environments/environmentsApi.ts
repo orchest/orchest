@@ -17,9 +17,7 @@ const fetchAll = async (
   const unsortedEnvironment = await fetcher<Environment[]>(
     `/store/environments/${projectUuid}${queryString}`
   );
-  return unsortedEnvironment
-    .sort((a, b) => -1 * a.name.localeCompare(b.name))
-    .map((env) => ({ ...env, latestBuild: { status: "INITIALIZING" } }));
+  return unsortedEnvironment.sort((a, b) => -1 * a.name.localeCompare(b.name));
 };
 const post = (projectUuid: string, name: string, spec: EnvironmentSpec) =>
   fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
@@ -139,18 +137,12 @@ const checkLatestBuilds = async ({
     const response = await fetchLatestBuilds(projectUuid, environmentUuid);
     const envMap = new Map(
       environmentStates.map((env) => {
-        return [
-          env.uuid,
-          produce(env, (draft) => {
-            if (draft.latestBuild?.status === "INITIALIZING")
-              draft.latestBuild = undefined;
-          }),
-        ];
+        return [env.uuid, env];
       })
     );
     const updatedEnvironmentMap = produce(envMap, (draft) => {
       response.forEach((build) => {
-        const environment = draft.get(build.environment_uuid);
+        const environment = draft.get(build.environment_uuid || "");
         if (!environment) throw "refetch";
         if (environment.latestBuild?.status !== build.status)
           hasBuildStateChanged = true;
