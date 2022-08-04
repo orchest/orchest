@@ -13,7 +13,7 @@ type ProjectsTabsProps = {
 
 export const ProjectsTabs = ({ children }: ProjectsTabsProps) => {
   const { projectTabIndex, setProjectTabIndex } = useProjectTabsContext();
-  const updateQueryArgs = useUpdateQueryArgs();
+  const { updateQueryArgs } = useUpdateQueryArgs();
 
   const selectTab = React.useCallback(
     (tabIndex: number) => {

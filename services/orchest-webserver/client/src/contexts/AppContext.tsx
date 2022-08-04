@@ -1,4 +1,4 @@
-import { useFetchEnvironments } from "@/environments-view/stores/useFetchEnvironments";
+import { useFetchEnvironments } from "@/environments-view/hooks/useFetchEnvironments";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { NotificationWebhookSubscriber } from "@/notification-settings-view/notification-webhooks";

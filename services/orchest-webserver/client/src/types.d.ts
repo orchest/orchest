@@ -418,3 +418,6 @@ export type UpdateInfo = {
 export type OrchestVersion = {
   version: string | null | undefined;
 };
+
+/** A 2-dimensional point: X, Y. */
+export type Point2D = [number, number];

@@ -4,7 +4,7 @@ import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useBuildEnvironmentImage } from "./stores/useBuildEnvironmentImage";
+import { useBuildEnvironmentImage } from "./hooks/useBuildEnvironmentImage";
 
 type BuildEnvironmentButtonProps = {
   environmentOnEdit?: EnvironmentState;
