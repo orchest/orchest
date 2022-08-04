@@ -1,7 +1,6 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import {
-  LayoutState,
   MAX_WIDTH,
   MIN_SECONDARY_SIDE_PANEL_WIDTH,
   useLayoutStore,
@@ -54,9 +53,6 @@ type StepDetailsProps = {
   onClose: () => void;
 };
 
-const selector = (state: LayoutState) =>
-  [state.secondarySidePanelWidth, state.setSecondarySidePanelWidth] as const;
-
 const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
   const { jobUuid, projectUuid } = useCustomRoute();
   const {
@@ -69,9 +65,13 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
     uiState: { subViewIndex, shouldAutoFocus, stepSelector, steps, openedStep },
     uiStateDispatch,
   } = usePipelineUiStateContext();
-  const [stepDetailsPanelWidth, setStepDetailsPanelWidth] = useLayoutStore(
-    selector
-  );
+  const [
+    stepDetailsPanelWidth,
+    setStepDetailsPanelWidth,
+  ] = useLayoutStore((state) => [
+    state.secondarySidePanelWidth,
+    state.setSecondarySidePanelWidth,
+  ]);
 
   const step = steps[openedStep || ""];
 
