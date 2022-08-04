@@ -48,7 +48,10 @@ SASS_ARGS="$SASS_SRC_PATH --load-path=$NODE_MODULES_PATH $CSS_BUNDLE_PATH"
 
 if $WATCH; then
   echo "Running in watch mode..."
-  index_template_fill "main.js" "style.css"
+  DATE_UNIX=$(date +%s)
+  DEBUG_JS_FILENAME="main.js?hash=${DATE_UNIX}"
+  DEBUG_CSS_FILENAME="style.css?hash=${DATE_UNIX}"
+  index_template_fill $DEBUG_JS_FILENAME $DEBUG_CSS_FILENAME
   sass $SASS_ARGS --watch &
   esbuild $ESBUILD_ARGS --watch --sourcemap # only generate sourcemap when pnpm run dev
 else
