@@ -335,41 +335,33 @@ const FilePicker: React.FC<FilePickerProps> = ({
           }}
         >
           <MenuList dense>
-            {options && (
-              <>
-                {!isRootNode && (
-                  <MenuItem onClick={onNavigateUp} ref={menuFirstItemRef}>
-                    <ListItemIcon>
-                      <TurnLeftOutlinedIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Navigate up</ListItemText>
-                  </MenuItem>
-                )}
-                {options.map((childNode, index) => {
-                  const nodeName = childNode.name;
-                  return (
-                    <MenuItem
-                      key={childNode.name}
-                      onClick={(e) => onSelectListItem(e, childNode)}
-                      ref={
-                        isRootNode && index === 0 ? menuFirstItemRef : undefined
-                      }
-                    >
-                      {childNode.type === "directory" && (
-                        <ListItemIcon>
-                          <FolderIcon fontSize="small" />
-                        </ListItemIcon>
-                      )}
-                      <ListItemText inset={childNode.type !== "directory"}>
-                        {`${nodeName}${
-                          childNode.type === "directory" ? "/" : ""
-                        }`}
-                      </ListItemText>
-                    </MenuItem>
-                  );
-                })}
-              </>
+            {options && !isRootNode && (
+              <MenuItem onClick={onNavigateUp} ref={menuFirstItemRef}>
+                <ListItemIcon>
+                  <TurnLeftOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Navigate up</ListItemText>
+              </MenuItem>
             )}
+            {options?.map((childNode, index) => {
+              const nodeName = childNode.name;
+              return (
+                <MenuItem
+                  key={childNode.name}
+                  onClick={(e) => onSelectListItem(e, childNode)}
+                  ref={isRootNode && index === 0 ? menuFirstItemRef : undefined}
+                >
+                  {childNode.type === "directory" && (
+                    <ListItemIcon>
+                      <FolderIcon fontSize="small" />
+                    </ListItemIcon>
+                  )}
+                  <ListItemText inset={childNode.type !== "directory"}>
+                    {`${nodeName}${childNode.type === "directory" ? "/" : ""}`}
+                  </ListItemText>
+                </MenuItem>
+              );
+            })}
           </MenuList>
         </Paper>
       )}
