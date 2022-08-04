@@ -13,7 +13,7 @@ export const ContainerImageTile: React.FC<{
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        minHeight: "100px",
+        minHeight: (theme) => theme.spacing(6),
         width: "100%",
         borderRadius: (theme) => theme.spacing(1),
         border: (theme) =>
