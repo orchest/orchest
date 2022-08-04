@@ -27,7 +27,7 @@ const BuildStatusIcon = ({ selected, latestBuild }: BuildStatusIconProps) => {
   if (latestBuild?.status === "PAUSED")
     return <ReplayOutlinedIcon fontSize="small" />;
 
-  return <NoteAltOutlinedIcon fontSize="small" />;
+  return <NoteAltOutlinedIcon fontSize="small" color="action" />;
 };
 
 type EnvironmentMenuItemProps = EnvironmentState & {
