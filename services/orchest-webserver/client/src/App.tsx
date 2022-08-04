@@ -60,6 +60,7 @@ const App = () => {
         obscureTextEmails: true,
         obscureTextNumbers: true,
         obscureInputEmails: true,
+        defaultInputMode: 1,
       });
       tracker.start();
     }
