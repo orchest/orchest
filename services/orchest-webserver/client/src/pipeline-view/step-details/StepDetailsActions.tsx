@@ -21,17 +21,12 @@ export const StepDetailsActions = () => {
   return (
     <Box
       sx={{
-        padding: (theme) => theme.spacing(2, 3, 0),
+        padding: (theme) => theme.spacing(1, 2),
         borderTop: (theme) => `1px solid ${theme.borderColor}`,
       }}
     >
-      <Stack
-        spacing={2}
-        direction="row"
-        justifyContent="space-between"
-        sx={{ marginBottom: (theme) => theme.spacing(3) }}
-      >
-        <Stack gap={2} direction="row">
+      <Stack direction="row" justifyContent="space-between">
+        <Stack direction="row" spacing={2}>
           <Button
             variant="contained"
             onClick={(event) => openNotebook(event, step.uuid)}
@@ -52,6 +47,7 @@ export const StepDetailsActions = () => {
             Preview
           </Button>
         </Stack>
+
         <IconButton
           disabled={isReadOnly}
           onClick={onDelete}
