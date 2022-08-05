@@ -1,9 +1,9 @@
 import { BackButton } from "@/components/common/BackButton";
 import { HotKeyHint } from "@/components/common/HotKeyHint";
 import { PageTitle } from "@/components/common/PageTitle";
-import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { ImageBuildStatus } from "@/components/ImageBuildStatus";
 import { Layout } from "@/components/Layout";
+import { LegacyImageBuildLog } from "@/components/LegacyImageBuildLog";
 import { useAppContext } from "@/contexts/AppContext";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -428,7 +428,7 @@ const EnvironmentEditView: React.FC = () => {
                   <ImageBuildStatus build={environmentBuild} sx={{ flex: 1 }} />
                 </Stack>
                 {environment && (
-                  <ImageBuildLog
+                  <LegacyImageBuildLog
                     hideDefaultStatus
                     buildRequestEndpoint={`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/most-recent/${projectUuid}/${environment?.uuid}`}
                     buildsKey="environment_image_builds"

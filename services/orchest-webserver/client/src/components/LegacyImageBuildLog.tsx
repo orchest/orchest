@@ -60,7 +60,7 @@ type ImageBuildLogProps = {
   hideDefaultStatus?: boolean;
 };
 
-export const ImageBuildLog = ({
+export const LegacyImageBuildLog = ({
   onUpdateBuild,
   buildRequestEndpoint,
   buildsKey,
