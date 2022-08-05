@@ -103,7 +103,12 @@ const FilePreviewView = () => {
     }));
 
     let pipelineURL = isJobRun
-      ? getPipelineJSONEndpoint({ pipelineUuid, projectUuid, jobUuid, runUuid })
+      ? getPipelineJSONEndpoint({
+          pipelineUuid,
+          projectUuid,
+          jobUuid,
+          jobRunUuid: runUuid,
+        })
       : getPipelineJSONEndpoint({ pipelineUuid, projectUuid });
 
     const [pipelineJson, job] = await Promise.all([
