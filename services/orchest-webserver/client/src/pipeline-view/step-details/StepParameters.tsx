@@ -1,27 +1,26 @@
 import { ParameterEditorWithJsonForm } from "@/components/ParameterEditorWithJsonForm";
-import { Json, Step } from "@/types";
+import { Json, StepState } from "@/types";
 import React from "react";
 import { useStepDetailsContext } from "./StepDetailsContext";
 import { useOpenStepSchemaFile } from "./useOpenStepSchemaFile";
 
 type StepParametersProps = {
   isReadOnly: boolean;
-  onSave: (
-    payload: Pick<Step, "parameters">,
-    uuid: string,
-    replace?: boolean
-  ) => void;
+  setStepChanges: (changes: React.SetStateAction<Partial<StepState>>) => void;
 };
 
-export const StepParameters = ({ isReadOnly, onSave }: StepParametersProps) => {
+export const StepParameters = ({
+  isReadOnly,
+  setStepChanges,
+}: StepParametersProps) => {
   const { step, parameterSchema, parameterUiSchema } = useStepDetailsContext();
   const { openStepSchemaFile } = useOpenStepSchemaFile();
 
   const onSaveParameters = React.useCallback(
     (parameters: Record<string, Json>) => {
-      onSave({ parameters }, step.uuid, true);
+      setStepChanges({ parameters });
     },
-    [step.uuid, onSave]
+    [setStepChanges]
   );
 
   return (

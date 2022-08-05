@@ -7,11 +7,7 @@ import { ConnectionList } from "./ConnectionList";
 import { useStepDetailsContext } from "./StepDetailsContext";
 
 export type StepConnectionProps = {
-  onSave: (
-    payload: Partial<StepState>,
-    uuid: string,
-    replace?: boolean
-  ) => void;
+  onSave: (payload: Partial<StepState>, uuid: string) => void;
 };
 
 export const StepConnections = ({ onSave }: StepConnectionProps) => {
