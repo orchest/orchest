@@ -5,7 +5,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { Environment, IOrchestSession, PipelineJson } from "@/types";
+import { Environment, OrchestSession, PipelineJson } from "@/types";
 import React from "react";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
@@ -15,7 +15,7 @@ export type PipelineDataContextType = {
   pipelineUuid?: string;
   pipelineCwd?: string;
   environments: Environment[];
-  session: IOrchestSession | undefined;
+  session: OrchestSession | undefined;
   runUuid?: string;
   setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   isReadOnly: boolean;
