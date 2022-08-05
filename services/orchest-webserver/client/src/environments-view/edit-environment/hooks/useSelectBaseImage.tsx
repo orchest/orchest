@@ -1,6 +1,8 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { DEFAULT_BASE_IMAGES } from "@/environment-edit-view/common";
-import { isEnvironmentBuilding } from "@/environments-view/common";
+import {
+  DEFAULT_BASE_IMAGES,
+  isEnvironmentBuilding,
+} from "@/environments-view/common";
 import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
 import { CustomImage } from "@/types";
 import React from "react";

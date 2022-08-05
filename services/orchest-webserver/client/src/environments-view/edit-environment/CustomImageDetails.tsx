@@ -21,7 +21,7 @@ import {
   DEFAULT_BASE_IMAGES,
   GPU_SUPPORT_ENABLED,
   LANGUAGE_MAP,
-} from "../../environment-edit-view/common";
+} from "../common";
 import { useSelectBaseImage } from "./hooks/useSelectBaseImage";
 
 const DEFAULT_FORM_STATE: CustomImage = {

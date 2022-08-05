@@ -10,7 +10,11 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { isEnvironmentBuilding, isEnvironmentFailedToBuild } from "./common";
+import {
+  isEnvironmentBuilding,
+  isEnvironmentFailedToBuild,
+  LANGUAGE_MAP,
+} from "./common";
 
 type BuildStatusIconProps = {
   selected: boolean;
@@ -78,7 +82,7 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
             color: (theme) => theme.palette.action.active,
           }}
         >
-          {language}
+          {LANGUAGE_MAP[language]}
         </Typography>
       </Stack>
       <Stack
