@@ -1,52 +1,23 @@
-import { useAppContext } from "@/contexts/AppContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
-import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
-import { siteMap } from "@/routingConfig";
 import { PipelineJson, StepsDict } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { extractStepsFromPipelineJson } from "../common";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
 export const useInitializePipelineEditor = (
-  runUuid: string | undefined,
-  isReadOnly: boolean,
   initializeEventVars: (steps: StepsDict) => void
 ) => {
-  const {
-    state: { pipeline, projectUuid },
-  } = useProjectsContext();
-  const { setAlert } = useAppContext();
-  const {
-    navigateTo,
-    projectUuid: projectUuidFromRoute,
-    pipelineUuid: pipelineUuidFromRoute,
-    jobUuid,
-  } = useCustomRoute();
+  const { pipelineUuid } = useCustomRoute();
 
   useEnsureValidPipeline();
-
-  // Because `useEnsureValidPipeline` will auto-redirect if pipelineUuidFromRoute is invalid,
-  // `pipelineUuid` is only valid until `pipeline?.uuid === pipelineUuidFromRoute`,
-  // During the transition, it shouldn't fetch pipelineJson.
-  const pipelineUuid =
-    pipeline?.uuid === pipelineUuidFromRoute ? pipeline?.uuid : undefined;
 
   const {
     pipelineJson,
     setPipelineJson: originalSetPipelineJson,
     isFetchingPipelineJson,
-    error,
-  } = useFetchPipelineJson({
-    // This `projectUuid` cannot be from route. It has to be from ProjectsContext, aligned with `pipeline?.uuid`.
-    // Otherwise, when user switch to another project, pipeline?.uuid does not exist.
-    projectUuid,
-    pipelineUuid,
-    jobUuid,
-    runUuid,
-  });
+  } = usePipelineDataContext();
 
   const hash = React.useRef<string>(uuidv4());
   const setPipelineJson = React.useCallback(
@@ -65,32 +36,14 @@ export const useInitializePipelineEditor = (
     [originalSetPipelineJson]
   );
 
-  const pipelineCwd = pipeline?.path.replace(/\/?[^\/]*.orchest$/, "/");
-
-  React.useEffect(() => {
-    if (error) {
-      setAlert(
-        "Error",
-        `Failed to initialize pipeline. ${error.message}`,
-        (resolve) => {
-          navigateTo(siteMap.pipeline.path, {
-            query: { projectUuid: projectUuidFromRoute },
-          });
-          resolve(true);
-          return true;
-        }
-      );
-    }
-  }, [error, setAlert, pipeline, navigateTo, projectUuidFromRoute]);
-
   const initialized = React.useRef(false);
 
   // Only start to initialize if the uuid in pipelineJson is correct.
   // Because pipelineJson will be cached by SWR, initialization should only starts when uuid matches.
   const shouldInitialize =
     !isFetchingPipelineJson &&
-    pipelineUuidFromRoute &&
-    pipelineUuidFromRoute === pipelineJson?.uuid;
+    pipelineUuid &&
+    pipelineUuid === pipelineJson?.uuid;
 
   // initialize eventVars.steps
   React.useEffect(() => {
@@ -101,17 +54,10 @@ export const useInitializePipelineEditor = (
     }
   }, [shouldInitialize, pipelineJson, initializeEventVars]);
 
-  const { environments = [] } = useFetchEnvironments(
-    !isReadOnly ? projectUuid : undefined
-  );
-
   return {
-    pipelineCwd,
     pipelineJson,
-    environments,
     setPipelineJson,
     hash,
-    error,
     isFetching: isFetchingPipelineJson,
   };
 };

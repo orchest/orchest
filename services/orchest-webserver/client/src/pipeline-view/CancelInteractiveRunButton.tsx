@@ -2,17 +2,17 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import CloseIcon from "@mui/icons-material/Close";
 import React from "react";
 import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
-import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { PipelineActionButton } from "./PipelineActionButton";
 
 export const CancelInteractiveRunButton = () => {
   const { jobUuid } = useCustomRoute();
+  const { runUuid } = usePipelineDataContext();
   const {
     cancelRun,
     pipelineRunning,
     isCancellingRun,
   } = useInteractiveRunsContext();
-  const { runUuid } = usePipelineEditorContext();
 
   return pipelineRunning ? (
     <div className="selection-buttons">

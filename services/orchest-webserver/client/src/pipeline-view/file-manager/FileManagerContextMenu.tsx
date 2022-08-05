@@ -8,6 +8,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
 import {
@@ -31,15 +32,14 @@ export const FileManagerContextMenu: React.FC<{
   metadata: ContextMenuMetadata | undefined;
 }> = ({ metadata, children }) => {
   const { setAlert } = useAppContext();
-  const { navigateTo, jobUuid } = useCustomRoute();
+  const { navigateTo, jobUuid, projectUuid } = useCustomRoute();
   const {
-    projectUuid,
     pipelineUuid,
-    isReadOnly,
-    pipelineJson,
-    runUuid,
     pipelineCwd,
-  } = usePipelineEditorContext();
+    isReadOnly,
+    runUuid,
+  } = usePipelineDataContext();
+  const { pipelineJson } = usePipelineEditorContext();
 
   const openNotebook = useOpenNoteBook();
 
@@ -70,7 +70,7 @@ export const FileManagerContextMenu: React.FC<{
       `${FILE_MANAGEMENT_ENDPOINT}/duplicate?${queryArgs({
         path,
         root,
-        project_uuid: projectUuid,
+        projectUuid,
       })}`,
       { method: "POST" }
     );

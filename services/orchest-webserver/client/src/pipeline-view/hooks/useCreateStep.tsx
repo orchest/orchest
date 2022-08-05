@@ -2,6 +2,7 @@ import { relative } from "@/utils/path";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
@@ -20,12 +21,8 @@ const relativeToPipeline = (pipelinePath?: string, path?: string) =>
 export type StepCreator = (filePath?: string) => void;
 
 export const useCreateStep = (): StepCreator => {
-  const {
-    dispatch,
-    environments,
-    pipelineViewportRef,
-    pipelineCwd,
-  } = usePipelineEditorContext();
+  const { pipelineCwd, environments } = usePipelineDataContext();
+  const { dispatch, pipelineViewportRef } = usePipelineEditorContext();
   const {
     pipelineCanvasState: { pipelineOffset },
   } = usePipelineCanvasContext();

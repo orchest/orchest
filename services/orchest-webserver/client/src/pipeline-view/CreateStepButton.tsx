@@ -4,16 +4,14 @@ import Button from "@mui/material/Button";
 import React from "react";
 import { createStepAction } from "./action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
+import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 
 export const CreateStepButton = () => {
   const { setAlert } = useAppContext();
-  const {
-    dispatch,
-    environments,
-    pipelineViewportRef,
-  } = usePipelineEditorContext();
+  const { environments } = usePipelineDataContext();
+  const { dispatch, pipelineViewportRef } = usePipelineEditorContext();
   const { pipelineCanvasState } = usePipelineCanvasContext();
 
   const createStep = async () => {

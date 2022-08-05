@@ -3,7 +3,7 @@ import React from "react";
 import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 
-export const useHotKeysInPipelineEditor = (isSessionRunning: boolean) => {
+export const useHotKeysInPipelineEditor = () => {
   const { eventVars, dispatch } = usePipelineEditorContext();
   const { runSteps } = useInteractiveRunsContext();
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
@@ -11,7 +11,10 @@ export const useHotKeysInPipelineEditor = (isSessionRunning: boolean) => {
   const { setScope } = useHotKeys(
     {
       "pipeline-editor": {
-        "ctrl+a, command+a, ctrl+enter, command+enter": (e, hotKeyEvent) => {
+        "ctrl+a, command+a, ctrl+shift+enter, command+shift+enter, ctrl+enter, command+enter": (
+          e,
+          hotKeyEvent
+        ) => {
           if (["ctrl+a", "command+a"].includes(hotKeyEvent.key)) {
             e.preventDefault();
 
@@ -20,8 +23,19 @@ export const useHotKeysInPipelineEditor = (isSessionRunning: boolean) => {
               payload: { uuids: Object.keys(eventVars.steps) },
             });
           }
-          if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key)) {
-            runSteps(eventVars.selectedSteps, "selection", isSessionRunning);
+          if (
+            ["ctrl+shift+enter", "command+shift+enter"].includes(
+              hotKeyEvent.key
+            )
+          ) {
+            runSteps(Object.keys(eventVars.steps), "selection");
+          }
+          if (
+            ["ctrl+shift+enter", "command+shift+enter"].includes(
+              hotKeyEvent.key
+            )
+          ) {
+            runSteps(eventVars.selectedSteps, "selection");
           }
         },
       },

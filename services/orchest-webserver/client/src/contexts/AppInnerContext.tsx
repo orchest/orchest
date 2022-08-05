@@ -10,7 +10,7 @@ export type AppInnerContextType = {
   checkUpdate: () => Promise<void>;
   webhooks: NotificationWebhookSubscriber[];
   setWebhooks: StateDispatcher<NotificationWebhookSubscriber[]>;
-  fetchWebhooks: () => void | Promise<NotificationWebhookSubscriber[]>;
+  fetchWebhooks: () => void | Promise<void | NotificationWebhookSubscriber[]>;
 };
 
 export const AppInnerContext = React.createContext<AppInnerContextType>(
