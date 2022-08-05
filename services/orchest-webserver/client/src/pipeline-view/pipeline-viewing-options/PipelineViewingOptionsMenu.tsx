@@ -1,4 +1,4 @@
-import { osSpecificHotKey } from "@/utils/isMacOs";
+import { modifierKey } from "@/utils/platform";
 import Divider from "@mui/material/Divider";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
@@ -9,7 +9,7 @@ import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
-type MenuItemData =
+type MenuOption =
   | {
       type: "item";
       label: string;
@@ -17,7 +17,7 @@ type MenuItemData =
       hotKey?: string;
     }
   | {
-      type: "separator";
+      type: "divider";
     };
 
 type PipelineViewingOptionsMenuProps = {
@@ -34,21 +34,21 @@ export const PipelineViewingOptionsMenu = ({
   const { zoomIn, zoomOut, centerView } = usePipelineCanvasContext();
   const { autoLayoutPipeline } = usePipelineUiStateContext();
 
-  const menuItems: readonly MenuItemData[] = React.useMemo(
+  const menuItems: readonly MenuOption[] = React.useMemo(
     () => [
       {
         type: "item",
         label: "Zoom in",
         action: () => zoomIn(),
-        hotKey: `${osSpecificHotKey} Arrow up`,
+        hotKey: `${modifierKey} Arrow up`,
       },
       {
         type: "item",
         label: "Zoom out",
         action: () => zoomOut(),
-        hotKey: `${osSpecificHotKey} Arrow down`,
+        hotKey: `${modifierKey} Arrow down`,
       },
-      { type: "separator" },
+      { type: "divider" },
       {
         type: "item",
         label: "Center view",
@@ -59,11 +59,12 @@ export const PipelineViewingOptionsMenu = ({
         type: "item",
         label: "Auto layout",
         action: () => autoLayoutPipeline(),
-        hotKey: `${osSpecificHotKey} shift o`,
+        hotKey: `${modifierKey} shift o`,
       },
     ],
     [autoLayoutPipeline, centerView, zoomIn, zoomOut]
   );
+
   return (
     <Menu
       id="pipeline-viewing-options-menu"
@@ -74,13 +75,12 @@ export const PipelineViewingOptionsMenu = ({
       MenuListProps={{
         dense: true,
         "aria-labelledby": "pipeline-operations",
-        sx: { width: (theme) => theme.spacing(28) },
       }}
       anchorOrigin={{ vertical: "top", horizontal: "center" }}
       transformOrigin={{ vertical: "bottom", horizontal: "center" }}
     >
       {menuItems.map((option) => {
-        if (option.type === "separator") return <Divider key={uuidv4()} />;
+        if (option.type === "divider") return <Divider key={uuidv4()} />;
         const disabled = !hasValue(option.action);
         return (
           <MenuItem

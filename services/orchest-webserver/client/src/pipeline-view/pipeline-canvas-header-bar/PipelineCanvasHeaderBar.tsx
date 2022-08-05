@@ -5,9 +5,9 @@ import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { CreateStepButton } from "../CreateStepButton";
-import { PipelineOperations } from "./pipeline-operations/PipelineOperations";
 import { PipelineFileName } from "./PipelineFileName";
 import { PipelineMoreOptionsMenu } from "./PipelineMoreOptionsMenu";
+import { PrimaryPipelineButton } from "./primary-action/PrimaryPipelineButton";
 import { ServicesMenu } from "./ServicesMenu";
 
 export const PipelineCanvasHeaderBar = () => {
@@ -43,7 +43,7 @@ export const PipelineCanvasHeaderBar = () => {
               sx={{ height: (theme) => theme.spacing(3) }}
             />
             <CreateStepButton />
-            <PipelineOperations />
+            <PrimaryPipelineButton />
           </>
         )}
         <PipelineMoreOptionsMenu />
