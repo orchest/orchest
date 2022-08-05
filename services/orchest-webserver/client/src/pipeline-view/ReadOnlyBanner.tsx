@@ -1,4 +1,5 @@
 import { PipelineReadOnlyReason } from "@/contexts/ProjectsContext";
+import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
@@ -14,6 +15,7 @@ const titleMapping: Record<PipelineReadOnlyReason, string> = {
   isJobRun: "pipeline snapshot",
   environmentsNotYetBuilt:
     "Not all environments of this project have been built",
+  environmentsBuildInProgress: "Environment build is in progress...",
   JupyterEnvironmentBuildInProgress:
     "JupyterLab environment build is in progress",
 };
@@ -30,6 +32,8 @@ const generateReadOnlyMessage = (jobName: string | undefined) =>
 export const ReadOnlyBanner = () => {
   const { navigateTo } = useCustomRoute();
 
+  const { triggerBuild, viewBuildStatus } = useBuildEnvironmentImages();
+
   const {
     job,
     pipelineReadOnlyReason,
@@ -40,37 +44,49 @@ export const ReadOnlyBanner = () => {
   const { action, label } = React.useMemo(() => {
     if (pipelineReadOnlyReason === "isJobRun") {
       return {
-        action: (e: React.MouseEvent) => [
+        action: (e: React.MouseEvent) => {
           navigateTo(
             siteMap.pipeline.path,
             { query: { projectUuid, pipelineUuid } },
             e
-          ),
-        ],
+          );
+        },
         label: "Open in editor",
       };
     }
 
     if (pipelineReadOnlyReason === "JupyterEnvironmentBuildInProgress") {
       return {
-        action: (e: React.MouseEvent) => [
-          navigateTo(siteMap.configureJupyterLab.path, undefined, e),
-        ],
+        action: (e: React.MouseEvent) => {
+          navigateTo(siteMap.configureJupyterLab.path, undefined, e);
+        },
         label: "JupyterLab configuration",
       };
     }
 
     if (pipelineReadOnlyReason === "environmentsNotYetBuilt") {
       return {
-        action: (e: React.MouseEvent) => [
-          navigateTo(siteMap.environments.path, { query: { projectUuid } }, e),
-        ],
+        action: triggerBuild,
+        label: "Start Building",
+      };
+    }
+
+    if (pipelineReadOnlyReason === "environmentsBuildInProgress") {
+      return {
+        action: viewBuildStatus,
         label: "Open Environments",
       };
     }
 
     return {};
-  }, [navigateTo, pipelineReadOnlyReason, projectUuid, pipelineUuid]);
+  }, [
+    navigateTo,
+    pipelineReadOnlyReason,
+    projectUuid,
+    pipelineUuid,
+    viewBuildStatus,
+    triggerBuild,
+  ]);
 
   return hasValue(pipelineReadOnlyReason) ? (
     <Box
@@ -99,7 +115,7 @@ export const ReadOnlyBanner = () => {
           Read-only: {titleMapping[pipelineReadOnlyReason]}
         </Box>
         {pipelineReadOnlyReason === "isJobRun" && hasValue(job) && (
-          <Typography variant="body1">
+          <Typography variant="body2">
             {generateReadOnlyMessage(job.name)}
           </Typography>
         )}
