@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useCancelablePromise } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import AddIcon from "@mui/icons-material/Add";
@@ -16,7 +17,7 @@ import {
   fetchSessionsInProject,
   getNewEnvironmentName,
   hasSuccessfulBuild,
-  requestToCreateEnvironment,
+  postEnvironment,
 } from "./common";
 import { useEnvironmentList } from "./hooks/useEnvironmentList";
 
@@ -71,13 +72,13 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm, config } = useAppContext();
 
-  const navigateToProject = () => navigateTo(siteMap.projects.path);
+  const navigateToProjects = () => navigateTo(siteMap.projects.path);
   const {
     environmentRows,
     environments,
     isFetchingEnvironments,
     doRemoveEnvironment,
-  } = useEnvironmentList(projectUuid, navigateToProject);
+  } = useEnvironmentList(projectUuid, navigateToProjects);
 
   const onRowClick = (e: React.MouseEvent, environmentUuid: string) => {
     navigateTo(
@@ -91,25 +92,31 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     false
   );
 
+  const { makeCancelable } = useCancelablePromise();
+
   const onCreateClick = async (e: React.MouseEvent) => {
     if (isCreatingEnvironment || !config?.ENVIRONMENT_DEFAULTS || !projectUuid)
       return;
     try {
       setIsCreatingEnvironment(true);
       const defaultEnvironments = config?.ENVIRONMENT_DEFAULTS;
-      const response = await requestToCreateEnvironment(
-        projectUuid,
-        getNewEnvironmentName(defaultEnvironments.name, environments),
-        defaultEnvironments
+      const response = await makeCancelable(
+        postEnvironment(
+          projectUuid,
+          getNewEnvironmentName(defaultEnvironments.name, environments),
+          defaultEnvironments
+        )
       );
+      setIsCreatingEnvironment(false);
       navigateTo(
         siteMap.environment.path,
         { query: { projectUuid, environmentUuid: response.uuid } },
         e
       );
-      setIsCreatingEnvironment(false);
     } catch (error) {
-      setAlert("Error", `Failed to create new environment. ${error}`);
+      if (!error.isCanceled) {
+        setAlert("Error", `Failed to create new environment. ${String(error)}`);
+      }
     }
   };
 

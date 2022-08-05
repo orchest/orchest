@@ -6,7 +6,6 @@ import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
-import BuildPendingDialog from "./components/BuildPendingDialog";
 import { CommandPalette } from "./components/CommandPalette";
 import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
 import { SystemDialog } from "./components/SystemDialog";
@@ -114,7 +113,6 @@ const App = () => {
         </Box>
         <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
         <SystemDialog />
-        <BuildPendingDialog />
         <OnboardingDialog />
         <CommandPalette />
       </AppInnerContextProvider>

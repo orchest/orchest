@@ -59,11 +59,11 @@ export const useEnvironmentListBase = (projectUuid: string | undefined) => {
 
 export const useEnvironmentList = (
   projectUuid: string | undefined,
-  navigateToProject: () => void
+  navigateToProjects: () => void
 ) => {
   const { setAlert } = useAppContext();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const memoizedNavigateToProject = React.useCallback(navigateToProject, []);
+  const memoizedNavigateToProject = React.useCallback(navigateToProjects, []);
 
   const {
     fetchEnvironmentsError,

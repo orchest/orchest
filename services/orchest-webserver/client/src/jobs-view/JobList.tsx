@@ -1,3 +1,4 @@
+import BuildPendingDialog from "@/components/BuildPendingDialog";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAppInnerContext } from "@/contexts/AppInnerContext";
@@ -371,6 +372,7 @@ const JobList = () => {
             onRowClick={onRowClick}
             deleteSelectedRows={deleteSelectedJobs}
           />
+          <BuildPendingDialog />
         </>
       ) : (
         <LinearProgress />

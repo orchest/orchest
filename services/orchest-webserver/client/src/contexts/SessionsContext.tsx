@@ -173,11 +173,10 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
       pipelineUuid: string,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ): Promise<[true] | [false] | [false, FetchError]> => {
+      const hasBuilt = await ensureEnvironmentsAreBuilt(requestedFromView);
+      if (!hasBuilt) return [false, new Error("environmentsNotYetBuilt")];
       const session = getSession(pipelineUuid);
       if (isSessionStarted(session)) return [true];
-
-      const hasBuilt = await ensureEnvironmentsAreBuilt(requestedFromView);
-      if (!hasBuilt) return [false];
       return requestStartSession(pipelineUuid);
     },
     [getSession, ensureEnvironmentsAreBuilt, requestStartSession]
