@@ -205,6 +205,7 @@ importers:
       xterm: ^4.0.0
       xterm-addon-fit: ^0.4.0
       xterm-for-react: ^1.0.4
+      zustand: ^4.0.0
     dependencies:
       '@emotion/react': 11.10.0_tfthlizw7gbxq2fqo7csfn7gui
       '@emotion/styled': 11.10.0_vt7urmpcbibnh2yu5ficyzqkvm
@@ -247,6 +248,7 @@ importers:
       xterm: 4.19.0
       xterm-addon-fit: 0.4.0_xterm@4.19.0
       xterm-for-react: 1.0.4_sfoxds7t5ydpegc3knd667wn6m
+      zustand: 4.0.0_immer@9.0.15+react@17.0.2
     devDependencies:
       '@babel/core': 7.18.10
       '@babel/plugin-transform-modules-commonjs': 7.18.6_@babel+core@7.18.10
@@ -9154,6 +9156,14 @@ packages:
       tslib: 2.4.0
     dev: false
 
+  /use-sync-external-store/1.2.0_react@17.0.2:
+    resolution: {integrity: sha512-eEgnFxGQ1Ife9bzYs6VLi8/4X6CObHMw9Qr9tPY43iKwsPw8xE8+EFsf/2cFZ5S3esXgpWgtSCtLNS41F+sKPA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      react: 17.0.2
+    dev: false
+
   /use/3.1.1:
     resolution: {integrity: sha512-cwESVXlO3url9YWlFW/TA9cshCEhtu7IKJ/p5soJ/gGpj7vbvFrAY/eIioQ6Dw23KjZhYgiIo8HOs1nQ2vr/oQ==}
     engines: {node: '>=0.10.0'}
@@ -9485,3 +9495,20 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
     dev: true
+
+  /zustand/4.0.0_immer@9.0.15+react@17.0.2:
+    resolution: {integrity: sha512-OrsfQTnRXF1LZ9/vR/IqN9ws5EXUhb149xmPjErZnUrkgxS/gAHGy2dPNIVkVvoxrVe1sIydn4JjF0dYHmGeeQ==}
+    engines: {node: '>=12.7.0'}
+    peerDependencies:
+      immer: '>=9.0'
+      react: '>=16.8'
+    peerDependenciesMeta:
+      immer:
+        optional: true
+      react:
+        optional: true
+    dependencies:
+      immer: 9.0.15
+      react: 17.0.2
+      use-sync-external-store: 1.2.0_react@17.0.2
+    dev: false
