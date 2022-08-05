@@ -23,6 +23,9 @@ export const getDefaultImageFromEnvironment = (
   });
 };
 
+/**
+ * Performs a side effect that loads selected base image into the store when query args change.
+ */
 export const useLoadSelectedBaseImage = () => {
   const { orchestVersion } = useAppContext();
   const { environmentUuid, projectUuid } = useCustomRoute();
@@ -53,8 +56,12 @@ export const useLoadSelectedBaseImage = () => {
         orchestVersion
       );
 
-      setSelectedImage(selectedDefaultImage || savedImage);
-      if (!selectedDefaultImage) setCustomImage(savedImage);
+      setSelectedImage(
+        environmentOnEdit.uuid,
+        selectedDefaultImage || savedImage
+      );
+      if (!selectedDefaultImage)
+        setCustomImage(environmentOnEdit.uuid, savedImage);
     }
   }, [
     environmentOnEdit,

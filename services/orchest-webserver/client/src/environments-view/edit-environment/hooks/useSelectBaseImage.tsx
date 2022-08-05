@@ -5,27 +5,29 @@ import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentO
 import { CustomImage } from "@/types";
 import React from "react";
 import { useBaseImageStore } from "../stores/useBaseImageStore";
-import {
-  getDefaultImageFromEnvironment,
-  useLoadSelectedBaseImage,
-} from "./useLoadSelectedBaseImage";
+import { getDefaultImageFromEnvironment } from "./useLoadSelectedBaseImage";
 
+/**
+ * Provides functions to select a base image for the environment, including
+ * the custom image.
+ */
 export const useSelectBaseImage = () => {
   const { orchestVersion } = useAppContext();
   const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
   const disabled = isEnvironmentBuilding(environmentOnEdit?.latestBuild);
-  useLoadSelectedBaseImage();
 
   const [
     selectedImage,
     setSelectedImage,
     customImage,
     editCustomImageInStore,
+    environmentUuid,
   ] = useBaseImageStore((state) => [
     state.selectedImage,
     state.setSelectedImage,
     state.customImage,
     state.editCustomImage,
+    state.environmentUuid,
   ]);
 
   const isTouched = React.useRef(false);
@@ -39,6 +41,7 @@ export const useSelectBaseImage = () => {
           selectedImage.base_image,
           orchestVersion
         ) || selectedImage;
+
       setEnvironmentOnEdit(baseImageForSaving);
     }
   }, [selectedImage, setEnvironmentOnEdit, orchestVersion]);
@@ -49,10 +52,10 @@ export const useSelectBaseImage = () => {
 
   const selectBaseImage = React.useCallback(
     (baseImage: string) => {
-      if (disabled) return;
+      if (disabled || !environmentOnEdit?.uuid) return;
       isTouched.current = true;
       if (baseImage === customImage.base_image) {
-        setSelectedImage(customImage);
+        setSelectedImage(environmentOnEdit.uuid, customImage);
         return;
       }
 
@@ -61,9 +64,16 @@ export const useSelectBaseImage = () => {
           baseImage
         )
       );
-      if (foundDefaultImage) setSelectedImage(foundDefaultImage);
+      if (foundDefaultImage)
+        setSelectedImage(environmentOnEdit.uuid, foundDefaultImage);
     },
-    [customImage, disabled, orchestVersion, setSelectedImage]
+    [
+      customImage,
+      disabled,
+      orchestVersion,
+      setSelectedImage,
+      environmentOnEdit?.uuid,
+    ]
   );
 
   const editCustomImage = React.useCallback(
@@ -79,5 +89,6 @@ export const useSelectBaseImage = () => {
     customImage,
     editCustomImage,
     selectBaseImage,
+    environmentUuid,
   };
 };
