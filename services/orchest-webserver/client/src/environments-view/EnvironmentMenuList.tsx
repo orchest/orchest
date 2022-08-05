@@ -1,3 +1,4 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
@@ -5,14 +6,15 @@ import React from "react";
 import { CreateEnvironmentButton } from "./CreateEnvironmentButton";
 import { EnvironmentMenuItem } from "./EnvironmentMenuItem";
 import { useSelectEnvironment } from "./hooks/useSelectEnvironment";
+import { useSyncEnvironmentUuidWithQueryArgs } from "./hooks/useSyncEnvironmentUuidWithQueryArgs";
 import { useUpdateBuildStatus } from "./hooks/useUpdateBuildStatus";
+import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
 
 export const EnvironmentMenuList = () => {
-  const {
-    selectEnvironment,
-    environments = [],
-    environmentOnEdit,
-  } = useSelectEnvironment();
+  useSyncEnvironmentUuidWithQueryArgs();
+  const { selectEnvironment } = useSelectEnvironment();
+  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const { environments = [] } = useEnvironmentsApi();
 
   const { hasLoadedBuildStatus } = useUpdateBuildStatus();
 
@@ -39,7 +41,7 @@ export const EnvironmentMenuList = () => {
         {environments.map((environment) => {
           const selected =
             hasValue(environmentOnEdit) &&
-            environmentOnEdit === environment.uuid;
+            environmentOnEdit.uuid === environment.uuid;
           return (
             <EnvironmentMenuItem
               key={environment.uuid}

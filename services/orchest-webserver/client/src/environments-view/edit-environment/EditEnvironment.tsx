@@ -11,9 +11,11 @@ import { BuildStatusAlert } from "./BuildStatusAlert";
 import { EnvironmentImageBuildLogs } from "./EnvironmentImageBuildLogs";
 import { EnvironmentName } from "./EnvironmentName";
 import { EnvironmentSetupScript } from "./EnvironmentSetupScript";
+import { useLoadSelectedBaseImage } from "./hooks/useLoadSelectedBaseImage";
 import { NoEnvironment } from "./NoEnvironment";
 
 export const EditEnvironment = () => {
+  useLoadSelectedBaseImage();
   const { environmentOnEdit } = useSaveEnvironmentOnEdit();
   const { environments } = useGetEnvironments();
   const hasNoEnvironment = environments?.length === 0;

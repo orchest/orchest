@@ -17,6 +17,7 @@ type EnvironmentBuildStatus =
 export type EnvironmentsApiState = {
   projectUuid?: string;
   environments?: EnvironmentState[];
+  setEnvironment: (uuid: string, value: Partial<Environment>) => void;
   isFetchingAll: boolean;
   fetch: (projectUuid: string, language?: string) => Promise<void>;
   isPosting: boolean;
@@ -101,6 +102,17 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
   };
 
   return {
+    setEnvironment: (uuid, payload) => {
+      set((state) => {
+        return {
+          environments: (state.environments || []).map((environment) =>
+            environment.uuid === uuid
+              ? { ...environment, ...payload }
+              : environment
+          ),
+        };
+      });
+    },
     isFetchingAll: false,
     fetch: async (projectUuid, language) => {
       try {

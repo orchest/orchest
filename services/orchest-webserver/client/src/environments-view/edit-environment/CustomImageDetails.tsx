@@ -14,6 +14,7 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -38,7 +39,12 @@ export const isDefaultImage = (baseImage: string) => {
 export const CustomImageDetails = () => {
   const { config } = useGlobalContext();
 
-  const { selectedImage, customImage, editCustomImage } = useSelectBaseImage();
+  const {
+    selectedImage,
+    customImage,
+    editCustomImage,
+    environmentUuid,
+  } = useSelectBaseImage();
 
   const isOpen = selectedImage.base_image === customImage.base_image;
 
@@ -68,15 +74,20 @@ export const CustomImageDetails = () => {
     editCustomImage,
   ]);
 
-  const hasSetValue = React.useRef(false);
+  const hasInitializedEnvironmentUuid = React.useRef<string>();
+  const shouldReinitializeValue =
+    isOpen &&
+    hasValue(environmentUuid) &&
+    hasInitializedEnvironmentUuid.current !== environmentUuid;
+
   React.useEffect(() => {
-    if (isOpen && !hasSetValue.current) {
-      hasSetValue.current = true;
+    if (shouldReinitializeValue) {
+      hasInitializedEnvironmentUuid.current = environmentUuid;
       for (const [name, value] of Object.entries(customImage)) {
         setValue(name as keyof CustomImage, value);
       }
     }
-  }, [isOpen, customImage, setValue]);
+  }, [shouldReinitializeValue, customImage, setValue, environmentUuid]);
 
   return (
     <Collapse in={isOpen}>
