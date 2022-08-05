@@ -5,7 +5,7 @@ import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 
-export const useServices = (pipelineRunning: boolean) => {
+export const useServices = (jobRunRunning: boolean) => {
   const { jobUuid } = useCustomRoute();
   const { pipelineJson } = usePipelineEditorContext();
   const { session, runUuid } = usePipelineDataContext();
@@ -26,7 +26,7 @@ export const useServices = (pipelineRunning: boolean) => {
     (!isJobRun && session?.status !== "RUNNING") ||
     // It is a job run (non-interactive run), we are unable to check its actual session,
     // but we can check its job run status,
-    (isJobRun && pipelineJson && !pipelineRunning);
+    (isJobRun && pipelineJson && !jobRunRunning);
 
   const services = React.useMemo(() => {
     if (isServicesUnavailable) return null;

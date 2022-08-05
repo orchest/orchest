@@ -6,10 +6,10 @@ import { ServicesMenuComponent } from "./ServicesMenuComponent";
 import { useServices } from "./useServices";
 
 export const ServicesMenu = () => {
-  const { pipelineRunning } = useInteractiveRunsContext();
+  const { displayedPipelineStatus } = useInteractiveRunsContext();
   const servicesButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const { anchor, services, showServices, hideServices } = useServices(
-    pipelineRunning
+    displayedPipelineStatus === "RUNNING"
   );
   return (
     <>

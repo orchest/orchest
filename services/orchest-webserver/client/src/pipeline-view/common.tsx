@@ -4,6 +4,7 @@ import type {
   PipelineJson,
   PipelineStepState,
   Position,
+  Step,
   StepsDict,
 } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
@@ -24,8 +25,6 @@ export const updatePipelineJson = (
   pipelineJson: PipelineJson,
   steps: StepsDict
 ): PipelineJson => {
-  if (!pipelineJson) return;
-
   let clonedPipelineJson: PipelineJson = cloneDeep(pipelineJson);
   clonedPipelineJson.steps = {};
 
@@ -133,7 +132,7 @@ function dfsWithSets<
   whiteSet.delete(step_uuid);
   greySet.add(step_uuid);
 
-  for (let childUuid of steps[step_uuid].outgoing_connections) {
+  for (let childUuid of steps[step_uuid].outgoing_connections || []) {
     if (whiteSet.has(childUuid)) {
       if (dfsWithSets(steps, childUuid, whiteSet, greySet)) {
         return true;
@@ -157,7 +156,10 @@ export const willCreateCycle = (
   const steps = Object.entries(_steps).reduce((newCopy, [uuid, step]) => {
     return {
       ...newCopy,
-      [uuid]: { uuid, incoming_connections: [...step.incoming_connections] },
+      [uuid]: {
+        uuid,
+        incoming_connections: [...step.incoming_connections],
+      } as Step,
     };
   }, {} as StepsDict);
   // add new connection
