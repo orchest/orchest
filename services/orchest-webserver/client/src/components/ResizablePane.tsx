@@ -28,7 +28,7 @@ export type ResizableContainerProps = BoxProps & {
 };
 
 /** The width/height of the area the you can grab to resize, in pixels. */
-const HANDLE_SIZE = 5;
+const HANDLE_SIZE = 4;
 
 /**
  * Creates a MUI Box component which can be resized
