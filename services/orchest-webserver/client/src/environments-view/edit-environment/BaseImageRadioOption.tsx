@@ -2,6 +2,7 @@ import { ContainerImageTile } from "@/environments-view/edit-environment/Contain
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import { useRadioGroup } from "@mui/material/RadioGroup";
+import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
@@ -11,7 +12,7 @@ import React from "react";
 type BaseImageRadioOptionProps = {
   disabled: boolean;
   value: string;
-  children: React.ReactElement;
+  children: React.ReactNode;
   title?: string;
 };
 export const BaseImageRadioOption = ({
@@ -25,7 +26,14 @@ export const BaseImageRadioOption = ({
   const icon = (
     <>
       <ContainerImageTile checked={checked}>
-        {children || value}
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="center"
+        >
+          {children || value}
+        </Stack>
       </ContainerImageTile>
     </>
   );
