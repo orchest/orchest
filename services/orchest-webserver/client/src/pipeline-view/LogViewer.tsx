@@ -10,7 +10,7 @@ import { useSocketIO } from "./hooks/useSocketIO";
 
 const HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
 
-export interface ILogViewerProps {
+export interface LogViewerProps {
   pipelineUuid: string | undefined;
   projectUuid: string | undefined;
   jobUuid: string | undefined | null;
@@ -28,7 +28,7 @@ export const LogViewer = ({
   runUuid,
   type,
   terminalSx,
-}: ILogViewerProps) => {
+}: LogViewerProps) => {
   const sessionUuid = React.useMemo<string>(() => uuidv4(), []);
   const [heartbeatInterval, setHeartbeatInterval] = React.useState<
     number | null
