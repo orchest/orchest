@@ -2,7 +2,7 @@ import { PipelineReadOnlyReason } from "@/contexts/ProjectsContext";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { Alert } from "@mui/material";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
