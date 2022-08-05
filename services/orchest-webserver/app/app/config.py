@@ -82,6 +82,8 @@ class Config:
     CLOUD = _config.CLOUD
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
+    OPENREPLAY_PROJECT_KEY = "yotEvKXSA22pOnv4vzSC"
+    OPENREPLAY_INGEST_POINT = "https://openreplay.orchest.io/ingest"
     INTERCOM_APP_ID = "v61sr629"
     INTERCOM_DEFAULT_SIGNUP_DATE = "1577833200"
 

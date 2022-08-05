@@ -47,7 +47,19 @@ def _get_builder_cache_cleanup_workflow_manifest():
                         "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
                         "workingDir": "/build-context",
                         "command": ["/bin/sh", "-c"],
-                        "args": ["sudo rm -rf /builder-cache/* && echo 'SUCCESS'"],
+                        "args": [
+                            " && ".join(
+                                [
+                                    "echo 'Running builda rm'",
+                                    "buildah rm --all",
+                                    "echo 'Running builda rmi'",
+                                    "buildah rmi --all --force",
+                                    "echo 'Running rf'",
+                                    "rm -rf /builder-cache/*",
+                                    "echo 'SUCCESS'",
+                                ]
+                            )
+                        ],
                         "securityContext": {
                             "privileged": True,
                         },

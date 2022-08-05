@@ -189,6 +189,8 @@ def register_views(app, db):
             "CLOUD",
             "GPU_ENABLED_INSTANCE",
             "CLOUD_UNMODIFIABLE_CONFIG_VALUES",
+            "OPENREPLAY_PROJECT_KEY",
+            "OPENREPLAY_INGEST_POINT",
             "INTERCOM_APP_ID",
             "INTERCOM_DEFAULT_SIGNUP_DATE",
         ]
@@ -507,7 +509,11 @@ def register_views(app, db):
 
         if request.args.get("skip_discovery") != "true":
             discoverFSDeletedProjects()
-            discoverFSCreatedProjects()
+            discoverFSCreatedProjects(
+                skip_env_builds_on_discovery=request.args.get(
+                    "skip_env_builds_on_discovery", False
+                )
+            )
 
         # Projects that are in a INITIALIZING or DELETING state won't
         # be shown until ready.

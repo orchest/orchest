@@ -2,75 +2,6 @@ window.document.addEventListener("DOMContentLoaded", function () {
   const CONTAINER_CLASS = ".installer-container";
 
   let installerData = {
-    Cloud: {
-      GKE: {
-        instructions: `
-<p>Make sure to first create a
-<a href="https://cloud.google.com/kubernetes-engine/docs/deploy-app-cluster#create_cluster">GKE cluster</a>
-and
-<a href="https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl">configure kubectl</a>
-to access the cluster. Next,
-<a href="https://kubernetes.github.io/ingress-nginx/deploy/#gce-gke">install the NGINX ingress controller</a>
-using <code class="docutils literal notranslate"><span class="pre">kubectl</span></code>.
-</p>
-
-
-<p>Now that your GKE cluster is set up correctly, Orchest can be installed using the <code
-class="docutils literal notranslate"><span class="pre">orchest-cli</span></code>:</p>
-<div class="highlight">
-<pre>
-pip install --upgrade orchest-cli
-orchest install
-</pre>
-</div>
-
-<p>After installing Orchest, you can reach it on the IP returned by:</p>
-<div class="highlight">
-<pre>
-kubectl get svc ingress-nginx-controller \\
-    -n ingress-nginx \\
-    -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
-</pre>
-</div>
-<p>
-`,
-      },
-      EKS: {
-        instructions: `
-<p>
-Get started by installing <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> and setting up an
-<a href="https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html">EKS cluster</a>
-on AWS. then, to properly set-up your cluster, install the
-<a href="https://kubernetes.github.io/ingress-nginx/deploy/#aws">NGINX ingress controller</a> and make it the
-default ingress class by running the following command.
-</p>
-<div class="highlight">
-<pre>
-kubectl patch ingressclass nginx  -p \\
-    '{"metadata":{"annotations":{"ingressclass.kubernetes.io/is-default-class":"true"}}}'
-</pre>
-</div>
-<p>All that is left is installing Orchest using the <code class="docutils literal notranslate"><span
-class="pre">orchest-cli</span></code>:</p>
-<div class="highlight">
-<pre>
-pip install --upgrade orchest-cli
-orchest install
-</pre>
-</div>
-
-<p>Now that Orchest is installed, it can be reached on the address returned by:</p>
-<div class="highlight">
-<pre>
-kubectl get svc ingress-nginx-controller \\
-    -n ingress-nginx \\
-    -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
-</pre>
-</div>
-<p>
-        `,
-      },
-    },
     Linux: {
       minikube: {
         instructions: `
@@ -95,7 +26,7 @@ will simply proceed to the next step.</p>
       },
       MicroK8s: {
         instructions: `
-<p>First, ensure you have <a href="https://microk8s.io/#install-microk8s">MicroK8s</a> installed. 
+<p>First, ensure you have <a href="https://microk8s.io/#install-microk8s">MicroK8s</a> installed.
 Next, <a href="https://microk8s.io/docs/working-with-kubectl">configure kubectl</a> to access the cluster
 and install the following addons:</p>
 <div class="highlight">
@@ -185,7 +116,7 @@ opening the distribution using the Start menu or by <a class="reference external
 href="https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal">setting
 up the Windows Terminal</a>.</p>
 
-<p>First, ensure you have <a href="https://microk8s.io/#install-microk8s">MicroK8s</a> installed. 
+<p>First, ensure you have <a href="https://microk8s.io/#install-microk8s">MicroK8s</a> installed.
 Next, <a href="https://microk8s.io/docs/working-with-kubectl">configure kubectl</a> to access the cluster
 and install the following addons:</p>
 <div class="highlight">
@@ -213,6 +144,75 @@ your custom Environments to the MicroK8s node.
 <p>Now that Orchest is installed, it can be reached on <a href="http://localhost/">localhost</a>
 directly.</p>
           `,
+      },
+    },
+    Cloud: {
+      GKE: {
+        instructions: `
+<p>Make sure to first create a
+<a href="https://cloud.google.com/kubernetes-engine/docs/deploy-app-cluster#create_cluster">GKE cluster</a>
+and
+<a href="https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl">configure kubectl</a>
+to access the cluster. Next,
+<a href="https://kubernetes.github.io/ingress-nginx/deploy/#gce-gke">install the NGINX ingress controller</a>
+using <code class="docutils literal notranslate"><span class="pre">kubectl</span></code>.
+</p>
+
+
+<p>Now that your GKE cluster is set up correctly, Orchest can be installed using the <code
+class="docutils literal notranslate"><span class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+
+<p>After installing Orchest, you can reach it on the IP returned by:</p>
+<div class="highlight">
+<pre>
+kubectl get svc ingress-nginx-controller \\
+    -n ingress-nginx \\
+    -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+</pre>
+</div>
+<p>
+`,
+      },
+      EKS: {
+        instructions: `
+<p>
+Get started by installing <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> and setting up an
+<a href="https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html">EKS cluster</a>
+on AWS. then, to properly set-up your cluster, install the
+<a href="https://kubernetes.github.io/ingress-nginx/deploy/#aws">NGINX ingress controller</a> and make it the
+default ingress class by running the following command.
+</p>
+<div class="highlight">
+<pre>
+kubectl patch ingressclass nginx  -p \\
+    '{"metadata":{"annotations":{"ingressclass.kubernetes.io/is-default-class":"true"}}}'
+</pre>
+</div>
+<p>All that is left is installing Orchest using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+
+<p>Now that Orchest is installed, it can be reached on the address returned by:</p>
+<div class="highlight">
+<pre>
+kubectl get svc ingress-nginx-controller \\
+    -n ingress-nginx \\
+    -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+</pre>
+</div>
+<p>
+        `,
       },
     },
   };

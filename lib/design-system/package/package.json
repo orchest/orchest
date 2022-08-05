@@ -34,7 +34,7 @@
     "@types/node": "15.0.1",
     "@types/react": "17.0.3",
     "concurrently": "6.0.2",
-    "esbuild": "~0.14.0",
+    "esbuild": "~0.14.53",
     "fs-extra": "10.0.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",

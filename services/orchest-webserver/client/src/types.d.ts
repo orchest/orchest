@@ -70,6 +70,8 @@ export type OrchestConfig = {
   ENVIRONMENT_DEFAULTS: DefaultEnvironment;
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;
+  OPENREPLAY_PROJECT_KEY: string;
+  OPENREPLAY_INGEST_POINT: string;
   INTERCOM_APP_ID: string;
   INTERCOM_DEFAULT_SIGNUP_DATE: string;
   ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE: string;
