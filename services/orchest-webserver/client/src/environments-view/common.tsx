@@ -82,7 +82,7 @@ export const getNewEnvironmentName = (
   return finalName;
 };
 
-export const requestToCreateEnvironment = (
+export const postEnvironment = (
   projectUuid: string,
   environmentName: string,
   defaultEnvironments: DefaultEnvironment

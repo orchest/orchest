@@ -37,6 +37,7 @@ const ProjectsContext = React.createContext<IProjectsContext>(
 export type PipelineReadOnlyReason =
   | "isJobRun"
   | "environmentsNotYetBuilt"
+  | "environmentsBuildInProgress"
   | "JupyterEnvironmentBuildInProgress";
 
 export type ProjectsContextState = {
@@ -333,7 +334,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     (
       projectUuid: string,
       environmentValidationData: EnvironmentValidationData,
-      requestedFromView?: BUILD_IMAGE_SOLUTION_VIEW
+      requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ) => {
       return new Promise<boolean>((resolve) =>
         dispatch({
@@ -351,7 +352,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     [dispatch]
   );
 
-  const doRequestBuild = React.useCallback(
+  const triggerRequestBuild = React.useCallback(
     async (
       environmentValidationData: EnvironmentValidationData,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
@@ -366,10 +367,10 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         ].includes(requestedFromView);
 
       if (shouldSetReadOnly)
-        dispatch({
+        dispatch((state) => ({
           type: "SET_PIPELINE_READONLY_REASON",
-          payload: "environmentsNotYetBuilt",
-        });
+          payload: state.pipelineReadOnlyReason || "environmentsNotYetBuilt",
+        }));
 
       const hasBuilt = await requestBuild(
         state.projectUuid,
@@ -395,10 +396,10 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         await checkGate(state.projectUuid);
         return true;
       } catch (error) {
-        return doRequestBuild(error.data, requestedFromView);
+        return triggerRequestBuild(error.data, requestedFromView);
       }
     },
-    [state.projectUuid, doRequestBuild]
+    [state.projectUuid, triggerRequestBuild]
   );
 
   return (

@@ -1,3 +1,4 @@
+import BuildPendingDialog from "@/components/BuildPendingDialog";
 import { TabPanel } from "@/components/common/Tabs";
 import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
@@ -458,6 +459,7 @@ const JobView: React.FC = () => {
                 </Button>
               )}
             </Stack>
+            <BuildPendingDialog />
           </div>
         )}
       </>
