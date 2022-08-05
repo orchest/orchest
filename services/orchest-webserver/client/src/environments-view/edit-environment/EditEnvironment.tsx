@@ -8,6 +8,7 @@ import { EnvironmentMoreOptions } from "../EnvironmentMoreOptions";
 import { useGetEnvironments } from "../hooks/useGetEnvironments";
 import { useSaveEnvironmentOnEdit } from "../hooks/useSaveEnvironmentOnEdit";
 import { BuildStatusAlert } from "./BuildStatusAlert";
+import { EnvironmentImageBuildLogs } from "./EnvironmentImageBuildLogs";
 import { EnvironmentName } from "./EnvironmentName";
 import { EnvironmentSetupScript } from "./EnvironmentSetupScript";
 import { NoEnvironment } from "./NoEnvironment";
@@ -39,6 +40,7 @@ export const EditEnvironment = () => {
       <EnvironmentName />
       <EnvironmentImagesRadioGroup />
       <EnvironmentSetupScript />
+      <EnvironmentImageBuildLogs />
     </Stack>
   );
 };
