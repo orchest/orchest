@@ -1,7 +1,7 @@
+import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
 import RadioGroup from "@mui/material/RadioGroup";
-import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -52,22 +52,13 @@ export const EnvironmentImagesRadioGroup = () => {
                 value={base_image}
                 disabled={isUnavailable || disabled}
               >
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  alignItems="center"
-                  justifyContent="flex-start"
-                >
-                  <Image
-                    src={`${img_src}`}
-                    alt={isUnavailable ? "Temporarily unavailable" : base_image}
-                    loading="lazy"
-                    sx={
-                      isUnavailable ? { filter: "grayscale(100%)" } : undefined
-                    }
-                  />
-                  <Typography variant="body2">{label}</Typography>
-                </Stack>
+                <Image
+                  src={`${img_src}`}
+                  alt={isUnavailable ? "Temporarily unavailable" : base_image}
+                  loading="lazy"
+                  sx={isUnavailable ? { filter: "grayscale(100%)" } : undefined}
+                />
+                <Typography variant="body2">{label}</Typography>
               </BaseImageRadioOption>
             );
           })}
@@ -76,6 +67,7 @@ export const EnvironmentImagesRadioGroup = () => {
             value={customImage.base_image}
             disabled={disabled}
           >
+            <AddCircleOutlineOutlinedIcon color="primary" />
             <Typography variant="body2">Custom</Typography>
           </BaseImageRadioOption>
         </RadioGroup>
