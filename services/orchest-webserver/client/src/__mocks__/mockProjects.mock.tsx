@@ -149,6 +149,7 @@ const generateMockProjectData = (projectUuid: string): Project => {
     path: "dummy-project",
     pipeline_count: 1,
     job_count: 1,
+    active_job_count: 1,
     environment_count: 1,
     project_snapshot_size: 30, // used
     env_variables: { [chance.string()]: chance.string() }, // used

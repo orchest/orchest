@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Connection,
@@ -15,6 +16,7 @@ import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
+import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { getFilePathForRelativeToProject } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
@@ -151,20 +153,22 @@ const PipelineStepComponent = React.forwardRef<
   const { executeRun } = useInteractiveRunsContext();
   const [, forceUpdate] = useForceUpdate();
   const { setAlert } = useAppContext();
+  const { projectUuid, jobUuid } = useCustomRoute();
   const {
-    metadataPositions,
-    projectUuid,
     pipelineUuid,
     pipelineCwd,
-    stepDomRefs,
     isReadOnly,
+    runUuid,
+  } = usePipelineDataContext();
+  const {
+    metadataPositions,
+    stepDomRefs,
     zIndexMax,
     dispatch,
     mouseTracker,
     newConnection,
     keysDown,
-    jobUuid,
-    runUuid,
+
     eventVars: {
       cursorControlledStep,
       steps,

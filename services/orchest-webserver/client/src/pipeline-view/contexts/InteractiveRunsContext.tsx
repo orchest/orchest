@@ -1,8 +1,10 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
 import { RunStepsType, useInteractiveRuns } from "../hooks/useInteractiveRuns";
+import { usePipelineDataContext } from "./PipelineDataContext";
 
 export type InteractiveRunsContextType = ReturnType<
   typeof useInteractiveRuns
@@ -14,11 +16,7 @@ export type InteractiveRunsContextType = ReturnType<
     jobUuid?: string | undefined;
     runUuid?: string | undefined;
   }) => Promise<void>;
-  runSteps: (
-    uuids: string[],
-    type: RunStepsType,
-    isSessionRunning: boolean
-  ) => void;
+  runSteps: (uuids: string[], type: RunStepsType) => void;
 };
 
 export const InteractiveRunsContext = React.createContext<
@@ -30,13 +28,24 @@ export const useInteractiveRunsContext = () =>
 
 export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
   const { setConfirm, setAlert } = useAppContext();
+
+  const { projectUuid } = useCustomRoute();
+
+  const {
+    session,
+    pipelineJson,
+    runUuid,
+    setRunUuid,
+  } = usePipelineDataContext();
+  const isSessionRunning = session?.status === "RUNNING";
+
   const {
     stepExecutionState,
     pipelineRunning,
     isCancellingRun,
     setIsCancellingRun,
     executeRun,
-  } = useInteractiveRuns();
+  } = useInteractiveRuns({ projectUuid, runUuid, setRunUuid, pipelineJson });
 
   const cancelRun = React.useCallback(
     async ({ jobUuid, runUuid }: { jobUuid?: string; runUuid?: string }) => {
@@ -84,7 +93,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
   );
 
   const runSteps = React.useCallback(
-    (uuids: string[], type: RunStepsType, isSessionRunning: boolean) => {
+    (uuids: string[], type: RunStepsType) => {
       if (!isSessionRunning) {
         setAlert(
           "Error",
@@ -95,7 +104,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
 
       executeRun(uuids, type);
     },
-    [executeRun, setAlert]
+    [executeRun, setAlert, isSessionRunning]
   );
 
   return (

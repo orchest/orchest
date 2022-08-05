@@ -1,11 +1,8 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
-  Environment,
   MouseTracker,
   NewConnection,
-  OrchestSession,
   PipelineJson,
   Position,
   StepsDict,
@@ -14,21 +11,15 @@ import { getOffset } from "@/utils/jquery-replacement";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getScaleCorrectedPosition } from "../common";
-import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import {
   EventVars,
   EventVarsAction,
   useEventVars,
 } from "../hooks/useEventVars";
-import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
-import { useIsReadOnly } from "../hooks/useIsReadOnly";
+import { usePipelineDataContext } from "./PipelineDataContext";
 
 export type PipelineEditorContextType = {
-  projectUuid: string | undefined;
-  pipelineUuid: string | undefined;
-  jobUuid: string | undefined;
-  runUuid: string | undefined;
   eventVars: EventVars;
   dispatch: (value: EventVarsAction) => void;
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
@@ -39,9 +30,7 @@ export type PipelineEditorContextType = {
   trackMouseMovement: (clientX: number, clientY: number) => void;
   mouseTracker: React.MutableRefObject<MouseTracker>;
   metadataPositions: React.MutableRefObject<Record<string, [number, number]>>;
-  pipelineCwd: string | undefined;
   pipelineJson: PipelineJson | undefined;
-  environments: Environment[];
   setPipelineJson: (
     data?:
       | PipelineJson
@@ -50,10 +39,7 @@ export type PipelineEditorContextType = {
     flushPage?: boolean | undefined
   ) => void;
   hash: React.MutableRefObject<string>;
-  fetchDataError: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   zIndexMax: React.MutableRefObject<number>;
-  isReadOnly: boolean;
   instantiateConnection: (
     startNodeUUID: string,
     endNodeUUID?: string | undefined
@@ -61,7 +47,6 @@ export type PipelineEditorContextType = {
     startNodeUUID: string;
     endNodeUUID: string | undefined;
   };
-  session: OrchestSession | undefined;
   getOnCanvasPosition: (offset: Position) => Position;
   disabled: boolean;
   isContextMenuOpen: boolean;
@@ -80,10 +65,10 @@ export const usePipelineEditorContext = () => {
 
 export const PipelineEditorContextProvider: React.FC = ({ children }) => {
   const {
-    state: { pipelines, projectUuid, pipeline },
+    state: { pipelines },
   } = useProjectsContext();
-  const pipelineUuid = pipeline?.uuid;
-  const { jobUuid } = useCustomRoute();
+
+  const { isReadOnly } = usePipelineDataContext();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
   const disabled = hasValue(pipelines) && pipelines.length === 0;
@@ -137,20 +122,9 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     [dispatch, instantiateConnection]
   );
 
-  const { runUuid, setRunUuid } = useFetchInteractiveRun();
-
-  const isReadOnly = useIsReadOnly();
-
-  const {
-    pipelineCwd,
-    pipelineJson,
-    environments,
-    setPipelineJson,
-    hash,
-    error: fetchDataError,
-  } = useInitializePipelineEditor(runUuid, isReadOnly, initializeEventVars);
-
-  const session = useAutoStartSession();
+  const { pipelineJson, setPipelineJson, hash } = useInitializePipelineEditor(
+    initializeEventVars
+  );
 
   React.useEffect(() => {
     const startTracking = (e: MouseEvent) =>
@@ -194,8 +168,6 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
   return (
     <PipelineEditorContext.Provider
       value={{
-        projectUuid,
-        pipelineUuid,
         eventVars,
         dispatch,
         stepDomRefs,
@@ -206,19 +178,11 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         trackMouseMovement,
         mouseTracker,
         metadataPositions,
-        pipelineCwd,
         pipelineJson,
-        environments,
         setPipelineJson,
         hash,
-        fetchDataError,
-        runUuid,
-        setRunUuid,
         zIndexMax,
-        isReadOnly,
         instantiateConnection,
-        jobUuid,
-        session,
         getOnCanvasPosition,
         disabled,
         isContextMenuOpen,
