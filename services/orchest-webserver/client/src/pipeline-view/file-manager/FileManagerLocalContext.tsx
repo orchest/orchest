@@ -147,20 +147,21 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [setContextMenu]);
 
   const {
-    state: { pipelineIsReadOnly },
+    state: { pipelineReadOnlyReason },
     dispatch,
   } = useProjectsContext();
 
   const handleContextRename = React.useCallback(() => {
-    if (pipelineIsReadOnly || !contextMenuCombinedPath) return;
+    if (pipelineReadOnlyReason || !contextMenuCombinedPath) return;
 
     handleClose();
     setFileInRename(contextMenuCombinedPath);
     setFileRenameNewName(basename(contextMenuCombinedPath));
-  }, [contextMenuCombinedPath, handleClose, pipelineIsReadOnly]);
+  }, [contextMenuCombinedPath, handleClose, pipelineReadOnlyReason]);
 
   const handleDelete = React.useCallback(async () => {
-    if (pipelineIsReadOnly || !contextMenuCombinedPath || !projectUuid) return;
+    if (pipelineReadOnlyReason || !contextMenuCombinedPath || !projectUuid)
+      return;
 
     handleClose();
 
@@ -254,7 +255,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     reload,
     setConfirm,
     handleClose,
-    pipelineIsReadOnly,
+    pipelineReadOnlyReason,
     pipeline?.path,
     navigateTo,
     dispatch,

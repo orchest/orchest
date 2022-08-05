@@ -34,9 +34,14 @@ const ProjectsContext = React.createContext<IProjectsContext>(
   {} as IProjectsContext
 );
 
-export type IProjectsContextState = {
+export type PipelineReadOnlyReason =
+  | "isJobRun"
+  | "environmentsNotYetBuilt"
+  | "JupyterEnvironmentBuildInProgress";
+
+export type ProjectsContextState = {
   projectUuid?: string;
-  pipelineIsReadOnly: boolean;
+  pipelineReadOnlyReason?: PipelineReadOnlyReason;
   pipelineSaveStatus: "saved" | "saving";
   pipelines: PipelineMetaData[] | undefined;
   pipeline: PipelineMetaData | undefined;
@@ -65,11 +70,11 @@ type Action =
     }
   | {
       type: "SET_PIPELINE_SAVE_STATUS";
-      payload: IProjectsContextState["pipelineSaveStatus"];
+      payload: ProjectsContextState["pipelineSaveStatus"];
     }
   | {
       type: "SET_PROJECT";
-      payload: IProjectsContextState["projectUuid"];
+      payload: ProjectsContextState["projectUuid"];
     }
   | {
       type: "SET_PROJECTS";
@@ -80,8 +85,8 @@ type Action =
       payload: Example[];
     }
   | {
-      type: "SET_PIPELINE_IS_READONLY";
-      payload: boolean;
+      type: "SET_PIPELINE_READONLY_REASON";
+      payload: PipelineReadOnlyReason | undefined;
     }
   | {
       type: "UPDATE_PIPELINE";
@@ -93,12 +98,12 @@ type Action =
     };
 
 export type ProjectsContextAction = ReducerActionWithCallback<
-  IProjectsContextState,
+  ProjectsContextState,
   Action
 >;
 
 export interface IProjectsContext {
-  state: IProjectsContextState;
+  state: ProjectsContextState;
   dispatch: (value: ProjectsContextAction) => void;
   ensureEnvironmentsAreBuilt: (
     requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
@@ -106,8 +111,7 @@ export interface IProjectsContext {
   requestBuild: RequestBuildDispatcher;
 }
 
-const initialState: IProjectsContextState = {
-  pipelineIsReadOnly: true,
+const initialState: ProjectsContextState = {
   pipelineSaveStatus: "saved",
   pipelines: undefined,
   pipeline: undefined,
@@ -171,7 +175,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
   );
 
   const memoizedReducer = React.useCallback(
-    (state: IProjectsContextState, _action: ProjectsContextAction) => {
+    (state: ProjectsContextState, _action: ProjectsContextAction) => {
       const action = _action instanceof Function ? _action(state) : _action;
 
       switch (action.type) {
@@ -256,8 +260,8 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         }
         case "SET_PIPELINE_SAVE_STATUS":
           return { ...state, pipelineSaveStatus: action.payload };
-        case "SET_PIPELINE_IS_READONLY":
-          return { ...state, pipelineIsReadOnly: action.payload };
+        case "SET_PIPELINE_READONLY_REASON":
+          return { ...state, pipelineReadOnlyReason: action.payload };
         case "SET_PROJECT": {
           if (!action.payload) {
             setLastSeenProjectUuid("");
@@ -353,6 +357,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ) => {
       if (!state.projectUuid) return false;
+
       const shouldSetReadOnly =
         requestedFromView &&
         [
@@ -362,8 +367,8 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
 
       if (shouldSetReadOnly)
         dispatch({
-          type: "SET_PIPELINE_IS_READONLY",
-          payload: true,
+          type: "SET_PIPELINE_READONLY_REASON",
+          payload: "environmentsNotYetBuilt",
         });
 
       const hasBuilt = await requestBuild(
@@ -374,8 +379,8 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
 
       if (shouldSetReadOnly && hasBuilt) {
         dispatch({
-          type: "SET_PIPELINE_IS_READONLY",
-          payload: false,
+          type: "SET_PIPELINE_READONLY_REASON",
+          payload: undefined,
         });
       }
       return hasBuilt;

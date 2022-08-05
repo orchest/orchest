@@ -32,7 +32,7 @@ export const useSessionsPoller = () => {
   const { dispatch } = useSessionsContext();
   const { setAlert } = useAppContext();
   const {
-    state: { pipeline, pipelineIsReadOnly },
+    state: { pipeline, pipelineReadOnlyReason },
   } = useProjectsContext();
 
   // add the view paths that requires polling sessions
@@ -49,7 +49,9 @@ export const useSessionsPoller = () => {
   // 2. in the above views AND pipelineUuid is given AND is not read-only
   const shouldPoll =
     matchRooViews?.isExact ||
-    (!pipelineIsReadOnly && hasValue(pipeline) && matchPipelineViews?.isExact);
+    (!pipelineReadOnlyReason &&
+      hasValue(pipeline) &&
+      matchPipelineViews?.isExact);
 
   const { data: sessions, error, fetchData: fetchSessions } = useFetcher<
     FetchSessionResponse,

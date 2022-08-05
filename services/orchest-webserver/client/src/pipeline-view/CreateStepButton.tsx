@@ -14,7 +14,7 @@ export const CreateStepButton = () => {
   const { setAlert } = useAppContext();
   const { environments } = usePipelineDataContext();
   const {
-    state: { pipelineIsReadOnly: disabled },
+    state: { pipelineReadOnlyReason },
   } = useProjectsContext();
   const { uiStateDispatch } = usePipelineUiStateContext();
   const { pipelineViewportRef } = usePipelineRefs();
@@ -58,7 +58,7 @@ export const CreateStepButton = () => {
       size="small"
       onClick={createStep}
       startIcon={<AddIcon />}
-      disabled={disabled}
+      disabled={Boolean(pipelineReadOnlyReason)}
       data-test-id="step-create"
     >
       NEW STEP

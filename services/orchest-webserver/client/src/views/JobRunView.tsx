@@ -15,7 +15,7 @@ import { PipelineEditor } from "../pipeline-view/PipelineEditor";
 const PipelineView: React.FC = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.jobRun.path });
   const {
-    state: { pipelineIsReadOnly, projectUuid },
+    state: { pipelineReadOnlyReason, projectUuid },
   } = useProjectsContext();
   return (
     <Layout disablePadding={hasValue(projectUuid)}>
@@ -24,7 +24,7 @@ const PipelineView: React.FC = () => {
           <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
             <MainSidePanel>
               <FileManager />
-              {!pipelineIsReadOnly && <SessionsPanel />}
+              {!pipelineReadOnlyReason && <SessionsPanel />}
             </MainSidePanel>
             <PipelineEditor />
           </Stack>

@@ -15,7 +15,7 @@ export const PipelineOperationButton = React.forwardRef<
   PipelineOperationButtonProps
 >(function PipelineOperationButtonComponent({ openMenu }, ref) {
   const {
-    state: { pipelineIsReadOnly },
+    state: { pipelineReadOnlyReason },
   } = useProjectsContext();
   const {
     uiState: { steps },
@@ -37,17 +37,17 @@ export const PipelineOperationButton = React.forwardRef<
     reset();
   }, [displayedPipelineStatus, reset]);
 
-  const disabled = pipelineIsReadOnly || hasNoStep;
+  const disabled = Boolean(pipelineReadOnlyReason) || hasNoStep;
 
   const [buttonLabel, executeOperation] = React.useMemo(() => {
-    if (pipelineIsReadOnly) return ["Run all", undefined];
+    if (pipelineReadOnlyReason) return ["Run all", undefined];
     if (displayedPipelineStatus === "RUNNING") return ["Cancel run", cancelRun];
     if (displayedPipelineStatus === "CANCELING")
       return ["Cancelling...", undefined];
     if (shouldRunAll) return ["Run all", runAllSteps];
     return ["Run selected", runSelectedSteps];
   }, [
-    pipelineIsReadOnly,
+    pipelineReadOnlyReason,
     cancelRun,
     displayedPipelineStatus,
     runAllSteps,
