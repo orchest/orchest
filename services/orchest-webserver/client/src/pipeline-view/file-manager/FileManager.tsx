@@ -1,5 +1,4 @@
 import { generateUploadFiles } from "@/components/DropZone";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDebounce } from "@/hooks/useDebounce";
 import LinearProgress, {
@@ -9,6 +8,7 @@ import MenuItem from "@mui/material/MenuItem";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot, treeRoots } from "../common";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { CreatePipelineDialog } from "../CreatePipelineDialog";
 import { ActionBar } from "./ActionBar";
 import {
@@ -75,9 +75,7 @@ export function FileManager() {
 
   const { pipelineUuid, jobUuid, runUuid } = useCustomRoute();
 
-  const {
-    state: { projectUuid, pipelineIsReadOnly },
-  } = useProjectsContext();
+  const { projectUuid, isReadOnly } = usePipelineDataContext();
 
   const {
     isDragging,
@@ -276,7 +274,7 @@ export function FileManager() {
           reload={reload}
           setContextMenu={setContextMenu}
         >
-          {!pipelineIsReadOnly && (
+          {!isReadOnly && (
             <CreatePipelineDialog>
               {(onCreateClick) => (
                 <CreatePipelineButton onClick={onCreateClick} />

@@ -1,5 +1,5 @@
 import {
-  IProjectsContextState,
+  ProjectsContextState,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import Chip from "@mui/material/Chip";
@@ -7,7 +7,7 @@ import Fade from "@mui/material/Fade";
 import React from "react";
 
 const saveStatusMapping: Record<
-  IProjectsContextState["pipelineSaveStatus"],
+  ProjectsContextState["pipelineSaveStatus"],
   string
 > = { saved: "Saved", saving: "Saving..." };
 

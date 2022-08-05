@@ -1,5 +1,8 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import {
+  PipelineReadOnlyReason,
+  useProjectsContext,
+} from "@/contexts/ProjectsContext";
 import { SetStateAction } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
@@ -22,6 +25,7 @@ export type PipelineDataContextType = {
   runUuid?: string;
   jobUuid?: string;
   setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
+  pipelineReadOnlyReason?: PipelineReadOnlyReason;
   isReadOnly: boolean;
   pipelineJson?: PipelineJson;
   setPipelineJson: (
@@ -73,7 +77,8 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     runUuidFromRoute
   );
 
-  const isReadOnly = useIsReadOnly(projectUuid, jobUuid, runUuid);
+  const pipelineReadOnlyReason = useIsReadOnly();
+  const isReadOnly = Boolean(pipelineReadOnlyReason);
 
   const {
     pipelineJson,
@@ -147,6 +152,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         jobUuid,
         runUuid,
         setRunUuid,
+        pipelineReadOnlyReason,
         isReadOnly,
         pipelineJson,
         setPipelineJson,

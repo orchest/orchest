@@ -9,14 +9,14 @@ import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
-export const useAutoStartSession = () => {
+export const useAutoStartSession = ({ isReadOnly = true }) => {
   const {
     state: { sessions },
     getSession,
     startSession,
   } = useSessionsContext();
   const {
-    state: { pipeline, pipelineIsReadOnly },
+    state: { pipeline },
     dispatch,
   } = useProjectsContext();
   const { setAlert, setConfirm } = useAppContext();
@@ -31,7 +31,7 @@ export const useAutoStartSession = () => {
     hasValue(sessions) && // `sessions` is available to look up
     hasValue(pipeline?.uuid) && // `pipeline` is loaded.
     pipelineUuidFromRoute === pipeline?.uuid && // Only auto-start the pipeline that user is viewing.
-    !pipelineIsReadOnly &&
+    !isReadOnly &&
     !hasValue(session); // `session` of the current pipeline is not yet launched.
 
   // The only case that auto-start should be disabled is that
@@ -51,12 +51,12 @@ export const useAutoStartSession = () => {
       );
       if (
         !hasStartedOperation &&
-        error?.status === 423 &&
-        error?.message === "JupyterEnvironmentBuildInProgress"
+        error.status === 423 &&
+        error.message === "JupyterEnvironmentBuildInProgress"
       ) {
         dispatch({
-          type: "SET_PIPELINE_IS_READONLY",
-          payload: true,
+          type: "SET_PIPELINE_READONLY_REASON",
+          payload: "JupyterEnvironmentBuildInProgress",
         });
         setConfirm(
           "Notice",
