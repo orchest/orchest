@@ -15,22 +15,26 @@ export const useFetchEnvironments = () => {
   const { projectUuid } = useCustomRoute();
   useReportEnvironmentsError();
 
-  const isTabFocused = useFocusBrowserTab();
-  const hasBrowserFocusChanged = useHasChanged(isTabFocused);
-
-  const shouldRefetch = isTabFocused && hasBrowserFocusChanged;
-
   const [
-    shouldFetch,
+    shouldFetchOnMount,
     fetchEnvironments,
   ] = useEnvironmentsApi((state: EnvironmentsApiState) => [
     !Boolean(state.environments) && !state.isFetchingAll,
     state.fetch,
   ]);
 
+  const isTabFocused = useFocusBrowserTab();
+  const hasBrowserFocusChanged = useHasChanged(isTabFocused);
+
+  const hasRegainedFocus = isTabFocused && hasBrowserFocusChanged;
+  const hasChangedProject = useHasChanged(projectUuid);
+
+  const shouldFetch =
+    shouldFetchOnMount || hasRegainedFocus || hasChangedProject;
+
   React.useEffect(() => {
-    if (projectUuid && (shouldFetch || shouldRefetch)) {
+    if (shouldFetch && projectUuid) {
       fetchEnvironments(projectUuid);
     }
-  }, [projectUuid, shouldFetch, shouldRefetch, fetchEnvironments]);
+  }, [projectUuid, shouldFetch, fetchEnvironments]);
 };
