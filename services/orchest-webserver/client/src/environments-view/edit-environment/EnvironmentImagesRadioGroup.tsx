@@ -8,8 +8,8 @@ import React from "react";
 import {
   DEFAULT_BASE_IMAGES,
   GPU_SUPPORT_ENABLED,
-} from "../../environment-edit-view/common";
-import { isEnvironmentBuilding } from "../common";
+  isEnvironmentBuilding,
+} from "../common";
 import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 import { BaseImageHeader } from "./BaseImageHeader";
 import { BaseImageRadioOption } from "./BaseImageRadioOption";

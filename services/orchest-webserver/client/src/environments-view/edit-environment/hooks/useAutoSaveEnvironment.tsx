@@ -1,8 +1,8 @@
+import { shallowEqualByKey } from "@/environments-view/common";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import type { Environment } from "@/types";
 import React from "react";
-import { shallowEqualByKey } from "./shallowEqualByKey";
 
 const isEnvironmentChanged = (prev: Environment, curr: Environment) =>
   !shallowEqualByKey(prev, curr, [
