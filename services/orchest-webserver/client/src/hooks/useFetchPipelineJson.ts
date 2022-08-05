@@ -117,7 +117,7 @@ export const useFetchPipelineJson = (
     pipelineUuid,
     projectUuid,
     jobUuid,
-    runUuid,
+    jobRunUuid: runUuid,
   });
 
   const { data, setData, fetchData, status, error } = useFetcher<
