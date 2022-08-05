@@ -1,4 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
@@ -37,24 +39,35 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
     runUuid,
     setRunUuid,
   } = usePipelineDataContext();
+  const { startSession } = useSessionsContext();
   const isSessionRunning = session?.status === "RUNNING";
+
+  // const [isCancellingRun, setIsCancellingRun] = React.useState(false);
 
   const {
     stepExecutionState,
-    pipelineRunning,
-    isCancellingRun,
-    setIsCancellingRun,
+    displayedPipelineStatus,
+    setDisplayedPipelineStatus,
     executeRun,
   } = useInteractiveRuns({ projectUuid, runUuid, setRunUuid, pipelineJson });
 
   const cancelRun = React.useCallback(
     async ({ jobUuid, runUuid }: { jobUuid?: string; runUuid?: string }) => {
+      if (displayedPipelineStatus === "IDLING") {
+        console.error("There is no pipeline running.");
+        return;
+      }
+      if (displayedPipelineStatus === "CANCELING") {
+        console.error("A cancelling run operation in progress.");
+        return;
+      }
+      // Double-check if user attempts to cancel a job run.
       if (jobUuid && runUuid) {
         setConfirm(
           "Warning",
           "Are you sure that you want to cancel this job run?",
           async (resolve) => {
-            setIsCancellingRun(true);
+            setDisplayedPipelineStatus("CANCELING");
             try {
               await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`, {
                 method: "DELETE",
@@ -64,24 +77,17 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
               setAlert("Error", `Failed to cancel this job run.`);
               resolve(false);
             }
-            setIsCancellingRun(false);
             return true;
           }
         );
         return;
       }
 
-      if (!pipelineRunning) {
-        setAlert("Error", "There is no pipeline running.");
-        return;
-      }
-
       try {
-        setIsCancellingRun(true);
+        setDisplayedPipelineStatus("CANCELING");
         await fetcher(`${PIPELINE_RUN_STATUS_ENDPOINT}/${runUuid}`, {
           method: "DELETE",
         });
-        setIsCancellingRun(false);
       } catch (error) {
         setAlert(
           "Error",
@@ -89,31 +95,35 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
         );
       }
     },
-    [pipelineRunning, setAlert, setConfirm, setIsCancellingRun]
+    [setAlert, setConfirm, setDisplayedPipelineStatus, displayedPipelineStatus]
   );
 
   const runSteps = React.useCallback(
     (uuids: string[], type: RunStepsType) => {
-      if (!isSessionRunning) {
-        setAlert(
-          "Error",
-          "There is no active session. Please start the session first."
+      if (!isSessionRunning && pipelineJson) {
+        setConfirm(
+          "Notice",
+          "An active session is required to execute an interactive run. Do you want to start the session first?",
+          (resolve) => {
+            startSession(pipelineJson.uuid, BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
+            resolve(true);
+            return true;
+          }
         );
         return;
       }
 
       executeRun(uuids, type);
     },
-    [executeRun, setAlert, isSessionRunning]
+    [executeRun, setConfirm, startSession, isSessionRunning, pipelineJson]
   );
 
   return (
     <InteractiveRunsContext.Provider
       value={{
         stepExecutionState,
-        pipelineRunning,
-        isCancellingRun,
-        setIsCancellingRun,
+        displayedPipelineStatus,
+        setDisplayedPipelineStatus,
         executeRun,
         cancelRun,
         runSteps,

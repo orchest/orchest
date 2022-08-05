@@ -2,12 +2,10 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useThrottle } from "@/hooks/useThrottle";
 import { usePipelineEditorContext } from "@/pipeline-view/contexts/PipelineEditorContext";
 import ArrowDropDownOutlinedIcon from "@mui/icons-material/ArrowDropDownOutlined";
-import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
-import StopCircleOutlinedIcon from "@mui/icons-material/StopCircleOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import React from "react";
+import { PipelineOperationButtonIcon } from "./PipelineOperationButtonIcon";
 import { useRunSteps } from "./useRunSteps";
 
 type PipelineOperationButtonProps = { openMenu: (e: React.MouseEvent) => void };
@@ -26,31 +24,30 @@ export const PipelineOperationButton = React.forwardRef<
 
   const localRef = React.useRef<HTMLButtonElement>();
   const {
-    pipelineRunning,
+    displayedPipelineStatus,
     runSelectedSteps,
     runAllSteps,
     shouldRunAll,
     cancelRun,
-    isCancellingRun,
   } = useRunSteps();
 
   const { withThrottle, reset } = useThrottle();
 
   React.useEffect(() => {
     reset();
-  }, [pipelineRunning, isCancellingRun, reset]);
+  }, [displayedPipelineStatus, reset]);
 
   const disabled = pipelineIsReadOnly || hasNoStep;
 
   const [buttonLabel, executeOperation] = React.useMemo(() => {
-    if (pipelineRunning) return ["Cancel run", cancelRun];
-    if (isCancellingRun) return ["Cancelling...", undefined];
+    if (displayedPipelineStatus === "RUNNING") return ["Cancel run", cancelRun];
+    if (displayedPipelineStatus === "CANCELING")
+      return ["Cancelling...", undefined];
     if (shouldRunAll) return ["Run all", runAllSteps];
     return ["Run selected", runSelectedSteps];
   }, [
     cancelRun,
-    isCancellingRun,
-    pipelineRunning,
+    displayedPipelineStatus,
     runAllSteps,
     runSelectedSteps,
     shouldRunAll,
@@ -61,18 +58,11 @@ export const PipelineOperationButton = React.forwardRef<
     ? withThrottle(executeOperation)
     : undefined;
 
-  const icon = isCancellingRun ? (
-    <CircularProgress size={20} />
-  ) : pipelineRunning ? (
-    <StopCircleOutlinedIcon fontSize="small" />
-  ) : (
-    <PlayCircleOutlineOutlinedIcon fontSize="small" />
-  );
-
   return (
     <Button
       variant="contained"
-      color={pipelineRunning ? "secondary" : "primary"}
+      disableRipple
+      color={displayedPipelineStatus === "IDLING" ? "primary" : "secondary"}
       ref={(node: HTMLButtonElement) => {
         localRef.current = node;
         if (typeof ref === "function") {
@@ -86,14 +76,16 @@ export const PipelineOperationButton = React.forwardRef<
         marginLeft: (theme) => theme.spacing(1),
         ":hover": {
           backgroundColor: (theme) =>
-            pipelineRunning
-              ? theme.palette.secondary.main
-              : theme.palette.primary.main,
+            displayedPipelineStatus === "IDLING"
+              ? theme.palette.primary.main
+              : theme.palette.secondary.main,
         },
       }}
-      startIcon={icon}
+      startIcon={
+        <PipelineOperationButtonIcon status={displayedPipelineStatus} />
+      }
       endIcon={
-        pipelineRunning ? null : (
+        displayedPipelineStatus !== "IDLING" ? null : (
           <Box
             sx={{
               margin: (theme) => theme.spacing(-2, -1.5, -2, 0),
@@ -120,7 +112,7 @@ export const PipelineOperationButton = React.forwardRef<
         sx={{
           marginRight: (theme) => theme.spacing(1),
           minWidth: (theme) =>
-            pipelineRunning ? theme.spacing(16.5) : theme.spacing(13.5),
+            displayedPipelineStatus !== "IDLING" ? theme.spacing(14) : "unset",
         }}
       >
         {buttonLabel}

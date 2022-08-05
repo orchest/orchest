@@ -13,10 +13,9 @@ export const useRunSteps = () => {
     eventVars: { selectedSteps, steps },
   } = usePipelineEditorContext();
   const {
-    pipelineRunning,
+    displayedPipelineStatus,
     runSteps,
     cancelRun,
-    isCancellingRun,
   } = useInteractiveRunsContext();
 
   const doCancelRun = React.useCallback(() => {
@@ -25,9 +24,9 @@ export const useRunSteps = () => {
 
   const doRunSteps = React.useCallback(
     (stepsToRun: string[], type: RunStepsType) => {
-      if (!pipelineRunning) runSteps(stepsToRun, type);
+      if (displayedPipelineStatus === "IDLING") runSteps(stepsToRun, type);
     },
-    [pipelineRunning, runSteps]
+    [displayedPipelineStatus, runSteps]
   );
 
   const allSteps = Object.keys(steps);
@@ -55,8 +54,7 @@ export const useRunSteps = () => {
   }, [doRunSteps, selectedSteps]);
 
   return {
-    pipelineRunning,
-    isCancellingRun,
+    displayedPipelineStatus,
     shouldRunAll,
     runIncomingSteps: selectedSteps.length > 0 ? runIncomingSteps : undefined,
     runSelectedSteps: selectedSteps.length > 0 ? runSelectedSteps : undefined,
