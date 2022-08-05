@@ -238,15 +238,10 @@ const PipelineViewportComponent = React.forwardRef<
     >
       {showIllustration && (
         <FullAreaHolder>
-          {disabled && (
-            <Box sx={{ zIndex: 1, padding: (theme) => theme.spacing(10) }}>
-              <NoPipeline />
-            </Box>
-          )}
-          {hasNoStep && <NoStep />}
+          {disabled && <NoPipeline />}
+          {!disabled && hasNoStep && <NoStep />}
         </FullAreaHolder>
       )}
-
       <PipelineCanvas
         ref={pipelineCanvasRef}
         style={{

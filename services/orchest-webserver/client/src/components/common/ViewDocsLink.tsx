@@ -2,7 +2,13 @@ import LaunchOutlinedIcon from "@mui/icons-material/LaunchOutlined";
 import Link, { LinkProps } from "@mui/material/Link";
 import React from "react";
 
-export const ViewDocsLink = ({ sx, ...props }: LinkProps) => {
+type ViewDocsLinkProps = LinkProps & { docPath?: string };
+
+export const ViewDocsLink = ({
+  sx,
+  docPath = "",
+  ...props
+}: ViewDocsLinkProps) => {
   return (
     <Link
       underline="hover"
@@ -17,7 +23,7 @@ export const ViewDocsLink = ({ sx, ...props }: LinkProps) => {
       }}
       target="_blank"
       rel="noopener noreferrer"
-      href="https://docs.orchest.io/en/stable/fundamentals/projects.html"
+      href={`https://docs.orchest.io/en/stable${docPath}`}
       {...props}
     >
       View docs
