@@ -1,7 +1,7 @@
 import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
-import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
+import { LegacyImageBuildLog } from "@/components/LegacyImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
@@ -249,7 +249,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               />
             </div>
 
-            <ImageBuildLog
+            <LegacyImageBuildLog
               buildRequestEndpoint={
                 "/catch/api-proxy/api/jupyter-builds/most-recent"
               }
