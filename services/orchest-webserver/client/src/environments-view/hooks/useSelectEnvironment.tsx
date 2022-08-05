@@ -1,32 +1,22 @@
-import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import React from "react";
-import { findEnvironment } from "../common";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 
 /**
- * Provides `selectEnvironment` that loads environmentOnEdit and also navigate to the
- * view accordingly.
+ * Provides `selectEnvironment` that navigate to the Environment.
  */
 export const useSelectEnvironment = () => {
-  const { navigateTo } = useCustomRoute();
-
-  const { projectUuid, environments } = useEnvironmentsApi();
-
-  const { initEnvironmentOnEdit } = useEnvironmentOnEdit();
+  const { navigateTo, projectUuid } = useCustomRoute();
 
   const selectEnvironment = React.useCallback(
     (uuid: string) => {
-      const targetEnvironment = findEnvironment(environments, uuid);
-      if (targetEnvironment) {
-        initEnvironmentOnEdit(targetEnvironment);
+      if (projectUuid) {
         navigateTo(siteMap.environments.path, {
           query: { projectUuid, environmentUuid: uuid },
         });
       }
     },
-    [environments, navigateTo, projectUuid, initEnvironmentOnEdit]
+    [navigateTo, projectUuid]
   );
 
   return { selectEnvironment };
