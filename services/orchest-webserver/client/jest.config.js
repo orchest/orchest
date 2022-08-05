@@ -36,5 +36,7 @@ module.exports = {
   collectCoverageFrom: ["<rootDir>/**/*.{js,jsx,ts,tsx}"],
   modulePathIgnorePatterns: ["<rootDir>/*/__mocks__/*.mock.{js,jsx,ts,tsx}"],
   testEnvironment: "jsdom",
-  testURL: "http://localhost:8080",
+  testEnvironmentOptions: {
+    url: "http://localhost:8080",
+  },
 };

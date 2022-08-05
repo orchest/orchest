@@ -80,15 +80,16 @@
     "babel-jest": "^28.0.3",
     "chance": "^1.1.8",
     "cross-env": "^7.0.3",
-    "esbuild": "~0.14.0",
+    "esbuild": "~0.14.53",
     "esbuild-jest": "^0.5.0",
-    "jest": "^27.4.5",
+    "jest": "^28.1.3",
+    "jest-environment-jsdom": "^28.1.3",
     "jest-fetch-mock": "^3.0.3",
     "jest-junit": "^13.0.0",
     "jest-localstorage-mock": "^2.4.21",
     "msw": "^0.39.2",
     "sass-bin": "^1.43.2",
-    "ts-jest": "^27.1.2",
+    "ts-jest": "^28.0.7",
     "typescript": "4.5.4"
   }
 }
