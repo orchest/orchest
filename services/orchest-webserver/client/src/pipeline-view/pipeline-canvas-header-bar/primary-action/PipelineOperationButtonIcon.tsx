@@ -1,7 +1,7 @@
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { DisplayedPipelineStatus } from "@/pipeline-view/hooks/useInteractiveRuns";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
-import StopCircleOutlinedIcon from "@mui/icons-material/StopCircleOutlined";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import React from "react";
@@ -10,7 +10,7 @@ type PipelineOperationButtonIconProps = {
   status?: DisplayedPipelineStatus;
 };
 
-export const PrimaryPipelineButtonIcon = ({
+export const PrimaryPipelineActionIcon = ({
   status,
 }: PipelineOperationButtonIconProps) => {
   const { isReadOnly } = usePipelineDataContext();
@@ -39,7 +39,7 @@ export const PrimaryPipelineButtonIcon = ({
       {isIdling || isReadOnly ? (
         <PlayCircleOutlineOutlinedIcon fontSize="small" />
       ) : (
-        <StopCircleOutlinedIcon fontSize="small" />
+        <CancelOutlinedIcon fontSize="small" />
       )}
     </Box>
   );

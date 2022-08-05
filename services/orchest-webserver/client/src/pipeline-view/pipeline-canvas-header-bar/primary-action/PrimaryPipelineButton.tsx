@@ -5,7 +5,7 @@ import ArrowDropDownOutlinedIcon from "@mui/icons-material/ArrowDropDownOutlined
 import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import React from "react";
-import { PrimaryPipelineButtonIcon } from "./PipelineOperationButtonIcon";
+import { PrimaryPipelineActionIcon } from "./PipelineOperationButtonIcon";
 import { PrimaryPipelineActionMenu } from "./PrimaryPipelineActionMenu";
 import { useRunSteps } from "./useRunSteps";
 
@@ -60,21 +60,22 @@ export const PrimaryPipelineButton = () => {
 
   React.useEffect(() => reset(), [displayedPipelineStatus, reset]);
 
-  const isIdling = displayedPipelineStatus === "IDLING";
   const disabled = Boolean(pipelineReadOnlyReason) || hasNoStep;
+  const isIdling = displayedPipelineStatus === "IDLING";
+  const isRunning = displayedPipelineStatus === "RUNNING";
 
   return (
     <>
       <ButtonGroup
         ref={buttonRef}
         disabled={disabled}
-        variant="contained"
-        color={isIdling ? "primary" : "secondary"}
+        variant={isRunning ? "outlined" : "contained"}
+        color="primary"
         size="small"
       >
         <Button
           startIcon={
-            <PrimaryPipelineButtonIcon status={displayedPipelineStatus} />
+            <PrimaryPipelineActionIcon status={displayedPipelineStatus} />
           }
           onClick={handleClick}
         >
