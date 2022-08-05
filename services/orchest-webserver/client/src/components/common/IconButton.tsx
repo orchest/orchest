@@ -3,14 +3,13 @@ import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-  function IconButton(props, ref) {
-    const { title, ...rest } = props;
+  function IconButton({ title, ...props }, ref) {
     return title ? (
       <Tooltip title={title}>
-        <MuiIconButton {...rest} ref={ref} />
+        <MuiIconButton {...props} ref={ref} />
       </Tooltip>
     ) : (
-      <MuiIconButton {...rest} />
+      <MuiIconButton {...props} />
     );
   }
 );
