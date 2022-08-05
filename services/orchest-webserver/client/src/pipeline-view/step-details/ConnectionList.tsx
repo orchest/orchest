@@ -41,11 +41,8 @@ export const ConnectionList = ({
 
   const canConnect = React.useCallback(
     (step: StepState) =>
-      // It's not the currently selected step:
       step.uuid !== uiState.openedStep &&
-      // None of the connections match this step:
       !connections.some(({ targetUuid }) => step.uuid === targetUuid) &&
-      // The new connection will not create a loop:
       uiState.openedStep &&
       !createsLoop(
         uiState.steps,
@@ -144,7 +141,10 @@ export const ConnectionList = ({
           >
             <Stack flexShrink={1} flexDirection="row" gap={1.5} minWidth="0">
               {sortable && (
-                <DragHandleOutlined style={{ width: "24px", height: "24px" }} />
+                <DragHandleOutlined
+                  color="action"
+                  style={{ width: "24px", height: "24px" }}
+                />
               )}
               <Typography sx={ellipsis()} variant="body2" fontSize={14}>
                 {title}
