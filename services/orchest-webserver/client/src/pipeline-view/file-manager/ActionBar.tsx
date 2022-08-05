@@ -1,6 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
@@ -11,6 +10,7 @@ import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import React from "react";
 import { FileManagementRoot } from "../common";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useCreateStep } from "../hooks/useCreateStep";
 import { CreatedFile, CreateFileDialog } from "./CreateFileDialog";
 import { CreateFolderDialog } from "./CreateFolderDialog";
@@ -38,9 +38,8 @@ export function ActionBar({
   const [openDialog, setOpenDialog] = React.useState<OpenDialog | null>(null);
   const { setSelectedFiles } = useFileManagerContext();
   const { reload } = useFileManagerLocalContext();
-  const {
-    state: { pipelineIsReadOnly, pipeline },
-  } = useProjectsContext();
+  const { isReadOnly, pipeline } = usePipelineDataContext();
+
   const createStep = useCreateStep();
 
   const onFileCreated = React.useCallback(
@@ -60,14 +59,14 @@ export function ActionBar({
   return (
     <>
       <CreateFileDialog
-        isOpen={!pipelineIsReadOnly && openDialog === "file"}
+        isOpen={!isReadOnly && openDialog === "file"}
         canCreateStep={Boolean(pipeline)}
         root={rootFolder}
         onClose={closeDialog}
         onSuccess={onFileCreated}
       />
       <CreateFolderDialog
-        isOpen={!pipelineIsReadOnly && openDialog === "folder"}
+        isOpen={!isReadOnly && openDialog === "folder"}
         onClose={closeDialog}
         root={rootFolder}
         onSuccess={reload}
@@ -79,7 +78,7 @@ export function ActionBar({
         spacing={1.5}
         sx={{ padding: (theme) => theme.spacing(0.5, 1.5, 1) }}
       >
-        {!pipelineIsReadOnly && (
+        {!isReadOnly && (
           <>
             <FileManagerActionButton
               title="Create file"

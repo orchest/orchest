@@ -69,18 +69,22 @@ export const useRunSteps = () => {
 
   const scheduleJob = React.useCallback(async () => {
     if (!projectUuid || !pipelineUuid || !pipelineJson?.name) return;
-    dispatch({ type: "SET_PIPELINE_IS_READONLY", payload: true });
     const job = await requestCreateJob(
       projectUuid,
       `Job for ${pipeline?.path}`,
       pipelineUuid,
       pipelineJson?.name
     );
-    dispatch({ type: "SET_PIPELINE_IS_READONLY", payload: false });
     navigateTo(siteMap.editJob.path, {
       query: { projectUuid, jobUuid: job.uuid },
     });
-  }, [pipelineUuid, pipelineJson?.name, pipeline?.path, projectUuid, dispatch]);
+  }, [
+    pipelineUuid,
+    pipelineJson?.name,
+    pipeline?.path,
+    projectUuid,
+    navigateTo,
+  ]);
 
   // No operation is allowed when read-only.
   if (isReadOnly) return {};
