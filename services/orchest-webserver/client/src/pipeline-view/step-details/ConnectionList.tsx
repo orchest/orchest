@@ -80,7 +80,7 @@ export const ConnectionList = ({
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" position="relative" gap={1.5}>
+      <Stack direction="row" alignItems="center" position="relative" gap={1}>
         <Typography
           component="div"
           variant="subtitle2"
@@ -92,10 +92,7 @@ export const ConnectionList = ({
         </Typography>
         {hint && (
           <Tooltip title={hint} placement="left-end">
-            <InfoOutlined
-              color="primary"
-              style={{ width: "24px", height: "24px" }}
-            />
+            <InfoOutlined color="primary" style={{ width: 20, height: 20 }} />
           </Tooltip>
         )}
         <IconButton
