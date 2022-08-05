@@ -1,4 +1,3 @@
-import { PipelineReadOnlyReason } from "@/contexts/ProjectsContext";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -12,15 +11,6 @@ import { usePipelineCanvasDimensionsContext } from "./contexts/PipelineCanvasDim
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 
-const titleMapping: Record<PipelineReadOnlyReason, string> = {
-  isJobRun: "pipeline snapshot",
-  environmentsNotYetBuilt:
-    "Not all environments of this project have been built",
-  environmentsBuildInProgress: "Environments still building",
-  JupyterEnvironmentBuildInProgress:
-    "JupyterLab environment build is in progress",
-};
-
 const generateReadOnlyMessage = (jobName: string | undefined) =>
   jobName ? (
     <>
@@ -29,7 +19,6 @@ const generateReadOnlyMessage = (jobName: string | undefined) =>
       {` job. Make edits in the Pipeline editor.`}
     </>
   ) : null;
-
 type ReadOnlyBannerContainerProps = { children: React.ReactNode };
 
 const ReadOnlyBannerContainer = ({
@@ -69,37 +58,40 @@ export const ReadOnlyBanner = () => {
     pipelineUuid,
   } = usePipelineDataContext();
 
-  const { action, label } = React.useMemo(() => {
-    if (pipelineReadOnlyReason === "isJobRun") {
-      return {
-        action: (event: React.MouseEvent) => {
-          navigateTo(
-            siteMap.pipeline.path,
-            { query: { projectUuid, pipelineUuid } },
-            event
-          );
-        },
-        label: "Open in editor",
-      };
-    } else if (pipelineReadOnlyReason === "JupyterEnvironmentBuildInProgress") {
-      return {
-        action: (event: React.MouseEvent) => {
-          navigateTo(siteMap.configureJupyterLab.path, undefined, event);
-        },
-        label: "JupyterLab configuration",
-      };
-    } else if (pipelineReadOnlyReason === "environmentsNotYetBuilt") {
-      return {
-        action: triggerBuild,
-        label: "Build environments",
-      };
-    } else if (pipelineReadOnlyReason === "environmentsBuildInProgress") {
-      return {
-        action: viewBuildStatus,
-        label: "Open Environments",
-      };
-    } else {
-      return {};
+  const { title, action, actionLabel } = React.useMemo(() => {
+    switch (pipelineReadOnlyReason) {
+      case "isJobRun":
+        return {
+          title: "Pipeline snapshot",
+          actionLabel: "Open in editor",
+          action: (event: React.MouseEvent) =>
+            navigateTo(
+              siteMap.pipeline.path,
+              { query: { projectUuid, pipelineUuid } },
+              event
+            ),
+        };
+      case "JupyterEnvironmentBuildInProgress":
+        return {
+          title: "JupyterLab environment build is in progress",
+          actionLabel: "JupyterLab configuration",
+          action: (event: React.MouseEvent) =>
+            navigateTo(siteMap.configureJupyterLab.path, undefined, event),
+        };
+      case "environmentsNotYetBuilt":
+        return {
+          title: "Not all environments of this project have been built",
+          actionLabel: "Build environments",
+          action: triggerBuild,
+        };
+      case "environmentsBuildInProgress":
+        return {
+          title: "Environments still building",
+          actionLabel: "Open environments",
+          action: viewBuildStatus,
+        };
+      default:
+        return {};
     }
   }, [
     navigateTo,
@@ -121,7 +113,7 @@ export const ReadOnlyBanner = () => {
             onClick={action}
             onAuxClick={action}
           >
-            {label}
+            {actionLabel}
           </Button>
         }
         sx={{ width: "100%" }}
@@ -131,7 +123,7 @@ export const ReadOnlyBanner = () => {
             fontWeight: (theme) => theme.typography.subtitle2.fontWeight,
           }}
         >
-          Read-only: {titleMapping[pipelineReadOnlyReason]}
+          Read-only: {title}
         </Box>
         {pipelineReadOnlyReason === "isJobRun" && hasValue(job) && (
           <Typography variant="body2">
