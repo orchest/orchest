@@ -3,10 +3,11 @@ import { CustomImage } from "@/types";
 import create from "zustand";
 
 type BaseImageStoreState = {
+  environmentUuid?: string;
   selectedImage: CustomImage;
   customImage: CustomImage;
-  setSelectedImage: (value: CustomImage) => void;
-  setCustomImage: (value: CustomImage) => void;
+  setSelectedImage: (environmentUuid: string, value: CustomImage) => void;
+  setCustomImage: (environmentUuid: string, value: CustomImage) => void;
   editCustomImage: (value: CustomImage) => void;
 };
 
@@ -17,11 +18,11 @@ export const useBaseImageStore = create<BaseImageStoreState>((set) => ({
     language: "python",
     gpu_support: false,
   },
-  setSelectedImage: (value) => {
-    set({ selectedImage: value });
+  setSelectedImage: (environmentUuid, value) => {
+    set({ selectedImage: value, environmentUuid });
   },
-  setCustomImage: (value) => {
-    set({ customImage: value });
+  setCustomImage: (environmentUuid, value) => {
+    set({ customImage: value, environmentUuid });
   },
   editCustomImage: (value) => {
     set({ selectedImage: value, customImage: value });

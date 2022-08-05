@@ -118,3 +118,18 @@ export const getPutEnvironmentPayload = (
 
   return environmentData;
 };
+
+/**
+ * Return the environment with the given UUID, or return the first environment if
+ * not found.
+ */
+export const findEnvironment = (
+  environments: EnvironmentState[] | undefined,
+  uuid?: string
+) => {
+  const foundEnvironment = uuid
+    ? environments?.find((env) => env.uuid === uuid)
+    : environments?.[0];
+
+  return foundEnvironment;
+};

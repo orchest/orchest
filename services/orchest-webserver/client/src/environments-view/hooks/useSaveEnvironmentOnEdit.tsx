@@ -1,37 +1,18 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useAutoSaveEnvironment } from "@/environment-edit-view/useAutoSaveEnvironment";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getPutEnvironmentPayload } from "../common";
 import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
-import { useSelectEnvironmentUuid } from "../stores/useSelectEnvironmentUuid";
 
 /**
- * Load the environmentOnEdit to the store based on the query arg environment_uuid.
- * Watch the changes of environmentOnEdit and save it to BE accordingly. The value is debounced.
+ * Watch the changes of environmentOnEdit and save it to BE in the background. The value is debounced.
  * Note: should only be used once in a view.
  */
 export const useSaveEnvironmentOnEdit = () => {
-  const { environmentUuid } = useSelectEnvironmentUuid();
-  const { environments, put } = useEnvironmentsApi();
+  const { put, setEnvironment } = useEnvironmentsApi();
+  const { environmentOnEdit } = useEnvironmentOnEdit();
 
-  const { environmentOnEdit, initEnvironmentOnEdit } = useEnvironmentOnEdit();
-
-  const shouldInit =
-    (hasValue(environments) && !environmentOnEdit) ||
-    environmentOnEdit?.uuid !== environmentUuid;
-
-  React.useEffect(() => {
-    if (!shouldInit) return;
-    const initialValue = environmentUuid
-      ? environments?.find((env) => env.uuid === environmentUuid)
-      : environments?.[0];
-    if (initialValue) {
-      initEnvironmentOnEdit(initialValue);
-    }
-  }, [shouldInit, environments, environmentUuid, initEnvironmentOnEdit]);
-
-  const save = React.useCallback(() => {
+  const save = React.useCallback(async () => {
     const environmentData = environmentOnEdit
       ? getPutEnvironmentPayload(environmentOnEdit)
       : undefined;
@@ -40,9 +21,15 @@ export const useSaveEnvironmentOnEdit = () => {
       // TODO: perhaps this can be fixed with coordination between JLab +
       // Enterprise Gateway team.
       window.orchest.jupyter?.unload();
-      put(environmentData.uuid, environmentData);
+      const updatedEnvironment = await put(
+        environmentData.uuid,
+        environmentData
+      );
+      if (updatedEnvironment) {
+        setEnvironment(environmentData.uuid, updatedEnvironment);
+      }
     }
-  }, [environmentOnEdit, put]);
+  }, [environmentOnEdit, setEnvironment, put]);
 
   useAutoSaveEnvironment(environmentOnEdit, save);
 

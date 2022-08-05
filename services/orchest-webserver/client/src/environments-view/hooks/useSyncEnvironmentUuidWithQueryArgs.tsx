@@ -1,9 +1,15 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import React from "react";
+import { findEnvironment } from "../common";
+import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 import { useSelectEnvironmentUuid } from "../stores/useSelectEnvironmentUuid";
 import { useGetEnvironments } from "./useGetEnvironments";
 
+/**
+ * Performs a side effect that ensures that the stores load the right environment
+ * with the given environment_uuid in the query args.
+ */
 export const useSyncEnvironmentUuidWithQueryArgs = () => {
   const {
     projectUuid,
@@ -49,4 +55,14 @@ export const useSyncEnvironmentUuidWithQueryArgs = () => {
     shouldUpdateEnvironmentUuid,
     setEnvironmentUuid,
   ]);
+
+  const environmentOnEdit = React.useMemo(() => {
+    return findEnvironment(environments, environmentUuid);
+  }, [environments, environmentUuid]);
+
+  const { initEnvironmentOnEdit } = useEnvironmentOnEdit();
+
+  React.useEffect(() => {
+    if (environmentOnEdit) initEnvironmentOnEdit(environmentOnEdit);
+  }, [environmentOnEdit, initEnvironmentOnEdit]);
 };

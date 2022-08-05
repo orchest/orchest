@@ -9,10 +9,10 @@ import { XTerm } from "xterm-for-react";
 import { ImageBuildStatus } from "./ImageBuildStatus";
 
 type ImageBuildLogProps = {
-  build: EnvironmentImageBuild | undefined;
+  build?: EnvironmentImageBuild;
   ignoreIncomingLogs: boolean;
-  socketIONamespace: string | undefined;
-  streamIdentity: string;
+  socketIONamespace?: string;
+  streamIdentity?: string;
   hideDefaultStatus?: boolean;
 };
 

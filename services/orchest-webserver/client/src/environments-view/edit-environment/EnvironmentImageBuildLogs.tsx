@@ -1,7 +1,9 @@
 import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
@@ -15,6 +17,7 @@ import {
 import { useEnvironmentsUiStateStore } from "./stores/useEnvironmentsUiStateStore";
 
 export const EnvironmentImageBuildLogs = () => {
+  const { projectUuid, environmentUuid } = useCustomRoute();
   const { config } = useGlobalContext();
   const { isLogsOpen, setIsLogsOpen } = useEnvironmentsUiStateStore();
   const { environmentOnEdit } = useEnvironmentOnEdit();
@@ -23,6 +26,17 @@ export const EnvironmentImageBuildLogs = () => {
   const handleChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
     setIsLogsOpen(isExpanded);
   };
+
+  const streamIdentity =
+    hasValue(projectUuid) && hasValue(environmentUuid)
+      ? `${projectUuid}-${environmentUuid}`
+      : undefined;
+
+  const streamIdentityFromStore = `${environmentOnEdit?.project_uuid}-${environmentOnEdit?.uuid}`;
+
+  const ignoreIncomingLogs =
+    isTriggeringBuild || streamIdentity !== streamIdentityFromStore;
+
   return (
     <EnvironmentsAccordion expanded={isLogsOpen} onChange={handleChange}>
       <EnvironmentsAccordionSummary
@@ -36,13 +50,13 @@ export const EnvironmentImageBuildLogs = () => {
       </EnvironmentsAccordionSummary>
       <EnvironmentsAccordionDetails>
         <ImageBuildLog
-          ignoreIncomingLogs={isTriggeringBuild}
+          ignoreIncomingLogs={ignoreIncomingLogs}
           hideDefaultStatus
           build={environmentOnEdit?.latestBuild}
           socketIONamespace={
             config?.ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE
           }
-          streamIdentity={`${environmentOnEdit?.project_uuid}-${environmentOnEdit?.uuid}`}
+          streamIdentity={streamIdentity}
         />
       </EnvironmentsAccordionDetails>
     </EnvironmentsAccordion>

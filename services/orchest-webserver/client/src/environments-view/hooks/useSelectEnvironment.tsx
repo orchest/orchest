@@ -2,31 +2,32 @@ import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import React from "react";
-import { useSelectEnvironmentUuid } from "../stores/useSelectEnvironmentUuid";
-import { useSyncEnvironmentUuidWithQueryArgs } from "./useSyncEnvironmentUuidWithQueryArgs";
+import { findEnvironment } from "../common";
+import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 
+/**
+ * Provides `selectEnvironment` that loads environmentOnEdit and also navigate to the
+ * view accordingly.
+ */
 export const useSelectEnvironment = () => {
   const { navigateTo } = useCustomRoute();
-  const { environmentUuid } = useSelectEnvironmentUuid();
+
   const { projectUuid, environments } = useEnvironmentsApi();
-  useSyncEnvironmentUuidWithQueryArgs();
 
-  const environmentOnEdit = React.useMemo(() => {
-    const foundEnvironment = environmentUuid
-      ? environments?.find((env) => env.uuid === environmentUuid)
-      : environments?.[0];
-
-    return foundEnvironment?.uuid;
-  }, [environments, environmentUuid]);
+  const { initEnvironmentOnEdit } = useEnvironmentOnEdit();
 
   const selectEnvironment = React.useCallback(
     (uuid: string) => {
-      navigateTo(siteMap.environments.path, {
-        query: { projectUuid, environmentUuid: uuid },
-      });
+      const targetEnvironment = findEnvironment(environments, uuid);
+      if (targetEnvironment) {
+        initEnvironmentOnEdit(targetEnvironment);
+        navigateTo(siteMap.environments.path, {
+          query: { projectUuid, environmentUuid: uuid },
+        });
+      }
     },
-    [navigateTo, projectUuid]
+    [environments, navigateTo, projectUuid, initEnvironmentOnEdit]
   );
 
-  return { environments, selectEnvironment, environmentOnEdit };
+  return { selectEnvironment };
 };
