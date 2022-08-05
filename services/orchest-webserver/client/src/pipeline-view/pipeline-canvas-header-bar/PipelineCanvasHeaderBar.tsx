@@ -31,7 +31,7 @@ export const PipelineCanvasHeaderBar = () => {
       <Stack direction="row" alignItems="baseline" minWidth={0} flexShrink={1}>
         <PipelineFileName />
       </Stack>
-      <Stack direction="row" flexShrink={0} spacing={1} alignItems="center">
+      <Stack direction="row" flexShrink={0} spacing={1.5} alignItems="center">
         <Button size="small" onClick={openLogs}>
           Logs
         </Button>
