@@ -1,6 +1,7 @@
 import { useDragElement } from "@/hooks/useDragElement";
 import { firstAncestor } from "@/utils/element";
-import { Stack, useTheme } from "@mui/material";
+import Stack from "@mui/material/Stack";
+import { Theme, useTheme } from "@mui/material/styles";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 export type SortableStackProps = {
@@ -27,6 +28,7 @@ export const SortableStack = ({
   const [element, setElement] = useState<HTMLElement>();
   const [isUpdating, setIsUpdating] = useState(false);
   const containerRef = useRef<HTMLDivElement>();
+  const theme = useTheme();
 
   const shouldReset = useMemo(() => y && startY && Math.abs(y - startY) < 10, [
     y,
@@ -37,15 +39,15 @@ export const SortableStack = ({
     (event: React.MouseEvent) => {
       if (isUpdating) return;
       if (!containerRef.current) return;
-      const dragging = firstAncestor(event.target as Element, isDragItem);
+      const dragged = firstAncestor(event.target as Element, isDragItem);
 
-      if (dragging instanceof HTMLElement) {
+      if (dragged instanceof HTMLElement) {
         const children = [...containerRef.current.children];
 
-        setStartIndex(children.findIndex((item) => item === dragging));
+        setStartIndex(children.findIndex((item) => item === dragged));
         setStart([event.pageX, event.pageY]);
         setPosition([event.pageX, event.pageY]);
-        setElement(dragging);
+        setElement(dragged);
       }
     },
     [isUpdating]
@@ -119,25 +121,16 @@ export const SortableStack = ({
     }
   }, [x, y, element]);
 
-  const theme = useTheme();
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    [...containerRef.current.children].forEach((child, i) => {
-      if (!(child instanceof HTMLElement)) return;
-
-      if (i === index) {
-        child.style[i < startIndex ? "borderTopColor" : "borderBottomColor"] =
-          theme.palette.primary.main;
-        child.style.opacity = "0.4";
-      } else {
-        child.style.borderTopColor = "transparent";
-        child.style.borderBottomColor = "transparent";
-        child.style.opacity = "1";
-      }
-    });
-  }, [index, startIndex, theme]);
+  useEffect(
+    () =>
+      stylizeInsertionPoint(
+        theme,
+        containerRef?.current?.children,
+        startIndex,
+        index
+      ),
+    [index, startIndex, theme]
+  );
 
   return (
     <Stack ref={containerRef} direction="column" className="drag-container">
@@ -147,6 +140,11 @@ export const SortableStack = ({
             userSelect: "none",
             borderBottom: "2px solid transparent",
             borderTop: "2px solid transparent",
+          }}
+          sx={{
+            ["> *"]: {
+              cursor: element ? "grabbing" : "grab",
+            },
           }}
           className="drag-item"
           onMouseDown={!disabled ? onMouseDown : undefined}
@@ -158,4 +156,29 @@ export const SortableStack = ({
       ))}
     </Stack>
   );
+};
+
+const stylizeInsertionPoint = (
+  theme: Theme,
+  children: HTMLCollection | undefined,
+  startIndex: number,
+  currentIndex: number
+) => {
+  if (!children) return;
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+
+    if (!(child instanceof HTMLElement)) return;
+
+    if (i === currentIndex) {
+      child.style[i < startIndex ? "borderTopColor" : "borderBottomColor"] =
+        theme.palette.primary.main;
+      child.style.opacity = "0.4";
+    } else {
+      child.style.borderTopColor = "transparent";
+      child.style.borderBottomColor = "transparent";
+      child.style.opacity = "1";
+    }
+  }
 };
