@@ -30,7 +30,7 @@ from app.views.orchest_api import api_proxy_environment_image_builds
 class CreateProject(TwoPhaseFunction):
     """Init an orchest project."""
 
-    def _transaction(self, project_path: str) -> str:
+    def _transaction(self, project_path: str, skip_env_builds: bool = False) -> str:
         """Add a project to the db.
 
         Args:
@@ -53,9 +53,10 @@ class CreateProject(TwoPhaseFunction):
 
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["project_path"] = project_path
+        self.collateral_kwargs["skip_env_builds"] = skip_env_builds
         return project_uuid
 
-    def _collateral(self, project_uuid: str, project_path: str):
+    def _collateral(self, project_uuid: str, project_path: str, skip_env_builds: bool):
         """Create a project on the filesystem.
 
         Given a directory it will detect what parts are missing from the
@@ -139,8 +140,8 @@ class CreateProject(TwoPhaseFunction):
         if resp.status_code != 201:
             raise Exception("Orchest-api project creation failed.")
 
-        # Build environments on project creation.
-        build_environments_for_project(project_uuid)
+        if not skip_env_builds:
+            build_environments_for_project(project_uuid)
 
         Project.query.filter_by(uuid=project_uuid, path=project_path).update(
             {"status": "READY"}
@@ -481,8 +482,16 @@ def discoverFSDeletedProjects():
             )
 
 
-def discoverFSCreatedProjects():
-    """Detect projects that were added through the file system."""
+def discoverFSCreatedProjects(skip_env_builds_on_discovery: bool = False) -> None:
+    """Detect projects that were added through the file system.
+
+    Args:
+        skip_env_builds_on_discovery: When a project is discoverd an
+        environment build is queued for every environment it has.
+        This might not be desirable, so this options allows to avoid
+        that.
+
+    """
 
     # Detect new projects by detecting directories that were not
     # registered in the db as projects.
@@ -516,7 +525,9 @@ def discoverFSCreatedProjects():
     for new_project_name in new_project_names:
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                CreateProject(tpe).transaction(new_project_name)
+                CreateProject(tpe).transaction(
+                    new_project_name, skip_env_builds=skip_env_builds_on_discovery
+                )
         except Exception as e:
             current_app.logger.error(
                 (

@@ -507,7 +507,11 @@ def register_views(app, db):
 
         if request.args.get("skip_discovery") != "true":
             discoverFSDeletedProjects()
-            discoverFSCreatedProjects()
+            discoverFSCreatedProjects(
+                skip_env_builds_on_discovery=request.args.get(
+                    "skip_env_builds_on_discovery", False
+                )
+            )
 
         # Projects that are in a INITIALIZING or DELETING state won't
         # be shown until ready.
