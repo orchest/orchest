@@ -1,4 +1,4 @@
-import { DEFAULT_BASE_IMAGES } from "@/environment-edit-view/common";
+import { DEFAULT_BASE_IMAGES } from "@/environments-view/common";
 import { CustomImage } from "@/types";
 import create from "zustand";
 

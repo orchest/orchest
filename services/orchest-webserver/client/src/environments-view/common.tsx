@@ -1,8 +1,10 @@
 import {
+  CustomImage,
   Environment,
   EnvironmentImageBuild,
   EnvironmentSpec,
   EnvironmentState,
+  Language,
   OrchestSession,
 } from "@/types";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
@@ -133,3 +135,67 @@ export const findEnvironment = (
 
   return foundEnvironment;
 };
+
+export const LANGUAGE_MAP: Record<Language, string> = {
+  python: "Python",
+  r: "R",
+  julia: "Julia",
+  javascript: "JavaScript",
+};
+
+// Related to the analytics.py module, "environment_image_build_start" event,
+// which checks for the base image to start with "orchest/".
+export const DEFAULT_BASE_IMAGES: (CustomImage & {
+  img_src: string;
+  label: string;
+})[] = [
+  {
+    base_image: "orchest/base-kernel-py",
+    img_src: "/image/python_logo.svg",
+    language: "python",
+    gpu_support: false,
+    label: "Python",
+  },
+  {
+    base_image: "orchest/base-kernel-py-gpu",
+    img_src: "/image/python_logo.svg",
+    language: "python",
+    gpu_support: true,
+    label: "Python GPU",
+  },
+  {
+    base_image: "orchest/base-kernel-r",
+    img_src: "/image/r_logo.svg",
+    language: "r",
+    gpu_support: false,
+    label: "R",
+  },
+  {
+    base_image: "orchest/base-kernel-julia",
+    img_src: "/image/julia_logo.svg",
+    language: "julia",
+    gpu_support: false,
+    label: "Julia",
+  },
+  {
+    base_image: "orchest/base-kernel-javascript",
+    img_src: "/image/javascript_logo.svg",
+    language: "javascript",
+    gpu_support: false,
+    label: "Javascript",
+  },
+];
+
+export function shallowEqualByKey<T extends Record<string, any>>( // eslint-disable-line @typescript-eslint/no-explicit-any
+  obj1: T,
+  obj2: T,
+  keys: (keyof Partial<T>)[]
+) {
+  if (!obj1 || !obj2) return obj1 === obj2;
+  return keys.every((key) => {
+    return obj1[key] === obj2[key];
+  });
+}
+
+// Due to the migration to k8s, gpu-supported images are not yet available
+export const GPU_SUPPORT_ENABLED = false;

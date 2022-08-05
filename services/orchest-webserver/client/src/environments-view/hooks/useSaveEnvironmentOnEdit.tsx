@@ -1,5 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { useAutoSaveEnvironment } from "@/environment-edit-view/useAutoSaveEnvironment";
+import { useAutoSaveEnvironment } from "@/environments-view/edit-environment/hooks/useAutoSaveEnvironment";
 import React from "react";
 import { getPutEnvironmentPayload } from "../common";
 import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";

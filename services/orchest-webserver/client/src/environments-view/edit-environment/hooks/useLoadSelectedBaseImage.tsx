@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { DEFAULT_BASE_IMAGES } from "@/environment-edit-view/common";
+import { DEFAULT_BASE_IMAGES } from "@/environments-view/common";
 import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Environment } from "@/types";
