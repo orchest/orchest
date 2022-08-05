@@ -88,10 +88,10 @@ export const SortableStack = ({
     const canMove = !isNaN(x) && !isNaN(y) && !isNaN(startX) && !isNaN(startY);
 
     if (canMove && !shouldReset) {
-      const dx = x - startX;
-      const dy = y - startY;
+      const deltaX = x - startX;
+      const deltaY = y - startY;
 
-      element.style.transform = `translate(${dx}px, ${dy}px)`;
+      element.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
       element.style.pointerEvents = "none";
     } else {
       element.style.transform = "";
@@ -143,7 +143,7 @@ export const SortableStack = ({
           }}
           sx={{
             ["> *"]: {
-              cursor: element ? "grabbing" : "grab",
+              cursor: disabled ? undefined : element ? "grabbing" : "grab",
             },
           }}
           className="drag-item"
