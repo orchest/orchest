@@ -1,5 +1,5 @@
 import { RunIncomingIcon } from "@/components/common/icons/RunIncomingIcon";
-import { osSpecificHotKey } from "@/utils/isMacOs";
+import { modifierKey } from "@/utils/platform";
 import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
@@ -12,13 +12,15 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useRunSteps } from "./useRunSteps";
 
-export const PipelineOperationsMenu = ({
-  anchor,
-  onClose,
-}: {
+type PrimaryPipelineActionMenuProps = {
   anchor: Element | undefined;
   onClose: () => void;
-}) => {
+};
+
+export const PrimaryPipelineActionMenu = ({
+  anchor,
+  onClose,
+}: PrimaryPipelineActionMenuProps) => {
   const {
     runSelectedSteps,
     runAllSteps,
@@ -59,34 +61,29 @@ export const PipelineOperationsMenu = ({
 
   return (
     <Menu
-      id="pipeline-operations-menu"
       anchorEl={anchor}
       open={hasValue(anchor)}
       onClose={onClose}
+      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      transformOrigin={{ vertical: "top", horizontal: "right" }}
       MenuListProps={{
         dense: true,
         "aria-labelledby": "pipeline-operations",
-        sx: { width: (theme) => theme.spacing(28) },
       }}
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      transformOrigin={{ vertical: "top", horizontal: "right" }}
     >
       {operationOptions.map((option) => {
         const disabled = !hasValue(option.action);
-        const handleClick = () => {
+        const onClick = () => {
           option.action?.();
           onClose();
         };
+
         return (
-          <MenuItem
-            key={option.label}
-            disabled={disabled}
-            onClick={handleClick}
-          >
+          <MenuItem key={option.label} disabled={disabled} onClick={onClick}>
             <ListItemIcon>{option.icon}</ListItemIcon>
             <ListItemText>{option.label}</ListItemText>
             <Typography variant="caption" color="text.secondary">
-              {`${osSpecificHotKey} ${option.hotKey}`}
+              {`${modifierKey} ${option.hotKey}`}
             </Typography>
           </MenuItem>
         );

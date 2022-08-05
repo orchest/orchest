@@ -4,7 +4,7 @@ import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { useRunSteps } from "../pipeline-canvas-header-bar/pipeline-operations/useRunSteps";
+import { useRunSteps } from "../pipeline-canvas-header-bar/primary-action/useRunSteps";
 import { useDeleteSteps } from "./useDeleteSteps";
 
 const COMMANDS = {
