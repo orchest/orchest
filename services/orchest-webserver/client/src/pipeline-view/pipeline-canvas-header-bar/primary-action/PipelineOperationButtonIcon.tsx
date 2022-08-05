@@ -10,12 +10,13 @@ type PipelineOperationButtonIconProps = {
   status?: DisplayedPipelineStatus;
 };
 
-export const PipelineOperationButtonIcon = ({
+export const PrimaryPipelineButtonIcon = ({
   status,
 }: PipelineOperationButtonIconProps) => {
   const { isReadOnly } = usePipelineDataContext();
   const isCanceling = status === "CANCELING";
-  const pipelineIdling = status === "IDLING";
+  const isIdling = status === "IDLING";
+
   return (
     <Box
       sx={{
@@ -35,7 +36,7 @@ export const PipelineOperationButtonIcon = ({
           }}
         />
       )}
-      {pipelineIdling || isReadOnly ? (
+      {isIdling || isReadOnly ? (
         <PlayCircleOutlineOutlinedIcon fontSize="small" />
       ) : (
         <StopCircleOutlinedIcon fontSize="small" />
