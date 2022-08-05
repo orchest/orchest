@@ -91,7 +91,7 @@ export const ConnectionList = ({
           {direction}
         </Typography>
         {hint && (
-          <Tooltip title={hint} placement="left-end" arrow>
+          <Tooltip title={hint} placement="left-end">
             <InfoOutlined
               color="primary"
               style={{ width: "24px", height: "24px" }}
