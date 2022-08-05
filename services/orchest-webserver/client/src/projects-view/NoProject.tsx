@@ -32,7 +32,10 @@ export const NoProject = () => {
           margin: (theme) => theme.spacing(2, 0, 0, 0),
         }}
       />
-      <ViewDocsLink sx={{ marginTop: (theme) => theme.spacing(4) }} />
+      <ViewDocsLink
+        sx={{ marginTop: (theme) => theme.spacing(4) }}
+        docPath="/fundamentals/projects.html"
+      />
     </Stack>
   );
 };
