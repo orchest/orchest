@@ -6,6 +6,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useStepDetailsContext } from "./StepDetailsContext";
 
@@ -19,7 +20,8 @@ export const StepDetailsControlPanel = ({
   onDelete: () => void;
 }) => {
   const { doesStepFileExist, step } = useStepDetailsContext();
-  const { isReadOnly, dispatch } = usePipelineEditorContext();
+  const { isReadOnly } = usePipelineDataContext();
+  const { dispatch } = usePipelineEditorContext();
 
   const onClose = () => {
     dispatch({ type: "SET_OPENED_STEP", payload: undefined });

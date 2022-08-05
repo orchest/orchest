@@ -11,6 +11,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import { AnimatePresence, m } from "framer-motion";
 import React from "react";
 import { PipelineDiagram } from "./assets";
