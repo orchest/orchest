@@ -1,4 +1,3 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { firstAncestor } from "@/utils/element";
 import { basename, dirname, extname, isDirectory } from "@/utils/path";
@@ -8,6 +7,7 @@ import TextField from "@mui/material/TextField";
 import produce from "immer";
 import React from "react";
 import { FileManagementRoot } from "../common";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { combinePath, TreeNode, unpackPath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
@@ -29,9 +29,7 @@ export const TreeRow = ({
   hoveredPath,
   onOpen,
 }: TreeRowProps) => {
-  const {
-    state: { pipelineIsReadOnly },
-  } = useProjectsContext();
+  const { isReadOnly } = usePipelineDataContext();
   const { handleContextMenu, fileInRename } = useFileManagerLocalContext();
   const { directories, files } = React.useMemo(
     () =>
@@ -58,7 +56,7 @@ export const TreeRow = ({
             )}
 
             <TreeItem
-              disableDragging={pipelineIsReadOnly}
+              disableDragging={isReadOnly}
               onContextMenu={(event) => handleContextMenu(event, combinedPath)}
               sx={{
                 cursor: "context-menu",
@@ -94,7 +92,7 @@ export const TreeRow = ({
               <RenameField onRename={onRename} combinedPath={combinedPath} />
             )}
             <TreeItem
-              disableDragging={pipelineIsReadOnly}
+              disableDragging={isReadOnly}
               onContextMenu={(event) => handleContextMenu(event, combinedPath)}
               sx={{ cursor: "context-menu" }}
               key={combinedPath}
@@ -103,7 +101,7 @@ export const TreeRow = ({
               path={combinedPath}
               labelText={node.name}
               fileName={node.name}
-              onDoubleClick={() => !pipelineIsReadOnly && onOpen(combinedPath)}
+              onDoubleClick={() => !isReadOnly && onOpen(combinedPath)}
             />
           </div>
         );

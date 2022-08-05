@@ -37,7 +37,7 @@ const FullScreenDialogHeader = ({ title }: FullScreenDialogHeaderProps) => {
 const PipelineView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.pipeline.path });
   const {
-    state: { pipelineIsReadOnly, projectUuid },
+    state: { pipelineReadOnlyReason, projectUuid },
   } = useProjectsContext();
 
   return (
@@ -47,7 +47,7 @@ const PipelineView = () => {
           <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
             <MainSidePanel>
               <FileManager />
-              {!pipelineIsReadOnly && <SessionsPanel />}
+              {!pipelineReadOnlyReason && <SessionsPanel />}
             </MainSidePanel>
             <PipelineEditor />
           </Stack>

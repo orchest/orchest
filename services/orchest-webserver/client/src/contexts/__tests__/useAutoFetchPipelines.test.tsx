@@ -1,7 +1,7 @@
 import {
-  IProjectsContextState,
   ProjectsContextAction,
   ProjectsContextProvider,
+  ProjectsContextState,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { PipelineMetaData } from "@/types";
@@ -66,7 +66,7 @@ describe("useAutoFetchPipelines", () => {
       projectUuid?: string;
     },
     {
-      state: IProjectsContextState;
+      state: ProjectsContextState;
       dispatch: (value: ProjectsContextAction) => void;
       fetchedPipelines: PipelineMetaData[] | undefined;
     }
