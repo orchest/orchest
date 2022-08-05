@@ -116,7 +116,7 @@ export const ReadOnlyBanner = () => {
             {actionLabel}
           </Button>
         }
-        sx={{ width: "100%" }}
+        sx={{ width: "100%", alignItems: "center" }}
       >
         <Box
           sx={{
