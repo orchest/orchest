@@ -22,7 +22,7 @@ export const useFetchInteractiveRun = () => {
     string | undefined
   >(
     shouldFetchRunUuid
-      ? `${PIPELINE_RUN_STATUS_ENDPOINT}/?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
+      ? `${PIPELINE_RUN_STATUS_ENDPOINT}?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
       : undefined,
     { transform: (data) => data.runs[0]?.uuid }
   );
