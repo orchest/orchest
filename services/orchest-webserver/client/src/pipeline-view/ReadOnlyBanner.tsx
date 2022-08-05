@@ -16,7 +16,7 @@ const titleMapping: Record<PipelineReadOnlyReason, string> = {
   isJobRun: "pipeline snapshot",
   environmentsNotYetBuilt:
     "Not all environments of this project have been built",
-  environmentsBuildInProgress: "Environment build is in progress...",
+  environmentsBuildInProgress: "Environments still building",
   JupyterEnvironmentBuildInProgress:
     "JupyterLab environment build is in progress",
 };
