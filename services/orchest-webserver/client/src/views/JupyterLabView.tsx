@@ -1,5 +1,8 @@
 import { Layout } from "@/components/Layout";
-import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
+import {
+  BUILD_IMAGE_SOLUTION_VIEW,
+  useProjectsContext,
+} from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import {
@@ -33,6 +36,7 @@ const JupyterLabView = () => {
   const { makeCancelable } = useCancelablePromise();
   const { cancelableFetch } = useCancelableFetch();
   useEnsureValidPipeline();
+  const { dispatch } = useProjectsContext();
 
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
   const {
@@ -92,6 +96,10 @@ const JupyterLabView = () => {
         .then((isSessionStarted) => {
           if (isSessionStarted) {
             // Force reloading the view.
+            dispatch({
+              type: "SET_PIPELINE_IS_READONLY",
+              payload: false,
+            });
             navigateTo(siteMap.jupyterLab.path, {
               query: { projectUuid, pipelineUuid },
             });
@@ -106,6 +114,7 @@ const JupyterLabView = () => {
         });
     }
   }, [
+    dispatch,
     isSessionsLoaded,
     hasSession,
     startSession,

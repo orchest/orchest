@@ -57,7 +57,6 @@ export const useSessionsPoller = () => {
     FetchSessionResponse,
     Record<string, OrchestSession>
   >(SESSIONS_ENDPOINT, {
-    disableFetchOnMount: true,
     transform: (data) =>
       data.sessions.reduce((sessionsObj, session) => {
         const {
