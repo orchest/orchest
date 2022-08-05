@@ -72,9 +72,9 @@ if $WATCH; then
   DEBUG_CSS_FILENAME="style.css?hash=${DATE_UNIX}"
   index_template_fill $DEBUG_JS_FILENAME $DEBUG_CSS_FILENAME "watch"
   sass $SASS_ARGS --watch &
-  esbuild $ESBUILD_ARGS --watch --sourcemap # only generate sourcemap when pnpm run dev
+  esbuild $ESBUILD_ARGS --watch
 else
-  sass $SASS_ARGS --no-source-map && echo "Compiled $SASS_SRC_PATH successfully!" &
+  sass $SASS_ARGS && echo "Compiled $SASS_SRC_PATH successfully!" &
   esbuild $ESBUILD_ARGS
 
   wait $(jobs -p)
