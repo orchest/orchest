@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import React from "react";
 import { CreateStepButton } from "../CreateStepButton";
 import { PipelineMoreOptionsMenu } from "../PipelineMoreOptionsMenu";
+import { PipelineOperations } from "./pipeline-operations/PipelineOperations";
 import { PipelineFileName } from "./PipelineFileName";
 import { ServicesMenu } from "./ServicesMenu";
 
@@ -28,6 +29,7 @@ export const PipelineCanvasHeaderBar = () => {
         sx={{ height: (theme) => theme.spacing(3) }}
       />
       <CreateStepButton />
+      <PipelineOperations />
       <PipelineMoreOptionsMenu />
     </Stack>
   );

@@ -8,23 +8,15 @@ export const InteractiveRunButton: React.FC<
     hidden: boolean;
     selectedSteps: string[];
     stepsType: RunStepsType;
-    isSessionRunning: boolean;
   }
-> = ({
-  children,
-  hidden,
-  isSessionRunning,
-  selectedSteps,
-  stepsType,
-  ...rest
-}) => {
+> = ({ children, hidden, selectedSteps, stepsType, ...rest }) => {
   const { pipelineRunning, runSteps } = useInteractiveRunsContext();
 
   return !hidden && !pipelineRunning ? (
     <Button
       {...rest}
       variant="contained"
-      onClick={() => runSteps(selectedSteps, stepsType, isSessionRunning)}
+      onClick={() => runSteps(selectedSteps, stepsType)}
     >
       {children}
     </Button>

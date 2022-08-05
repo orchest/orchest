@@ -1,12 +1,12 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { PipelineRun } from "@/types";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { PipelineJson, PipelineRun } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import {
   PIPELINE_JOBS_STATUS_ENDPOINT,
   PIPELINE_RUN_STATUS_ENDPOINT,
 } from "../common";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import {
   convertStepsToObject,
   useStepExecutionState,
@@ -14,15 +14,19 @@ import {
 
 export type RunStepsType = "selection" | "incoming";
 
-export const useInteractiveRuns = () => {
+export const useInteractiveRuns = ({
+  projectUuid,
+  runUuid,
+  setRunUuid,
+  pipelineJson,
+}: {
+  projectUuid?: string;
+  runUuid?: string;
+  setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
+  pipelineJson?: PipelineJson;
+}) => {
+  const { jobUuid } = useCustomRoute();
   const { setAlert } = useAppContext();
-  const {
-    pipelineJson,
-    projectUuid,
-    jobUuid,
-    runUuid,
-    setRunUuid,
-  } = usePipelineEditorContext();
 
   const [pipelineRunning, setPipelineRunning] = React.useState(false);
   const [isCancellingRun, setIsCancellingRun] = React.useState(false);
@@ -53,6 +57,7 @@ export const useInteractiveRuns = () => {
 
   const executePipelineSteps = React.useCallback(
     async (uuids: string[], type: RunStepsType) => {
+      if (!pipelineJson) return;
       try {
         const result = await fetcher<PipelineRun>(
           `${PIPELINE_RUN_STATUS_ENDPOINT}/`, // NOTE: trailing back slash is required

@@ -12,7 +12,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 
 const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
   return fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
@@ -23,7 +23,7 @@ const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
 export const PipelineMoreOptionsMenu = () => {
   const { setConfirm } = useAppContext();
   const { navigateTo, pipelineUuid, jobUuid } = useCustomRoute();
-  const { runUuid, isReadOnly } = usePipelineEditorContext();
+  const { runUuid, isReadOnly } = usePipelineDataContext();
   const {
     state: { projectUuid, pipeline },
     dispatch,

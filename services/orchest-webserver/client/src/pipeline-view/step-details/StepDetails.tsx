@@ -1,5 +1,6 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Step } from "@/types";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -12,6 +13,7 @@ import {
   useDragElementWithPosition,
 } from "../../hooks/useDragElementWithPosition";
 import { ResizeBar } from "../components/ResizeBar";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { StepDetailsContextProvider } from "./StepDetailsContext";
 import { StepDetailsControlPanel } from "./StepDetailsControlPanel";
@@ -51,16 +53,9 @@ const StepDetailsComponent: React.FC<{
   onDelete: () => void;
   onSave: (stepChanges: Partial<Step>, uuid: string, replace?: boolean) => void;
 }> = ({ onOpenNotebook, onOpenFilePreviewView, onSave, onDelete }) => {
-  const {
-    eventVars,
-    pipelineCwd,
-    isReadOnly,
-    runUuid,
-    pipelineJson,
-    dispatch,
-    jobUuid,
-    projectUuid,
-  } = usePipelineEditorContext();
+  const { jobUuid, projectUuid } = useCustomRoute();
+  const { pipelineCwd, runUuid, isReadOnly } = usePipelineDataContext();
+  const { eventVars, pipelineJson, dispatch } = usePipelineEditorContext();
 
   const step = eventVars.steps[eventVars.openedStep || ""];
   const subViewIndex = eventVars.subViewIndex;
