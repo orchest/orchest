@@ -30,7 +30,7 @@ import {
 type ParameterEditorWithJsonFormProps = {
   initialValue: Json;
   isReadOnly: boolean;
-  onSave: (parameters: Json) => void;
+  onSave: (parameters: Record<string, Json>) => void;
   parameterSchema: JsonSchema | undefined;
   parameterUiSchema: UISchemaElement | undefined;
   openSchemaFile: (e: React.MouseEvent, type: JsonSchemaType) => void;

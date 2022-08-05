@@ -11,7 +11,6 @@ import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
 import { setOutgoingConnections } from "@/utils/webserver-utils";
 import { hasValue, intersectRect, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
-import merge from "lodash.merge";
 import React from "react";
 import { createsLoop, getScaleCorrectedPosition } from "../common";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
@@ -116,7 +115,6 @@ export type Action =
       payload: {
         stepChanges: Partial<StepState>;
         uuid: string;
-        replace?: boolean;
       };
     }
   | {
@@ -666,18 +664,12 @@ export const usePipelineUiState = () => {
         }
 
         case "SAVE_STEP_DETAILS":
-          const { replace, stepChanges, uuid } = action.payload;
+          const { stepChanges, uuid } = action.payload;
 
           return produce(withHash(state), (draft) => {
-            if (replace) {
-              // Replace works on the top level keys that are provided
-              Object.entries(stepChanges).forEach(
-                ([key, change]) => (draft.steps[uuid][key] = change)
-              );
-            } else {
-              // lodash merge mutates the object
-              merge(draft.steps[uuid], stepChanges);
-            }
+            Object.entries(stepChanges).forEach(
+              ([key, value]) => (draft.steps[uuid][key] = value)
+            );
           });
         case "SET_ERROR":
           return { ...state, error: action.payload };
