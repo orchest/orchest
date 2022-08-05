@@ -14,6 +14,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
   ALLOWED_STEP_EXTENSIONS,
+  hasValue,
   kernelNameToLanguage,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
@@ -21,6 +22,7 @@ import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { SelectEnvironment } from "./SelectEnvironment";
 import { useStepDetailsContext } from "./StepDetailsContext";
+import { useDelayedSavingStepChanges } from "./useDelayedSavingStepChanges";
 
 const KERNEL_OPTIONS = [
   { value: "python", label: "Python" },
@@ -29,24 +31,22 @@ const KERNEL_OPTIONS = [
   { value: "javascript", label: "JavaScript" },
 ];
 
+type StepDetailsPropertiesProps = {
+  pipelineCwd: string | undefined;
+  readOnly: boolean;
+  shouldAutoFocus: boolean;
+  onSave: (payload: Partial<StepState>, uuid: string) => void;
+  menuMaxWidth?: string;
+};
+
 export const StepDetailsProperties = ({
   pipelineCwd,
   readOnly,
   shouldAutoFocus,
   onSave,
   menuMaxWidth,
-}: {
-  pipelineCwd: string | undefined;
-  readOnly: boolean;
-  shouldAutoFocus: boolean;
-  onSave: (
-    payload: Partial<StepState>,
-    uuid: string,
-    replace?: boolean
-  ) => void;
-  menuMaxWidth?: string;
-}) => {
-  const { step } = useStepDetailsContext();
+}: StepDetailsPropertiesProps) => {
+  const { step, setStepChanges } = useDelayedSavingStepChanges(onSave);
   // Allows user to edit JSON while typing the text will not be valid JSON.
   const [editableParameters, setEditableParameters] = React.useState(
     JSON.stringify(step.parameters, null, 2)
@@ -62,27 +62,26 @@ export const StepDetailsProperties = ({
       skipSave?: boolean
     ) => {
       if (!skipSave) {
-        onSave(
-          {
+        setStepChanges((current) => {
+          if (
+            pipelineCwd &&
+            updatedEnvironmentUUID.length > 0 &&
+            hasValue(current.file_path) &&
+            current.file_path.length > 0
+          ) {
+            window.orchest.jupyter?.setNotebookKernel(
+              join(pipelineCwd, current.file_path),
+              `orchest-kernel-${updatedEnvironmentUUID}`
+            );
+          }
+          return {
             environment: updatedEnvironmentUUID,
-            kernel: { display_name: updatedEnvironmentName },
-          },
-          step.uuid,
-          false
-        );
-        if (
-          pipelineCwd &&
-          updatedEnvironmentUUID.length > 0 &&
-          step.file_path.length > 0
-        ) {
-          window.orchest.jupyter?.setNotebookKernel(
-            join(pipelineCwd, step.file_path),
-            `orchest-kernel-${updatedEnvironmentUUID}`
-          );
-        }
+            kernel: { ...current.kernel, display_name: updatedEnvironmentName },
+          };
+        });
       }
     },
-    [onSave, pipelineCwd, step]
+    [setStepChanges, pipelineCwd]
   );
 
   // Mostly for new steps, where user is assumed to start typing Step Title,
@@ -94,22 +93,25 @@ export const StepDetailsProperties = ({
       if (newFilePath.length > 0) {
         autogenerateFilePath.current = false;
       }
-      if (newFilePath !== step.file_path)
-        onSave({ file_path: newFilePath }, step.uuid);
+      setStepChanges((current) => {
+        return newFilePath !== current.file_path
+          ? { file_path: newFilePath }
+          : current;
+      });
     },
-    [onSave, step.uuid, step.file_path]
+    [setStepChanges]
   );
 
   const onChangeParameterJSON = (updatedParameterJSON: string) => {
     setEditableParameters(updatedParameterJSON);
     try {
-      onSave({ parameters: JSON.parse(updatedParameterJSON) }, step.uuid, true);
+      setStepChanges({ parameters: JSON.parse(updatedParameterJSON) });
     } catch (err) {}
   };
 
   const onChangeKernel = (updatedKernel: string) => {
     if (step.kernel.name !== updatedKernel)
-      onSave({ kernel: { name: updatedKernel } }, step.uuid);
+      setStepChanges({ kernel: { name: updatedKernel } });
   };
 
   const onChangeTitle = (updatedTitle: string) => {
@@ -118,7 +120,7 @@ export const StepDetailsProperties = ({
       : null;
 
     if (step.title !== updatedTitle || filePathChange)
-      onSave({ title: updatedTitle, ...filePathChange }, step.uuid);
+      setStepChanges({ title: updatedTitle, ...filePathChange });
   };
 
   React.useEffect(() => {
@@ -132,12 +134,6 @@ export const StepDetailsProperties = ({
   }, [editableParameters]);
 
   const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
-
-  React.useEffect(() => {
-    if (!step.title) {
-      titleInputRef.current?.focus();
-    }
-  });
 
   return (
     <Stack direction="column" spacing={3}>

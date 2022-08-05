@@ -118,10 +118,10 @@ export const PipelineEditor = () => {
   const hasSelectedSteps = selectedSteps.length > 0;
 
   const onSaveDetails = React.useCallback(
-    (stepChanges: Partial<StepState>, uuid: string, replace = false) => {
+    (stepChanges: Partial<StepState>, uuid: string) => {
       uiStateDispatch({
         type: "SAVE_STEP_DETAILS",
-        payload: { stepChanges, uuid, replace },
+        payload: { stepChanges, uuid },
       });
     },
     [uiStateDispatch]
