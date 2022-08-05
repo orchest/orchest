@@ -13,7 +13,7 @@ type BuildEnvironmentButtonProps = {
 export const BuildEnvironmentButton = ({
   environmentOnEdit,
 }: BuildEnvironmentButtonProps) => {
-  const { triggerBuild, cancelBuild } = useBuildEnvironmentImage();
+  const [triggerBuild, cancelBuild] = useBuildEnvironmentImage();
 
   const buildStatus = environmentOnEdit?.latestBuild?.status;
 
