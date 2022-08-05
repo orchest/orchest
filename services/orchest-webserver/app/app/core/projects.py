@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 import uuid
-from typing import Optional
+from typing import List, Optional
 
 import requests
 from flask import current_app, safe_join
@@ -14,7 +14,7 @@ from app import error
 from app.connections import db
 from app.core.pipelines import AddPipelineFromFS, DeletePipeline
 from app.kernel_manager import populate_kernels
-from app.models import BackgroundTask, Pipeline, Project
+from app.models import BackgroundTask, Environment, Pipeline, Project
 from app.utils import (
     find_pipelines_in_dir,
     get_environments,
@@ -140,8 +140,16 @@ class CreateProject(TwoPhaseFunction):
         if resp.status_code != 201:
             raise Exception("Orchest-api project creation failed.")
 
+        environments = get_environments(project_uuid)
+        for env in environments:
+            url = (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/environments/{project_uuid}"
+            )
+            requests.post(url, json={"uuid": env.uuid})
+
         if not skip_env_builds:
-            build_environments_for_project(project_uuid)
+            build_environments_for_project(project_uuid, environments)
 
         Project.query.filter_by(uuid=project_uuid, path=project_path).update(
             {"status": "READY"}
@@ -437,16 +445,7 @@ def build_environments(environment_uuids, project_uuid):
     )
 
 
-def build_environments_for_project(project_uuid):
-    environments = get_environments(project_uuid)
-
-    for env in environments:
-        url = (
-            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
-            f"/api/environments/{project_uuid}"
-        )
-        requests.post(url, json={"uuid": env.uuid})
-
+def build_environments_for_project(project_uuid: str, environments: List[Environment]):
     return build_environments(
         [environment.uuid for environment in environments], project_uuid
     )
