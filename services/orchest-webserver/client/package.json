@@ -20,6 +20,7 @@
     "@mui/lab": "^5.0.0-alpha.72",
     "@mui/material": "^5.2.3",
     "@mui/utils": "^5.2.3",
+    "@openreplay/tracker": "^3.5.16",
     "@orchest/design-system": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
     "@use-gesture/react": "^10.2.10",
