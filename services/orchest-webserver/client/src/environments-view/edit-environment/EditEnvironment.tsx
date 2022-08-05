@@ -9,6 +9,7 @@ import { useGetEnvironments } from "../hooks/useGetEnvironments";
 import { useSaveEnvironmentOnEdit } from "../hooks/useSaveEnvironmentOnEdit";
 import { BuildStatusAlert } from "./BuildStatusAlert";
 import { EnvironmentName } from "./EnvironmentName";
+import { EnvironmentSetupScript } from "./EnvironmentSetupScript";
 import { NoEnvironment } from "./NoEnvironment";
 
 export const EditEnvironment = () => {
@@ -19,7 +20,11 @@ export const EditEnvironment = () => {
   return hasNoEnvironment ? (
     <NoEnvironment />
   ) : (
-    <Stack direction="column" spacing={3}>
+    <Stack
+      direction="column"
+      spacing={3}
+      sx={{ paddingBottom: (theme) => theme.spacing(6) }}
+    >
       <Stack direction="row" spacing={2} alignItems="center">
         <Typography variant="h4" flex={1} sx={ellipsis()}>
           {environmentOnEdit?.name}
@@ -28,11 +33,12 @@ export const EditEnvironment = () => {
         <EnvironmentMoreOptions />
       </Stack>
       <BuildStatusAlert latestBuild={environmentOnEdit?.latestBuild} />
-      <Typography component="h3" variant="h6">
+      <Typography component="h5" variant="h6">
         Properties
       </Typography>
       <EnvironmentName />
       <EnvironmentImagesRadioGroup />
+      <EnvironmentSetupScript />
     </Stack>
   );
 };

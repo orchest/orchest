@@ -24,11 +24,10 @@ export type EnvironmentsApiState = {
     environmentName: string,
     specs: EnvironmentSpec
   ) => Promise<Environment | undefined>;
-  isPutting: boolean;
   put: (
     environmentUuid: string,
     payload: Partial<Environment>
-  ) => Promise<void>;
+  ) => Promise<Environment | undefined>;
   isDeleting: boolean;
   delete: (environmentUuid: string) => Promise<void>;
   validate: () => Promise<EnvironmentBuildStatus | undefined>;
@@ -146,30 +145,20 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
         set({ error, isPosting: false });
       }
     },
-    isPutting: false,
     put: async (environmentUuid, payload) => {
       try {
         const projectUuid = getProjectUuid();
-        const environments = getEnvironments();
         const environmentState = getEnvironment(environmentUuid);
 
-        set({ error: undefined, isPutting: true });
         const updatedEnvironment = await environmentsApi.put(
           projectUuid,
           getEnvironmentFromState({ ...environmentState, ...payload })
         );
-
-        const updatedEnvironmentStates = environments.map((env) =>
-          env.uuid === environmentUuid
-            ? { ...environmentState, ...updatedEnvironment }
-            : env
-        );
-        set({
-          environments: updatedEnvironmentStates,
-          isPutting: false,
-        });
+        // Note: Merging the response into the state after PUT is not always necessary,
+        // It causes an unnecessary re-render for normal cases.
+        return updatedEnvironment;
       } catch (error) {
-        set({ error, isPutting: false });
+        set({ error });
       }
     },
     isDeleting: false,
