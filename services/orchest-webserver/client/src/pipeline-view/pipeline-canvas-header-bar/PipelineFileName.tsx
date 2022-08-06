@@ -63,10 +63,10 @@ export const PipelineFileName = () => {
   );
 
   return fileNameWithoutExtension ? (
-    <Stack direction="row" spacing={1} alignItems="baseline">
+    <Stack direction="row" spacing={1} alignItems="baseline" width="inherit">
       <BackToJob />
       <Tooltip title={`Project files/${path}`} placement="bottom-start">
-        <Stack direction="row" alignItems="baseline">
+        <Stack direction="row" alignItems="baseline" width="inherit">
           <Typography component="h2" variant="h5" sx={ellipsis()}>
             {fileNameWithoutExtension}
           </Typography>
