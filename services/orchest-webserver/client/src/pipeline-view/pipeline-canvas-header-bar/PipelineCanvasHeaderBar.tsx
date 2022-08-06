@@ -21,6 +21,7 @@ export const PipelineCanvasHeaderBar = () => {
       alignItems="center"
       justifyContent="space-between"
       spacing={2}
+      width="inherit"
       sx={{
         backgroundColor: (theme) => theme.palette.background.paper,
         borderBottom: (theme) => `1px solid ${theme.borderColor}`,
@@ -28,7 +29,13 @@ export const PipelineCanvasHeaderBar = () => {
         height: (theme) => theme.spacing(7),
       }}
     >
-      <Stack direction="row" alignItems="baseline" minWidth={0} flexShrink={1}>
+      <Stack
+        direction="row"
+        alignItems="baseline"
+        minWidth={0}
+        flexShrink={1}
+        width="inherit"
+      >
         <PipelineFileName />
       </Stack>
       <Stack direction="row" flexShrink={0} spacing={1.5} alignItems="center">
