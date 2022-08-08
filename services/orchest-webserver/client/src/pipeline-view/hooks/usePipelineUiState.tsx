@@ -15,16 +15,21 @@ import React from "react";
 import { createsLoop, getScaleCorrectedPosition } from "../common";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { useScaleFactor } from "../contexts/ScaleFactorContext";
-import { getStepSelectorRectangle, RectangleProps } from "../Rectangle";
+import {
+  getStepSelectorRectangle,
+  SelectionRectangleProps,
+} from "../SelectionRectangle";
 
-const intersectRect = (r1: RectangleProps, r2: RectangleProps) => {
-  return !(
+const intersectRect = (
+  r1: SelectionRectangleProps,
+  r2: SelectionRectangleProps
+) =>
+  !(
     r2.x > r1.x + r1.width ||
     r2.x + r2.width < r1.x ||
     r2.y > r1.y + r1.height ||
     r2.y + r2.height < r1.y
   );
-};
 
 type StepSelectorData = {
   x1: number;
