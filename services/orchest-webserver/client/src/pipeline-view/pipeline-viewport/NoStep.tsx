@@ -9,6 +9,7 @@ export const NoStep = (props: StackProps) => {
       title="No Pipeline steps"
       description={`A Pipeline Step is an executable file running in its own isolated 
       environment. Drag & drop files from the file manager to get started.`}
+      docPath="/fundamentals/pipelines.html"
       {...props}
     />
   );
