@@ -86,7 +86,7 @@ export const PipelineViewportContextMenu = () => {
           },
           {
             type: "item",
-            title: "Center view",
+            title: "Zoom to fit",
             action: () => {
               centerView();
             },
