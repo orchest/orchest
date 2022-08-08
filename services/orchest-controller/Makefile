@@ -25,7 +25,7 @@ fmt: ## Run go fmt and modify files in place
 
 .PHONY: controller
 controller: fmt
-	CGO_ENABLED=0 GOOS=linux go build -ldflags="$(LDFLAGS)" -o bin/controller ./cmd/controller
+	CGO_ENABLED=0 GOOS=linux go build -o bin/controller ./cmd/controller
 
 .SECONDARY: $(CONTROLLER_GEN)
 $(CONTROLLER_GEN):
