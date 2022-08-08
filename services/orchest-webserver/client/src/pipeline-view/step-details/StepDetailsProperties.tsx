@@ -1,5 +1,5 @@
 import ProjectFilePicker from "@/components/ProjectFilePicker";
-import { Step } from "@/types";
+import { Json, Step } from "@/types";
 import { firstAncestor } from "@/utils/element";
 import { isValidJson } from "@/utils/isValidJson";
 import { hasExtension, join } from "@/utils/path";
@@ -136,7 +136,7 @@ export const StepDetailsProperties = ({
     } catch (err) {}
   };
 
-  const onChangeParameterData = (data: object) => {
+  const onChangeParameterData = (data: Record<string, Json>) => {
     setEditableParameters(JSON.stringify(data, null, 2));
     try {
       onSave({ parameters: data }, step.uuid, true);

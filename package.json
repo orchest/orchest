@@ -27,6 +27,11 @@
     "node": ">=14.19.0",
     "pnpm": ">=7"
   },
+  "pnpm": {
+    "overrides": {
+      "json-schema-ref-parser": "https://github.com/Bakerburgh/json-schema-ref-parser"
+    }
+  },
   "syncpack": {
     "sortFirst": [
       "private",
@@ -45,10 +50,5 @@
       "dependencies",
       "devDependencies"
     ]
-  },
-  "pnpm": {
-    "overrides": {
-      "json-schema-ref-parser": "https://github.com/Bakerburgh/json-schema-ref-parser"
-    }
   }
 }
