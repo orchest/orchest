@@ -157,5 +157,6 @@ project.fragment.lock.json
 # SonarQube files
 .scannerwork
 
-# Kubernetes generated manifests
+# Kubernetes and CRD generated manifests
 deploy/k8s/
+deploy/helm/templates/orchest*
