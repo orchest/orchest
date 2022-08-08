@@ -3,6 +3,7 @@ import ButtonGroup from "@mui/material/ButtonGroup";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import React from "react";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { ZoomInButton, ZoomOutButton } from "./ZoomButton";
 import { ZoomOptionsMenu } from "./ZoomOptionsMenu";
 import { ZoomValueField } from "./ZoomValueField";
@@ -10,14 +11,18 @@ import { ZoomValueField } from "./ZoomValueField";
 export const ZoomControls = () => {
   const buttonGroupRef = React.useRef<HTMLDivElement | null>(null);
   const [anchor, setAnchor] = React.useState<Element>();
+  const {
+    uiState: { steps },
+  } = usePipelineUiStateContext();
 
   const openMenu = () => setAnchor(buttonGroupRef.current ?? undefined);
-
-  const closeMenu = React.useCallback(() => setAnchor(undefined), []);
+  const closeMenu = () => setAnchor(undefined);
+  const disabled = Object.keys(steps).length === 0;
 
   return (
     <>
       <ButtonGroup
+        disabled={disabled}
         ref={buttonGroupRef}
         size="small"
         color="secondary"
@@ -35,8 +40,12 @@ export const ZoomControls = () => {
             padding: (theme) => theme.spacing(0.5, 0, 0.5, 1.5),
           }}
         >
-          <ZoomValueField />
-          <IconButton onClick={openMenu} arial-label="Open viewing options">
+          <ZoomValueField disabled={disabled} />
+          <IconButton
+            disabled={disabled}
+            onClick={openMenu}
+            arial-label="Open viewing options"
+          >
             <ArrowDropDownOutlinedIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Stack>

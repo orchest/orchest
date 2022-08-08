@@ -8,14 +8,17 @@ import {
   useScaleFactor,
 } from "../contexts/ScaleFactorContext";
 
-export const ZoomValueField = () => {
+type ZoomValueFieldProps = {
+  disabled: boolean;
+};
+
+export const ZoomValueField = ({ disabled }: ZoomValueFieldProps) => {
   const { scaleFactor, setScaleFactor } = useScaleFactor();
   const [percentage, setPercentage] = useState(Math.round(scaleFactor * 100));
 
   useEffect(() => setPercentage(Math.round(scaleFactor * 100)), [scaleFactor]);
 
   const onBlur = () => setScaleFactor(percentage / 100);
-
   const onChange = ({ target }: React.ChangeEvent<HTMLInputElement>) => {
     if (isNumber(target.valueAsNumber)) {
       setPercentage(target.valueAsNumber);
@@ -28,6 +31,7 @@ export const ZoomValueField = () => {
       type="number"
       margin="dense"
       value={percentage}
+      disabled={disabled}
       endAdornment={
         <InputAdornment position="end" sx={{ marginLeft: 0 }}>
           %
