@@ -8,7 +8,7 @@ export const NoStep = (props: StackProps) => {
       imgSrc="/image/no-step.svg"
       title="No Pipeline Steps"
       description={`A Pipeline Step is an executable file running in its own isolated 
-      environment. Drag & drop files from the side panel to get started.`}
+      environment. Drag & drop files from the file manager to get started.`}
       {...props}
     />
   );
