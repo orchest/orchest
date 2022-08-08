@@ -19,8 +19,11 @@ import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { PipelineEditorRoot } from "./PipelineEditorRoot";
 import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { ReadOnlyBanner } from "./ReadOnlyBanner";
-import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { SaveStatus } from "./SaveStatus";
+import {
+  getStepSelectorRectangle,
+  SelectionRectangle,
+} from "./SelectionRectangle";
 import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
 import { ZoomControls } from "./zoom-controls/ZoomControls";
@@ -52,6 +55,8 @@ export const PipelineEditor = () => {
     uiStateDispatch,
     instantiateConnection,
   } = usePipelineUiStateContext();
+
+  const hasSteps = Object.keys(steps).length;
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
   const canvasOffset = getOffset(pipelineCanvasRef.current);
@@ -293,8 +298,8 @@ export const PipelineEditor = () => {
           );
         })}
 
-        {stepSelector.active && (
-          <Rectangle {...getStepSelectorRectangle(stepSelector)} />
+        {stepSelector.active && hasSteps && (
+          <SelectionRectangle {...getStepSelectorRectangle(stepSelector)} />
         )}
       </PipelineViewport>
       <HeadsUpDisplay>

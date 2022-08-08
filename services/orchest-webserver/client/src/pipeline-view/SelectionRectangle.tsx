@@ -15,14 +15,19 @@ export const getStepSelectorRectangle = (stepSelector: {
   };
 };
 
-export type RectangleProps = {
+export type SelectionRectangleProps = {
   width: number;
   height: number;
   x: number;
   y: number;
 };
 
-export const Rectangle = ({ width, height, x, y }: RectangleProps) => {
+export const SelectionRectangle = ({
+  width,
+  height,
+  x,
+  y,
+}: SelectionRectangleProps) => {
   return (
     <div
       className="step-selector"
@@ -32,6 +37,6 @@ export const Rectangle = ({ width, height, x, y }: RectangleProps) => {
         left: x,
         top: y,
       }}
-    ></div>
+    />
   );
 };
