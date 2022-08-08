@@ -4,7 +4,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { ZoomInButton, ZoomOutButton } from "./ZoomButton";
-import { PipelineViewingOptionsMenu } from "./ZoomOptionsMenu";
+import { ZoomOptionsMenu } from "./ZoomOptionsMenu";
 import { ZoomValueField } from "./ZoomValueField";
 
 export const ZoomControls = () => {
@@ -42,7 +42,7 @@ export const ZoomControls = () => {
         </Stack>
         <ZoomInButton />
       </ButtonGroup>
-      <PipelineViewingOptionsMenu anchor={anchor} onClose={closeMenu} />
+      <ZoomOptionsMenu anchor={anchor} onClose={closeMenu} />
     </>
   );
 };
