@@ -3,19 +3,16 @@ import ButtonGroup from "@mui/material/ButtonGroup";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import React from "react";
-import { PipelineViewingOptionsMenu } from "./PipelineViewingOptionsMenu";
-import { ScaleFactorField } from "./ScaleFactorField";
 import { ZoomInButton, ZoomOutButton } from "./ZoomButton";
+import { PipelineViewingOptionsMenu } from "./ZoomOptionsMenu";
+import { ZoomValueField } from "./ZoomValueField";
 
-export const PipelineViewingOptions = () => {
+export const ZoomControls = () => {
   const buttonGroupRef = React.useRef<HTMLDivElement | null>(null);
-
   const [anchor, setAnchor] = React.useState<Element>();
-  const openMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (buttonGroupRef.current) setAnchor(buttonGroupRef.current);
-  };
+
+  const openMenu = () => setAnchor(buttonGroupRef.current ?? undefined);
+
   const closeMenu = React.useCallback(() => setAnchor(undefined), []);
 
   return (
@@ -38,7 +35,7 @@ export const PipelineViewingOptions = () => {
             padding: (theme) => theme.spacing(0.5, 0, 0.5, 1.5),
           }}
         >
-          <ScaleFactorField />
+          <ZoomValueField />
           <IconButton onClick={openMenu} arial-label="Open viewing options">
             <ArrowDropDownOutlinedIcon sx={{ fontSize: 16 }} />
           </IconButton>

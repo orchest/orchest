@@ -15,7 +15,6 @@ import { useOpenFile } from "./hooks/useOpenFile";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
 import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
-import { PipelineViewingOptions } from "./pipeline-viewing-options/PipelineViewingOptions";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { PipelineEditorRoot } from "./PipelineEditorRoot";
 import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
@@ -24,6 +23,7 @@ import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { SaveStatus } from "./SaveStatus";
 import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
+import { ZoomControls } from "./zoom-controls/ZoomControls";
 
 export const PipelineEditor = () => {
   const { pipelineCwd, isReadOnly, pipelineJson } = usePipelineDataContext();
@@ -323,7 +323,7 @@ export const PipelineEditor = () => {
               padding: (theme) => theme.spacing(2.5),
             }}
           >
-            <PipelineViewingOptions />
+            <ZoomControls />
             <SaveStatus />
           </Stack>
         )}

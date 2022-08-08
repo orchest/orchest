@@ -2,7 +2,7 @@ import { originTransformScaling, scaleCorrected } from "@/pipeline-view/common";
 import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
 import {
   DEFAULT_SCALE_FACTOR,
-  SCALE_UNIT,
+  SCALE_INCREMENTS,
   useScaleFactor,
 } from "@/pipeline-view/contexts/ScaleFactorContext";
 import {
@@ -13,6 +13,24 @@ import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import { activeElementIsInput } from "@orchest/lib-utils";
 import React from "react";
 import { useGestureOnViewport } from "./useGestureOnViewport";
+
+const nearestIncrementIndex = (value: number) => {
+  let bestDelta = Infinity;
+  let bestIndex = Math.floor(SCALE_INCREMENTS.length / 2);
+
+  for (let i = 0; i < SCALE_INCREMENTS.length; i++) {
+    const delta = Math.abs(value - SCALE_INCREMENTS[i]);
+
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      bestIndex = i;
+    } else {
+      return bestIndex;
+    }
+  }
+
+  return bestIndex;
+};
 
 export const useKeyboardEventsOnViewport = () => {
   const {
@@ -97,21 +115,29 @@ export const useKeyboardEventsOnViewport = () => {
     setPipelineHolderOrigin,
   ]);
 
-  const zoomIn = React.useCallback(
-    (value: number = SCALE_UNIT) => {
-      centerPipelineOrigin();
-      setScaleFactor((current) => current + value);
-    },
-    [centerPipelineOrigin, setScaleFactor]
-  );
+  const zoomIn = React.useCallback(() => {
+    centerPipelineOrigin();
+    setScaleFactor((currentScale) => {
+      const closestIndex = nearestIncrementIndex(currentScale);
+      const closestScale = SCALE_INCREMENTS[closestIndex];
+      const newIndex =
+        currentScale < closestScale ? closestIndex : closestIndex + 1;
 
-  const zoomOut = React.useCallback(
-    (value: number = SCALE_UNIT) => {
-      centerPipelineOrigin();
-      setScaleFactor((current) => current - value);
-    },
-    [centerPipelineOrigin, setScaleFactor]
-  );
+      return SCALE_INCREMENTS[Math.min(newIndex, SCALE_INCREMENTS.length - 1)];
+    });
+  }, [centerPipelineOrigin, setScaleFactor]);
+
+  const zoomOut = React.useCallback(() => {
+    centerPipelineOrigin();
+    setScaleFactor((currentScale) => {
+      const closestIndex = nearestIncrementIndex(currentScale);
+      const closestScale = SCALE_INCREMENTS[closestIndex];
+      const newIndex =
+        currentScale > closestScale ? closestIndex : closestIndex - 1;
+
+      return SCALE_INCREMENTS[Math.max(newIndex, 0)];
+    });
+  }, [centerPipelineOrigin, setScaleFactor]);
 
   const zoom = useGestureOnViewport(
     pipelineCanvasState,
