@@ -114,12 +114,12 @@ export const ContextMenu = ({
         hasValue(position) ? { top: position.y, left: position.x } : undefined
       }
     >
-      {menuItems.map((menuItem) => {
+      {menuItems.map((menuItem, index) => {
         switch (menuItem.type) {
           case "item":
             return (
               <MenuItem
-                key={menuItem.title}
+                key={index}
                 onClick={(e) => onSelectMenuItem(e, menuItem)}
                 disabled={menuItem.disabled}
               >
@@ -127,7 +127,7 @@ export const ContextMenu = ({
               </MenuItem>
             );
           case "separator":
-            return <Divider />;
+            return <Divider key={index} />;
           default:
             return null;
         }
