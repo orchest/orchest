@@ -1,8 +1,7 @@
-import {
-  useCheckFileValidity,
-  useReadFile,
-} from "@/hooks/useCheckFileValidity";
+import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
+import { useReadFile } from "@/hooks/useReadFile";
 import { PipelineStepState } from "@/types";
+import { JsonSchema, UISchemaElement } from "@jsonforms/core";
 import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
@@ -13,9 +12,9 @@ export type StepDetailsContextType = {
   isCheckingFileValidity: boolean;
   step: PipelineStepState;
   connections: ConnectionDict;
-  stepSchema: object | boolean;
+  stepSchema?: JsonSchema;
   isReadingSchemaFile: boolean;
-  stepUiSchema: object | boolean;
+  stepUiSchema?: UISchemaElement;
   isReadingUiSchemaFile: boolean;
 };
 
@@ -79,9 +78,9 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
         isCheckingFileValidity,
         connections,
         step,
-        stepSchema,
+        stepSchema: stepSchema as JsonSchema,
         isReadingSchemaFile,
-        stepUiSchema,
+        stepUiSchema: (stepUiSchema as unknown) as UISchemaElement,
         isReadingUiSchemaFile,
       }}
     >

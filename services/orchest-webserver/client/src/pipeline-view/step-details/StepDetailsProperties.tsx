@@ -323,9 +323,7 @@ export const StepDetailsProperties = ({
     doesStepFileExist,
     isCheckingFileValidity,
     stepSchema,
-    isReadingSchemaFile,
     stepUiSchema,
-    isReadingUiSchemaFile,
   } = useStepDetailsContext();
 
   return (
@@ -422,8 +420,7 @@ export const StepDetailsProperties = ({
               data={parametersData}
               renderers={materialRenderers}
               cells={materialCells}
-              onChange={({ data, _errors }) => {
-                //setEditableParameters(JSON.stringify(data, null, 2));
+              onChange={({ data }) => {
                 onChangeParameterData(data);
               }}
             />

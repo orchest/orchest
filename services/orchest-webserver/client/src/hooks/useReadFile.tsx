@@ -2,8 +2,9 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
+import { Json } from "@/types";
 import { isValidPath } from "@/utils/path";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import { useDebounce } from "./useDebounce";
 import { useFetcher } from "./useFetcher";
 
@@ -15,36 +16,6 @@ type ValidateFileProps = {
   path: string;
   allowedExtensions: readonly string[];
   useProjectRoot?: boolean;
-};
-
-export const isValidFile = async ({
-  path,
-  projectUuid,
-  pipelineUuid,
-  jobUuid,
-  runUuid,
-  allowedExtensions,
-  useProjectRoot = false,
-}: ValidateFileProps) => {
-  const validByConvention =
-    projectUuid && pipelineUuid && isValidPath(path, allowedExtensions);
-
-  if (validByConvention) {
-    const response = await fetcher(
-      `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
-        projectUuid,
-        pipelineUuid,
-        jobUuid,
-        runUuid,
-        path,
-        useProjectRoot,
-      })}`
-    );
-
-    return hasValue(response);
-  } else {
-    return false;
-  }
 };
 
 /**
@@ -82,4 +53,34 @@ export const useCheckFileValidity = ({
   );
 
   return [isValidPathPattern && data, status === "PENDING"] as const;
+};
+
+/**
+ * Read a JSON file in a pipeline.
+ */
+export const useReadFile = <T extends Json>({
+  path,
+  projectUuid,
+  pipelineUuid,
+  jobUuid,
+  runUuid,
+}: ValidateFileProps) => {
+  const isValidProps =
+    hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
+
+  const isValidPathPattern = isValidProps && isValidPath(path, ["json"]);
+
+  const { data, status } = useFetcher<T>(
+    isValidPathPattern
+      ? `${FILE_MANAGEMENT_ENDPOINT}/read?${queryArgs({
+          projectUuid,
+          pipelineUuid,
+          jobUuid,
+          runUuid,
+          path,
+        })}`
+      : undefined
+  );
+
+  return [data, status === "PENDING"] as const;
 };
