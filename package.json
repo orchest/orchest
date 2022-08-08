@@ -7,7 +7,7 @@
     "pkg:check": "syncpack list-mismatches",
     "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
-    "setup": "npm i -g pnpm@6.16.1",
+    "setup": "npm i -g pnpm@~7.0.0",
     "test": "pnpm run test:ci --r --parallel"
   },
   "devDependencies": {
@@ -24,7 +24,8 @@
     "typescript": "4.5.4"
   },
   "engines": {
-    "pnpm": ">=6"
+    "node": ">=14.19.0",
+    "pnpm": ">=7"
   },
   "syncpack": {
     "sortFirst": [
