@@ -17,12 +17,13 @@ export const ScaleFactorContext = React.createContext<ScaleFactorContextType>(
 
 export const useScaleFactor = () => React.useContext(ScaleFactorContext);
 
-export const DEFAULT_SCALE_FACTOR = 1;
+export const SCALE_INCREMENTS = [0.13, 0.25, 0.5, 1, 2] as const;
 export const SCALE_UNIT = 0.25;
-export const MIN_SCALE_FACTOR = 0.25;
-export const MAX_SCALE_FACTOR = 2;
+export const DEFAULT_SCALE_FACTOR = 1;
+export const MIN_SCALE_FACTOR = SCALE_INCREMENTS[0];
+export const MAX_SCALE_FACTOR = SCALE_INCREMENTS[SCALE_INCREMENTS.length - 1];
 
-const getRangedScaleFactor = (value: number) =>
+const clampScaleFactor = (value: number) =>
   Math.min(Math.max(value, MIN_SCALE_FACTOR), MAX_SCALE_FACTOR);
 
 export const ScaleFactorProvider: React.FC = ({ children }) => {
@@ -36,11 +37,11 @@ export const ScaleFactorProvider: React.FC = ({ children }) => {
       if (value instanceof Function) {
         originalSetScaleFactor((current) => {
           const newValue = value(current);
-          return getRangedScaleFactor(newValue);
+          return clampScaleFactor(newValue);
         });
         return;
       }
-      return originalSetScaleFactor(getRangedScaleFactor(value));
+      return originalSetScaleFactor(clampScaleFactor(value));
     },
     []
   );
