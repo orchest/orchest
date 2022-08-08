@@ -25,8 +25,9 @@ export type PipelineCanvasContextType = {
   centerView: () => void;
   centerPipelineOrigin: () => void;
   zoom: (mousePosition: Position, scaleDiff: number) => void;
-  zoomIn: (value?: number) => void;
-  zoomOut: (value?: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
   fullscreenTab: PipelineFullscreenTabType;
   setFullscreenTab: React.Dispatch<
     React.SetStateAction<PipelineFullscreenTabType>
@@ -57,6 +58,7 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
     zoom,
     zoomIn,
     zoomOut,
+    resetZoom,
   } = useKeyboardEventsOnViewport();
 
   return (
@@ -73,6 +75,7 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
         zoomOut,
         fullscreenTab,
         setFullscreenTab,
+        resetZoom,
       }}
     >
       {children}

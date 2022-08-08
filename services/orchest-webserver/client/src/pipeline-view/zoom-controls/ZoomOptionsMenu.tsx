@@ -25,13 +25,13 @@ type PipelineViewingOptionsMenuProps = {
   onClose: () => void;
 };
 
-export const PipelineViewingOptionsMenu = ({
+export const ZoomOptionsMenu = ({
   anchor,
   onClose,
 }: PipelineViewingOptionsMenuProps) => {
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
-  const { zoomIn, zoomOut, centerView } = usePipelineCanvasContext();
+  const { zoomIn, zoomOut, centerView, resetZoom } = usePipelineCanvasContext();
   const { autoLayoutPipeline } = usePipelineUiStateContext();
 
   const menuItems: readonly MenuOption[] = React.useMemo(
@@ -54,6 +54,11 @@ export const PipelineViewingOptionsMenu = ({
         action: zoomOut,
         hotKey: `${modifierKey} Down`,
       },
+      {
+        type: "item",
+        label: "Zoom to 100%",
+        action: resetZoom,
+      },
       { type: "divider" },
       {
         type: "item",
@@ -62,7 +67,7 @@ export const PipelineViewingOptionsMenu = ({
         hotKey: `${modifierKey} shift o`,
       },
     ],
-    [autoLayoutPipeline, centerView, zoomIn, zoomOut]
+    [autoLayoutPipeline, centerView, zoomIn, zoomOut, resetZoom]
   );
 
   return (

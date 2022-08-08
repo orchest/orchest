@@ -139,6 +139,10 @@ export const useKeyboardEventsOnViewport = () => {
     });
   }, [centerPipelineOrigin, setScaleFactor]);
 
+  const resetZoom = React.useCallback(() => {
+    setScaleFactor(DEFAULT_SCALE_FACTOR);
+  }, [setScaleFactor]);
+
   const zoom = useGestureOnViewport(
     pipelineCanvasState,
     setPipelineCanvasState,
@@ -169,6 +173,7 @@ export const useKeyboardEventsOnViewport = () => {
 
     document.body.addEventListener("keydown", keyDownHandler);
     document.body.addEventListener("keyup", keyUpHandler);
+
     return () => {
       document.body.removeEventListener("keydown", keyDownHandler);
       document.body.removeEventListener("keyup", keyUpHandler);
@@ -185,5 +190,6 @@ export const useKeyboardEventsOnViewport = () => {
     zoom,
     zoomIn,
     zoomOut,
+    resetZoom,
   };
 };
