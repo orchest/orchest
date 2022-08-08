@@ -38,27 +38,27 @@ export const PipelineViewingOptionsMenu = ({
     () => [
       {
         type: "item",
-        label: "Zoom in",
-        action: () => zoomIn(),
-        hotKey: `${modifierKey} Arrow up`,
-      },
-      {
-        type: "item",
-        label: "Zoom out",
-        action: () => zoomOut(),
-        hotKey: `${modifierKey} Arrow down`,
-      },
-      { type: "divider" },
-      {
-        type: "item",
-        label: "Center view",
-        action: () => centerView(),
+        label: "Zoom to fit",
+        action: centerView,
         hotKey: "h",
       },
       {
         type: "item",
+        label: "Zoom in",
+        action: zoomIn,
+        hotKey: `${modifierKey} Up`,
+      },
+      {
+        type: "item",
+        label: "Zoom out",
+        action: zoomOut,
+        hotKey: `${modifierKey} Down`,
+      },
+      { type: "divider" },
+      {
+        type: "item",
         label: "Auto layout",
-        action: () => autoLayoutPipeline(),
+        action: autoLayoutPipeline,
         hotKey: `${modifierKey} shift o`,
       },
     ],
@@ -67,7 +67,6 @@ export const PipelineViewingOptionsMenu = ({
 
   return (
     <Menu
-      id="pipeline-viewing-options-menu"
       ref={menuRef}
       anchorEl={anchor}
       open={hasValue(anchor)}
@@ -81,11 +80,11 @@ export const PipelineViewingOptionsMenu = ({
     >
       {menuItems.map((option) => {
         if (option.type === "divider") return <Divider key={uuidv4()} />;
-        const disabled = !hasValue(option.action);
+
         return (
           <MenuItem
             key={option.label}
-            disabled={disabled}
+            disabled={!hasValue(option.action)}
             onClick={option.action}
           >
             <ListItemText>{option.label}</ListItemText>
