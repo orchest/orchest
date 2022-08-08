@@ -167,12 +167,6 @@ def _get_buildah_image_build_workflow_manifest(
                                 "mkdir -p -m 777 /builder-pvc/cache/conda && "
                                 # Build
                                 f"buildah build -f {dockerfile_path} --layers=true "
-                                # Package managers caches.
-                                # jovyan is the user of the base image.
-                                "-v /builder-pvc/cache/pip:/home/jovyan/.cache/pip "
-                                # Obtained by running "conda info". Note
-                                # that this cache is also used by mamba.
-                                "-v /builder-pvc/cache/conda:/opt/conda/pkgs "
                                 # https://github.com/containers/buildah/issues/2741
                                 "--format docker "
                                 "--force-rm=true "
@@ -202,11 +196,6 @@ def _get_buildah_image_build_workflow_manifest(
                                 "mountPath": "/build-context",
                                 "subPath": get_userdir_relpath(build_context_host_path),
                                 "readOnly": True,
-                            },
-                            {
-                                "name": "image-builder-cache-pvc",
-                                "subPath": "cache",
-                                "mountPath": "/builder-pvc/cache",
                             },
                             {
                                 "name": "image-builder-cache-pvc",
