@@ -5,6 +5,7 @@ import (
 	"path"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
@@ -13,21 +14,42 @@ var (
 	// list of all addons
 	ArgoWorkflow   = "argo-workflow"
 	DockerRegistry = "docker-registry"
+	IngressNginx   = "ingress-nginx"
 )
 
 type AddonsConfig struct {
 
 	// The list of addons to disable
-	DefaultAddons []string
+	Addons []string
 
 	AssetDir string
 
 	DefaultNamespace string
 }
 
+func (config *AddonsConfig) DetectRequiredAddons(client kubernetes.Interface) {
+	// we first need to detect the k8s distribution
+	k8sDistro, err := utils.DetectK8sDistribution(client)
+	if err != nil {
+		klog.Errorf("Failed to detect k8s distribution: %v", err)
+		return
+	}
+
+	switch k8sDistro {
+	case utils.K3s:
+		for _, addon := range config.Addons {
+			if addon == IngressNginx {
+				return
+			}
+		}
+		config.Addons = append(config.Addons, IngressNginx)
+	}
+
+}
+
 func NewDefaultAddonsConfig() AddonsConfig {
 	return AddonsConfig{
-		DefaultAddons: []string{},
+		Addons: []string{},
 
 		AssetDir: "/deploy",
 
@@ -68,6 +90,11 @@ func NewAddonManager(client kubernetes.Interface, config AddonsConfig) *AddonMan
 			path.Join(config.AssetDir, "thirdparty/docker-registry/helm"),
 			path.Join(config.AssetDir, "thirdparty/docker-registry/orchest-values.yaml")))
 
+	addonManager.AddAddon(IngressNginx,
+		NewHelmDeployer(client, IngressNginx,
+			path.Join(config.AssetDir, "thirdparty/ingress-nginx/helm"),
+			path.Join(config.AssetDir, "thirdparty/ingress-nginx/orchest-values.yaml")))
+
 	return &addonManager
 }
 
@@ -79,7 +106,7 @@ func (m *AddonManager) Run(stopCh <-chan struct{}) {
 	defer cancel()
 
 	// Enable default addons
-	for _, addonName := range m.config.DefaultAddons {
+	for _, addonName := range m.config.Addons {
 		m.EnableAddon(ctx, addonName, m.config.DefaultNamespace)
 	}
 
