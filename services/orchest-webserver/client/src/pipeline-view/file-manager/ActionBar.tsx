@@ -78,39 +78,42 @@ export function ActionBar({
         spacing={1.5}
         sx={{ padding: (theme) => theme.spacing(0.5, 1.5, 1) }}
       >
-        {!isReadOnly && (
-          <>
+        <FileManagerActionButton
+          disabled={isReadOnly}
+          title="Create file"
+          onClick={() => setOpenDialog("file")}
+        >
+          <NoteAddOutlinedIcon />
+        </FileManagerActionButton>
+        <FileManagerActionButton
+          disabled={isReadOnly}
+          onClick={() => setOpenDialog("folder")}
+          title="Create folder"
+        >
+          <CreateNewFolderOutlinedIcon />
+        </FileManagerActionButton>
+        <UploadFilesForm multiple upload={uploadFiles}>
+          {(onClick) => (
             <FileManagerActionButton
-              title="Create file"
-              onClick={() => setOpenDialog("file")}
+              disabled={isReadOnly}
+              onClick={onClick}
+              title="Upload file"
             >
-              <NoteAddOutlinedIcon />
+              <UploadFileOutlinedIcon />
             </FileManagerActionButton>
+          )}
+        </UploadFilesForm>
+        <UploadFilesForm folder upload={uploadFiles}>
+          {(onClick) => (
             <FileManagerActionButton
-              onClick={() => setOpenDialog("folder")}
-              title="Create folder"
+              disabled={isReadOnly}
+              onClick={onClick}
+              title="Upload folder"
             >
-              <CreateNewFolderOutlinedIcon />
+              <DriveFolderUploadOutlinedIcon />
             </FileManagerActionButton>
-            <UploadFilesForm multiple upload={uploadFiles}>
-              {(onClick) => (
-                <FileManagerActionButton onClick={onClick} title="Upload file">
-                  <UploadFileOutlinedIcon />
-                </FileManagerActionButton>
-              )}
-            </UploadFilesForm>
-            <UploadFilesForm folder upload={uploadFiles}>
-              {(onClick) => (
-                <FileManagerActionButton
-                  onClick={onClick}
-                  title="Upload folder"
-                >
-                  <DriveFolderUploadOutlinedIcon />
-                </FileManagerActionButton>
-              )}
-            </UploadFilesForm>
-          </>
-        )}
+          )}
+        </UploadFilesForm>
         <FileManagerActionButton title="Refresh" onClick={reload}>
           <RefreshOutlinedIcon />
         </FileManagerActionButton>
