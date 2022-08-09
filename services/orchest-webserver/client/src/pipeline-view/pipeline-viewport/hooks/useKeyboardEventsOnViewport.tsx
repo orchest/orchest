@@ -9,6 +9,7 @@ import {
   INITIAL_PIPELINE_POSITION,
   usePipelineCanvasState,
 } from "@/pipeline-view/hooks/usePipelineCanvasState";
+import { Point2D } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import { activeElementIsInput } from "@orchest/lib-utils";
 import React from "react";
@@ -68,16 +69,15 @@ export const useKeyboardEventsOnViewport = () => {
   }, [pipelineCanvasRef, pipelineViewportRef]);
 
   const setPipelineHolderOrigin = React.useCallback(
-    (newOrigin: [number, number]) => {
-      const [x, y] = newOrigin;
+    (newOrigin: Point2D) => {
       const currentOrigin = getCurrentOrigin();
-      let [translateX, translateY] = originTransformScaling(
-        [x, y],
+      const [translateX, translateY] = originTransformScaling(
+        newOrigin,
         scaleFactor
       );
 
       setPipelineCanvasState((current) => ({
-        pipelineOrigin: [x, y],
+        pipelineOrigin: newOrigin,
         pipelineStepsHolderOffsetLeft:
           translateX + currentOrigin.x - current.pipelineOffset[0],
         pipelineStepsHolderOffsetTop:
@@ -143,8 +143,7 @@ export const useKeyboardEventsOnViewport = () => {
     setScaleFactor(DEFAULT_SCALE_FACTOR);
   }, [setScaleFactor]);
 
-  const zoom = useGestureOnViewport(
-    pipelineCanvasState,
+  const zoomBy = useGestureOnViewport(
     setPipelineCanvasState,
     pipelineViewportRef,
     setPipelineHolderOrigin
@@ -187,9 +186,9 @@ export const useKeyboardEventsOnViewport = () => {
     centerView,
     centerPipelineOrigin,
     setPipelineHolderOrigin,
-    zoom,
     zoomIn,
     zoomOut,
+    zoomBy,
     resetZoom,
   };
 };

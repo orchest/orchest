@@ -313,6 +313,8 @@ export type NewConnection = Connection & {
   yEnd?: number;
 };
 
+export type Point2D = readonly [number, number];
+
 export type Position = { x: number; y: number };
 
 export type LogType = "step" | "service";
