@@ -64,7 +64,7 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
   React.useEffect(() => {
     if (activeParameter) {
       // `editor` is not defined in CodeMirror. So we need this workaround.
-      (codeMirrorRef.current as any).editor.focus(); // eslint-disable-line @typescript-eslint/no-explicit-any
+      (codeMirrorRef.current as any)?.editor?.focus(); // eslint-disable-line @typescript-eslint/no-explicit-any
     }
   }, [activeParameter]);
 
