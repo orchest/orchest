@@ -1,3 +1,4 @@
+import { Point2D } from "@/types";
 import React from "react";
 
 export const INITIAL_PIPELINE_POSITION = [-1, -1] as [number, number];
@@ -5,12 +6,13 @@ export const INITIAL_PIPELINE_POSITION = [-1, -1] as [number, number];
 type PanningState = "ready-to-pan" | "panning" | "idle";
 
 export type PipelineCanvasState = {
-  pipelineOrigin: number[];
+  pipelineOrigin: Point2D;
+  pipelineOffset: Point2D;
   pipelineStepsHolderOffsetLeft: number;
   pipelineStepsHolderOffsetTop: number;
-  pipelineOffset: [number, number];
   panningState: PanningState;
 };
+
 const initialState: PipelineCanvasState = {
   pipelineOrigin: [0, 0],
   pipelineStepsHolderOffsetLeft: 0,
