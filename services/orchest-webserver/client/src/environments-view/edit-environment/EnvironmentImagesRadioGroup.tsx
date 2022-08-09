@@ -5,12 +5,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import {
-  DEFAULT_BASE_IMAGES,
-  GPU_SUPPORT_ENABLED,
-  isEnvironmentBuilding,
-} from "../common";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { DEFAULT_BASE_IMAGES, GPU_SUPPORT_ENABLED } from "../common";
 import { BaseImageHeader } from "./BaseImageHeader";
 import { BaseImageRadioOption } from "./BaseImageRadioOption";
 import { CustomImageDetails } from "./CustomImageDetails";
@@ -18,12 +13,34 @@ import { useSelectBaseImage } from "./hooks/useSelectBaseImage";
 
 const Image = styled("img")(({ theme }) => ({ maxHeight: theme.spacing(3) }));
 
+const BaseImageRadioGroup = ({ children }: { children: React.ReactNode }) => {
+  const { selectedImage, selectBaseImage } = useSelectBaseImage();
+  return (
+    <RadioGroup
+      aria-labelledby="base-image"
+      value={selectedImage.base_image}
+      onChange={(e, value) => {
+        selectBaseImage(value);
+      }}
+      sx={{ display: "flex", flexFlow: "row wrap" }}
+    >
+      {children}
+    </RadioGroup>
+  );
+};
+
+const CustomImageRadioOption = () => {
+  const { customImage } = useSelectBaseImage();
+
+  return (
+    <BaseImageRadioOption key="custom-image" value={customImage.base_image}>
+      <AddCircleOutlineOutlinedIcon color="primary" />
+      <Typography variant="body2">Custom</Typography>
+    </BaseImageRadioOption>
+  );
+};
+
 export const EnvironmentImagesRadioGroup = () => {
-  const { selectedImage, customImage, selectBaseImage } = useSelectBaseImage();
-
-  const { environmentOnEdit } = useEnvironmentOnEdit();
-  const disabled = isEnvironmentBuilding(environmentOnEdit?.latestBuild);
-
   return (
     <>
       <FormControl margin="normal" fullWidth>
@@ -33,28 +50,24 @@ export const EnvironmentImagesRadioGroup = () => {
         >
           <BaseImageHeader />
         </FormLabel>
-        <RadioGroup
-          aria-labelledby="base-image"
-          value={selectedImage.base_image}
-          onChange={(e, value) => {
-            selectBaseImage(value);
-          }}
-          sx={{ display: "flex", flexFlow: "row wrap" }}
-        >
+        <BaseImageRadioGroup>
           {DEFAULT_BASE_IMAGES.map(({ base_image, img_src, label }) => {
             const isUnavailable =
               !GPU_SUPPORT_ENABLED &&
               base_image === "orchest/base-kernel-py-gpu";
+            const title = isUnavailable
+              ? "Temporarily unavailable"
+              : base_image;
             return (
               <BaseImageRadioOption
                 key={base_image}
-                title={isUnavailable ? "Temporarily unavailable" : base_image}
+                title={title}
                 value={base_image}
-                disabled={isUnavailable || disabled}
+                disabled={isUnavailable}
               >
                 <Image
                   src={`${img_src}`}
-                  alt={isUnavailable ? "Temporarily unavailable" : base_image}
+                  alt={title}
                   loading="lazy"
                   sx={isUnavailable ? { filter: "grayscale(100%)" } : undefined}
                 />
@@ -62,15 +75,8 @@ export const EnvironmentImagesRadioGroup = () => {
               </BaseImageRadioOption>
             );
           })}
-          <BaseImageRadioOption
-            key="custom-image"
-            value={customImage.base_image}
-            disabled={disabled}
-          >
-            <AddCircleOutlineOutlinedIcon color="primary" />
-            <Typography variant="body2">Custom</Typography>
-          </BaseImageRadioOption>
-        </RadioGroup>
+          <CustomImageRadioOption />
+        </BaseImageRadioGroup>
       </FormControl>
       <CustomImageDetails />
     </>

@@ -3,7 +3,6 @@ import { ellipsis } from "@/utils/styles";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import NoteAltOutlinedIcon from "@mui/icons-material/NoteAltOutlined";
 import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
 import MenuItem from "@mui/material/MenuItem";
@@ -17,12 +16,10 @@ import {
 } from "./common";
 
 type BuildStatusIconProps = {
-  selected: boolean;
   latestBuild?: EnvironmentState["latestBuild"];
 };
 
-const BuildStatusIcon = ({ selected, latestBuild }: BuildStatusIconProps) => {
-  if (selected) return <EditOutlinedIcon fontSize="small" color="action" />;
+const BuildStatusIcon = ({ latestBuild }: BuildStatusIconProps) => {
   if (latestBuild?.status === "SUCCESS")
     return <CheckCircleOutlineOutlinedIcon fontSize="small" color="success" />;
   if (isEnvironmentBuilding(latestBuild)) return <CircularProgress size={20} />;
@@ -31,7 +28,7 @@ const BuildStatusIcon = ({ selected, latestBuild }: BuildStatusIconProps) => {
   if (latestBuild?.status === "PAUSED")
     return <ReplayOutlinedIcon fontSize="small" />;
 
-  return <NoteAltOutlinedIcon fontSize="small" color="action" />;
+  return <EditOutlinedIcon fontSize="small" color="action" />;
 };
 
 type EnvironmentMenuItemProps = EnvironmentState & {
@@ -90,9 +87,7 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
         alignItems="center"
         sx={{ paddingLeft: (theme) => theme.spacing(1) }}
       >
-        {showStatusIcon && (
-          <BuildStatusIcon selected={selected} latestBuild={latestBuild} />
-        )}
+        {showStatusIcon && <BuildStatusIcon latestBuild={latestBuild} />}
       </Stack>
     </MenuItem>
   );

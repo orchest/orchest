@@ -1,18 +1,13 @@
-import { EnvironmentState } from "@/types";
 import BuildCircleOutlinedIcon from "@mui/icons-material/BuildCircleOutlined";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useBuildEnvironmentImage } from "./hooks/useBuildEnvironmentImage";
+import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
 
-type BuildEnvironmentButtonProps = {
-  environmentOnEdit?: EnvironmentState;
-};
-
-export const BuildEnvironmentButton = ({
-  environmentOnEdit,
-}: BuildEnvironmentButtonProps) => {
+export const BuildEnvironmentButton = () => {
+  const { environmentOnEdit } = useEnvironmentOnEdit();
   const [triggerBuild, cancelBuild] = useBuildEnvironmentImage();
 
   const buildStatus = environmentOnEdit?.latestBuild?.status;

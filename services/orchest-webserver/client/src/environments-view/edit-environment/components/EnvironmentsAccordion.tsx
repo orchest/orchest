@@ -6,10 +6,20 @@ import MuiAccordionSummary, {
 } from "@mui/material/AccordionSummary";
 import { styled } from "@mui/material/styles";
 import React from "react";
+import { useEnvironmentsUiStateStore } from "../stores/useEnvironmentsUiStateStore";
 
-export const EnvironmentsAccordion = styled((props: AccordionProps) => (
+const StyledAccordion = styled((props: AccordionProps) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))({ "&:before": { display: "none" } });
+
+export const EnvironmentsAccordion = (props: AccordionProps) => {
+  const { reset } = useEnvironmentsUiStateStore();
+  React.useEffect(() => {
+    return () => reset();
+  }, [reset]);
+
+  return <StyledAccordion {...props} />;
+};
 
 export const EnvironmentsAccordionSummary = styled(
   (props: AccordionSummaryProps) => (

@@ -1,12 +1,8 @@
-import { EnvironmentImageBuild } from "@/types";
 import Alert, { AlertProps } from "@mui/material/Alert";
 import Collapse from "@mui/material/Collapse";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-
-type BuildStatusAlertProps = {
-  latestBuild?: EnvironmentImageBuild;
-};
+import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 
 const alertMessageMapping: Record<
   "FAILURE" | "SUCCESS" | "ABORTED",
@@ -26,8 +22,11 @@ const alertMessageMapping: Record<
   },
 };
 
-export const BuildStatusAlert = ({ latestBuild }: BuildStatusAlertProps) => {
-  const alert = alertMessageMapping[latestBuild?.status || ""];
+export const BuildStatusAlert = () => {
+  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const latestBuildStatus = environmentOnEdit?.latestBuild?.status;
+
+  const alert = alertMessageMapping[latestBuildStatus || ""];
   return (
     <Collapse in={Boolean(alert)}>
       {hasValue(alert) && (
