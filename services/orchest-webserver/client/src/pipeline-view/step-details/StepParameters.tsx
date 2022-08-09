@@ -9,13 +9,17 @@ import { JsonForms } from "@jsonforms/react";
 import { styled } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import { NoSchemaFile, NoSchemaPropertiesDefined } from "./NoJsonFormMessage";
 import { useStepDetailsContext } from "./StepDetailsContext";
+import {
+  StepParametersActions,
+  StepParameterViewingMode,
+} from "./StepParametersActions";
 
 type StepParametersProps = {
   isReadOnly: boolean;
@@ -30,8 +34,6 @@ const JsonFormContainer = styled(Box)(({ theme }) => ({
   ".MuiTypography-h6": { fontSize: theme.typography.body2.fontSize },
   ".MuiTableCell-root": { paddingLeft: 0 },
 }));
-
-type StepParameterViewingMode = "json" | "form";
 
 export const StepParameters = ({ isReadOnly, onSave }: StepParametersProps) => {
   const { step, parameterSchema, parameterUiSchema } = useStepDetailsContext();
@@ -65,6 +67,10 @@ export const StepParameters = ({ isReadOnly, onSave }: StepParametersProps) => {
     return isValidJson(editableParameters);
   }, [editableParameters]);
 
+  const isSchemaDefined =
+    parameterSchema?.properties &&
+    Object.keys(parameterSchema?.properties).length > 0;
+
   return (
     <Box>
       <Typography
@@ -74,20 +80,10 @@ export const StepParameters = ({ isReadOnly, onSave }: StepParametersProps) => {
       >
         Parameters
       </Typography>
-      <ToggleButtonGroup
-        exclusive
-        size="small"
-        aria-label="Step parameters viewing mode"
-        value={viewingMode}
-        onChange={(e, value) => setViewingMode(value)}
-      >
-        <ToggleButton value="json" disabled={viewingMode === "json"}>
-          Json
-        </ToggleButton>
-        <ToggleButton value="form" disabled={viewingMode === "form"}>
-          Form
-        </ToggleButton>
-      </ToggleButtonGroup>
+      <StepParametersActions
+        viewingMode={viewingMode}
+        setViewingMode={setViewingMode}
+      />
       {viewingMode === "json" && (
         <>
           <CodeMirror
@@ -107,19 +103,24 @@ export const StepParameters = ({ isReadOnly, onSave }: StepParametersProps) => {
           )}
         </>
       )}
-      {viewingMode === "form" && parameterSchema && (
-        <JsonFormContainer>
-          <JsonForms
-            readonly={isReadOnly}
-            schema={parameterSchema}
-            uischema={parameterUiSchema}
-            data={parametersData}
-            renderers={materialRenderers}
-            cells={materialCells}
-            onChange={({ data }) => onChangeParameterData(data)}
-          />
-        </JsonFormContainer>
-      )}
+      {viewingMode === "form" &&
+        (!hasValue(parameterSchema) ? (
+          <NoSchemaFile />
+        ) : !isSchemaDefined ? (
+          <NoSchemaPropertiesDefined />
+        ) : (
+          <JsonFormContainer>
+            <JsonForms
+              readonly={isReadOnly}
+              schema={parameterSchema}
+              uischema={parameterUiSchema}
+              data={parametersData}
+              renderers={materialRenderers}
+              cells={materialCells}
+              onChange={({ data }) => onChangeParameterData(data)}
+            />
+          </JsonFormContainer>
+        ))}
     </Box>
   );
 };
