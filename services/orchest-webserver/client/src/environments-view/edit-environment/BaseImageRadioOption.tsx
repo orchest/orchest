@@ -8,19 +8,22 @@ import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { isEnvironmentBuilding } from "../common";
+import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 
 type BaseImageRadioOptionProps = {
-  disabled: boolean;
+  disabled?: boolean;
   value: string;
   children: React.ReactNode;
   title?: string;
 };
-export const BaseImageRadioOption = ({
+
+const BaseImageRadioOptionBase = React.memo(function BaseImageRadioOptionBase({
   title,
   value,
   children,
   disabled,
-}: BaseImageRadioOptionProps) => {
+}: BaseImageRadioOptionProps) {
   const radioGroup = useRadioGroup();
   const checked = hasValue(radioGroup) && radioGroup.value === value;
   const icon = (
@@ -55,4 +58,24 @@ export const BaseImageRadioOption = ({
   );
 
   return title ? <Tooltip title={title}>{content}</Tooltip> : content;
-};
+});
+
+export const BaseImageRadioOption = React.memo(function BaseImageRadioOption({
+  disabled,
+  children,
+  ...props
+}: BaseImageRadioOptionProps) {
+  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const disabledOnBuilding = isEnvironmentBuilding(
+    environmentOnEdit?.latestBuild
+  );
+
+  return (
+    <BaseImageRadioOptionBase
+      disabled={disabled || disabledOnBuilding}
+      {...props}
+    >
+      {children}
+    </BaseImageRadioOptionBase>
+  );
+});

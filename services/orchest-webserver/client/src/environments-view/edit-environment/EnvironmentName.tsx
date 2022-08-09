@@ -1,21 +1,14 @@
-import TextField from "@mui/material/TextField";
+import { ellipsis } from "@/utils/styles";
+import Typography from "@mui/material/Typography";
 import React from "react";
-import { isEnvironmentBuilding } from "../common";
 import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 
 export const EnvironmentName = () => {
-  const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentOnEdit } = useEnvironmentOnEdit();
 
   return (
-    <TextField
-      required
-      value={environmentOnEdit?.name || ""}
-      onChange={(e) => {
-        setEnvironmentOnEdit({ name: e.target.value });
-      }}
-      label="Environment name"
-      autoFocus
-      disabled={isEnvironmentBuilding(environmentOnEdit?.latestBuild)}
-    />
+    <Typography variant="h4" flex={1} sx={ellipsis()}>
+      {environmentOnEdit?.name}
+    </Typography>
   );
 };

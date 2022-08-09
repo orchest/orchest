@@ -13,6 +13,32 @@ import {
 } from "./components/EnvironmentsAccordion";
 import { useEnvironmentsUiStateStore } from "./stores/useEnvironmentsUiStateStore";
 
+type SetupScriptCodeMirrorProps = {
+  value?: string;
+  isReadOnly?: boolean;
+  onChange: (value: string) => void;
+};
+
+const SetupScriptCodeMirror = React.memo(function SetupScriptCodeMirror({
+  value = "",
+  onChange,
+  isReadOnly,
+}: SetupScriptCodeMirrorProps) {
+  return (
+    <CodeMirror
+      value={value}
+      onBeforeChange={(_, __, newValue) => onChange(newValue)}
+      options={{
+        mode: "application/x-sh",
+        theme: "dracula",
+        lineNumbers: true,
+        viewportMargin: Infinity,
+        readOnly: isReadOnly,
+      }}
+    />
+  );
+});
+
 export const EnvironmentSetupScript = () => {
   const {
     isSetupScriptOpen,
@@ -20,16 +46,25 @@ export const EnvironmentSetupScript = () => {
   } = useEnvironmentsUiStateStore();
   const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
 
-  const onChange = (value: string) => {
-    setEnvironmentOnEdit({ setup_script: value });
-  };
+  const handleChangeSetupScript = React.useCallback(
+    (value: string) => {
+      setEnvironmentOnEdit({ setup_script: value });
+    },
+    [setEnvironmentOnEdit]
+  );
 
-  const handleChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
+  const handleChangeIsOpen = (
+    event: React.SyntheticEvent,
+    isExpanded: boolean
+  ) => {
     setIsSetupScriptOpen(isExpanded);
   };
 
   return (
-    <EnvironmentsAccordion expanded={isSetupScriptOpen} onChange={handleChange}>
+    <EnvironmentsAccordion
+      expanded={isSetupScriptOpen}
+      onChange={handleChangeIsOpen}
+    >
       <EnvironmentsAccordionSummary
         expandIcon={<ExpandMoreIcon />}
         aria-controls="setup-script"
@@ -40,16 +75,10 @@ export const EnvironmentSetupScript = () => {
         </Typography>
       </EnvironmentsAccordionSummary>
       <EnvironmentsAccordionDetails>
-        <CodeMirror
-          value={environmentOnEdit?.setup_script || ""}
-          onBeforeChange={(_, __, value) => onChange(value)}
-          options={{
-            mode: "application/x-sh",
-            theme: "dracula",
-            lineNumbers: true,
-            viewportMargin: Infinity,
-            readOnly: isEnvironmentBuilding(environmentOnEdit?.latestBuild),
-          }}
+        <SetupScriptCodeMirror
+          onChange={handleChangeSetupScript}
+          value={environmentOnEdit?.setup_script}
+          isReadOnly={isEnvironmentBuilding(environmentOnEdit?.latestBuild)}
         />
       </EnvironmentsAccordionDetails>
     </EnvironmentsAccordion>

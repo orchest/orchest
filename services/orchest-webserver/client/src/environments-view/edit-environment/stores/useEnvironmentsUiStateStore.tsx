@@ -5,6 +5,7 @@ type EnvironmentsUiState = {
   isLogsOpen: boolean;
   setIsSetupScriptOpen: (value: boolean) => void;
   setIsLogsOpen: (value: boolean) => void;
+  reset: () => void;
 };
 
 export const useEnvironmentsUiStateStore = create<EnvironmentsUiState>(
@@ -13,5 +14,6 @@ export const useEnvironmentsUiStateStore = create<EnvironmentsUiState>(
     isLogsOpen: true,
     setIsSetupScriptOpen: (value) => set({ isSetupScriptOpen: value }),
     setIsLogsOpen: (value) => set({ isLogsOpen: value }),
+    reset: () => set({ isSetupScriptOpen: true, isLogsOpen: true }),
   })
 );
