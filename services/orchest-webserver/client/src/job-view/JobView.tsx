@@ -23,8 +23,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import Three60Icon from "@mui/icons-material/ThreeSixty";
 import TuneIcon from "@mui/icons-material/Tune";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -440,7 +440,7 @@ const JobView: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={triggerScheduledRuns}
-                  startIcon={<Three60Icon />}
+                  startIcon={<PlayArrowOutlinedIcon />}
                 >
                   Trigger scheduled runs
                 </Button>
