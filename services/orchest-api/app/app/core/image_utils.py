@@ -304,6 +304,15 @@ class ImageBuildSidecar:
                     Base Image
     """
 
+    SETUP_SCRIPT_ERROR_MSG = (
+        "There was a problem building the image. The building script had a non 0 "
+        "exit code, build failed."
+    )
+
+    STORAGE_ERROR_MSG = (
+        "There was a problem building the image. Failed to push the image."
+    )
+
     def __init__(
         self,
         task_uuid,
@@ -339,7 +348,8 @@ class ImageBuildSidecar:
             follow=True,
         ):
             if event.endswith(CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG):
-                self._handle_error()
+                self._log(ImageBuildSidecar.SETUP_SCRIPT_ERROR_MSG)
+                raise errors.ImageBuildFailedError()
 
             should_break = self.log_handler_function(event)
             if should_break:
@@ -349,18 +359,17 @@ class ImageBuildSidecar:
         # found_error_flag or the pod has stopped running. However, we
         # have noticed a race condition where the loop could exit
         # without the pod and container state reflecting that.
-        self._check_for_errors_at_pod_level(pod_name)
+        self._check_for_errors_at_pod_level(
+            pod_name, ImageBuildSidecar.SETUP_SCRIPT_ERROR_MSG
+        )
         self._log_storage_phase(pod_name)
 
-    def _check_for_errors_at_pod_level(self, pod_name: str) -> None:
+    def _check_for_errors_at_pod_level(self, pod_name: str, error_msg: str) -> None:
         resp = k8s_core_api.read_namespaced_pod(
             name=pod_name, namespace=_config.ORCHEST_NAMESPACE
         )
         resp_status = resp.status.to_dict()
 
-        # Necessary because the stream() loop might exit due to an error
-        # without the resp.status.phase being necessarily read as
-        # "Failed" later, i.e. we want to avoid a race condition.
         exit_code = None
         for status in resp_status.get("container_statuses", []):
             terminated_status = status.get("state", {}).get("terminated")
@@ -374,7 +383,8 @@ class ImageBuildSidecar:
         if (exit_code is not None and exit_code != 0) or resp_status.get(
             "phase"
         ) == "Failed":
-            self._handle_error()
+            self._log(error_msg)
+            raise errors.ImageBuildFailedError()
 
     def _start_build_pod(
         self,
@@ -433,7 +443,9 @@ class ImageBuildSidecar:
             else:
                 self._log("\n")
                 done = True
-        self._check_for_errors_at_pod_level(pod_name)
+        self._check_for_errors_at_pod_level(
+            pod_name, ImageBuildSidecar.STORAGE_ERROR_MSG
+        )
         msg = "Done!"
         self._log(msg)
 
@@ -468,14 +480,6 @@ class ImageBuildSidecar:
         else:
             self._log(event, True)
         return False
-
-    def _handle_error(self) -> None:
-        msg = (
-            "There was a problem building the image. The building script had a non 0 "
-            "exit code, build failed."
-        )
-        self._log(msg)
-        raise errors.ImageBuildFailedError()
 
     def _log(self, msg, newline=False):
         if newline:
