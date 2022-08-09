@@ -3,6 +3,7 @@ import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { extractEnvironmentFromState } from "./common";
 import { CreateEnvironmentButton } from "./CreateEnvironmentButton";
 import { EnvironmentMenuItem } from "./EnvironmentMenuItem";
 import { useSelectEnvironment } from "./hooks/useSelectEnvironment";
@@ -12,9 +13,17 @@ import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
 
 export const EnvironmentMenuList = () => {
   useSyncEnvironmentUuidWithQueryArgs();
-  const { selectEnvironment } = useSelectEnvironment();
   const { environmentOnEdit } = useEnvironmentOnEdit();
-  const { environments = [] } = useEnvironmentsApi();
+  const { environments = [], setEnvironment } = useEnvironmentsApi();
+  const { selectEnvironment } = useSelectEnvironment();
+
+  const updateStoreAndRedirect = (uuid: string) => {
+    const environment = extractEnvironmentFromState(environmentOnEdit);
+    if (environment) {
+      setEnvironment(environment.uuid, environment);
+    }
+    selectEnvironment(uuid);
+  };
 
   const { hasLoadedBuildStatus } = useUpdateBuildStatus();
 
@@ -29,7 +38,7 @@ export const EnvironmentMenuList = () => {
     >
       <CreateEnvironmentButton
         sx={{ flexShrink: 0 }}
-        onCreated={selectEnvironment}
+        onCreated={updateStoreAndRedirect}
       />
       <MenuList
         sx={{
@@ -42,12 +51,13 @@ export const EnvironmentMenuList = () => {
           const selected =
             hasValue(environmentOnEdit) &&
             environmentOnEdit.uuid === environment.uuid;
+          const data = selected ? environmentOnEdit : environment;
           return (
             <EnvironmentMenuItem
               key={environment.uuid}
-              {...environment}
+              {...data}
               showStatusIcon={hasLoadedBuildStatus}
-              onClick={selectEnvironment}
+              onClick={updateStoreAndRedirect}
               selected={selected}
             />
           );

@@ -24,6 +24,4 @@ export const useSaveEnvironmentOnEdit = () => {
   }, [environmentOnEdit, put]);
 
   useAutoSaveEnvironment(environmentOnEdit, save);
-
-  return { environmentOnEdit };
 };

@@ -1,4 +1,3 @@
-import "@/.wdyr";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { Checkbox, FormControlLabel } from "@mui/material";
