@@ -4,7 +4,15 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import React from "react";
 
-export const CreatePipelineButton = ({ onClick }: { onClick: () => void }) => {
+type CreatePipelineButtonProps = {
+  onClick: () => void;
+  disabled: boolean;
+};
+
+export const CreatePipelineButton = ({
+  onClick,
+  disabled,
+}: CreatePipelineButtonProps) => {
   return (
     <Box
       sx={{
@@ -14,6 +22,7 @@ export const CreatePipelineButton = ({ onClick }: { onClick: () => void }) => {
     >
       <Button
         fullWidth
+        disabled={disabled}
         variant="contained"
         startIcon={<AddOutlinedIcon />}
         onClick={onClick}
