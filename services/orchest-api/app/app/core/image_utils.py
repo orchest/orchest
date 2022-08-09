@@ -346,7 +346,13 @@ class ImageBuildSidecar:
                 break
 
         # The loops exits for 3 reasons: found_ending_flag,
-        # found_error_flag or the pod has stopped running.
+        # found_error_flag or the pod has stopped running. However, we
+        # have noticed a race condition where the loop could exit
+        # without the pod and container state reflecting that.
+        self._check_for_errors_at_pod_level(pod_name)
+        self._log_storage_phase(pod_name)
+
+    def _check_for_errors_at_pod_level(self, pod_name: str) -> None:
         resp = k8s_core_api.read_namespaced_pod(
             name=pod_name, namespace=_config.ORCHEST_NAMESPACE
         )
@@ -369,8 +375,6 @@ class ImageBuildSidecar:
             "phase"
         ) == "Failed":
             self._handle_error()
-        else:
-            self._log_storage_phase(pod_name)
 
     def _start_build_pod(
         self,
@@ -429,6 +433,7 @@ class ImageBuildSidecar:
             else:
                 self._log("\n")
                 done = True
+        self._check_for_errors_at_pod_level(pod_name)
         msg = "Done!"
         self._log(msg)
 
