@@ -6,8 +6,10 @@ import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
 import { useFetchProject } from "@/hooks/useFetchProject";
+import { useReadFile } from "@/hooks/useReadFile";
 import { Service } from "@/types";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
+import { JsonSchema, UISchemaElement } from "@jsonforms/core";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEnvVariables } from "./usePipelineEnvVariables";
@@ -33,19 +35,21 @@ const useFetchProjectEnvVars = ({
   return { projectEnvVariables, fetchProjectEnvVars: fetchProject };
 };
 
+type UseFetchPipelineSettingsParams = {
+  projectUuid: string | undefined;
+  pipelineUuid: string | undefined;
+  jobUuid: string | undefined;
+  runUuid: string | undefined;
+  isBrowserTabFocused: boolean;
+};
+
 export const useFetchPipelineSettings = ({
   projectUuid,
   pipelineUuid,
   jobUuid,
   runUuid,
   isBrowserTabFocused,
-}: {
-  projectUuid: string | undefined;
-  pipelineUuid: string | undefined;
-  jobUuid: string | undefined;
-  runUuid: string | undefined;
-  isBrowserTabFocused: boolean;
-}) => {
+}: UseFetchPipelineSettingsParams) => {
   const {
     state: { hasUnsavedChanges },
   } = useAppContext();
@@ -147,6 +151,24 @@ export const useFetchPipelineSettings = ({
     hash,
   });
 
+  const [parameterSchema] = useReadFile<JsonSchema>({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    path: pipelinePath ? pipelinePath.concat(".schema.json") : undefined,
+    allowedExtensions: ["json"],
+  });
+
+  const [parameterUiSchema] = useReadFile<UISchemaElement>({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    path: pipelinePath ? pipelinePath.concat(".uischema.json") : undefined,
+    allowedExtensions: ["json"],
+  });
+
   const [services = {}, setServices] = usePipelineProperty({
     // use temporary uuid for easier FE manipulation, will be cleaned up when saving
     initialValue: pipelineJson?.services
@@ -201,5 +223,7 @@ export const useFetchPipelineSettings = ({
     setPipelineJson,
     pipelineParameters,
     setPipelineParameters,
+    parameterSchema,
+    parameterUiSchema,
   };
 };

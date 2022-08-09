@@ -59,6 +59,7 @@ import { GenerateParametersDialog } from "./GenerateParametersDialog";
 import ServiceForm from "./ServiceForm";
 import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
+import { useOpenPipelineSchemaFile } from "./useOpenPipelineSchemaFile";
 
 export const ParameterDocs = () => {
   return (
@@ -165,6 +166,8 @@ const PipelineSettingsView: React.FC = () => {
     setPipelineName,
     pipelineParameters,
     setPipelineParameters,
+    parameterSchema,
+    parameterUiSchema,
   } = useFetchPipelineSettings({
     projectUuid,
     pipelineUuid,
@@ -172,6 +175,12 @@ const PipelineSettingsView: React.FC = () => {
     runUuid,
     isBrowserTabFocused,
   });
+
+  const { openPipelineSchemaFile } = useOpenPipelineSchemaFile(
+    pipelinePath,
+    parameterSchema,
+    parameterUiSchema
+  );
 
   const allServiceNames = React.useMemo(() => {
     return new Set(Object.values(services || {}).map((s) => s.name));

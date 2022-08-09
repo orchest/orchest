@@ -7,7 +7,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
-import { useOpenSchemaFile } from "./useOpenSchemaFile";
+import { useOpenStepSchemaFile } from "./useOpenStepSchemaFile";
 
 type DocLinkProps = {
   href: string;
@@ -61,7 +61,7 @@ const NoJsonFormMessageContainer = ({
 };
 
 export const NoSchemaPropertiesDefined = () => {
-  const { openSchemaFile } = useOpenSchemaFile();
+  const { openStepSchemaFile } = useOpenStepSchemaFile();
 
   return (
     <NoJsonFormMessageContainer>
@@ -72,7 +72,7 @@ export const NoSchemaPropertiesDefined = () => {
       </Typography>
       <Button
         startIcon={<EditIcon />}
-        onClick={(e) => openSchemaFile(e, ".schema.json")}
+        onClick={(e) => openStepSchemaFile(e, "schema")}
       >
         Edit schema file
       </Button>
@@ -81,7 +81,7 @@ export const NoSchemaPropertiesDefined = () => {
 };
 
 export const NoSchemaFile = () => {
-  const { openSchemaFile } = useOpenSchemaFile();
+  const { openStepSchemaFile } = useOpenStepSchemaFile();
 
   return (
     <NoJsonFormMessageContainer>
@@ -92,7 +92,7 @@ export const NoSchemaFile = () => {
       </Typography>
       <Button
         startIcon={<AddIcon />}
-        onClick={(e) => openSchemaFile(e, ".schema.json")}
+        onClick={(e) => openStepSchemaFile(e, "schema")}
       >
         New schema file
       </Button>

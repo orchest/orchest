@@ -8,7 +8,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import React from "react";
 import { useStepDetailsContext } from "./StepDetailsContext";
-import { useOpenSchemaFile } from "./useOpenSchemaFile";
+import { useOpenStepSchemaFile } from "./useOpenStepSchemaFile";
 
 export type StepParameterViewingMode = "json" | "form";
 
@@ -32,7 +32,7 @@ export const StepParametersActions = ({
   const closeMoreOptions = () => setIsMoreOptionsOpen(false);
 
   const { parameterSchema, parameterUiSchema } = useStepDetailsContext();
-  const { openSchemaFile } = useOpenSchemaFile();
+  const { openStepSchemaFile } = useOpenStepSchemaFile();
 
   return (
     <Stack direction="row" justifyContent="space-between">
@@ -59,7 +59,6 @@ export const StepParametersActions = ({
         <MoreHorizOutlinedIcon />
       </IconButton>
       <Menu
-        id="running-services-menu"
         anchorEl={moreOptionsButtonRef.current}
         open={isMoreOptionsOpen}
         onClose={closeMoreOptions}
@@ -70,15 +69,15 @@ export const StepParametersActions = ({
       >
         <MenuList dense>
           <MenuItem
-            onClick={(e) => openSchemaFile(e, ".schema.json")}
-            onAuxClick={(e) => openSchemaFile(e, ".schema.json")}
+            onClick={(e) => openStepSchemaFile(e, "schema")}
+            onAuxClick={(e) => openStepSchemaFile(e, "schema")}
           >
             {`${parameterSchema ? "Edit" : "New"} schema file`}
           </MenuItem>
           <MenuItem
             disabled={!parameterSchema}
-            onClick={(e) => openSchemaFile(e, ".uischema.json")}
-            onAuxClick={(e) => openSchemaFile(e, ".uischema.json")}
+            onClick={(e) => openStepSchemaFile(e, "uischema")}
+            onAuxClick={(e) => openStepSchemaFile(e, "uischema")}
           >
             {`${parameterUiSchema ? "Edit" : "New"} UI schema file`}
           </MenuItem>

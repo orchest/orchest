@@ -11,7 +11,7 @@ type ReadFileProps = {
   pipelineUuid: string | undefined;
   jobUuid?: string;
   runUuid?: string;
-  path: string;
+  path: string | undefined;
   allowedExtensions: readonly string[];
 };
 
