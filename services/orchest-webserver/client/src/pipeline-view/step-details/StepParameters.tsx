@@ -1,3 +1,4 @@
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Json, Step } from "@/types";
 import { isValidJson } from "@/utils/isValidJson";
 import {
@@ -8,6 +9,8 @@ import { JsonForms } from "@jsonforms/react";
 import { styled } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
@@ -28,8 +31,14 @@ const JsonFormContainer = styled(Box)(({ theme }) => ({
   ".MuiTableCell-root": { paddingLeft: 0 },
 }));
 
+type StepParameterViewingMode = "json" | "form";
+
 export const StepParameters = ({ isReadOnly, onSave }: StepParametersProps) => {
-  const { step, stepSchema, stepUiSchema } = useStepDetailsContext();
+  const { step, parameterSchema, parameterUiSchema } = useStepDetailsContext();
+
+  const [viewingMode, setViewingMode] = useLocalStorage<
+    StepParameterViewingMode
+  >("stepParametersViewingMode", "json");
 
   const [editableParameters, setEditableParameters] = React.useState(
     JSON.stringify(step.parameters, null, 2)
@@ -65,27 +74,45 @@ export const StepParameters = ({ isReadOnly, onSave }: StepParametersProps) => {
       >
         Parameters
       </Typography>
-      <CodeMirror
-        value={editableParameters}
-        options={{
-          mode: "application/json",
-          theme: "jupyter",
-          lineNumbers: true,
-          readOnly: isReadOnly === true,
-        }}
-        onBeforeChange={(editor, data, value) => {
-          onChangeParameterJSON(value);
-        }}
-      />
-      {!isParametersValidJson && (
-        <Alert severity="warning">Your input is not valid JSON.</Alert>
+      <ToggleButtonGroup
+        exclusive
+        size="small"
+        aria-label="Step parameters viewing mode"
+        value={viewingMode}
+        onChange={(e, value) => setViewingMode(value)}
+      >
+        <ToggleButton value="json" disabled={viewingMode === "json"}>
+          Json
+        </ToggleButton>
+        <ToggleButton value="form" disabled={viewingMode === "form"}>
+          Form
+        </ToggleButton>
+      </ToggleButtonGroup>
+      {viewingMode === "json" && (
+        <>
+          <CodeMirror
+            value={editableParameters}
+            options={{
+              mode: "application/json",
+              theme: "jupyter",
+              lineNumbers: true,
+              readOnly: isReadOnly === true,
+            }}
+            onBeforeChange={(editor, data, value) => {
+              onChangeParameterJSON(value);
+            }}
+          />
+          {!isParametersValidJson && (
+            <Alert severity="warning">Your input is not valid JSON.</Alert>
+          )}
+        </>
       )}
-      {stepSchema && (
+      {viewingMode === "form" && parameterSchema && (
         <JsonFormContainer>
           <JsonForms
             readonly={isReadOnly}
-            schema={stepSchema}
-            uischema={stepUiSchema}
+            schema={parameterSchema}
+            uischema={parameterUiSchema}
             data={parametersData}
             renderers={materialRenderers}
             cells={materialCells}

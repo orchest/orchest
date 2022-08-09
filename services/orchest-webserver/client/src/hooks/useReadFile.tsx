@@ -2,7 +2,6 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
-import { Json } from "@/types";
 import { isValidPath } from "@/utils/path";
 import { hasValue } from "@orchest/lib-utils";
 import { useFetcher } from "./useFetcher";
@@ -19,14 +18,14 @@ type ReadFileProps = {
 /**
  * Read a file in the context of a pipeline.
  */
-export const useReadFile = <T extends Json>({
+export function useReadFile<T>({
   projectUuid,
   pipelineUuid,
   jobUuid,
   runUuid,
   path,
   allowedExtensions,
-}: ReadFileProps) => {
+}: ReadFileProps) {
   const isValidProps =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
@@ -46,4 +45,4 @@ export const useReadFile = <T extends Json>({
   );
 
   return [data, status === "PENDING"] as const;
-};
+}

@@ -12,9 +12,9 @@ export type StepDetailsContextType = {
   isCheckingFileValidity: boolean;
   step: PipelineStepState;
   connections: ConnectionDict;
-  stepSchema?: JsonSchema;
+  parameterSchema?: JsonSchema;
   isReadingSchemaFile: boolean;
-  stepUiSchema?: UISchemaElement;
+  parameterUiSchema?: UISchemaElement;
   isReadingUiSchemaFile: boolean;
 };
 
@@ -42,7 +42,7 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
     allowedExtensions: ALLOWED_STEP_EXTENSIONS,
   });
 
-  const [stepSchema, isReadingSchemaFile] = useReadFile({
+  const [parameterSchema, isReadingSchemaFile] = useReadFile<JsonSchema>({
     projectUuid,
     pipelineUuid,
     jobUuid,
@@ -51,7 +51,9 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
     allowedExtensions: ["json"],
   });
 
-  const [stepUiSchema, isReadingUiSchemaFile] = useReadFile({
+  const [parameterUiSchema, isReadingUiSchemaFile] = useReadFile<
+    UISchemaElement
+  >({
     projectUuid,
     pipelineUuid,
     jobUuid,
@@ -78,9 +80,9 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
         isCheckingFileValidity,
         connections,
         step,
-        stepSchema: stepSchema as JsonSchema,
+        parameterSchema,
         isReadingSchemaFile,
-        stepUiSchema: (stepUiSchema as unknown) as UISchemaElement,
+        parameterUiSchema,
         isReadingUiSchemaFile,
       }}
     >
