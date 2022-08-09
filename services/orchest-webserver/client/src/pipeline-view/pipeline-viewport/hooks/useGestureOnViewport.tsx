@@ -1,4 +1,4 @@
-import { Position } from "@/types";
+import { Point2D } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import React from "react";
@@ -10,7 +10,7 @@ import { PipelineCanvasState } from "../../hooks/usePipelineCanvasState";
 
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
-const isTouchpad = (event: WheelEvent) => {
+const isTouchPadEvent = (event: WheelEvent) => {
   // deltaMode represents the unit of the delta values scroll amount
   // 0: pixel; 1: line; 2: page
   if (!event.wheelDeltaY && event.deltaMode === 0) return true;
@@ -28,60 +28,56 @@ const isTouchpad = (event: WheelEvent) => {
  * All the gesture events for PipelineEditor should be implemented in this hook.
  */
 export const useGestureOnViewport = (
-  pipelineCanvasState: PipelineCanvasState,
   setPipelineCanvasState: React.Dispatch<
     | Partial<PipelineCanvasState>
     | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
   >,
   ref: React.MutableRefObject<HTMLDivElement | null>,
-  pipelineSetHolderOrigin: (newOrigin: [number, number]) => void
+  pipelineSetHolderOrigin: (newOrigin: Point2D) => void
 ) => {
   const { disabled } = usePipelineDataContext();
   const { scaleFactor, setScaleFactor, trackMouseMovement } = useScaleFactor();
   const { pipelineCanvasRef } = usePipelineRefs();
-  const { pipelineOrigin } = pipelineCanvasState;
 
   const getPositionRelativeToCanvas = React.useCallback(
-    ({ x, y }: Position): Position => {
+    ([x, y]: Point2D): Point2D => {
       trackMouseMovement(x, y); // in case that user start zoom-in/out before moving their cursor
-      let canvasOffset = getOffset(pipelineCanvasRef.current);
+      const canvasOffset = getOffset(pipelineCanvasRef.current);
 
-      return {
-        x: scaleCorrected(x - canvasOffset.left, scaleFactor),
-        y: scaleCorrected(y - canvasOffset.top, scaleFactor),
-      };
+      return [
+        scaleCorrected(x - canvasOffset.left, scaleFactor),
+        scaleCorrected(y - canvasOffset.top, scaleFactor),
+      ];
     },
     [pipelineCanvasRef, scaleFactor, trackMouseMovement]
   );
 
   React.useEffect(() => {
-    const handler = (e: Event) => e.preventDefault();
-    document.addEventListener("gesturestart", handler);
-    document.addEventListener("gesturechange", handler);
-    document.addEventListener("gestureend", handler);
+    const preventDefault = (event: Event) => event.preventDefault();
+
+    document.addEventListener("gesturestart", preventDefault);
+    document.addEventListener("gesturechange", preventDefault);
+    document.addEventListener("gestureend", preventDefault);
+
     return () => {
-      document.removeEventListener("gesturestart", handler);
-      document.removeEventListener("gesturechange", handler);
-      document.removeEventListener("gestureend", handler);
+      document.removeEventListener("gesturestart", preventDefault);
+      document.removeEventListener("gesturechange", preventDefault);
+      document.removeEventListener("gestureend", preventDefault);
     };
   }, []);
 
-  const zoom = React.useCallback(
-    (mousePosition: Position, scaleDiff: number) => {
+  const zoomBy = React.useCallback(
+    (origin: Point2D, delta: number) => {
       if (disabled) return;
 
-      const { x, y } = getPositionRelativeToCanvas(mousePosition);
-      // set origin at scroll wheel trigger
-      if (x !== pipelineOrigin[0] || y !== pipelineOrigin[1]) {
-        pipelineSetHolderOrigin([x, y]);
-      }
+      const relativeOrigin = getPositionRelativeToCanvas(origin);
 
-      setScaleFactor((current) => current + scaleDiff);
+      pipelineSetHolderOrigin(relativeOrigin);
+      setScaleFactor((current) => current + delta);
     },
     [
       disabled,
       setScaleFactor,
-      pipelineOrigin,
       getPositionRelativeToCanvas,
       pipelineSetHolderOrigin,
     ]
@@ -101,8 +97,8 @@ export const useGestureOnViewport = (
         // mouse wheel
         // Weird behavior: `!isTouchpad(event)` is true whenever the pinching direction changes
         // Exclude it when `first` is true.
-        if (!first && !isTouchpad(event)) {
-          zoom({ x: event.clientX, y: event.clientY }, -deltaY / 2048);
+        if (!first && !isTouchPadEvent(event)) {
+          zoomBy([event.clientX, event.clientY], -deltaY / 2048);
           return;
         }
 
@@ -114,15 +110,14 @@ export const useGestureOnViewport = (
           ],
         }));
       },
-      onPinch: ({ pinching, delta: [delta], event, velocity: [velocity] }) => {
+      onPinch: ({ pinching, offset: [offset], event }) => {
         if (disabled || !pinching) return;
-        // `delta` value jumps from time to time (i.e. super big or super small).
-        // We limit its range to ensure consistent zooming speed.
-        const { clientX, clientY } = event as WheelEvent;
-        zoom(
-          { x: clientX, y: clientY },
-          Math.min(Math.max(velocity, 0.02), 0.06) * (delta < 0 ? -1 : 1)
-        );
+
+        const { clientX, clientY } = event as PointerEvent;
+        const relativeOrigin = getPositionRelativeToCanvas([clientX, clientY]);
+
+        pipelineSetHolderOrigin(relativeOrigin);
+        setScaleFactor(offset);
       },
     },
     {
@@ -131,5 +126,5 @@ export const useGestureOnViewport = (
     }
   );
 
-  return zoom;
+  return zoomBy;
 };

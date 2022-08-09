@@ -20,7 +20,7 @@ export const PipelineViewportContextMenuProvider = ContextMenuContextProvider;
 export const usePipelineViewportContextMenu = useContextMenuContext;
 
 export const PipelineViewportContextMenu = () => {
-  const { handleContextMenu, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { position, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
   const { isReadOnly, environments } = usePipelineDataContext();
   const { getOnCanvasPosition } = useScaleFactor();
   const {
@@ -29,7 +29,7 @@ export const PipelineViewportContextMenu = () => {
     uiStateDispatch,
   } = usePipelineUiStateContext();
   const { executeRun } = useInteractiveRunsContext();
-  const { centerView, zoom } = usePipelineCanvasContext();
+  const { centerView, zoomBy } = usePipelineCanvasContext();
 
   const { deleteSelectedSteps } = useDeleteSteps();
 
@@ -103,14 +103,14 @@ export const PipelineViewportContextMenu = () => {
             type: "item",
             title: "Zoom in",
             action: ({ position }) => {
-              zoom(position, SCALE_UNIT);
+              zoomBy(position, SCALE_UNIT);
             },
           },
           {
             type: "item",
             title: "Zoom out",
             action: ({ position }) => {
-              zoom(position, -SCALE_UNIT);
+              zoomBy(position, -SCALE_UNIT);
             },
           },
         ]
@@ -181,7 +181,7 @@ export const PipelineViewportContextMenu = () => {
             },
           },
         ];
-  return props.position ? (
-    <ContextMenu {...props} menuItems={menuItems} />
+  return position ? (
+    <ContextMenu {...props} position={position} menuItems={menuItems} />
   ) : null;
 };
