@@ -281,13 +281,14 @@ export function FileManager() {
           reload={reload}
           setContextMenu={setContextMenu}
         >
-          {!isReadOnly && (
-            <CreatePipelineDialog>
-              {(onCreateClick) => (
-                <CreatePipelineButton onClick={onCreateClick} />
-              )}
-            </CreatePipelineDialog>
-          )}
+          <CreatePipelineDialog>
+            {(onCreateClick) => (
+              <CreatePipelineButton
+                disabled={isReadOnly}
+                onClick={onCreateClick}
+              />
+            )}
+          </CreatePipelineDialog>
           <ActionBar
             setExpanded={setExpanded}
             uploadFiles={uploadFiles}
