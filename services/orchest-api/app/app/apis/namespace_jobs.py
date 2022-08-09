@@ -535,6 +535,44 @@ class CronJobResume(Resource):
             return {"message": "Could not resume cron job."}, 409
 
 
+@api.route("/<string:job_uuid>/runs/trigger")
+@api.param("job_uuid", "UUID of job")
+@api.response(404, "Job not found")
+@api.response(409, "Job is not in a state which allows triggering a run.")
+class JobRunTrigger(Resource):
+    @api.doc("trigger_job_run")
+    @api.response(200, "Job run triggered")
+    def post(self, job_uuid: str):
+        """Triggers a batch of runs for a non end state job.
+
+        The job should be in a PENDING|STARTED|PAUSED state for a batch
+        of runs to be triggered. With batch of runs we mean a number of
+        runs equal to the "pipeline runs" that would be setup through
+        the job parameterization. For example, for a cronjob, this would
+        be as if the job run was performed because of its scheduled
+        time.
+
+
+        """
+        job = models.Job.query.get_or_404(
+            ident=job_uuid,
+            description="Job not found.",
+        )
+
+        if job.status not in ["PENDING", "STARTED", "PAUSED"]:
+            return {
+                "message": "The job is not in a state which allows triggering a run."
+            }, 409
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                RunJob(tpe).transaction(job_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        return {}, 200
+
+
 class DeleteNonRetainedJobPipelineRuns(TwoPhaseFunction):
     """See max_retained_pipeline_runs in models.py for docs."""
 
