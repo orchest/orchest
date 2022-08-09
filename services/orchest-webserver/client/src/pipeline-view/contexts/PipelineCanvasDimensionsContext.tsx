@@ -1,13 +1,11 @@
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { clamp } from "@/utils/math";
 import React from "react";
 
 export const DEFAULT_MAIN_SIDE_PANEL_WIDTH = 300;
 export const MIN_MAIN_SIDE_PANEL_WIDTH = 252;
 export const DEFAULT_STEP_DETAILS_PANEL_WIDTH = 450;
 export const MIN_STEP_DETAILS_PANEL_WIDTH = 420;
-
-const clamp = (value: number, min: number = value, max: number = value) =>
-  Math.min(Math.max(value, min), max);
 
 type UseCanvasContainerWidthParams = {
   key: string;

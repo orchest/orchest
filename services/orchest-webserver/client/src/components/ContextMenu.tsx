@@ -1,6 +1,6 @@
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
 import { ContextMenuUuid } from "@/pipeline-view/hooks/usePipelineUiState";
-import { Position } from "@/types";
+import { Point2D } from "@/types";
 import Divider from "@mui/material/Divider";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -8,7 +8,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export type ContextMenuContextType = {
-  position: Position | undefined;
+  position: Point2D | undefined;
   handleContextMenu: (event: React.MouseEvent, uuid: ContextMenuUuid) => void;
   onClose: () => void;
   onSelectMenuItem: (
@@ -25,7 +25,7 @@ export const useContextMenuContext = () => React.useContext(ContextMenuContext);
 
 export const ContextMenuContextProvider: React.FC = ({ children }) => {
   const { uiStateDispatch } = usePipelineUiStateContext();
-  const [position, setPosition] = React.useState<Position>();
+  const [position, setPosition] = React.useState<Point2D>();
   const handleContextMenu = (
     event: React.MouseEvent,
     uuid: ContextMenuUuid
@@ -40,10 +40,7 @@ export const ContextMenuContextProvider: React.FC = ({ children }) => {
       // The current workaround is closing the current context menu if the immediate second right-click occurs.
       const isOpen = Boolean(current.contextMenuUuid);
       if (!isOpen) {
-        setPosition({
-          x: event.clientX,
-          y: event.clientY,
-        });
+        setPosition([event.clientX, event.clientY]);
         return {
           type: "SET_CONTEXT_MENU_UUID",
           payload: uuid,
@@ -86,7 +83,7 @@ type ContextMenuItemAction = {
   type: "item";
   title: string;
   disabled?: boolean;
-  action: (props: { event: React.MouseEvent; position: Position }) => void;
+  action: (props: { event: React.MouseEvent; position: Point2D }) => void;
 };
 
 type ContextMenuItemSeparator = {
@@ -96,23 +93,22 @@ type ContextMenuItemSeparator = {
 export type ContextMenuItem = ContextMenuItemAction | ContextMenuItemSeparator;
 
 type ContextMenuProps = Omit<ContextMenuContextType, "handleContextMenu"> & {
+  position: Point2D;
   menuItems: ContextMenuItem[];
 };
 
 export const ContextMenu = ({
-  position,
+  position: [x, y],
   onClose,
   onSelectMenuItem,
   menuItems,
 }: ContextMenuProps) => {
   return (
     <Menu
-      open={hasValue(position)}
+      open={true}
       onClose={onClose}
       anchorReference="anchorPosition"
-      anchorPosition={
-        hasValue(position) ? { top: position.y, left: position.x } : undefined
-      }
+      anchorPosition={{ top: y, left: x }}
     >
       {menuItems.map((menuItem, index) => {
         switch (menuItem.type) {

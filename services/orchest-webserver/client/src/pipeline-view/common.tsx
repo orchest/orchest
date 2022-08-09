@@ -3,6 +3,7 @@ import {
   Offset,
   PipelineJson,
   PipelineState,
+  Point2D,
   Position,
   StepNode,
   StepsDict,
@@ -155,7 +156,7 @@ export const createsLoop = (
 };
 
 export const originTransformScaling = (
-  origin: [number, number],
+  [x, y]: Point2D,
   scaleFactor: number
 ) => {
   /* By multiplying the transform-origin with the scaleFactor we get the right
@@ -167,8 +168,7 @@ export const originTransformScaling = (
    * of applying the css transform: translate(...) scale(...);.
    */
 
-  let adjustedScaleFactor = scaleFactor - 1;
-  origin[0] *= adjustedScaleFactor;
-  origin[1] *= adjustedScaleFactor;
-  return origin;
+  const scaleInv = scaleFactor - 1;
+
+  return [x * scaleInv, y * scaleInv];
 };
