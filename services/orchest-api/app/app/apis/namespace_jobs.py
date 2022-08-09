@@ -545,12 +545,12 @@ class JobRunTrigger(Resource):
     def post(self, job_uuid: str):
         """Triggers a batch of runs for a non end state job.
 
-        The job should be in a PENDING|STARTED|PAUSED state for a batch
-        of runs to be triggered. With batch of runs we mean a number of
-        runs equal to the "pipeline runs" that would be setup through
-        the job parameterization. For example, for a cronjob, this would
-        be as if the job run was performed because of its scheduled
-        time.
+        The job should either be a PENDING|STARTED cronjob or a PENDING
+        one-off job scheduled in the future for a batch of runs to be
+        triggered. With batch of runs we mean a number of runs equal to
+        the "pipeline runs" that would be setup through the job
+        parameterization. For example, for a cronjob, this would be as
+        if the job run was performed because of its scheduled time.
 
 
         """
@@ -559,7 +559,14 @@ class JobRunTrigger(Resource):
             description="Job not found.",
         )
 
-        if job.status not in ["PENDING", "STARTED", "PAUSED"]:
+        if not (
+            (job.schedule is not None and job.status in ["STARTED", "PAUSED"])
+            or (
+                job.schedule is None
+                and job.next_scheduled_time is not None
+                and job.status == "PENDING"
+            )
+        ):
             return {
                 "message": "The job is not in a state which allows triggering a run."
             }, 409
