@@ -566,7 +566,7 @@ class JobRunTrigger(Resource):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                RunJob(tpe).transaction(job_uuid)
+                RunJob(tpe).transaction(job_uuid, triggered_by_user=True)
         except Exception as e:
             return {"message": str(e)}, 500
 
@@ -729,7 +729,7 @@ def _delete_non_retained_pipeline_runs(job_uuid: str) -> None:
 class RunJob(TwoPhaseFunction):
     """Start the pipeline runs related to a job"""
 
-    def _transaction(self, job_uuid: str):
+    def _transaction(self, job_uuid: str, triggered_by_user: bool = False):
 
         # with_entities is so that we do not retrieve the interactive
         # runs of the job, since we do not need those.
@@ -756,8 +756,11 @@ class RunJob(TwoPhaseFunction):
             self.collateral_kwargs["run_config"] = dict()
 
         # The status of jobs that run once is initially set to PENDING,
-        # thus we need to update that.
-        if job.status == "PENDING":
+        # thus we need to update that. triggered_by_user is needed to
+        # avoid an edge case where a one-off job scheduled in the future
+        # for which a job run has been triggered by the user would end
+        # up in the STARTED state.
+        if job.status == "PENDING" and not triggered_by_user:
             job.status = "STARTED"
             events.register_job_started(job.project_uuid, job.uuid)
 
@@ -1521,6 +1524,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                 # The job has 1 run for every parameters set, this value
                 # tells us how many pipeline runs are in every job run.
                 func.jsonb_array_length(models.Job.parameters),
+                models.Job.status,
             )
             .filter_by(uuid=job_uuid)
             .one()
@@ -1544,7 +1548,14 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
             )
         )
 
-        if runs_to_complete == 0:
+        # The job.status == "STARTED" is needed to account for the fact
+        # that a user could trigger a job run of a PENDING job through
+        # the /jobs API. By adding this check we avoid the pipeline runs
+        # triggered by said endpoint bringing the job in an end state.
+        # This is basically only necessary for one off jobs that are
+        # scheduled in the future. See the "triggered_by_user" argument
+        # of RunJob.
+        if runs_to_complete == 0 and job.status == "STARTED":
             status = "SUCCESS"
 
             if (
