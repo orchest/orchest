@@ -7,6 +7,7 @@ import {
   Language,
   OrchestSession,
 } from "@/types";
+import { clean } from "@/utils/record";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
 export const isEnvironmentBuilding = (build?: EnvironmentImageBuild) =>
@@ -109,16 +110,15 @@ export const postEnvironment = (
     }),
   });
 
-export const getPutEnvironmentPayload = (
-  environmentState: EnvironmentState
-): Environment => {
-  const {
-    action, // eslint-disable-line @typescript-eslint/no-unused-vars
-    latestBuild: latestBuildStatus, // eslint-disable-line @typescript-eslint/no-unused-vars
-    ...environmentData
-  } = environmentState;
+export const extractEnvironmentFromState = (
+  environmentState?: EnvironmentState
+): Environment | undefined => {
+  if (!environmentState) return undefined;
 
-  return environmentData;
+  return clean<Environment>(
+    environmentState,
+    ([key]) => !["action", "latestBuild"].includes(key)
+  );
 };
 
 /**
