@@ -23,6 +23,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import TuneIcon from "@mui/icons-material/Tune";
 import Box from "@mui/material/Box";
@@ -135,6 +136,22 @@ const JobView: React.FC = () => {
     } catch (error) {
       console.error(error);
       setAlert("Error", `Failed to resume job: ${error}`);
+    }
+  };
+
+  const triggerScheduledRuns = async () => {
+    if (!job) return Promise.reject();
+    try {
+      await run(
+        fetcher<{ next_scheduled_time: string }>(
+          `/catch/api-proxy/api/jobs/${job.uuid}/runs/trigger`,
+          { method: "POST" }
+        )
+      );
+      reload();
+    } catch (error) {
+      console.error(error);
+      setAlert("Error", `Failed to trigger job runs: ${error}`);
     }
   };
 
@@ -411,6 +428,21 @@ const JobView: React.FC = () => {
                   startIcon={<PlayArrowIcon />}
                 >
                   Resume
+                </Button>
+              )}
+
+              {((job.schedule !== null &&
+                ["PAUSED", "STARTED"].includes(job.status)) ||
+                // One off scheduled jobs that are pending.
+                (job.schedule === null &&
+                  job.next_scheduled_time !== null &&
+                  job.status === "PENDING")) && (
+                <Button
+                  variant="contained"
+                  onClick={triggerScheduledRuns}
+                  startIcon={<PlayArrowOutlinedIcon />}
+                >
+                  Trigger job now
                 </Button>
               )}
 

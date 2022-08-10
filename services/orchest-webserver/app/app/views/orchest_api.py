@@ -494,6 +494,17 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>/runs/trigger", methods=["POST"])
+    def catch_api_proxy_job_run_trigger(job_uuid):
+
+        resp = requests.post(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + f"/api/jobs/{job_uuid}/runs/trigger"
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["PUT"])
     def catch_api_proxy_job_put(job_uuid):
 
