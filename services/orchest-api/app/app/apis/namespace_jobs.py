@@ -535,6 +535,51 @@ class CronJobResume(Resource):
             return {"message": "Could not resume cron job."}, 409
 
 
+@api.route("/<string:job_uuid>/runs/trigger")
+@api.param("job_uuid", "UUID of job")
+@api.response(404, "Job not found")
+@api.response(409, "Job is not in a state which allows triggering a run.")
+class JobRunTrigger(Resource):
+    @api.doc("trigger_job_run")
+    @api.response(200, "Job run triggered")
+    def post(self, job_uuid: str):
+        """Triggers a batch of runs for a non end state job.
+
+        The job should either be a PENDING|STARTED cronjob or a PENDING
+        one-off job scheduled in the future for a batch of runs to be
+        triggered. With batch of runs we mean a number of runs equal to
+        the "pipeline runs" that would be setup through the job
+        parameterization. For example, for a cronjob, this would be as
+        if the job run was performed because of its scheduled time.
+
+
+        """
+        job = models.Job.query.get_or_404(
+            ident=job_uuid,
+            description="Job not found.",
+        )
+
+        if not (
+            (job.schedule is not None and job.status in ["STARTED", "PAUSED"])
+            or (
+                job.schedule is None
+                and job.next_scheduled_time is not None
+                and job.status == "PENDING"
+            )
+        ):
+            return {
+                "message": "The job is not in a state which allows triggering a run."
+            }, 409
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                RunJob(tpe).transaction(job_uuid, triggered_by_user=True)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        return {}, 200
+
+
 class DeleteNonRetainedJobPipelineRuns(TwoPhaseFunction):
     """See max_retained_pipeline_runs in models.py for docs."""
 
@@ -691,7 +736,7 @@ def _delete_non_retained_pipeline_runs(job_uuid: str) -> None:
 class RunJob(TwoPhaseFunction):
     """Start the pipeline runs related to a job"""
 
-    def _transaction(self, job_uuid: str):
+    def _transaction(self, job_uuid: str, triggered_by_user: bool = False):
 
         # with_entities is so that we do not retrieve the interactive
         # runs of the job, since we do not need those.
@@ -718,8 +763,11 @@ class RunJob(TwoPhaseFunction):
             self.collateral_kwargs["run_config"] = dict()
 
         # The status of jobs that run once is initially set to PENDING,
-        # thus we need to update that.
-        if job.status == "PENDING":
+        # thus we need to update that. triggered_by_user is needed to
+        # avoid an edge case where a one-off job scheduled in the future
+        # for which a job run has been triggered by the user would end
+        # up in the STARTED state.
+        if job.status == "PENDING" and not triggered_by_user:
             job.status = "STARTED"
             events.register_job_started(job.project_uuid, job.uuid)
 
@@ -1483,6 +1531,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                 # The job has 1 run for every parameters set, this value
                 # tells us how many pipeline runs are in every job run.
                 func.jsonb_array_length(models.Job.parameters),
+                models.Job.status,
             )
             .filter_by(uuid=job_uuid)
             .one()
@@ -1506,7 +1555,14 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
             )
         )
 
-        if runs_to_complete == 0:
+        # The job.status == "STARTED" is needed to account for the fact
+        # that a user could trigger a job run of a PENDING job through
+        # the /jobs API. By adding this check we avoid the pipeline runs
+        # triggered by said endpoint bringing the job in an end state.
+        # This is basically only necessary for one off jobs that are
+        # scheduled in the future. See the "triggered_by_user" argument
+        # of RunJob.
+        if runs_to_complete == 0 and job.status == "STARTED":
             status = "SUCCESS"
 
             if (
