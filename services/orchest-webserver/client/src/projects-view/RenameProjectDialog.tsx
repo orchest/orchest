@@ -1,8 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { StateDispatcher } from "@/hooks/useAsync";
 import { Project } from "@/types";
-import CloseIcon from "@mui/icons-material/Close";
-import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -15,21 +12,23 @@ import { useProjectName } from "./hooks/useProjectName";
 
 // TODO: move to project settings
 
-export const EditProjectPathDialog = ({
-  projectUuid,
-  onClose,
-  setProjects,
-  projects,
-}: {
+type RenameProjectDialogProps = {
   projectUuid: string | undefined;
   onClose: () => void;
-  setProjects: StateDispatcher<Project[]>;
+  onSaved: (newPath: string) => void;
   projects: Project[];
-}) => {
+};
+
+export const RenameProjectDialog = ({
+  projectUuid,
+  projects,
+  onClose,
+  onSaved,
+}: RenameProjectDialogProps) => {
   const { setAlert } = useAppContext();
 
   const [projectName, setProjectName, validation] = useProjectName(
-    projects.filter((p) => p.uuid !== projectUuid)
+    projects.filter(({ uuid }) => uuid !== projectUuid)
   );
   const [isUpdatingProjectPath, setIsUpdatingProjectPath] = React.useState(
     false
@@ -57,35 +56,21 @@ export const EditProjectPathDialog = ({
     if (!isFormValid) return;
 
     setIsUpdatingProjectPath(true);
+
     try {
       await fetcher(`/async/projects/${projectUuid}`, {
         method: "PUT",
         headers: HEADER.JSON,
         body: JSON.stringify({ name: projectName }),
       });
-      setProjects((projects) => {
-        if (!projects) return projects;
-        const copy = [...projects];
-        const found = copy.find((p) => p.uuid === projectUuid);
-        if (found) found.path = projectName;
-        return copy;
-      });
+
+      onSaved(projectName);
+      closeDialog();
     } catch (error) {
-      if (error.code == 0) {
-        setAlert(
-          "Error",
-          "Cannot rename project when an interactive session is running."
-        );
-      }
-      if (error.code == 1) {
-        // Deprecated: form validation should have taken care of it
-        setAlert(
-          "Error",
-          `Cannot rename project, a project with the name "${projectName}" already exists.`
-        );
-      }
+      setAlert("Error", String(error));
     }
-    closeDialog();
+
+    setIsUpdatingProjectPath(false);
   };
 
   return (
@@ -97,12 +82,12 @@ export const EditProjectPathDialog = ({
     >
       <form
         id="edit-name"
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
           onSubmitEditProjectPathModal();
         }}
       >
-        <DialogTitle>Edit project name</DialogTitle>
+        <DialogTitle>Rename project</DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -114,17 +99,14 @@ export const EditProjectPathDialog = ({
             helperText={validation || " "}
             error={validation.length > 0}
             disabled={isUpdatingProjectPath}
-            onChange={(e) => {
-              setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));
+            onChange={({ target }) => {
+              setProjectName(target.value.replace(/[^\w\.]/g, "-"));
             }}
           />
         </DialogContent>
         <DialogActions>
-          <Button startIcon={<CloseIcon />} onClick={onClose}>
-            Cancel
-          </Button>
+          <Button onClick={onClose}>Cancel</Button>
           <Button
-            startIcon={<SaveIcon />}
             variant="contained"
             disabled={!isFormValid}
             type="submit"

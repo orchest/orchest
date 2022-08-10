@@ -3,6 +3,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import Menu from "@mui/material/Menu";
@@ -10,6 +11,7 @@ import MenuItem from "@mui/material/MenuItem";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { ProjectsTable } from "./ProjectsTable";
+import { RenameProjectDialog } from "./RenameProjectDialog";
 
 export const ProjectList = () => {
   const { setConfirm, setAlert } = useAppContext();
@@ -24,20 +26,24 @@ export const ProjectList = () => {
     setSelectedProjectMenuButton,
   ] = React.useState<{ element: HTMLElement; uuid: string; name: string }>();
 
-  const [projectsBeingDeleted, setProjectsBeingDeleted] = React.useState<
-    string[]
-  >([]);
+  const [renamingUuid, setRenamingUuid] = React.useState<string>();
+  const [projectsBeingDeleted, setProjectsBeingDeleted] = React.useState(
+    [] as string[]
+  );
 
   const closeProjectMenu = () => setSelectedProjectMenuButton(undefined);
 
   const openProjectMenu = React.useCallback(
     (projectUuid: string) => (event: React.MouseEvent<HTMLElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+
       const selectedProject = projects?.find(
         (project) => project.uuid === projectUuid
       );
+
       if (!selectedProject) return;
-      event.preventDefault();
-      event.stopPropagation();
+
       setSelectedProjectMenuButton({
         element: event.currentTarget,
         uuid: projectUuid,
@@ -47,24 +53,31 @@ export const ProjectList = () => {
     [projects]
   );
 
-  const openSettings = (e: React.MouseEvent) => {
+  const openSettings = (event: React.MouseEvent) => {
     if (selectedProjectMenuButton)
       navigateTo(
         siteMap.projectSettings.path,
         { query: { projectUuid: selectedProjectMenuButton.uuid } },
-        e
+        event
       );
   };
+
+  const startRename = React.useCallback(
+    (projectUuid: string) => () => {
+      const project = projects?.find((project) => project.uuid === projectUuid);
+      setRenamingUuid(project?.uuid);
+    },
+    [projects]
+  );
 
   const requestDeleteProject = async (toBeDeletedId: string) => {
     if (projectUuid === toBeDeletedId) {
       dispatch({ type: "SET_PROJECT", payload: undefined });
     }
 
-    setProjectsBeingDeleted((current) => {
-      return [...current, toBeDeletedId];
-    });
+    setProjectsBeingDeleted((current) => [...current, toBeDeletedId]);
     setSelectedProjectMenuButton(undefined);
+
     try {
       await fetcher("/async/projects", {
         method: "DELETE",
@@ -81,9 +94,9 @@ export const ProjectList = () => {
       setAlert("Error", `Could not delete project. ${error.message}`);
     }
 
-    setProjectsBeingDeleted((current) => {
-      return current.filter((projectUuid) => projectUuid !== toBeDeletedId);
-    });
+    setProjectsBeingDeleted((current) =>
+      current.filter((projectUuid) => projectUuid !== toBeDeletedId)
+    );
   };
 
   const deleteProject = async (projectName: string) => {
@@ -130,6 +143,12 @@ export const ProjectList = () => {
             </ListItemIcon>
             Project settings
           </MenuItem>
+          <MenuItem onClick={startRename(selectedProjectMenuButton.uuid)}>
+            <ListItemIcon>
+              <EditOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            Rename project
+          </MenuItem>
           <MenuItem
             onClick={() => deleteProject(selectedProjectMenuButton.name)}
           >
@@ -139,6 +158,22 @@ export const ProjectList = () => {
             Delete Project
           </MenuItem>
         </Menu>
+      )}
+      {renamingUuid && projects && (
+        <RenameProjectDialog
+          projects={projects ?? {}}
+          projectUuid={renamingUuid}
+          onClose={() => setRenamingUuid(undefined)}
+          onSaved={(newPath) => {
+            const newProjects = [...projects];
+            const project = newProjects.find((p) => p.uuid === projectUuid);
+
+            if (project) {
+              project.path = newPath;
+              dispatch({ type: "SET_PROJECTS", payload: newProjects });
+            }
+          }}
+        />
       )}
     </>
   );
