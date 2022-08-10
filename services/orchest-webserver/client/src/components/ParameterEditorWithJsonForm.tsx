@@ -71,9 +71,15 @@ export const ParameterEditorWithJsonForm = ({
   const selectView = React.useCallback(
     (value: ParameterViewingMode) => {
       setViewingMode(value);
+      // Note: this is a dirty workaround.
+      // JsonForm is not a controlled component, and its data instantiation is hard to predict.
+      // It seems that, `data` needs to set to undefined when it's mounted, then it will pick up new value.
+
+      // Set the state to undefined. If JsonForms is mounted in this render, it will pick up new value.
       setEditableParameters(undefined);
       setParametersData(undefined);
       window.setTimeout(() => {
+        // Use an eventloop to break the batch rendering, and set the states in the next re-render.
         setEditableParameters(JSON.stringify(initialValue, null, 2));
         setParametersData(initialValue);
       }, 0);
