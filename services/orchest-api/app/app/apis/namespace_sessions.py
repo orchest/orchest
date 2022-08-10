@@ -395,4 +395,3 @@ class StopInteractiveSession(TwoPhaseFunction):
                 project_uuid,
                 pipeline_uuid,
             )
-

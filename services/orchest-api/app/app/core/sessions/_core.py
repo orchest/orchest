@@ -347,8 +347,7 @@ def has_busy_kernels(session_uuid: str) -> bool:
 def restart_session_service(
     session_uuid: str, service_name: str, wait_for_readiness: bool = True
 ) -> None:
-    """Restarts a session service by name.
-    """
+    """Restarts a session service by name."""
     ns = _config.ORCHEST_NAMESPACE
     k8s_core_api.delete_collection_namespaced_pod(
         namespace=ns, label_selector=f"session_uuid={session_uuid},app={service_name}"
