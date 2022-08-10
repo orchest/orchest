@@ -442,7 +442,7 @@ const JobView: React.FC = () => {
                   onClick={triggerScheduledRuns}
                   startIcon={<PlayArrowOutlinedIcon />}
                 >
-                  Trigger scheduled runs
+                  Trigger job now
                 </Button>
               )}
 
