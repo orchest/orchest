@@ -17,6 +17,6 @@
     "cypress-pipe": "2.0.0",
     "deep-equal": "2.0.5",
     "react": "^17.0.2",
-    "typescript": "4.5.4"
+    "typescript": "4.7.4"
   }
 }
