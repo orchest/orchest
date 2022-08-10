@@ -32,20 +32,12 @@ export const ProjectsView = () => {
 
   useFetchProjectsForProjectsView();
 
-  const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
 
-  const onCreateClick = () => {
-    setIsShowingCreateModal(true);
-  };
-
-  const onCloseCreateProjectModal = () => {
-    setIsShowingCreateModal(false);
-  };
-
-  const onImport = () => {
-    setIsImportDialogOpen(true);
-  };
+  const onCreateClick = () => setIsCreateDialogOpen(true);
+  const onCloseCreateProjectModal = () => setIsCreateDialogOpen(false);
+  const onImport = () => setIsImportDialogOpen(true);
 
   const [importUrl, setImportUrl] = useImportUrlFromQueryString();
   // if user loads the app with a pre-filled import_url in their query string
@@ -96,7 +88,7 @@ export const ProjectsView = () => {
         confirmButtonLabel={`Save & view`}
       />
       <CreateProjectDialog
-        open={isShowingCreateModal}
+        open={isCreateDialogOpen}
         onClose={onCloseCreateProjectModal}
       />
       <ProjectTabsContextProvider>
