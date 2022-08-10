@@ -6,7 +6,7 @@ import { mockProjects } from "@/__mocks__/mockProjects.mock";
 import { server } from "@/__mocks__/server.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
-import { useFetchPipelineSettings } from "../useFetchPipelineSettings";
+import { usePipelineSettings } from "../usePipelineSettings";
 
 const wrapper = ({ children = null, shouldStart }) => {
   return (
@@ -26,7 +26,7 @@ const useTestHook = (props: {
   const {
     state: { hasUnsavedChanges },
   } = useAppContext();
-  const values = useFetchPipelineSettings(props);
+  const values = usePipelineSettings(props);
   return { ...values, hasUnsavedChanges };
 };
 
@@ -41,7 +41,9 @@ describe("useFetchPipelineSettings", () => {
       runUuid: string | undefined;
       isBrowserTabFocused: boolean;
     },
-    ReturnType<typeof useFetchPipelineSettings> & { hasUnsavedChanges: boolean }
+    ReturnType<typeof usePipelineSettings> & {
+      hasUnsavedChanges: boolean;
+    }
   >(({ children, ...props }) => useTestHook(props), {
     wrapper,
     initialProps: {

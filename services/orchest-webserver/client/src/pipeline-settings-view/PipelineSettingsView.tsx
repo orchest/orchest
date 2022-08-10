@@ -52,10 +52,11 @@ import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { generatePipelineJsonForSaving, instantiateNewService } from "./common";
 import { GenerateParametersDialog } from "./GenerateParametersDialog";
+import { usePipelineSettings } from "./hooks/usePipelineSettings";
+import { useReadPipelineSchemaFiles } from "./hooks/useReadPipelineSchemaFiles";
 import { PipelineParameters } from "./PipelineParameters";
 import ServiceForm from "./ServiceForm";
 import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
-import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
 
 export const ParameterDocs = () => {
   return (
@@ -162,14 +163,20 @@ const PipelineSettingsView: React.FC = () => {
     setPipelineName,
     pipelineParameters,
     setPipelineParameters,
-    parameterSchema,
-    parameterUiSchema,
-  } = useFetchPipelineSettings({
+  } = usePipelineSettings({
     projectUuid,
     pipelineUuid,
     jobUuid,
     runUuid,
     isBrowserTabFocused,
+  });
+
+  const { parameterSchema, parameterUiSchema } = useReadPipelineSchemaFiles({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    pipelinePath,
   });
 
   const allServiceNames = React.useMemo(() => {

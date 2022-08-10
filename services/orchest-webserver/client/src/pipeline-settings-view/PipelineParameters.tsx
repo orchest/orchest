@@ -2,7 +2,7 @@ import { ParameterEditorWithJsonForm } from "@/components/ParameterEditorWithJso
 import { Json } from "@/types";
 import { JsonSchema, UISchemaElement } from "@jsonforms/core";
 import React from "react";
-import { useOpenPipelineSchemaFile } from "./useOpenPipelineSchemaFile";
+import { useOpenPipelineSchemaFile } from "./hooks/useOpenPipelineSchemaFile";
 
 type PipelineParametersProps = {
   initialValue: string | undefined;
