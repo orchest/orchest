@@ -6,7 +6,7 @@ import { mockProjects } from "@/__mocks__/mockProjects.mock";
 import { server } from "@/__mocks__/server.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
 import * as React from "react";
-import { usePipelineSettings } from "../usePipelineSettings";
+import { usePipelineSettings } from "../hooks/usePipelineSettings";
 
 const wrapper = ({ children = null, shouldStart }) => {
   return (
