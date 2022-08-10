@@ -20,7 +20,6 @@ import type {
   Service,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
-import { isValidJson } from "@/utils/isValidJson";
 import {
   envVariablesArrayToDict,
   isValidEnvironmentVariableName,
@@ -32,7 +31,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import SaveIcon from "@mui/icons-material/Save";
-import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -51,15 +49,13 @@ import {
   Link,
 } from "@orchest/design-system";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
-import "codemirror/mode/javascript/javascript";
 import React from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
 import { generatePipelineJsonForSaving, instantiateNewService } from "./common";
 import { GenerateParametersDialog } from "./GenerateParametersDialog";
+import { PipelineParameters } from "./PipelineParameters";
 import ServiceForm from "./ServiceForm";
 import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
-import { useOpenPipelineSchemaFile } from "./useOpenPipelineSchemaFile";
 
 export const ParameterDocs = () => {
   return (
@@ -176,12 +172,6 @@ const PipelineSettingsView: React.FC = () => {
     isBrowserTabFocused,
   });
 
-  const { openPipelineSchemaFile } = useOpenPipelineSchemaFile(
-    pipelinePath,
-    parameterSchema,
-    parameterUiSchema
-  );
-
   const allServiceNames = React.useMemo(() => {
     return new Set(Object.values(services || {}).map((s) => s.name));
   }, [services]);
@@ -258,10 +248,6 @@ const PipelineSettingsView: React.FC = () => {
       },
       state: { isReadOnly },
     });
-  };
-
-  const onChangePipelineParameters = (editor, data, value: string) => {
-    setPipelineParameters(value);
   };
 
   const validateServiceEnvironmentVariables = (pipeline: PipelineJson) => {
@@ -471,25 +457,6 @@ const PipelineSettingsView: React.FC = () => {
     settings?.data_passing_memory_size || ""
   );
 
-  const prettifyInputParameters = () => {
-    let newValue: string | undefined;
-    try {
-      const parsedValue = JSON.stringify(JSON.parse(pipelineParameters));
-      newValue = parsedValue !== pipelineParameters ? parsedValue : undefined;
-    } catch (error) {}
-
-    if (newValue) setPipelineParameters(newValue);
-  };
-
-  const inputParametersError = React.useMemo(() => {
-    if (isValidJson(pipelineParameters)) return null;
-    return (
-      <div className="warning push-up push-down">
-        <i className="material-icons">warning</i> Your input is not valid JSON.
-      </div>
-    );
-  }, [pipelineParameters]);
-
   return (
     <Layout>
       {isGenerateParametersDialogOpen && projectUuid && pipelineUuid && (
@@ -598,31 +565,17 @@ const PipelineSettingsView: React.FC = () => {
                         <h3>Pipeline parameters</h3>
                       </div>
                       <div className="column">
-                        <CodeMirror
-                          value={pipelineParameters}
-                          options={{
-                            mode: "application/json",
-                            theme: "jupyter",
-                            lineNumbers: true,
-                            readOnly: isReadOnly,
-                          }}
-                          onBlur={() => prettifyInputParameters()}
-                          onBeforeChange={onChangePipelineParameters}
+                        <PipelineParameters
+                          initialValue={pipelineParameters}
+                          isReadOnly={isReadOnly}
+                          onSave={setPipelineParameters}
+                          pipelinePath={pipelinePath}
+                          parameterSchema={parameterSchema}
+                          parameterUiSchema={parameterUiSchema}
+                          showGenerateParametersDialog={
+                            showGenerateParametersDialog
+                          }
                         />
-                        {inputParametersError}
-
-                        {!isReadOnly && (
-                          <Button
-                            sx={{ marginTop: 2 }}
-                            variant="contained"
-                            onClick={showGenerateParametersDialog}
-                            onAuxClick={showGenerateParametersDialog}
-                            startIcon={<TuneIcon />}
-                          >
-                            Example job parameters file
-                          </Button>
-                        )}
-
                         <Box sx={{ marginTop: 2 }}>
                           <ParameterDocs />
                         </Box>

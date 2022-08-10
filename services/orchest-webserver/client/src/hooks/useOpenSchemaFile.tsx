@@ -22,7 +22,7 @@ export const useOpenSchemaFile = (
 
       const sidecarFilePath = `${filePath}.${type}.json`;
       if (shouldCreateFile) await createFile(sidecarFilePath);
-      openFile(e, filePath);
+      openFile(e, sidecarFilePath);
     },
     [createFile, openFile]
   );

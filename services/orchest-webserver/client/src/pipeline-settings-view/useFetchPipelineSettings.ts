@@ -100,7 +100,7 @@ export const useFetchPipelineSettings = ({
   // Therefore, per update of the fetched value (either new value or cached value), a hash is generated.
   // Inside of `usePipelineProperty` compares the hash and only re-init values accordingly.
   // ? Question: why not clear the cache?
-  // Beacuse `SWR` cache is not scoped. If we clear cashe here, it might break all the other components using the same fetch hook.
+  // Because `SWR` cache is not scoped. If we clear cashe here, it might break all the other components using the same fetch hook.
 
   const [hash, updateHash] = React.useReducer(() => uuidv4(), uuidv4());
 
@@ -131,12 +131,9 @@ export const useFetchPipelineSettings = ({
     if (isBrowserTabFocused && !hasUnsavedChanges) reinitialize();
   }, [hasUnsavedChanges, isBrowserTabFocused, reinitialize]);
 
-  const [
-    pipelineParameters = "{}",
-    setPipelineParameters,
-  ] = usePipelineProperty({
+  const [pipelineParameters, setPipelineParameters] = usePipelineProperty({
     initialValue: pipelineJson?.parameters
-      ? JSON.stringify(pipelineJson.parameters || {})
+      ? JSON.stringify(pipelineJson.parameters)
       : undefined,
     hash,
   });

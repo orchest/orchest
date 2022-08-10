@@ -1,4 +1,6 @@
 import { IconButton } from "@/components/common/IconButton";
+import { JsonSchemaType } from "@/hooks/useOpenSchemaFile";
+import { JsonSchema, UISchemaElement } from "@jsonforms/core";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -7,32 +9,40 @@ import Stack from "@mui/material/Stack";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import React from "react";
-import { useStepDetailsContext } from "./StepDetailsContext";
-import { useOpenStepSchemaFile } from "./useOpenStepSchemaFile";
 
-export type StepParameterViewingMode = "json" | "form";
+export type ParameterViewingMode = "json" | "form";
 
-type StepParametersActionsProps = {
-  viewingMode: StepParameterViewingMode;
-  setViewingMode: (
-    value:
-      | StepParameterViewingMode
-      | ((value: StepParameterViewingMode) => StepParameterViewingMode)
-  ) => void;
+export type ParametersActionsMenuItem = {
+  label: string;
+  action: (event: React.MouseEvent) => void;
+  disabled?: boolean;
 };
 
-export const StepParametersActions = ({
+type ParametersActionsProps = {
+  viewingMode: ParameterViewingMode;
+  setViewingMode: (value: ParameterViewingMode) => void;
+  parameterSchema: JsonSchema | undefined;
+  parameterUiSchema: UISchemaElement | undefined;
+  openSchemaFile: (
+    event: React.MouseEvent<Element, MouseEvent>,
+    type: JsonSchemaType
+  ) => void;
+  menuItems: ParametersActionsMenuItem[] | undefined;
+};
+
+export const ParametersActions = ({
   viewingMode,
   setViewingMode,
-}: StepParametersActionsProps) => {
+  parameterSchema,
+  parameterUiSchema,
+  openSchemaFile,
+  menuItems,
+}: ParametersActionsProps) => {
   const moreOptionsButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = React.useState(false);
   const openMoreOptions = () => setIsMoreOptionsOpen(true);
   const closeMoreOptions = () => setIsMoreOptionsOpen(false);
-
-  const { parameterSchema, parameterUiSchema } = useStepDetailsContext();
-  const { openStepSchemaFile } = useOpenStepSchemaFile();
 
   return (
     <Stack direction="row" justifyContent="space-between">
@@ -69,18 +79,34 @@ export const StepParametersActions = ({
       >
         <MenuList dense>
           <MenuItem
-            onClick={(e) => openStepSchemaFile(e, "schema")}
-            onAuxClick={(e) => openStepSchemaFile(e, "schema")}
+            onClick={(e) => openSchemaFile(e, "schema")}
+            onAuxClick={(e) => openSchemaFile(e, "schema")}
           >
             {`${parameterSchema ? "Edit" : "New"} schema file`}
           </MenuItem>
           <MenuItem
             disabled={!parameterSchema}
-            onClick={(e) => openStepSchemaFile(e, "uischema")}
-            onAuxClick={(e) => openStepSchemaFile(e, "uischema")}
+            onClick={(e) => openSchemaFile(e, "uischema")}
+            onAuxClick={(e) => openSchemaFile(e, "uischema")}
           >
             {`${parameterUiSchema ? "Edit" : "New"} UI schema file`}
           </MenuItem>
+          {menuItems?.map((menuItem) => {
+            const handleClick = (event: React.MouseEvent) => {
+              closeMoreOptions();
+              menuItem.action(event);
+            };
+            return (
+              <MenuItem
+                key={menuItem.label}
+                disabled={menuItem.disabled}
+                onClick={handleClick}
+                onAuxClick={handleClick}
+              >
+                {menuItem.label}
+              </MenuItem>
+            );
+          })}
         </MenuList>
       </Menu>
     </Stack>

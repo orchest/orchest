@@ -276,7 +276,7 @@ export type Step = {
     name?: string;
   };
   meta_data: { hidden: boolean; position: [number, number] };
-  parameters: Record<string, any>;
+  parameters: Json;
 };
 
 export type MouseTracker = {
