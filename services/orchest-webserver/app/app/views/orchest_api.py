@@ -353,27 +353,6 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route(
-        "/catch/api-proxy/api/sessions/<project_uuid>/<pipeline_uuid>", methods=["PUT"]
-    )
-    def catch_api_proxy_session_put(project_uuid, pipeline_uuid):
-        # check whether session is running
-        try:
-            resp = requests.put(
-                "http://"
-                + app.config["ORCHEST_API_ADDRESS"]
-                + "/api/sessions/%s/%s" % (project_uuid, pipeline_uuid),
-            )
-
-            return resp.content, resp.status_code, resp.headers.items()
-        except Exception as e:
-            app.logger.error(
-                "Could not get session information from orchest-api. Error: %s (%s)"
-                % (e, type(e))
-            )
-
-        return "", 500
-
     @app.route("/catch/api-proxy/api/runs/", methods=["GET", "POST"])
     def catch_api_proxy_runs():
 
