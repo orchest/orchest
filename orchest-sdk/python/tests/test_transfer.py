@@ -1,14 +1,12 @@
 """
 uuid-1, uuid-3 --> uuid-2
 """
-import shutil
 import time
 from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-import pyarrow.plasma as plasma
 import pytest
 
 import orchest
@@ -29,8 +27,8 @@ def generate_data(total_size):
 
 def generate_pandas_df(n_rows):
     # divide to make it in seconds
-    start = pd.to_datetime("2000-01-01").value // 10 ** 9
-    end = pd.to_datetime("2021-01-01").value // 10 ** 9
+    start = pd.to_datetime("2000-01-01").value // 10**9
+    end = pd.to_datetime("2021-01-01").value // 10**9
     df = pd.DataFrame(
         {
             "C1": np.random.randint(-10000, 100000, size=n_rows),
@@ -73,19 +71,6 @@ class CustomClass:
             return (self.x == other.x).all()
 
         return self.x == other.x
-
-
-@pytest.fixture()
-def plasma_store(monkeypatch):
-    with plasma.start_plasma_store(PLASMA_STORE_CAPACITY) as info:
-        store_socket_name, _ = info
-        monkeypatch.setattr(orchest.Config, "STORE_SOCKET_NAME", store_socket_name)
-        yield store_socket_name
-
-    uuids = ["uuid-1______________", "uuid-2______________", "uuid-3______________"]
-
-    for step_uuid in uuids:
-        shutil.rmtree(f"tests/userdir/.data/{step_uuid}", ignore_errors=True)
 
 
 @pytest.mark.parametrize(
@@ -281,9 +266,10 @@ def test_resolve_disk_then_memory(mock_get_step_uuid, plasma_store):
     data_1 = generate_data(KILOBYTE)
     transfer.output_to_disk(data_1, name=None)
 
-    # It is very unlikely you will output through memory and disk in quick
-    # succession. In addition, the resolve order has a precision of
-    # seconds. Thus we need to ensure that indeed it can be resolved.
+    # It is very unlikely you will output through memory and disk in
+    # quick succession. In addition, the resolve order has a precision
+    # of seconds.  Thus we need to ensure that indeed it can be
+    # resolved.
     time.sleep(1)
 
     data_1_new = generate_data(KILOBYTE)
@@ -315,9 +301,9 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
         disk_fallback=False,
     )
 
-    # It is very unlikely you will output through memory and disk in quick
-    # succession. In addition, the resolve order has a precision of
-    # seconds. Thus we need to ensure that indeed it can be resolved.
+    # It is very unlikely you will output through memory and disk in
+    # quick succession. In addition, the resolve order has a precision
+    # of seconds. Thus we need to ensure that indeed it can be resolved.
     time.sleep(1)
 
     data_1_new = generate_data(KILOBYTE)
@@ -335,8 +321,8 @@ def test_resolve_memory_then_disk(mock_get_step_uuid, plasma_store):
 def test_receive_input_order(mock_get_step_uuid, plasma_store):
     """Test the order of the inputs of the receiving step.
 
-    Note that the order in which the data is output does not determine the
-    "receive order", it is the order in which it is defined in the
+    Note that the order in which the data is output does not determine
+    the "receive order", it is the order in which it is defined in the
     pipeline.json (for the "incoming-connections").
     """
     orchest.Config.PIPELINE_DEFINITION_PATH = "tests/userdir/pipeline-order.json"
@@ -389,8 +375,8 @@ def test_receive_multiple_named_inputs(mock_get_step_uuid, plasma_store):
 def test_output_no_memory_store(mock_get_step_uuid):
     """Test the order of the inputs of the receiving step.
 
-    Note that the order in which the data is output does not determine the
-    "receive order", it is the order in which it is defined in the
+    Note that the order in which the data is output does not determine
+    the "receive order", it is the order in which it is defined in the
     pipeline.json (for the "incoming-connections").
     """
     orchest.Config.PIPELINE_DEFINITION_PATH = "tests/userdir/pipeline-basic.json"

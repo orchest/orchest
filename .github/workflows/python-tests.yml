@@ -23,7 +23,6 @@ jobs:
       matrix:
         service:
           [
-            memory-server,
             session-sidecar,
             orchest-api,
             orchest-webserver,

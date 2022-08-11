@@ -132,9 +132,6 @@ DEFAULT_ENVIRONMENTS = [
     },
 ]
 
-# memory-server
-MEMORY_SERVER_SOCK_PATH = os.path.join(PROJECT_DIR, ".orchest")
-
 SIDECAR_PORT = 1111
 
 ORCHEST_UPDATE_INFO_URL = (

@@ -583,9 +583,6 @@ note that this won't include all the files defined in the Orchest repo), e.g.:
       "path": "services/session-sidecar"
     },
     {
-      "path": "services/memory-server"
-    },
-    {
       "name": "orchest-sdk",
       "path": "orchest-sdk/python"
     },

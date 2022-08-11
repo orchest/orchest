@@ -17,12 +17,6 @@ export const DEFAULT_BASE_IMAGES: (CustomImage & { img_src: string })[] = [
     gpu_support: false,
   },
   {
-    base_image: "orchest/base-kernel-py-gpu",
-    img_src: "/image/python_logo.png",
-    language: "python",
-    gpu_support: true,
-  },
-  {
     base_image: "orchest/base-kernel-r",
     img_src: "/image/r_logo.svg",
     language: "r",

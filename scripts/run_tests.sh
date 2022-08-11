@@ -58,7 +58,6 @@ done
 # them.
 if [ ${#SERVICES[@]} -eq 0 ]; then
     SERVICES=(
-        "memory-server"
         "session-sidecar"
         "orchest-api"
         "orchest-sdk"
@@ -131,11 +130,6 @@ do
     # Install requirements.txt
     echo "[$SERVICE]: Installing dependencies..."
 
-    if [ $SERVICE == "memory-server" ]; then
-        TEST_DIR=$DIR/../services/memory-server
-        REQ_DIR=$TEST_DIR
-        REQ_FILE=$REQ_DIR/requirements-dev.txt
-    fi
     if [ $SERVICE == "session-sidecar" ]; then
         TEST_DIR=$DIR/../services/session-sidecar
         REQ_DIR=$TEST_DIR
