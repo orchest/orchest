@@ -5,12 +5,19 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import React from "react";
 
-const ImportSuccessDialog: React.FC<{
+type ImportSuccessDialogProps = {
   open: boolean;
   projectName: string;
-  goToPipelines: (e: React.MouseEvent) => void;
+  viewPipeline: (e: React.MouseEvent) => void;
   onClose: (e: React.MouseEvent) => void;
-}> = ({ open, projectName, goToPipelines, onClose }) => {
+};
+
+const ImportSuccessDialog = ({
+  open,
+  projectName,
+  viewPipeline,
+  onClose,
+}: ImportSuccessDialogProps) => {
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>Import complete</DialogTitle>
@@ -27,10 +34,10 @@ const ImportSuccessDialog: React.FC<{
         <Button
           variant="contained"
           autoFocus
-          onClick={goToPipelines}
-          onAuxClick={goToPipelines}
+          onClick={viewPipeline}
+          onAuxClick={viewPipeline}
         >
-          View pipelines
+          View pipeline
         </Button>
       </DialogActions>
     </Dialog>

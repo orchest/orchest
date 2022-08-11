@@ -4,6 +4,7 @@ import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
+import { Project } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import LaunchOutlinedIcon from "@mui/icons-material/LaunchOutlined";
@@ -17,6 +18,7 @@ import { CreateProjectDialog } from "./CreateProjectDialog";
 import { ExampleList } from "./ExampleList";
 import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
+import { ImportSuccessDialog } from "./ImportSuccessDialog";
 import { ProjectList } from "./ProjectList";
 import { ProjectsTabs } from "./ProjectsTabs";
 import { ProjectTabPanel } from "./ProjectTabPanel";
@@ -64,6 +66,14 @@ export const ProjectsView = () => {
   const dismissWarning = () => setIsShowingWarning(false);
 
   const [importWhenOpen, setImportWhenOpen] = React.useState(false);
+  const [newProject, setNewProject] = React.useState<
+    Pick<Project, "uuid" | "path">
+  >();
+
+  const [
+    isOpenImportExampleSuccessDialog,
+    setIsOpenImportExampleSuccessDialog,
+  ] = React.useState(false);
 
   const importExample = (url: string) => {
     setImportUrl(url);
@@ -78,14 +88,26 @@ export const ProjectsView = () => {
         setImportUrl={setImportUrl}
         open={isImportDialogOpen}
         onClose={() => setIsImportDialogOpen(false)}
-        onImportComplete={({ uuid }) => {
+        onImportComplete={(newProject) => {
           setImportWhenOpen(false);
-          navigateTo(siteMap.pipeline.path, {
-            query: { projectUuid: uuid },
-          });
+          setIsImportDialogOpen(false);
+          setIsOpenImportExampleSuccessDialog(true);
+          setNewProject(newProject);
         }}
         importWhenOpen={importWhenOpen}
-        confirmButtonLabel={`Save & view`}
+        confirmButtonLabel={`Save`}
+      />
+      <ImportSuccessDialog
+        open={isOpenImportExampleSuccessDialog}
+        projectName={newProject?.path || ""}
+        viewPipeline={() => {
+          if (newProject) {
+            navigateTo(siteMap.pipeline.path, {
+              query: { projectUuid: newProject.uuid },
+            });
+          }
+        }}
+        onClose={() => setIsOpenImportExampleSuccessDialog(false)}
       />
       <CreateProjectDialog
         open={isCreateDialogOpen}

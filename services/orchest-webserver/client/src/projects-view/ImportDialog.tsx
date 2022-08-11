@@ -194,6 +194,19 @@ const deleteProject = (projectUuid: string) =>
     }),
   });
 
+type ImportDialogProps = {
+  open?: boolean;
+  onClose?: () => void;
+  importWhenOpen?: boolean;
+  importUrl: string;
+  setImportUrl: (url: string) => void;
+  onImportComplete?: (newProject: Pick<Project, "path" | "uuid">) => void;
+  hideUploadOption?: boolean;
+  filesToUpload?: FileList | File[];
+  confirmButtonLabel?: string;
+  children?: (onOpen: () => void) => React.ReactNode;
+};
+
 export const ImportDialog = ({
   open: isOpenByParent,
   onClose: onCloseByParent,
@@ -205,18 +218,7 @@ export const ImportDialog = ({
   hideUploadOption,
   filesToUpload,
   children,
-}: {
-  open?: boolean;
-  onClose?: () => void;
-  importWhenOpen?: boolean;
-  importUrl: string;
-  setImportUrl: (url: string) => void;
-  onImportComplete?: (newProject: Pick<Project, "path" | "uuid">) => void;
-  hideUploadOption?: boolean;
-  filesToUpload?: FileList | File[];
-  confirmButtonLabel?: string;
-  children?: (onOpen: () => void) => React.ReactNode;
-}) => {
+}: ImportDialogProps) => {
   const { setAlert } = useAppContext();
   const { navigateTo } = useCustomRoute();
 
