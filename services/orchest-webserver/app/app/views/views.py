@@ -9,7 +9,6 @@ import zipfile
 
 import requests
 import sqlalchemy
-from consts import JSON_SCHEMA_FILE_EXTENSIONS
 from flask import current_app, jsonify, request, safe_join, send_file
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
@@ -20,6 +19,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
 from app import error as app_error
+from app.consts import JSON_SCHEMA_FILE_EXTENSIONS
 from app.core.filemanager import (
     allowed_file,
     find_unique_duplicate_filepath,
