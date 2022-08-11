@@ -1,4 +1,4 @@
-import { useGetEnvironments } from "@/environments-view/hooks/useGetEnvironments";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -26,7 +26,7 @@ export const SelectEnvironment = ({
   disabled: boolean;
   language?: string;
 }) => {
-  const { environments: allEnvironments = [] } = useGetEnvironments();
+  const { environments: allEnvironments = [] } = useEnvironmentsApi();
   const environments = React.useMemo(() => {
     return allEnvironments.filter(
       (environment) => environment.language === language

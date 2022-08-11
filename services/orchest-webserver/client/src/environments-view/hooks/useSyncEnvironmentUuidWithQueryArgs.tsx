@@ -1,10 +1,10 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import React from "react";
 import { findEnvironment } from "../common";
 import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 import { useSelectEnvironmentUuid } from "../stores/useSelectEnvironmentUuid";
-import { useGetEnvironments } from "./useGetEnvironments";
 
 /**
  * Performs a side effect that ensures that the stores load the right environment
@@ -17,7 +17,7 @@ export const useSyncEnvironmentUuidWithQueryArgs = () => {
     navigateTo,
   } = useCustomRoute();
   const { environmentUuid, setEnvironmentUuid } = useSelectEnvironmentUuid();
-  const { environments } = useGetEnvironments();
+  const { environments } = useEnvironmentsApi();
 
   const targetEnvironmentUuid = React.useMemo(() => {
     const foundEnvironment =

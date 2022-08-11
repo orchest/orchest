@@ -1,5 +1,5 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
-import { useGetEnvironments } from "@/environments-view/hooks/useGetEnvironments";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Service } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
@@ -65,7 +65,7 @@ const ServiceForm: React.FC<{
   const { projectUuid, pipelineUuid, runUuid } = useCustomRoute();
   const environmentPrefix = "environment@";
 
-  const { environments: environmentOptions = [] } = useGetEnvironments();
+  const { environments: environmentOptions = [] } = useEnvironmentsApi();
 
   let [showImageDialog, setShowImageDialog] = React.useState(false);
   let [editImageName, setEditImageName] = React.useState(

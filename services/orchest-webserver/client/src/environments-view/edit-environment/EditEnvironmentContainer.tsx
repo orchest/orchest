@@ -1,6 +1,6 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import Stack from "@mui/material/Stack";
 import React from "react";
-import { useGetEnvironments } from "../hooks/useGetEnvironments";
 import { useSaveEnvironmentOnEdit } from "../hooks/useSaveEnvironmentOnEdit";
 import { useUpdateBuildStatusEnvironmentOnEdit } from "../hooks/useUpdateBuildStatusEnvironmentOnEdit";
 import { useLoadSelectedBaseImage } from "./hooks/useLoadSelectedBaseImage";
@@ -19,7 +19,7 @@ export const EditEnvironmentContainer = ({
   useSaveEnvironmentOnEdit();
   useUpdateBuildStatusEnvironmentOnEdit();
 
-  const { environments } = useGetEnvironments();
+  const { environments } = useEnvironmentsApi();
   const hasNoEnvironment = environments?.length === 0;
 
   return hasNoEnvironment ? (
