@@ -14,8 +14,8 @@ orchest-cli/*  @yannickperrenet @nhaghighat
 orchest-sdk/*  @fruttasecca @yannickperrenet
 
 # Frontend
-services/auth-server/*  @iannbing @BrunoOrchest
-services/orchest-webserver/*  @iannbing @BrunoOrchest
+services/auth-server/*  @iannbing @mausworks
+services/orchest-webserver/*  @iannbing @mausworks
 
 # K8S
 services/orchest-controller/*  @nhaghighat
