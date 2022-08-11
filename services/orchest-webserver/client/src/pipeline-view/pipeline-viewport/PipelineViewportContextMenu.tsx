@@ -1,10 +1,10 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import {
   ContextMenu,
   ContextMenuContextProvider,
   ContextMenuItem,
   useContextMenuContext,
 } from "@/components/ContextMenu";
-import { useGetEnvironments } from "@/environments-view/hooks/useGetEnvironments";
 import { subtractPoints } from "@/utils/geometry";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
@@ -24,7 +24,7 @@ export const usePipelineViewportContextMenu = useContextMenuContext;
 export const PipelineViewportContextMenu = () => {
   const { position, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
   const { isReadOnly } = usePipelineDataContext();
-  const { environments = [] } = useGetEnvironments();
+  const { environments = [] } = useEnvironmentsApi();
 
   const { canvasPointAtPointer } = useCanvasScaling();
   const {
