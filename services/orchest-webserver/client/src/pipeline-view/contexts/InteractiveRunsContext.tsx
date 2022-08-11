@@ -42,8 +42,6 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
   const { session, startSession } = useAutoStartSession({ isReadOnly });
   const isSessionRunning = session?.status === "RUNNING";
 
-  // const [isCancellingRun, setIsCancellingRun] = React.useState(false);
-
   const {
     stepExecutionState,
     displayedPipelineStatus,
