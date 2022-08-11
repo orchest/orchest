@@ -2,7 +2,7 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
-import { isValidPath } from "@/utils/path";
+import { isValidFilePath } from "@/utils/path";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import { useDebounce } from "./useDebounce";
 import { useFetcher } from "./useFetcher";
@@ -27,7 +27,7 @@ export const isValidFile = async ({
   useProjectRoot = false,
 }: ValidateFileProps) => {
   const validByConvention =
-    projectUuid && pipelineUuid && isValidPath(path, allowedExtensions);
+    projectUuid && pipelineUuid && isValidFilePath(path, allowedExtensions);
 
   if (validByConvention) {
     const response = await fetcher(
@@ -62,13 +62,13 @@ export const useCheckFileValidity = ({
   const isValidProps =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
-  const isValidPathPattern =
-    isValidProps && isValidPath(path, allowedExtensions);
+  const isValidFilePathPattern =
+    isValidProps && isValidFilePath(path, allowedExtensions);
 
   const delayedPath = useDebounce(path, 250);
 
   const { data = false, status } = useFetcher<{ message: string }, boolean>(
-    isValidPathPattern
+    isValidFilePathPattern
       ? `${FILE_MANAGEMENT_ENDPOINT}/exists?${queryArgs({
           projectUuid,
           pipelineUuid,
@@ -81,5 +81,5 @@ export const useCheckFileValidity = ({
     { transform: () => true }
   );
 
-  return [isValidPathPattern && data, status === "PENDING"] as const;
+  return [isValidFilePathPattern && data, status === "PENDING"] as const;
 };

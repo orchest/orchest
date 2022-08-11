@@ -2,7 +2,7 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
 } from "@/pipeline-view/file-manager/common";
-import { isValidPath } from "@/utils/path";
+import { isValidFilePath } from "@/utils/path";
 import { hasValue } from "@orchest/lib-utils";
 import { useFetcher } from "./useFetcher";
 
@@ -29,11 +29,11 @@ export function useReadFile<T>({
   const isValidProps =
     hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
 
-  const isValidPathPattern =
-    isValidProps && isValidPath(path, allowedExtensions);
+  const isValidFilePathPattern =
+    isValidProps && isValidFilePath(path, allowedExtensions);
 
   const { data, status } = useFetcher<T>(
-    isValidPathPattern
+    isValidFilePathPattern
       ? `${FILE_MANAGEMENT_ENDPOINT}/read?${queryArgs({
           projectUuid,
           pipelineUuid,

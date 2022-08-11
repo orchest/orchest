@@ -86,8 +86,8 @@ export const ParametersActions = ({
           </MenuItem>
           <MenuItem
             disabled={!parameterSchema}
-            onClick={(e) => openSchemaFile(e, "uischema")}
-            onAuxClick={(e) => openSchemaFile(e, "uischema")}
+            onClick={(event) => openSchemaFile(event, "uischema")}
+            onAuxClick={(event) => openSchemaFile(event, "uischema")}
           >
             {`${parameterUiSchema ? "Edit" : "New"} UI schema file`}
           </MenuItem>

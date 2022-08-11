@@ -58,7 +58,7 @@ export const hasExtension = (path: string, ...extensions: string[]) =>
 /**
  * Returns true if the given path is a file path with an allowed extension.
  */
-export const isValidPath = (
+export const isValidFilePath = (
   path: string,
   allowedExtensions: readonly string[]
 ) =>

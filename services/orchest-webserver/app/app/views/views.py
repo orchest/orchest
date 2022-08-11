@@ -9,6 +9,7 @@ import zipfile
 
 import requests
 import sqlalchemy
+from consts import JSON_SCHEMA_FILE_EXTENSIONS
 from flask import current_app, jsonify, request, safe_join, send_file
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
@@ -1070,7 +1071,7 @@ def register_views(app, db):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
-        elif path.endswith("schema.json"):
+        elif any(path.endswith(extension) for extension in JSON_SCHEMA_FILE_EXTENSIONS):
             pipeline_dir = get_pipeline_directory(
                 pipeline_uuid=pipeline_uuid,
                 project_uuid=project_uuid,
