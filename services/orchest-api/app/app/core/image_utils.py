@@ -145,7 +145,8 @@ def _get_buildah_image_build_workflow_manifest(
     Returns:
         Valid k8s workflow manifest.
     """
-    full_image_name = f"{_config.REGISTRY_FQDN}/{image_name}:{image_tag}"
+    reg_ip = utils.get_registry_ip()
+    full_image_name = f"{reg_ip}/{image_name}:{image_tag}"
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -157,34 +158,13 @@ def _get_buildah_image_build_workflow_manifest(
                     "name": "build-env",
                     "container": {
                         "name": "buildah",
-                        "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
+                        "image": "docker",
                         "workingDir": "/build-context",
                         "command": ["/bin/sh", "-c"],
                         "args": [
                             (
-                                # Creating the cache directories
-                                "mkdir -p -m 777 /builder-pvc/cache/pip && "
-                                "mkdir -p -m 777 /builder-pvc/cache/conda && "
-                                # Build
-                                f"buildah build -f {dockerfile_path} --layers=true "
-                                # https://github.com/containers/buildah/issues/2741
-                                "--format docker "
-                                "--force-rm=true "
-                                "--disable-compression=true "
-                                # Avoid a warning about not being able
-                                # to write to the audit log.
-                                "--cap-add=CAP_AUDIT_WRITE "
-                                f"--tag {full_image_name} "
-                                # Push
-                                "&& buildah push "
-                                "--disable-compression=true "
-                                # Buildah might compress regardless of
-                                # the specified options depending on the
-                                # destination storage, tune such
-                                # compression.
-                                "--compression-format=zstd:chunked "
-                                "--compression-level=0 "
-                                f"{full_image_name}"
+                                f"docker build -f {dockerfile_path} "
+                                f"-t {full_image_name} /build-context"
                             )
                         ],
                         "securityContext": {
@@ -202,12 +182,7 @@ def _get_buildah_image_build_workflow_manifest(
                                 "subPath": "containers",
                                 "mountPath": "/var/lib/containers",
                             },
-                            {
-                                "name": "tls-secret",
-                                "mountPath": "/etc/ssl/certs/additional-ca-cert-bundle.crt",  # noqa
-                                "subPath": "additional-ca-cert-bundle.crt",
-                                "readOnly": True,
-                            },
+                            {"name": "dockersock", "mountPath": "/var/run/docker.sock"},
                         ],
                     },
                     "affinity": _registry_pod_affinity,
@@ -238,13 +213,9 @@ def _get_buildah_image_build_workflow_manifest(
                     },
                 },
                 {
-                    "name": "tls-secret",
-                    "secret": {
-                        "secretName": "registry-tls-secret",
-                        "items": [
-                            {"key": "ca.crt", "path": "additional-ca-cert-bundle.crt"}
-                        ],
-                    },
+                    "name": "dockersock",
+                    "path": "/var/run/docker.sock",
+                    "hostPath": {"path": "/var/run/docker.sock", "type": "Socket"},
                 },
             ],
         },
