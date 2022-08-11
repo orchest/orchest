@@ -23,17 +23,19 @@ const defaultPipeline = {
   pipeline_path: INITIAL_PIPELINE_PATH,
 };
 
+type CreateProjectDialogProps = {
+  open?: boolean;
+  onClose?: () => void;
+  children?: (onOpen: () => void) => React.ReactNode;
+  postCreateCallback?: () => void;
+};
+
 export const CreateProjectDialog = ({
   open: isOpenByParent,
   onClose: onCloseByParent,
   postCreateCallback,
   children,
-}: {
-  open?: boolean;
-  onClose?: () => void;
-  children?: (onOpen: () => void) => React.ReactNode;
-  postCreateCallback?: () => void;
-}) => {
+}: CreateProjectDialogProps) => {
   const { setAlert } = useAppContext();
   const { navigateTo } = useCustomRoute();
   const {
