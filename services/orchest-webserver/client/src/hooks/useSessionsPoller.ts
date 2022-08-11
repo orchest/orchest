@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import {
   getSessionKey,
@@ -30,7 +30,7 @@ type FetchSessionResponse = {
 export const useSessionsPoller = () => {
   const { location } = useCustomRoute();
   const { dispatch } = useSessionsContext();
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const {
     state: { pipeline, pipelineReadOnlyReason },
   } = useProjectsContext();

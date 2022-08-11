@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { siteMap } from "@/routingConfig";
@@ -96,7 +96,7 @@ const useVersionsPoller = () => {
 // it is best to place this hook in top-level components (i.e. the ones
 // defined in the routingConfig.tsx).
 export const useCheckUpdate = () => {
-  const { setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
   const { navigateTo, location } = useCustomRoute();
 
   const [skipVersion, setSkipVersion] = useLocalStorage<string | null>(

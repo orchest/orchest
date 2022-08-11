@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
@@ -96,7 +96,7 @@ export const GenerateParametersDialog = ({
     pipelineUuid,
   });
 
-  const { config, setConfirm, setAlert } = useAppContext();
+  const { config, setConfirm, setAlert } = useGlobalContext();
 
   const [parameterFileString, setParameterFileString] = React.useState("");
   const parameterFileStringForValidation = useDebounce(

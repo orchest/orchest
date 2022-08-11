@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -65,7 +65,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   handleToggle,
   onMoved,
 }: FileTreeProps) {
-  const { setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
   const { projectUuid, navigateTo } = useCustomRoute();
   const { getSession, stopSession } = useSessionsContext();
   const {

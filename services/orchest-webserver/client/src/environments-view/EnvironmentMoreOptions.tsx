@@ -3,7 +3,7 @@ import {
   useEnvironmentsApi,
 } from "@/api/environments/useEnvironmentsApi";
 import { IconButton } from "@/components/common/IconButton";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cspell:disable-line
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -17,7 +17,7 @@ const selector = (state: EnvironmentsApiState) =>
   [state.delete, state.isDeleting] as const;
 
 export const EnvironmentMoreOptions = () => {
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
   const { environment } = useEditEnvironment();
   const [deleteEnvironment, isDeleting] = useEnvironmentsApi(selector);
 

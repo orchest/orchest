@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { Project } from "@/types";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -25,7 +25,7 @@ export const RenameProjectDialog = ({
   onClose,
   onSaved,
 }: RenameProjectDialogProps) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
 
   const [projectName, setProjectName, validation] = useProjectName(
     projects.filter(({ uuid }) => uuid !== projectUuid)

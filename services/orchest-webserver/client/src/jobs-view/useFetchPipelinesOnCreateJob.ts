@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
@@ -15,7 +15,7 @@ export const useFetchPipelinesOnCreateJob = ({
   const {
     state: { pipelines: pipelinesInState, projectUuid },
   } = useProjectsContext();
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
 
   const { pipelines: fetchedPipelines } = useFetchPipelines(

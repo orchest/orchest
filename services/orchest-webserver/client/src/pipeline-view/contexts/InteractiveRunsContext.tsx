@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { OrchestSession } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
@@ -30,7 +30,7 @@ export const useInteractiveRunsContext = () =>
   React.useContext(InteractiveRunsContext);
 
 export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
-  const { setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
 
   const {
     projectUuid,

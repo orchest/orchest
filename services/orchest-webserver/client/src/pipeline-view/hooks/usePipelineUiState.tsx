@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import type {
   Connection,
   NewConnection,
@@ -205,7 +205,7 @@ function withHash<T extends Record<string, unknown>>(obj: T) {
 }
 
 export const usePipelineUiState = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { stepRefs, newConnection, zIndexMax } = usePipelineRefs();
   const { scaleFactor } = useCanvasScaling();
 

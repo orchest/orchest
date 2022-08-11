@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
