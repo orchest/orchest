@@ -1,4 +1,4 @@
-import { getRangedValue } from "@/utils/getRangedValue";
+import { clamp } from "@/utils/math";
 import create from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -26,21 +26,21 @@ export const useLayoutStore = create(
       mainSidePanelWidth: DEFAULT_MAIN_SIDE_PANEL_WIDTH,
       setMainSidePanelWidth: (value) => {
         set({
-          mainSidePanelWidth: getRangedValue({
-            value: getValue(get().mainSidePanelWidth, value),
-            min: MIN_MAIN_SIDE_PANEL_WIDTH,
-            max: MAX_WIDTH,
-          }),
+          mainSidePanelWidth: clamp(
+            getValue(get().mainSidePanelWidth, value),
+            MIN_MAIN_SIDE_PANEL_WIDTH,
+            MAX_WIDTH
+          ),
         });
       },
       secondarySidePanelWidth: DEFAULT_SECONDARY_SIDE_PANEL_WIDTH,
       setSecondarySidePanelWidth: (value) => {
         set({
-          secondarySidePanelWidth: getRangedValue({
-            value: getValue(get().secondarySidePanelWidth, value),
-            min: MIN_SECONDARY_SIDE_PANEL_WIDTH,
-            max: MAX_WIDTH,
-          }),
+          secondarySidePanelWidth: clamp(
+            getValue(get().secondarySidePanelWidth, value),
+            MIN_SECONDARY_SIDE_PANEL_WIDTH,
+            MAX_WIDTH
+          ),
         });
       },
     }),
