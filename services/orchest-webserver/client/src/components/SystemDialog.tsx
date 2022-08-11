@@ -2,8 +2,8 @@ import {
   Confirm,
   PromptMessage,
   PromptMessageType,
-  useAppContext,
-} from "@/contexts/AppContext";
+  useGlobalContext,
+} from "@/contexts/GlobalContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { setRefs } from "@/utils/refs";
 import Button, { ButtonProps } from "@mui/material/Button";
@@ -48,7 +48,7 @@ export const SystemDialog: React.FC = () => {
   const {
     state: { promptMessages },
     deletePromptMessage,
-  } = useAppContext();
+  } = useGlobalContext();
   const promptMessage = promptMessages.length > 0 ? promptMessages[0] : null;
 
   const sendEvent = useSendAnalyticEvent();

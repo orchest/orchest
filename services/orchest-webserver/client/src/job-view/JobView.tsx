@@ -4,7 +4,7 @@ import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
@@ -50,7 +50,7 @@ const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
 
 const JobView: React.FC = () => {
   // global states
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { ensureEnvironmentsAreBuilt } = useProjectsContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.job.path });
 

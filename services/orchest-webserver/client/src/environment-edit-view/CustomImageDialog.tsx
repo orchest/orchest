@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { CustomImage, Environment, Language } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import Alert from "@mui/material/Alert";
@@ -55,7 +55,7 @@ export const CustomImageDialog = ({
   initialValue,
   setCustomImage,
 }: CustomImageDialogProps) => {
-  const { config } = useAppContext();
+  const { config } = useGlobalContext();
   const { register, handleSubmit, watch, setValue, formState } = useForm({
     defaultValues: DEFAULT_FORM_STATE,
     mode: "onChange",

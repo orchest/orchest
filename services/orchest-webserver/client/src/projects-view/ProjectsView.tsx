@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -28,7 +28,7 @@ import { TempLayout } from "./TempLayout";
 export const ProjectsView = () => {
   const {
     state: { hasCompletedOnboarding },
-  } = useAppContext();
+  } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
 

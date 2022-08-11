@@ -1,4 +1,7 @@
-import { AppContextProvider, useAppContext } from "@/contexts/AppContext";
+import {
+  GlobalContextProvider,
+  useGlobalContext,
+} from "@/contexts/GlobalContext";
 import { ProjectsContextProvider } from "@/contexts/ProjectsContext";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
 import { chance } from "@/__mocks__/common.mock";
@@ -10,9 +13,9 @@ import { usePipelineSettings } from "../hooks/usePipelineSettings";
 
 const wrapper = ({ children = null, shouldStart }) => {
   return (
-    <AppContextProvider shouldStart={shouldStart}>
+    <GlobalContextProvider shouldStart={shouldStart}>
       <ProjectsContextProvider>{children}</ProjectsContextProvider>;
-    </AppContextProvider>
+    </GlobalContextProvider>
   );
 };
 
@@ -25,7 +28,7 @@ const useTestHook = (props: {
 }) => {
   const {
     state: { hasUnsavedChanges },
-  } = useAppContext();
+  } = useGlobalContext();
   const values = usePipelineSettings(props);
   return { ...values, hasUnsavedChanges };
 };

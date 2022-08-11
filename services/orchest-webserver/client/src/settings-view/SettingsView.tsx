@@ -2,7 +2,7 @@ import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
@@ -35,9 +35,9 @@ const SettingsView: React.FC = () => {
     setConfirm,
     state: { hasUnsavedChanges },
     config: orchestConfig,
-  } = useAppContext();
+  } = useGlobalContext();
 
-  const { orchestVersion, checkUpdate } = useAppInnerContext();
+  const { orchestVersion, checkUpdate } = useAppContext();
 
   useSendAnalyticEvent("view:loaded", { name: siteMap.settings.path });
 

@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Point2D } from "@/utils/geometry";
@@ -30,7 +30,7 @@ export type ContextMenuMetadata =
 export const FileManagerContextMenu: React.FC<{
   metadata: ContextMenuMetadata | undefined;
 }> = ({ metadata, children }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { navigateTo, jobUuid, projectUuid } = useCustomRoute();
   const {
     pipelineUuid,

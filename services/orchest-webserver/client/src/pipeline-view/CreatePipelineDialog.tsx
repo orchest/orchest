@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -45,7 +45,7 @@ export const CreatePipelineDialog = ({
 }: {
   children: (onCreateClick: () => void) => React.ReactNode;
 }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const {
     dispatch,
     state: { pipelines = [] },

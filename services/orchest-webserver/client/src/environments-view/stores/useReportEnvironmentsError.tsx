@@ -2,14 +2,14 @@ import {
   EnvironmentsApiState,
   useEnvironmentsApi,
 } from "@/api/environments/useEnvironmentsApi";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import React from "react";
 
 const selector = (state: EnvironmentsApiState) =>
   [state.error, state.clearError] as const;
 
 export const useReportEnvironmentsError = (heading = "") => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
 
   const [error, clearError] = useEnvironmentsApi(selector);
 

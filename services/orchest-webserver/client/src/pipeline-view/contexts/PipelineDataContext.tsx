@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   PipelineReadOnlyReason,
   useProjectsContext,
@@ -42,7 +42,7 @@ export const usePipelineDataContext = () =>
   React.useContext(PipelineDataContext);
 
 export const PipelineDataContextProvider: React.FC = ({ children }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   useEnsureValidPipeline();
 
   const {

@@ -1,5 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AppBar from "@mui/material/AppBar";
@@ -10,7 +10,7 @@ import { ProjectSelector } from "../project-selector/ProjectSelector";
 import { NavigationTabs } from "./NavigationTabs";
 
 export const HeaderBar = () => {
-  const { user_config } = useAppContext();
+  const { user_config } = useGlobalContext();
   useSessionsPoller();
 
   const logoutHandler = () => {

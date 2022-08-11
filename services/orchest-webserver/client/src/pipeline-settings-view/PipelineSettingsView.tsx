@@ -6,7 +6,7 @@ import {
   DataTableRow,
 } from "@/components/DataTable";
 import EnvVarList from "@/components/EnvVarList";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -128,7 +128,7 @@ export const PipelineSettingsView: React.FC = () => {
     setAlert,
     setConfirm,
     setAsSaved,
-  } = useAppContext();
+  } = useGlobalContext();
 
   useSendAnalyticEvent("view:loaded", { name: "/pipeline-settings" });
 

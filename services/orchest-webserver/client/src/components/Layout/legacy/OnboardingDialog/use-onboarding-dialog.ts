@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -9,7 +9,7 @@ export const useOnboardingDialog = () => {
   const {
     state: { isShowingOnboarding },
     dispatch,
-  } = useAppContext();
+  } = useGlobalContext();
 
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
     "onboarding_completed",

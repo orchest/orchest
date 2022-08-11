@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import React from "react";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
@@ -6,7 +6,7 @@ const deleteStepMessage =
   "A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?";
 
 export const useDeleteSteps = () => {
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
   const {
     uiState: { selectedSteps },
     uiStateDispatch,

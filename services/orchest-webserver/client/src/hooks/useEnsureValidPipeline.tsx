@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -89,7 +89,7 @@ export const useEnsureValidPipelineBase = (
  */
 export const useEnsureValidPipeline = () => {
   const { location, navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
 
   const customNavigateTo = React.useCallback(
     (projectUuid: string, pipelineUuid: string, replace: boolean) => {

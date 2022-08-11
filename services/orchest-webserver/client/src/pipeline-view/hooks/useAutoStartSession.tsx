@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
@@ -19,7 +19,7 @@ export const useAutoStartSession = ({ isReadOnly = true }) => {
     state: { pipeline },
     dispatch,
   } = useProjectsContext();
-  const { setAlert, setConfirm } = useAppContext();
+  const { setAlert, setConfirm } = useGlobalContext();
   const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();
 
   const session = React.useMemo(() => getSession(pipeline?.uuid), [

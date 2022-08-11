@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useGetEnvironments } from "@/environments-view/stores/useGetEnvironments";
 import { Point2D } from "@/types";
@@ -12,7 +12,7 @@ import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 
 export const CreateStepButton = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { environments = [] } = useGetEnvironments();
   const {
     state: { pipelineReadOnlyReason },
