@@ -108,9 +108,17 @@ vegetable = orchest.get_pipeline_param("vegetable")   # "carrot"
 👉 For secrets, use {ref}`environment variables <environment-variables>` since parameters are versioned.
 ```
 
-### Defining the JSON schema for pipeline parameters
+### Defining a JSON schema for step parameters
 
-You can further define the schema of the parameters to streamline the process of editing parameters. We integrated the open-source project [JsonForms](https://jsonforms.io/) that allows you to define the types of the parameters.
+```{figure} ../img/parameter-schema.png
+:align: center
+:width: 400
+:alt: An example schema for Step parameters in Orchest.
+
+An example schema for Step parameters in Orchest.
+```
+
+You can define a JSON schema of the parameters to streamline the process of editing parameters. We integrated the open-source project [JsonForms](https://jsonforms.io/) that allows you to define the types of the parameters.
 JsonForms renders the UI form based on the JSON schema, so that you can choose to change the value of the parameters by interacting
 with a UI instead of editing it in the JSON editor using JSON syntax. JsonForms provides various [examples](https://jsonforms.io/examples/basic) that you can use to find the most suitable options for your parameters. This feature works at the Pipeline step and Pipeline level.
 
