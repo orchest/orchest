@@ -55,6 +55,17 @@ export const hasExtension = (path: string, ...extensions: string[]) =>
     "i"
   ).test(path);
 
+/**
+ * Returns true if the given path is a file path with an allowed extension.
+ */
+export const isValidFilePath = (
+  path: string,
+  allowedExtensions: readonly string[]
+) =>
+  Boolean(path) &&
+  !isDirectory(path) &&
+  hasExtension(path, ...allowedExtensions);
+
 /** Returns true if the `ancestorPath` is a directory that includes `path`. */
 export const hasAncestor = (path: string, ancestorPath: string) =>
   isDirectory(ancestorPath) &&
