@@ -1,5 +1,11 @@
 @use "sass:math";
 
+// TODO:
+//  Migrate fully to a CSS-in-JS solution.
+//  If you need to add anything to this file,
+//  please migrating the feature to CSS-in-JS
+//  or (for global styles) add it in theme.ts.
+
 @import "fonts";
 @import "codemirror/lib/codemirror";
 
@@ -35,16 +41,6 @@ $pipelineStepWidth: 190px;
 
 *:focus {
   outline: none;
-}
-
-.Mui-disabled,
-*[disabled] {
-  cursor: not-allowed;
-}
-
-html,
-body {
-  height: 100%;
 }
 
 p {
