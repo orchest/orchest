@@ -5,7 +5,7 @@ export type PropsOf<T extends AnyRecord> = readonly (keyof T)[];
 
 /** Remove unwanted properties from the record R.
  * By default, it removes all properties with value `null` and `undefined`. */
-export const clean = <R extends Record<string, unknown>>(
+export const prune = <R extends Record<string, unknown>>(
   record: Record<string, unknown>,
   predicate: (args: [string, unknown]) => boolean = ([, value]) =>
     hasValue(value)

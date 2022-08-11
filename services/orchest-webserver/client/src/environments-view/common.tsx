@@ -7,7 +7,7 @@ import {
   Language,
   OrchestSession,
 } from "@/types";
-import { clean } from "@/utils/record";
+import { prune } from "@/utils/record";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
 export const isEnvironmentBuilding = (build?: EnvironmentImageBuild) =>
@@ -115,7 +115,7 @@ export const extractEnvironmentFromState = (
 ): Environment | undefined => {
   if (!environmentState) return undefined;
 
-  return clean<Environment>(
+  return prune<Environment>(
     environmentState,
     ([key]) => !["action", "latestBuild"].includes(key)
   );
