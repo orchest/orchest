@@ -1,6 +1,6 @@
 import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/Layout";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useInterval } from "@/hooks/use-interval";
 import {
   useCancelableFetch,
@@ -17,7 +17,7 @@ import { checkHeartbeat, fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 const UpdateView: React.FC = () => {
-  const { setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.update.path });
 
   const { cancelableFetch } = useCancelableFetch();

@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import AddIcon from "@mui/icons-material/Add";
@@ -33,7 +33,7 @@ export const CreateFolderDialog = ({
   onSuccess: () => void;
 }) => {
   // Global state
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { projectUuid } = useCustomRoute();
   const { selectedFiles } = useFileManagerContext();
 

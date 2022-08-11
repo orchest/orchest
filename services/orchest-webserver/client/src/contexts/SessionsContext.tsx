@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
@@ -104,7 +104,7 @@ const initialState: SessionsContextState = {
 };
 
 export const SessionsContextProvider: React.FC = ({ children }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const {
     state: { projectUuid },
     ensureEnvironmentsAreBuilt,

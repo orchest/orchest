@@ -2,7 +2,7 @@ import {
   EnvironmentsApiState,
   useEnvironmentsApi,
 } from "@/api/environments/useEnvironmentsApi";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getNewEnvironmentName } from "../common";
@@ -11,7 +11,7 @@ const selector = (state: EnvironmentsApiState) =>
   [state.environments, state.post, state.isPosting] as const;
 
 export const useCreateEnvironment = () => {
-  const { config } = useAppContext();
+  const { config } = useGlobalContext();
 
   const [environments, post, isCreating] = useEnvironmentsApi(selector);
 

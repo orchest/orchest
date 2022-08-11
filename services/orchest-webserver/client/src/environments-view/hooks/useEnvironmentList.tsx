@@ -1,5 +1,5 @@
 import { TStatus } from "@/components/Status";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import React from "react";
 import { BUILD_POLL_FREQUENCY, requestToRemoveEnvironment } from "../common";
@@ -61,7 +61,7 @@ export const useEnvironmentList = (
   projectUuid: string | undefined,
   navigateToProjects: () => void
 ) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoizedNavigateToProject = React.useCallback(navigateToProjects, []);
 

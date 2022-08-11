@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
@@ -85,7 +85,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   reload: () => Promise<void>;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuMetadata>>;
 }> = ({ children, reload, setContextMenu }) => {
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
   const {
     state: { pipelines = [], pipelineReadOnlyReason },
     dispatch,

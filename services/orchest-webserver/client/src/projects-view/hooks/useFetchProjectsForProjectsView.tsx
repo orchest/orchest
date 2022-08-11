@@ -1,11 +1,11 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { useMounted } from "@/hooks/useMounted";
 import React from "react";
 
 export const useFetchProjectsForProjectsView = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { dispatch } = useProjectsContext();
   const {
     projects: fetchedProjects,

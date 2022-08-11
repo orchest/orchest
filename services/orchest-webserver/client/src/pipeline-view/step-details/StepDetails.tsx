@@ -7,7 +7,7 @@ import {
   useLayoutStore,
 } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { StepState } from "@/types";
 import { CloseOutlined } from "@mui/icons-material";
@@ -83,7 +83,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
   const shouldHideStepDetails =
     !openedStep || !step || !pipelineJson || stepSelector.active;
 
-  const { hideIntercom, showIntercom } = useAppContext();
+  const { hideIntercom, showIntercom } = useGlobalContext();
 
   React.useEffect(() => {
     if (shouldHideStepDetails) {

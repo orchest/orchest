@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCancelablePromise } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -70,7 +70,7 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
-  const { setAlert, setConfirm, config } = useAppContext();
+  const { setAlert, setConfirm, config } = useGlobalContext();
 
   const navigateToProjects = () => navigateTo(siteMap.projects.path);
   const {

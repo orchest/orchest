@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -14,7 +14,7 @@ import { ProjectsTable } from "./ProjectsTable";
 import { RenameProjectDialog } from "./RenameProjectDialog";
 
 export const ProjectList = () => {
-  const { setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
   const {
     dispatch,

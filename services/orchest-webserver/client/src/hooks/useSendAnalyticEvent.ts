@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useMounted } from "./useMounted";
@@ -77,7 +77,7 @@ const useSendAnalyticEvent = (
   event?: string | undefined,
   props?: StringifyReactElement
 ) => {
-  const { config } = useAppContext();
+  const { config } = useGlobalContext();
   const mounted = useMounted();
   const shouldSend = config?.TELEMETRY_DISABLED === false && mounted.current;
 

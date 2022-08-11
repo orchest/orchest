@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
@@ -12,7 +12,7 @@ import {
 import { useFileManagerContext } from "./FileManagerContext";
 
 export const useValidateFilesOnSteps = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { pipelineJson } = usePipelineDataContext();
   const { selectedFiles, dragFile } = useFileManagerContext();
 

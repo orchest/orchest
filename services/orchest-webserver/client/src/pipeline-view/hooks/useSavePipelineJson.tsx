@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import type { PipelineJson, StepData, StepsDict } from "@/types";
 import { resolve } from "@/utils/resolve";
@@ -14,7 +14,7 @@ import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useSavingIndicator } from "./useSavingIndicator";
 
 export const useSavePipelineJson = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { projectUuid } = useCustomRoute();
   const { isReadOnly, pipelineUuid, pipelineJson } = usePipelineDataContext();
   const {

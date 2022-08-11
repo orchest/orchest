@@ -1,7 +1,7 @@
 import BuildPendingDialog from "@/components/BuildPendingDialog";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useAppContext } from "@/contexts/AppContext";
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
@@ -91,9 +91,9 @@ const createColumns = ({
 
 const JobList = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
-  const { setAlert, setConfirm } = useAppContext();
+  const { setAlert, setConfirm } = useGlobalContext();
   const { requestBuild } = useProjectsContext();
-  const { webhooks } = useAppInnerContext();
+  const { webhooks } = useAppContext();
 
   const goToNotificationSettings = () => {
     navigateTo(siteMap.notificationSettings.path);

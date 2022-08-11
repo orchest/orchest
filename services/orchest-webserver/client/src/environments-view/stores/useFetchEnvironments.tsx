@@ -2,6 +2,7 @@ import {
   EnvironmentsApiState,
   useEnvironmentsApi,
 } from "@/api/environments/useEnvironmentsApi";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import React from "react";
@@ -13,7 +14,8 @@ const selector = (state: EnvironmentsApiState) =>
 /**
  * Fetch all environments of a project. Will re-fetch when the browser tab regains focus.
  */
-export const useFetchEnvironments = (projectUuid?: string) => {
+export const useFetchEnvironments = () => {
+  const { projectUuid } = useCustomRoute();
   useReportEnvironmentsError();
 
   const isTabFocused = useFocusBrowserTab();

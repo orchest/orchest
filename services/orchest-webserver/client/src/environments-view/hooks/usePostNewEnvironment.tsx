@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { Environment } from "@/types";
 import { HEADER } from "@orchest/lib-utils";
@@ -8,7 +8,7 @@ export const usePostNewEnvironment = () => {
   const { cancelableFetch } = useCancelableFetch();
   const [isPostingEnvironment, setIsPostingEnvironment] = React.useState(false);
 
-  const { config } = useAppContext();
+  const { config } = useGlobalContext();
   const defaultEnvironments = config?.ENVIRONMENT_DEFAULTS;
 
   const postEnvironment = React.useCallback(

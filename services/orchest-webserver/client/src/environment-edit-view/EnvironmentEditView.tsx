@@ -5,7 +5,7 @@ import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { ImageBuildStatus } from "@/components/ImageBuildStatus";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useHotKeys } from "@/hooks/useHotKeys";
@@ -60,8 +60,8 @@ const EnvironmentEditView: React.FC = () => {
   // In this view we do a debounced auto-save
   // so we still need setAsSaved to ensure that user's change is saved
 
-  const { setAlert, setAsSaved, config } = useAppContext();
-  const { orchestVersion } = useAppInnerContext();
+  const { setAlert, setAsSaved, config } = useGlobalContext();
+  const { orchestVersion } = useAppContext();
 
   useSendAnalyticEvent("view:loaded", { name: siteMap.environment.path });
 
