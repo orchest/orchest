@@ -2,6 +2,7 @@ import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/co
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import { setRefs } from "@/utils/refs";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import classNames from "classnames";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
@@ -201,7 +202,6 @@ const PipelineViewportComponent = React.forwardRef<
 
   return (
     <div
-      id="pipeline-viewport"
       className={classNames(
         "pipeline-steps-outer-holder",
         panningState,
@@ -210,10 +210,15 @@ const PipelineViewportComponent = React.forwardRef<
       ref={setRefs(localRef, ref)}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
-      onContextMenu={(e) => handleContextMenu(e, "viewport")}
+      onContextMenu={(event) => handleContextMenu(event, "viewport")}
       style={{ ...style, touchAction: "none" }}
       {...props}
     >
+      <GlobalStyles
+        styles={{
+          "html, body": { overscrollBehaviorX: "none" },
+        }}
+      />
       {showIllustration && (
         <FullViewportHolder>
           {disabled && <NoPipeline />}
