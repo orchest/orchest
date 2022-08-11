@@ -108,6 +108,44 @@ vegetable = orchest.get_pipeline_param("vegetable")   # "carrot"
 👉 For secrets, use {ref}`environment variables <environment-variables>` since parameters are versioned.
 ```
 
+### Defining the JSON schema for pipeline parameters
+
+You can further define the schema of the parameters to streamline the process of editing parameters. We integrated an open-source project [JsonForms](https://jsonforms.io/) that allows you to define the types of the parameters.
+JsonForms renders the UI form based on the JSON schema, so that you could choose to change the value by interacting
+with the UI instead of editing it in the JSON editor. JsonForms provides various [examples](https://jsonforms.io/examples/basic) where you could find the most suitable options for your parameters. This feature were added both in
+Pipeline steps and Pipelines.
+
+1. Go to the _Parameters_ section of a Pipeline step.
+2. Find the toggle JSON / FORM. Click on FORM.
+3. Click on NEW SCHEMA FILE, and it will create a JSON schema file for you and open it in JupyterLab.
+4. Right click on the JSON file, select Open With > Editor.
+5. Define the schema of the parameters, see the examples from [JsonForms](https://jsonforms.io/examples/basic)
+6. Save the JSON schema file.
+7. Go back to Visual Pipeline Editor, find the _Parameters_ section of the step you were editing.
+8. [Optional] Toggle FORM, in case it was set to JSON.
+9. Start editing parameters using the UI form.
+
+[JsonForms](https://jsonforms.io/) has default UI components per data type, e.g. a TextField for string. In case you need more sophisticated layouts or controls, you could create a UI schema file to achieve this (see [JsonForms docs](https://jsonforms.io/docs/uischema/)).
+
+1. Go to the _Parameters_ section of a Pipeline step.
+2. Open the More Options menu at the conner.
+3. Select New UI schema file, and it will create a JSON schema file for you and open it in JupyterLab.
+4. Define the UI schema corresponding to the schema you defined earlier.
+5. Go back to Visual Pipeline Editor, find the _Parameters_ section of the step you were editing.
+6. [optional] Toggle FORM, in case it was set to JSON.
+7. Check if the UI form is updated based on your UI schema.
+
+The JSON schema files are sidecar files of the given step file. The schema files will be picked up if they are in the same folder with specific naming. For example, given a step file of which file path is `source/get-data.py`, the schema file path would be `source/get-data.py.schema.json` and the UI schema file path would be `source/get-data.py.uischema.json`.
+
+The same mechanism also applies to pipeline parameters. You could create the schema files at the _Pipeline_ level.
+
+1. Open a Pipeline via the _Pipelines_ option in the left menu pane.
+2. Click on _SETTINGS_ in the top right corner.
+3. Towards the top you will find the _Pipeline parameters_ section.
+4. Create schema files for the _Pipeline_ with the same steps as for pipeline steps.
+
+Likewise, the schema files are next to the pipeline `.orchest` file, e.g. `california_housing.orchest.schema.json` and `california_housing.orchest.uischema.json`. This means that you could also create these schema files yourself in the file system without the Visual Pipeline Editor.
+
 ## Data passing
 
 Pipelines can pass data between steps. For example, to define an ETL pipeline in Orchest,
