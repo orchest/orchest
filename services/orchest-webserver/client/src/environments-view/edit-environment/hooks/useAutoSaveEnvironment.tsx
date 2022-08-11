@@ -23,16 +23,16 @@ const useHasEnvironmentChanged = (environment: Environment | undefined) => {
 
 export const useAutoSaveEnvironment = (
   value: Environment | undefined,
-  save: (newValue?: Environment) => unknown
+  save: (newValue?: Environment) => void
 ) => {
   const valuesForSaving = useDebounce(value, 500);
   const shouldSaveDebouncedValue = useHasEnvironmentChanged(valuesForSaving);
-  const shouldSaveOnUnmount = useHasEnvironmentChanged(value);
 
   React.useEffect(() => {
     if (shouldSaveDebouncedValue) save();
-    return () => {
-      if (shouldSaveOnUnmount) save();
-    };
-  }, [shouldSaveDebouncedValue, shouldSaveOnUnmount, save]);
+  }, [shouldSaveDebouncedValue, save]);
+
+  React.useEffect(() => {
+    return () => save();
+  }, [save]);
 };
