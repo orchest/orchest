@@ -66,6 +66,7 @@ export const ProjectList = () => {
     (projectUuid: string) => () => {
       const project = projects?.find((project) => project.uuid === projectUuid);
       setRenamingUuid(project?.uuid);
+      closeProjectMenu();
     },
     [projects]
   );
