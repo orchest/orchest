@@ -1,6 +1,7 @@
 import ProjectFilePicker from "@/components/ProjectFilePicker";
 import { StepState } from "@/types";
 import { hasExtension, join } from "@/utils/path";
+import { pick } from "@/utils/record";
 import { toValidFilename } from "@/utils/toValidFilename";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
@@ -26,21 +27,36 @@ const KERNEL_OPTIONS = [
   { value: "javascript", label: "JavaScript" },
 ];
 
-type StepDetailsPropertiesProps = {
+type StepPropertiesProps = {
   pipelineCwd: string | undefined;
   readOnly: boolean;
   shouldAutoFocus: boolean;
   onSave: (payload: Partial<StepState>, uuid: string) => void;
 };
 
-export const StepDetailsProperties = ({
+export const StepProperties = ({
   pipelineCwd,
   readOnly,
   shouldAutoFocus,
   onSave,
-}: StepDetailsPropertiesProps) => {
+}: StepPropertiesProps) => {
+  const handleSave = React.useCallback(
+    (payload: Partial<StepState>, uuid: string) => {
+      const changes = pick(
+        payload,
+        "file_path",
+        "environment",
+        "title",
+        "parameters"
+      );
+
+      onSave(changes, uuid);
+    },
+    [onSave]
+  );
+
+  const { step, setStepChanges } = useDelayedSavingStepChanges(handleSave);
   const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
-  const { step, setStepChanges } = useDelayedSavingStepChanges(onSave);
 
   const isNotebookStep = hasExtension(step.file_path, "ipynb");
   const titleInputRef = React.useRef<HTMLInputElement>();

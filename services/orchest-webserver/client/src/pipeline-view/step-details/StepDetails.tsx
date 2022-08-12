@@ -22,7 +22,7 @@ import { StepConnections } from "./StepConnections";
 import { StepDetailsActions } from "./StepDetailsActions";
 import { StepDetailsContextProvider } from "./StepDetailsContext";
 import { StepDetailsLogs } from "./StepDetailsLogs";
-import { StepDetailsProperties } from "./StepDetailsProperties";
+import { StepProperties } from "./StepProperties";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 3),
@@ -154,7 +154,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
             index={0}
             name="pipeline-details"
           >
-            <StepDetailsProperties
+            <StepProperties
               pipelineCwd={pipelineCwd}
               readOnly={isReadOnly}
               shouldAutoFocus={shouldAutoFocus}

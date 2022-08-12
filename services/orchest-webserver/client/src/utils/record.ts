@@ -1,10 +1,41 @@
-/** Returns a shallow copy of the record R with the property P excluded. */
-export const omit = <R extends Record<string, unknown>, P extends string>(
-  record: R,
-  prop: P
-): Omit<R, P> => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { [prop]: _, ...result } = record;
+export type AnyRecord = Record<string, unknown>;
+export type PropsOf<T extends AnyRecord> = readonly (keyof T)[];
 
-  return result;
+/**
+ * Returns the properties of the record T as a typed array.
+ * Only call this when you are sure that T does not include any extra properties.
+ */
+export const propsOf = <T extends AnyRecord>(record: T): PropsOf<T> =>
+  Object.keys(record);
+
+/** Returns a shallow copy of the record T with the properties P excluded. */
+export const omit = <T extends AnyRecord, P extends PropsOf<T>>(
+  record: T,
+  ...props: P
+): Omit<T, P[number]> => {
+  const result: Partial<T> = {};
+
+  for (const prop of propsOf(record)) {
+    if (!props.includes(prop)) {
+      result[prop] = record[prop];
+    }
+  }
+
+  return result as Omit<T, P[number]>;
+};
+
+/** Returns a shallow copy of the record T with only the properties P included. */
+export const pick = <T extends AnyRecord, P extends PropsOf<T>>(
+  record: T,
+  ...props: P
+): Pick<T, P[number]> => {
+  const result: Partial<T> = {};
+
+  for (const prop of props) {
+    if (prop in record) {
+      result[prop] = record[prop];
+    }
+  }
+
+  return result as Pick<T, P[number]>;
 };
