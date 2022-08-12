@@ -25,6 +25,12 @@ export const ZoomValueField = ({ disabled }: ZoomValueFieldProps) => {
     }
   };
 
+  const onKeyPress = (event: React.KeyboardEvent) => {
+    if (event.code === "Enter") {
+      setScaleFactor(percentage / 100);
+    }
+  };
+
   return (
     <InputBase
       size="small"
@@ -32,6 +38,7 @@ export const ZoomValueField = ({ disabled }: ZoomValueFieldProps) => {
       margin="dense"
       value={percentage}
       disabled={disabled}
+      onKeyPress={onKeyPress}
       endAdornment={
         <InputAdornment position="end" sx={{ marginLeft: 0 }}>
           %
