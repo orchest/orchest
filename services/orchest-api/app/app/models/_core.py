@@ -220,6 +220,15 @@ class EnvironmentImageBuild(BaseModel):
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
 
+    cluster_node = db.Column(
+        db.String(),
+        # Note that we SET NULL on deletion to avoid losing information
+        # about the build if the nodes gets deleted.
+        db.ForeignKey("cluster_nodes.name", ondelete="SET NULL"),
+        # To migrate existing records.
+        nullable=True,
+    )
+
     __table_args__ = (
         Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),
         # To find the latest tag.
@@ -372,6 +381,15 @@ class JupyterImageBuild(BaseModel):
     status = db.Column(db.String(15), unique=False, nullable=True)
     # Nullable to migrate existing values.
     image_tag = db.Column(db.Integer, nullable=True, index=True, unique=True)
+
+    cluster_node = db.Column(
+        db.String(),
+        # Note that we SET NULL on deletion to avoid losing information
+        # about the build if the nodes gets deleted.
+        db.ForeignKey("cluster_nodes.name", ondelete="SET NULL"),
+        # To migrate existing records.
+        nullable=True,
+    )
 
     def __repr__(self):
         return f"<JupyterEnvironmentBuildTask: {self.uuid}>"
