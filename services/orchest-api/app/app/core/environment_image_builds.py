@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
@@ -10,8 +10,8 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
 from app import utils as app_utils
-from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_image
+from app.connections import k8s_core_api, k8s_custom_obj_api
+from app.core import image_utils
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
@@ -21,14 +21,18 @@ _logger = app_utils.get_logger()
 
 
 def update_environment_image_build_status(
-    status: str,
     session: requests.sessions.Session,
     project_uuid: str,
     environment_uuid: str,
     image_tag: str,
+    status: str,
+    cluster_node: Optional[str] = None,
 ) -> Any:
     """Update environment build status."""
     data = {"status": status}
+    if cluster_node is not None:
+        data["cluster_node"] = cluster_node
+
     if data["status"] == "STARTED":
         data["started_time"] = datetime.utcnow().isoformat()
     elif data["status"] in ["SUCCESS", "FAILURE"]:
@@ -318,7 +322,7 @@ def build_environment_image_task(
 
         try:
             update_environment_image_build_status(
-                "STARTED", session, project_uuid, environment_uuid, image_tag
+                session, project_uuid, environment_uuid, image_tag, "STARTED"
             )
 
             # Prepare the project snapshot with the correctly placed
@@ -341,7 +345,7 @@ def build_environment_image_task(
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
-                task_lambda=lambda user_logs_fo: build_image(
+                task_lambda=lambda user_logs_fo: image_utils.build_image(
                     task_uuid,
                     image_name,
                     image_tag,
@@ -363,8 +367,17 @@ def build_environment_image_task(
             # Cleanup.
             rmtree(build_context["snapshot_path"])
 
+            pod_name = image_utils.image_build_task_to_pod_name(task_uuid)
+            pod = k8s_core_api.read_namespaced_pod(
+                name=pod_name, namespace=_config.ORCHEST_NAMESPACE
+            )
             update_environment_image_build_status(
-                status, session, project_uuid, environment_uuid, image_tag
+                session,
+                project_uuid,
+                environment_uuid,
+                image_tag,
+                status,
+                pod.spec.node_name,
             )
 
         # Catch all exceptions because we need to make sure to set the
@@ -372,19 +385,10 @@ def build_environment_image_task(
         except Exception as e:
             _logger.error(e)
             update_environment_image_build_status(
-                "FAILURE", session, project_uuid, environment_uuid, image_tag
+                session, project_uuid, environment_uuid, image_tag, "FAILURE"
             )
             raise e
         finally:
-            # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflows.
-            # k8s_custom_obj_api.delete_namespaced_custom_object(
-            #     "argoproj.io",
-            #     "v1alpha1",
-            #     _config.ORCHEST_NAMESPACE,
-            #     "workflows",
-            #     f"image-cache-task-{task_uuid}",
-            # )
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",

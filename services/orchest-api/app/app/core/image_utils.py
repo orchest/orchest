@@ -95,6 +95,10 @@ def _get_builder_cache_cleanup_workflow_manifest():
     return manifest
 
 
+def image_build_task_to_pod_name(task_uuid: str) -> str:
+    return f"image-build-task-{task_uuid}"
+
+
 def cleanup_builder_cache() -> None:
     """Cleanup the builder cache.
 
@@ -364,7 +368,7 @@ class ImageBuildSidecar:
         image_tag,
         build_context,
     ) -> str:
-        pod_name = f"image-build-task-{task_uuid}"
+        pod_name = image_build_task_to_pod_name(task_uuid)
         manifest = _get_buildah_image_build_workflow_manifest(
             pod_name,
             image_name,

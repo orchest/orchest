@@ -378,6 +378,10 @@ status_update = Model(
             description="New status of executable, e.g. pipeline or step",
             enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
         ),
+        "cluster_node": fields.String(
+            required=False,
+            description="Node on which the build took place.",
+        ),
     },
 )
 

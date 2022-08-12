@@ -1,14 +1,14 @@
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import rmtree
-from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_image
+from app.connections import k8s_core_api, k8s_custom_obj_api
+from app.core import image_utils
 from app.core.sio_streamed_task import SioStreamedTask
 from app.utils import get_logger
 from config import CONFIG_CLASS
@@ -19,12 +19,16 @@ __JUPYTER_BUILD_FULL_LOGS_DIRECTORY = "/tmp/jupyter_image_builds_logs"
 
 
 def update_jupyter_image_build_status(
-    status: str,
     session: requests.sessions.Session,
-    jupyter_image_build_uuid,
+    jupyter_image_build_uuid: str,
+    status: str,
+    cluster_node: Optional[str] = None,
 ) -> Any:
     """Update Jupyter build status."""
     data = {"status": status}
+    if cluster_node is not None:
+        data["cluster_node"] = cluster_node
+
     if data["status"] == "STARTED":
         data["started_time"] = datetime.utcnow().isoformat()
     elif data["status"] in ["SUCCESS", "FAILURE"]:
@@ -177,7 +181,7 @@ def build_jupyter_image_task(task_uuid: str, image_tag: str):
     with requests.sessions.Session() as session:
 
         try:
-            update_jupyter_image_build_status("STARTED", session, task_uuid)
+            update_jupyter_image_build_status(session, task_uuid, "STARTED")
 
             # Prepare the project snapshot with the correctly placed
             # dockerfile, scripts, etc.
@@ -195,7 +199,7 @@ def build_jupyter_image_task(task_uuid: str, image_tag: str):
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
-                task_lambda=lambda user_logs_fo: build_image(
+                task_lambda=lambda user_logs_fo: image_utils.build_image(
                     task_uuid,
                     image_name,
                     image_tag,
@@ -217,12 +221,18 @@ def build_jupyter_image_task(task_uuid: str, image_tag: str):
             # cleanup
             rmtree(build_context["snapshot_path"])
 
-            update_jupyter_image_build_status(status, session, task_uuid)
+            pod_name = image_utils.image_build_task_to_pod_name(task_uuid)
+            pod = k8s_core_api.read_namespaced_pod(
+                name=pod_name, namespace=_config.ORCHEST_NAMESPACE
+            )
+            update_jupyter_image_build_status(
+                session, task_uuid, status, pod.spec.node_name
+            )
 
         # Catch all exceptions because we need to make sure to set the
         # build state to failed.
         except Exception as e:
-            update_jupyter_image_build_status("FAILURE", session, task_uuid)
+            update_jupyter_image_build_status(session, task_uuid, "FAILURE")
             logger.error(e)
             raise e
         finally:

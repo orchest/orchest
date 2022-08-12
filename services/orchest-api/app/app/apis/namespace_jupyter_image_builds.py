@@ -15,7 +15,7 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core import events, registry
 from app.errors import SessionInProgressException
-from app.utils import update_status_db
+from app.utils import update_status_db, upsert_cluster_node
 from config import CONFIG_CLASS
 
 api = Namespace("jupyter-builds", description="Build Jupyter server image")
@@ -97,6 +97,9 @@ class JupyterEnvironmentBuild(Resource):
             "uuid": jupyter_image_build_uuid,
         }
         try:
+            if status_update.get("cluster_node") is not None:
+                upsert_cluster_node(status_update["cluster_node"])
+
             update_status_db(
                 status_update,
                 model=models.JupyterImageBuild,
@@ -106,15 +109,27 @@ class JupyterEnvironmentBuild(Resource):
                 build = models.JupyterImageBuild.query.filter(
                     models.JupyterImageBuild.uuid == jupyter_image_build_uuid
                 ).one()
-                digest = registry.get_manifest_digest(
+                _ = registry.get_manifest_digest(
                     _config.JUPYTER_IMAGE_NAME,
                     build.image_tag,
                 )
                 db.session.add(
                     models.JupyterImage(
                         tag=build.image_tag,
-                        digest=digest,
+                        # ENV_PERF_TODO: fix this. The image is now
+                        # built on the node directly so we don't have
+                        # access to its digest from the registry.
+                        digest="digest",
                         base_image_version=CONFIG_CLASS.ORCHEST_VERSION,
+                        stored_in_registry=False,
+                    )
+                )
+                if build.cluster_node is None:
+                    raise Exception("Build cluster_node not set.")
+                db.session.add(
+                    models.JupyterImageInNode(
+                        jupyter_image_tag=build.image_tag,
+                        node_name=build.cluster_node,
                     )
                 )
                 events.register_jupyter_image_build_succeeded(jupyter_image_build_uuid)

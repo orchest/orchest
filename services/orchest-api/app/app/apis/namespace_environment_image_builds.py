@@ -14,10 +14,12 @@ from app import schema
 from app.celery_app import make_celery
 from app.connections import db
 from app.core import events, registry
-from app.utils import update_status_db
+from app.utils import get_logger, update_status_db, upsert_cluster_node
 
 api = Namespace("environment-builds", description="Managing environment builds")
 api = schema.register_schema(api)
+
+logger = get_logger()
 
 
 @api.route("/")
@@ -139,6 +141,9 @@ class EnvironmentImageBuild(Resource):
             "image_tag": int(image_tag),
         }
         try:
+            if status_update.get("cluster_node") is not None:
+                upsert_cluster_node(status_update["cluster_node"])
+
             if not update_status_db(
                 status_update,
                 model=models.EnvironmentImageBuild,
@@ -147,7 +152,7 @@ class EnvironmentImageBuild(Resource):
                 return
 
             if status_update["status"] == "SUCCESS":
-                digest = registry.get_manifest_digest(
+                _ = registry.get_manifest_digest(
                     _config.ENVIRONMENT_IMAGE_NAME.format(
                         project_uuid=project_uuid, environment_uuid=environment_uuid
                     ),
@@ -158,7 +163,22 @@ class EnvironmentImageBuild(Resource):
                         project_uuid=project_uuid,
                         environment_uuid=environment_uuid,
                         tag=int(image_tag),
-                        digest=digest,
+                        # ENV_PERF_TODO: fix this. The image is now
+                        # built on the node directly so we don't have
+                        # access to its digest from the registry.
+                        digest="digest",
+                        stored_in_registry=False,
+                    )
+                )
+                build = models.EnvironmentImageBuild.query.filter_by(**filter_by).one()
+                if build.cluster_node is None:
+                    raise Exception("Build cluster_node not set.")
+                db.session.add(
+                    models.EnvironmentImageInNode(
+                        project_uuid=project_uuid,
+                        environment_uuid=environment_uuid,
+                        environment_image_tag=int(image_tag),
+                        node_name=build.cluster_node,
                     )
                 )
                 events.register_environment_image_build_succeeded_event(
@@ -173,7 +193,8 @@ class EnvironmentImageBuild(Resource):
                     project_uuid, environment_uuid, int(image_tag)
                 )
             db.session.commit()
-        except Exception:
+        except Exception as e:
+            logger.error(e)
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
 

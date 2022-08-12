@@ -749,3 +749,15 @@ def get_env_vars_update(
 def extract_domain_name(url: str) -> str:
     parsed_url = urlparse(url)
     return f"{parsed_url.scheme}://{parsed_url.netloc}"
+
+
+def upsert_cluster_node(name: str) -> None:
+    stmt = insert(models.ClusterNode).values(
+        [
+            dict(
+                name=name,
+            )
+        ]
+    )
+    stmt = stmt.on_conflict_do_nothing(index_elements=[models.ClusterNode.name])
+    db.session.execute(stmt)
