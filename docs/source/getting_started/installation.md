@@ -61,6 +61,8 @@ cluster, then one of the following subsections might be helpful:
   already have Argo Workflows installed on your Kubernetes cluster.
 - {ref}`Installing using kubectl <install-kubectl>`: If you would rather use `kubectl` instead of
   the `orchest-cli`.
+- {ref}`Setting up a reverse proxy <reverse-proxy>`: Useful when installing Orchest in remote machines,
+  such as AWS EC2 instances.
 
 (install-fqdn)=
 
@@ -129,6 +131,57 @@ kubectl apply \
 ```
 
 In case you want to configure the Orchest Cluster, you can patch the created `OrchestCluster`.
+
+(reverse-proxy)=
+
+### Setting up a reverse proxy
+
+When installing Orchest in remote machines, such as AWS EC2 instances,
+you will need to set up a reverse proxy that redirects traffic to the application appropriately.
+Here is an example on how to do it on an Ubuntu-based EC2 machine using [nginx]:
+
+```bash
+sudo apt-get install -y nginx
+
+# Make Orchest accessible on the instance through localorchest.io
+minikube ip | xargs printf "%s localorchest.io" | sudo tee -a  /etc/hosts
+
+# Set up a reverse proxy that listens on port 80 of the host
+# and routes traffic to Orchest
+sudo cat << EOF > /etc/nginx/sites-available/localorchest.io
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+
+	server_name orchest;
+
+	location / {
+		proxy_pass http://localorchest.io;
+
+		# For project or file manager uploads.
+		client_max_body_size 0;
+
+		# WebSocket support.
+		proxy_http_version 1.1;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection $connection_upgrade;
+		proxy_read_timeout 86400;
+	}
+}
+EOF
+
+sudo ln -s /etc/nginx/sites-available/localorchest.io /etc/nginx/sites-enabled/
+# Remove default_server.
+sudo truncate -s 0 /etc/nginx/sites-available/default
+sudo service nginx restart
+```
+
+[nginx]: https://nginx.org/en/
 
 ## Closing notes
 
