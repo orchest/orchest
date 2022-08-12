@@ -3,16 +3,6 @@ import { hasValue } from "@orchest/lib-utils";
 export type AnyRecord = Record<string, unknown>;
 export type PropsOf<T extends AnyRecord> = readonly (keyof T)[];
 
-/** Remove unwanted properties from the record R.
- * By default, it removes all properties with value `null` and `undefined`. */
-export const prune = <R extends Record<string, unknown>>(
-  record: Record<string, unknown>,
-  predicate: (args: [string, unknown]) => boolean = ([, value]) =>
-    hasValue(value)
-): R => {
-  return Object.fromEntries(Object.entries(record).filter(predicate)) as R;
-};
-
 /**
  * Returns the properties of the record T as a typed array.
  * Only call this when you are sure that T does not include any extra properties.
@@ -50,4 +40,14 @@ export const pick = <T extends AnyRecord, P extends PropsOf<T>>(
   }
 
   return result as Pick<T, P[number]>;
+};
+
+/** Remove unwanted properties from the record R.
+ * By default, it removes all properties with value `null` and `undefined`. */
+export const prune = <R extends Record<string, unknown>>(
+  record: Record<string, unknown>,
+  predicate: (args: [string, unknown]) => boolean = ([, value]) =>
+    hasValue(value)
+): R => {
+  return Object.fromEntries(Object.entries(record).filter(predicate)) as R;
 };
