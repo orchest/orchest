@@ -1122,3 +1122,47 @@ class ClusterNode(BaseModel):
 
     # https://kubernetes.io/docs/concepts/architecture/nodes/#node-name-uniqueness
     name = db.Column(db.String(), primary_key=True)
+
+
+class EnvironmentImageInNode(BaseModel):
+    """To track where are environment image is stored."""
+
+    __tablename__ = "environment_image_in_nodes"
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True
+    )
+
+    node_name = db.Column(db.String(), primary_key=True)
+
+
+ForeignKeyConstraint(
+    [
+        EnvironmentImageInNode.project_uuid,
+        EnvironmentImageInNode.environment_uuid,
+        EnvironmentImageInNode.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
+
+ForeignKeyConstraint(
+    [EnvironmentImageInNode.node_name],
+    [ClusterNode.name],
+    ondelete="CASCADE",
+)
