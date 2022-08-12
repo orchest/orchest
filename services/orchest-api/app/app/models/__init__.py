@@ -1,5 +1,6 @@
 from app.models._core import (
     ClientHeartbeat,
+    ClusterNode,
     Environment,
     EnvironmentImage,
     EnvironmentImageBuild,

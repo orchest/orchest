@@ -1107,3 +1107,18 @@ ForeignKeyConstraint(
     ],
     ondelete="CASCADE",
 )
+
+
+class ClusterNode(BaseModel):
+    """To track where some operations took place or where images are.
+
+    We need this table because the images returned by the k8s node spec
+    are limited, see
+    https://github.com/kubernetes/kubernetes/issues/93488#issuecomment-664717977.
+
+    """
+
+    __tablename__ = "cluster_nodes"
+
+    # https://kubernetes.io/docs/concepts/architecture/nodes/#node-name-uniqueness
+    name = db.Column(db.String(), primary_key=True)
