@@ -289,6 +289,13 @@ class EnvironmentImage(BaseModel):
         server_default="False",
     )
 
+    stored_in_registry = db.Column(
+        db.Boolean(),
+        nullable=False,
+        # To migrate existing entries.
+        server_default="True",
+    )
+
     __table_args__ = (
         # To find all images of the environment of a project.
         Index(None, "project_uuid", "environment_uuid"),
@@ -400,6 +407,13 @@ class JupyterImage(BaseModel):
         index=True,
         nullable=False,
         server_default="False",
+    )
+
+    stored_in_registry = db.Column(
+        db.Boolean(),
+        nullable=False,
+        # To migrate existing entries.
+        server_default="True",
     )
 
     def __repr__(self):
