@@ -19,7 +19,7 @@ var (
 
 type AddonsConfig struct {
 
-	// The list of addons to disable
+	// The list of addons to enable
 	Addons []string
 
 	AssetDir string
