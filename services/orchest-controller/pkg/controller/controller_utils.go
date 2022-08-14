@@ -47,8 +47,9 @@ var (
 	RabbitSubPath   = ".orchest/rabbitmq-mnesia"
 
 	// Ingress constants
-	PrefixPathType         = netsv1.PathType("Prefix")
-	IngressClassController = "k8s.io/ingress-nginx"
+	PrefixPathType            = netsv1.PathType("Prefix")
+	k8sIngressClassController = "k8s.io/ingress-nginx"
+	ngxIngressClassController = "nginx.org/ingress-controller"
 
 	// Labels and Annotations
 	OrchestHashLabelKey    = "orchest.io/orchest-hash"
@@ -287,4 +288,9 @@ func GetRbacManifest(metadata metav1.ObjectMeta) []client.Object {
 // IsComponentReady checks if the OrchestComponent is ready or not
 func IsComponentReady(component orchestv1alpha1.OrchestComponent) bool {
 	return component.Status != nil && component.Status.Phase == orchestv1alpha1.Running
+}
+
+// IsComponentReady checks if the OrchestComponent is ready or not
+func IsNginxIngressClass(name string) bool {
+	return name == k8sIngressClassController || name == ngxIngressClassController
 }
