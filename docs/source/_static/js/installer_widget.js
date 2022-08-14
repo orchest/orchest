@@ -55,6 +55,26 @@ your custom Environments to the MicroK8s node.
 directly.</p>
           `,
       },
+      K3s: {
+        instructions: `
+<p>First, deploy <a href="https://k3s.io/">K3s</a> without having traefik installed by running
+the following command:</p>
+<div class="highlight">
+<pre>
+curl -sfL https://get.k3s.io | \\
+    INSTALL_K3S_EXEC="--no-deploy traefik" sh -s -
+</pre>
+</div>
+<p>Now the Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+<p>Now that Orchest is installed, it can be reached on K3s node IP address.</p>`,
+      },
     },
     macOS: {
       minikube: {
