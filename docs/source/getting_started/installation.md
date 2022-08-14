@@ -13,7 +13,8 @@ Alternatively, you can try out [our Cloud offering](https://cloud.orchest.io/sig
 which comes with a free, fully configured Orchest instance.
 
 ```{note}
-Orchest is in beta.
+Orchest is in beta and currently only supports k8s environments with containerd and docker environments,
+and other runtime environments such as CRI-O are not supported.
 ```
 
 ## Prerequisites
