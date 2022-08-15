@@ -31,53 +31,29 @@
 - Version your projects using git ({ref}`projects <projects>`)
 
 ```{toctree}
-:caption: Getting started
 :hidden: true
 :maxdepth: 1
 
-getting_started/installation
-getting_started/quickstart
-getting_started/when_to_use_orchest
-getting_started/faq
+getting_started/index
 ```
 
 ```{toctree}
-:caption: Fundamentals
 :hidden: true
 :maxdepth: 1
 
-fundamentals/projects
-fundamentals/pipelines
-fundamentals/data_passing
-fundamentals/jobs
-fundamentals/notifications
-fundamentals/environments
-fundamentals/environment_variables
-fundamentals/services
-fundamentals/settings
-fundamentals/glossary
+fundamentals/index
 ```
 
 ```{toctree}
-:caption: Reference
 :hidden: true
 :maxdepth: 1
 
-reference/shortcuts
-reference/sdk/index
-reference/cli/index
+reference/index
 ```
 
 ```{toctree}
-:caption: Development
 :hidden: true
 :maxdepth: 1
 
-development/contributing
-development/development_workflow
-development/troubleshooting
-development/concepts_in_orchest
-development/implementation_details
-development/implementation_best_practices
-development/appendix
+development/index
 ```
