@@ -55,7 +55,7 @@ flask==1.1.4
     #   flask-script
     #   flask-socketio
     #   flask-sqlalchemy
-    #   orchest-internals
+    #   sanitized-package
 flask-marshmallow==0.14.0
     # via -r requirements.in
 flask-migrate==2.6.0
@@ -125,7 +125,7 @@ monotonic==1.6
     # via posthog
 nbclient==0.5.13
     # via nbconvert
-nbconvert==6.0.7
+nbconvert==6.3.0
     # via -r requirements.in
 nbformat==5.4.0
     # via
@@ -149,7 +149,7 @@ pexpect==4.8.0
 pickleshare==0.7.5
     # via ipython
 posthog==1.4.7
-    # via orchest-internals
+    # via sanitized-package
 prompt-toolkit==3.0.30
     # via ipython
 psycopg2-binary==2.9.3
@@ -189,9 +189,9 @@ pyzmq==23.2.0
 requests==2.28.1
     # via
     #   -r requirements.in
-    #   orchest-internals
     #   posthog
     #   python-socketio
+    #   sanitized-package
 simple-websocket==0.6.0
     # via -r requirements.in
 six==1.16.0
