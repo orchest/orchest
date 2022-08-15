@@ -10,24 +10,12 @@ import { PipelineCanvasState } from "../../hooks/usePipelineCanvasState";
 
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
-const isTouchPadEvent = (event: WheelEvent) => {
-  // deltaMode represents the unit of the delta values scroll amount
-  // 0: pixel; 1: line; 2: page
-  if (!event.wheelDeltaY && event.deltaMode === 0) return true;
-  // see explanation here https://stackoverflow.com/a/62415754
-  if (event.wheelDeltaY && event.wheelDeltaY === event.deltaY * -3) return true;
-
-  return false;
-};
-
 /**
- * This hook is responsible for pinching and panning on PipelineCanvas
- *
- * It seems that useGesture in one place will intercept all gesture events.
- * So, for example, useWheel in other places in the same view would not work.
- * All the gesture events for PipelineEditor should be implemented in this hook.
+ * This hook is responsible for panning and zooming the viewport using
+ * either gestures on a touch pad (pinching, two-finger panning),
+ * or by using a mouse with a scroll wheel.
  */
-export const useGestureOnViewport = (
+export const useViewportGestures = (
   setPipelineCanvasState: React.Dispatch<
     | Partial<PipelineCanvasState>
     | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
@@ -85,24 +73,9 @@ export const useGestureOnViewport = (
 
   useGesture(
     {
-      onWheel: ({
-        pinching,
-        first,
-        wheeling,
-        delta: [deltaX, deltaY],
-        event,
-      }) => {
+      onWheel: ({ pinching, wheeling, delta: [deltaX, deltaY] }) => {
         if (disabled || pinching || !wheeling) return;
 
-        // mouse wheel
-        // Weird behavior: `!isTouchpad(event)` is true whenever the pinching direction changes
-        // Exclude it when `first` is true.
-        if (!first && !isTouchPadEvent(event)) {
-          zoomBy([event.clientX, event.clientY], -deltaY / 2048);
-          return;
-        }
-
-        // Touchpad: panning
         setPipelineCanvasState((current) => ({
           pipelineOffset: [
             current.pipelineOffset[0] - deltaX,

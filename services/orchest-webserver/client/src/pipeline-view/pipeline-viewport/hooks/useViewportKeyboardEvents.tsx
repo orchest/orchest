@@ -13,7 +13,7 @@ import { Point2D } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import { activeElementIsInput } from "@orchest/lib-utils";
 import React from "react";
-import { useGestureOnViewport } from "./useGestureOnViewport";
+import { useViewportGestures } from "./useViewportGestures";
 
 const nearestIncrementIndex = (value: number) => {
   let bestDelta = Infinity;
@@ -33,7 +33,7 @@ const nearestIncrementIndex = (value: number) => {
   return bestIndex;
 };
 
-export const useKeyboardEventsOnViewport = () => {
+export const useViewportKeyboardEvents = () => {
   const {
     pipelineViewportRef,
     pipelineCanvasRef,
@@ -143,7 +143,7 @@ export const useKeyboardEventsOnViewport = () => {
     setScaleFactor(DEFAULT_SCALE_FACTOR);
   }, [setScaleFactor]);
 
-  const zoomBy = useGestureOnViewport(
+  const zoomBy = useViewportGestures(
     setPipelineCanvasState,
     pipelineViewportRef,
     setPipelineHolderOrigin
