@@ -88,7 +88,7 @@ html_theme_options = {
     "navbar_align": "left",
     "page_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
     "navbar_center": ["navbar-nav"],
-    "navbar_end": ["navbar-icon-links.html", "search-field.html"],
+    "navbar_end": ["theme-switcher", "navbar-icon-links.html", "search-field.html"],
     "show_toc_level": 1,
     "github_url": "https://github.com/orchest/orchest",
     "twitter_url": "https://twitter.com/orchestofficial",
