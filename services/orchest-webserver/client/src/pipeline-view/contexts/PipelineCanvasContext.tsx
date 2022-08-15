@@ -2,7 +2,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Point2D } from "@/types";
 import React from "react";
 import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
-import { useKeyboardEventsOnViewport } from "../pipeline-viewport/hooks/useKeyboardEventsOnViewport";
+import { useViewportKeyboardEvents } from "../pipeline-viewport/hooks/useViewportKeyboardEvents";
 
 export type PipelineSettingsTab =
   | "configuration"
@@ -59,7 +59,7 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
     zoomIn,
     zoomOut,
     resetZoom,
-  } = useKeyboardEventsOnViewport();
+  } = useViewportKeyboardEvents();
 
   return (
     <PipelineCanvasContext.Provider

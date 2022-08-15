@@ -8,10 +8,8 @@ import { getOffset } from "@/utils/jquery-replacement";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
-/**
- * A hook that handles all mouse events that are binded to document.body within PipelineViewport
- */
-export const useMouseEventsOnViewport = () => {
+/**A hook that handles all mouse events that within the pipeline viewport. */
+export const useViewportMouseEvents = () => {
   const { disabled } = usePipelineDataContext();
   const { scaleFactor, trackMouseMovement } = useScaleFactor();
   const {
@@ -55,8 +53,8 @@ export const useMouseEventsOnViewport = () => {
     }
 
     if (panningState === "panning") {
-      let dx = mouseTracker.current.unscaledDelta.x;
-      let dy = mouseTracker.current.unscaledDelta.y;
+      const dx = mouseTracker.current.unscaledDelta.x;
+      const dy = mouseTracker.current.unscaledDelta.y;
 
       setPipelineCanvasState((current) => ({
         pipelineOffset: [
