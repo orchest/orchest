@@ -235,16 +235,39 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
     )
 
 
-def get_active_environment_images() -> List[models.EnvironmentImage]:
+def get_active_environment_images(
+    stored_in_registry: Optional[bool] = None, in_node: Optional[str] = None
+) -> List[models.EnvironmentImage]:
     """Gets the list of active environment images (to keep on nodes).
 
     Assumes that an image that is not marked_for_removal is to be kept
     on nodes, see _env_images_that_can_be_deleted and where
     mark_env_images_that_can_be_removed is called for details.
+
+    Args:
+        stored_in_registry: If not none, it will be applied as a filter
+            to the environment images. For example, if True, only
+            active images which are already stored in the registry will
+            be returned.
+        in_nodes: If not none, it will be applied as a filter so that
+            only active images that are known by the orchest-api to
+            be on the given node will be returned.
     """
-    return models.EnvironmentImage.query.filter(
+    query = db.session.query(models.EnvironmentImage).filter(
         models.EnvironmentImage.marked_for_removal.is_(False)
-    ).all()
+    )
+
+    if stored_in_registry is not None:
+        query = query.filter(
+            models.EnvironmentImage.stored_in_registry.is_(stored_in_registry)
+        )
+
+    if in_node is not None:
+        query = query.join(models.EnvironmentImageInNode).filter(
+            models.EnvironmentImageInNode.node_name == in_node
+        )
+
+    return query.all()
 
 
 def _env_images_that_can_be_deleted(
