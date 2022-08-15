@@ -15,6 +15,8 @@ from config import CONFIG_CLASS
 ns = Namespace("ctl", description="Orchest-api internal control.")
 api = schema.register_schema(ns)
 
+logger = utils.logger
+
 
 @api.route("/start-update")
 class StartUpdate(Resource):
@@ -65,15 +67,37 @@ class OrchestImagesToPrePull(Resource):
     def get(self):
         """Orchest images to pre pull on all nodes for a better UX."""
         pre_pull_orchest_images = [
+            CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
             f"orchest/jupyter-enterprise-gateway:{CONFIG_CLASS.ORCHEST_VERSION}",
             f"orchest/session-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
-            CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
-            utils.get_jupyter_server_image_to_use(),
+            f"docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}",
             _config.CONTAINER_RUNTIME_IMAGE,
         ]
         pre_pull_orchest_images = {"pre_pull_images": pre_pull_orchest_images}
 
         return pre_pull_orchest_images, 200
+
+
+@api.route("/active-custom-jupyter-images")
+class ActiveCustomJupyterImages(Resource):
+    @api.doc("active_custom_jupyter_images")
+    def get(self):
+
+        active_custom_jupyter_images = utils.get_active_custom_jupyter_images(
+            stored_in_registry=request.args.get(
+                "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]
+            ),
+            in_node=request.args.get("in_node"),
+        )
+
+        active_custom_jupyter_image_names = []
+        registry_ip = utils.get_registry_ip()
+        for img in active_custom_jupyter_images:
+            active_custom_jupyter_image_names.append(
+                f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{img.tag}"
+            )
+
+        return {"active_custom_jupyter_images": active_custom_jupyter_image_names}, 200
 
 
 @api.route("/cleanup-builder-cache")

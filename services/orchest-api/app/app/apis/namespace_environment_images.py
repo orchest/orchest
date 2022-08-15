@@ -7,7 +7,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseFunction
 from app import models, schema, utils
 from app.apis.namespace_environment_image_builds import DeleteProjectBuilds
-from app.connections import db, k8s_core_api
+from app.connections import db
 from app.core import environments, image_utils
 
 api = Namespace("environment-images", description="Managing environment images")
@@ -70,9 +70,7 @@ class ActiveEnvironmentImages(Resource):
         )
 
         active_env_images_names = []
-        registry_ip = k8s_core_api.read_namespaced_service(
-            _config.REGISTRY, _config.ORCHEST_NAMESPACE
-        ).spec.cluster_ip
+        registry_ip = utils.get_registry_ip()
         for img in active_env_images:
             image = (
                 _config.ENVIRONMENT_IMAGE_NAME.format(

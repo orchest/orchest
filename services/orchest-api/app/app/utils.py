@@ -206,19 +206,37 @@ def fuzzy_filter_non_interactive_pipeline_runs(
     return query
 
 
-def get_active_custom_jupyter_images() -> List[models.JupyterImage]:
-    """Returns the list of active jupyter images, sorted by tag DESC."""
-    custom_image = (
-        models.JupyterImage.query.filter(
-            models.JupyterImage.marked_for_removal.is_(False),
-            # Only allow an image that matches this orchest cluster
-            # version.
-            models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
-        )
-        .order_by(desc(models.JupyterImage.tag))
-        .all()
+def get_active_custom_jupyter_images(
+    stored_in_registry: Optional[bool] = None, in_node: Optional[str] = None
+) -> List[models.JupyterImage]:
+    """Returns the list of active jupyter images, sorted by tag DESC.
+
+    Args:
+        stored_in_registry: If not none, it will be applied as a filter
+            to the images. For example, if True, only active images
+            which are already stored in the registry will be returned.
+        in_nodes: If not none, it will be applied as a filter so that
+            only active images that are known by the orchest-api to
+            be on the given node will be returned.
+    """
+    query = db.session.query(models.JupyterImage).filter(
+        models.JupyterImage.marked_for_removal.is_(False),
+        # Only allow an image that matches this orchest cluster
+        # version.
+        models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
     )
-    return custom_image
+
+    if stored_in_registry is not None:
+        query = query.filter(
+            models.JupyterImage.stored_in_registry.is_(stored_in_registry)
+        )
+
+    if in_node is not None:
+        query = query.join(models.JupyterImageInNode).filter(
+            models.JupyterImageInNode.node_name == in_node
+        )
+
+    return query.all()
 
 
 def get_jupyter_server_image_to_use() -> str:
