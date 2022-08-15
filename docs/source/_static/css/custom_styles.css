@@ -1,70 +1,17 @@
-.sidebar .searchbox,
-.vp-sidebar .searchbox {
-  padding: 1.5rem !important;
+html[data-theme="light"] {
+  --pst-color-primary: #4381ff;
+  --pst-color-warning: #777777;
 }
 
-.sidebar .searchbox .caption-text,
-.vp-sidebar .searchbox .caption-text {
-  margin-bottom: 1rem;
-  display: block;
+html[data-theme="dark"] {
+  --pst-color-primary: white;
+  --pst-color-warning: #777777;
 }
 
-.sidebar form.search input[type="text"],
-.vp-sidebar form.search input[type="text"] {
-  padding: 4px;
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
+.DocSearch-Modal {
+  margin: 115px auto auto;
 }
 
-/* Algolia search overlay fix */
-.DocSearch-Button {
-  margin: 0 !important;
-}
-
-/* Color tweaking, this is not yet possible in conf.py so !important
-overrides like below are unfortunately required. */
-:root {
-  --blue: #4381ff;
-  --light-blue: #79a5ff;
-}
-
-a {
-  color: var(--blue);
-}
-
-a:hover {
-  color: var(--blue) !important;
-}
-
-.vp-sidebar a.current {
-  border-left-color: var(--blue) !important;
-}
-
-.vp-sidebar .toctree-l1.current a {
-  border-left-color: var(--light-blue);
-}
-
-.vp-sidebar a.current {
-  color: var(--blue) !important;
-}
-
-.nav-item > a:not(.external).router-link-active,
-.nav-item > a:not(.external):hover {
-  border-bottom-color: var(--blue);
-}
-
-.admonition.hint,
-.admonition.tip {
-  border-color: var(--blue) !important;
-}
-
-@media (max-width: 800px) {
-  img {
-    width: 100% !important;
-  }
-
-  .DocSearch-SearchBar {
-    padding-top: 10px;
-  }
+.DocSearch-Container {
+  z-index: 2000;
 }
