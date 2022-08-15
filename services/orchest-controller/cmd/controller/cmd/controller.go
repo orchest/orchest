@@ -135,7 +135,6 @@ func runControllerCmd() error {
 	//Create OrchestCluster Informer
 	oComponentInformer := utils.NewOrchestComponentInformer(oClient)
 
-	addonsConfig.DetectRequiredAddons(kClient)
 	addonManager := addons.NewAddonManager(kClient, addonsConfig)
 
 	oClusterController := orchestcluster.NewOrchestClusterController(kClient,

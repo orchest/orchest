@@ -208,6 +208,10 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 
 	occ.Controller = ctrl
 
+	if isIngressIfRequired(context.Background(), ctrl.Client()) {
+		addonManager.EnableAddon(context.Background(), addons.IngressNginx, "orchest")
+	}
+
 	return &occ
 }
 

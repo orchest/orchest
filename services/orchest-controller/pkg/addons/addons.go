@@ -5,7 +5,6 @@ import (
 	"path"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
@@ -25,26 +24,6 @@ type AddonsConfig struct {
 	AssetDir string
 
 	DefaultNamespace string
-}
-
-func (config *AddonsConfig) DetectRequiredAddons(client kubernetes.Interface) {
-	// we first need to detect the k8s distribution
-	k8sDistro, err := utils.DetectK8sDistribution(client)
-	if err != nil {
-		klog.Errorf("Failed to detect k8s distribution: %v", err)
-		return
-	}
-
-	switch k8sDistro {
-	case utils.K3s:
-		for _, addon := range config.Addons {
-			if addon == IngressNginx {
-				return
-			}
-		}
-		config.Addons = append(config.Addons, IngressNginx)
-	}
-
 }
 
 func NewDefaultAddonsConfig() AddonsConfig {

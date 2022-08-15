@@ -501,6 +501,22 @@ func isCustomImage(orchest *orchestv1alpha1.OrchestCluster, component, imageName
 
 	if domain != orchest.Spec.Orchest.Registry ||
 		name != "orchest/"+component || !isCalverVersion(tag) {
+func isIngressIfRequired(ctx context.Context, client kubernetes.Interface) bool {
+
+	if !isNginxIngressInstalled(ctx, client) {
+		return false
+	}
+
+	// we first need to detect the k8s distribution
+	k8sDistro, err := utils.DetectK8sDistribution(client)
+	if err != nil {
+		klog.Errorf("Failed to detect k8s distribution: %v", err)
+		return false
+	}
+
+	// In k3s ingress addon can be installed by us
+	switch k8sDistro {
+	case utils.K3s:
 		return true
 	}
 
@@ -522,4 +538,23 @@ func isUpdateRequired(orchest *orchestv1alpha1.OrchestCluster, component, imageN
 
 	update = true
 	return
+
+}
+
+func isNginxIngressInstalled(ctx context.Context, client kubernetes.Interface) bool {
+
+	// Detect ingress class name
+	ingressClasses, err := client.NetworkingV1().IngressClasses().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	for _, ingressClass := range ingressClasses.Items {
+		if controller.IsNginxIngressClass(ingressClass.Spec.Controller) {
+			return true
+		}
+	}
+
+	return false
+
 }
