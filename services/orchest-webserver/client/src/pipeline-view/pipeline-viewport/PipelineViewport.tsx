@@ -20,7 +20,7 @@ import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { FullViewportHolder } from "./components/FullViewportHolder";
 import { Overlay } from "./components/Overlay";
-import { useMouseEventsOnViewport } from "./hooks/useMouseEventsOnViewport";
+import { useViewportMouseEvents } from "./hooks/useViewportMouseEvents";
 import { NoPipeline } from "./NoPipeline";
 import { NoStep } from "./NoStep";
 import { PipelineCanvas } from "./PipelineCanvas";
@@ -88,7 +88,7 @@ const PipelineViewportComponent = React.forwardRef<
     {}
   );
 
-  useMouseEventsOnViewport();
+  useViewportMouseEvents();
 
   React.useEffect(() => {
     if (
