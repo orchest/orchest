@@ -265,7 +265,11 @@ executor:
   # -- Resource limits and requests for the Workflow Executors
   resources: {}
   # -- Adds environment variables for the executor.
-  env: {}
+  env:
+    - name: RESOURCE_STATE_CHECK_INTERVAL
+      value: "1s"
+    - name: WAIT_CONTAINER_STATUS_CHECK_INTERVAL
+      value: "1s"
   # -- sets security context for the executor container
   securityContext: {}
 

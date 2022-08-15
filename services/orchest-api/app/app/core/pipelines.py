@@ -648,6 +648,8 @@ async def run_pipeline_workflow(
                     # The step was not run because the workflow failed.
                     if "inputs" not in step:
                         continue
+                    if step.get("type", "") != "Pod":
+                        continue
 
                     for param in step["inputs"]["parameters"]:
                         if param["name"] == "step_uuid":
