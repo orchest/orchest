@@ -15,7 +15,10 @@ const isEnvironmentChanged = (prev: Environment, curr: Environment) =>
 
 const useHasEnvironmentChanged = (environment: Environment | undefined) => {
   const hasChanged = useHasChanged(environment, (prev, curr) => {
-    if (!prev || !curr) return false;
+    const isLoadingPage = !prev || !curr;
+    if (isLoadingPage) return false;
+    const isRedirectingToAnotherEnvironment = prev.uuid !== curr.uuid;
+    if (isRedirectingToAnotherEnvironment) return false;
     return isEnvironmentChanged(prev, curr);
   });
   return hasChanged;
@@ -31,8 +34,4 @@ export const useAutoSaveEnvironment = (
   React.useEffect(() => {
     if (shouldSaveDebouncedValue) save();
   }, [shouldSaveDebouncedValue, save]);
-
-  React.useEffect(() => {
-    return () => save();
-  }, [save]);
 };
