@@ -1,8 +1,6 @@
 import { useSocketIO } from "@/pipeline-view/hooks/useSocketIO";
 import { EnvironmentImageBuild } from "@/types";
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import React from "react";
 import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
@@ -101,29 +99,16 @@ export const ImageBuildLog = ({
           sx={{ margin: (theme) => theme.spacing(3, 0) }}
         />
       )}
-      <Stack direction="column">
-        <Typography
-          variant="caption"
-          sx={{
-            backgroundColor: (theme) => theme.palette.grey[700],
-            borderRadius: (theme) => theme.spacing(0.5, 0.5, 0, 0),
-            color: (theme) => theme.palette.common.white,
-            padding: (theme) => theme.spacing(0.5, 1.5),
-          }}
-        >
-          Logs
-        </Typography>
-        <Box
-          sx={{
-            overflow: "hidden",
-            padding: (theme) => theme.spacing(1, 0, 0, 1),
-            borderRadius: (theme) => theme.spacing(0, 0, 0.5, 0.5),
-            backgroundColor: (theme) => theme.palette.common.black,
-          }}
-        >
-          <XTerm addons={[fitAddon]} ref={xtermRef} />
-        </Box>
-      </Stack>
+      <Box
+        sx={{
+          overflow: "hidden",
+          padding: (theme) => theme.spacing(1, 0, 0, 1),
+          borderRadius: (theme) => theme.spacing(0.5),
+          backgroundColor: (theme) => theme.palette.common.black,
+        }}
+      >
+        <XTerm addons={[fitAddon]} ref={xtermRef} />
+      </Box>
     </>
   );
 };

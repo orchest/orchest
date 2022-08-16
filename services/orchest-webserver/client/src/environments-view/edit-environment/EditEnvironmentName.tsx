@@ -13,9 +13,10 @@ export const EditEnvironmentName = () => {
       onChange={(e) => {
         setEnvironmentOnEdit({ name: e.target.value });
       }}
+      InputLabelProps={{ required: false }}
       label="Environment name"
-      autoFocus
       disabled={isEnvironmentBuilding(environmentOnEdit?.latestBuild)}
+      sx={{ width: { xs: "100%", lg: "50%" } }}
     />
   );
 };

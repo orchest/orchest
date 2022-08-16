@@ -1,35 +1,11 @@
 import { EnvironmentState } from "@/types";
 import { ellipsis } from "@/utils/styles";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
-import CircularProgress from "@mui/material/CircularProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import {
-  isEnvironmentBuilding,
-  isEnvironmentFailedToBuild,
-  LANGUAGE_MAP,
-} from "./common";
-
-type BuildStatusIconProps = {
-  latestBuild?: EnvironmentState["latestBuild"];
-};
-
-const BuildStatusIcon = ({ latestBuild }: BuildStatusIconProps) => {
-  if (latestBuild?.status === "SUCCESS")
-    return <CheckCircleOutlineOutlinedIcon fontSize="small" color="success" />;
-  if (isEnvironmentBuilding(latestBuild)) return <CircularProgress size={20} />;
-  if (isEnvironmentFailedToBuild(latestBuild))
-    return <CancelOutlinedIcon fontSize="small" color="error" />;
-  if (latestBuild?.status === "PAUSED")
-    return <ReplayOutlinedIcon fontSize="small" />;
-
-  return <EditOutlinedIcon fontSize="small" color="action" />;
-};
+import { BuildStatusIcon } from "./BuildStatusIcon";
+import { LANGUAGE_MAP } from "./common";
 
 type EnvironmentMenuItemProps = EnvironmentState & {
   selected: boolean;
@@ -49,7 +25,6 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
   return (
     <MenuItem
       key={uuid}
-      tabIndex={0}
       selected={selected}
       divider
       onClick={() => onClick(uuid)}
@@ -58,6 +33,7 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
         flexDirection: "row",
         alignItems: "center",
       }}
+      autoFocus={selected}
     >
       <Stack
         direction="column"

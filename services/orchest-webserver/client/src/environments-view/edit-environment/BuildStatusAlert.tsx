@@ -2,6 +2,7 @@ import Alert, { AlertProps } from "@mui/material/Alert";
 import Collapse from "@mui/material/Collapse";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { BuildStatusIcon } from "../BuildStatusIcon";
 import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 
 const alertMessageMapping: Record<
@@ -30,7 +31,14 @@ export const BuildStatusAlert = () => {
   return (
     <Collapse in={Boolean(alert)}>
       {hasValue(alert) && (
-        <Alert severity={alert.severity}>{alert.message}</Alert>
+        <Alert
+          severity={alert.severity}
+          icon={
+            <BuildStatusIcon latestBuild={environmentOnEdit?.latestBuild} />
+          }
+        >
+          {alert.message}
+        </Alert>
       )}
     </Collapse>
   );

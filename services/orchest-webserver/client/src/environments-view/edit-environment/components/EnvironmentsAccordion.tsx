@@ -5,6 +5,7 @@ import MuiAccordionSummary, {
   AccordionSummaryProps,
 } from "@mui/material/AccordionSummary";
 import { styled } from "@mui/material/styles";
+import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 import { useEnvironmentsUiStateStore } from "../stores/useEnvironmentsUiStateStore";
 
@@ -22,8 +23,18 @@ export const EnvironmentsAccordion = (props: AccordionProps) => {
 };
 
 export const EnvironmentsAccordionSummary = styled(
-  (props: AccordionSummaryProps) => (
-    <MuiAccordionSummary expandIcon={<ExpandMoreIcon />} {...props} />
+  ({
+    isExpanded,
+    ...props
+  }: AccordionSummaryProps & { isExpanded: boolean }) => (
+    <MuiAccordionSummary
+      expandIcon={
+        <Tooltip title={isExpanded ? "Collapse" : "Expand"}>
+          <ExpandMoreIcon />
+        </Tooltip>
+      }
+      {...props}
+    />
   )
 )({ padding: 0 });
 
