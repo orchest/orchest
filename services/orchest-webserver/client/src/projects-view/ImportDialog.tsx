@@ -219,7 +219,7 @@ export const ImportDialog = ({
   filesToUpload,
   children,
 }: ImportDialogProps) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
 
   const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {

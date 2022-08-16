@@ -1,5 +1,5 @@
 import Paper from "@mui/material/Paper";
-import { SxProps, Theme } from "@mui/material/styles";
+import { alpha, SxProps, Theme } from "@mui/material/styles";
 import React from "react";
 
 export const ContainerImageTile: React.FC<{
@@ -16,8 +16,12 @@ export const ContainerImageTile: React.FC<{
         minHeight: (theme) => theme.spacing(6),
         width: "100%",
         borderRadius: (theme) => theme.spacing(1),
+        backgroundColor: (theme) =>
+          checked
+            ? alpha(theme.palette.primary.light, 0.2)
+            : theme.palette.common.white,
         border: (theme) =>
-          `2px solid ${
+          `${checked ? 2 : 1}px solid ${
             checked ? theme.palette.primary.main : theme.borderColor
           }`,
         ...sx,
