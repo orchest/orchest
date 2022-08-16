@@ -36,7 +36,7 @@ export const CreateProjectDialog = ({
   postCreateCallback,
   children,
 }: CreateProjectDialogProps) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
   const {
     state: { projects = [] },

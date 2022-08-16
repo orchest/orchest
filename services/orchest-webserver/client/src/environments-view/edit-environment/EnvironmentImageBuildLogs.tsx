@@ -1,7 +1,6 @@
 import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
@@ -40,9 +39,9 @@ export const EnvironmentImageBuildLogs = () => {
   return (
     <EnvironmentsAccordion expanded={isLogsOpen} onChange={handleChange}>
       <EnvironmentsAccordionSummary
-        expandIcon={<ExpandMoreIcon />}
-        aria-controls="setup-script"
-        id="setup-script-header"
+        isExpanded={isLogsOpen}
+        aria-controls="environment-build-logs"
+        id="environment-build-logs-header"
       >
         <Typography component="h5" variant="h6">
           Logs
