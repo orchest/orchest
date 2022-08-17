@@ -1,20 +1,27 @@
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import TextField from "@mui/material/TextField";
 import React from "react";
 import { isEnvironmentBuilding } from "../common";
 import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 
 export const EditEnvironmentName = () => {
+  const { environmentUuid } = useCustomRoute();
   const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
   const [value = "", setValue] = React.useState<string>();
   const [hasEdited, setHasEdited] = React.useState(false);
 
   const initialized = React.useRef(false);
   React.useEffect(() => {
-    if (!initialized.current && environmentOnEdit?.name) {
+    if (
+      environmentUuid &&
+      environmentUuid === environmentOnEdit?.uuid &&
+      !initialized.current &&
+      environmentOnEdit?.name
+    ) {
       initialized.current = true;
       setValue(environmentOnEdit?.name);
     }
-  }, [environmentOnEdit]);
+  }, [environmentOnEdit, environmentUuid]);
 
   const isInvalid = hasEdited && value.trim().length === 0;
 
