@@ -49,10 +49,7 @@ const ReadOnlyBannerContainer = ({
 
 export const ReadOnlyBanner = () => {
   const { navigateTo } = useCustomRoute();
-  const {
-    buildingEnvironmentCount,
-    environmentsToBeBuilt,
-  } = useEnvironmentsApi();
+  const { buildingEnvironments, environmentsToBeBuilt } = useEnvironmentsApi();
 
   const { triggerBuild, viewBuildStatus } = useBuildEnvironmentImages();
 
@@ -96,9 +93,9 @@ export const ReadOnlyBanner = () => {
           action: triggerBuild,
         };
       case "environmentsBuildInProgress":
-        const hasMultipleEnvironmentsBuilding = buildingEnvironmentCount > 1;
+        const hasMultipleEnvironmentsBuilding = buildingEnvironments.length > 1;
         return {
-          title: `${buildingEnvironmentCount} environment${
+          title: `${buildingEnvironments.length} environment${
             hasMultipleEnvironmentsBuilding ? "s" : ""
           } still building`,
           actionLabel: "Open environments",
@@ -111,7 +108,7 @@ export const ReadOnlyBanner = () => {
     navigateTo,
     pipelineReadOnlyReason,
     environmentsToBeBuilt,
-    buildingEnvironmentCount,
+    buildingEnvironments,
     projectUuid,
     pipelineUuid,
     viewBuildStatus,

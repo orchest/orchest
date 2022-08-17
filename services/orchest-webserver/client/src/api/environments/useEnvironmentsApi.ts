@@ -31,8 +31,8 @@ export type EnvironmentsApiState = {
     payload: Partial<Environment>
   ) => Promise<Environment | undefined>;
   isDeleting: boolean;
-  delete: (environmentUuid: string) => Promise<void>;
-  buildingEnvironmentCount: number;
+  delete: (environmentOnEdit: EnvironmentState) => Promise<void>;
+  buildingEnvironments: string[];
   environmentsToBeBuilt: string[];
   validate: () => Promise<EnvironmentValidationData | undefined>;
   status: EnvironmentBuildStatus;
@@ -160,6 +160,10 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
             environments: environments.sort(
               (a, b) => -1 * a.name.localeCompare(b.name)
             ),
+            environmentsToBeBuilt: [
+              ...state.environmentsToBeBuilt,
+              newEnvironmentWithAction.uuid,
+            ],
             isPosting: false,
           };
         });
@@ -185,17 +189,37 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
       }
     },
     isDeleting: false,
-    delete: async (environmentUuid) => {
+    delete: async (environmentOnEdit) => {
       try {
         const projectUuid = getProjectUuid();
         set({ isDeleting: true, error: undefined });
-        await environmentsApi.delete(projectUuid, environmentUuid);
+        await environmentsApi.delete(projectUuid, environmentOnEdit.uuid);
         set((state) => {
           const filteredEnvironments = state.environments?.filter(
-            (environment) => environment.uuid !== environmentUuid
+            (environment) => environment.uuid !== environmentOnEdit.uuid
           );
+
+          const environmentsToBeBuilt = ["BUILD", "RETRY"].includes(
+            environmentOnEdit.action || ""
+          )
+            ? state.environmentsToBeBuilt.filter(
+                (toBuildEnvironmentUuid) =>
+                  toBuildEnvironmentUuid !== environmentOnEdit.uuid
+              )
+            : state.environmentsToBeBuilt;
+
+          const buildingEnvironments =
+            environmentOnEdit.action === "WAIT"
+              ? state.buildingEnvironments.filter(
+                  (toBuildEnvironmentUuid) =>
+                    toBuildEnvironmentUuid !== environmentOnEdit.uuid
+                )
+              : state.buildingEnvironments;
+
           return {
             environments: filteredEnvironments,
+            environmentsToBeBuilt,
+            buildingEnvironments,
             isDeleting: false,
           };
         });
@@ -204,7 +228,7 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
       }
     },
     status: "allEnvironmentsBuilt",
-    buildingEnvironmentCount: 0,
+    buildingEnvironments: [],
     environmentsToBeBuilt: [],
     validate: async () => {
       try {
@@ -222,7 +246,7 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
           validatedEnvironments,
           response,
           shouldUpdateEnvironments,
-          buildingEnvironmentCount,
+          buildingEnvironments,
           environmentsToBeBuilt,
         ] = results;
 
@@ -232,7 +256,7 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
           set({
             environments: validatedEnvironments,
             status,
-            buildingEnvironmentCount,
+            buildingEnvironments,
             environmentsToBeBuilt,
           });
         }
