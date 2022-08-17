@@ -22,6 +22,7 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
   onClick,
   showStatusIcon,
 }: EnvironmentMenuItemProps) {
+  const isNameEmpty = name.trim().length === 0;
   return (
     <MenuItem
       key={uuid}
@@ -45,8 +46,15 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
           margin: (theme) => theme.spacing(1, 0),
         }}
       >
-        <Typography variant="body1" sx={ellipsis()}>
-          {name}
+        <Typography
+          variant="body1"
+          sx={{
+            ...ellipsis(),
+            color: (theme) =>
+              isNameEmpty ? theme.palette.action.active : "inherent",
+          }}
+        >
+          {isNameEmpty ? "(Unnamed)" : name}
         </Typography>
         <Typography
           variant="body2"
