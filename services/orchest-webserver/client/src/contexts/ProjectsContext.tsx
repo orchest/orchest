@@ -38,6 +38,7 @@ export type PipelineReadOnlyReason =
   | "isJobRun"
   | "environmentsNotYetBuilt"
   | "environmentsBuildInProgress"
+  | "environmentsFailedToBuild"
   | "JupyterEnvironmentBuildInProgress";
 
 export type ProjectsContextState = {
@@ -366,11 +367,12 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB,
         ].includes(requestedFromView);
 
-      if (shouldSetReadOnly)
+      if (shouldSetReadOnly) {
         dispatch((state) => ({
           type: "SET_PIPELINE_READONLY_REASON",
           payload: state.pipelineReadOnlyReason || "environmentsNotYetBuilt",
         }));
+      }
 
       const hasBuilt = await requestBuild(
         state.projectUuid,

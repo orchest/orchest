@@ -51,7 +51,7 @@ export const useAutoStartSession = ({ isReadOnly = true }) => {
       );
       if (
         !hasStartedOperation &&
-        error.status === 423 &&
+        error?.status === 423 &&
         error.message === "JupyterEnvironmentBuildInProgress"
       ) {
         dispatch({

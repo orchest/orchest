@@ -1,4 +1,8 @@
 import {
+  EnvironmentBuildStatus,
+  useEnvironmentsApi,
+} from "@/api/environments/useEnvironmentsApi";
+import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
@@ -6,10 +10,9 @@ import { useInterval } from "@/hooks/use-interval";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { EnvironmentValidationData } from "@/types";
 import { HEADER } from "@orchest/lib-utils";
 import React from "react";
-import { checkGate } from "../utils/webserver-utils";
+import { useMounted } from "./useMounted";
 
 const buildFailMessage = `Some environment builds of this project have failed. 
   You can try building them again, 
@@ -24,137 +27,92 @@ const solutionMessages = {
 };
 
 const getInactiveEnvironmentsMessage = (
-  inactiveEnvironments: string[],
+  hasEnvironmentsToBuild: boolean,
   requestedFromView = ""
 ) => {
-  const inactiveEnvironmentsMessage =
-    inactiveEnvironments.length > 0
-      ? `Not all environments of this project have been built. Would you like to build them?`
-      : `Some environments of this project are still building. Please wait until the build is complete.`;
+  const inactiveEnvironmentsMessage = hasEnvironmentsToBuild
+    ? `Not all environments of this project have been built. Would you like to build them?`
+    : `Some environments of this project are still building. Please wait until the build is complete.`;
   const solutionMessage = solutionMessages[requestedFromView] || "";
 
   return `${inactiveEnvironmentsMessage}${solutionMessage}`;
 };
 
+const getReadOnlyReasonFromEnvironmentsStatus = (
+  status: EnvironmentBuildStatus
+) => {
+  if (status === "allEnvironmentsBuilt") return undefined;
+  return status;
+};
+
 export const useBuildEnvironmentImages = () => {
   const { navigateTo } = useCustomRoute();
   const {
-    state: { projectUuid, buildRequest, pipelineReadOnlyReason },
+    state: { projectUuid, buildRequest },
     dispatch,
   } = useProjectsContext();
 
-  const [gateInterval, setGateInterval] = React.useState<number | null>(null);
-
-  const [isBuilding, setIsBuilding] = React.useState(
-    pipelineReadOnlyReason === "environmentsBuildInProgress"
-  );
-  const [allowViewBuildStatus, setAllowViewBuildStatus] = React.useState(false);
-  const [allowBuild, setAllowBuild] = React.useState(false);
-  const [state, setState] = React.useState<{
-    buildHasFailed: boolean;
-    message: string;
-    environmentsBuilding: number;
-  } | null>(null);
-  const [environmentsToBeBuilt, setEnvironmentsToBeBuilt] = React.useState<
-    string[]
-  >([]);
-
-  useInterval(() => {
-    if (!buildRequest || buildRequest.projectUuid !== projectUuid) return;
-    checkGate(buildRequest.projectUuid)
-      .then(() => {
-        setIsBuilding(false);
-        onComplete();
-      })
-      .catch((error) => {
-        // Gate check failed, check why it failed and act
-        // accordingly
-        processValidationData(error.data);
-      });
-  }, gateInterval);
-
-  const processValidationData = React.useCallback(
-    (data: EnvironmentValidationData) => {
-      const inactiveEnvironments: string[] = [];
-      let buildHasFailed = false;
-      let environmentsBuilding = 0;
-      let buildingValue = false;
-
-      data.actions.forEach((action, index) => {
-        if (["BUILD", "RETRY"].includes(action))
-          inactiveEnvironments.push(data.fail[index]);
-
-        if (action === "RETRY") buildHasFailed = true;
-        if (action === "WAIT") {
-          buildingValue = true;
-          environmentsBuilding++;
-        }
-      });
-
-      const message = buildHasFailed
-        ? buildFailMessage
-        : getInactiveEnvironmentsMessage(
-            inactiveEnvironments,
-            buildRequest?.requestedFromView
-          );
-
-      setEnvironmentsToBeBuilt(inactiveEnvironments);
-      setIsBuilding(buildingValue);
-      setAllowViewBuildStatus(inactiveEnvironments.length === 0);
-      setAllowBuild(inactiveEnvironments.length > 0);
-      setState((prevState) => ({
-        ...prevState,
-        buildHasFailed,
-        message,
-        environmentsBuilding,
-      }));
-      dispatch({
-        type: "SET_PIPELINE_READONLY_REASON",
-        payload:
-          inactiveEnvironments.length > 0
-            ? "environmentsNotYetBuilt"
-            : buildingValue
-            ? "environmentsBuildInProgress"
-            : undefined,
-      });
-
-      if (environmentsBuilding > 0) {
-        startPollingGate();
-      } else {
-        setGateInterval(null);
-      }
-    },
-    [buildRequest?.requestedFromView, dispatch]
-  );
+  const {
+    validate,
+    status,
+    buildingEnvironmentCount,
+    environmentsToBeBuilt,
+  } = useEnvironmentsApi();
 
   React.useEffect(() => {
-    if (buildRequest?.environmentValidationData)
-      processValidationData(buildRequest.environmentValidationData);
+    const readOnlyReason = getReadOnlyReasonFromEnvironmentsStatus(status);
 
-    return () => setGateInterval(null);
-  }, [buildRequest, processValidationData]);
+    dispatch({
+      type: "SET_PIPELINE_READONLY_REASON",
+      payload: readOnlyReason,
+    });
+  }, [status, dispatch]);
 
-  const onComplete = () => {
-    buildRequest?.onComplete();
-    dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
-  };
+  const checkAllEnvironmentsHaveBeenBuilt = React.useCallback(async () => {
+    const environmentValidationData = await validate();
+    if (environmentValidationData?.validation === "pass") {
+      buildRequest?.onComplete();
+      dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
+    }
+  }, [validate, buildRequest, dispatch]);
+
+  const isMounted = useMounted();
+
+  React.useEffect(() => {
+    setShouldPoll(isMounted && status === "environmentsBuildInProgress");
+  }, [status, isMounted]);
+
+  const [shouldPoll, setShouldPoll] = React.useState(false);
+
+  useInterval(checkAllEnvironmentsHaveBeenBuilt, shouldPoll ? 1000 : null);
 
   const cancel = React.useCallback(() => {
     buildRequest?.onCancel();
     dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
   }, [buildRequest, dispatch]);
 
-  const startPollingGate = () => {
-    setGateInterval(1000);
-  };
+  React.useEffect(() => {
+    checkAllEnvironmentsHaveBeenBuilt();
+  }, [checkAllEnvironmentsHaveBeenBuilt]);
+
+  const isBuilding = status === "environmentsBuildInProgress";
+  const buildHasFailed = status === "environmentsFailedToBuild";
+  const allowBuild = [
+    "environmentsFailedToBuild",
+    "environmentsNotYetBuilt",
+  ].includes(status);
+
+  const message = buildHasFailed
+    ? buildFailMessage
+    : getInactiveEnvironmentsMessage(
+        allowBuild,
+        buildRequest?.requestedFromView
+      );
 
   const { cancelableFetch } = useCancelableFetch();
   const triggerBuild = React.useCallback(async () => {
-    if (!allowBuild) return;
+    setShouldPoll(true);
 
-    setIsBuilding(true);
-    setAllowViewBuildStatus(true);
-    setAllowBuild(false);
     dispatch({
       type: "SET_PIPELINE_READONLY_REASON",
       payload: "environmentsBuildInProgress",
@@ -173,41 +131,36 @@ export const useBuildEnvironmentImages = () => {
           environment_image_build_requests: buildRequests,
         }),
       });
-      startPollingGate();
+      await validate();
     } catch (error) {
       console.error("Failed to start environment builds:", error);
     }
   }, [
-    allowBuild,
     buildRequest?.projectUuid,
     cancelableFetch,
     dispatch,
     environmentsToBeBuilt,
+    validate,
   ]);
 
   const viewBuildStatus = React.useCallback(
     (e: React.MouseEvent) => {
-      if (!buildRequest || !allowViewBuildStatus) return;
-
-      navigateTo(
-        siteMap.environments.path,
-        { query: { projectUuid: buildRequest.projectUuid } },
-        e
-      );
-
-      cancel();
+      if (projectUuid) {
+        navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
+        cancel();
+      }
     },
-    [buildRequest, cancel, navigateTo, allowViewBuildStatus]
+    [projectUuid, cancel, navigateTo]
   );
 
   return {
-    ...state,
+    message,
+    buildingEnvironmentCount,
     isBuilding,
     triggerBuild,
     viewBuildStatus,
     buildRequest,
     cancel,
     allowBuild,
-    allowViewBuildStatus,
   };
 };

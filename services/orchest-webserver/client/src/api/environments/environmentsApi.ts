@@ -54,18 +54,24 @@ const validate = async (
   projectUuid: string,
   existingEnvironments: EnvironmentState[] = []
 ): Promise<
-  [EnvironmentState[], EnvironmentValidationData, boolean] | FetchError
+  | [EnvironmentState[], EnvironmentValidationData, boolean, number, string[]]
+  | FetchError
 > => {
   let hasActionChanged = false;
   try {
     const response = await postValidate(projectUuid);
     const envMap = new Map(existingEnvironments.map((env) => [env.uuid, env]));
+    let environmentsBuildInProgress = 0;
+    const environmentsToBeBuilt: string[] = [];
     const updatedEnvironmentMap = produce(envMap, (draft) => {
       response.actions.forEach((action, index) => {
         const uuid = response.fail[index];
         const environment = draft.get(uuid);
         if (!environment) throw "refetch";
         if (environment.action !== action) hasActionChanged = true;
+        if (action === "WAIT") environmentsBuildInProgress += 1;
+        if (["BUILD", "RETRY"].includes(action))
+          environmentsToBeBuilt.push(uuid);
         environment.action = action;
       });
       response.pass.forEach((uuid) => {
@@ -79,7 +85,13 @@ const validate = async (
       updatedEnvironmentMap,
       ([, value]) => value
     );
-    return [environments, response, hasActionChanged];
+    return [
+      environments,
+      response,
+      hasActionChanged,
+      environmentsBuildInProgress,
+      environmentsToBeBuilt,
+    ];
   } catch (error) {
     if (error === "refetch") {
       const latestEnvironments = await fetchAll(projectUuid);

@@ -1,3 +1,4 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useLayoutStore } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -48,6 +49,10 @@ const ReadOnlyBannerContainer = ({
 
 export const ReadOnlyBanner = () => {
   const { navigateTo } = useCustomRoute();
+  const {
+    buildingEnvironmentCount,
+    environmentsToBeBuilt,
+  } = useEnvironmentsApi();
 
   const { triggerBuild, viewBuildStatus } = useBuildEnvironmentImages();
 
@@ -79,14 +84,23 @@ export const ReadOnlyBanner = () => {
             navigateTo(siteMap.configureJupyterLab.path, undefined, event),
         };
       case "environmentsNotYetBuilt":
+        const hasMultipleEnvironmentsToBuild = environmentsToBeBuilt.length > 1;
+        const environmentText = hasMultipleEnvironmentsToBuild
+          ? `${environmentsToBeBuilt.length} environments`
+          : "One environment";
         return {
-          title: "Not all environments of this project have been built",
+          title: `${environmentText} of this project need${
+            hasMultipleEnvironmentsToBuild ? "" : "s"
+          } to be built`,
           actionLabel: "Build environments",
           action: triggerBuild,
         };
       case "environmentsBuildInProgress":
+        const hasMultipleEnvironmentsBuilding = buildingEnvironmentCount > 1;
         return {
-          title: "Environments still building",
+          title: `${buildingEnvironmentCount} environment${
+            hasMultipleEnvironmentsBuilding ? "s" : ""
+          } still building`,
           actionLabel: "Open environments",
           action: viewBuildStatus,
         };
@@ -96,6 +110,8 @@ export const ReadOnlyBanner = () => {
   }, [
     navigateTo,
     pipelineReadOnlyReason,
+    environmentsToBeBuilt,
+    buildingEnvironmentCount,
     projectUuid,
     pipelineUuid,
     viewBuildStatus,

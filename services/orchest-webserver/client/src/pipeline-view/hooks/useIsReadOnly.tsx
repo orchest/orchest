@@ -17,10 +17,12 @@ export const useIsReadOnly = () => {
   const isJobRun = Boolean(runUuid && jobUuid);
 
   React.useEffect(() => {
-    dispatch((state) => ({
-      type: "SET_PIPELINE_READONLY_REASON",
-      payload: isJobRun ? "isJobRun" : state.pipelineReadOnlyReason,
-    }));
+    if (isJobRun) {
+      dispatch({
+        type: "SET_PIPELINE_READONLY_REASON",
+        payload: "isJobRun",
+      });
+    }
   }, [isJobRun, dispatch]);
 
   React.useEffect(() => {

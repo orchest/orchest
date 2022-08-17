@@ -26,7 +26,6 @@ const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
     message = "",
     cancel,
     allowBuild,
-    allowViewBuildStatus,
   } = useBuildEnvironmentImages();
 
   if (!buildRequest) return null;
@@ -60,7 +59,7 @@ const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
             Cancel
           </Button>
         )}
-        {allowViewBuildStatus && (
+        {isBuilding && (
           <Button
             variant={!allowBuild ? "contained" : undefined}
             color={!allowBuild ? "primary" : undefined}
