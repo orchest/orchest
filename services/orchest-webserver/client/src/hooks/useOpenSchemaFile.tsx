@@ -1,6 +1,6 @@
+import { useOpenFile } from "@/pipeline-view/hooks/useOpenFile";
 import React from "react";
 import { useCreateFile } from "../pipeline-view/file-manager/useCreateFile";
-import { useOpenNoteBook } from "../pipeline-view/hooks/useOpenNoteBook";
 
 export type JsonSchemaType = "schema" | "uischema";
 
@@ -13,7 +13,7 @@ export const useOpenSchemaFile = (
     shouldCreateFileRef.current = shouldCreateFile;
   }, [shouldCreateFile]);
 
-  const openFile = useOpenNoteBook();
+  const { openNotebook } = useOpenFile();
   const createFile = useCreateFile("/project-dir");
 
   const openSchemaFile = React.useCallback(
@@ -22,9 +22,9 @@ export const useOpenSchemaFile = (
 
       const sidecarFilePath = `${filePath}.${type}.json`;
       if (shouldCreateFile) await createFile(sidecarFilePath);
-      openFile(e, sidecarFilePath);
+      openNotebook(e, sidecarFilePath);
     },
-    [createFile, openFile]
+    [createFile, openNotebook]
   );
 
   return { openSchemaFile };
