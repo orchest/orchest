@@ -54,14 +54,14 @@ const validate = async (
   projectUuid: string,
   existingEnvironments: EnvironmentState[] = []
 ): Promise<
-  | [EnvironmentState[], EnvironmentValidationData, boolean, number, string[]]
+  | [EnvironmentState[], EnvironmentValidationData, boolean, string[], string[]]
   | FetchError
 > => {
   let hasActionChanged = false;
   try {
     const response = await postValidate(projectUuid);
     const envMap = new Map(existingEnvironments.map((env) => [env.uuid, env]));
-    let environmentsBuildInProgress = 0;
+    let buildingEnvironments: string[] = [];
     const environmentsToBeBuilt: string[] = [];
     const updatedEnvironmentMap = produce(envMap, (draft) => {
       response.actions.forEach((action, index) => {
@@ -69,7 +69,7 @@ const validate = async (
         const environment = draft.get(uuid);
         if (!environment) throw "refetch";
         if (environment.action !== action) hasActionChanged = true;
-        if (action === "WAIT") environmentsBuildInProgress += 1;
+        if (action === "WAIT") buildingEnvironments.push(uuid);
         if (["BUILD", "RETRY"].includes(action))
           environmentsToBeBuilt.push(uuid);
         environment.action = action;
@@ -89,7 +89,7 @@ const validate = async (
       environments,
       response,
       hasActionChanged,
-      environmentsBuildInProgress,
+      buildingEnvironments,
       environmentsToBeBuilt,
     ];
   } catch (error) {

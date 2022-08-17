@@ -33,7 +33,7 @@ export const EnvironmentMoreOptions = () => {
       "Are you sure you want to delete this Environment?",
       {
         onConfirm: (resolve) => {
-          deleteEnvironment(environmentOnEdit.uuid).then(() => resolve(true));
+          deleteEnvironment(environmentOnEdit).then(() => resolve(true));
           return true;
         },
         confirmLabel: "Delete Environment",
