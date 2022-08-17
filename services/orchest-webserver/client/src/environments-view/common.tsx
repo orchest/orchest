@@ -79,9 +79,12 @@ export const getNewEnvironmentName = (
   environments?: Environment[]
 ) => {
   if (!environments) return;
-  let count = 0;
-  let finalName = defaultName;
+  const trimmedName = defaultName.trim();
+  // Remove the trailing part, e.g. `python (123)` -> `python`.
+  let finalName = trimmedName.replace(/( \(\d+\))?$/i, "");
+
   const allNames = new Set(environments.map((e) => e.name));
+  let count = 0;
   while (count < 100) {
     const newName = `${finalName}${count === 0 ? "" : ` (${count})`}`;
     if (!allNames.has(newName)) {
@@ -185,6 +188,10 @@ export const DEFAULT_BASE_IMAGES: (CustomImage & {
     label: "Javascript",
   },
 ];
+
+export const BASE_IMAGE_LANGUAGES = Array.from(
+  new Set(DEFAULT_BASE_IMAGES.map((image) => image.language))
+);
 
 export function shallowEqualByKey<T extends Record<string, any>>( // eslint-disable-line @typescript-eslint/no-explicit-any
   obj1: T,

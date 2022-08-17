@@ -81,7 +81,7 @@ type PromptMessageConverter<T extends PromptMessage> = T extends Alert
   ? ConfirmConverter
   : never;
 
-type AppContextState = {
+type GlobalContextState = {
   promptMessages: PromptMessage[];
   hasUnsavedChanges: boolean;
   isShowingOnboarding: boolean;
@@ -113,7 +113,7 @@ type Action =
       payload: boolean;
     };
 
-type AppContextAction = ReducerActionWithCallback<AppContextState, Action>;
+type AppContextAction = ReducerActionWithCallback<GlobalContextState, Action>;
 
 export type AlertDispatcher = (
   title: string,
@@ -147,8 +147,8 @@ type PromptMessageDispatcher<T extends PromptMessage> = T extends Alert
   ? ConfirmDispatcher
   : never;
 
-type AppContext = {
-  state: AppContextState;
+type GlobalContext = {
+  state: GlobalContextState;
   dispatch: React.Dispatch<AppContextAction>;
   setAlert: AlertDispatcher;
   setConfirm: ConfirmDispatcher;
@@ -160,10 +160,11 @@ type AppContext = {
   showIntercom: () => void;
 };
 
-const Context = React.createContext<AppContext | null>(null);
-export const useGlobalContext = () => React.useContext(Context) as AppContext;
+const Context = React.createContext<GlobalContext | null>(null);
+export const useGlobalContext = () =>
+  React.useContext(Context) as GlobalContext;
 
-const reducer = (state: AppContextState, _action: AppContextAction) => {
+const reducer = (state: GlobalContextState, _action: AppContextAction) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
   switch (action.type) {
@@ -195,7 +196,7 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
   }
 };
 
-const initialState: AppContextState = {
+const initialState: GlobalContextState = {
   promptMessages: [],
   hasUnsavedChanges: false,
   hasCompletedOnboarding: false,
