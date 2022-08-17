@@ -9,18 +9,6 @@ export function windowOffsetLeft<T extends HTMLElement>(element: T): number {
 
   return left + window.scrollX - document.documentElement.clientLeft;
 }
-
-export function getOffset<T extends HTMLElement>(
-  element: T | undefined | null
-) {
-  if (!element) return { top: 0, left: 0 };
-  const box = element.getBoundingClientRect();
-  return {
-    top: box.top + window.scrollY - document.documentElement.clientTop,
-    left: box.left + window.scrollX - document.documentElement.clientLeft,
-  };
-}
-
 export const getWidth = (element: HTMLElement | undefined | null) => {
   if (!element) return 0;
 

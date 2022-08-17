@@ -276,7 +276,7 @@ export type StepNode = UnidirectionalStepNode & {
 
 export type StepMetaData = {
   hidden: boolean;
-  position: [number, number];
+  position: Point2D;
 };
 
 export type StepState = StepNode & {
@@ -295,31 +295,16 @@ export type StepData = Omit<StepState, "outgoing_connections">;
 
 export type StepsDict = Record<string, StepState>;
 
-export type MouseTracker = {
-  client: Position;
-  prev: Position;
-  delta: Position;
-  unscaledPrev: Position;
-  unscaledDelta: Position;
-};
-
 export type Connection = {
   startNodeUUID: string;
   endNodeUUID?: string;
 };
 
 export type NewConnection = Connection & {
-  xEnd?: number;
-  yEnd?: number;
+  end?: Point2D;
 };
 
-export type Point2D = readonly [number, number];
-
-export type Position = { x: number; y: number };
-
 export type LogType = "step" | "service";
-
-export type Offset = { top: number; left: number };
 
 export type Service = {
   image: string;

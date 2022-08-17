@@ -122,7 +122,7 @@ export const FileManagerLocalContextProvider: React.FC<{
       setContextMenu((current) => {
         return current === undefined
           ? {
-              position: {
+              origin: {
                 x: event.clientX - 2,
                 y: event.clientY - 4,
               },

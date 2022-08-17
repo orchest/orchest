@@ -1,4 +1,5 @@
 import React from "react";
+import { CanvasScalingProvider } from "./CanvasScalingContext";
 import { InteractiveRunsContextProvider } from "./InteractiveRunsContext";
 import { PipelineCanvasContextProvider } from "./PipelineCanvasContext";
 import { PipelineCanvasDimensionsContextProvider } from "./PipelineCanvasDimensionsContext";
@@ -6,12 +7,11 @@ import { PipelineDataContextProvider } from "./PipelineDataContext";
 import { PipelineRefsProvider } from "./PipelineRefsContext";
 import { PipelineUiStateContextProvider } from "./PipelineUiStateContext";
 import { ProjectFileManagerContextProvider } from "./ProjectFileManagerContext";
-import { ScaleFactorProvider } from "./ScaleFactorContext";
 
 export const PipelineContextProviders: React.FC = ({ children }) => {
   return (
     <PipelineRefsProvider>
-      <ScaleFactorProvider>
+      <CanvasScalingProvider>
         <PipelineCanvasDimensionsContextProvider>
           <PipelineDataContextProvider>
             <PipelineUiStateContextProvider>
@@ -25,7 +25,7 @@ export const PipelineContextProviders: React.FC = ({ children }) => {
             </PipelineUiStateContextProvider>
           </PipelineDataContextProvider>
         </PipelineCanvasDimensionsContextProvider>
-      </ScaleFactorProvider>
+      </CanvasScalingProvider>
     </PipelineRefsProvider>
   );
 };

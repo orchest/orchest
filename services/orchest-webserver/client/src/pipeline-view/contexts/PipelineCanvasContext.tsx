@@ -1,5 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { Point2D } from "@/types";
+import { Point2D } from "@/utils/geometry";
 import React from "react";
 import { PipelineCanvasState } from "../hooks/usePipelineCanvasState";
 import { useViewportKeyboardEvents } from "../pipeline-viewport/hooks/useViewportKeyboardEvents";
@@ -21,7 +21,7 @@ export type PipelineCanvasContextType = {
     | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
   >;
   resetPipelineCanvas: () => void;
-  setPipelineHolderOrigin: (newOrigin: [number, number]) => void;
+  setPipelineCanvasOrigin: (newOrigin: Point2D) => void;
   centerView: () => void;
   centerPipelineOrigin: () => void;
   zoomBy: (origin: Point2D, delta: number) => void;
@@ -54,7 +54,7 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
     resetPipelineCanvas,
     centerView,
     centerPipelineOrigin,
-    setPipelineHolderOrigin,
+    setPipelineCanvasOrigin,
     zoomBy,
     zoomIn,
     zoomOut,
@@ -67,7 +67,7 @@ export const PipelineCanvasContextProvider: React.FC = ({ children }) => {
         pipelineCanvasState,
         setPipelineCanvasState,
         resetPipelineCanvas,
-        setPipelineHolderOrigin,
+        setPipelineCanvasOrigin,
         centerView,
         centerPipelineOrigin,
         zoomBy,
