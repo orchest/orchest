@@ -1,5 +1,4 @@
-import { Point2D } from "@/types";
-import { subtractPoints } from "@/utils/geometry";
+import { Point2D, subtractPoints } from "@/utils/geometry";
 import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import React from "react";
 import { useCanvasScaling } from "../../contexts/CanvasScalingContext";

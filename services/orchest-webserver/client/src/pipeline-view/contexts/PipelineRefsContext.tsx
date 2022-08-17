@@ -1,5 +1,5 @@
 import { NewConnection } from "@/types";
-import { Point2D } from "framer-motion/types/types/geometry";
+import { Point2D } from "@/utils/geometry";
 import React from "react";
 
 export type PipelineRefsContextType = {
