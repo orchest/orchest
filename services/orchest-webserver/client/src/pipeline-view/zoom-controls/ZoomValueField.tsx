@@ -13,10 +13,7 @@ type ZoomValueFieldProps = {
 };
 
 export const ZoomValueField = ({ disabled }: ZoomValueFieldProps) => {
-  const {
-    scaleFactor: scaleFactor,
-    setScaleFactor: setScaleFactor,
-  } = useCanvasScaling();
+  const { scaleFactor, setScaleFactor } = useCanvasScaling();
   const [percentage, setPercentage] = useState(Math.round(scaleFactor * 100));
 
   useEffect(() => setPercentage(Math.round(scaleFactor * 100)), [scaleFactor]);
