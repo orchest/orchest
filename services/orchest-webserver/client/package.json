@@ -90,6 +90,6 @@
     "prop-types": "^15.8.1",
     "sass-bin": "^1.43.2",
     "ts-jest": "^28.0.7",
-    "typescript": "4.7.4"
+    "typescript": "4.5.4"
   }
 }
