@@ -9,7 +9,6 @@ import {
 import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
 import { CustomImage } from "@/types";
 import { capitalize } from "@/utils/text";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useBaseImageStore } from "../stores/useBaseImageStore";
 import { getDefaultImageFromEnvironment } from "./useLoadSelectedBaseImage";
@@ -80,23 +79,14 @@ export const useSelectBaseImage = () => {
         return;
       }
 
-      let environmentNameParts: string[] | undefined;
-      for (const language of BASE_IMAGE_LANGUAGES) {
-        const regex = new RegExp(`(^${language})(.*)`, "i");
-        const matches = environmentOnEdit.name.match(regex);
-        if (matches) {
-          environmentNameParts = matches.slice(1, 3);
-          break;
-        }
-      }
+      const envNameWithoutSerialNumber = environmentOnEdit.name
+        .replace(/( )+\(\d+\)?$/, "")
+        .toLowerCase();
 
-      if (
-        hasValue(environmentNameParts) &&
-        environmentNameParts[0].toLowerCase() !== selectedImageLanguage
-      ) {
+      if (BASE_IMAGE_LANGUAGES.has(envNameWithoutSerialNumber)) {
         setEnvironmentOnEdit({
           name: generateUniqueEnvironmentName(
-            `${capitalize(selectedImageLanguage)}${environmentNameParts[1]}`,
+            capitalize(selectedImageLanguage),
             selectedImageLanguage
           ),
         });
