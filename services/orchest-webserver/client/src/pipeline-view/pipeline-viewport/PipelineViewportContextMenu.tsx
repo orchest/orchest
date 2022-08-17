@@ -4,13 +4,14 @@ import {
   ContextMenuItem,
   useContextMenuContext,
 } from "@/components/ContextMenu";
+import { subtractPoints } from "@/utils/geometry";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
+import { SCALE_UNIT, useCanvasScaling } from "../contexts/CanvasScalingContext";
 import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { SCALE_UNIT, useScaleFactor } from "../contexts/ScaleFactorContext";
 import { useDeleteSteps } from "../hooks/useDeleteSteps";
 import { useOpenFile } from "../hooks/useOpenFile";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
@@ -22,7 +23,7 @@ export const usePipelineViewportContextMenu = useContextMenuContext;
 export const PipelineViewportContextMenu = () => {
   const { position, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
   const { isReadOnly, environments } = usePipelineDataContext();
-  const { getOnCanvasPosition } = useScaleFactor();
+  const { canvasPointAtPointer } = useCanvasScaling();
   const {
     uiState: { steps, selectedSteps, contextMenuUuid },
     autoLayoutPipeline,
@@ -36,7 +37,7 @@ export const PipelineViewportContextMenu = () => {
   const selectionContainsNotebooks = React.useMemo(() => {
     return (
       selectedSteps
-        .map((s) => steps[s])
+        .map((uuid) => steps[uuid])
         .filter((step) => step.file_path.endsWith(".ipynb")).length > 0
     );
   }, [selectedSteps, steps]);
@@ -55,10 +56,10 @@ export const PipelineViewportContextMenu = () => {
             action: () => {
               const environment =
                 environments.length > 0 ? environments[0] : null;
-              const canvasPosition = getOnCanvasPosition({
-                x: STEP_WIDTH / 2,
-                y: STEP_HEIGHT / 2,
-              });
+              const canvasPosition = subtractPoints(canvasPointAtPointer(), [
+                STEP_WIDTH / 2,
+                STEP_HEIGHT / 2,
+              ]);
               uiStateDispatch(createStepAction(environment, canvasPosition));
             },
           },

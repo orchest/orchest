@@ -1,10 +1,11 @@
-import { Environment, Position } from "@/types";
+import { Environment } from "@/types";
+import { Point2D } from "@/utils/geometry";
 import { uuidv4 } from "@orchest/lib-utils";
 import { Action } from "../hooks/usePipelineUiState";
 
 export const createStepAction = (
   environment: Environment | null,
-  position: Position,
+  dropPoint: Point2D,
   filePath = ""
 ): Action => {
   return {
@@ -22,7 +23,7 @@ export const createStepAction = (
       environment: environment?.uuid || "",
       parameters: {},
       meta_data: {
-        position: [position.x, position.y],
+        position: dropPoint,
         hidden: false,
       },
     },

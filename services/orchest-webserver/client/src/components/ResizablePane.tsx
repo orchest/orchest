@@ -57,28 +57,26 @@ export const ResizablePane = React.forwardRef<
       if (!localRef.current) return;
 
       if (direction === "vertical") {
+        const [, prevY] = position.current.prev;
         const top = windowOffsetTop(localRef.current);
 
         if (anchor === "top") {
-          setSize(position.current.prev.y - top + HANDLE_SIZE);
+          setSize(prevY - top + HANDLE_SIZE);
         } else {
           const bottom = window.innerHeight - top;
 
-          setSize(
-            window.innerHeight - position.current.prev.y - bottom + HANDLE_SIZE
-          );
+          setSize(window.innerHeight - prevY - bottom + HANDLE_SIZE);
         }
       } else {
         const left = windowOffsetLeft(localRef.current);
+        const [prevX] = position.current.prev;
 
         if (anchor === "left") {
-          setSize(position.current.prev.x - left + HANDLE_SIZE);
+          setSize(prevX - left + HANDLE_SIZE);
         } else {
           const right = window.innerWidth - localRef.current.clientWidth - left;
 
-          setSize(
-            window.innerWidth - position.current.prev.x - right + HANDLE_SIZE
-          );
+          setSize(window.innerWidth - prevX - right + HANDLE_SIZE);
         }
       }
     },

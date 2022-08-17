@@ -1,23 +1,20 @@
-import { getScaleCorrectedPosition } from "@/pipeline-view/common";
+import { useTrackMouse } from "@/hooks/useTrackMouse";
+import { useCanvasScaling } from "@/pipeline-view/contexts/CanvasScalingContext";
 import { usePipelineCanvasContext } from "@/pipeline-view/contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
-import { useScaleFactor } from "@/pipeline-view/contexts/ScaleFactorContext";
-import { getOffset } from "@/utils/jquery-replacement";
+import { getOffset } from "@/utils/element";
+import { addPoints, dividePoint, subtractPoints } from "@/utils/geometry";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 /**A hook that handles all mouse events that within the pipeline viewport. */
 export const useViewportMouseEvents = () => {
   const { disabled } = usePipelineDataContext();
-  const { scaleFactor, trackMouseMovement } = useScaleFactor();
-  const {
-    keysDown,
-    mouseTracker,
-    pipelineCanvasRef,
-    newConnection,
-  } = usePipelineRefs();
+  const { scaleFactor } = useCanvasScaling();
+  const { keysDown, pipelineCanvasRef, newConnection } = usePipelineRefs();
+  const { getMousePoint, getMouseDelta } = useTrackMouse();
 
   const {
     uiStateDispatch,
@@ -31,21 +28,22 @@ export const useViewportMouseEvents = () => {
 
   const hasMouseMoved = React.useRef(false);
   const onMouseMoveDocument = React.useCallback(() => {
-    if (!hasMouseMoved.current) {
+    if (!hasMouseMoved.current || !pipelineCanvasRef.current) {
       // ensure that mouseTracker is in sync, to prevent jumping in some cases.
       hasMouseMoved.current = true;
       return;
     }
-    let canvasOffset = getOffset(pipelineCanvasRef.current);
+
+    const canvasOffset = getOffset(pipelineCanvasRef.current);
+
     // update newConnection's position
     if (newConnection.current) {
-      const { x, y } = getScaleCorrectedPosition({
-        offset: canvasOffset,
-        position: mouseTracker.current.client,
-        scaleFactor,
-      });
+      const end = dividePoint(
+        subtractPoints(getMousePoint(), canvasOffset),
+        scaleFactor
+      );
 
-      newConnection.current = { ...newConnection.current, xEnd: x, yEnd: y };
+      newConnection.current = { ...newConnection.current, end };
     }
 
     if (stepSelector.active) {
@@ -53,25 +51,20 @@ export const useViewportMouseEvents = () => {
     }
 
     if (panningState === "panning") {
-      const dx = mouseTracker.current.unscaledDelta.x;
-      const dy = mouseTracker.current.unscaledDelta.y;
-
       setPipelineCanvasState((current) => ({
-        pipelineOffset: [
-          current.pipelineOffset[0] + dx,
-          current.pipelineOffset[1] + dy,
-        ],
+        pipelineOffset: addPoints(current.pipelineOffset, getMouseDelta()),
       }));
     }
   }, [
-    uiStateDispatch,
     pipelineCanvasRef,
-    scaleFactor,
-    stepSelector.active,
-    mouseTracker,
     newConnection,
+    stepSelector.active,
     panningState,
+    getMousePoint,
+    scaleFactor,
+    uiStateDispatch,
     setPipelineCanvasState,
+    getMouseDelta,
   ]);
 
   const onMouseLeaveViewport = React.useCallback(() => {
@@ -87,22 +80,22 @@ export const useViewportMouseEvents = () => {
   }, [uiStateDispatch, stepSelector.active, newConnection]);
 
   const onMouseDownDocument = React.useCallback(
-    (e: MouseEvent) => {
-      if (e.button === 0 && panningState === "ready-to-pan") {
-        trackMouseMovement(e.clientX, e.clientY);
+    (event: MouseEvent) => {
+      if (event.button === 0 && panningState === "ready-to-pan") {
         setPipelineCanvasState({ panningState: "panning" });
       }
     },
-    [panningState, setPipelineCanvasState, trackMouseMovement]
+    [panningState, setPipelineCanvasState]
   );
 
   const onMouseUpDocument = React.useCallback(
-    (e: MouseEvent) => {
-      if (
-        e.button === 0 &&
+    (event: MouseEvent) => {
+      const shouldPan =
+        event.button === 0 &&
         keysDown.has("Space") &&
-        panningState === "panning"
-      ) {
+        panningState === "panning";
+
+      if (shouldPan) {
         setPipelineCanvasState({ panningState: "ready-to-pan" });
       }
     },
@@ -111,17 +104,18 @@ export const useViewportMouseEvents = () => {
 
   React.useEffect(() => {
     if (disabled) return;
-    const supportPointerEvent = hasValue(window.PointerEvent);
+    const hasPointerEvents = hasValue(window.PointerEvent);
 
-    const downEventType = supportPointerEvent ? "pointerdown" : "mousedown";
-    const upEventType = supportPointerEvent ? "pointerup" : "mouseup";
-    const moveEventType = supportPointerEvent ? "pointermove" : "mousemove";
-    const leaveEventType = supportPointerEvent ? "pointerleave" : "mouseleave";
+    const downEventType = hasPointerEvents ? "pointerdown" : "mousedown";
+    const upEventType = hasPointerEvents ? "pointerup" : "mouseup";
+    const moveEventType = hasPointerEvents ? "pointermove" : "mousemove";
+    const leaveEventType = hasPointerEvents ? "pointerleave" : "mouseleave";
 
     document.body.addEventListener(downEventType, onMouseDownDocument);
     document.body.addEventListener(upEventType, onMouseUpDocument);
     document.body.addEventListener(moveEventType, onMouseMoveDocument);
     document.body.addEventListener(leaveEventType, onMouseLeaveViewport);
+
     return () => {
       document.body.removeEventListener(downEventType, onMouseDownDocument);
       document.body.removeEventListener(upEventType, onMouseUpDocument);
