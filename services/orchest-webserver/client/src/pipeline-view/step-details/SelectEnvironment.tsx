@@ -11,12 +11,7 @@ type EnvironmentOption = {
   label: string;
 };
 
-export const SelectEnvironment = ({
-  value,
-  onChange,
-  disabled,
-  language,
-}: {
+type SelectEnvironmentProps = {
   value: string;
   onChange: (
     updatedEnvironmentUUID: string,
@@ -25,8 +20,16 @@ export const SelectEnvironment = ({
   ) => void;
   disabled: boolean;
   language?: string;
-}) => {
+};
+
+export const SelectEnvironment = ({
+  value,
+  onChange,
+  disabled,
+  language,
+}: SelectEnvironmentProps) => {
   const { environments: allEnvironments = [] } = useEnvironmentsApi();
+
   const environments = React.useMemo(() => {
     return allEnvironments.filter(
       (environment) => environment.language === language

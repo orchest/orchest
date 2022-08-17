@@ -183,9 +183,7 @@ export const StepProperties = ({
       <SelectEnvironment
         value={step.environment}
         disabled={readOnly}
-        language={
-          isNotebookStep ? kernelNameToLanguage(step.kernel.name) : undefined
-        }
+        language={kernelNameToLanguage(step.kernel.name)}
         onChange={onChangeEnvironment}
       />
       <StepParameters isReadOnly={readOnly} setStepChanges={setStepChanges} />
