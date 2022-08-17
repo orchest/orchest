@@ -5,3 +5,6 @@ export const commaSeparatedString = (arr: string[]) => {
 
   return [listStart, listEnd].join(conjunction);
 };
+
+export const capitalize = (str: string) =>
+  str.charAt(0).toUpperCase() + str.slice(1);
