@@ -9,9 +9,10 @@ import {
 import { FetchError } from "@orchest/lib-utils";
 import create from "zustand";
 
-type EnvironmentBuildStatus =
+export type EnvironmentBuildStatus =
   | "allEnvironmentsBuilt"
   | "environmentsNotYetBuilt"
+  | "environmentsFailedToBuild"
   | "environmentsBuildInProgress";
 
 export type EnvironmentsApiState = {
@@ -31,7 +32,9 @@ export type EnvironmentsApiState = {
   ) => Promise<Environment | undefined>;
   isDeleting: boolean;
   delete: (environmentUuid: string) => Promise<void>;
-  validate: () => Promise<EnvironmentBuildStatus | undefined>;
+  buildingEnvironmentCount: number;
+  environmentsToBeBuilt: string[];
+  validate: () => Promise<EnvironmentValidationData | undefined>;
   status: EnvironmentBuildStatus;
   hasLoadedBuildStatus: boolean;
   updateBuildStatus: () => Promise<void>;
@@ -46,13 +49,21 @@ export type EnvironmentsApiState = {
 const getEnvironmentBuildStatus = (
   validationData: EnvironmentValidationData
 ): EnvironmentBuildStatus => {
-  return validationData.validation === "pass"
-    ? "allEnvironmentsBuilt"
-    : validationData.actions.some((action) =>
-        ["BUILD", "RETRY"].includes(action)
-      )
-    ? "environmentsNotYetBuilt"
-    : "environmentsBuildInProgress";
+  if (validationData.validation === "pass") return "allEnvironmentsBuilt";
+
+  let status = "environmentsBuildInProgress";
+  for (const action of validationData.actions) {
+    if (action === "RETRY") {
+      status = "environmentsFailedToBuild";
+      // "environmentsFailedToBuild" has higher priority to be shown in the warning than "environmentsNotYetBuilt".
+      // Therefore, we can break if seeing any "RETRY".
+      break;
+    }
+    if (action === "BUILD") {
+      status = "environmentsNotYetBuilt";
+    }
+  }
+  return status as EnvironmentBuildStatus;
 };
 
 const getEnvironmentFromState = (state: EnvironmentState): Environment => {
@@ -192,7 +203,9 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
         set({ error, isDeleting: false });
       }
     },
-    status: "environmentsNotYetBuilt",
+    status: "allEnvironmentsBuilt",
+    buildingEnvironmentCount: 0,
+    environmentsToBeBuilt: [],
     validate: async () => {
       try {
         const projectUuid = getProjectUuid();
@@ -209,16 +222,22 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
           validatedEnvironments,
           response,
           shouldUpdateEnvironments,
+          buildingEnvironmentCount,
+          environmentsToBeBuilt,
         ] = results;
+
+        const status = getEnvironmentBuildStatus(response);
 
         if (shouldUpdateEnvironments) {
           set({
             environments: validatedEnvironments,
-            status: getEnvironmentBuildStatus(response),
+            status,
+            buildingEnvironmentCount,
+            environmentsToBeBuilt,
           });
         }
 
-        return getEnvironmentBuildStatus(response);
+        return response;
       } catch (error) {
         console.error("Failed to validate environments.");
       }
