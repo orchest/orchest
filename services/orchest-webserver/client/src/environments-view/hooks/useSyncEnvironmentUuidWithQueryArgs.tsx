@@ -57,7 +57,9 @@ export const useSyncEnvironmentUuidWithQueryArgs = () => {
   ]);
 
   const environmentOnEdit = React.useMemo(() => {
-    return findEnvironment(environments, environmentUuid);
+    return environmentUuid
+      ? findEnvironment(environments, environmentUuid)
+      : undefined;
   }, [environments, environmentUuid]);
 
   const { initEnvironmentOnEdit } = useEnvironmentOnEdit();
