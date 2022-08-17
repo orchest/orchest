@@ -10,15 +10,12 @@ export const EditEnvironmentName = () => {
   const [value = "", setValue] = React.useState<string>();
   const [hasEdited, setHasEdited] = React.useState(false);
 
-  const initialized = React.useRef(false);
   React.useEffect(() => {
     if (
       environmentUuid &&
       environmentUuid === environmentOnEdit?.uuid &&
-      !initialized.current &&
       environmentOnEdit?.name
     ) {
-      initialized.current = true;
       setValue(environmentOnEdit?.name);
     }
   }, [environmentOnEdit, environmentUuid]);

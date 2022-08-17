@@ -39,7 +39,7 @@ export type EnvironmentsApiState = {
   hasLoadedBuildStatus: boolean;
   updateBuildStatus: () => Promise<void>;
   isTriggeringBuild: boolean;
-  triggerBuild: (environmentUuid: string) => Promise<void>;
+  triggerBuild: (environmentOnEdit: EnvironmentState) => Promise<void>;
   isCancelingBuild: boolean;
   cancelBuild: (environmentUuid: string) => Promise<void>;
   error?: FetchError;
@@ -275,19 +275,19 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
       }
     },
     isTriggeringBuild: false,
-    triggerBuild: async (environmentUuid: string) => {
+    triggerBuild: async (environmentOnEdit: EnvironmentState) => {
       try {
         const projectUuid = getProjectUuid();
         set({ isTriggeringBuild: true, error: undefined });
         const environmentImageBuild = await environmentsApi.triggerBuild(
           projectUuid,
-          environmentUuid
+          environmentOnEdit.uuid
         );
 
         set((state) => {
           const updatedEnvironments = (state.environments || []).map((env) =>
-            env.uuid === environmentUuid
-              ? { ...env, latestBuild: environmentImageBuild }
+            env.uuid === environmentOnEdit.uuid
+              ? { ...environmentOnEdit, latestBuild: environmentImageBuild }
               : env
           );
           return {
