@@ -52,7 +52,7 @@ export const PipelineEditor = () => {
 
   const { openNotebook, openFilePreviewView } = useOpenFile();
 
-  const { scaleFactor: scaleFactor } = useCanvasScaling();
+  const { scaleFactor } = useCanvasScaling();
   const {
     pipelineCanvasRef,
     pipelineViewportRef,
