@@ -1,3 +1,4 @@
+import { Point2D } from "@/types";
 import { relative } from "@/utils/path";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
@@ -42,10 +43,10 @@ export const useCreateStep = (): StepCreator => {
         const { clientWidth, clientHeight } = pipelineViewportRef.current;
         const [offsetX, offsetY] = pipelineOffset;
 
-        const position = {
-          x: -offsetX + clientWidth / 2 - STEP_WIDTH / 2,
-          y: -offsetY + clientHeight / 2 - STEP_HEIGHT / 2,
-        };
+        const position: Point2D = [
+          -offsetX + clientWidth / 2 - STEP_WIDTH / 2,
+          -offsetY + clientHeight / 2 - STEP_HEIGHT / 2,
+        ];
 
         const stepPath = relativeToPipeline(pipelineCwd, filePath);
 

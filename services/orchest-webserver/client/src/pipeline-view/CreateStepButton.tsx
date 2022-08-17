@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { Point2D } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import Button from "@mui/material/Button";
 import React from "react";
@@ -42,10 +43,10 @@ export const CreateStepButton = () => {
       } = (pipelineViewportRef.current as unknown) as HTMLDivElement;
       const [pipelineOffsetX, pipelineOffsetY] = pipelineOffset;
 
-      const position = {
-        x: -pipelineOffsetX + clientWidth / 2 - STEP_WIDTH / 2,
-        y: -pipelineOffsetY + clientHeight / 2 - STEP_HEIGHT / 2,
-      };
+      const position: Point2D = [
+        -pipelineOffsetX + clientWidth / 2 - STEP_WIDTH / 2,
+        -pipelineOffsetY + clientHeight / 2 - STEP_HEIGHT / 2,
+      ];
 
       uiStateDispatch(createStepAction(environment, position));
     } catch (error) {

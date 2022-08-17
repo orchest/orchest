@@ -1,3 +1,4 @@
+import { Point2D } from "@/utils/geometry";
 import classNames from "classnames";
 
 // set SVG properties
@@ -20,22 +21,15 @@ export const curvedHorizontal = (
   return line.join(" ");
 };
 
-export const getTransformProperty = ({
-  startNodeX,
-  startNodeY,
-  endNodeX = startNodeX,
-  endNodeY = startNodeY,
-}: {
-  startNodeX: number;
-  startNodeY: number;
-  endNodeX?: number;
-  endNodeY?: number;
-}) => {
-  let targetX = endNodeX - startNodeX;
-  let targetY = endNodeY - startNodeY;
+export const getTransformProperty = (
+  [startNodeX, startNodeY]: Point2D,
+  [endNodeX, endNodeY]: Point2D = [startNodeX, startNodeY]
+) => {
+  const targetX = endNodeX - startNodeX;
+  const targetY = endNodeY - startNodeY;
 
-  let xOffset = Math.min(targetX, 0);
-  let yOffset = Math.min(targetY, 0);
+  const xOffset = Math.min(targetX, 0);
+  const yOffset = Math.min(targetY, 0);
 
   const translateX = startNodeX - svgPadding + xOffset;
   const translateY = startNodeY - svgPadding + yOffset - lineHeight / 2;
@@ -45,17 +39,10 @@ export const getTransformProperty = ({
   };
 };
 
-export const getSvgProperties = ({
-  startNodeX,
-  startNodeY,
-  endNodeX = startNodeX,
-  endNodeY = startNodeY,
-}: {
-  startNodeX: number;
-  startNodeY: number;
-  endNodeX?: number;
-  endNodeY?: number;
-}) => {
+export const getSvgProperties = (
+  [startNodeX, startNodeY]: Point2D,
+  [endNodeX, endNodeY]: Point2D = [startNodeX, startNodeY]
+) => {
   const targetX = endNodeX - startNodeX;
   const targetY = endNodeY - startNodeY;
 
