@@ -5,15 +5,33 @@ import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 
 export const EditEnvironmentName = () => {
   const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
+  const [value = "", setValue] = React.useState<string>();
+  const [hasEdited, setHasEdited] = React.useState(false);
+
+  const initialized = React.useRef(false);
+  React.useEffect(() => {
+    if (!initialized.current && environmentOnEdit?.name) {
+      initialized.current = true;
+      setValue(environmentOnEdit?.name);
+    }
+  }, [environmentOnEdit]);
+
+  const isInvalid = hasEdited && value.trim().length === 0;
 
   return (
     <TextField
       required
-      value={environmentOnEdit?.name || ""}
+      value={value}
+      onFocus={() => setHasEdited(true)}
       onChange={(e) => {
-        setEnvironmentOnEdit({ name: e.target.value });
+        setValue(e.target.value);
+        if (e.target.value !== "") {
+          setEnvironmentOnEdit({ name: e.target.value.trim() });
+        }
       }}
       InputLabelProps={{ required: false }}
+      error={isInvalid}
+      helperText={isInvalid ? "Environment name cannot be blank" : " "}
       label="Environment name"
       disabled={isEnvironmentBuilding(environmentOnEdit?.latestBuild)}
       sx={{ width: { xs: "100%", lg: "50%" } }}
