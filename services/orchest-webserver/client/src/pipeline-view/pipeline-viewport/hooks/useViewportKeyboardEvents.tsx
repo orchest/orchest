@@ -1,16 +1,15 @@
-import { originTransformScaling, scaleCorrected } from "@/pipeline-view/common";
-import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
 import {
   DEFAULT_SCALE_FACTOR,
   SCALE_INCREMENTS,
-  useScaleFactor,
-} from "@/pipeline-view/contexts/ScaleFactorContext";
+  useCanvasScaling,
+} from "@/pipeline-view/contexts/CanvasScalingContext";
+import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
 import {
-  INITIAL_PIPELINE_POSITION,
+  INITIAL_PIPELINE_OFFSET,
   usePipelineCanvasState,
 } from "@/pipeline-view/hooks/usePipelineCanvasState";
-import { Point2D } from "@/types";
-import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
+import { getOffset } from "@/utils/element";
+import { multiplyPoint, Point2D } from "@/utils/geometry";
 import { activeElementIsInput } from "@orchest/lib-utils";
 import React from "react";
 import { useViewportGestures } from "./useViewportGestures";
@@ -39,7 +38,7 @@ export const useViewportKeyboardEvents = () => {
     pipelineCanvasRef,
     keysDown,
   } = usePipelineRefs();
-  const { scaleFactor, setScaleFactor } = useScaleFactor();
+  const { scaleFactor, setScaleFactor } = useCanvasScaling();
   const [
     pipelineCanvasState,
     setPipelineCanvasState,
@@ -47,9 +46,8 @@ export const useViewportKeyboardEvents = () => {
 
   const resetPipelineCanvas = React.useCallback(() => {
     setPipelineCanvasState({
-      pipelineOffset: INITIAL_PIPELINE_POSITION,
-      pipelineStepsHolderOffsetLeft: 0,
-      pipelineStepsHolderOffsetTop: 0,
+      pipelineOffset: INITIAL_PIPELINE_OFFSET,
+      pipelineCanvasOffset: [0, 0],
     });
   }, [setPipelineCanvasState]);
 
@@ -58,33 +56,30 @@ export const useViewportKeyboardEvents = () => {
     setScaleFactor(DEFAULT_SCALE_FACTOR);
   }, [setScaleFactor, resetPipelineCanvas]);
 
-  const getCurrentOrigin = React.useCallback(() => {
-    const canvasOffset = getOffset(pipelineCanvasRef.current);
-    const viewportOffset = getOffset(pipelineViewportRef.current ?? undefined);
-
-    const x = canvasOffset.left - viewportOffset.left;
-    const y = canvasOffset.top - viewportOffset.top;
-
-    return { x, y };
-  }, [pipelineCanvasRef, pipelineViewportRef]);
-
-  const setPipelineHolderOrigin = React.useCallback(
+  const setPipelineCanvasOrigin = React.useCallback(
     (newOrigin: Point2D) => {
-      const currentOrigin = getCurrentOrigin();
-      const [translateX, translateY] = originTransformScaling(
-        newOrigin,
-        scaleFactor
-      );
+      const canvasOffset = getOffset(pipelineCanvasRef.current);
+      const viewportOffset = getOffset(pipelineViewportRef.current);
+
+      const [translateX, translateY] = invertScaling(newOrigin, scaleFactor);
+
+      const x = canvasOffset[0] - viewportOffset[0];
+      const y = canvasOffset[1] - viewportOffset[1];
 
       setPipelineCanvasState((current) => ({
         pipelineOrigin: newOrigin,
-        pipelineStepsHolderOffsetLeft:
-          translateX + currentOrigin.x - current.pipelineOffset[0],
-        pipelineStepsHolderOffsetTop:
-          translateY + currentOrigin.y - current.pipelineOffset[1],
+        pipelineCanvasOffset: [
+          x + translateX - current.pipelineOffset[0],
+          y + translateY - current.pipelineOffset[1],
+        ],
       }));
     },
-    [scaleFactor, setPipelineCanvasState, getCurrentOrigin]
+    [
+      pipelineCanvasRef,
+      pipelineViewportRef,
+      scaleFactor,
+      setPipelineCanvasState,
+    ]
   );
 
   const centerPipelineOrigin = React.useCallback(() => {
@@ -94,25 +89,24 @@ export const useViewportKeyboardEvents = () => {
     if (pipelineViewportRef.current === null) {
       return;
     }
-    const viewportWidth = getWidth(pipelineViewportRef.current);
-    const viewportHeight = getHeight(pipelineViewportRef.current);
 
-    const originalX =
-      viewportOffset.left - canvasOffset.left + viewportWidth / 2;
-    const originalY =
-      viewportOffset.top - canvasOffset.top + viewportHeight / 2;
+    const viewportWidth = pipelineViewportRef.current.clientWidth;
+    const viewportHeight = pipelineViewportRef.current.clientHeight;
 
-    const centerOrigin = [
-      scaleCorrected(originalX, scaleFactor),
-      scaleCorrected(originalY, scaleFactor),
-    ] as [number, number];
+    const originalX = viewportOffset[0] - canvasOffset[0] + viewportWidth / 2;
+    const originalY = viewportOffset[1] - canvasOffset[1] + viewportHeight / 2;
 
-    setPipelineHolderOrigin(centerOrigin);
+    const centerOrigin: Point2D = [
+      originalX / scaleFactor,
+      originalY / scaleFactor,
+    ];
+
+    setPipelineCanvasOrigin(centerOrigin);
   }, [
     pipelineCanvasRef,
     pipelineViewportRef,
     scaleFactor,
-    setPipelineHolderOrigin,
+    setPipelineCanvasOrigin,
   ]);
 
   const zoomIn = React.useCallback(() => {
@@ -146,25 +140,27 @@ export const useViewportKeyboardEvents = () => {
   const zoomBy = useViewportGestures(
     setPipelineCanvasState,
     pipelineViewportRef,
-    setPipelineHolderOrigin
+    setPipelineCanvasOrigin
   );
 
   React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (activeElementIsInput()) return;
 
-      if (event.key === " " && !keysDown.has("Space")) {
+      if (event.code === "Space" && !keysDown.has("Space")) {
         // if any element is on focus, pressing space bar is equivalent to mouse click
         // therefore it's needed to remove all "focus" state
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
+
         setPipelineCanvasState({ panningState: "ready-to-pan" });
         keysDown.add("Space");
       }
     };
+
     const keyUpHandler = (event: KeyboardEvent) => {
-      if (event.key === " ") {
+      if (event.code === "Space") {
         setPipelineCanvasState({ panningState: "idle" });
         keysDown.delete("Space");
       }
@@ -185,10 +181,25 @@ export const useViewportKeyboardEvents = () => {
     resetPipelineCanvas,
     centerView,
     centerPipelineOrigin,
-    setPipelineHolderOrigin,
+    setPipelineCanvasOrigin,
     zoomIn,
     zoomOut,
     zoomBy,
     resetZoom,
   };
+};
+
+export const invertScaling = (
+  origin: Readonly<Point2D>,
+  scaleFactor: number
+): Point2D => {
+  /* By multiplying the transform-origin with the scaleFactor we get the right
+   * displacement for the transformed/scaled parent (pipelineStepHolder)
+   * that avoids visual displacement when the origin of the
+   * transformed/scaled parent is modified.
+   *
+   * the adjustedScaleFactor was derived by analyzing the geometric behavior
+   * of applying the css transform: translate(...) scale(...);.
+   */
+  return multiplyPoint(origin, scaleFactor - 1);
 };

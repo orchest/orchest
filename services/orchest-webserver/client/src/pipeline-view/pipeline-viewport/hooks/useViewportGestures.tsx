@@ -1,12 +1,11 @@
-import { Point2D } from "@/types";
-import { getOffset } from "@/utils/jquery-replacement";
+import { Point2D, subtractPoints } from "@/utils/geometry";
 import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import React from "react";
-import { scaleCorrected } from "../../common";
+import { useCanvasScaling } from "../../contexts/CanvasScalingContext";
 import { usePipelineDataContext } from "../../contexts/PipelineDataContext";
-import { usePipelineRefs } from "../../contexts/PipelineRefsContext";
-import { useScaleFactor } from "../../contexts/ScaleFactorContext";
 import { PipelineCanvasState } from "../../hooks/usePipelineCanvasState";
+
+const ZOOM_SCROLL_FACTOR = 0.25;
 
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
@@ -21,24 +20,10 @@ export const useViewportGestures = (
     | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
   >,
   ref: React.MutableRefObject<HTMLDivElement | null>,
-  pipelineSetHolderOrigin: (newOrigin: Point2D) => void
+  setPipelineCanvasOrigin: (origin: Point2D) => void
 ) => {
   const { disabled } = usePipelineDataContext();
-  const { scaleFactor, setScaleFactor, trackMouseMovement } = useScaleFactor();
-  const { pipelineCanvasRef } = usePipelineRefs();
-
-  const getPositionRelativeToCanvas = React.useCallback(
-    ([x, y]: Point2D): Point2D => {
-      trackMouseMovement(x, y); // in case that user start zoom-in/out before moving their cursor
-      const canvasOffset = getOffset(pipelineCanvasRef.current);
-
-      return [
-        scaleCorrected(x - canvasOffset.left, scaleFactor),
-        scaleCorrected(y - canvasOffset.top, scaleFactor),
-      ];
-    },
-    [pipelineCanvasRef, scaleFactor, trackMouseMovement]
-  );
+  const { setScaleFactor, windowToCanvasPoint } = useCanvasScaling();
 
   React.useEffect(() => {
     const preventDefault = (event: Event) => event.preventDefault();
@@ -58,39 +43,37 @@ export const useViewportGestures = (
     (origin: Point2D, delta: number) => {
       if (disabled) return;
 
-      const relativeOrigin = getPositionRelativeToCanvas(origin);
+      const relativeOrigin = windowToCanvasPoint(origin);
 
-      pipelineSetHolderOrigin(relativeOrigin);
+      setPipelineCanvasOrigin(relativeOrigin);
       setScaleFactor((current) => current + delta);
     },
-    [
-      disabled,
-      setScaleFactor,
-      getPositionRelativeToCanvas,
-      pipelineSetHolderOrigin,
-    ]
+    [disabled, setPipelineCanvasOrigin, setScaleFactor, windowToCanvasPoint]
   );
 
   useGesture(
     {
-      onWheel: ({ pinching, wheeling, delta: [deltaX, deltaY] }) => {
+      onWheel: ({ pinching, wheeling, delta }) => {
         if (disabled || pinching || !wheeling) return;
 
         setPipelineCanvasState((current) => ({
-          pipelineOffset: [
-            current.pipelineOffset[0] - deltaX,
-            current.pipelineOffset[1] - deltaY,
-          ],
+          pipelineOffset: subtractPoints(current.pipelineOffset, delta),
         }));
       },
       onPinch: ({ pinching, offset: [offset], event }) => {
         if (disabled || !pinching) return;
+        const { clientX, clientY } = event as WheelEvent | PointerEvent;
 
-        const { clientX, clientY } = event as PointerEvent;
-        const relativeOrigin = getPositionRelativeToCanvas([clientX, clientY]);
+        const originOnCanvas = windowToCanvasPoint([clientX, clientY]);
+        setPipelineCanvasOrigin(originOnCanvas);
 
-        pipelineSetHolderOrigin(relativeOrigin);
-        setScaleFactor(offset);
+        if (event instanceof WheelEvent) {
+          const wheelDelta = (event.deltaY * ZOOM_SCROLL_FACTOR) / 100;
+
+          setScaleFactor((current) => current - wheelDelta);
+        } else {
+          setScaleFactor(offset);
+        }
       },
     },
     {

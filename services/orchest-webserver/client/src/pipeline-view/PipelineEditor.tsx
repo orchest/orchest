@@ -1,16 +1,16 @@
 import { HeadsUpDisplay } from "@/components/HeadsUpDisplay";
 import { useHasChanged } from "@/hooks/useHasChanged";
-import type { Connection, StepState } from "@/types";
-import { getOffset } from "@/utils/jquery-replacement";
+import { Connection, StepState } from "@/types";
+import { getOffset } from "@/utils/element";
+import { createRect, Point2D } from "@/utils/geometry";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { getNodeCenter } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
+import { useCanvasScaling } from "./contexts/CanvasScalingContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
-import { useScaleFactor } from "./contexts/ScaleFactorContext";
 import { useOpenFile } from "./hooks/useOpenFile";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
 import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
@@ -20,20 +20,39 @@ import { PipelineEditorRoot } from "./PipelineEditorRoot";
 import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { ReadOnlyBanner } from "./ReadOnlyBanner";
 import { SaveStatus } from "./SaveStatus";
-import {
-  getStepSelectorRectangle,
-  SelectionRectangle,
-} from "./SelectionRectangle";
+import { SelectionRectangle } from "./SelectionRectangle";
 import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
 import { ZoomControls } from "./zoom-controls/ZoomControls";
+
+const localElementPosition = (
+  [offsetX, offsetY]: Readonly<Point2D>,
+  [parentOffsetX, parentOffsetY]: Readonly<Point2D>,
+  scaleFactor: number
+): Point2D => [
+  (offsetX - parentOffsetX) / scaleFactor,
+  (offsetY - parentOffsetY) / scaleFactor,
+];
+
+const elementCenter = (
+  parentRef: React.MutableRefObject<HTMLDivElement | null>,
+  scaleFactor: number
+) => (node: HTMLElement): Point2D => {
+  const [x, y] = localElementPosition(
+    getOffset(node),
+    getOffset(parentRef.current),
+    scaleFactor
+  );
+
+  return [x + node.clientWidth / 2, y + node.clientHeight / 2];
+};
 
 export const PipelineEditor = () => {
   const { pipelineCwd, isReadOnly, pipelineJson } = usePipelineDataContext();
 
   const { openNotebook, openFilePreviewView } = useOpenFile();
 
-  const { scaleFactor } = useScaleFactor();
+  const { scaleFactor } = useCanvasScaling();
   const {
     pipelineCanvasRef,
     pipelineViewportRef,
@@ -47,7 +66,7 @@ export const PipelineEditor = () => {
       steps,
       selectedSteps,
       connections,
-      cursorControlledStep,
+      grabbedStep,
       selectedConnection,
       openedStep,
       hash,
@@ -58,14 +77,9 @@ export const PipelineEditor = () => {
 
   const hasSteps = Object.keys(steps).length;
 
-  // we need to calculate the canvas offset every time for re-alignment after zoom in/out
-  const canvasOffset = getOffset(pipelineCanvasRef.current);
-
   const getPosition = React.useMemo(() => {
-    return getNodeCenter(canvasOffset, scaleFactor);
-    // we need to memoize getPosition to prevent potential re-rendering,
-    // but we also need real-time canvasOffset for calculation
-  }, [JSON.stringify(canvasOffset), scaleFactor]); // eslint-disable-line react-hooks/exhaustive-deps
+    return elementCenter(pipelineCanvasRef, scaleFactor);
+  }, [pipelineCanvasRef, scaleFactor]);
 
   useSavePipelineJson();
 
@@ -88,14 +102,14 @@ export const PipelineEditor = () => {
   const savePositions = React.useCallback(() => {
     const mutations = draggedStepPositions.current;
 
-    Object.entries(mutations).forEach(([key, position]) => {
+    Object.entries(mutations).forEach(([uuid, position]) => {
       uiStateDispatch((state) => ({
         type: "SAVE_STEP_DETAILS",
         payload: {
+          uuid,
           stepChanges: {
-            meta_data: { position, hidden: state.steps[key].meta_data.hidden },
+            meta_data: { position, hidden: state.steps[uuid].meta_data.hidden },
           },
-          uuid: key,
         },
       }));
     });
@@ -144,8 +158,8 @@ export const PipelineEditor = () => {
     connections.forEach((connection) => {
       const { startNodeUUID, endNodeUUID } = connection;
       const isInteractive =
-        hasValue(cursorControlledStep) &&
-        [startNodeUUID, endNodeUUID].includes(cursorControlledStep);
+        hasValue(grabbedStep) &&
+        [startNodeUUID, endNodeUUID].includes(grabbedStep);
 
       if (isInteractive) {
         interactive.push(connection);
@@ -154,7 +168,7 @@ export const PipelineEditor = () => {
       }
     });
     return [nonInteractive, interactive];
-  }, [connections, cursorControlledStep, flushPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [connections, grabbedStep, flushPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeDetails = React.useCallback(() => {
     uiStateDispatch({ type: "SET_OPENED_STEP", payload: undefined });
@@ -172,34 +186,31 @@ export const PipelineEditor = () => {
           // if the connection is attached to a selected step,
           // the connection should update its start/end node, to move along with the step
           const shouldUpdateStart =
-            cursorControlledStep === startNodeUUID ||
+            grabbedStep === startNodeUUID ||
             (selectedSteps.includes(startNodeUUID) &&
-              selectedSteps.includes(cursorControlledStep || ""));
+              selectedSteps.includes(grabbedStep || ""));
 
           const shouldUpdateEnd =
-            cursorControlledStep === endNodeUUID ||
+            grabbedStep === endNodeUUID ||
             isNew ||
             (selectedSteps.includes(endNodeUUID || "") &&
-              selectedSteps.includes(cursorControlledStep || ""));
+              selectedSteps.includes(grabbedStep || ""));
 
           const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as const;
 
-          const startNodePosition = {
-            x: steps[startNodeUUID].meta_data.position[0] + STEP_WIDTH,
-            y: steps[startNodeUUID].meta_data.position[1] + STEP_HEIGHT / 2,
-          };
+          const startPoint: Point2D = [
+            steps[startNodeUUID].meta_data.position[0] + STEP_WIDTH,
+            steps[startNodeUUID].meta_data.position[1] + STEP_HEIGHT / 2,
+          ];
 
-          const endNodePosition = hasValue(endNodeUUID)
-            ? {
-                x: steps[endNodeUUID].meta_data.position[0],
-                y: steps[endNodeUUID].meta_data.position[1] + STEP_HEIGHT / 2,
-              }
-            : newConnection.current
-            ? {
-                x: newConnection.current.xEnd,
-                y: newConnection.current.yEnd,
-              }
-            : null;
+          const endPoint: Point2D | undefined = hasValue(endNodeUUID)
+            ? [
+                steps[endNodeUUID].meta_data.position[0],
+                steps[endNodeUUID].meta_data.position[1] + STEP_HEIGHT / 2,
+              ]
+            : newConnection.current?.end
+            ? newConnection.current.end
+            : undefined;
 
           const isSelected =
             !hasSelectedSteps &&
@@ -209,7 +220,7 @@ export const PipelineEditor = () => {
           const key = `${startNodeUUID}-${endNodeUUID}-${hash}`;
 
           return (
-            startNodePosition && (
+            startPoint && (
               <PipelineConnection
                 key={key}
                 shouldRedraw={flushPage}
@@ -218,10 +229,8 @@ export const PipelineEditor = () => {
                 startNodeUUID={startNodeUUID}
                 endNodeUUID={endNodeUUID}
                 getPosition={getPosition}
-                startNodeX={startNodePosition.x}
-                startNodeY={startNodePosition.y}
-                endNodeX={endNodePosition?.x}
-                endNodeY={endNodePosition?.y}
+                startPoint={startPoint}
+                endPoint={endPoint ?? startPoint}
                 shouldUpdate={shouldUpdate}
               />
             )
@@ -299,7 +308,9 @@ export const PipelineEditor = () => {
         })}
 
         {stepSelector.active && hasSteps && (
-          <SelectionRectangle {...getStepSelectorRectangle(stepSelector)} />
+          <SelectionRectangle
+            {...createRect(stepSelector.start, stepSelector.end)}
+          />
         )}
       </PipelineViewport>
       <HeadsUpDisplay>

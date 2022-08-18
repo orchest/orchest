@@ -1,15 +1,11 @@
 import {
   NewConnection,
-  Offset,
   PipelineJson,
   PipelineState,
-  Point2D,
-  Position,
   StepNode,
   StepsDict,
   UnidirectionalStepNode,
 } from "@/types";
-import { getOffset } from "@/utils/jquery-replacement";
 import { omit } from "@/utils/record";
 import { setOutgoingConnections } from "@/utils/webserver-utils";
 
@@ -41,60 +37,8 @@ export const instantiateNewConnection = (
   startNodeUUID: string
 ): NewConnection => {
   return {
-    xEnd: undefined,
-    yEnd: undefined,
     startNodeUUID,
     endNodeUUID: undefined,
-  };
-};
-
-export const scaleCorrected = (value: number, scaleFactor: number) => {
-  value /= scaleFactor;
-  return value;
-};
-
-const localElementPosition = (
-  offset: Offset,
-  parentOffset: Offset,
-  scaleFactor: number
-): Position => {
-  return {
-    x: scaleCorrected(offset.left - parentOffset.left, scaleFactor),
-    y: scaleCorrected(offset.top - parentOffset.top, scaleFactor),
-  };
-};
-
-export const getNodeCenter = (parentOffset: Offset, scaleFactor: number) => (
-  node: HTMLElement | undefined | null
-) => {
-  if (!node) return null;
-  let nodePosition = localElementPosition(
-    getOffset(node),
-    parentOffset,
-    scaleFactor
-  );
-
-  nodePosition.x += node.clientWidth / 2;
-  nodePosition.y += node.clientHeight / 2;
-  return nodePosition;
-};
-
-export const getScaleCorrectedPosition = ({
-  position,
-  offset,
-  scaleFactor,
-}: {
-  position: Position;
-  offset: Offset;
-  scaleFactor: number;
-}): Position => {
-  return {
-    x:
-      scaleCorrected(position.x, scaleFactor) -
-      scaleCorrected(offset.left, scaleFactor),
-    y:
-      scaleCorrected(position.y, scaleFactor) -
-      scaleCorrected(offset.top, scaleFactor),
   };
 };
 
@@ -153,22 +97,4 @@ export const createsLoop = (
   }
 
   return false;
-};
-
-export const originTransformScaling = (
-  [x, y]: Point2D,
-  scaleFactor: number
-) => {
-  /* By multiplying the transform-origin with the scaleFactor we get the right
-   * displacement for the transformed/scaled parent (pipelineStepHolder)
-   * that avoids visual displacement when the origin of the
-   * transformed/scaled parent is modified.
-   *
-   * the adjustedScaleFactor was derived by analyzing the geometric behavior
-   * of applying the css transform: translate(...) scale(...);.
-   */
-
-  const scaleInv = scaleFactor - 1;
-
-  return [x * scaleInv, y * scaleInv];
 };

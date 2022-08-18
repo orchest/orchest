@@ -5,15 +5,15 @@ import React, { useEffect, useState } from "react";
 import {
   MAX_SCALE_FACTOR,
   MIN_SCALE_FACTOR,
-  useScaleFactor,
-} from "../contexts/ScaleFactorContext";
+  useCanvasScaling,
+} from "../contexts/CanvasScalingContext";
 
 type ZoomValueFieldProps = {
   disabled: boolean;
 };
 
 export const ZoomValueField = ({ disabled }: ZoomValueFieldProps) => {
-  const { scaleFactor, setScaleFactor } = useScaleFactor();
+  const { scaleFactor, setScaleFactor } = useCanvasScaling();
   const [percentage, setPercentage] = useState(Math.round(scaleFactor * 100));
 
   useEffect(() => setPercentage(Math.round(scaleFactor * 100)), [scaleFactor]);

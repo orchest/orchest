@@ -2,7 +2,7 @@ import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { Position } from "@/types";
+import { Point2D } from "@/utils/geometry";
 import { join } from "@/utils/path";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -22,7 +22,7 @@ export type ContextMenuType = "tree" | "background";
 
 export type ContextMenuMetadata =
   | {
-      position: Position;
+      origin: Point2D;
       type: ContextMenuType;
     }
   | undefined;
@@ -150,8 +150,8 @@ export const FileManagerContextMenu: React.FC<{
       anchorPosition={
         metadata !== undefined
           ? {
-              top: metadata?.position.y || 0,
-              left: metadata?.position.x || 0,
+              top: metadata?.origin[0] ?? 0,
+              left: metadata?.origin[0] ?? 0,
             }
           : undefined
       }

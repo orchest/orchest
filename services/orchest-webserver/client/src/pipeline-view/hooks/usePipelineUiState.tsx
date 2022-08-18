@@ -2,40 +2,30 @@ import { useAppContext } from "@/contexts/AppContext";
 import type {
   Connection,
   NewConnection,
-  Offset,
   ReducerActionWithCallback,
   StepsDict,
   StepState,
 } from "@/types";
+import {
+  createRect,
+  dividePoint,
+  Point2D,
+  rectsIntersect,
+  subtractPoints,
+} from "@/utils/geometry";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
+import { getMousePoint } from "@/utils/mouse";
 import { setOutgoingConnections } from "@/utils/webserver-utils";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
 import React from "react";
-import { createsLoop, getScaleCorrectedPosition } from "../common";
+import { createsLoop } from "../common";
+import { useCanvasScaling } from "../contexts/CanvasScalingContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
-import { useScaleFactor } from "../contexts/ScaleFactorContext";
-import {
-  getStepSelectorRectangle,
-  SelectionRectangleProps,
-} from "../SelectionRectangle";
-
-const intersectRect = (
-  r1: SelectionRectangleProps,
-  r2: SelectionRectangleProps
-) =>
-  !(
-    r2.x > r1.x + r1.width ||
-    r2.x + r2.width < r1.x ||
-    r2.y > r1.y + r1.height ||
-    r2.y + r2.height < r1.y
-  );
 
 type StepSelectorData = {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+  start: Point2D;
+  end: Point2D;
   active: boolean;
 };
 
@@ -46,7 +36,8 @@ export type PipelineUiState = {
   isStepsLoaded?: boolean;
   connections: Connection[];
   selectedSteps: string[];
-  cursorControlledStep: string | undefined;
+  /** The UUID of the step currently controlled by the cursor, or `undefined` if no step is grabbed. */
+  grabbedStep: string | undefined;
   selectedConnection: Pick<Connection, "endNodeUUID" | "startNodeUUID"> | null;
   openedMultiStep?: boolean;
   openedStep?: string;
@@ -134,11 +125,11 @@ export type Action =
     }
   | {
       type: "CREATE_SELECTOR";
-      payload: Offset;
+      payload: Readonly<Point2D>;
     }
   | {
       type: "UPDATE_STEP_SELECTOR";
-      payload: Offset;
+      payload: Readonly<Point2D>;
     }
   | {
       type: "SET_STEP_SELECTOR_INACTIVE";
@@ -165,10 +156,8 @@ export type PipelineUiStateAction =
   | undefined;
 
 const DEFAULT_STEP_SELECTOR: StepSelectorData = {
-  x1: Number.MIN_VALUE,
-  y1: Number.MIN_VALUE,
-  x2: Number.MIN_VALUE,
-  y2: Number.MIN_VALUE,
+  start: [0, 0],
+  end: [0, 0],
   active: false,
 };
 
@@ -217,13 +206,8 @@ function withHash<T extends Record<string, unknown>>(obj: T) {
 
 export const usePipelineUiState = () => {
   const { setAlert } = useAppContext();
-  const {
-    stepRefs,
-    mouseTracker,
-    newConnection,
-    zIndexMax,
-  } = usePipelineRefs();
-  const { scaleFactor } = useScaleFactor();
+  const { stepRefs, newConnection, zIndexMax } = usePipelineRefs();
+  const { scaleFactor } = useCanvasScaling();
 
   const memoizedReducer = React.useCallback(
     (
@@ -350,26 +334,27 @@ export const usePipelineUiState = () => {
       };
 
       /**
-       * Get position for new step so it doesn't spawn on top of other
-       * new steps.
+       * Get position for new step so it doesn't spawn on top of other steps.
        * @param initialPosition Default position of new step.
        * @param baseOffset The offset to use for X and Y.
        */
       const getNewStepPosition = (
-        initialPosition: [number, number],
+        initialPosition: Point2D,
         baseOffset = 15
-      ) => {
-        const stepPositions = new Set();
+      ): Point2D => {
+        const stepPositions = new Set<string>();
         Object.values(state.steps).forEach((step) => {
           // Make position hashable.
           stepPositions.add(String(step.meta_data.position));
         });
 
-        let position = [...initialPosition];
+        let position: Point2D = [...initialPosition];
+
         while (stepPositions.has(String(position))) {
           position = [position[0] + baseOffset, position[1] + baseOffset];
         }
-        return position as [number, number];
+
+        return position as Point2D;
       };
 
       const generateConnections = (steps: StepsDict) => {
@@ -475,22 +460,21 @@ export const usePipelineUiState = () => {
         case "CREATE_SELECTOR": {
           // not dragging the canvas, so user must be creating a selection rectangle
           // NOTE: this also deselect all steps
-          const selectorOrigin = getScaleCorrectedPosition({
-            offset: action.payload,
-            position: mouseTracker.current.client,
-            scaleFactor,
-          });
+          const canvasOffset = action.payload;
+
+          const start = dividePoint(
+            subtractPoints(getMousePoint(), canvasOffset),
+            scaleFactor
+          );
 
           return {
             ...state,
-            cursorControlledStep: undefined,
+            grabbedStep: undefined,
             selectedSteps: [],
             shouldAutoFocus: false,
             stepSelector: {
-              x1: selectorOrigin.x,
-              x2: selectorOrigin.x,
-              y1: selectorOrigin.y,
-              y2: selectorOrigin.y,
+              start,
+              end: start,
               active: true,
             },
           };
@@ -568,36 +552,38 @@ export const usePipelineUiState = () => {
         }
 
         case "SET_CURSOR_CONTROLLED_STEP": {
-          return { ...state, cursorControlledStep: action.payload };
+          return { ...state, grabbedStep: action.payload };
         }
 
         case "UPDATE_STEP_SELECTOR": {
-          const { x, y } = getScaleCorrectedPosition({
-            offset: action.payload,
-            position: mouseTracker.current.client,
-            scaleFactor,
-          });
+          const canvasOffset = action.payload;
 
-          const updatedSelector = { ...state.stepSelector, x2: x, y2: y };
+          const end = dividePoint(
+            subtractPoints(getMousePoint(), canvasOffset),
+            scaleFactor
+          );
 
-          let rect = getStepSelectorRectangle(updatedSelector);
+          const newRect = { ...state.stepSelector, end };
+
+          const rect = createRect(newRect.start, newRect.end);
+
           return produce(state, (draft) => {
-            draft.stepSelector = updatedSelector;
+            draft.stepSelector = newRect;
             // for each step perform intersect
-            if (updatedSelector.active) {
+            if (newRect.active) {
               draft.selectedSteps = [];
               Object.values(state.steps).forEach((step) => {
                 // guard against ref existing, in case step is being added
                 const stepContainer = stepRefs.current[step.uuid];
+
                 if (stepContainer) {
                   const stepRect = {
-                    x: step.meta_data.position[0],
-                    y: step.meta_data.position[1],
+                    origin: step.meta_data.position,
                     width: getOuterWidth(stepContainer),
                     height: getOuterHeight(stepContainer),
                   };
 
-                  if (intersectRect(rect, stepRect)) {
+                  if (rectsIntersect(rect, stepRect)) {
                     draft.selectedSteps.push(step.uuid);
                   }
                 }
@@ -712,20 +698,18 @@ export const usePipelineUiState = () => {
         }
       }
     },
-    [mouseTracker, newConnection, scaleFactor, stepRefs, zIndexMax]
+    [getMousePoint, newConnection, scaleFactor, stepRefs, zIndexMax]
   );
 
   const [uiState, uiStateDispatch] = React.useReducer(memoizedReducer, {
     openedStep: undefined,
     openedMultiStep: undefined,
     selectedSteps: [],
-    cursorControlledStep: undefined,
+    grabbedStep: undefined,
     stepSelector: {
       active: false,
-      x1: 0,
-      y1: 0,
-      x2: 0,
-      y2: 0,
+      start: [0, 0],
+      end: [0, 0],
     },
     steps: {},
     connections: [],

@@ -1,36 +1,34 @@
 import { useDragElement } from "@/hooks/useDragElement";
-import { Position } from "@/types";
+import { Point2D } from "@/utils/geometry";
 import React from "react";
 
 export type ClientPosition = {
-  prev: Position;
-  delta: Position;
+  prev: Point2D;
+  delta: Point2D;
 };
 
 export const useDragElementWithPosition = (
-  onDrag: (
-    position: React.MutableRefObject<{ prev: Position; delta: Position }>
-  ) => void,
-  onStopDragging?: (e?: MouseEvent) => void
+  onDrag: (position: React.MutableRefObject<ClientPosition>) => void,
+  onStopDragging?: (event?: MouseEvent) => void
 ) => {
   const position = React.useRef<ClientPosition>({
-    prev: { x: 0, y: 0 },
-    delta: { x: 0, y: 0 },
+    prev: [0, 0],
+    delta: [0, 0],
   });
 
-  const onStartDragging = React.useCallback((e: React.MouseEvent) => {
-    position.current.prev.x = e.clientX;
-    position.current.delta.x = 0;
-    position.current.prev.y = e.clientY;
-    position.current.delta.y = 0;
+  const onStartDragging = React.useCallback((event: React.MouseEvent) => {
+    position.current.prev[0] = event.clientX;
+    position.current.delta[0] = 0;
+    position.current.prev[1] = event.clientY;
+    position.current.delta[1] = 0;
   }, []);
 
   const onDragging = React.useCallback(
-    (e: MouseEvent) => {
-      position.current.delta.x += e.clientX - position.current.prev.x;
-      position.current.prev.x = e.clientX;
-      position.current.delta.y += e.clientY - position.current.prev.y;
-      position.current.prev.y = e.clientY;
+    (event: MouseEvent) => {
+      position.current.delta[0] += event.clientX - position.current.prev[0];
+      position.current.prev[0] = event.clientX;
+      position.current.delta[1] += event.clientY - position.current.prev[1];
+      position.current.prev[1] = event.clientY;
       onDrag(position);
     },
     [onDrag]
