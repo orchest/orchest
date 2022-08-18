@@ -10,6 +10,9 @@ class Config:
     TESTING = False
     DEV_MODE = os.environ.get("FLASK_ENV") == "development"
 
+    # Whether Orchest is running on single-node. This in turn determines
+    # how pipeline runs are executed; in 1 pod or 1 pod per step.
+    SINGLE_NODE = os.environ.get("SINGLE_NODE") == "TRUE"
     ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
     # must be uppercase
     SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/orchest_api"
