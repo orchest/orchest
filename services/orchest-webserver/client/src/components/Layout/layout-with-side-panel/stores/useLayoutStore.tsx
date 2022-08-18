@@ -15,7 +15,7 @@ export type LayoutState = {
 };
 
 const DEFAULT_MAIN_SIDE_PANEL_WIDTH = 300;
-export const MIN_MAIN_SIDE_PANEL_WIDTH = 256;
+export const MIN_MAIN_SIDE_PANEL_WIDTH = 280;
 const DEFAULT_SECONDARY_SIDE_PANEL_WIDTH = 450;
 export const MIN_SECONDARY_SIDE_PANEL_WIDTH = 420;
 export const MAX_WIDTH = window.innerWidth / 2;
@@ -57,6 +57,7 @@ export const useMainSidePanelWidth = () => {
 
 const selectSecondarySidePanelWidth = (state: LayoutState) =>
   [state.secondarySidePanelWidth, state.setSecondarySidePanelWidth] as const;
+
 export const useSecondarySidePanelWidth = () => {
   const states = useLayoutStore(selectSecondarySidePanelWidth);
   return states;
