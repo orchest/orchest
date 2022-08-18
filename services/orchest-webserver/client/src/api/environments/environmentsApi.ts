@@ -1,6 +1,6 @@
 import { queryArgs } from "@/pipeline-view/file-manager/common";
 import {
-  Environment,
+  EnvironmentData,
   EnvironmentImageBuild,
   EnvironmentSpec,
   EnvironmentState,
@@ -14,21 +14,21 @@ const fetchAll = async (
   language?: string
 ): Promise<EnvironmentState[]> => {
   const queryString = language ? `?${queryArgs({ language })}` : "";
-  const unsortedEnvironment = await fetcher<Environment[]>(
+  const unsortedEnvironment = await fetcher<EnvironmentData[]>(
     `/store/environments/${projectUuid}${queryString}`
   );
   return unsortedEnvironment.sort((a, b) => -1 * a.name.localeCompare(b.name));
 };
 const post = (projectUuid: string, name: string, spec: EnvironmentSpec) =>
-  fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
+  fetcher<EnvironmentData>(`/store/environments/${projectUuid}/new`, {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({
       environment: { ...spec, uuid: "new", name },
     }),
   });
-const put = (projectUuid: string, environment: Environment) =>
-  fetcher<Environment>(
+const put = (projectUuid: string, environment: EnvironmentData) =>
+  fetcher<EnvironmentData>(
     `/store/environments/${projectUuid}/${environment.uuid}`,
     {
       method: "PUT",
@@ -50,6 +50,51 @@ const postValidate = async (projectUuid: string) =>
     }
   );
 
+/**
+ * Derive and map the follow-up action to the environment per failed environment build.
+ * NOTE: will mutate `environmentsMap`.
+ */
+const processFollowupActions = (
+  environmentsMap: Map<string, EnvironmentState>,
+  validationData: EnvironmentValidationData
+) => {
+  const buildingEnvironments: string[] = [];
+  const environmentsToBeBuilt: string[] = [];
+  let hasActionChanged = false;
+  validationData.actions.forEach((action, index) => {
+    const uuid = validationData.fail[index];
+    const environment = environmentsMap.get(uuid);
+    if (!environment) throw new Error("environment unavailable");
+    if (environment.action !== action) hasActionChanged = true;
+    if (action === "WAIT") buildingEnvironments.push(uuid);
+    if (["BUILD", "RETRY"].includes(action)) environmentsToBeBuilt.push(uuid);
+    environment.action = action;
+  });
+  return [
+    buildingEnvironments,
+    environmentsToBeBuilt,
+    hasActionChanged,
+  ] as const;
+};
+
+/**
+ * Remove the `action` of the environment per successful build.
+ * NOTE: will mutate `environmentsMap`.
+ */
+const processSuccessBuilds = (
+  environmentsMap: Map<string, EnvironmentState>,
+  validationData: EnvironmentValidationData
+) => {
+  let hasActionChanged = false;
+  validationData.pass.forEach((uuid) => {
+    const environment = environmentsMap.get(uuid);
+    if (!environment) throw new Error("environment unavailable");
+    if (Boolean(environment.action)) hasActionChanged = true;
+    environment.action = undefined;
+  });
+  return hasActionChanged;
+};
+
 const validate = async (
   projectUuid: string,
   existingEnvironments: EnvironmentState[] = []
@@ -57,34 +102,25 @@ const validate = async (
   | [EnvironmentState[], EnvironmentValidationData, boolean, string[], string[]]
   | FetchError
 > => {
-  let hasActionChanged = false;
   try {
     const response = await postValidate(projectUuid);
-    const envMap = new Map(existingEnvironments.map((env) => [env.uuid, env]));
-    let buildingEnvironments: string[] = [];
-    const environmentsToBeBuilt: string[] = [];
-    const updatedEnvironmentMap = produce(envMap, (draft) => {
-      response.actions.forEach((action, index) => {
-        const uuid = response.fail[index];
-        const environment = draft.get(uuid);
-        if (!environment) throw "refetch";
-        if (environment.action !== action) hasActionChanged = true;
-        if (action === "WAIT") buildingEnvironments.push(uuid);
-        if (["BUILD", "RETRY"].includes(action))
-          environmentsToBeBuilt.push(uuid);
-        environment.action = action;
-      });
-      response.pass.forEach((uuid) => {
-        const environment = draft.get(uuid);
-        if (!environment) throw "refetch";
-        if (Boolean(environment.action)) hasActionChanged = true;
-        environment.action = undefined;
-      });
-    });
-    const environments = Array.from(
-      updatedEnvironmentMap,
-      ([, value]) => value
+    const environmentsMap = new Map(
+      existingEnvironments.map((env) => [env.uuid, env])
     );
+
+    const [
+      buildingEnvironments,
+      environmentsToBeBuilt,
+      hasNewInvalidEnvironmentBuilds,
+    ] = processFollowupActions(environmentsMap, response);
+
+    const hasNewSuccessBuilds = processSuccessBuilds(environmentsMap, response);
+
+    const hasActionChanged =
+      hasNewInvalidEnvironmentBuilds || hasNewSuccessBuilds;
+
+    const environments = Array.from(environmentsMap, ([, value]) => value);
+
     return [
       environments,
       response,
@@ -93,7 +129,7 @@ const validate = async (
       environmentsToBeBuilt,
     ];
   } catch (error) {
-    if (error === "refetch") {
+    if (error.message === "environment unavailable") {
       const latestEnvironments = await fetchAll(projectUuid);
       return validate(projectUuid, latestEnvironments);
     }
@@ -155,7 +191,7 @@ const checkLatestBuilds = async ({
     const updatedEnvironmentMap = produce(envMap, (draft) => {
       response.forEach((build) => {
         const environment = draft.get(build.environment_uuid || "");
-        if (!environment) throw "refetch";
+        if (!environment) throw new Error("requireRefetch");
         if (environment.latestBuild?.status !== build.status)
           hasBuildStateChanged = true;
 
@@ -168,7 +204,7 @@ const checkLatestBuilds = async ({
     );
     return [environments, hasBuildStateChanged];
   } catch (error) {
-    if (error === "refetch") {
+    if (error.message === "requireRefetch") {
       const environmentStates = await fetchAll(projectUuid);
       return checkLatestBuilds({ projectUuid, environmentStates });
     }
