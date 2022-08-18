@@ -46,7 +46,7 @@ func TestIsCalVersion(t *testing.T) {
 	}
 }
 
-func TestPatseImageName(t *testing.T) {
+func TestParseImageName(t *testing.T) {
 	tests := []struct {
 		name      string
 		imageName string
