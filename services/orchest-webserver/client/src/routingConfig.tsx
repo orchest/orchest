@@ -7,7 +7,6 @@ export type RouteName =
   | "jupyterLab"
   | "filePreview"
   | "environments"
-  | "environment"
   | "jobs"
   | "job"
   | "jobRun"
@@ -74,12 +73,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       name: "environments",
       path: "/environments",
       title: getTitle("Environments"),
-    },
-    {
-      name: "environment",
-      path: "/environment",
-      root: "/environments",
-      title: getTitle("Environment"),
     },
     {
       name: "jobs",
@@ -230,7 +223,6 @@ export const generatePathFromRoute = <T extends string>(
 // Exclude detail views
 const excludedPaths = [
   siteMap.pipeline.path,
-  siteMap.environment.path,
   siteMap.projectSettings.path,
   siteMap.jupyterLab.path,
   siteMap.filePreview.path,
