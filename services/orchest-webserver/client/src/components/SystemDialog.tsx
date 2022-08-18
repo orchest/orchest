@@ -44,17 +44,6 @@ const DelayedFocusButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }
 );
 
-const setElementKeys = (
-  node: string | React.ReactElement | JSX.Element[],
-  baseKey: string
-) => {
-  return Array.isArray(node)
-    ? node.map((element, index) =>
-        React.cloneElement(element, { key: `${baseKey}-${index}` })
-      )
-    : node;
-};
-
 export const SystemDialog = () => {
   const {
     state: { promptMessages },
@@ -110,15 +99,8 @@ export const SystemDialog = () => {
           confirm();
         }}
       >
-        <DialogTitle>
-          {setElementKeys(
-            promptMessage.title || "Error",
-            "system-dialog-content"
-          )}
-        </DialogTitle>
-        <DialogContent>
-          {setElementKeys(promptMessage.content, "system-dialog-content")}
-        </DialogContent>
+        <DialogTitle>{promptMessage.title || "Error"}</DialogTitle>
+        <DialogContent>{promptMessage.content}</DialogContent>
         <DialogActions>
           {isCancellable && (
             <Button onClick={cancel} tabIndex={-1}>
