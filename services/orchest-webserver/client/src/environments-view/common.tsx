@@ -148,6 +148,7 @@ export const LANGUAGE_MAP: Record<Language, string> = {
 export const DEFAULT_BASE_IMAGES: (CustomImage & {
   img_src: string;
   label: string;
+  unavailable?: boolean;
 })[] = [
   {
     base_image: "orchest/base-kernel-py",
@@ -155,13 +156,6 @@ export const DEFAULT_BASE_IMAGES: (CustomImage & {
     language: "python",
     gpu_support: false,
     label: "Python",
-  },
-  {
-    base_image: "orchest/base-kernel-py-gpu",
-    img_src: "/image/python_logo.svg",
-    language: "python",
-    gpu_support: true,
-    label: "Python GPU",
   },
   {
     base_image: "orchest/base-kernel-r",

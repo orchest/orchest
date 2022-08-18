@@ -5,7 +5,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { DEFAULT_BASE_IMAGES, GPU_SUPPORT_ENABLED } from "../common";
+import { DEFAULT_BASE_IMAGES } from "../common";
 import { BaseImageHeader } from "./BaseImageHeader";
 import { BaseImageRadioOption } from "./BaseImageRadioOption";
 import { CustomImageDetails } from "./CustomImageDetails";
@@ -51,30 +51,29 @@ export const EnvironmentImagesRadioGroup = () => {
           <BaseImageHeader />
         </FormLabel>
         <BaseImageRadioGroup>
-          {DEFAULT_BASE_IMAGES.map(({ base_image, img_src, label }) => {
-            const isUnavailable =
-              !GPU_SUPPORT_ENABLED &&
-              base_image === "orchest/base-kernel-py-gpu";
-            const title = isUnavailable
-              ? "Temporarily unavailable"
-              : base_image;
-            return (
-              <BaseImageRadioOption
-                key={base_image}
-                title={title}
-                value={base_image}
-                disabled={isUnavailable}
-              >
-                <Image
-                  src={`${img_src}`}
-                  alt={title}
-                  loading="lazy"
-                  sx={isUnavailable ? { filter: "grayscale(100%)" } : undefined}
-                />
-                <Typography variant="body2">{label}</Typography>
-              </BaseImageRadioOption>
-            );
-          })}
+          {DEFAULT_BASE_IMAGES.map(
+            ({ base_image, img_src, label, unavailable }) => {
+              const title = unavailable
+                ? "Temporarily unavailable"
+                : base_image;
+              return (
+                <BaseImageRadioOption
+                  key={base_image}
+                  title={title}
+                  value={base_image}
+                  disabled={unavailable}
+                >
+                  <Image
+                    src={`${img_src}`}
+                    alt={title}
+                    loading="lazy"
+                    sx={unavailable ? { filter: "grayscale(100%)" } : undefined}
+                  />
+                  <Typography variant="body2">{label}</Typography>
+                </BaseImageRadioOption>
+              );
+            }
+          )}
           <CustomImageRadioOption />
         </BaseImageRadioGroup>
       </FormControl>
