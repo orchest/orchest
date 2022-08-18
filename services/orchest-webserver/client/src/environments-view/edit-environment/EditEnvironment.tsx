@@ -14,12 +14,24 @@ import { EnvironmentSetupScript } from "./EnvironmentSetupScript";
 export const EditEnvironment = () => {
   return (
     <EditEnvironmentContainer>
-      <Stack direction="row" spacing={2} alignItems="center">
-        <EnvironmentName />
-        <BuildEnvironmentButton />
-        <EnvironmentMoreOptions />
+      <Stack
+        sx={{
+          position: "sticky",
+          top: 0,
+          backgroundColor: (theme) => theme.palette.background.paper,
+          zIndex: 2,
+          paddingTop: (theme) => theme.spacing(5),
+        }}
+        direction="column"
+        spacing={3}
+      >
+        <Stack direction="row" spacing={2} alignItems="center">
+          <EnvironmentName />
+          <BuildEnvironmentButton />
+          <EnvironmentMoreOptions />
+        </Stack>
+        <BuildStatusAlert />
       </Stack>
-      <BuildStatusAlert />
       <Typography component="h5" variant="h6">
         Properties
       </Typography>

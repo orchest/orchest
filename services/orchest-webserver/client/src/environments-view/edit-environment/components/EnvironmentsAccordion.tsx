@@ -23,9 +23,13 @@ export const EnvironmentsAccordion = (props: AccordionProps) => {
 
 export const EnvironmentsAccordionSummary = styled(
   (props: AccordionSummaryProps) => (
-    <MuiAccordionSummary expandIcon={<ArrowForwardIosSharpIcon />} {...props} />
+    <MuiAccordionSummary
+      expandIcon={<ArrowForwardIosSharpIcon fontSize="small" />}
+      {...props}
+    />
   )
 )(({ theme }) => ({
+  paddingLeft: 0,
   flexDirection: "row-reverse",
   "& .MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
     transform: "rotate(90deg)",

@@ -9,7 +9,10 @@ export const EnvironmentsView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
 
   return (
-    <LayoutWithSidePanel sidePanel={<EnvironmentMenuList />}>
+    <LayoutWithSidePanel
+      sidePanel={<EnvironmentMenuList />}
+      mainContainerProps={{ disablePadding: true }}
+    >
       <EditEnvironment />
     </LayoutWithSidePanel>
   );

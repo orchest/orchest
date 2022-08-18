@@ -22,7 +22,11 @@ const BaseImageRadioGroup = ({ children }: { children: React.ReactNode }) => {
       onChange={(e, value) => {
         selectBaseImage(value);
       }}
-      sx={{ display: "flex", flexFlow: "row wrap" }}
+      sx={{
+        display: "flex",
+        flexFlow: "row wrap",
+        paddingLeft: (theme) => theme.spacing(0.5),
+      }}
     >
       {children}
     </RadioGroup>
