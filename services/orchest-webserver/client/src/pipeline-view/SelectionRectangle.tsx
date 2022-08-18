@@ -8,8 +8,8 @@ export const SelectionRectangle = ({ origin: [x, y], width, height }: Rect) => {
       style={{
         left: x,
         top: y,
-        width: width,
-        height: height,
+        width,
+        height,
       }}
     />
   );
