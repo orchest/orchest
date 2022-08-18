@@ -451,8 +451,8 @@ def _step_to_workflow_manifest_task(
             "dependencies": [
                 f'step-{pstep.properties["uuid"]}' for pstep in step.parents
             ],
-            "env": env_variables,
             "restartPolicy": "Never",
+            "env": env_variables,
             "image": image,
             "command": [
                 "/orchest/bootscript.sh",
@@ -541,6 +541,8 @@ def _get_pipeline_argo_templates(
                     "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
                 },
                 "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},
+                # NOTE: Argo only allows a "dag" or "steps" template to
+                # reference another template.
                 "containerSet": {
                     "terminationGracePeriodSeconds": 1,
                     "failFast": True,
@@ -550,7 +552,7 @@ def _get_pipeline_argo_templates(
                         for step in pipeline.steps
                     ],
                 },
-            }
+            },
         ]
 
     else:
@@ -564,7 +566,7 @@ def _get_pipeline_argo_templates(
         # while the second entry is the step definition.
         templates = [
             {
-                "name": "pipeline",
+                "name": entrypoint_name,
                 "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
                 "dag": {
                     "failFast": True,
@@ -705,24 +707,45 @@ async def run_pipeline_workflow(
                 )
                 workflow_nodes: dict = resp.get("status", {}).get("nodes", {})
                 for step in workflow_nodes.values():
-                    # The nodes includes the entire "pipeline" node etc.
-                    if step["templateName"] != "step":
-                        continue
-                    # The step was not run because the workflow failed.
-                    if "inputs" not in step:
-                        continue
-                    if step.get("type", "") != "Pod":
-                        continue
+                    if CONFIG_CLASS.SINGLE_NODE:
+                        if step.get("type", "") != "Container":
+                            continue
 
-                    for param in step["inputs"]["parameters"]:
-                        if param["name"] == "step_uuid":
-                            step_uuid = param["value"]
-                            break
+                        # Argo doesn't allow to work with templates for
+                        # a containerSet. Thus we fall back to the name
+                        # we gave to steps, which includes its uuid.
+                        step_uuid = step.get("displayName")
+                        if step_uuid is None:
+                            # Should never happen.
+                            raise Exception(
+                                "Did not find step_uuid in step parameters."
+                                f" Step: {step}."
+                            )
+                        else:
+                            step_uuid = step_uuid.replace("step-", "")
+
                     else:
-                        # Should never happen.
-                        raise Exception(
-                            f"Did not find step_uuid in step parameters. Step: {step}."
-                        )
+                        # The nodes includes the entire "pipeline" node
+                        if step["templateName"] != "step":
+                            continue
+                        # The step was not run because the workflow
+                        # failed.
+                        if "inputs" not in step:
+                            continue
+                        if step.get("type", "") != "Pod":
+                            continue
+
+                        for param in step["inputs"]["parameters"]:
+                            if param["name"] == "step_uuid":
+                                step_uuid = param["value"]
+                                break
+                        else:
+                            # Should never happen.
+                            raise Exception(
+                                "Did not find step_uuid in step parameters."
+                                f" Step: {step}."
+                            )
+
                     step_status = step["phase"]
                     step_message = step.get("message", "")
                     step_status_update = None
