@@ -22,6 +22,19 @@ always make a deepcopy of objects as to not change the objects in the informer's
 Note, that there is one go routine per queue as to not concurrently work on tasks from the same
 queue.
 
+### Specification
+
+#### Specifying custom images in the `OrchestCluster` CR
+
+Details can be found here: [PR #1205](https://github.com/orchest/orchest/pull/1205).
+
+In short, a custom image can be specified for an Orchest service. This image can have a custom
+registry, name and/or tag. When the custom image is specified in the `OrchestCluster` CR on
+creation, then the `orchest-controller` will deploy the image to be used.
+
+On `orchest update` all non-custom images will be updated as regular, whereas custom images will
+remain unchanged.
+
 ## Telemetry Events
 
 The Orchest shared library provides a module
