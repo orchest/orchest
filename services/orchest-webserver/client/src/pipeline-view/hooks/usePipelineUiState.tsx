@@ -1,5 +1,4 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useTrackMouse } from "@/hooks/useTrackMouse";
 import type {
   Connection,
   NewConnection,
@@ -15,6 +14,7 @@ import {
   subtractPoints,
 } from "@/utils/geometry";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
+import { getMousePoint } from "@/utils/mouse";
 import { setOutgoingConnections } from "@/utils/webserver-utils";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
@@ -208,7 +208,6 @@ export const usePipelineUiState = () => {
   const { setAlert } = useAppContext();
   const { stepRefs, newConnection, zIndexMax } = usePipelineRefs();
   const { scaleFactor } = useCanvasScaling();
-  const { getMousePoint } = useTrackMouse();
 
   const memoizedReducer = React.useCallback(
     (

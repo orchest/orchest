@@ -1,4 +1,3 @@
-import { useTrackMouse } from "@/hooks/useTrackMouse";
 import { useCanvasScaling } from "@/pipeline-view/contexts/CanvasScalingContext";
 import { usePipelineCanvasContext } from "@/pipeline-view/contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
@@ -6,6 +5,7 @@ import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
 import { getOffset } from "@/utils/element";
 import { addPoints, dividePoint, subtractPoints } from "@/utils/geometry";
+import { getMouseDelta, getMousePoint } from "@/utils/mouse";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
@@ -14,7 +14,6 @@ export const useViewportMouseEvents = () => {
   const { disabled } = usePipelineDataContext();
   const { scaleFactor } = useCanvasScaling();
   const { keysDown, pipelineCanvasRef, newConnection } = usePipelineRefs();
-  const { getMousePoint, getMouseDelta } = useTrackMouse();
 
   const {
     uiStateDispatch,

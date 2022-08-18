@@ -2,7 +2,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
-import { useTrackMouse } from "@/hooks/useTrackMouse";
 import {
   Connection,
   PipelineStepStatus,
@@ -10,6 +9,7 @@ import {
   StepState,
 } from "@/types";
 import { addPoints, dividePoint, Point2D } from "@/utils/geometry";
+import { getMouseDelta } from "@/utils/mouse";
 import Box from "@mui/material/Box";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
@@ -166,7 +166,6 @@ const PipelineStepComponent = React.forwardRef<
     zIndexMax,
     newConnection,
   } = usePipelineRefs();
-  const { getMouseDelta } = useTrackMouse();
   const {
     uiState: { stepSelector, grabbedStep, selectedSteps, selectedConnection },
     uiStateDispatch,
