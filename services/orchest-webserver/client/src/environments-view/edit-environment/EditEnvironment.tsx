@@ -4,6 +4,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { BuildEnvironmentButton } from "../BuildEnvironmentButton";
 import { EnvironmentMoreOptions } from "../EnvironmentMoreOptions";
+import { useUpdateEnvironmentOnUnmount } from "../hooks/useUpdateEnvironmentOnUnmount";
 import { BuildStatusAlert } from "./BuildStatusAlert";
 import { EditEnvironmentContainer } from "./EditEnvironmentContainer";
 import { EditEnvironmentName } from "./EditEnvironmentName";
@@ -12,6 +13,7 @@ import { EnvironmentName } from "./EnvironmentName";
 import { EnvironmentSetupScript } from "./EnvironmentSetupScript";
 
 export const EditEnvironment = () => {
+  useUpdateEnvironmentOnUnmount();
   return (
     <EditEnvironmentContainer>
       <Stack
