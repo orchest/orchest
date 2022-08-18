@@ -3,7 +3,7 @@ import Collapse from "@mui/material/Collapse";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { BuildStatusIcon } from "../BuildStatusIcon";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 const alertMessageMapping: Record<
   "FAILURE" | "SUCCESS" | "ABORTED",
@@ -24,8 +24,8 @@ const alertMessageMapping: Record<
 };
 
 export const BuildStatusAlert = () => {
-  const { environmentOnEdit } = useEnvironmentOnEdit();
-  const latestBuildStatus = environmentOnEdit?.latestBuild?.status;
+  const { environmentChanges } = useEditEnvironment();
+  const latestBuildStatus = environmentChanges?.latestBuild?.status;
 
   const alert = alertMessageMapping[latestBuildStatus || ""];
   return (
@@ -34,7 +34,7 @@ export const BuildStatusAlert = () => {
         <Alert
           severity={alert.severity}
           icon={
-            <BuildStatusIcon latestBuild={environmentOnEdit?.latestBuild} />
+            <BuildStatusIcon latestBuild={environmentChanges?.latestBuild} />
           }
         >
           {alert.message}

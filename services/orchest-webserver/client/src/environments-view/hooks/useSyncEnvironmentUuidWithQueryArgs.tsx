@@ -3,7 +3,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import React from "react";
 import { findEnvironment } from "../common";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "../stores/useEditEnvironment";
 import { useSelectEnvironmentUuid } from "../stores/useSelectEnvironmentUuid";
 
 /**
@@ -56,15 +56,15 @@ export const useSyncEnvironmentUuidWithQueryArgs = () => {
     setEnvironmentUuid,
   ]);
 
-  const environmentOnEdit = React.useMemo(() => {
+  const environmentChanges = React.useMemo(() => {
     return environmentUuid
       ? findEnvironment(environments, environmentUuid)
       : undefined;
   }, [environments, environmentUuid]);
 
-  const { initEnvironmentOnEdit } = useEnvironmentOnEdit();
+  const { initEnvironmentChanges } = useEditEnvironment();
 
   React.useEffect(() => {
-    if (environmentOnEdit) initEnvironmentOnEdit(environmentOnEdit);
-  }, [environmentOnEdit, initEnvironmentOnEdit]);
+    if (environmentChanges) initEnvironmentChanges(environmentChanges);
+  }, [environmentChanges, initEnvironmentChanges]);
 };

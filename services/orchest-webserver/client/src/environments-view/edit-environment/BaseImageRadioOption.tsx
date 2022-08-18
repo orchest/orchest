@@ -10,7 +10,7 @@ import { visuallyHidden } from "@mui/utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { isEnvironmentBuilding } from "../common";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 type BaseImageRadioOptionProps = {
   disabled?: boolean;
@@ -77,9 +77,9 @@ export const BaseImageRadioOption = React.memo(function BaseImageRadioOption({
   children,
   ...props
 }: BaseImageRadioOptionProps) {
-  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentChanges } = useEditEnvironment();
   const disabledOnBuilding = isEnvironmentBuilding(
-    environmentOnEdit?.latestBuild
+    environmentChanges?.latestBuild
   );
 
   return (

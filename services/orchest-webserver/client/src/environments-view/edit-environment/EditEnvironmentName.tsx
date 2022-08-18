@@ -2,23 +2,23 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import TextField from "@mui/material/TextField";
 import React from "react";
 import { isEnvironmentBuilding } from "../common";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 export const EditEnvironmentName = () => {
   const { environmentUuid } = useCustomRoute();
-  const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentChanges, setEnvironmentChanges } = useEditEnvironment();
   const [value = "", setValue] = React.useState<string>();
   const [hasEdited, setHasEdited] = React.useState(false);
 
   React.useEffect(() => {
     if (
       environmentUuid &&
-      environmentUuid === environmentOnEdit?.uuid &&
-      environmentOnEdit?.name
+      environmentUuid === environmentChanges?.uuid &&
+      environmentChanges?.name
     ) {
-      setValue(environmentOnEdit?.name);
+      setValue(environmentChanges?.name);
     }
-  }, [environmentOnEdit, environmentUuid]);
+  }, [environmentChanges, environmentUuid]);
 
   const isInvalid = hasEdited && value.trim().length === 0;
 
@@ -27,19 +27,19 @@ export const EditEnvironmentName = () => {
       required
       value={value}
       onFocus={() => setHasEdited(true)}
-      onBlur={() => setEnvironmentOnEdit({ name: value.trim() })}
+      onBlur={() => setEnvironmentChanges({ name: value.trim() })}
       onChange={({ target }) => {
         setValue(target.value);
 
         if (target.value) {
-          setEnvironmentOnEdit({ name: target.value });
+          setEnvironmentChanges({ name: target.value });
         }
       }}
       InputLabelProps={{ required: false }}
       error={isInvalid}
       helperText={isInvalid ? "Environment name cannot be blank" : " "}
       label="Environment name"
-      disabled={isEnvironmentBuilding(environmentOnEdit?.latestBuild)}
+      disabled={isEnvironmentBuilding(environmentChanges?.latestBuild)}
       sx={{ width: { xs: "100%", lg: "50%" } }}
     />
   );

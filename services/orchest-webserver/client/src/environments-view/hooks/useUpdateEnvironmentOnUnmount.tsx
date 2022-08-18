@@ -1,31 +1,31 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import React from "react";
 import { extractEnvironmentFromState } from "../common";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 /**
- * Update useEnvironmentApi with environmentOnEdit on unmount.
+ * Update useEnvironmentApi with environmentChanges on unmount.
  * To keep useEnvironmentApi updated when user leaves the environment editing view.
  */
 export const useUpdateEnvironmentOnUnmount = () => {
   const setEnvironment = useEnvironmentsApi((state) => state.setEnvironment);
 
-  const environmentOnEditRef = React.useRef(
-    useEnvironmentOnEdit.getState().environmentOnEdit
+  const environmentChangesRef = React.useRef(
+    useEditEnvironment.getState().environmentChanges
   );
 
   React.useEffect(
     () =>
-      useEnvironmentOnEdit.subscribe(
-        (state) => (environmentOnEditRef.current = state.environmentOnEdit)
+      useEditEnvironment.subscribe(
+        (state) => (environmentChangesRef.current = state.environmentChanges)
       ),
     []
   );
 
   const updateEnvironment = React.useCallback(() => {
     const environment =
-      environmentOnEditRef.current &&
-      extractEnvironmentFromState(environmentOnEditRef.current);
+      environmentChangesRef.current &&
+      extractEnvironmentFromState(environmentChangesRef.current);
     if (environment) {
       setEnvironment(environment.uuid, environment);
     }

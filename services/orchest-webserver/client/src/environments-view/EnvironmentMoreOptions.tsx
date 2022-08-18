@@ -10,7 +10,7 @@ import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useSelectEnvironment } from "./hooks/useSelectEnvironment";
-import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "./stores/useEditEnvironment";
 
 const getNextEnvironmentUuid = (
   environments: EnvironmentState[],
@@ -27,7 +27,7 @@ const getNextEnvironmentUuid = (
 
 export const EnvironmentMoreOptions = () => {
   const { setConfirm } = useGlobalContext();
-  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentChanges } = useEditEnvironment();
   const { selectEnvironment } = useSelectEnvironment();
   const [
     deleteEnvironment,
@@ -48,18 +48,18 @@ export const EnvironmentMoreOptions = () => {
 
   const showDeleteEnvironmentDialog = () => {
     handleClose();
-    if (!environmentOnEdit) return;
+    if (!environmentChanges) return;
     setConfirm(
-      `Delete "${environmentOnEdit.name}"`,
+      `Delete "${environmentChanges.name}"`,
       "Are you sure you want to delete this Environment?",
       {
         onConfirm: (resolve) => {
           const nextEnvironmentUuid = getNextEnvironmentUuid(
             environments,
-            environmentOnEdit.uuid
+            environmentChanges.uuid
           );
 
-          deleteEnvironment(environmentOnEdit).then(() => {
+          deleteEnvironment(environmentChanges).then(() => {
             selectEnvironment(nextEnvironmentUuid);
             resolve(true);
           });
@@ -96,7 +96,7 @@ export const EnvironmentMoreOptions = () => {
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <MenuItem
-          disabled={!hasValue(environmentOnEdit) || isDeleting}
+          disabled={!hasValue(environmentChanges) || isDeleting}
           onClick={showDeleteEnvironmentDialog}
         >
           <ListItemIcon>

@@ -1,6 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { DEFAULT_BASE_IMAGES } from "@/environments-view/common";
-import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "@/environments-view/stores/useEditEnvironment";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Environment } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
@@ -29,7 +29,7 @@ export const getDefaultImageFromEnvironment = (
 export const useLoadSelectedBaseImage = () => {
   const { orchestVersion } = useAppContext();
   const { environmentUuid, projectUuid } = useCustomRoute();
-  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentChanges } = useEditEnvironment();
 
   const [setSelectedImage, setCustomImage] = useBaseImageStore((state) => [
     state.setSelectedImage,
@@ -38,14 +38,14 @@ export const useLoadSelectedBaseImage = () => {
 
   const isLoaded = React.useRef(false);
   const hasDataFetched =
-    hasValue(environmentOnEdit) &&
-    environmentUuid === environmentOnEdit.uuid &&
-    projectUuid === environmentOnEdit.project_uuid;
+    hasValue(environmentChanges) &&
+    environmentUuid === environmentChanges.uuid &&
+    projectUuid === environmentChanges.project_uuid;
 
   const load = React.useCallback(() => {
     if (!isLoaded.current && hasDataFetched) {
       isLoaded.current = true;
-      const { base_image, language, gpu_support } = environmentOnEdit;
+      const { base_image, language, gpu_support } = environmentChanges;
       const savedImage = { base_image, language, gpu_support };
       // From the BE perspective, `orchest/base-kernel-py` means latest, equivalent to `orchest/base-kernel-py:${current_orchest_version}`.
       // If the image is, for example, orchest/base-kernel-py, BE will fill the latest matching version of the image, e.g. `orchest/base-kernel-py:v2022.05.3`.
@@ -57,14 +57,14 @@ export const useLoadSelectedBaseImage = () => {
       );
 
       setSelectedImage(
-        environmentOnEdit.uuid,
+        environmentChanges.uuid,
         selectedDefaultImage || savedImage
       );
       if (!selectedDefaultImage)
-        setCustomImage(environmentOnEdit.uuid, savedImage);
+        setCustomImage(environmentChanges.uuid, savedImage);
     }
   }, [
-    environmentOnEdit,
+    environmentChanges,
     hasDataFetched,
     orchestVersion,
     setCustomImage,
