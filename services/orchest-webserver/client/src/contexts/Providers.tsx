@@ -23,7 +23,7 @@ export const DesignProvider: React.FC = ({ children }) => {
 
 /**
  * Providers that are specific to Orchest core, outer provider represents higher-level logic
- * - AppContext: app config, top-level UI config
+ * - GlobalContext: app config, top-level UI config
  * - SessionsContext: handling sessions for the user
  * - ProjectsContext: handling the logic for projects, pipelines, etc.
  */
