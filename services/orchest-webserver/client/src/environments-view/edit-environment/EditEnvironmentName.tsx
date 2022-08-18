@@ -10,15 +10,14 @@ export const EditEnvironmentName = () => {
   const [value = "", setValue] = React.useState<string>();
   const [hasEdited, setHasEdited] = React.useState(false);
 
+  const isEnvironmentLoaded =
+    environmentUuid && environmentUuid === environmentChanges?.uuid;
+
   React.useEffect(() => {
-    if (
-      environmentUuid &&
-      environmentUuid === environmentChanges?.uuid &&
-      environmentChanges?.name
-    ) {
+    if (isEnvironmentLoaded && environmentChanges?.name) {
       setValue(environmentChanges?.name);
     }
-  }, [environmentChanges, environmentUuid]);
+  }, [environmentChanges?.name, isEnvironmentLoaded, environmentUuid]);
 
   const isInvalid = hasEdited && value.trim().length === 0;
 
