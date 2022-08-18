@@ -23,4 +23,4 @@ deployment
               fieldRef:
                 fieldPath: metadata.namespace
           - name: VERSION
-            value: {{ Values.image.tag }}
+            value: {{ .Values.image.tag }}
