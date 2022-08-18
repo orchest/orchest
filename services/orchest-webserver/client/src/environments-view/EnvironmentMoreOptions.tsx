@@ -1,6 +1,7 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { IconButton } from "@/components/common/IconButton";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { EnvironmentState } from "@/types";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cspell:disable-line
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -8,14 +9,34 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useSelectEnvironment } from "./hooks/useSelectEnvironment";
 import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
+
+const getNextEnvironmentUuid = (
+  environments: EnvironmentState[],
+  environmentUuid: string
+) => {
+  const indexToDelete = environments.findIndex(
+    (environment) => environment.uuid === environmentUuid
+  );
+  const nextEnvironmentIndex =
+    indexToDelete === environments.length - 1 ? 0 : indexToDelete + 1;
+
+  return environments[nextEnvironmentIndex].uuid;
+};
 
 export const EnvironmentMoreOptions = () => {
   const { setConfirm } = useGlobalContext();
   const { environmentOnEdit } = useEnvironmentOnEdit();
-  const [deleteEnvironment, isDeleting] = useEnvironmentsApi((state) => [
+  const { selectEnvironment } = useSelectEnvironment();
+  const [
+    deleteEnvironment,
+    isDeleting,
+    environments = [],
+  ] = useEnvironmentsApi((state) => [
     state.delete,
     state.isDeleting,
+    state.environments,
   ]);
 
   const [anchorElement, setAnchorElement] = React.useState<
@@ -33,7 +54,16 @@ export const EnvironmentMoreOptions = () => {
       "Are you sure you want to delete this Environment?",
       {
         onConfirm: (resolve) => {
-          deleteEnvironment(environmentOnEdit).then(() => resolve(true));
+          const nextEnvironmentUuid = getNextEnvironmentUuid(
+            environments,
+            environmentOnEdit.uuid
+          );
+
+          deleteEnvironment(environmentOnEdit).then(() => {
+            selectEnvironment(nextEnvironmentUuid);
+            resolve(true);
+          });
+
           return true;
         },
         confirmLabel: "Delete Environment",
