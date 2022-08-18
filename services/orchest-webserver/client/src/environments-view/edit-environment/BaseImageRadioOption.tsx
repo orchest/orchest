@@ -61,7 +61,7 @@ const BaseImageRadioOptionBase = React.memo(function BaseImageRadioOptionBase({
         />
       }
       sx={{
-        width: (theme) => theme.spacing(30),
+        width: (theme) => theme.spacing(28),
         "&.Mui-disabled": {
           cursor: "not-allowed",
         },
