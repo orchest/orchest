@@ -2,6 +2,7 @@ import { EnvironmentState } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { BuildStatusIcon } from "./BuildStatusIcon";
@@ -66,13 +67,17 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
           {LANGUAGE_MAP[language]}
         </Typography>
       </Stack>
-      <Stack
-        justifyContent="center"
-        alignItems="center"
-        sx={{ paddingLeft: (theme) => theme.spacing(1) }}
-      >
-        {showStatusIcon && <BuildStatusIcon latestBuild={latestBuild} />}
-      </Stack>
+      {showStatusIcon && (
+        <Tooltip title={latestBuild?.status || "Draft"}>
+          <Stack
+            justifyContent="center"
+            alignItems="center"
+            sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+          >
+            <BuildStatusIcon latestBuild={latestBuild} />
+          </Stack>
+        </Tooltip>
+      )}
     </MenuItem>
   );
 });
