@@ -39,7 +39,6 @@ export const EnvironmentImageBuildLogs = () => {
   return (
     <EnvironmentsAccordion expanded={isLogsOpen} onChange={handleChange}>
       <EnvironmentsAccordionSummary
-        isExpanded={isLogsOpen}
         aria-controls="environment-build-logs"
         id="environment-build-logs-header"
       >
