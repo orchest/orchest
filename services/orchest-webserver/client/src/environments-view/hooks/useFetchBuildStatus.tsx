@@ -7,7 +7,7 @@ import React from "react";
  * Fetches the latest environment image builds by polling.
  * Returns the latest environmentImageBuild of the given environment UUID.
  */
-export const useUpdateBuildStatus = (environmentUuid?: string) => {
+export const useFetchBuildStatus = (environmentUuid?: string) => {
   const {
     projectUuid,
     environments,

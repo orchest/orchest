@@ -1,12 +1,12 @@
 import { ellipsis } from "@/utils/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 export const EnvironmentName = () => {
-  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentChanges } = useEditEnvironment();
 
-  const isNameEmpty = environmentOnEdit?.name.trim().length === 0;
+  const isNameEmpty = environmentChanges?.name.trim().length === 0;
 
   return (
     <Typography
@@ -18,7 +18,7 @@ export const EnvironmentName = () => {
           isNameEmpty ? theme.palette.action.active : "inherent",
       }}
     >
-      {isNameEmpty ? "(Unnamed)" : environmentOnEdit?.name}
+      {isNameEmpty ? "(Unnamed)" : environmentChanges?.name}
     </Typography>
   );
 };

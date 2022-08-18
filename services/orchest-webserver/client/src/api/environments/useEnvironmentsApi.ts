@@ -31,7 +31,7 @@ export type EnvironmentsApiState = {
     payload: Partial<Environment>
   ) => Promise<Environment | undefined>;
   isDeleting: boolean;
-  delete: (environmentOnEdit: EnvironmentState) => Promise<void>;
+  delete: (environmentChanges: EnvironmentState) => Promise<void>;
   buildingEnvironments: string[];
   environmentsToBeBuilt: string[];
   validate: () => Promise<EnvironmentValidationData | undefined>;
@@ -39,7 +39,7 @@ export type EnvironmentsApiState = {
   hasLoadedBuildStatus: boolean;
   updateBuildStatus: () => Promise<void>;
   isTriggeringBuild: boolean;
-  triggerBuild: (environmentOnEdit: EnvironmentState) => Promise<void>;
+  triggerBuild: (environmentChanges: EnvironmentState) => Promise<void>;
   isCancelingBuild: boolean;
   cancelBuild: (environmentUuid: string) => Promise<void>;
   error?: FetchError;
@@ -189,30 +189,30 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
       }
     },
     isDeleting: false,
-    delete: async (environmentOnEdit) => {
+    delete: async (environmentChanges) => {
       try {
         const projectUuid = getProjectUuid();
         set({ isDeleting: true, error: undefined });
-        await environmentsApi.delete(projectUuid, environmentOnEdit.uuid);
+        await environmentsApi.delete(projectUuid, environmentChanges.uuid);
         set((state) => {
           const filteredEnvironments = state.environments?.filter(
-            (environment) => environment.uuid !== environmentOnEdit.uuid
+            (environment) => environment.uuid !== environmentChanges.uuid
           );
 
           const environmentsToBeBuilt = ["BUILD", "RETRY"].includes(
-            environmentOnEdit.action || ""
+            environmentChanges.action || ""
           )
             ? state.environmentsToBeBuilt.filter(
                 (toBuildEnvironmentUuid) =>
-                  toBuildEnvironmentUuid !== environmentOnEdit.uuid
+                  toBuildEnvironmentUuid !== environmentChanges.uuid
               )
             : state.environmentsToBeBuilt;
 
           const buildingEnvironments =
-            environmentOnEdit.action === "WAIT"
+            environmentChanges.action === "WAIT"
               ? state.buildingEnvironments.filter(
                   (toBuildEnvironmentUuid) =>
-                    toBuildEnvironmentUuid !== environmentOnEdit.uuid
+                    toBuildEnvironmentUuid !== environmentChanges.uuid
                 )
               : state.buildingEnvironments;
 
@@ -299,19 +299,19 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
       }
     },
     isTriggeringBuild: false,
-    triggerBuild: async (environmentOnEdit: EnvironmentState) => {
+    triggerBuild: async (environmentChanges: EnvironmentState) => {
       try {
         const projectUuid = getProjectUuid();
         set({ isTriggeringBuild: true, error: undefined });
         const environmentImageBuild = await environmentsApi.triggerBuild(
           projectUuid,
-          environmentOnEdit.uuid
+          environmentChanges.uuid
         );
 
         set((state) => {
           const updatedEnvironments = (state.environments || []).map((env) =>
-            env.uuid === environmentOnEdit.uuid
-              ? { ...environmentOnEdit, latestBuild: environmentImageBuild }
+            env.uuid === environmentChanges.uuid
+              ? { ...environmentChanges, latestBuild: environmentImageBuild }
               : env
           );
           return {
