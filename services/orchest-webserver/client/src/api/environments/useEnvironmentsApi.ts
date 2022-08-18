@@ -6,6 +6,7 @@ import {
   EnvironmentState,
   EnvironmentValidationData,
 } from "@/types";
+import { pick } from "@/utils/record";
 import { FetchError } from "@orchest/lib-utils";
 import create from "zustand";
 
@@ -67,24 +68,16 @@ const getEnvironmentBuildStatus = (
 };
 
 const getEnvironmentFromState = (state: EnvironmentState): EnvironmentData => {
-  const {
-    uuid,
-    name,
-    base_image,
-    gpu_support,
-    language,
-    project_uuid,
-    setup_script,
-  } = state;
-  return {
-    uuid,
-    name,
-    base_image,
-    gpu_support,
-    language,
-    project_uuid,
-    setup_script,
-  };
+  return pick(
+    state,
+    "uuid",
+    "name",
+    "base_image",
+    "gpu_support",
+    "language",
+    "project_uuid",
+    "setup_script"
+  );
 };
 
 export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
