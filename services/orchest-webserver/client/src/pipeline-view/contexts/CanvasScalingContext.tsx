@@ -1,7 +1,7 @@
-import { useTrackMouse } from "@/hooks/useTrackMouse";
 import { getOffset } from "@/utils/element";
 import { dividePoint, Point2D, subtractPoints } from "@/utils/geometry";
 import { clamp } from "@/utils/math";
+import { getMousePoint } from "@/utils/mouse";
 import React from "react";
 import { usePipelineRefs } from "./PipelineRefsContext";
 
@@ -34,7 +34,6 @@ const clampScaleFactor = (value: number) =>
 
 export const CanvasScalingProvider: React.FC = ({ children }) => {
   const { pipelineCanvasRef } = usePipelineRefs();
-  const { getMousePoint } = useTrackMouse();
 
   const [scaleFactor, originalSetScaleFactor] = React.useState(
     DEFAULT_SCALE_FACTOR
