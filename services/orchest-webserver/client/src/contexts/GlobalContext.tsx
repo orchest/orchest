@@ -9,29 +9,30 @@ import { ButtonProps } from "@mui/material/Button";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 
-function parseLineBreak(lines: string) {
-  if (lines === undefined) return [];
-
-  // substitute newlines for line breaks
-  let linesArr = lines.split("\n");
-
-  let lineElements = linesArr.map((line, index) => {
-    if (index !== linesArr.length - 1) {
-      return (
-        <>
-          {line}
-          <br />
-        </>
-      );
-    } else {
-      return <>{line}</>;
-    }
-  });
-  return lineElements;
-}
+type PlainTextToHtmlProps = { text: string };
+const PlainTextToHtml = ({ text }: PlainTextToHtmlProps) => {
+  if (text === undefined) return null;
+  const linesArr = text.split("\n");
+  return (
+    <>
+      {linesArr.map((line, index) => {
+        if (index !== linesArr.length - 1) {
+          return (
+            <>
+              {line}
+              <br />
+            </>
+          );
+        } else {
+          return line;
+        }
+      })}
+    </>
+  );
+};
 
 const contentParser = (content: string | React.ReactElement | JSX.Element[]) =>
-  typeof content === "string" ? parseLineBreak(content) : content;
+  typeof content === "string" ? <PlainTextToHtml text={content} /> : content;
 
 export type PromptMessageType = "alert" | "confirm";
 
