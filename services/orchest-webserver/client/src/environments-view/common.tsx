@@ -176,7 +176,7 @@ export const DEFAULT_BASE_IMAGES: (CustomImage & {
     img_src: "/image/javascript_logo.svg",
     language: "javascript",
     gpu_support: false,
-    label: "Javascript",
+    label: "JavaScript",
   },
 ];
 

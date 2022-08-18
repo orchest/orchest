@@ -27,10 +27,12 @@ export const EditEnvironmentName = () => {
       required
       value={value}
       onFocus={() => setHasEdited(true)}
-      onChange={(e) => {
-        setValue(e.target.value);
-        if (e.target.value !== "") {
-          setEnvironmentOnEdit({ name: e.target.value.trim() });
+      onBlur={() => setEnvironmentOnEdit({ name: value.trim() })}
+      onChange={({ target }) => {
+        setValue(target.value);
+
+        if (target.value) {
+          setEnvironmentOnEdit({ name: target.value });
         }
       }}
       InputLabelProps={{ required: false }}
