@@ -1,15 +1,11 @@
 
-TAGNAME:=$(if $(TAGNAME),$(TAGNAME),"latest")
-TAG:=orchest/orchest-controller:$(TAGNAME)
+TAG:=orchest/orchest-controller
 
 TOOLS_DIR := $(PWD)/.cache/tools
 
 CONTROLLER_GEN=$(TOOLS_DIR)/controller-gen
 
 GO_PROJECT=github.com/orchest/orchest/services/orchest-controller
-
-# inject the version number into the golang version package
-LDFLAGS := ${if ${ORCHEST_VERSION},-X $(GO_PROJECT)/pkg/version.Version=$(ORCHEST_VERSION),}
 
 NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest}
 
@@ -54,6 +50,7 @@ codegen:
 
 .PHONY: manifestgen
 manifestgen: crds
+	@if [ -z "${TAGNAME}" ] ; then echo "TAGNAME must be set" ; exit 1 ; fi
 	@mkdir -p deploy/k8s
 
 	@echo Generating orchest-controller.yaml manifests
