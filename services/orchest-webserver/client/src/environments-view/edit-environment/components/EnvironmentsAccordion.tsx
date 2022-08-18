@@ -1,11 +1,10 @@
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ArrowForwardIosSharpIcon from "@mui/icons-material/ArrowForwardIosSharp";
 import MuiAccordion, { AccordionProps } from "@mui/material/Accordion";
 import MuiAccordionDetails from "@mui/material/AccordionDetails";
 import MuiAccordionSummary, {
   AccordionSummaryProps,
 } from "@mui/material/AccordionSummary";
 import { styled } from "@mui/material/styles";
-import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 import { useEnvironmentsUiStateStore } from "../stores/useEnvironmentsUiStateStore";
 
@@ -23,20 +22,18 @@ export const EnvironmentsAccordion = (props: AccordionProps) => {
 };
 
 export const EnvironmentsAccordionSummary = styled(
-  ({
-    isExpanded,
-    ...props
-  }: AccordionSummaryProps & { isExpanded: boolean }) => (
-    <MuiAccordionSummary
-      expandIcon={
-        <Tooltip title={isExpanded ? "Collapse" : "Expand"}>
-          <ExpandMoreIcon />
-        </Tooltip>
-      }
-      {...props}
-    />
+  (props: AccordionSummaryProps) => (
+    <MuiAccordionSummary expandIcon={<ArrowForwardIosSharpIcon />} {...props} />
   )
-)({ padding: 0 });
+)(({ theme }) => ({
+  flexDirection: "row-reverse",
+  "& .MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
+    transform: "rotate(90deg)",
+  },
+  "& .MuiAccordionSummary-content": {
+    marginLeft: theme.spacing(1),
+  },
+}));
 
 export const EnvironmentsAccordionDetails = styled(MuiAccordionDetails)({
   padding: 0,

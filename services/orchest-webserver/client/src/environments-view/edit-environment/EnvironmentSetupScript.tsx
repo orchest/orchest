@@ -1,9 +1,7 @@
 import { CodeMirror } from "@/components/common/CodeMirror";
 import Typography from "@mui/material/Typography";
-
 import "codemirror/theme/dracula.css";
 import React from "react";
-
 import { isEnvironmentBuilding } from "../common";
 import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
 import {
@@ -11,7 +9,6 @@ import {
   EnvironmentsAccordionDetails,
   EnvironmentsAccordionSummary,
 } from "./components/EnvironmentsAccordion";
-
 import { useEnvironmentsUiStateStore } from "./stores/useEnvironmentsUiStateStore";
 
 type SetupScriptCodeMirrorProps = {
@@ -67,7 +64,6 @@ export const EnvironmentSetupScript = () => {
       onChange={handleChangeIsOpen}
     >
       <EnvironmentsAccordionSummary
-        isExpanded={isSetupScriptOpen}
         aria-controls="setup-script"
         id="setup-script-header"
       >
