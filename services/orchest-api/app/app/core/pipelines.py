@@ -427,21 +427,6 @@ def _step_to_workflow_manifest_task(
     # risk that the user overwrites internal variables accidentally.
     env_variables = user_env_variables + orchest_env_variables
 
-    # This allows us to edit the container that argo runs for us.
-    pod_spec_patch = json.dumps(
-        {
-            "terminationGracePeriodSeconds": 1,
-            "containers": [
-                {
-                    "name": "main",
-                    "env": env_variables,
-                    "restartPolicy": "Never",
-                    "imagePullPolicy": "IfNotPresent",
-                }
-            ],
-        },
-    )
-
     # Need to reference the ip because the local docker engine will run
     # the container, and if the image is missing it will prompt a pull
     # which will fail because the FQDN can't be resolved by the local
@@ -449,55 +434,188 @@ def _step_to_workflow_manifest_task(
     registry_ip = k8s_core_api.read_namespaced_service(
         _config.REGISTRY, _config.ORCHEST_NAMESPACE
     ).spec.cluster_ip
-
     # The image of the step is the registry address plus the image name.
     image = (
         registry_ip
         + "/"
         + run_config["env_uuid_to_image"][step.properties["environment"]]
     )
-    task = {
-        # "Name cannot begin with a digit when using either 'depends' or
-        # 'dependencies'".
-        "name": f'step-{step.properties["uuid"]}',
-        "dependencies": [f'step-{pstep.properties["uuid"]}' for pstep in step.parents],
-        "template": "step",
-        "arguments": {
-            "parameters": [
-                {
-                    # Used to keep track of the step when getting
-                    # workflow status, since the name we have set is not
-                    # reliable, argo will change it.
-                    "name": "step_uuid",
-                    "value": step.properties["uuid"],
-                },
-                {
-                    "name": "image",
-                    "value": image,
-                },
-                {"name": "working_dir", "value": working_dir},
-                {
-                    "name": "project_relative_file_path",
-                    "value": project_relative_file_path,
-                },
-                {"name": "pod_spec_patch", "value": pod_spec_patch},
-                {
-                    # NOTE: only used by tests.
-                    "name": "tests_uuid",
-                    "value": step.properties["uuid"],
-                },
-                {
-                    "name": "container_runtime",
-                    "value": _config.CONTAINER_RUNTIME,
-                },
-                {
-                    "name": "container_runtime_image",
-                    "value": _config.CONTAINER_RUNTIME_IMAGE,
-                },
-            ]
-        },
-    }
+
+    if CONFIG_CLASS.SINGLE_NODE:
+        # NOTE: In the single-node case we don't run an initContainer to
+        # pre-pull images.
+        task = {
+            # "Name cannot begin with a digit when using either
+            # 'depends' or 'dependencies'".
+            "name": f'step-{step.properties["uuid"]}',
+            "dependencies": [
+                f'step-{pstep.properties["uuid"]}' for pstep in step.parents
+            ],
+            "env": env_variables,
+            "restartPolicy": "Never",
+            "image": image,
+            "command": [
+                "/orchest/bootscript.sh",
+                "runnable",
+                working_dir,
+                project_relative_file_path,
+            ],
+        }
+    else:
+        # This allows us to edit the container that argo runs for us.
+        pod_spec_patch = json.dumps(
+            {
+                "terminationGracePeriodSeconds": 1,
+                "containers": [
+                    {
+                        "name": "main",
+                        "env": env_variables,
+                        "restartPolicy": "Never",
+                        "imagePullPolicy": "IfNotPresent",
+                    }
+                ],
+            },
+        )
+
+        task = {
+            # "Name cannot begin with a digit when using either
+            # 'depends' or 'dependencies'".
+            "name": f'step-{step.properties["uuid"]}',
+            "dependencies": [
+                f'step-{pstep.properties["uuid"]}' for pstep in step.parents
+            ],
+            "template": "step",
+            "arguments": {
+                "parameters": [
+                    {
+                        # Used to keep track of the step when getting
+                        # workflow status, since the name we have set is
+                        # not reliable, argo will change it.
+                        "name": "step_uuid",
+                        "value": step.properties["uuid"],
+                    },
+                    {
+                        "name": "image",
+                        "value": image,
+                    },
+                    {"name": "working_dir", "value": working_dir},
+                    {
+                        "name": "project_relative_file_path",
+                        "value": project_relative_file_path,
+                    },
+                    {"name": "pod_spec_patch", "value": pod_spec_patch},
+                    {
+                        # NOTE: only used by tests.
+                        "name": "tests_uuid",
+                        "value": step.properties["uuid"],
+                    },
+                    {
+                        "name": "container_runtime",
+                        "value": _config.CONTAINER_RUNTIME,
+                    },
+                    {
+                        "name": "container_runtime_image",
+                        "value": _config.CONTAINER_RUNTIME_IMAGE,
+                    },
+                ]
+            },
+        }
+
     return task
+
+
+def _get_pipeline_argo_templates(
+    entrypoint_name: str,
+    volume_mounts: List[dict],
+    pipeline: Pipeline,
+    run_config: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    if CONFIG_CLASS.SINGLE_NODE:
+        templates = [
+            {
+                "name": entrypoint_name,
+                "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                "securityContext": {
+                    "runAsUser": 0,
+                    "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
+                    "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
+                },
+                "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},
+                "containerSet": {
+                    "terminationGracePeriodSeconds": 1,
+                    "failFast": True,
+                    "volumeMounts": volume_mounts,
+                    "containers": [
+                        _step_to_workflow_manifest_task(step, run_config)
+                        for step in pipeline.steps
+                    ],
+                },
+            }
+        ]
+
+    else:
+        image_puller_manifest = get_init_container_manifest(
+            "{{inputs.parameters.image}}",
+            "{{inputs.parameters.container_runtime}}",
+            "{{inputs.parameters.container_runtime_image}}",
+        )
+
+        # The first entry of this list is the definition of the DAG,
+        # while the second entry is the step definition.
+        templates = [
+            {
+                "name": "pipeline",
+                "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                "dag": {
+                    "failFast": True,
+                    "tasks": [
+                        _step_to_workflow_manifest_task(step, run_config)
+                        for step in pipeline.steps
+                    ],
+                },
+            },
+            {
+                "name": "step",
+                "securityContext": {
+                    "runAsUser": 0,
+                    "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
+                    "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
+                },
+                "inputs": {
+                    "parameters": [
+                        {"name": param}
+                        for param in [
+                            "step_uuid",
+                            "image",
+                            "working_dir",
+                            "project_relative_file_path",
+                            "pod_spec_patch",
+                            "tests_uuid",
+                            "container_runtime",
+                            "container_runtime_image",
+                        ]
+                    ]
+                },
+                "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                "container": {
+                    "image": "{{inputs.parameters.image}}",
+                    "command": [
+                        "/orchest/bootscript.sh",
+                        "runnable",
+                        "{{inputs.parameters.working_dir}}",
+                        "{{inputs.parameters.project_relative_file_path}}",
+                    ],
+                    "volumeMounts": volume_mounts,
+                },
+                "initContainers": [
+                    image_puller_manifest,
+                ],
+                "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},
+                "podSpecPatch": "{{inputs.parameters.pod_spec_patch}}",
+            },
+        ]
+
+    return templates
 
 
 def _pipeline_to_workflow_manifest(
@@ -516,12 +634,6 @@ def _pipeline_to_workflow_manifest(
     )
 
     # these parameters will be fed by _step_to_workflow_manifest_task
-    image_puller_manifest = get_init_container_manifest(
-        "{{inputs.parameters.image}}",
-        "{{inputs.parameters.container_runtime}}",
-        "{{inputs.parameters.container_runtime_image}}",
-    )
-
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -544,62 +656,13 @@ def _pipeline_to_workflow_manifest(
             },
             "dnsPolicy": "ClusterFirst",
             "restartPolicy": "Never",
-            # The first entry of this list is the definition of the DAG,
-            # while the second entry is the step definition.
-            "templates": [
-                {
-                    "name": "pipeline",
-                    "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
-                    "dag": {
-                        "failFast": True,
-                        "tasks": [
-                            _step_to_workflow_manifest_task(step, run_config)
-                            for step in pipeline.steps
-                        ],
-                    },
-                },
-                {
-                    "name": "step",
-                    "securityContext": {
-                        "runAsUser": 0,
-                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
-                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
-                    },
-                    "inputs": {
-                        "parameters": [
-                            {"name": param}
-                            for param in [
-                                "step_uuid",
-                                "image",
-                                "working_dir",
-                                "project_relative_file_path",
-                                "pod_spec_patch",
-                                "tests_uuid",
-                                "container_runtime",
-                                "container_runtime_image",
-                            ]
-                        ]
-                    },
-                    "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
-                    "container": {
-                        "image": "{{inputs.parameters.image}}",
-                        "command": [
-                            "/orchest/bootscript.sh",
-                            "runnable",
-                            "{{inputs.parameters.working_dir}}",
-                            "{{inputs.parameters.project_relative_file_path}}",
-                        ],
-                        "volumeMounts": volume_mounts,
-                    },
-                    "initContainers": [
-                        image_puller_manifest,
-                    ],
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
-                    "podSpecPatch": "{{inputs.parameters.pod_spec_patch}}",
-                },
-            ],
+            "templates": _get_pipeline_argo_templates(
+                # Must match above `entrypoint`
+                entrypoint_name="pipeline",
+                volume_mounts=volume_mounts,
+                pipeline=pipeline,
+                run_config=run_config,
+            ),
         },
     }
     return manifest
