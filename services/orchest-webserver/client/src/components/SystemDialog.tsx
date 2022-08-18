@@ -11,7 +11,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { hasValue, typedIncludes } from "@orchest/lib-utils";
+import { hasValue, typedIncludes, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 
 type CancellableMessage = Extract<PromptMessage, Confirm>;
@@ -44,7 +44,18 @@ const DelayedFocusButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }
 );
 
-export const SystemDialog: React.FC = () => {
+const setElementKeys = (
+  node: string | React.ReactElement | JSX.Element[],
+  baseKey: string
+) => {
+  return Array.isArray(node)
+    ? node.map((element, index) =>
+        React.cloneElement(element, { key: `${baseKey}-${index}` })
+      )
+    : node;
+};
+
+export const SystemDialog = () => {
   const {
     state: { promptMessages },
     deletePromptMessage,
@@ -92,14 +103,22 @@ export const SystemDialog: React.FC = () => {
     <Dialog open={hasValue(promptMessage)} onClose={dialogOnClose}>
       <form
         id={`${promptMessage.type}-form`}
+        key={`${promptMessage.type}-form-${uuidv4()}`}
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
           confirm();
         }}
       >
-        <DialogTitle>{promptMessage.title || "Error"}</DialogTitle>
-        <DialogContent>{promptMessage.content}</DialogContent>
+        <DialogTitle>
+          {setElementKeys(
+            promptMessage.title || "Error",
+            "system-dialog-content"
+          )}
+        </DialogTitle>
+        <DialogContent>
+          {setElementKeys(promptMessage.content, "system-dialog-content")}
+        </DialogContent>
         <DialogActions>
           {isCancellable && (
             <Button onClick={cancel} tabIndex={-1}>
