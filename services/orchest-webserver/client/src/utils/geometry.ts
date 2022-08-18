@@ -1,4 +1,5 @@
-import { Point2D } from "@/types";
+/** A 2-dimensional point: X, Y. */
+export type Point2D = [number, number];
 
 /** Adds the X and Y components of the second point to the first point. */
 export const addPoints = (

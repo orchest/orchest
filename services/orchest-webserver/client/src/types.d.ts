@@ -1,5 +1,6 @@
 import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
+import { Point2D } from "./utils/geometry";
 
 declare module "react" {
   interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
@@ -62,7 +63,7 @@ export type ColorScale = PartialRecord<
   string
 >;
 
-export type EnvironmentSpec = Omit<Environment, "uuid" | "project_uuid">;
+export type EnvironmentSpec = Omit<EnvironmentData, "uuid" | "project_uuid">;
 
 export type OrchestConfig = {
   CLOUD: boolean;
@@ -149,7 +150,7 @@ export type Project = {
 
 export type Language = "python" | "r" | "julia" | "javascript";
 
-export type Environment = {
+export type EnvironmentData = {
   uuid: string;
   project_uuid: string;
   base_image: string;
@@ -159,13 +160,13 @@ export type Environment = {
   setup_script: string;
 };
 
-export type EnvironmentState = Environment & {
+export type EnvironmentState = EnvironmentData & {
   action?: EnvironmentAction;
   latestBuild?: EnvironmentImageBuild;
 };
 
 export type CustomImage = Pick<
-  Environment,
+  EnvironmentData,
   "base_image" | "language" | "gpu_support"
 >;
 
@@ -406,6 +407,3 @@ export type UpdateInfo = {
 export type OrchestVersion = {
   version: string | null | undefined;
 };
-
-/** A 2-dimensional point: X, Y. */
-export type Point2D = [number, number];
