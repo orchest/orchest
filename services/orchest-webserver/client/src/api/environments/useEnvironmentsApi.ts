@@ -1,6 +1,6 @@
 import { environmentsApi } from "@/api/environments/environmentsApi";
 import {
-  Environment,
+  EnvironmentData,
   EnvironmentImageBuild,
   EnvironmentSpec,
   EnvironmentState,
@@ -15,21 +15,21 @@ export type EnvironmentBuildStatus =
   | "environmentsFailedToBuild"
   | "environmentsBuildInProgress";
 
-export type EnvironmentsApiState = {
+export type EnvironmentsApi = {
   projectUuid?: string;
   environments?: EnvironmentState[];
-  setEnvironment: (uuid: string, value: Partial<Environment>) => void;
+  setEnvironment: (uuid: string, value: Partial<EnvironmentData>) => void;
   isFetchingAll: boolean;
   fetch: (projectUuid: string, language?: string) => Promise<void>;
   isPosting: boolean;
   post: (
     environmentName: string,
     specs: EnvironmentSpec
-  ) => Promise<Environment | undefined>;
+  ) => Promise<EnvironmentData | undefined>;
   put: (
     environmentUuid: string,
-    payload: Partial<Environment>
-  ) => Promise<Environment | undefined>;
+    payload: Partial<EnvironmentData>
+  ) => Promise<EnvironmentData | undefined>;
   isDeleting: boolean;
   delete: (environmentChanges: EnvironmentState) => Promise<void>;
   buildingEnvironments: string[];
@@ -66,7 +66,7 @@ const getEnvironmentBuildStatus = (
   return status as EnvironmentBuildStatus;
 };
 
-const getEnvironmentFromState = (state: EnvironmentState): Environment => {
+const getEnvironmentFromState = (state: EnvironmentState): EnvironmentData => {
   const {
     uuid,
     name,
@@ -87,7 +87,7 @@ const getEnvironmentFromState = (state: EnvironmentState): Environment => {
   };
 };
 
-export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
+export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
   const getProjectUuid = (): string => {
     const projectUuid = get().projectUuid;
     if (!projectUuid) {
@@ -245,14 +245,14 @@ export const useEnvironmentsApi = create<EnvironmentsApiState>((set, get) => {
         const [
           validatedEnvironments,
           response,
-          shouldUpdateEnvironments,
+          hasActionChanged,
           buildingEnvironments,
           environmentsToBeBuilt,
         ] = results;
 
         const status = getEnvironmentBuildStatus(response);
 
-        if (shouldUpdateEnvironments) {
+        if (hasActionChanged) {
           set({
             environments: validatedEnvironments,
             status,

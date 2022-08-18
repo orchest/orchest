@@ -1,5 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { Point2D } from "@/types";
+import { Point2D } from "@/utils/geometry";
 import { relative } from "@/utils/path";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";

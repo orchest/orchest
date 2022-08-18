@@ -1,6 +1,6 @@
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
 import { ContextMenuUuid } from "@/pipeline-view/hooks/usePipelineUiState";
-import { Point2D } from "@/types";
+import { Point2D } from "@/utils/geometry";
 import Divider from "@mui/material/Divider";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";

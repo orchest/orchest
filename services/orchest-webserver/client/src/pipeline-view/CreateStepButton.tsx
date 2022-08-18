@@ -1,7 +1,7 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { Point2D } from "@/types";
+import { Point2D } from "@/utils/geometry";
 import AddIcon from "@mui/icons-material/Add";
 import Button from "@mui/material/Button";
 import React from "react";
