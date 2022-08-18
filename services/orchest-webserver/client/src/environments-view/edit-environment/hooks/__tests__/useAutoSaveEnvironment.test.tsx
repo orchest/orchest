@@ -1,8 +1,8 @@
-import type { Environment } from "@/types";
+import type { EnvironmentData } from "@/types";
 import { act, renderHook } from "@testing-library/react-hooks";
 import { useAutoSaveEnvironment } from "../useAutoSaveEnvironment";
 
-const mockEnvironment: Environment = {
+const mockEnvironment: EnvironmentData = {
   base_image: "python",
   gpu_support: true,
   language: "python",
@@ -57,14 +57,14 @@ describe("useAutoSaveEnvironment", () => {
 
     // doesn't save in 400ms
     act(() => {
-      jest.advanceTimersByTime(480);
+      jest.advanceTimersByTime(230);
     });
     expect(save).toHaveBeenCalledTimes(0);
 
     act(() => {
       jest.advanceTimersByTime(100);
     });
-    // fired after timeout 500ms
+    // fired after timeout 250ms
     expect(save).toHaveBeenCalledTimes(1);
   });
 });
