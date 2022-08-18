@@ -7,7 +7,7 @@ import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
 import { useBuildEnvironmentImage } from "../hooks/useBuildEnvironmentImage";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "../stores/useEditEnvironment";
 import {
   EnvironmentsAccordion,
   EnvironmentsAccordionDetails,
@@ -19,7 +19,7 @@ export const EnvironmentImageBuildLogs = () => {
   const { projectUuid, environmentUuid } = useCustomRoute();
   const { config } = useGlobalContext();
   const { isLogsOpen, setIsLogsOpen } = useEnvironmentsUiStateStore();
-  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentChanges } = useEditEnvironment();
   const [, , isTriggeringBuild] = useBuildEnvironmentImage();
 
   const handleChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -31,7 +31,7 @@ export const EnvironmentImageBuildLogs = () => {
       ? `${projectUuid}-${environmentUuid}`
       : undefined;
 
-  const streamIdentityFromStore = `${environmentOnEdit?.project_uuid}-${environmentOnEdit?.uuid}`;
+  const streamIdentityFromStore = `${environmentChanges?.project_uuid}-${environmentChanges?.uuid}`;
 
   const ignoreIncomingLogs =
     isTriggeringBuild || streamIdentity !== streamIdentityFromStore;
@@ -50,7 +50,7 @@ export const EnvironmentImageBuildLogs = () => {
         <ImageBuildLog
           ignoreIncomingLogs={ignoreIncomingLogs}
           hideDefaultStatus
-          build={environmentOnEdit?.latestBuild}
+          build={environmentChanges?.latestBuild}
           socketIONamespace={
             config?.ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE
           }

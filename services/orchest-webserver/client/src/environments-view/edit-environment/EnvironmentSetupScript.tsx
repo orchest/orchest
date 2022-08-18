@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography";
 import "codemirror/theme/dracula.css";
 import React from "react";
 import { isEnvironmentBuilding } from "../common";
-import { useEnvironmentOnEdit } from "../stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "../stores/useEditEnvironment";
 import {
   EnvironmentsAccordion,
   EnvironmentsAccordionDetails,
@@ -42,13 +42,13 @@ export const EnvironmentSetupScript = () => {
     isSetupScriptOpen,
     setIsSetupScriptOpen,
   } = useEnvironmentsUiStateStore();
-  const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentChanges, setEnvironmentChanges } = useEditEnvironment();
 
   const handleChangeSetupScript = React.useCallback(
     (value: string) => {
-      setEnvironmentOnEdit({ setup_script: value });
+      setEnvironmentChanges({ setup_script: value });
     },
-    [setEnvironmentOnEdit]
+    [setEnvironmentChanges]
   );
 
   const handleChangeIsOpen = (
@@ -74,8 +74,8 @@ export const EnvironmentSetupScript = () => {
       <EnvironmentsAccordionDetails>
         <SetupScriptCodeMirror
           onChange={handleChangeSetupScript}
-          value={environmentOnEdit?.setup_script}
-          isReadOnly={isEnvironmentBuilding(environmentOnEdit?.latestBuild)}
+          value={environmentChanges?.setup_script}
+          isReadOnly={isEnvironmentBuilding(environmentChanges?.latestBuild)}
         />
       </EnvironmentsAccordionDetails>
     </EnvironmentsAccordion>

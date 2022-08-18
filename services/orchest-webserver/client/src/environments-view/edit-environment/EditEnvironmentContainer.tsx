@@ -1,8 +1,8 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import Stack from "@mui/material/Stack";
 import React from "react";
-import { useSaveEnvironmentOnEdit } from "../hooks/useSaveEnvironmentOnEdit";
-import { useUpdateBuildStatusEnvironmentOnEdit } from "../hooks/useUpdateBuildStatusEnvironmentOnEdit";
+import { useSaveEnvironmentChanges } from "../hooks/useSaveEnvironmentChanges";
+import { useUpdateBuildStatusInEnvironmentChanges } from "../hooks/useUpdateBuildStatusInEnvironmentChanges";
 import { useLoadSelectedBaseImage } from "./hooks/useLoadSelectedBaseImage";
 import { NoEnvironment } from "./NoEnvironment";
 
@@ -16,8 +16,8 @@ export const EditEnvironmentContainer = ({
   // Gather all side effects here to ensure that they are triggered on mount,
   // and prevent unnecessary re-render on children.
   useLoadSelectedBaseImage();
-  useSaveEnvironmentOnEdit();
-  useUpdateBuildStatusEnvironmentOnEdit();
+  useSaveEnvironmentChanges();
+  useUpdateBuildStatusInEnvironmentChanges();
 
   const { environments } = useEnvironmentsApi();
   const hasNoEnvironment = environments?.length === 0;

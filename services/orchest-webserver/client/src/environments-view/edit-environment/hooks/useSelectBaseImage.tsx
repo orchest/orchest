@@ -6,7 +6,7 @@ import {
   getNewEnvironmentName,
   isEnvironmentBuilding,
 } from "@/environments-view/common";
-import { useEnvironmentOnEdit } from "@/environments-view/stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "@/environments-view/stores/useEditEnvironment";
 import { CustomImage } from "@/types";
 import { capitalize } from "@/utils/text";
 import React from "react";
@@ -20,8 +20,8 @@ import { getDefaultImageFromEnvironment } from "./useLoadSelectedBaseImage";
 export const useSelectBaseImage = () => {
   const { orchestVersion } = useAppContext();
   const { environments } = useEnvironmentsApi();
-  const { environmentOnEdit, setEnvironmentOnEdit } = useEnvironmentOnEdit();
-  const disabled = isEnvironmentBuilding(environmentOnEdit?.latestBuild);
+  const { environmentChanges, setEnvironmentChanges } = useEditEnvironment();
+  const disabled = isEnvironmentBuilding(environmentChanges?.latestBuild);
 
   const [
     selectedImage,
@@ -49,9 +49,9 @@ export const useSelectBaseImage = () => {
           orchestVersion
         ) || selectedImage;
 
-      setEnvironmentOnEdit(baseImageForSaving);
+      setEnvironmentChanges(baseImageForSaving);
     }
-  }, [selectedImage, setEnvironmentOnEdit, orchestVersion]);
+  }, [selectedImage, setEnvironmentChanges, orchestVersion]);
 
   React.useEffect(() => {
     save();
@@ -69,8 +69,8 @@ export const useSelectBaseImage = () => {
 
   const changeEnvironmentPrefixPerLanguage = React.useCallback(
     (selectedImageLanguage: string) => {
-      if (!environmentOnEdit?.name) {
-        setEnvironmentOnEdit({
+      if (!environmentChanges?.name) {
+        setEnvironmentChanges({
           name: generateUniqueEnvironmentName(
             capitalize(selectedImageLanguage),
             selectedImageLanguage
@@ -79,12 +79,12 @@ export const useSelectBaseImage = () => {
         return;
       }
 
-      const envNameWithoutSerialNumber = environmentOnEdit.name
+      const envNameWithoutSerialNumber = environmentChanges.name
         .replace(/( )+\(\d+\)?$/, "")
         .toLowerCase();
 
       if (BASE_IMAGE_LANGUAGES.has(envNameWithoutSerialNumber)) {
-        setEnvironmentOnEdit({
+        setEnvironmentChanges({
           name: generateUniqueEnvironmentName(
             capitalize(selectedImageLanguage),
             selectedImageLanguage
@@ -93,18 +93,18 @@ export const useSelectBaseImage = () => {
       }
     },
     [
-      environmentOnEdit?.name,
-      setEnvironmentOnEdit,
+      environmentChanges?.name,
+      setEnvironmentChanges,
       generateUniqueEnvironmentName,
     ]
   );
 
   const selectBaseImage = React.useCallback(
     (baseImage: string) => {
-      if (disabled || !environmentOnEdit?.uuid) return;
+      if (disabled || !environmentChanges?.uuid) return;
       isTouched.current = true;
       if (baseImage === customImage.base_image) {
-        setSelectedImage(environmentOnEdit.uuid, customImage);
+        setSelectedImage(environmentChanges.uuid, customImage);
         changeEnvironmentPrefixPerLanguage(customImage.language);
         return;
       }
@@ -115,7 +115,7 @@ export const useSelectBaseImage = () => {
         )
       );
       if (foundDefaultImage) {
-        setSelectedImage(environmentOnEdit.uuid, foundDefaultImage);
+        setSelectedImage(environmentChanges.uuid, foundDefaultImage);
         changeEnvironmentPrefixPerLanguage(foundDefaultImage.language);
       }
     },
@@ -124,7 +124,7 @@ export const useSelectBaseImage = () => {
       disabled,
       orchestVersion,
       setSelectedImage,
-      environmentOnEdit?.uuid,
+      environmentChanges?.uuid,
       changeEnvironmentPrefixPerLanguage,
     ]
   );

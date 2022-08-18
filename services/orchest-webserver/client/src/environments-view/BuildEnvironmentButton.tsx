@@ -4,24 +4,24 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useBuildEnvironmentImage } from "./hooks/useBuildEnvironmentImage";
-import { useEnvironmentOnEdit } from "./stores/useEnvironmentOnEdit";
+import { useEditEnvironment } from "./stores/useEditEnvironment";
 
 export const BuildEnvironmentButton = () => {
-  const { environmentOnEdit } = useEnvironmentOnEdit();
+  const { environmentChanges } = useEditEnvironment();
   const [triggerBuild, cancelBuild] = useBuildEnvironmentImage();
 
-  const buildStatus = environmentOnEdit?.latestBuild?.status;
+  const buildStatus = environmentChanges?.latestBuild?.status;
 
   const isBuilding =
     hasValue(buildStatus) && ["PENDING", "STARTED"].includes(buildStatus);
 
   const handleClick = () => {
-    if (!environmentOnEdit) return;
+    if (!environmentChanges) return;
 
     if (isBuilding) {
-      cancelBuild(environmentOnEdit.uuid);
+      cancelBuild(environmentChanges.uuid);
     } else {
-      triggerBuild(environmentOnEdit);
+      triggerBuild(environmentChanges);
     }
   };
 
