@@ -1,5 +1,5 @@
 import {
-  EnvironmentsApiState,
+  EnvironmentsApi,
   useEnvironmentsApi,
 } from "@/api/environments/useEnvironmentsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -18,7 +18,7 @@ export const useFetchEnvironments = () => {
   const [
     shouldFetchOnMount,
     fetchEnvironments,
-  ] = useEnvironmentsApi((state: EnvironmentsApiState) => [
+  ] = useEnvironmentsApi((state: EnvironmentsApi) => [
     !Boolean(state.environments) && !state.isFetchingAll,
     state.fetch,
   ]);

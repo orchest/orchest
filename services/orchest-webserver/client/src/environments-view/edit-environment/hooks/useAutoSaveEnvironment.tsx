@@ -1,10 +1,10 @@
 import { shallowEqualByKey } from "@/environments-view/common";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useHasChanged } from "@/hooks/useHasChanged";
-import type { Environment } from "@/types";
+import type { EnvironmentData } from "@/types";
 import React from "react";
 
-const isEnvironmentChanged = (prev: Environment, curr: Environment) =>
+const isEnvironmentChanged = (prev: EnvironmentData, curr: EnvironmentData) =>
   !shallowEqualByKey(prev, curr, [
     "base_image",
     "gpu_support",
@@ -13,7 +13,7 @@ const isEnvironmentChanged = (prev: Environment, curr: Environment) =>
     "setup_script",
   ]);
 
-const useHasEnvironmentChanged = (environment: Environment | undefined) => {
+const useHasEnvironmentChanged = (environment: EnvironmentData | undefined) => {
   const hasChanged = useHasChanged(environment, (prev, curr) => {
     const isLoadingPage = !prev || !curr;
     if (isLoadingPage) return false;
@@ -25,8 +25,8 @@ const useHasEnvironmentChanged = (environment: Environment | undefined) => {
 };
 
 export const useAutoSaveEnvironment = (
-  value: Environment | undefined,
-  save: (newValue?: Environment) => void
+  value: EnvironmentData | undefined,
+  save: (newValue?: EnvironmentData) => void
 ) => {
   const valuesForSaving = useDebounce(value, 250);
   const shouldSaveDebouncedValue = useHasEnvironmentChanged(valuesForSaving);

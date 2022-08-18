@@ -2,7 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { DEFAULT_BASE_IMAGES } from "@/environments-view/common";
 import { useEditEnvironment } from "@/environments-view/stores/useEditEnvironment";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { Environment } from "@/types";
+import { EnvironmentData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useBaseImageStore } from "../stores/useBaseImageStore";
@@ -13,7 +13,7 @@ import { useBaseImageStore } from "../stores/useBaseImageStore";
  * A default base image with a different version is considered as a custom image.
  */
 export const getDefaultImageFromEnvironment = (
-  environmentBaseImage: Environment["base_image"] | undefined,
+  environmentBaseImage: EnvironmentData["base_image"] | undefined,
   orchestVersion: string | null | undefined
 ) => {
   if (!environmentBaseImage) return undefined;

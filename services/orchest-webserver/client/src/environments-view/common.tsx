@@ -1,6 +1,6 @@
 import {
   CustomImage,
-  Environment,
+  EnvironmentData,
   EnvironmentImageBuild,
   EnvironmentSpec,
   EnvironmentState,
@@ -76,7 +76,7 @@ export const hasSuccessfulBuild = async (
 
 export const getNewEnvironmentName = (
   defaultName: string,
-  environments?: Environment[]
+  environments?: EnvironmentData[]
 ) => {
   if (!environments) return;
   let finalName = defaultName.trim();
@@ -98,7 +98,7 @@ export const postEnvironment = (
   environmentName: string,
   defaultEnvironments: EnvironmentSpec
 ) =>
-  fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
+  fetcher<EnvironmentData>(`/store/environments/${projectUuid}/new`, {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({
@@ -112,10 +112,10 @@ export const postEnvironment = (
 
 export const extractEnvironmentFromState = (
   environmentState?: EnvironmentState
-): Environment | undefined => {
+): EnvironmentData | undefined => {
   if (!environmentState) return undefined;
 
-  return prune<Environment>(
+  return prune<EnvironmentData>(
     environmentState,
     ([key]) => !["action", "latestBuild"].includes(key)
   );
