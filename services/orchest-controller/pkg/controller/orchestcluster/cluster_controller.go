@@ -426,10 +426,10 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	}
 
 	// Orchest-API configs
-	apiImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.OrchestApi, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.OrchestApi.Image != apiImage {
+	newImage, update := isUpdateRequired(copy, controller.OrchestApi, copy.Spec.Orchest.OrchestApi.Image)
+	if update {
 		changed = true
-		copy.Spec.Orchest.OrchestApi.Image = apiImage
+		copy.Spec.Orchest.OrchestApi.Image = newImage
 	}
 
 	if copy.Spec.Orchest.OrchestApi.Env == nil {
@@ -442,10 +442,10 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	changed = changed || envChanged
 
 	// Orchest-Webserver configs
-	webserverImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.OrchestWebserver, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.OrchestWebServer.Image != webserverImage {
+	newImage, update = isUpdateRequired(copy, controller.OrchestWebserver, copy.Spec.Orchest.OrchestWebServer.Image)
+	if update {
 		changed = true
-		copy.Spec.Orchest.OrchestWebServer.Image = webserverImage
+		copy.Spec.Orchest.OrchestWebServer.Image = newImage
 	}
 
 	if copy.Spec.Orchest.OrchestWebServer.Env == nil {
@@ -458,10 +458,10 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	changed = changed || envChanged
 
 	// Celery-Worker configs
-	celeryWorkerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.CeleryWorker, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.CeleryWorker.Image != celeryWorkerImage {
+	newImage, update = isUpdateRequired(copy, controller.CeleryWorker, copy.Spec.Orchest.CeleryWorker.Image)
+	if update {
 		changed = true
-		copy.Spec.Orchest.CeleryWorker.Image = celeryWorkerImage
+		copy.Spec.Orchest.CeleryWorker.Image = newImage
 	}
 
 	if copy.Spec.Orchest.CeleryWorker.Env == nil {
@@ -474,10 +474,10 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	changed = changed || envChanged
 
 	// Auth-Server configs
-	authServerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.AuthServer, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.AuthServer.Image != authServerImage {
+	newImage, update = isUpdateRequired(copy, controller.AuthServer, copy.Spec.Orchest.AuthServer.Image)
+	if update {
 		changed = true
-		copy.Spec.Orchest.AuthServer.Image = authServerImage
+		copy.Spec.Orchest.AuthServer.Image = newImage
 	}
 
 	if copy.Spec.Orchest.AuthServer.Env == nil {
