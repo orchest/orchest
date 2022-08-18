@@ -1,12 +1,11 @@
 import Box, { BoxProps } from "@mui/material/Box";
 import React from "react";
 
-type MainContainerProps = BoxProps & {
+export type MainContainerProps = BoxProps & {
   disablePadding?: boolean;
-  children: React.ReactNode;
 };
 
-export const MainContainer = ({
+export const MainContainer: React.FC<MainContainerProps> = ({
   disablePadding,
   children,
   sx,
