@@ -52,12 +52,7 @@ export const useBuildEnvironmentImages = () => {
     dispatch,
   } = useProjectsContext();
 
-  const {
-    validate,
-    status,
-    buildingEnvironmentCount,
-    environmentsToBeBuilt,
-  } = useEnvironmentsApi();
+  const { validate, status, environmentsToBeBuilt } = useEnvironmentsApi();
 
   React.useEffect(() => {
     const readOnlyReason = getReadOnlyReasonFromEnvironmentsStatus(status);
@@ -79,12 +74,17 @@ export const useBuildEnvironmentImages = () => {
   const isMounted = useMounted();
 
   React.useEffect(() => {
-    setShouldPoll(isMounted && status === "environmentsBuildInProgress");
+    if (isMounted.current) {
+      setShouldPoll(status !== "allEnvironmentsBuilt");
+    }
   }, [status, isMounted]);
 
   const [shouldPoll, setShouldPoll] = React.useState(false);
 
-  useInterval(checkAllEnvironmentsHaveBeenBuilt, shouldPoll ? 1000 : null);
+  useInterval(
+    checkAllEnvironmentsHaveBeenBuilt,
+    isMounted.current && shouldPoll ? 1000 : null
+  );
 
   const cancel = React.useCallback(() => {
     buildRequest?.onCancel();
@@ -155,7 +155,6 @@ export const useBuildEnvironmentImages = () => {
 
   return {
     message,
-    buildingEnvironmentCount,
     isBuilding,
     triggerBuild,
     viewBuildStatus,

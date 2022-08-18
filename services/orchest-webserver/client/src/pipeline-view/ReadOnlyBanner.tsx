@@ -6,6 +6,7 @@ import { siteMap } from "@/routingConfig";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -20,11 +21,8 @@ const generateReadOnlyMessage = (jobName: string | undefined) =>
       {` job. Make edits in the Pipeline editor.`}
     </>
   ) : null;
-type ReadOnlyBannerContainerProps = { children: React.ReactNode };
 
-const ReadOnlyBannerContainer = ({
-  children,
-}: ReadOnlyBannerContainerProps) => {
+const ReadOnlyBannerContainer: React.FC = ({ children }) => {
   const {
     uiState: { openedStep },
   } = usePipelineUiStateContext();
@@ -115,6 +113,9 @@ export const ReadOnlyBanner = () => {
     triggerBuild,
   ]);
 
+  const showLinearProgress =
+    pipelineReadOnlyReason === "environmentsBuildInProgress";
+
   return hasValue(pipelineReadOnlyReason) ? (
     <ReadOnlyBannerContainer>
       <Alert
@@ -129,7 +130,12 @@ export const ReadOnlyBanner = () => {
             {actionLabel}
           </Button>
         }
-        sx={{ width: "100%", alignItems: "center" }}
+        sx={{
+          width: "100%",
+          alignItems: "center",
+          paddingBottom: (theme) =>
+            theme.spacing(showLinearProgress ? 2 : 0.75),
+        }}
       >
         <Box
           sx={{
@@ -144,6 +150,16 @@ export const ReadOnlyBanner = () => {
           </Typography>
         )}
       </Alert>
+      {showLinearProgress && (
+        <Box
+          sx={{
+            marginTop: (theme) => theme.spacing(-2),
+            padding: (theme) => theme.spacing(0, 2),
+          }}
+        >
+          <LinearProgress />
+        </Box>
+      )}
     </ReadOnlyBannerContainer>
   ) : null;
 };
