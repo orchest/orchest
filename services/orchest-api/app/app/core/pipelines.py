@@ -422,20 +422,6 @@ def _step_to_workflow_manifest_task(
         {"name": "ORCHEST_PROJECT_UUID", "value": run_config["project_uuid"]},
         {"name": "ORCHEST_NAMESPACE", "value": _config.ORCHEST_NAMESPACE},
         {"name": "ORCHEST_CLUSTER", "value": _config.ORCHEST_CLUSTER},
-        {
-            # ORCHEST_MEMORY_EVICTION is never present when running
-            # notebooks interactively and otherwise always present, this
-            # means eviction of objects from memory can never be
-            # triggered when running notebooks interactively.  This
-            # environment variable being present implies that the
-            # Orchest SDK will always emit an eviction message given the
-            # choice, this however, does not imply that eviction will
-            # actually take place, since the memory server manager will
-            # check the pipeline definition settings to decide whetever
-            # object eviction should take place or not.
-            "name": "ORCHEST_MEMORY_EVICTION",
-            "value": "1",
-        },
     ]
     # Note that the order of concatenation matters, so that there is no
     # risk that the user overwrites internal variables accidentally.

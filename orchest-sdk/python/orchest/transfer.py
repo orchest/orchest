@@ -9,7 +9,6 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import pyarrow as pa
-import pyarrow.plasma as plasma
 
 from orchest import error
 from orchest.config import Config
@@ -75,7 +74,7 @@ _GET_INPUTS_CALLED_TWICE_WARNING = (
     (
         "WARNING: Calling `get_inputs` more than once is likely to cause issues when "
         "running your pipeline as a job. After the input data is retrieved it is "
-        "slated for eviction from memory, causing the data to no longer be available "
+        "slated for eviction, causing the data to no longer be available "
         "for subsequent calls to `get_inputs`."
     )
     + " "
@@ -184,46 +183,6 @@ def _interpret_metadata(metadata: str) -> Tuple[str, str, str]:
         raise error.InvalidMetaDataError(
             f"Metadata {metadata} has an invalid number of elements."
         )
-
-
-class _PlasmaConnector:
-    """Manages the connection to the plasma in-memory store.
-
-    Allows for only one connection to make sure the different methods
-    don't all try to connect to the store individually.
-
-    """
-
-    _client: plasma.PlasmaClient = None
-
-    @property
-    def client(self):
-        """Connects to the plasma store if not already connected.
-
-        Returns:
-            A plasma client.
-
-        Raises:
-            MemoryOutputNotFoundError: If output from `step_uuid` cannot
-                be found.
-            OrchestNetworkError: Could not connect to the
-                ``Config.STORE_SOCKET_NAME``, because it does not exist.
-                Which might be because the specified value was wrong or
-                the store died.
-        """
-        if self._client is not None:
-            return self._client
-
-        try:
-            self._client = plasma.connect(
-                Config.STORE_SOCKET_NAME, num_retries=Config.CONN_NUM_RETRIES
-            )
-        except OSError:
-            raise error.OrchestNetworkError(
-                "Failed to connect to in-memory object store."
-            )
-
-        return self._client
 
 
 def _serialize(
@@ -534,76 +493,6 @@ def _resolve_disk(step_uuid: str) -> Dict[str, Any]:
     return res
 
 
-def _output_to_memory(
-    obj: pa.Buffer,
-    client: plasma.PlasmaClient,
-    obj_id: Optional[plasma.ObjectID] = None,
-    metadata: Optional[bytes] = None,
-    memcopy_threads: int = 6,
-) -> plasma.ObjectID:
-    """Outputs an object to memory.
-
-    Args:
-        obj: Object to output to memory.
-        client: A PlasmaClient to interface with the in-memory object
-            store.
-        obj_id: The ID to assign to the `obj` inside the plasma store.
-            If ``None`` then one is randomly generated.
-        metadata: Metadata to add to the `obj` inside the store.
-        memcopy_threads: The number of threads to use to write the
-            `obj` into the object store for large objects.
-
-    Returns:
-        The ID of the object inside the store. Either the given `obj_id`
-        or a randomly generated one.
-
-    Raises:
-        MemoryError: If the `obj` does not fit in memory.
-    """
-    # Check whether the object to be passed in memory actually fits in
-    # memory. We check explicitely instead of trying to insert it,
-    # because inserting an already full Plasma store will start evicting
-    # objects to free up space. However, we want to maintain control
-    # over what objects get evicted.
-    # obj.size -> "The buffer size in bytes."
-    total_size = obj.size
-    if metadata is not None:
-        total_size += len(metadata)
-
-    occupied_size = sum(
-        obj["data_size"] + obj["metadata_size"] for obj in client.list().values()
-    )
-    # Take a percentage of the maximum capacity such that the message
-    # for object eviction always fits inside the store.
-    store_capacity = Config.MAX_RELATIVE_STORE_CAPACITY * client.store_capacity()
-    available_size = store_capacity - occupied_size
-
-    if total_size > available_size:
-        raise MemoryError("Object does not fit in memory")
-
-    # In case no `obj_id` is specified, one has to be generated because
-    # an ID is required for an object to be inserted in the store.
-    if obj_id is None:
-        obj_id = plasma.ObjectID.from_random()
-
-    # Write the object to the plasma store. If the obj_id already
-    # exists, then it first has to be deleted. Essentially we are
-    # overwriting the data (just like we do for disk)
-    try:
-        buffer = client.create(obj_id, obj.size, metadata=metadata)
-    except plasma.PlasmaObjectExists:
-        client.delete([obj_id])
-        buffer = client.create(obj_id, obj.size, metadata=metadata)
-
-    stream = pa.FixedSizeBufferWriter(buffer)
-    stream.set_memcopy_threads(memcopy_threads)
-
-    stream.write(obj)
-    client.seal(obj_id)
-
-    return obj_id
-
-
 def output_to_memory(
     data: Any,
     name: Optional[str],
@@ -661,245 +550,6 @@ def output_to_memory(
     _print_warning_message(msg)
     output(data, name)
     return
-    try:
-        _check_data_name_validity(name)
-    except (ValueError, TypeError) as e:
-        raise error.DataInvalidNameError(e)
-
-    _warn_multiple_data_output_if_necessary(name)
-
-    try:
-        with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
-            pipeline_definition = json.load(f)
-    except FileNotFoundError:
-        raise error.PipelineDefinitionNotFoundError(
-            f"Could not open {Config.PIPELINE_DEFINITION_PATH}."
-        )
-
-    pipeline = Pipeline.from_json(pipeline_definition)
-
-    try:
-        step_uuid = get_step_uuid(pipeline)
-    except error.StepUUIDResolveError:
-        raise error.StepUUIDResolveError("Failed to determine where to output data to.")
-
-    # Serialize the object and collect the serialization metadata.
-    obj, serialization = _serialize(data)
-
-    try:
-        client = _PlasmaConnector().client
-    except error.OrchestNetworkError as e:
-        if not disk_fallback:
-            raise error.OrchestNetworkError(e)
-
-        return output_to_disk(obj, name, serialization=serialization)
-
-    # Try to output to memory.
-    obj_id = _convert_uuid_to_object_id(step_uuid)
-    metadata = [
-        str(Config.IDENTIFIER_SERIALIZATION),
-        # The plasma store allows to get the creation timestamp, but
-        # creating it this way makes the process more consistent with
-        # the metadata we are writing when outputting to disk, moreover,
-        # it makes the code less dependent on the plasma store API.
-        datetime.utcnow().isoformat(timespec="seconds"),
-        serialization.name,
-        # Can't simply assign to name beforehand because name might be
-        # passed to output_to_disk, which needs to check for name
-        # validity itself since its a public function.
-        name if name is not None else Config._RESERVED_UNNAMED_OUTPUTS_STR,
-    ]
-    metadata = bytes(Config.__METADATA_SEPARATOR__.join(metadata), "utf-8")
-
-    try:
-        obj_id = _output_to_memory(obj, client, obj_id=obj_id, metadata=metadata)
-
-    except MemoryError:
-        if not disk_fallback:
-            raise MemoryError("Data does not fit in memory.")
-
-        # TODO: note that metadata is lost when falling back to disk.
-        #       Therefore we will only support metadata added by the
-        #       user, once disk also supports passing metadata.
-        return output_to_disk(
-            obj,
-            name,
-            serialization=serialization,
-        )
-
-    return
-
-
-def _deserialize_output_memory(
-    obj_id: plasma.ObjectID, client: plasma.PlasmaClient
-) -> Any:
-    """Gets data from memory.
-
-    Args:
-        obj_id: The ID of the object to retrieve from the plasma store.
-        client: A PlasmaClient to interface with the in-memory object
-            store.
-
-    Returns:
-        The unserialized data from the store corresponding to the
-        `obj_id`.
-
-    Raises:
-        ObjectNotFoundError: If the specified `obj_id` is not in the
-            store.
-        ValueError: If the serialization type in the metadata is not
-            valid.
-    """
-    obj_ids = [obj_id]
-
-    # TODO: the get_buffers allows for batch, which we want to use in
-    #       the future.
-    buffers = client.get_buffers(obj_ids, with_meta=True, timeout_ms=1000)
-
-    # Since we currently know that we are only restrieving one buffer,
-    # we can instantly get its metadata and buffer.
-    metadata, buffer = buffers[0]
-
-    # Getting the buffer timed out. We conclude that the object has not
-    # yet been written to the store and maybe never will.
-    if metadata is None and buffer is None:
-        raise error.ObjectNotFoundError(
-            f'Object with ObjectID "{obj_id}" does not exist in store.'
-        )
-
-    metadata = metadata.decode("utf-8").split(Config.__METADATA_SEPARATOR__)
-    _, _, serialization, _ = metadata
-    if serialization == Serialization.ARROW_TABLE.name:
-        # Read all batches as a table.
-        stream = pa.ipc.open_stream(buffer)
-        return stream.read_all()
-
-    elif serialization == Serialization.ARROW_BATCH.name:
-        # Return the first batch (the only one).
-        stream = pa.ipc.open_stream(buffer)
-        return [b for b in stream][0]
-
-    elif serialization == Serialization.PICKLE.name:
-        # Can load the buffer directly because its a bytes-like-object:
-        # https://docs.python.org/3/library/pickle.html#pickle.loads
-        return pickle.loads(buffer)
-    else:
-        raise ValueError("Object was serialized with an unsupported serialization")
-
-
-def _get_output_memory(step_uuid: str, consumer: Optional[str] = None) -> Any:
-    """Gets data from memory.
-
-    Args:
-        step_uuid: The UUID of the step to get output data from.
-        consumer: The consumer of the output data. This is put inside
-            the metadata of an empty object to trigger a notification in
-            the plasma store, which is then used to manage eviction of
-            objects.
-
-    Returns:
-        Data from step identified by `step_uuid`.
-
-    Raises:
-        DeserializationError: If the data could not be deserialized.
-        MemoryOutputNotFoundError: If output from `step_uuid` cannot be
-            found.
-        OrchestNetworkError: Could not connect to the
-            ``Config.STORE_SOCKET_NAME``, because it does not exist.
-            Which might be because the specified value was wrong or the
-            store died.
-    """
-    client = _PlasmaConnector().client
-
-    obj_id = _convert_uuid_to_object_id(step_uuid)
-    try:
-        obj = _deserialize_output_memory(obj_id, client)
-
-    except error.ObjectNotFoundError:
-        raise error.MemoryOutputNotFoundError(
-            f'Output from incoming step "{step_uuid}" cannot be found. '
-            "Try rerunning it."
-        )
-    # IOError is to try to catch pyarrow deserialization errors.
-    except (pickle.UnpicklingError, IOError):
-        raise error.DeserializationError(
-            f'Output from incoming step "{step_uuid}" could not be deserialized.'
-        )
-    else:
-        # TODO: note somewhere (maybe in the docstring) that it might
-        #       although very unlikely raise MemoryError, because the
-        #       receive is now actually also outputing data.
-        # NOTE: the "ORCHEST_MEMORY_EVICTION" ENV variable is set in the
-        # orchest-api. Now we always know when we are running inside a
-        # jupyter kernel interactively. And in that case we never want
-        # to do eviction.
-        if os.getenv("ORCHEST_MEMORY_EVICTION") is not None:
-            empty_obj, _ = _serialize("")
-            msg = f"{Config.IDENTIFIER_EVICTION};{step_uuid},{consumer}"
-            metadata = bytes(msg, "utf-8")
-            _output_to_memory(empty_obj, client, metadata=metadata)
-
-    return obj
-
-
-def _resolve_memory(step_uuid: str, consumer: str = None) -> Dict[str, Any]:
-    """Returns information of the most recent write to memory.
-
-    Resolves the timestamp via the `create_time` attribute from the info
-    of the plasma store. It also sets the arguments to call the
-    :func:`get_output_memory` method with.
-
-    Args:
-        step_uuid: The UUID of the step to resolve its most recent write
-            to memory.
-        consumer: The consumer of the output data. This is put inside
-            the metadata of an empty object to trigger a notification in
-            the plasma store, which is then used to manage eviction of
-            objects.
-
-    Returns:
-        Dictionary containing the information of the function to be
-        called to get the most recent data from the step. Additionally,
-        returns fill-in arguments for the function and metadata
-        related to the data that would be retrieved.
-
-    Raises:
-        MemoryOutputNotFoundError: If output from `step_uuid` cannot be
-            found.
-        OrchestNetworkError: Could not connect to the
-            ``Config.STORE_SOCKET_NAME``, because it does not exist.
-            Which might be because the specified value was wrong or the
-            store died.
-    """
-    client = _PlasmaConnector().client
-
-    obj_id = _convert_uuid_to_object_id(step_uuid)
-
-    # get metadata of the object if it exists
-    metadata = client.get_metadata([obj_id], timeout_ms=0)
-    metadata = metadata[0]
-    if metadata is None:
-        raise error.MemoryOutputNotFoundError(
-            f'Output from incoming step "{step_uuid}" cannot be found. '
-            "Try rerunning it."
-        )
-    # this is a pyarrow.Buffer, gotta make it into pybytes to decode,
-    # not much overhead given that this is just metadata
-    metadata = metadata.to_pybytes()
-    metadata = _interpret_metadata(metadata.decode("utf-8"))
-    timestamp, serialization, name = metadata
-
-    res = {
-        "method_to_call": _get_output_memory,
-        "method_args": (step_uuid,),
-        "method_kwargs": {"consumer": consumer},
-        "metadata": {
-            "timestamp": timestamp,
-            "serialization": serialization,
-            "name": name,
-        },
-    }
-    return res
 
 
 def _resolve(
@@ -1178,19 +828,6 @@ def output(
         data,
         name,
     )
-
-
-def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
-    """Converts a UUID to a plasma.ObjectID.
-
-    Args:
-        step_uuid: UUID of a step.
-
-    Returns:
-        An ObjectID of the first 20 characters of the `step_uuid`.
-    """
-    binary_uuid = str.encode(step_uuid)
-    return plasma.ObjectID(binary_uuid[:20])
 
 
 # TODO: Once we are set on the API we could specify __all__. For now we

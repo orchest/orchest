@@ -115,25 +115,6 @@ class Session(Resource):
         else:
             return {"message": "Session not found."}, 404
 
-    @api.doc("restart_memory_server_of_session")
-    @api.response(200, "Session resource memory-server restarted")
-    @api.response(404, "Session not found")
-    def put(self, project_uuid, pipeline_uuid):
-        """Restarts the memory-server of the session."""
-
-        try:
-            with TwoPhaseExecutor(db.session) as tpe:
-                could_restart = RestartMemoryServer(tpe).transaction(
-                    project_uuid, pipeline_uuid
-                )
-        except Exception as e:
-            return {"message": str(e)}, 500
-
-        if not could_restart:
-            return {"message": "SessionNotRunning"}, 409
-
-        return {"message": "Memory server restart was successful."}, 200
-
 
 @api.route(
     "/kernels/lock-image/<string:project_uuid>/<string:pipeline_uuid>/"
@@ -414,45 +395,3 @@ class StopInteractiveSession(TwoPhaseFunction):
                 project_uuid,
                 pipeline_uuid,
             )
-
-
-class RestartMemoryServer(TwoPhaseFunction):
-    def _transaction(
-        self,
-        project_uuid: str,
-        pipeline_uuid: str,
-    ):
-
-        session = models.InteractiveSession.query.filter_by(
-            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid, status="RUNNING"
-        ).one_or_none()
-
-        if session is None:
-            self.collateral_kwargs["session_uuid"] = None
-            return False
-        else:
-            # Register here so that the event payload can register the
-            # fact that an interactive run was running while the user
-            # attempted such a restart.
-            events._register_interactive_session_service_restarted(
-                project_uuid, pipeline_uuid
-            )
-
-            # Abort interactive run if it was PENDING/STARTED.
-            run = models.InteractivePipelineRun.query.filter(
-                models.InteractivePipelineRun.project_uuid == project_uuid,
-                models.InteractivePipelineRun.pipeline_uuid == pipeline_uuid,
-                models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
-            ).one_or_none()
-            if run is not None:
-                AbortPipelineRun(self.tpe).transaction(run.uuid)
-
-            self.collateral_kwargs["session_uuid"] = (
-                project_uuid[:18] + pipeline_uuid[:18]
-            )
-
-        return True
-
-    def _collateral(self, session_uuid: str):
-        if session_uuid is not None:
-            sessions.restart_session_service(session_uuid, "memory-server", False)

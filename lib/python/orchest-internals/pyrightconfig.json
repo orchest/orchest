@@ -4,7 +4,6 @@
     "../../../services/orchest-webserver/app/",
     "../../../services/orchest-api/app/",
     "../../../services/auth-server/app/",
-    "../../../services/memory-server/app/",
     "../../../services/session-sidecar/app/",
     "../../../services/jupyter-server/",
     "../../../services/base-images/runnable-shared/runner/"

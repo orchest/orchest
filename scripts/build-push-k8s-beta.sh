@@ -3,14 +3,12 @@ to_build=(
 	base-kernel-julia
 	base-kernel-javascript
 	base-kernel-py
-	base-kernel-py-gpu
 	base-kernel-r
 	celery-worker
 	jupyter-enterprise-gateway
 	jupyter-server
 	node-agent
 	orchest-api
-	memory-server
 	orchest-webserver
 	session-sidecar
 )

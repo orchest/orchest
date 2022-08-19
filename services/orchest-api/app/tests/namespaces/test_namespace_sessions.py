@@ -2,7 +2,6 @@ from _orchest.internals.test_utils import raise_exception_function
 from app.apis.namespace_sessions import (
     AbortPipelineRun,
     CreateInteractiveSession,
-    RestartMemoryServer,
     StopInteractiveSession,
 )
 from app.core.sessions import InteractiveSession
@@ -118,9 +117,6 @@ def test_session_put_aborts_interactive_run(
 
     client.post("/api/sessions/", json=pipeline_spec)
 
-    monkeypatch.setattr(
-        RestartMemoryServer, "_collateral", lambda *args, **kwargs: None
-    )
     monkeypatch.setattr(AbortPipelineRun, "_collateral", lambda *args, **kwargs: None)
     resp = client.put(f"/api/sessions/{pr_uuid}/{pl_uuid}")
     assert resp.status_code == 200

@@ -5,7 +5,6 @@
 services/base-images/*  @fruttasecca @yannickperrenet
 services/jupyter-enterprise-gateway/*  @fruttasecca @yannickperrenet
 services/jupyter-server/*  @fruttasecca @yannickperrenet
-services/memory-server/*  @fruttasecca @yannickperrenet
 services/node-agent/*  @fruttasecca @yannickperrenet
 services/orchest-api/*  @fruttasecca @yannickperrenet
 services/session-sidecar/*  @fruttasecca @yannickperrenet
@@ -15,8 +14,8 @@ orchest-cli/*  @yannickperrenet @nhaghighat
 orchest-sdk/*  @fruttasecca @yannickperrenet
 
 # Frontend
-services/auth-server/*  @iannbing @BrunoOrchest
-services/orchest-webserver/*  @iannbing @BrunoOrchest
+services/auth-server/*  @iannbing @mausworks
+services/orchest-webserver/*  @iannbing @mausworks
 
 # K8S
 services/orchest-controller/*  @nhaghighat
