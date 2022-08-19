@@ -10,7 +10,7 @@ import { useInterval } from "@/hooks/use-interval";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { HEADER } from "@orchest/lib-utils";
+import { hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useMounted } from "./useMounted";
 
@@ -45,24 +45,15 @@ const getReadOnlyReasonFromEnvironmentsStatus = (
   return status;
 };
 
-export const useBuildEnvironmentImages = () => {
-  const { navigateTo } = useCustomRoute();
+const usePollBuildStatus = () => {
+  const { runUuid } = useCustomRoute();
+  const { validate, status } = useEnvironmentsApi();
+
+  const isJobRun = hasValue(runUuid);
   const {
-    state: { projectUuid, buildRequest },
+    state: { buildRequest },
     dispatch,
   } = useProjectsContext();
-
-  const { validate, status, environmentsToBeBuilt } = useEnvironmentsApi();
-
-  React.useEffect(() => {
-    const readOnlyReason = getReadOnlyReasonFromEnvironmentsStatus(status);
-
-    dispatch({
-      type: "SET_PIPELINE_READONLY_REASON",
-      payload: readOnlyReason,
-    });
-  }, [status, dispatch]);
-
   const checkAllEnvironmentsHaveBeenBuilt = React.useCallback(async () => {
     const environmentValidationData = await validate();
     if (environmentValidationData?.validation === "pass") {
@@ -72,28 +63,50 @@ export const useBuildEnvironmentImages = () => {
   }, [validate, buildRequest, dispatch]);
 
   const isMounted = useMounted();
-
+  const [shouldPoll, setShouldPoll] = React.useState(false);
   React.useEffect(() => {
-    if (isMounted.current) {
+    if (isMounted.current && !isJobRun) {
       setShouldPoll(status !== "allEnvironmentsBuilt");
     }
-  }, [status, isMounted]);
-
-  const [shouldPoll, setShouldPoll] = React.useState(false);
+  }, [status, isMounted, isJobRun]);
 
   useInterval(
     checkAllEnvironmentsHaveBeenBuilt,
     isMounted.current && shouldPoll ? 1000 : null
   );
 
+  React.useEffect(() => {
+    checkAllEnvironmentsHaveBeenBuilt();
+  }, [checkAllEnvironmentsHaveBeenBuilt]);
+
+  return { setShouldPoll };
+};
+
+export const useBuildEnvironmentImages = () => {
+  const { navigateTo, runUuid } = useCustomRoute();
+  const isJobRun = hasValue(runUuid);
+
+  const {
+    state: { projectUuid, buildRequest, pipelineReadOnlyReason },
+    dispatch,
+  } = useProjectsContext();
+
+  const { validate, status, environmentsToBeBuilt } = useEnvironmentsApi();
+
+  React.useEffect(() => {
+    if (isJobRun) return;
+    const readOnlyReason = getReadOnlyReasonFromEnvironmentsStatus(status);
+
+    dispatch({
+      type: "SET_PIPELINE_READONLY_REASON",
+      payload: readOnlyReason,
+    });
+  }, [status, dispatch, pipelineReadOnlyReason, isJobRun]);
+
   const cancel = React.useCallback(() => {
     buildRequest?.onCancel();
     dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
   }, [buildRequest, dispatch]);
-
-  React.useEffect(() => {
-    checkAllEnvironmentsHaveBeenBuilt();
-  }, [checkAllEnvironmentsHaveBeenBuilt]);
 
   const isBuilding = status === "environmentsBuildInProgress";
   const buildHasFailed = status === "environmentsFailedToBuild";
@@ -109,10 +122,10 @@ export const useBuildEnvironmentImages = () => {
         buildRequest?.requestedFromView
       );
 
+  const { setShouldPoll } = usePollBuildStatus();
+
   const { cancelableFetch } = useCancelableFetch();
   const triggerBuild = React.useCallback(async () => {
-    setShouldPoll(true);
-
     dispatch({
       type: "SET_PIPELINE_READONLY_REASON",
       payload: "environmentsBuildInProgress",
@@ -131,6 +144,7 @@ export const useBuildEnvironmentImages = () => {
           environment_image_build_requests: buildRequests,
         }),
       });
+      setShouldPoll(true);
       await validate();
     } catch (error) {
       console.error("Failed to start environment builds:", error);
@@ -141,6 +155,7 @@ export const useBuildEnvironmentImages = () => {
     dispatch,
     environmentsToBeBuilt,
     validate,
+    setShouldPoll,
   ]);
 
   const viewBuildStatus = React.useCallback(
