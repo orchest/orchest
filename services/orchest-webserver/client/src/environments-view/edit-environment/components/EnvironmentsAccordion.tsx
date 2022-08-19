@@ -24,7 +24,11 @@ export const EnvironmentsAccordion = (props: AccordionProps) => {
 export const EnvironmentsAccordionSummary = styled(
   (props: AccordionSummaryProps) => (
     <MuiAccordionSummary
-      expandIcon={<ArrowForwardIosSharpIcon fontSize="small" />}
+      expandIcon={
+        <ArrowForwardIosSharpIcon
+          sx={{ fontSize: (theme) => theme.spacing(2) }}
+        />
+      }
       {...props}
     />
   )
