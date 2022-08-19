@@ -16,10 +16,10 @@ type BuildPendingDialogProps = { onCancel?: (isBuilding: boolean) => void };
 
 const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
   const {
-    state: { projectUuid },
+    state: { projectUuid, buildRequest },
+    dispatch,
   } = useProjectsContext();
   const {
-    buildRequest,
     isBuilding,
     triggerBuild,
     viewBuildStatus,
@@ -29,6 +29,14 @@ const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
   } = useBuildEnvironmentImages();
 
   if (!buildRequest) return null;
+
+  const build = () => {
+    dispatch({
+      type: "SET_PIPELINE_READONLY_REASON",
+      payload: "environmentsBuildInProgress",
+    });
+    triggerBuild();
+  };
 
   const isOpen = buildRequest.projectUuid === projectUuid;
   const shouldHideCancel =
@@ -70,12 +78,7 @@ const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
           </Button>
         )}
         {allowBuild && (
-          <Button
-            autoFocus
-            variant="contained"
-            color="primary"
-            onClick={triggerBuild}
-          >
+          <Button autoFocus variant="contained" color="primary" onClick={build}>
             Build
           </Button>
         )}

@@ -61,16 +61,19 @@ const processFollowupActions = (
   const buildingEnvironments: string[] = [];
   const environmentsToBeBuilt: string[] = [];
   let hasActionChanged = false;
-  validationData.actions.forEach((action, index) => {
-    const uuid = validationData.fail[index];
-    const environment = environmentsMap.get(uuid);
-    if (!environment) throw new Error("environment unavailable");
-    if (environment.action !== action) hasActionChanged = true;
-    if (action === "WAIT") buildingEnvironments.push(uuid);
-    if (["BUILD", "RETRY"].includes(action)) environmentsToBeBuilt.push(uuid);
-    environment.action = action;
+  const updatedEnvironmentsMap = produce(environmentsMap, (draft) => {
+    validationData.actions.forEach((action, index) => {
+      const uuid = validationData.fail[index];
+      const environment = draft.get(uuid);
+      if (!environment) throw new Error("environment unavailable");
+      if (environment.action !== action) hasActionChanged = true;
+      if (action === "WAIT") buildingEnvironments.push(uuid);
+      if (["BUILD", "RETRY"].includes(action)) environmentsToBeBuilt.push(uuid);
+      environment.action = action;
+    });
   });
   return [
+    updatedEnvironmentsMap,
     buildingEnvironments,
     environmentsToBeBuilt,
     hasActionChanged,
@@ -86,21 +89,22 @@ const processSuccessBuilds = (
   validationData: EnvironmentValidationData
 ) => {
   let hasActionChanged = false;
-  validationData.pass.forEach((uuid) => {
-    const environment = environmentsMap.get(uuid);
-    if (!environment) throw new Error("environment unavailable");
-    if (Boolean(environment.action)) hasActionChanged = true;
-    environment.action = undefined;
+  const updatedEnvironmentsMap = produce(environmentsMap, (draft) => {
+    validationData.pass.forEach((uuid) => {
+      const environment = draft.get(uuid);
+      if (!environment) throw new Error("environment unavailable");
+      if (Boolean(environment.action)) hasActionChanged = true;
+      environment.action = undefined;
+    });
   });
-  return hasActionChanged;
+  return [updatedEnvironmentsMap, hasActionChanged] as const;
 };
 
 const validate = async (
   projectUuid: string,
   existingEnvironments: EnvironmentState[] = []
 ): Promise<
-  | [EnvironmentState[], EnvironmentValidationData, boolean, string[], string[]]
-  | FetchError
+  [EnvironmentState[], EnvironmentValidationData, boolean, string[], string[]]
 > => {
   try {
     const response = await postValidate(projectUuid);
@@ -109,17 +113,24 @@ const validate = async (
     );
 
     const [
+      environmentsMapWithFollowupActions,
       buildingEnvironments,
       environmentsToBeBuilt,
       hasNewInvalidEnvironmentBuilds,
     ] = processFollowupActions(environmentsMap, response);
 
-    const hasNewSuccessBuilds = processSuccessBuilds(environmentsMap, response);
+    const [updatedEnvironmentMap, hasNewSuccessBuilds] = processSuccessBuilds(
+      environmentsMapWithFollowupActions,
+      response
+    );
 
     const hasActionChanged =
       hasNewInvalidEnvironmentBuilds || hasNewSuccessBuilds;
 
-    const environments = Array.from(environmentsMap, ([, value]) => value);
+    const environments = Array.from(
+      updatedEnvironmentMap,
+      ([, value]) => value
+    );
 
     return [
       environments,
@@ -133,7 +144,7 @@ const validate = async (
       const latestEnvironments = await fetchAll(projectUuid);
       return validate(projectUuid, latestEnvironments);
     }
-    return new FetchError(error);
+    throw new FetchError(error);
   }
 };
 

@@ -3,6 +3,7 @@ import { useLayoutStore } from "@/components/Layout/layout-with-side-panel/store
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
+import { withPlural } from "@/utils/webserver-utils";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -79,10 +80,13 @@ export const ReadOnlyBanner = () => {
             navigateTo(siteMap.configureJupyterLab.path, undefined, event),
         };
       case "environmentsNotYetBuilt":
+      case "environmentsFailedToBuild":
         const hasMultipleEnvironmentsToBuild = environmentsToBeBuilt.length > 1;
-        const environmentText = hasMultipleEnvironmentsToBuild
-          ? `${environmentsToBeBuilt.length} environments`
-          : "One environment";
+        const environmentText = withPlural(
+          environmentsToBeBuilt.length,
+          "environment"
+        );
+
         return {
           title: `${environmentText} of this project need${
             hasMultipleEnvironmentsToBuild ? "" : "s"
@@ -91,11 +95,12 @@ export const ReadOnlyBanner = () => {
           action: triggerBuild,
         };
       case "environmentsBuildInProgress":
-        const hasMultipleEnvironmentsBuilding = buildingEnvironments.length > 1;
+        const buildingEnvironmentText = withPlural(
+          buildingEnvironments.length,
+          "environment"
+        );
         return {
-          title: `${buildingEnvironments.length} environment${
-            hasMultipleEnvironmentsBuilding ? "s" : ""
-          } still building`,
+          title: `${buildingEnvironmentText} still building`,
           actionLabel: "Open environments",
           action: viewBuildStatus,
         };
