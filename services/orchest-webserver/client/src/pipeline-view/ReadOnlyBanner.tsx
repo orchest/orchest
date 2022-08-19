@@ -1,5 +1,6 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useLayoutStore } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -49,6 +50,7 @@ const ReadOnlyBannerContainer: React.FC = ({ children }) => {
 export const ReadOnlyBanner = () => {
   const { navigateTo } = useCustomRoute();
   const { buildingEnvironments, environmentsToBeBuilt } = useEnvironmentsApi();
+  const { dispatch } = useProjectsContext();
 
   const { triggerBuild, viewBuildStatus } = useBuildEnvironmentImages();
 
@@ -92,7 +94,13 @@ export const ReadOnlyBanner = () => {
             hasMultipleEnvironmentsToBuild ? "" : "s"
           } to be built`,
           actionLabel: "Build environments",
-          action: triggerBuild,
+          action: () => {
+            dispatch({
+              type: "SET_PIPELINE_READONLY_REASON",
+              payload: "environmentsBuildInProgress",
+            });
+            triggerBuild();
+          },
         };
       case "environmentsBuildInProgress":
         const buildingEnvironmentText = withPlural(
@@ -116,6 +124,7 @@ export const ReadOnlyBanner = () => {
     pipelineUuid,
     viewBuildStatus,
     triggerBuild,
+    dispatch,
   ]);
 
   const showLinearProgress =
