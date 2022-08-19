@@ -96,7 +96,13 @@ type Action =
     }
   | {
       type: "SET_BUILD_REQUEST";
-      payload: BuildRequest | undefined;
+      payload: BuildRequest;
+    }
+  | {
+      type: "CANCEL_BUILD_REQUEST";
+    }
+  | {
+      type: "COMPLETE_BUILD_REQUEST";
     };
 
 export type ProjectsContextAction = ReducerActionWithCallback<
@@ -313,6 +319,14 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         case "SET_BUILD_REQUEST": {
           return { ...state, buildRequest: action.payload };
         }
+        case "COMPLETE_BUILD_REQUEST":
+          return {
+            ...state,
+            buildRequest: undefined,
+            pipelineReadOnlyReason: undefined,
+          };
+        case "CANCEL_BUILD_REQUEST":
+          return { ...state, buildRequest: undefined };
         case "SET_EXAMPLES": {
           return { ...state, examples: action.payload };
         }

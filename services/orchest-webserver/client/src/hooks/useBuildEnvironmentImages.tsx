@@ -51,7 +51,7 @@ const usePollBuildStatus = () => {
     setShouldPoll(status !== "allEnvironmentsBuilt");
     if (environmentValidationData?.validation === "pass") {
       buildRequest?.onComplete();
-      dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
+      dispatch({ type: "COMPLETE_BUILD_REQUEST" });
     }
   }, [validate, buildRequest, dispatch]);
 
@@ -88,7 +88,7 @@ export const useBuildEnvironmentImages = () => {
 
   const cancel = React.useCallback(() => {
     buildRequest?.onCancel();
-    dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
+    dispatch({ type: "CANCEL_BUILD_REQUEST" });
   }, [buildRequest, dispatch]);
 
   const isBuilding = status === "environmentsBuildInProgress";
@@ -111,7 +111,7 @@ export const useBuildEnvironmentImages = () => {
   const triggerBuild = React.useCallback(async () => {
     const buildRequests = environmentsToBeBuilt.map((environmentUuid) => ({
       environment_uuid: environmentUuid,
-      project_uuid: buildRequest?.projectUuid,
+      project_uuid: projectUuid,
     }));
 
     try {
@@ -128,7 +128,7 @@ export const useBuildEnvironmentImages = () => {
       console.error("Failed to start environment builds:", error);
     }
   }, [
-    buildRequest?.projectUuid,
+    projectUuid,
     cancelableFetch,
     environmentsToBeBuilt,
     validate,
