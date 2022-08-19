@@ -1,6 +1,7 @@
 # Development
 
-If you'd like to contribute to Orchest development than the following sections should help you get up to speed on our development setup, contributor guidelines and implementation details.
+If you'd like to contribute to Orchest development, then the following sections should help you get
+up to speed on our development setup, contributor guidelines and implementation details.
 
 ```{toctree}
 :caption: Development
