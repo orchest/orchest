@@ -3,11 +3,11 @@ import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
+import { useBuildEnvironmentImage } from "@/environments-view/hooks/useBuildEnvironmentImage";
 import { useInterval } from "@/hooks/use-interval";
-import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { hasValue, HEADER } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useMounted } from "./useMounted";
 
@@ -44,6 +44,16 @@ const usePollBuildStatus = () => {
     state: { buildRequest },
     dispatch,
   } = useProjectsContext();
+
+  const isMounted = useMounted();
+  const [shouldPoll, setShouldPoll] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isMounted.current && !isJobRun) {
+      setShouldPoll(status !== "allEnvironmentsBuilt");
+    }
+  }, [status, isMounted, isJobRun]);
+
   const checkAllEnvironmentsHaveBeenBuilt = React.useCallback(async () => {
     const result = await validate();
     if (!result) return;
@@ -54,15 +64,6 @@ const usePollBuildStatus = () => {
       dispatch({ type: "COMPLETE_BUILD_REQUEST" });
     }
   }, [validate, buildRequest, dispatch]);
-
-  const isMounted = useMounted();
-  const [shouldPoll, setShouldPoll] = React.useState(false);
-
-  React.useEffect(() => {
-    if (isMounted.current && !isJobRun) {
-      setShouldPoll(status !== "allEnvironmentsBuilt");
-    }
-  }, [status, isMounted, isJobRun]);
 
   useInterval(
     checkAllEnvironmentsHaveBeenBuilt,
@@ -107,30 +108,21 @@ export const useBuildEnvironmentImages = () => {
 
   const { setShouldPoll } = usePollBuildStatus();
 
-  const { cancelableFetch } = useCancelableFetch();
-  const triggerBuild = React.useCallback(async () => {
-    const buildRequests = environmentsToBeBuilt.map((environmentUuid) => ({
-      environment_uuid: environmentUuid,
-      project_uuid: projectUuid,
-    }));
+  const [triggerBuildEnvironments] = useBuildEnvironmentImage();
 
+  const triggerBuilds = React.useCallback(async () => {
     try {
-      await cancelableFetch("/catch/api-proxy/api/environment-builds", {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify({
-          environment_image_build_requests: buildRequests,
-        }),
-      });
+      setShouldPoll(true);
+      await triggerBuildEnvironments(environmentsToBeBuilt);
+
       setShouldPoll(true);
       await validate();
     } catch (error) {
       console.error("Failed to start environment builds:", error);
     }
   }, [
-    projectUuid,
-    cancelableFetch,
     environmentsToBeBuilt,
+    triggerBuildEnvironments,
     validate,
     setShouldPoll,
   ]);
@@ -148,7 +140,7 @@ export const useBuildEnvironmentImages = () => {
   return {
     message,
     isBuilding,
-    triggerBuild,
+    triggerBuilds,
     viewBuildStatus,
     cancel,
     allowBuild,

@@ -434,7 +434,6 @@ const PipelineStepComponent = React.forwardRef<
     selected,
     isSelectorActive,
     selectedSteps,
-    getMouseDelta,
     scaleFactor,
     draggedStepPositions,
   ]);
