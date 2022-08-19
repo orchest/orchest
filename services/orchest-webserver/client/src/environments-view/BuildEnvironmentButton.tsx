@@ -21,7 +21,7 @@ export const BuildEnvironmentButton = () => {
     if (isBuilding) {
       cancelBuild(environmentChanges.uuid);
     } else {
-      triggerBuild(environmentChanges);
+      triggerBuild([environmentChanges.uuid]);
     }
   };
 

@@ -1,4 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useCancelablePromise } from "@/hooks/useCancelablePromise";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type {
   EnvironmentValidationData,
@@ -28,7 +29,7 @@ export type RequestBuildDispatcher = (
   projectUuid: string,
   environmentValidationData: EnvironmentValidationData,
   requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
-) => Promise<boolean>;
+) => Promise<true | Error>;
 
 const ProjectsContext = React.createContext<IProjectsContext>(
   {} as IProjectsContext
@@ -115,7 +116,7 @@ export interface IProjectsContext {
   dispatch: (value: ProjectsContextAction) => void;
   ensureEnvironmentsAreBuilt: (
     requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
-  ) => Promise<boolean>;
+  ) => Promise<true | Error>;
   requestBuild: RequestBuildDispatcher;
 }
 
@@ -345,26 +346,29 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
   );
   const [state, dispatch] = React.useReducer(memoizedReducer, initialState);
 
+  const { makeCancelable } = useCancelablePromise();
   const requestBuild = React.useCallback(
     (
       projectUuid: string,
       environmentValidationData: EnvironmentValidationData,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ) => {
-      return new Promise<boolean>((resolve) =>
-        dispatch({
-          type: "SET_BUILD_REQUEST",
-          payload: {
-            projectUuid,
-            environmentValidationData,
-            requestedFromView: requestedFromView || "",
-            onComplete: () => resolve(true),
-            onCancel: () => resolve(false),
-          },
-        })
+      return makeCancelable(
+        new Promise<true | Error>((resolve) =>
+          dispatch({
+            type: "SET_BUILD_REQUEST",
+            payload: {
+              projectUuid,
+              environmentValidationData,
+              requestedFromView: requestedFromView || "",
+              onComplete: () => resolve(true),
+              onCancel: () => resolve(new Error("build request was canceled")),
+            },
+          })
+        )
       );
     },
-    [dispatch]
+    [dispatch, makeCancelable]
   );
 
   const triggerRequestBuild = React.useCallback(
@@ -372,7 +376,8 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
       environmentValidationData: EnvironmentValidationData | undefined,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ) => {
-      if (!state.projectUuid || !environmentValidationData) return false;
+      if (!state.projectUuid) return new Error("project UUID unavailable");
+      if (!environmentValidationData) return new Error("Unable to validate");
 
       return requestBuild(
         state.projectUuid,
@@ -386,22 +391,23 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
   const { validate } = useEnvironmentsApi();
 
   const ensureEnvironmentsAreBuilt = React.useCallback(
-    async (requestedFromView: BUILD_IMAGE_SOLUTION_VIEW): Promise<boolean> => {
-      try {
-        const [validationData, buildStatus] = await validate();
+    async (
+      requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
+    ): Promise<true | Error> => {
+      const [validationData, buildStatus] = await validate();
+      const readOnlyReason =
+        buildStatus === "allEnvironmentsBuilt" ? undefined : buildStatus;
 
-        dispatch({
-          type: "SET_PIPELINE_READONLY_REASON",
-          payload:
-            buildStatus === "allEnvironmentsBuilt" ? undefined : buildStatus,
-        });
+      dispatch({
+        type: "SET_PIPELINE_READONLY_REASON",
+        payload: readOnlyReason,
+      });
 
-        if (buildStatus === "allEnvironmentsBuilt") return true;
-        if (buildStatus === "environmentsBuildInProgress") return false;
-        return triggerRequestBuild(validationData, requestedFromView);
-      } catch (error) {
-        return false;
-      }
+      if (!readOnlyReason) return true;
+      if (buildStatus === "environmentsBuildInProgress")
+        return new Error(readOnlyReason);
+
+      return triggerRequestBuild(validationData, requestedFromView);
     },
     [validate, triggerRequestBuild]
   );

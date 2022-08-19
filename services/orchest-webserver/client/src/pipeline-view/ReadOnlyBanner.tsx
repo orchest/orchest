@@ -55,7 +55,7 @@ export const ReadOnlyBanner = () => {
     dispatch,
   } = useProjectsContext();
 
-  const { triggerBuild, viewBuildStatus } = useBuildEnvironmentImages();
+  const { triggerBuilds, viewBuildStatus } = useBuildEnvironmentImages();
 
   const { job, projectUuid, pipelineUuid } = usePipelineDataContext();
 
@@ -97,7 +97,7 @@ export const ReadOnlyBanner = () => {
               type: "SET_PIPELINE_READONLY_REASON",
               payload: "environmentsBuildInProgress",
             });
-            triggerBuild();
+            triggerBuilds();
           },
         };
       case "environmentsBuildInProgress":
@@ -121,7 +121,7 @@ export const ReadOnlyBanner = () => {
     projectUuid,
     pipelineUuid,
     viewBuildStatus,
-    triggerBuild,
+    triggerBuilds,
     dispatch,
   ]);
 

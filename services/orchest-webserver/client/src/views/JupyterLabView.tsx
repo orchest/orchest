@@ -92,8 +92,8 @@ const JupyterLabView = () => {
   React.useEffect(() => {
     if (pipelineUuid && projectUuid && sessions) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB)
-        .then(([isSessionStarted, error]) => {
-          if (isSessionStarted) {
+        .then((result) => {
+          if (result === true) {
             // Force reloading the view.
             dispatch({
               type: "SET_PIPELINE_READONLY_REASON",
@@ -102,7 +102,13 @@ const JupyterLabView = () => {
             navigateTo(siteMap.jupyterLab.path, {
               query: { projectUuid, pipelineUuid },
             });
-          } else if (error?.message !== "environmentsNotYetBuilt") {
+          } else if (
+            ![
+              "environmentsNotYetBuilt",
+              "environmentsBuildInProgress",
+              "environmentsFailedToBuild",
+            ].includes(result.message)
+          ) {
             // When failed, it could be that the pipeline does no loner exist.
             // Navigate back to PipelineEditor.
             navigateTo(siteMap.pipeline.path, { query: { projectUuid } });

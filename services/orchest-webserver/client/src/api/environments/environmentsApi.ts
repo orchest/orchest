@@ -150,19 +150,22 @@ const validate = async (
 
 const ENVIRONMENT_BUILD_ENDPOINT = "/catch/api-proxy/api/environment-builds";
 
-const triggerBuild = (projectUuid: string, environmentUuid: string) =>
+const triggerBuilds = (projectUuid: string, environments: string[]) =>
   fetcher<{ environment_image_builds: EnvironmentImageBuild[] }>(
     ENVIRONMENT_BUILD_ENDPOINT,
     {
       method: "POST",
       headers: HEADER.JSON,
       body: JSON.stringify({
-        environment_image_build_requests: [
-          { project_uuid: projectUuid, environment_uuid: environmentUuid },
-        ],
+        environment_image_build_requests: environments.map(
+          (environment_uuid) => ({
+            project_uuid: projectUuid,
+            environment_uuid,
+          })
+        ),
       }),
     }
-  ).then((response) => response.environment_image_builds[0]);
+  ).then((response) => response.environment_image_builds);
 
 const cancelBuild = (environmentBuild: EnvironmentImageBuild) =>
   fetcher(
@@ -229,7 +232,7 @@ export const environmentsApi = {
   put,
   delete: remove,
   validate,
-  triggerBuild,
+  triggerBuilds,
   cancelBuild,
   checkLatestBuilds,
 };
