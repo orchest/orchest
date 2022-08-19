@@ -1,7 +1,4 @@
-import {
-  EnvironmentBuildStatus,
-  useEnvironmentsApi,
-} from "@/api/environments/useEnvironmentsApi";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
@@ -38,13 +35,6 @@ const getInactiveEnvironmentsMessage = (
   return `${inactiveEnvironmentsMessage}${solutionMessage}`;
 };
 
-const getReadOnlyReasonFromEnvironmentsStatus = (
-  status: EnvironmentBuildStatus
-) => {
-  if (status === "allEnvironmentsBuilt") return undefined;
-  return status;
-};
-
 const usePollBuildStatus = () => {
   const { runUuid } = useCustomRoute();
   const { validate, status } = useEnvironmentsApi();
@@ -55,7 +45,10 @@ const usePollBuildStatus = () => {
     dispatch,
   } = useProjectsContext();
   const checkAllEnvironmentsHaveBeenBuilt = React.useCallback(async () => {
-    const environmentValidationData = await validate();
+    const result = await validate();
+    if (!result) return;
+    const [environmentValidationData, status] = result;
+    setShouldPoll(status !== "allEnvironmentsBuilt");
     if (environmentValidationData?.validation === "pass") {
       buildRequest?.onComplete();
       dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
@@ -64,6 +57,7 @@ const usePollBuildStatus = () => {
 
   const isMounted = useMounted();
   const [shouldPoll, setShouldPoll] = React.useState(false);
+
   React.useEffect(() => {
     if (isMounted.current && !isJobRun) {
       setShouldPoll(status !== "allEnvironmentsBuilt");
@@ -83,25 +77,14 @@ const usePollBuildStatus = () => {
 };
 
 export const useBuildEnvironmentImages = () => {
-  const { navigateTo, runUuid } = useCustomRoute();
-  const isJobRun = hasValue(runUuid);
+  const { navigateTo } = useCustomRoute();
 
   const {
-    state: { projectUuid, buildRequest, pipelineReadOnlyReason },
+    state: { projectUuid, buildRequest },
     dispatch,
   } = useProjectsContext();
 
-  const { validate, status, environmentsToBeBuilt } = useEnvironmentsApi();
-
-  React.useEffect(() => {
-    if (isJobRun) return;
-    const readOnlyReason = getReadOnlyReasonFromEnvironmentsStatus(status);
-
-    dispatch({
-      type: "SET_PIPELINE_READONLY_REASON",
-      payload: readOnlyReason,
-    });
-  }, [status, dispatch, pipelineReadOnlyReason, isJobRun]);
+  const { validate, environmentsToBeBuilt, status } = useEnvironmentsApi();
 
   const cancel = React.useCallback(() => {
     buildRequest?.onCancel();
@@ -126,11 +109,6 @@ export const useBuildEnvironmentImages = () => {
 
   const { cancelableFetch } = useCancelableFetch();
   const triggerBuild = React.useCallback(async () => {
-    dispatch({
-      type: "SET_PIPELINE_READONLY_REASON",
-      payload: "environmentsBuildInProgress",
-    });
-
     const buildRequests = environmentsToBeBuilt.map((environmentUuid) => ({
       environment_uuid: environmentUuid,
       project_uuid: buildRequest?.projectUuid,
@@ -152,7 +130,6 @@ export const useBuildEnvironmentImages = () => {
   }, [
     buildRequest?.projectUuid,
     cancelableFetch,
-    dispatch,
     environmentsToBeBuilt,
     validate,
     setShouldPoll,
@@ -173,7 +150,6 @@ export const useBuildEnvironmentImages = () => {
     isBuilding,
     triggerBuild,
     viewBuildStatus,
-    buildRequest,
     cancel,
     allowBuild,
   };

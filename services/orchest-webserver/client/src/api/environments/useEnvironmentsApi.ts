@@ -35,7 +35,9 @@ export type EnvironmentsApi = {
   delete: (environmentChanges: EnvironmentState) => Promise<void>;
   buildingEnvironments: string[];
   environmentsToBeBuilt: string[];
-  validate: () => Promise<EnvironmentValidationData | undefined>;
+  validate: () => Promise<
+    [EnvironmentValidationData, EnvironmentBuildStatus] | undefined
+  >;
   status: EnvironmentBuildStatus;
   hasLoadedBuildStatus: boolean;
   updateBuildStatus: () => Promise<void>;
@@ -226,26 +228,17 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
     validate: async () => {
       try {
         const projectUuid = getProjectUuid();
-        const results = await environmentsApi.validate(
-          projectUuid,
-          get().environments
-        );
-
-        if (results instanceof Error) {
-          return;
-        }
-
         const [
           validatedEnvironments,
           response,
           hasActionChanged,
           buildingEnvironments,
           environmentsToBeBuilt,
-        ] = results;
+        ] = await environmentsApi.validate(projectUuid, get().environments);
 
         const status = getEnvironmentBuildStatus(response);
 
-        if (hasActionChanged) {
+        if (hasActionChanged || status !== get().status) {
           set({
             environments: validatedEnvironments,
             status,
@@ -254,9 +247,9 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
           });
         }
 
-        return response;
+        return [response, status];
       } catch (error) {
-        console.error("Failed to validate environments.");
+        console.error(`Failed to validate environments. ${String(error)}`);
       }
     },
     hasLoadedBuildStatus: false,
