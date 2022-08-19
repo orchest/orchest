@@ -1,15 +1,13 @@
-import { EnvironmentImagesRadioGroup } from "@/environments-view/edit-environment/EnvironmentImagesRadioGroup";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import React from "react";
 import { BuildEnvironmentButton } from "../BuildEnvironmentButton";
 import { EnvironmentMoreOptions } from "../EnvironmentMoreOptions";
 import { useUpdateEnvironmentOnUnmount } from "../hooks/useUpdateEnvironmentOnUnmount";
 import { BuildStatusAlert } from "./BuildStatusAlert";
 import { EditEnvironmentContainer } from "./EditEnvironmentContainer";
-import { EditEnvironmentName } from "./EditEnvironmentName";
 import { EnvironmentImageBuildLogs } from "./EnvironmentImageBuildLogs";
 import { EnvironmentName } from "./EnvironmentName";
+import { EnvironmentProperties } from "./EnvironmentProperties";
 import { EnvironmentSetupScript } from "./EnvironmentSetupScript";
 
 export const EditEnvironment = () => {
@@ -34,11 +32,7 @@ export const EditEnvironment = () => {
         </Stack>
         <BuildStatusAlert />
       </Stack>
-      <Typography component="h5" variant="h6">
-        Properties
-      </Typography>
-      <EditEnvironmentName />
-      <EnvironmentImagesRadioGroup />
+      <EnvironmentProperties />
       <EnvironmentSetupScript />
       <EnvironmentImageBuildLogs />
     </EditEnvironmentContainer>
