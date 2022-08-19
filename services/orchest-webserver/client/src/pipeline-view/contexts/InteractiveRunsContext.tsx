@@ -37,9 +37,8 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
     pipelineJson,
     runUuid,
     setRunUuid,
-    isReadOnly,
   } = usePipelineDataContext();
-  const { session, startSession } = useAutoStartSession({ isReadOnly });
+  const { session, startSession } = useAutoStartSession();
   const isSessionRunning = session?.status === "RUNNING";
 
   const {

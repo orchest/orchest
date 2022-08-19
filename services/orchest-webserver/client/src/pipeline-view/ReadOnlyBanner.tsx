@@ -50,16 +50,14 @@ const ReadOnlyBannerContainer: React.FC = ({ children }) => {
 export const ReadOnlyBanner = () => {
   const { navigateTo } = useCustomRoute();
   const { buildingEnvironments, environmentsToBeBuilt } = useEnvironmentsApi();
-  const { dispatch } = useProjectsContext();
+  const {
+    state: { pipelineReadOnlyReason },
+    dispatch,
+  } = useProjectsContext();
 
   const { triggerBuild, viewBuildStatus } = useBuildEnvironmentImages();
 
-  const {
-    job,
-    pipelineReadOnlyReason,
-    projectUuid,
-    pipelineUuid,
-  } = usePipelineDataContext();
+  const { job, projectUuid, pipelineUuid } = usePipelineDataContext();
 
   const { title, action, actionLabel } = React.useMemo(() => {
     switch (pipelineReadOnlyReason) {
