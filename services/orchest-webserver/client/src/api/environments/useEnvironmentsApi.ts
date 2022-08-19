@@ -36,7 +36,7 @@ export type EnvironmentsApi = {
   buildingEnvironments: string[];
   environmentsToBeBuilt: string[];
   validate: () => Promise<
-    [EnvironmentValidationData, EnvironmentBuildStatus] | undefined
+    [EnvironmentValidationData | undefined, EnvironmentBuildStatus | undefined]
   >;
   status: EnvironmentBuildStatus;
   hasLoadedBuildStatus: boolean;
@@ -250,6 +250,7 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
         return [response, status];
       } catch (error) {
         console.error(`Failed to validate environments. ${String(error)}`);
+        return [undefined, undefined];
       }
     },
     hasLoadedBuildStatus: false,
