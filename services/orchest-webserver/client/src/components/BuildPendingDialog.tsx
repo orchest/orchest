@@ -21,7 +21,7 @@ const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
   } = useProjectsContext();
   const {
     isBuilding,
-    triggerBuild,
+    triggerBuilds,
     viewBuildStatus,
     message = "",
     cancel,
@@ -35,7 +35,7 @@ const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
       type: "SET_PIPELINE_READONLY_REASON",
       payload: "environmentsBuildInProgress",
     });
-    triggerBuild();
+    triggerBuilds();
   };
 
   const isOpen = buildRequest.projectUuid === projectUuid;

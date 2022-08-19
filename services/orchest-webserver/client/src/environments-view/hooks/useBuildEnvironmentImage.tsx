@@ -2,13 +2,13 @@ import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 
 export const useBuildEnvironmentImage = () => {
   const [
-    triggerBuild,
+    triggerBuilds,
     cancelBuild,
     isTriggeringBuild,
   ] = useEnvironmentsApi((state) => [
-    state.triggerBuild,
+    state.triggerBuilds,
     state.cancelBuild,
     state.isTriggeringBuild,
   ]);
-  return [triggerBuild, cancelBuild, isTriggeringBuild] as const;
+  return [triggerBuilds, cancelBuild, isTriggeringBuild] as const;
 };

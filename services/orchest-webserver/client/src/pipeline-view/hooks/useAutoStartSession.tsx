@@ -45,15 +45,12 @@ export const useAutoStartSession = () => {
 
   const requestStartSession = React.useCallback(
     async (pipelineUuid: string) => {
-      const [hasStartedOperation, error] = await startSession(
+      const result = await startSession(
         pipelineUuid,
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
-      if (
-        !hasStartedOperation &&
-        error?.status === 423 &&
-        error.message === "JupyterEnvironmentBuildInProgress"
-      ) {
+      if (result === true) return;
+      if (result.message === "JupyterEnvironmentBuildInProgress") {
         dispatch({
           type: "SET_PIPELINE_READONLY_REASON",
           payload: "JupyterEnvironmentBuildInProgress",
@@ -69,8 +66,11 @@ export const useAutoStartSession = () => {
             confirmLabel: "Configure JupyterLab",
           }
         );
-      } else if (error?.message) {
-        setAlert("Error", `Error while starting the session: ${String(error)}`);
+      } else {
+        setAlert(
+          "Error",
+          `Error while starting the session: ${String(result)}`
+        );
       }
     },
     [navigateTo, setAlert, setConfirm, startSession, dispatch]
