@@ -18,9 +18,11 @@ export const useFetchEnvironments = () => {
   const [
     shouldFetchOnMount,
     fetchEnvironments,
+    validate,
   ] = useEnvironmentsApi((state: EnvironmentsApi) => [
     !Boolean(state.environments) && !state.isFetchingAll,
     state.fetch,
+    state.validate,
   ]);
 
   const isTabFocused = useFocusBrowserTab();
@@ -32,9 +34,16 @@ export const useFetchEnvironments = () => {
   const shouldFetch =
     shouldFetchOnMount || hasRegainedFocus || hasChangedProject;
 
-  React.useEffect(() => {
-    if (shouldFetch && projectUuid) {
-      fetchEnvironments(projectUuid);
+  const fetchAndValidate = React.useCallback(async () => {
+    if (projectUuid) {
+      await fetchEnvironments(projectUuid);
+      validate();
     }
-  }, [projectUuid, shouldFetch, fetchEnvironments]);
+  }, [fetchEnvironments, validate, projectUuid]);
+
+  React.useEffect(() => {
+    if (shouldFetch) {
+      fetchAndValidate();
+    }
+  }, [shouldFetch, fetchAndValidate]);
 };
