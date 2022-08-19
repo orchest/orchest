@@ -46,6 +46,7 @@ export const EnvironmentMenuList = () => {
           flexShrink: 1,
           paddingTop: 0,
         }}
+        tabIndex={0} // MUI's MenuList default is -1
       >
         {environments.map((environment) => {
           const selected =

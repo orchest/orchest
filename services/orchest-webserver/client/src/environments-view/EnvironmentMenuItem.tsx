@@ -35,7 +35,6 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
         flexDirection: "row",
         alignItems: "center",
       }}
-      autoFocus={selected}
     >
       <Stack
         direction="column"

@@ -1,3 +1,4 @@
+import { useEscapeToBlur } from "@/hooks/useEscapeToBlur";
 import { useSocketIO } from "@/pipeline-view/hooks/useSocketIO";
 import { EnvironmentImageBuild } from "@/types";
 import Box from "@mui/material/Box";
@@ -91,6 +92,21 @@ export const ImageBuildLog = ({
     }
   }, [ignoreIncomingLogs, xtermRef]);
 
+  useEscapeToBlur();
+
+  // Disallow the helper element to capture focus.
+  React.useEffect(() => {
+    const xtermHelperTextarea = document.querySelector(
+      "textarea.xterm-helper-textarea"
+    ) as HTMLElement;
+    if (xtermHelperTextarea) xtermHelperTextarea.tabIndex = -1;
+  }, []);
+
+  const [isFocused, setIsFocused] = React.useState(false);
+
+  const handleFocus = () => setIsFocused(true);
+  const handleBlur = () => setIsFocused(false);
+
   return (
     <>
       {!hideDefaultStatus && (
@@ -105,7 +121,13 @@ export const ImageBuildLog = ({
           padding: (theme) => theme.spacing(1, 0, 0, 1),
           borderRadius: (theme) => theme.spacing(0.5),
           backgroundColor: (theme) => theme.palette.common.black,
+          border: (theme) =>
+            `2px solid ${
+              isFocused ? theme.palette.primary.main : "transparent"
+            } !important`,
         }}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       >
         <XTerm addons={[fitAddon]} ref={xtermRef} />
       </Box>

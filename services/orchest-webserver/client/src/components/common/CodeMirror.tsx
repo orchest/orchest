@@ -1,3 +1,4 @@
+import { useEscapeToBlur } from "@/hooks/useEscapeToBlur";
 import Box from "@mui/material/Box";
 import "codemirror/mode/shell/shell";
 import React from "react";
@@ -11,16 +12,7 @@ export const CodeMirror = (props: CodeMirrorProps) => {
   const handleFocus = () => setIsFocused(true);
   const handleBlur = () => setIsFocused(false);
 
-  React.useEffect(() => {
-    const callback = (event: KeyboardEvent) => {
-      if (event.code === "Escape") {
-        const element = document.activeElement as HTMLElement | undefined;
-        element?.blur?.();
-      }
-    };
-    window.addEventListener("keydown", callback);
-    return () => window.removeEventListener("keydown", callback);
-  }, []);
+  useEscapeToBlur();
 
   return (
     <Box
