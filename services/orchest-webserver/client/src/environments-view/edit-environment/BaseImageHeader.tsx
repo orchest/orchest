@@ -14,13 +14,14 @@ export const BaseImageHeader = () => {
       <Tooltip
         title={
           <Typography variant="caption" component="span">
-            {`Base images can be extended using the setup script below (see `}
+            {`Base images can be extended using the setup script below (`}
             <Link
               target="_blank"
               rel="noopener noreferrer"
               href="https://docs.orchest.io/en/latest/fundamentals/environments.html"
+              sx={{ color: (theme) => theme.palette.primary.light }}
             >
-              docs
+              see docs
             </Link>
             ).
           </Typography>
