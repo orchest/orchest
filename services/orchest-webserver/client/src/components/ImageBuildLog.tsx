@@ -10,7 +10,7 @@ type ImageBuildLogProps = {
   build?: EnvironmentImageBuild;
   ignoreIncomingLogs: boolean;
   socketIONamespace?: string;
-  streamIdentity?: string;
+  streamIdentity: string | undefined;
   hideDefaultStatus?: boolean;
 };
 
@@ -46,7 +46,7 @@ export const ImageBuildLog = ({
   }, [socket]);
 
   React.useEffect(() => {
-    if (!hasRegisteredSocketIO.current) {
+    if (!hasRegisteredSocketIO.current && !ignoreIncomingLogs) {
       hasRegisteredSocketIO.current = true;
       socket.on(
         "sio_streamed_task_data",
