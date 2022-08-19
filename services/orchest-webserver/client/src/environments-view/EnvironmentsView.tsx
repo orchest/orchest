@@ -11,7 +11,7 @@ export const EnvironmentsView = () => {
   return (
     <LayoutWithSidePanel
       sidePanel={<EnvironmentMenuList />}
-      mainContainerProps={{ disablePadding: true }}
+      mainContainerProps={{ sx: { paddingTop: 0 } }}
     >
       <EditEnvironment />
     </LayoutWithSidePanel>
