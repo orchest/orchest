@@ -1,3 +1,4 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type {
   EnvironmentValidationData,
@@ -6,7 +7,6 @@ import type {
   Project,
   ReducerActionWithCallback,
 } from "@/types";
-import { checkGate } from "@/utils/webserver-utils";
 import React from "react";
 
 export enum BUILD_IMAGE_SOLUTION_VIEW {
@@ -355,53 +355,41 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
 
   const triggerRequestBuild = React.useCallback(
     async (
-      environmentValidationData: EnvironmentValidationData,
+      environmentValidationData: EnvironmentValidationData | undefined,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ) => {
-      if (!state.projectUuid) return false;
+      if (!state.projectUuid || !environmentValidationData) return false;
 
-      const shouldSetReadOnly =
-        requestedFromView &&
-        [
-          BUILD_IMAGE_SOLUTION_VIEW.PIPELINE,
-          BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB,
-        ].includes(requestedFromView);
-
-      if (shouldSetReadOnly) {
-        dispatch((state) => ({
-          type: "SET_PIPELINE_READONLY_REASON",
-          payload: state.pipelineReadOnlyReason || "environmentsNotYetBuilt",
-        }));
-      }
-
-      const hasBuilt = await requestBuild(
+      return requestBuild(
         state.projectUuid,
         environmentValidationData,
         requestedFromView
       );
-
-      if (shouldSetReadOnly && hasBuilt) {
-        dispatch({
-          type: "SET_PIPELINE_READONLY_REASON",
-          payload: undefined,
-        });
-      }
-      return hasBuilt;
     },
     [requestBuild, state.projectUuid]
   );
 
+  const { validate } = useEnvironmentsApi();
+
   const ensureEnvironmentsAreBuilt = React.useCallback(
     async (requestedFromView: BUILD_IMAGE_SOLUTION_VIEW): Promise<boolean> => {
-      if (!state.projectUuid) return false;
       try {
-        await checkGate(state.projectUuid);
-        return true;
+        const [validationData, buildStatus] = await validate();
+
+        dispatch({
+          type: "SET_PIPELINE_READONLY_REASON",
+          payload:
+            buildStatus === "allEnvironmentsBuilt" ? undefined : buildStatus,
+        });
+
+        if (buildStatus === "allEnvironmentsBuilt") return true;
+        if (buildStatus === "environmentsBuildInProgress") return false;
+        return triggerRequestBuild(validationData, requestedFromView);
       } catch (error) {
-        return triggerRequestBuild(error.data, requestedFromView);
+        return false;
       }
     },
-    [state.projectUuid, triggerRequestBuild]
+    [validate, triggerRequestBuild]
   );
 
   return (
