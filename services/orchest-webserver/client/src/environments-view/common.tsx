@@ -14,7 +14,7 @@ export const isEnvironmentBuilding = (build?: EnvironmentImageBuild) =>
   hasValue(build) && ["PENDING", "STARTED"].includes(build.status);
 
 export const isEnvironmentFailedToBuild = (build?: EnvironmentImageBuild) =>
-  build && ["ABORTED", "FAILED"].includes(build.status);
+  build && ["ABORTED", "FAILURE"].includes(build.status);
 
 export const BUILD_POLL_FREQUENCY = 1000;
 
