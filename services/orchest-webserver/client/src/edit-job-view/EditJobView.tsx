@@ -14,7 +14,7 @@ import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { JobDocLink } from "@/job-view/JobDocLink";
+import { JobDocLink } from "@/legacy-job-view/JobDocLink";
 import { siteMap } from "@/routingConfig";
 import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {

@@ -1,4 +1,4 @@
-import { JobDocLink } from "@/job-view/JobDocLink";
+import { JobDocLink } from "@/legacy-job-view/JobDocLink";
 import { PipelineMetaData } from "@/types";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";

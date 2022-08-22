@@ -1,7 +1,7 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
-import { requestCreateJob } from "@/jobs-view/common";
+import { requestCreateJob } from "@/legacy-jobs-view/common";
 import { useInteractiveRunsContext } from "@/pipeline-view/contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
