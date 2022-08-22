@@ -8,8 +8,9 @@ from flask_restx import Namespace, Resource
 from orchestcli import cmds
 
 from _orchest.internals import config as _config
-from app import schema, utils
+from app import models, schema, utils
 from app.celery_app import make_celery
+from app.connections import db
 from config import CONFIG_CLASS
 
 ns = Namespace("ctl", description="Orchest-api internal control.")
@@ -263,3 +264,29 @@ def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
         )
 
         run_cmds(args=shlex.split(update_cmd))
+
+
+# ENV_PERF_TODO
+@api.route("/set-image-as-pushed-to-the-registry")
+class TobeRemovedSetImagePushedToRegistry(Resource):
+    def put(self):
+        """Orchest images to pre pull on all nodes for a better UX."""
+        image = request.get_json()["image"]
+        image = image.split("/")[1]
+        image, tag = image.split(":")
+        if "orchest-env" in image:
+            project_uuid = image.replace("orchest-env-", "")[:36]
+            env_uuid = image[-36:]
+            image = models.EnvironmentImage.query.get_or_404(
+                ident=(project_uuid, env_uuid, int(tag)),
+                description="Environment image not found.",
+            )
+        elif _config.JUPYTER_IMAGE_NAME in image:
+            image = models.JupyterImage.query.get_or_404(
+                ident=int(tag),
+                description="Jupyter image not found.",
+            )
+
+        image.stored_in_registry = True
+        db.session.commit()
+        return {}, 200

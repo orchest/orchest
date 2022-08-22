@@ -4,6 +4,7 @@ import logging
 
 from image_deleter import run as image_deleter_run
 from image_puller import ImagePuller, Policy
+from image_pusher import run as image_pusher_run
 
 if __name__ == "__main__":
 
@@ -64,7 +65,9 @@ if __name__ == "__main__":
     image_puller = ImagePuller(**arguments)
 
     async def tasks():
-        await asyncio.gather(image_puller.run(), image_deleter_run())
+        await asyncio.gather(
+            image_puller.run(), image_deleter_run(), image_pusher_run()
+        )
 
     asyncio.run(tasks())
 

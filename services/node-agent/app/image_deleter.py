@@ -19,6 +19,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 
 logger = logging.getLogger("IMAGE_DELETER")
+logger.setLevel(os.environ["ORCHEST_LOG_LEVEL"])
 
 
 def is_env_image(name: str) -> bool:
@@ -89,6 +90,7 @@ async def get_images_of_interest_on_node(
 
 async def run():
     container_runtime = ContainerRuntime()
+    logger.info("Starting image deleter.")
     try:
         async with aiohttp.ClientSession(trust_env=True) as session:
             while True:

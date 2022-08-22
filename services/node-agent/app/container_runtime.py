@@ -17,6 +17,10 @@ class RuntimeType(Enum):
     Containerd = "containerd"
 
 
+class ImagePushError(Exception):
+    ...
+
+
 class ContainerRuntime(object):
     def __init__(self) -> None:
 
@@ -46,7 +50,7 @@ class ContainerRuntime(object):
         elif self.container_runtime == RuntimeType.Containerd:
             pass
 
-    async def execute_cmd(self, **kwargs) -> Tuple[bool, Optional[str]]:
+    async def execute_cmd(self, **kwargs) -> Tuple[bool, Optional[str], Optional[str]]:
         """Run command in subprocess.
 
         Returns:
@@ -59,16 +63,18 @@ class ContainerRuntime(object):
 
         # Wait for the subprocess to finish
         returncode = await process.wait()
-        stdout, _ = await process.communicate()
+        stdout, stderr = await process.communicate()
 
         if stdout is not None:
             stdout = stdout.decode().strip()
+        if stderr is not None:
+            stderr = stderr.decode().strip()
 
         self.logger.debug(
             f"excuted a command with returncide: {returncode} command: {kwargs}"
         )
 
-        return returncode == 0, stdout
+        return returncode == 0, stdout, stderr
 
     async def image_exists(self, image_name: str) -> bool:
         """Checks for the existence of the named image using
@@ -93,7 +99,7 @@ class ContainerRuntime(object):
                 f"crictl -r unix://{self.container_runtime_socket} "
                 f"inspecti -q {image_name}"
             )
-            result, _ = await self.execute_cmd(cmd=cmd)
+            result, _, _ = await self.execute_cmd(cmd=cmd)
 
         self.logger.debug(
             f"Checked existence of image '{image_name}': exists = {result}"
@@ -126,7 +132,7 @@ class ContainerRuntime(object):
                 f"ctr -n k8s.io -a {self.container_runtime_socket} "
                 f"i pull {image_name} --skip-verify "
             )
-            result, _ = await self.execute_cmd(cmd=cmd)
+            result, _, _ = await self.execute_cmd(cmd=cmd)
 
         self._curr_pulling_imgs.remove(image_name)
 
@@ -162,7 +168,7 @@ class ContainerRuntime(object):
                 pass
         elif self.container_runtime == RuntimeType.Containerd:
             cmd = f"crictl -r unix://{self.container_runtime_socket} images -o=json"
-            result, stdout = await self.execute_cmd(cmd=cmd)
+            result, stdout, _ = await self.execute_cmd(cmd=cmd)
             if result is True:
                 images = json.loads(stdout)["images"]
                 for img in images:
@@ -183,7 +189,31 @@ class ContainerRuntime(object):
                 result = False
         elif self.container_runtime == RuntimeType.Containerd:
             cmd = f"crictl -r unix://{self.container_runtime_socket} rmi {image_name}"
-            result, _ = await self.execute_cmd(cmd=cmd)
+            result, _, _ = await self.execute_cmd(cmd=cmd)
 
-        self.logger.debug(f"Image is deleted: '{image_name} '")
+        self.logger.debug(f"Image is deleted: '{image_name}'")
         return result
+
+    async def push_image(self, image_name: str) -> None:
+        self.logger.debug(f"Pushing: '{image_name}'")
+        if self.container_runtime == RuntimeType.Docker:
+            try:
+                await self.aclient.images.push(name=image_name)
+            except aiodocker.DockerError as e:
+                raise ImagePushError(str(e))
+
+        elif self.container_runtime == RuntimeType.Containerd:
+            # ENV_PERF_TODO: test this.
+            cmd = (
+                f"ctr -n k8s.io -a {self.container_runtime_socket} "
+                f"i push {image_name} --skip-verify "
+            )
+            success, stdout, stderr = await self.execute_cmd(cmd=cmd)
+            if not success:
+                raise ImagePushError(f"STDOUT: {stdout}\nSTDERR: {stderr}")
+        # ENV_PERF_TODO:
+        # Cover case of docker failing to push because of missing
+        # certificates , see the edge case in pull_image.sh. This will
+        # likely involve using a third party tool like buildah to push
+        # things separately.
+        self.logger.debug(f"Image pushed: '{image_name}'")
