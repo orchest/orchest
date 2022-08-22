@@ -18,7 +18,7 @@ import copy
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Literal, Optional, Set
 
 import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
@@ -29,7 +29,12 @@ from _orchest.internals.utils import (
     get_step_and_kernel_volumes_and_volume_mounts,
 )
 from app.connections import k8s_core_api, k8s_custom_obj_api
-from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
+from app.types import (
+    PipelineDefinition,
+    PipelineProperties,
+    PipelineStepProperties,
+    RunConfig,
+)
 from app.utils import get_logger
 from config import CONFIG_CLASS
 
@@ -99,7 +104,7 @@ async def update_status(
     status: str,
     task_id: str,
     session: aiohttp.ClientSession,
-    type: str,
+    type: Literal["step", "pipeline"],
     run_endpoint: str,
     uuid: Optional[str] = None,
 ) -> Any:
@@ -121,6 +126,9 @@ async def update_status(
 
     elif type == "pipeline":
         url = base_url
+
+    else:
+        raise ValueError("Given `type` of '{type}' is not valid.")
 
     # Just await the response. The proposed fix on the aiohttp GitHub to
     # do `response.json(content_type=None)` still results in parsing
@@ -176,7 +184,7 @@ class PipelineStep:
 
     def __str__(self) -> str:
         if self.properties:
-            return f'<PipelineStep: {self.properties["name"]}>'
+            return f'<PipelineStep: {self.properties["title"]}>'
 
         return "<Pipelinestep: None>"
 
@@ -186,20 +194,21 @@ class PipelineStep:
         #       (so maybe for later). And strictly, should also include
         #       its parents.
         if self.properties:
-            return f'PipelineStep({self.properties["name"]!r})'
+            return f'PipelineStep({self.properties["title"]!r})'
 
         return "Pipelinestep(None)"
 
 
 class Pipeline:
-    def __init__(self, steps: List[PipelineStep], properties: Dict[str, str]) -> None:
+    def __init__(
+        self, steps: List[PipelineStep], properties: PipelineProperties
+    ) -> None:
         self.steps = steps
 
-        # TODO: we want to be able to serialize a Pipeline back to a
-        #       json file. Therefore we would need to store the Pipeline
-        #       name and UUID from the json first.
-        # self.properties: Dict[str, str] = {}
-        self.properties = properties
+        # We want to be able to serialize a Pipeline back to a json
+        # file. Therefore we would need to store the Pipeline name and
+        # UUID from the json first.
+        self.properties: PipelineProperties = properties  # type: ignore
 
         # See the sentinel property for explanation.
         self._sentinel: Optional[PipelineStep] = None
@@ -228,12 +237,13 @@ class Pipeline:
                 step.parents.append(steps[uuid])
                 steps[uuid]._children.append(step)
 
-        properties = {
+        properties: PipelineProperties = {
             "name": description["name"],
             "uuid": description["uuid"],
             "settings": description["settings"],
             "parameters": description.get("parameters", {}),
             "services": description.get("services", {}),
+            "version": description.get("version"),
         }
         return cls(list(steps.values()), properties)
 
@@ -246,7 +256,8 @@ class Pipeline:
         description.update(self.properties)
         return description
 
-    # TODO: This is slow.
+    # TODO: This is slow, although reasonable for small/medium size
+    # pipelines.
     def get_step(self, uuid: str) -> PipelineStep:
         for step in self.steps:
             if uuid == step.properties["uuid"]:
@@ -398,7 +409,7 @@ class Pipeline:
         # new pipeline.
         if inclusive:
             steps_to_be_included = steps
-        elif not inclusive:
+        else:
             steps_to_be_included = steps - set(
                 step for step in self.steps if step.properties["uuid"] in selection
             )
@@ -417,9 +428,7 @@ class Pipeline:
         return f"Pipeline({self.steps!r})"
 
 
-def _step_to_workflow_manifest_task(
-    step: PipelineStep, run_config: Dict[str, Any]
-) -> dict:
+def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -> dict:
     # The working directory is the location of the file being
     # executed.
     project_relative_file_path = os.path.join(
@@ -546,7 +555,7 @@ def _get_pipeline_argo_templates(
     entrypoint_name: str,
     volume_mounts: List[dict],
     pipeline: Pipeline,
-    run_config: Dict[str, Any],
+    run_config: RunConfig,
 ) -> List[Dict[str, Any]]:
     if CONFIG_CLASS.SINGLE_NODE:
         templates = [
@@ -642,7 +651,7 @@ def _pipeline_to_workflow_manifest(
     session_uuid: str,
     workflow_name: str,
     pipeline: Pipeline,
-    run_config: Dict[str, Any],
+    run_config: RunConfig,
 ) -> dict:
     volumes, volume_mounts = get_step_and_kernel_volumes_and_volume_mounts(
         userdir_pvc=run_config["userdir_pvc"],
