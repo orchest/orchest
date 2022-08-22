@@ -90,7 +90,7 @@ const put = (projectUuid: string, pipelineUuid: string, data: PipelineJson) => {
 
   return fetcher<{ success: boolean; reason?: string; message?: string }>(
     `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-    { method: "POST", body: formData }
+    { method: "PUT", body: formData }
   );
 };
 
