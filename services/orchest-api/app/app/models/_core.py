@@ -310,6 +310,8 @@ class EnvironmentImage(BaseModel):
         Index(None, "project_uuid", "environment_uuid"),
         # To find the latest tag.
         Index(None, "project_uuid", "environment_uuid", tag.desc()),
+        # To find active images with optional registry filtering.
+        Index(None, "marked_for_removal", "stored_in_registry"),
     )
 
     sessions_using_image = db.relationship(
@@ -432,6 +434,11 @@ class JupyterImage(BaseModel):
         nullable=False,
         # To migrate existing entries.
         server_default="True",
+    )
+
+    __table_args__ = (
+        # To find active images with optional registry filtering.
+        Index(None, "marked_for_removal", "stored_in_registry"),
     )
 
     def __repr__(self):
