@@ -155,8 +155,18 @@ class PipelineStep:
         # Pipeline methods.
         self._children: List["PipelineStep"] = []
 
-        # Initial status is "PENDING".
+        # Used as a local copy for the state of the PipelineStep as part
+        # of a pipeline run, in order to correctly update step statuses
+        # in the DB.
         self._status: str = "PENDING"
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    @status.setter
+    def status(self, value: str) -> None:
+        self._status = value
 
     def __eq__(self, other) -> bool:
         return self.properties["uuid"] == other.properties["uuid"]
@@ -235,6 +245,14 @@ class Pipeline:
 
         description.update(self.properties)
         return description
+
+    # TODO: This is slow.
+    def get_step(self, uuid: str) -> PipelineStep:
+        for step in self.steps:
+            if uuid == step.properties["uuid"]:
+                return step
+        else:
+            raise ValueError(f"Step with uuid '{uuid}' not in pipeline.")
 
     def get_environments(self) -> Set[str]:
         """Returns the set of UUIDs of the used environments.
@@ -670,6 +688,16 @@ def _pipeline_to_workflow_manifest(
     return manifest
 
 
+def _is_step_allowed_to_run(step: PipelineStep) -> bool:
+    """Returns whether the given step is allowed to run.
+
+    Returns:
+        Have all incoming steps reached the SUCCESS state?
+
+    """
+    return all(s.status == "SUCCESS" for s in step.parents)
+
+
 async def run_pipeline_workflow(
     session_uuid: str, task_id: str, pipeline: Pipeline, *, run_config: RunConfig
 ):
@@ -693,7 +721,7 @@ async def run_pipeline_workflow(
                 "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
             )
 
-            steps_to_start = {step.properties["uuid"] for step in pipeline.steps}
+            steps_to_start = {step for step in pipeline.steps}
             steps_to_finish = set(steps_to_start)
             had_failed_steps = False
             while steps_to_finish:
@@ -706,79 +734,90 @@ async def run_pipeline_workflow(
                     f"pipeline-run-task-{task_id}",
                 )
                 workflow_nodes: dict = resp.get("status", {}).get("nodes", {})
-                for step in workflow_nodes.values():
+                for argo_node in workflow_nodes.values():
                     if CONFIG_CLASS.SINGLE_NODE:
-                        if step.get("type", "") != "Container":
+                        if argo_node.get("type", "") != "Container":
                             continue
 
                         # Argo doesn't allow to work with templates for
                         # a containerSet. Thus we fall back to the name
                         # we gave to steps, which includes its uuid.
-                        step_uuid = step.get("displayName")
+                        step_uuid = argo_node.get("displayName")
                         if step_uuid is None:
                             # Should never happen.
                             raise Exception(
-                                "Did not find step_uuid in step parameters."
-                                f" Step: {step}."
+                                "Did not find `displayName` in Argo workflow node:"
+                                f" {argo_node}."
                             )
                         else:
                             step_uuid = step_uuid.replace("step-", "")
 
                     else:
                         # The nodes includes the entire "pipeline" node
-                        if step["templateName"] != "step":
+                        if argo_node["templateName"] != "step":
                             continue
                         # The step was not run because the workflow
                         # failed.
-                        if "inputs" not in step:
+                        if "inputs" not in argo_node:
                             continue
-                        if step.get("type", "") != "Pod":
+                        if argo_node.get("type", "") != "Pod":
                             continue
 
-                        for param in step["inputs"]["parameters"]:
+                        for param in argo_node["inputs"]["parameters"]:
                             if param["name"] == "step_uuid":
                                 step_uuid = param["value"]
                                 break
                         else:
                             # Should never happen.
                             raise Exception(
-                                "Did not find step_uuid in step parameters."
-                                f" Step: {step}."
+                                "Did not find `step_uuid` in parameters of Argo node:"
+                                f" {argo_node}."
                             )
 
-                    step_status = step["phase"]
-                    step_message = step.get("message", "")
+                    pipeline_step = pipeline.get_step(step_uuid)
+                    argo_node_status = argo_node["phase"]
+                    argo_node_message = argo_node.get("message", "")
                     step_status_update = None
 
                     # Argo does not fail a step if the container is
                     # stuck in a waiting state. Doesn't look like the
                     # pull backoff behavior can be tuned.
-                    if step_status in ["Pending", "Running"] and (
-                        "ImagePullBackOff" in step_message
-                        or "ErrImagePull" in step_message
+                    if argo_node_status in ["Pending", "Running"] and (
+                        "ImagePullBackOff" in argo_node_message
+                        or "ErrImagePull" in argo_node_message
                     ):
                         step_status_update = "FAILURE"
-                    elif step_status == "Running" and step_uuid in steps_to_start:
-                        step_status_update = "STARTED"
-                        steps_to_start.remove(step_uuid)
+
                     elif (
-                        step_status in ["Succeeded", "Failed", "Error"]
-                        and step_uuid in steps_to_finish
+                        argo_node_status == "Running"
+                        and pipeline_step in steps_to_start
+                    ):
+                        if CONFIG_CLASS.SINGLE_NODE and not _is_step_allowed_to_run(
+                            pipeline_step
+                        ):
+                            continue
+                        step_status_update = "STARTED"
+                        steps_to_start.remove(pipeline_step)
+
+                    elif (
+                        argo_node_status in ["Succeeded", "Failed", "Error"]
+                        and pipeline_step in steps_to_finish
                     ):
                         step_status_update = {
                             "Succeeded": "SUCCESS",
                             "Failed": "FAILURE",
                             "Error": "FAILURE",
-                        }[step_status]
+                        }[argo_node_status]
 
                     if step_status_update is not None:
+                        pipeline_step.status = step_status_update
                         if step_status_update == "FAILURE":
                             had_failed_steps = True
 
                         if step_status_update in ["FAILURE", "ABORTED", "SUCCESS"]:
-                            steps_to_finish.remove(step_uuid)
-                            if step_uuid in steps_to_start:
-                                steps_to_start.remove(step_uuid)
+                            steps_to_finish.remove(pipeline_step)
+                            if pipeline_step in steps_to_start:
+                                steps_to_start.remove(pipeline_step)
 
                         await update_status(
                             step_status_update,
@@ -810,14 +849,14 @@ async def run_pipeline_workflow(
 
                 await asyncio.sleep(0.25)
 
-            for step_uuid in steps_to_finish:
+            for pipeline_step in steps_to_finish:
                 await update_status(
                     "ABORTED",
                     task_id,
                     session,
                     type="step",
                     run_endpoint=run_config["run_endpoint"],
-                    uuid=step_uuid,
+                    uuid=pipeline_step.properties["uuid"],
                 )
 
             pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
