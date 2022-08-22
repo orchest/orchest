@@ -69,10 +69,11 @@ class OrchestImagesToPrePull(Resource):
         """Orchest images to pre pull on all nodes for a better UX."""
         pre_pull_orchest_images = [
             CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
-            f"orchest/jupyter-enterprise-gateway:{CONFIG_CLASS.ORCHEST_VERSION}",
-            f"orchest/session-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
-            f"docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}",
             _config.CONTAINER_RUNTIME_IMAGE,
+            f"docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}",
+            f"docker.io/orchest/base-kernel-py:{CONFIG_CLASS.ORCHEST_VERSION}",
+            f"docker.io/orchest/jupyter-enterprise-gateway:{CONFIG_CLASS.ORCHEST_VERSION}",  # noqa
+            f"docker.io/orchest/session-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
         ]
         pre_pull_orchest_images = {"pre_pull_images": pre_pull_orchest_images}
 
