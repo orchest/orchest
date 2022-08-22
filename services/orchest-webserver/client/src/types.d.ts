@@ -10,7 +10,13 @@ declare module "react" {
   }
 }
 
-export type Json = string | number | boolean | Json[] | { [key: string]: Json };
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | Json[]
+  | { [key: string]: Json };
 
 type CommonColorScales =
   | "50"
