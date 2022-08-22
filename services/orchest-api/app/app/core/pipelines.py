@@ -663,6 +663,7 @@ def _pipeline_to_workflow_manifest(
     )
 
     # these parameters will be fed by _step_to_workflow_manifest_task
+    entrypoint_name = "pipeline"
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -674,7 +675,7 @@ def _pipeline_to_workflow_manifest(
             },
         },
         "spec": {
-            "entrypoint": "pipeline",
+            "entrypoint": entrypoint_name,
             "volumes": volumes,
             # The celery task actually takes care of deleting the
             # workflow, this is just a failsafe.
@@ -686,8 +687,7 @@ def _pipeline_to_workflow_manifest(
             "dnsPolicy": "ClusterFirst",
             "restartPolicy": "Never",
             "templates": _get_pipeline_argo_templates(
-                # Must match above `entrypoint`
-                entrypoint_name="pipeline",
+                entrypoint_name=entrypoint_name,
                 volume_mounts=volume_mounts,
                 pipeline=pipeline,
                 run_config=run_config,
@@ -800,11 +800,11 @@ async def run_pipeline_workflow(
                     elif (
                         argo_node_status == "Running"
                         and pipeline_step in steps_to_start
+                        # Strictly speaking only needed in single-node
+                        # context as otherwise Argo takes care of
+                        # correctly putting a Step in "Running".
+                        and _is_step_allowed_to_run(pipeline_step)
                     ):
-                        if CONFIG_CLASS.SINGLE_NODE and not _is_step_allowed_to_run(
-                            pipeline_step
-                        ):
-                            continue
                         step_status_update = "STARTED"
                         steps_to_start.remove(pipeline_step)
 
