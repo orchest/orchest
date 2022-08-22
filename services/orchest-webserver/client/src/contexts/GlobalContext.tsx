@@ -18,10 +18,10 @@ const PlainTextToHtml = ({ text }: PlainTextToHtmlProps) => {
       {linesArr.map((line, index) => {
         if (index !== linesArr.length - 1) {
           return (
-            <>
+            <React.Fragment key={index}>
               {line}
               <br />
-            </>
+            </React.Fragment>
           );
         } else {
           return line;
