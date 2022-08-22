@@ -16,16 +16,6 @@ describe("join", () => {
   it("preserves trailing slashes", () => {
     expect(path.join("/foo", "bar/baz/")).toBe("/foo/bar/baz/");
   });
-
-  // `spyOn` is not working with esbuild-jest.
-  // https://github.com/aelbore/esbuild-jest/issues/26
-  it.skip("calls normalize()", () => {
-    const spy = jest.spyOn(path, "normalize");
-
-    path.join("foo", "bar", "baz");
-
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe("dirname", () => {

@@ -67,7 +67,7 @@ function rateWidgetBlock() {
               <button value="4">⭐️</button>
               <button value="5">⭐️</button>
           </div>
-          <a class="close" href="#close">Close</a>
+          <a class="close-link" href="#close">Close</a>
       </form>
       <div class="thank-you">Thank you for rating.</div>
   </div>`;
@@ -104,7 +104,7 @@ function rateWidgetBlock() {
       buttons.map((el) => (el.style.opacity = 0.5));
     });
 
-    let closeEl = rateForm.querySelector("a.close");
+    let closeEl = rateForm.querySelector("a.close-link");
     closeEl.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();

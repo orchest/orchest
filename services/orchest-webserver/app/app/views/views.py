@@ -19,6 +19,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
 from app import error as app_error
+from app.consts import JSON_SCHEMA_FILE_EXTENSIONS
 from app.core.filemanager import (
     allowed_file,
     find_unique_duplicate_filepath,
@@ -1030,6 +1031,7 @@ def register_views(app, db):
         pipeline_uuid = request.args.get("pipeline_uuid")
         project_uuid = request.args.get("project_uuid")
         job_uuid = request.args.get("job_uuid")
+        run_uuid = request.args.get("run_uuid")
 
         # currently this endpoint only handles "/data"
         # if path is absolute
@@ -1069,6 +1071,15 @@ def register_views(app, db):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
+        elif any(path.endswith(extension) for extension in JSON_SCHEMA_FILE_EXTENSIONS):
+            pipeline_dir = get_pipeline_directory(
+                pipeline_uuid=pipeline_uuid,
+                project_uuid=project_uuid,
+                job_uuid=job_uuid,
+                pipeline_run_uuid=run_uuid,
+            )
+            file_path = normalize_project_relative_path(path)
+            file_path = os.path.join(pipeline_dir, file_path)
         else:
             path_parent_dir = get_snapshot_directory(
                 pipeline_uuid, project_uuid, job_uuid

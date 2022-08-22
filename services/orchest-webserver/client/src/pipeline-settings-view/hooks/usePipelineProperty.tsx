@@ -1,19 +1,21 @@
 import { useAppContext } from "@/contexts/AppContext";
 import React from "react";
 
+type UsePipelinePropertyParams<T> = {
+  initialValue: T | undefined;
+  hash: string;
+};
+
 /**
- * a generic hook that is used to persist mutations of properties of PipelineJson
+ * A React.useState hook that allows re-initialization by changing `hash`.
  */
 export function usePipelineProperty<T>({
   initialValue,
   hash,
-}: {
-  initialValue: T | undefined;
-  hash: string;
-}) {
+}: UsePipelinePropertyParams<T>) {
   const { setAsSaved } = useAppContext();
 
-  const [pipelineProperty, _setPipelineProperty] = React.useState<
+  const [pipelineProperty, localSetPipelineProperty] = React.useState<
     T | undefined
   >(undefined);
 
@@ -23,16 +25,16 @@ export function usePipelineProperty<T>({
   React.useEffect(() => {
     if (initialValue && localHash.current !== hash) {
       localHash.current = hash;
-      _setPipelineProperty(initialValue);
+      localSetPipelineProperty(initialValue);
     }
-  }, [initialValue, hash, _setPipelineProperty]);
+  }, [initialValue, hash, localSetPipelineProperty]);
 
   const setPipelineProperty = React.useCallback(
     (value: React.SetStateAction<T | undefined>) => {
-      _setPipelineProperty(value);
+      localSetPipelineProperty(value);
       setAsSaved(false);
     },
-    [_setPipelineProperty, setAsSaved]
+    [localSetPipelineProperty, setAsSaved]
   );
 
   return [pipelineProperty, setPipelineProperty] as const;

@@ -52,3 +52,7 @@
 .installer-container p {
   margin-block-start: 0;
 }
+
+html[data-theme="dark"] .installer-container {
+  background-color: #202122;
+}

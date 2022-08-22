@@ -13,7 +13,7 @@
   z-index: 20;
 }
 
-.rate-form a {
+.rate-form a.close-link {
   display: block;
   text-align: center;
   color: #999;
@@ -31,6 +31,7 @@
 
 .rate-form h2 {
   border: 0;
+  color: #fff;
   margin: 0;
   padding: 0;
   font-size: 1.35em;
