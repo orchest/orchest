@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import LightbulbOutlined from "@mui/icons-material/LightbulbOutlined";
 import {
   Alert,
@@ -44,7 +44,7 @@ export const NoParameterAlert = () => {
 };
 
 const ParamTree: React.FC<IParamTreeProps> = (props) => {
-  const { config } = useAppContext();
+  const { config } = useGlobalContext();
 
   const truncateParameterValue = (value) => {
     // stringify non string values

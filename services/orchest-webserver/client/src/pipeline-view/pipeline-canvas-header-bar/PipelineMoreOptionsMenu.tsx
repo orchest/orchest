@@ -1,5 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { fetcher } from "@/utils/fetcher";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -20,7 +20,7 @@ const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
 };
 
 export const PipelineMoreOptionsMenu = () => {
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
   const { isReadOnly } = usePipelineDataContext();
   const {
     state: { projectUuid, pipeline },

@@ -1,3 +1,5 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useCancelablePromise } from "@/hooks/useCancelablePromise";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type {
   EnvironmentValidationData,
@@ -6,7 +8,6 @@ import type {
   Project,
   ReducerActionWithCallback,
 } from "@/types";
-import { checkGate } from "@/utils/webserver-utils";
 import React from "react";
 
 export enum BUILD_IMAGE_SOLUTION_VIEW {
@@ -28,7 +29,7 @@ export type RequestBuildDispatcher = (
   projectUuid: string,
   environmentValidationData: EnvironmentValidationData,
   requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
-) => Promise<boolean>;
+) => Promise<true | Error>;
 
 const ProjectsContext = React.createContext<IProjectsContext>(
   {} as IProjectsContext
@@ -38,6 +39,7 @@ export type PipelineReadOnlyReason =
   | "isJobRun"
   | "environmentsNotYetBuilt"
   | "environmentsBuildInProgress"
+  | "environmentsFailedToBuild"
   | "JupyterEnvironmentBuildInProgress";
 
 export type ProjectsContextState = {
@@ -95,7 +97,13 @@ type Action =
     }
   | {
       type: "SET_BUILD_REQUEST";
-      payload: BuildRequest | undefined;
+      payload: BuildRequest;
+    }
+  | {
+      type: "CANCEL_BUILD_REQUEST";
+    }
+  | {
+      type: "COMPLETE_BUILD_REQUEST";
     };
 
 export type ProjectsContextAction = ReducerActionWithCallback<
@@ -108,7 +116,7 @@ export interface IProjectsContext {
   dispatch: (value: ProjectsContextAction) => void;
   ensureEnvironmentsAreBuilt: (
     requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
-  ) => Promise<boolean>;
+  ) => Promise<true | Error>;
   requestBuild: RequestBuildDispatcher;
 }
 
@@ -312,6 +320,14 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         case "SET_BUILD_REQUEST": {
           return { ...state, buildRequest: action.payload };
         }
+        case "COMPLETE_BUILD_REQUEST":
+          return {
+            ...state,
+            buildRequest: undefined,
+            pipelineReadOnlyReason: undefined,
+          };
+        case "CANCEL_BUILD_REQUEST":
+          return { ...state, buildRequest: undefined };
         case "SET_EXAMPLES": {
           return { ...state, examples: action.payload };
         }
@@ -330,76 +346,70 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
   );
   const [state, dispatch] = React.useReducer(memoizedReducer, initialState);
 
+  const { makeCancelable } = useCancelablePromise();
   const requestBuild = React.useCallback(
     (
       projectUuid: string,
       environmentValidationData: EnvironmentValidationData,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ) => {
-      return new Promise<boolean>((resolve) =>
-        dispatch({
-          type: "SET_BUILD_REQUEST",
-          payload: {
-            projectUuid,
-            environmentValidationData,
-            requestedFromView: requestedFromView || "",
-            onComplete: () => resolve(true),
-            onCancel: () => resolve(false),
-          },
-        })
+      return makeCancelable(
+        new Promise<true | Error>((resolve) =>
+          dispatch({
+            type: "SET_BUILD_REQUEST",
+            payload: {
+              projectUuid,
+              environmentValidationData,
+              requestedFromView: requestedFromView || "",
+              onComplete: () => resolve(true),
+              onCancel: () => resolve(new Error("build request was canceled")),
+            },
+          })
+        )
       );
     },
-    [dispatch]
+    [dispatch, makeCancelable]
   );
 
   const triggerRequestBuild = React.useCallback(
     async (
-      environmentValidationData: EnvironmentValidationData,
+      environmentValidationData: EnvironmentValidationData | undefined,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ) => {
-      if (!state.projectUuid) return false;
+      if (!state.projectUuid) return new Error("project UUID unavailable");
+      if (!environmentValidationData) return new Error("Unable to validate");
 
-      const shouldSetReadOnly =
-        requestedFromView &&
-        [
-          BUILD_IMAGE_SOLUTION_VIEW.PIPELINE,
-          BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB,
-        ].includes(requestedFromView);
-
-      if (shouldSetReadOnly)
-        dispatch((state) => ({
-          type: "SET_PIPELINE_READONLY_REASON",
-          payload: state.pipelineReadOnlyReason || "environmentsNotYetBuilt",
-        }));
-
-      const hasBuilt = await requestBuild(
+      return requestBuild(
         state.projectUuid,
         environmentValidationData,
         requestedFromView
       );
-
-      if (shouldSetReadOnly && hasBuilt) {
-        dispatch({
-          type: "SET_PIPELINE_READONLY_REASON",
-          payload: undefined,
-        });
-      }
-      return hasBuilt;
     },
     [requestBuild, state.projectUuid]
   );
 
+  const { validate } = useEnvironmentsApi();
+
   const ensureEnvironmentsAreBuilt = React.useCallback(
-    async (requestedFromView: BUILD_IMAGE_SOLUTION_VIEW): Promise<boolean> => {
-      if (!state.projectUuid) return false;
-      try {
-        await checkGate(state.projectUuid);
-        return true;
-      } catch (error) {
-        return triggerRequestBuild(error.data, requestedFromView);
-      }
+    async (
+      requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
+    ): Promise<true | Error> => {
+      const [validationData, buildStatus] = await validate();
+      const readOnlyReason =
+        buildStatus === "allEnvironmentsBuilt" ? undefined : buildStatus;
+
+      dispatch({
+        type: "SET_PIPELINE_READONLY_REASON",
+        payload: readOnlyReason,
+      });
+
+      if (!readOnlyReason) return true;
+      if (buildStatus === "environmentsBuildInProgress")
+        return new Error(readOnlyReason);
+
+      return triggerRequestBuild(validationData, requestedFromView);
     },
-    [state.projectUuid, triggerRequestBuild]
+    [validate, triggerRequestBuild]
   );
 
   return (

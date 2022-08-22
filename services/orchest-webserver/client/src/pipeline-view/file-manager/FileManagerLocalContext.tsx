@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
@@ -85,9 +85,10 @@ export const FileManagerLocalContextProvider: React.FC<{
   reload: () => Promise<void>;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuMetadata>>;
 }> = ({ children, reload, setContextMenu }) => {
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
   const {
-    state: { pipelines = [] },
+    state: { pipelines = [], pipelineReadOnlyReason },
+    dispatch,
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
@@ -145,11 +146,6 @@ export const FileManagerLocalContextProvider: React.FC<{
   const handleClose = React.useCallback(() => {
     setContextMenu(undefined);
   }, [setContextMenu]);
-
-  const {
-    state: { pipelineReadOnlyReason },
-    dispatch,
-  } = useProjectsContext();
 
   const handleContextRename = React.useCallback(() => {
     if (pipelineReadOnlyReason || !contextMenuCombinedPath) return;

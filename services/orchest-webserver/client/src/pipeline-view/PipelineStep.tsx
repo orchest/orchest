@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
@@ -147,7 +147,7 @@ const PipelineStepComponent = React.forwardRef<
   ref
 ) {
   const [, forceUpdate] = useForceUpdate();
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { projectUuid, jobUuid } = useCustomRoute();
   const {
     pipelineUuid,
@@ -434,7 +434,6 @@ const PipelineStepComponent = React.forwardRef<
     selected,
     isSelectorActive,
     selectedSteps,
-    getMouseDelta,
     scaleFactor,
     draggedStepPositions,
   ]);

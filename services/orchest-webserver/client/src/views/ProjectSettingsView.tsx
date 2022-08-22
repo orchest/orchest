@@ -1,7 +1,7 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -30,7 +30,7 @@ const ProjectSettingsView: React.FC = () => {
     setAlert,
     setAsSaved,
     state: { hasUnsavedChanges },
-  } = useAppContext();
+  } = useGlobalContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projectSettings.path });
   const { cancelableFetch } = useCancelableFetch();
 

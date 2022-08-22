@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import { MainSidePanel } from "@/components/Layout/layout-with-side-panel/MainSidePanel";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -11,7 +12,6 @@ import { PipelineSettingsView } from "../pipeline-settings-view/PipelineSettings
 import { FullScreenDialogHolder } from "./components/FullScreenDialogHolder";
 import { PipelineContextProviders } from "./contexts/PipelineContextProviders";
 import { FileManager } from "./file-manager/FileManager";
-import { MainSidePanel } from "./MainSidePanel";
 import { PipelineFileName } from "./pipeline-canvas-header-bar/PipelineFileName";
 import { PipelineLogs } from "./pipeline-logs-dialog/PipelineLogs";
 import { PipelineEditor } from "./PipelineEditor";

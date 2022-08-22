@@ -1,4 +1,5 @@
-import { Point2D } from "@/types";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { Point2D } from "@/utils/geometry";
 import { relative } from "@/utils/path";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
@@ -23,7 +24,8 @@ const relativeToPipeline = (pipelinePath?: string, path?: string) =>
 export type StepCreator = (filePath?: string) => void;
 
 export const useCreateStep = (): StepCreator => {
-  const { pipelineCwd, environments } = usePipelineDataContext();
+  const { environments = [] } = useEnvironmentsApi();
+  const { pipelineCwd } = usePipelineDataContext();
   const { uiStateDispatch } = usePipelineUiStateContext();
   const { pipelineViewportRef } = usePipelineRefs();
   const {

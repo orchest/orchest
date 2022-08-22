@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useInterval } from "@/hooks/use-interval";
 import { StateDispatcher, useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -457,7 +457,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
   footnote,
   ...props
 }: DataTableProps<T, C>) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
 
   const mounted = useMounted();
   const [searchTerm, setSearchTerm] = React.useState("");

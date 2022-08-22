@@ -2,8 +2,8 @@ import {
   Confirm,
   PromptMessage,
   PromptMessageType,
-  useAppContext,
-} from "@/contexts/AppContext";
+  useGlobalContext,
+} from "@/contexts/GlobalContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { setRefs } from "@/utils/refs";
 import Button, { ButtonProps } from "@mui/material/Button";
@@ -11,7 +11,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { hasValue, typedIncludes } from "@orchest/lib-utils";
+import { hasValue, typedIncludes, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 
 type CancellableMessage = Extract<PromptMessage, Confirm>;
@@ -44,11 +44,11 @@ const DelayedFocusButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }
 );
 
-export const SystemDialog: React.FC = () => {
+export const SystemDialog = () => {
   const {
     state: { promptMessages },
     deletePromptMessage,
-  } = useAppContext();
+  } = useGlobalContext();
   const promptMessage = promptMessages.length > 0 ? promptMessages[0] : null;
 
   const sendEvent = useSendAnalyticEvent();
@@ -92,6 +92,7 @@ export const SystemDialog: React.FC = () => {
     <Dialog open={hasValue(promptMessage)} onClose={dialogOnClose}>
       <form
         id={`${promptMessage.type}-form`}
+        key={`${promptMessage.type}-form-${uuidv4()}`}
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();

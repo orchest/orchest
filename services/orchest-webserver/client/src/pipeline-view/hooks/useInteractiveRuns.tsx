@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { PipelineJson, PipelineRun } from "@/types";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
@@ -34,7 +34,7 @@ export const useInteractiveRuns = ({
   pipelineJson?: PipelineJson;
 }) => {
   const { jobUuid } = useCustomRoute();
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
 
   const [displayedPipelineStatus, setDisplayedPipelineStatus] = React.useState<
     DisplayedPipelineStatus

@@ -6,7 +6,7 @@ import {
   isUploadedViaDropzone,
 } from "@/components/DropZone";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
@@ -219,7 +219,7 @@ export const ImportDialog = ({
   filesToUpload,
   children,
 }: ImportDialogProps) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
 
   const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {

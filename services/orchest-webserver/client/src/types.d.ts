@@ -1,5 +1,6 @@
 import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
+import { Point2D } from "./utils/geometry";
 
 declare module "react" {
   interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
@@ -62,12 +63,12 @@ export type ColorScale = PartialRecord<
   string
 >;
 
-export type DefaultEnvironment = Omit<Environment, "uuid" | "project_uuid">;
+export type EnvironmentSpec = Omit<EnvironmentData, "uuid" | "project_uuid">;
 
 export type OrchestConfig = {
   CLOUD: boolean;
   CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
-  ENVIRONMENT_DEFAULTS: DefaultEnvironment;
+  ENVIRONMENT_DEFAULTS: EnvironmentSpec;
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;
   OPENREPLAY_PROJECT_KEY: string;
@@ -149,7 +150,7 @@ export type Project = {
 
 export type Language = "python" | "r" | "julia" | "javascript";
 
-export type Environment = {
+export type EnvironmentData = {
   uuid: string;
   project_uuid: string;
   base_image: string;
@@ -159,8 +160,13 @@ export type Environment = {
   setup_script: string;
 };
 
+export type EnvironmentState = EnvironmentData & {
+  action?: EnvironmentAction;
+  latestBuild?: EnvironmentImageBuild;
+};
+
 export type CustomImage = Pick<
-  Environment,
+  EnvironmentData,
   "base_image" | "language" | "gpu_support"
 >;
 

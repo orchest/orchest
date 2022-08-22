@@ -1,5 +1,4 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -12,24 +11,30 @@ type EnvironmentOption = {
   label: string;
 };
 
-export const SelectEnvironment = ({
-  value,
-  onChange,
-  disabled,
-  queryString,
-}: {
+type SelectEnvironmentProps = {
   value: string;
   onChange: (
     updatedEnvironmentUUID: string,
     updatedEnvironmentName: string,
-    skipSave?: boolean | undefined
+    skipSave?: boolean
   ) => void;
   disabled: boolean;
-  queryString: string;
-}) => {
-  const { projectUuid } = useCustomRoute();
+  language?: string;
+};
 
-  const { environments } = useFetchEnvironments(projectUuid, queryString);
+export const SelectEnvironment = ({
+  value,
+  onChange,
+  disabled,
+  language,
+}: SelectEnvironmentProps) => {
+  const { environments: allEnvironments = [] } = useEnvironmentsApi();
+
+  const environments = React.useMemo(() => {
+    return allEnvironments.filter(
+      (environment) => environment.language === language
+    );
+  }, [allEnvironments, language]);
 
   const environmentOptions = React.useMemo<
     EnvironmentOption[] | undefined

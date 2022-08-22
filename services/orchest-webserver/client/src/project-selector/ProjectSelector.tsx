@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { siteMap, withinProjectRoutes } from "@/routingConfig";
@@ -11,7 +11,7 @@ import { ProjectSelectorToggle } from "./ProjectSelectorToggle";
 import { useProjectSelector } from "./useProjectSelector";
 
 export const ProjectSelector = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { projectUuid: projectUuidFromRoute, navigateTo } = useCustomRoute();
 
   const customNavigateTo = React.useCallback(

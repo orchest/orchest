@@ -5,7 +5,7 @@ import {
 } from "@/components/DataTable";
 import { NoParameterAlert } from "@/components/ParamTree";
 import { StatusInline } from "@/components/Status";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
@@ -80,7 +80,7 @@ export const PipelineRunTable: React.FC<{
   setTotalCount: (count: number) => void;
   footnote: React.ReactNode;
 }> = ({ jobUuid, pipelineName, setTotalCount, footnote }) => {
-  const { setAlert, setConfirm } = useAppContext();
+  const { setAlert, setConfirm } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
 
   const cancelRun = React.useCallback(

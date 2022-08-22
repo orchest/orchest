@@ -1,13 +1,17 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useLayoutStore } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
+import { withPlural } from "@/utils/webserver-utils";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { usePipelineCanvasDimensionsContext } from "./contexts/PipelineCanvasDimensionsContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 
@@ -19,18 +23,15 @@ const generateReadOnlyMessage = (jobName: string | undefined) =>
       {` job. Make edits in the Pipeline editor.`}
     </>
   ) : null;
-type ReadOnlyBannerContainerProps = { children: React.ReactNode };
 
-const ReadOnlyBannerContainer = ({
-  children,
-}: ReadOnlyBannerContainerProps) => {
+const ReadOnlyBannerContainer: React.FC = ({ children }) => {
   const {
     uiState: { openedStep },
   } = usePipelineUiStateContext();
 
-  const { stepDetailsPanelWidth } = usePipelineCanvasDimensionsContext();
+  const { secondarySidePanelWidth } = useLayoutStore();
 
-  const widthDiff = openedStep ? stepDetailsPanelWidth : 0;
+  const widthDiff = openedStep ? secondarySidePanelWidth : 0;
 
   return (
     <Box
@@ -48,15 +49,15 @@ const ReadOnlyBannerContainer = ({
 
 export const ReadOnlyBanner = () => {
   const { navigateTo } = useCustomRoute();
-
-  const { triggerBuild, viewBuildStatus } = useBuildEnvironmentImages();
-
+  const { buildingEnvironments, environmentsToBeBuilt } = useEnvironmentsApi();
   const {
-    job,
-    pipelineReadOnlyReason,
-    projectUuid,
-    pipelineUuid,
-  } = usePipelineDataContext();
+    state: { pipelineReadOnlyReason },
+    dispatch,
+  } = useProjectsContext();
+
+  const { triggerBuilds, viewBuildStatus } = useBuildEnvironmentImages();
+
+  const { job, projectUuid, pipelineUuid } = usePipelineDataContext();
 
   const { title, action, actionLabel } = React.useMemo(() => {
     switch (pipelineReadOnlyReason) {
@@ -79,14 +80,33 @@ export const ReadOnlyBanner = () => {
             navigateTo(siteMap.configureJupyterLab.path, undefined, event),
         };
       case "environmentsNotYetBuilt":
+      case "environmentsFailedToBuild":
+        const hasMultipleEnvironmentsToBuild = environmentsToBeBuilt.length > 1;
+        const environmentText = withPlural(
+          environmentsToBeBuilt.length,
+          "environment"
+        );
+
         return {
-          title: "Not all environments of this project have been built",
+          title: `${environmentText} of this project need${
+            hasMultipleEnvironmentsToBuild ? "" : "s"
+          } to be built`,
           actionLabel: "Build environments",
-          action: triggerBuild,
+          action: () => {
+            dispatch({
+              type: "SET_PIPELINE_READONLY_REASON",
+              payload: "environmentsBuildInProgress",
+            });
+            triggerBuilds();
+          },
         };
       case "environmentsBuildInProgress":
+        const buildingEnvironmentText = withPlural(
+          buildingEnvironments.length,
+          "environment"
+        );
         return {
-          title: "Environments still building",
+          title: `${buildingEnvironmentText} still building`,
           actionLabel: "Open environments",
           action: viewBuildStatus,
         };
@@ -96,11 +116,17 @@ export const ReadOnlyBanner = () => {
   }, [
     navigateTo,
     pipelineReadOnlyReason,
+    environmentsToBeBuilt,
+    buildingEnvironments,
     projectUuid,
     pipelineUuid,
     viewBuildStatus,
-    triggerBuild,
+    triggerBuilds,
+    dispatch,
   ]);
+
+  const showLinearProgress =
+    pipelineReadOnlyReason === "environmentsBuildInProgress";
 
   return hasValue(pipelineReadOnlyReason) ? (
     <ReadOnlyBannerContainer>
@@ -116,7 +142,12 @@ export const ReadOnlyBanner = () => {
             {actionLabel}
           </Button>
         }
-        sx={{ width: "100%", alignItems: "center" }}
+        sx={{
+          width: "100%",
+          alignItems: "center",
+          paddingBottom: (theme) =>
+            theme.spacing(showLinearProgress ? 2 : 0.75),
+        }}
       >
         <Box
           sx={{
@@ -131,6 +162,16 @@ export const ReadOnlyBanner = () => {
           </Typography>
         )}
       </Alert>
+      {showLinearProgress && (
+        <Box
+          sx={{
+            marginTop: (theme) => theme.spacing(-2),
+            padding: (theme) => theme.spacing(0, 2),
+          }}
+        >
+          <LinearProgress />
+        </Box>
+      )}
     </ReadOnlyBannerContainer>
   ) : null;
 };

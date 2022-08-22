@@ -1,5 +1,4 @@
-import "@/.wdyr";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -63,7 +62,7 @@ export const CreateFileDialog = ({
   onClose,
   onSuccess,
 }: CreateFileDialogProps) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { selectedFiles } = useFileManagerContext();
   const { register, handleSubmit, watch, reset } = useForm<FileFormData>({
     defaultValues: defaultFormState(canCreateStep),

@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
@@ -9,17 +9,17 @@ import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
-export const useAutoStartSession = ({ isReadOnly = true }) => {
+export const useAutoStartSession = () => {
   const {
     state: { sessions },
     getSession,
     startSession,
   } = useSessionsContext();
   const {
-    state: { pipeline },
+    state: { pipeline, pipelineReadOnlyReason },
     dispatch,
   } = useProjectsContext();
-  const { setAlert, setConfirm } = useAppContext();
+  const { setAlert, setConfirm } = useGlobalContext();
   const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();
 
   const session = React.useMemo(() => getSession(pipeline?.uuid), [
@@ -31,7 +31,7 @@ export const useAutoStartSession = ({ isReadOnly = true }) => {
     hasValue(sessions) && // `sessions` is available to look up
     hasValue(pipeline?.uuid) && // `pipeline` is loaded.
     pipelineUuidFromRoute === pipeline?.uuid && // Only auto-start the pipeline that user is viewing.
-    !isReadOnly &&
+    !pipelineReadOnlyReason &&
     !hasValue(session); // `session` of the current pipeline is not yet launched.
 
   // The only case that auto-start should be disabled is that
@@ -45,15 +45,12 @@ export const useAutoStartSession = ({ isReadOnly = true }) => {
 
   const requestStartSession = React.useCallback(
     async (pipelineUuid: string) => {
-      const [hasStartedOperation, error] = await startSession(
+      const result = await startSession(
         pipelineUuid,
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
-      if (
-        !hasStartedOperation &&
-        error.status === 423 &&
-        error.message === "JupyterEnvironmentBuildInProgress"
-      ) {
+      if (result === true) return;
+      if (result.message === "JupyterEnvironmentBuildInProgress") {
         dispatch({
           type: "SET_PIPELINE_READONLY_REASON",
           payload: "JupyterEnvironmentBuildInProgress",
@@ -69,8 +66,11 @@ export const useAutoStartSession = ({ isReadOnly = true }) => {
             confirmLabel: "Configure JupyterLab",
           }
         );
-      } else if (error?.message) {
-        setAlert("Error", `Error while starting the session: ${String(error)}`);
+      } else {
+        setAlert(
+          "Error",
+          `Error while starting the session: ${String(result)}`
+        );
       }
     },
     [navigateTo, setAlert, setConfirm, startSession, dispatch]

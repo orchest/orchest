@@ -1,7 +1,7 @@
 import { IconButton } from "@/components/common/IconButton";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import {
   useCancelableFetch,
@@ -38,7 +38,7 @@ const MODE_MAPPING = {
 } as const;
 
 const FilePreviewView = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { state: projectsState, dispatch } = useProjectsContext();
   const { cancelableFetch } = useCancelableFetch();
   const { makeCancelable } = useCancelablePromise();

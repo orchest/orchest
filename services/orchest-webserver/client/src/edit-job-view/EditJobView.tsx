@@ -7,7 +7,7 @@ import DateTimeInput from "@/components/DateTimeInput";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJob } from "@/hooks/useFetchJob";
@@ -171,7 +171,7 @@ type JobUpdatePayload = {
 
 const EditJobView: React.FC = () => {
   // global states
-  const { config, setAlert, setAsSaved } = useAppContext();
+  const { config, setAlert, setAsSaved } = useGlobalContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.editJob.path });
 
   // data from route

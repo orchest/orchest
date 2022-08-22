@@ -1,6 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import TreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
@@ -56,7 +56,7 @@ export const FileTreeItem = ({
   const {
     state: { pipelines = [] },
   } = useProjectsContext();
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
   const { getSession, stopSession } = useSessionsContext();
 
   const icon = !fileName ? undefined : fileName.endsWith(".orchest") ? (

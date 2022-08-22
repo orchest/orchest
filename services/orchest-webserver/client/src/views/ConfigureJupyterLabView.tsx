@@ -1,8 +1,8 @@
 import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
-import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
-import { useAppContext } from "@/contexts/AppContext";
+import { LegacyImageBuildLog } from "@/components/LegacyImageBuildLog";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -31,7 +31,7 @@ const ConfigureJupyterLabView: React.FC = () => {
     setConfirm,
     setAsSaved,
     config,
-  } = useAppContext();
+  } = useGlobalContext();
   const {
     deleteAllSessions,
     state: { sessionsKillAllInProgress, sessions },
@@ -249,7 +249,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               />
             </div>
 
-            <ImageBuildLog
+            <LegacyImageBuildLog
               buildRequestEndpoint={
                 "/catch/api-proxy/api/jupyter-builds/most-recent"
               }

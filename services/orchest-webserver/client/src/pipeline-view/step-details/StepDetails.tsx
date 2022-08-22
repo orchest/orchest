@@ -1,7 +1,12 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import {
+  MAX_WIDTH,
+  MIN_SECONDARY_SIDE_PANEL_WIDTH,
+  useLayoutStore,
+} from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { StepState } from "@/types";
 import { CloseOutlined } from "@mui/icons-material";
@@ -12,10 +17,6 @@ import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import {
-  MIN_STEP_DETAILS_PANEL_WIDTH,
-  usePipelineCanvasDimensionsContext,
-} from "../contexts/PipelineCanvasDimensionsContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { StepConnections } from "./StepConnections";
@@ -64,15 +65,13 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
     uiState: { subViewIndex, shouldAutoFocus, stepSelector, steps, openedStep },
     uiStateDispatch,
   } = usePipelineUiStateContext();
-  const {
-    setStepDetailsPanelWidth,
+  const [
     stepDetailsPanelWidth,
-  } = usePipelineCanvasDimensionsContext();
-
-  const onSetSize = React.useCallback(
-    (width) => setStepDetailsPanelWidth(width),
-    [setStepDetailsPanelWidth]
-  );
+    setStepDetailsPanelWidth,
+  ] = useLayoutStore((state) => [
+    state.secondarySidePanelWidth,
+    state.setSecondarySidePanelWidth,
+  ]);
 
   const step = steps[openedStep || ""];
 
@@ -84,7 +83,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
   const shouldHideStepDetails =
     !openedStep || !step || !pipelineJson || stepSelector.active;
 
-  const { hideIntercom, showIntercom } = useAppContext();
+  const { hideIntercom, showIntercom } = useGlobalContext();
 
   React.useEffect(() => {
     if (shouldHideStepDetails) {
@@ -101,10 +100,10 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
       <ResizablePane
         direction="horizontal"
         anchor="right"
-        onSetSize={onSetSize}
+        onSetSize={setStepDetailsPanelWidth}
         initialSize={stepDetailsPanelWidth}
-        minWidth={MIN_STEP_DETAILS_PANEL_WIDTH}
-        maxWidth={Math.max(window.innerWidth / 2, MIN_STEP_DETAILS_PANEL_WIDTH)}
+        minWidth={MIN_SECONDARY_SIDE_PANEL_WIDTH}
+        maxWidth={MAX_WIDTH}
         sx={{
           position: "relative",
           display: "flex",

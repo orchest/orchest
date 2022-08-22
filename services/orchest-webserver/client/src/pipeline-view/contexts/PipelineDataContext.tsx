@@ -1,16 +1,12 @@
-import { useAppContext } from "@/contexts/AppContext";
-import {
-  PipelineReadOnlyReason,
-  useProjectsContext,
-} from "@/contexts/ProjectsContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { Environment, Job, PipelineJson, PipelineMetaData } from "@/types";
+import { Job, PipelineJson, PipelineMetaData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
@@ -21,11 +17,9 @@ export type PipelineDataContextType = {
   projectUuid?: string;
   pipelineUuid?: string;
   pipelineCwd?: string;
-  environments: Environment[];
   runUuid?: string;
   jobUuid?: string;
   setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
-  pipelineReadOnlyReason?: PipelineReadOnlyReason;
   isReadOnly: boolean;
   pipelineJson?: PipelineJson;
   setPipelineJson: StateDispatcher<PipelineJson>;
@@ -43,7 +37,7 @@ export const usePipelineDataContext = () =>
   React.useContext(PipelineDataContext);
 
 export const PipelineDataContextProvider: React.FC = ({ children }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   useEnsureValidPipeline();
 
   const {
@@ -54,7 +48,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   } = useCustomRoute();
 
   const {
-    state: { pipeline, pipelines, projectUuid },
+    state: { pipeline, pipelines, projectUuid, pipelineReadOnlyReason },
   } = useProjectsContext();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
@@ -68,13 +62,10 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const pipelineUuid =
     pipeline?.uuid === pipelineUuidFromRoute ? pipeline?.uuid : undefined;
 
-  const { runUuid, setRunUuid } = useFetchInteractiveRun(
-    projectUuid,
-    pipelineUuid,
-    runUuidFromRoute
-  );
+  const { runUuid, setRunUuid } = useFetchInteractiveRun();
 
-  const pipelineReadOnlyReason = useIsReadOnly();
+  useIsReadOnly();
+
   const isReadOnly = Boolean(pipelineReadOnlyReason);
 
   const {
@@ -116,10 +107,6 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
       );
   }, [error, setAlert, navigateTo, projectUuid, jobUuid]);
 
-  const { environments = [] } = useFetchEnvironments(
-    !isReadOnly ? projectUuid : undefined
-  );
-
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
 
   const { job } = useFetchJob({ jobUuid: isJobRun ? jobUuid : undefined });
@@ -132,11 +119,9 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         pipelineUuid,
         pipeline,
         pipelineCwd,
-        environments,
         jobUuid,
         runUuid,
         setRunUuid,
-        pipelineReadOnlyReason,
         isReadOnly,
         pipelineJson,
         setPipelineJson,

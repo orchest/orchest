@@ -27,6 +27,8 @@ export const ProjectSelectorPopover = ({
           width: (theme) => theme.spacing(40),
           borderRadius: 0,
           position: "relative",
+          display: "flex",
+          flexDirection: "column",
         },
       }}
     >

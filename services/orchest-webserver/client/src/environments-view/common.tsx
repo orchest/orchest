@@ -1,10 +1,20 @@
 import {
-  DefaultEnvironment,
-  Environment,
+  CustomImage,
+  EnvironmentData,
   EnvironmentImageBuild,
+  EnvironmentSpec,
+  EnvironmentState,
+  Language,
   OrchestSession,
 } from "@/types";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { prune } from "@/utils/record";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+
+export const isEnvironmentBuilding = (build?: EnvironmentImageBuild) =>
+  hasValue(build) && ["PENDING", "STARTED"].includes(build.status);
+
+export const isEnvironmentFailedToBuild = (build?: EnvironmentImageBuild) =>
+  build && ["ABORTED", "FAILURE"].includes(build.status);
 
 export const BUILD_POLL_FREQUENCY = 1000;
 
@@ -66,11 +76,12 @@ export const hasSuccessfulBuild = async (
 
 export const getNewEnvironmentName = (
   defaultName: string,
-  environments: Environment[]
+  environments?: EnvironmentData[]
 ) => {
-  let count = 0;
-  let finalName = defaultName;
+  if (!environments) return;
+  let finalName = defaultName.trim();
   const allNames = new Set(environments.map((e) => e.name));
+  let count = 0;
   while (count < 100) {
     const newName = `${finalName}${count === 0 ? "" : ` (${count})`}`;
     if (!allNames.has(newName)) {
@@ -85,9 +96,9 @@ export const getNewEnvironmentName = (
 export const postEnvironment = (
   projectUuid: string,
   environmentName: string,
-  defaultEnvironments: DefaultEnvironment
+  defaultEnvironments: EnvironmentSpec
 ) =>
-  fetcher<Environment>(`/store/environments/${projectUuid}/new`, {
+  fetcher<EnvironmentData>(`/store/environments/${projectUuid}/new`, {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({
@@ -98,3 +109,91 @@ export const postEnvironment = (
       },
     }),
   });
+
+export const extractEnvironmentFromState = (
+  environmentState?: EnvironmentState
+): EnvironmentData | undefined => {
+  if (!environmentState) return undefined;
+
+  return prune<EnvironmentData>(
+    environmentState,
+    ([key]) => !["action", "latestBuild"].includes(key)
+  );
+};
+
+/**
+ * Return the environment with the given UUID, or return the first environment if
+ * not found.
+ */
+export const findEnvironment = (
+  environments: EnvironmentState[] | undefined,
+  uuid?: string
+) => {
+  const foundEnvironment = uuid
+    ? environments?.find((env) => env.uuid === uuid)
+    : environments?.[0];
+
+  return foundEnvironment;
+};
+
+export const LANGUAGE_MAP: Record<Language, string> = {
+  python: "Python",
+  r: "R",
+  julia: "Julia",
+  javascript: "JavaScript",
+};
+
+// Related to the analytics.py module, "environment_image_build_start" event,
+// which checks for the base image to start with "orchest/".
+export const DEFAULT_BASE_IMAGES: (CustomImage & {
+  img_src: string;
+  label: string;
+  unavailable?: boolean;
+})[] = [
+  {
+    base_image: "orchest/base-kernel-py",
+    img_src: "/image/python_logo.svg",
+    language: "python",
+    gpu_support: false,
+    label: "Python",
+  },
+  {
+    base_image: "orchest/base-kernel-r",
+    img_src: "/image/r_logo.svg",
+    language: "r",
+    gpu_support: false,
+    label: "R",
+  },
+  {
+    base_image: "orchest/base-kernel-julia",
+    img_src: "/image/julia_logo.svg",
+    language: "julia",
+    gpu_support: false,
+    label: "Julia",
+  },
+  {
+    base_image: "orchest/base-kernel-javascript",
+    img_src: "/image/javascript_logo.svg",
+    language: "javascript",
+    gpu_support: false,
+    label: "JavaScript",
+  },
+];
+
+export const BASE_IMAGE_LANGUAGES = new Set<string>(
+  DEFAULT_BASE_IMAGES.map((image) => image.language)
+);
+
+export function shallowEqualByKey<T extends Record<string, any>>( // eslint-disable-line @typescript-eslint/no-explicit-any
+  obj1: T,
+  obj2: T,
+  keys: (keyof Partial<T>)[]
+) {
+  if (!obj1 || !obj2) return obj1 === obj2;
+  return keys.every((key) => {
+    return obj1[key] === obj2[key];
+  });
+}
+
+// Due to the migration to k8s, gpu-supported images are not yet available
+export const GPU_SUPPORT_ENABLED = false;

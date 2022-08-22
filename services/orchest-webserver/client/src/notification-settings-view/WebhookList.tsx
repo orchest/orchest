@@ -1,7 +1,7 @@
 import { IconButton } from "@/components/common/IconButton";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { useAppContext } from "@/contexts/AppContext";
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { STATUS } from "@/hooks/useAsync";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -31,8 +31,8 @@ type WebhookColumn = WebhookRow & {
 };
 
 export const WebhookList = () => {
-  const { setConfirm } = useAppContext();
-  const { webhooks, setWebhooks } = useAppInnerContext();
+  const { setConfirm } = useGlobalContext();
+  const { webhooks, setWebhooks } = useAppContext();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const onClose = React.useCallback(() => setIsOpen(false), []);

@@ -3,21 +3,24 @@ import { Routes } from "@/Routes";
 import Box from "@mui/material/Box";
 import OpenReplay from "@openreplay/tracker";
 import { makeRequest } from "@orchest/lib-utils";
+import { enableMapSet } from "immer";
 import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
 import { CommandPalette } from "./components/CommandPalette";
-import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
+import { OnboardingDialog } from "./components/Layout/legacy/OnboardingDialog";
 import { SystemDialog } from "./components/SystemDialog";
-import { useAppContext } from "./contexts/AppContext";
-import { AppInnerContextProvider } from "./contexts/AppInnerContext";
+import { AppContextProvider } from "./contexts/AppContext";
+import { useGlobalContext } from "./contexts/GlobalContext";
 import { HeaderBar } from "./header-bar/HeaderBar";
 import Jupyter from "./jupyter/Jupyter";
+
+enableMapSet();
 
 const App = () => {
   const [jupyter, setJupyter] = React.useState<Jupyter | null>(null);
   const { boot } = useIntercom();
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
 
   // load server side config populated by flask template
   const {
@@ -25,7 +28,7 @@ const App = () => {
     setAsSaved,
     config,
     user_config,
-  } = useAppContext();
+  } = useGlobalContext();
 
   const jupyterRef = React.useRef<HTMLDivElement>(null);
 
@@ -91,7 +94,7 @@ const App = () => {
         }
       }}
     >
-      <AppInnerContextProvider>
+      <AppContextProvider>
         <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
           <HeaderBar />
           <Box
@@ -115,7 +118,7 @@ const App = () => {
         <SystemDialog />
         <OnboardingDialog />
         <CommandPalette />
-      </AppInnerContextProvider>
+      </AppContextProvider>
     </Router>
   );
 };

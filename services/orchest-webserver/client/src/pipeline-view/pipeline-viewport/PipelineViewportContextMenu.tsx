@@ -1,3 +1,4 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import {
   ContextMenu,
   ContextMenuContextProvider,
@@ -22,7 +23,9 @@ export const usePipelineViewportContextMenu = useContextMenuContext;
 
 export const PipelineViewportContextMenu = () => {
   const { position, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
-  const { isReadOnly, environments } = usePipelineDataContext();
+  const { isReadOnly } = usePipelineDataContext();
+  const { environments = [] } = useEnvironmentsApi();
+
   const { canvasPointAtPointer } = useCanvasScaling();
   const {
     uiState: { steps, selectedSteps, contextMenuUuid },

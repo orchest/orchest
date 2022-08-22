@@ -1,33 +1,31 @@
-import {
-  BUILD_IMAGE_SOLUTION_VIEW,
-  useProjectsContext,
-} from "@/contexts/ProjectsContext";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
+/**
+ * Update pipelineReadOnlyReason per environment build status and job runs.
+ */
 export const useIsReadOnly = () => {
   const { jobUuid, runUuid } = useCustomRoute();
-  const {
-    dispatch,
-    state: { pipelineReadOnlyReason, projectUuid },
-    ensureEnvironmentsAreBuilt,
-  } = useProjectsContext();
+  const { dispatch } = useProjectsContext();
+
+  const { status } = useEnvironmentsApi();
 
   const isJobRun = Boolean(runUuid && jobUuid);
 
   React.useEffect(() => {
-    dispatch((state) => ({
-      type: "SET_PIPELINE_READONLY_REASON",
-      payload: isJobRun ? "isJobRun" : state.pipelineReadOnlyReason,
-    }));
-  }, [isJobRun, dispatch]);
-
-  React.useEffect(() => {
-    if (!isJobRun && hasValue(projectUuid)) {
-      ensureEnvironmentsAreBuilt(BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
+    if (isJobRun) {
+      dispatch({
+        type: "SET_PIPELINE_READONLY_REASON",
+        payload: "isJobRun",
+      });
+    } else {
+      const payload = status === "allEnvironmentsBuilt" ? undefined : status;
+      dispatch({
+        type: "SET_PIPELINE_READONLY_REASON",
+        payload,
+      });
     }
-  }, [isJobRun, projectUuid, ensureEnvironmentsAreBuilt]);
-
-  return pipelineReadOnlyReason;
+  }, [isJobRun, status, dispatch]);
 };
