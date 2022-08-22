@@ -231,6 +231,7 @@ def get_active_custom_jupyter_images(
             models.JupyterImage.stored_in_registry.is_(stored_in_registry)
         )
 
+    # TODO: allow filtering with not_in_node.
     if in_node is not None:
         query = query.join(models.JupyterImageInNode).filter(
             models.JupyterImageInNode.node_name == in_node
