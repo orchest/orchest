@@ -65,7 +65,7 @@ export const ParameterDocs = () => {
         <>
           <Link
             target="_blank"
-            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
+            href="https://docs.orchest.io/en/stable/fundamentals/pipelines.html#parametrizing-pipelines"
           >
             Learn more
           </Link>{" "}

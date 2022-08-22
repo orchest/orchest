@@ -243,10 +243,10 @@ type Condition struct {
 // OrchestClusterStatus defines the status of OrchestCluster
 type OrchestClusterStatus struct {
 	// The generation observed by the controller.
-	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,1,opt,name=observedGeneration"`
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// The observed hash of the spec by the controller.
-	ObservedHash string `json:"observedHash,omitempty" protobuf:"varint,1,opt,name=observedGeneration"`
+	ObservedHash string `json:"observedHash,omitempty"`
 
 	Phase OrchestPhase `json:"state,omitempty"`
 

@@ -20,14 +20,14 @@ sys.path.insert(0, os.path.abspath("../../orchest-sdk/python"))
 # -- Project information ----------------------------------------------
 
 project = "Orchest"
-copyright = "2021, Orchest Software B.V."
-author = "Rick Lamers, Yannick Perrenet"
+copyright = "2022, Orchest Software B.V."
+author = "Orchest team"
 
 # The full version, including alpha/beta/rc tags
 # We exclude the exact release because that is error prone when having
 # to update it on every release.
 # release = "0.3.0"
-version = "alpha"
+version = "beta"
 html_title = "Orchest documentation"
 
 
@@ -42,7 +42,6 @@ extensions = [
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
-    "hoverxref.extension",
     "sphinx_design",
     "versionwarning.extension",
 ]
@@ -56,9 +55,6 @@ versionwarning_messages = {
     ),
 }
 
-hoverxref_auto_ref = True
-
-hoverxref_role_types = {"ref": "modal"}
 
 myst_enable_extensions = [
     "deflist",
@@ -84,14 +80,27 @@ autodoc_docstring_signature = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation
 # for a list of builtin themes.
-html_theme = "press"
+html_theme = "pydata_sphinx_theme"
 html_theme_options = {
     "external_links": [
-        ("Website", "https://orchest.io"),
-        ("Github", "https://github.com/orchest/orchest"),
-    ]
+        {"url": "https://orchest.io", "name": "Website"},
+    ],
+    "navbar_align": "left",
+    "page_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    "navbar_center": ["navbar-nav"],
+    "navbar_end": ["theme-switcher", "navbar-icon-links.html", "search-field.html"],
+    "show_toc_level": 1,
+    "github_url": "https://github.com/orchest/orchest",
+    "twitter_url": "https://twitter.com/orchestofficial",
 }
-html_sidebars = {"**": ["searchbox.html", "util/sidetoc.html"]}
+
+html_sidebars = {
+    "development/index": ["sidebar-nav-bs"],
+    "fundamentals/index": ["sidebar-nav-bs"],
+    "getting_started/index": ["sidebar-nav-bs"],
+    "reference/index": ["sidebar-nav-bs"],
+    "index": [],
+}
 
 
 # Add any paths that contain custom static files (such as style sheets)
@@ -99,11 +108,18 @@ html_sidebars = {"**": ["searchbox.html", "util/sidetoc.html"]}
 # static files, so a file named "default.css" will overwrite the
 # builtin "default.css".
 html_static_path = ["_static"]
+html_logo = "img/logo.png"
 
 html_css_files = [
+    "https://cdn.jsdelivr.net/npm/@docsearch/css@alpha",
     "css/custom_styles.css",
     "css/installer_widget.css",
     "css/rate_widget.css",
 ]
 
-html_js_files = ["js/installer_widget.js", "js/rate_widget.js"]
+html_js_files = [
+    "https://cdn.jsdelivr.net/npm/@docsearch/js@alpha",
+    "js/installer_widget.js",
+    "js/rate_widget.js",
+    "js/algolia.js",
+]
