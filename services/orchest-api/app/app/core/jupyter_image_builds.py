@@ -243,7 +243,7 @@ def build_jupyter_image_task(task_uuid: str, image_tag: str):
                 "v1alpha1",
                 _config.ORCHEST_NAMESPACE,
                 "workflows",
-                f"image-build-task-{task_uuid}",
+                image_utils.image_build_task_to_pod_name(task_uuid),
             )
 
     # The status of the Celery task is SUCCESS since it has finished
