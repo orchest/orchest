@@ -1,3 +1,4 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { Code } from "@/components/common/Code";
 import {
   DropZone,
@@ -185,15 +186,6 @@ const dialogTitleMappings: Record<ImportStatus, string> = {
   SAVING_PROJECT_NAME: "Upload complete",
 };
 
-const deleteProject = (projectUuid: string) =>
-  fetcher("/async/projects", {
-    method: "DELETE",
-    headers: HEADER.JSON,
-    body: JSON.stringify({
-      project_uuid: projectUuid,
-    }),
-  });
-
 type ImportDialogProps = {
   open?: boolean;
   onClose?: () => void;
@@ -289,22 +281,22 @@ export const ImportDialog = ({
   } = useCancelableFetch();
 
   const deleteTempProject = React.useCallback(async () => {
-    if (newProjectUuid) {
-      try {
-        await deleteProject(newProjectUuid);
-        // Delete the temp project from ProjectsContext manually instead of relying on fetchProjects and the useEffect,
-        // because fetchProjects is forbidden when open is false.
-        dispatch((currentState) => {
-          const updatedProjects = (currentState.projects || []).filter(
-            (project) => project.uuid !== newProjectUuid
-          );
-          return { type: "SET_PROJECTS", payload: updatedProjects };
-        });
-      } catch (error) {
-        console.error(
-          `Failed to delete the temporary project with UUID ${newProjectUuid}. ${error}`
+    if (!newProjectUuid) return;
+
+    try {
+      await projectsApi.delete(newProjectUuid);
+      // Delete the temp project from ProjectsContext manually instead of relying on fetchProjects and the useEffect,
+      // because fetchProjects is forbidden when open is false.
+      dispatch((currentState) => {
+        const updatedProjects = (currentState.projects || []).filter(
+          (project) => project.uuid !== newProjectUuid
         );
-      }
+        return { type: "SET_PROJECTS", payload: updatedProjects };
+      });
+    } catch (error) {
+      console.error(
+        `Failed to delete the temporary project with UUID ${newProjectUuid}. ${error}`
+      );
     }
   }, [newProjectUuid, dispatch]);
 
@@ -335,7 +327,7 @@ export const ImportDialog = ({
         // because it requires a file-discovery request to instantiate `project_uuid`.
         // Therefore, send another GET call to get its uuid.
         try {
-          const fetchedProjects = await fetcher<Project[]>(`/async/projects`);
+          const fetchedProjects = await projectsApi.fetchAll();
           const foundProject = (fetchedProjects || []).find(
             (project) => project.path === result.result
           );
@@ -418,11 +410,7 @@ export const ImportDialog = ({
     if (!newProjectUuid || projectNameValidation.error) return;
     setImportStatus("SAVING_PROJECT_NAME");
     try {
-      await fetcher(`/async/projects/${newProjectUuid}`, {
-        method: "PUT",
-        headers: HEADER.JSON,
-        body: JSON.stringify({ name: projectName }),
-      });
+      await projectsApi.put(newProjectUuid, { name: projectName });
       await fetchProjects();
       onImportComplete({ path: projectName, uuid: newProjectUuid });
       reset();

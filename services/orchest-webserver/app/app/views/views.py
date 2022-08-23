@@ -580,12 +580,12 @@ def register_views(app, db):
                 500,
             )
 
-    @app.route("/async/projects", methods=["DELETE"])
-    def projects_delete():
+    @app.route("/async/projects/<project_uuid>", methods=["DELETE"])
+    def projects_delete(project_uuid):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                DeleteProject(tpe).transaction(request.json["project_uuid"])
+                DeleteProject(tpe).transaction(project_uuid)
         except Exception as e:
             return (
                 jsonify({"message": f"Failed to delete the project. Error: {e}"}),
