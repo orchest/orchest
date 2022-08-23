@@ -1,8 +1,9 @@
 import datetime
 import hashlib
+import os
 from typing import Dict, TypedDict, Union
 
-from _typeshed import StrOrBytesPath
+PathType = Union[str, bytes, os.PathLike]
 
 
 class _InnerAuthCache(TypedDict):
@@ -13,7 +14,7 @@ class _InnerAuthCache(TypedDict):
 _AuthCacheDictionary = Dict[str, _InnerAuthCache]
 
 
-def get_hash(path: StrOrBytesPath) -> str:
+def get_hash(path: PathType) -> str:
     BLOCKSIZE = 8192 * 8
     hasher = hashlib.md5()
     with open(path, "rb") as afile:

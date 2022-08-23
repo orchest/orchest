@@ -5,7 +5,6 @@ import uuid
 from typing import Dict, List, Literal, Tuple, Union
 
 import requests
-from _typeshed import StrPath
 from flask import (
     Flask,
     Request,
@@ -19,7 +18,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.connections import db
 from app.models import Token, User
-from app.utils import _AuthCacheDictionary, get_auth_cache, set_auth_cache
+from app.utils import PathType, _AuthCacheDictionary, get_auth_cache, set_auth_cache
 
 # This auth_cache is shared between requests
 # within the same Flask process
@@ -76,7 +75,7 @@ def register_views(app: Flask) -> None:
             .exists()
         ).scalar()
 
-    def serve_static_or_dev(path: StrPath) -> Response:
+    def serve_static_or_dev(path: PathType) -> Response:
         file_path = os.path.join(app.config["STATIC_DIR"], path)
         if os.path.isfile(file_path):
             return send_from_directory(app.config["STATIC_DIR"], path)
@@ -86,7 +85,7 @@ def register_views(app: Flask) -> None:
     # static file serving
     @app.route("/login", defaults={"path": ""}, methods=["GET"])
     @app.route("/login/<path:path>", methods=["GET"])
-    def login_static(path: StrPath) -> Response:
+    def login_static(path: PathType) -> Response:
 
         # Automatically redirect to root if request is authenticated
         if is_authenticated(request) and path == "":
