@@ -12,7 +12,7 @@ from app.models._core import (
     JobInUseImage,
     JupyterImage,
     JupyterImageBuild,
-    JupyterImageInNode,
+    JupyterImageOnNode,
     NonInteractivePipelineRun,
     Pipeline,
     PipelineRun,

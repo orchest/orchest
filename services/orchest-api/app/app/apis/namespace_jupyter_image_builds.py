@@ -127,7 +127,7 @@ class JupyterEnvironmentBuild(Resource):
                 if build.cluster_node is None:
                     raise Exception("Build cluster_node not set.")
                 db.session.add(
-                    models.JupyterImageInNode(
+                    models.JupyterImageOnNode(
                         jupyter_image_tag=build.image_tag,
                         node_name=build.cluster_node,
                     )

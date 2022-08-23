@@ -1193,10 +1193,10 @@ ForeignKeyConstraint(
 )
 
 
-class JupyterImageInNode(BaseModel):
+class JupyterImageOnNode(BaseModel):
     """To track where a custom jupyter image is stored."""
 
-    __tablename__ = "jupyter_image_in_nodes"
+    __tablename__ = "jupyter_image_on_nodes"
 
     jupyter_image_tag = db.Column(
         db.Integer, unique=False, nullable=False, primary_key=True
@@ -1206,13 +1206,13 @@ class JupyterImageInNode(BaseModel):
 
 
 ForeignKeyConstraint(
-    [JupyterImageInNode.jupyter_image_tag],
+    [JupyterImageOnNode.jupyter_image_tag],
     [JupyterImage.tag],
     ondelete="CASCADE",
 )
 
 ForeignKeyConstraint(
-    [JupyterImageInNode.node_name],
+    [JupyterImageOnNode.node_name],
     [ClusterNode.name],
     ondelete="CASCADE",
 )
