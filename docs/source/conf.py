@@ -108,7 +108,12 @@ html_sidebars = {
 # static files, so a file named "default.css" will overwrite the
 # builtin "default.css".
 html_static_path = ["_static"]
-html_logo = "img/logo.png"
+html_theme_options = {
+    "logo": {
+        "image_light": "img/logo-light.png",
+        "image_dark": "img/logo-dark.png",
+    }
+}
 
 html_css_files = [
     "https://cdn.jsdelivr.net/npm/@docsearch/css@alpha",
