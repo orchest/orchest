@@ -1150,7 +1150,7 @@ class ClusterNode(BaseModel):
 
 
 class EnvironmentImageInNode(BaseModel):
-    """To track where are environment image is stored."""
+    """To track where an environment image is stored."""
 
     __tablename__ = "environment_image_in_nodes"
 
