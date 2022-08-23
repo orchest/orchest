@@ -13,7 +13,7 @@ from flask import current_app
 from flask_restx import Model
 from flask_sqlalchemy import Pagination
 from kubernetes import client as k8s_client
-from sqlalchemy import and_, desc, or_, text
+from sqlalchemy import desc, or_, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import query, undefer
 
@@ -688,13 +688,9 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
     if latest_custom_image is not None:
         images_to_be_removed = images_to_be_removed.filter(
             or_(
-                and_(
-                    # Don't remove the latest valid image.
-                    models.JupyterImage.tag < latest_custom_image.tag,
-                    # Can't delete an image from the registry if it has
-                    # the same digest of an active image.
-                    models.JupyterImage.digest != latest_custom_image.digest,
-                ),
+                # Don't remove the latest valid image.
+                models.JupyterImage.tag < latest_custom_image.tag,
+                # Force a rebuild on Orchest update.
                 models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION,
             )
         )
