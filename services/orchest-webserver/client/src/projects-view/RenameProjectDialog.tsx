@@ -1,3 +1,4 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { Project } from "@/types";
 import Button from "@mui/material/Button";
@@ -6,7 +7,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectName } from "./hooks/useProjectName";
 
@@ -53,16 +54,12 @@ export const RenameProjectDialog = ({
   };
 
   const onSubmitEditProjectPathModal = async () => {
-    if (!isFormValid) return;
+    if (!isFormValid || !projectUuid) return;
 
     setIsUpdatingProjectPath(true);
 
     try {
-      await fetcher(`/async/projects/${projectUuid}`, {
-        method: "PUT",
-        headers: HEADER.JSON,
-        body: JSON.stringify({ name: projectName }),
-      });
+      await projectsApi.put(projectUuid, { name: projectName });
 
       onSaved(projectName);
       closeDialog();
