@@ -21,6 +21,8 @@ from typing import Set
 import aiohttp
 from container_runtime import ContainerRuntime
 
+from config import CONFIG_CLASS
+
 logger = logging.getLogger("IMAGE_PUSHER")
 logger.setLevel(os.environ["ORCHEST_LOG_LEVEL"])
 
@@ -33,14 +35,8 @@ async def get_environment_images_to_push(session: aiohttp.ClientSession) -> Set[
     """
     endpoint = (
         "http://orchest-api/api/environment-images/active?stored_in_registry=false"
+        f"&in_node={CONFIG_CLASS.CLUSTER_NODE}"
     )
-    node = os.getenv("CLUSTER_NODE")
-    if node is None:
-        logger.warning(
-            "Env variable CLUSTER_NODE is not set. Querying more images than necessary."
-        )
-    else:
-        endpoint += f"&in_node={node}"
 
     async with session.get(endpoint) as response:
         response_json = await response.json()
@@ -53,15 +49,9 @@ async def get_jupyter_images_to_push(session: aiohttp.ClientSession) -> Set[str]
     """Gets the active custom jupyter images."""
     endpoint = (
         "http://orchest-api/api/ctl/active-custom-jupyter-images"
-        "?stored_in_registry=false"
+        f"?stored_in_registry=false&in_node={CONFIG_CLASS.CLUSTER_NODE}"
     )
-    node = os.getenv("CLUSTER_NODE")
-    if node is None:
-        logger.warning(
-            "Env variable CLUSTER_NODE is not set. Querying more images than necessary."
-        )
-    else:
-        endpoint += f"&in_node={node}"
+
     async with session.get(endpoint) as response:
         response_json = await response.json()
         active_images = response_json["active_custom_jupyter_images"]
