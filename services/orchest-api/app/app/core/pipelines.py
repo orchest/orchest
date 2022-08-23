@@ -256,9 +256,9 @@ class Pipeline:
         description.update(self.properties)
         return description
 
-    # TODO: This is slow, although reasonable for small/medium size
-    # pipelines.
     def get_step(self, uuid: str) -> PipelineStep:
+        # NOTE: This is slow, although reasonable for small/medium size
+        # pipelines.
         for step in self.steps:
             if uuid == step.properties["uuid"]:
                 return step
