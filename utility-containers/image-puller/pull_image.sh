@@ -1,7 +1,5 @@
 #!/bin/bash
 set -euo pipefail
-# ENV_PERF_TODO: REMOVE THIS
-exit 0
 
 if [ "$CONTAINER_RUNTIME" = containerd ]; then
     ctr -n=k8s.io -a=/var/run/runtime.sock i pull "${IMAGE_TO_PULL}" --skip-verify
