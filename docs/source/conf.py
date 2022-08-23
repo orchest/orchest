@@ -109,10 +109,10 @@ html_sidebars = {
 # builtin "default.css".
 html_static_path = ["_static"]
 html_theme_options = {
-   "logo": {
-      "image_light": "img/logo-light.png",
-      "image_dark": "img/logo-dark.png",
-   }
+    "logo": {
+        "image_light": "img/logo-light.png",
+        "image_dark": "img/logo-dark.png",
+    }
 }
 
 html_css_files = [
