@@ -1,6 +1,6 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
+import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import React from "react";
 import { useReportEnvironmentsError } from "./useReportEnvironmentsError";
@@ -19,10 +19,7 @@ export const useFetchEnvironments = () => {
   const fetchEnvironments = useEnvironmentsApi((state) => state.fetch);
   const validate = useEnvironmentsApi((state) => state.validate);
 
-  const isTabFocused = useFocusBrowserTab();
-  const hasBrowserFocusChanged = useHasChanged(isTabFocused);
-
-  const hasRegainedFocus = isTabFocused && hasBrowserFocusChanged;
+  const hasRegainedFocus = useRegainBrowserTabFocus();
   const hasChangedProject = useHasChanged(projectUuid);
 
   const shouldFetch =

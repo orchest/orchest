@@ -17,7 +17,7 @@ import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type {
-  Pipeline,
+  PipelineData,
   PipelineJson,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
@@ -73,7 +73,7 @@ const JupyterLabView = () => {
     try {
       const [fetchedPipelineJson, pipeline] = await Promise.all([
         makeCancelable(fetchPipelineJson({ pipelineUuid, projectUuid })),
-        cancelableFetch<Pipeline>(
+        cancelableFetch<PipelineData>(
           `/async/pipelines/${projectUuid}/${pipelineUuid}`
         ),
       ]);

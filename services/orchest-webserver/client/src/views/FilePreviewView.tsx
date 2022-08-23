@@ -8,10 +8,12 @@ import {
   useCancelablePromise,
 } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import { JobData, StepData } from "@/types";
 import {
+  getPipelineJSONEndpoint,
   getPipelineStepChildren,
   getPipelineStepParents,
   setWithRetry,
