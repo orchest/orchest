@@ -1,3 +1,4 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
@@ -61,13 +62,7 @@ export const CreateProjectDialog = ({
 
     onClose();
     try {
-      const { project_uuid: projectUuid } = await fetcher<{
-        project_uuid: string;
-      }>("/async/projects", {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify({ name: projectName }),
-      });
+      const { project_uuid: projectUuid } = await projectsApi.post(projectName);
 
       const { pipeline_uuid: pipelineUuid } = await fetcher<{
         pipeline_uuid: string;

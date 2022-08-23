@@ -1,3 +1,4 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -8,7 +9,6 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { ProjectsTable } from "./ProjectsTable";
 import { RenameProjectDialog } from "./RenameProjectDialog";
@@ -80,11 +80,8 @@ export const ProjectList = () => {
     setSelectedProjectMenuButton(undefined);
 
     try {
-      await fetcher("/async/projects", {
-        method: "DELETE",
-        headers: HEADER.JSON,
-        body: JSON.stringify({ project_uuid: toBeDeletedId }),
-      });
+      await projectsApi.delete(toBeDeletedId);
+
       dispatch((current) => {
         const updatedProjects = (current.projects || []).filter(
           (project) => project.uuid !== toBeDeletedId

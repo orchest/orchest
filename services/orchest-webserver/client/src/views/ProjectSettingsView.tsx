@@ -1,144 +1,185 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { PageTitle } from "@/components/common/PageTitle";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { RouteName, siteMap } from "@/routingConfig";
 import { Project } from "@/types";
+import { pick } from "@/utils/record";
 import { toQueryString } from "@/utils/routing";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
+import { SaveOutlined } from "@mui/icons-material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import SaveIcon from "@mui/icons-material/Save";
+import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import Stack from "@mui/material/Stack";
 import React from "react";
 import { Link } from "react-router-dom";
 
 type RoutePath = Extract<RouteName, "pipeline" | "jobs" | "environments">;
 
-const ProjectSettingsView: React.FC = () => {
-  // global states
+type ProjectSettingsState = Readonly<
+  Pick<Project, "pipeline_count" | "environment_count" | "path">
+>;
 
+const initialState: ProjectSettingsState = {
+  pipeline_count: 0,
+  environment_count: 0,
+  path: "",
+};
+
+const ProjectSettingsView: React.FC = () => {
   const {
     setAlert,
     setAsSaved,
+    setConfirm,
     state: { hasUnsavedChanges },
   } = useGlobalContext();
+  const {
+    dispatch,
+    state: { projects },
+  } = useProjectsContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projectSettings.path });
   const { cancelableFetch } = useCancelableFetch();
-
-  // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
+  const [envVariables, setEnvVariables] = React.useState<EnvVarPair[]>();
 
-  const [envVariables, _setEnvVariables] = React.useState<
-    EnvVarPair[] | undefined
-  >(undefined);
-  const setEnvVariables = (
-    value: React.SetStateAction<EnvVarPair[] | undefined>
-  ) => {
-    _setEnvVariables(value);
-    setAsSaved(false);
-  };
+  const setUnsavedEnvVariables = React.useCallback(
+    (value: React.SetStateAction<EnvVarPair[] | undefined>) => {
+      setEnvVariables(value);
+      setAsSaved(false);
+    },
+    [setAsSaved]
+  );
+  const [state, setState] = React.useState<ProjectSettingsState>(initialState);
 
-  // local states
-  const [state, setState] = React.useState<
-    Pick<Project, "pipeline_count" | "environment_count" | "path">
-  >({
-    pipeline_count: 0,
-    environment_count: 0,
-    path: "",
-  });
+  const returnToProjects = (event: React.MouseEvent) =>
+    navigateTo(siteMap.projects.path, undefined, event);
 
-  const returnToProjects = (e: React.MouseEvent) => {
-    navigateTo(siteMap.projects.path, undefined, e);
-  };
+  const requestDeleteProject = React.useCallback(
+    async (toBeDeletedId: string) => {
+      if (projectUuid === toBeDeletedId) {
+        dispatch({ type: "SET_PROJECT", payload: undefined });
+      }
 
-  const saveGeneralForm = (e) => {
-    e.preventDefault();
+      try {
+        await projectsApi.delete(toBeDeletedId);
 
-    let envVariablesObj = envVariablesArrayToDict(envVariables || []);
-    // Do not go through if env variables are not correctly defined.
+        dispatch((current) => {
+          const updatedProjects = (current.projects || []).filter(
+            (project) => project.uuid !== toBeDeletedId
+          );
+          return { type: "SET_PROJECTS", payload: updatedProjects };
+        });
+      } catch (error) {
+        setAlert("Error", `Could not delete project. ${error.message}`);
+      }
+    },
+    [dispatch, projectUuid, setAlert]
+  );
+
+  const deleteProject = React.useCallback(() => {
+    if (!projectUuid) return;
+
+    const projectName = projects?.find((p) => p.uuid === projectUuid)?.path;
+
+    if (!projectName) return;
+
+    return setConfirm(
+      `Delete "${projectName}"?`,
+      "Warning: Deleting a Project is permanent. All associated Jobs and resources will be deleted and unrecoverable.",
+      {
+        onConfirm: async (resolve) => {
+          setAsSaved(true);
+          requestDeleteProject(projectUuid);
+          navigateTo(siteMap.projects.path);
+          resolve(true);
+          return true;
+        },
+        cancelLabel: "Keep project",
+        confirmLabel: "Delete project",
+        confirmButtonColor: "error",
+      }
+    );
+  }, [
+    navigateTo,
+    projectUuid,
+    projects,
+    requestDeleteProject,
+    setAsSaved,
+    setConfirm,
+  ]);
+
+  const saveGeneralForm = (event: React.MouseEvent) => {
+    event.preventDefault();
+
+    if (!projectUuid) return;
+
+    const envVariablesObj = envVariablesArrayToDict(envVariables ?? []);
+
     if (envVariablesObj.status === "rejected") {
       setAlert("Error", envVariablesObj.error);
       return;
     }
 
-    // Validate environment variable names
-    for (let envVariableName of Object.keys(envVariablesObj.value)) {
-      if (!isValidEnvironmentVariableName(envVariableName)) {
-        setAlert(
-          "Error",
-          `Invalid environment variable name: "${envVariableName}".`
-        );
+    for (const name of Object.keys(envVariablesObj.value)) {
+      if (!isValidEnvironmentVariableName(name)) {
+        setAlert("Error", `Invalid environment variable name: "${name}".`);
         return;
       }
     }
 
-    // perform PUT to update; don't cancel this PUT request
-    fetcher(`/async/projects/${projectUuid}`, {
-      method: "PUT",
-      headers: HEADER.JSON,
-      body: JSON.stringify({ env_variables: envVariablesObj.value }),
-    })
-      .then(() => {
-        setAsSaved();
-      })
-      .catch((response) => {
-        console.error(response);
-      });
-  };
-
-  const fetchSettings = () => {
-    cancelableFetch<Project>(`/async/projects/${projectUuid}`)
-      .then((result) => {
-        const {
-          env_variables,
-          pipeline_count,
-          environment_count,
-          path,
-        } = result;
-
-        _setEnvVariables(envVariablesDictToArray(env_variables));
-        setState((prevState) => ({
-          ...prevState,
-          pipeline_count,
-          environment_count,
-          path,
-        }));
-      })
-      .catch(console.log);
+    projectsApi
+      .put(projectUuid, { env_variables: envVariablesObj.value })
+      .then(() => setAsSaved())
+      .catch((error) => console.error(error));
   };
 
   React.useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (!projectUuid) return;
+
+    projectsApi
+      .fetch(projectUuid)
+      .then((result) => {
+        const { env_variables, ...newState } = pick(
+          result,
+          "env_variables",
+          "pipeline_count",
+          "environment_count",
+          "path"
+        );
+
+        setEnvVariables(envVariablesDictToArray(env_variables));
+        setState((prevState) => ({ ...prevState, ...newState }));
+      })
+      .catch((error) => console.error(error));
+  }, [cancelableFetch, projectUuid]);
 
   const paths = React.useMemo(() => {
-    const paths = ["pipeline", "jobs", "environments"] as RoutePath[];
-    return paths.reduce((all, curr) => {
-      return {
-        ...all,
-        [curr]: `${siteMap[curr].path}${toQueryString({ projectUuid })}`,
-      };
-    }, {} as Record<RoutePath, string>);
+    const routes = ["pipeline", "jobs", "environments"] as RoutePath[];
+
+    return Object.fromEntries(
+      routes.map((route) => [
+        route,
+        `${siteMap[route].path}${toQueryString({ projectUuid })}`,
+      ])
+    );
   }, [projectUuid]);
 
   return (
     <Layout>
-      <div className={"view-page view-project-settings"}>
-        <form
-          className="project-settings-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
-        >
+      <Stack className="view-project-settings" sx={{ height: "100%" }}>
+        <form onSubmit={(event) => event.preventDefault()}>
           <div className="push-down">
             <Button
               color="secondary"
@@ -166,7 +207,7 @@ const ProjectSettingsView: React.FC = () => {
                       <Link to={paths.pipeline} className="text-button">
                         {state.pipeline_count +
                           " " +
-                          (state.pipeline_count == 1
+                          (state.pipeline_count === 1
                             ? "pipeline"
                             : "pipelines")}
                       </Link>
@@ -178,7 +219,7 @@ const ProjectSettingsView: React.FC = () => {
                       <Link to={paths.environments} className="text-button">
                         {state.environment_count +
                           " " +
-                          (state.environment_count == 1
+                          (state.environment_count === 1
                             ? "environment"
                             : "environments")}
                       </Link>
@@ -191,14 +232,14 @@ const ProjectSettingsView: React.FC = () => {
 
                 <EnvVarList
                   value={envVariables}
-                  setValue={setEnvVariables}
+                  setValue={setUnsavedEnvVariables}
                   data-test-id="project"
                 />
               </div>
               <div className="bottom-buttons">
                 <Button
                   variant="contained"
-                  startIcon={<SaveIcon />}
+                  startIcon={<SaveOutlined />}
                   onClick={saveGeneralForm}
                   data-test-id="project-settings-save"
                 >
@@ -210,7 +251,17 @@ const ProjectSettingsView: React.FC = () => {
             <LinearProgress />
           )}
         </form>
-      </div>
+        <Box marginTop="auto" paddingTop={(theme) => theme.spacing(4)}>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => deleteProject()}
+            startIcon={<DeleteOutline />}
+          >
+            Delete Project
+          </Button>
+        </Box>
+      </Stack>
     </Layout>
   );
 };
