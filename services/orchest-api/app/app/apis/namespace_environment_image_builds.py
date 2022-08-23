@@ -8,12 +8,11 @@ from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func, or_
 
 import app.models as models
-from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
-from app.core import events, registry
+from app.core import events
 from app.utils import get_logger, update_status_db, upsert_cluster_node
 
 api = Namespace("environment-builds", description="Managing environment builds")
@@ -152,21 +151,11 @@ class EnvironmentImageBuild(Resource):
                 return
 
             if status_update["status"] == "SUCCESS":
-                _ = registry.get_manifest_digest(
-                    _config.ENVIRONMENT_IMAGE_NAME.format(
-                        project_uuid=project_uuid, environment_uuid=environment_uuid
-                    ),
-                    image_tag,
-                )
                 db.session.add(
                     models.EnvironmentImage(
                         project_uuid=project_uuid,
                         environment_uuid=environment_uuid,
                         tag=int(image_tag),
-                        # ENV_PERF_TODO: fix this. The image is now
-                        # built on the node directly so we don't have
-                        # access to its digest from the registry.
-                        digest="digest",
                         stored_in_registry=False,
                     )
                 )
