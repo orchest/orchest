@@ -45,8 +45,9 @@ export const JobMenuList = () => {
         {jobs.map((job) => {
           const selected = hasValue(jobChanges) && jobChanges.uuid === job.uuid;
           const uuid = `${job.pipeline_uuid}|${job.uuid}`;
-          const startTimestamp = ` • ${job.pipeline_run_spec.scheduled_start}`;
-          const subtitle = `${job.pipeline_run_spec.run_config.pipeline_path}${startTimestamp}`;
+          const startTimestamp = job.pipeline_run_spec.scheduled_start;
+          const timeString = startTimestamp ? ` • ${startTimestamp}` : "";
+          const subtitle = `${job.pipeline_run_spec.run_config.pipeline_path}${timeString}`;
           return (
             <JobMenuItem
               key={uuid}

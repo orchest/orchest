@@ -16,9 +16,9 @@ export const useSyncJobUuidWithQueryArgs = () => {
     jobUuid: jobUuidFromRoute,
     navigateTo,
   } = useCustomRoute();
-  const [jobChanges, setJobChanges] = useEditJob((state) => [
+  const [jobChanges, initJobChanges] = useEditJob((state) => [
     state.jobChanges,
-    state.setJobChanges,
+    state.initJobChanges,
   ]);
   const { jobs } = useJobsApi();
 
@@ -58,13 +58,13 @@ export const useSyncJobUuidWithQueryArgs = () => {
     if (isJobUuidFromRouteInvalid) {
       redirect(targetJob);
     } else if (shouldUpdateJobChanges) {
-      setJobChanges(targetJob);
+      initJobChanges(targetJob);
     }
   }, [
     isJobUuidFromRouteInvalid,
     redirect,
     targetJob,
     shouldUpdateJobChanges,
-    setJobChanges,
+    initJobChanges,
   ]);
 };
