@@ -1,4 +1,4 @@
-import { queryArgs, QueryArgsProps } from "@/pipeline-view/file-manager/common";
+import { queryArgs, QueryArgsProps } from "@/utils/text";
 import React from "react";
 import { useHistory } from "react-router-dom";
 

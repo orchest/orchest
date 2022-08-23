@@ -1,4 +1,4 @@
-import { Job } from "@/types";
+import { JobData } from "@/types";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -108,7 +108,7 @@ export const StatusInline: React.FC<{
 };
 
 export type RenderedJobStatus =
-  | Job["status"]
+  | JobData["status"]
   | "FAILURE"
   | "MIXED_FAILURE"
   | "MIXED_PENDING";

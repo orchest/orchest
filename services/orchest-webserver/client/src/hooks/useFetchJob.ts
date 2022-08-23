@@ -1,4 +1,4 @@
-import { Job } from "@/types";
+import { JobData } from "@/types";
 import { useFetcher } from "./useFetcher";
 
 export function useFetchJob({
@@ -8,7 +8,7 @@ export function useFetchJob({
   jobUuid: string | undefined;
   runStatuses?: boolean;
 }) {
-  const { fetchData, data, setData, error, status } = useFetcher<Job>(
+  const { fetchData, data, setData, error, status } = useFetcher<JobData>(
     jobUuid
       ? `/catch/api-proxy/api/jobs/${jobUuid}${
           runStatuses ? "?aggregate_run_statuses=true" : ""

@@ -14,7 +14,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import type { Job } from "@/types";
+import type { JobData } from "@/types";
 import {
   envVariablesDictToArray,
   formatServerDateTime,
@@ -181,7 +181,7 @@ const JobView: React.FC = () => {
       ensureEnvironmentsAreBuilt(BUILD_IMAGE_SOLUTION_VIEW.JOB).then(
         (hasBuilt) => {
           if (hasBuilt)
-            fetcher<Job>("/catch/api-proxy/api/jobs/duplicate", {
+            fetcher<JobData>("/catch/api-proxy/api/jobs/duplicate", {
               method: "POST",
               headers: HEADER.JSON,
               body: JSON.stringify({ job_uuid: job.uuid }),

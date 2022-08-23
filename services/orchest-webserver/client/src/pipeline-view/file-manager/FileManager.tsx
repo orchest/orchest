@@ -1,5 +1,6 @@
 import { generateUploadFiles } from "@/components/DropZone";
 import { useDebounce } from "@/hooks/useDebounce";
+import { queryArgs } from "@/utils/text";
 import LinearProgress, {
   LinearProgressProps,
 } from "@mui/material/LinearProgress";
@@ -15,7 +16,6 @@ import {
   isCombinedPathChildless,
   lastSelectedFolderPath,
   mergeTrees,
-  queryArgs,
   searchTrees,
   TreeNode,
   unpackPath,

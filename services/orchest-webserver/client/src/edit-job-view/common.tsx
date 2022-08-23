@@ -1,8 +1,6 @@
-import {
-  FILE_MANAGEMENT_ENDPOINT,
-  queryArgs,
-} from "@/pipeline-view/file-manager/common";
+import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { Json, PipelineJson, StrategyJson } from "@/types";
+import { queryArgs } from "@/utils/text";
 import { fetcher } from "@orchest/lib-utils";
 
 type ParamConfig = Record<string, Record<string, string>>;

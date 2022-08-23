@@ -4,13 +4,11 @@ import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { ParameterDocs } from "@/pipeline-settings-view/PipelineSettingsView";
-import {
-  FILE_MANAGEMENT_ENDPOINT,
-  queryArgs,
-} from "@/pipeline-view/file-manager/common";
+import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { PipelineJson } from "@/types";
 import { copyToClipboard } from "@/utils/copyToClipboard";
 import { isValidJson } from "@/utils/isValidJson";
+import { queryArgs } from "@/utils/text";
 import {
   generateStrategyJson,
   pipelinePathToJsonLocation,

@@ -7,6 +7,7 @@ import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
 import { basename, dirname, join } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -33,7 +34,6 @@ import {
   Move,
   pathFromElement,
   prettifyRoot,
-  queryArgs,
   ROOT_SEPARATOR,
   UnpackedPath,
   unpackMove,
