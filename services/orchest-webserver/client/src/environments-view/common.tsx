@@ -7,6 +7,7 @@ import {
   Language,
   OrchestSession,
 } from "@/types";
+import { getUniqueName } from "@/utils/getUniqueName";
 import { prune } from "@/utils/record";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
@@ -67,18 +68,11 @@ export const getNewEnvironmentName = (
   environments?: EnvironmentData[]
 ) => {
   if (!environments) return;
-  let finalName = defaultName.trim();
-  const allNames = new Set(environments.map((e) => e.name));
-  let count = 0;
-  while (count < 100) {
-    const newName = `${finalName}${count === 0 ? "" : ` (${count})`}`;
-    if (!allNames.has(newName)) {
-      finalName = newName;
-      break;
-    }
-    count += 1;
-  }
-  return finalName;
+
+  return getUniqueName(
+    defaultName,
+    environments.map((e) => e.name)
+  );
 };
 
 export const postEnvironment = (

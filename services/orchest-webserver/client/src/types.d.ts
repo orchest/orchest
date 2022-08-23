@@ -271,6 +271,21 @@ export type JobData = {
   pipeline_run_status_counts: Record<TStatus, number | undefined>;
 };
 
+export type JobChangesData = Pick<
+  JobData,
+  | "uuid"
+  | "name"
+  | "schedule"
+  | "parameters"
+  | "env_variables"
+  | "max_retained_pipeline_runs"
+>;
+
+export type JobChanges = JobChangesData & {
+  project_uuid: string;
+  pipeline_uuid: string;
+};
+
 export type UnidirectionalStepNode = {
   uuid: string;
   incoming_connections: string[];
