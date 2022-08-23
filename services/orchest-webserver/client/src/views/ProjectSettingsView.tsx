@@ -1,7 +1,9 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { PageTitle } from "@/components/common/PageTitle";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -14,11 +16,13 @@ import {
   envVariablesDictToArray,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
+import { SaveOutlined } from "@mui/icons-material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import SaveIcon from "@mui/icons-material/Save";
+import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import Stack from "@mui/material/Stack";
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -38,8 +42,13 @@ const ProjectSettingsView: React.FC = () => {
   const {
     setAlert,
     setAsSaved,
+    setConfirm,
     state: { hasUnsavedChanges },
   } = useGlobalContext();
+  const {
+    dispatch,
+    state: { projects },
+  } = useProjectsContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projectSettings.path });
   const { cancelableFetch } = useCancelableFetch();
   const { navigateTo, projectUuid } = useCustomRoute();
@@ -57,8 +66,64 @@ const ProjectSettingsView: React.FC = () => {
   const returnToProjects = (event: React.MouseEvent) =>
     navigateTo(siteMap.projects.path, undefined, event);
 
+  const requestDeleteProject = React.useCallback(
+    async (toBeDeletedId: string) => {
+      if (projectUuid === toBeDeletedId) {
+        dispatch({ type: "SET_PROJECT", payload: undefined });
+      }
+
+      try {
+        await projectsApi.delete(toBeDeletedId);
+
+        dispatch((current) => {
+          const updatedProjects = (current.projects || []).filter(
+            (project) => project.uuid !== toBeDeletedId
+          );
+          return { type: "SET_PROJECTS", payload: updatedProjects };
+        });
+      } catch (error) {
+        setAlert("Error", `Could not delete project. ${error.message}`);
+      }
+    },
+    [dispatch, projectUuid, setAlert]
+  );
+
+  const deleteProject = React.useCallback(() => {
+    if (!projectUuid) return;
+
+    const projectName = projects?.find((p) => p.uuid === projectUuid)?.path;
+
+    if (!projectName) return;
+
+    return setConfirm(
+      `Delete "${projectName}"?`,
+      "Warning: Deleting a Project is permanent. All associated Jobs and resources will be deleted and unrecoverable.",
+      {
+        onConfirm: async (resolve) => {
+          setAsSaved(true);
+          requestDeleteProject(projectUuid);
+          navigateTo(siteMap.projects.path);
+          resolve(true);
+          return true;
+        },
+        cancelLabel: "Keep project",
+        confirmLabel: "Delete project",
+        confirmButtonColor: "error",
+      }
+    );
+  }, [
+    navigateTo,
+    projectUuid,
+    projects,
+    requestDeleteProject,
+    setAsSaved,
+    setConfirm,
+  ]);
+
   const saveGeneralForm = (event: React.MouseEvent) => {
     event.preventDefault();
+
+    if (!projectUuid) return;
 
     const envVariablesObj = envVariablesArrayToDict(envVariables ?? []);
 
@@ -74,19 +139,17 @@ const ProjectSettingsView: React.FC = () => {
       }
     }
 
-    fetcher(`/async/projects/${projectUuid}`, {
-      method: "PUT",
-      headers: HEADER.JSON,
-      body: JSON.stringify({ env_variables: envVariablesObj.value }),
-    })
+    projectsApi
+      .put(projectUuid, { env_variables: envVariablesObj.value })
       .then(() => setAsSaved())
-      .catch((response) => {
-        console.error(response);
-      });
+      .catch((error) => console.error(error));
   };
 
   React.useEffect(() => {
-    cancelableFetch<Project>(`/async/projects/${projectUuid}`)
+    if (!projectUuid) return;
+
+    projectsApi
+      .fetch(projectUuid)
       .then((result) => {
         const { env_variables, ...newState } = pick(
           result,
@@ -115,11 +178,8 @@ const ProjectSettingsView: React.FC = () => {
 
   return (
     <Layout>
-      <div className={"view-page view-project-settings"}>
-        <form
-          className="project-settings-form"
-          onSubmit={(event) => event.preventDefault()}
-        >
+      <Stack className="view-project-settings" sx={{ height: "100%" }}>
+        <form onSubmit={(event) => event.preventDefault()}>
           <div className="push-down">
             <Button
               color="secondary"
@@ -179,7 +239,7 @@ const ProjectSettingsView: React.FC = () => {
               <div className="bottom-buttons">
                 <Button
                   variant="contained"
-                  startIcon={<SaveIcon />}
+                  startIcon={<SaveOutlined />}
                   onClick={saveGeneralForm}
                   data-test-id="project-settings-save"
                 >
@@ -191,7 +251,17 @@ const ProjectSettingsView: React.FC = () => {
             <LinearProgress />
           )}
         </form>
-      </div>
+        <Box marginTop="auto" paddingTop={(theme) => theme.spacing(4)}>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => deleteProject()}
+            startIcon={<DeleteOutline />}
+          >
+            Delete Project
+          </Button>
+        </Box>
+      </Stack>
     </Layout>
   );
 };
