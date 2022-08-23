@@ -1,8 +1,19 @@
 import datetime
 import hashlib
+from typing import Dict, TypedDict, Union
+
+from _typeshed import StrOrBytesPath
 
 
-def get_hash(path):
+class _InnerAuthCache(TypedDict):
+    date: datetime.datetime
+    requires_authentication: bool
+
+
+_AuthCacheDictionary = Dict[str, _InnerAuthCache]
+
+
+def get_hash(path: StrOrBytesPath) -> str:
     BLOCKSIZE = 8192 * 8
     hasher = hashlib.md5()
     with open(path, "rb") as afile:
@@ -15,8 +26,11 @@ def get_hash(path):
 
 
 def set_auth_cache(
-    project_uuid_prefix, session_uuid_prefix, requires_authentication, auth_cache
-):
+    project_uuid_prefix: str,
+    session_uuid_prefix: str,
+    requires_authentication: bool,
+    auth_cache: _AuthCacheDictionary,
+) -> None:
     auth_cache["%s-%s" % (project_uuid_prefix, session_uuid_prefix)] = {
         "date": datetime.datetime.now(),
         "requires_authentication": requires_authentication,
@@ -24,8 +38,11 @@ def set_auth_cache(
 
 
 def get_auth_cache(
-    project_uuid_prefix, session_uuid_prefix, auth_cache, auth_cache_age
-):
+    project_uuid_prefix: str,
+    session_uuid_prefix: str,
+    auth_cache: _AuthCacheDictionary,
+    auth_cache_age: int,
+) -> Dict[str, Union[str, bool]]:
     key = "%s-%s" % (project_uuid_prefix, session_uuid_prefix)
 
     if key not in auth_cache:
