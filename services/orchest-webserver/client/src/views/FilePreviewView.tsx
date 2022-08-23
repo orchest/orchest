@@ -8,12 +8,10 @@ import {
   useCancelablePromise,
 } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { Job, StepData } from "@/types";
+import { JobData, StepData } from "@/types";
 import {
-  getPipelineJSONEndpoint,
   getPipelineStepChildren,
   getPipelineStepParents,
   setWithRetry,
@@ -114,7 +112,7 @@ const FilePreviewView = () => {
     const [pipelineJson, job] = await Promise.all([
       makeCancelable(fetchPipelineJson(pipelineURL)),
       jobUuid
-        ? cancelableFetch<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`)
+        ? cancelableFetch<JobData>(`/catch/api-proxy/api/jobs/${jobUuid}`)
         : null,
     ]);
 

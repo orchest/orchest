@@ -5,7 +5,7 @@ import {
   TStatus,
 } from "@/components/Status";
 import theme from "@/theme";
-import { Job } from "@/types";
+import { JobData } from "@/types";
 import { commaSeparatedString } from "@/utils/text";
 import React from "react";
 import { PieChart } from "react-minimal-pie-chart";
@@ -69,7 +69,7 @@ const statusTitleMapping: Partial<Record<RenderedJobStatus, string>> = {
 };
 
 type JobStatusProps = { totalCount?: number } & Pick<
-  Job,
+  JobData,
   "status" | "pipeline_run_status_counts"
 >;
 

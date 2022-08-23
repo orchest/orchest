@@ -1,8 +1,6 @@
-import {
-  FILE_MANAGEMENT_ENDPOINT,
-  queryArgs,
-} from "@/pipeline-view/file-manager/common";
+import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { isValidFilePath } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import { useDebounce } from "./useDebounce";
 import { useFetcher } from "./useFetcher";

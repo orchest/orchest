@@ -1,4 +1,3 @@
-import { queryArgs } from "@/pipeline-view/file-manager/common";
 import {
   EnvironmentData,
   EnvironmentImageBuild,
@@ -6,6 +5,7 @@ import {
   EnvironmentState,
   EnvironmentValidationData,
 } from "@/types";
+import { queryArgs } from "@/utils/text";
 import { fetcher, FetchError, HEADER } from "@orchest/lib-utils";
 import produce from "immer";
 

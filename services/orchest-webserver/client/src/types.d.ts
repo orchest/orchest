@@ -228,7 +228,7 @@ export type StrategyJson = Record<
   { parameters: Record<string, string>; key?: string; title?: string }
 >;
 
-export type Job = {
+export type JobData = {
   uuid: string;
   pipeline_uuid: string;
   project_uuid: string;
@@ -339,7 +339,7 @@ export type FileTree = {
   children: FileTree[];
 };
 
-export type Pipeline = {
+export type PipelineData = {
   env_variables: Record<string, string>;
   path: string;
   project_uuid: string;

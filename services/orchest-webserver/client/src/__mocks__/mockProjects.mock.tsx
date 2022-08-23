@@ -1,6 +1,6 @@
 import { setOutgoingConnections } from "@/utils/webserver-utils";
 import type {
-  Pipeline,
+  PipelineData,
   PipelineJson,
   PipelineMetaData,
   Project,
@@ -10,7 +10,7 @@ import { chance } from "./common.mock";
 
 type MockPipelineData = {
   metadata: PipelineMetaData;
-  pipeline: Pipeline;
+  pipeline: PipelineData;
   definition: PipelineJson;
 };
 

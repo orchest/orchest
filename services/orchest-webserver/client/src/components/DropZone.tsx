@@ -1,8 +1,6 @@
 import { FileManagementRoot } from "@/pipeline-view/common";
-import {
-  FILE_MANAGEMENT_ENDPOINT,
-  queryArgs,
-} from "@/pipeline-view/file-manager/common";
+import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
+import { queryArgs } from "@/utils/text";
 import Box, { BoxProps } from "@mui/material/Box";
 import { alpha, SxProps, Theme } from "@mui/material/styles";
 import { fetcher, Fetcher, hasValue } from "@orchest/lib-utils";

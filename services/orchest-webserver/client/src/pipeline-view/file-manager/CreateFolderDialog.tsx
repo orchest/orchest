@@ -1,6 +1,7 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { queryArgs } from "@/utils/text";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
@@ -17,7 +18,6 @@ import {
   FILE_MANAGEMENT_ENDPOINT,
   lastSelectedFolderPath,
   prettifyRoot,
-  queryArgs,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 
@@ -58,7 +58,7 @@ export const CreateFolderDialog = ({
         `${FILE_MANAGEMENT_ENDPOINT}/create-dir?${queryArgs({
           root,
           path: `${lastSelectedFolder}${folderPath}/`,
-          project_uuid: projectUuid,
+          projectUuid,
         })}`,
         { method: "POST" }
       ).then(() => {

@@ -18,18 +18,6 @@ export const isEnvironmentFailedToBuild = (build?: EnvironmentImageBuild) =>
 
 export const BUILD_POLL_FREQUENCY = 1000;
 
-export const requestToRemoveEnvironment = (
-  projectUuid: string | undefined,
-  environmentUuid: string | undefined
-) => {
-  if (!projectUuid || !environmentUuid) return Promise.reject();
-  // ultimately remove Image
-  return fetcher<void>(
-    `/store/environments/${projectUuid}/${environmentUuid}`,
-    { method: "DELETE" }
-  );
-};
-
 export const fetchSessionsInProject = async (projectUuid: string) => {
   const sessionData = await fetcher<{ sessions: OrchestSession[] }>(
     `/catch/api-proxy/api/sessions?project_uuid=${projectUuid}`

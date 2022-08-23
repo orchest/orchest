@@ -6,7 +6,7 @@ import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { Job, PipelineJson, PipelineMetaData } from "@/types";
+import { JobData, PipelineJson, PipelineMetaData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
@@ -26,7 +26,7 @@ export type PipelineDataContextType = {
   isFetchingPipelineJson: boolean;
   isJobRun: boolean;
   pipeline?: PipelineMetaData;
-  job?: Job;
+  job?: JobData;
 };
 
 export const PipelineDataContext = React.createContext<PipelineDataContextType>(

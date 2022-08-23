@@ -16,7 +16,7 @@ import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/legacy-job-view/JobDocLink";
 import { siteMap } from "@/routingConfig";
-import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
+import type { JobData, Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -346,7 +346,7 @@ const EditJobView: React.FC = () => {
   );
 
   const loadDefaultOrExistingParameterStrategy = React.useCallback(
-    (pipelineJson: PipelineJson, job: Job) => {
+    (pipelineJson: PipelineJson, job: JobData) => {
       // Do not generate another strategy_json if it has been defined
       // already.
       const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";

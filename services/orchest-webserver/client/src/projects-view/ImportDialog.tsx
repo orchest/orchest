@@ -14,12 +14,10 @@ import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchProject } from "@/hooks/useFetchProject";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
-import {
-  FILE_MANAGEMENT_ENDPOINT,
-  queryArgs,
-} from "@/pipeline-view/file-manager/common";
+import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
+import { queryArgs } from "@/utils/text";
 import {
   BackgroundTask,
   CreateProjectError,
