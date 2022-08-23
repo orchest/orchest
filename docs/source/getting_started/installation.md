@@ -13,15 +13,17 @@ Alternatively, you can try out [our Cloud offering](https://cloud.orchest.io/sig
 which comes with a free, fully configured Orchest instance.
 
 ```{note}
-Orchest is in beta and currently only supports k8s environments with containerd and docker environments,
-and other runtime environments such as CRI-O are not supported.
+Orchest is in beta.
 ```
 
 ## Prerequisites
 
 To install Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). Any cluster should work. You can either pick a managed
 service by one of the certified [cloud platforms](https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/) or create a cluster
-locally.
+locally. Do note that only the following container runtimes are supported:
+
+- [containerd](https://containerd.io/)
+- [Docker](https://www.docker.com/products/container-runtime/)
 
 Pick your deployment environment and Kubernetes distribution and follow the installation steps
 below.
