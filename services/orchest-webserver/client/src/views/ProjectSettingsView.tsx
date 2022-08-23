@@ -7,6 +7,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { RouteName, siteMap } from "@/routingConfig";
 import { Project } from "@/types";
+import { pick } from "@/utils/record";
 import { toQueryString } from "@/utils/routing";
 import {
   envVariablesArrayToDict,
@@ -23,9 +24,17 @@ import { Link } from "react-router-dom";
 
 type RoutePath = Extract<RouteName, "pipeline" | "jobs" | "environments">;
 
-const ProjectSettingsView: React.FC = () => {
-  // global states
+type ProjectSettingsState = Readonly<
+  Pick<Project, "pipeline_count" | "environment_count" | "path">
+>;
 
+const initialState: ProjectSettingsState = {
+  pipeline_count: 0,
+  environment_count: 0,
+  path: "",
+};
+
+const ProjectSettingsView: React.FC = () => {
   const {
     setAlert,
     setAsSaved,
@@ -33,101 +42,75 @@ const ProjectSettingsView: React.FC = () => {
   } = useGlobalContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projectSettings.path });
   const { cancelableFetch } = useCancelableFetch();
-
-  // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
+  const [envVariables, setEnvVariables] = React.useState<EnvVarPair[]>();
 
-  const [envVariables, _setEnvVariables] = React.useState<
-    EnvVarPair[] | undefined
-  >(undefined);
-  const setEnvVariables = (
-    value: React.SetStateAction<EnvVarPair[] | undefined>
-  ) => {
-    _setEnvVariables(value);
-    setAsSaved(false);
-  };
+  const setUnsavedEnvVariables = React.useCallback(
+    (value: React.SetStateAction<EnvVarPair[] | undefined>) => {
+      setEnvVariables(value);
+      setAsSaved(false);
+    },
+    [setAsSaved]
+  );
+  const [state, setState] = React.useState<ProjectSettingsState>(initialState);
 
-  // local states
-  const [state, setState] = React.useState<
-    Pick<Project, "pipeline_count" | "environment_count" | "path">
-  >({
-    pipeline_count: 0,
-    environment_count: 0,
-    path: "",
-  });
+  const returnToProjects = (event: React.MouseEvent) =>
+    navigateTo(siteMap.projects.path, undefined, event);
 
-  const returnToProjects = (e: React.MouseEvent) => {
-    navigateTo(siteMap.projects.path, undefined, e);
-  };
+  const saveGeneralForm = (event: React.MouseEvent) => {
+    event.preventDefault();
 
-  const saveGeneralForm = (e) => {
-    e.preventDefault();
+    const envVariablesObj = envVariablesArrayToDict(envVariables ?? []);
 
-    let envVariablesObj = envVariablesArrayToDict(envVariables || []);
-    // Do not go through if env variables are not correctly defined.
     if (envVariablesObj.status === "rejected") {
       setAlert("Error", envVariablesObj.error);
       return;
     }
 
-    // Validate environment variable names
-    for (let envVariableName of Object.keys(envVariablesObj.value)) {
-      if (!isValidEnvironmentVariableName(envVariableName)) {
-        setAlert(
-          "Error",
-          `Invalid environment variable name: "${envVariableName}".`
-        );
+    for (const name of Object.keys(envVariablesObj.value)) {
+      if (!isValidEnvironmentVariableName(name)) {
+        setAlert("Error", `Invalid environment variable name: "${name}".`);
         return;
       }
     }
 
-    // perform PUT to update; don't cancel this PUT request
     fetcher(`/async/projects/${projectUuid}`, {
       method: "PUT",
       headers: HEADER.JSON,
       body: JSON.stringify({ env_variables: envVariablesObj.value }),
     })
-      .then(() => {
-        setAsSaved();
-      })
+      .then(() => setAsSaved())
       .catch((response) => {
         console.error(response);
       });
   };
 
-  const fetchSettings = () => {
+  React.useEffect(() => {
     cancelableFetch<Project>(`/async/projects/${projectUuid}`)
       .then((result) => {
-        const {
-          env_variables,
-          pipeline_count,
-          environment_count,
-          path,
-        } = result;
+        const { env_variables, ...newState } = pick(
+          result,
+          "env_variables",
+          "pipeline_count",
+          "environment_count",
+          "path"
+        );
 
-        _setEnvVariables(envVariablesDictToArray(env_variables));
-        setState((prevState) => ({
-          ...prevState,
-          pipeline_count,
-          environment_count,
-          path,
-        }));
+        setEnvVariables(envVariablesDictToArray(env_variables));
+        setState((prevState) => ({ ...prevState, ...newState }));
       })
-      .catch(console.log);
-  };
-
-  React.useEffect(() => {
-    fetchSettings();
-  }, []);
+      .catch((error) => console.error(error));
+  }, [cancelableFetch, projectUuid]);
 
   const paths = React.useMemo(() => {
-    const paths = ["pipeline", "jobs", "environments"] as RoutePath[];
-    return paths.reduce((all, curr) => {
-      return {
-        ...all,
-        [curr]: `${siteMap[curr].path}${toQueryString({ projectUuid })}`,
-      };
-    }, {} as Record<RoutePath, string>);
+    const routes = ["pipeline", "jobs", "environments"] as RoutePath[];
+
+    return Object.fromEntries(
+      routes.map((route) => [
+        route,
+        `${siteMap[route].path}${toQueryString({ projectUuid })}`,
+      ])
+    );
   }, [projectUuid]);
 
   return (
@@ -135,9 +118,7 @@ const ProjectSettingsView: React.FC = () => {
       <div className={"view-page view-project-settings"}>
         <form
           className="project-settings-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
+          onSubmit={(event) => event.preventDefault()}
         >
           <div className="push-down">
             <Button
@@ -166,7 +147,7 @@ const ProjectSettingsView: React.FC = () => {
                       <Link to={paths.pipeline} className="text-button">
                         {state.pipeline_count +
                           " " +
-                          (state.pipeline_count == 1
+                          (state.pipeline_count === 1
                             ? "pipeline"
                             : "pipelines")}
                       </Link>
@@ -178,7 +159,7 @@ const ProjectSettingsView: React.FC = () => {
                       <Link to={paths.environments} className="text-button">
                         {state.environment_count +
                           " " +
-                          (state.environment_count == 1
+                          (state.environment_count === 1
                             ? "environment"
                             : "environments")}
                       </Link>
@@ -191,7 +172,7 @@ const ProjectSettingsView: React.FC = () => {
 
                 <EnvVarList
                   value={envVariables}
-                  setValue={setEnvVariables}
+                  setValue={setUnsavedEnvVariables}
                   data-test-id="project"
                 />
               </div>
