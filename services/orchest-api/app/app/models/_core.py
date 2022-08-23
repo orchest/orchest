@@ -408,13 +408,6 @@ class JupyterImage(BaseModel):
         primary_key=True,
     )
 
-    # sha256:<digest>
-    digest = db.Column(
-        db.String(71),
-        nullable=False,
-        index=True,
-    )
-
     # The image was built with a given Orchest version, this field is
     # used to invalidate a jupyter image after an update.
     base_image_version = db.Column(db.String(), nullable=False)
