@@ -264,8 +264,8 @@ def get_active_environment_images(
 
     # TODO: allow filtering with not_in_node.
     if in_node is not None:
-        query = query.join(models.EnvironmentImageInNode).filter(
-            models.EnvironmentImageInNode.node_name == in_node
+        query = query.join(models.EnvironmentImageOnNode).filter(
+            models.EnvironmentImageOnNode.node_name == in_node
         )
 
     return query.all()

@@ -1,4 +1,4 @@
-"""Add environment_image_in_nodes table.
+"""Add environment_image_on_nodes table.
 
 Revision ID: 991b8f367bec
 Revises: ebc2d3435205
@@ -17,7 +17,7 @@ depends_on = None
 
 def upgrade():
     op.create_table(
-        "environment_image_in_nodes",
+        "environment_image_on_nodes",
         sa.Column("project_uuid", sa.String(length=36), nullable=False),
         sa.Column("environment_uuid", sa.String(length=36), nullable=False),
         sa.Column("environment_image_tag", sa.Integer(), nullable=False),
@@ -30,7 +30,7 @@ def upgrade():
                 "environment_images.tag",
             ],
             name=op.f(
-                "fk_environment_image_in_nodes_project_uuid_environment_uuid_environment_image_tag_environment_images"
+                "fk_environment_image_on_nodes_project_uuid_environment_uuid_environment_image_tag_environment_images"
             ),
             ondelete="CASCADE",
         ),
@@ -39,10 +39,10 @@ def upgrade():
             "environment_uuid",
             "environment_image_tag",
             "node_name",
-            name=op.f("pk_environment_image_in_nodes"),
+            name=op.f("pk_environment_image_on_nodes"),
         ),
     )
 
 
 def downgrade():
-    op.drop_table("environment_image_in_nodes")
+    op.drop_table("environment_image_on_nodes")

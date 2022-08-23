@@ -17,8 +17,8 @@ depends_on = None
 
 def upgrade():
     op.create_foreign_key(
-        op.f("fk_environment_image_in_nodes_node_name_cluster_nodes"),
-        "environment_image_in_nodes",
+        op.f("fk_environment_image_on_nodes_node_name_cluster_nodes"),
+        "environment_image_on_nodes",
         "cluster_nodes",
         ["node_name"],
         ["name"],
@@ -28,7 +28,7 @@ def upgrade():
 
 def downgrade():
     op.drop_constraint(
-        op.f("fk_environment_image_in_nodes_node_name_cluster_nodes"),
-        "environment_image_in_nodes",
+        op.f("fk_environment_image_on_nodes_node_name_cluster_nodes"),
+        "environment_image_on_nodes",
         type_="foreignkey",
     )

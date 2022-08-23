@@ -1149,10 +1149,10 @@ class ClusterNode(BaseModel):
     name = db.Column(db.String(), primary_key=True)
 
 
-class EnvironmentImageInNode(BaseModel):
+class EnvironmentImageOnNode(BaseModel):
     """To track where an environment image is stored."""
 
-    __tablename__ = "environment_image_in_nodes"
+    __tablename__ = "environment_image_on_nodes"
 
     project_uuid = db.Column(
         db.String(36),
@@ -1174,9 +1174,9 @@ class EnvironmentImageInNode(BaseModel):
 
 ForeignKeyConstraint(
     [
-        EnvironmentImageInNode.project_uuid,
-        EnvironmentImageInNode.environment_uuid,
-        EnvironmentImageInNode.environment_image_tag,
+        EnvironmentImageOnNode.project_uuid,
+        EnvironmentImageOnNode.environment_uuid,
+        EnvironmentImageOnNode.environment_image_tag,
     ],
     [
         EnvironmentImage.project_uuid,
@@ -1187,7 +1187,7 @@ ForeignKeyConstraint(
 )
 
 ForeignKeyConstraint(
-    [EnvironmentImageInNode.node_name],
+    [EnvironmentImageOnNode.node_name],
     [ClusterNode.name],
     ondelete="CASCADE",
 )

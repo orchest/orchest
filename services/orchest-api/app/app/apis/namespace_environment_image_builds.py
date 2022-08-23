@@ -174,7 +174,7 @@ class EnvironmentImageBuild(Resource):
                 if build.cluster_node is None:
                     raise Exception("Build cluster_node not set.")
                 db.session.add(
-                    models.EnvironmentImageInNode(
+                    models.EnvironmentImageOnNode(
                         project_uuid=project_uuid,
                         environment_uuid=environment_uuid,
                         environment_image_tag=int(image_tag),
