@@ -279,12 +279,14 @@ class EnvironmentImage(BaseModel):
     )
 
     # sha256:<digest>
+    # REMOVABLE_ON_BREAKING_CHANGE
+    # This is needed to not break existing jobs that depended on
+    # environments which had no guarantee of having a unique digest. See
+    # _env_images_that_can_be_deleted for its use.
     digest = db.Column(
         db.String(71),
-        nullable=False,
         index=True,
-        # To migrate existing entries.
-        server_default="Undefined",
+        nullable=True,
     )
 
     # A way to tell us if a particular env image is to be considered
