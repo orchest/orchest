@@ -1,4 +1,4 @@
-import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
+import { usePipelinesApi } from "@/api/pipelines/usePipelinesApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
@@ -78,13 +78,13 @@ export const CreatePipelineDialog = ({
     },
     [navigateTo, projectUuid]
   );
+
+  const [post] = usePipelinesApi((state) => [state.post]);
   const createPipeline = React.useCallback(
     async ({ name, path }: { name: string; path: string }) => {
       if (!projectUuid) return;
       try {
-        const pipelineUuid = await run(
-          pipelinesApi.post(projectUuid, path, name)
-        );
+        const pipelineUuid = await run(post(projectUuid, path, name));
         if (!pipelineUuid) return;
         onClose();
         dispatch({

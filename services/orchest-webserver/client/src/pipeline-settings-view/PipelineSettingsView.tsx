@@ -1,5 +1,4 @@
-import { pipelineJsonApi } from "@/api/pipelines/pipelineJsonApi";
-import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
+import { usePipelinesApi } from "@/api/pipelines/usePipelinesApi";
 import { IconButton } from "@/components/common/IconButton";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import {
@@ -272,6 +271,12 @@ export const PipelineSettingsView: React.FC = () => {
     return true;
   };
 
+  const [put, error] = usePipelinesApi((state) => [state.put, state.error]);
+
+  React.useEffect(() => {
+    setAsSaved(!hasValue(error));
+  }, [setAsSaved, error]);
+
   const saveGeneralForm = async () => {
     if (!projectUuid || !pipelineUuid || !pipelineJson) return;
     // do not mutate the original pipelineJson
@@ -315,46 +320,18 @@ export const PipelineSettingsView: React.FC = () => {
       }
     }
 
-    const [pipelineJsonChanges, pipelineChanges] = await Promise.allSettled([
-      pipelineJsonApi.put(projectUuid, pipelineUuid, updatedPipelineJson),
-      pipelinesApi.put(projectUuid, pipelineUuid, {
-        // `env_variables` can be saved anytime, but
-        // `path` cannot be changed when there is an active session
-        // JSON.strigify will remove the `undefined` value, so path won't be saved as undefined
-        env_variables: envVariablesObj.value,
-        path: !session ? pipelinePath : undefined,
-      }),
-    ]);
-
-    const errorMessages = [
-      pipelineJsonChanges.status === "rejected"
-        ? "pipeline definition or Notebook JSON"
-        : undefined,
-      pipelineChanges.status === "rejected"
-        ? "environment variables"
-        : undefined,
-    ].filter((value) => value);
-
-    if (errorMessages.length > 0) {
-      setAlert("Error", `Could not save ${errorMessages.join(" and ")}`);
-    }
-
-    // Sync changes with the global context
-    const payload = {
-      ...(pipelineJsonChanges.status === "fulfilled"
-        ? { name: pipelineName }
-        : undefined),
-      ...(pipelineChanges.status === "fulfilled"
-        ? { path: pipelinePath }
-        : undefined),
-    };
+    await put(projectUuid, pipelineUuid, {
+      // `env_variables` can be saved anytime, but
+      // `path` cannot be changed when there is an active session
+      env_variables: envVariablesObj.value,
+      path: !session ? pipelinePath : undefined,
+      definition: updatedPipelineJson,
+    });
 
     dispatch({
       type: "UPDATE_PIPELINE",
-      payload: { uuid: pipelineUuid, ...payload },
+      payload: { uuid: pipelineUuid, name: pipelineName, path: pipelinePath },
     });
-
-    setAsSaved(errorMessages.length === 0);
   };
 
   type ServiceRow = {

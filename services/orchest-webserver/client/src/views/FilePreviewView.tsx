@@ -1,4 +1,4 @@
-import { pipelineJsonApi } from "@/api/pipelines/pipelineJsonApi";
+import { usePipelinesApi } from "@/api/pipelines/usePipelinesApi";
 import { IconButton } from "@/components/common/IconButton";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
@@ -94,6 +94,11 @@ const FilePreviewView = () => {
     );
   };
 
+  const [fetchPipelineJson, fetchSnapshot] = usePipelinesApi((state) => [
+    state.fetchPipelineJson,
+    state.fetchSnapshot,
+  ]);
+
   const fetchPipeline = React.useCallback(async () => {
     if (!projectUuid || !pipelineUuid) return;
     setState((prevState) => ({
@@ -103,14 +108,16 @@ const FilePreviewView = () => {
 
     const [pipelineJson, job] = await Promise.all([
       makeCancelable(
-        isJobRun
-          ? pipelineJsonApi.fetch(projectUuid, pipelineUuid, jobUuid, runUuid)
-          : pipelineJsonApi.fetch(projectUuid, pipelineUuid)
+        jobUuid && runUuid
+          ? fetchSnapshot(projectUuid, pipelineUuid, jobUuid, runUuid)
+          : fetchPipelineJson(projectUuid, pipelineUuid)
       ),
       jobUuid
         ? cancelableFetch<JobData>(`/catch/api-proxy/api/jobs/${jobUuid}`)
         : null,
     ]);
+
+    if (!pipelineJson) return;
 
     const pipelineFilePath =
       job?.pipeline_run_spec.run_config.pipeline_path ||
@@ -133,7 +140,6 @@ const FilePreviewView = () => {
   }, [
     cancelableFetch,
     dispatch,
-    isJobRun,
     jobUuid,
     makeCancelable,
     pipelineUuid,
@@ -141,6 +147,8 @@ const FilePreviewView = () => {
     projectsState?.pipeline?.path,
     runUuid,
     stepUuid,
+    fetchPipelineJson,
+    fetchSnapshot,
   ]);
 
   const fetchFile = React.useCallback(() => {

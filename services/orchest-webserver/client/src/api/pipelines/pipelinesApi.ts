@@ -10,7 +10,7 @@ const fetch = async (
   );
 };
 
-const fetchInProject = async (
+const fetchAllInProject = async (
   projectUuid: string
 ): Promise<PipelineMetaData[]> => {
   return fetcher<{ result: PipelineMetaData[] }>(
@@ -48,13 +48,13 @@ const put = (
   );
 
 const remove = (projectUuid: string, pipelineUuid: string) =>
-  fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
+  fetcher<void>(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
     method: "DELETE",
   });
 
 export const pipelinesApi = {
   fetch,
-  fetchInProject,
+  fetchAllInProject,
   fetchAll,
   post,
   put,

@@ -339,23 +339,18 @@ export type FileTree = {
   children: FileTree[];
 };
 
-export type PipelineData = {
-  env_variables: Record<string, string>;
-  path: string;
-  project_uuid: string;
-  status: "READY" | string;
-  uuid: string;
-};
-
 export type PipelineMetaData = {
   uuid: string;
   path: string; // Note that this path is relative to `/project-dir:`, i.e. it doesn't have a leading slash
   name: string;
 };
 
-export type PipelineSettings = {
-  auto_eviction?: boolean;
-  data_passing_memory_size?: string;
+export type PipelineData = {
+  uuid: string;
+  path: string;
+  env_variables: Record<string, string>;
+  project_uuid: string;
+  status: "READY" | string;
 };
 
 export type PipelineJson = {
@@ -367,6 +362,23 @@ export type PipelineJson = {
   version: string;
   services?: Record<string, Service>;
   hash?: string;
+};
+
+// A combination of PipelineMetadata, PipelineData, and PipelineJson
+export type PipelineState = {
+  uuid: string;
+  path: string; // Note that this path is relative to `/project-dir:`, i.e. it doesn't have a leading slash
+  name?: string; // DEPRECATED
+  env_variables?: Record<string, string>;
+  project_uuid?: string;
+  status?: "READY" | string;
+  definition?: PipelineJson;
+  snapshot?: PipelineJson;
+};
+
+export type PipelineSettings = {
+  auto_eviction?: boolean;
+  data_passing_memory_size?: string;
 };
 
 export type PipelineState = PipelineJson & { steps: Record<string, StepState> };

@@ -1,8 +1,7 @@
-import { pipelineJsonApi } from "@/api/pipelines/pipelineJsonApi";
+import { usePipelinesApi } from "@/api/pipelines/usePipelinesApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import type { PipelineJson, StepData, StepsDict } from "@/types";
-import { resolve } from "@/utils/resolve";
 import {
   clearOutgoingConnections,
   validatePipeline,
@@ -22,6 +21,8 @@ export const useSavePipelineJson = () => {
     uiState: { hash, steps },
   } = usePipelineUiStateContext();
 
+  const savePipeline = usePipelinesApi((state) => state.put);
+
   const setOngoingSaves = useSavingIndicator();
   const savePipelineJson = React.useCallback(
     async (data: PipelineJson) => {
@@ -32,19 +33,12 @@ export const useSavePipelineJson = () => {
         steps: clearOutgoingConnections<StepData>(data.steps),
       };
 
-      const response = await resolve(() =>
-        pipelineJsonApi.put(projectUuid, pipelineUuid, dataForSaving)
-      );
-
-      if (response.status === "rejected") {
-        // currently step details doesn't do form field validation properly
-        // don't apply setAlert here before the form validation is implemented
-        console.error(`Failed to save pipeline. ${response.error.message}`);
-      }
+      // TODO: Update SaveStatus when error occurs.
+      savePipeline(projectUuid, pipelineUuid, { definition: dataForSaving });
 
       setOngoingSaves((current) => current - 1);
     },
-    [isReadOnly, projectUuid, pipelineUuid, setOngoingSaves]
+    [isReadOnly, projectUuid, pipelineUuid, setOngoingSaves, savePipeline]
   );
 
   const mergeStepsIntoPipelineJson = React.useCallback(
