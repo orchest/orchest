@@ -43,8 +43,16 @@ def update_jupyter_image_build_status(
         return response.json()
 
 
-def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
+def write_jupyter_dockerfile(base_image, task_uuid, work_dir, bash_script, path):
     """Write a custom dockerfile with the given specifications.
+
+    ! The dockerfile is written in a way that the layer where the user
+    setup script is run is effectively cached when possible, i.e.  we
+    don't disrupt the caching capability by using task dependent
+    information like the task_uuid in that layer. We make use of the
+    task_uuid in a layer that is created at the end so that each image
+    has a unique digest, which helps reducing complexity when it comes
+    to deleting images from the registry.
 
     This dockerfile is built in an ad-hoc way to later be able to only
     log messages related to the user script. Note that the produced
@@ -52,6 +60,9 @@ def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
 
     Args:
         work_dir: Working directory.
+        task_uuid: Used to create a layer that is unique for this
+            particular image, this way the registry digest of the image
+            will be unique.
         bash_script: Script to run in a RUN command.
         path: Where to save the file.
 
@@ -97,6 +108,10 @@ def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
     # on the process WORKDIR being the project directory.
     statements.append("WORKDIR /project-dir")
 
+    # Make it so that the digest of the produced image is unique.
+    statements.append(
+        f"RUN mkdir -p /orchest && echo '{task_uuid}' > /orchest/task_{task_uuid}.txt"
+    )
     statements = "\n".join(statements)
 
     with open(path, "w") as dockerfile:
@@ -150,10 +165,14 @@ def prepare_build_context(task_uuid):
 
     write_jupyter_dockerfile(
         base_image,
+        task_uuid,
         "tmp/jupyter",
         bash_script_name,
         os.path.join(snapshot_path, dockerfile_name),
     )
+    with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
+        docker_ignore.write(".dockerignore\n")
+        docker_ignore.write(f"{dockerfile_name}\n")
 
     res = {
         "snapshot_path": snapshot_path,

@@ -48,9 +48,17 @@ def update_environment_image_build_status(
 
 
 def write_environment_dockerfile(
-    base_image, project_uuid, env_uuid, work_dir, bash_script, path
+    base_image, task_uuid, project_uuid, env_uuid, work_dir, bash_script, path
 ):
     """Write a custom dockerfile with the given specifications.
+
+    ! The dockerfile is written in a way that the layer where the user
+    setup script is run is effectively cached when possible, i.e.  we
+    don't disrupt the caching capability by using task dependent
+    information like the task_uuid in that layer. We make use of the
+    task_uuid in a layer that is created at the end so that each image
+    has a unique digest, which helps reducing complexity when it comes
+    to deleting images from the registry.
 
     This dockerfile is built in an ad-hoc way to later be able to only
     log messages related to the user script. Note that the produced
@@ -58,6 +66,9 @@ def write_environment_dockerfile(
 
     Args:
         base_image: Base image of the docker file.
+        task_uuid: Used to create a layer that is unique for this
+            particular image, this way the registry digest of the image
+            will be unique.
         project_uuid:
         env_uuid:
         work_dir: Working directory.
@@ -133,6 +144,10 @@ def write_environment_dockerfile(
         f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
     )
 
+    # Make it so that the digest of the produced image is unique.
+    statements.append(
+        f"RUN echo '{task_uuid}' | sudo tee /orchest/task_{task_uuid}.txt"
+    )
     statements = "\n".join(statements)
 
     with open(path, "w") as dockerfile:
@@ -275,6 +290,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 
     write_environment_dockerfile(
         base_image,
+        task_uuid,
         project_uuid,
         environment_uuid,
         _config.PROJECT_DIR,
@@ -286,7 +302,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
         docker_ignore.write(".dockerignore\n")
         docker_ignore.write(".orchest\n")
-        docker_ignore.write("%s\n" % dockerfile_name)
+        docker_ignore.write(f"{dockerfile_name}\n")
 
     return {
         "snapshot_path": snapshot_path,
