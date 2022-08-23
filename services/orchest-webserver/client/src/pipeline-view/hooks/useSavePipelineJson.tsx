@@ -36,7 +36,7 @@ export const useSavePipelineJson = () => {
 
       const response = await resolve(() =>
         fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {
-          method: "POST",
+          method: "PUT",
           body: formData,
         })
       );
