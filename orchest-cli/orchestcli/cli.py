@@ -207,8 +207,7 @@ def cli():
     type=click.IntRange(min=5),
     default=None,
     show_default=True,
-    help="Deprecated and ignored. Size of the image builder volume claim in Gi.",
-    hidden=True,
+    help="(DEPRECATED) Size of the image builder volume claim in Gi.",
 )
 @click.option(
     "--registry-pvc-size",
