@@ -22,4 +22,4 @@
 **/pyrightconfig.json
 
 # Helm deployment state
-deploy/bin/
+deploy/k8s
