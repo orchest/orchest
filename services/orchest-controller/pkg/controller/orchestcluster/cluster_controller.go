@@ -524,11 +524,6 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Orchest.Resources.UserDirVolumeSize = occ.config.UserdirDefaultVolumeSize
 	}
 
-	if copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize == "" {
-		changed = true
-		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = occ.config.BuilddirDefaultVolumeSize
-	}
-
 	if copy.Spec.Applications == nil {
 		changed = true
 		copy.Spec.Applications = occ.config.DefaultApplications
@@ -666,12 +661,6 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 
 	err = occ.ensurePvc(ctx, generation, controller.UserDirName,
 		orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
-	if err != nil {
-		return err
-	}
-
-	err = occ.ensurePvc(ctx, generation, controller.BuilderDirName,
-		orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize, orchest)
 	if err != nil {
 		return err
 	}

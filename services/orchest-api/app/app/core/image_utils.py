@@ -89,11 +89,6 @@ def _get_buildah_image_build_workflow_manifest(
                                 "subPath": get_userdir_relpath(build_context_host_path),
                                 "readOnly": True,
                             },
-                            {
-                                "name": "image-builder-cache-pvc",
-                                "subPath": "containers",
-                                "mountPath": "/var/lib/containers",
-                            },
                             {"name": "dockersock", "mountPath": "/var/run/docker.sock"},
                         ],
                     },
@@ -116,12 +111,6 @@ def _get_buildah_image_build_workflow_manifest(
                     "name": "userdir-pvc",
                     "persistentVolumeClaim": {
                         "claimName": "userdir-pvc",
-                    },
-                },
-                {
-                    "name": "image-builder-cache-pvc",
-                    "persistentVolumeClaim": {
-                        "claimName": "image-builder-cache-pvc",
                     },
                 },
                 {
@@ -384,9 +373,9 @@ def build_image(
 ):
     """Builds an image with the given tag, context_path and docker file.
 
-    The image build is done through the creation of k8s argo workflows,
-    which needs to be deleted by the caller, the workflows are named as
-    "image-cache-task-{task_uuid}" and "image-build-task-{task_uuid}".
+    The image build is done through the creation of a k8s argo workflow
+    name "image-build-task-{task_uuid}" to be deleted by the caller of
+    this function.
 
     Args:
         task_uuid:

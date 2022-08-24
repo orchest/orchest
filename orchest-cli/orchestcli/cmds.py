@@ -174,12 +174,16 @@ def install(
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
     userdir_pvc_size: int,
-    builder_pvc_size: int,
+    builder_pvc_size: t.Optional[int],
     registry_pvc_size: int,
     **kwargs,
 ) -> None:
     """Installs Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
+
+    if builder_pvc_size is not None:
+        # REMOVABLE_ON_BREAKING_CHANGE
+        echo("The 'builder_pvc_size' parameter is deprecated and ignored.")
 
     try:
         CORE_API.create_namespace(client.V1Namespace(metadata={"name": ns}))
@@ -360,7 +364,6 @@ def install(
             "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
             "resources": {
                 "userDirVolumeSize": f"{userdir_pvc_size}Gi",
-                "builderCacheDirVolumeSize": f"{builder_pvc_size}Gi",
             },
         },
     }

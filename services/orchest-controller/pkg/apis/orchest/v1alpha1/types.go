@@ -76,14 +76,11 @@ type OrchestResourcesSpec struct {
 	// If specified, this components will be deployed provided image
 	UserDirVolumeSize string `json:"userDirVolumeSize,omitempty"`
 
-	// If specified, this components will be deployed provided image
-	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
-
-	// If specified, this components will be deployed provided image
-	BuilderCacheDirVolumeSize string `json:"builderCacheDirVolumeSize,omitempty"`
-
 	// The Storage class of user-dir/
 	StorageClassName string `json:"storageClassName,omitempty"`
+
+	// Deprecated and ignored. TODO: remove it?
+	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
 }
 
 type OrchestComponentTemplate struct {
