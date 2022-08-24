@@ -1,9 +1,11 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { formatServerDateTime } from "@/utils/webserver-utils";
 import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { CreateJobButton } from "./CreateJobButton";
+import { usePollJobsStatus } from "./hooks/usePollJobsStatus";
 import { useSelectJob } from "./hooks/useSelectJob";
 import { useSyncJobUuidWithQueryArgs } from "./hooks/useSyncJobUuidWithQueryArgs";
 import { JobMenuItem } from "./JobMenuItem";
@@ -15,6 +17,7 @@ export const JobMenuList = () => {
   const { jobChanges } = useEditJob();
   const { jobs = [] } = useJobsApi();
   const { selectJob } = useSelectJob();
+  usePollJobsStatus();
 
   const redirect = React.useCallback(
     (uuid: string) => {
@@ -45,9 +48,8 @@ export const JobMenuList = () => {
         {jobs.map((job) => {
           const selected = hasValue(jobChanges) && jobChanges.uuid === job.uuid;
           const uuid = `${job.pipeline_uuid}|${job.uuid}`;
-          const startTimestamp = job.pipeline_run_spec.scheduled_start;
-          const timeString = startTimestamp ? ` • ${startTimestamp}` : "";
-          const subtitle = `${job.pipeline_run_spec.run_config.pipeline_path}${timeString}`;
+          const snapshotDatetime = formatServerDateTime(job.created_time);
+          const pipelinePathAndSnapshotDatetime = `${job.pipeline_run_spec.run_config.pipeline_path} • ${snapshotDatetime}`;
           return (
             <JobMenuItem
               key={uuid}
@@ -55,7 +57,7 @@ export const JobMenuList = () => {
               selected={selected}
               jobStatus={job.status}
               name={job.name}
-              subtitle={subtitle}
+              subtitle={pipelinePathAndSnapshotDatetime}
               onClick={redirect}
             />
           );

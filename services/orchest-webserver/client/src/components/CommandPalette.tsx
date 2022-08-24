@@ -45,7 +45,7 @@ const fetchPipelines = () => {
 const fetchProjects = () => projectsApi.fetchAll();
 
 const fetchJobs = () => {
-  return fetchObjects<JobData>("/catch/api-proxy/api/jobs/", "jobs");
+  return fetchObjects<JobData>("/catch/api-proxy/api/jobs", "jobs");
 };
 
 type ProjectObject = { list: Command[]; paths: Record<string, string> };

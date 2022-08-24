@@ -178,7 +178,7 @@ def register_orchest_api_views(app, db):
         " in the project."
     )
 
-    @app.route("/catch/api-proxy/api/jobs/", methods=["POST"])
+    @app.route("/catch/api-proxy/api/jobs", methods=["POST"])
     def catch_api_proxy_jobs_post():
 
         try:
@@ -545,7 +545,7 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/jobs/", methods=["get"])
+    @app.route("/catch/api-proxy/api/jobs", methods=["get"])
     def catch_api_proxy_jobs_get_all():
 
         resp = requests.get(

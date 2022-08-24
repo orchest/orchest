@@ -15,7 +15,7 @@ const post = (
   pipelineName: string,
   newJobName: string
 ) =>
-  fetcher<JobData>("/catch/api-proxy/api/jobs/", {
+  fetcher<JobData>("/catch/api-proxy/api/jobs", {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({
@@ -32,7 +32,11 @@ const post = (
     }),
   });
 
-const put = async ({ uuid, schedule, ...changes }: JobChangesData) => {
+const put = async ({
+  uuid,
+  schedule,
+  ...changes
+}: JobChangesData | JobChangesData) => {
   await fetcher(`/catch/api-proxy/api/jobs/${uuid}`, {
     method: "PUT",
     headers: HEADER.JSON,
@@ -41,8 +45,41 @@ const put = async ({ uuid, schedule, ...changes }: JobChangesData) => {
   return changes;
 };
 
+const deleteJob = (jobUuid: string) =>
+  fetcher(`/catch/api-proxy/api/jobs/cleanup/${jobUuid}`, {
+    method: "DELETE",
+  });
+
+const cancelJob = (jobUuid: string) =>
+  fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`, {
+    method: "DELETE",
+  });
+
+const resumeCronJob = (jobUuid: string) =>
+  fetcher<{ next_scheduled_time: string }>(
+    `/catch/api-proxy/api/jobs/cronjobs/resume/${jobUuid}`,
+    { method: "POST" }
+  );
+
+const pauseCronJob = (jobUuid: string) =>
+  fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${jobUuid}`, {
+    method: "POST",
+  });
+
+const duplicate = (jobUuid: string) =>
+  fetcher<JobData>("/catch/api-proxy/api/jobs/duplicate", {
+    method: "POST",
+    headers: HEADER.JSON,
+    body: JSON.stringify({ job_uuid: jobUuid }),
+  });
+
 export const jobsApi = {
   fetchAll,
   post,
   put,
+  delete: deleteJob,
+  cancel: cancelJob,
+  resumeCronJob,
+  pauseCronJob,
+  duplicate,
 };

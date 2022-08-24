@@ -249,7 +249,7 @@ export type JobData = {
   next_scheduled_time: string | undefined;
   last_scheduled_time: string;
   parameters: Record<string, Json>[];
-  schedule: string;
+  schedule?: string;
   pipeline_run_spec: {
     uuids: string[];
     project_uuid: string;
@@ -271,24 +271,36 @@ export type JobData = {
   pipeline_run_status_counts: Record<TStatus, number | undefined>;
 };
 
-export type JobChangesData = Pick<
+export type JobChangesData = {
+  confirm_draft?: true; // If provided, the submitted job will no longer be a draft.
+  next_scheduled_time?: string; // For scheduled jobs.
+} & Pick<
   JobData,
   | "uuid"
   | "name"
-  | "schedule"
+  | "schedule" // For cron jobs.
   | "parameters"
   | "env_variables"
   | "max_retained_pipeline_runs"
 >;
 
+export type ScheduledOption = "scheduled" | "cron" | "now";
+
 export type JobChanges = JobChangesData & {
   project_uuid: string;
   pipeline_uuid: string;
+  status: JobStatus;
 };
+
+export type DraftJobData = Omit<
+  JobChangesData,
+  "status" | "project_uuid" | "pipeline_uuid"
+> & { confirm_draft: true };
 
 export type UnidirectionalStepNode = {
   uuid: string;
   incoming_connections: string[];
+  outgoing_connections?: string[];
 };
 
 export type StepNode = UnidirectionalStepNode & {

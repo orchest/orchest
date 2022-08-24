@@ -5,7 +5,7 @@ import {
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import React from "react";
-import { pickJobChanges } from "./common";
+import { pickJobChangesData } from "./common";
 import { useCreateJob } from "./hooks/useCreateJob";
 import { useEditJob } from "./stores/useEditJob";
 
@@ -42,12 +42,13 @@ export const CreateJobButton = ({
   const onCreate = async () => {
     if (!pipeline) return;
     const newJob = await createJob();
-    const changes = pickJobChanges(newJob);
+    const changes = pickJobChangesData(newJob);
     if (projectUuid && newJob && changes) {
       initJobChanges({
         ...changes,
         project_uuid: projectUuid,
         pipeline_uuid: pipeline.uuid,
+        status: "DRAFT",
       });
       onCreated(`${newJob.project_uuid}|${newJob.uuid}`);
     }
