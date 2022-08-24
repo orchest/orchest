@@ -318,19 +318,29 @@ def _set_interactive_runs_parallelism_at_runtime(
     )
 
 
+def _set_builds_parallelism_at_runtime(
+    current_parallelism: int, new_parallelism: int
+) -> bool:
+    return _set_celery_worker_parallelism_at_runtime(
+        "worker-builds",
+        current_parallelism,
+        new_parallelism,
+    )
+
+
 class OrchestSettings:
     _cloud = _config.CLOUD
 
     # Defines default values for all supported configuration options.
     _config_values = {
-        "MAX_JOB_RUNS_PARALLELISM": {
+        "MAX_BUILDS_PARALLELISM": {
             "default": 1,
             "type": int,
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
             # Will return True if it could apply changes on the fly,
             # False otherwise.
-            "apply-runtime-changes-function": _set_job_runs_parallelism_at_runtime,
+            "apply-runtime-changes-function": _set_builds_parallelism_at_runtime,
         },
         "MAX_INTERACTIVE_RUNS_PARALLELISM": {
             "default": 1,
@@ -338,6 +348,13 @@ class OrchestSettings:
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
             "apply-runtime-changes-function": _set_interactive_runs_parallelism_at_runtime,  # noqa
+        },
+        "MAX_JOB_RUNS_PARALLELISM": {
+            "default": 1,
+            "type": int,
+            "condition": lambda x: 0 < x <= 25,
+            "condition-msg": "within the range [1, 25]",
+            "apply-runtime-changes-function": _set_job_runs_parallelism_at_runtime,
         },
         "AUTH_ENABLED": {
             "default": _config.CLOUD,
