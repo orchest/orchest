@@ -10,8 +10,10 @@ We just changed things to support:
 
 """
 
+import json
 import os
 
+import click
 import yaml
 from kubernetes import client
 from kubernetes.utils.create_from_yaml import (
@@ -193,3 +195,43 @@ def replace_from_yaml_single_item(k8s_client, yml_object, verbose=False, **kwarg
             msg += " status='{0}'".format(str(resp.status))
         print(msg)
     return resp
+
+
+def echo(*args, **kwargs) -> None:
+    """Wrapped `click.echo`.
+
+    Note:
+        Will do nothing in case the current CLI command is invoked with
+        the `--json` flag.
+
+    """
+    click_ctx = click.get_current_context(silent=True)
+
+    if click_ctx is None:
+        return click.echo(*args, **kwargs)
+
+    json_flag = click_ctx.params.get("json_flag")
+    if json_flag and json_flag is not None:
+        return
+    else:
+        return click.echo(*args, **kwargs)
+
+
+JECHO_CALLS = 0
+
+
+def jecho(*args, **kwargs) -> None:
+    """JSON echo."""
+    # Invoking `jecho` multiple times within one CLI invocation would
+    # mean that the final output is not JSON parsable.
+    global JECHO_CALLS
+    assert JECHO_CALLS == 0, "`jecho` should only be called once per CLI invocation."
+    JECHO_CALLS += 1
+
+    message = kwargs.get("message")
+    if message is not None:
+        kwargs["message"] = json.dumps(message, sort_keys=True, indent=True)
+    else:
+        if args and args[0] is not None:
+            args = (json.dumps(args[0], sort_keys=True, indent=True), *args[1:])
+    return click.echo(*args, **kwargs)  # type: ignore
