@@ -163,19 +163,6 @@ class PipelineStep:
         # Pipeline methods.
         self._children: List["PipelineStep"] = []
 
-        # Used as a local copy for the state of the PipelineStep as part
-        # of a pipeline run, in order to correctly update step statuses
-        # in the DB.
-        self._status: str = "PENDING"
-
-    @property
-    def status(self) -> str:
-        return self._status
-
-    @status.setter
-    def status(self, value: str) -> None:
-        self._status = value
-
     def __eq__(self, other) -> bool:
         return self.properties["uuid"] == other.properties["uuid"]
 
@@ -697,14 +684,22 @@ def _pipeline_to_workflow_manifest(
     return manifest
 
 
-def _is_step_allowed_to_run(step: PipelineStep) -> bool:
+def _is_step_allowed_to_run(
+    step: PipelineStep,
+    steps_to_finish: Set[PipelineStep],
+) -> bool:
     """Returns whether the given step is allowed to run.
 
+    Args:
+        step: The step we are checking the run requirements for.
+        steps_to_finish: The steps, part of a pipeline run, that have
+            not yet finished (or started) executing.
+
     Returns:
-        Have all incoming steps reached the SUCCESS state?
+        Have all incoming steps completed?
 
     """
-    return all(s.status == "SUCCESS" for s in step.parents)
+    return all(s not in steps_to_finish for s in step.parents)
 
 
 async def run_pipeline_workflow(
@@ -803,7 +798,7 @@ async def run_pipeline_workflow(
                         # Strictly speaking only needed in single-node
                         # context as otherwise Argo takes care of
                         # correctly putting a Step in "Running".
-                        and _is_step_allowed_to_run(pipeline_step)
+                        and _is_step_allowed_to_run(pipeline_step, steps_to_finish)
                     ):
                         step_status_update = "STARTED"
                         steps_to_start.remove(pipeline_step)
@@ -819,7 +814,6 @@ async def run_pipeline_workflow(
                         }[argo_node_status]
 
                     if step_status_update is not None:
-                        pipeline_step.status = step_status_update
                         if step_status_update == "FAILURE":
                             had_failed_steps = True
 
