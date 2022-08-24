@@ -6,7 +6,6 @@ image:
   pullPolicy: IfNotPresent
   registry: docker.io
   name: orchest/orchest-controller
-  tag: latest
 
 
 clusterLevelAddons:
