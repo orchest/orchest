@@ -355,7 +355,7 @@ def _env_images_that_can_be_deleted(
         db.session.query(models.EnvironmentImage.digest)
         # The digest is no longer necessary for images that have a
         # guarantee of having a unique digest, for those images, we
-        # don't store their digest anymore.
+        # don't store their digest anymore. REMOVABLE_ON_BREAKING_CHANGE
         .filter(models.EnvironmentImage.digest.is_not(None))
         .join(models.JobInUseImage, models.EnvironmentImage.jobs_using_image)
         .join(models.Job, models.Job.uuid == models.JobInUseImage.job_uuid)
