@@ -707,6 +707,9 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 		}
 	}
 
+	klog.V(4).Infof("Deleting deprecated PVC %s", controller.OldBuilderDirName)
+	occ.deletePvc(ctx, controller.OldBuilderDirName, orchest)
+
 	stopped = true
 	return err
 }
@@ -765,6 +768,20 @@ func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, nam
 
 	return occ.adoptPVC(ctx, oldPvc, newPvc)
 
+}
+
+func (occ *OrchestClusterController) deletePvc(ctx context.Context, name string, orchest *orchestv1alpha1.OrchestCluster) error {
+
+	err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.Infof("PVC %s not found, nothing to delete.", name)
+			return nil
+		}
+		klog.Errorf("Failed to delete PVC %s.", name)
+		return err
+	}
+	return nil
 }
 
 func (occ *OrchestClusterController) adoptPVC(ctx context.Context, oldPvc, newPvc *corev1.PersistentVolumeClaim) error {
