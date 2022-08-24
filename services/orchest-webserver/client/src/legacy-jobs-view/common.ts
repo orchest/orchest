@@ -9,7 +9,7 @@ export const requestCreateJob = async (
   pipelineName: string
 ) => {
   await checkGate(projectUuid);
-  return fetcher<JobData>("/catch/api-proxy/api/jobs/", {
+  return fetcher<JobData>("/catch/api-proxy/api/jobs", {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({

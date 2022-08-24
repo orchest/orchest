@@ -3,6 +3,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { JobChanges } from "@/types";
 import React from "react";
+import { pickJobChanges } from "../common";
 import { useEditJob } from "../stores/useEditJob";
 
 /**
@@ -58,7 +59,7 @@ export const useSyncJobUuidWithQueryArgs = () => {
     if (isJobUuidFromRouteInvalid) {
       redirect(targetJob);
     } else if (shouldUpdateJobChanges) {
-      initJobChanges(targetJob);
+      initJobChanges(pickJobChanges(targetJob));
     }
   }, [
     isJobUuidFromRouteInvalid,

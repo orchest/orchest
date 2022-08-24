@@ -7,7 +7,7 @@ export function useFetchJobs(projectUuid: string | undefined) {
     JobData[]
   >(
     projectUuid
-      ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
+      ? `/catch/api-proxy/api/jobs?project_uuid=${projectUuid}`
       : undefined,
     { transform: (data) => data.jobs }
   );
