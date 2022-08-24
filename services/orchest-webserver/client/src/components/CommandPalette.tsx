@@ -1,3 +1,4 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { getPageCommands, siteMap } from "@/routingConfig";
@@ -41,9 +42,7 @@ const fetchPipelines = () => {
   return fetchObjects<Pipeline>("/async/pipelines", "result");
 };
 
-const fetchProjects = () => {
-  return fetchObjects<Project>("/async/projects");
-};
+const fetchProjects = () => projectsApi.fetchAll();
 
 const fetchJobs = () => {
   return fetchObjects<Job>("/catch/api-proxy/api/jobs/", "jobs");

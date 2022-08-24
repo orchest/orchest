@@ -499,7 +499,7 @@ export function tryUntilTrue(
 export function envVariablesArrayToDict(
   envVariables: EnvVarPair[] = []
 ):
-  | { status: "resolved"; value: Record<string, unknown> }
+  | { status: "resolved"; value: Record<string, string> }
   | { status: "rejected"; error: string } {
   const result = {} as Record<string, string>;
   const seen = new Set();
