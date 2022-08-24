@@ -71,8 +71,10 @@ const usePollBuildStatus = () => {
   );
 
   React.useEffect(() => {
-    checkAllEnvironmentsHaveBeenBuilt();
-  }, [checkAllEnvironmentsHaveBeenBuilt]);
+    if (!isJobRun) {
+      checkAllEnvironmentsHaveBeenBuilt();
+    }
+  }, [isJobRun, checkAllEnvironmentsHaveBeenBuilt]);
 
   return { setShouldPoll };
 };
