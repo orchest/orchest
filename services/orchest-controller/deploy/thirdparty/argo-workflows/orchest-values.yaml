@@ -1,6 +1,6 @@
 images:
   # -- imagePullPolicy to apply to all containers
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   # -- Secrets with credentials to pull images from a private registry
   pullSecrets: []
   # - name: argo-pull-secret
