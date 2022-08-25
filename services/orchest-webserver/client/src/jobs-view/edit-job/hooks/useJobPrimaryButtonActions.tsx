@@ -18,7 +18,7 @@ export const useJobPrimaryButtonActions = () => {
     jobChanges?.status === "STARTED" || jobChanges?.status === "PENDING";
 
   const [buttonLabel, mainAction, iconType] = React.useMemo<
-    [string | undefined, (() => void) | undefined, JobPrimaryButtonIconType]
+    [string, () => void, JobPrimaryButtonIconType]
   >(() => {
     const isScheduledJob =
       hasValue(jobChanges?.schedule) ||
