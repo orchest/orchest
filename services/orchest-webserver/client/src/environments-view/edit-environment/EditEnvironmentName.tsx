@@ -29,19 +29,20 @@ export const EditEnvironmentName = () => {
 
   const isInvalid = hasEdited && value.trim().length === 0;
 
+  const handleChange = ({
+    target,
+  }: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setValue(target.value);
+    if (target.value) setEnvironmentChanges({ name: target.value });
+  };
+
   return (
     <TextField
       required
       value={value}
       onFocus={() => setHasEdited(true)}
       onBlur={() => setEnvironmentChanges({ name: value.trim() })}
-      onChange={({ target }) => {
-        setValue(target.value);
-
-        if (target.value) {
-          setEnvironmentChanges({ name: target.value });
-        }
-      }}
+      onChange={handleChange}
       InputLabelProps={{ required: false }}
       error={isInvalid}
       helperText={isInvalid ? "Environment name cannot be blank" : " "}
