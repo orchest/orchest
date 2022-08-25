@@ -385,7 +385,7 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/runs/", methods=["GET", "POST"])
+    @app.route("/catch/api-proxy/api/runs", methods=["GET", "POST"])
     def catch_api_proxy_runs():
 
         if request.method == "POST":
