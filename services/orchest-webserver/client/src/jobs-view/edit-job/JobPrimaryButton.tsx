@@ -40,7 +40,10 @@ export const JobPrimaryButton = () => {
           {buttonLabel}
         </Button>
         <Button
-          sx={{ backgroundColor: (theme) => theme.palette.primary.dark }}
+          sx={{
+            backgroundColor: (theme) =>
+              !hasStarted ? theme.palette.primary.dark : "inherit",
+          }}
           size="small"
           onClick={openMenu}
         >
