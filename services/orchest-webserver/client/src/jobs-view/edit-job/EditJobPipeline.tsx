@@ -32,7 +32,9 @@ export const EditJobPipeline = () => {
       disabled={disabled}
       sx={{ width: "50%", minWidth: (theme) => theme.spacing(35) }}
     >
-      <InputLabel id="job-pipeline-select-label">Pipeline</InputLabel>
+      <InputLabel id="job-pipeline-select-label" shrink>
+        Pipeline
+      </InputLabel>
       <Select
         labelId="job-pipeline-select-label"
         id="job-pipeline-select"

@@ -13,7 +13,6 @@ import { useEditJob } from "../stores/useEditJob";
 export const useSyncJobUuidWithQueryArgs = () => {
   const {
     projectUuid,
-    pipelineUuid: pipelineUuidFromRoute,
     jobUuid: jobUuidFromRoute,
     navigateTo,
   } = useCustomRoute();
@@ -25,32 +24,22 @@ export const useSyncJobUuidWithQueryArgs = () => {
 
   const targetJob = React.useMemo(() => {
     const foundJob =
-      jobs?.find(
-        (job) =>
-          job.uuid === jobUuidFromRoute &&
-          job.pipeline_uuid === pipelineUuidFromRoute
-      ) || jobs?.[0];
+      jobs?.find((job) => job.uuid === jobUuidFromRoute) || jobs?.[0];
 
     return foundJob;
-  }, [jobs, jobUuidFromRoute, pipelineUuidFromRoute]);
+  }, [jobs, jobUuidFromRoute]);
 
   const redirect = React.useCallback(
     (job: JobChanges) => {
       navigateTo(siteMap.jobs.path, {
-        query: {
-          projectUuid,
-          pipelineUuid: job.pipeline_uuid,
-          jobUuid: job.uuid,
-        },
+        query: { projectUuid, jobUuid: job.uuid },
       });
     },
     [navigateTo, projectUuid]
   );
 
   const isJobUuidFromRouteInvalid =
-    targetJob &&
-    (targetJob.uuid !== jobUuidFromRoute ||
-      targetJob.pipeline_uuid !== pipelineUuidFromRoute);
+    targetJob && targetJob.uuid !== jobUuidFromRoute;
 
   const shouldUpdateJobChanges =
     targetJob && jobChanges?.uuid !== targetJob.uuid;
