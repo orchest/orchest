@@ -590,13 +590,13 @@ def _pipeline_to_workflow_manifest(
                             "{{inputs.parameters.project_relative_file_path}}",
                         ],
                         "volumeMounts": volume_mounts,
+                        "resources": {
+                            "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                        },
                     },
                     "initContainers": [
                         image_puller_manifest,
                     ],
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
                     "podSpecPatch": "{{inputs.parameters.pod_spec_patch}}",
                 },
             ],
