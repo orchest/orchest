@@ -36,7 +36,8 @@ from app.apis.namespace_jupyter_image_builds import (
 )
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
-from app.connections import db
+from app.connections import db, k8s_core_api
+from app.core import sessions
 from app.core.notifications import analytics as api_analytics
 from app.core.scheduler import add_recurring_jobs_to_scheduler
 from app.models import (
@@ -372,6 +373,41 @@ def register_orchest_stop():
         db.session.commit()
 
 
+def _cleanup_dangling_sessions(app):
+    """Shuts down all sessions in the namespace.
+
+    This is a cheap fallback in case session deletion didn't happen when
+    needed because, for example, of the k8s-api being down or being
+    unresponsive during high load. Over time this should/could be
+    substituted with a more refined approach where non interactive
+    sessions are stored in the db.
+
+    """
+    app.logger.info("Cleaning up dangling sessions.")
+    pods = k8s_core_api.list_namespaced_pod(
+        namespace=_config.ORCHEST_NAMESPACE,
+        # Can't use a field selector to select pods in 'not Terminating
+        # phase, see
+        # https://kubernetes.io/docs/concepts/workloads/pods/_print/ ,
+        # "This Terminating status is not one of the Pod phases.". This
+        # means we could catch pods of a session that are already being
+        # terminated. Note that when cleaning up interactive sessions in
+        # 'cleanup()' we wait for the session to be actually cleaned up
+        # through the argument async=False, so pods from interactive
+        # sessions won't be caught in this call.
+        label_selector="session_uuid",
+    )
+    sessions_to_cleanup = {pod.metadata.labels["session_uuid"] for pod in pods.items}
+    for uuid in sessions_to_cleanup:
+        app.logger.info(f"Cleaning up session {uuid}")
+        try:
+            sessions.shutdown(uuid, wait_for_completion=False)
+        # A session getting cleaned up through this logic is already
+        # an unexpected state, so let's be on the safe side.
+        except Exception as e:
+            app.logger.warning(e)
+
+
 def cleanup():
     app = create_app(
         config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
@@ -448,6 +484,8 @@ def cleanup():
                 db.session.delete(jupyter_image_build)
 
             db.session.commit()
+
+            _cleanup_dangling_sessions(app)
 
         except Exception as e:
             app.logger.error("Cleanup failed.")
