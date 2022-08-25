@@ -32,11 +32,15 @@ export const JobPrimaryActionMenu = ({
 
   const isSubmitted = jobChanges?.status !== "DRAFT";
 
+  const isCronJob = hasValue(jobChanges?.schedule);
+
   const isOneOffJob =
     !jobChanges?.schedule && hasValue(jobChanges?.next_scheduled_time);
 
+  const isScheduledJob = isCronJob || isOneOffJob;
+
   const isAllowedToTriggerScheduledRuns =
-    ["PAUSED", "STARTED"].includes(jobChanges?.status || "") ||
+    (isCronJob && ["PAUSED", "STARTED"].includes(jobChanges?.status || "")) ||
     (isOneOffJob && jobChanges?.status === "PENDING");
 
   const shouldRunNow =
@@ -65,9 +69,9 @@ export const JobPrimaryActionMenu = ({
         action: scheduleJob,
       },
       {
-        label: hasPaused ? "Resume job" : "Pause job",
+        label: hasPaused ? "Resume scheduled job" : "Pause scheduled job",
         icon: hasPaused ? "resume" : "pause",
-        disabled: !isRunning,
+        disabled: !isScheduledJob || !isRunning,
         action: hasPaused ? resumeJob : pauseJob,
       },
       {
@@ -95,6 +99,7 @@ export const JobPrimaryActionMenu = ({
       isSubmitted,
       hasPaused,
       isRunning,
+      isScheduledJob,
       pauseJob,
       resumeJob,
       shouldRunNow,

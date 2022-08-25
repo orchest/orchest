@@ -1,6 +1,5 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useSelectJob } from "@/jobs-view/hooks/useSelectJob";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useScheduleJob } from "../../hooks/useScheduleJob";
 import { useEditJob } from "../../stores/useEditJob";
@@ -18,23 +17,17 @@ export const useJobActions = () => {
     triggerScheduledRuns,
   } = useJobsApi();
 
-  const isScheduledJob =
-    hasValue(jobChanges?.schedule) || hasValue(jobChanges?.next_scheduled_time);
-
-  const hasStarted =
-    jobChanges?.status === "STARTED" || jobChanges?.status === "PENDING";
-
   const pauseJob = React.useCallback(() => {
-    if (isScheduledJob && hasStarted) pauseCronJob(jobChanges.uuid);
-  }, [isScheduledJob, hasStarted, pauseCronJob, jobChanges?.uuid]);
+    if (jobChanges?.uuid) pauseCronJob(jobChanges.uuid);
+  }, [pauseCronJob, jobChanges?.uuid]);
 
   const resumeJob = React.useCallback(() => {
-    if (jobChanges?.status === "PAUSED") resumeCronJob(jobChanges.uuid);
-  }, [jobChanges?.status, resumeCronJob, jobChanges?.uuid]);
+    if (jobChanges?.uuid) resumeCronJob(jobChanges.uuid);
+  }, [resumeCronJob, jobChanges?.uuid]);
 
   const cancelJob = React.useCallback(() => {
-    if (hasStarted) cancel(jobChanges.uuid);
-  }, [hasStarted, cancel, jobChanges?.uuid]);
+    if (jobChanges?.uuid) cancel(jobChanges.uuid);
+  }, [cancel, jobChanges?.uuid]);
 
   const duplicateJob = React.useCallback(async () => {
     if (!jobChanges?.uuid) return;
