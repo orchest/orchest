@@ -567,8 +567,8 @@ def _get_pipeline_argo_templates(
                 # of the containerSet run.
                 "securityContext": {
                     "runAsUser": 0,
-                    "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
-                    "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
+                    "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
+                    "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
                 },
                 # NOTE: Argo only allows a "dag" or "steps" template to
                 # reference another template.
