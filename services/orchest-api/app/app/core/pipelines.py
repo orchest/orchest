@@ -717,6 +717,9 @@ async def run_pipeline_workflow(
 
         namespace = _config.ORCHEST_NAMESPACE
 
+        steps_to_start = {step for step in pipeline.steps}
+        steps_to_finish = set(steps_to_start)
+        had_failed_steps = False
         try:
             manifest = _pipeline_to_workflow_manifest(
                 session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
@@ -725,9 +728,6 @@ async def run_pipeline_workflow(
                 "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
             )
 
-            steps_to_start = {step for step in pipeline.steps}
-            steps_to_finish = set(steps_to_start)
-            had_failed_steps = False
             while steps_to_finish:
                 # Note: not async.
                 resp = k8s_custom_obj_api.get_namespaced_custom_object(
@@ -873,6 +873,15 @@ async def run_pipeline_workflow(
 
         except Exception as e:
             logger.error(e)
+            for pipeline_step in steps_to_finish:
+                await update_status(
+                    "ABORTED",
+                    task_id,
+                    session,
+                    type="step",
+                    run_endpoint=run_config["run_endpoint"],
+                    uuid=pipeline_step.properties["uuid"],
+                )
             await update_status(
                 "FAILURE",
                 task_id,
