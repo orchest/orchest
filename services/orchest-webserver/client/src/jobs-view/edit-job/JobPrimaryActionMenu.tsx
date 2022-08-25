@@ -1,16 +1,15 @@
-import { RunIncomingIcon } from "@/components/common/icons/RunIncomingIcon";
-import { modifierKey } from "@/utils/platform";
-import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
-import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
-import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useRunSteps } from "./useRunSteps";
+import { useEditJob } from "../stores/useEditJob";
+import { useJobActions } from "./hooks/useJobActions";
+import {
+  JobPrimaryButtonIcon,
+  JobPrimaryButtonIconType,
+} from "./JobPrimaryButtonIcon";
 
 type PrimaryPipelineActionMenuProps = {
   anchor: Element | undefined;
@@ -21,42 +20,75 @@ export const JobPrimaryActionMenu = ({
   anchor,
   onClose,
 }: PrimaryPipelineActionMenuProps) => {
+  const { jobChanges } = useEditJob();
   const {
-    runSelectedSteps,
-    runAllSteps,
-    runIncomingSteps,
     scheduleJob,
-  } = useRunSteps();
+    resumeJob,
+    pauseJob,
+    cancelJob,
+    duplicateJob,
+  } = useJobActions();
 
-  const operationOptions = React.useMemo(
-    () =>
-      [
-        {
-          label: "Run all",
-          icon: <PlayCircleOutlineOutlinedIcon fontSize="small" />,
-          hotKey: "Shift Enter",
-          action: runAllSteps,
-        },
-        {
-          label: "Run selected",
-          icon: <PlayArrowOutlinedIcon fontSize="small" />,
-          hotKey: "Enter",
-          action: runSelectedSteps,
-        },
-        {
-          label: "Run incoming",
-          icon: <RunIncomingIcon />,
-          hotKey: "I",
-          action: runIncomingSteps,
-        },
-        {
-          label: "Schedule Job",
-          icon: <MoreTimeOutlinedIcon fontSize="small" />,
-          hotKey: "J",
-          action: scheduleJob,
-        },
-      ] as const,
-    [runAllSteps, runIncomingSteps, runSelectedSteps, scheduleJob]
+  const isDraft = jobChanges?.status === "DRAFT";
+
+  const shouldRunNow =
+    !hasValue(jobChanges?.schedule) &&
+    !hasValue(jobChanges?.next_scheduled_time);
+
+  const hasStarted =
+    jobChanges?.status === "STARTED" || jobChanges?.status === "PENDING";
+
+  const hasPaused = jobChanges?.status === "PAUSED";
+  const hasCompleted =
+    jobChanges?.status === "ABORTED" ||
+    jobChanges?.status === "FAILURE" ||
+    jobChanges?.status === "SUCCESS";
+
+  const operationOptions = React.useMemo<
+    {
+      label: string;
+      icon: JobPrimaryButtonIconType;
+      action: () => void | Promise<void>;
+      disabled?: boolean;
+    }[]
+  >(
+    () => [
+      {
+        label: shouldRunNow ? "Run job" : "Schedule job",
+        icon: shouldRunNow ? "run" : "schedule",
+        disabled: hasStarted,
+        action: scheduleJob,
+      },
+      {
+        label: hasPaused ? "Resume job" : "Pause job",
+        icon: hasPaused ? "resume" : "pause",
+        disabled: isDraft || !hasStarted,
+        action: hasPaused ? resumeJob : pauseJob,
+      },
+      {
+        label: "Cancel job",
+        icon: "cancel",
+        disabled: isDraft || hasCompleted,
+        action: cancelJob,
+      },
+      {
+        label: "Copy job configuration",
+        icon: "duplicate",
+        action: duplicateJob,
+      },
+    ],
+    [
+      scheduleJob,
+      cancelJob,
+      duplicateJob,
+      isDraft,
+      hasCompleted,
+      hasPaused,
+      hasStarted,
+      pauseJob,
+      resumeJob,
+      shouldRunNow,
+    ]
   );
 
   return (
@@ -72,19 +104,21 @@ export const JobPrimaryActionMenu = ({
       }}
     >
       {operationOptions.map((option) => {
-        const disabled = !hasValue(option.action);
         const onClick = () => {
           option.action?.();
           onClose();
         };
 
         return (
-          <MenuItem key={option.label} disabled={disabled} onClick={onClick}>
-            <ListItemIcon>{option.icon}</ListItemIcon>
+          <MenuItem
+            key={option.label}
+            disabled={option.disabled}
+            onClick={onClick}
+          >
+            <ListItemIcon>
+              <JobPrimaryButtonIcon type={option.icon} />
+            </ListItemIcon>
             <ListItemText>{option.label}</ListItemText>
-            <Typography variant="caption" color="text.secondary">
-              {`${modifierKey} ${option.hotKey}`}
-            </Typography>
           </MenuItem>
         );
       })}
