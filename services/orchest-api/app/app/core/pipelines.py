@@ -571,7 +571,8 @@ def _get_pipeline_argo_templates(
                     "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
                 },
                 # NOTE: Argo only allows a "dag" or "steps" template to
-                # reference another template.
+                # reference another template, thus we just create
+                # containerSpecs here.
                 "containerSet": {
                     "retryStrategy": {"retries": 0},
                     "volumeMounts": volume_mounts,
@@ -608,8 +609,8 @@ def _get_pipeline_argo_templates(
                 "name": "step",
                 "securityContext": {
                     "runAsUser": 0,
-                    "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
-                    "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
+                    "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
+                    "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
                 },
                 "inputs": {
                     "parameters": [
