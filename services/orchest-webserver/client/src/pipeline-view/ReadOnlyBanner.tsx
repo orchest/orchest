@@ -18,9 +18,9 @@ import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 const generateReadOnlyMessage = (jobName: string | undefined) =>
   jobName ? (
     <>
-      {`This is a read-only pipeline snapshot from `}
-      <b>{jobName}</b>
-      {` job. Make edits in the Pipeline editor.`}
+      {`This is a read-only pipeline snapshot from the `}
+      <strong>{jobName}</strong>
+      {` job.`}
     </>
   ) : null;
 
@@ -57,18 +57,18 @@ export const ReadOnlyBanner = () => {
 
   const { triggerBuilds, viewBuildStatus } = useBuildEnvironmentImages();
 
-  const { job, projectUuid, pipelineUuid } = usePipelineDataContext();
+  const { job, projectUuid } = usePipelineDataContext();
 
   const { title, action, actionLabel } = React.useMemo(() => {
     switch (pipelineReadOnlyReason) {
       case "isJobRun":
         return {
-          title: "Pipeline snapshot",
-          actionLabel: "Open in editor",
+          title: "Job run snapshot",
+          actionLabel: "View all runs",
           action: (event: React.MouseEvent) =>
             navigateTo(
-              siteMap.pipeline.path,
-              { query: { projectUuid, pipelineUuid } },
+              siteMap.job.path,
+              { query: { projectUuid, jobUuid: job?.uuid } },
               event
             ),
         };
@@ -114,15 +114,15 @@ export const ReadOnlyBanner = () => {
         return {};
     }
   }, [
-    navigateTo,
     pipelineReadOnlyReason,
-    environmentsToBeBuilt,
-    buildingEnvironments,
-    projectUuid,
-    pipelineUuid,
+    environmentsToBeBuilt.length,
+    buildingEnvironments.length,
     viewBuildStatus,
-    triggerBuilds,
+    navigateTo,
+    projectUuid,
+    job?.uuid,
     dispatch,
+    triggerBuilds,
   ]);
 
   const showLinearProgress =
