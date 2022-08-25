@@ -466,6 +466,10 @@ def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -
                 f'step-{pstep.properties["uuid"]}' for pstep in step.parents
             ],
             "restartPolicy": "Never",
+            # NOTE: Should never need to pull given that the pipeline
+            # run is scheduled on the only node in the cluster (which
+            # thus has the image).
+            "imagePullPolicy": "IfNotPresent",
             "env": env_variables,
             "image": image,
             "command": [
@@ -474,6 +478,7 @@ def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -
                 working_dir,
                 project_relative_file_path,
             ],
+            "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},
         }
     else:
         # This allows us to edit the container that argo runs for us.
@@ -482,10 +487,12 @@ def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -
                 "terminationGracePeriodSeconds": 1,
                 "containers": [
                     {
+                        # NOTE: The `imagePullPolicy` is already set
+                        # through the `orchest_values.yml` file for
+                        # Argo.
                         "name": "main",
                         "env": env_variables,
                         "restartPolicy": "Never",
-                        "imagePullPolicy": "IfNotPresent",
                     }
                 ],
             },
@@ -544,22 +551,29 @@ def _get_pipeline_argo_templates(
     pipeline: Pipeline,
     run_config: RunConfig,
 ) -> List[Dict[str, Any]]:
+    # https://argoproj.github.io/argo-workflows/fields/#template
     if CONFIG_CLASS.SINGLE_NODE:
         templates = [
             {
                 "name": entrypoint_name,
+                "failFast": True,
                 "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                "podSpecPatch": json.dumps(
+                    {
+                        "terminationGracePeriodSeconds": 1,
+                    }
+                ),
+                # Security context for the Pod in which the containers
+                # of the containerSet run.
                 "securityContext": {
                     "runAsUser": 0,
                     "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
                     "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "0")),
                 },
-                "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},
                 # NOTE: Argo only allows a "dag" or "steps" template to
                 # reference another template.
                 "containerSet": {
-                    "terminationGracePeriodSeconds": 1,
-                    "failFast": True,
+                    "retryStrategy": {"retries": 0},
                     "volumeMounts": volume_mounts,
                     "containers": [
                         _step_to_workflow_manifest_task(step, run_config)
@@ -622,11 +636,13 @@ def _get_pipeline_argo_templates(
                         "{{inputs.parameters.project_relative_file_path}}",
                     ],
                     "volumeMounts": volume_mounts,
+                    "resources": {
+                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    },
                 },
                 "initContainers": [
                     image_puller_manifest,
                 ],
-                "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},
                 "podSpecPatch": "{{inputs.parameters.pod_spec_patch}}",
             },
         ]
