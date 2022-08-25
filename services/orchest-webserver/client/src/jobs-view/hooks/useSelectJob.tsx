@@ -12,7 +12,7 @@ export const useSelectJob = () => {
     (pipelineUuid: string, jobUuid: string) => {
       if (projectUuid) {
         navigateTo(siteMap.jobs.path, {
-          query: { projectUuid, pipelineUuid, jobUuid },
+          query: { projectUuid, jobUuid },
         });
       }
     },
