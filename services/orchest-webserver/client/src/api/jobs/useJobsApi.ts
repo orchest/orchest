@@ -25,6 +25,7 @@ export type JobsApi = {
   duplicate: (jobUuid: string) => Promise<JobData>;
   resumeCronJob: (jobUuid: string) => Promise<void>;
   pauseCronJob: (jobUuid: string) => Promise<void>;
+  triggerScheduledRuns: (jobUuid: string) => Promise<void>;
   error?: FetchError;
   clearError: () => void;
 };
@@ -194,6 +195,25 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         return { jobs };
       });
       await jobsApi.pauseCronJob(jobUuid);
+    },
+    triggerScheduledRuns: async (jobUuid) => {
+      set((state) => {
+        const jobs: JobData[] = (state.jobs || []).map((job) =>
+          job.uuid === jobUuid ? { ...job, status: "STARTED" } : job
+        );
+        return { jobs };
+      });
+
+      const { next_scheduled_time } = await jobsApi.triggerScheduledRuns(
+        jobUuid
+      );
+
+      set((state) => {
+        const jobs: JobData[] = (state.jobs || []).map((job) =>
+          job.uuid === jobUuid ? { ...job, next_scheduled_time } : job
+        );
+        return { jobs };
+      });
     },
     clearError: () => {
       set({ error: undefined });

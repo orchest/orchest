@@ -73,6 +73,12 @@ const duplicate = (jobUuid: string) =>
     body: JSON.stringify({ job_uuid: jobUuid }),
   });
 
+const triggerScheduledRuns = (jobUuid: string) =>
+  fetcher<{ next_scheduled_time: string }>(
+    `/catch/api-proxy/api/jobs/${jobUuid}/runs/trigger`,
+    { method: "POST" }
+  );
+
 export const jobsApi = {
   fetchAll,
   post,
@@ -82,4 +88,5 @@ export const jobsApi = {
   resumeCronJob,
   pauseCronJob,
   duplicate,
+  triggerScheduledRuns,
 };

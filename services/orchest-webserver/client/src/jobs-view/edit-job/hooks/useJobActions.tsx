@@ -10,7 +10,13 @@ export const useJobActions = () => {
   const scheduleJob = useScheduleJob();
   const { selectJob } = useSelectJob();
 
-  const { resumeCronJob, pauseCronJob, cancel, duplicate } = useJobsApi();
+  const {
+    resumeCronJob,
+    pauseCronJob,
+    cancel,
+    duplicate,
+    triggerScheduledRuns,
+  } = useJobsApi();
 
   const isScheduledJob =
     hasValue(jobChanges?.schedule) || hasValue(jobChanges?.next_scheduled_time);
@@ -36,11 +42,17 @@ export const useJobActions = () => {
     selectJob(duplicatedJob.pipeline_uuid, duplicatedJob.uuid);
   }, [duplicate, selectJob, jobChanges?.uuid]);
 
+  const triggerJobNow = React.useCallback(async () => {
+    if (!jobChanges?.uuid) return;
+    await triggerScheduledRuns(jobChanges.uuid);
+  }, [triggerScheduledRuns, jobChanges?.uuid]);
+
   return {
     scheduleJob,
     pauseJob,
     resumeJob,
     cancelJob,
     duplicateJob,
+    triggerJobNow,
   };
 };

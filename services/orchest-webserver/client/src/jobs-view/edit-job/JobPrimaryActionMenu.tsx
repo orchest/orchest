@@ -27,22 +27,27 @@ export const JobPrimaryActionMenu = ({
     pauseJob,
     cancelJob,
     duplicateJob,
+    triggerJobNow,
   } = useJobActions();
 
-  const isDraft = jobChanges?.status === "DRAFT";
+  const isSubmitted = jobChanges?.status !== "DRAFT";
+
+  const isOneOffJob =
+    !jobChanges?.schedule && hasValue(jobChanges?.next_scheduled_time);
+
+  const isAllowedToTriggerScheduledRuns =
+    ["PAUSED", "STARTED"].includes(jobChanges?.status || "") ||
+    (isOneOffJob && jobChanges?.status === "PENDING");
 
   const shouldRunNow =
     !hasValue(jobChanges?.schedule) &&
     !hasValue(jobChanges?.next_scheduled_time);
 
-  const hasStarted =
-    jobChanges?.status === "STARTED" || jobChanges?.status === "PENDING";
+  const isRunning = ["PAUSED", "STARTED", "PENDING"].includes(
+    jobChanges?.status || ""
+  );
 
   const hasPaused = jobChanges?.status === "PAUSED";
-  const hasCompleted =
-    jobChanges?.status === "ABORTED" ||
-    jobChanges?.status === "FAILURE" ||
-    jobChanges?.status === "SUCCESS";
 
   const operationOptions = React.useMemo<
     {
@@ -56,19 +61,25 @@ export const JobPrimaryActionMenu = ({
       {
         label: shouldRunNow ? "Run job" : "Schedule job",
         icon: shouldRunNow ? "run" : "schedule",
-        disabled: hasStarted,
+        disabled: isSubmitted,
         action: scheduleJob,
       },
       {
         label: hasPaused ? "Resume job" : "Pause job",
         icon: hasPaused ? "resume" : "pause",
-        disabled: isDraft || !hasStarted,
+        disabled: !isRunning,
         action: hasPaused ? resumeJob : pauseJob,
+      },
+      {
+        label: "Trigger job now",
+        icon: "run",
+        disabled: !isAllowedToTriggerScheduledRuns,
+        action: triggerJobNow,
       },
       {
         label: "Cancel job",
         icon: "cancel",
-        disabled: isDraft || hasCompleted,
+        disabled: !isRunning,
         action: cancelJob,
       },
       {
@@ -81,13 +92,14 @@ export const JobPrimaryActionMenu = ({
       scheduleJob,
       cancelJob,
       duplicateJob,
-      isDraft,
-      hasCompleted,
+      isSubmitted,
       hasPaused,
-      hasStarted,
+      isRunning,
       pauseJob,
       resumeJob,
       shouldRunNow,
+      triggerJobNow,
+      isAllowedToTriggerScheduledRuns,
     ]
   );
 
