@@ -12,8 +12,8 @@ deployment
         ports:
         - containerPort: 80
         args:
-        - --defaultVersion=$VERSION
-        - --namespace=$NAMESPACE
+        - --defaultVersion=$(VERSION)
+        - --namespace=$(NAMESPACE)
         {{ if eq .Values.clusterLevelAddons.enableArgo true }}
         - --enable=argo-workflow
         {{ end }}
