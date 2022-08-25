@@ -39,16 +39,18 @@ export const JobPrimaryButton = () => {
         >
           {buttonLabel}
         </Button>
-        <Button
-          sx={{
-            backgroundColor: (theme) =>
-              !hasStarted ? theme.palette.primary.dark : "inherit",
-          }}
-          size="small"
-          onClick={openMenu}
-        >
-          <ArrowDropDownOutlinedIcon fontSize="small" />
-        </Button>
+        {iconType !== "duplicate" && (
+          <Button
+            sx={{
+              backgroundColor: (theme) =>
+                !hasStarted ? theme.palette.primary.dark : "inherit",
+            }}
+            size="small"
+            onClick={openMenu}
+          >
+            <ArrowDropDownOutlinedIcon fontSize="small" />
+          </Button>
+        )}
       </ButtonGroup>
       <JobPrimaryActionMenu anchor={anchor} onClose={closeMenu} />
     </>
