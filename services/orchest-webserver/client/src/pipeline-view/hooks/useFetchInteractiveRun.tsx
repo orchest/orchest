@@ -1,10 +1,10 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetcher } from "@/hooks/useFetcher";
 import { PipelineRun } from "@/types";
+import { queryArgs } from "@/utils/text";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
-import { queryArgs } from "../file-manager/common";
 
 export const useFetchInteractiveRun = () => {
   const { projectUuid, pipelineUuid, runUuid: jobRunUuid } = useCustomRoute();

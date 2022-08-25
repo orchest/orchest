@@ -1,4 +1,5 @@
 import React from "react";
+import { useHasChanged } from "./useHasChanged";
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
 
@@ -95,4 +96,12 @@ export const useFocusBrowserTab = (disabled?: boolean) => {
     };
   }, [disabled]);
   return isFocused;
+};
+
+export const useRegainBrowserTabFocus = () => {
+  const isTabFocused = useFocusBrowserTab();
+  const hasBrowserFocusChanged = useHasChanged(isTabFocused);
+
+  const hasRegainedFocus = isTabFocused && hasBrowserFocusChanged;
+  return hasRegainedFocus;
 };

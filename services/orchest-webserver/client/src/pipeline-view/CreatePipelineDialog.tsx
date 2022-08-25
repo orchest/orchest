@@ -1,3 +1,4 @@
+import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
@@ -14,7 +15,6 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 
 export const INITIAL_PIPELINE_NAME = "Main";
@@ -51,7 +51,7 @@ export const CreatePipelineDialog = ({
     state: { pipelines = [] },
   } = useProjectsContext();
   const { projectUuid, navigateTo } = useCustomRoute();
-  const { run, status } = useAsync<{ pipeline_uuid: string }>();
+  const { run, status } = useAsync<string>();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const onCreateClick = () => setIsOpen(true);
@@ -80,29 +80,22 @@ export const CreatePipelineDialog = ({
   );
   const createPipeline = React.useCallback(
     async ({ name, path }: { name: string; path: string }) => {
+      if (!projectUuid) return;
       try {
-        const response = await run(
-          fetcher<{ pipeline_uuid: string }>(
-            `/async/pipelines/create/${projectUuid}`,
-            {
-              method: "POST",
-              headers: HEADER.JSON,
-              body: JSON.stringify({ name, pipeline_path: path }),
-            }
-          )
+        const pipelineUuid = await run(
+          pipelinesApi.post(projectUuid, path, name)
         );
-        const { pipeline_uuid } = response || {};
-        if (!pipeline_uuid) return;
+        if (!pipelineUuid) return;
         onClose();
         dispatch({
           type: "ADD_PIPELINE",
           payload: {
-            uuid: pipeline_uuid,
+            uuid: pipelineUuid,
             name,
             path,
           },
         });
-        navigateToPipeline(pipeline_uuid);
+        navigateToPipeline(pipelineUuid);
       } catch (error) {
         onClose();
         setAlert(

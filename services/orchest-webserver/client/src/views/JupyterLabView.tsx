@@ -1,3 +1,5 @@
+import { pipelineJsonApi } from "@/api/pipelines/pipelineJsonApi";
+import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
 import BuildPendingDialog from "@/components/BuildPendingDialog";
 import { Layout } from "@/components/Layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
@@ -7,20 +9,12 @@ import {
 } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
-import {
-  useCancelableFetch,
-  useCancelablePromise,
-} from "@/hooks/useCancelablePromise";
+import { useCancelablePromise } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
-import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import type {
-  Pipeline,
-  PipelineJson,
-  TViewPropsWithRequiredQueryArgs,
-} from "@/types";
+import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
 import { join } from "@/utils/path";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -35,7 +29,6 @@ export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
 const JupyterLabView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.jupyterLab.path });
   const { makeCancelable } = useCancelablePromise();
-  const { cancelableFetch } = useCancelableFetch();
   useEnsureValidPipeline();
   const { dispatch } = useProjectsContext();
 
@@ -72,10 +65,8 @@ const JupyterLabView = () => {
 
     try {
       const [fetchedPipelineJson, pipeline] = await Promise.all([
-        makeCancelable(fetchPipelineJson({ pipelineUuid, projectUuid })),
-        cancelableFetch<Pipeline>(
-          `/async/pipelines/${projectUuid}/${pipelineUuid}`
-        ),
+        makeCancelable(pipelineJsonApi.fetch(projectUuid, pipelineUuid)),
+        makeCancelable(pipelinesApi.fetch(projectUuid, pipelineUuid)),
       ]);
 
       setPipelineJson(fetchedPipelineJson);
@@ -86,7 +77,7 @@ const JupyterLabView = () => {
         console.error("Failed to load pipeline.json: " + String(error));
       }
     }
-  }, [cancelableFetch, makeCancelable, pipelineUuid, projectUuid]);
+  }, [makeCancelable, pipelineUuid, projectUuid]);
 
   // Launch the session on mount.
   React.useEffect(() => {

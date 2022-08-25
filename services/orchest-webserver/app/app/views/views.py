@@ -832,11 +832,11 @@ def register_views(app, db):
         )
 
     @app.route(
-        "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"]
+        "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "PUT"]
     )
     def pipelines_json(project_uuid, pipeline_uuid):
 
-        if request.method == "POST":
+        if request.method == "PUT":
 
             pipeline_json_path = get_pipeline_path(
                 pipeline_uuid,

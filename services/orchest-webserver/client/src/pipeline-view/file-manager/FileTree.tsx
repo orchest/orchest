@@ -1,12 +1,13 @@
+import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
 import { basename, dirname, join } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -33,7 +34,6 @@ import {
   Move,
   pathFromElement,
   prettifyRoot,
-  queryArgs,
   ROOT_SEPARATOR,
   UnpackedPath,
   unpackMove,
@@ -232,7 +232,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
         dispatch({
           type: "SET_PIPELINES",
-          payload: await fetchPipelines(projectUuid),
+          payload: await pipelinesApi.fetchInProject(projectUuid),
         });
       }
 

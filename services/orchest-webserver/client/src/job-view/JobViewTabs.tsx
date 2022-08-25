@@ -1,5 +1,5 @@
 import { TabLabel, Tabs } from "@/components/common/Tabs";
-import { Job } from "@/types";
+import { JobData } from "@/types";
 import ListIcon from "@mui/icons-material/List";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
@@ -7,7 +7,7 @@ import Tab from "@mui/material/Tab";
 import React from "react";
 
 export const JobViewTabs: React.FC<{
-  job: Job;
+  job: JobData;
   totalRunCount: number | undefined;
   children: (tabIndex: number) => React.ReactNode;
 }> = ({ job, totalRunCount, children }) => {

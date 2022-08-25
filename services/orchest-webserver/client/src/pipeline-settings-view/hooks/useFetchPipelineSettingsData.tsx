@@ -53,11 +53,7 @@ export const useFetchPipelineSettingsData = ({
     runUuid,
   });
 
-  const {
-    pipelineJson,
-    setPipelineJson,
-    fetchPipelineJson,
-  } = useFetchPipelineJson({
+  const { pipelineJson, fetchPipelineJson } = useFetchPipelineJson({
     projectUuid,
     pipelineUuid,
     jobUuid,
@@ -126,7 +122,6 @@ export const useFetchPipelineSettingsData = ({
 
   return {
     pipelineJson,
-    setPipelineJson,
     job,
     pipelineRun,
     pipeline,

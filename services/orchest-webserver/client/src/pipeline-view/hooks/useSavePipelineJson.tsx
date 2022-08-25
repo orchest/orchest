@@ -1,3 +1,4 @@
+import { pipelineJsonApi } from "@/api/pipelines/pipelineJsonApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import type { PipelineJson, StepData, StepsDict } from "@/types";
@@ -6,7 +7,7 @@ import {
   clearOutgoingConnections,
   validatePipeline,
 } from "@/utils/webserver-utils";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { updatePipelineJson } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
@@ -24,21 +25,15 @@ export const useSavePipelineJson = () => {
   const setOngoingSaves = useSavingIndicator();
   const savePipelineJson = React.useCallback(
     async (data: PipelineJson) => {
-      if (!data || isReadOnly) return;
+      if (!data || isReadOnly || !projectUuid || !pipelineUuid) return;
       setOngoingSaves((current) => current + 1);
-      const saveData: PipelineJson = {
+      const dataForSaving: PipelineJson = {
         ...data,
         steps: clearOutgoingConnections<StepData>(data.steps),
       };
 
-      const formData = new FormData();
-      formData.append("pipeline_json", JSON.stringify(saveData));
-
       const response = await resolve(() =>
-        fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {
-          method: "POST",
-          body: formData,
-        })
+        pipelineJsonApi.put(projectUuid, pipelineUuid, dataForSaving)
       );
 
       if (response.status === "rejected") {

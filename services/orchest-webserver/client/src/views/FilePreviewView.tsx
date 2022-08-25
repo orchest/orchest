@@ -1,3 +1,4 @@
+import { pipelineJsonApi } from "@/api/pipelines/pipelineJsonApi";
 import { IconButton } from "@/components/common/IconButton";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
@@ -8,12 +9,10 @@ import {
   useCancelablePromise,
 } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { Job, StepData } from "@/types";
+import { JobData, StepData } from "@/types";
 import {
-  getPipelineJSONEndpoint,
   getPipelineStepChildren,
   getPipelineStepParents,
   setWithRetry,
@@ -96,25 +95,20 @@ const FilePreviewView = () => {
   };
 
   const fetchPipeline = React.useCallback(async () => {
-    if (!pipelineUuid) return;
+    if (!projectUuid || !pipelineUuid) return;
     setState((prevState) => ({
       ...prevState,
       loadingFile: true,
     }));
 
-    let pipelineURL = isJobRun
-      ? getPipelineJSONEndpoint({
-          pipelineUuid,
-          projectUuid,
-          jobUuid,
-          jobRunUuid: runUuid,
-        })
-      : getPipelineJSONEndpoint({ pipelineUuid, projectUuid });
-
     const [pipelineJson, job] = await Promise.all([
-      makeCancelable(fetchPipelineJson(pipelineURL)),
+      makeCancelable(
+        isJobRun
+          ? pipelineJsonApi.fetch(projectUuid, pipelineUuid, jobUuid, runUuid)
+          : pipelineJsonApi.fetch(projectUuid, pipelineUuid)
+      ),
       jobUuid
-        ? cancelableFetch<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`)
+        ? cancelableFetch<JobData>(`/catch/api-proxy/api/jobs/${jobUuid}`)
         : null,
     ]);
 

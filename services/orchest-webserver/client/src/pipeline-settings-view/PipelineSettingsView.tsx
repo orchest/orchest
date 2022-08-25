@@ -1,3 +1,5 @@
+import { pipelineJsonApi } from "@/api/pipelines/pipelineJsonApi";
+import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
 import { IconButton } from "@/components/common/IconButton";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import {
@@ -48,7 +50,7 @@ import {
   AlertHeader,
   Link,
 } from "@orchest/design-system";
-import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { generatePipelineJsonForSaving, instantiateNewService } from "./common";
 import { GenerateParametersDialog } from "./GenerateParametersDialog";
@@ -271,7 +273,7 @@ export const PipelineSettingsView: React.FC = () => {
   };
 
   const saveGeneralForm = async () => {
-    if (!pipelineUuid || !pipelineJson) return;
+    if (!projectUuid || !pipelineUuid || !pipelineJson) return;
     // do not mutate the original pipelineJson
     // put all mutations together for saving
     const updatedPipelineJson = generatePipelineJsonForSaving({
@@ -313,29 +315,15 @@ export const PipelineSettingsView: React.FC = () => {
       }
     }
 
-    let formData = new FormData();
-    formData.append("pipeline_json", JSON.stringify(updatedPipelineJson));
-
     const [pipelineJsonChanges, pipelineChanges] = await Promise.allSettled([
-      fetcher<{ success: boolean; reason?: string; message?: string }>(
-        `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-        { method: "POST", body: formData }
-      ),
-
-      fetcher<{ success: boolean; reason?: string; message?: string }>(
-        `/async/pipelines/${projectUuid}/${pipelineUuid}`,
-        {
-          method: "PUT",
-          headers: HEADER.JSON,
-          body: JSON.stringify({
-            // `env_variables` can be saved anytime, but
-            // `path` cannot be changed when there is an active session
-            // JSON.strigify will remove the `undefined` value, so path won't be saved as undefined
-            env_variables: envVariablesObj.value,
-            path: !session ? pipelinePath : undefined,
-          }),
-        }
-      ),
+      pipelineJsonApi.put(projectUuid, pipelineUuid, updatedPipelineJson),
+      pipelinesApi.put(projectUuid, pipelineUuid, {
+        // `env_variables` can be saved anytime, but
+        // `path` cannot be changed when there is an active session
+        // JSON.strigify will remove the `undefined` value, so path won't be saved as undefined
+        env_variables: envVariablesObj.value,
+        path: !session ? pipelinePath : undefined,
+      }),
     ]);
 
     const errorMessages = [

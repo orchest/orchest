@@ -15,7 +15,6 @@ export const usePipelineSettings = ({
 }: UseFetchPipelineSettingsParams) => {
   const {
     pipelineJson,
-    setPipelineJson,
     job,
     pipelineRun,
     pipeline,
@@ -80,7 +79,6 @@ export const usePipelineSettings = ({
     settings,
     setSettings,
     pipelineJson,
-    setPipelineJson,
     pipelineParameters,
     setPipelineParameters,
   };

@@ -1,9 +1,10 @@
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { FileTree } from "@/types";
+import { queryArgs } from "@/utils/text";
 import React from "react";
 import { treeRoots } from "../common";
 import type { FileTrees } from "./common";
-import { FILE_MANAGEMENT_ENDPOINT, queryArgs } from "./common";
+import { FILE_MANAGEMENT_ENDPOINT } from "./common";
 
 type DragFile = {
   labelText: string;

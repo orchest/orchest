@@ -1,7 +1,7 @@
+import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
 import { IconButton } from "@/components/common/IconButton";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { fetcher } from "@/utils/fetcher";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cspell:disable-line
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -12,12 +12,6 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-
-const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
-  return fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
-    method: "DELETE",
-  });
-};
 
 export const PipelineMoreOptionsMenu = () => {
   const { setConfirm } = useGlobalContext();
@@ -43,7 +37,7 @@ export const PipelineMoreOptionsMenu = () => {
       {
         onConfirm: async (resolve) => {
           // TODO: Freeze PipelineEditor until the delete operation is done.
-          await deletePipeline(projectUuid, pipeline.uuid);
+          await pipelinesApi.delete(projectUuid, pipeline.uuid);
           dispatch((current) => {
             return {
               type: "SET_PIPELINES",

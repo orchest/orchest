@@ -1,12 +1,11 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { Job, PipelineJson, PipelineMetaData } from "@/types";
+import { JobData, PipelineJson, PipelineMetaData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
@@ -22,11 +21,10 @@ export type PipelineDataContextType = {
   setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   isReadOnly: boolean;
   pipelineJson?: PipelineJson;
-  setPipelineJson: StateDispatcher<PipelineJson>;
   isFetchingPipelineJson: boolean;
   isJobRun: boolean;
   pipeline?: PipelineMetaData;
-  job?: Job;
+  job?: JobData;
 };
 
 export const PipelineDataContext = React.createContext<PipelineDataContextType>(
@@ -68,12 +66,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
 
   const isReadOnly = Boolean(pipelineReadOnlyReason);
 
-  const {
-    pipelineJson,
-    setPipelineJson,
-    isFetchingPipelineJson,
-    error,
-  } = useFetchPipelineJson({
+  const { pipelineJson, isFetchingPipelineJson, error } = useFetchPipelineJson({
     // This `projectUuid` cannot be from route. It has to be from ProjectsContext, aligned with `pipeline?.uuid`.
     // Otherwise, when user switch to another project, pipeline?.uuid does not exist.
     projectUuid,
@@ -124,7 +117,6 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         setRunUuid,
         isReadOnly,
         pipelineJson,
-        setPipelineJson,
         isFetchingPipelineJson,
         isJobRun,
         job,

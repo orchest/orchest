@@ -1,7 +1,8 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { queryArgs } from "@/utils/text";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { FILE_MANAGEMENT_ENDPOINT, queryArgs, ROOT_SEPARATOR } from "./common";
+import { FILE_MANAGEMENT_ENDPOINT, ROOT_SEPARATOR } from "./common";
 
 /**
  * Creates a file and returns the absolute path of it.
