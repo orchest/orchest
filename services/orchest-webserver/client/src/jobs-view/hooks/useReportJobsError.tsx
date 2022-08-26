@@ -5,7 +5,8 @@ import React from "react";
 export const useReportJobsError = (heading = "") => {
   const { setAlert } = useGlobalContext();
 
-  const { error, clearError } = useJobsApi();
+  const error = useJobsApi((state) => state.error);
+  const clearError = useJobsApi((state) => state.clearError);
 
   React.useEffect(() => {
     if (error) {

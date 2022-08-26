@@ -11,8 +11,8 @@ import { useAutoSaveJob } from "./useAutoSaveJob";
  * Note: should only be used once in a view.
  */
 export const useSaveJobChanges = () => {
-  const { put } = useJobsApi();
-  const { jobChanges } = useEditJob();
+  const put = useJobsApi((state) => state.put);
+  const jobChanges = useEditJob((state) => state.jobChanges);
 
   const save = React.useCallback(() => {
     const isDraft = jobChanges?.status === "DRAFT";

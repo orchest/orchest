@@ -16,7 +16,7 @@ export const EditJobContainer = ({ children }: EditJobContainerProps) => {
   useSaveJobChanges();
   useUpdateStatusInJobChanges();
 
-  const { jobs } = useJobsApi();
+  const jobs = useJobsApi((state) => state.jobs);
   const hasNoJob = jobs?.length === 0;
 
   return hasNoJob ? (

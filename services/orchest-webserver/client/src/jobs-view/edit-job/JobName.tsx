@@ -4,9 +4,9 @@ import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 
 export const JobName = () => {
-  const { jobChanges } = useEditJob();
+  const name = useEditJob((state) => state.jobChanges?.name || "");
 
-  const isNameEmpty = jobChanges?.name.trim().length === 0;
+  const isNameEmpty = name.trim().length === 0;
 
   return (
     <Typography
@@ -18,7 +18,7 @@ export const JobName = () => {
           isNameEmpty ? theme.palette.action.active : "inherent",
       }}
     >
-      {isNameEmpty ? "(Unnamed)" : jobChanges?.name}
+      {isNameEmpty ? "(Unnamed)" : name}
     </Typography>
   );
 };

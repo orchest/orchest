@@ -9,7 +9,11 @@ import { JobPrimaryActionMenu } from "./JobPrimaryActionMenu";
 import { JobPrimaryButtonIcon } from "./JobPrimaryButtonIcon";
 
 export const JobPrimaryButton = () => {
-  const { jobChanges } = useEditJob();
+  const hasStarted = useEditJob(
+    (state) =>
+      state.jobChanges?.status === "STARTED" ||
+      state.jobChanges?.status === "PENDING"
+  );
   const [buttonLabel, mainAction, iconType] = useJobPrimaryButtonActions();
 
   const buttonRef = React.useRef<HTMLDivElement>(null);
@@ -18,9 +22,6 @@ export const JobPrimaryButton = () => {
   const closeMenu = () => setAnchor(undefined);
 
   const { withThrottle } = useThrottle();
-
-  const hasStarted =
-    jobChanges?.status === "STARTED" || jobChanges?.status === "PENDING";
 
   // Prevent the unintentional second click.
   const handleClick = mainAction ? withThrottle(mainAction) : undefined;

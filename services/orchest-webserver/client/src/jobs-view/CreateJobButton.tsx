@@ -34,7 +34,7 @@ export const CreateJobButton = ({
   ...props
 }: CreateJobButtonProps) => {
   const { projectUuid } = useCustomRoute();
-  const { initJobChanges } = useEditJob();
+  const initJobChanges = useEditJob((state) => state.initJobChanges);
 
   const pipeline = useGetValidPipeline();
   const { createJob, isAllowedToCreateJob } = useCreateJob(pipeline);
