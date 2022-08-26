@@ -17,7 +17,7 @@ export const useSyncEnvironmentUuidWithQueryArgs = () => {
     navigateTo,
   } = useCustomRoute();
   const { environmentUuid, setEnvironmentUuid } = useSelectEnvironmentUuid();
-  const { environments } = useEnvironmentsApi();
+  const environments = useEnvironmentsApi((state) => state.environments);
 
   const targetEnvironmentUuid = React.useMemo(() => {
     const foundEnvironment =
@@ -62,7 +62,9 @@ export const useSyncEnvironmentUuidWithQueryArgs = () => {
       : undefined;
   }, [environments, environmentUuid]);
 
-  const { initEnvironmentChanges } = useEditEnvironment();
+  const initEnvironmentChanges = useEditEnvironment(
+    (state) => state.initEnvironmentChanges
+  );
 
   React.useEffect(() => {
     if (environmentChanges) initEnvironmentChanges(environmentChanges);

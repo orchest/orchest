@@ -37,7 +37,8 @@ const getInactiveEnvironmentsMessage = (
 
 const usePollBuildStatus = () => {
   const { runUuid } = useCustomRoute();
-  const { validate, status } = useEnvironmentsApi();
+  const validate = useEnvironmentsApi((state) => state.validate);
+  const status = useEnvironmentsApi((state) => state.status);
 
   const isJobRun = hasValue(runUuid);
   const {
@@ -87,7 +88,11 @@ export const useBuildEnvironmentImages = () => {
     dispatch,
   } = useProjectsContext();
 
-  const { validate, environmentsToBeBuilt, status } = useEnvironmentsApi();
+  const validate = useEnvironmentsApi((state) => state.validate);
+  const status = useEnvironmentsApi((state) => state.status);
+  const environmentsToBeBuilt = useEnvironmentsApi(
+    (state) => state.environmentsToBeBuilt
+  );
 
   const cancel = React.useCallback(() => {
     buildRequest?.onCancel();

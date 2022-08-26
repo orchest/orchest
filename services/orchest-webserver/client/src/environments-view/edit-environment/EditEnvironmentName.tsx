@@ -6,18 +6,26 @@ import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 export const EditEnvironmentName = () => {
   const { environmentUuid } = useCustomRoute();
-  const { environmentChanges, setEnvironmentChanges } = useEditEnvironment();
+
+  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const name = useEditEnvironment((state) => state.environmentChanges?.name);
+  const latestBuild = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild
+  );
+  const setEnvironmentChanges = useEditEnvironment(
+    (state) => state.setEnvironmentChanges
+  );
+
   const [value = "", setValue] = React.useState<string>();
   const [hasEdited, setHasEdited] = React.useState(false);
 
-  const isEnvironmentLoaded =
-    environmentUuid && environmentUuid === environmentChanges?.uuid;
+  const isEnvironmentLoaded = environmentUuid && environmentUuid === uuid;
 
   React.useEffect(() => {
-    if (isEnvironmentLoaded && environmentChanges?.name) {
-      setValue(environmentChanges?.name);
+    if (isEnvironmentLoaded && name) {
+      setValue(name);
     }
-  }, [environmentChanges?.name, isEnvironmentLoaded, environmentUuid]);
+  }, [name, isEnvironmentLoaded, environmentUuid]);
 
   const isInvalid = hasEdited && value.trim().length === 0;
 
@@ -38,7 +46,7 @@ export const EditEnvironmentName = () => {
       error={isInvalid}
       helperText={isInvalid ? "Environment name cannot be blank" : " "}
       label="Environment name"
-      disabled={isEnvironmentBuilding(environmentChanges?.latestBuild)}
+      disabled={isEnvironmentBuilding(latestBuild)}
       sx={{ width: { xs: "100%", lg: "50%" } }}
     />
   );

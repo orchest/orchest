@@ -24,8 +24,10 @@ const alertMessageMapping: Record<
 };
 
 export const BuildStatusAlert = () => {
-  const { environmentChanges } = useEditEnvironment();
-  const latestBuildStatus = environmentChanges?.latestBuild?.status;
+  const latestBuild = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild
+  );
+  const latestBuildStatus = latestBuild?.status;
 
   const alert = alertMessageMapping[latestBuildStatus || ""];
   return (
@@ -33,9 +35,7 @@ export const BuildStatusAlert = () => {
       {hasValue(alert) && (
         <Alert
           severity={alert.severity}
-          icon={
-            <BuildStatusIcon latestBuild={environmentChanges?.latestBuild} />
-          }
+          icon={<BuildStatusIcon latestBuild={latestBuild} />}
         >
           {alert.message}
         </Alert>

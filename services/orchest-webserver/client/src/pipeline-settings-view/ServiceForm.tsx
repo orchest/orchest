@@ -65,7 +65,9 @@ const ServiceForm: React.FC<{
   const { projectUuid, pipelineUuid, runUuid } = useCustomRoute();
   const environmentPrefix = "environment@";
 
-  const { environments: environmentOptions = [] } = useEnvironmentsApi();
+  const environmentOptions = useEnvironmentsApi(
+    (state) => state.environments || []
+  );
 
   let [showImageDialog, setShowImageDialog] = React.useState(false);
   let [editImageName, setEditImageName] = React.useState(

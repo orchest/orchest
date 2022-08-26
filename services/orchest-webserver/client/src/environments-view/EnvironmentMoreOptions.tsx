@@ -27,17 +27,17 @@ const getNextEnvironmentUuid = (
 
 export const EnvironmentMoreOptions = () => {
   const { setConfirm } = useGlobalContext();
-  const { environmentChanges } = useEditEnvironment();
+  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const name = useEditEnvironment((state) => state.environmentChanges?.name);
+  const action = useEditEnvironment(
+    (state) => state.environmentChanges?.action
+  );
+
   const { selectEnvironment } = useSelectEnvironment();
-  const [
-    deleteEnvironment,
-    isDeleting,
-    environments = [],
-  ] = useEnvironmentsApi((state) => [
-    state.delete,
-    state.isDeleting,
-    state.environments,
-  ]);
+
+  const deleteEnvironment = useEnvironmentsApi((state) => state.delete);
+  const isDeleting = useEnvironmentsApi((state) => state.isDeleting);
+  const environments = useEnvironmentsApi((state) => state.environments);
 
   const [anchorElement, setAnchorElement] = React.useState<
     Element | undefined
@@ -48,18 +48,18 @@ export const EnvironmentMoreOptions = () => {
 
   const showDeleteEnvironmentDialog = () => {
     handleClose();
-    if (!environmentChanges) return;
+    if (!name || !uuid) return;
     setConfirm(
-      `Delete "${environmentChanges.name}"`,
+      `Delete "${name}"`,
       "Are you sure you want to delete this Environment?",
       {
         onConfirm: (resolve) => {
           const nextEnvironmentUuid = getNextEnvironmentUuid(
-            environments,
-            environmentChanges.uuid
+            environments || [],
+            uuid
           );
 
-          deleteEnvironment(environmentChanges).then(() => {
+          deleteEnvironment(uuid, action).then(() => {
             selectEnvironment(nextEnvironmentUuid);
             resolve(true);
           });
@@ -96,7 +96,7 @@ export const EnvironmentMoreOptions = () => {
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <MenuItem
-          disabled={!hasValue(environmentChanges) || isDeleting}
+          disabled={!uuid || isDeleting}
           onClick={showDeleteEnvironmentDialog}
         >
           <ListItemIcon>

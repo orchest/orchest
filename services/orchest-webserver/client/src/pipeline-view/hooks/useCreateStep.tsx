@@ -24,7 +24,7 @@ const relativeToPipeline = (pipelinePath?: string, path?: string) =>
 export type StepCreator = (filePath?: string) => void;
 
 export const useCreateStep = (): StepCreator => {
-  const { environments = [] } = useEnvironmentsApi();
+  const environments = useEnvironmentsApi((state) => state.environments || []);
   const { pipelineCwd } = usePipelineDataContext();
   const { uiStateDispatch } = usePipelineUiStateContext();
   const { pipelineViewportRef } = usePipelineRefs();

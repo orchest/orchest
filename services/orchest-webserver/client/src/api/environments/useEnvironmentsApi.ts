@@ -1,5 +1,6 @@
 import { environmentsApi } from "@/api/environments/environmentsApi";
 import {
+  EnvironmentAction,
   EnvironmentData,
   EnvironmentImageBuild,
   EnvironmentSpec,
@@ -32,7 +33,7 @@ export type EnvironmentsApi = {
     payload: Partial<EnvironmentData>
   ) => Promise<EnvironmentData | undefined>;
   isDeleting: boolean;
-  delete: (environmentChanges: EnvironmentState) => Promise<void>;
+  delete: (uuid: string, action?: EnvironmentAction) => Promise<void>;
   buildingEnvironments: string[];
   environmentsToBeBuilt: string[];
   validate: () => Promise<
@@ -184,30 +185,28 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
       }
     },
     isDeleting: false,
-    delete: async (environmentChanges) => {
+    delete: async (uuid, action) => {
       try {
         const projectUuid = getProjectUuid();
         set({ isDeleting: true, error: undefined });
-        await environmentsApi.delete(projectUuid, environmentChanges.uuid);
+        await environmentsApi.delete(projectUuid, uuid);
         set((state) => {
           const filteredEnvironments = state.environments?.filter(
-            (environment) => environment.uuid !== environmentChanges.uuid
+            (environment) => environment.uuid !== uuid
           );
 
           const environmentsToBeBuilt = ["BUILD", "RETRY"].includes(
-            environmentChanges.action || ""
+            action || ""
           )
             ? state.environmentsToBeBuilt.filter(
-                (toBuildEnvironmentUuid) =>
-                  toBuildEnvironmentUuid !== environmentChanges.uuid
+                (toBuildEnvironmentUuid) => toBuildEnvironmentUuid !== uuid
               )
             : state.environmentsToBeBuilt;
 
           const buildingEnvironments =
-            environmentChanges.action === "WAIT"
+            action === "WAIT"
               ? state.buildingEnvironments.filter(
-                  (toBuildEnvironmentUuid) =>
-                    toBuildEnvironmentUuid !== environmentChanges.uuid
+                  (toBuildEnvironmentUuid) => toBuildEnvironmentUuid !== uuid
                 )
               : state.buildingEnvironments;
 

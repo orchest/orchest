@@ -7,7 +7,9 @@ import { getNewEnvironmentName } from "../common";
 export const useCreateEnvironment = () => {
   const { config } = useGlobalContext();
 
-  const { environments, post, isPosting } = useEnvironmentsApi();
+  const environments = useEnvironmentsApi((state) => state.environments);
+  const post = useEnvironmentsApi((state) => state.post);
+  const isPosting = useEnvironmentsApi((state) => state.isPosting);
 
   const defaultEnvironment = config?.ENVIRONMENT_DEFAULTS;
   const newEnvironmentName = getNewEnvironmentName(

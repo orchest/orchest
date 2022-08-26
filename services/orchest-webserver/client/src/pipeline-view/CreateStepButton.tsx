@@ -13,7 +13,8 @@ import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 
 export const CreateStepButton = () => {
   const { setAlert } = useGlobalContext();
-  const { environments = [] } = useEnvironmentsApi();
+  const environments = useEnvironmentsApi((state) => state.environments || []);
+
   const {
     state: { pipelineReadOnlyReason },
   } = useProjectsContext();

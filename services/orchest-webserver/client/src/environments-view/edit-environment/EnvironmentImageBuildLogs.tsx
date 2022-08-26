@@ -1,3 +1,4 @@
+import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
 import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -9,17 +10,23 @@ import React from "react";
 import { useBuildEnvironmentImage } from "../hooks/useBuildEnvironmentImage";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 import {
-  EnvironmentsAccordion,
-  EnvironmentsAccordionDetails,
-  EnvironmentsAccordionSummary,
-} from "./components/EnvironmentsAccordion";
-import { useEnvironmentsUiStateStore } from "./stores/useEnvironmentsUiStateStore";
+  EnvironmentAccordion,
+  useEnvironmentAccordions,
+} from "./components/EnvironmentAccordion";
 
 export const EnvironmentImageBuildLogs = () => {
   const { projectUuid, environmentUuid } = useCustomRoute();
   const { config } = useGlobalContext();
-  const { isLogsOpen, setIsLogsOpen } = useEnvironmentsUiStateStore();
-  const { environmentChanges } = useEditEnvironment();
+  const { isLogsOpen, setIsLogsOpen } = useEnvironmentAccordions();
+
+  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const latestBuild = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild
+  );
+  const environmentChangesProjectUuid = useEditEnvironment(
+    (state) => state.environmentChanges?.project_uuid
+  );
+
   const [, , isTriggeringBuild] = useBuildEnvironmentImage();
 
   const handleChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -31,32 +38,32 @@ export const EnvironmentImageBuildLogs = () => {
       ? `${projectUuid}-${environmentUuid}`
       : undefined;
 
-  const streamIdentityFromStore = `${environmentChanges?.project_uuid}-${environmentChanges?.uuid}`;
+  const streamIdentityFromStore = `${environmentChangesProjectUuid}-${uuid}`;
 
   const ignoreIncomingLogs =
     isTriggeringBuild || streamIdentity !== streamIdentityFromStore;
 
   return (
-    <EnvironmentsAccordion expanded={isLogsOpen} onChange={handleChange}>
-      <EnvironmentsAccordionSummary
+    <EnvironmentAccordion expanded={isLogsOpen} onChange={handleChange}>
+      <AccordionSummary
         aria-controls="environment-build-logs"
         id="environment-build-logs-header"
       >
         <Typography component="h5" variant="h6">
           Logs
         </Typography>
-      </EnvironmentsAccordionSummary>
-      <EnvironmentsAccordionDetails>
+      </AccordionSummary>
+      <AccordionDetails>
         <ImageBuildLog
           ignoreIncomingLogs={ignoreIncomingLogs}
           hideDefaultStatus
-          build={environmentChanges?.latestBuild}
+          build={latestBuild}
           socketIONamespace={
             config?.ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE
           }
           streamIdentity={streamIdentity}
         />
-      </EnvironmentsAccordionDetails>
-    </EnvironmentsAccordion>
+      </AccordionDetails>
+    </EnvironmentAccordion>
   );
 };

@@ -19,8 +19,9 @@ export const EditEnvironmentContainer = ({
   useSaveEnvironmentChanges();
   useUpdateBuildStatusInEnvironmentChanges();
 
-  const { environments } = useEnvironmentsApi();
-  const hasNoEnvironment = environments?.length === 0;
+  const hasNoEnvironment = useEnvironmentsApi(
+    (state) => state.environments?.length === 0
+  );
 
   return hasNoEnvironment ? (
     <NoEnvironment />

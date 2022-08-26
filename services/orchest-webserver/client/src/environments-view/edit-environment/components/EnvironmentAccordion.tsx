@@ -1,6 +1,9 @@
+import { Accordion } from "@/components/Accordion";
+import { AccordionProps } from "@mui/material/Accordion";
+import React from "react";
 import create from "zustand";
 
-type EnvironmentsUiState = {
+type EnvironmentAccordions = {
   isPropertiesOpen: boolean;
   isSetupScriptOpen: boolean;
   isLogsOpen: boolean;
@@ -10,7 +13,7 @@ type EnvironmentsUiState = {
   reset: () => void;
 };
 
-export const useEnvironmentsUiStateStore = create<EnvironmentsUiState>(
+export const useEnvironmentAccordions = create<EnvironmentAccordions>(
   (set) => ({
     isPropertiesOpen: true,
     isSetupScriptOpen: true,
@@ -26,3 +29,12 @@ export const useEnvironmentsUiStateStore = create<EnvironmentsUiState>(
       }),
   })
 );
+
+export const EnvironmentAccordion = (props: AccordionProps) => {
+  const { reset } = useEnvironmentAccordions();
+  React.useEffect(() => {
+    return () => reset();
+  }, [reset]);
+
+  return <Accordion {...props} />;
+};
