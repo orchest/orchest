@@ -3,16 +3,24 @@ import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { JobChanges } from "@/types";
 import React from "react";
 
-export const useLoadValueFromJobChanges = (
-  loadValue: (jobChanges: JobChanges | undefined) => void
+export const useLoadValueFromJobChanges = <T,>(
+  selector: (jobChanges: JobChanges | undefined) => T,
+  loadValue: (value: T) => void
 ) => {
+  const selectorRef = React.useRef(selector);
   const loadValueRef = React.useRef(loadValue);
   const { jobUuid } = useCustomRoute();
-  const { jobChanges } = useEditJob();
+  const value = useEditJob((state) => selectorRef.current(state.jobChanges));
+  const isJobLoaded = useEditJob(
+    (state) => jobUuid && jobUuid === state.jobChanges?.uuid
+  );
 
-  const isJobLoaded = jobUuid && jobUuid === jobChanges?.uuid;
+  const hasLoaded = React.useRef(false);
 
   React.useEffect(() => {
-    if (isJobLoaded) loadValueRef.current(jobChanges);
-  }, [jobChanges, isJobLoaded]);
+    if (!hasLoaded.current && isJobLoaded) {
+      hasLoaded.current = true;
+      loadValueRef.current(value);
+    }
+  }, [value, isJobLoaded]);
 };

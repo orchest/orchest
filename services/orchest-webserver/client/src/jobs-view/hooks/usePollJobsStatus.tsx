@@ -6,8 +6,10 @@ import { hasValue } from "@orchest/lib-utils";
  * Fetches the status of the jobs by polling.
  */
 export const usePollJobsStatus = () => {
-  const { projectUuid, jobs, updateStatus } = useJobsApi();
-  const isStoreLoaded = hasValue(projectUuid) && hasValue(jobs);
+  const isStoreLoaded = useJobsApi(
+    (state) => hasValue(state.projectUuid) && hasValue(state.jobs)
+  );
+  const updateStatus = useJobsApi((state) => state.updateStatus);
 
   useInterval(updateStatus, !isStoreLoaded ? undefined : 1000);
 };

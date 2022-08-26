@@ -7,12 +7,13 @@ import { useEditJob } from "../stores/useEditJob";
  * Note: should only be used once in a view.
  */
 export const useUpdateStatusInJobChanges = () => {
-  const { jobs } = useJobsApi();
-  const { jobChanges, setJobChanges } = useEditJob();
+  const jobs = useJobsApi((state) => state.jobs);
+  const setJobChanges = useEditJob((state) => state.setJobChanges);
+  const uuid = useEditJob((state) => state.jobChanges?.uuid);
 
   const jobChangesFromStore = React.useMemo(
-    () => jobs?.find((env) => env.uuid === jobChanges?.uuid),
-    [jobs, jobChanges?.uuid]
+    () => jobs?.find((env) => env.uuid === uuid),
+    [jobs, uuid]
   );
 
   React.useEffect(() => {

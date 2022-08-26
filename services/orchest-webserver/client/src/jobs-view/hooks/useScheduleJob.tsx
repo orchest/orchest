@@ -9,8 +9,8 @@ import { useEditJob } from "../stores/useEditJob";
  * Submit a draft job.
  */
 export const useScheduleJob = () => {
-  const { put } = useJobsApi();
-  const { jobChanges } = useEditJob();
+  const put = useJobsApi((state) => state.put);
+  const jobChanges = useEditJob((state) => state.jobChanges);
 
   const scheduleJob = React.useCallback(async () => {
     const isDraftJob = hasValue(jobChanges) && jobChanges.status === "DRAFT";

@@ -20,7 +20,11 @@ export const JobPrimaryActionMenu = ({
   anchor,
   onClose,
 }: PrimaryPipelineActionMenuProps) => {
-  const { jobChanges } = useEditJob();
+  const status = useEditJob((state) => state.jobChanges?.status);
+  const schedule = useEditJob((state) => state.jobChanges?.schedule);
+  const nextScheduledTime = useEditJob(
+    (state) => state.jobChanges?.next_scheduled_time
+  );
   const {
     scheduleJob,
     resumeJob,
@@ -30,28 +34,18 @@ export const JobPrimaryActionMenu = ({
     triggerJobNow,
   } = useJobActions();
 
-  const isSubmitted = jobChanges?.status !== "DRAFT";
-
-  const isCronJob = hasValue(jobChanges?.schedule);
-
-  const isOneOffJob =
-    !jobChanges?.schedule && hasValue(jobChanges?.next_scheduled_time);
-
+  const isSubmitted = status !== "DRAFT";
+  const isCronJob = hasValue(schedule);
+  const isOneOffJob = !schedule && hasValue(nextScheduledTime);
   const isScheduledJob = isCronJob || isOneOffJob;
 
   const isAllowedToTriggerScheduledRuns =
-    (isCronJob && ["PAUSED", "STARTED"].includes(jobChanges?.status || "")) ||
-    (isOneOffJob && jobChanges?.status === "PENDING");
+    (isCronJob && ["PAUSED", "STARTED"].includes(status || "")) ||
+    (isOneOffJob && status === "PENDING");
 
-  const shouldRunNow =
-    !hasValue(jobChanges?.schedule) &&
-    !hasValue(jobChanges?.next_scheduled_time);
-
-  const isRunning = ["PAUSED", "STARTED", "PENDING"].includes(
-    jobChanges?.status || ""
-  );
-
-  const hasPaused = jobChanges?.status === "PAUSED";
+  const shouldRunNow = !hasValue(schedule) && !hasValue(nextScheduledTime);
+  const isRunning = ["PAUSED", "STARTED", "PENDING"].includes(status || "");
+  const hasPaused = status === "PAUSED";
 
   const operationOptions = React.useMemo<
     {

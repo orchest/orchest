@@ -12,11 +12,13 @@ export const EditJobPipeline = () => {
   const {
     state: { pipelines },
   } = useProjectsContext();
-  const { jobChanges, setJobChanges } = useEditJob();
+  const setJobChanges = useEditJob((state) => state.setJobChanges);
+  const disabled = useEditJob((state) => state.jobChanges?.status !== "DRAFT");
   const [value = "", setValue] = React.useState<string>();
 
-  useLoadValueFromJobChanges((valueFromStore) =>
-    setValue(valueFromStore?.pipeline_uuid || "")
+  useLoadValueFromJobChanges(
+    (jobChanges) => jobChanges?.pipeline_uuid,
+    setValue
   );
 
   const handleChange = (event: SelectChangeEvent) => {
@@ -24,8 +26,6 @@ export const EditJobPipeline = () => {
     setValue(value);
     setJobChanges({ pipeline_uuid: value });
   };
-
-  const disabled = jobChanges?.status !== "DRAFT";
 
   return hasValue(pipelines) ? (
     <FormControl

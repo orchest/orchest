@@ -12,24 +12,24 @@ export const useJobPrimaryButtonActions = () => {
     cancelJob,
     duplicateJob,
   } = useJobActions();
-  const { jobChanges } = useEditJob();
 
-  const hasStarted =
-    jobChanges?.status === "STARTED" || jobChanges?.status === "PENDING";
+  const status = useEditJob((state) => state.jobChanges?.status);
+  const schedule = useEditJob((state) => state.jobChanges?.schedule);
+  const nextScheduledTime = useEditJob(
+    (state) => state.jobChanges?.next_scheduled_time
+  );
+
+  const hasStarted = status === "STARTED" || status === "PENDING";
 
   const [buttonLabel, mainAction, iconType] = React.useMemo<
     [string, () => void, JobPrimaryButtonIconType]
   >(() => {
-    const isScheduledJob =
-      hasValue(jobChanges?.schedule) ||
-      hasValue(jobChanges?.next_scheduled_time);
+    const isScheduledJob = hasValue(schedule) || hasValue(nextScheduledTime);
 
-    const hasPaused = jobChanges?.status === "PAUSED";
+    const hasPaused = status === "PAUSED";
 
-    if (jobChanges?.status === "DRAFT") {
-      const shouldRunNow =
-        !hasValue(jobChanges?.schedule) &&
-        !hasValue(jobChanges?.next_scheduled_time);
+    if (status === "DRAFT") {
+      const shouldRunNow = !hasValue(schedule) && !hasValue(nextScheduledTime);
 
       if (shouldRunNow) return ["Run job", scheduleJob, "run"];
       return ["Schedule job", scheduleJob, "schedule"];
@@ -47,9 +47,9 @@ export const useJobPrimaryButtonActions = () => {
 
     return ["Copy job configuration", duplicateJob, "duplicate"];
   }, [
-    jobChanges?.next_scheduled_time,
-    jobChanges?.schedule,
-    jobChanges?.status,
+    nextScheduledTime,
+    schedule,
+    status,
     hasStarted,
     scheduleJob,
     resumeJob,

@@ -1,7 +1,6 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { JobChanges } from "@/types";
 import React from "react";
 import { pickJobChanges } from "../common";
 import { useEditJob } from "../stores/useEditJob";
@@ -16,11 +15,10 @@ export const useSyncJobUuidWithQueryArgs = () => {
     jobUuid: jobUuidFromRoute,
     navigateTo,
   } = useCustomRoute();
-  const [jobChanges, initJobChanges] = useEditJob((state) => [
-    state.jobChanges,
-    state.initJobChanges,
-  ]);
-  const { jobs } = useJobsApi();
+
+  const uuid = useEditJob((state) => state.jobChanges?.uuid);
+  const initJobChanges = useEditJob((state) => state.initJobChanges);
+  const jobs = useJobsApi((state) => state.jobs);
 
   const targetJob = React.useMemo(() => {
     const foundJob =
@@ -30,9 +28,9 @@ export const useSyncJobUuidWithQueryArgs = () => {
   }, [jobs, jobUuidFromRoute]);
 
   const redirect = React.useCallback(
-    (job: JobChanges) => {
+    (jobUuid: string) => {
       navigateTo(siteMap.jobs.path, {
-        query: { projectUuid, jobUuid: job.uuid },
+        query: { projectUuid, jobUuid },
       });
     },
     [navigateTo, projectUuid]
@@ -41,12 +39,11 @@ export const useSyncJobUuidWithQueryArgs = () => {
   const isJobUuidFromRouteInvalid =
     targetJob && targetJob.uuid !== jobUuidFromRoute;
 
-  const shouldUpdateJobChanges =
-    targetJob && jobChanges?.uuid !== targetJob.uuid;
+  const shouldUpdateJobChanges = targetJob && uuid !== targetJob.uuid;
 
   React.useEffect(() => {
     if (isJobUuidFromRouteInvalid) {
-      redirect(targetJob);
+      redirect(targetJob.uuid);
     } else if (shouldUpdateJobChanges) {
       initJobChanges(pickJobChanges(targetJob));
     }

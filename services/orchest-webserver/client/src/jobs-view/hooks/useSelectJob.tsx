@@ -9,7 +9,7 @@ export const useSelectJob = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
 
   const selectJob = React.useCallback(
-    (pipelineUuid: string, jobUuid: string) => {
+    (jobUuid: string) => {
       if (projectUuid) {
         navigateTo(siteMap.jobs.path, {
           query: { projectUuid, jobUuid },

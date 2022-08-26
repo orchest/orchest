@@ -22,7 +22,8 @@ const getNextJob = (jobs: JobData[], jobUuid: string) => {
 
 export const JobMoreOptions = () => {
   const { setConfirm } = useGlobalContext();
-  const { jobChanges } = useEditJob();
+  const name = useEditJob((state) => state.jobChanges?.name);
+  const uuid = useEditJob((state) => state.jobChanges?.uuid);
   const { selectJob } = useSelectJob();
   const [deleteJob, isDeleting, jobs = []] = useJobsApi((state) => [
     state.delete,
@@ -37,18 +38,20 @@ export const JobMoreOptions = () => {
   const handleClose = () => setAnchorElement(undefined);
   const handleOpen = (e: React.MouseEvent) => setAnchorElement(e.currentTarget);
 
+  const isJobChangesLoaded = hasValue(uuid) && hasValue(name);
+
   const showDeleteEnvironmentDialog = () => {
     handleClose();
-    if (!jobChanges) return;
+    if (!isJobChangesLoaded) return;
     setConfirm(
-      `Delete "${jobChanges.name}"`,
+      `Delete "${name}"`,
       "Are you sure you want to delete this Job?",
       {
         onConfirm: (resolve) => {
-          const nextJob = getNextJob(jobs, jobChanges.uuid);
+          const nextJob = getNextJob(jobs, uuid);
 
-          deleteJob(jobChanges.uuid).then(() => {
-            selectJob(nextJob.pipeline_uuid, nextJob.uuid);
+          deleteJob(uuid).then(() => {
+            selectJob(nextJob.uuid);
             resolve(true);
           });
 
@@ -84,7 +87,7 @@ export const JobMoreOptions = () => {
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <MenuItem
-          disabled={!hasValue(jobChanges) || isDeleting}
+          disabled={!isJobChangesLoaded || isDeleting}
           onClick={showDeleteEnvironmentDialog}
         >
           <ListItemIcon>

@@ -4,13 +4,11 @@ import { useEditJob } from "../stores/useEditJob";
 import { useLoadValueFromJobChanges } from "./hooks/useLoadValueFromJobChanges";
 
 export const EditJobName = () => {
-  const { setJobChanges } = useEditJob();
+  const setJobChanges = useEditJob((state) => state.setJobChanges);
   const [value = "", setValue] = React.useState<string>();
   const [hasEdited, setHasEdited] = React.useState(false);
 
-  useLoadValueFromJobChanges((valueFromStore) =>
-    setValue(valueFromStore?.name || "")
-  );
+  useLoadValueFromJobChanges((jobChanges) => jobChanges?.name, setValue);
 
   const isInvalid = hasEdited && value.trim().length === 0;
 

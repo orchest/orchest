@@ -5,40 +5,40 @@ import { useScheduleJob } from "../../hooks/useScheduleJob";
 import { useEditJob } from "../../stores/useEditJob";
 
 export const useJobActions = () => {
-  const { jobChanges } = useEditJob();
+  const uuid = useEditJob((state) => state.jobChanges?.uuid);
   const scheduleJob = useScheduleJob();
   const { selectJob } = useSelectJob();
 
-  const {
-    resumeCronJob,
-    pauseCronJob,
-    cancel,
-    duplicate,
-    triggerScheduledRuns,
-  } = useJobsApi();
+  const resumeCronJob = useJobsApi((state) => state.resumeCronJob);
+  const pauseCronJob = useJobsApi((state) => state.pauseCronJob);
+  const cancel = useJobsApi((state) => state.cancel);
+  const duplicate = useJobsApi((state) => state.duplicate);
+  const triggerScheduledRuns = useJobsApi(
+    (state) => state.triggerScheduledRuns
+  );
 
   const pauseJob = React.useCallback(() => {
-    if (jobChanges?.uuid) pauseCronJob(jobChanges.uuid);
-  }, [pauseCronJob, jobChanges?.uuid]);
+    if (uuid) pauseCronJob(uuid);
+  }, [pauseCronJob, uuid]);
 
   const resumeJob = React.useCallback(() => {
-    if (jobChanges?.uuid) resumeCronJob(jobChanges.uuid);
-  }, [resumeCronJob, jobChanges?.uuid]);
+    if (uuid) resumeCronJob(uuid);
+  }, [resumeCronJob, uuid]);
 
   const cancelJob = React.useCallback(() => {
-    if (jobChanges?.uuid) cancel(jobChanges.uuid);
-  }, [cancel, jobChanges?.uuid]);
+    if (uuid) cancel(uuid);
+  }, [cancel, uuid]);
 
   const duplicateJob = React.useCallback(async () => {
-    if (!jobChanges?.uuid) return;
-    const duplicatedJob = await duplicate(jobChanges.uuid);
-    selectJob(duplicatedJob.pipeline_uuid, duplicatedJob.uuid);
-  }, [duplicate, selectJob, jobChanges?.uuid]);
+    if (!uuid) return;
+    const duplicatedJob = await duplicate(uuid);
+    selectJob(duplicatedJob.uuid);
+  }, [duplicate, selectJob, uuid]);
 
   const triggerJobNow = React.useCallback(async () => {
-    if (!jobChanges?.uuid) return;
-    await triggerScheduledRuns(jobChanges.uuid);
-  }, [triggerScheduledRuns, jobChanges?.uuid]);
+    if (!uuid) return;
+    await triggerScheduledRuns(uuid);
+  }, [triggerScheduledRuns, uuid]);
 
   return {
     scheduleJob,

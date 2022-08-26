@@ -2,7 +2,7 @@ import { shallowEqualByKey } from "@/environments-view/common";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import type { JobChangesData } from "@/types";
 
-const isJobChanged = (prev: JobChangesData, curr: JobChangesData) =>
+export const isJobChanged = (prev: JobChangesData, curr: JobChangesData) =>
   !shallowEqualByKey(prev, curr, [
     "name",
     "schedule",
