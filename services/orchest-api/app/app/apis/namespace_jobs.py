@@ -158,12 +158,12 @@ class Job(Resource):
 
         return job
 
-    @api.expect(schema.job_update)
+    @api.expect(schema.job_parameters_update)
     @api.doc("update_job")
     def put(self, job_uuid):
-        """Update a job (cronstring or parameters).
+        """Updates a job parameters.
 
-        Update a job cron schedule or parameters. Updating the cron
+        Update a job parameters. Updating the cron
         schedule implies that the job will be rescheduled and will
         follow the new given schedule. Updating the parameters of a job
         implies that the next time the job will be run those parameters
@@ -185,7 +185,7 @@ class Job(Resource):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                UpdateJob(tpe).transaction(
+                UpdateJobParameters(tpe).transaction(
                     job_uuid,
                     name,
                     cron_schedule,
@@ -1108,7 +1108,7 @@ class CreateJob(TwoPhaseFunction):
         db.session.commit()
 
 
-class UpdateJob(TwoPhaseFunction):
+class UpdateJobParameters(TwoPhaseFunction):
     """Update a job."""
 
     def _transaction(
@@ -1260,7 +1260,9 @@ class UpdateJob(TwoPhaseFunction):
                 # a next_scheduled_time.
                 if job.next_scheduled_time is None:
                     job.last_scheduled_time = datetime.now(timezone.utc)
-                    UpdateJob._register_job_updated_event(old_job, job.as_dict())
+                    UpdateJobParameters._register_job_updated_event(
+                        old_job, job.as_dict()
+                    )
                     update_already_registered = True
                     RunJob(self.tpe).transaction(job.uuid)
                 else:
@@ -1275,12 +1277,12 @@ class UpdateJob(TwoPhaseFunction):
             else:
                 job.last_scheduled_time = job.next_scheduled_time
                 job.status = "STARTED"
-                UpdateJob._register_job_updated_event(old_job, job.as_dict())
+                UpdateJobParameters._register_job_updated_event(old_job, job.as_dict())
                 update_already_registered = True
                 events.register_job_started(job.project_uuid, job.uuid)
 
         if not update_already_registered:
-            UpdateJob._register_job_updated_event(old_job, job.as_dict())
+            UpdateJobParameters._register_job_updated_event(old_job, job.as_dict())
 
     def _collateral(self):
         pass
