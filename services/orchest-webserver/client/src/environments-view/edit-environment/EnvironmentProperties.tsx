@@ -4,12 +4,12 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import {
   EnvironmentAccordion,
-  useEnvironmentAccordions,
+  usePropertiesAccordion,
 } from "./components/EnvironmentAccordion";
 import { EditEnvironmentName } from "./EditEnvironmentName";
 
 export const EnvironmentProperties = () => {
-  const { isPropertiesOpen, setIsPropertiesOpen } = useEnvironmentAccordions();
+  const [isPropertiesOpen, setIsPropertiesOpen] = usePropertiesAccordion();
 
   const handleChangeIsOpen = (
     event: React.SyntheticEvent,

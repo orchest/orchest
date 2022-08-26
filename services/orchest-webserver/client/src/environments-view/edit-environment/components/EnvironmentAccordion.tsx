@@ -38,3 +38,31 @@ export const EnvironmentAccordion = (props: AccordionProps) => {
 
   return <Accordion {...props} />;
 };
+
+export const usePropertiesAccordion = () => {
+  const isPropertiesOpen = useEnvironmentAccordions(
+    (state) => state.isPropertiesOpen
+  );
+  const setIsPropertiesOpen = useEnvironmentAccordions(
+    (state) => state.setIsPropertiesOpen
+  );
+  return [isPropertiesOpen, setIsPropertiesOpen] as const;
+};
+
+export const useLogsAccordion = () => {
+  const isLogsOpen = useEnvironmentAccordions((state) => state.isLogsOpen);
+  const setIsLogsOpen = useEnvironmentAccordions(
+    (state) => state.setIsLogsOpen
+  );
+  return [isLogsOpen, setIsLogsOpen] as const;
+};
+
+export const useSetupScriptAccordion = () => {
+  const isSetupScriptOpen = useEnvironmentAccordions(
+    (state) => state.isSetupScriptOpen
+  );
+  const setIsSetupScriptOpen = useEnvironmentAccordions(
+    (state) => state.setIsSetupScriptOpen
+  );
+  return [isSetupScriptOpen, setIsSetupScriptOpen] as const;
+};
