@@ -11,13 +11,14 @@ import { useBuildEnvironmentImage } from "../hooks/useBuildEnvironmentImage";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 import {
   EnvironmentAccordion,
-  useEnvironmentAccordions,
+  useLogsAccordion,
 } from "./components/EnvironmentAccordion";
 
 export const EnvironmentImageBuildLogs = () => {
   const { projectUuid, environmentUuid } = useCustomRoute();
   const { config } = useGlobalContext();
-  const { isLogsOpen, setIsLogsOpen } = useEnvironmentAccordions();
+
+  const [isLogsOpen, setIsLogsOpen] = useLogsAccordion();
 
   const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
   const latestBuild = useEditEnvironment(

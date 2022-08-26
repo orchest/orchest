@@ -7,7 +7,7 @@ import { isEnvironmentBuilding } from "../common";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 import {
   EnvironmentAccordion,
-  useEnvironmentAccordions,
+  useSetupScriptAccordion,
 } from "./components/EnvironmentAccordion";
 
 type SetupScriptCodeMirrorProps = {
@@ -37,10 +37,7 @@ const SetupScriptCodeMirror = React.memo(function SetupScriptCodeMirror({
 });
 
 export const EnvironmentSetupScript = () => {
-  const {
-    isSetupScriptOpen,
-    setIsSetupScriptOpen,
-  } = useEnvironmentAccordions();
+  const [isSetupScriptOpen, setIsSetupScriptOpen] = useSetupScriptAccordion();
 
   const setupScript = useEditEnvironment(
     (state) => state.environmentChanges?.setup_script
