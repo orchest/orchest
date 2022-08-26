@@ -420,8 +420,8 @@ status_update = Model(
     },
 )
 
-job_update = Model(
-    "JobUpdate",
+job_parameters_update = Model(
+    "JobParametersUpdate",
     {
         "cron_schedule": fields.String(
             required=False,
