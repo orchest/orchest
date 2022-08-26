@@ -77,10 +77,10 @@ export const BaseImageRadioOption = React.memo(function BaseImageRadioOption({
   children,
   ...props
 }: BaseImageRadioOptionProps) {
-  const { environmentChanges } = useEditEnvironment();
-  const disabledOnBuilding = isEnvironmentBuilding(
-    environmentChanges?.latestBuild
+  const latestBuild = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild
   );
+  const disabledOnBuilding = isEnvironmentBuilding(latestBuild);
 
   return (
     <BaseImageRadioOptionBase

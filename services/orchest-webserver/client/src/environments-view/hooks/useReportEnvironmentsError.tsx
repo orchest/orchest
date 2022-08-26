@@ -5,7 +5,8 @@ import React from "react";
 export const useReportEnvironmentsError = (heading = "") => {
   const { setAlert } = useGlobalContext();
 
-  const { error, clearError } = useEnvironmentsApi();
+  const error = useEnvironmentsApi((state) => state.error);
+  const clearError = useEnvironmentsApi((state) => state.clearError);
 
   React.useEffect(() => {
     if (error) {

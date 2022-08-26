@@ -49,7 +49,13 @@ const ReadOnlyBannerContainer: React.FC = ({ children }) => {
 
 export const ReadOnlyBanner = () => {
   const { navigateTo } = useCustomRoute();
-  const { buildingEnvironments, environmentsToBeBuilt } = useEnvironmentsApi();
+  const buildingEnvironments = useEnvironmentsApi(
+    (state) => state.buildingEnvironments
+  );
+  const environmentsToBeBuilt = useEnvironmentsApi(
+    (state) => state.environmentsToBeBuilt
+  );
+
   const {
     state: { pipelineReadOnlyReason },
     dispatch,

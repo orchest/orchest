@@ -19,9 +19,18 @@ import { getDefaultImageFromEnvironment } from "./useLoadSelectedBaseImage";
  */
 export const useSelectBaseImage = () => {
   const { orchestVersion } = useAppContext();
-  const { environments } = useEnvironmentsApi();
-  const { environmentChanges, setEnvironmentChanges } = useEditEnvironment();
-  const disabled = isEnvironmentBuilding(environmentChanges?.latestBuild);
+  const environments = useEnvironmentsApi((state) => state.environments);
+
+  const setEnvironmentChanges = useEditEnvironment(
+    (state) => state.setEnvironmentChanges
+  );
+  const name = useEditEnvironment((state) => state.environmentChanges?.name);
+  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const latestBuild = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild
+  );
+
+  const disabled = isEnvironmentBuilding(latestBuild);
 
   const [
     selectedImage,
@@ -69,7 +78,7 @@ export const useSelectBaseImage = () => {
 
   const changeEnvironmentPrefixPerLanguage = React.useCallback(
     (selectedImageLanguage: string) => {
-      if (!environmentChanges?.name) {
+      if (!name) {
         setEnvironmentChanges({
           name: generateUniqueEnvironmentName(
             capitalize(selectedImageLanguage),
@@ -79,7 +88,7 @@ export const useSelectBaseImage = () => {
         return;
       }
 
-      const envNameWithoutSerialNumber = environmentChanges.name
+      const envNameWithoutSerialNumber = name
         .replace(/( )+\(\d+\)?$/, "")
         .toLowerCase();
 
@@ -92,19 +101,15 @@ export const useSelectBaseImage = () => {
         });
       }
     },
-    [
-      environmentChanges?.name,
-      setEnvironmentChanges,
-      generateUniqueEnvironmentName,
-    ]
+    [name, setEnvironmentChanges, generateUniqueEnvironmentName]
   );
 
   const selectBaseImage = React.useCallback(
     (baseImage: string) => {
-      if (disabled || !environmentChanges?.uuid) return;
+      if (disabled || !uuid) return;
       isTouched.current = true;
       if (baseImage === customImage.base_image) {
-        setSelectedImage(environmentChanges.uuid, customImage);
+        setSelectedImage(uuid, customImage);
         changeEnvironmentPrefixPerLanguage(customImage.language);
         return;
       }
@@ -115,7 +120,7 @@ export const useSelectBaseImage = () => {
         )
       );
       if (foundDefaultImage) {
-        setSelectedImage(environmentChanges.uuid, foundDefaultImage);
+        setSelectedImage(uuid, foundDefaultImage);
         changeEnvironmentPrefixPerLanguage(foundDefaultImage.language);
       }
     },
@@ -124,7 +129,7 @@ export const useSelectBaseImage = () => {
       disabled,
       orchestVersion,
       setSelectedImage,
-      environmentChanges?.uuid,
+      uuid,
       changeEnvironmentPrefixPerLanguage,
     ]
   );

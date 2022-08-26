@@ -1,3 +1,4 @@
+import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
 import { CodeMirror } from "@/components/common/CodeMirror";
 import Typography from "@mui/material/Typography";
 import "codemirror/theme/dracula.css";
@@ -5,11 +6,9 @@ import React from "react";
 import { isEnvironmentBuilding } from "../common";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 import {
-  EnvironmentsAccordion,
-  EnvironmentsAccordionDetails,
-  EnvironmentsAccordionSummary,
-} from "./components/EnvironmentsAccordion";
-import { useEnvironmentsUiStateStore } from "./stores/useEnvironmentsUiStateStore";
+  EnvironmentAccordion,
+  useEnvironmentAccordions,
+} from "./components/EnvironmentAccordion";
 
 type SetupScriptCodeMirrorProps = {
   value?: string;
@@ -41,8 +40,18 @@ export const EnvironmentSetupScript = () => {
   const {
     isSetupScriptOpen,
     setIsSetupScriptOpen,
-  } = useEnvironmentsUiStateStore();
-  const { environmentChanges, setEnvironmentChanges } = useEditEnvironment();
+  } = useEnvironmentAccordions();
+
+  const setupScript = useEditEnvironment(
+    (state) => state.environmentChanges?.setup_script
+  );
+  const latestBuild = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild
+  );
+
+  const setEnvironmentChanges = useEditEnvironment(
+    (state) => state.setEnvironmentChanges
+  );
 
   const handleChangeSetupScript = React.useCallback(
     (value: string) => {
@@ -59,25 +68,22 @@ export const EnvironmentSetupScript = () => {
   };
 
   return (
-    <EnvironmentsAccordion
+    <EnvironmentAccordion
       expanded={isSetupScriptOpen}
       onChange={handleChangeIsOpen}
     >
-      <EnvironmentsAccordionSummary
-        aria-controls="setup-script"
-        id="setup-script-header"
-      >
+      <AccordionSummary aria-controls="setup-script" id="setup-script-header">
         <Typography component="h5" variant="h6">
           Setup script
         </Typography>
-      </EnvironmentsAccordionSummary>
-      <EnvironmentsAccordionDetails>
+      </AccordionSummary>
+      <AccordionDetails>
         <SetupScriptCodeMirror
           onChange={handleChangeSetupScript}
-          value={environmentChanges?.setup_script}
-          isReadOnly={isEnvironmentBuilding(environmentChanges?.latestBuild)}
+          value={setupScript}
+          isReadOnly={isEnvironmentBuilding(latestBuild)}
         />
-      </EnvironmentsAccordionDetails>
-    </EnvironmentsAccordion>
+      </AccordionDetails>
+    </EnvironmentAccordion>
   );
 };

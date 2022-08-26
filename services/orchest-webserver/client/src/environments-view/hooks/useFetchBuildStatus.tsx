@@ -8,12 +8,15 @@ import React from "react";
  * Returns the latest environmentImageBuild of the given environment UUID.
  */
 export const useFetchBuildStatus = (environmentUuid?: string) => {
-  const {
-    projectUuid,
-    environments,
-    updateBuildStatus,
-    hasLoadedBuildStatus,
-  } = useEnvironmentsApi();
+  const projectUuid = useEnvironmentsApi((state) => state.projectUuid);
+  const environments = useEnvironmentsApi((state) => state.environments);
+  const updateBuildStatus = useEnvironmentsApi(
+    (state) => state.updateBuildStatus
+  );
+  const hasLoadedBuildStatus = useEnvironmentsApi(
+    (state) => state.hasLoadedBuildStatus
+  );
+
   const isStoreLoaded = hasValue(projectUuid) && hasValue(environments);
 
   const initializeBuildStatus = React.useCallback(async () => {

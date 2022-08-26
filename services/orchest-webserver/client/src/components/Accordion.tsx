@@ -6,33 +6,21 @@ import MuiAccordionSummary, {
 } from "@mui/material/AccordionSummary";
 import { styled } from "@mui/material/styles";
 import React from "react";
-import { useEnvironmentsUiStateStore } from "../stores/useEnvironmentsUiStateStore";
 
-const StyledAccordion = styled((props: AccordionProps) => (
+export const Accordion = styled((props: AccordionProps) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))({ "&:before": { display: "none" } });
 
-export const EnvironmentsAccordion = (props: AccordionProps) => {
-  const { reset } = useEnvironmentsUiStateStore();
-  React.useEffect(() => {
-    return () => reset();
-  }, [reset]);
-
-  return <StyledAccordion {...props} />;
-};
-
-export const EnvironmentsAccordionSummary = styled(
-  (props: AccordionSummaryProps) => (
-    <MuiAccordionSummary
-      expandIcon={
-        <ArrowForwardIosSharpIcon
-          sx={{ fontSize: (theme) => theme.spacing(2) }}
-        />
-      }
-      {...props}
-    />
-  )
-)(({ theme }) => ({
+export const AccordionSummary = styled((props: AccordionSummaryProps) => (
+  <MuiAccordionSummary
+    expandIcon={
+      <ArrowForwardIosSharpIcon
+        sx={{ fontSize: (theme) => theme.spacing(2) }}
+      />
+    }
+    {...props}
+  />
+))(({ theme }) => ({
   paddingLeft: 0,
   flexDirection: "row-reverse",
   "& .MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
@@ -43,6 +31,6 @@ export const EnvironmentsAccordionSummary = styled(
   },
 }));
 
-export const EnvironmentsAccordionDetails = styled(MuiAccordionDetails)({
+export const AccordionDetails = styled(MuiAccordionDetails)({
   padding: 0,
 });

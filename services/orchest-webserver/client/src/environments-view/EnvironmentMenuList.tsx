@@ -13,8 +13,12 @@ import { useEditEnvironment } from "./stores/useEditEnvironment";
 
 export const EnvironmentMenuList = () => {
   useSyncEnvironmentUuidWithQueryArgs();
-  const { environmentChanges } = useEditEnvironment();
-  const { environments = [], setEnvironment } = useEnvironmentsApi();
+  const environmentChanges = useEditEnvironment(
+    (state) => state.environmentChanges
+  );
+
+  const setEnvironment = useEnvironmentsApi((state) => state.setEnvironment);
+  const environments = useEnvironmentsApi((state) => state.environments);
   const { selectEnvironment } = useSelectEnvironment();
 
   const updateStoreAndRedirect = (uuid: string) => {
@@ -48,7 +52,7 @@ export const EnvironmentMenuList = () => {
         }}
         tabIndex={0} // MUI's MenuList default is -1
       >
-        {environments.map((environment) => {
+        {(environments || []).map((environment) => {
           const selected =
             hasValue(environmentChanges) &&
             environmentChanges.uuid === environment.uuid;
