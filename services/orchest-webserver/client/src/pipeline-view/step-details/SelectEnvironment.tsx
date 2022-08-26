@@ -28,7 +28,9 @@ export const SelectEnvironment = ({
   disabled,
   language,
 }: SelectEnvironmentProps) => {
-  const { environments: allEnvironments = [] } = useEnvironmentsApi();
+  const allEnvironments = useEnvironmentsApi(
+    (state) => state.environments || []
+  );
 
   const environments = React.useMemo(() => {
     return allEnvironments.filter(

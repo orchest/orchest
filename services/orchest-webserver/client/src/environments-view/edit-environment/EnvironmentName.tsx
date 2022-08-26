@@ -4,9 +4,9 @@ import React from "react";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 export const EnvironmentName = () => {
-  const { environmentChanges } = useEditEnvironment();
+  const name = useEditEnvironment((state) => state.environmentChanges?.name);
 
-  const isNameEmpty = environmentChanges?.name.trim().length === 0;
+  const isNameEmpty = name?.trim().length === 0;
 
   return (
     <Typography
@@ -18,7 +18,7 @@ export const EnvironmentName = () => {
           isNameEmpty ? theme.palette.action.active : "inherent",
       }}
     >
-      {isNameEmpty ? "(Unnamed)" : environmentChanges?.name}
+      {isNameEmpty ? "(Unnamed)" : name}
     </Typography>
   );
 };

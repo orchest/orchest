@@ -59,7 +59,8 @@ const PipelineViewportComponent = React.forwardRef<
     pipelineCwd,
     isFetchingPipelineJson,
   } = usePipelineDataContext();
-  const { environments = [] } = useEnvironmentsApi();
+
+  const environments = useEnvironmentsApi((state) => state.environments || []);
 
   const { scaleFactor, canvasPointAtPointer } = useCanvasScaling();
   const { pipelineCanvasRef, newConnection } = usePipelineRefs();

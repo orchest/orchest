@@ -388,7 +388,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     [requestBuild, state.projectUuid]
   );
 
-  const { validate } = useEnvironmentsApi();
+  const validate = useEnvironmentsApi((state) => state.validate);
 
   const ensureEnvironmentsAreBuilt = React.useCallback(
     async (

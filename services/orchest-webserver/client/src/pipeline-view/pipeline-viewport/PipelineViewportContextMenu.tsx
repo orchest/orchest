@@ -24,7 +24,7 @@ export const usePipelineViewportContextMenu = useContextMenuContext;
 export const PipelineViewportContextMenu = () => {
   const { position, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
   const { isReadOnly } = usePipelineDataContext();
-  const { environments = [] } = useEnvironmentsApi();
+  const environments = useEnvironmentsApi((state) => state.environments || []);
 
   const { canvasPointAtPointer } = useCanvasScaling();
   const {

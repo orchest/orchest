@@ -7,12 +7,15 @@ import { useEditEnvironment } from "../stores/useEditEnvironment";
  * Note: should only be used once in a view.
  */
 export const useUpdateBuildStatusInEnvironmentChanges = () => {
-  const { environments } = useEnvironmentsApi();
-  const { environmentChanges, setEnvironmentChanges } = useEditEnvironment();
+  const environments = useEnvironmentsApi((state) => state.environments);
+  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const setEnvironmentChanges = useEditEnvironment(
+    (state) => state.setEnvironmentChanges
+  );
 
   const environmentChangesFromStore = React.useMemo(
-    () => environments?.find((env) => env.uuid === environmentChanges?.uuid),
-    [environments, environmentChanges?.uuid]
+    () => environments?.find((env) => env.uuid === uuid),
+    [environments, uuid]
   );
 
   const latestBuildStatus = React.useMemo(() => {

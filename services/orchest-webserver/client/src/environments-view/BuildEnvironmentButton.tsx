@@ -7,21 +7,24 @@ import { useBuildEnvironmentImage } from "./hooks/useBuildEnvironmentImage";
 import { useEditEnvironment } from "./stores/useEditEnvironment";
 
 export const BuildEnvironmentButton = () => {
-  const { environmentChanges } = useEditEnvironment();
+  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const latestBuild = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild
+  );
+
   const [triggerBuild, cancelBuild] = useBuildEnvironmentImage();
 
-  const buildStatus = environmentChanges?.latestBuild?.status;
+  const buildStatus = latestBuild?.status;
 
   const isBuilding =
     hasValue(buildStatus) && ["PENDING", "STARTED"].includes(buildStatus);
 
   const handleClick = () => {
-    if (!environmentChanges) return;
-
+    if (!uuid) return;
     if (isBuilding) {
-      cancelBuild(environmentChanges.uuid);
+      cancelBuild(uuid);
     } else {
-      triggerBuild([environmentChanges.uuid]);
+      triggerBuild([uuid]);
     }
   };
 

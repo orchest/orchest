@@ -10,7 +10,7 @@ export const useIsReadOnly = () => {
   const { jobUuid, runUuid } = useCustomRoute();
   const { dispatch } = useProjectsContext();
 
-  const { status } = useEnvironmentsApi();
+  const status = useEnvironmentsApi((state) => state.status);
 
   const isJobRun = Boolean(runUuid && jobUuid);
 

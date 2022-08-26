@@ -1,19 +1,15 @@
+import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
 import { EnvironmentImagesRadioGroup } from "@/environments-view/edit-environment/EnvironmentImagesRadioGroup";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import {
-  EnvironmentsAccordion,
-  EnvironmentsAccordionDetails,
-  EnvironmentsAccordionSummary,
-} from "./components/EnvironmentsAccordion";
+  EnvironmentAccordion,
+  useEnvironmentAccordions,
+} from "./components/EnvironmentAccordion";
 import { EditEnvironmentName } from "./EditEnvironmentName";
-import { useEnvironmentsUiStateStore } from "./stores/useEnvironmentsUiStateStore";
 
 export const EnvironmentProperties = () => {
-  const {
-    isPropertiesOpen,
-    setIsPropertiesOpen,
-  } = useEnvironmentsUiStateStore();
+  const { isPropertiesOpen, setIsPropertiesOpen } = useEnvironmentAccordions();
 
   const handleChangeIsOpen = (
     event: React.SyntheticEvent,
@@ -23,24 +19,22 @@ export const EnvironmentProperties = () => {
   };
 
   return (
-    <EnvironmentsAccordion
+    <EnvironmentAccordion
       expanded={isPropertiesOpen}
       onChange={handleChangeIsOpen}
     >
-      <EnvironmentsAccordionSummary
+      <AccordionSummary
         aria-controls="environment-properties"
         id="environment-properties-header"
       >
         <Typography component="h5" variant="h6">
           Properties
         </Typography>
-      </EnvironmentsAccordionSummary>
-      <EnvironmentsAccordionDetails
-        sx={{ paddingTop: (theme) => theme.spacing(2) }}
-      >
+      </AccordionSummary>
+      <AccordionDetails sx={{ paddingTop: (theme) => theme.spacing(2) }}>
         <EditEnvironmentName />
         <EnvironmentImagesRadioGroup />
-      </EnvironmentsAccordionDetails>
-    </EnvironmentsAccordion>
+      </AccordionDetails>
+    </EnvironmentAccordion>
   );
 };
