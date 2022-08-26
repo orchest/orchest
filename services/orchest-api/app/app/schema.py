@@ -534,20 +534,9 @@ job_spec = Model(
         "name": fields.String(required=True, description="Name for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "pipeline_definitions": fields.List(
-            fields.Raw(description="Pipeline definition in JSON"),
+        "pipeline_definition": fields.Raw(
             required=True,
-            description="Collection of pipeline definitions",
-        ),
-        "pipeline_run_ids": fields.List(
-            fields.Integer(
-                description=(
-                    "Pipeline index corresponding to respective "
-                    "list entries in pipeline_definitions."
-                )
-            ),
-            required=True,
-            description="Collection of pipeline definition indices.",
+            description="Pipeline definition in JSON",
         ),
         "pipeline_run_spec": fields.Nested(
             non_interactive_run_spec,
