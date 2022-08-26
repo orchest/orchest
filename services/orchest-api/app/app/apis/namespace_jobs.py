@@ -9,7 +9,7 @@ from croniter import croniter
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal, reqparse
 from sqlalchemy import desc, func
-from sqlalchemy.orm import joinedload, load_only, noload, undefer
+from sqlalchemy.orm import attributes, joinedload, load_only, noload, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -226,6 +226,38 @@ class Job(Resource):
             return {"message": "Job termination was successful."}, 200
         else:
             return {"message": "Job does not exist or is already completed."}, 404
+
+
+@api.route("/<string:job_uuid>/pipeline")
+@api.param("job_uuid", "UUID of job")
+@api.response(404, "Job not found")
+class DraftJobPipelineUpdate(Resource):
+    @api.expect(schema.draft_job_pipeline_update)
+    @api.doc("update_job")
+    def put(self, job_uuid):
+        """Changes a DRAFT job pipeline.
+
+        This can be used to allow users to change the pipeline of a
+        DRAFT job while "deciding" what pipeline to use. The reason
+        is that a job draft (and the project snapshot) is created
+        first, and the user will be allowed to change the pipeline
+        later.
+
+        """
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                UpdateDraftJobPipeline(tpe).transaction(
+                    job_uuid,
+                    request.get_json()["pipeline_uuid"],
+                )
+        except ValueError as e:
+            return {"message": str(e)}, 409
+        except Exception as e:
+            current_app.logger.error(e)
+            return {"message": str(e)}, 500
+
+        return {"message": "Job pipeline was updated successfully"}, 200
 
 
 @api.route(
@@ -1333,6 +1365,124 @@ class UpdateJobParameters(TwoPhaseFunction):
                 new_job["uuid"],
                 update=app_types.EntityUpdate(changes=changes),
             )
+
+
+class UpdateDraftJobPipeline(TwoPhaseFunction):
+    """Changes a DRAFT job pipeline."""
+
+    @staticmethod
+    def _resolve_environment_variables(
+        project_env_vars: Dict[str, str],
+        old_pipeline_env_vars: Dict[str, str],
+        new_pipeline_env_vars: Dict[str, str],
+        old_job_env_vars: Dict[str, str],
+    ) -> Dict[str, str]:
+        """Resolves the environment variables to be used for the job.
+
+        When changing the pipeline for a draft job we'd like to carry
+        over all work that the user has done w.r.t. setting/changing the
+        environment variables of the job. Do to that, we have to
+        reconstruct the changes the user has made and resolve
+        ambiguities.
+
+        This logic identifies user changes as:
+        - removing env vars inherited by the project or pipeline
+        - changing env vars inherited by the project or pipeline
+        - adding new environment variables
+
+        Ambiguities:
+        - an env var inherited by the old pipeline which hasn't been
+            changed signals that the user wanted the default value of
+            the pipeline env var.  If the new pipeline has such env var,
+            use the default value coming from the new pipeline, if it
+            doesn't have the env var, ignore the variable, i.e. do not
+            include it in the resulting set.
+        - an env var inherited by the project wasn't changed, and the
+            old pipeline didn't overwrite the value of that variable. If
+            the new pipeline has that env var then it will overwrite the
+            value.
+
+        """
+
+        old_proj_ppl_merge = {**project_env_vars, **old_pipeline_env_vars}
+
+        # Calculate user changes.
+        removed_env_vars = set()
+        changed_env_vars = dict()
+        added_env_vars = dict()
+
+        # Removed and changed env vars.
+        for env_var in old_proj_ppl_merge:
+            if env_var not in old_job_env_vars:
+                removed_env_vars.add(env_var)
+            elif old_proj_ppl_merge[env_var] != old_job_env_vars[env_var]:
+                changed_env_vars[env_var] = old_job_env_vars[env_var]
+            # Else: the env var has the same value: it's either coming
+            # from the project or from the pipeline default values, the
+            # rest of the logic will implicitly take care of it.
+
+        # Added env variables.
+        for env_var in old_job_env_vars:
+            if env_var not in old_proj_ppl_merge:
+                added_env_vars[env_var] = old_job_env_vars[env_var]
+
+        # Apply changes to the proj + new ppl env vars. The ambiguities
+        # described in the docstring are implicitly resolved.
+        result = {
+            **project_env_vars,
+            **new_pipeline_env_vars,
+            **changed_env_vars,
+            **added_env_vars,
+        }
+        for env_var in removed_env_vars:
+            result.pop(env_var, None)
+        return result
+
+    def _transaction(self, job_uuid: str, pipeline_uuid: str) -> None:
+        job: models.Job = (
+            models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+        )
+        if job.status != "DRAFT":
+            raise ValueError(
+                (
+                    "Failed update operation. Only jobs in the DRAFT status can have "
+                    "their pipeline changed."
+                )
+            )
+
+        snapshot: models.Snapshot = models.Snapshot.query.get(job.snapshot_uuid)
+
+        if pipeline_uuid not in snapshot.pipelines:
+            raise ValueError(
+                f"The job snapshot doesn't contain pipeline: {pipeline_uuid}."
+            )
+
+        old_pipeline_uuid = job.pipeline_uuid
+        job.pipeline_uuid = pipeline_uuid
+        job.pipeline_definition = snapshot.pipelines[pipeline_uuid]["definition"]
+        job.pipeline_name = job.pipeline_definition["name"]
+
+        # See
+        # https://github.com/sqlalchemy/sqlalchemy/issues/5218
+        # https://github.com/sqlalchemy/sqlalchemy/discussions/6473
+        job.pipeline_run_spec["run_config"]["pipeline_path"] = snapshot.pipelines[
+            pipeline_uuid
+        ]["path"]
+        attributes.flag_modified(job, "pipeline_run_spec")
+
+        job.env_variables = UpdateDraftJobPipeline._resolve_environment_variables(
+            snapshot.project_env_variables,
+            snapshot.pipelines_env_variables[old_pipeline_uuid],
+            snapshot.pipelines_env_variables[pipeline_uuid],
+            job.env_variables,
+        )
+
+        # Reset them as if the draft has just been created.
+        job.parameters = []
+        job.strategy_json = {}
+
+    def _collateral(self):
+        pass
 
 
 class DeleteJob(TwoPhaseFunction):

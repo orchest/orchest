@@ -417,6 +417,16 @@ job_parameters_update = Model(
     },
 )
 
+draft_job_pipeline_update = Model(
+    "DraftJobPipelineUpdate",
+    {
+        "pipeline_uuid": fields.String(
+            required=True,
+            description="UUID of the pipeline to use.",
+        ),
+    },
+)
+
 # Namespace: Jobs.
 non_interactive_run_config = pipeline_run_config.inherit(
     "NonInteractiveRunConfig",
