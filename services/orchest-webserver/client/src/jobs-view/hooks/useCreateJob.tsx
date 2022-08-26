@@ -3,12 +3,8 @@ import { PipelineMetaData } from "@/types";
 import { getUniqueName } from "@/utils/getUniqueName";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useEditJob } from "../stores/useEditJob";
-import { useSelectJob } from "./useSelectJob";
 
 export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
-  const { selectJob } = useSelectJob();
-  const initJobChanges = useEditJob((state) => state.initJobChanges);
   const { name, uuid } = pipeline || {};
 
   const [jobs = [], post, isPosting] = useJobsApi((state) => [
@@ -29,20 +25,9 @@ export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
   const createJob = React.useCallback(async () => {
     if (isAllowedToCreateJob) {
       const newJob = await post(uuid, name, newJobName);
-      if (newJob) {
-        initJobChanges(newJob);
-        selectJob(newJob.uuid);
-      }
+      return newJob;
     }
-  }, [
-    post,
-    isAllowedToCreateJob,
-    uuid,
-    name,
-    newJobName,
-    selectJob,
-    initJobChanges,
-  ]);
+  }, [post, isAllowedToCreateJob, uuid, name, newJobName]);
 
   return { createJob, isAllowedToCreateJob };
 };

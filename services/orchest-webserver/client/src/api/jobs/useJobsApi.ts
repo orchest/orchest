@@ -1,5 +1,4 @@
-import { JobChangesData, JobData, JobStatus } from "@/types";
-import { omit } from "@/utils/record";
+import { JobChangesData, JobData } from "@/types";
 import { FetchError } from "@orchest/lib-utils";
 import create from "zustand";
 import { jobsApi } from "./jobsApi";
@@ -122,27 +121,6 @@ export const useJobsApi = create<JobsApi>((set, get) => {
     put: async (changes: JobChangesData) => {
       try {
         await jobsApi.put(changes);
-        changes.confirm_draft;
-
-        const isDraftJob = changes.confirm_draft === true;
-
-        const shouldStartDraftJobNow =
-          isDraftJob && !changes.schedule && !changes.next_scheduled_time;
-
-        const status: JobStatus = shouldStartDraftJobNow
-          ? "STARTED"
-          : "PENDING";
-
-        const jobChanges = isDraftJob
-          ? { ...omit(changes, "confirm_draft"), status } // Only assign status for registering a draft job.
-          : changes;
-
-        set((state) => {
-          const jobs = (state.jobs || []).map((job) =>
-            job.uuid === changes.uuid ? { ...job, ...jobChanges } : job
-          );
-          return { jobs };
-        });
       } catch (error) {
         set({ error });
       }
