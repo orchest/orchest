@@ -524,6 +524,7 @@ func isIngressAddonRequired(ctx context.Context, client kubernetes.Interface) bo
 	switch k8sDistro {
 	case utils.K3s:
 	case utils.EKS:
+	case utils.GKE:
 		return true
 	}
 
