@@ -57,15 +57,15 @@ directly.</p>
       },
       K3s: {
         instructions: `
-<p>First, deploy <a href="https://k3s.io/">K3s</a> without having traefik installed by running
-the following command:</p>
+<p>First, install <a href="https://k3s.io/">K3s</a> without deploying <a href="https://traefik.io/">traefik</a> 
+by running the following command:</p>
 <div class="highlight">
 <pre>
 curl -sfL https://get.k3s.io | \\
     INSTALL_K3S_EXEC="--no-deploy traefik" sh -s -
 </pre>
 </div>
-<p>Now the Orchest can be installed using the <code class="docutils literal notranslate"><span
+<p>Now Orchest can be installed using the <code class="docutils literal notranslate"><span
 class="pre">orchest-cli</span></code>:</p>
 <div class="highlight">
 <pre>
@@ -73,7 +73,11 @@ pip install --upgrade orchest-cli
 orchest install
 </pre>
 </div>
-<p>Now that Orchest is installed, it can be reached on K3s node IP address.</p>`,
+<p>Now that Orchest is installed, it can be reached on the IP address returned by:</p>
+<div class="highlight">
+  <pre>kubectl get service orchest-ingress-nginx-controller -n orchest \\
+      -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'</pre>
+</div>`,
       },
     },
     macOS: {
@@ -165,6 +169,37 @@ your custom Environments to the MicroK8s node.
 directly.</p>
           `,
       },
+      K3s: {
+        instructions: `
+<p>For Orchest to work on Windows, Docker has to be configured to use WSL 2 (<a class="reference
+external" href="https://docs.docker.com/desktop/windows/wsl/">Docker Desktop WSL 2 backend</a>).
+For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
+opening the distribution using the Start menu or by <a class="reference external"
+href="https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal">setting
+up the Windows Terminal</a>.</p>        
+
+<p>First, install <a href="https://k3s.io/">K3s</a> without deploying <a href="https://traefik.io/">traefik</a> 
+by running the following command:</p>
+<div class="highlight">
+<pre>
+curl -sfL https://get.k3s.io | \\
+    INSTALL_K3S_EXEC="--no-deploy traefik" sh -s -
+</pre>
+</div>
+<p>Now Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+<p>Now that Orchest is installed, it can be reached on the IP address returned by:</p>
+<div class="highlight">
+  <pre>kubectl get service orchest-ingress-nginx-controller -n orchest \\
+      -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'</pre>
+</div>`,
+      },
     },
     Cloud: {
       GKE: {
@@ -173,11 +208,8 @@ directly.</p>
 <a href="https://cloud.google.com/kubernetes-engine/docs/deploy-app-cluster#create_cluster">GKE cluster</a>
 and
 <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl">configure kubectl</a>
-to access the cluster. Next,
-<a href="https://kubernetes.github.io/ingress-nginx/deploy/#gce-gke">install the NGINX ingress controller</a>
-using <code class="docutils literal notranslate"><span class="pre">kubectl</span></code>.
+to access the cluster.
 </p>
-
 
 <p>Now that your GKE cluster is set up correctly, Orchest can be installed using the <code
 class="docutils literal notranslate"><span class="pre">orchest-cli</span></code>:</p>
@@ -190,10 +222,8 @@ orchest install
 
 <p>After installing Orchest, you can reach it on the IP returned by:</p>
 <div class="highlight">
-<pre>
-kubectl get svc ingress-nginx-controller \\
-    -n ingress-nginx \\
-    -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+<pre>kubectl get service orchest-ingress-nginx-controller -n orchest \\
+      -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 </pre>
 </div>
 <p>
@@ -204,16 +234,9 @@ kubectl get svc ingress-nginx-controller \\
 <p>
 Get started by installing <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> and setting up an
 <a href="https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html">EKS cluster</a>
-on AWS. then, to properly set-up your cluster, install the
-<a href="https://kubernetes.github.io/ingress-nginx/deploy/#aws">NGINX ingress controller</a> and make it the
-default ingress class by running the following command.
+on AWS.
 </p>
-<div class="highlight">
-<pre>
-kubectl patch ingressclass nginx  -p \\
-    '{"metadata":{"annotations":{"ingressclass.kubernetes.io/is-default-class":"true"}}}'
-</pre>
-</div>
+
 <p>All that is left is installing Orchest using the <code class="docutils literal notranslate"><span
 class="pre">orchest-cli</span></code>:</p>
 <div class="highlight">
@@ -225,10 +248,8 @@ orchest install
 
 <p>Now that Orchest is installed, it can be reached on the address returned by:</p>
 <div class="highlight">
-<pre>
-kubectl get svc ingress-nginx-controller \\
-    -n ingress-nginx \\
-    -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+<pre>kubectl get service orchest-ingress-nginx-controller -n orchest \\
+      -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 </pre>
 </div>
 <p>
