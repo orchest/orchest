@@ -208,10 +208,6 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 
 	occ.Controller = ctrl
 
-	if isIngressAddonRequired(context.Background(), ctrl.Client()) {
-		addonManager.EnableAddon(context.Background(), addons.IngressNginx, "orchest")
-	}
-
 	return &occ
 }
 
@@ -536,6 +532,13 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	if copy.Spec.Applications == nil {
 		changed = true
 		copy.Spec.Applications = occ.config.DefaultApplications
+
+		if isIngressAddonRequired(context.Background(), occ.Client()) {
+			copy.Spec.Applications = append(copy.Spec.Applications, orchestv1alpha1.ApplicationSpec{
+				Name: addons.IngressNginx,
+			})
+		}
+
 	}
 
 	// set docker-registry default values
