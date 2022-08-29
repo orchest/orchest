@@ -85,7 +85,7 @@ class DeleteSnapshot(TwoPhaseFunction):
 
     """
 
-    def _transaction(self, snapshot_uuid):
+    def _transaction(self, snapshot_uuid: str) -> None:
         jobs = (
             models.Job.query.filter_by(
                 snapshot_uuid=snapshot_uuid,
