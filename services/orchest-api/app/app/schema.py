@@ -646,6 +646,7 @@ job = Model(
         "pipeline_run_status_counts": fields.Raw(
             required=False, description="Aggregate of the job pipeline run statuses."
         ),
+        "snapshot_uuid": fields.String(required=True, description="UUID of snapshot"),
     },
 )
 
