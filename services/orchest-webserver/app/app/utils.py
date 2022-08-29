@@ -13,7 +13,7 @@ from flask import current_app, safe_join
 from _orchest.internals import compat as _compat
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
-from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
+from _orchest.internals.utils import is_services_definition_valid, rmtree
 from app import error
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
@@ -509,34 +509,6 @@ def write_config(app, key, value):
 
     # always set rw permissions on file
     os.system("chmod o+rw " + conf_json_path)
-
-
-def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
-
-    snapshot_path = get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid)
-
-    os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
-
-    project_dir = safe_join(
-        current_app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
-    )
-
-    copytree(project_dir, snapshot_path, use_gitignore=True)
-
-
-def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
-
-    job_project_path = safe_join(current_app.config["USER_DIR"], "jobs", project_uuid)
-    job_pipeline_path = safe_join(job_project_path, pipeline_uuid)
-    job_path = safe_join(job_pipeline_path, job_uuid)
-
-    if os.path.isdir(job_path):
-        rmtree(job_path, ignore_errors=True)
-
-    # Clean up parent directory if this job removal created empty
-    # directories.
-    remove_dir_if_empty(job_pipeline_path)
-    remove_dir_if_empty(job_project_path)
 
 
 def remove_job_pipeline_run_directory(run_uuid, job_uuid, pipeline_uuid, project_uuid):

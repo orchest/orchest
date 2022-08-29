@@ -1079,6 +1079,7 @@ class CreateJob(TwoPhaseFunction):
             "max_retained_pipeline_runs": job_spec.get(
                 "max_retained_pipeline_runs", -1
             ),
+            "snapshot_uuid": job_spec["snapshot_uuid"],
         }
         db.session.add(models.Job(**job))
 

@@ -1,22 +1,17 @@
 import copy
 import json
+import os
 import uuid
 from collections import defaultdict
 
 import requests
-from flask import current_app
+from flask import current_app, safe_join
 
+import app.utils as utils
 from _orchest.internals import config as _config
+from _orchest.internals import utils as _utils
 from app import error
 from app.models import Pipeline, Project
-from app.utils import (
-    create_job_directory,
-    get_environments,
-    get_environments_from_pipeline_json,
-    get_pipeline_json,
-    get_project_directory,
-    pipeline_uuid_to_path,
-)
 
 
 def create_job_spec(config) -> dict:
@@ -34,26 +29,26 @@ def create_job_spec(config) -> dict:
         job_uuid.
     """
     job_spec = copy.deepcopy(config)
-    pipeline_path = pipeline_uuid_to_path(
+    pipeline_path = utils.pipeline_uuid_to_path(
         job_spec["pipeline_uuid"], job_spec["project_uuid"]
     )
     job_spec["pipeline_run_spec"]["run_config"] = {
         "userdir_pvc": current_app.config["USERDIR_PVC"],
-        "project_dir": get_project_directory(job_spec["project_uuid"]),
+        "project_dir": utils.get_project_directory(job_spec["project_uuid"]),
         "pipeline_path": pipeline_path,
     }
 
-    job_spec["pipeline_definition"] = get_pipeline_json(
+    job_spec["pipeline_definition"] = utils.get_pipeline_json(
         job_spec["pipeline_uuid"], job_spec["project_uuid"]
     )
 
     # Validate whether the pipeline contains environments
     # that do not exist in the project.
-    project_environments = get_environments(job_spec["project_uuid"])
+    project_environments = utils.get_environments(job_spec["project_uuid"])
     project_environment_uuids = set(
         [environment.uuid for environment in project_environments]
     )
-    pipeline_environment_uuids = get_environments_from_pipeline_json(
+    pipeline_environment_uuids = utils.get_environments_from_pipeline_json(
         job_spec["pipeline_definition"]
     )
 
@@ -66,7 +61,9 @@ def create_job_spec(config) -> dict:
 
     job_uuid = str(uuid.uuid4())
     job_spec["uuid"] = job_uuid
-    create_job_directory(job_uuid, job_spec["pipeline_uuid"], job_spec["project_uuid"])
+    job_spec["snapshot_uuid"] = create_job_directory(
+        job_uuid, job_spec["pipeline_uuid"], job_spec["project_uuid"]
+    )
     return job_spec
 
 
@@ -164,7 +161,7 @@ def duplicate_job_spec(job_uuid: str) -> dict:
     }
 
     # Resolve parameters.
-    latest_pipeline_def = get_pipeline_json(
+    latest_pipeline_def = utils.get_pipeline_json(
         job_spec["pipeline_uuid"], job_spec["project_uuid"]
     )
     latest_pipeline_params = latest_pipeline_def["parameters"]
@@ -298,3 +295,90 @@ def duplicate_job_spec(job_uuid: str) -> dict:
     job_spec["parameters"] = new_job_params
     job_spec["strategy_json"] = new_st_json
     return create_job_spec(job_spec)
+
+
+def create_job_directory(job_uuid: str, pipeline_uuid: str, project_uuid: str) -> str:
+    """Creates the job directory and prepares a snapshot for the job.
+
+    Returns:
+        The uuid of the snapshot.
+    """
+
+    snapshot_path = utils.get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid)
+
+    os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
+
+    project_dir = safe_join(
+        current_app.config["USER_DIR"],
+        "projects",
+        utils.project_uuid_to_path(project_uuid),
+    )
+
+    _utils.copytree(project_dir, snapshot_path, use_gitignore=True)
+    return _create_snapshot_record_for_job(job_uuid, pipeline_uuid, project_uuid)
+
+
+def remove_job_directory(
+    job_uuid: str, pipeline_uuid: str, project_uuid: str, snapshot_uuid: str
+):
+    """Deletes the job directory and the associated snapshot.
+
+    The associated job will be deleted, and if necessary, its runs
+    aborted.
+    """
+
+    job_project_path = safe_join(current_app.config["USER_DIR"], "jobs", project_uuid)
+    job_pipeline_path = safe_join(job_project_path, pipeline_uuid)
+    job_path = safe_join(job_pipeline_path, job_uuid)
+
+    if os.path.isdir(job_path):
+        _utils.rmtree(job_path, ignore_errors=True)
+
+    # Clean up parent directory if this job removal created empty
+    # directories.
+    utils.remove_dir_if_empty(job_pipeline_path)
+    utils.remove_dir_if_empty(job_project_path)
+
+    resp = requests.delete(
+        (
+            "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/snapshots"
+            f"/{snapshot_uuid}"
+        )
+    )
+    if resp.status_code != 200:
+        raise error.OrchestApiRequestError(response=resp)
+
+
+def _create_snapshot_record_for_job(
+    job_uuid: str, pipeline_uuid: str, project_uuid: str
+) -> str:
+
+    # with_for_update to avoid pipeline moves during the snapshotting.
+    pipelines = Pipeline.query.with_for_update().filter(
+        Pipeline.project_uuid == project_uuid
+    )
+
+    snap_spec_pipelines = {}
+    for ppl in pipelines:
+        snap_spec_pipelines[ppl.uuid] = {
+            "path": ppl.path,
+            "definition": utils.get_pipeline_json(
+                pipeline_uuid,
+                project_uuid,
+                utils.get_pipeline_path(
+                    pipeline_uuid=pipeline_uuid,
+                    project_uuid=project_uuid,
+                    pipeline_path=ppl.path,
+                ),
+            ),
+        }
+
+    snapshot_spec = {"project_uuid": project_uuid, "pipelines": snap_spec_pipelines}
+    resp = requests.post(
+        "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/snapshots",
+        json=snapshot_spec,
+    )
+    if resp.status_code != 201:
+        remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
+        raise error.OrchestApiRequestError(response=resp)
+    return resp.json()["uuid"]
