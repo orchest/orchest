@@ -104,12 +104,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       title: getTitle("Job Run Step File Preview"),
     },
     {
-      name: "editJob",
-      path: "/edit-job",
-      root: "/jobs",
-      title: getTitle("Edit Job"),
-    },
-    {
       name: "settings",
       path: "/settings",
       title: getTitle("Settings"),
@@ -227,7 +221,6 @@ const excludedPaths = [
   siteMap.jupyterLab.path,
   siteMap.filePreview.path,
   siteMap.job.path,
-  siteMap.editJob.path,
 ];
 
 // used in CommandPalette

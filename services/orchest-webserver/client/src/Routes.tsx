@@ -1,6 +1,5 @@
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
-import EditJobView from "./edit-job-view/EditJobView";
 import { EnvironmentsView } from "./environments-view/EnvironmentsView";
 import { JobsView } from "./jobs-view/JobsView";
 import JobView from "./legacy-job-view/JobView";
@@ -32,7 +31,6 @@ const pathComponentMapping = {
   "/job": JobView,
   "/job-run": PipelineView,
   "/job-run/file-preview": FilePreviewView,
-  "/edit-job": EditJobView,
   "/settings": SettingsView,
   "/notification-settings": NotificationSettingsView,
   "/configure-jupyter-lab": ConfigureJupyterLabView,

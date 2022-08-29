@@ -3,7 +3,7 @@ import { Code } from "@/components/common/Code";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
-import DateTimeInput from "@/components/DateTimeInput";
+import { DateTimeInput } from "@/components/DateTimeInput";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";

@@ -1,4 +1,6 @@
+import { getCurrentDateTimeString } from "@/utils/date-time";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import React from "react";
@@ -21,11 +23,17 @@ const getDateString = (date: Date) => {
   );
 };
 
-const DateTimeInput: React.FC<{
+type DateTimeInputProps = {
   value?: Date;
   disabled?: boolean;
   onChange?: (dateTime: Date) => void;
-}> = ({ value, disabled, onChange }) => {
+};
+
+export const DateTimeInput = ({
+  value,
+  disabled,
+  onChange,
+}: DateTimeInputProps) => {
   const [dateTime, setDateTime] = React.useState(new Date());
 
   const update = (iso: string) => {
@@ -35,6 +43,10 @@ const DateTimeInput: React.FC<{
       return;
     }
     setDateTime(newDateTime);
+  };
+
+  const setAsNow = () => {
+    update(getCurrentDateTimeString());
   };
 
   const renderedDateTime = React.useMemo(() => value || dateTime, [
@@ -65,7 +77,7 @@ const DateTimeInput: React.FC<{
   };
 
   return (
-    <Stack spacing={4}>
+    <Stack direction="row" spacing={2}>
       <Box>
         <TextField
           type="date"
@@ -75,6 +87,7 @@ const DateTimeInput: React.FC<{
           InputLabelProps={{
             shrink: true,
           }}
+          disabled={disabled}
           data-test-id="job-edit-schedule-date-input-date"
         />
       </Box>
@@ -87,11 +100,11 @@ const DateTimeInput: React.FC<{
           InputLabelProps={{
             shrink: true,
           }}
+          disabled={disabled}
           data-test-id="job-edit-schedule-date-input-time"
         />
       </Box>
+      <Button onClick={setAsNow}>Now</Button>
     </Stack>
   );
 };
-
-export default DateTimeInput;
