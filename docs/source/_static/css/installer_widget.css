@@ -61,6 +61,6 @@ html[data-theme="dark"] .installer-container {
   margin-bottom: 1.15rem;
 }
 
-html .installer-container .highlight:last-of-type {
+html .installer-container .highlight:last-child {
   margin-bottom: 0;
 }
