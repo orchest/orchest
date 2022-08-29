@@ -319,7 +319,7 @@ export const PipelineSettingsView: React.FC = () => {
     const [pipelineJsonChanges, pipelineChanges] = await Promise.allSettled([
       fetcher<{ success: boolean; reason?: string; message?: string }>(
         `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-        { method: "POST", body: formData }
+        { method: "PUT", body: formData }
       ),
 
       fetcher<{ success: boolean; reason?: string; message?: string }>(

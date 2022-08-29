@@ -161,12 +161,11 @@ const commandsFromJob = (
     job.status == "DRAFT"
       ? `Edit job: ${job.name} [${projectPaths[job.project_uuid]}]`
       : `Job: ${job.name} [${projectPaths[job.project_uuid]}]`;
-  const path = job.status == "DRAFT" ? siteMap.editJob.path : siteMap.job.path;
   return {
     title,
     action: "openPage",
     data: {
-      path,
+      path: siteMap.jobs.path,
       query: { projectUuid: job.project_uuid, jobUuid: job.uuid },
     },
   };

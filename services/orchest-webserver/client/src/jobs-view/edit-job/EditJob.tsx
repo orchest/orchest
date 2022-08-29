@@ -10,29 +10,32 @@ import { JobPrimaryButton } from "./JobPrimaryButton";
 export const EditJob = () => {
   useUpdateJobOnUnmount();
   return (
-    <EditJobContainer>
-      <Stack
-        sx={{
-          position: "sticky",
-          top: 0,
-          backgroundColor: (theme) => theme.palette.background.paper,
-          zIndex: 2,
-          paddingTop: (theme) => theme.spacing(5),
-        }}
-        direction="column"
-        spacing={3}
-      >
-        <Stack direction="row" spacing={2} alignItems="center">
-          <JobName />
-          <JobPrimaryButton />
-          <JobMoreOptions />
+    <>
+      <EditJobContainer>
+        <Stack
+          sx={{
+            position: "sticky",
+            top: 0,
+            backgroundColor: (theme) => theme.palette.background.paper,
+            zIndex: 2,
+            paddingTop: (theme) => theme.spacing(5),
+          }}
+          direction="column"
+          spacing={3}
+        >
+          <Stack direction="row" spacing={2} alignItems="center">
+            <JobName />
+            <JobPrimaryButton />
+            <JobMoreOptions />
+          </Stack>
+          {/* <BuildStatusAlert /> */}
         </Stack>
-        {/* <BuildStatusAlert /> */}
-      </Stack>
-      <JobOverview />
-      {/* 
+        <JobOverview />
+
+        {/* 
       <EnvironmentSetupScript />
       <EnvironmentImageBuildLogs /> */}
-    </EditJobContainer>
+      </EditJobContainer>
+    </>
   );
 };

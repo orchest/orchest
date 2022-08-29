@@ -8,7 +8,7 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import React from "react";
 
 type JobStatusIconProps = {
-  status: JobStatus;
+  status: JobStatus | undefined;
 };
 
 const jobStatusIconStatusMapping: Omit<
@@ -24,7 +24,7 @@ const jobStatusIconStatusMapping: Omit<
 };
 
 export const JobStatusIcon = ({ status }: JobStatusIconProps) => {
-  return status === "PENDING" ? (
+  return !status ? null : status === "PENDING" ? (
     <ScheduleOutlinedIcon {...statusIconDefaultProps} />
   ) : (
     <StatusIcon status={jobStatusIconStatusMapping[status]} />

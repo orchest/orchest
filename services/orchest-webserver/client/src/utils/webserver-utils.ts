@@ -406,7 +406,7 @@ const generateParameterLists = (parameters: Record<string, Json>) => {
 
 export const generateStrategyJson = (
   pipeline: PipelineJson,
-  reservedKey: string
+  reservedKey = ""
 ) => {
   let strategyJSON = {};
 
