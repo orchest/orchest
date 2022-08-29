@@ -50,6 +50,7 @@ export const useAutoStartSession = () => {
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
       if (result === true) return;
+      if (result.message === "environmentsBuildInProgress") return;
       if (result.message === "JupyterEnvironmentBuildInProgress") {
         dispatch({
           type: "SET_PIPELINE_READONLY_REASON",
