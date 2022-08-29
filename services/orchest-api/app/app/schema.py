@@ -579,6 +579,9 @@ job_spec = Model(
                 "are in an end state that are over this number will be deleted."
             ),
         ),
+        "snapshot_uuid": fields.String(
+            required=True, description="UUID of the snapshot"
+        ),
     },
 )
 
@@ -1059,6 +1062,39 @@ event = Model(
         "type": fields.String(required=True, description="Type of event."),
         "timestamp": fields.DateTime(
             required=True, description="When the event happened."
+        ),
+    },
+)
+
+
+snapshot_spec = Model(
+    "SnapshotSpec",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of the project"),
+        "pipelines": fields.Raw(
+            required=False,
+            description=(
+                "Path and definition of each pipeline contained in the snapshot."
+            ),
+        ),
+    },
+)
+
+snapshot = snapshot_spec.inherit(
+    "Snapshot",
+    {
+        "uuid": fields.String(required=True, description="UUID of the snapshot"),
+        "timestamp": fields.DateTime(
+            required=True, description="Creation time of the snapshot record."
+        ),
+    },
+)
+
+snapshots = Model(
+    "Snapshots",
+    {
+        "snapshots": fields.List(
+            fields.Nested(snapshot), description="Collection of all snapshots"
         ),
     },
 )
