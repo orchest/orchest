@@ -198,11 +198,6 @@ def _get_buildah_image_build_workflow_manifest(
                                 "readOnly": True,
                             },
                             {
-                                "name": "image-builder-cache-pvc",
-                                "subPath": "containers",
-                                "mountPath": "/var/lib/containers",
-                            },
-                            {
                                 "name": "tls-secret",
                                 "mountPath": "/etc/ssl/certs/additional-ca-cert-bundle.crt",  # noqa
                                 "subPath": "additional-ca-cert-bundle.crt",
@@ -229,12 +224,6 @@ def _get_buildah_image_build_workflow_manifest(
                     "name": "userdir-pvc",
                     "persistentVolumeClaim": {
                         "claimName": "userdir-pvc",
-                    },
-                },
-                {
-                    "name": "image-builder-cache-pvc",
-                    "persistentVolumeClaim": {
-                        "claimName": "image-builder-cache-pvc",
                     },
                 },
                 {
