@@ -35,7 +35,7 @@ GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # services have priority, which helps in being responsive under high
 # load. This is only enforced when CPU cycles are constrained. For more
 # information, see the k8s docs about CPU SHARES.
-USER_CONTAINERS_CPU_SHARES = "500m"
+USER_CONTAINERS_CPU_SHARES = "1m"
 REGISTRY = "docker-registry"
 REGISTRY_FQDN = f"docker-registry.{ORCHEST_NAMESPACE}.svc.cluster.local"
 
