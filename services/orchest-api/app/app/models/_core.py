@@ -656,6 +656,7 @@ class Job(BaseModel):
         db.String(36),
         db.ForeignKey("snapshots.uuid", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     def __repr__(self):
