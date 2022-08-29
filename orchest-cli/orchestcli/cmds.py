@@ -273,7 +273,7 @@ def install(
         # which is 75s.
         while retries < 4:
             echo(
-                "Failed to install the Orchest Controller, retrying in"
+                "Cannot install the Orchest Controller yet, retrying in"
                 f" {get_backoff_period(retries)} seconds...",
             )
             time.sleep(get_backoff_period(retries))

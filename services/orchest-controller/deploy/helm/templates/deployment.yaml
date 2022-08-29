@@ -12,7 +12,8 @@ deployment
         ports:
         - containerPort: 80
         args:
-        - --namespace=$NAMESPACE
+        - --defaultVersion=$(VERSION)
+        - --namespace=$(NAMESPACE)
         {{ if eq .Values.clusterLevelAddons.enableArgo true }}
         - --enable=argo-workflow
         {{ end }}
@@ -20,4 +21,6 @@ deployment
           - name: NAMESPACE
             valueFrom:
               fieldRef:
-                fieldPath: metadata.namespace        
+                fieldPath: metadata.namespace
+          - name: VERSION
+            value: {{ .Values.image.tag }}

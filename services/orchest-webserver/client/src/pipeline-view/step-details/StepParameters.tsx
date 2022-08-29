@@ -18,7 +18,7 @@ export const StepParameters = ({ isReadOnly, onSave }: StepParametersProps) => {
   const { openStepSchemaFile } = useOpenStepSchemaFile();
 
   const onSaveParameters = React.useCallback(
-    (parameters: Json) => {
+    (parameters: Record<string, Json>) => {
       onSave({ parameters }, step.uuid, true);
     },
     [step.uuid, onSave]
