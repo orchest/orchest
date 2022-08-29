@@ -652,6 +652,13 @@ class Job(BaseModel):
         cascade="all, delete",
     )
 
+    snapshot_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("snapshots.uuid", ondelete="CASCADE"),
+        # Set to nullable in this commit for migration purposes.
+        nullable=True,
+    )
+
     def __repr__(self):
         return f"<Job: {self.uuid}>"
 
