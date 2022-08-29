@@ -1,4 +1,6 @@
-from typing import List
+from typing import List, Optional
+
+import requests
 
 
 class ActiveSession(Exception):
@@ -22,6 +24,21 @@ class PipelineFileDoesNotExist(Exception):
     """A pipeline file does not exists when it should."""
 
     pass
+
+
+class OrchestApiRequestError(Exception):
+    """Some orchest-api request failed."""
+
+    def __init__(self, *args, response: Optional[requests.Response] = None):
+        msg = ""
+        if response is not None:
+            msg = [f"Status code: {response.status_code}"]
+            if response.headers.get("content-type") == "application/json":
+                msg.append(f"{response.json()}")
+            else:
+                msg.append(response.text)
+
+        super().__init__(*args, msg)
 
 
 class OutOfProjectError(Exception):
