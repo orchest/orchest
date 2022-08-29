@@ -455,6 +455,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
   refreshInterval = null,
   retainSelectionsOnPageChange,
   footnote,
+  sx,
   ...props
 }: DataTableProps<T, C>) => {
   const { setAlert } = useGlobalContext();
@@ -729,7 +730,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
       : FIXED_ROW_HEIGHT.SMALL);
 
   return (
-    <Box sx={{ width: "100%" }} {...props}>
+    <Box sx={{ width: "100%", ...sx }} {...props}>
       {!hideSearch && (
         <SearchField
           value={searchTerm}
@@ -737,7 +738,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
           onChange={handleChangeSearchTerm}
         />
       )}
-      <Box sx={{ width: "100%", marginBottom: 2 }}>
+      <Box sx={{ width: "100%" }}>
         <TableContainer sx={containerSx}>
           <Table
             sx={{ minWidth: 750 }}

@@ -7,7 +7,7 @@ type JobMenuItemProps = {
   uuid: string;
   name: string;
   subtitle: string;
-  jobStatus: JobStatus;
+  jobStatus: JobStatus | undefined;
   selected: boolean;
   onClick: (uuid: string) => void;
 };
@@ -27,7 +27,7 @@ export const JobMenuItem = React.memo(function JobMenuItem({
       selected={selected}
       onClick={onClick}
       showStatusIcon
-      statusIconTooltip={jobStatus}
+      statusIconTooltip={jobStatus || ""}
       subtitle={subtitle}
       statusIcon={<JobStatusIcon status={jobStatus} />}
     />

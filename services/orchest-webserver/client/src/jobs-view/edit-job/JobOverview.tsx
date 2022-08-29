@@ -4,6 +4,7 @@ import React from "react";
 import { JobAccordion, useJobAccordions } from "./components/JobAccordion";
 import { EditJobName } from "./EditJobName";
 import { EditJobPipeline } from "./EditJobPipeline";
+import { JobRunConfig } from "./JobRunConfig";
 
 export const JobOverview = () => {
   const { isOverviewOpen, setIsOverviewOpen } = useJobAccordions();
@@ -22,16 +23,10 @@ export const JobOverview = () => {
           Overview
         </Typography>
       </AccordionSummary>
-      <AccordionDetails
-        sx={{
-          paddingTop: (theme) => theme.spacing(2),
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-        }}
-      >
+      <AccordionDetails sx={{ paddingTop: (theme) => theme.spacing(2) }}>
         <EditJobName />
         <EditJobPipeline />
+        <JobRunConfig />
       </AccordionDetails>
     </JobAccordion>
   );

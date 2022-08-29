@@ -234,18 +234,7 @@ export type JobData = {
   project_uuid: string;
   total_scheduled_executions: number;
   total_scheduled_pipeline_runs: number;
-  pipeline_definition: {
-    name: string;
-    parameters: Record<string, Json>;
-    settings: {
-      auto_eviction: boolean;
-      data_passing_memory_size: string;
-    };
-    uuid: string;
-    steps: Record<string, StepState>;
-    version: string;
-    services: Record<string, Service>;
-  };
+  pipeline_definition: PipelineJson;
   next_scheduled_time: string | undefined;
   last_scheduled_time: string;
   parameters: Record<string, Json>[];

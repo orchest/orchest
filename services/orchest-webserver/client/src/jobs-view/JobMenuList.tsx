@@ -1,5 +1,4 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
-import { JobStatus } from "@/types";
 import { formatServerDateTime } from "@/utils/webserver-utils";
 import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
@@ -15,12 +14,8 @@ export const JobMenuList = () => {
   useSyncJobUuidWithQueryArgs();
 
   const jobChangesUuid = useEditJob((state) => state.jobChanges?.uuid);
-  const jobChangesName = useEditJob(
-    (state) => state.jobChanges?.name as string
-  );
-  const jobChangesStatus = useEditJob(
-    (state) => state.jobChanges?.status as JobStatus
-  );
+  const jobChangesName = useEditJob((state) => state.jobChanges?.name || "");
+  const jobChangesStatus = useEditJob((state) => state.jobChanges?.status);
 
   const jobs = useJobsApi((state) => state.jobs || []);
   const { selectJob } = useSelectJob();
@@ -52,13 +47,16 @@ export const JobMenuList = () => {
           const selected = jobChangesUuid === job.uuid;
           const snapshotDatetime = formatServerDateTime(job.created_time);
           const pipelinePathAndSnapshotDatetime = `${job.pipeline_run_spec.run_config.pipeline_path} • ${snapshotDatetime}`;
+          const name = selected ? jobChangesName : job.name;
+          const jobStatus = selected ? jobChangesStatus : job.status;
+
           return (
             <JobMenuItem
               key={job.uuid}
               uuid={job.uuid}
               selected={selected}
-              jobStatus={selected ? jobChangesStatus : job.status}
-              name={selected ? jobChangesName : job.name}
+              jobStatus={jobStatus}
+              name={name}
               subtitle={pipelinePathAndSnapshotDatetime}
               onClick={redirect}
             />
