@@ -3,7 +3,7 @@ import { TabPanel } from "@/components/common/Tabs";
 import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
-import ParameterEditor from "@/components/ParameterEditor";
+import LegacyParameterEditor from "@/components/LegacyParameterEditor";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
@@ -331,7 +331,7 @@ const JobView: React.FC = () => {
                       index={1}
                       name="parameters-tab"
                     >
-                      <ParameterEditor
+                      <LegacyParameterEditor
                         readOnly
                         pipelineName={job.pipeline_name}
                         strategyJSON={job.strategy_json}

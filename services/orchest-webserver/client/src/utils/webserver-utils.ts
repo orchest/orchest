@@ -239,8 +239,10 @@ export type BackgroundTask =
       result: null;
     };
 
-export const pipelinePathToJsonLocation = (pipelinePath: string) => {
-  if (!pipelinePath.endsWith(".orchest")) {
+export const pipelinePathToJsonLocation = (
+  pipelinePath: string | undefined
+) => {
+  if (!pipelinePath || !pipelinePath.endsWith(".orchest")) {
     return;
   }
   return pipelinePath.slice(0, -".orchest".length) + ".parameters.json";

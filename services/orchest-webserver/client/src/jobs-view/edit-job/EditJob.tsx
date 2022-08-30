@@ -2,6 +2,7 @@ import Stack from "@mui/material/Stack";
 import React from "react";
 import { useUpdateJobOnUnmount } from "../hooks/useUpdateJobOnUnmount";
 import { EditJobContainer } from "./EditJobContainer";
+import { EditJobParameters } from "./EditJobParameters";
 import { JobMoreOptions } from "./JobMoreOptions";
 import { JobName } from "./JobName";
 import { JobOverview } from "./JobOverview";
@@ -31,10 +32,7 @@ export const EditJob = () => {
           {/* <BuildStatusAlert /> */}
         </Stack>
         <JobOverview />
-
-        {/* 
-      <EnvironmentSetupScript />
-      <EnvironmentImageBuildLogs /> */}
+        <EditJobParameters />
       </EditJobContainer>
     </>
   );

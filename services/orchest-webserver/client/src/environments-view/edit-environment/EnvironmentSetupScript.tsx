@@ -1,6 +1,7 @@
 import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
 import { CodeMirror } from "@/components/common/CodeMirror";
 import Typography from "@mui/material/Typography";
+import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
 import { isEnvironmentBuilding } from "../common";

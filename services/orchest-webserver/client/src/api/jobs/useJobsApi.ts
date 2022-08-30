@@ -7,9 +7,13 @@ export type JobsApi = {
   projectUuid?: string;
   jobs?: JobData[];
   setJobs: (value: JobData[] | ((jobs: JobData[]) => JobData[])) => void;
-  setJob: (value: JobData) => void;
+  setJob: (uuid: string, value: JobData | ((job: JobData) => JobData)) => void;
   isFetching: boolean;
   fetchAll: (projectUuid: string, language?: string) => Promise<void>;
+  fetch: (
+    jobUuid: string,
+    aggregateRunStatuses?: boolean
+  ) => Promise<JobData | undefined>;
   updateStatus: () => Promise<void>;
   isPosting: boolean;
   post: (
@@ -25,6 +29,12 @@ export type JobsApi = {
   resumeCronJob: (jobUuid: string) => Promise<void>;
   pauseCronJob: (jobUuid: string) => Promise<void>;
   triggerScheduledRuns: (jobUuid: string) => Promise<void>;
+  hasLoadedParameterStrategy: boolean;
+  setHasLoadedParameterStrategy: (value: boolean) => void;
+  fetchStrategyJson: (
+    jobData: JobData,
+    reservedKey: string | undefined
+  ) => Promise<void>;
   error?: FetchError;
   clearError: () => void;
 };
@@ -45,11 +55,15 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         return { jobs: updatedJobs };
       });
     },
-    setJob: (value: JobData) => {
+    setJob: (uuid: string, value: JobData | ((job: JobData) => JobData)) => {
       set((state) => {
         return {
           jobs: (state.jobs || []).map((job) => {
-            return job.uuid === value.uuid ? value : job;
+            if (job.uuid === uuid) {
+              const updatedJob = value instanceof Function ? value(job) : value;
+              return updatedJob;
+            }
+            return job;
           }),
         };
       });
@@ -61,6 +75,30 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         const jobs = await jobsApi.fetchAll(projectUuid);
 
         set({ projectUuid, jobs, isFetching: false });
+      } catch (error) {
+        if (!error?.isCanceled) set({ error, isFetching: false });
+      }
+    },
+    fetch: async (jobUuid, aggregateRunStatuses) => {
+      try {
+        set({ isFetching: true, error: undefined });
+        const job = await jobsApi.fetch(jobUuid, aggregateRunStatuses);
+
+        const projectUuid = job.project_uuid;
+
+        if (projectUuid !== get().projectUuid) {
+          const jobs = await jobsApi.fetchAll(projectUuid);
+          set({ projectUuid, jobs, isFetching: false });
+        } else {
+          set((state) => {
+            const jobs = state.jobs?.map((existingJob) =>
+              existingJob.uuid === jobUuid ? job : existingJob
+            );
+            return { jobs, isFetching: false };
+          });
+        }
+
+        return job;
       } catch (error) {
         if (!error?.isCanceled) set({ error, isFetching: false });
       }
@@ -193,6 +231,28 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         );
         return { jobs };
       });
+    },
+    hasLoadedParameterStrategy: false,
+    fetchStrategyJson: async (jobData, reservedKey) => {
+      const strategyJson = await jobsApi.fetchStrategyJson(
+        jobData,
+        reservedKey
+      );
+      set((state) => {
+        if (strategyJson) {
+          const jobs = state.jobs?.map((job) =>
+            job.uuid === jobData.uuid
+              ? { ...job, strategy_json: strategyJson }
+              : job
+          );
+          return { jobs, hasLoadedParameterStrategy: true };
+        } else {
+          return { hasLoadedParameterStrategy: true };
+        }
+      });
+    },
+    setHasLoadedParameterStrategy: (value) => {
+      set({ hasLoadedParameterStrategy: value });
     },
     clearError: () => {
       set({ error: undefined });

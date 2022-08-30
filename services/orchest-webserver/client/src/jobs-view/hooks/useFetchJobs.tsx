@@ -13,10 +13,11 @@ export const useFetchJobs = () => {
   const { projectUuid } = useCustomRoute();
   useReportJobsError();
 
-  const [shouldFetchOnMount, fetchJobs] = useJobsApi((state) => [
-    !Boolean(state.jobs) && !state.isFetching,
-    state.fetchAll,
-  ]);
+  const shouldFetchOnMount = useJobsApi(
+    (state) => !Boolean(state.jobs) && !state.isFetching
+  );
+
+  const fetchJobs = useJobsApi((state) => state.fetchAll);
 
   const hasRegainedFocus = useRegainBrowserTabFocus();
   const hasChangedProject = useHasChanged(projectUuid);

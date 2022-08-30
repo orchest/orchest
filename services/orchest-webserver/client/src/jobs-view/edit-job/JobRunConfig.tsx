@@ -1,17 +1,6 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
-import { useGlobalContext } from "@/contexts/GlobalContext";
-import {
-  fetchParamConfig,
-  generateStrategyJsonFromParamJsonFile,
-} from "@/edit-job-view/common";
 import { LoadParametersDialog } from "@/edit-job-view/LoadParametersDialog";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { Json, PipelineJson, StrategyJson } from "@/types";
-import {
-  generateStrategyJson,
-  pipelinePathToJsonLocation,
-} from "@/utils/webserver-utils";
+import { Json, StrategyJson } from "@/types";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import { hasValue } from "@orchest/lib-utils";
@@ -24,9 +13,11 @@ import {
   PipelineRunColumn,
   PipelineRunRow,
 } from "../common";
+import { useGetJobData } from "../hooks/useGetJobData";
 import { useEditJob } from "../stores/useEditJob";
 import { AutoCleanUpToggle } from "./AutoCleanUpToggle";
 import { EditJobSchedule } from "./EditJobSchedule";
+import { useLoadParameterStrategy } from "./hooks/useLoadParameterStrategy";
 
 const generatePipelineRuns = (strategyJSON: StrategyJson) => {
   const flatParameters = flattenStrategyJson(strategyJSON);
@@ -36,45 +27,6 @@ const generatePipelineRuns = (strategyJSON: StrategyJson) => {
   >[] = generatePipelineRunParamCombinations(flatParameters, [], []);
 
   return pipelineRuns;
-};
-
-const fetchStrategyJson = async (
-  projectUuid: string | undefined,
-  pipelineUuid: string | undefined,
-  jobUuid: string | undefined,
-  paramPath: string | undefined,
-  pipelineJson: PipelineJson | undefined,
-  reservedKey: string | undefined
-) => {
-  if (
-    !projectUuid ||
-    !pipelineUuid ||
-    !jobUuid ||
-    !paramPath ||
-    !pipelineJson ||
-    !reservedKey
-  )
-    return;
-  try {
-    const paramConfig = await fetchParamConfig({
-      paramPath,
-      pipelineUuid,
-      projectUuid,
-      jobUuid,
-    });
-
-    const strategyJson = generateStrategyJsonFromParamJsonFile(
-      paramConfig,
-      pipelineJson,
-      reservedKey
-    );
-
-    return strategyJson;
-  } catch (error) {
-    if (error.status !== 404) {
-      console.error(error);
-    }
-  }
 };
 
 const generateJobParameters = (
@@ -137,29 +89,14 @@ const parseParameters = (
 };
 
 export const JobRunConfig = () => {
-  const { config } = useGlobalContext();
-
-  const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY;
-
-  const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
   const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
-  const projectUuid = useEditJob((state) => state.jobChanges?.project_uuid);
-  const isDraft = useEditJob((state) => state.jobChanges?.status === "DRAFT");
 
-  const jobData = useJobsApi((state) => {
-    return state.jobs?.find((job) => job.uuid === jobUuid);
-  });
-
-  const pipelinePath = jobData?.pipeline_run_spec.run_config.pipeline_path;
+  const jobData = useGetJobData();
 
   const pipelineJson = jobData?.pipeline_definition;
+  const parameterStrategy = jobData?.strategy_json;
 
-  const [strategyJson, setStrategyJson] = React.useState<StrategyJson>();
   const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
-
-  const pipelineRuns = React.useMemo(() => {
-    return strategyJson ? generatePipelineRuns(strategyJson) : undefined;
-  }, [strategyJson]);
 
   const [
     isLoadParametersDialogOpen,
@@ -173,16 +110,6 @@ export const JobRunConfig = () => {
   const closeLoadParametersDialog = () => {
     setIsLoadParametersDialogOpen(false);
   };
-
-  const {
-    projectUuid: projectUuidFromRoute,
-    jobUuid: jobUuidFromRoute,
-  } = useCustomRoute();
-
-  const isRequiredDataLoaded =
-    projectUuid === projectUuidFromRoute &&
-    jobUuidFromRoute === jobUuid &&
-    hasValue(reservedKey);
 
   const columns: DataTableColumn<
     PipelineRunRow,
@@ -224,50 +151,23 @@ export const JobRunConfig = () => {
     [selectedRuns]
   );
 
+  const pipelineRuns = React.useMemo(() => {
+    return parameterStrategy
+      ? generatePipelineRuns(parameterStrategy)
+      : undefined;
+  }, [parameterStrategy]);
+
   const pipelineRunRows = React.useMemo(() => {
     if (!pipelineJson?.name || !pipelineRuns) return [];
     return generatePipelineRunRows(pipelineJson.name, pipelineRuns);
   }, [pipelineRuns, pipelineJson?.name]);
 
-  const loadDefaultOrExistingParameterStrategy = React.useCallback(() => {
-    if (!jobData || !pipelineJson) return;
-    // Do not generate another strategy_json if it has been defined
-    // already.
-    const strategyJson =
-      isDraft && Object.keys(jobData.strategy_json).length === 0
-        ? generateStrategyJson(pipelineJson, reservedKey)
-        : jobData?.strategy_json;
+  const { loadParameterStrategy } = useLoadParameterStrategy();
 
-    setStrategyJson(strategyJson);
-  }, [reservedKey, jobData, isDraft, pipelineJson]);
-
-  const loadParamConfig = React.useCallback(
-    async (paramConfigFilePath: string) => {
-      closeLoadParametersDialog();
-
-      const response = await fetchStrategyJson(
-        projectUuid,
-        pipelineJson?.uuid,
-        jobUuid,
-        paramConfigFilePath,
-        pipelineJson,
-        reservedKey
-      );
-
-      if (response) {
-        setStrategyJson(response);
-      } else {
-        loadDefaultOrExistingParameterStrategy();
-      }
-    },
-    [
-      jobUuid,
-      pipelineJson,
-      projectUuid,
-      reservedKey,
-      loadDefaultOrExistingParameterStrategy,
-    ]
-  );
+  const closeDialogAndLoadParamsFromFile = React.useCallback(() => {
+    closeLoadParametersDialog();
+    loadParameterStrategy();
+  }, [closeLoadParametersDialog, loadParameterStrategy]);
 
   React.useLayoutEffect(() => {
     if (!jobData?.parameters || !pipelineRuns) return;
@@ -278,32 +178,13 @@ export const JobRunConfig = () => {
     );
   }, [jobData?.parameters, pipelineRunRows, pipelineRuns]);
 
-  const paramConfigFilePath = React.useMemo(() => {
-    if (pipelinePath) return pipelinePathToJsonLocation(pipelinePath);
-  }, [pipelinePath]);
-
-  React.useEffect(() => {
-    if (!paramConfigFilePath || !isRequiredDataLoaded) return;
-    if (isDraft) {
-      loadParamConfig(paramConfigFilePath);
-    } else {
-      loadDefaultOrExistingParameterStrategy();
-    }
-  }, [
-    paramConfigFilePath,
-    isDraft,
-    isRequiredDataLoaded,
-    loadParamConfig,
-    loadDefaultOrExistingParameterStrategy,
-  ]);
-
   return (
     <>
       {pipelineUuid && (
         <LoadParametersDialog
           isOpen={isLoadParametersDialogOpen}
           onClose={closeLoadParametersDialog}
-          onSubmit={loadParamConfig}
+          onSubmit={closeDialogAndLoadParamsFromFile}
           pipelineUuid={pipelineUuid}
         />
       )}
@@ -314,7 +195,7 @@ export const JobRunConfig = () => {
         sx={{ paddingTop: (theme) => theme.spacing(4) }}
       >
         <EditJobSchedule />
-        {hasValue(strategyJson) && (
+        {hasValue(parameterStrategy) && (
           <DataTable<PipelineRunRow, PipelineRunColumn>
             hideSearch
             id="job-edit-pipeline-runs"

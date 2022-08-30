@@ -9,14 +9,14 @@ import {
 import isString from "lodash.isstring";
 import React from "react";
 
-export interface IParamTreeProps {
+interface ParamTreeProps {
   pipelineName: string;
   editParameter?: (parameterKey: any, key: any) => void;
-  strategyJSON: any;
+  strategyJson: any;
   activeParameter:
     | {
         key: string;
-        strategyJSONKey: string;
+        strategyJsonKey: string;
       }
     | undefined;
 }
@@ -43,7 +43,7 @@ export const NoParameterAlert = () => {
   );
 };
 
-const ParamTree: React.FC<IParamTreeProps> = (props) => {
+const ParamTree = (props: ParamTreeProps) => {
   const { config } = useGlobalContext();
 
   const truncateParameterValue = (value) => {
@@ -103,7 +103,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
                 fontWeight:
                   props.activeParameter &&
                   props.activeParameter.key == parameterKey &&
-                  props.activeParameter.strategyJSONKey == stepStrategy.key
+                  props.activeParameter.strategyJsonKey == stepStrategy.key
                     ? "bold"
                     : "normal",
               }}
@@ -146,12 +146,12 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
   };
 
   let [pipelineParameterElement, stepParameterElements] = generateParameterTree(
-    props.strategyJSON
+    props.strategyJson
   );
 
   return (
     <div className="parameter-tree">
-      {Object.keys(props.strategyJSON).length == 0 && <NoParameterAlert />}
+      {Object.keys(props.strategyJson).length == 0 && <NoParameterAlert />}
 
       {pipelineParameterElement !== undefined && (
         <div className="param-block">

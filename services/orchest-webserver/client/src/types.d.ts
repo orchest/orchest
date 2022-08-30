@@ -1,4 +1,4 @@
-import { StrategyJson } from "./components/ParameterEditor";
+import { StrategyJson } from "./components/LegacyParameterEditor";
 import { TStatus } from "./components/Status";
 import { Point2D } from "./utils/geometry";
 
@@ -238,7 +238,7 @@ export type JobData = {
   next_scheduled_time: string | undefined;
   last_scheduled_time: string;
   parameters: Record<string, Json>[];
-  schedule?: string;
+  schedule: string | null;
   pipeline_run_spec: {
     uuids: string[];
     project_uuid: string;
@@ -262,7 +262,7 @@ export type JobData = {
 
 export type JobChangesData = {
   confirm_draft?: true; // If provided, the submitted job will no longer be a draft.
-  next_scheduled_time?: string; // For scheduled jobs.
+  next_scheduled_time: string | null; // For scheduled jobs.
 } & Pick<
   JobData,
   | "uuid"
@@ -273,7 +273,7 @@ export type JobChangesData = {
   | "max_retained_pipeline_runs"
 >;
 
-export type ScheduledOption = "scheduled" | "cron" | "now";
+// export type ScheduledOption = "scheduled" | "cron" | "now";
 
 export type JobChanges = JobChangesData & {
   project_uuid: string;

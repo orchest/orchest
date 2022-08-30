@@ -1,13 +1,16 @@
 import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { JobAccordion, useJobAccordions } from "./components/JobAccordion";
+import {
+  JobAccordion,
+  useJobOverviewAccordion,
+} from "./components/JobAccordion";
 import { EditJobName } from "./EditJobName";
 import { EditJobPipeline } from "./EditJobPipeline";
 import { JobRunConfig } from "./JobRunConfig";
 
 export const JobOverview = () => {
-  const { isOverviewOpen, setIsOverviewOpen } = useJobAccordions();
+  const [isOverviewOpen, setIsOverviewOpen] = useJobOverviewAccordion();
 
   const handleChangeIsOpen = (
     event: React.SyntheticEvent,

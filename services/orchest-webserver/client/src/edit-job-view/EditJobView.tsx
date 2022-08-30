@@ -6,7 +6,7 @@ import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { DateTimeInput } from "@/components/DateTimeInput";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
-import ParameterEditor from "@/components/ParameterEditor";
+import LegacyParameterEditor from "@/components/LegacyParameterEditor";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -810,7 +810,7 @@ const EditJobView: React.FC = () => {
               )}
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={1} name="parameters">
-              <ParameterEditor
+              <LegacyParameterEditor
                 pipelineName={pipelineJson.name}
                 key={parameterHash}
                 onParameterChange={(value: StrategyJson) => {
