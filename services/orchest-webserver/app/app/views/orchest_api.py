@@ -465,6 +465,12 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>/pipeline", methods=["PUT"])
+    def catch_api_proxy_job_pipeline_put(job_uuid):
+
+        resp = jobs.change_draft_job_pipeline(job_uuid, request.json["pipeline_uuid"])
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])
     def catch_api_proxy_job_runs_single(job_uuid, run_uuid):
 
