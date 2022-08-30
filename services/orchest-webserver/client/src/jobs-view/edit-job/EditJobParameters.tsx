@@ -22,20 +22,23 @@ export const EditJobParameters = () => {
     (state) => state.hasLoadedParameterStrategy
   );
 
-  const pipelineName = jobData?.pipeline_definition.name;
-  const parameterStrategy = jobData?.strategy_json;
+  const pipelineName = useEditJob((state) => state.jobChanges?.name);
+  const parameterStrategy = useEditJob(
+    (state) => state.jobChanges?.strategy_json
+  );
+
+  const setJobChanges = useEditJob((state) => state.setJobChanges);
 
   const parameters = useEditJob((state) => state.jobChanges?.parameters);
-  // const setJobChanges = useEditJob((state) => state.setJobChanges);
-
-  const setJob = useJobsApi((state) => state.setJob);
 
   const handleChangeParameterStrategy = React.useCallback(
     (value: StrategyJson) => {
       if (!jobData?.uuid) return;
-      setJob(jobData.uuid, (job) => ({ ...job, strategy_json: value }));
+      // Note that useAutoSaveJob uses shallow compare.
+      // Re-create the object in order to trigger auto-saving.
+      setJobChanges({ strategy_json: { ...value } });
     },
-    [setJob, jobData?.uuid]
+    [jobData?.uuid, setJobChanges]
   );
 
   const handleChangeIsOpen = (

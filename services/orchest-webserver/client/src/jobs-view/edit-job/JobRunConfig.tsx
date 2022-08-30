@@ -8,6 +8,7 @@ import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import {
   flattenStrategyJson,
+  generateJobParameters,
   generatePipelineRunParamCombinations,
   generatePipelineRunRows,
   PipelineRunColumn,
@@ -27,27 +28,6 @@ const generatePipelineRuns = (strategyJSON: StrategyJson) => {
   >[] = generatePipelineRunParamCombinations(flatParameters, [], []);
 
   return pipelineRuns;
-};
-
-const generateJobParameters = (
-  generatedPipelineRuns: Record<string, Json>[],
-  selectedIndices: string[]
-) => {
-  return selectedIndices.map((index) => {
-    const runParameters = generatedPipelineRuns[index];
-    return Object.entries(runParameters).reduce((all, [key, value]) => {
-      // key is formatted: <stepUUID>#<parameterKey>
-      let keySplit = key.split("#");
-      let stepUUID = keySplit[0];
-      let parameterKey = keySplit.slice(1).join("#");
-
-      // check if step already exists,
-      const parameter = all[stepUUID] || {};
-      parameter[parameterKey] = value;
-
-      return { ...all, [stepUUID]: parameter };
-    }, {});
-  });
 };
 
 const findParameterization = (
@@ -90,11 +70,6 @@ const parseParameters = (
 
 export const JobRunConfig = () => {
   const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
-
-  const jobData = useGetJobData();
-
-  const pipelineJson = jobData?.pipeline_definition;
-  const parameterStrategy = jobData?.strategy_json;
 
   const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
 
@@ -151,6 +126,13 @@ export const JobRunConfig = () => {
     [selectedRuns]
   );
 
+  const jobData = useGetJobData();
+
+  const pipelineJson = jobData?.pipeline_definition;
+  const parameterStrategy = useEditJob(
+    (state) => state.jobChanges?.strategy_json
+  );
+
   const pipelineRuns = React.useMemo(() => {
     return parameterStrategy
       ? generatePipelineRuns(parameterStrategy)
@@ -164,10 +146,10 @@ export const JobRunConfig = () => {
 
   const { loadParameterStrategy } = useLoadParameterStrategy();
 
-  const closeDialogAndLoadParamsFromFile = React.useCallback(() => {
+  const closeDialogAndLoadParamsFromFile = () => {
     closeLoadParametersDialog();
     loadParameterStrategy();
-  }, [closeLoadParametersDialog, loadParameterStrategy]);
+  };
 
   React.useLayoutEffect(() => {
     if (!jobData?.parameters || !pipelineRuns) return;
