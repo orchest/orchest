@@ -22,7 +22,7 @@ export const EditJobParameters = () => {
     (state) => state.hasLoadedParameterStrategy
   );
 
-  const pipelineName = useEditJob((state) => state.jobChanges?.name);
+  const pipelineFilePath = jobData?.pipeline_run_spec.run_config.pipeline_path;
   const parameterStrategy = useEditJob(
     (state) => state.jobChanges?.strategy_json
   );
@@ -49,7 +49,7 @@ export const EditJobParameters = () => {
   };
 
   const shouldRenderPipelineEditor =
-    hasLoadedParameterStrategy && hasValue(pipelineName);
+    hasLoadedParameterStrategy && hasValue(pipelineFilePath);
 
   return (
     <JobAccordion expanded={isParametersOpen} onChange={handleChangeIsOpen}>
@@ -64,7 +64,7 @@ export const EditJobParameters = () => {
       <AccordionDetails>
         {shouldRenderPipelineEditor && (
           <ParameterEditor
-            pipelineName={pipelineName}
+            pipelineFilePath={pipelineFilePath}
             strategyJson={parameterStrategy}
             onParameterChange={(value: StrategyJson) => {
               handleChangeParameterStrategy(value);

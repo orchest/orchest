@@ -9,7 +9,7 @@ import ParamTree from "./ParamTree";
 
 interface ParameterEditorProps {
   strategyJson: StrategyJson | undefined;
-  pipelineName: string;
+  pipelineFilePath: string;
   readOnly?: boolean;
   onParameterChange?: (value: StrategyJson) => void;
   disableAutofocusCodeMirror?: boolean;
@@ -66,7 +66,7 @@ export const ParameterEditor = ({
       <div className="columns">
         <div className="column">
           <ParamTree
-            pipelineName={props.pipelineName}
+            pipelineName={props.pipelineFilePath}
             strategyJson={strategyJson}
             editParameter={editParameter}
             activeParameter={activeParameter}
