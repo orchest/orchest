@@ -14,9 +14,9 @@ from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree
 from app import create_app
 from app import errors as self_errors
-from app import models, utils
+from app import utils
 from app.celery_app import make_celery
-from app.connections import db, k8s_custom_obj_api
+from app.connections import k8s_custom_obj_api
 from app.core import environments, notifications, registry
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
@@ -355,37 +355,7 @@ def registry_garbage_collection(self) -> None:
             if all_tags_removed:
                 repositories_to_gc.append(repo)
 
-        if not has_deleted_images and not repositories_to_gc:
-            return "SUCCESS"
-
-        # This is needed because registry GC can't be run while a push
-        # is - potentially - ongoing.
-        ongoing_env_builds = db.session.query(
-            db.session.query(models.EnvironmentImageBuild)
-            .filter(models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar()
-        ongoing_jupyter_builds = db.session.query(
-            db.session.query(models.JupyterImageBuild)
-            .filter(models.JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar()
-        active_env_images_to_be_pushed = environments.get_active_environment_images(
-            stored_in_registry=False
-        )
-        active_jupy_images_to_be_pushed = utils.get_active_custom_jupyter_images(
-            stored_in_registry=False
-        )
-        # TODO: information about 'repositories_to_gc' is lost if the GC
-        # is not run meaning some empty directories could be left on
-        # disk. These repositories are repos for which no tag exists
-        # anymore, i.e. all images have been deleted.
-        if (
-            not active_env_images_to_be_pushed
-            and not active_jupy_images_to_be_pushed
-            and not ongoing_env_builds
-            and not ongoing_jupyter_builds
-        ):
+        if has_deleted_images or repositories_to_gc:
             registry.run_registry_garbage_collection(repositories_to_gc)
         return "SUCCESS"
 
