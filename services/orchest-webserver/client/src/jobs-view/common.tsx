@@ -19,8 +19,10 @@ export const pickJobChangesData = (
     "name",
     "parameters",
     "env_variables",
+    "strategy_json",
     "max_retained_pipeline_runs",
-    "schedule"
+    "schedule",
+    "next_scheduled_time"
   );
 };
 
@@ -32,12 +34,14 @@ export const pickJobChanges = (jobData?: JobData): JobChanges | undefined => {
     "uuid",
     "name",
     "parameters",
+    "strategy_json",
     "env_variables",
     "max_retained_pipeline_runs",
     "schedule",
     "status",
     "project_uuid",
-    "pipeline_uuid"
+    "pipeline_uuid",
+    "next_scheduled_time"
   );
 };
 
@@ -134,3 +138,24 @@ export function generatePipelineRunRows(
     };
   });
 }
+
+export const generateJobParameters = (
+  generatedPipelineRuns: Record<string, Json>[],
+  selectedIndices: string[]
+) => {
+  return selectedIndices.map((index) => {
+    const runParameters = generatedPipelineRuns[index];
+    return Object.entries(runParameters).reduce((all, [key, value]) => {
+      // key is formatted: <stepUUID>#<parameterKey>
+      let keySplit = key.split("#");
+      let stepUUID = keySplit[0];
+      let parameterKey = keySplit.slice(1).join("#");
+
+      // check if step already exists,
+      const parameter = all[stepUUID] || {};
+      parameter[parameterKey] = value;
+
+      return { ...all, [stepUUID]: parameter };
+    }, {});
+  });
+};

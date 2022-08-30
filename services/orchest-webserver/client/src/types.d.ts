@@ -235,7 +235,7 @@ export type JobData = {
   total_scheduled_executions: number;
   total_scheduled_pipeline_runs: number;
   pipeline_definition: PipelineJson;
-  next_scheduled_time: string | undefined;
+  next_scheduled_time: string | null;
   last_scheduled_time: string;
   parameters: Record<string, Json>[];
   schedule: string | null;
@@ -269,6 +269,7 @@ export type JobChangesData = {
   | "name"
   | "schedule" // For cron jobs.
   | "parameters"
+  | "strategy_json"
   | "env_variables"
   | "max_retained_pipeline_runs"
 >;

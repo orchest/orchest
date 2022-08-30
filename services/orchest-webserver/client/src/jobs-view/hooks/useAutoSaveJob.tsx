@@ -8,6 +8,7 @@ export const isJobChanged = (prev: JobChangesData, curr: JobChangesData) =>
     "schedule",
     "next_scheduled_time",
     "env_variables",
+    "strategy_json",
     "max_retained_pipeline_runs",
     "parameters",
   ]);
