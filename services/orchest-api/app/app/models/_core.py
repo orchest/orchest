@@ -86,6 +86,11 @@ class SchedulerJob(BaseModel):
         server_default=func.now(),
     )
 
+    # RUNNING|NOT_RUNNING
+    status = db.Column(
+        db.String(15), unique=False, nullable=False, server_default="NOT_RUNNING"
+    )
+
     def __repr__(self):
         return f"<SchedulerJob: {self.type}>"
 

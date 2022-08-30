@@ -1,7 +1,26 @@
 """Handles recurring jobs by assigning them to a given scheduler.
 
 This implementation is in line with the scheduler of the webserver,
-check its module docstring for more info.
+check its module docstring for more info. The only difference is that
+each job record entry has a 'status' column that signals whether the job
+is 'RUNNING' or 'NOT_RUNNING'.
+
+# PR_DISCUSS
+The 'RUNNING' status is set by the scheduler logic when a job is
+launched, updating the status to 'NOT_RUNNING' once the job is finished
+is responsibility of the job, this is necessary due to the asynchronous
+nature of some jobs. This means that, if scheduler jobs of the same type
+run concurrently, there can be race conditions relate to writing the job
+status. This is a form of technical debt but shouldn't lead to any
+issues since the scheduler is already gate keeping concurrent starts
+through the 'interval' value. One solution would be to not start a
+particular scheduler job if it's still 'RUNNING', which is something I
+haven't done because it can have very dangerous outcomes if an update to
+the status fails. Another alternative is to have a DB record for every
+instance of a scheduler job run, and to periodically cleanup the old
+ones. The introduction of the 'status' column was necessary because some
+functionality of the `orchest-api` requires knowing if one of these jobs
+(registry gc) is running or not to avoid a race condition.
 
 """
 import datetime
@@ -161,7 +180,7 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
         # Check whether there is already an entry in the DB, if not
         # then we need to create it.
         if query.first() is None:
-            db.session.add(models.SchedulerJob(type=job_type))
+            db.session.add(models.SchedulerJob(type=job_type, status="RUNNING"))
         else:
             now = datetime.datetime.now(datetime.timezone.utc)
 
@@ -200,6 +219,7 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
                 return
 
             job.timestamp = now
+            job.status = "RUNNING"
 
     def _collateral(
         self, app: Flask, handle_func: Callable, run_collateral: bool
@@ -315,6 +335,8 @@ def schedule_job_runs(app) -> None:
             except Exception as e:
                 logger.error(e)
 
+        notify_scheduled_job_done(SchedulerJobType.SCHEDULE_JOB_RUNS)
+
 
 def process_images_for_deletion(app) -> None:
     """Processes built images to find inactive ones.
@@ -363,3 +385,10 @@ def process_notification_deliveries(app) -> None:
         celery = make_celery(app)
         res = celery.send_task(name="app.core.tasks.process_notifications_deliveries")
         res.forget()
+
+
+def notify_scheduled_job_done(job_type: SchedulerJobType) -> None:
+    models.SchedulerJob.query.with_for_update().filter(
+        models.SchedulerJob.type == job_type.value
+    ).update({"status": "NOT_RUNNING"})
+    db.session.commit()
