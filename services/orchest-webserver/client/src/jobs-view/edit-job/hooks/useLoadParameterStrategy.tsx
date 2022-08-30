@@ -9,42 +9,15 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useLoadParameterStrategy = () => {
-  const jobData = useGetJobData();
   const { config } = useGlobalContext();
-
-  const isDraft = jobData?.status === "DRAFT";
-  const pipelineJson = jobData?.pipeline_definition;
   const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY;
 
-  const setJobs = useJobsApi((state) => state.setJobs);
-  const fetchParameterStrategy = useFetchStrategyJson();
-
-  const loadDefaultOrExistingParameterStrategy = React.useCallback(() => {
-    if (!jobData || !pipelineJson) return;
-    // Do not generate another strategy_json if it has been defined
-    // already.
-    const strategyJson =
-      isDraft && Object.keys(jobData.strategy_json).length === 0
-        ? generateStrategyJson(pipelineJson, reservedKey)
-        : jobData?.strategy_json;
-
-    setJobs((jobs) =>
-      jobs.map((job) =>
-        job.uuid === jobData.uuid
-          ? { ...job, strategy_json: strategyJson }
-          : job
-      )
-    );
-  }, [reservedKey, jobData, isDraft, pipelineJson, setJobs]);
-
+  const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
+  const projectUuid = useEditJob((state) => state.jobChanges?.project_uuid);
   const {
     projectUuid: projectUuidFromRoute,
     jobUuid: jobUuidFromRoute,
   } = useCustomRoute();
-
-  const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
-  const projectUuid = useEditJob((state) => state.jobChanges?.project_uuid);
-
   const hasLoadedRequiredData =
     hasValue(projectUuid) &&
     projectUuid === projectUuidFromRoute &&
@@ -59,17 +32,36 @@ export const useLoadParameterStrategy = () => {
   const shouldLoadParameterStrategy =
     hasLoadedRequiredData && !hasLoadedParameterStrategy;
 
+  const fetchParameterStrategy = useFetchStrategyJson();
+
   React.useEffect(() => {
     if (shouldLoadParameterStrategy) {
       fetchParameterStrategy();
     }
   }, [shouldLoadParameterStrategy, fetchParameterStrategy]);
 
+  const jobData = useGetJobData();
+
+  const isDraft = jobData?.status === "DRAFT";
   const hasNoParameterStrategy =
     isDraft &&
     hasLoadedParameterStrategy &&
     hasValue(jobData) &&
     Object.keys(jobData.strategy_json).length === 0;
+
+  const pipelineJson = jobData?.pipeline_definition;
+  const setJobChanges = useEditJob((state) => state.setJobChanges);
+  const loadDefaultOrExistingParameterStrategy = React.useCallback(() => {
+    if (!jobData || !pipelineJson) return;
+    // Do not generate another strategy_json if it has been defined
+    // already.
+    const strategyJson =
+      isDraft && Object.keys(jobData.strategy_json).length === 0
+        ? generateStrategyJson(pipelineJson, reservedKey)
+        : jobData?.strategy_json;
+
+    setJobChanges({ strategy_json: strategyJson });
+  }, [reservedKey, jobData, isDraft, pipelineJson, setJobChanges]);
 
   React.useEffect(() => {
     if (hasNoParameterStrategy) {
