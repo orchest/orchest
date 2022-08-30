@@ -2,8 +2,9 @@ import CronScheduleInput from "@/components/CronScheduleInput";
 import { DateTimeInput } from "@/components/DateTimeInput";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { JobDocLink } from "@/legacy-job-view/JobDocLink";
-import { convertDateToDateTimeString } from "@/utils/date-time";
+import { toUtcDateTimeString } from "@/utils/date-time";
 import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
@@ -53,7 +54,7 @@ export const EditJobSchedule = () => {
   React.useEffect(() => {
     if (scheduleOption === "one-off") {
       setJobChanges({
-        next_scheduled_time: convertDateToDateTimeString(nextScheduledTime),
+        next_scheduled_time: toUtcDateTimeString(nextScheduledTime),
         schedule: undefined,
       });
     }
@@ -66,20 +67,12 @@ export const EditJobSchedule = () => {
   }, [scheduleOption, setJobChanges, nextScheduledTime, cronString]);
 
   return (
-    <>
+    <Box sx={{ marginBottom: (theme) => theme.spacing(3) }}>
       <FormControl
         component="fieldset"
-        sx={{
-          marginBottom: (theme) => theme.spacing(4),
-          width: "100%",
-        }}
+        sx={{ marginBottom: (theme) => theme.spacing(2), width: "100%" }}
       >
-        <FormLabel
-          id="schedule"
-          sx={{ marginBottom: (theme) => theme.spacing(1) }}
-        >
-          Schedule
-        </FormLabel>
+        <FormLabel id="schedule">Schedule</FormLabel>
         <RadioGroup
           row
           aria-labelledby="schedule"
@@ -118,6 +111,6 @@ export const EditJobSchedule = () => {
           <SnapshotOversizedWarning />
         </>
       )}
-    </>
+    </Box>
   );
 };

@@ -1,4 +1,3 @@
-import { getCurrentDateTimeString } from "@/utils/date-time";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -36,8 +35,9 @@ export const DateTimeInput = ({
 }: DateTimeInputProps) => {
   const [dateTime, setDateTime] = React.useState(new Date());
 
-  const update = (iso: string) => {
-    const newDateTime = new Date(iso);
+  const update = (dateTime: string | Date) => {
+    const newDateTime =
+      typeof dateTime === "string" ? new Date(dateTime) : dateTime;
     if (onChange) {
       onChange(newDateTime);
       return;
@@ -46,7 +46,7 @@ export const DateTimeInput = ({
   };
 
   const setAsNow = () => {
-    update(getCurrentDateTimeString());
+    update(new Date());
   };
 
   const renderedDateTime = React.useMemo(() => value || dateTime, [
