@@ -392,3 +392,14 @@ def notify_scheduled_job_done(job_type: SchedulerJobType) -> None:
         models.SchedulerJob.type == job_type.value
     ).update({"status": "NOT_RUNNING"})
     db.session.commit()
+
+
+def is_running(job_type: SchedulerJobType) -> bool:
+    return db.session.query(
+        db.session.query(models.SchedulerJob)
+        .filter(
+            models.SchedulerJob.type == job_type.value,
+            models.SchedulerJob.status == "RUNNING",
+        )
+        .exists()
+    ).scalar()

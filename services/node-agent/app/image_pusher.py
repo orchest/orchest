@@ -48,8 +48,8 @@ async def get_environment_images_to_push(session: aiohttp.ClientSession) -> Set[
 async def get_jupyter_images_to_push(session: aiohttp.ClientSession) -> Set[str]:
     """Gets the active custom jupyter images."""
     endpoint = (
-        "http://orchest-api/api/ctl/active-custom-jupyter-images"
-        f"?stored_in_registry=false&in_node={CONFIG_CLASS.CLUSTER_NODE}"
+        "http://orchest-api/api/ctl/active-custom-jupyter-images-to-push"
+        f"?in_node={CONFIG_CLASS.CLUSTER_NODE}"
     )
 
     async with session.get(endpoint) as response:
