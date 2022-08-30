@@ -1,31 +1,43 @@
 import { useEscapeToBlur } from "@/hooks/useEscapeToBlur";
 import Box from "@mui/material/Box";
-import "codemirror/mode/shell/shell";
 import React from "react";
+import type { Controlled as ControlledType } from "react-codemirror2";
 import { Controlled, IControlledCodeMirror } from "react-codemirror2";
 
-type CodeMirrorProps = Omit<IControlledCodeMirror, "onFocus" | "onBlur">;
+export type CodeMirrorType = ControlledType;
 
-export const CodeMirror = (props: CodeMirrorProps) => {
-  const [isFocused, setIsFocused] = React.useState(false);
+type CodeMirrorProps = Omit<
+  IControlledCodeMirror,
+  "onFocus" | "onBlur" | "ref"
+>;
 
-  const handleFocus = () => setIsFocused(true);
-  const handleBlur = () => setIsFocused(false);
+export const CodeMirror = React.forwardRef<ControlledType, CodeMirrorProps>(
+  function CodeMirror(props: CodeMirrorProps, ref) {
+    const [isFocused, setIsFocused] = React.useState(false);
 
-  useEscapeToBlur();
+    const handleFocus = () => setIsFocused(true);
+    const handleBlur = () => setIsFocused(false);
 
-  return (
-    <Box
-      sx={{
-        ".CodeMirror": {
-          border: (theme) =>
-            `2px solid ${
-              isFocused ? theme.palette.primary.main : "transparent"
-            } !important`,
-        },
-      }}
-    >
-      <Controlled {...props} onFocus={handleFocus} onBlur={handleBlur} />
-    </Box>
-  );
-};
+    useEscapeToBlur();
+
+    return (
+      <Box
+        sx={{
+          ".CodeMirror": {
+            border: (theme) =>
+              `2px solid ${
+                isFocused ? theme.palette.primary.main : "transparent"
+              } !important`,
+          },
+        }}
+      >
+        <Controlled
+          {...props}
+          ref={ref}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+        />
+      </Box>
+    );
+  }
+);

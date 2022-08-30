@@ -4,39 +4,35 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
-import { CodeMirror } from "./common/CodeMirror";
+import { Controlled as CodeMirror } from "react-codemirror2";
 import ParamTree from "./ParamTree";
 
-interface ParameterEditorProps {
-  strategyJson: StrategyJson | undefined;
+interface IParameterEditorProps {
+  strategyJSON: StrategyJson | undefined;
   pipelineName: string;
   readOnly?: boolean;
   onParameterChange?: (value: StrategyJson) => void;
-  disableAutofocusCodeMirror?: boolean;
 }
 
-export const ParameterEditor = ({
-  disableAutofocusCodeMirror,
-  ...props
-}: ParameterEditorProps) => {
-  const [strategyJson, setStrategyJson] = React.useState<StrategyJson>(
-    props.strategyJson || {}
+const LegacyParameterEditor: React.FC<IParameterEditorProps> = (props) => {
+  const [strategyJSON, setStrategyJson] = React.useState<StrategyJson>(
+    props.strategyJSON || {}
   );
 
-  const [activeParameter, setActiveParameter] = React.useState<{
-    key: string;
-    strategyJsonKey: string;
-  }>();
+  const [activeParameter, setActiveParameter] = React.useState<
+    | {
+        key: string;
+        strategyJSONKey: string;
+      }
+    | undefined
+  >(undefined);
 
   const [codeMirrorValue, setCodeMirrorValue] = React.useState("");
 
-  const editParameter = React.useCallback(
-    (key: string, strategyJsonKey: string) => {
-      setActiveParameter({ key, strategyJsonKey });
-      setCodeMirrorValue(strategyJson[strategyJsonKey].parameters[key]);
-    },
-    [strategyJson]
-  );
+  const editParameter = (key: string, strategyJSONKey: string) => {
+    setActiveParameter({ key, strategyJSONKey });
+    setCodeMirrorValue(strategyJSON[strategyJSONKey].parameters[key]);
+  };
 
   const isJsonValid = React.useMemo(() => {
     try {
@@ -50,16 +46,27 @@ export const ParameterEditor = ({
   React.useEffect(() => {
     // By default open editor for first key
     try {
-      const strategyKeys = Object.keys(strategyJson);
+      let strategyKeys = Object.keys(strategyJSON);
       if (strategyKeys.length > 0) {
-        const firstKey = strategyKeys[0];
-        const parameterKeys = Object.keys(strategyJson[firstKey].parameters);
+        let firstKey = strategyKeys[0];
+        let parameterKeys = Object.keys(strategyJSON[firstKey].parameters);
         if (parameterKeys.length > 0) {
           editParameter(parameterKeys[0], firstKey);
         }
       }
-    } catch {}
-  }, [editParameter, strategyJson]);
+    } catch {
+      // In case something is wrong with the strategyJSON object
+      // don't break.
+    }
+  }, []);
+
+  const codeMirrorRef = React.useRef<CodeMirror | null>(null);
+  React.useEffect(() => {
+    if (activeParameter) {
+      // `editor` is not defined in CodeMirror. So we need this workaround.
+      (codeMirrorRef.current as any)?.editor?.focus(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    }
+  }, [activeParameter]);
 
   return (
     <div className="parameter-editor">
@@ -67,7 +74,7 @@ export const ParameterEditor = ({
         <div className="column">
           <ParamTree
             pipelineName={props.pipelineName}
-            strategyJson={strategyJson}
+            strategyJson={strategyJSON}
             editParameter={editParameter}
             activeParameter={activeParameter}
             data-test-id={props["data-test-id"]}
@@ -77,16 +84,17 @@ export const ParameterEditor = ({
           {hasValue(activeParameter) && !props.readOnly && (
             <>
               <CodeMirror
+                ref={codeMirrorRef}
                 value={codeMirrorValue}
                 options={{
                   mode: "application/json",
                   theme: "jupyter",
                   lineNumbers: true,
-                  autofocus: !disableAutofocusCodeMirror,
+                  autofocus: true,
                 }}
                 onBeforeChange={(editor, data, value) => {
                   setStrategyJson((json) => {
-                    json[activeParameter.strategyJsonKey].parameters[
+                    json[activeParameter.strategyJSONKey].parameters[
                       activeParameter.key
                     ] = value;
                     setCodeMirrorValue(value);
@@ -142,3 +150,5 @@ export const ParameterEditor = ({
     </div>
   );
 };
+
+export default LegacyParameterEditor;

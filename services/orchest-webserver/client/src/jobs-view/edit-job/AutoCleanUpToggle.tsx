@@ -23,7 +23,12 @@ export const AutoCleanUpToggle = ({ selectedRuns }: AutoCleanUpToggleProps) => {
   } = useAutoCleanUpEnabled(selectedRuns);
 
   return (
-    <Stack direction="row" alignItems="center" spacing={2}>
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={2}
+      sx={{ marginTop: (theme) => theme.spacing(1) }}
+    >
       <FormControlLabel
         sx={{ marginLeft: 0 }}
         control={

@@ -2,7 +2,6 @@ import CronScheduleInput from "@/components/CronScheduleInput";
 import { DateTimeInput } from "@/components/DateTimeInput";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { JobDocLink } from "@/legacy-job-view/JobDocLink";
-import { toUtcDateTimeString } from "@/utils/date-time";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
@@ -11,9 +10,10 @@ import FormLabel from "@mui/material/FormLabel";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import React from "react";
-import { useEditJob } from "../stores/useEditJob";
-import { useCronString } from "./hooks/useCronString";
-import { useScheduleDateTime } from "./hooks/useScheduleDateTime";
+import {
+  ScheduleOption,
+  useJobScheduleOption,
+} from "./hooks/useJobScheduleOption";
 
 const SnapshotOversizedWarning = () => {
   const {
@@ -40,31 +40,15 @@ const SnapshotOversizedWarning = () => {
   ) : null;
 };
 
-type ScheduleOption = "one-off" | "recurring";
-
 export const EditJobSchedule = () => {
-  const setJobChanges = useEditJob((state) => state.setJobChanges);
-
-  const [scheduleOption, setScheduleOption] = React.useState<ScheduleOption>(
-    "one-off"
-  );
-  const [cronString, setCronString] = useCronString();
-  const [nextScheduledTime, setNextScheduledTime] = useScheduleDateTime();
-
-  React.useEffect(() => {
-    if (scheduleOption === "one-off") {
-      setJobChanges({
-        next_scheduled_time: toUtcDateTimeString(nextScheduledTime),
-        schedule: undefined,
-      });
-    }
-    if (scheduleOption === "recurring") {
-      setJobChanges({
-        next_scheduled_time: undefined,
-        schedule: cronString,
-      });
-    }
-  }, [scheduleOption, setJobChanges, nextScheduledTime, cronString]);
+  const {
+    scheduleOption,
+    setScheduleOption,
+    cronString,
+    setCronString,
+    nextScheduledTime,
+    setNextScheduledTime,
+  } = useJobScheduleOption();
 
   return (
     <Box sx={{ marginBottom: (theme) => theme.spacing(3) }}>
