@@ -327,7 +327,7 @@ def registry_garbage_collection(self) -> None:
         # It's important that the check is made after the scheduler job
         # is set as 'RUNNING' to avoid race conditions. See the
         # ctl/active-custom-jupyter-images-to-push and
-        # environment-images/active-to-push endpoints for more details.
+        # environment-images/to-push endpoints for more details.
         if not _should_run_registry_gc():
             scheduler.notify_scheduled_job_done(
                 scheduler.SchedulerJobType.PROCESS_IMAGES_FOR_DELETION

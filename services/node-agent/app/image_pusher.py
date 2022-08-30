@@ -34,8 +34,8 @@ async def get_environment_images_to_push(session: aiohttp.ClientSession) -> Set[
     pushed to the registry as images to push.
     """
     endpoint = (
-        "http://orchest-api/api/environment-images/active?stored_in_registry=false"
-        f"&in_node={CONFIG_CLASS.CLUSTER_NODE}"
+        "http://orchest-api/api/environment-images/to-push?"
+        f"in_node={CONFIG_CLASS.CLUSTER_NODE}"
     )
 
     async with session.get(endpoint) as response:
