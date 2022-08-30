@@ -6,6 +6,7 @@ export const isJobChanged = (prev: JobChangesData, curr: JobChangesData) =>
   !shallowEqualByKey(prev, curr, [
     "name",
     "schedule",
+    "next_scheduled_time",
     "env_variables",
     "max_retained_pipeline_runs",
     "parameters",

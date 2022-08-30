@@ -26,6 +26,7 @@ import {
 } from "../common";
 import { useEditJob } from "../stores/useEditJob";
 import { AutoCleanUpToggle } from "./AutoCleanUpToggle";
+import { EditJobSchedule } from "./EditJobSchedule";
 
 const generatePipelineRuns = (strategyJSON: StrategyJson) => {
   const flatParameters = flattenStrategyJson(strategyJSON);
@@ -312,9 +313,9 @@ export const JobRunConfig = () => {
         spacing={3}
         sx={{ paddingTop: (theme) => theme.spacing(4) }}
       >
+        <EditJobSchedule />
         {hasValue(strategyJson) && (
           <DataTable<PipelineRunRow, PipelineRunColumn>
-            // selectable
             hideSearch
             id="job-edit-pipeline-runs"
             columns={columns}
