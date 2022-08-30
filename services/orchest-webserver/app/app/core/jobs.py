@@ -428,6 +428,12 @@ def change_draft_job_pipeline(
     old_pipeline_uuid = job["pipeline_uuid"]
     project_uuid = job["project_uuid"]
 
+    # This is to avoid race conditions. The orchest-webserver db doesnt'
+    # have a concept of jobs so we can't lock on the job and we can't
+    # lock on the pipeline because the pipeline in the job snapshot
+    # might not exist anymore in the webserver.
+    Project.query.with_for_update().filter(Project.uuid == project_uuid)
+
     resp = requests.put(
         f"http://{config.ORCHEST_API_ADDRESS}/api/jobs/{job_uuid}/pipeline",
         json={"pipeline_uuid": new_pipeline_uuid},
