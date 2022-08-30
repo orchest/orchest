@@ -108,13 +108,13 @@ class ActiveEnvironmentImagesToPush(Resource):
         )
 
         # This to avoid image pushes running concurrently with a
-        # registry GC,we avoid the race condition by having the
+        # registry GC, we avoid the race condition by having the
         # PROCESS_IMAGE_DELETION task status be updated and then having
         # the task quit if an image build is ongoing or if an image
         # needs to be pushed. By doing so, together with this check,
         # makes it so that no concurrent pushes and GCs are going to
-        # run.  Also, this call Should be after the images are fetched
-        # to avoid a - very improbable - race condition.
+        # run. Also, this call Should be after the images are fetched to
+        # avoid a - very improbable - race condition.
         if scheduler.is_running(scheduler.SchedulerJobType.PROCESS_IMAGES_FOR_DELETION):
             active_env_images = []
 
