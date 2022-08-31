@@ -4,13 +4,17 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { JobData } from "@/types";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cspell:disable-line
+import Divider from "@mui/material/Divider";
 import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useSelectJob } from "../hooks/useSelectJob";
 import { useEditJob } from "../stores/useEditJob";
+import { useJobActionMenu } from "./hooks/useJobActionMenu";
+import { JobPrimaryButtonIcon } from "./JobPrimaryButtonIcon";
 
 const getNextJob = (jobs: JobData[], jobUuid: string) => {
   const indexToDelete = jobs.findIndex((job) => job.uuid === jobUuid);
@@ -64,6 +68,8 @@ export const JobMoreOptions = () => {
     );
   };
 
+  const actions = useJobActionMenu();
+
   const isOpen = hasValue(anchorElement);
 
   return (
@@ -86,6 +92,26 @@ export const JobMoreOptions = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
+        {actions.map((option) => {
+          const onClick = () => {
+            option.action?.();
+            handleClose();
+          };
+
+          return (
+            <MenuItem
+              key={option.label}
+              disabled={option.disabled}
+              onClick={onClick}
+            >
+              <ListItemIcon>
+                <JobPrimaryButtonIcon type={option.icon} />
+              </ListItemIcon>
+              <ListItemText>{option.label}</ListItemText>
+            </MenuItem>
+          );
+        })}
+        <Divider />
         <MenuItem
           disabled={!isJobChangesLoaded || isDeleting}
           onClick={showDeleteEnvironmentDialog}
