@@ -85,6 +85,16 @@ export const EditJobParameters = () => {
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
+        {shouldRenderPipelineEditor && (
+          <ParameterEditor
+            pipelineFilePath={pipelineFilePath}
+            strategyJson={parameterStrategy}
+            onParameterChange={(value: StrategyJson) => {
+              handleChangeParameterStrategy(value);
+            }}
+            disableAutofocusCodeMirror
+          />
+        )}
         <Stack
           direction="row"
           alignItems="center"
@@ -92,7 +102,7 @@ export const EditJobParameters = () => {
           sx={{ marginTop: 2, marginBottom: 2 }}
         >
           <Button
-            color="secondary"
+            color="primary"
             onClick={showLoadParametersDialog}
             startIcon={<UploadIcon />}
           >
@@ -106,16 +116,6 @@ export const EditJobParameters = () => {
             onClose={closeLoadParametersDialog}
             onSubmit={closeDialogAndLoadParamsFromFile}
             pipelineUuid={pipelineUuid}
-          />
-        )}
-        {shouldRenderPipelineEditor && (
-          <ParameterEditor
-            pipelineFilePath={pipelineFilePath}
-            strategyJson={parameterStrategy}
-            onParameterChange={(value: StrategyJson) => {
-              handleChangeParameterStrategy(value);
-            }}
-            disableAutofocusCodeMirror
           />
         )}
       </AccordionDetails>
