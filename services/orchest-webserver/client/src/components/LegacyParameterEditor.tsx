@@ -5,7 +5,7 @@ import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import ParamTree from "./ParamTree";
+import { ParamTree } from "./ParamTree";
 
 interface IParameterEditorProps {
   strategyJSON: StrategyJson | undefined;

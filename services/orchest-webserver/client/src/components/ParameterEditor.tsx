@@ -5,7 +5,7 @@ import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { CodeMirror } from "./common/CodeMirror";
-import ParamTree from "./ParamTree";
+import { ParamTree } from "./ParamTree";
 
 interface ParameterEditorProps {
   strategyJson: StrategyJson | undefined;
@@ -13,26 +13,28 @@ interface ParameterEditorProps {
   readOnly?: boolean;
   onParameterChange?: (value: StrategyJson) => void;
   disableAutofocusCodeMirror?: boolean;
+  "data-test-id": string;
 }
 
 export const ParameterEditor = ({
   disableAutofocusCodeMirror,
-  ...props
+  onParameterChange,
+  readOnly,
+  pipelineFilePath,
+  strategyJson: initialStrategyJson = {},
+  "data-test-id": dataTestId,
 }: ParameterEditorProps) => {
   const [strategyJson, setStrategyJson] = React.useState<StrategyJson>(
-    props.strategyJson || {}
+    initialStrategyJson
   );
 
-  const [activeParameter, setActiveParameter] = React.useState<{
-    key: string;
-    strategyJsonKey: string;
-  }>();
+  const [activeParameter, setActiveParameter] = React.useState<string>();
 
   const [codeMirrorValue, setCodeMirrorValue] = React.useState("");
 
   const editParameter = React.useCallback(
     (key: string, strategyJsonKey: string) => {
-      setActiveParameter({ key, strategyJsonKey });
+      setActiveParameter([key, strategyJsonKey].join("|"));
       setCodeMirrorValue(strategyJson[strategyJsonKey].parameters[key]);
     },
     [strategyJson]
@@ -48,7 +50,6 @@ export const ParameterEditor = ({
   }, [codeMirrorValue]);
 
   React.useEffect(() => {
-    // By default open editor for first key
     try {
       const strategyKeys = Object.keys(strategyJson);
       if (strategyKeys.length > 0) {
@@ -66,15 +67,15 @@ export const ParameterEditor = ({
       <div className="columns">
         <div className="column">
           <ParamTree
-            pipelineName={props.pipelineFilePath}
+            pipelineName={pipelineFilePath}
             strategyJson={strategyJson}
-            editParameter={editParameter}
+            selectParameter={editParameter}
             activeParameter={activeParameter}
-            data-test-id={props["data-test-id"]}
+            data-test-id={dataTestId}
           />
         </div>
         <div className="column">
-          {hasValue(activeParameter) && !props.readOnly && (
+          {hasValue(activeParameter) && !readOnly && (
             <>
               <CodeMirror
                 value={codeMirrorValue}
@@ -85,18 +86,16 @@ export const ParameterEditor = ({
                   autofocus: !disableAutofocusCodeMirror,
                 }}
                 onBeforeChange={(editor, data, value) => {
+                  const [key, strategyJsonKey] = activeParameter.split("|");
                   setStrategyJson((json) => {
-                    json[activeParameter.strategyJsonKey].parameters[
-                      activeParameter.key
-                    ] = value;
+                    json[strategyJsonKey].parameters[key] = value;
                     setCodeMirrorValue(value);
 
-                    // Only call onParameterChange if valid JSON Array.
                     // Put this block into event-loop to speed up the typing.
                     window.setTimeout(() => {
                       try {
                         if (Array.isArray(JSON.parse(value))) {
-                          props.onParameterChange?.(json);
+                          onParameterChange?.(json);
                         }
                       } catch {
                         console.warn("Invalid JSON entered");
@@ -117,7 +116,7 @@ export const ParameterEditor = ({
               )}
             </>
           )}
-          {activeParameter !== undefined && props.readOnly === true && (
+          {activeParameter !== undefined && readOnly === true && (
             <>
               <CodeMirror
                 onBeforeChange={() => null}

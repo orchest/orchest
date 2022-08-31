@@ -1,4 +1,6 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { StrategyJson, StrategyJsonValue } from "@/types";
+import { omit } from "@/utils/record";
 import LightbulbOutlined from "@mui/icons-material/LightbulbOutlined";
 import {
   Alert,
@@ -6,20 +8,9 @@ import {
   AlertHeader,
   Link,
 } from "@orchest/design-system";
+import classNames from "classnames";
 import isString from "lodash.isstring";
 import React from "react";
-
-interface ParamTreeProps {
-  pipelineName: string;
-  editParameter?: (parameterKey: any, key: any) => void;
-  strategyJson: any;
-  activeParameter:
-    | {
-        key: string;
-        strategyJsonKey: string;
-      }
-    | undefined;
-}
 
 export const NoParameterAlert = () => {
   return (
@@ -43,131 +34,126 @@ export const NoParameterAlert = () => {
   );
 };
 
-const ParamTree = (props: ParamTreeProps) => {
-  const { config } = useGlobalContext();
+const maxLength = 50;
+const truncateParameterValue = (value) => {
+  // stringify non string values
+  const valueString = !isString(value) ? JSON.stringify(value) : value;
 
-  const truncateParameterValue = (value) => {
-    // stringify non string values
-    if (!isString(value)) {
-      value = JSON.stringify(value);
-    }
+  return valueString.length > maxLength
+    ? valueString.substring(0, maxLength - 1) + "…"
+    : valueString;
+};
 
-    let maxLength = 50;
-    return value.length > maxLength
-      ? value.substring(0, maxLength - 1) + "…"
-      : value;
-  };
+type ParamTreeProps = {
+  pipelineName: string;
+  selectParameter?: (parameterKey: string, key: string) => void;
+  strategyJson: StrategyJson;
+  activeParameter: string | undefined;
+  "data-test-id": string;
+};
 
-  const onEditParameter = (parameterKey, key) => {
-    if (props.editParameter) {
-      props.editParameter(parameterKey, key);
-    }
-  };
+const Parameter = ({
+  activeParameter = "|",
+  stepStrategy,
+  includeTitle = true,
+  dataTestId,
+  selectParameter,
+}: {
+  activeParameter: string | undefined;
+  stepStrategy: StrategyJsonValue;
+  includeTitle?: boolean;
+  dataTestId: string;
+  selectParameter?: (parameterKey: string, key: string) => void;
+}) => {
+  const [key, strategyJsonKey] = activeParameter.split("|");
+  return (
+    <>
+      {includeTitle && stepStrategy.title && stepStrategy.title.length > 0 && (
+        <b key={stepStrategy.key}>{stepStrategy.title}</b>
+      )}
+      {Object.entries(stepStrategy.parameters).map(([parameterKey, value]) => {
+        const selected =
+          key == parameterKey && strategyJsonKey == stepStrategy.key;
 
-  const generateParameterElement = (stepStrategy, includeTitle?) => {
-    let elements = new Array<React.ReactElement>();
-
-    if (includeTitle === undefined) {
-      includeTitle = true;
-    }
-
-    if (includeTitle && stepStrategy.title && stepStrategy.title.length > 0) {
-      elements.push(<b key={stepStrategy.key}>{stepStrategy.title}</b>);
-    }
-
-    for (let parameterKey in stepStrategy.parameters) {
-      let parameterValueClasses = ["parameter-value"];
-
-      if (props.editParameter) {
-        parameterValueClasses.push("editable");
-      }
-
-      elements.push(
-        <div
-          key={parameterKey + "-" + stepStrategy.key}
-          className="parameter-row"
-          data-test-id={
-            props["data-test-id"] + `-parameter-row-${parameterKey}`
-          }
-        >
-          <div className="parameter-key">{parameterKey}:</div>
+        return (
           <div
-            className={parameterValueClasses.join(" ")}
-            onClick={() => onEditParameter(parameterKey, stepStrategy.key)}
-            data-test-id={
-              props["data-test-id"] + `-parameter-row-${parameterKey}-value`
-            }
+            key={`${parameterKey}-${stepStrategy.key}`}
+            className="parameter-row"
+            data-test-id={`${dataTestId}-parameter-row-${parameterKey}`}
           >
-            <span
-              style={{
-                fontWeight:
-                  props.activeParameter &&
-                  props.activeParameter.key == parameterKey &&
-                  props.activeParameter.strategyJsonKey == stepStrategy.key
-                    ? "bold"
-                    : "normal",
-              }}
+            <div className="parameter-key">{parameterKey}:</div>
+            <div
+              className={classNames(
+                "parameter-value",
+                selectParameter ? " editable" : ""
+              )}
+              onClick={() => selectParameter?.(parameterKey, stepStrategy.key)}
+              data-test-id={`${dataTestId}-parameter-row-${parameterKey}-value`}
             >
-              {truncateParameterValue(stepStrategy.parameters[parameterKey])}
-            </span>
+              <span
+                style={{
+                  fontWeight: selected ? "bold" : "normal",
+                }}
+              >
+                {truncateParameterValue(value)}
+              </span>
+            </div>
           </div>
-        </div>
-      );
-    }
-
-    return elements;
-  };
-
-  const generateParameterTree = (strategyJSON) => {
-    let pipelineParameterElement;
-    let stepParameterElements = [];
-
-    // First list pipeline parameters
-    let pipelineParameterization =
-      strategyJSON[config?.PIPELINE_PARAMETERS_RESERVED_KEY || ""];
-    if (pipelineParameterization) {
-      pipelineParameterElement = generateParameterElement(
-        pipelineParameterization,
-        false
-      );
-    }
-
-    for (const stepUUID in strategyJSON) {
-      if (stepUUID == config?.PIPELINE_PARAMETERS_RESERVED_KEY) {
-        continue;
-      }
-
-      stepParameterElements = stepParameterElements.concat(
-        generateParameterElement(strategyJSON[stepUUID])
-      );
-    }
-
-    return [pipelineParameterElement, stepParameterElements];
-  };
-
-  let [pipelineParameterElement, stepParameterElements] = generateParameterTree(
-    props.strategyJson
+        );
+      })}
+    </>
   );
+};
+
+export const ParamTree = ({
+  pipelineName,
+  selectParameter,
+  "data-test-id": dataTestId,
+  activeParameter,
+  strategyJson,
+}: ParamTreeProps) => {
+  const { config } = useGlobalContext();
+  const pipelineParameterization =
+    strategyJson[config?.PIPELINE_PARAMETERS_RESERVED_KEY || ""];
+
+  const cleanedStrategyJson = config?.PIPELINE_PARAMETERS_RESERVED_KEY
+    ? omit(strategyJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY)
+    : strategyJson;
 
   return (
     <div className="parameter-tree">
-      {Object.keys(props.strategyJson).length == 0 && <NoParameterAlert />}
+      {Object.keys(strategyJson).length == 0 && <NoParameterAlert />}
 
-      {pipelineParameterElement !== undefined && (
+      {pipelineParameterization && (
         <div className="param-block">
-          <h3>Pipeline: {props.pipelineName}</h3>
-          {pipelineParameterElement}
+          <h3>Pipeline: {pipelineName}</h3>
+          <Parameter
+            activeParameter={activeParameter}
+            dataTestId={dataTestId}
+            selectParameter={selectParameter}
+            stepStrategy={pipelineParameterization}
+            includeTitle={false}
+          />
         </div>
       )}
-
-      {stepParameterElements.length > 0 && (
+      {Object.keys(cleanedStrategyJson).length > 0 && (
         <div className="param-block">
           <h3>Steps</h3>
-          <div className="step-params">{stepParameterElements}</div>
+          <div className="step-params">
+            {Object.entries(cleanedStrategyJson).map(([key, value]) => {
+              return (
+                <Parameter
+                  key={key}
+                  activeParameter={activeParameter}
+                  dataTestId={dataTestId}
+                  selectParameter={selectParameter}
+                  stepStrategy={value}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
   );
 };
-
-export default ParamTree;
