@@ -223,10 +223,13 @@ export type PipelineRun = {
   server_time: string;
 };
 
-export type StrategyJson = Record<
-  string,
-  { parameters: Record<string, string>; key?: string; title?: string }
->;
+export type StrategyJsonValue = {
+  parameters: Record<string, string>;
+  key: string;
+  title?: string;
+};
+
+export type StrategyJson = Record<string, StrategyJsonValue>;
 
 export type JobData = {
   uuid: string;
