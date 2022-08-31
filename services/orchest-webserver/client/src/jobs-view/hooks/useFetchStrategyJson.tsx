@@ -10,7 +10,7 @@ export const useFetchStrategyJson = () => {
   const { jobUuid: jobUuidFromRoute } = useCustomRoute();
   const jobData = useGetJobData();
   const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
-  const fetchStrategyJson = useJobsApi((state) => state.fetchStrategyJson);
+  const fetchStrategyJson = useJobsApi((state) => state.fetchParameterStrategy);
 
   const isJobUuidValid =
     hasValue(jobUuid) && jobUuidFromRoute === jobUuid && hasValue(jobData);

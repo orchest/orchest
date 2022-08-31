@@ -1,5 +1,4 @@
 import { DataTable, DataTableColumn } from "@/components/DataTable";
-import { LoadParametersDialog } from "@/edit-job-view/LoadParametersDialog";
 import { Json, StrategyJson } from "@/types";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
@@ -18,7 +17,6 @@ import { useGetJobData } from "../hooks/useGetJobData";
 import { useEditJob } from "../stores/useEditJob";
 import { AutoCleanUpToggle } from "./AutoCleanUpToggle";
 import { EditJobSchedule } from "./EditJobSchedule";
-import { useLoadParameterStrategy } from "./hooks/useLoadParameterStrategy";
 
 const generatePipelineRuns = (strategyJSON: StrategyJson) => {
   const flatParameters = flattenStrategyJson(strategyJSON);
@@ -68,23 +66,8 @@ const parseParameters = (
   return Array.from(selectedIndices);
 };
 
-export const JobRunConfig = () => {
-  const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
-
+export const EditJobConfig = () => {
   const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
-
-  const [
-    isLoadParametersDialogOpen,
-    setIsLoadParametersDialogOpen,
-  ] = React.useState<boolean>(false);
-
-  const showLoadParametersDialog = () => {
-    setIsLoadParametersDialogOpen(true);
-  };
-
-  const closeLoadParametersDialog = () => {
-    setIsLoadParametersDialogOpen(false);
-  };
 
   const columns: DataTableColumn<
     PipelineRunRow,
@@ -127,7 +110,6 @@ export const JobRunConfig = () => {
   );
 
   const jobData = useGetJobData();
-
   const pipelineJson = jobData?.pipeline_definition;
   const parameterStrategy = useEditJob(
     (state) => state.jobChanges?.strategy_json
@@ -144,56 +126,41 @@ export const JobRunConfig = () => {
     return generatePipelineRunRows(pipelineJson.name, pipelineRuns);
   }, [pipelineRuns, pipelineJson?.name]);
 
-  const { loadParameterStrategy } = useLoadParameterStrategy();
-
-  const closeDialogAndLoadParamsFromFile = () => {
-    closeLoadParametersDialog();
-    loadParameterStrategy();
-  };
+  const parameters = useEditJob((state) => state.jobChanges?.parameters);
 
   React.useLayoutEffect(() => {
-    if (!jobData?.parameters || !pipelineRuns) return;
+    if (!parameters || !pipelineRuns) return;
     setSelectedRuns(
-      jobData.parameters.length > 0
-        ? parseParameters(jobData.parameters, pipelineRuns)
+      parameters.length > 0
+        ? parseParameters(parameters, pipelineRuns)
         : pipelineRunRows.map((row) => row.uuid)
     );
-  }, [jobData?.parameters, pipelineRunRows, pipelineRuns]);
+  }, [parameters, pipelineRunRows, pipelineRuns]);
 
   return (
-    <>
-      {pipelineUuid && (
-        <LoadParametersDialog
-          isOpen={isLoadParametersDialogOpen}
-          onClose={closeLoadParametersDialog}
-          onSubmit={closeDialogAndLoadParamsFromFile}
-          pipelineUuid={pipelineUuid}
+    <Stack
+      direction="column"
+      alignItems="flex-start"
+      spacing={3}
+      sx={{ paddingTop: (theme) => theme.spacing(4) }}
+    >
+      <EditJobSchedule />
+      {hasValue(parameterStrategy) && (
+        <DataTable<PipelineRunRow, PipelineRunColumn>
+          hideSearch
+          id="job-edit-pipeline-runs"
+          columns={columns}
+          sx={{
+            border: (theme) => `1px solid ${theme.borderColor}`,
+            borderRadius: (theme) => theme.spacing(0.5),
+            overflow: "hidden",
+          }}
+          rows={pipelineRunRows}
+          retainSelectionsOnPageChange
+          data-test-id="job-edit-pipeline-runs"
         />
       )}
-      <Stack
-        direction="column"
-        alignItems="flex-start"
-        spacing={3}
-        sx={{ paddingTop: (theme) => theme.spacing(4) }}
-      >
-        <EditJobSchedule />
-        {hasValue(parameterStrategy) && (
-          <DataTable<PipelineRunRow, PipelineRunColumn>
-            hideSearch
-            id="job-edit-pipeline-runs"
-            columns={columns}
-            sx={{
-              border: (theme) => `1px solid ${theme.borderColor}`,
-              borderRadius: (theme) => theme.spacing(0.5),
-              overflow: "hidden",
-            }}
-            rows={pipelineRunRows}
-            retainSelectionsOnPageChange
-            data-test-id="job-edit-pipeline-runs"
-          />
-        )}
-        <AutoCleanUpToggle selectedRuns={selectedRuns} />
-      </Stack>
-    </>
+      <AutoCleanUpToggle selectedRuns={selectedRuns} />
+    </Stack>
   );
 };

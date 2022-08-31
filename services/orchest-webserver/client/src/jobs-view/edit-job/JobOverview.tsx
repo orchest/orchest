@@ -5,9 +5,9 @@ import {
   JobAccordion,
   useJobOverviewAccordion,
 } from "./components/JobAccordion";
+import { EditJobConfig } from "./EditJobConfig";
 import { EditJobName } from "./EditJobName";
 import { EditJobPipeline } from "./EditJobPipeline";
-import { JobRunConfig } from "./JobRunConfig";
 
 export const JobOverview = () => {
   const [isOverviewOpen, setIsOverviewOpen] = useJobOverviewAccordion();
@@ -29,7 +29,7 @@ export const JobOverview = () => {
       <AccordionDetails sx={{ paddingTop: (theme) => theme.spacing(2) }}>
         <EditJobName />
         <EditJobPipeline />
-        <JobRunConfig />
+        <EditJobConfig />
       </AccordionDetails>
     </JobAccordion>
   );
