@@ -4,7 +4,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 RUN apt-get update \
     # Refresh SSL certificates
     && update-ca-certificates --fresh \
-    && apt-get install -yq --no-install-recommends curl git jq ca-certificates \
+    && apt-get install -yq --no-install-recommends curl ssh git jq ca-certificates \
     # Install nodejs for Jupyter extensions.
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && apt-get install -yq --no-install-recommends nodejs \
@@ -40,6 +40,12 @@ COPY patch-pip.sh pip-warning.py /
 RUN bash /patch-pip.sh
 
 COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
+
+COPY shellspawner/shellspawner /usr/bin/shellspawner
+
+# Add shellspawner to terminal profile
+# TODO: check if this doesn't get sourced for the main start.sh
+RUN echo shellspawner >> ~/.profile
 
 # Hardcoded /project-dir because Python config can't be injected into Dockerfile
 WORKDIR /project-dir

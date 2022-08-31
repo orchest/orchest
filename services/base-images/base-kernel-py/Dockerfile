@@ -7,7 +7,7 @@ USER root
 # defailt-libmysqlclient-dev : Orchest dependency
 # libkrb5-dev                : Enterprise Gateway requirement
 RUN apt-get update \
-    && apt-get install -yq --no-install-recommends default-libmysqlclient-dev libkrb5-dev \
+    && apt-get install -yq --no-install-recommends openssh-server default-libmysqlclient-dev libkrb5-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN passwd -d $NB_USER \
@@ -45,7 +45,8 @@ COPY ./runnable-shared/runner/requirements* /orchest/services/base-images/runnab
 COPY ./lib/python /orchest/lib/python
 COPY ./orchest-sdk /orchest/orchest-sdk
 RUN chown $NB_USER -R /orchest/orchest-sdk \
-    && chown $NB_USER -R /orchest/lib
+    && chown $NB_USER -R /orchest/lib && \
+    echo -e "jovyan\njovyan" | passwd jovyan
 
 USER $NB_USER
 

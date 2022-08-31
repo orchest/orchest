@@ -239,6 +239,22 @@ pipelines = Model(
     {"pipelines": fields.List(fields.Nested(pipeline), description="All pipelines")},
 )
 
+environment_shell_config = Model(
+    "EnvironmentShellConfig",
+    {
+        "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "userdir_pvc": fields.String(
+            required=True, description="Name of the userdir pvc"
+        ),
+        "project_dir": fields.String(
+            required=True, description="Path to project files"
+        ),
+        "environment_uuid": fields.String(
+            required=True, description="UUID of environment"
+        ),
+    },
+)
 
 session_config = Model(
     "SessionConfig",

@@ -9,6 +9,7 @@ import os
 import shlex
 import traceback
 from typing import Any, Dict, Optional, Tuple
+from uuid import uuid4
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import add_image_puller_if_needed, get_userdir_relpath
@@ -23,7 +24,7 @@ logger = utils.get_logger()
 def _get_common_volumes_and_volume_mounts(
     userdir_pvc: str,
     project_dir: str,
-    pipeline_path: str,
+    pipeline_path: str = None,
     container_project_dir: str = _config.PROJECT_DIR,
     container_pipeline_path: str = _config.PIPELINE_FILE,
     container_data_dir: str = _config.DATA_DIR,
@@ -33,7 +34,6 @@ def _get_common_volumes_and_volume_mounts(
     volume_mounts = {}
 
     relative_project_dir = get_userdir_relpath(project_dir)
-    relative_pipeline_path = os.path.join(relative_project_dir, pipeline_path)
 
     volumes["userdir-pvc"] = {
         "name": "userdir-pvc",
@@ -55,11 +55,15 @@ def _get_common_volumes_and_volume_mounts(
         "mountPath": container_project_dir,
         "subPath": relative_project_dir,
     }
-    volume_mounts["pipeline-file"] = {
-        "name": "userdir-pvc",
-        "mountPath": container_pipeline_path,
-        "subPath": relative_pipeline_path,
-    }
+
+    if pipeline_path is not None:
+        relative_pipeline_path = os.path.join(relative_project_dir, pipeline_path)
+
+        volume_mounts["pipeline-file"] = {
+            "name": "userdir-pvc",
+            "mountPath": container_pipeline_path,
+            "subPath": relative_pipeline_path,
+        }
 
     return volumes, volume_mounts
 
@@ -288,6 +292,96 @@ def _get_session_sidecar_deployment_manifest(
     }
 
 
+def _get_environment_shell_deployment_service_manifest(
+    session_uuid: str,
+    project_uuid: str,
+    userdir_pvc: str,
+    project_dir: str,
+    environment_image: str,
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+
+    metadata = {
+        "name": f"environment-shell-{session_uuid}-{(str(uuid4()))[:6]}",
+        "labels": {
+            "app": "environment-shell",
+            "project_uuid": project_uuid,
+            "session_uuid": session_uuid,
+        },
+    }
+
+    volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
+        userdir_pvc,
+        project_dir,
+    )
+
+    deployment_manifest = {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": metadata,
+        "spec": {
+            "replicas": 1,
+            "selector": {"matchLabels": metadata["labels"]},
+            "template": {
+                "metadata": metadata,
+                "spec": {
+                    "terminationGracePeriodSeconds": 5,
+                    "securityContext": {
+                        "runAsUser": 0,
+                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                    },
+                    "volumes": [
+                        volumes_dict["userdir-pvc"],
+                    ],
+                    "containers": [
+                        {
+                            "name": metadata["name"],
+                            "image": environment_image,
+                            "imagePullPolicy": "IfNotPresent",
+                            "volumeMounts": [
+                                volume_mounts_dict["project-dir"],
+                                volume_mounts_dict["data"],
+                            ],
+                            "command": ["/orchest/bootscript.sh"],
+                            "args": [
+                                "shell",
+                            ],
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
+                            "startupProbe": {
+                                "exec": {
+                                    "command": ["echo", "1"],
+                                    "initialDelaySeconds": 1,
+                                    "periodSeconds": 1,
+                                }
+                            },
+                            "ports": [{"containerPort": 22}],
+                        }
+                    ],
+                },
+            },
+        },
+    }
+
+    # TODO: image puller needed?
+
+    service_manifest = {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": metadata,
+        "spec": {
+            "type": "ClusterIP",
+            "selector": metadata["labels"],
+            # Coupled with the idle check.
+            # TODO: the right ports? How is this used
+            "ports": [{"port": 22, "targetPort": 22}],
+        },
+    }
+
+    return deployment_manifest, service_manifest
+
+
 def _get_jupyter_server_deployment_service_manifest(
     session_uuid: str,
     session_config: SessionConfig,
@@ -343,6 +437,24 @@ def _get_jupyter_server_deployment_service_manifest(
                                 volume_mounts_dict["data"],
                                 volume_mounts_dict["jupyterlab-lab"],
                                 volume_mounts_dict["jupyterlab-user-settings"],
+                            ],
+                            "envs": [
+                                {
+                                    "name": "ORCHEST_PROJECT_UUID",
+                                    "value": project_uuid,
+                                },
+                                {
+                                    "name": "ORCHEST_PIPELINE_UUID",
+                                    "value": session_config["pipeline_uuid"],
+                                },
+                                {
+                                    "name": "ORCHEST_API_ADDRESS",
+                                    "value": _config.ORCHEST_API_ADDRESS,
+                                },
+                                {
+                                    "name": "ORCHEST_WEBSERVER_ADDRESS",
+                                    "value": _config.ORCHEST_WEBSERVER_ADDRESS,
+                                },
                             ],
                             "args": [
                                 "--allow-root",

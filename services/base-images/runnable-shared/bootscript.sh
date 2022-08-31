@@ -10,6 +10,9 @@ umask 002
 if [ "$1" = "runnable" ]; then
     /home/$NB_USER/venv/bin/python \
     /orchest/services/base-images/runnable-shared/runner/run.py  "$2" "$3"
+elif [ "$1" = "shell" ]; then
+    sudo service ssh start
+    sudo /usr/sbin/sshd -D
 else
 
     # This bootscript is generic and also runs for images without conda
