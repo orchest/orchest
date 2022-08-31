@@ -29,9 +29,9 @@ export type JobsApi = {
   resumeCronJob: (jobUuid: string) => Promise<void>;
   pauseCronJob: (jobUuid: string) => Promise<void>;
   triggerScheduledRuns: (jobUuid: string) => Promise<void>;
-  hasLoadedParameterStrategy: boolean;
-  setHasLoadedParameterStrategy: (value: boolean) => void;
-  fetchStrategyJson: (
+  hasLoadedParameterStrategyFile: boolean | undefined;
+  resetHasLoadedParameterStrategyFile: () => void;
+  fetchParameterStrategy: (
     jobData: JobData,
     reservedKey: string | undefined
   ) => Promise<void>;
@@ -232,8 +232,8 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         return { jobs };
       });
     },
-    hasLoadedParameterStrategy: false,
-    fetchStrategyJson: async (jobData, reservedKey) => {
+    hasLoadedParameterStrategyFile: undefined,
+    fetchParameterStrategy: async (jobData, reservedKey) => {
       const strategyJson = await jobsApi.fetchStrategyJson(
         jobData,
         reservedKey
@@ -245,14 +245,14 @@ export const useJobsApi = create<JobsApi>((set, get) => {
               ? { ...job, strategy_json: strategyJson }
               : job
           );
-          return { jobs, hasLoadedParameterStrategy: true };
+          return { jobs, hasLoadedParameterStrategyFile: true };
         } else {
-          return { hasLoadedParameterStrategy: true };
+          return { hasLoadedParameterStrategyFile: false };
         }
       });
     },
-    setHasLoadedParameterStrategy: (value) => {
-      set({ hasLoadedParameterStrategy: value });
+    resetHasLoadedParameterStrategyFile: () => {
+      set({ hasLoadedParameterStrategyFile: undefined });
     },
     clearError: () => {
       set({ error: undefined });

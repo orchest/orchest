@@ -26,7 +26,7 @@ export const useLoadParameterStrategy = () => {
     hasValue(reservedKey);
 
   const hasLoadedParameterStrategy = useJobsApi(
-    (state) => state.hasLoadedParameterStrategy
+    (state) => state.hasLoadedParameterStrategyFile
   );
 
   const shouldLoadParameterStrategy =
@@ -69,13 +69,13 @@ export const useLoadParameterStrategy = () => {
     }
   }, [hasNoParameterStrategy, loadDefaultOrExistingParameterStrategy]);
 
-  const setHasLoadedParameterStrategy = useJobsApi(
-    (state) => state.setHasLoadedParameterStrategy
+  const resetHasLoadedParameterStrategyFile = useJobsApi(
+    (state) => state.resetHasLoadedParameterStrategyFile
   );
 
   React.useEffect(() => {
-    return () => setHasLoadedParameterStrategy(false);
-  }, [setHasLoadedParameterStrategy]);
+    return () => resetHasLoadedParameterStrategyFile();
+  }, [resetHasLoadedParameterStrategyFile]);
 
   return { loadParameterStrategy: fetchParameterStrategy };
 };

@@ -1,11 +1,13 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
 import { ParameterEditor } from "@/components/ParameterEditor";
+import { LoadParametersDialog } from "@/edit-job-view/LoadParametersDialog";
 import { StrategyJson } from "@/types";
+import UploadIcon from "@mui/icons-material/Upload";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
-import "codemirror/mode/shell/shell";
-import "codemirror/theme/dracula.css";
 import React from "react";
 import { useGetJobData } from "../hooks/useGetJobData";
 import { useEditJob } from "../stores/useEditJob";
@@ -13,13 +15,15 @@ import {
   JobAccordion,
   useJobParametersAccordion,
 } from "./components/JobAccordion";
+import { useLoadParameterStrategy } from "./hooks/useLoadParameterStrategy";
+import { LoadParamFileDescription } from "./LoadParamFileDescription";
 
 export const EditJobParameters = () => {
   const [isParametersOpen, setIsParametersOpen] = useJobParametersAccordion();
 
   const jobData = useGetJobData();
-  const hasLoadedParameterStrategy = useJobsApi(
-    (state) => state.hasLoadedParameterStrategy
+  const hasLoadedParameterStrategyFile = useJobsApi(
+    (state) => state.hasLoadedParameterStrategyFile
   );
 
   const pipelineFilePath = jobData?.pipeline_run_spec.run_config.pipeline_path;
@@ -29,7 +33,26 @@ export const EditJobParameters = () => {
 
   const setJobChanges = useEditJob((state) => state.setJobChanges);
 
-  const parameters = useEditJob((state) => state.jobChanges?.parameters);
+  const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
+  const [
+    isLoadParametersDialogOpen,
+    setIsLoadParametersDialogOpen,
+  ] = React.useState<boolean>(false);
+
+  const showLoadParametersDialog = () => {
+    setIsLoadParametersDialogOpen(true);
+  };
+
+  const closeLoadParametersDialog = () => {
+    setIsLoadParametersDialogOpen(false);
+  };
+
+  const { loadParameterStrategy } = useLoadParameterStrategy();
+
+  const closeDialogAndLoadParamsFromFile = () => {
+    closeLoadParametersDialog();
+    loadParameterStrategy();
+  };
 
   const handleChangeParameterStrategy = React.useCallback(
     (value: StrategyJson) => {
@@ -49,7 +72,7 @@ export const EditJobParameters = () => {
   };
 
   const shouldRenderPipelineEditor =
-    hasLoadedParameterStrategy && hasValue(pipelineFilePath);
+    hasValue(hasLoadedParameterStrategyFile) && hasValue(pipelineFilePath);
 
   return (
     <JobAccordion expanded={isParametersOpen} onChange={handleChangeIsOpen}>
@@ -62,6 +85,29 @@ export const EditJobParameters = () => {
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={2}
+          sx={{ marginTop: 2, marginBottom: 2 }}
+        >
+          <Button
+            color="secondary"
+            onClick={showLoadParametersDialog}
+            startIcon={<UploadIcon />}
+          >
+            Load parameter file
+          </Button>
+          <LoadParamFileDescription />
+        </Stack>
+        {pipelineUuid && (
+          <LoadParametersDialog
+            isOpen={isLoadParametersDialogOpen}
+            onClose={closeLoadParametersDialog}
+            onSubmit={closeDialogAndLoadParamsFromFile}
+            pipelineUuid={pipelineUuid}
+          />
+        )}
         {shouldRenderPipelineEditor && (
           <ParameterEditor
             pipelineFilePath={pipelineFilePath}
