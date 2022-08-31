@@ -58,6 +58,7 @@ var (
 	OwnerLabelKey          = "controller.orchest.io/owner"
 	ControllerPartOfLabel  = "controller.orchest.io/part-of"
 	ComponentLabelKey      = "controller.orchest.io/component"
+	IngressAnnotationKey   = "controller.orchest.io/deploy-ingress"
 	RestartAnnotationKey   = "orchest.io/restart"
 
 	// Runtime annotations

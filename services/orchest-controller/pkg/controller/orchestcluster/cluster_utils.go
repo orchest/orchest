@@ -522,9 +522,17 @@ func isIngressAddonRequired(ctx context.Context, client kubernetes.Interface) bo
 
 	// In k3s ingress addon can be installed by us
 	switch k8sDistro {
-	case utils.K3s:
-	case utils.EKS:
-	case utils.GKE:
+	case utils.K3s, utils.EKS, utils.GKE:
+		return true
+	default:
+		return false
+	}
+
+}
+
+func isIngressDisabled(orchest *orchestv1alpha1.OrchestCluster) bool {
+
+	if value, ok := orchest.Annotations[controller.IngressAnnotationKey]; ok && value == "false" {
 		return true
 	}
 
