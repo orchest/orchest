@@ -1,4 +1,3 @@
-import { StrategyJson } from "./components/LegacyParameterEditor";
 import { TStatus } from "./components/Status";
 import { Point2D } from "./utils/geometry";
 

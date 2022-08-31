@@ -6,7 +6,7 @@ import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { DateTimeInput } from "@/components/DateTimeInput";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
-import LegacyParameterEditor from "@/components/LegacyParameterEditor";
+import LegacyParameterEditor from "@/components/legacy/LegacyParameterEditor";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";

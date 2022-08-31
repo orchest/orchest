@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
-import { ImageBuildStatus } from "./ImageBuildStatus";
+import { ImageBuildStatus } from "../ImageBuildStatus";
 
 type UseFetchEnvironmentBuildParams = {
   url: string;

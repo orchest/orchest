@@ -1,8 +1,9 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { useFetchStrategyJson } from "@/jobs-view/hooks/useFetchStrategyJson";
 import { useGetJobData } from "@/jobs-view/hooks/useGetJobData";
+import { useValidJobQueryArgs } from "@/jobs-view/hooks/useValidJobQueryArgs";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { generateStrategyJson } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
@@ -12,25 +13,20 @@ export const useLoadParameterStrategy = () => {
   const { config } = useGlobalContext();
   const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY;
 
-  const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
-  const projectUuid = useEditJob((state) => state.jobChanges?.project_uuid);
-  const {
-    projectUuid: projectUuidFromRoute,
-    jobUuid: jobUuidFromRoute,
-  } = useCustomRoute();
+  const { projectUuid, jobUuid } = useValidJobQueryArgs();
+
   const hasLoadedRequiredData =
-    hasValue(projectUuid) &&
-    projectUuid === projectUuidFromRoute &&
-    hasValue(jobUuid) &&
-    jobUuid === jobUuidFromRoute &&
-    hasValue(reservedKey);
+    hasValue(projectUuid) && hasValue(jobUuid) && hasValue(reservedKey);
 
   const hasLoadedParameterStrategy = useJobsApi(
     (state) => state.hasLoadedParameterStrategyFile
   );
 
+  const jobData = useGetJobData();
+  const isDraft = jobData?.status === "DRAFT";
+
   const shouldLoadParameterStrategy =
-    hasLoadedRequiredData && !hasLoadedParameterStrategy;
+    isDraft && hasLoadedRequiredData && !hasLoadedParameterStrategy;
 
   const fetchParameterStrategy = useFetchStrategyJson();
 
@@ -40,18 +36,9 @@ export const useLoadParameterStrategy = () => {
     }
   }, [shouldLoadParameterStrategy, fetchParameterStrategy]);
 
-  const jobData = useGetJobData();
-
-  const isDraft = jobData?.status === "DRAFT";
-  const hasNoParameterStrategy =
-    isDraft &&
-    hasLoadedParameterStrategy &&
-    hasValue(jobData) &&
-    Object.keys(jobData.strategy_json).length === 0;
-
   const pipelineJson = jobData?.pipeline_definition;
   const setJobChanges = useEditJob((state) => state.setJobChanges);
-  const loadDefaultOrExistingParameterStrategy = React.useCallback(() => {
+  const loadParameterStrategyToJobChanges = React.useCallback(() => {
     if (!jobData || !pipelineJson) return;
     // Do not generate another strategy_json if it has been defined
     // already.
@@ -59,15 +46,18 @@ export const useLoadParameterStrategy = () => {
       isDraft && Object.keys(jobData.strategy_json).length === 0
         ? generateStrategyJson(pipelineJson, reservedKey)
         : jobData?.strategy_json;
-
     setJobChanges({ strategy_json: strategyJson });
   }, [reservedKey, jobData, isDraft, pipelineJson, setJobChanges]);
 
+  const shouldUpdateJobChanges = useHasChanged(
+    hasLoadedParameterStrategy,
+    (prev, curr) => !prev && curr === true
+  );
   React.useEffect(() => {
-    if (hasNoParameterStrategy) {
-      loadDefaultOrExistingParameterStrategy();
+    if (shouldUpdateJobChanges) {
+      loadParameterStrategyToJobChanges();
     }
-  }, [hasNoParameterStrategy, loadDefaultOrExistingParameterStrategy]);
+  }, [shouldUpdateJobChanges, loadParameterStrategyToJobChanges]);
 
   const resetHasLoadedParameterStrategyFile = useJobsApi(
     (state) => state.resetHasLoadedParameterStrategyFile

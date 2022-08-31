@@ -3,7 +3,7 @@ import { TabPanel } from "@/components/common/Tabs";
 import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
-import LegacyParameterEditor from "@/components/LegacyParameterEditor";
+import LegacyParameterEditor from "@/components/legacy/LegacyParameterEditor";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
