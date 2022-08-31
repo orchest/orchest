@@ -116,14 +116,13 @@ export const ParamTree = ({
   const pipelineParameterization =
     strategyJson[config?.PIPELINE_PARAMETERS_RESERVED_KEY || ""];
 
-  const cleanedStrategyJson = config?.PIPELINE_PARAMETERS_RESERVED_KEY
+  const stepStrategies = config?.PIPELINE_PARAMETERS_RESERVED_KEY
     ? omit(strategyJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY)
     : strategyJson;
 
   return (
     <div className="parameter-tree">
       {Object.keys(strategyJson).length == 0 && <NoParameterAlert />}
-
       {pipelineParameterization && (
         <div className="param-block">
           <h3>Pipeline: {pipelineName}</h3>
@@ -136,11 +135,11 @@ export const ParamTree = ({
           />
         </div>
       )}
-      {Object.keys(cleanedStrategyJson).length > 0 && (
+      {Object.keys(stepStrategies).length > 0 && (
         <div className="param-block">
           <h3>Steps</h3>
           <div className="step-params">
-            {Object.entries(cleanedStrategyJson).map(([key, value]) => {
+            {Object.entries(stepStrategies).map(([key, value]) => {
               return (
                 <Parameter
                   key={key}
