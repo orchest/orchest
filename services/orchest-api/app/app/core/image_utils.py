@@ -36,14 +36,14 @@ def image_build_task_to_pod_name(task_uuid: str) -> str:
     return f"image-build-task-{task_uuid}"
 
 
-def _get_buildah_image_build_workflow_manifest(
+def _get_image_builder_workflow_manifest(
     workflow_name,
     image_name,
     image_tag,
     build_context_host_path,
     dockerfile_path,
 ) -> dict:
-    """Returns a buildah workflow manifest given the arguments.
+    """Returns the image builder workflow manifest given the arguments.
 
     Args:
         workflow_name: Name with which the workflow will be run.
@@ -69,14 +69,14 @@ def _get_buildah_image_build_workflow_manifest(
                 {
                     "name": "build-env",
                     "container": {
-                        "name": "buildah",
-                        "image": "docker",
+                        "name": "image-builder",
+                        "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
                         "workingDir": "/build-context",
                         "command": ["/bin/sh", "-c"],
                         "args": [
-                            (
-                                f"docker build -f {dockerfile_path} "
-                                f"-t {full_image_name} /build-context"
+                            CONFIG_CLASS.IMAGE_BUILDER_BUILD_CMD.format(
+                                dockerfile_path=dockerfile_path,
+                                full_image_name=full_image_name,
                             )
                         ],
                         "securityContext": {
@@ -266,7 +266,7 @@ class ImageBuildSidecar:
         build_context,
     ) -> str:
         pod_name = image_build_task_to_pod_name(task_uuid)
-        manifest = _get_buildah_image_build_workflow_manifest(
+        manifest = _get_image_builder_workflow_manifest(
             pod_name,
             image_name,
             image_tag,
