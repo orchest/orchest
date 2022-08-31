@@ -77,6 +77,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "node-agent"
         "orchest-controller"
         "image-puller"
+        "image-builder-buildx"
     )
 fi
 
@@ -414,6 +415,16 @@ do
             -t "orchest/image-puller:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../utility-containers/image-puller/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    if [ $IMG == "image-builder-buildx" ]; then
+        build_ctx=$DIR/../utility-containers/image-builder-buildx
+        build=(docker build --platform linux/amd64 --progress=plain \
+            -t "orchest/image-builder-buildx:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../utility-containers/image-builder-buildx/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
