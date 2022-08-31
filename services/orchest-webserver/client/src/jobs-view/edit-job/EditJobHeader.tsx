@@ -3,6 +3,7 @@ import React from "react";
 import { JobMoreOptions } from "./JobMoreOptions";
 import { JobName } from "./JobName";
 import { JobPrimaryButton } from "./JobPrimaryButton";
+import { JobStatusAlert } from "./JobStatusAlert";
 
 export const EditJobHeader = () => {
   return (
@@ -22,7 +23,7 @@ export const EditJobHeader = () => {
         <JobPrimaryButton />
         <JobMoreOptions />
       </Stack>
-      {/* <BuildStatusAlert /> */}
+      <JobStatusAlert />
     </Stack>
   );
 };
