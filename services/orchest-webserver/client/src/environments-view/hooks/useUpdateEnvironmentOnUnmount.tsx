@@ -1,6 +1,6 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import React from "react";
-import { extractEnvironmentFromState } from "../common";
+import { environmentDataFromState } from "../common";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 /**
@@ -25,7 +25,7 @@ export const useUpdateEnvironmentOnUnmount = () => {
   const updateEnvironment = React.useCallback(() => {
     const environment =
       environmentChangesRef.current &&
-      extractEnvironmentFromState(environmentChangesRef.current);
+      environmentDataFromState(environmentChangesRef.current);
     if (environment) {
       setEnvironment(environment.uuid, environment);
     }

@@ -2,6 +2,9 @@ import { hasValue } from "@orchest/lib-utils";
 
 export type AnyRecord = Record<string, unknown>;
 export type PropsOf<T extends AnyRecord> = readonly (keyof T)[];
+export type EntryPredicate = ([string, unknown]) => boolean;
+
+const entryHasValue: EntryPredicate = ([, value]) => !hasValue(value);
 
 /**
  * Returns the properties of the record T as a typed array.
@@ -42,12 +45,20 @@ export const pick = <T extends AnyRecord, P extends PropsOf<T>>(
   return result as Pick<T, P[number]>;
 };
 
-/** Remove unwanted properties from the record R.
- * By default, it removes all properties with value `null` and `undefined`. */
-export const prune = <R extends Record<string, unknown>>(
-  record: Record<string, unknown>,
-  predicate: (args: [string, unknown]) => boolean = ([, value]) =>
-    hasValue(value)
-): R => {
-  return Object.fromEntries(Object.entries(record).filter(predicate)) as R;
-};
+/**
+ * Removes some undesired properties from the record R.
+ * By default, it removes all properties with nullish values.
+ */
+export const prune = <T extends AnyRecord, R extends AnyRecord = T>(
+  record: T,
+  predicate: EntryPredicate = entryHasValue
+) => Object.fromEntries(Object.entries(record).filter(predicate)) as R;
+
+/**
+ * Returns a predicate which returns true when a property of a record is strictly equal to a provided value.
+ * This is useful in for instance, `Array.find` or `replaces`.
+ */
+export const equates = <T extends AnyRecord, P extends keyof T>(
+  prop: P,
+  value: unknown
+) => (item: T) => item[prop] === value;
