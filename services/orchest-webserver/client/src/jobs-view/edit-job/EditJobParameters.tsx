@@ -8,28 +8,15 @@ import UploadIcon from "@mui/icons-material/Upload";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
+import { useIsJobReadOnly } from "./hooks/useIsJobReadOnly";
 import { useLoadParameterStrategy } from "./hooks/useLoadParameterStrategy";
 import { JobParameters } from "./JobParameters";
 import { LoadParamFileDescription } from "./LoadParamFileDescription";
 
 export const EditJobParameters = () => {
-  const isReadOnly = useEditJob((state) => {
-    const jobFinished =
-      state.jobChanges?.status === "ABORTED" ||
-      state.jobChanges?.status === "FAILURE" ||
-      state.jobChanges?.status === "SUCCESS";
-
-    const isDraft = state.jobChanges?.status === "DRAFT";
-    const isActiveCronJob =
-      !jobFinished && !isDraft && hasValue(state.jobChanges?.schedule);
-    const isEditable = isDraft || isActiveCronJob;
-
-    return !isEditable;
-  });
-
+  const { isReadOnly } = useIsJobReadOnly();
   const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
 
   const [
@@ -74,12 +61,13 @@ export const EditJobParameters = () => {
             color="primary"
             onClick={showLoadParametersDialog}
             startIcon={<UploadIcon />}
+            disabled={isReadOnly}
           >
             Load parameter file
           </Button>
           <LoadParamFileDescription />
         </Stack>
-        {pipelineUuid && (
+        {pipelineUuid && !isReadOnly && (
           <LoadParametersDialog
             isOpen={isLoadParametersDialogOpen}
             onClose={closeLoadParametersDialog}
