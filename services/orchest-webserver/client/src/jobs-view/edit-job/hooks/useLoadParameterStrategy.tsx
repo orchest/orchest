@@ -1,71 +1,74 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useHasChanged } from "@/hooks/useHasChanged";
-import { useFetchStrategyJson } from "@/jobs-view/hooks/useFetchStrategyJson";
 import { useGetJobData } from "@/jobs-view/hooks/useGetJobData";
-import { useValidJobQueryArgs } from "@/jobs-view/hooks/useValidJobQueryArgs";
+import { useReadParameterStrategyFile } from "@/jobs-view/hooks/useReadParameterStrategyFile";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
+import { StrategyJson } from "@/types";
 import { generateStrategyJson } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
-export const useLoadParameterStrategy = () => {
+/**
+ * Loads parameter strategy to `jobChanges.strategy_json` if it is empty, i.e. `{}`.
+ * First it will attempts to read the sidecar file, e.g. `main.parameters.json` next to `main.orchest`.
+ * If the file is not available, it will then generate a default strategy based on the existing parameters
+ * in the pipeline.
+ *
+ * This hook also returns `readParameterStrategyFile` that can read a file path to load a desired strategy.
+ */
+export const useLoadParameterStrategy = (): {
+  readParameterStrategyFile: (
+    path: string
+  ) => Promise<StrategyJson | undefined>;
+} => {
   const { config } = useGlobalContext();
   const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY;
 
-  const { projectUuid, jobUuid } = useValidJobQueryArgs();
-
-  const hasLoadedRequiredData =
-    hasValue(projectUuid) && hasValue(jobUuid) && hasValue(reservedKey);
-
-  const hasLoadedParameterStrategy = useJobsApi(
-    (state) => state.hasLoadedParameterStrategyFile
-  );
-
   const jobData = useGetJobData();
-  const isDraft = jobData?.status === "DRAFT";
-
-  const shouldLoadParameterStrategy =
-    isDraft && hasLoadedRequiredData && !hasLoadedParameterStrategy;
-
-  const fetchParameterStrategy = useFetchStrategyJson();
-
-  React.useEffect(() => {
-    if (shouldLoadParameterStrategy) {
-      fetchParameterStrategy();
-    }
-  }, [shouldLoadParameterStrategy, fetchParameterStrategy]);
-
   const pipelineJson = jobData?.pipeline_definition;
-  const setJobChanges = useEditJob((state) => state.setJobChanges);
-  const loadParameterStrategyToJobChanges = React.useCallback(() => {
-    if (!jobData || !pipelineJson) return;
-    // Do not generate another strategy_json if it has been defined
-    // already.
-    const strategyJson =
-      isDraft && Object.keys(jobData.strategy_json).length === 0
-        ? generateStrategyJson(pipelineJson, reservedKey)
-        : jobData?.strategy_json;
-    setJobChanges({ strategy_json: strategyJson });
-  }, [reservedKey, jobData, isDraft, pipelineJson, setJobChanges]);
 
-  const shouldUpdateJobChanges = useHasChanged(
-    hasLoadedParameterStrategy,
-    (prev, curr) => !prev && curr === true
+  const setJobChanges = useEditJob((state) => state.setJobChanges);
+
+  const readParameterStrategyFile = useReadParameterStrategyFile();
+
+  const loadParameterStrategyToJobChanges = React.useCallback(async () => {
+    if (!jobData || !pipelineJson) return;
+
+    const strategyFromFile = await readParameterStrategyFile();
+
+    const hasLoadedStrategyIntoJobChanges = hasValue(strategyFromFile);
+
+    if (!hasLoadedStrategyIntoJobChanges) {
+      setJobChanges({
+        strategy_json: generateStrategyJson(pipelineJson, reservedKey),
+      });
+    }
+  }, [
+    reservedKey,
+    jobData,
+    readParameterStrategyFile,
+    pipelineJson,
+    setJobChanges,
+  ]);
+
+  const isDraftJobWithNoParameters = useEditJob(
+    (state) =>
+      state.jobChanges?.status === "DRAFT" &&
+      Object.keys(state.jobChanges?.strategy_json).length === 0
   );
+
+  const loadedStrategyFilePath = useEditJob(
+    (state) => state.jobChanges?.loadedStrategyFilePath
+  );
+
   React.useEffect(() => {
-    if (shouldUpdateJobChanges) {
+    if (isDraftJobWithNoParameters && !hasValue(loadedStrategyFilePath)) {
       loadParameterStrategyToJobChanges();
     }
-  }, [shouldUpdateJobChanges, loadParameterStrategyToJobChanges]);
+  }, [
+    loadedStrategyFilePath,
+    loadParameterStrategyToJobChanges,
+    isDraftJobWithNoParameters,
+  ]);
 
-  const resetHasLoadedParameterStrategyFile = useJobsApi(
-    (state) => state.resetHasLoadedParameterStrategyFile
-  );
-
-  React.useEffect(() => {
-    return () => resetHasLoadedParameterStrategyFile();
-  }, [resetHasLoadedParameterStrategyFile]);
-
-  return { loadParameterStrategy: fetchParameterStrategy };
+  return { readParameterStrategyFile };
 };

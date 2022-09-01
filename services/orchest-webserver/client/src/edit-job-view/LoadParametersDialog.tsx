@@ -66,7 +66,7 @@ export const LoadParametersDialog = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (value: string) => void;
+  onSubmit: (path: string) => void;
   pipelineUuid: string | undefined;
 }) => {
   const [selectedPath, setSelectedPath] = React.useState("");

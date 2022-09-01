@@ -276,12 +276,11 @@ export type JobChangesData = {
   | "max_retained_pipeline_runs"
 >;
 
-// export type ScheduledOption = "scheduled" | "cron" | "now";
-
 export type JobChanges = JobChangesData & {
   project_uuid: string;
   pipeline_uuid: string;
   status: JobStatus;
+  loadedStrategyFilePath: string | undefined;
 };
 
 export type DraftJobData = Omit<

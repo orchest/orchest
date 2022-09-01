@@ -1,48 +1,64 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
+import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import produce from "immer";
 import React from "react";
 import { CodeMirror } from "../../components/common/CodeMirror";
-import { useGetJobData } from "../hooks/useGetJobData";
 import { useEditJob } from "../stores/useEditJob";
 
 type ParameterEditorProps = {
+  strategyKey: string;
   parameterKey: string;
-  value: string;
-  setValue: (value: string) => void;
   isReadOnly: boolean | undefined;
 };
 
 const ParameterEditor = ({
+  strategyKey,
   parameterKey,
-  value,
-  setValue,
   isReadOnly,
 }: ParameterEditorProps) => {
   const [codeMirrorValue, setCodeMirrorValue] = React.useState<string>();
   const [isValidJson, setIsValidJson] = React.useState(true);
-  const setValueRef = React.useRef(setValue);
 
-  React.useEffect(() => {
-    try {
-      if (hasValue(codeMirrorValue)) {
-        JSON.parse(codeMirrorValue);
-        setValueRef.current?.(codeMirrorValue);
-      }
-      setIsValidJson(true);
-    } catch {
-      setIsValidJson(false);
-    }
-  }, [codeMirrorValue]);
+  const value = useEditJob(
+    (state) =>
+      state.jobChanges?.strategy_json[strategyKey]?.parameters[parameterKey]
+  );
 
   React.useEffect(() => {
     if (!hasValue(codeMirrorValue)) {
       setCodeMirrorValue(value);
     }
   }, [value, codeMirrorValue]);
+
+  const setJobChanges = useEditJob((state) => state.setJobChanges);
+  const setValue = React.useCallback(
+    (newValue: string) => {
+      setJobChanges((state) => {
+        const updatedStrategyJson = produce(state.strategy_json, (draft) => {
+          const strategy = draft[strategyKey];
+          strategy.parameters[parameterKey] = newValue;
+        });
+        return { strategy_json: updatedStrategyJson };
+      });
+    },
+    [setJobChanges, strategyKey, parameterKey]
+  );
+
+  React.useEffect(() => {
+    try {
+      if (hasValue(codeMirrorValue)) {
+        JSON.parse(codeMirrorValue);
+        setValue(codeMirrorValue);
+      }
+      setIsValidJson(true);
+    } catch (error) {
+      setIsValidJson(false);
+    }
+  }, [codeMirrorValue, setValue]);
+
   return (
     <>
       <Typography>{`${parameterKey}: ${codeMirrorValue}`}</Typography>
@@ -79,70 +95,57 @@ type JobParametersProps = {
 };
 
 export const JobParameters = ({ isReadOnly }: JobParametersProps) => {
-  const setJobChanges = useEditJob((state) => state.setJobChanges);
-  const handleChangeParameterStrategy = React.useCallback(
-    (strategyKey: string, parameterKey: string, value: string) => {
-      // Note that useAutoSaveJob uses shallow compare.
-      // Re-create the object in order to trigger auto-saving.
-      setJobChanges((state) => {
-        const updatedStrategyJson = produce(state.strategy_json, (draft) => {
-          const strategy = draft[strategyKey];
-          strategy.parameters[parameterKey] = value;
-        });
-        return { strategy_json: updatedStrategyJson };
-      });
-    },
-    [setJobChanges]
+  const loadedStrategyFilePath = useEditJob(
+    (state) => state.jobChanges?.loadedStrategyFilePath
   );
 
-  const jobData = useGetJobData();
-  const pipelineFilePath = jobData?.pipeline_run_spec.run_config.pipeline_path;
-  const hasLoadedParameterStrategyFile = useJobsApi(
-    (state) => state.hasLoadedParameterStrategyFile
-  );
+  const hash = React.useMemo(() => uuidv4(), [loadedStrategyFilePath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When updating parameter values, `state.jobChanges.strategy_json` is also updated.
   // But we don't want to re-render the whole form when this happens.
-  // Therefore, the predicate `(a, b) => hasValue(a) && hasValue(b)` makes it so
-  // that it only re-render when loading state.jobChanges?.strategy_json for the first time.
+  // Therefore, in `equals` function, check if existingStrategy is still empty.
+  // Don't re-render if it already has properties.
   const initialStrategyJson = useEditJob(
     (state) => state.jobChanges?.strategy_json,
-    (a, b) => hasValue(a) && hasValue(b)
+    (existingStrategy = {}) => {
+      const existingStrategyKeys = Object.keys(existingStrategy);
+      return existingStrategyKeys.length > 0;
+    }
   );
 
-  const shouldRenderPipelineEditor =
-    hasValue(hasLoadedParameterStrategyFile) &&
-    hasValue(initialStrategyJson) &&
-    hasValue(pipelineFilePath);
+  const { config } = useGlobalContext();
+  const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+  const parameters = React.useMemo(() => {
+    if (!initialStrategyJson || !reservedKey) return;
+    const { [reservedKey]: pipelineParams, ...rest } = initialStrategyJson;
+    return pipelineParams
+      ? [pipelineParams, ...Object.values(rest)]
+      : Object.values(rest);
+  }, [initialStrategyJson, reservedKey]);
+
+  const shouldRenderPipelineEditor = hasValue(parameters);
 
   return shouldRenderPipelineEditor ? (
     <div>
-      {Object.values(initialStrategyJson).map(
-        ({ key: strategyKey, title, parameters }) => {
-          return (
-            <React.Fragment key={strategyKey}>
-              <Typography>{title}</Typography>
-              {Object.entries(parameters).map(([parameterKey, value]) => {
-                return (
-                  <ParameterEditor
-                    key={`${strategyKey}-${parameterKey}`}
-                    isReadOnly={isReadOnly}
-                    parameterKey={parameterKey}
-                    value={value}
-                    setValue={(newValue) => {
-                      handleChangeParameterStrategy(
-                        strategyKey,
-                        parameterKey,
-                        newValue
-                      );
-                    }}
-                  />
-                );
-              })}
-            </React.Fragment>
-          );
-        }
-      )}
+      {parameters.map(({ key: strategyKey, title, parameters }) => {
+        return (
+          <React.Fragment key={`${hash}-${strategyKey}`}>
+            <Typography key={`${hash}-title`} sx={{ border: "1px dotted red" }}>
+              {title || "(Unnamed step)"}
+            </Typography>
+            {Object.keys(parameters).map((parameterKey) => {
+              return (
+                <ParameterEditor
+                  key={`${hash}-${strategyKey}-${parameterKey}`}
+                  isReadOnly={isReadOnly}
+                  strategyKey={strategyKey}
+                  parameterKey={parameterKey}
+                />
+              );
+            })}
+          </React.Fragment>
+        );
+      })}
       {isReadOnly && (
         <Typography
           variant="caption"
