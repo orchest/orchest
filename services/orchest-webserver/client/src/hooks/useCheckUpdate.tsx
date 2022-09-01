@@ -41,15 +41,21 @@ const fetchOrchestVersion = () =>
     (response) => response.version
   );
 
-const fetchLatestVersion = () =>
-  fetcher<UpdateInfo>("/async/orchest-update-info").then(
+const fetchLatestVersion = (cache?: boolean) => {
+  const endpoint = `/async/orchest-update-info?cache=${cache}`;
+  return fetcher<UpdateInfo>(endpoint).then(
     (response) => response.latest_version
   );
+};
 
-const requestToCheckVersions = async () => {
+const requestToCheckVersions = async ({
+  cache = true,
+}: {
+  cache?: boolean;
+}) => {
   const [orchestVersion, latestVersion] = await Promise.all([
     fetchOrchestVersion(),
-    fetchLatestVersion(),
+    fetchLatestVersion(cache),
   ]);
 
   return [orchestVersion, latestVersion] as const;
@@ -178,7 +184,7 @@ export const useCheckUpdate = () => {
     // we want to be able to tell the user that no update is available
     // if this function is invoked.
     const [fetchedOrchestVersion, fetchedLatestVersion] = await makeCancelable(
-      requestToCheckVersions()
+      requestToCheckVersions({ cache: false })
     );
 
     if (fetchedOrchestVersion && fetchedLatestVersion) {
