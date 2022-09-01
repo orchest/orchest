@@ -9,7 +9,6 @@ from orchestcli import cmds
 
 from _orchest.internals import config as _config
 from app import models, schema, utils
-from app.celery_app import make_celery
 from app.connections import db
 from config import CONFIG_CLASS
 
@@ -100,26 +99,6 @@ class ActiveCustomJupyterImages(Resource):
             )
 
         return {"active_custom_jupyter_images": active_custom_jupyter_image_names}, 200
-
-
-@api.route("/cleanup-builder-cache")
-class CleanupBuilderCache(Resource):
-    @api.doc("cleanup-builder-cache")
-    def post(self):
-        """Queues the cleanup_builder_cache job.
-
-        The job shares the queue with environment and jupyter builds,
-        since it can't be run concurrently w.r.t. these tasks. The
-        builder cache will be deleted, removing all cached content, e.g.
-        base images, cached pip, conda packages, etc.
-
-        """
-        current_app.logger.info("Sending cleanup builder cache task.")
-        celery = make_celery(current_app)
-        res = celery.send_task(name="app.core.tasks.cleanup_builder_cache")
-        res.forget()
-
-        return {}, 201
 
 
 @api.route("/orchest-settings")
