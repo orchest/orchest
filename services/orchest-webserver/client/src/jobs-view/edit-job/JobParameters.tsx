@@ -5,7 +5,7 @@ import {
 } from "@/components/Accordion";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import Typography from "@mui/material/Typography";
-import { hasValue, uuidv4 } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 import { JobParameterEditor } from "./JobParameterEditor";
@@ -15,12 +15,6 @@ type JobParametersProps = {
 };
 
 export const JobParameters = ({ isReadOnly }: JobParametersProps) => {
-  const loadedStrategyFilePath = useEditJob(
-    (state) => state.jobChanges?.loadedStrategyFilePath
-  );
-
-  const hash = React.useMemo(() => uuidv4(), [loadedStrategyFilePath]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // When updating parameter values, `state.jobChanges.strategy_json` is also updated.
   // But we don't want to re-render the whole form when this happens.
   // Therefore, in `equals` function, check if existingStrategy is still empty.
@@ -51,7 +45,7 @@ export const JobParameters = ({ isReadOnly }: JobParametersProps) => {
         return (
           <Accordion
             defaultExpanded
-            key={`${hash}-${strategyKey}`}
+            key={strategyKey}
             sx={{ marginLeft: (theme) => theme.spacing(3) }}
           >
             <AccordionSummary
@@ -67,7 +61,7 @@ export const JobParameters = ({ isReadOnly }: JobParametersProps) => {
               {Object.keys(parameters).map((parameterKey) => {
                 return (
                   <JobParameterEditor
-                    key={`${hash}-${strategyKey}-${parameterKey}`}
+                    key={`${strategyKey}-${parameterKey}`}
                     isReadOnly={isReadOnly}
                     strategyKey={strategyKey}
                     parameterKey={parameterKey}

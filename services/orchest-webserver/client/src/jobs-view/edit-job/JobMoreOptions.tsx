@@ -54,11 +54,8 @@ export const JobMoreOptions = () => {
         onConfirm: (resolve) => {
           const nextJob = getNextJob(jobs, uuid);
 
-          deleteJob(uuid).then(() => {
-            selectJob(nextJob.uuid);
-            resolve(true);
-          });
-
+          selectJob(nextJob.uuid);
+          deleteJob(uuid).then(() => resolve(true));
           return true;
         },
         confirmLabel: "Delete Environment",
