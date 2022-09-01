@@ -48,7 +48,11 @@ const fetchLatestVersion = (cache?: boolean) => {
   );
 };
 
-const requestToCheckVersions = async ({ cache = true }: { cache?: boolean }) => {
+const requestToCheckVersions = async ({
+  cache = true,
+}: {
+  cache?: boolean;
+}) => {
   const [orchestVersion, latestVersion] = await Promise.all([
     fetchOrchestVersion(),
     fetchLatestVersion(cache),
