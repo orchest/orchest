@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Link from "@mui/material/Link";
 import Tooltip from "@mui/material/Tooltip";
@@ -17,11 +18,11 @@ export const LoadParamFileDescription = () => {
           {loadedStrategyFilePath ? (
             <>
               {`Loaded job parameters file: `}
-              <strong>{loadedStrategyFilePath}</strong>
+              <Code>{loadedStrategyFilePath}</Code>
             </>
           ) : (
             <>
-              Select a <strong>.parameters.json</strong> file to specify job
+              Select a <Code>.parameters.json</Code> file to specify job
               parameters
             </>
           )}

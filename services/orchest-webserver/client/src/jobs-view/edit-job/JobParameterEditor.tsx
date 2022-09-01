@@ -12,7 +12,38 @@ import "codemirror/mode/javascript/javascript";
 import produce from "immer";
 import React from "react";
 import { CodeMirror } from "../../components/common/CodeMirror";
+import { useValidJobQueryArgs } from "../hooks/useValidJobQueryArgs";
 import { useEditJob } from "../stores/useEditJob";
+
+const useCodeMirrorValue = (strategyKey: string, parameterKey: string) => {
+  const [codeMirrorValue, setCodeMirrorValue] = React.useState<
+    string | undefined
+  >();
+
+  const { jobUuid } = useValidJobQueryArgs();
+  const loadedStrategyFilePath = useEditJob(
+    (state) => state.jobChanges?.loadedStrategyFilePath
+  );
+
+  React.useEffect(() => {
+    // Reset codeMirrorValue when jobUuid is not undefined, i.e. redirect has ended.
+    // Without this if condition, codeMirrorValue will still be set to the old value
+    // because jobChanges is not yet reset to undefined.
+    if (jobUuid) setCodeMirrorValue(undefined);
+  }, [jobUuid, loadedStrategyFilePath]);
+
+  const value = useEditJob(
+    (state) =>
+      state.jobChanges?.strategy_json[strategyKey]?.parameters[parameterKey]
+  );
+
+  const shouldInitiateCodeMirrorValue = !hasValue(codeMirrorValue);
+  React.useEffect(() => {
+    if (shouldInitiateCodeMirrorValue) setCodeMirrorValue(value);
+  }, [value, shouldInitiateCodeMirrorValue]);
+
+  return [codeMirrorValue, setCodeMirrorValue] as const;
+};
 
 type JobParameterEditorProps = {
   strategyKey: string;
@@ -25,19 +56,11 @@ export const JobParameterEditor = ({
   parameterKey,
   isReadOnly,
 }: JobParameterEditorProps) => {
-  const [codeMirrorValue, setCodeMirrorValue] = React.useState<string>();
-  const [isValidJson, setIsValidJson] = React.useState(true);
-
-  const value = useEditJob(
-    (state) =>
-      state.jobChanges?.strategy_json[strategyKey]?.parameters[parameterKey]
+  const [codeMirrorValue, setCodeMirrorValue] = useCodeMirrorValue(
+    strategyKey,
+    parameterKey
   );
-
-  React.useEffect(() => {
-    if (!hasValue(codeMirrorValue)) {
-      setCodeMirrorValue(value);
-    }
-  }, [value, codeMirrorValue]);
+  const [isValidJson, setIsValidJson] = React.useState(true);
 
   const setJobChanges = useEditJob((state) => state.setJobChanges);
   const setValue = React.useCallback(
@@ -83,11 +106,10 @@ export const JobParameterEditor = ({
                 theme: "jupyter",
                 lineNumbers: true,
                 autofocus: false,
+                readOnly: isReadOnly,
               }}
-              onBeforeChange={
-                isReadOnly
-                  ? () => null
-                  : (editor, data, value) => setCodeMirrorValue(value)
+              onBeforeChange={(editor, data, value) =>
+                setCodeMirrorValue(value)
               }
             />
           </Box>
