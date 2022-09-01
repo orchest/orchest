@@ -1,3 +1,6 @@
-# Required by `jupyterlab-widgets` extension
-ipywidgets
+# Required by `jupyterlab-widgets` extension,
+# see https://ipywidgets.readthedocs.io/en/stable/user_install.html#installing-in-jupyterlab-3-x
+# Pin version to avoid breaking coupling with jupyterlab_widgets,
+# see https://github.com/jupyter-widgets/ipywidgets/issues/3577
+ipywidgets>=7.0,<8
 -e ../../../../orchest-sdk/python/
