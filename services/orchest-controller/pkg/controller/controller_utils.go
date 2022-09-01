@@ -32,8 +32,10 @@ var (
 	NodeAgent         = "node-agent"
 
 	// PVC names
-	UserDirName    = "userdir-pvc"
-	BuilderDirName = "image-builder-cache-pvc"
+	UserDirName = "userdir-pvc"
+
+	// Deprecated, the PVC is removed.
+	OldBuilderDirName = "image-builder-cache-pvc"
 
 	// Mount paths
 	UserdirMountPath = "/userdir"
