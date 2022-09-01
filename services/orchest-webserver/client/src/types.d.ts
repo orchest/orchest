@@ -199,6 +199,14 @@ export type JobStatus =
   | "FAILURE"
   | "DRAFT";
 
+export type PipelineRunStep = {
+  run_uuid: string;
+  step_uuid: string;
+  status: PipelineStepStatus;
+  started_time: string;
+  finished_time: string;
+};
+
 export type PipelineRun = {
   uuid: string;
   project_uuid: string;
@@ -206,13 +214,7 @@ export type PipelineRun = {
   status: TStatus;
   started_time: string;
   finished_time: string;
-  pipeline_steps: {
-    run_uuid: string;
-    step_uuid: string;
-    status: PipelineStepStatus;
-    started_time: string;
-    finished_time: string;
-  }[];
+  pipeline_steps: PipelineRunStep[];
   env_variables: Record<string, string>;
   job_uuid: string;
   job_run_index: number;
