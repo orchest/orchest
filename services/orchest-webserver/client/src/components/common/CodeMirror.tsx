@@ -9,10 +9,10 @@ export type CodeMirrorType = ControlledType;
 type CodeMirrorProps = Omit<
   IControlledCodeMirror,
   "onFocus" | "onBlur" | "ref"
->;
+> & { borderColor?: string };
 
 export const CodeMirror = React.forwardRef<ControlledType, CodeMirrorProps>(
-  function CodeMirror(props: CodeMirrorProps, ref) {
+  function CodeMirror({ borderColor, ...props }: CodeMirrorProps, ref) {
     const [isFocused, setIsFocused] = React.useState(false);
 
     const handleFocus = () => setIsFocused(true);
@@ -25,8 +25,10 @@ export const CodeMirror = React.forwardRef<ControlledType, CodeMirrorProps>(
         sx={{
           ".CodeMirror": {
             border: (theme) =>
-              `2px solid ${
-                isFocused ? theme.palette.primary.main : "transparent"
+              `${isFocused ? "2px" : "1px"} solid ${
+                isFocused
+                  ? theme.palette.primary.main
+                  : borderColor || "transparent"
               } !important`,
           },
         }}

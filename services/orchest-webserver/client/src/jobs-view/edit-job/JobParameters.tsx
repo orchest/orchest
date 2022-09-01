@@ -1,94 +1,14 @@
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+} from "@/components/Accordion";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
-import "codemirror/mode/javascript/javascript";
-import produce from "immer";
 import React from "react";
-import { CodeMirror } from "../../components/common/CodeMirror";
 import { useEditJob } from "../stores/useEditJob";
-
-type ParameterEditorProps = {
-  strategyKey: string;
-  parameterKey: string;
-  isReadOnly: boolean | undefined;
-};
-
-const ParameterEditor = ({
-  strategyKey,
-  parameterKey,
-  isReadOnly,
-}: ParameterEditorProps) => {
-  const [codeMirrorValue, setCodeMirrorValue] = React.useState<string>();
-  const [isValidJson, setIsValidJson] = React.useState(true);
-
-  const value = useEditJob(
-    (state) =>
-      state.jobChanges?.strategy_json[strategyKey]?.parameters[parameterKey]
-  );
-
-  React.useEffect(() => {
-    if (!hasValue(codeMirrorValue)) {
-      setCodeMirrorValue(value);
-    }
-  }, [value, codeMirrorValue]);
-
-  const setJobChanges = useEditJob((state) => state.setJobChanges);
-  const setValue = React.useCallback(
-    (newValue: string) => {
-      setJobChanges((state) => {
-        const updatedStrategyJson = produce(state.strategy_json, (draft) => {
-          const strategy = draft[strategyKey];
-          strategy.parameters[parameterKey] = newValue;
-        });
-        return { strategy_json: updatedStrategyJson };
-      });
-    },
-    [setJobChanges, strategyKey, parameterKey]
-  );
-
-  React.useEffect(() => {
-    try {
-      if (hasValue(codeMirrorValue)) {
-        JSON.parse(codeMirrorValue);
-        setValue(codeMirrorValue);
-      }
-      setIsValidJson(true);
-    } catch (error) {
-      setIsValidJson(false);
-    }
-  }, [codeMirrorValue, setValue]);
-
-  return (
-    <>
-      <Typography>{`${parameterKey}: ${codeMirrorValue}`}</Typography>
-      {hasValue(codeMirrorValue) && (
-        <CodeMirror
-          value={codeMirrorValue}
-          options={{
-            mode: "application/json",
-            theme: "jupyter",
-            lineNumbers: true,
-            autofocus: false,
-          }}
-          onBeforeChange={
-            isReadOnly
-              ? () => null
-              : (editor, data, value) => setCodeMirrorValue(value)
-          }
-        />
-      )}
-      {!isValidJson && (
-        <Alert
-          severity="warning"
-          sx={{ marginTop: (theme) => theme.spacing(2) }}
-        >
-          Invalid JSON
-        </Alert>
-      )}
-    </>
-  );
-};
+import { JobParameterEditor } from "./JobParameterEditor";
 
 type JobParametersProps = {
   isReadOnly: boolean | undefined;
@@ -118,34 +38,46 @@ export const JobParameters = ({ isReadOnly }: JobParametersProps) => {
   const parameters = React.useMemo(() => {
     if (!initialStrategyJson || !reservedKey) return;
     const { [reservedKey]: pipelineParams, ...rest } = initialStrategyJson;
-    return pipelineParams
-      ? [pipelineParams, ...Object.values(rest)]
-      : Object.values(rest);
+    return [pipelineParams, ...Object.values(rest)];
   }, [initialStrategyJson, reservedKey]);
 
   const shouldRenderPipelineEditor = hasValue(parameters);
 
   return shouldRenderPipelineEditor ? (
-    <div>
-      {parameters.map(({ key: strategyKey, title, parameters }) => {
+    <>
+      {parameters.map((parameter, index) => {
+        if (!parameter) return null;
+        const { key: strategyKey, parameters, title } = parameter;
         return (
-          <React.Fragment key={`${hash}-${strategyKey}`}>
-            <Typography key={`${hash}-title`} sx={{ border: "1px dotted red" }}>
-              {title || "(Unnamed step)"}
-            </Typography>
-            {Object.keys(parameters).map((parameterKey) => {
-              return (
-                <ParameterEditor
-                  key={`${hash}-${strategyKey}-${parameterKey}`}
-                  isReadOnly={isReadOnly}
-                  strategyKey={strategyKey}
-                  parameterKey={parameterKey}
-                />
-              );
-            })}
-          </React.Fragment>
+          <Accordion
+            defaultExpanded
+            key={`${hash}-${strategyKey}`}
+            sx={{ marginLeft: (theme) => theme.spacing(3) }}
+          >
+            <AccordionSummary
+              aria-controls="job-parameters"
+              id="job-parameters-header"
+            >
+              <Typography variant="subtitle1">
+                {index === 0 ? "Pipeline: " : "Step: "}
+                {title || "(Unnamed step)"}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              {Object.keys(parameters).map((parameterKey) => {
+                return (
+                  <JobParameterEditor
+                    key={`${hash}-${strategyKey}-${parameterKey}`}
+                    isReadOnly={isReadOnly}
+                    strategyKey={strategyKey}
+                    parameterKey={parameterKey}
+                  />
+                );
+              })}
+            </AccordionDetails>
+          </Accordion>
         );
       })}
-    </div>
+    </>
   ) : null;
 };
