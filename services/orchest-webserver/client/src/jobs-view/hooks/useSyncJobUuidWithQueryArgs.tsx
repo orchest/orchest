@@ -39,17 +39,29 @@ export const useSyncJobUuidWithQueryArgs = () => {
   const isJobUuidFromRouteInvalid =
     targetJob && targetJob.uuid !== jobUuidFromRoute;
 
+  const fetch = useJobsApi((state) => state.fetch);
+
   const shouldUpdateJobChanges = targetJob && uuid !== targetJob.uuid;
 
   React.useEffect(() => {
     if (isJobUuidFromRouteInvalid) {
       redirect(targetJob.uuid);
     } else if (shouldUpdateJobChanges) {
-      initJobChanges(pickJobChanges(targetJob));
+      // fetchAll doesn't retrieve env_variables, but fetch does.
+      // As a workaround, fetch the job separately.
+      fetch(targetJob.uuid).then((fetchedJob) => {
+        initJobChanges(
+          pickJobChanges({
+            ...targetJob,
+            env_variables: fetchedJob?.env_variables || {},
+          })
+        );
+      });
     }
   }, [
     isJobUuidFromRouteInvalid,
     redirect,
+    fetch,
     targetJob,
     shouldUpdateJobChanges,
     initJobChanges,
