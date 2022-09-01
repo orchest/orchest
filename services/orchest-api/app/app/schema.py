@@ -381,8 +381,8 @@ status_update = Model(
     },
 )
 
-job_update = Model(
-    "JobUpdate",
+job_parameters_update = Model(
+    "JobParametersUpdate",
     {
         "cron_schedule": fields.String(
             required=False,
@@ -413,6 +413,16 @@ job_update = Model(
                 "Max number of pipeline runs to retain. The oldest pipeline runs that "
                 "are in an end state that are over this number will be deleted."
             ),
+        ),
+    },
+)
+
+draft_job_pipeline_update = Model(
+    "DraftJobPipelineUpdate",
+    {
+        "pipeline_uuid": fields.String(
+            required=True,
+            description="UUID of the pipeline to use.",
         ),
     },
 )
@@ -495,20 +505,9 @@ job_spec = Model(
         "name": fields.String(required=True, description="Name for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "pipeline_definitions": fields.List(
-            fields.Raw(description="Pipeline definition in JSON"),
+        "pipeline_definition": fields.Raw(
             required=True,
-            description="Collection of pipeline definitions",
-        ),
-        "pipeline_run_ids": fields.List(
-            fields.Integer(
-                description=(
-                    "Pipeline index corresponding to respective "
-                    "list entries in pipeline_definitions."
-                )
-            ),
-            required=True,
-            description="Collection of pipeline definition indices.",
+            description="Pipeline definition in JSON",
         ),
         "pipeline_run_spec": fields.Nested(
             non_interactive_run_spec,

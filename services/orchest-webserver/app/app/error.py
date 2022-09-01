@@ -74,6 +74,10 @@ class JobDoesNotExist(Exception):
     pass
 
 
+class UnexpectedFileSystemState(Exception):
+    pass
+
+
 class EnvironmentsDoNotExist(Exception):
     def __init__(self, environment_uuids=List[str]):
         self.environment_uuids = environment_uuids

@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import subprocess
 import uuid
 from collections import defaultdict
 
@@ -11,6 +12,7 @@ import app.utils as utils
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from app import error
+from app.config import CONFIG_CLASS as config
 from app.models import Pipeline, Project
 
 
@@ -382,3 +384,84 @@ def _create_snapshot_record_for_job(
         remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
         raise error.OrchestApiRequestError(response=resp)
     return resp.json()["uuid"]
+
+
+def _move_job_directory(
+    job_uuid: str, old_pipeline_uuid: str, new_pipeline_uuid: str, project_uuid: str
+) -> str:
+    """Moves a job directory to account for a pipeline change.
+
+
+    Raises:
+        UnexpectedFileSystemState: if the destination directory already
+        exists.
+        OSError: If the move operation failed.
+
+    """
+    if old_pipeline_uuid == new_pipeline_uuid:
+        return
+
+    old_path = utils.get_job_directory(old_pipeline_uuid, project_uuid, job_uuid)
+    new_path = utils.get_job_directory(new_pipeline_uuid, project_uuid, job_uuid)
+
+    if os.path.exists(new_path):
+        raise error.UnexpectedFileSystemState(f"Directory {new_path} already exists.")
+
+    # The pipeline directory might not exist.
+    os.makedirs(os.path.split(new_path)[0], exist_ok=True)
+
+    exit_code = subprocess.call(["mv", old_path, new_path], stderr=subprocess.STDOUT)
+    if exit_code != 0:
+        raise OSError(f"Failed to mv {old_path} to {new_path}, :{exit_code}.")
+
+
+def change_draft_job_pipeline(
+    job_uuid: str,
+    new_pipeline_uuid: str,
+) -> requests.Response:
+
+    resp = requests.get(f"http://{config.ORCHEST_API_ADDRESS}/api/jobs/{job_uuid}")
+    if resp.status_code != 200:
+        return resp
+
+    job = resp.json()
+    old_pipeline_uuid = job["pipeline_uuid"]
+    project_uuid = job["project_uuid"]
+
+    # This is to avoid race conditions. The orchest-webserver db doesnt'
+    # have a concept of jobs so we can't lock on the job and we can't
+    # lock on the pipeline because the pipeline in the job snapshot
+    # might not exist anymore in the webserver.
+    Project.query.with_for_update().filter(Project.uuid == project_uuid)
+
+    resp = requests.put(
+        f"http://{config.ORCHEST_API_ADDRESS}/api/jobs/{job_uuid}/pipeline",
+        json={"pipeline_uuid": new_pipeline_uuid},
+    )
+
+    if resp.status_code != 200:
+        return resp
+
+    try:
+        _move_job_directory(
+            job_uuid, old_pipeline_uuid, new_pipeline_uuid, project_uuid
+        )
+    except Exception as e:
+        current_app.logger.error(
+            "Failed to move the job directory, reverting job pipeline change."
+        )
+        current_app.logger.error(e)
+        resp = requests.put(
+            f"http://{config.ORCHEST_API_ADDRESS}/api/jobs/{job_uuid}/pipeline",
+            json={"pipeline_uuid": old_pipeline_uuid},
+        )
+        if resp.status_code != 200:
+            current_app.logger.error(
+                (
+                    "Failed to revert the job pipeline change.\n"
+                    f"{resp.status_code}: {resp.text}"
+                )
+            )
+        raise e
+
+    return resp
