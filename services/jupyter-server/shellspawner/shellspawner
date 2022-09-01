@@ -8,7 +8,7 @@ import json
 import os
 import subprocess
 import sys
-from urllib import parse, request
+from urllib import request
 
 ORCHEST_API_ADDRESS = os.environ["ORCHEST_API_ADDRESS"]  # Includes "http://" and "/api"
 ORCHEST_WEBSERVER_ADDRESS = os.environ[
@@ -18,8 +18,8 @@ ORCHEST_WEBSERVER_ADDRESS = os.environ[
 
 def connect(environment_shell):
     user = environment_shell["user"]
-    ip = environment_shell["ip"]
-    command = f"ssh {user}@{ip}"
+    host = environment_shell["environment_shell_hostname"]
+    command = f"ssh {user}@{host}"
 
     cp = subprocess.run(command, shell=True)
     sys.exit(cp.returncode)
@@ -37,23 +37,39 @@ def get_environments():
     content = resp.read()
     json_resp = json.loads(content)
 
-    return json_resp["environments"]
+    return json_resp
+
+
+def get_project(project_uuid):
+    req = request.Request(ORCHEST_WEBSERVER_ADDRESS + "/async/projects/" + project_uuid)
+    req.add_header("Content-Type", "application/json")
+
+    resp = request.urlopen(req)
+    content = resp.read()
+    json_resp = json.loads(content)
+
+    return json_resp
 
 
 def spawn_environment_shell(environment):
-    data = parse.urlencode(
+
+    # Get project_dir from webserver
+    project = get_project(os.environ["ORCHEST_PROJECT_UUID"])
+
+    data = json.dumps(
         {
             "pipeline_uuid": os.environ["ORCHEST_PIPELINE_UUID"],
             "project_uuid": os.environ["ORCHEST_PROJECT_UUID"],
             "environment_uuid": environment["uuid"],
             "userdir_pvc": "userdir-pvc",  # TODO: make dynamic?
-            "project_dir": "/project-dir",  # TODO: make dynamic?
+            "project_dir": "/userdir/projects/"
+            + project["path"],  # TODO: make dynamic?
         }
-    ).encode()
+    ).encode("utf-8")
 
     req = request.Request(
-        ORCHEST_API_ADDRESS + "/environment_shells/", data=data
-    )  # this will make the method "POST"
+        ORCHEST_API_ADDRESS + "/environment_shells/", data=data, method="POST"
+    )
 
     req.add_header("Content-Type", "application/json")
 
@@ -68,7 +84,7 @@ def choose_environment(environments):
 
     print("Available environments")
     for key, value in enumerate(environments):
-        print(f"- Environment {value['name']} ({key})")
+        print(f"- {value['name']} ({key})")
 
     while True:
         try:
@@ -90,6 +106,8 @@ if __name__ == "__main__":
 
     environments = get_environments()
     environment = choose_environment(environments)
+
+    print("Connecting...", end="", flush=True)
     environment_shell = spawn_environment_shell(environment)
 
     connect(environment_shell)

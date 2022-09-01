@@ -3,6 +3,7 @@ from flask.globals import current_app
 from flask_restx import Namespace, Resource
 
 import app.models as models
+from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.connections import db
@@ -51,19 +52,26 @@ class CreateEnvironmentShell(TwoPhaseFunction):
             + environment_shell_config["pipeline_uuid"][:18]
         )
 
-        # TODO: environment_uuid to environment_image
         image_mapping = get_env_uuids_to_image_mappings(
             environment_shell_config["project_uuid"],
-            set(environment_shell_config["environment_uuid"]),
+            [environment_shell_config["environment_uuid"]],
         )
         environment_image = image_mapping[environment_shell_config["environment_uuid"]]
+
+        environment_image_string = (
+            _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=environment_shell_config["project_uuid"],
+                environment_uuid=environment_shell_config["environment_uuid"],
+            )
+            + f":{environment_image.tag}"
+        )
 
         return launch_environment_shell(
             session_uuid,
             environment_shell_config["project_uuid"],
             environment_shell_config["userdir_pvc"],
             environment_shell_config["project_dir"],
-            environment_image,
+            environment_image_string,
         )
 
     def _collateral(

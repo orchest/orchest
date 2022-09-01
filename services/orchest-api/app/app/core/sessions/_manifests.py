@@ -314,6 +314,9 @@ def _get_environment_shell_deployment_service_manifest(
         project_dir,
     )
 
+    registry_ip = utils.get_registry_ip()
+    registry_environment_image = f"{registry_ip}/{environment_image}"
+
     deployment_manifest = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -332,11 +335,12 @@ def _get_environment_shell_deployment_service_manifest(
                     },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
+                        volumes_dict["container-runtime-socket"],
                     ],
                     "containers": [
                         {
                             "name": metadata["name"],
-                            "image": environment_image,
+                            "image": registry_environment_image,
                             "imagePullPolicy": "IfNotPresent",
                             "volumeMounts": [
                                 volume_mounts_dict["project-dir"],
@@ -364,7 +368,13 @@ def _get_environment_shell_deployment_service_manifest(
         },
     }
 
-    # TODO: image puller needed?
+    add_image_puller_if_needed(
+        registry_environment_image,
+        registry_ip,
+        _config.CONTAINER_RUNTIME,
+        _config.CONTAINER_RUNTIME_IMAGE,
+        deployment_manifest,
+    )
 
     service_manifest = {
         "apiVersion": "v1",
@@ -373,8 +383,6 @@ def _get_environment_shell_deployment_service_manifest(
         "spec": {
             "type": "ClusterIP",
             "selector": metadata["labels"],
-            # Coupled with the idle check.
-            # TODO: the right ports? How is this used
             "ports": [{"port": 22, "targetPort": 22}],
         },
     }
@@ -438,7 +446,7 @@ def _get_jupyter_server_deployment_service_manifest(
                                 volume_mounts_dict["jupyterlab-lab"],
                                 volume_mounts_dict["jupyterlab-user-settings"],
                             ],
-                            "envs": [
+                            "env": [
                                 {
                                     "name": "ORCHEST_PROJECT_UUID",
                                     "value": project_uuid,
@@ -449,11 +457,11 @@ def _get_jupyter_server_deployment_service_manifest(
                                 },
                                 {
                                     "name": "ORCHEST_API_ADDRESS",
-                                    "value": _config.ORCHEST_API_ADDRESS,
+                                    "value": CONFIG_CLASS.ORCHEST_API_ADDRESS,
                                 },
                                 {
                                     "name": "ORCHEST_WEBSERVER_ADDRESS",
-                                    "value": _config.ORCHEST_WEBSERVER_ADDRESS,
+                                    "value": CONFIG_CLASS.ORCHEST_WEBSERVER_ADDRESS,
                                 },
                             ],
                             "args": [

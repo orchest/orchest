@@ -12,6 +12,7 @@ if [ "$1" = "runnable" ]; then
     /orchest/services/base-images/runnable-shared/runner/run.py  "$2" "$3"
 elif [ "$1" = "shell" ]; then
     sudo service ssh start
+    sudo service ssh stop
     sudo /usr/sbin/sshd -D
 else
 

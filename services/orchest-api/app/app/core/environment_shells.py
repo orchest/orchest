@@ -31,10 +31,6 @@ def launch_environment_shell(
       roles
 
     Will be cleaned up when the session is stopped.
-
-    TODO: when an environment shell is exited,
-    auto cleanup configuration in k8s?
-
     """
 
     environment_shell_service_k8s_deployment_manifests = []
