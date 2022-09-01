@@ -30,8 +30,7 @@ Enables authentication. When enabled, Orchest will require a login. Create user 
 
 : Integer between: `[1, 25]`.
 
-Controls the number of image builds that can be run in parallel. With builds we mean environment
-or custom jupyter server builds.
+Controls the total number of {term}`Environment` and JupyterLab image builds that can be run in parallel.
 
 ```{note}
 Do not set an arbitrarily high value as every worker comes with a certain memory overhead,
