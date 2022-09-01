@@ -95,9 +95,6 @@ def upgrade():
                     "definition": job.pipeline_definition,
                 }
             },
-            # PR_DISCUSS: either this or an empty dict? The current
-            # choice allows to reconstruct things later if this
-            # information is needed.
             project_env_variables=job.env_variables,
             pipelines_env_variables={job.pipeline_uuid: job.env_variables},
         )

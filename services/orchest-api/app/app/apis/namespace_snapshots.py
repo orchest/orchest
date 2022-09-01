@@ -67,7 +67,7 @@ class Snapshot(Resource):
         return snapshot
 
     def delete(self, snapshot_uuid: str):
-        """Deletes a snapshot given its UUID."""
+        """Deletes a snapshot *record* given its UUID."""
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 DeleteSnapshot(tpe).transaction(snapshot_uuid)
