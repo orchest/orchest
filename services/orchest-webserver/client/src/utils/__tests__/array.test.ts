@@ -7,7 +7,7 @@ describe("replacing array entries", () => {
     expect(replace(["a", "x", "c", "x"], "r")).toEqual(["a", "r", "c", "x"]);
   });
 
-  it("calls the predicate for each entry", () => {
+  it("calls the predicate for each entry when none match", () => {
     const entries = ["a", "b", "c"];
     const predicate = jest.fn(() => false);
     const replace = replaces<string>(predicate, "ignore");
