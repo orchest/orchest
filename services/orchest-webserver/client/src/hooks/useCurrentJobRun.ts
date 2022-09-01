@@ -31,6 +31,6 @@ export const useCurrentJobRun = () => {
   return {
     run,
     cancelRun,
-    isCancellable: run?.status === "STARTED" || run?.status === "PENDING",
+    isCancelable: run?.status === "STARTED" || run?.status === "PENDING",
   };
 };

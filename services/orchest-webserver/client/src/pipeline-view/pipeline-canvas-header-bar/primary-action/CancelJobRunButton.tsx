@@ -5,15 +5,15 @@ import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 
 export const CancelJobRunButton = () => {
-  const { cancelRun, isCancellable } = useCurrentJobRun();
-  const title = isCancellable ? "Cancel the job run" : "The job is not running";
+  const { cancelRun, isCancelable } = useCurrentJobRun();
+  const title = isCancelable ? "Cancel the job run" : "The job is not running";
 
   return (
     <Tooltip title={title}>
       {/* This span is needed because disabled elements cannot have tooltips. */}
       <span>
         <Button
-          disabled={!isCancellable}
+          disabled={!isCancelable}
           startIcon={<CancelOutlined />}
           onClick={cancelRun}
           variant="contained"
