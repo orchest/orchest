@@ -43,16 +43,13 @@ export const PipelineCanvasHeaderBar = () => {
           Logs
         </Button>
         <ServicesMenu />
-        {!isJobRun && (
-          <>
-            <Divider
-              orientation="vertical"
-              sx={{ height: (theme) => theme.spacing(3) }}
-            />
-            <CreateStepButton />
-            <PrimaryPipelineButton />
-          </>
-        )}
+
+        <Divider
+          orientation="vertical"
+          sx={{ height: (theme) => theme.spacing(3) }}
+        />
+        {!isJobRun && <CreateStepButton />}
+        <PrimaryPipelineButton />
         <PipelineMoreOptionsMenu />
       </Stack>
     </Stack>

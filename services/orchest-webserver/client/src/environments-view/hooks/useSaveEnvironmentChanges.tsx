@@ -1,7 +1,7 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useAutoSaveEnvironment } from "@/environments-view/edit-environment/hooks/useAutoSaveEnvironment";
 import React from "react";
-import { extractEnvironmentFromState } from "../common";
+import { environmentDataFromState } from "../common";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 /**
@@ -13,7 +13,7 @@ export const useSaveEnvironmentChanges = () => {
   const { environmentChanges } = useEditEnvironment();
 
   const save = React.useCallback(() => {
-    const environmentData = extractEnvironmentFromState(environmentChanges);
+    const environmentData = environmentDataFromState(environmentChanges);
     if (environmentData) {
       // Saving an environment will invalidate the Jupyter <iframe>
       // TODO: perhaps this can be fixed with coordination between JLab +

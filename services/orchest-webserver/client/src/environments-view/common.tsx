@@ -8,7 +8,7 @@ import {
   OrchestSession,
 } from "@/types";
 import { getUniqueName } from "@/utils/getUniqueName";
-import { prune } from "@/utils/record";
+import { omit } from "@/utils/record";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
 export const isEnvironmentBuilding = (build?: EnvironmentImageBuild) =>
@@ -92,15 +92,12 @@ export const postEnvironment = (
     }),
   });
 
-export const extractEnvironmentFromState = (
+export const environmentDataFromState = (
   environmentState?: EnvironmentState
 ): EnvironmentData | undefined => {
   if (!environmentState) return undefined;
 
-  return prune<EnvironmentData>(
-    environmentState,
-    ([key]) => !["action", "latestBuild"].includes(key)
-  );
+  return omit(environmentState, "action", "latestBuild");
 };
 
 /**

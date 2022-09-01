@@ -3,7 +3,7 @@ import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { extractEnvironmentFromState } from "./common";
+import { environmentDataFromState } from "./common";
 import { CreateEnvironmentButton } from "./CreateEnvironmentButton";
 import { EnvironmentMenuItem } from "./EnvironmentMenuItem";
 import { useFetchBuildStatus } from "./hooks/useFetchBuildStatus";
@@ -22,7 +22,7 @@ export const EnvironmentMenuList = () => {
   const { selectEnvironment } = useSelectEnvironment();
 
   const updateStoreAndRedirect = (uuid: string) => {
-    const environment = extractEnvironmentFromState(environmentChanges);
+    const environment = environmentDataFromState(environmentChanges);
     if (environment) {
       setEnvironment(environment.uuid, environment);
     }
