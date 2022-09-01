@@ -5,7 +5,7 @@ import { useCustomRoute } from "./useCustomRoute";
 
 /**
  * Extracts the current job_uuid and run_uuid from the route
- * and fetches said job run from it from the back-end.
+ * and fetches said job run from the back-end.
  *
  * It also provides helpers to interface with this run.
  */
