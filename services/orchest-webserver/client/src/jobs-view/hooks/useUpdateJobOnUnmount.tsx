@@ -1,4 +1,5 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { omit } from "@/utils/record";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 
@@ -20,12 +21,19 @@ export const useUpdateJobOnUnmount = () => {
     []
   );
 
-  const updateJob = React.useCallback(() => {
+  const updateJobAndReset = React.useCallback(() => {
     if (jobChangesRef.current) {
       setJobs((jobs) => {
         const updatedJobs = jobs.map((job) =>
           job.uuid === jobChangesRef.current?.uuid
-            ? { ...job, ...jobChangesRef.current }
+            ? {
+                ...job,
+                ...omit(
+                  jobChangesRef.current,
+                  "loadedStrategyFilePath",
+                  "confirm_draft"
+                ),
+              }
             : job
         );
         return updatedJobs;
@@ -35,6 +43,7 @@ export const useUpdateJobOnUnmount = () => {
   }, [setJobs, resetJobChanges]);
 
   React.useEffect(() => {
-    return () => updateJob();
-  }, [updateJob]);
+    return () => updateJobAndReset();
+  }, [updateJobAndReset]);
+  return { updateJobAndReset };
 };
