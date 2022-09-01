@@ -146,14 +146,6 @@ export const JobParameters = ({ isReadOnly }: JobParametersProps) => {
           </React.Fragment>
         );
       })}
-      {isReadOnly && (
-        <Typography
-          variant="caption"
-          sx={{ marginTop: (theme) => theme.spacing(2) }}
-        >
-          <i>Read only</i>
-        </Typography>
-      )}
     </div>
   ) : null;
 };
