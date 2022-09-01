@@ -1,3 +1,4 @@
+import { jobRunsApi } from "@/api/job-runs/jobRunsApi";
 import {
   DataTable,
   DataTableColumn,
@@ -94,9 +95,8 @@ export const PipelineRunTable: React.FC<{
         "Are you sure that you want to cancel this job run?",
         async (resolve) => {
           try {
-            await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`, {
-              method: "DELETE",
-            });
+            await jobRunsApi.cancel(jobUuid, runUuid);
+
             setData((current) => {
               if (!current) return current;
               const newRows = [...current.rows];

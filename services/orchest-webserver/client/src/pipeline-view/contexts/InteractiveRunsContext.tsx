@@ -1,3 +1,4 @@
+import { jobRunsApi } from "@/api/job-runs/jobRunsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { OrchestSession } from "@/types";
@@ -66,9 +67,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
           async (resolve) => {
             setDisplayedPipelineStatus("CANCELING");
             try {
-              await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`, {
-                method: "DELETE",
-              });
+              await jobRunsApi.cancel(jobUuid, runUuid);
               resolve(true);
             } catch (error) {
               setAlert("Error", `Failed to cancel this job run.`);
