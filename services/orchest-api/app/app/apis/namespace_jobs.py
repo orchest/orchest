@@ -168,7 +168,7 @@ class Job(Resource):
         return job
 
     @api.expect(schema.job_parameters_update)
-    @api.doc("update_job")
+    @api.doc("update_job_parameters")
     def put(self, job_uuid):
         """Updates a job parameters.
 
