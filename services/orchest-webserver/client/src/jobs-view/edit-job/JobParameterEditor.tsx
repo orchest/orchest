@@ -37,29 +37,19 @@ const useCodeMirrorValue = (strategyKey: string, parameterKey: string) => {
       state.jobChanges?.strategy_json[strategyKey]?.parameters[parameterKey]
   );
 
-  const shouldInitiateCodeMirrorValue = !hasValue(codeMirrorValue);
+  const shouldInitiate = !hasValue(codeMirrorValue);
   React.useEffect(() => {
-    if (shouldInitiateCodeMirrorValue) setCodeMirrorValue(value);
-  }, [value, shouldInitiateCodeMirrorValue]);
+    if (shouldInitiate) setCodeMirrorValue(value);
+  }, [value, shouldInitiate]);
 
   return [codeMirrorValue, setCodeMirrorValue] as const;
 };
 
-type JobParameterEditorProps = {
-  strategyKey: string;
-  parameterKey: string;
-  isReadOnly: boolean | undefined;
-};
-
-export const JobParameterEditor = ({
-  strategyKey,
-  parameterKey,
-  isReadOnly,
-}: JobParameterEditorProps) => {
-  const [codeMirrorValue, setCodeMirrorValue] = useCodeMirrorValue(
-    strategyKey,
-    parameterKey
-  );
+const useSaveParameterValue = (
+  strategyKey: string,
+  parameterKey: string,
+  codeMirrorValue: string | undefined
+) => {
   const [isValidJson, setIsValidJson] = React.useState(true);
 
   const setJobChanges = useEditJob((state) => state.setJobChanges);
@@ -87,6 +77,31 @@ export const JobParameterEditor = ({
       setIsValidJson(false);
     }
   }, [codeMirrorValue, setValue]);
+
+  return { isValidJson };
+};
+
+type JobParameterEditorProps = {
+  strategyKey: string;
+  parameterKey: string;
+  isReadOnly: boolean | undefined;
+};
+
+export const JobParameterEditor = ({
+  strategyKey,
+  parameterKey,
+  isReadOnly,
+}: JobParameterEditorProps) => {
+  const [codeMirrorValue, setCodeMirrorValue] = useCodeMirrorValue(
+    strategyKey,
+    parameterKey
+  );
+
+  const { isValidJson } = useSaveParameterValue(
+    strategyKey,
+    parameterKey,
+    codeMirrorValue
+  );
 
   const theme = useTheme();
 

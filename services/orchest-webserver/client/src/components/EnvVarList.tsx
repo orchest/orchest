@@ -86,7 +86,6 @@ export const EnvVarList: React.FC<{
                   onChange(e.target.value, idx, "name");
                 }}
                 label="Name"
-                autoFocus
                 disabled={readOnly === true}
                 data-test-id={`${testId}-env-var-name`}
                 data-test-title={`${testId}-env-var-${pair.name}-name`}
