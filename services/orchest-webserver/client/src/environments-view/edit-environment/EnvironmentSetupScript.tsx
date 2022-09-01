@@ -1,4 +1,8 @@
-import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+} from "@/components/Accordion";
 import { CodeMirror } from "@/components/common/CodeMirror";
 import Typography from "@mui/material/Typography";
 import "codemirror/mode/shell/shell";
@@ -6,10 +10,6 @@ import "codemirror/theme/dracula.css";
 import React from "react";
 import { isEnvironmentBuilding } from "../common";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
-import {
-  EnvironmentAccordion,
-  useSetupScriptAccordion,
-} from "./components/EnvironmentAccordion";
 
 type SetupScriptCodeMirrorProps = {
   value?: string;
@@ -38,8 +38,6 @@ const SetupScriptCodeMirror = React.memo(function SetupScriptCodeMirror({
 });
 
 export const EnvironmentSetupScript = () => {
-  const [isSetupScriptOpen, setIsSetupScriptOpen] = useSetupScriptAccordion();
-
   const setupScript = useEditEnvironment(
     (state) => state.environmentChanges?.setup_script
   );
@@ -58,18 +56,8 @@ export const EnvironmentSetupScript = () => {
     [setEnvironmentChanges]
   );
 
-  const handleChangeIsOpen = (
-    event: React.SyntheticEvent,
-    isExpanded: boolean
-  ) => {
-    setIsSetupScriptOpen(isExpanded);
-  };
-
   return (
-    <EnvironmentAccordion
-      expanded={isSetupScriptOpen}
-      onChange={handleChangeIsOpen}
-    >
+    <Accordion defaultExpanded>
       <AccordionSummary aria-controls="setup-script" id="setup-script-header">
         <Typography component="h5" variant="h6">
           Setup script
@@ -82,6 +70,6 @@ export const EnvironmentSetupScript = () => {
           isReadOnly={isEnvironmentBuilding(latestBuild)}
         />
       </AccordionDetails>
-    </EnvironmentAccordion>
+    </Accordion>
   );
 };

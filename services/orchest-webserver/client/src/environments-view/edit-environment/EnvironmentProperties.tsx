@@ -1,28 +1,16 @@
-import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+} from "@/components/Accordion";
 import { EnvironmentImagesRadioGroup } from "@/environments-view/edit-environment/EnvironmentImagesRadioGroup";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import {
-  EnvironmentAccordion,
-  usePropertiesAccordion,
-} from "./components/EnvironmentAccordion";
 import { EditEnvironmentName } from "./EditEnvironmentName";
 
 export const EnvironmentProperties = () => {
-  const [isPropertiesOpen, setIsPropertiesOpen] = usePropertiesAccordion();
-
-  const handleChangeIsOpen = (
-    event: React.SyntheticEvent,
-    isExpanded: boolean
-  ) => {
-    setIsPropertiesOpen(isExpanded);
-  };
-
   return (
-    <EnvironmentAccordion
-      expanded={isPropertiesOpen}
-      onChange={handleChangeIsOpen}
-    >
+    <Accordion defaultExpanded>
       <AccordionSummary
         aria-controls="environment-properties"
         id="environment-properties-header"
@@ -35,6 +23,6 @@ export const EnvironmentProperties = () => {
         <EditEnvironmentName />
         <EnvironmentImagesRadioGroup />
       </AccordionDetails>
-    </EnvironmentAccordion>
+    </Accordion>
   );
 };

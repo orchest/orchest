@@ -1,4 +1,8 @@
-import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+} from "@/components/Accordion";
 import { LoadParametersDialog } from "@/edit-job-view/LoadParametersDialog";
 import UploadIcon from "@mui/icons-material/Upload";
 import Button from "@mui/material/Button";
@@ -7,17 +11,11 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
-import {
-  JobAccordion,
-  useJobParametersAccordion,
-} from "./components/JobAccordion";
 import { useLoadParameterStrategy } from "./hooks/useLoadParameterStrategy";
 import { JobParameters } from "./JobParameters";
 import { LoadParamFileDescription } from "./LoadParamFileDescription";
 
 export const EditJobParameters = () => {
-  const [isParametersOpen, setIsParametersOpen] = useJobParametersAccordion();
-
   const isReadOnly = useEditJob((state) => {
     const jobFinished =
       state.jobChanges?.status === "ABORTED" ||
@@ -54,15 +52,8 @@ export const EditJobParameters = () => {
     readParameterStrategyFile(path);
   };
 
-  const handleChangeIsOpen = (
-    event: React.SyntheticEvent,
-    isExpanded: boolean
-  ) => {
-    setIsParametersOpen(isExpanded);
-  };
-
   return (
-    <JobAccordion expanded={isParametersOpen} onChange={handleChangeIsOpen}>
+    <Accordion defaultExpanded>
       <AccordionSummary
         aria-controls="job-parameters"
         id="job-parameters-header"
@@ -97,6 +88,6 @@ export const EditJobParameters = () => {
           />
         )}
       </AccordionDetails>
-    </JobAccordion>
+    </Accordion>
   );
 };

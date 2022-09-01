@@ -1,4 +1,8 @@
-import { AccordionDetails, AccordionSummary } from "@/components/Accordion";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+} from "@/components/Accordion";
 import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -9,16 +13,10 @@ import "codemirror/theme/dracula.css";
 import React from "react";
 import { useBuildEnvironmentImage } from "../hooks/useBuildEnvironmentImage";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
-import {
-  EnvironmentAccordion,
-  useLogsAccordion,
-} from "./components/EnvironmentAccordion";
 
 export const EnvironmentImageBuildLogs = () => {
   const { projectUuid, environmentUuid } = useCustomRoute();
   const { config } = useGlobalContext();
-
-  const [isLogsOpen, setIsLogsOpen] = useLogsAccordion();
 
   const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
   const latestBuild = useEditEnvironment(
@@ -29,10 +27,6 @@ export const EnvironmentImageBuildLogs = () => {
   );
 
   const [, , isTriggeringBuild] = useBuildEnvironmentImage();
-
-  const handleChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
-    setIsLogsOpen(isExpanded);
-  };
 
   const streamIdentity =
     hasValue(projectUuid) && hasValue(environmentUuid)
@@ -45,7 +39,7 @@ export const EnvironmentImageBuildLogs = () => {
     isTriggeringBuild || streamIdentity !== streamIdentityFromStore;
 
   return (
-    <EnvironmentAccordion expanded={isLogsOpen} onChange={handleChange}>
+    <Accordion defaultExpanded>
       <AccordionSummary
         aria-controls="environment-build-logs"
         id="environment-build-logs-header"
@@ -65,6 +59,6 @@ export const EnvironmentImageBuildLogs = () => {
           streamIdentity={streamIdentity}
         />
       </AccordionDetails>
-    </EnvironmentAccordion>
+    </Accordion>
   );
 };
