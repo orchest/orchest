@@ -1,5 +1,9 @@
-/** Determines whether some condition is true for the given item. */
-export type Predicate<T> = (item: T) => boolean;
+/** Determines whether some condition is true for a given item. */
+export type FindPredicate<T> = (
+  item: T,
+  index: number,
+  items: readonly T[]
+) => boolean;
 /** Replaces an item in an array with a new one. */
 export type ArrayReplacer<T> = (items: readonly T[], item: T) => T[];
 /** Selects a key from the given item. */
@@ -13,7 +17,7 @@ export type ArrayMerger<T> = (...arrays: readonly (readonly T[])[]) => T[];
  * @param fallback The strategy to use if an item is not found
  */
 export const replaces = <T>(
-  predicate: Predicate<T>,
+  predicate: FindPredicate<T>,
   fallback: "ignore" | "push" | "unshift"
 ): ArrayReplacer<T> => (items, item) => {
   const index = items.findIndex(predicate);
