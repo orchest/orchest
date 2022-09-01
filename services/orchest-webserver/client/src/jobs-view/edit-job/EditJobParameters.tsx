@@ -47,11 +47,11 @@ export const EditJobParameters = () => {
     setIsLoadParametersDialogOpen(false);
   };
 
-  const { loadParameterStrategy } = useLoadParameterStrategy();
+  const { readParameterStrategyFile } = useLoadParameterStrategy();
 
-  const closeDialogAndLoadParamsFromFile = () => {
+  const closeDialogAndLoadParamsFromFile = (path: string) => {
     closeLoadParametersDialog();
-    loadParameterStrategy();
+    readParameterStrategyFile(path);
   };
 
   const handleChangeIsOpen = (

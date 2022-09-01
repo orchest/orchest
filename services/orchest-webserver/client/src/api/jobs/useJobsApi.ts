@@ -1,4 +1,4 @@
-import { JobChangesData, JobData } from "@/types";
+import { JobChangesData, JobData, StrategyJson } from "@/types";
 import { FetchError } from "@orchest/lib-utils";
 import create from "zustand";
 import { jobsApi } from "./jobsApi";
@@ -29,12 +29,11 @@ export type JobsApi = {
   resumeCronJob: (jobUuid: string) => Promise<void>;
   pauseCronJob: (jobUuid: string) => Promise<void>;
   triggerScheduledRuns: (jobUuid: string) => Promise<void>;
-  hasLoadedParameterStrategyFile: boolean | undefined;
-  resetHasLoadedParameterStrategyFile: () => void;
   fetchParameterStrategy: (
     jobData: JobData,
-    reservedKey: string | undefined
-  ) => Promise<void>;
+    reservedKey: string | undefined,
+    path?: string
+  ) => Promise<StrategyJson | undefined>;
   error?: FetchError;
   clearError: () => void;
 };
@@ -232,27 +231,13 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         return { jobs };
       });
     },
-    hasLoadedParameterStrategyFile: undefined,
-    fetchParameterStrategy: async (jobData, reservedKey) => {
+    fetchParameterStrategy: async (jobData, reservedKey, path) => {
       const strategyJson = await jobsApi.fetchStrategyJson(
         jobData,
-        reservedKey
+        reservedKey,
+        path
       );
-      set((state) => {
-        if (strategyJson) {
-          const jobs = state.jobs?.map((job) =>
-            job.uuid === jobData.uuid
-              ? { ...job, strategy_json: strategyJson }
-              : job
-          );
-          return { jobs, hasLoadedParameterStrategyFile: true };
-        } else {
-          return { hasLoadedParameterStrategyFile: false };
-        }
-      });
-    },
-    resetHasLoadedParameterStrategyFile: () => {
-      set({ hasLoadedParameterStrategyFile: undefined });
+      return strategyJson;
     },
     clearError: () => {
       set({ error: undefined });

@@ -214,18 +214,19 @@ const generateStrategyJsonFromParamJsonFile = (
   return strategyJson;
 };
 
+export const getDefaultParamFilePath = (jobData: JobData) =>
+  pipelinePathToJsonLocation(
+    jobData.pipeline_run_spec.run_config.pipeline_path
+  );
+
 const fetchStrategyJson = async (
   jobData: JobData,
-  reservedKey: string | undefined
+  reservedKey: string | undefined,
+  paramFilePath: string | undefined
 ) => {
   const projectUuid = jobData.project_uuid;
   const pipelineUuid = jobData.pipeline_uuid;
   const jobUuid = jobData.uuid;
-
-  const paramFilePath = pipelinePathToJsonLocation(
-    jobData.pipeline_run_spec.run_config.pipeline_path
-  );
-
   const pipelineJson = jobData.pipeline_definition;
 
   if (!paramFilePath || !reservedKey) return;

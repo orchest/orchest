@@ -7,6 +7,7 @@ export type JobChangesState = {
   setJobChanges: (
     payload: Partial<JobChanges> | ((state: JobChanges) => Partial<JobChanges>)
   ) => void;
+  resetJobChanges: () => void;
 };
 
 export const useEditJob = create<JobChangesState>((set) => ({
@@ -23,4 +24,5 @@ export const useEditJob = create<JobChangesState>((set) => ({
       };
     });
   },
+  resetJobChanges: () => set({ jobChanges: undefined }),
 }));

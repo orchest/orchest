@@ -8,6 +8,7 @@ import { useEditJob } from "../stores/useEditJob";
  */
 export const useUpdateJobOnUnmount = () => {
   const setJobs = useJobsApi((state) => state.setJobs);
+  const resetJobChanges = useEditJob((state) => state.resetJobChanges);
 
   const jobChangesRef = React.useRef(useEditJob.getState().jobChanges);
 
@@ -29,8 +30,9 @@ export const useUpdateJobOnUnmount = () => {
         );
         return updatedJobs;
       });
+      resetJobChanges();
     }
-  }, [setJobs]);
+  }, [setJobs, resetJobChanges]);
 
   React.useEffect(() => {
     return () => updateJob();
