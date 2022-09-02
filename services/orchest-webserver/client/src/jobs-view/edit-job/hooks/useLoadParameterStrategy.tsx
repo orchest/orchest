@@ -1,5 +1,4 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useGetJobData } from "@/jobs-view/hooks/useGetJobData";
 import { useReadParameterStrategyFile } from "@/jobs-view/hooks/useReadParameterStrategyFile";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { StrategyJson } from "@/types";
@@ -23,15 +22,16 @@ export const useLoadParameterStrategy = (): {
   const { config } = useGlobalContext();
   const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY;
 
-  const jobData = useGetJobData();
-  const pipelineJson = jobData?.pipeline_definition;
+  const pipelineJson = useEditJob(
+    (state) => state.jobChanges?.pipeline_definition
+  );
 
   const setJobChanges = useEditJob((state) => state.setJobChanges);
 
   const readParameterStrategyFile = useReadParameterStrategyFile();
 
   const loadParameterStrategyToJobChanges = React.useCallback(async () => {
-    if (!jobData || !pipelineJson) return;
+    if (!pipelineJson || !reservedKey) return;
 
     const strategyFromFile = await readParameterStrategyFile();
 
@@ -42,13 +42,7 @@ export const useLoadParameterStrategy = (): {
         strategy_json: generateStrategyJson(pipelineJson, reservedKey),
       });
     }
-  }, [
-    reservedKey,
-    jobData,
-    readParameterStrategyFile,
-    pipelineJson,
-    setJobChanges,
-  ]);
+  }, [reservedKey, readParameterStrategyFile, pipelineJson, setJobChanges]);
 
   const isDraftJobWithNoParameters = useEditJob(
     (state) =>
@@ -59,16 +53,16 @@ export const useLoadParameterStrategy = (): {
   const loadedStrategyFilePath = useEditJob(
     (state) => state.jobChanges?.loadedStrategyFilePath
   );
+  const shouldLoadParameterStrategy =
+    isDraftJobWithNoParameters &&
+    !hasValue(loadedStrategyFilePath) &&
+    hasValue(reservedKey);
 
   React.useEffect(() => {
-    if (isDraftJobWithNoParameters && !hasValue(loadedStrategyFilePath)) {
+    if (shouldLoadParameterStrategy) {
       loadParameterStrategyToJobChanges();
     }
-  }, [
-    loadedStrategyFilePath,
-    loadParameterStrategyToJobChanges,
-    isDraftJobWithNoParameters,
-  ]);
+  }, [loadParameterStrategyToJobChanges, shouldLoadParameterStrategy]);
 
   return { readParameterStrategyFile };
 };

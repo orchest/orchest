@@ -1,5 +1,6 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useSnapshotsApi } from "@/api/snapshots/useSnapshotsApi";
+import { PipelineDataInSnapshot } from "@/types";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -11,11 +12,21 @@ import { useEditJob } from "../stores/useEditJob";
 import { useLoadValueFromJobChanges } from "./hooks/useLoadValueFromJobChanges";
 
 export const EditJobPipeline = () => {
-  const {
-    state: { pipelines },
-  } = useProjectsContext();
   const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
   const isDraft = useEditJob((state) => state.jobChanges?.status === "DRAFT");
+  const snapshotUuid = useEditJob((state) => state.jobChanges?.snapshot_uuid);
+
+  const fetchSnapshot = useSnapshotsApi((state) => state.fetchOne);
+  const [pipelines, setPipelines] = React.useState<PipelineDataInSnapshot[]>();
+
+  React.useEffect(() => {
+    if (snapshotUuid)
+      fetchSnapshot(snapshotUuid).then((snapshot) => {
+        if (snapshot) {
+          setPipelines(Object.values(snapshot.pipelines));
+        }
+      });
+  }, [fetchSnapshot, snapshotUuid]);
 
   const isChangingPipelineUuid = useJobsApi(
     (state) => state.isChangingPipelineUuid
@@ -55,8 +66,11 @@ export const EditJobPipeline = () => {
       >
         {pipelines.map((pipeline) => {
           return (
-            <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
-              {pipeline.name}
+            <MenuItem
+              key={pipeline.definition.uuid}
+              value={pipeline.definition.uuid}
+            >
+              {pipeline.definition.name}
             </MenuItem>
           );
         })}

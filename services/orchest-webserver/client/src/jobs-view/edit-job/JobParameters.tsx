@@ -4,6 +4,7 @@ import {
   AccordionSummary,
 } from "@/components/Accordion";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -19,11 +20,13 @@ export const JobParameters = ({ isReadOnly }: JobParametersProps) => {
   // But we don't want to re-render the whole form when this happens.
   // Therefore, in `equals` function, check if existingStrategy is still empty.
   // Don't re-render if it already has properties.
+  const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
+  const hasChangedPipeline = useHasChanged(pipelineUuid);
   const initialStrategyJson = useEditJob(
     (state) => state.jobChanges?.strategy_json,
     (existingStrategy = {}) => {
       const existingStrategyKeys = Object.keys(existingStrategy);
-      return existingStrategyKeys.length > 0;
+      return existingStrategyKeys.length > 0 && !hasChangedPipeline;
     }
   );
 
