@@ -39,7 +39,7 @@ export const useSyncJobUuidWithQueryArgs = () => {
   const isJobUuidFromRouteInvalid =
     targetJob && targetJob.uuid !== jobUuidFromRoute;
 
-  const fetch = useJobsApi((state) => state.fetch);
+  const fetchJob = useJobsApi((state) => state.fetchOne);
 
   const shouldUpdateJobChanges = targetJob && uuid !== targetJob.uuid;
 
@@ -51,14 +51,14 @@ export const useSyncJobUuidWithQueryArgs = () => {
       // Normally environment variables contain sensitive information like password.
       // Therefore, they are only provided if FE is requesting for one specific job.
       // Therefore, here FE fires another request to fetch the complete job, specifically for its env_variables.
-      fetch(targetJob.uuid).then((fetchedJob) => {
+      fetchJob(targetJob.uuid).then((fetchedJob) => {
         initJobChanges(pickJobChanges(fetchedJob));
       });
     }
   }, [
     isJobUuidFromRouteInvalid,
     redirect,
-    fetch,
+    fetchJob,
     targetJob,
     shouldUpdateJobChanges,
     initJobChanges,

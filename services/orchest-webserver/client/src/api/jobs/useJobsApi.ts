@@ -10,7 +10,7 @@ export type JobsApi = {
   setJob: (uuid: string, value: JobData | ((job: JobData) => JobData)) => void;
   isFetching: boolean;
   fetchAll: (projectUuid: string, language?: string) => Promise<void>;
-  fetch: (
+  fetchOne: (
     jobUuid: string,
     aggregateRunStatuses?: boolean
   ) => Promise<JobData | undefined>;
@@ -83,10 +83,10 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         });
       }
     },
-    fetch: async (jobUuid, aggregateRunStatuses) => {
+    fetchOne: async (jobUuid, aggregateRunStatuses) => {
       try {
         set({ isFetching: true, error: undefined });
-        const job = await jobsApi.fetch(jobUuid, aggregateRunStatuses);
+        const job = await jobsApi.fetchOne(jobUuid, aggregateRunStatuses);
 
         const projectUuid = job.project_uuid;
 

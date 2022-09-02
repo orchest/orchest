@@ -5,7 +5,7 @@ import { useEditJob } from "../stores/useEditJob";
 
 export const useSetJobPipelineUuid = () => {
   const putJobPipelineUuid = useJobsApi((state) => state.putJobPipelineUuid);
-  const fetchJob = useJobsApi((state) => state.fetch);
+  const fetchJob = useJobsApi((state) => state.fetchOne);
   const initJobChanges = useEditJob((state) => state.initJobChanges);
   const jobPipelineUuid = useEditJob(
     (state) => state.jobChanges?.pipeline_uuid
