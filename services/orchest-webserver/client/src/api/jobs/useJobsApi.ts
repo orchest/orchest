@@ -22,6 +22,8 @@ export type JobsApi = {
     jobName: string
   ) => Promise<JobData | undefined>;
   put: (changes: JobChangesData) => Promise<void>;
+  isChangingPipelineUuid: boolean;
+  putJobPipelineUuid: (jobUuid: string, pipelineUuid: string) => Promise<void>;
   isDeleting: boolean;
   delete: (jobUuid: string) => Promise<void>;
   cancel: (jobUuid: string) => Promise<void>;
@@ -75,7 +77,10 @@ export const useJobsApi = create<JobsApi>((set, get) => {
 
         set({ projectUuid, jobs, isFetching: false });
       } catch (error) {
-        if (!error?.isCanceled) set({ error, isFetching: false });
+        set({
+          error: !error?.isCanceled ? error : undefined,
+          isFetching: false,
+        });
       }
     },
     fetch: async (jobUuid, aggregateRunStatuses) => {
@@ -159,7 +164,20 @@ export const useJobsApi = create<JobsApi>((set, get) => {
       try {
         await jobsApi.put(changes);
       } catch (error) {
-        set({ error });
+        if (!error?.isCanceled) console.error("Failed to put job changes.");
+      }
+    },
+    isChangingPipelineUuid: false,
+    putJobPipelineUuid: async (jobUuid: string, pipelineUuid: string) => {
+      try {
+        set({ isChangingPipelineUuid: true, error: undefined });
+        await jobsApi.putJobPipelineUuid(jobUuid, pipelineUuid);
+        set({ isChangingPipelineUuid: false });
+      } catch (error) {
+        set({
+          error: !error?.isCanceled ? error : undefined,
+          isChangingPipelineUuid: false,
+        });
       }
     },
     isDeleting: false,

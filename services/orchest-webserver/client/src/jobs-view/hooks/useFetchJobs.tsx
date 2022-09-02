@@ -4,14 +4,12 @@ import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useReportJobsError } from "./useReportJobsError";
 
 /**
  * Fetch all jobs of a project. Will re-fetch when the browser tab regains focus.
  */
 export const useFetchJobs = () => {
   const { projectUuid } = useCustomRoute();
-  useReportJobsError();
 
   const shouldFetchOnMount = useJobsApi(
     (state) => !Boolean(state.jobs) && !state.isFetching

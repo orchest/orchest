@@ -15,10 +15,11 @@ const useEnvVariables = () => {
   >();
 
   const { jobUuid } = useValidJobQueryArgs();
+  const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
 
   React.useEffect(() => {
-    if (jobUuid) setEnvVariables(undefined);
-  }, [jobUuid]);
+    if (jobUuid && pipelineUuid) setEnvVariables(undefined);
+  }, [jobUuid, pipelineUuid]);
 
   const value = useEditJob((state) => state.jobChanges?.env_variables);
 

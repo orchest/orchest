@@ -1,3 +1,4 @@
+import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
@@ -5,6 +6,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useSetJobPipelineUuid } from "../hooks/useSetJobPipelineUuid";
 import { useEditJob } from "../stores/useEditJob";
 import { useLoadValueFromJobChanges } from "./hooks/useLoadValueFromJobChanges";
 
@@ -12,19 +14,28 @@ export const EditJobPipeline = () => {
   const {
     state: { pipelines },
   } = useProjectsContext();
-  const setJobChanges = useEditJob((state) => state.setJobChanges);
-  const disabled = useEditJob((state) => state.jobChanges?.status !== "DRAFT");
-  const [value = "", setValue] = React.useState<string>();
+  const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
+  const isDraft = useEditJob((state) => state.jobChanges?.status === "DRAFT");
+
+  const isChangingPipelineUuid = useJobsApi(
+    (state) => state.isChangingPipelineUuid
+  );
+  const disabled = !isDraft || isChangingPipelineUuid;
+
+  const [jobPipelineUuid = "", setJobPipelineUuid] = React.useState<string>();
 
   useLoadValueFromJobChanges(
     (jobChanges) => jobChanges?.pipeline_uuid,
-    setValue
+    setJobPipelineUuid
   );
 
-  const handleChange = (event: SelectChangeEvent) => {
+  const { setPipelineUuid } = useSetJobPipelineUuid();
+
+  const handleChange = async (event: SelectChangeEvent) => {
+    if (!jobUuid) return;
     const value = event.target.value as string;
-    setValue(value);
-    setJobChanges({ pipeline_uuid: value });
+    await setPipelineUuid(jobUuid, value);
+    setJobPipelineUuid(value);
   };
 
   return hasValue(pipelines) ? (
@@ -38,7 +49,7 @@ export const EditJobPipeline = () => {
       <Select
         labelId="job-pipeline-select-label"
         id="job-pipeline-select"
-        value={value}
+        value={jobPipelineUuid}
         label="Pipeline"
         onChange={handleChange}
       >
