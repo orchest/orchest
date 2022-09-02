@@ -104,6 +104,11 @@ class SchedulerJob(BaseModel):
         db.String(15), unique=False, nullable=False, server_default="SUCCEEDED"
     )
 
+    __table_args__ = (
+        # For the scheduler to query the latest job by type.
+        Index(None, type, started_time.desc()),
+    )
+
     def __repr__(self):
         return f"<SchedulerJob: {self.type}:{self.uuid}>"
 

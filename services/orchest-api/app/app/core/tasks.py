@@ -329,9 +329,7 @@ def registry_garbage_collection(self) -> None:
         # ctl/active-custom-jupyter-images-to-push and
         # environment-images/to-push endpoints for more details.
         if not _should_run_registry_gc():
-            scheduler.notify_scheduled_job_done(
-                scheduler.SchedulerJobType.PROCESS_IMAGES_FOR_DELETION
-            )
+            scheduler.notify_scheduled_job_done(self.request.id)
             logger.info(
                 "Skipping registry GC to avoid a race condition with a potentially "
                 "ongoing image push."
@@ -399,9 +397,7 @@ def registry_garbage_collection(self) -> None:
 
         if has_deleted_images or repositories_to_gc:
             registry.run_registry_garbage_collection(repositories_to_gc)
-        scheduler.notify_scheduled_job_done(
-            scheduler.SchedulerJobType.PROCESS_IMAGES_FOR_DELETION
-        )
+        scheduler.notify_scheduled_job_done(self.request.id)
         return "SUCCESS"
 
 
@@ -409,8 +405,5 @@ def registry_garbage_collection(self) -> None:
 def process_notifications_deliveries(self):
     with application.app_context():
         notifications.process_notifications_deliveries_task()
-
-        scheduler.notify_scheduled_job_done(
-            scheduler.SchedulerJobType.PROCESS_NOTIFICATIONS_DELIVERIES
-        )
+        scheduler.notify_scheduled_job_done(self.request.id)
     return "SUCCESS"
