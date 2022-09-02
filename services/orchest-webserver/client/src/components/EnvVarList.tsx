@@ -110,13 +110,12 @@ export const EnvVarList: React.FC<{
       })}
       {!readOnly && (
         <Button
-          variant="contained"
           startIcon={<AddIcon />}
-          color="secondary"
+          color="primary"
           onClick={onAdd}
           data-test-id={`${testId}-env-var-add`}
         >
-          Create new variable
+          New variable
         </Button>
       )}
     </Stack>
