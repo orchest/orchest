@@ -128,6 +128,10 @@ def get_init_container_manifest(
     init_container = {
         "name": "image-puller",
         "image": image_puller_image,
+        "securityContext": {
+            "privileged": True,
+            "runAsUser": 0,
+        },
         "env": [
             {
                 "name": "IMAGE_TO_PULL",

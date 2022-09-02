@@ -299,6 +299,16 @@ def _get_environment_shell_deployment_service_manifest(
     project_dir: str,
     environment_image: str,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """
+    This manifest generation is in core/sessions
+    since the environment shell is part of the
+    session, but has a detached lifecycle in the sense
+    that environment shells can be started/stopped
+    independently from the session start/stop.
+
+    When a session is stopped all associated environment
+    shells should always be stopped.
+    """
 
     metadata = {
         "name": f"environment-shell-{session_uuid}-{(str(uuid4()))[:6]}",
@@ -463,6 +473,7 @@ def _get_jupyter_server_deployment_service_manifest(
                                     "name": "ORCHEST_WEBSERVER_ADDRESS",
                                     "value": CONFIG_CLASS.ORCHEST_WEBSERVER_ADDRESS,
                                 },
+                                {"name": "ORCHEST_SESSION_UUID", "value": session_uuid},
                             ],
                             "args": [
                                 "--allow-root",

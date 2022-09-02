@@ -8,24 +8,88 @@ import json
 import os
 import subprocess
 import sys
+import threading
+import time
+import urllib
+from typing import Any, Callable, Dict, List
 from urllib import request
 
-ORCHEST_API_ADDRESS = os.environ["ORCHEST_API_ADDRESS"]  # Includes "http://" and "/api"
-ORCHEST_WEBSERVER_ADDRESS = os.environ[
-    "ORCHEST_WEBSERVER_ADDRESS"
-]  # Includes "http://"
+# Includes "http://" and "/api"
+ORCHEST_API_ADDRESS = os.environ["ORCHEST_API_ADDRESS"]
+# Includes "http://"
+ORCHEST_WEBSERVER_ADDRESS = os.environ["ORCHEST_WEBSERVER_ADDRESS"]
+LOADING_CHARS = ["⠾", "⠷", "⠯", "⠟", "⠻", "⠽"]
 
 
-def connect(environment_shell):
-    user = environment_shell["user"]
-    host = environment_shell["environment_shell_hostname"]
-    command = f"ssh {user}@{host}"
+class BackgroundRequest(threading.Thread):
+    def __init__(self, request_callable, callable_args):
+        self.request_ready = False
+        self.request_callable = request_callable
+        self.callable_args = callable_args
+        self.request_result = None
 
-    cp = subprocess.run(command, shell=True)
-    sys.exit(cp.returncode)
+        super().__init__()
+
+    def run(self):
+        try:
+            self.request_result = self.request_callable(*self.callable_args)
+            self.request_ready = True
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            print(e)
 
 
-def get_environments():
+def print_jupyter_warning():
+    print(
+        "\nUsing the JupyterLab terminal directly is not recommended "
+        + "read more about it in the docs\n"
+        + "➜ https://docs.orchest.io/en/stable/fundamentals/environments.html"
+    )
+
+
+def environment_shell_uuid_to_name(
+    environment_shell_uuid: str, environments: List[Dict[str, Any]]
+) -> str:
+    random_uuid_suffix_len = 6
+
+    # Cut of last random UUID
+    environment_uuid = environment_shell_uuid[: -(random_uuid_suffix_len + 1)]
+
+    # Find environment uuid in environments
+    name = environment_shell_uuid
+    for environment in environments:
+        if environment["uuid"] == environment_uuid:
+            name = (
+                environment["name"]
+                + " "
+                + environment_shell_uuid[-random_uuid_suffix_len:]
+            )
+            break
+
+    return name
+
+
+def collect_choice(choice_count: int, prefix: str):
+    while True:
+        try:
+            print(f"{prefix} [0-{choice_count - 1}]: ", end="", flush=True)
+            user_input = input()
+            index = int(user_input)
+            assert index >= 0 and index <= choice_count - 1
+            return index
+        except KeyboardInterrupt:
+            return None
+        except Exception:
+            # Choose first option if only one option,
+            # still run rest of the logic
+            # to enable backing out using Ctrl+C KeyboardInterrupt
+            if choice_count == 1:
+                return 0
+
+            print("Invalid input.")
+            continue
+
+
+def get_environments() -> List[Dict[str, Any]]:
     req = request.Request(
         ORCHEST_WEBSERVER_ADDRESS
         + "/store/environments/"
@@ -40,7 +104,22 @@ def get_environments():
     return json_resp
 
 
-def get_project(project_uuid):
+def get_environment_shells() -> List[Dict[str, Any]]:
+    req = request.Request(
+        ORCHEST_API_ADDRESS
+        + "/environment-shells/"
+        + os.environ["ORCHEST_SESSION_UUID"]
+    )
+    req.add_header("Content-Type", "application/json")
+
+    resp = request.urlopen(req)
+    content = resp.read()
+    json_resp = json.loads(content)
+
+    return json_resp["environment_shells"]
+
+
+def get_project(project_uuid: str) -> Dict[str, Any]:
     req = request.Request(ORCHEST_WEBSERVER_ADDRESS + "/async/projects/" + project_uuid)
     req.add_header("Content-Type", "application/json")
 
@@ -51,8 +130,42 @@ def get_project(project_uuid):
     return json_resp
 
 
-def spawn_environment_shell(environment):
+def stop_environment_shell(environment_shell_uuid: str):
+    req = request.Request(
+        ORCHEST_API_ADDRESS + "/environment-shells/" + environment_shell_uuid,
+        method="DELETE",
+    )
+    req.add_header("Content-Type", "application/json")
 
+    request.urlopen(req)
+
+
+def show_loader(
+    check_ready_callable: Callable,
+    callable_args: List[Any],
+    prompt: str,
+    timeout: float = 60,
+):
+    waited = 0
+    wait_index = 0
+    speed = 0.25
+    while not check_ready_callable(*callable_args) and waited < timeout:
+        if wait_index > 0:
+            print("\r", end="", flush=True)
+
+        print(
+            prompt + " " + LOADING_CHARS[wait_index % (len(LOADING_CHARS) - 1)] + " ",
+            end="",
+            flush=True,
+        )
+        time.sleep(speed)
+        waited += speed
+        wait_index += 1
+
+    print("Warning! Loader timed out after %d seconds." % timeout)
+
+
+def _spawn_environment_shell(environment: Dict[str, Any]) -> Dict[str, Any]:
     # Get project_dir from webserver
     project = get_project(os.environ["ORCHEST_PROJECT_UUID"])
 
@@ -68,7 +181,7 @@ def spawn_environment_shell(environment):
     ).encode("utf-8")
 
     req = request.Request(
-        ORCHEST_API_ADDRESS + "/environment_shells/", data=data, method="POST"
+        ORCHEST_API_ADDRESS + "/environment-shells/", data=data, method="POST"
     )
 
     req.add_header("Content-Type", "application/json")
@@ -80,34 +193,128 @@ def spawn_environment_shell(environment):
     return json_resp
 
 
-def choose_environment(environments):
+def spawn_environment_shell(environment: Dict[str, Any]) -> Dict[str, Any]:
+    t = BackgroundRequest(lambda x: _spawn_environment_shell(x), [environment])
+    t.start()
+    show_loader(lambda x: x.request_ready, [t], "Starting shell")
+    return t.request_result
+
+
+def connect(environment_shell: str):
+    print("Connecting...", end="", flush=True)
+
+    user = "jovyan"  # TODO: support more usernames
+    host = environment_shell["host"]
+
+    # Why is this reasonable from a security perspective?
+    # 1) the container running the SSH daemon is only
+    # cluster-network accessible
+    # 2) the user already has passwordless root access to the container
+    # through a Jupyter kernel or Python console session
+    # 3) the user is authenticated at a network proxy level
+    # when they're able to interact with the cluster.
+    command = (
+        "sshpass -p jovyan ssh "
+        + f"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {user}@{host}"
+    )
+
+    subprocess.run(command, shell=True)
+
+    # Enter init loop
+    init()
+
+
+def choose_environment(environments: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     print("Available environments")
     for key, value in enumerate(environments):
-        print(f"- {value['name']} ({key})")
+        print(f"[{key}] {value['name']}")
 
-    while True:
-        try:
-            print(
-                f"Choose environment [0-{len(environments) - 1}]: ", end="", flush=True
-            )
-            user_input = input()
-            environment_index = int(user_input)
-            assert environment_index >= 0 and environment_index <= len(environments) - 1
-            break
-        except Exception:
-            print("Invalid input.")
-            continue
+    environment_choice = collect_choice(len(environments), "Choose environment")
+    if environment_choice is not None:
+        return environments[environment_choice]
 
-    return environments[environment_index]
+
+def choose_action() -> int:
+    print("Choose an option")
+    print("[0] Start a new shell ")
+    print("[1] Connect to an existing shell ")
+    print("[2] Terminate an existing shell ")
+
+    return collect_choice(3, "Choose option")
+
+
+def choose_existing_environment_shell(
+    environment_shells: List[Dict[str, Any]],
+    environments: List[Dict[str, Any]],
+    prompt_suffix: str,
+) -> Dict[str, Any]:
+    print("Running environment shells")
+    for key, environment_shell in enumerate(environment_shells):
+        environment_display_name = environment_shell_uuid_to_name(
+            environment_shell["uuid"], environments
+        )
+        print(f"[{key}] {environment_display_name}")
+
+    environment_shell_index = collect_choice(
+        len(environment_shells), "Choose environment shell " + prompt_suffix
+    )
+
+    if environment_shell_index is not None:
+        return environment_shells[environment_shell_index]
+
+
+def quit():
+    print_jupyter_warning()
+    sys.exit(0)
+
+
+def init():
+    environments = get_environments()
+    environment_shells = get_environment_shells()
+
+    auto_chosen = False
+    if len(environment_shells) == 0:
+        action = 0
+        auto_chosen = True
+    else:
+        action = choose_action()
+
+    if action is None:
+        quit()
+
+    if action == 0:
+        environment = choose_environment(environments)
+        if environment is not None:
+            environment_shell = spawn_environment_shell(environment)
+            connect(environment_shell)
+        elif not auto_chosen:
+            # auto_chosen is necessary to allow
+            # users to back out of the
+            # choose_environment menu
+            # when the default action of action==0 is
+            # chosen
+            init()
+        else:
+            quit()
+    elif action == 1:
+        environment_shell = choose_existing_environment_shell(
+            environment_shells, environments, "to connect to"
+        )
+        if environment_shell is not None:
+            connect(environment_shell)
+        else:
+            init()
+    elif action == 2:
+        environment_shell = choose_existing_environment_shell(
+            environment_shells, environments, "to terminate"
+        )
+
+        if environment_shell is not None:
+            stop_environment_shell(environment_shell["uuid"])
+
+        init()
 
 
 if __name__ == "__main__":
-
-    environments = get_environments()
-    environment = choose_environment(environments)
-
-    print("Connecting...", end="", flush=True)
-    environment_shell = spawn_environment_shell(environment)
-
-    connect(environment_shell)
+    init()

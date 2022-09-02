@@ -256,6 +256,24 @@ environment_shell_config = Model(
     },
 )
 
+environment_shell = Model(
+    "EnvironmentShell",
+    {
+        "uuid": fields.String(required=True, description="UUID of environment shell"),
+        "session_uuid": fields.String(required=True, description="UUID of session"),
+        "host": fields.String(required=True, description="host of k8s service"),
+    },
+)
+
+environment_shells = Model(
+    "Environment shells",
+    {
+        "environment_shells": fields.List(
+            fields.Nested(environment_shell), description="Environment shells"
+        )
+    },
+)
+
 session_config = Model(
     "SessionConfig",
     {

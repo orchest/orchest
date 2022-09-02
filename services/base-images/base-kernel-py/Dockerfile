@@ -7,7 +7,7 @@ USER root
 # defailt-libmysqlclient-dev : Orchest dependency
 # libkrb5-dev                : Enterprise Gateway requirement
 RUN apt-get update \
-    && apt-get install -yq --no-install-recommends openssh-server default-libmysqlclient-dev libkrb5-dev \
+    && apt-get install -yq --no-install-recommends openssh-server git default-libmysqlclient-dev libkrb5-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN passwd -d $NB_USER \
@@ -77,6 +77,9 @@ COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runn
 ENV JUPYTER_PATH=/opt/conda/share/jupyter
 ENV HOME=/home/$NB_USER
 ENV BASH_ENV=/home/jovyan/.orchestrc
+# Exclude hostname from default prompt
+RUN echo "export PS1='\u ➜ \W\$ '" >> ~/.profile && \
+    echo "export PS1='\u ➜ \W\$ '" >> /root/.profile
 
 # Orchest related environment variable that can be set to specify the
 # conda environment to use to start Jupyter kernels.

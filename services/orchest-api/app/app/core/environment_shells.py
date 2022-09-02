@@ -1,4 +1,5 @@
 import time
+from typing import Any, Dict
 
 from _orchest.internals import config as _config
 from app import utils
@@ -14,7 +15,7 @@ def launch_environment_shell(
     userdir_pvc: str,
     project_dir: str,
     environment_image: str,
-) -> str:
+) -> Dict[str, Any]:
     """Starts environment shell
 
     Args:
@@ -70,5 +71,59 @@ def launch_environment_shell(
             time.sleep(1)
             deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
 
-    # Return service name to use as host
-    return environment_shell_service_manifest["metadata"]["name"]
+    environment_shell_uuid = environment_shell_service_manifest["metadata"][
+        "name"
+    ].replace("environment-shell-", "")
+
+    return {
+        "host": environment_shell_service_manifest["metadata"]["name"],
+        "uuid": environment_shell_uuid,
+        "session_uuid": session_uuid,
+    }
+
+
+def get_environment_shells(session_uuid):
+    """Gets all related resources, idempotent."""
+    ns = _config.ORCHEST_NAMESPACE
+    label_selector = f"session_uuid={session_uuid},app=environment-shell"
+
+    try:
+        services = k8s_core_api.list_namespaced_service(
+            ns, label_selector=label_selector
+        )
+
+        return [
+            {
+                "host": service.metadata.name,
+                "session_uuid": session_uuid,
+                "uuid": service.metadata.name.replace("environment-shell-", ""),
+            }
+            for service in services.items
+        ]
+
+    except Exception as e:
+        logger.error(
+            "Failed to get environment shells for session UUID %s" % session_uuid
+        )
+        logger.error("Error %s [%s]" % (e, type(e)))
+
+        return []
+
+
+def stop_environment_shell(environment_shell_uuid):
+    """Deletes environment shell."""
+    # Note: we rely on the fact that deleting the deployment leads to a
+    # SIGTERM to the container, which will be used to delete the
+    # existing jupyterlab user config lock for interactive sessions.
+    # See PR #254.
+    ns = _config.ORCHEST_NAMESPACE
+    name = "environment-shell-" + environment_shell_uuid
+
+    try:
+        k8s_apps_api.delete_namespaced_deployment(name, ns)
+        k8s_core_api.delete_namespaced_service(name, ns)
+    except Exception as e:
+        logger.error(
+            "Failed to delete environment shell with UUID %s" % environment_shell_uuid
+        )
+        logger.error("Error %s [%s]" % (e, type(e)))
