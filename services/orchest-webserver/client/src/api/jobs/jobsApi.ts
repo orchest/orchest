@@ -259,7 +259,7 @@ const fetchStrategyJson = async (
 
 export const jobsApi = {
   fetchAll,
-  fetch: fetchJob,
+  fetchOne: fetchJob,
   post,
   put,
   putJobPipelineUuid,
