@@ -47,8 +47,10 @@ export const useSyncJobUuidWithQueryArgs = () => {
     if (isJobUuidFromRouteInvalid) {
       redirect(targetJob.uuid);
     } else if (shouldUpdateJobChanges) {
-      // fetchAll doesn't retrieve env_variables, but fetch does.
-      // As a workaround, fetch the job separately.
+      // It is intentional that the response of fetchAll doesn't provide correct env_variable (always `null`).
+      // Normally environment variables contain sensitive information like password.
+      // Therefore, they are only provided if FE is requesting for one specific job.
+      // Therefore, here FE fires another request specifically for the env_variables.
       fetch(targetJob.uuid).then((fetchedJob) => {
         initJobChanges(
           pickJobChanges({
