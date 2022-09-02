@@ -39,6 +39,7 @@ logger = logging.getLogger("job-scheduler")
 
 
 class SchedulerJobType(enum.Enum):
+    CLEANUP_OLD_SCHEDULER_JOB_RECORDS = "CLEANUP_OLD_SCHEDULER_JOB_RECORDS"
     PROCESS_IMAGES_FOR_DELETION = "PROCESS_IMAGES_FOR_DELETION"
     PROCESS_NOTIFICATIONS_DELIVERIES = "PROCESS_NOTIFICATIONS_DELIVERIES"
     SCHEDULE_JOB_RUNS = "SCHEDULE_JOB_RUNS"
@@ -60,6 +61,11 @@ def add_recurring_jobs_to_scheduler(
     """
     jobs = Jobs()
     recurring_jobs = {
+        "cleanup_old_scheduler_job_records": {
+            "allowed_to_run": True,
+            "interval": app.config["CLEANUP_OLD_SCHEDULER_JOB_RECORDS_INTERVAL"],
+            "job_func": jobs.handle_cleanup_old_scheduler_job_records,
+        },
         "schedule job runs": {
             "allowed_to_run": True,
             "interval": app.config["SCHEDULER_INTERVAL"],
@@ -102,6 +108,28 @@ def add_recurring_jobs_to_scheduler(
 class Jobs:
     def __init__(self):
         pass
+
+    def handle_cleanup_old_scheduler_job_records(
+        self, app: Flask, interval: int = 0
+    ) -> None:
+        """Cleans up scheduler job records to avoid filling up the db.
+
+        The schedule is defined by the given interval. E.g.
+        `interval=15` will cause this job to run if 15 seconds have
+        passed since the previous run.
+
+        Args:
+            interval: How much time should have passed after the
+                previous execution of this job (in seconds). And thus an
+                `interval=0` will execute the job right away.
+
+        """
+        return self._handle_recurring_scheduler_job(
+            SchedulerJobType.CLEANUP_OLD_SCHEDULER_JOB_RECORDS.value,
+            interval,
+            cleanup_old_scheduler_job_records,
+            app,
+        )
 
     def handle_schedule_job_runs(self, app: Flask, interval: int = 0) -> None:
         """Handles checking for job runs to be scheduled.
@@ -226,7 +254,48 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
             logger.debug(
                 f"SchedulerJob running {handle_func.__name__}: PID {os.getpid()}."
             )
-            return handle_func(app, task_uuid)
+            try:
+                handle_func(app, task_uuid)
+            except Exception as e:
+                logger.error(e)
+                notify_scheduled_job_failed(task_uuid)
+                raise e
+
+
+def cleanup_old_scheduler_job_records(app, task_uuid: str) -> None:
+    logger = logging.getLogger("cleanup_old_scheduler_job_records")
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    with app.app_context():
+
+        logger.info("Deleting old records")
+        for job_type in SchedulerJobType:
+            records_of_job_type_to_keep = (
+                db.session.query(models.SchedulerJob)
+                .filter(models.SchedulerJob.type == job_type.value)
+                .with_entities(
+                    models.SchedulerJob.uuid,
+                )
+                .order_by(desc(models.SchedulerJob.started_time))
+                .limit(500)
+                .subquery()
+            )
+            # Can't use limit and delete in the same query.
+            models.SchedulerJob.query.filter(
+                models.SchedulerJob.uuid.not_in(records_of_job_type_to_keep),
+                models.SchedulerJob.type == job_type.value,
+                models.SchedulerJob.uuid != task_uuid,
+            ).delete(synchronize_session="fetch")
+
+        logger.info("Fixing jobs that failed to report back their status.")
+        models.SchedulerJob.query.filter(
+            models.SchedulerJob.started_time < (now - datetime.timedelta(hours=1)),
+            models.SchedulerJob.status == "STARTED",
+        ).update({"status": "FAILED"})
+        db.session.commit()
+
+        notify_scheduled_job_done(task_uuid)
 
 
 def schedule_job_runs(app, task_uuid: str) -> None:

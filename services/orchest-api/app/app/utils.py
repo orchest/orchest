@@ -85,7 +85,7 @@ def update_status_db(
             # For UPDATE or DELETE statements with complex criteria, the
             # 'evaluate' strategy may not be able to evaluate the
             # expression in Python and will raise an error.
-            synchronize_session="fetch",
+            synchronize_session=False,
         )
     )
 
