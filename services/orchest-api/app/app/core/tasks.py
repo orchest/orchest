@@ -324,18 +324,28 @@ def registry_garbage_collection(self) -> None:
     registry garbage collection is run if necessary.
     """
     with application.app_context():
+        try:
+            _registry_garbage_collection()
+            scheduler.notify_scheduled_job_succeeded(self.request.id)
+        except Exception as e:
+            logger.error(e)
+            scheduler.notify_scheduled_job_failed(self.request.id)
+            raise e
+    return "SUCCESS"
+
+
+def _registry_garbage_collection() -> None:
+    with application.app_context():
         # It's important that the check is made after the scheduler job
         # is set as 'STARTED' to avoid race conditions. See the
         # ctl/active-custom-jupyter-images-to-push and
         # environment-images/to-push endpoints for more details.
         if not _should_run_registry_gc():
-            scheduler.notify_scheduled_job_done(self.request.id)
             logger.info(
                 "Skipping registry GC to avoid a race condition with a potentially "
                 "ongoing image push."
             )
-
-            return "SUCCESS"
+            return
 
         has_deleted_images = False
         repositories_to_gc = []
@@ -397,13 +407,16 @@ def registry_garbage_collection(self) -> None:
 
         if has_deleted_images or repositories_to_gc:
             registry.run_registry_garbage_collection(repositories_to_gc)
-        scheduler.notify_scheduled_job_done(self.request.id)
-        return "SUCCESS"
 
 
 @celery.task(bind=True, base=AbortableTask)
 def process_notifications_deliveries(self):
     with application.app_context():
-        notifications.process_notifications_deliveries_task()
-        scheduler.notify_scheduled_job_done(self.request.id)
+        try:
+            notifications.process_notifications_deliveries_task()
+            scheduler.notify_scheduled_job_succeeded(self.request.id)
+        except Exception as e:
+            logger.error(e)
+            scheduler.notify_scheduled_job_failed(self.request.id)
+            raise e
     return "SUCCESS"

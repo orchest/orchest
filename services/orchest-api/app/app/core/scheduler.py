@@ -295,7 +295,7 @@ def cleanup_old_scheduler_job_records(app, task_uuid: str) -> None:
         ).update({"status": "FAILED"})
         db.session.commit()
 
-        notify_scheduled_job_done(task_uuid)
+        notify_scheduled_job_succeeded(task_uuid)
 
 
 def schedule_job_runs(app, task_uuid: str) -> None:
@@ -394,7 +394,7 @@ def schedule_job_runs(app, task_uuid: str) -> None:
             except Exception as e:
                 logger.error(e)
 
-        notify_scheduled_job_done(task_uuid)
+        notify_scheduled_job_succeeded(task_uuid)
 
 
 def process_images_for_deletion(app, task_uuid: str) -> None:
@@ -450,7 +450,7 @@ def process_notification_deliveries(app, task_uuid: str) -> None:
         res.forget()
 
 
-def notify_scheduled_job_done(uuid: str) -> None:
+def notify_scheduled_job_succeeded(uuid: str) -> None:
     models.SchedulerJob.query.with_for_update().filter(
         models.SchedulerJob.uuid == uuid
     ).update({"status": "SUCCEEDED"})
