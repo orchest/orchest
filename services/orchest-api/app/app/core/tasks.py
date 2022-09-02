@@ -325,7 +325,7 @@ def registry_garbage_collection(self) -> None:
     """
     with application.app_context():
         # It's important that the check is made after the scheduler job
-        # is set as 'RUNNING' to avoid race conditions. See the
+        # is set as 'STARTED' to avoid race conditions. See the
         # ctl/active-custom-jupyter-images-to-push and
         # environment-images/to-push endpoints for more details.
         if not _should_run_registry_gc():

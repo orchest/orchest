@@ -71,28 +71,41 @@ class Setting(BaseModel):
 
 
 class SchedulerJob(BaseModel):
-    """Latest run of a job assigned to a Scheduler."""
+    """Job runs of the internal scheduler."""
 
     __tablename__ = "scheduler_jobs"
 
-    type = db.Column(db.String(50), primary_key=True)
+    uuid = db.Column(
+        db.String(36),
+        primary_key=True,
+        nullable=False,
+        server_default=text("gen_random_uuid()"),
+    )
+
+    type = db.Column(db.String(50), nullable=False)
 
     # Used to make sure different instances of the Scheduler (due to
     # multiple gunicorn workers) don't cause a job to be executed
     # multiple times.
-    timestamp = db.Column(
+    started_time = db.Column(
         TIMESTAMP(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
 
-    # RUNNING|NOT_RUNNING
+    finished_time = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    # STARTED, SUCCEEDED, FAILED
     status = db.Column(
-        db.String(15), unique=False, nullable=False, server_default="NOT_RUNNING"
+        db.String(15), unique=False, nullable=False, server_default="SUCCEEDED"
     )
 
     def __repr__(self):
-        return f"<SchedulerJob: {self.type}>"
+        return f"<SchedulerJob: {self.type}:{self.uuid}>"
 
 
 class Project(BaseModel):

@@ -19,7 +19,7 @@ def upgrade():
     op.add_column(
         "scheduler_jobs",
         sa.Column(
-            "status", sa.String(length=15), server_default="NOT_RUNNING", nullable=False
+            "status", sa.String(length=15), server_default="SUCCEEDED", nullable=False
         ),
     )
 

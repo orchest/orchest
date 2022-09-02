@@ -1,26 +1,17 @@
 """Handles recurring jobs by assigning them to a given scheduler.
 
-This implementation is in line with the scheduler of the webserver,
-check its module docstring for more info. The only difference is that
-each job record entry has a 'status' column that signals whether the job
-is 'RUNNING' or 'NOT_RUNNING'.
+This implementation was initially in line with the scheduler of the
+orchest-webserver, but ended up differentiating on the schema of a task
+record, while in the webserver there is a record for each job type, here
+we have a record for each run of a job, this is needed to keep track of
+the state of some jobs that can interfere with other activities, in
+particular, registry garbage collection and image pushes to the
+registry.
 
-# PR_DISCUSS
-The 'RUNNING' status is set by the scheduler logic when a job is
-launched, updating the status to 'NOT_RUNNING' once the job is finished
-is responsibility of the job, this is necessary due to the asynchronous
-nature of some jobs. This means that, if scheduler jobs of the same type
-run concurrently, there can be race conditions relate to writing the job
-status. This is a form of technical debt but shouldn't lead to any
-issues since the scheduler is already gate keeping concurrent starts
-through the 'interval' value. One solution would be to not start a
-particular scheduler job if it's still 'RUNNING', which is something I
-haven't done because it can have very dangerous outcomes if an update to
-the status fails. Another alternative is to have a DB record for every
-instance of a scheduler job run, and to periodically cleanup the old
-ones. The introduction of the 'status' column was necessary because some
-functionality of the `orchest-api` requires knowing if one of these jobs
-(registry gc) is running or not to avoid a race condition.
+When the scheduler starts a job it takes care of setting it's state to
+"STARTED", upon success or failure it is responsibility of the job logic
+to set a SUCCEEDED or FAILED status, by using the functions provided by
+this module.
 
 """
 import datetime
@@ -180,7 +171,7 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
         # Check whether there is already an entry in the DB, if not
         # then we need to create it.
         if query.first() is None:
-            db.session.add(models.SchedulerJob(type=job_type, status="RUNNING"))
+            db.session.add(models.SchedulerJob(type=job_type, status="STARTED"))
         else:
             now = datetime.datetime.now(datetime.timezone.utc)
 
@@ -207,7 +198,7 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
                 # locked.
                 .filter(
                     now
-                    >= models.SchedulerJob.timestamp + datetime.timedelta(seconds=dt)
+                    >= models.SchedulerJob.started_time + datetime.timedelta(seconds=dt)
                 ).first()
             )
 
@@ -219,7 +210,7 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
                 return
 
             job.timestamp = now
-            job.status = "RUNNING"
+            job.status = "STARTED"
 
     def _collateral(
         self, app: Flask, handle_func: Callable, run_collateral: bool
@@ -390,7 +381,7 @@ def process_notification_deliveries(app) -> None:
 def notify_scheduled_job_done(job_type: SchedulerJobType) -> None:
     models.SchedulerJob.query.with_for_update().filter(
         models.SchedulerJob.type == job_type.value
-    ).update({"status": "NOT_RUNNING"})
+    ).update({"status": "SUCCEEDED"})
     db.session.commit()
 
 
@@ -399,7 +390,7 @@ def is_running(job_type: SchedulerJobType) -> bool:
         db.session.query(models.SchedulerJob)
         .filter(
             models.SchedulerJob.type == job_type.value,
-            models.SchedulerJob.status == "RUNNING",
+            models.SchedulerJob.status == "STARTED",
         )
         .exists()
     ).scalar()
