@@ -14,7 +14,7 @@ api = Namespace("snapshots", description="Managing snapshots")
 api = schema.register_schema(api)
 
 
-@api.route("/")
+@api.route("")
 class SnapshotList(Resource):
     @api.doc("get_snapshots")
     @api.marshal_with(schema.snapshots)
