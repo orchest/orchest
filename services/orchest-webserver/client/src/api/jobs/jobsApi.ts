@@ -56,17 +56,21 @@ const post = (
     }),
   });
 
-const put = async ({
-  uuid,
-  schedule,
-  ...changes
-}: JobChangesData | JobChangesData) => {
+const put = async ({ uuid, schedule, ...changes }: JobChangesData) => {
   await fetcher(`/catch/api-proxy/api/jobs/${uuid}`, {
     method: "PUT",
     headers: HEADER.JSON,
     body: JSON.stringify({ ...changes, cron_schedule: schedule }),
   });
   return changes;
+};
+
+const putJobPipelineUuid = (jobUuid: string, pipelineUuid: string) => {
+  return fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/pipeline`, {
+    method: "PUT",
+    headers: HEADER.JSON,
+    body: JSON.stringify({ pipeline_uuid: pipelineUuid }),
+  });
 };
 
 const deleteJob = (jobUuid: string) =>
@@ -258,6 +262,7 @@ export const jobsApi = {
   fetch: fetchJob,
   post,
   put,
+  putJobPipelineUuid,
   delete: deleteJob,
   cancel: cancelJob,
   resumeCronJob,

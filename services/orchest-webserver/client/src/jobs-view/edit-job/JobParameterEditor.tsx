@@ -24,13 +24,14 @@ const useCodeMirrorValue = (strategyKey: string, parameterKey: string) => {
   const loadedStrategyFilePath = useEditJob(
     (state) => state.jobChanges?.loadedStrategyFilePath
   );
+  const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
 
   React.useEffect(() => {
     // Reset codeMirrorValue when jobUuid is not undefined, i.e. redirect has ended.
     // Without this if condition, codeMirrorValue will still be set to the old value
     // because jobChanges is not yet reset to undefined.
-    if (jobUuid) setCodeMirrorValue(undefined);
-  }, [jobUuid, loadedStrategyFilePath]);
+    if (jobUuid && pipelineUuid) setCodeMirrorValue(undefined);
+  }, [jobUuid, pipelineUuid, loadedStrategyFilePath]);
 
   const value = useEditJob(
     (state) =>

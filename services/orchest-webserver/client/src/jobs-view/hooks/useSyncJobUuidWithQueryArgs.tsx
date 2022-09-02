@@ -50,14 +50,9 @@ export const useSyncJobUuidWithQueryArgs = () => {
       // It is intentional that the response of fetchAll doesn't provide correct env_variable (always `null`).
       // Normally environment variables contain sensitive information like password.
       // Therefore, they are only provided if FE is requesting for one specific job.
-      // Therefore, here FE fires another request specifically for the env_variables.
+      // Therefore, here FE fires another request to fetch the complete job, specifically for its env_variables.
       fetch(targetJob.uuid).then((fetchedJob) => {
-        initJobChanges(
-          pickJobChanges({
-            ...targetJob,
-            env_variables: fetchedJob?.env_variables || {},
-          })
-        );
+        initJobChanges(pickJobChanges(fetchedJob));
       });
     }
   }, [
