@@ -283,7 +283,10 @@ export type JobChanges = JobChangesData & {
   project_uuid: string;
   pipeline_uuid: string;
   status: JobStatus;
-  loadedStrategyFilePath: string | undefined;
+  snapshot_uuid: string;
+  pipeline_path: string;
+  pipeline_definition: PipelineJson;
+  loadedStrategyFilePath?: string | undefined;
 };
 
 export type DraftJobData = Omit<
@@ -427,4 +430,16 @@ export type UpdateInfo = {
 
 export type OrchestVersion = {
   version: string | null | undefined;
+};
+
+export type PipelineDataInSnapshot = {
+  path: string;
+  definition: PipelineJson;
+};
+
+export type SnapshotData = {
+  uuid: string;
+  project_uuid: string;
+  pipelines: Record<string, PipelineDataInSnapshot>;
+  timestamp: string;
 };

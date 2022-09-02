@@ -29,7 +29,7 @@ export const pickJobChangesData = (
 export const pickJobChanges = (jobData?: JobData): JobChanges | undefined => {
   if (!jobData) return undefined;
 
-  return pick(
+  const selectedProperties = pick(
     jobData,
     "uuid",
     "name",
@@ -41,8 +41,15 @@ export const pickJobChanges = (jobData?: JobData): JobChanges | undefined => {
     "status",
     "project_uuid",
     "pipeline_uuid",
-    "next_scheduled_time"
+    "next_scheduled_time",
+    "snapshot_uuid",
+    "pipeline_definition"
   );
+
+  return {
+    ...selectedProperties,
+    pipeline_path: jobData.pipeline_run_spec.run_config.pipeline_path,
+  };
 };
 
 export const PARAMETERLESS_RUN = "Parameterless run";

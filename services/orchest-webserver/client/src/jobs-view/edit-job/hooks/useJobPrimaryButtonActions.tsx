@@ -14,8 +14,9 @@ export const useJobPrimaryButtonActions = () => {
     status === "STARTED" || status === "PENDING" || status === "PAUSED";
 
   const [buttonLabel, mainAction, iconType] = React.useMemo<
-    [string, () => void, JobPrimaryButtonIconType]
+    [string, (() => void) | null, JobPrimaryButtonIconType]
   >(() => {
+    if (!status) return ["Run job", null, "run"];
     if (status === "DRAFT") {
       const isCronJob = hasValue(schedule);
 

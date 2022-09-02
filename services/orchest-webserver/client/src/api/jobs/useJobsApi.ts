@@ -1,4 +1,4 @@
-import { JobChangesData, JobData, StrategyJson } from "@/types";
+import { JobChangesData, JobData, PipelineJson, StrategyJson } from "@/types";
 import { FetchError } from "@orchest/lib-utils";
 import create from "zustand";
 import { jobsApi } from "./jobsApi";
@@ -31,11 +31,14 @@ export type JobsApi = {
   resumeCronJob: (jobUuid: string) => Promise<void>;
   pauseCronJob: (jobUuid: string) => Promise<void>;
   triggerScheduledRuns: (jobUuid: string) => Promise<void>;
-  fetchParameterStrategy: (
-    jobData: JobData,
-    reservedKey: string | undefined,
-    path?: string
-  ) => Promise<StrategyJson | undefined>;
+  fetchParameterStrategy: (props: {
+    projectUuid: string;
+    pipelineUuid: string;
+    jobUuid: string;
+    pipelineJson: PipelineJson;
+    paramFilePath?: string;
+    reservedKey: string | undefined;
+  }) => Promise<StrategyJson | undefined>;
   error?: FetchError;
   clearError: () => void;
 };
@@ -249,12 +252,8 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         return { jobs };
       });
     },
-    fetchParameterStrategy: async (jobData, reservedKey, path) => {
-      const strategyJson = await jobsApi.fetchStrategyJson(
-        jobData,
-        reservedKey,
-        path
-      );
+    fetchParameterStrategy: async (props) => {
+      const strategyJson = await jobsApi.fetchStrategyJson(props);
       return strategyJson;
     },
     clearError: () => {

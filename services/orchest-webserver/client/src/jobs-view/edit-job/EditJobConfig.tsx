@@ -13,7 +13,6 @@ import {
   PipelineRunColumn,
   PipelineRunRow,
 } from "../common";
-import { useGetJobData } from "../hooks/useGetJobData";
 import { useEditJob } from "../stores/useEditJob";
 import { AutoCleanUpToggle } from "./AutoCleanUpToggle";
 import { EditJobSchedule } from "./EditJobSchedule";
@@ -109,8 +108,10 @@ export const EditJobConfig = () => {
     [selectedRuns]
   );
 
-  const jobData = useGetJobData();
-  const pipelineJson = jobData?.pipeline_definition;
+  const pipelineJson = useEditJob(
+    (state) => state.jobChanges?.pipeline_definition
+  );
+
   const parameterStrategy = useEditJob(
     (state) => state.jobChanges?.strategy_json
   );

@@ -24,7 +24,10 @@ export const EditJobName = () => {
       required
       value={value}
       onFocus={() => setHasEdited(true)}
-      onBlur={() => setJobChanges({ name: value.trim() })}
+      onBlur={() => {
+        const trimmedValue = value.trim();
+        if (trimmedValue) setJobChanges({ name: trimmedValue });
+      }}
       onChange={handleChange}
       InputLabelProps={{ required: false }}
       error={isInvalid}

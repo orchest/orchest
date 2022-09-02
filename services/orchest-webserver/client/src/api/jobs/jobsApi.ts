@@ -7,7 +7,6 @@ import {
   StrategyJson,
 } from "@/types";
 import { queryArgs } from "@/utils/text";
-import { pipelinePathToJsonLocation } from "@/utils/webserver-utils";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
 const fetchAll = async (projectUuid: string): Promise<JobData[]> => {
@@ -218,21 +217,21 @@ const generateStrategyJsonFromParamJsonFile = (
   return strategyJson;
 };
 
-export const getDefaultParamFilePath = (jobData: JobData) =>
-  pipelinePathToJsonLocation(
-    jobData.pipeline_run_spec.run_config.pipeline_path
-  );
-
-const fetchStrategyJson = async (
-  jobData: JobData,
-  reservedKey: string | undefined,
-  paramFilePath: string | undefined
-) => {
-  const projectUuid = jobData.project_uuid;
-  const pipelineUuid = jobData.pipeline_uuid;
-  const jobUuid = jobData.uuid;
-  const pipelineJson = jobData.pipeline_definition;
-
+const fetchStrategyJson = async ({
+  projectUuid,
+  pipelineUuid,
+  jobUuid,
+  pipelineJson,
+  paramFilePath,
+  reservedKey,
+}: {
+  projectUuid: string;
+  pipelineUuid: string;
+  jobUuid: string;
+  pipelineJson: PipelineJson;
+  paramFilePath?: string;
+  reservedKey: string | undefined;
+}) => {
   if (!paramFilePath || !reservedKey) return;
 
   try {

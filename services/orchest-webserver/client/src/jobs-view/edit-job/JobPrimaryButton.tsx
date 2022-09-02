@@ -6,12 +6,10 @@ import { useJobPrimaryButtonActions } from "./hooks/useJobPrimaryButtonActions";
 import { JobPrimaryButtonIcon } from "./JobPrimaryButtonIcon";
 
 export const JobPrimaryButton = () => {
-  const hasStarted = useEditJob(
-    (state) =>
-      state.jobChanges?.status === "STARTED" ||
-      state.jobChanges?.status === "PENDING" ||
-      state.jobChanges?.status === "PAUSED"
-  );
+  const status = useEditJob((state) => state.jobChanges?.status);
+  const hasStarted =
+    status === "STARTED" || status === "PENDING" || status === "PAUSED";
+
   const [buttonLabel, mainAction, iconType] = useJobPrimaryButtonActions();
 
   const { withThrottle } = useThrottle();
@@ -24,6 +22,7 @@ export const JobPrimaryButton = () => {
       color="primary"
       variant={hasStarted ? "outlined" : "contained"}
       startIcon={<JobPrimaryButtonIcon type={iconType} />}
+      disabled={!status}
       onClick={handleClick}
     >
       {buttonLabel}
