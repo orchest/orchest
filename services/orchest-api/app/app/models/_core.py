@@ -652,6 +652,13 @@ class Job(BaseModel):
         cascade="all, delete",
     )
 
+    snapshot_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("snapshots.uuid", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     def __repr__(self):
         return f"<Job: {self.uuid}>"
 
@@ -1093,3 +1100,47 @@ ForeignKeyConstraint(
     ],
     ondelete="CASCADE",
 )
+
+
+class Snapshot(BaseModel):
+    __tablename__ = "snapshots"
+
+    uuid = db.Column(db.String(36), primary_key=True)
+
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    project_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    # This column will store every pipeline related information that is
+    # not considered a secret. Will map pipeline uuids to a dict which
+    # contains the pipeline path in the snapshot and the pipeline
+    # definition.
+    pipelines = db.Column(
+        JSONB,
+        nullable=False,
+    )
+
+    # Dictionary of environment variables, i.e. Dict[str, str].
+    project_env_variables = deferred(
+        db.Column(
+            JSONB,
+            nullable=False,
+        )
+    )
+
+    # Dict[ppl uuid, Dict[str, str]].
+    pipelines_env_variables = deferred(
+        db.Column(
+            JSONB,
+            nullable=False,
+        )
+    )

@@ -104,19 +104,28 @@ def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[st
         and pipeline environment variables, giving priority to pipeline
         variables, e.g. they override project variables.
     """
-    project_env_vars = (
+    return {
+        **get_proj_env_variables(project_uuid),
+        **get_pipeline_env_variables(project_uuid, pipeline_uuid),
+    }
+
+
+def get_proj_env_variables(project_uuid) -> Dict[str, str]:
+    return (
         models.Project.query.options(undefer(models.Project.env_variables))
         .filter_by(uuid=project_uuid)
         .one()
         .env_variables
     )
-    pipeline_env_vars = (
+
+
+def get_pipeline_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[str, str]:
+    return (
         models.Pipeline.query.options(undefer(models.Pipeline.env_variables))
         .filter_by(project_uuid=project_uuid, uuid=pipeline_uuid)
         .one()
         .env_variables
     )
-    return {**project_env_vars, **pipeline_env_vars}
 
 
 def page_to_pagination_data(pagination: Pagination) -> dict:

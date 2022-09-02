@@ -11,7 +11,6 @@ from app.utils import (
     get_project_directory,
     pipeline_uuid_to_path,
     project_uuid_to_path,
-    remove_job_directory,
     request_args_to_string,
 )
 
@@ -466,6 +465,12 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>/pipeline", methods=["PUT"])
+    def catch_api_proxy_job_pipeline_put(job_uuid):
+
+        resp = jobs.change_draft_job_pipeline(job_uuid, request.json["pipeline_uuid"])
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])
     def catch_api_proxy_job_runs_single(job_uuid, run_uuid):
 
@@ -526,37 +531,29 @@ def register_orchest_api_views(app, db):
     @app.route("/catch/api-proxy/api/jobs/cleanup/<job_uuid>", methods=["delete"])
     def catch_api_proxy_jobs_cleanup(job_uuid):
         try:
-            # Get data before issuing deletion to the orchest-api. This
-            # is needed to retrieve the job pipeline uuid and project
-            # uuid. TODO: if the caller of the job knows about those
-            # ids, we could avoid making a request to the orchest-api.
             resp = requests.get(
                 (
                     f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api'
                     f"/jobs/{job_uuid}"
                 )
             )
-            data = resp.json()
+            job = resp.json()
 
             if resp.status_code == 200:
-                pipeline_uuid = data["pipeline_uuid"]
-                project_uuid = data["project_uuid"]
-
-                # Tell the orchest-api that the job does not exist
-                # anymore, will be stopped if necessary then cleaned up
-                # from the orchest-api db.
-                resp = requests.delete(
-                    f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
-                    f"jobs/cleanup/{job_uuid}"
+                # Will delete the job as a collateral effect.
+                jobs.remove_job_directory(
+                    job_uuid,
+                    job["pipeline_uuid"],
+                    job["project_uuid"],
+                    job["snapshot_uuid"],
                 )
 
-                remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
                 return resp.content, resp.status_code, resp.headers.items()
 
             elif resp.status_code == 404:
                 raise ValueError(f"Job {job_uuid} does not exist.")
             else:
-                raise Exception(f"{data}, {resp.status_code}")
+                raise error.OrchestApiRequestError(response=resp)
 
         except Exception as e:
             msg = f"Error during job deletion:{e}"
@@ -610,5 +607,13 @@ def register_orchest_api_views(app, db):
         resp = requests.post(
             f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
             f"ctl/cleanup-builder-cache"
+        )
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route("/catch/api-proxy/api/snapshots/<snapshot_uuid>", methods=["GET"])
+    def catch_api_proxy_snapshots_get_snapshot(snapshot_uuid: str):
+        resp = requests.get(
+            f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
+            f"snapshots/{snapshot_uuid}"
         )
         return resp.content, resp.status_code, resp.headers.items()

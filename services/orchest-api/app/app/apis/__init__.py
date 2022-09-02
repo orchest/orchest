@@ -14,6 +14,7 @@ from app.apis.namespace_projects import api as ns_projects
 from app.apis.namespace_runs import api as ns_runs
 from app.apis.namespace_services import api as ns_services
 from app.apis.namespace_sessions import api as ns_sessions
+from app.apis.namespace_snapshots import api as ns_snapshots
 from app.apis.namespace_validations import api as ns_validations
 
 blueprint = Blueprint("api", __name__)
@@ -39,3 +40,4 @@ api.add_namespace(ns_runs)
 api.add_namespace(ns_services)
 api.add_namespace(ns_sessions)
 api.add_namespace(ns_validations)
+api.add_namespace(ns_snapshots)
