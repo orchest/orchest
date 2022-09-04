@@ -121,6 +121,11 @@ export VERSION=$(curl \
 # Create the namespace to install Orchest in
 kubectl create ns orchest
 
+# Setup Ingress controller
+kubectl apply \
+  -f "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml"
+
+
 # Deploy the Orchest Operator
 kubectl apply \
   -f "https://github.com/orchest/orchest/releases/download/${VERSION}/orchest-controller.yaml"
