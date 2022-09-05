@@ -20,7 +20,7 @@ Orchest is in beta.
 
 To install Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). Any cluster should work. You can either pick a managed
 service by one of the certified [cloud platforms](https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/) or create a cluster
-locally.
+locally. For single node deployments, we recommend using at (the very) least 2 CPU and 8GB of RAM.
 
 Pick your deployment environment and Kubernetes distribution and follow the installation steps
 below.
@@ -63,6 +63,9 @@ cluster, then one of the following subsections might be helpful:
   the `orchest-cli`.
 - {ref}`Setting up a reverse proxy <reverse-proxy>`: Useful when installing Orchest in remote machines,
   such as AWS EC2 instances.
+- {ref}`Scarse (CPU) resources - tweak DNS settings <cpu-contention-dns>`: Increase DNS query
+  timeout to prevent name resolution failing during time of CPU resource contention. Especially
+  applicable for single node deployments close to the minimum requirement of 2 CPU.
 
 (install-fqdn)=
 
@@ -182,6 +185,26 @@ sudo service nginx restart
 ```
 
 [nginx]: https://nginx.org/en/
+
+(cpu-contention-dns)=
+
+### Scarse (CPU) resources - tweak DNS settings
+
+This section applies mostly for single-node deployments (e.g. using minikube) as otherwise you can
+configure your Kubernetes cluster to scale with respect to the current load.
+
+During times of CPU resource contention, the [CoreDNS](https://coredns.io/) pod could start failing
+its `readinessProbe` leading to `kube-proxy` updating `iptables` rules to stop routing traffic to
+the pod ([k8s
+docs](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#types-of-probe)), for which
+it uses the `REJECT` target. This means that DNS queries will start failing immediately without the
+configured resolver timeout being respected (in Orchest we use a timeout of `30` seconds with `2`
+attempts). In order to respect the timeout instead of failing immediately, you can tweak the
+`readinessProbe` or simply remove it:
+
+```sh
+kubectl edit -n kube-system deploy coredns
+```
 
 ## Closing notes
 
