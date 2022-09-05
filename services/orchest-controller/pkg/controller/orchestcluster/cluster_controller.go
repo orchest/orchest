@@ -534,6 +534,22 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Applications = occ.config.DefaultApplications
 	}
 
+	if !isIngressDisabled(copy) && isIngressAddonRequired(ctx, occ.Client()) {
+		ingressEnabled := false
+		for _, app := range copy.Spec.Applications {
+			if app.Name == addons.IngressNginx {
+				ingressEnabled = true
+			}
+		}
+
+		if !ingressEnabled {
+			copy.Spec.Applications = append(copy.Spec.Applications, orchestv1alpha1.ApplicationSpec{
+				Name: addons.IngressNginx,
+			})
+			changed = true
+		}
+	}
+
 	// set docker-registry default values
 	for i := 0; i < len(copy.Spec.Applications); i++ {
 		app := &copy.Spec.Applications[i]
