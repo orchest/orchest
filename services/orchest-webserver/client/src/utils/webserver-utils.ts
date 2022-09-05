@@ -560,7 +560,7 @@ export function pascalCaseToCapitalized(viewName) {
 }
 
 export function isNumber(value: unknown): value is number {
-  return !isNaN(Number(value));
+  return typeof value !== "boolean" && !isNaN(Number(value));
 }
 
 export const withPlural = (
