@@ -10,6 +10,7 @@ import FormLabel from "@mui/material/FormLabel";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import React from "react";
+import { useEditJobType } from "./hooks/useEditJobType";
 import {
   ScheduleOption,
   useJobScheduleOption,
@@ -50,11 +51,14 @@ export const EditJobSchedule = () => {
     setNextScheduledTime,
   } = useJobScheduleOption();
 
+  const editJobType = useEditJobType();
+
   return (
     <Box sx={{ marginBottom: (theme) => theme.spacing(3) }}>
       <FormControl
         component="fieldset"
         sx={{ marginBottom: (theme) => theme.spacing(2), width: "100%" }}
+        disabled={editJobType !== "draft"}
       >
         <FormLabel id="schedule">Schedule</FormLabel>
         <RadioGroup

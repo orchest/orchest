@@ -2,7 +2,7 @@ import Stack from "@mui/material/Stack";
 import React from "react";
 import { JobMoreOptions } from "./JobMoreOptions";
 import { JobName } from "./JobName";
-import { JobPrimaryButton } from "./JobPrimaryButton";
+import { JobPrimaryButtons } from "./JobPrimaryButtons";
 import { JobStatusAlert } from "./JobStatusAlert";
 
 export const EditJobHeader = () => {
@@ -20,7 +20,7 @@ export const EditJobHeader = () => {
     >
       <Stack direction="row" spacing={2} alignItems="center">
         <JobName />
-        <JobPrimaryButton />
+        <JobPrimaryButtons />
         <JobMoreOptions />
       </Stack>
       <JobStatusAlert />

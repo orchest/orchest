@@ -6,8 +6,17 @@ export type CancelablePromise<T> = {
   cancel: () => void;
 };
 
+export type CancelledPromiseError = { isCanceled: true };
+
+export const isCancelledPromiseError = (
+  error: any // eslint-disable-line @typescript-eslint/no-explicit-any
+): error is CancelledPromiseError => error.isCanceled === true;
+
 // https://reactjs.org/blog/2015/12/16/ismounted-antipattern.html
-function makePromiseCancelable<T>(promise: Promise<T>, callback?: () => void) {
+function makePromiseCancelable<T>(
+  promise: Promise<T>,
+  callback?: () => void
+): CancelablePromise<T> {
   let isCanceled = false;
   const wrappedPromise = new Promise<T>((resolve, reject) => {
     promise

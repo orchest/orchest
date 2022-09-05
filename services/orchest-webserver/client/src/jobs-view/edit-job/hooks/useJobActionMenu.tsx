@@ -1,7 +1,9 @@
+import { useStartEditingJob } from "@/jobs-view/hooks/useStartEditingJob";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useEditJob } from "../../stores/useEditJob";
 import { JobPrimaryButtonIconType } from "../JobPrimaryButtonIcon";
+import { useEditJobType } from "./useEditJobType";
 import { useJobActions } from "./useJobActions";
 
 export const useJobActionMenu = () => {
@@ -23,33 +25,44 @@ export const useJobActionMenu = () => {
   const isRunning = ["PAUSED", "STARTED", "PENDING"].includes(status || "");
   const hasPaused = status === "PAUSED";
 
-  const actions = React.useMemo<
-    {
-      label: string;
-      icon: JobPrimaryButtonIconType;
-      action: () => void | Promise<void>;
-      disabled?: boolean;
-    }[]
-  >(
-    () => [
-      {
-        label: hasPaused ? "Resume scheduled job" : "Pause scheduled job",
-        icon: hasPaused ? "resume" : "pause",
-        disabled: !isScheduledJob || !isRunning,
-        action: hasPaused ? resumeJob : pauseJob,
-      },
-      {
-        label: "Trigger job now",
-        icon: "run",
-        disabled: !isAllowedToTriggerScheduledRuns,
-        action: triggerJobNow,
-      },
-      {
-        label: "Copy job configuration",
-        icon: "duplicate",
-        action: duplicateJob,
-      },
-    ],
+  const editJobType = useEditJobType();
+  const isEditing = useEditJob((state) => state.isEditing);
+  const shouldShowEditJob = !isEditing && editJobType === "active-cronjob";
+  const { startEditing } = useStartEditingJob();
+
+  const actions = React.useMemo(
+    () =>
+      [
+        shouldShowEditJob
+          ? {
+              label: "Edit job",
+              icon: "edit",
+              action: startEditing,
+            }
+          : undefined,
+        {
+          label: hasPaused ? "Resume scheduled job" : "Pause scheduled job",
+          icon: hasPaused ? "resume" : "pause",
+          disabled: !isScheduledJob || !isRunning,
+          action: hasPaused ? resumeJob : pauseJob,
+        },
+        {
+          label: "Trigger job now",
+          icon: "run",
+          disabled: !isAllowedToTriggerScheduledRuns,
+          action: triggerJobNow,
+        },
+        {
+          label: "Copy job configuration",
+          icon: "duplicate",
+          action: duplicateJob,
+        },
+      ].filter(Boolean) as {
+        label: string;
+        icon: JobPrimaryButtonIconType;
+        action: () => void | Promise<void>;
+        disabled?: boolean;
+      }[],
     [
       duplicateJob,
       hasPaused,
@@ -59,6 +72,8 @@ export const useJobActionMenu = () => {
       resumeJob,
       triggerJobNow,
       isAllowedToTriggerScheduledRuns,
+      shouldShowEditJob,
+      startEditing,
     ]
   );
 

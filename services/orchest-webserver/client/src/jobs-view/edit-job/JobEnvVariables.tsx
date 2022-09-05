@@ -7,7 +7,6 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useValidJobQueryArgs } from "../hooks/useValidJobQueryArgs";
 import { useEditJob } from "../stores/useEditJob";
-import { useIsJobReadOnly } from "./hooks/useIsJobReadOnly";
 
 const useEnvVariables = () => {
   const [envVariables, setEnvVariables] = React.useState<
@@ -51,7 +50,7 @@ const useSaveEnvVariables = (envVariables: EnvVarPair[] | undefined) => {
 };
 
 export const JobEnvVariables = () => {
-  const { isReadOnly } = useIsJobReadOnly();
+  const isReadOnly = useEditJob((state) => !state.isEditing);
 
   const [envVariables, setEnvVariables] = useEnvVariables();
   useSaveEnvVariables(envVariables);
