@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import os
 import secrets
@@ -94,7 +96,7 @@ def register_views(app: Flask) -> None:
         return serve_static_or_dev(path)
 
     @app.route("/login/admin", methods=["GET"])
-    def login_admin() -> Union[Tuple[str, int], Response]:
+    def login_admin() -> Tuple[str, int] | Response:
 
         if not is_authenticated(request):
             return "", 401
@@ -102,9 +104,7 @@ def register_views(app: Flask) -> None:
         return serve_static_or_dev("/admin")
 
     @app.route("/auth", methods=["GET"])
-    def index() -> Union[
-        Tuple[Literal[""], Literal[200]], Tuple[Literal[""], Literal[401]]
-    ]:
+    def index() -> Tuple[Literal[""], Literal[200]] | Tuple[Literal[""], Literal[401]]:
         # validate authentication through token
         if is_authenticated(request):
             return "", 200
@@ -112,7 +112,7 @@ def register_views(app: Flask) -> None:
             return "", 401
 
     @app.route("/login/clear", methods=["GET"])
-    def logout() -> Union[Response, None]:
+    def logout() -> Response | None:
         resp = redirect_response("/")
         resp.set_cookie("auth_token", "")
         resp.set_cookie("auth_username", "")
@@ -125,16 +125,16 @@ def register_views(app: Flask) -> None:
             return redirect(url)
 
     @app.route("/login/submit", methods=["POST"])
-    def login() -> Union[Response, Tuple[Response, Literal[401]], None]:
+    def login() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login()
 
     @app.route("/login", methods=["POST"])
-    def login_post() -> Union[Response, Tuple[Response, Literal[401]], None]:
+    def login_post() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login(redirect_type="server")
 
     def handle_login(
         redirect_type: str = "client",
-    ) -> Union[Response, Tuple[Response, Literal[401]], None]:
+    ) -> Response | Tuple[Response, Literal[401]] | None:
 
         # Returns a shallow mutable copy of the immutable
         # multi dict.
@@ -257,10 +257,7 @@ def register_views(app: Flask) -> None:
             return jsonify({"error": "No username supplied."}), 400
 
     @app.route("/login/users", methods=["GET"])
-    def get_users() -> Union[
-        Tuple[Literal[""], Literal[401]],
-        Tuple[Response, Literal[200]],
-    ]:
+    def get_users() -> Tuple[Literal[""], Literal[401]] | Tuple[Response, Literal[200]]:
         if not is_authenticated(request):
             return "", 401
 

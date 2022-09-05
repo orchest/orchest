@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import hashlib
 import os
-from typing import Dict, TypedDict, Union
+from typing import Dict, TypedDict
 
-PathType = Union[str, bytes, os.PathLike]
+PathType = str | bytes | os.PathLike
 
 
 class _InnerAuthCache(TypedDict):
@@ -43,7 +45,7 @@ def get_auth_cache(
     session_uuid_prefix: str,
     auth_cache: _AuthCacheDictionary,
     auth_cache_age: int,
-) -> Dict[str, Union[str, bool]]:
+) -> Dict[str, str | bool]:
     key = "%s-%s" % (project_uuid_prefix, session_uuid_prefix)
 
     if key not in auth_cache:
