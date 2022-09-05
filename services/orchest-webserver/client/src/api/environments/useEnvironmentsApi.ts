@@ -8,7 +8,6 @@ import {
   EnvironmentValidationData,
 } from "@/types";
 import { pick } from "@/utils/record";
-import { FetchError } from "@orchest/lib-utils";
 import create from "zustand";
 
 export type EnvironmentBuildStatus =
@@ -32,22 +31,18 @@ export type EnvironmentsApi = {
     environmentUuid: string,
     payload: Partial<EnvironmentData>
   ) => Promise<EnvironmentData | undefined>;
-  isDeleting: boolean;
   delete: (uuid: string, action?: EnvironmentAction) => Promise<void>;
   buildingEnvironments: string[];
   environmentsToBeBuilt: string[];
   validate: () => Promise<
-    [EnvironmentValidationData | undefined, EnvironmentBuildStatus | undefined]
+    [EnvironmentValidationData, EnvironmentBuildStatus] | undefined
   >;
   status: EnvironmentBuildStatus;
   hasLoadedBuildStatus: boolean;
   updateBuildStatus: () => Promise<void>;
   isTriggeringBuild: boolean;
   triggerBuilds: (environments: string[]) => Promise<void>;
-  isCancelingBuild: boolean;
   cancelBuild: (environmentUuid: string) => Promise<void>;
-  error?: FetchError;
-  clearError: () => void;
 };
 
 const getEnvironmentBuildStatus = (
@@ -84,30 +79,6 @@ const getEnvironmentFromState = (state: EnvironmentState): EnvironmentData => {
 };
 
 export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
-  const getProjectUuid = (): string => {
-    const projectUuid = get().projectUuid;
-    if (!projectUuid) {
-      throw new Error("projectUuid unavailable");
-    }
-    return projectUuid;
-  };
-  const getEnvironments = (): EnvironmentState[] => {
-    const environments = get().environments;
-    if (!environments) {
-      throw new Error("Environments not yet fetched.");
-    }
-    return environments;
-  };
-  const getEnvironment = (uuid: string): EnvironmentState => {
-    const environment = getEnvironments().find(
-      (environment) => environment.uuid === uuid
-    );
-    if (!environment) {
-      throw new Error("Environment not found.");
-    }
-    return environment;
-  };
-
   return {
     setEnvironment: (uuid, payload) => {
       set((state) => {
@@ -123,7 +94,7 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
     isFetchingAll: false,
     fetch: async (projectUuid, language) => {
       try {
-        set({ projectUuid, isFetchingAll: true, error: undefined });
+        set({ projectUuid, isFetchingAll: true });
         const environments = await environmentsApi.fetchAll(
           projectUuid,
           language
@@ -131,14 +102,16 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
 
         set({ projectUuid, environments, isFetchingAll: false });
       } catch (error) {
-        if (!error?.isCanceled) set({ error, isFetchingAll: false });
+        if (!error?.isCanceled) set({ isFetchingAll: false });
       }
     },
     isPosting: false,
     post: async (environmentName: string, spec: EnvironmentSpec) => {
       try {
-        const projectUuid = getProjectUuid();
-        set({ isPosting: true, error: undefined });
+        const projectUuid = get().projectUuid;
+        if (!projectUuid) return;
+
+        set({ isPosting: true });
         const newEnvironment = await environmentsApi.post(
           projectUuid,
           environmentName,
@@ -165,98 +138,93 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
         });
         return newEnvironmentWithAction;
       } catch (error) {
-        set({ error, isPosting: false });
+        set({ isPosting: false });
       }
     },
     put: async (environmentUuid, payload) => {
-      try {
-        const projectUuid = getProjectUuid();
-        const environmentState = getEnvironment(environmentUuid);
+      const projectUuid = get().projectUuid;
+      if (!projectUuid) return;
 
-        const updatedEnvironment = await environmentsApi.put(
-          projectUuid,
-          getEnvironmentFromState({ ...environmentState, ...payload })
-        );
-        // Note: Merging the response into the state after PUT is not always necessary,
-        // It causes an unnecessary re-render for normal cases.
-        return updatedEnvironment;
-      } catch (error) {
-        set({ error });
-      }
+      const environment = get().environments?.find(
+        (environment) => environment.uuid === environmentUuid
+      );
+      if (!environment) return;
+
+      const updatedEnvironment = await environmentsApi.put(
+        projectUuid,
+        getEnvironmentFromState({ ...environment, ...payload })
+      );
+      // Note: Merging the response into the state after PUT is not always necessary,
+      // It causes an unnecessary re-render for normal cases.
+      return updatedEnvironment;
     },
-    isDeleting: false,
     delete: async (uuid, action) => {
-      try {
-        const projectUuid = getProjectUuid();
-        set({ isDeleting: true, error: undefined });
-        await environmentsApi.delete(projectUuid, uuid);
-        set((state) => {
-          const filteredEnvironments = state.environments?.filter(
-            (environment) => environment.uuid !== uuid
-          );
+      const projectUuid = get().projectUuid;
+      if (!projectUuid) return;
 
-          const environmentsToBeBuilt = ["BUILD", "RETRY"].includes(
-            action || ""
-          )
-            ? state.environmentsToBeBuilt.filter(
+      await environmentsApi.delete(projectUuid, uuid);
+      set((state) => {
+        const filteredEnvironments = state.environments?.filter(
+          (environment) => environment.uuid !== uuid
+        );
+
+        const environmentsToBeBuilt = ["BUILD", "RETRY"].includes(action || "")
+          ? state.environmentsToBeBuilt.filter(
+              (toBuildEnvironmentUuid) => toBuildEnvironmentUuid !== uuid
+            )
+          : state.environmentsToBeBuilt;
+
+        const buildingEnvironments =
+          action === "WAIT"
+            ? state.buildingEnvironments.filter(
                 (toBuildEnvironmentUuid) => toBuildEnvironmentUuid !== uuid
               )
-            : state.environmentsToBeBuilt;
+            : state.buildingEnvironments;
 
-          const buildingEnvironments =
-            action === "WAIT"
-              ? state.buildingEnvironments.filter(
-                  (toBuildEnvironmentUuid) => toBuildEnvironmentUuid !== uuid
-                )
-              : state.buildingEnvironments;
-
-          return {
-            environments: filteredEnvironments,
-            environmentsToBeBuilt,
-            buildingEnvironments,
-            isDeleting: false,
-          };
-        });
-      } catch (error) {
-        set({ error, isDeleting: false });
-      }
+        return {
+          environments: filteredEnvironments,
+          environmentsToBeBuilt,
+          buildingEnvironments,
+        };
+      });
     },
     status: "allEnvironmentsBuilt",
     buildingEnvironments: [],
     environmentsToBeBuilt: [],
     validate: async () => {
-      try {
-        const projectUuid = getProjectUuid();
-        const [
-          validatedEnvironments,
-          response,
-          hasActionChanged,
+      const projectUuid = get().projectUuid;
+      if (!projectUuid) return;
+
+      const [
+        validatedEnvironments,
+        response,
+        hasActionChanged,
+        buildingEnvironments,
+        environmentsToBeBuilt,
+      ] = await environmentsApi.validate(projectUuid, get().environments);
+
+      const status = getEnvironmentBuildStatus(response);
+
+      if (hasActionChanged || status !== get().status) {
+        set({
+          environments: validatedEnvironments,
+          status,
           buildingEnvironments,
           environmentsToBeBuilt,
-        ] = await environmentsApi.validate(projectUuid, get().environments);
-
-        const status = getEnvironmentBuildStatus(response);
-
-        if (hasActionChanged || status !== get().status) {
-          set({
-            environments: validatedEnvironments,
-            status,
-            buildingEnvironments,
-            environmentsToBeBuilt,
-          });
-        }
-
-        return [response, status];
-      } catch (error) {
-        console.error(`Failed to validate environments. ${String(error)}`);
-        return [undefined, undefined];
+        });
       }
+
+      return [response, status];
     },
     hasLoadedBuildStatus: false,
     updateBuildStatus: async () => {
       try {
-        const projectUuid = getProjectUuid();
-        const environmentStates = getEnvironments();
+        const projectUuid = get().projectUuid;
+        if (!projectUuid) return;
+
+        const environmentStates = get().environments;
+        if (!environmentStates) return;
+
         const results = await environmentsApi.checkLatestBuilds({
           projectUuid,
           environmentStates,
@@ -287,8 +255,10 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
     isTriggeringBuild: false,
     triggerBuilds: async (environments: string[]) => {
       try {
-        const projectUuid = getProjectUuid();
-        set({ isTriggeringBuild: true, error: undefined });
+        const projectUuid = get().projectUuid;
+        if (!projectUuid) return;
+
+        set({ isTriggeringBuild: true });
         const environmentImageBuilds = await environmentsApi.triggerBuilds(
           projectUuid,
           environments
@@ -309,42 +279,34 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
           };
         });
       } catch (error) {
-        set({ error, isTriggeringBuild: false });
+        set({ isTriggeringBuild: false });
       }
     },
-    isCancelingBuild: false,
     cancelBuild: async (environmentUuid: string) => {
-      try {
-        const environment = getEnvironment(environmentUuid);
-        if (!environment.latestBuild) {
-          throw new Error("Environment has no ongoing build.");
-        }
-
-        set({ isCancelingBuild: true, error: undefined });
-        await environmentsApi.cancelBuild(environment.latestBuild);
-        set((state) => {
-          const updatedEnvironments = (state.environments || []).map((env) =>
-            env.uuid === environmentUuid
-              ? {
-                  ...env,
-                  latestBuild: {
-                    ...env.latestBuild,
-                    status: "ABORTED",
-                  } as EnvironmentImageBuild,
-                }
-              : env
-          );
-          return {
-            environments: updatedEnvironments,
-            isCancelingBuild: false,
-          };
-        });
-      } catch (error) {
-        set({ error, isCancelingBuild: false });
+      const environment = get().environments?.find(
+        (environment) => environment.uuid === environmentUuid
+      );
+      if (!environment?.latestBuild) {
+        throw new Error("Environment has no ongoing build.");
       }
-    },
-    clearError: () => {
-      set({ error: undefined });
+
+      await environmentsApi.cancelBuild(environment.latestBuild);
+      set((state) => {
+        const updatedEnvironments = (state.environments || []).map((env) =>
+          env.uuid === environmentUuid
+            ? {
+                ...env,
+                latestBuild: {
+                  ...env.latestBuild,
+                  status: "ABORTED",
+                } as EnvironmentImageBuild,
+              }
+            : env
+        );
+        return {
+          environments: updatedEnvironments,
+        };
+      });
     },
   };
 });

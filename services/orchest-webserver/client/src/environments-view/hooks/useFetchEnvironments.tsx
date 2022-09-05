@@ -3,14 +3,12 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import React from "react";
-import { useReportEnvironmentsError } from "./useReportEnvironmentsError";
 
 /**
  * Fetch all environments of a project. Will re-fetch when the browser tab regains focus.
  */
 export const useFetchEnvironments = () => {
   const { projectUuid } = useCustomRoute();
-  useReportEnvironmentsError();
 
   const shouldFetchOnMount = useEnvironmentsApi(
     (state) => !Boolean(state.environments) && !state.isFetchingAll
