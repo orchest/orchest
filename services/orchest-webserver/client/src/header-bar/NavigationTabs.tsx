@@ -2,9 +2,11 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { navigationRoutes, siteMap } from "@/routingConfig";
+import { isNumber } from "@/utils/webserver-utils";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material/styles";
 import Tabs from "@mui/material/Tabs";
 import Tooltip from "@mui/material/Tooltip";
@@ -26,18 +28,32 @@ const systemMenuItems: NavItem[] = [
   },
 ];
 
+const NavigationTabsTooltip: React.FC = ({ children }) => {
+  return (
+    <Tooltip title="First create a Project to navigate here" followCursor>
+      <Box sx={{ cursor: "not-allowed" }}>{children}</Box>
+    </Tooltip>
+  );
+};
+
 type NavigationTabsBaseProps = {
-  disabled?: boolean;
-  navItems: NavItem[];
+  disabled: boolean;
+  projectMenuItems: NavItem[];
 };
 
 export const NavigationTabsBase = ({
   disabled,
-  navItems,
+  projectMenuItems,
 }: NavigationTabsBaseProps) => {
   const { navigateTo } = useCustomRoute();
 
   const matchRoute = useMatchRoutePaths(navigationRoutes);
+
+  const navItems = React.useMemo(
+    () =>
+      disabled ? systemMenuItems : [...projectMenuItems, ...systemMenuItems],
+    [projectMenuItems, disabled]
+  );
 
   const navTabIndex = useNavTabIndex({ matchRoute, navItems });
 
@@ -48,7 +64,54 @@ export const NavigationTabsBase = ({
   };
   const theme = useTheme();
 
-  return (
+  // It's illegal to wrap Tab with Tooltip. So the Tooltip needs to wrap Tabs
+  // When disabled is true, render projectMenuItems and systemMenuItems separately.
+  return disabled ? (
+    <Stack direction="row">
+      <NavigationTabsTooltip>
+        <Tabs value={false} aria-label="Navigation items" disabled={disabled}>
+          {projectMenuItems.map((menuItem) => {
+            return (
+              <CustomTab
+                key={menuItem.label}
+                tabIndex={0}
+                label={menuItem.label}
+                icon={menuItem.icon}
+                aria-label={menuItem.label}
+                disabled
+              />
+            );
+          })}
+        </Tabs>
+      </NavigationTabsTooltip>
+      <Tabs
+        value={
+          isNumber(navTabIndex)
+            ? Math.min(navTabIndex, navItems.length - 1)
+            : navTabIndex
+        }
+        aria-label="Navigation items"
+        TabIndicatorProps={{
+          style: { backgroundColor: theme.palette.common.black },
+        }}
+      >
+        {systemMenuItems.map((menuItem, index) => {
+          return (
+            <CustomTab
+              key={menuItem.label}
+              tabIndex={0}
+              disabled={!menuItem.icon && disabled}
+              label={menuItem.label}
+              icon={menuItem.icon}
+              aria-label={menuItem.label}
+              onClick={() => onClickTab(index)}
+              onAuxClick={() => onClickTab(index)}
+            />
+          );
+        })}
+      </Tabs>
+    </Stack>
+  ) : (
     <Tabs
       value={navTabIndex}
       aria-label="Navigation items"
@@ -57,32 +120,17 @@ export const NavigationTabsBase = ({
       }}
     >
       {navItems.map((menuItem, index) => {
-        const isDisabled = !menuItem.icon && disabled;
-        const hideTooltip = !menuItem.icon && !disabled;
-        // CustomTab needs to be wrapped by Box because Tooltip will stop working if it detects its direct children is disabled.
         return (
-          <Tooltip
+          <CustomTab
             key={menuItem.label}
-            title={
-              isDisabled
-                ? "First create a Project to navigate here"
-                : menuItem.label
-            }
-            disableHoverListener={hideTooltip}
-          >
-            <Box sx={{ cursor: isDisabled ? "not-allowed" : "initial" }}>
-              <CustomTab
-                key={menuItem.label}
-                tabIndex={0}
-                disabled={!menuItem.icon && disabled}
-                label={menuItem.icon ? undefined : menuItem.label}
-                icon={menuItem.icon}
-                aria-label={menuItem.label}
-                onClick={() => onClickTab(index)}
-                onAuxClick={() => onClickTab(index)}
-              />
-            </Box>
-          </Tooltip>
+            tabIndex={0}
+            disabled={!menuItem.icon && disabled}
+            label={menuItem.label}
+            icon={menuItem.icon}
+            aria-label={menuItem.label}
+            onClick={() => onClickTab(index)}
+            onAuxClick={() => onClickTab(index)}
+          />
         );
       })}
     </Tabs>
@@ -95,10 +143,15 @@ export const NavigationTabs = () => {
   } = useProjectsContext();
 
   const disabled = hasLoadedProjects && projects.length === 0;
-  const navItems = React.useMemo(() => {
-    const projectMenuItems = getProjectMenuItems(projectUuid, pipeline?.uuid);
-    return [...projectMenuItems, ...systemMenuItems];
+
+  const projectMenuItems = React.useMemo(() => {
+    return getProjectMenuItems(projectUuid, pipeline?.uuid);
   }, [projectUuid, pipeline?.uuid]);
 
-  return <NavigationTabsBase disabled={disabled} navItems={navItems} />;
+  return (
+    <NavigationTabsBase
+      disabled={disabled}
+      projectMenuItems={projectMenuItems}
+    />
+  );
 };

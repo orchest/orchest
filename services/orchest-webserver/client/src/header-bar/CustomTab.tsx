@@ -1,12 +1,25 @@
 import Tab, { TabProps } from "@mui/material/Tab";
+import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 
-export const CustomTab = ({ label, icon, onClick, ...props }: TabProps) => {
+export const CustomTab = ({
+  label,
+  icon,
+  onClick,
+  ...props
+}: Omit<TabProps, "label" | "icon"> & {
+  label: string;
+  icon?: React.ReactElement;
+}) => {
+  const ariaLabel = typeof label === "string" ? label : undefined;
+  // const labelElement = icon ? label : <TabLabel label={ariaLabel} />;
+  // const iconElement = icon ? <TabLabel label={label} icon={icon} /> : undefined;
   return (
     <Tab
       {...props}
-      label={label}
-      icon={icon}
+      label={icon ? undefined : <Tooltip title={label}>{<>{label}</>}</Tooltip>}
+      icon={icon ? <Tooltip title={label}>{icon}</Tooltip> : undefined}
+      aria-label={ariaLabel}
       disableRipple
       sx={{
         height: (theme) => theme.spacing(7),
