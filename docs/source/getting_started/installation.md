@@ -147,6 +147,11 @@ kubectl apply \
   -f "https://github.com/orchest/orchest/releases/download/${VERSION}/orchest-controller.yaml"
 
 # Apply an OrchestCluster Custom Resource
+# NOTE: You can also first download the example manifest so that you
+# can tweak it to your liking. For example, preventing Orchest from
+# also deploying the Nginx controller (because you have already
+# configured ingress on your cluster) through the
+# `controller.orchest.io/deploy-ingress` annotation.
 kubectl apply \
   -f "https://github.com/orchest/orchest/releases/download/${VERSION}/example-orchestcluster.yaml"
 ```
