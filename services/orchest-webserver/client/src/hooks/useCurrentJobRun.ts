@@ -1,6 +1,7 @@
-import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
+import { onFetchError, useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
 import { equates } from "@/utils/record";
 import React from "react";
+import { useCancelablePromise } from "./useCancelablePromise";
 import { useCustomRoute } from "./useCustomRoute";
 
 /**
@@ -11,9 +12,10 @@ import { useCustomRoute } from "./useCustomRoute";
  */
 export const useCurrentJobRun = () => {
   const { jobUuid, runUuid } = useCustomRoute();
+  const { makeCancelable } = useCancelablePromise();
   const cancel = useJobRunsApi((api) => api.cancel);
   const fetchRun = useJobRunsApi((api) => api.fetch);
-  const runs = useJobRunsApi((api) => api.runs);
+  const runs = useJobRunsApi((api) => api.runs || []);
 
   const run = React.useMemo(
     () => (runUuid ? runs.find(equates("uuid", runUuid)) : undefined),
@@ -25,8 +27,9 @@ export const useCurrentJobRun = () => {
   }, [cancel, jobUuid, runUuid]);
 
   React.useEffect(() => {
-    if (jobUuid && runUuid && !run) fetchRun(jobUuid, runUuid);
-  }, [fetchRun, jobUuid, runUuid, run]);
+    if (jobUuid && runUuid && !run)
+      makeCancelable(fetchRun(jobUuid, runUuid)).catch(onFetchError);
+  }, [fetchRun, jobUuid, runUuid, run, makeCancelable]);
 
   return {
     run,

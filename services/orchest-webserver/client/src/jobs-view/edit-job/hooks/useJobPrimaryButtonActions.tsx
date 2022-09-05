@@ -6,6 +6,10 @@ import { useJobActions } from "./useJobActions";
 
 export const useJobPrimaryButtonActions = () => {
   const { scheduleJob, cancelJob, duplicateJob } = useJobActions();
+  const isEditing = useEditJob((state) => state.isEditing);
+  const saveActiveCronJobChanges = useEditJob(
+    (state) => state.saveActiveCronJobChanges
+  );
 
   const status = useEditJob((state) => state.jobChanges?.status);
   const schedule = useEditJob((state) => state.jobChanges?.schedule);
@@ -14,7 +18,7 @@ export const useJobPrimaryButtonActions = () => {
     status === "STARTED" || status === "PENDING" || status === "PAUSED";
 
   const [buttonLabel, mainAction, iconType] = React.useMemo<
-    [string, (() => void) | null, JobPrimaryButtonIconType]
+    [string, (() => void) | null, JobPrimaryButtonIconType | null]
   >(() => {
     if (!status) return ["Run job", null, "run"];
     if (status === "DRAFT") {
@@ -24,12 +28,21 @@ export const useJobPrimaryButtonActions = () => {
       return ["Run job", scheduleJob, "run"];
     }
 
-    if (hasStarted) {
-      return ["Cancel job", cancelJob, "cancel"];
-    }
+    if (isEditing) return ["Save job", saveActiveCronJobChanges, null];
+
+    if (hasStarted) return ["Cancel job", cancelJob, "cancel"];
 
     return ["Copy job configuration", duplicateJob, "duplicate"];
-  }, [schedule, status, hasStarted, scheduleJob, cancelJob, duplicateJob]);
+  }, [
+    schedule,
+    status,
+    hasStarted,
+    scheduleJob,
+    cancelJob,
+    duplicateJob,
+    isEditing,
+    saveActiveCronJobChanges,
+  ]);
 
   return [buttonLabel, mainAction, iconType] as const;
 };

@@ -1,12 +1,15 @@
-import { PipelineRun, PipelineRunStep } from "@/types";
-import { deduplicates, replaces } from "@/utils/array";
+import { TStatus } from "@/components/Status";
+import { isCancelledPromiseError } from "@/hooks/useCancelablePromise";
+import { PipelineRun } from "@/types";
+import { replaces } from "@/utils/array";
 import { equates } from "@/utils/record";
+import produce from "immer";
 import create from "zustand";
 import { jobRunsApi, StatusUpdate, StepStatusUpdate } from "./jobRunsApi";
 
 export type JobRunsApi = {
   /** A list of all the currently fetched runs, in no particular order. */
-  runs: PipelineRun[];
+  runs: PipelineRun[] | undefined;
   /** Fetches all runs for a given job and adds it to `runs`. */
   fetchAll: (jobUuid: string) => Promise<void>;
   /** Fetches a single run and adds it to `runs`. */
@@ -19,59 +22,61 @@ export type JobRunsApi = {
   setStepStatus: (update: StepStatusUpdate) => Promise<void>;
 };
 
-export const useJobRunsApi = create<JobRunsApi>((set, get) => {
+export const useJobRunsApi = create<JobRunsApi>((set) => {
+  const setRunStatus = (runUuid: string, status: TStatus) => {
+    set((state) => ({
+      runs: produce(state.runs || [], (draft) => {
+        const runIndex = draft.findIndex((run) => run.uuid === runUuid);
+        if (runIndex === -1) return;
+        draft[runIndex].status = status;
+      }),
+    }));
+  };
+
   return {
-    runs: [],
+    runs: undefined,
     fetch: async (jobUuid, runUuid) => {
-      const run = await jobRunsApi.fetch(jobUuid, runUuid).catch(onFetchError);
+      const run = await jobRunsApi.fetch(jobUuid, runUuid);
 
       if (!run) return;
 
-      set((state) => ({ ...state, runs: replaceRun(state.runs, run) }));
+      set((state) => ({ runs: replaceRun(state.runs, run) }));
     },
     fetchAll: async (jobUuid) => {
-      const runs = await jobRunsApi.fetchAll(jobUuid).catch(onFetchError);
+      const runs = await jobRunsApi.fetchAll(jobUuid);
 
-      if (!runs?.length) return;
+      if (!runs) return;
 
-      set((state) => ({ ...state, runs: deduplicateRuns(runs, state.runs) }));
+      set({ runs });
     },
     cancel: async (jobUuid, runUuid) => {
-      await jobRunsApi.cancel(jobUuid, runUuid).catch(onFetchError);
-      const run = get().runs.find(equates("uuid", runUuid));
-
-      if (!run) return;
-
-      const updated: PipelineRun = { ...run, status: "ABORTED" };
-
-      set((state) => ({ ...state, runs: replaceRun(state.runs, updated) }));
+      await jobRunsApi.cancel(jobUuid, runUuid);
+      setRunStatus(runUuid, "ABORTED");
     },
     setStatus: async (update) => {
-      await jobRunsApi.setStatus(update).catch(onFetchError);
-      const run = get().runs.find(equates("uuid", update.runUuid));
-
-      if (!run) return;
-
-      const updated: PipelineRun = { ...run, status: update.status };
-
-      set((state) => ({ ...state, runs: replaceRun(state.runs, updated) }));
+      await jobRunsApi.setStatus(update);
+      setRunStatus(update.runUuid, update.status);
     },
     setStepStatus: async (update) => {
-      await jobRunsApi.setStepStatus(update).catch(onFetchError);
-      const run = get().runs.find(equates("uuid", update.runUuid));
-      const step = run?.pipeline_steps.find(
-        equates("step_uuid", update.stepUuid)
-      );
+      await jobRunsApi.setStepStatus(update);
 
-      if (!run || !step) return;
+      set((state) => {
+        return {
+          runs: produce(state.runs || [], (draft) => {
+            const runIndex =
+              draft.findIndex((run) => run.uuid === update.runUuid) ?? -1;
 
-      const updatedStep: PipelineRunStep = { ...step, status: update.status };
-      const updatedRun: PipelineRun = {
-        ...run,
-        pipeline_steps: replaceStep(run.pipeline_steps, updatedStep),
-      };
+            const stepIndex =
+              draft[runIndex]?.pipeline_steps.findIndex(
+                (step) => step.step_uuid === update.stepUuid
+              ) ?? -1;
 
-      set((state) => ({ ...state, runs: replaceRun(state.runs, updatedRun) }));
+            if (runIndex === -1 || stepIndex === -1) return;
+
+            draft[runIndex].pipeline_steps[stepIndex].status = update.status;
+          }),
+        };
+      });
     },
   };
 });
@@ -79,20 +84,13 @@ export const useJobRunsApi = create<JobRunsApi>((set, get) => {
 const replacesByRunUuid = (uuid: string) =>
   replaces<PipelineRun>(equates("uuid", uuid), "unshift");
 
-const replacesByStepUuid = (uuid: string) =>
-  replaces<PipelineRunStep>(equates("step_uuid", uuid), "ignore");
+const replaceRun = (
+  runs: readonly PipelineRun[] | undefined,
+  run: PipelineRun
+) => replacesByRunUuid(run.uuid)(runs || [], run);
 
-const replaceStep = (
-  steps: readonly PipelineRunStep[],
-  step: PipelineRunStep
-) => replacesByStepUuid(step.step_uuid)(steps, step);
-
-const replaceRun = (runs: readonly PipelineRun[], run: PipelineRun) =>
-  replacesByRunUuid(run.uuid)(runs, run);
-
-const deduplicateRuns = deduplicates<PipelineRun>((run) => run.uuid);
-
-const onFetchError = (error: unknown) => {
-  console.error(error);
-  return null;
+export const onFetchError = (error: any) => {
+  if (!isCancelledPromiseError(error)) {
+    console.error(error);
+  }
 };
