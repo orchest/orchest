@@ -28,15 +28,22 @@ FLASK_ENV = os.environ.get("FLASK_ENV")
 CLOUD = os.environ.get("CLOUD") == "True"
 ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN")
 GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
-# This represents a container priority w.r.t. CPU time. By default,
-# containers run with a value of 1024. User code/containers such as
-# steps, services, kernels, environment builds are made to run with a
-# lower value so that in conditions of high cpu contention core Orchest
-# services have priority, which helps in being responsive under high
-# load. This is only enforced when CPU cycles are constrained. For more
-# information, see the k8s docs about CPU SHARES.
+# This represents a container priority w.r.t. CPU time. By default, the
+# container runtime (e.g. Docker) gives containers a value of 1024m.
+# User code/containers such as steps, services, kernels, environment
+# builds are made to run with a lower value so that in conditions of
+# high cpu contention core Orchest services have priority, which helps
+# in being responsive under high load. This is only enforced when CPU
+# cycles are constrained. For more information, see the k8s docs about
+# CPU SHARES.
 USER_CONTAINERS_CPU_SHARES = "1m"
 REGISTRY = "docker-registry"
+# NOTE: The DNS resolver will not treat this as an FQDN perse (depending
+# on the value of `ndots` in `/etc/resolv.conf` which by default is 5).
+# Thus the `search` directive will be iterated to resolve the domain.
+# This isn't an issue but results in unnecessary DNS queries.
+# Why the default value of `ndots` is set to 5 in Kubernetes:
+# https://github.com/kubernetes/kubernetes/issues/33554#issuecomment-266251056
 REGISTRY_FQDN = f"docker-registry.{ORCHEST_NAMESPACE}.svc.cluster.local"
 
 # Container Runtime configs.

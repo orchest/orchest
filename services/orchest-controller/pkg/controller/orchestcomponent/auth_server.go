@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -105,11 +106,20 @@ func getAuthServerDeployment(metadata metav1.ObjectMeta,
 
 	image := component.Spec.Template.Image
 
+	dnsResolverTimeout := "30"
+	dnsResolverAttempts := "2"
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,
 		},
 		Spec: corev1.PodSpec{
+			DNSConfig: &corev1.PodDNSConfig{
+				Options: []corev1.PodDNSConfigOption{
+					{Name: "timeout", Value: &dnsResolverTimeout},
+					{Name: "attempts", Value: &dnsResolverAttempts},
+				},
+			},
 			Containers: []corev1.Container{
 				{
 					Name:            controller.AuthServer,
@@ -121,6 +131,9 @@ func getAuthServerDeployment(metadata metav1.ObjectMeta,
 						},
 					},
 					Env: component.Spec.Template.Env,
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("50m")},
+					},
 				},
 			},
 		},
