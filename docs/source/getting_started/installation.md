@@ -200,10 +200,15 @@ docs](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#types-of
 it uses the `REJECT` target. This means that DNS queries will start failing immediately without the
 configured resolver timeout being respected (in Orchest we use a timeout of `30` seconds with `2`
 attempts). In order to respect the timeout instead of failing immediately, you can tweak the
-`readinessProbe` or simply remove it:
+`readinessProbe` or simply remove it by editing the manifest of the `coredns` deployment:
 
 ```sh
 kubectl edit -n kube-system deploy coredns
+```
+
+```{note}
+By editing the `coredns` deployment the corresponding pod(s) will get replaced, which can lead to
+failing DNS queries during the replacement period.
 ```
 
 ## Closing notes
