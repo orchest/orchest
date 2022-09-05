@@ -52,7 +52,7 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 		deployArgs.WithValuesFile(d.valuesPath)
 	}
 
-	if app.Config.Helm != nil && app.Config.Helm.Parameters != nil {
+	if app != nil && app.Config.Helm != nil && app.Config.Helm.Parameters != nil {
 		for _, parameter := range app.Config.Helm.Parameters {
 			deployArgs.WithSetValue(parameter.Name, parameter.Value)
 		}

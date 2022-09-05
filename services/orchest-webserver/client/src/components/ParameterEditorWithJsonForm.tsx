@@ -30,7 +30,7 @@ import {
 type ParameterEditorWithJsonFormProps = {
   initialValue: Json;
   isReadOnly: boolean;
-  onSave: (parameters: Json) => void;
+  onSave: (parameters: Record<string, Json>) => void;
   parameterSchema: JsonSchema | undefined;
   parameterUiSchema: UISchemaElement | undefined;
   openSchemaFile: (e: React.MouseEvent, type: JsonSchemaType) => void;
@@ -114,14 +114,15 @@ export const ParameterEditorWithJsonForm = ({
     Object.keys(parameterSchema?.properties).length > 0;
 
   const prettifyInputParameters = () => {
-    if (!hasValue(editableParameters)) return;
-    let newValue: string | undefined;
-    try {
-      const parsedValue = JSON.stringify(JSON.parse(editableParameters));
-      newValue = parsedValue !== editableParameters ? parsedValue : undefined;
-    } catch (error) {}
+    setEditableParameters((value) => {
+      if (!hasValue(value)) return value;
 
-    if (newValue) onChangeParameterJSON(newValue);
+      try {
+        return JSON.stringify(JSON.parse(value), null, 2);
+      } catch (error) {
+        return value;
+      }
+    });
   };
 
   const isUiSchemaDefined =

@@ -178,7 +178,8 @@ def register_views(app, db):
 
     @app.route("/async/orchest-update-info", methods=["GET"])
     def orchest_update_info():
-        return get_orchest_update_info_json()
+        cache = request.args.get("cache", "") == "true"
+        return get_orchest_update_info_json(cache=cache)
 
     @app.route("/async/server-config", methods=["GET"])
     def server_config():

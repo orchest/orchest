@@ -92,6 +92,10 @@ html_theme_options = {
     "show_toc_level": 1,
     "github_url": "https://github.com/orchest/orchest",
     "twitter_url": "https://twitter.com/orchestofficial",
+    "logo": {
+        "image_light": "img/logo-light.png",
+        "image_dark": "img/logo-dark.png",
+    },
 }
 
 html_sidebars = {
@@ -108,7 +112,6 @@ html_sidebars = {
 # static files, so a file named "default.css" will overwrite the
 # builtin "default.css".
 html_static_path = ["_static"]
-html_logo = "img/logo.png"
 
 html_css_files = [
     "https://cdn.jsdelivr.net/npm/@docsearch/css@alpha",

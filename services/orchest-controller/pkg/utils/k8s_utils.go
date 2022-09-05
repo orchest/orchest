@@ -38,8 +38,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
+type KubernetesDistros string
+
 const (
 	CACertificateKey = "ca.crt"
+
+	// Kubernetes distributions
+	NotDetected KubernetesDistros = ""
+	Minikube    KubernetesDistros = "minikube"
+	Microk8s    KubernetesDistros = "microk8s"
+	EKS         KubernetesDistros = "eks"
+	GKE         KubernetesDistros = "gke"
+	K3s         KubernetesDistros = "k3s"
+
+	// Detection lables
+	minikubeLableKey = "minikube.k8s.io/name"
+	microk8sLabelKey = "node.kubernetes.io/microk8s-controlplane"
+	k3sAnnotationKey = "k3s.io/hostname"
+	eksLabelKey      = "k8s.io/cloud-provider-aws"
 )
 
 func GetClientsOrDie(inCluster bool, scheme *runtime.Scheme) (
@@ -161,6 +177,30 @@ func NewrClusterRoleInformer(factory informers.SharedInformerFactory) rbacinform
 
 func NewClusterRoleBindingInformer(factory informers.SharedInformerFactory) rbacinformers.ClusterRoleBindingInformer {
 	return factory.Rbac().V1().ClusterRoleBindings()
+}
+
+func DetectK8sDistribution(client kubernetes.Interface) (KubernetesDistros, error) {
+	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		klog.Errorf("Failed to get node list: %v", err)
+	}
+	if len(nodes.Items) <= 0 {
+		return NotDetected, nil
+	}
+
+	node := nodes.Items[0]
+
+	if _, ok := node.Labels[minikubeLableKey]; ok {
+		return Minikube, nil
+	} else if _, ok := node.Labels[microk8sLabelKey]; ok {
+		return Microk8s, nil
+	} else if _, ok := node.Labels[eksLabelKey]; ok {
+		return EKS, nil
+	} else if _, ok := node.Annotations[k3sAnnotationKey]; ok {
+		return K3s, nil
+	}
+
+	return NotDetected, nil
 }
 
 // IsDeploymentReady checks if the number of required replicas is equal to number of created replicas

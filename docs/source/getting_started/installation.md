@@ -20,7 +20,10 @@ Orchest is in beta.
 
 To install Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). Any cluster should work. You can either pick a managed
 service by one of the certified [cloud platforms](https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/) or create a cluster
-locally.
+locally. Do note that only the following container runtimes are supported:
+
+- [containerd](https://containerd.io/)
+- [Docker](https://www.docker.com/products/container-runtime/)
 
 Pick your deployment environment and Kubernetes distribution and follow the installation steps
 below.
@@ -59,6 +62,8 @@ cluster, then one of the following subsections might be helpful:
   (FQDN) instead of the cluster's IP directly.
 - {ref}`Installing without Argo Workflows <install-argo>`: Don't let Orchest manage Argo in case you
   already have Argo Workflows installed on your Kubernetes cluster.
+- {ref}`Installing without Nginx Ingress Controller <install-nginx>`: Don't let Orchest manage
+  nginx ingress controller if you already have it installed on your Kubernetes cluster.
 - {ref}`Installing using kubectl <install-kubectl>`: If you would rather use `kubectl` instead of
   the `orchest-cli`.
 - {ref}`Setting up a reverse proxy <reverse-proxy>`: Useful when installing Orchest in remote machines,
@@ -104,6 +109,22 @@ Now that you are using an Argo Workflows set-up that is not managed by the Orche
 need to make sure that the right set of permissions are configured for Orchest to work as expected.
 Check out the permissions that the Orchest Controller sets for Argo [here](https://github.com/orchest/orchest/tree/v2022.06.5/services/orchest-controller/deploy/thirdparty/argo-workflows/templates).
 
+(install-nginx)=
+
+### Installing Orchest without Nginx Ingress Controller
+
+If you already have [nginx ingress controller](https://kubernetes.github.io/ingress-nginx/deploy) deployed on your
+Kubernetes cluster, then you need to tell Orchest not to install it again:
+
+```bash
+orchest install --no-nginx
+```
+
+```{note}
+Installation of the `Nginx Ingress Controller` requires different procedures on [EKS](https://kubernetes.github.io/ingress-nginx/deploy/#aws)
+and [GKE](https://kubernetes.github.io/ingress-nginx/deploy/#gce-gke) clusters.
+```
+
 (install-kubectl)=
 
 ### Installing Orchest using `kubectl`
@@ -126,6 +147,11 @@ kubectl apply \
   -f "https://github.com/orchest/orchest/releases/download/${VERSION}/orchest-controller.yaml"
 
 # Apply an OrchestCluster Custom Resource
+# NOTE: You can also first download the example manifest so that you
+# can tweak it to your liking. For example, preventing Orchest from
+# also deploying the Nginx controller (because you have already
+# configured ingress on your cluster) through the
+# `controller.orchest.io/deploy-ingress` annotation.
 kubectl apply \
   -f "https://github.com/orchest/orchest/releases/download/${VERSION}/example-orchestcluster.yaml"
 ```
