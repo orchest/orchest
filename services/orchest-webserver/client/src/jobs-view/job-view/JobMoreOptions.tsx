@@ -13,6 +13,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useSelectJob } from "../hooks/useSelectJob";
 import { useEditJob } from "../stores/useEditJob";
+import { useEditJobType } from "./hooks/useEditJobType";
 import { useJobActionMenu } from "./hooks/useJobActionMenu";
 import { JobPrimaryButtonIcon } from "./JobPrimaryButtonIcon";
 
@@ -69,7 +70,10 @@ export const JobMoreOptions = () => {
 
   const isOpen = hasValue(anchorElement);
 
-  const disabled = useEditJob((state) => !state.isEditing);
+  const editJobType = useEditJobType();
+  const disabled = useEditJob(
+    (state) => state.isEditing && editJobType === "active-cronjob"
+  );
 
   return (
     <>

@@ -1,5 +1,6 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useSnapshotsApi } from "@/api/snapshots/useSnapshotsApi";
+import { useCancelablePromise } from "@/hooks/useCancelablePromise";
 import { PipelineDataInSnapshot } from "@/types";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
@@ -17,16 +18,21 @@ export const EditJobPipeline = () => {
   const snapshotUuid = useEditJob((state) => state.jobChanges?.snapshot_uuid);
 
   const fetchSnapshot = useSnapshotsApi((state) => state.fetchOne);
+  const { makeCancelable } = useCancelablePromise();
   const [pipelines, setPipelines] = React.useState<PipelineDataInSnapshot[]>();
 
   React.useEffect(() => {
     if (snapshotUuid)
-      fetchSnapshot(snapshotUuid).then((snapshot) => {
-        if (snapshot) {
-          setPipelines(Object.values(snapshot.pipelines));
-        }
-      });
-  }, [fetchSnapshot, snapshotUuid]);
+      makeCancelable(fetchSnapshot(snapshotUuid))
+        .then((snapshot) => {
+          if (snapshot) {
+            setPipelines(Object.values(snapshot.pipelines));
+          }
+        })
+        .catch((error) => {
+          if (!error.isCanceled) console.error(error);
+        });
+  }, [fetchSnapshot, snapshotUuid, makeCancelable]);
 
   const isChangingPipelineUuid = useJobsApi(
     (state) => state.isChangingPipelineUuid

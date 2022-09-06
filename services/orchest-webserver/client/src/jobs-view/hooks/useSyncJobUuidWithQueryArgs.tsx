@@ -52,7 +52,8 @@ export const useSyncJobUuidWithQueryArgs = () => {
       // Therefore, they are only provided if FE is requesting for one specific job.
       // Therefore, here FE fires another request to fetch the complete job, specifically for its env_variables.
       fetchJob(targetJob.uuid).then((fetchedJob) => {
-        initJobChanges(pickJobChanges(fetchedJob));
+        const jobChanges = pickJobChanges(fetchedJob);
+        if (jobChanges) initJobChanges(jobChanges);
       });
     }
   }, [
