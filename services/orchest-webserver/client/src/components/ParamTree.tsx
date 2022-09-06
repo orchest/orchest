@@ -1,4 +1,4 @@
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useParameterReservedKey } from "@/jobs-view/job-view/hooks/useParameterReservedKey";
 import { StrategyJson, StrategyJsonValue } from "@/types";
 import { omit } from "@/utils/record";
 import LightbulbOutlined from "@mui/icons-material/LightbulbOutlined";
@@ -112,12 +112,11 @@ export const ParamTree = ({
   activeParameter,
   strategyJson,
 }: ParamTreeProps) => {
-  const { config } = useGlobalContext();
-  const pipelineParameterization =
-    strategyJson[config?.PIPELINE_PARAMETERS_RESERVED_KEY || ""];
+  const { reservedKey } = useParameterReservedKey();
+  const pipelineParameterization = strategyJson[reservedKey || ""];
 
-  const stepStrategies = config?.PIPELINE_PARAMETERS_RESERVED_KEY
-    ? omit(strategyJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY)
+  const stepStrategies = reservedKey
+    ? omit(strategyJson, reservedKey)
     : strategyJson;
 
   return (

@@ -2,16 +2,18 @@ import { useThrottle } from "@/hooks/useThrottle";
 import Button from "@mui/material/Button";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
+import { useEditJobType } from "./hooks/useEditJobType";
 import { useJobPrimaryButtonActions } from "./hooks/useJobPrimaryButtonActions";
 import { JobPrimaryButtonIcon } from "./JobPrimaryButtonIcon";
 
 const DiscardChangesButton = () => {
   const isEditing = useEditJob((state) => state.isEditing);
+  const editJobType = useEditJobType();
   const discardActiveCronJobChanges = useEditJob(
     (state) => state.discardActiveCronJobChanges
   );
 
-  return isEditing ? (
+  return editJobType === "active-cronjob" && isEditing ? (
     <Button color="primary" onClick={discardActiveCronJobChanges}>
       Discard changes
     </Button>

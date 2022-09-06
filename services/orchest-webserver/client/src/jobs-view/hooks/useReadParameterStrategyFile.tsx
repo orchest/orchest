@@ -1,8 +1,8 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import { pipelinePathToJsonLocation } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useParameterReservedKey } from "../job-view/hooks/useParameterReservedKey";
 import { useEditJob } from "../stores/useEditJob";
 import { useValidJobQueryArgs } from "./useValidJobQueryArgs";
 
@@ -27,8 +27,7 @@ export const useReadParameterStrategyFile = () => {
     hasValue(pipelinePath) &&
     isDraft;
 
-  const { config } = useGlobalContext();
-  const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY;
+  const { reservedKey } = useParameterReservedKey();
 
   const readParameterStrategyFile = useJobsApi(
     (state) => state.fetchParameterStrategy
