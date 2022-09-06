@@ -22,7 +22,7 @@ export const useUnsavedChangesWarning = () => {
           "Warning",
           "There are unsaved changes. Are you sure you want to navigate away?",
           (resolve) => {
-            if (hasUnsavedCronJobChanges) discardActiveCronJobChanges();
+            discardActiveCronJobChanges();
             action();
             resolve(true);
             return true;
@@ -32,12 +32,7 @@ export const useUnsavedChangesWarning = () => {
         action();
       }
     },
-    [
-      shouldConfirm,
-      discardActiveCronJobChanges,
-      hasUnsavedCronJobChanges,
-      setConfirm,
-    ]
+    [shouldConfirm, discardActiveCronJobChanges, setConfirm]
   );
 
   return { withConfirmation };

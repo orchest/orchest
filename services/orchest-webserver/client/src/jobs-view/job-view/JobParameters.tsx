@@ -16,6 +16,10 @@ import { LoadParamFileDescription } from "./LoadParamFileDescription";
 
 export const JobParameters = () => {
   const isReadOnly = useEditJob((state) => !state.isEditing);
+  const [expanded, setExpanded] = React.useState(false);
+  React.useEffect(() => {
+    setExpanded(!isReadOnly);
+  }, [isReadOnly]);
   const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
 
   const [
@@ -39,10 +43,11 @@ export const JobParameters = () => {
   };
 
   return (
-    <Accordion defaultExpanded>
+    <Accordion expanded={expanded}>
       <AccordionSummary
         aria-controls="job-parameters"
         id="job-parameters-header"
+        onClick={() => setExpanded((value) => !value)}
       >
         <Typography component="h5" variant="h6">
           Parameters
@@ -50,22 +55,23 @@ export const JobParameters = () => {
       </AccordionSummary>
       <AccordionDetails>
         <EditJobParameters isReadOnly={isReadOnly} />
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={2}
-          sx={{ marginTop: 2, marginBottom: 2 }}
-        >
-          <Button
-            color="primary"
-            onClick={showLoadParametersDialog}
-            startIcon={<UploadIcon />}
-            disabled={isReadOnly}
+        {!isReadOnly && (
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={2}
+            sx={{ marginTop: 2, marginBottom: 2 }}
           >
-            Load parameter file
-          </Button>
-          <LoadParamFileDescription />
-        </Stack>
+            <Button
+              color="primary"
+              onClick={showLoadParametersDialog}
+              startIcon={<UploadIcon />}
+            >
+              Load parameter file
+            </Button>
+            <LoadParamFileDescription />
+          </Stack>
+        )}
         {pipelineUuid && !isReadOnly && (
           <LoadParametersDialog
             isOpen={isLoadParametersDialogOpen}

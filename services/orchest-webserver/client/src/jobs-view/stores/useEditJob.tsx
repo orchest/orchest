@@ -48,10 +48,7 @@ export const useEditJob = create<JobChangesState>((set) => ({
       const jobChanges = state.jobChanges;
       if (!jobChanges) return state;
       const editJobType = getEditJobType(jobChanges);
-      return {
-        isEditing: editJobType !== "uneditable",
-        cronJobChanges: jobChanges,
-      };
+      return { isEditing: editJobType !== "uneditable" };
     });
   },
   discardActiveCronJobChanges: () => {
@@ -84,13 +81,12 @@ export const useEditJob = create<JobChangesState>((set) => ({
         state.isEditing && editJobType === "active-cronjob";
 
       if (isEditingActiveCronJob) {
+        const currentCronJobChanges = state.cronJobChanges || state.jobChanges;
         const cronJobChanges =
-          value instanceof Function
-            ? value(state.cronJobChanges || state.jobChanges)
-            : value;
+          value instanceof Function ? value(currentCronJobChanges) : value;
         return {
           cronJobChanges: {
-            ...state.cronJobChanges,
+            ...currentCronJobChanges,
             ...cronJobChanges,
           } as JobChanges,
           hasUnsavedCronJobChanges: true,
