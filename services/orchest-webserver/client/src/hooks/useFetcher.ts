@@ -50,7 +50,7 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     revalidateOnFocus && hasBrowserFocusChanged && isFocused;
 
   const fetchData = React.useCallback(
-    (newUrl?: unknown): Promise<void | Data> | void => {
+    async (newUrl?: unknown): Promise<void | Data> => {
       const targetUrl = typeof newUrl === "string" ? newUrl || url : url;
       if (!targetUrl) return;
       return run(
@@ -76,7 +76,9 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
 
     if (isMounting || isUrlChanged || isRefetching) {
       urlRef.current = url;
-      fetchData();
+      fetchData().catch((error) =>
+        console.error(`Failed to fetch: ${error.message || "Unknown reason."}`)
+      );
     }
   }, [fetchData, url, disableFetchOnMount, shouldReFetch]);
 

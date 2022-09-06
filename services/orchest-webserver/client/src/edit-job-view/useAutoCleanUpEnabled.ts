@@ -21,12 +21,13 @@ export const useAutoCleanUpEnabled = (selectedRuns: string[]) => {
   }, []);
 
   React.useEffect(() => {
-    if (jobUuid)
+    if (jobUuid) {
       setJobChanges({
         max_retained_pipeline_runs: isAutoCleanUpEnabled
           ? numberOfRetainedRuns
           : -1,
       });
+    }
   }, [jobUuid, setJobChanges, numberOfRetainedRuns, isAutoCleanUpEnabled]);
 
   const hasInitialized = React.useRef(false);
