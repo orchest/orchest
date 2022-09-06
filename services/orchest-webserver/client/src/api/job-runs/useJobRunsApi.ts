@@ -89,6 +89,7 @@ const replaceRun = (
   run: PipelineRun
 ) => replacesByRunUuid(run.uuid)(runs || [], run);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const onFetchError = (error: any) => {
   if (!isCancelledPromiseError(error)) {
     console.error(error);

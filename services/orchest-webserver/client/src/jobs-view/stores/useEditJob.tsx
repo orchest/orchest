@@ -4,7 +4,9 @@ import create from "zustand";
 
 export type EditJobType = "draft" | "active-cronjob" | "uneditable";
 
-export const getEditJobType = (jobChanges: JobChanges) => {
+export const getEditJobType = (jobChanges: JobChanges | undefined) => {
+  if (!jobChanges) return undefined;
+
   const isDraft = jobChanges?.status === "DRAFT";
   if (isDraft) return "draft";
 

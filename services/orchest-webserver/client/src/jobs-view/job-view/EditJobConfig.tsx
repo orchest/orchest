@@ -3,11 +3,9 @@ import { Json, StrategyJson } from "@/types";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import { hasValue } from "@orchest/lib-utils";
-import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import {
   flattenStrategyJson,
-  generateJobParameters,
   generatePipelineRunParamCombinations,
   generatePipelineRunRows,
   PipelineRunColumn,
@@ -16,6 +14,8 @@ import {
 import { useEditJob } from "../stores/useEditJob";
 import { AutoCleanUpToggle } from "./AutoCleanUpToggle";
 import { EditJobSchedule } from "./EditJobSchedule";
+import { useIsEditingActiveCronJob } from "./hooks/useIsEditingActiveCronJob";
+import { useSelectedRuns } from "./hooks/useSelectedRuns";
 
 const generatePipelineRuns = (strategyJSON: StrategyJson) => {
   const flatParameters = flattenStrategyJson(strategyJSON);
@@ -27,46 +27,34 @@ const generatePipelineRuns = (strategyJSON: StrategyJson) => {
   return pipelineRuns;
 };
 
-const findParameterization = (
-  parameterization: Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
-  parameters: Record<string, Json>[]
-) => {
-  let JSONstring = JSON.stringify(parameterization);
-  for (let x = 0; x < parameters.length; x++) {
-    if (JSON.stringify(parameters[x]) === JSONstring) {
-      return x;
-    }
-  }
-  return -1;
-};
-
-const parseParameters = (
-  parameters: Record<string, Json>[],
-  generatedPipelineRuns: Record<string, Json>[]
-): string[] => {
-  const _parameters = cloneDeep(parameters);
-  const selectedIndices = new Set<string>();
-  generatedPipelineRuns.forEach((run, index) => {
-    const encodedParameterization = generateJobParameters([run], ["0"])[0];
-
-    const needleIndex = findParameterization(
-      encodedParameterization,
-      _parameters
-    );
-    if (needleIndex >= 0) {
-      selectedIndices.add(index.toString());
-      // remove found parameterization from _parameters, as to not count duplicates
-      _parameters.splice(needleIndex, 1);
-    } else {
-      selectedIndices.delete(index.toString());
-    }
-  });
-
-  return Array.from(selectedIndices);
-};
-
 export const EditJobConfig = () => {
-  const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
+  const pipelineJson = useEditJob(
+    (state) => state.jobChanges?.pipeline_definition
+  );
+
+  const { isEditingActiveCronJob } = useIsEditingActiveCronJob();
+
+  const parameterStrategy = useEditJob((state) =>
+    isEditingActiveCronJob
+      ? state.cronJobChanges?.strategy_json
+      : state.jobChanges?.strategy_json
+  );
+
+  const pipelineRuns = React.useMemo(() => {
+    return parameterStrategy
+      ? generatePipelineRuns(parameterStrategy)
+      : undefined;
+  }, [parameterStrategy]);
+
+  const pipelineRunRows = React.useMemo(() => {
+    if (!pipelineJson?.name || !pipelineRuns) return [];
+    return generatePipelineRunRows(pipelineJson.name, pipelineRuns);
+  }, [pipelineRuns, pipelineJson?.name]);
+
+  const [selectedRuns, setSelectedRuns] = useSelectedRuns(
+    pipelineRuns,
+    pipelineRunRows
+  );
 
   const columns: DataTableColumn<
     PipelineRunRow,
@@ -105,38 +93,8 @@ export const EditJobConfig = () => {
         },
       },
     ],
-    [selectedRuns]
+    [selectedRuns, setSelectedRuns]
   );
-
-  const pipelineJson = useEditJob(
-    (state) => state.jobChanges?.pipeline_definition
-  );
-
-  const parameterStrategy = useEditJob(
-    (state) => state.jobChanges?.strategy_json
-  );
-
-  const pipelineRuns = React.useMemo(() => {
-    return parameterStrategy
-      ? generatePipelineRuns(parameterStrategy)
-      : undefined;
-  }, [parameterStrategy]);
-
-  const pipelineRunRows = React.useMemo(() => {
-    if (!pipelineJson?.name || !pipelineRuns) return [];
-    return generatePipelineRunRows(pipelineJson.name, pipelineRuns);
-  }, [pipelineRuns, pipelineJson?.name]);
-
-  const parameters = useEditJob((state) => state.jobChanges?.parameters);
-
-  React.useLayoutEffect(() => {
-    if (!parameters || !pipelineRuns) return;
-    setSelectedRuns(
-      parameters.length > 0
-        ? parseParameters(parameters, pipelineRuns)
-        : pipelineRunRows.map((row) => row.uuid)
-    );
-  }, [parameters, pipelineRunRows, pipelineRuns]);
 
   return (
     <Stack

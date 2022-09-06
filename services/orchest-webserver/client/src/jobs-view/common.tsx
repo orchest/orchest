@@ -147,16 +147,16 @@ export function generatePipelineRunRows(
 }
 
 export const generateJobParameters = (
-  generatedPipelineRuns: Record<string, Json>[],
+  generatedPipelineRuns: { [stepUuid: string]: Json }[],
   selectedIndices: string[]
 ) => {
   return selectedIndices.map((index) => {
     const runParameters = generatedPipelineRuns[index];
     return Object.entries(runParameters).reduce((all, [key, value]) => {
       // key is formatted: <stepUUID>#<parameterKey>
-      let keySplit = key.split("#");
-      let stepUUID = keySplit[0];
-      let parameterKey = keySplit.slice(1).join("#");
+      const keySplit = key.split("#");
+      const stepUUID = keySplit[0];
+      const parameterKey = keySplit.slice(1).join("#");
 
       // check if step already exists,
       const parameter = all[stepUUID] || {};
