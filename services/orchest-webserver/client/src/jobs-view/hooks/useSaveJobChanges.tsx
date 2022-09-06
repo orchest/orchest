@@ -28,7 +28,12 @@ export const useSaveJobChanges = () => {
         "status",
         "confirm_draft"
       );
-      put(jobChangesData);
+
+      const putPayload = hasValue(jobChangesData.schedule)
+        ? omit(jobChangesData, "next_scheduled_time")
+        : jobChangesData;
+
+      put(putPayload);
     }
   }, [jobChanges, put]);
 

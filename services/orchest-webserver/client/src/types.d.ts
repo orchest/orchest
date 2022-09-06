@@ -267,12 +267,12 @@ export type JobData = {
 
 export type JobChangesData = {
   confirm_draft?: true; // If provided, the submitted job will no longer be a draft.
-  next_scheduled_time: string | null; // For scheduled jobs.
+  next_scheduled_time?: string | null; // For scheduled jobs.
+  schedule?: string | null; // For cron jobs.
 } & Pick<
   JobData,
   | "uuid"
   | "name"
-  | "schedule" // For cron jobs.
   | "parameters"
   | "strategy_json"
   | "env_variables"

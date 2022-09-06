@@ -25,12 +25,13 @@ export const getEditJobType = (jobChanges: JobChanges | undefined) => {
 
 export type JobChangesState = {
   isEditing: boolean;
+  stopEditing: () => void;
   startEditingActiveCronJob: () => void;
   discardActiveCronJobChanges: () => void;
   saveActiveCronJobChanges: () => void;
   jobChanges?: JobChanges;
   cronJobChanges?: JobChanges;
-  initJobChanges: (payload: JobChanges | undefined) => void;
+  initJobChanges: (payload: JobChanges) => void;
   setJobChanges: (
     payload: Partial<JobChanges> | ((state: JobChanges) => Partial<JobChanges>)
   ) => void;
@@ -39,12 +40,16 @@ export type JobChangesState = {
 
 export const useEditJob = create<JobChangesState>((set) => ({
   isEditing: false,
+  stopEditing: () => set({ isEditing: false }),
   startEditingActiveCronJob: () => {
     set((state) => {
       const jobChanges = state.jobChanges;
       if (!jobChanges) return state;
       const editJobType = getEditJobType(jobChanges);
-      return { isEditing: editJobType !== "uneditable" };
+      return {
+        isEditing: editJobType !== "uneditable",
+        cronJobChanges: jobChanges,
+      };
     });
   },
   discardActiveCronJobChanges: () => {
