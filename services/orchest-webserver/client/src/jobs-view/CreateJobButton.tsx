@@ -7,6 +7,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import React from "react";
 import { pickJobChanges } from "./common";
 import { useCreateJob } from "./hooks/useCreateJob";
+import { useUnsavedChangesWarning } from "./hooks/useUnsavedChangesWarning";
 import { useEditJob } from "./stores/useEditJob";
 
 type CreateJobButtonProps = Omit<
@@ -39,7 +40,9 @@ export const CreateJobButton = ({
   const pipeline = useGetValidPipeline();
   const { createJob, isAllowedToCreateJob } = useCreateJob(pipeline);
 
-  const onCreate = async () => {
+  const { withConfirmation } = useUnsavedChangesWarning();
+
+  const onCreate = React.useCallback(async () => {
     if (!pipeline) return;
     const newJob = await createJob();
     const changes = pickJobChanges(newJob);
@@ -47,11 +50,11 @@ export const CreateJobButton = ({
       initJobChanges(changes);
       onCreated(newJob.uuid);
     }
-  };
+  }, [createJob, initJobChanges, onCreated, pipeline, projectUuid]);
 
   return (
     <CreateEntityButton
-      onClick={onCreate}
+      onClick={() => withConfirmation(onCreate)}
       disabled={!isAllowedToCreateJob}
       {...props}
     >

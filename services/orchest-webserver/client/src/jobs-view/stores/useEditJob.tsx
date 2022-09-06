@@ -31,6 +31,7 @@ export type JobChangesState = {
   saveActiveCronJobChanges: () => void;
   jobChanges?: JobChanges;
   cronJobChanges?: JobChanges;
+  hasUnsavedCronJobChanges: boolean;
   initJobChanges: (payload: JobChanges) => void;
   setJobChanges: (
     payload: Partial<JobChanges> | ((state: JobChanges) => Partial<JobChanges>)
@@ -40,6 +41,7 @@ export type JobChangesState = {
 
 export const useEditJob = create<JobChangesState>((set) => ({
   isEditing: false,
+  hasUnsavedCronJobChanges: false,
   stopEditing: () => set({ isEditing: false }),
   startEditingActiveCronJob: () => {
     set((state) => {
@@ -55,6 +57,7 @@ export const useEditJob = create<JobChangesState>((set) => ({
   discardActiveCronJobChanges: () => {
     set({
       cronJobChanges: undefined,
+      hasUnsavedCronJobChanges: false,
       isEditing: false,
     });
   },
@@ -63,6 +66,7 @@ export const useEditJob = create<JobChangesState>((set) => ({
       return {
         jobChanges: state.cronJobChanges,
         cronJobChanges: undefined,
+        hasUnsavedCronJobChanges: false,
         isEditing: false,
       };
     });
@@ -89,6 +93,7 @@ export const useEditJob = create<JobChangesState>((set) => ({
             ...state.cronJobChanges,
             ...cronJobChanges,
           } as JobChanges,
+          hasUnsavedCronJobChanges: true,
         };
       }
 

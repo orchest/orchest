@@ -13,6 +13,7 @@ import { SystemDialog } from "./components/SystemDialog";
 import { AppContextProvider } from "./contexts/AppContext";
 import { useGlobalContext } from "./contexts/GlobalContext";
 import { HeaderBar } from "./header-bar/HeaderBar";
+import { useEditJob } from "./jobs-view/stores/useEditJob";
 import Jupyter from "./jupyter/Jupyter";
 
 enableMapSet();
@@ -29,6 +30,16 @@ const App = () => {
     config,
     user_config,
   } = useGlobalContext();
+  const discardActiveCronJobChanges = useEditJob(
+    (state) => state.discardActiveCronJobChanges
+  );
+  const hasUnsavedCronJobChanges = useEditJob(
+    (state) => state.hasUnsavedCronJobChanges
+  );
+
+  // Note: clean this up when move GlobalContext to a zustand-based implementation.
+  const showUnsavedChangesWarning =
+    hasUnsavedChanges || hasUnsavedCronJobChanges;
 
   const jupyterRef = React.useRef<HTMLDivElement>(null);
 
@@ -86,6 +97,7 @@ const App = () => {
             "There are unsaved changes. Are you sure you want to navigate away?",
             async (resolve) => {
               setAsSaved();
+              discardActiveCronJobChanges();
               callback(true);
               resolve(true);
               return true;
@@ -114,7 +126,7 @@ const App = () => {
             <div ref={jupyterRef} className="persistent-view jupyter hidden" />
           </Box>
         </Box>
-        <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
+        <Prompt when={showUnsavedChangesWarning} message="hasUnsavedChanges" />
         <SystemDialog />
         <OnboardingDialog />
         <CommandPalette />
