@@ -151,7 +151,7 @@ export const generateJobParameters = (
   selectedIndices: string[]
 ) => {
   return selectedIndices.map((index) => {
-    const runParameters = generatedPipelineRuns[index];
+    const runParameters = generatedPipelineRuns[index] || {};
     return Object.entries(runParameters).reduce((all, [key, value]) => {
       // key is formatted: <stepUUID>#<parameterKey>
       const keySplit = key.split("#");
