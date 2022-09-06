@@ -410,7 +410,7 @@ export const generateStrategyJson = (
   pipeline: PipelineJson,
   reservedKey = ""
 ) => {
-  let strategyJSON = {};
+  const strategyJSON = {};
 
   if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
     strategyJSON[reservedKey] = {
