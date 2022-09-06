@@ -1,10 +1,10 @@
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useReadParameterStrategyFile } from "@/jobs-view/hooks/useReadParameterStrategyFile";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { StrategyJson } from "@/types";
 import { generateStrategyJson } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useParameterReservedKey } from "./useParameterReservedKey";
 
 /**
  * Loads parameter strategy to `jobChanges.strategy_json` if it is empty, i.e. `{}`.
@@ -19,8 +19,7 @@ export const useLoadParameterStrategy = (): {
     path: string
   ) => Promise<StrategyJson | undefined>;
 } => {
-  const { config } = useGlobalContext();
-  const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY;
+  const { reservedKey } = useParameterReservedKey();
 
   const pipelineJson = useEditJob(
     (state) => state.jobChanges?.pipeline_definition

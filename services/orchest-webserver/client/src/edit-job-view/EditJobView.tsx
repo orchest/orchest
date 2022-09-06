@@ -14,6 +14,7 @@ import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProjectSnapshotSize } from "@/hooks/useFetchProjectSnapshotSize";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useParameterReservedKey } from "@/jobs-view/job-view/hooks/useParameterReservedKey";
 import { JobDocLink } from "@/legacy-job-view/JobDocLink";
 import { siteMap } from "@/routingConfig";
 import type { JobData, Json, PipelineJson, StrategyJson } from "@/types";
@@ -171,7 +172,8 @@ type JobUpdatePayload = {
 
 const EditJobView: React.FC = () => {
   // global states
-  const { config, setAlert, setAsSaved } = useGlobalContext();
+  const { setAlert, setAsSaved } = useGlobalContext();
+  const { reservedKey } = useParameterReservedKey();
   useSendAnalyticEvent("view:loaded", { name: siteMap.editJob.path });
 
   // data from route
@@ -349,10 +351,10 @@ const EditJobView: React.FC = () => {
     (pipelineJson: PipelineJson, job: JobData) => {
       // Do not generate another strategy_json if it has been defined
       // already.
-      const reserveKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+
       const strategyJson =
         job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
-          ? generateStrategyJson(pipelineJson, reserveKey)
+          ? generateStrategyJson(pipelineJson, reservedKey)
           : job.strategy_json;
 
       const newPipelineRuns = generatePipelineRuns(strategyJson);
@@ -366,7 +368,7 @@ const EditJobView: React.FC = () => {
           : undefined
       );
     },
-    [config?.PIPELINE_PARAMETERS_RESERVED_KEY, setNewStrategyJson]
+    [reservedKey, setNewStrategyJson]
   );
 
   React.useEffect(() => {
@@ -377,7 +379,7 @@ const EditJobView: React.FC = () => {
       job &&
       projectUuid &&
       pipelineJson &&
-      config?.PIPELINE_PARAMETERS_RESERVED_KEY &&
+      reservedKey &&
       !searchedParamFile
     ) {
       setSearchedParamFile(true);
@@ -391,7 +393,7 @@ const EditJobView: React.FC = () => {
           projectUuid,
           jobUuid: job.uuid,
           pipelineJson: job.pipeline_definition,
-          reservedKey: config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+          reservedKey,
         }).catch(() => {
           loadDefaultOrExistingParameterStrategy(pipelineJson, job);
         });
@@ -402,7 +404,7 @@ const EditJobView: React.FC = () => {
   }, [
     projectUuid,
     job,
-    config,
+    reservedKey,
     pipelineJson,
     searchedParamFile,
     setParamConfigByFile,
@@ -412,7 +414,7 @@ const EditJobView: React.FC = () => {
   React.useEffect(() => {
     if (job && pipelineJson) {
     }
-  }, [job, pipelineJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY]);
+  }, [job, pipelineJson, reservedKey]);
 
   const handleJobNameChange = (name: string) => {
     setJob((prev) => (prev ? { ...prev, name } : prev));
@@ -481,10 +483,7 @@ const EditJobView: React.FC = () => {
     numberOfRetainedRuns,
     onChangeNumberOfRetainedRuns,
     toggleIsAutoCleanUpEnabled,
-  } = useAutoCleanUpEnabled(
-    job?.max_retained_pipeline_runs || -1,
-    selectedRuns
-  );
+  } = useAutoCleanUpEnabled(selectedRuns);
 
   const runJob = async (e: React.MouseEvent) => {
     if (!job) return;
@@ -556,7 +555,7 @@ const EditJobView: React.FC = () => {
   };
 
   const handleLoadParameters = (value) => {
-    if (!job || !config || !pipelineJson || !projectUuid) {
+    if (!job || !reservedKey || !pipelineJson || !projectUuid) {
       return;
     }
     setParamConfigByFile({
@@ -565,7 +564,7 @@ const EditJobView: React.FC = () => {
       projectUuid,
       jobUuid: job.uuid,
       pipelineJson: job.pipeline_definition,
-      reservedKey: config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+      reservedKey,
     });
     closeLoadParametersDialog();
   };

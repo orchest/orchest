@@ -3,12 +3,12 @@ import {
   AccordionDetails,
   AccordionSummary,
 } from "@/components/Accordion";
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
+import { useParameterReservedKey } from "./hooks/useParameterReservedKey";
 import { JobParameterEditor } from "./JobParameterEditor";
 
 type EditJobParametersProps = {
@@ -30,8 +30,7 @@ export const EditJobParameters = ({ isReadOnly }: EditJobParametersProps) => {
     }
   );
 
-  const { config } = useGlobalContext();
-  const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+  const { reservedKey } = useParameterReservedKey();
   const parameters = React.useMemo(() => {
     if (!initialStrategyJson || !reservedKey) return;
     const { [reservedKey]: pipelineParams, ...rest } = initialStrategyJson;
