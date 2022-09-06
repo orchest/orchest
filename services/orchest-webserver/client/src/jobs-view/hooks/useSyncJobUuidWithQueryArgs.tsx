@@ -59,7 +59,7 @@ export const useSyncJobUuidWithQueryArgs = () => {
     isJobUuidFromRouteInvalid,
     redirect,
     fetchJob,
-    targetJob,
+    targetJob?.uuid,
     shouldUpdateJobChanges,
     initJobChanges,
   ]);

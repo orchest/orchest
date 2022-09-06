@@ -12,20 +12,11 @@ import { useValidJobQueryArgs } from "./useValidJobQueryArgs";
  */
 export const useReadParameterStrategyFile = () => {
   const { projectUuid, jobUuid } = useValidJobQueryArgs();
-  const isDraft = useEditJob((state) => state.jobChanges?.status === "DRAFT");
   const pipelinePath = useEditJob((state) => state.jobChanges?.pipeline_path);
   const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
   const pipelineJson = useEditJob(
     (state) => state.jobChanges?.pipeline_definition
   );
-
-  const isAllowedToFetch =
-    hasValue(projectUuid) &&
-    hasValue(pipelineUuid) &&
-    hasValue(jobUuid) &&
-    hasValue(pipelineJson) &&
-    hasValue(pipelinePath) &&
-    isDraft;
 
   const { reservedKey } = useParameterReservedKey();
 
@@ -35,6 +26,13 @@ export const useReadParameterStrategyFile = () => {
   const setJobChanges = useEditJob((state) => state.setJobChanges);
   const readParameterStrategyFileForJob = React.useCallback(
     async (path?: string) => {
+      const isAllowedToFetch =
+        hasValue(projectUuid) &&
+        hasValue(pipelineUuid) &&
+        hasValue(jobUuid) &&
+        hasValue(pipelineJson) &&
+        hasValue(pipelinePath);
+
       if (!isAllowedToFetch) return;
 
       const paramFilePath = path || pipelinePathToJsonLocation(pipelinePath);
@@ -58,7 +56,6 @@ export const useReadParameterStrategyFile = () => {
     },
     [
       readParameterStrategyFile,
-      isAllowedToFetch,
       reservedKey,
       setJobChanges,
       jobUuid,

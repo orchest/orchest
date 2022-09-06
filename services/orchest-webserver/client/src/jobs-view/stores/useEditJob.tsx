@@ -67,7 +67,12 @@ export const useEditJob = create<JobChangesState>((set) => ({
     set((state) => {
       if (!state.jobChanges) return state;
 
-      if (state.isEditing) {
+      const editJobType = getEditJobType(state.jobChanges);
+
+      const isEditingActiveCronJob =
+        state.isEditing && editJobType === "active-cronjob";
+
+      if (isEditingActiveCronJob) {
         const cronJobChanges =
           value instanceof Function
             ? value(state.cronJobChanges || state.jobChanges)
