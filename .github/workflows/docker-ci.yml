@@ -36,6 +36,7 @@ jobs:
             -i session-sidecar,
             -i image-puller,
             -i image-builder-buildx,
+            -i image-builder-buildkit,
           ]
 
     steps:
