@@ -10,11 +10,11 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
+import { EditJobParameters } from "./EditJobParameters";
 import { useLoadParameterStrategy } from "./hooks/useLoadParameterStrategy";
-import { JobParameters } from "./JobParameters";
 import { LoadParamFileDescription } from "./LoadParamFileDescription";
 
-export const EditJobParameters = () => {
+export const JobParameters = () => {
   const isReadOnly = useEditJob((state) => !state.isEditing);
   const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
 
@@ -49,7 +49,7 @@ export const EditJobParameters = () => {
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
-        <JobParameters isReadOnly={isReadOnly} />
+        <EditJobParameters isReadOnly={isReadOnly} />
         <Stack
           direction="row"
           alignItems="center"

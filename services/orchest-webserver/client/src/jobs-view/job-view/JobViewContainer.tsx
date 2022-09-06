@@ -5,11 +5,11 @@ import { useSaveJobChanges } from "../hooks/useSaveJobChanges";
 import { useUpdateStatusInJobChanges } from "../hooks/useUpdateStatusInJobChanges";
 import { NoJob } from "./NoJob";
 
-type EditJobContainerProps = {
+type JobViewContainerProps = {
   children: React.ReactNode;
 };
 
-export const EditJobContainer = ({ children }: EditJobContainerProps) => {
+export const JobViewContainer = ({ children }: JobViewContainerProps) => {
   // Gather all side effects here to ensure that they are triggered on mount,
   // and prevent unnecessary re-render on children.
 

@@ -12,12 +12,10 @@ export const CustomTab = ({
   icon?: React.ReactElement;
 }) => {
   const ariaLabel = typeof label === "string" ? label : undefined;
-  // const labelElement = icon ? label : <TabLabel label={ariaLabel} />;
-  // const iconElement = icon ? <TabLabel label={label} icon={icon} /> : undefined;
   return (
     <Tab
       {...props}
-      label={icon ? undefined : <Tooltip title={label}>{<>{label}</>}</Tooltip>}
+      label={icon ? undefined : label}
       icon={icon ? <Tooltip title={label}>{icon}</Tooltip> : undefined}
       aria-label={ariaLabel}
       disableRipple

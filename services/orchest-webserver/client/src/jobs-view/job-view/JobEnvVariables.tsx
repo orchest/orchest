@@ -5,9 +5,9 @@ import {
 } from "@/components/Accordion";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { JobEnvVariables } from "./JobEnvVariables";
+import { EditJobEnvVariables } from "./EditJobEnvVariables";
 
-export const EditJobEnvVariables = () => {
+export const JobEnvVariables = () => {
   return (
     <Accordion defaultExpanded>
       <AccordionSummary
@@ -19,7 +19,7 @@ export const EditJobEnvVariables = () => {
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
-        <JobEnvVariables />
+        <EditJobEnvVariables />
       </AccordionDetails>
     </Accordion>
   );

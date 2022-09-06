@@ -5,7 +5,7 @@ import { JobName } from "./JobName";
 import { JobPrimaryButtons } from "./JobPrimaryButtons";
 import { JobStatusAlert } from "./JobStatusAlert";
 
-export const EditJobHeader = () => {
+export const JobViewHeader = () => {
   return (
     <Stack
       sx={{

@@ -1,5 +1,5 @@
 import React from "react";
-import { useEditJobType } from "../edit-job/hooks/useEditJobType";
+import { useEditJobType } from "../job-view/hooks/useEditJobType";
 import { useEditJob } from "../stores/useEditJob";
 
 export const useStartEditingJob = () => {
