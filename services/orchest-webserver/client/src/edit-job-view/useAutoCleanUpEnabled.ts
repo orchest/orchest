@@ -1,12 +1,11 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useValidJobQueryArgs } from "@/jobs-view/hooks/useValidJobQueryArgs";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useAutoCleanUpEnabled = (selectedRuns: string[]) => {
-  const { jobUuid: jobUuidFromRoute } = useCustomRoute();
+  const { jobUuid } = useValidJobQueryArgs();
   const setJobChanges = useEditJob((state) => state.setJobChanges);
-  const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
 
   const initialNumberOfRetainedRuns = useEditJob(
     (state) => state.jobChanges?.max_retained_pipeline_runs
@@ -21,25 +20,19 @@ export const useAutoCleanUpEnabled = (selectedRuns: string[]) => {
     setNumberOfRetainedRuns(Math.max(value, 1));
   }, []);
 
-  const hasValidJobUuid = hasValue(jobUuid) && jobUuidFromRoute === jobUuid;
   React.useEffect(() => {
-    if (hasValidJobUuid)
+    if (jobUuid)
       setJobChanges({
         max_retained_pipeline_runs: isAutoCleanUpEnabled
           ? numberOfRetainedRuns
           : -1,
       });
-  }, [
-    hasValidJobUuid,
-    setJobChanges,
-    numberOfRetainedRuns,
-    isAutoCleanUpEnabled,
-  ]);
+  }, [jobUuid, setJobChanges, numberOfRetainedRuns, isAutoCleanUpEnabled]);
 
   const hasInitialized = React.useRef(false);
   React.useEffect(() => {
     if (
-      hasValidJobUuid &&
+      jobUuid &&
       hasValue(initialNumberOfRetainedRuns) &&
       !hasInitialized.current
     ) {
@@ -54,7 +47,7 @@ export const useAutoCleanUpEnabled = (selectedRuns: string[]) => {
       );
     }
   }, [
-    hasValidJobUuid,
+    jobUuid,
     initialNumberOfRetainedRuns,
     onChangeNumberOfRetainedRuns,
     selectedRuns,
