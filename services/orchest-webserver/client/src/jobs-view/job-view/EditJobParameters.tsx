@@ -11,11 +11,11 @@ import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 import { JobParameterEditor } from "./JobParameterEditor";
 
-type JobParametersProps = {
+type EditJobParametersProps = {
   isReadOnly: boolean | undefined;
 };
 
-export const JobParameters = ({ isReadOnly }: JobParametersProps) => {
+export const EditJobParameters = ({ isReadOnly }: EditJobParametersProps) => {
   // When updating parameter values, `state.jobChanges.strategy_json` is also updated.
   // But we don't want to re-render the whole form when this happens.
   // Therefore, in `equals` function, check if existingStrategy is still empty.

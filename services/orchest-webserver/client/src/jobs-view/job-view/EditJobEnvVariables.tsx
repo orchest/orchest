@@ -49,7 +49,7 @@ const useSaveEnvVariables = (envVariables: EnvVarPair[] | undefined) => {
   }, [envVariables, setValue]);
 };
 
-export const JobEnvVariables = () => {
+export const EditJobEnvVariables = () => {
   const isReadOnly = useEditJob((state) => !state.isEditing);
 
   const [envVariables, setEnvVariables] = useEnvVariables();

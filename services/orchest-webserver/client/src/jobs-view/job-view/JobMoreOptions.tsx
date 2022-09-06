@@ -69,11 +69,14 @@ export const JobMoreOptions = () => {
 
   const isOpen = hasValue(anchorElement);
 
+  const disabled = useEditJob((state) => !state.isEditing);
+
   return (
     <>
       <IconButton
         title="More options"
         onClick={handleOpen}
+        disabled={disabled}
         sx={{
           height: (theme) => theme.spacing(4.5),
           width: (theme) => theme.spacing(4.5),
