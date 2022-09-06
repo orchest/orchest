@@ -93,6 +93,7 @@ export const JobParameterEditor = ({
   parameterKey,
   isReadOnly,
 }: JobParameterEditorProps) => {
+  const isEditing = useEditJob((state) => state.isEditing);
   const [codeMirrorValue, setCodeMirrorValue] = useCodeMirrorValue(
     strategyKey,
     parameterKey
@@ -106,7 +107,7 @@ export const JobParameterEditor = ({
 
   const theme = useTheme();
 
-  return (
+  return isEditing ? (
     <Accordion sx={{ marginLeft: (theme) => theme.spacing(3) }}>
       <AccordionSummary>
         <Typography variant="body1">{`${parameterKey}: ${codeMirrorValue}`}</Typography>
@@ -140,5 +141,7 @@ export const JobParameterEditor = ({
         )}
       </AccordionDetails>
     </Accordion>
+  ) : (
+    <Typography variant="body1">{`${parameterKey}: ${codeMirrorValue}`}</Typography>
   );
 };
