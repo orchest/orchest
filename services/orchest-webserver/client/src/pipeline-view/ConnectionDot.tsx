@@ -1,6 +1,6 @@
 import { NewConnection } from "@/types";
 import Box, { BoxProps } from "@mui/material/Box";
-import { alpha, styled } from "@mui/material/styles";
+import { alpha } from "@mui/material/styles";
 import classNames from "classnames";
 import React from "react";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
@@ -8,14 +8,25 @@ import { useFileManagerContext } from "./file-manager/FileManagerContext";
 
 const DOT_SIZE = "10px";
 
-const InnerDot = styled(Box)<{ active?: boolean }>(({ theme, active }) => ({
-  background: active ? theme.palette.primary.main : theme.palette.common.black,
-  borderRadius: DOT_SIZE,
-  width: DOT_SIZE,
-  height: DOT_SIZE,
-  margin: theme.spacing(1.25, 1.25),
-  pointerEvents: "none",
-}));
+type InnerDotProps = BoxProps & { active?: boolean };
+
+const InnerDot = ({ active, sx, ...props }: InnerDotProps) => {
+  return (
+    <Box
+      sx={{
+        background: (theme) =>
+          active ? theme.palette.primary.main : theme.palette.common.black,
+        borderRadius: DOT_SIZE,
+        width: DOT_SIZE,
+        height: DOT_SIZE,
+        margin: (theme) => theme.spacing(1.25, 1.25),
+        pointerEvents: "none",
+        ...sx,
+      }}
+      {...props}
+    />
+  );
+};
 
 type DotType = BoxProps & {
   incoming?: boolean;
