@@ -37,7 +37,7 @@ export const PipelineUiStateContextProvider: React.FC = ({ children }) => {
   const { stepRefs } = usePipelineRefs();
   const { uiState, uiStateDispatch } = usePipelineUiState();
   const { steps, connections } = uiState;
-  const { pipelineReadOnlyReason, pipelineJson } = usePipelineDataContext();
+  const { isReadOnly, pipelineJson } = usePipelineDataContext();
 
   useInitializePipelineEditor(uiStateDispatch);
 
@@ -58,7 +58,7 @@ export const PipelineUiStateContextProvider: React.FC = ({ children }) => {
   // in read-only mode, PipelineEditor doesn't re-render after stepRefs collects all DOM elements of the steps
   // we need to force re-render one more time to show the connection lines
   const shouldForceRerender =
-    Boolean(pipelineReadOnlyReason) &&
+    isReadOnly &&
     connections.length > 0 &&
     Object.keys(stepRefs.current).length === 0;
 
