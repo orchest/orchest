@@ -115,7 +115,6 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
         isReadingSchemaFile,
         parameterUiSchema,
         isReadingUiSchemaFile,
-        steps,
       }}
     >
       {children}
