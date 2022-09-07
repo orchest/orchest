@@ -8,7 +8,7 @@ export const useDeleteJob = () => {
 
   const deleteJob = React.useCallback(
     (jobUuid: string) => {
-      run(deleteJobRequest(jobUuid));
+      return run(deleteJobRequest(jobUuid));
     },
     [run, deleteJobRequest]
   );

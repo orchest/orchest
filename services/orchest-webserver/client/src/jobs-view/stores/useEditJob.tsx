@@ -26,7 +26,7 @@ export const getEditJobType = (jobChanges: JobChanges | undefined) => {
 export type JobChangesState = {
   isEditing: boolean;
   stopEditing: () => void;
-  startEditingActiveCronJob: () => void;
+  startEditing: () => void;
   discardActiveCronJobChanges: () => void;
   saveActiveCronJobChanges: () => void;
   jobChanges?: JobChanges;
@@ -43,7 +43,7 @@ export const useEditJob = create<JobChangesState>((set) => ({
   isEditing: false,
   hasUnsavedCronJobChanges: false,
   stopEditing: () => set({ isEditing: false }),
-  startEditingActiveCronJob: () => {
+  startEditing: () => {
     set((state) => {
       const jobChanges = state.jobChanges;
       if (!jobChanges) return state;

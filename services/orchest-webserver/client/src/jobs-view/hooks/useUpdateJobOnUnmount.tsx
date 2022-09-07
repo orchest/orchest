@@ -21,29 +21,34 @@ export const useUpdateJobOnUnmount = () => {
     []
   );
 
+  const updateJob = React.useCallback(() => {
+    setJobs((jobs) => {
+      const updatedJobs = jobs.map((job) =>
+        job.uuid === jobChangesRef.current?.uuid
+          ? {
+              ...job,
+              ...omit(
+                jobChangesRef.current,
+                "loadedStrategyFilePath",
+                "confirm_draft"
+              ),
+            }
+          : job
+      );
+      return updatedJobs;
+    });
+  }, [setJobs]);
+
   const updateJobAndReset = React.useCallback(() => {
     if (jobChangesRef.current) {
-      setJobs((jobs) => {
-        const updatedJobs = jobs.map((job) =>
-          job.uuid === jobChangesRef.current?.uuid
-            ? {
-                ...job,
-                ...omit(
-                  jobChangesRef.current,
-                  "loadedStrategyFilePath",
-                  "confirm_draft"
-                ),
-              }
-            : job
-        );
-        return updatedJobs;
-      });
+      updateJob();
       resetJobChanges();
     }
-  }, [setJobs, resetJobChanges]);
+  }, [updateJob, resetJobChanges]);
 
   React.useEffect(() => {
     return () => updateJobAndReset();
   }, [updateJobAndReset]);
+
   return { updateJobAndReset };
 };

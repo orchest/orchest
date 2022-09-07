@@ -33,13 +33,6 @@ const App = () => {
   const discardActiveCronJobChanges = useEditJob(
     (state) => state.discardActiveCronJobChanges
   );
-  const hasUnsavedCronJobChanges = useEditJob(
-    (state) => state.hasUnsavedCronJobChanges
-  );
-
-  // Note: clean this up when move GlobalContext to a zustand-based implementation.
-  const showUnsavedChangesWarning =
-    hasUnsavedChanges || hasUnsavedCronJobChanges;
 
   const jupyterRef = React.useRef<HTMLDivElement>(null);
 
@@ -126,7 +119,7 @@ const App = () => {
             <div ref={jupyterRef} className="persistent-view jupyter hidden" />
           </Box>
         </Box>
-        <Prompt when={showUnsavedChangesWarning} message="hasUnsavedChanges" />
+        <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
         <SystemDialog />
         <OnboardingDialog />
         <CommandPalette />

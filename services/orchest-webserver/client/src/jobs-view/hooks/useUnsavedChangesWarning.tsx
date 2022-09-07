@@ -4,6 +4,7 @@ import { useIsEditingActiveCronJob } from "../job-view/hooks/useIsEditingActiveC
 import { useEditJob } from "../stores/useEditJob";
 
 export const useUnsavedChangesWarning = () => {
+  const { setAsSaved } = useGlobalContext();
   const { isEditingActiveCronJob } = useIsEditingActiveCronJob();
   const { setConfirm } = useGlobalContext();
   const hasUnsavedCronJobChanges = useEditJob(
@@ -18,6 +19,9 @@ export const useUnsavedChangesWarning = () => {
   const withConfirmation = React.useCallback(
     (action: () => void) => {
       if (shouldConfirm) {
+        // Remove the unsaved changes warning triggered by GlobalContext.
+        // and trigger the warning manually.
+        setAsSaved(true);
         setConfirm(
           "Warning",
           "There are unsaved changes. Are you sure you want to navigate away?",
@@ -32,7 +36,7 @@ export const useUnsavedChangesWarning = () => {
         action();
       }
     },
-    [shouldConfirm, discardActiveCronJobChanges, setConfirm]
+    [shouldConfirm, discardActiveCronJobChanges, setConfirm, setAsSaved]
   );
 
   return { withConfirmation };

@@ -28,7 +28,7 @@ export const useJobActionMenu = () => {
   const editJobType = useEditJobType();
   const isEditing = useEditJob((state) => state.isEditing);
   const shouldShowEditJob = !isEditing && editJobType === "active-cronjob";
-  const { startEditing } = useStartEditingJob();
+  const { startEditingActiveCronJob } = useStartEditingJob();
 
   const actions = React.useMemo(
     () =>
@@ -37,7 +37,7 @@ export const useJobActionMenu = () => {
           ? {
               label: "Edit job",
               icon: "edit",
-              action: startEditing,
+              action: startEditingActiveCronJob,
             }
           : undefined,
         {
@@ -73,7 +73,7 @@ export const useJobActionMenu = () => {
       triggerJobNow,
       isAllowedToTriggerScheduledRuns,
       shouldShowEditJob,
-      startEditing,
+      startEditingActiveCronJob,
     ]
   );
 
