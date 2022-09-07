@@ -1,3 +1,4 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import {
   Accordion,
   AccordionDetails,
@@ -11,7 +12,6 @@ import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
-import { useBuildEnvironmentImage } from "../hooks/useBuildEnvironmentImage";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 export const EnvironmentImageBuildLogs = () => {
@@ -26,7 +26,9 @@ export const EnvironmentImageBuildLogs = () => {
     (state) => state.environmentChanges?.project_uuid
   );
 
-  const [, , isTriggeringBuild] = useBuildEnvironmentImage();
+  const isTriggeringBuild = useEnvironmentsApi(
+    (state) => state.isTriggeringBuild
+  );
 
   const streamIdentity =
     hasValue(projectUuid) && hasValue(environmentUuid)

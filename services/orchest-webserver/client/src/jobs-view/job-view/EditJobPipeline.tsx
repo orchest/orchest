@@ -1,4 +1,3 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useSnapshotsApi } from "@/api/snapshots/useSnapshotsApi";
 import { useCancelablePromise } from "@/hooks/useCancelablePromise";
 import { PipelineDataInSnapshot } from "@/types";
@@ -34,9 +33,8 @@ export const EditJobPipeline = () => {
         });
   }, [fetchSnapshot, snapshotUuid, makeCancelable]);
 
-  const isChangingPipelineUuid = useJobsApi(
-    (state) => state.isChangingPipelineUuid
-  );
+  const { setPipelineUuid, isChangingPipelineUuid } = useSetJobPipelineUuid();
+
   const disabled = !isDraft || isChangingPipelineUuid;
 
   const [jobPipelineUuid = "", setJobPipelineUuid] = React.useState<string>();
@@ -45,8 +43,6 @@ export const EditJobPipeline = () => {
     (jobChanges) => jobChanges?.pipeline_uuid,
     setJobPipelineUuid
   );
-
-  const { setPipelineUuid } = useSetJobPipelineUuid();
 
   const handleChange = async (event: SelectChangeEvent) => {
     if (!jobUuid) return;

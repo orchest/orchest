@@ -20,9 +20,7 @@ export type EnvironmentsApi = {
   projectUuid?: string;
   environments?: EnvironmentState[];
   setEnvironment: (uuid: string, value: Partial<EnvironmentData>) => void;
-  isFetchingAll: boolean;
-  fetch: (projectUuid: string, language?: string) => Promise<void>;
-  isPosting: boolean;
+  fetch: (projectUuid: string, language?: string) => Promise<EnvironmentData[]>;
   post: (
     environmentName: string,
     specs: EnvironmentSpec
@@ -91,55 +89,44 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
         };
       });
     },
-    isFetchingAll: false,
     fetch: async (projectUuid, language) => {
-      try {
-        set({ projectUuid, isFetchingAll: true });
-        const environments = await environmentsApi.fetchAll(
-          projectUuid,
-          language
-        );
+      set({ projectUuid });
+      const environments = await environmentsApi.fetchAll(
+        projectUuid,
+        language
+      );
 
-        set({ projectUuid, environments, isFetchingAll: false });
-      } catch (error) {
-        if (!error?.isCanceled) set({ isFetchingAll: false });
-      }
+      set({ projectUuid, environments });
+      return environments;
     },
-    isPosting: false,
     post: async (environmentName: string, spec: EnvironmentSpec) => {
-      try {
-        const projectUuid = get().projectUuid;
-        if (!projectUuid) return;
+      const projectUuid = get().projectUuid;
+      if (!projectUuid) return;
 
-        set({ isPosting: true });
-        const newEnvironment = await environmentsApi.post(
-          projectUuid,
-          environmentName,
-          spec
-        );
-        const newEnvironmentWithAction: EnvironmentState = {
-          ...newEnvironment,
-          action: "BUILD",
+      const newEnvironment = await environmentsApi.post(
+        projectUuid,
+        environmentName,
+        spec
+      );
+      const newEnvironmentWithAction: EnvironmentState = {
+        ...newEnvironment,
+        action: "BUILD",
+      };
+      set((state) => {
+        const environments = state.environments
+          ? [newEnvironmentWithAction, ...state.environments]
+          : [newEnvironmentWithAction];
+        return {
+          environments: environments.sort(
+            (a, b) => -1 * a.name.localeCompare(b.name)
+          ),
+          environmentsToBeBuilt: [
+            ...state.environmentsToBeBuilt,
+            newEnvironmentWithAction.uuid,
+          ],
         };
-        set((state) => {
-          const environments = state.environments
-            ? [newEnvironmentWithAction, ...state.environments]
-            : [newEnvironmentWithAction];
-          return {
-            environments: environments.sort(
-              (a, b) => -1 * a.name.localeCompare(b.name)
-            ),
-            environmentsToBeBuilt: [
-              ...state.environmentsToBeBuilt,
-              newEnvironmentWithAction.uuid,
-            ],
-            isPosting: false,
-          };
-        });
-        return newEnvironmentWithAction;
-      } catch (error) {
-        set({ isPosting: false });
-      }
+      });
+      return newEnvironmentWithAction;
     },
     put: async (environmentUuid, payload) => {
       const projectUuid = get().projectUuid;

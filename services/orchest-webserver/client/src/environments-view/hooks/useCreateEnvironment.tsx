@@ -1,15 +1,17 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useAsync } from "@/hooks/useAsync";
+import { EnvironmentData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getNewEnvironmentName } from "../common";
 
 export const useCreateEnvironment = () => {
   const { config } = useGlobalContext();
+  const { run, status } = useAsync<EnvironmentData | undefined>();
 
   const environments = useEnvironmentsApi((state) => state.environments);
   const post = useEnvironmentsApi((state) => state.post);
-  const isPosting = useEnvironmentsApi((state) => state.isPosting);
 
   const defaultEnvironment = config?.ENVIRONMENT_DEFAULTS;
   const newEnvironmentName = getNewEnvironmentName(
@@ -20,16 +22,21 @@ export const useCreateEnvironment = () => {
     hasValue(newEnvironmentName) && hasValue(defaultEnvironment);
 
   const createEnvironment = React.useCallback(() => {
-    if (!isPosting && isAllowedToCreate) {
-      return post(newEnvironmentName, defaultEnvironment);
+    if (status !== "PENDING" && isAllowedToCreate) {
+      return run(post(newEnvironmentName, defaultEnvironment));
     }
   }, [
     post,
-    isPosting,
+    run,
+    status,
     defaultEnvironment,
     isAllowedToCreate,
     newEnvironmentName,
   ]);
 
-  return { createEnvironment, isCreating: isPosting, isAllowedToCreate };
+  return {
+    createEnvironment,
+    isCreating: status === "PENDING",
+    isAllowedToCreate,
+  };
 };

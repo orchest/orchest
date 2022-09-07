@@ -75,7 +75,7 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
   const { makeCancelable } = useCancelablePromise();
 
   const run = React.useCallback(
-    async (promise: Promise<T>): Promise<T | void> => {
+    async (promise: Promise<T>): Promise<T | undefined> => {
       dispatch({ type: "PENDING", disableCaching });
       try {
         const data = await makeCancelable(promise);
