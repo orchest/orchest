@@ -39,8 +39,9 @@ export type PipelineUiState = {
   /** The UUID of the step currently controlled by the cursor, or `undefined` if no step is grabbed. */
   grabbedStep: string | undefined;
   selectedConnection: Pick<Connection, "endNodeUUID" | "startNodeUUID"> | null;
-  openedMultiStep?: boolean;
-  openedStep?: string;
+  openedMultiStep: boolean;
+  openedStep: string | undefined;
+  draftJob: string | undefined;
   stepSelector: StepSelectorData;
   shouldAutoFocus: boolean;
   error?: string | null;
@@ -92,6 +93,10 @@ export type Action =
   | { type: "DESELECT_CONNECTION" }
   | {
       type: "SET_OPENED_STEP";
+      payload: string | undefined;
+    }
+  | {
+      type: "SET_DRAFT_JOB";
       payload: string | undefined;
     }
   | {
@@ -551,6 +556,15 @@ export const usePipelineUiState = () => {
           };
         }
 
+        case "SET_DRAFT_JOB": {
+          return {
+            ...state,
+            draftJob: action.payload,
+            openedStep: undefined,
+            openedMultiStep: false,
+          };
+        }
+
         case "SET_CURSOR_CONTROLLED_STEP": {
           return { ...state, grabbedStep: action.payload };
         }
@@ -698,12 +712,13 @@ export const usePipelineUiState = () => {
         }
       }
     },
-    [getMousePoint, newConnection, scaleFactor, stepRefs, zIndexMax]
+    [newConnection, scaleFactor, stepRefs, zIndexMax]
   );
 
   const [uiState, uiStateDispatch] = React.useReducer(memoizedReducer, {
     openedStep: undefined,
-    openedMultiStep: undefined,
+    openedMultiStep: false,
+    draftJob: undefined,
     selectedSteps: [],
     grabbedStep: undefined,
     stepSelector: {

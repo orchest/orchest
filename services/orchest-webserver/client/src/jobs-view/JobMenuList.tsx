@@ -7,6 +7,7 @@ import { CreateJobButton } from "./CreateJobButton";
 import { usePollJobsStatus } from "./hooks/usePollJobsStatus";
 import { useSelectJob } from "./hooks/useSelectJob";
 import { useSyncJobUuidWithQueryArgs } from "./hooks/useSyncJobUuidWithQueryArgs";
+import { useUnsavedChangesWarning } from "./hooks/useUnsavedChangesWarning";
 import { JobMenuItem } from "./JobMenuItem";
 import { useEditJob } from "./stores/useEditJob";
 
@@ -16,6 +17,7 @@ export const JobMenuList = () => {
   const jobChangesUuid = useEditJob((state) => state.jobChanges?.uuid);
   const jobChangesName = useEditJob((state) => state.jobChanges?.name || "");
   const jobChangesStatus = useEditJob((state) => state.jobChanges?.status);
+  const { withConfirmation } = useUnsavedChangesWarning();
 
   const jobs = useJobsApi((state) => state.jobs || []);
   const { selectJob } = useSelectJob();
@@ -58,7 +60,7 @@ export const JobMenuList = () => {
               jobStatus={jobStatus}
               name={name}
               subtitle={pipelinePathAndSnapshotDatetime}
-              onClick={redirect}
+              onClick={(uuid) => withConfirmation(() => redirect(uuid))}
             />
           );
         })}

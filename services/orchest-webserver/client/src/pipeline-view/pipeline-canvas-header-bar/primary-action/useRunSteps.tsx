@@ -6,11 +6,10 @@ import { useInteractiveRunsContext } from "@/pipeline-view/contexts/InteractiveR
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
 import { RunStepsType } from "@/pipeline-view/hooks/useInteractiveRuns";
-import { siteMap } from "@/routingConfig";
 import React from "react";
 
 export const useRunSteps = () => {
-  const { jobUuid, navigateTo, projectUuid } = useCustomRoute();
+  const { jobUuid, projectUuid } = useCustomRoute();
   const {
     runUuid,
     isReadOnly,
@@ -19,6 +18,7 @@ export const useRunSteps = () => {
   } = usePipelineDataContext();
   const {
     uiState: { selectedSteps, steps },
+    uiStateDispatch,
   } = usePipelineUiStateContext();
 
   const {
@@ -74,15 +74,13 @@ export const useRunSteps = () => {
       pipelineUuid,
       pipelineJson?.name
     );
-    navigateTo(siteMap.editJob.path, {
-      query: { projectUuid, jobUuid: job.uuid },
-    });
+    uiStateDispatch({ type: "SET_DRAFT_JOB", payload: job.uuid });
   }, [
     pipelineUuid,
     pipelineJson?.name,
     pipeline?.path,
     projectUuid,
-    navigateTo,
+    uiStateDispatch,
   ]);
 
   // No operation is allowed when read-only.
