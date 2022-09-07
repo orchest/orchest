@@ -1,5 +1,4 @@
 import { JobChangesData, JobData, PipelineJson, StrategyJson } from "@/types";
-import { FetchError } from "@orchest/lib-utils";
 import create from "zustand";
 import { jobsApi } from "./jobsApi";
 
@@ -39,18 +38,9 @@ export type JobsApi = {
     paramFilePath?: string;
     reservedKey: string | undefined;
   }) => Promise<StrategyJson | undefined>;
-  error?: FetchError;
-  clearError: () => void;
 };
 
 export const useJobsApi = create<JobsApi>((set, get) => {
-  const getProjectUuid = (): string => {
-    const projectUuid = get().projectUuid;
-    if (!projectUuid) {
-      throw new Error("projectUuid unavailable");
-    }
-    return projectUuid;
-  };
   return {
     setJobs: (value: JobData[] | ((jobs: JobData[]) => JobData[])) => {
       set((state) => {
@@ -75,20 +65,17 @@ export const useJobsApi = create<JobsApi>((set, get) => {
     isFetching: false,
     fetchAll: async (projectUuid) => {
       try {
-        set({ projectUuid, isFetching: true, error: undefined });
+        set({ projectUuid, isFetching: true });
         const jobs = await jobsApi.fetchAll(projectUuid);
 
         set({ projectUuid, jobs, isFetching: false });
       } catch (error) {
-        set({
-          error: !error?.isCanceled ? error : undefined,
-          isFetching: false,
-        });
+        set({ isFetching: false });
       }
     },
     fetchOne: async (jobUuid, aggregateRunStatuses) => {
       try {
-        set({ isFetching: true, error: undefined });
+        set({ isFetching: true });
         const job = await jobsApi.fetchOne(jobUuid, aggregateRunStatuses);
 
         const projectUuid = job.project_uuid;
@@ -107,12 +94,13 @@ export const useJobsApi = create<JobsApi>((set, get) => {
 
         return job;
       } catch (error) {
-        if (!error?.isCanceled) set({ error, isFetching: false });
+        if (!error?.isCanceled) set({ isFetching: false });
       }
     },
     updateStatus: async () => {
       try {
-        const projectUuid = getProjectUuid();
+        const projectUuid = get().projectUuid;
+        if (!projectUuid) return;
         const jobs = get().jobs;
         const fetchedJobData = await jobsApi.fetchAll(projectUuid);
 
@@ -143,8 +131,10 @@ export const useJobsApi = create<JobsApi>((set, get) => {
       jobName: string
     ) => {
       try {
-        const projectUuid = getProjectUuid();
-        set({ isPosting: true, error: undefined });
+        const projectUuid = get().projectUuid;
+        if (!projectUuid) return;
+
+        set({ isPosting: true });
         const draftJob = await jobsApi.post(
           projectUuid,
           pipelineUuid,
@@ -160,7 +150,7 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         });
         return draftJob;
       } catch (error) {
-        set({ error, isPosting: false });
+        set({ isPosting: false });
       }
     },
     put: async (changes: JobChangesData) => {
@@ -173,28 +163,22 @@ export const useJobsApi = create<JobsApi>((set, get) => {
     isChangingPipelineUuid: false,
     putJobPipelineUuid: async (jobUuid: string, pipelineUuid: string) => {
       try {
-        set({ isChangingPipelineUuid: true, error: undefined });
+        set({ isChangingPipelineUuid: true });
         await jobsApi.putJobPipelineUuid(jobUuid, pipelineUuid);
         set({ isChangingPipelineUuid: false });
       } catch (error) {
-        set({
-          error: !error?.isCanceled ? error : undefined,
-          isChangingPipelineUuid: false,
-        });
+        set({ isChangingPipelineUuid: false });
       }
     },
     isDeleting: false,
     delete: async (jobUuid) => {
-      set({ isDeleting: true, error: undefined });
-      try {
-        await jobsApi.delete(jobUuid);
-        set((state) => {
-          const jobs = (state.jobs || []).filter((job) => job.uuid !== jobUuid);
-          return { jobs, isDeleting: false };
-        });
-      } catch (error) {
-        set({ error });
-      }
+      set({ isDeleting: true });
+
+      await jobsApi.delete(jobUuid);
+      set((state) => {
+        const jobs = (state.jobs || []).filter((job) => job.uuid !== jobUuid);
+        return { jobs, isDeleting: false };
+      });
     },
     cancel: async (jobUuid) => {
       set((state) => {
@@ -255,9 +239,6 @@ export const useJobsApi = create<JobsApi>((set, get) => {
     fetchParameterStrategy: async (props) => {
       const strategyJson = await jobsApi.fetchStrategyJson(props);
       return strategyJson;
-    },
-    clearError: () => {
-      set({ error: undefined });
     },
   };
 });
