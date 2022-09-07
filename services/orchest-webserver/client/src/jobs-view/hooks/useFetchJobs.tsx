@@ -1,7 +1,9 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
 import { useHasChanged } from "@/hooks/useHasChanged";
+import { JobData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
@@ -11,8 +13,9 @@ import React from "react";
 export const useFetchJobs = () => {
   const { projectUuid } = useCustomRoute();
 
+  const { run, status } = useAsync<JobData[]>();
   const shouldFetchOnMount = useJobsApi(
-    (state) => !Boolean(state.jobs) && !state.isFetching
+    (state) => !Boolean(state.jobs) && status !== "PENDING"
   );
 
   const fetchJobs = useJobsApi((state) => state.fetchAll);
@@ -25,7 +28,9 @@ export const useFetchJobs = () => {
 
   React.useEffect(() => {
     if (shouldFetch && hasValue(projectUuid)) {
-      fetchJobs(projectUuid);
+      run(fetchJobs(projectUuid)).catch((error) => {
+        if (!error.isCanceled) console.error(error);
+      });
     }
-  }, [shouldFetch, projectUuid, fetchJobs]);
+  }, [shouldFetch, projectUuid, fetchJobs, run]);
 };

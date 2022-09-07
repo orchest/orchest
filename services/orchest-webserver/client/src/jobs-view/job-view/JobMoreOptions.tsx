@@ -13,6 +13,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useSelectJob } from "../hooks/useSelectJob";
 import { useEditJob } from "../stores/useEditJob";
+import { useDeleteJob } from "./hooks/useDeleteJob";
 import { useEditJobType } from "./hooks/useEditJobType";
 import { useJobActionMenu } from "./hooks/useJobActionMenu";
 import { JobPrimaryButtonIcon } from "./JobPrimaryButtonIcon";
@@ -30,11 +31,9 @@ export const JobMoreOptions = () => {
   const name = useEditJob((state) => state.jobChanges?.name);
   const uuid = useEditJob((state) => state.jobChanges?.uuid);
   const { selectJob } = useSelectJob();
-  const [deleteJob, isDeleting, jobs = []] = useJobsApi((state) => [
-    state.delete,
-    state.isDeleting,
-    state.jobs,
-  ]);
+  const { deleteJob, isDeletingJob } = useDeleteJob();
+
+  const jobs = useJobsApi((state) => state.jobs || []);
 
   const [anchorElement, setAnchorElement] = React.useState<
     Element | undefined
@@ -117,7 +116,7 @@ export const JobMoreOptions = () => {
         })}
         <Divider />
         <MenuItem
-          disabled={!isJobChangesLoaded || isDeleting}
+          disabled={!isJobChangesLoaded || isDeletingJob}
           onClick={showDeleteEnvironmentDialog}
         >
           <ListItemIcon>

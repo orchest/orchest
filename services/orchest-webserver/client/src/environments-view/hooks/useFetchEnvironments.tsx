@@ -1,7 +1,9 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
 import { useHasChanged } from "@/hooks/useHasChanged";
+import { EnvironmentState } from "@/types";
 import React from "react";
 
 /**
@@ -10,8 +12,10 @@ import React from "react";
 export const useFetchEnvironments = () => {
   const { projectUuid } = useCustomRoute();
 
+  const { run, status } = useAsync<EnvironmentState[] | undefined>();
+
   const shouldFetchOnMount = useEnvironmentsApi(
-    (state) => !Boolean(state.environments) && !state.isFetchingAll
+    (state) => !Boolean(state.environments) && status !== "PENDING"
   );
 
   const fetchEnvironments = useEnvironmentsApi((state) => state.fetch);
@@ -24,11 +28,15 @@ export const useFetchEnvironments = () => {
     shouldFetchOnMount || hasRegainedFocus || hasChangedProject;
 
   const fetchAndValidate = React.useCallback(async () => {
-    if (projectUuid) {
-      await fetchEnvironments(projectUuid);
-      validate();
+    try {
+      if (projectUuid) {
+        await run(fetchEnvironments(projectUuid));
+        await validate();
+      }
+    } catch (error) {
+      if (!error.isCanceled) console.error(error);
     }
-  }, [fetchEnvironments, validate, projectUuid]);
+  }, [fetchEnvironments, validate, projectUuid, run]);
 
   React.useEffect(() => {
     if (shouldFetch) {

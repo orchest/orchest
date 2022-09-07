@@ -7,23 +7,19 @@ export type JobsApi = {
   jobs?: JobData[];
   setJobs: (value: JobData[] | ((jobs: JobData[]) => JobData[])) => void;
   setJob: (uuid: string, value: JobData | ((job: JobData) => JobData)) => void;
-  isFetching: boolean;
-  fetchAll: (projectUuid: string, language?: string) => Promise<void>;
+  fetchAll: (projectUuid: string, language?: string) => Promise<JobData[]>;
   fetchOne: (
     jobUuid: string,
     aggregateRunStatuses?: boolean
-  ) => Promise<JobData | undefined>;
+  ) => Promise<JobData>;
   updateStatus: () => Promise<void>;
-  isPosting: boolean;
   post: (
     pipelineUuid: string,
     pipelineName: string,
     jobName: string
   ) => Promise<JobData | undefined>;
   put: (changes: JobChangesData) => Promise<void>;
-  isChangingPipelineUuid: boolean;
   putJobPipelineUuid: (jobUuid: string, pipelineUuid: string) => Promise<void>;
-  isDeleting: boolean;
   delete: (jobUuid: string) => Promise<void>;
   cancel: (jobUuid: string) => Promise<void>;
   duplicate: (jobUuid: string) => Promise<JobData>;
@@ -62,40 +58,31 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         };
       });
     },
-    isFetching: false,
     fetchAll: async (projectUuid) => {
-      try {
-        set({ projectUuid, isFetching: true });
-        const jobs = await jobsApi.fetchAll(projectUuid);
+      set({ projectUuid });
+      const jobs = await jobsApi.fetchAll(projectUuid);
 
-        set({ projectUuid, jobs, isFetching: false });
-      } catch (error) {
-        set({ isFetching: false });
-      }
+      set({ projectUuid, jobs });
+      return jobs;
     },
     fetchOne: async (jobUuid, aggregateRunStatuses) => {
-      try {
-        set({ isFetching: true });
-        const job = await jobsApi.fetchOne(jobUuid, aggregateRunStatuses);
+      const job = await jobsApi.fetchOne(jobUuid, aggregateRunStatuses);
 
-        const projectUuid = job.project_uuid;
+      const projectUuid = job.project_uuid;
 
-        if (projectUuid !== get().projectUuid) {
-          const jobs = await jobsApi.fetchAll(projectUuid);
-          set({ projectUuid, jobs, isFetching: false });
-        } else {
-          set((state) => {
-            const jobs = state.jobs?.map((existingJob) =>
-              existingJob.uuid === jobUuid ? job : existingJob
-            );
-            return { jobs, isFetching: false };
-          });
-        }
-
-        return job;
-      } catch (error) {
-        if (!error?.isCanceled) set({ isFetching: false });
+      if (projectUuid !== get().projectUuid) {
+        const jobs = await jobsApi.fetchAll(projectUuid);
+        set({ projectUuid, jobs });
+      } else {
+        set((state) => {
+          const jobs = state.jobs?.map((existingJob) =>
+            existingJob.uuid === jobUuid ? job : existingJob
+          );
+          return { jobs };
+        });
       }
+
+      return job;
     },
     updateStatus: async () => {
       try {
@@ -124,34 +111,27 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         );
       }
     },
-    isPosting: false,
     post: async (
       pipelineUuid: string,
       pipelineName: string,
       jobName: string
     ) => {
-      try {
-        const projectUuid = get().projectUuid;
-        if (!projectUuid) return;
+      const projectUuid = get().projectUuid;
+      if (!projectUuid) return;
 
-        set({ isPosting: true });
-        const draftJob = await jobsApi.post(
-          projectUuid,
-          pipelineUuid,
-          pipelineName,
-          jobName
-        );
-        set((state) => {
-          const jobs = state.jobs ? [draftJob, ...state.jobs] : [draftJob];
-          return {
-            jobs: jobs.sort((a, b) => -1 * a.name.localeCompare(b.name)),
-            isPosting: false,
-          };
-        });
-        return draftJob;
-      } catch (error) {
-        set({ isPosting: false });
-      }
+      const draftJob = await jobsApi.post(
+        projectUuid,
+        pipelineUuid,
+        pipelineName,
+        jobName
+      );
+      set((state) => {
+        const jobs = state.jobs ? [draftJob, ...state.jobs] : [draftJob];
+        return {
+          jobs: jobs.sort((a, b) => -1 * a.name.localeCompare(b.name)),
+        };
+      });
+      return draftJob;
     },
     put: async (changes: JobChangesData) => {
       try {
@@ -160,24 +140,14 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         if (!error?.isCanceled) console.error("Failed to put job changes.");
       }
     },
-    isChangingPipelineUuid: false,
     putJobPipelineUuid: async (jobUuid: string, pipelineUuid: string) => {
-      try {
-        set({ isChangingPipelineUuid: true });
-        await jobsApi.putJobPipelineUuid(jobUuid, pipelineUuid);
-        set({ isChangingPipelineUuid: false });
-      } catch (error) {
-        set({ isChangingPipelineUuid: false });
-      }
+      await jobsApi.putJobPipelineUuid(jobUuid, pipelineUuid);
     },
-    isDeleting: false,
     delete: async (jobUuid) => {
-      set({ isDeleting: true });
-
       await jobsApi.delete(jobUuid);
       set((state) => {
         const jobs = (state.jobs || []).filter((job) => job.uuid !== jobUuid);
-        return { jobs, isDeleting: false };
+        return { jobs };
       });
     },
     cancel: async (jobUuid) => {
