@@ -394,7 +394,8 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     async (
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ): Promise<true | Error> => {
-      const [validationData, buildStatus] = await validate();
+      const validatedResults = await validate();
+      const [validationData, buildStatus] = validatedResults || [];
       const readOnlyReason =
         buildStatus === "allEnvironmentsBuilt" ? undefined : buildStatus;
 
