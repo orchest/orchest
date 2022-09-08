@@ -171,6 +171,7 @@ def install(
     cloud: bool,
     dev_mode: bool,
     no_argo: bool,
+    no_nginx: bool,
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
     userdir_pvc_size: int,
@@ -311,9 +312,18 @@ def install(
     metadata = {
         "name": cluster_name,
         "namespace": ns,
+        "annotations": {},
     }
     if socket_path is not None:
-        metadata["annotations"] = {"orchest.io/container-runtime-socket": socket_path}
+        metadata["annotations"]["orchest.io/container-runtime-socket"] = socket_path
+
+    if no_nginx:
+        echo(
+            "Disabling 'Nginx Ingress Controller' installation."
+            "\n\tMake sure 'Nginx Ingress Controller' is already installed "
+            "in your cluster"
+        )
+        metadata["annotations"]["controller.orchest.io/deploy-ingress"] = "false"
 
     applications = [
         {
