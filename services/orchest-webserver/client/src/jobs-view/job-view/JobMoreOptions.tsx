@@ -77,7 +77,7 @@ export const JobMoreOptions = () => {
   return (
     <>
       <IconButton
-        title="More options"
+        title={!disabled ? "More options" : undefined}
         onClick={handleOpen}
         disabled={disabled}
         sx={{
