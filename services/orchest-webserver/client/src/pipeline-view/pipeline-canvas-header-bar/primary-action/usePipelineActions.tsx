@@ -1,7 +1,9 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
-import { requestCreateJob } from "@/legacy-jobs-view/common";
+import { pickJobChanges } from "@/jobs-view/common";
+import { useCreateJob } from "@/jobs-view/hooks/useCreateJob";
+import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { useInteractiveRunsContext } from "@/pipeline-view/contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
@@ -9,13 +11,9 @@ import { RunStepsType } from "@/pipeline-view/hooks/useInteractiveRuns";
 import React from "react";
 
 export const usePipelineActions = () => {
-  const { jobUuid, projectUuid } = useCustomRoute();
-  const {
-    runUuid,
-    isReadOnly,
-    pipelineUuid,
-    pipelineJson,
-  } = usePipelineDataContext();
+  const { jobUuid } = useCustomRoute();
+  const initJobChanges = useEditJob((state) => state.initJobChanges);
+  const { runUuid, isReadOnly } = usePipelineDataContext();
   const {
     uiState: { selectedSteps, steps },
     uiStateDispatch,
@@ -66,22 +64,16 @@ export const usePipelineActions = () => {
     doRunSteps(selectedSteps, "incoming");
   }, [doRunSteps, selectedSteps]);
 
-  const scheduleJob = React.useCallback(async () => {
-    if (!projectUuid || !pipelineUuid || !pipelineJson?.name) return;
-    const job = await requestCreateJob(
-      projectUuid,
-      `Job for ${pipeline?.path}`,
-      pipelineUuid,
-      pipelineJson?.name
-    );
-    uiStateDispatch({ type: "SET_DRAFT_JOB", payload: job.uuid });
-  }, [
-    pipelineUuid,
-    pipelineJson?.name,
-    pipeline?.path,
-    projectUuid,
-    uiStateDispatch,
-  ]);
+  const { createJob, isAllowedToCreateJob } = useCreateJob(pipeline);
+
+  const createDraftJob = React.useCallback(async () => {
+    if (!isAllowedToCreateJob) return;
+    const jobData = await createJob();
+    const jobChanges = pickJobChanges(jobData);
+    if (jobChanges) initJobChanges(jobChanges);
+    if (jobData)
+      uiStateDispatch({ type: "SET_DRAFT_JOB", payload: jobData.uuid });
+  }, [createJob, uiStateDispatch, isAllowedToCreateJob, initJobChanges]);
 
   // No operation is allowed when read-only.
   if (isReadOnly) return {};
@@ -96,6 +88,6 @@ export const usePipelineActions = () => {
     runSelectedSteps: hasSelectedSteps ? runSelectedSteps : undefined,
     runAllSteps: hasSteps ? runAllSteps : undefined,
     cancelRun: doCancelRun,
-    scheduleJob,
+    createDraftJob,
   };
 };
