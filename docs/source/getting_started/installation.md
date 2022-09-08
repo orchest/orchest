@@ -211,6 +211,26 @@ By editing the `coredns` deployment the corresponding pod(s) will get replaced, 
 failing DNS queries during the replacement period.
 ```
 
+```{warning}
+Configuration changes of CoreDNS will be lost when executing `kubeadm upgrade apply` or, in case of
+`minikube`, when stopping and starting your cluster (i.e. `minikube start`) -- see [Kubernetes
+docs](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/#applying-coredns-configuration-changes).
+Thus you will have to reapply your changes whenever you run `kubeadm upgrade apply` or whenever you
+restart your minikube cluster.
+
+Why? Well, the [CoreDNS manifests are hardcoded in
+`kubeadm`](https://github.com/kubernetes/kubernetes/blob/4daf5f903b3cb73365093e2f83c18d4d8e53c0c5/cmd/kubeadm/app/phases/addons/dns/manifests.go),
+thus if `kubeadm init phase addon coredns` is ever invoked (which [minikube does on cluster
+start](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/#applying-coredns-configuration-changes)),
+then your changes to the configuration of CoreDNS are lost.
+
+What can I do about it? If you are really keen on not having to reapply your changes then you could
+start minikube with a custom bootstrapper (i.e. `minikube start --bootstrapper=mycustomkubeadm`)
+where the custom bootstrapper is basically a fork of `kubeadm` but with a different CoreDNS
+configuration. Or, if you are not using minikube but using `kubeadm` directly, then you could skip
+the `kubeadm` addon phase and deploy them yourself.
+```
+
 ## Closing notes
 
 Authentication is disabled by default after installation. Check out the {ref}`Orchest settings <settings>` to learn how to enable it.
