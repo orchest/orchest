@@ -20,12 +20,29 @@ const DiscardChangesButton = () => {
   ) : null;
 };
 
+const SaveCronJobChangesButton = () => {
+  const saveActiveCronJobChanges = useEditJob(
+    (state) => state.saveActiveCronJobChanges
+  );
+  return (
+    <Button
+      color="primary"
+      variant="contained"
+      onClick={saveActiveCronJobChanges}
+    >
+      Save job
+    </Button>
+  );
+};
+
 /**
  * Normally every view has only one primary button. But Job view is an exception.
  * When editing an active cron job, add a `Discard changes` button next to the primary button.
  */
 export const JobPrimaryButtons = () => {
   const status = useEditJob((state) => state.jobChanges?.status);
+  const isEditing = useEditJob((state) => state.isEditing);
+
   const hasStarted =
     status === "STARTED" || status === "PENDING" || status === "PAUSED";
 
@@ -38,18 +55,24 @@ export const JobPrimaryButtons = () => {
 
   return (
     <>
-      <DiscardChangesButton />
-      <Button
-        color="primary"
-        variant={hasStarted ? "outlined" : "contained"}
-        startIcon={
-          iconType ? <JobPrimaryButtonIcon type={iconType} /> : undefined
-        }
-        disabled={!status}
-        onClick={handleClick}
-      >
-        {buttonLabel}
-      </Button>
+      {isEditing ? (
+        <>
+          <DiscardChangesButton />
+          <SaveCronJobChangesButton />
+        </>
+      ) : (
+        <Button
+          color="primary"
+          variant={hasStarted ? "outlined" : "contained"}
+          startIcon={
+            iconType ? <JobPrimaryButtonIcon type={iconType} /> : undefined
+          }
+          disabled={!status}
+          onClick={handleClick}
+        >
+          {buttonLabel}
+        </Button>
+      )}
     </>
   );
 };
