@@ -16,7 +16,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
         )}
       </Tooltip>
     ) : (
-      <MuiIconButton {...props} />
+      <MuiIconButton {...props} disabled={disabled} />
     );
   }
 );
