@@ -1,3 +1,5 @@
+import threading
+
 import requests
 from flask import current_app, jsonify, request
 
@@ -350,6 +352,32 @@ def register_orchest_api_views(app, db):
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/sessions/",
             json=session_config,
         )
+
+        # Side effect of a session post is to create an environment
+        # shell this is a "client decision" hence it's not handled
+        # automatically by the orchest-api.
+        project_envs = get_environments(project_uuid)
+        if len(project_envs) > 0:
+
+            json_data = {
+                "pipeline_uuid": pipeline_uuid,
+                "pipeline_path": pipeline_path,
+                "project_uuid": project_uuid,
+                "environment_uuid": project_envs[0]["uuid"],
+                "userdir_pvc": app.config["USERDIR_PVC"],
+                "project_dir": project_dir,
+            }
+
+            # Don't wait for the response
+            threading.Thread(
+                target=requests.post,
+                args=(
+                    "http://"
+                    + app.config["ORCHEST_API_ADDRESS"]
+                    + "/environment-shells/",
+                ),
+                kwargs={"json": json_data},
+            ).start()
 
         return resp.content, resp.status_code, resp.headers.items()
 

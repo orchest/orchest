@@ -244,6 +244,9 @@ environment_shell_config = Model(
     {
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
+        "pipeline_path": fields.String(
+            required=True, description="Path to pipeline file"
+        ),
         "userdir_pvc": fields.String(
             required=True, description="Name of the userdir pvc"
         ),

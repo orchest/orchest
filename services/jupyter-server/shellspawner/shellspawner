@@ -171,12 +171,13 @@ def _spawn_environment_shell(environment: Dict[str, Any]) -> Dict[str, Any]:
 
     data = json.dumps(
         {
-            "pipeline_uuid": os.environ["ORCHEST_PIPELINE_UUID"],
             "project_uuid": os.environ["ORCHEST_PROJECT_UUID"],
-            "environment_uuid": environment["uuid"],
+            "pipeline_path": os.environ["ORCHEST_SESSION_PIPELINE_PATH"],
+            "pipeline_uuid": os.environ["ORCHEST_PIPELINE_UUID"],
             "userdir_pvc": "userdir-pvc",  # TODO: make dynamic?
             "project_dir": "/userdir/projects/"
             + project["path"],  # TODO: make dynamic?
+            "environment_uuid": environment["uuid"],
         }
     ).encode("utf-8")
 
@@ -215,10 +216,15 @@ def connect(environment_shell: str):
     # when they're able to interact with the cluster.
     command = (
         "sshpass -p jovyan ssh "
-        + f"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {user}@{host}"
+        + "-o StrictHostKeyChecking=no -o ConnectTimeout=5 "
+        + f"-o UserKnownHostsFile=/dev/null {user}@{host} "
+        + "-t \"cd /project-dir; sudo su -c 'bash -l'\""
     )
 
-    subprocess.run(command, shell=True)
+    co = subprocess.run(command, shell=True)
+    if co.returncode == 255:
+        print("Could not connect to SSH in the environment. Try rebuilding ")
+        print("your environment to update to the latest base image.")
 
     # Enter init loop
     init()
@@ -269,14 +275,19 @@ def quit():
     sys.exit(0)
 
 
-def init():
+def init(autoconnect=False):
     environments = get_environments()
     environment_shells = get_environment_shells()
 
     auto_chosen = False
+    action = None
+
     if len(environment_shells) == 0:
         action = 0
         auto_chosen = True
+    elif len(environment_shells) == 1 and autoconnect:
+        # Autoconnect to shell if there's only one
+        connect(environment_shells[0])
     else:
         action = choose_action()
 
@@ -317,4 +328,10 @@ def init():
 
 
 if __name__ == "__main__":
-    init()
+
+    if sys.argv[1] == "--help":
+        print("This terminal supports connecting with Orchest environment shells.")
+        print("To restart, terminate, or start a shell simply exit out of ")
+        print("your current shell by typing 'exit' or typing Ctrl+D.")
+    else:
+        init(autoconnect=True)

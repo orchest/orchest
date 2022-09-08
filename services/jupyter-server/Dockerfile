@@ -45,7 +45,7 @@ COPY shellspawner/shellspawner /usr/bin/shellspawner
 
 # Add shellspawner to terminal profile
 # TODO: check if this doesn't get sourced for the main start.sh
-RUN echo shellspawner >> ~/.profile
+RUN echo "shellspawner --help && shellspawner" >> ~/.profile
 
 # Hardcoded /project-dir because Python config can't be injected into Dockerfile
 WORKDIR /project-dir

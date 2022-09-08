@@ -48,6 +48,10 @@ RUN chown $NB_USER -R /orchest/orchest-sdk \
     && chown $NB_USER -R /orchest/lib && \
     echo -e "jovyan\njovyan" | passwd jovyan
 
+# Exclude hostname from default prompt
+RUN echo "export PS1='\u ➜ \W\$ '" >> ~/.profile && \
+    echo "export PS1='\u ➜ \W\$ '" >> /root/.profile
+
 USER $NB_USER
 
 WORKDIR /orchest/services/base-images/runnable-shared/runner
@@ -77,9 +81,7 @@ COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runn
 ENV JUPYTER_PATH=/opt/conda/share/jupyter
 ENV HOME=/home/$NB_USER
 ENV BASH_ENV=/home/jovyan/.orchestrc
-# Exclude hostname from default prompt
-RUN echo "export PS1='\u ➜ \W\$ '" >> ~/.profile && \
-    echo "export PS1='\u ➜ \W\$ '" >> /root/.profile
+
 
 # Orchest related environment variable that can be set to specify the
 # conda environment to use to start Jupyter kernels.

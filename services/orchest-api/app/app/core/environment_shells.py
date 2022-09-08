@@ -12,6 +12,8 @@ logger = utils.get_logger()
 def launch_environment_shell(
     session_uuid: str,
     project_uuid: str,
+    pipeline_uuid: str,
+    pipeline_path: str,
     userdir_pvc: str,
     project_dir: str,
     environment_image: str,
@@ -38,7 +40,13 @@ def launch_environment_shell(
     environment_shell_service_manifest = []
 
     (depl, serv,) = _manifests._get_environment_shell_deployment_service_manifest(
-        session_uuid, project_uuid, userdir_pvc, project_dir, environment_image
+        session_uuid,
+        project_uuid,
+        pipeline_uuid,
+        pipeline_path,
+        userdir_pvc,
+        project_dir,
+        environment_image,
     )
     environment_shell_service_manifest = serv
     environment_shell_service_k8s_deployment_manifests.append(depl)
