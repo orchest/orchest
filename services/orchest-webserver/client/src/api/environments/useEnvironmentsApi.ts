@@ -20,7 +20,10 @@ export type EnvironmentsApi = {
   projectUuid?: string;
   environments?: EnvironmentState[];
   setEnvironment: (uuid: string, value: Partial<EnvironmentData>) => void;
-  fetch: (projectUuid: string, language?: string) => Promise<EnvironmentData[]>;
+  fetchAll: (
+    projectUuid: string,
+    language?: string
+  ) => Promise<EnvironmentState[]>;
   post: (
     environmentName: string,
     specs: EnvironmentSpec
@@ -89,7 +92,7 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
         };
       });
     },
-    fetch: async (projectUuid, language) => {
+    fetchAll: async (projectUuid, language) => {
       set({ projectUuid });
       const environments = await environmentsApi.fetchAll(
         projectUuid,
