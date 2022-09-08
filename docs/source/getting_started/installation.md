@@ -23,7 +23,8 @@ service by one of the certified [cloud platforms](https://kubernetes.io/docs/set
 locally. For single node deployments, we recommend using at (the very) least 2 CPU and 8GB of RAM.
 
 Pick your deployment environment and Kubernetes distribution and follow the installation steps
-below.
+below. In case you have custom requirements, be sure to first check out the
+{ref}`custom requirements <custom-install-requirements>` section.
 
 (regular-installation)=
 
@@ -41,18 +42,20 @@ The supported operating systems are:
 :file: install_widget.html
 ```
 
-## Starting Orchest
+## Managing your Orchest installation
 
-The installation procedures will leave Orchest up and running.
-To manually start Orchest from the command line, run this command:
+Your Orchest installation can be fully managed through the `orchest-cli`, check out the available
+commands in the {ref}`Orchest CLI reference <cli-reference>`.
 
-```bash
-orchest start
+```{note}
+Your Kubernetes cluster has to be up in order for the `orchest-cli` to be able to interact with it.
 ```
 
-## Special requirements
+(custom-install-requirements)=
 
-If you have **special requirements** (or preferences) for deploying Orchest on your Kubernetes
+## Custom requirements
+
+If you have **custom requirements** (or preferences) for deploying Orchest on your Kubernetes
 cluster, then one of the following subsections might be helpful:
 
 - {ref}`Setting up an FQDN <install-fqdn>`: Reach Orchest using a Fully Qualified Domain Name
