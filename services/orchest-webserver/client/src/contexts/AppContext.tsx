@@ -1,7 +1,7 @@
-import { useFetchEnvironments } from "@/environments-view/hooks/useFetchEnvironments";
+import { useInitiateEnvironments } from "@/environments-view/hooks/useInitiateEnvironments";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
-import { useFetchJobsInJobsView } from "@/jobs-view/hooks/useFetchJobsInJobsView";
+import { useInitiateJobs } from "@/jobs-view/hooks/useInitiateJobs";
 import { NotificationWebhookSubscriber } from "@/notification-settings-view/notification-webhooks";
 import { useFetchNotificationSubscribers } from "@/notification-settings-view/useFetchNotificationSubscribers";
 import React from "react";
@@ -37,8 +37,8 @@ export const AppContextProvider: React.FC = ({ children }) => {
   );
 
   useAutoFetchPipelines();
-  useFetchEnvironments();
-  useFetchJobsInJobsView();
+  useInitiateEnvironments();
+  useInitiateJobs();
 
   return (
     <AppContext.Provider
