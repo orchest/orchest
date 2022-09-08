@@ -25,7 +25,7 @@ export const PrimaryPipelineActionMenu = ({
     runSelectedSteps,
     runAllSteps,
     runIncomingSteps,
-    scheduleJob,
+    createDraftJob,
   } = usePipelineActions();
 
   const operationOptions = React.useMemo(
@@ -53,10 +53,10 @@ export const PrimaryPipelineActionMenu = ({
           label: "Schedule Job",
           icon: <MoreTimeOutlinedIcon fontSize="small" />,
           hotKey: "J",
-          action: scheduleJob,
+          action: createDraftJob,
         },
       ] as const,
-    [runAllSteps, runIncomingSteps, runSelectedSteps, scheduleJob]
+    [runAllSteps, runIncomingSteps, runSelectedSteps, createDraftJob]
   );
 
   return (
