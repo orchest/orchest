@@ -190,7 +190,7 @@ sudo service nginx restart
 
 ### Scarse (CPU) resources - tweak DNS settings
 
-This section applies mostly for single-node deployments (e.g. using minikube) as otherwise you can
+This section applies mostly to single-node deployments (e.g. using minikube) as otherwise you can
 configure your Kubernetes cluster to scale with respect to the current load.
 
 During times of CPU resource contention, the [CoreDNS](https://coredns.io/) pod could start failing
