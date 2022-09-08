@@ -48,17 +48,23 @@ export const useLayoutStore = create(
   )
 );
 
-const selectMainSidePanelWidth = (state: LayoutState) =>
-  [state.mainSidePanelWidth, state.setMainSidePanelWidth] as const;
 export const useMainSidePanelWidth = () => {
-  const states = useLayoutStore(selectMainSidePanelWidth);
-  return states;
+  const mainSidePanelWidth = useLayoutStore(
+    (state) => state.mainSidePanelWidth
+  );
+  const setMainSidePanelWidth = useLayoutStore(
+    (state) => state.setMainSidePanelWidth
+  );
+
+  return [mainSidePanelWidth, setMainSidePanelWidth] as const;
 };
 
-const selectSecondarySidePanelWidth = (state: LayoutState) =>
-  [state.secondarySidePanelWidth, state.setSecondarySidePanelWidth] as const;
-
 export const useSecondarySidePanelWidth = () => {
-  const states = useLayoutStore(selectSecondarySidePanelWidth);
-  return states;
+  const secondarySidePanelWidth = useLayoutStore(
+    (state) => state.secondarySidePanelWidth
+  );
+  const setSecondarySidePanelWidth = useLayoutStore(
+    (state) => state.setSecondarySidePanelWidth
+  );
+  return [secondarySidePanelWidth, setSecondarySidePanelWidth] as const;
 };

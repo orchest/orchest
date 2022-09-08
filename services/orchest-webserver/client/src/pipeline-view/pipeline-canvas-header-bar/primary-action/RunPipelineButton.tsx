@@ -7,7 +7,7 @@ import ButtonGroup from "@mui/material/ButtonGroup";
 import React from "react";
 import { PrimaryPipelineActionIcon } from "./PipelineOperationButtonIcon";
 import { PrimaryPipelineActionMenu } from "./PrimaryPipelineActionMenu";
-import { useRunSteps } from "./useRunSteps";
+import { usePipelineActions } from "./usePipelineActions";
 
 export const RunPipelineButton = () => {
   const {
@@ -28,7 +28,7 @@ export const RunPipelineButton = () => {
     runAllSteps,
     shouldRunAll,
     cancelRun,
-  } = useRunSteps();
+  } = usePipelineActions();
 
   const { withThrottle, reset } = useThrottle();
 

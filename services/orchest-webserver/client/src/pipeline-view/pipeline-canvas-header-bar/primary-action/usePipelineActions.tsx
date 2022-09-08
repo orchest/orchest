@@ -8,7 +8,7 @@ import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiSt
 import { RunStepsType } from "@/pipeline-view/hooks/useInteractiveRuns";
 import React from "react";
 
-export const useRunSteps = () => {
+export const usePipelineActions = () => {
   const { jobUuid, projectUuid } = useCustomRoute();
   const {
     runUuid,
