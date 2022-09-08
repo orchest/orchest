@@ -8,16 +8,15 @@ import { useUpdateJobOnUnmount } from "./useUpdateJobOnUnmount";
  */
 export const useSelectJob = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
-  const { updateJobAndReset } = useUpdateJobOnUnmount();
+  useUpdateJobOnUnmount();
 
   const saveAndRedirect = React.useCallback(
     (jobUuid: string) => {
-      updateJobAndReset();
       navigateTo(siteMap.jobs.path, {
         query: { projectUuid, jobUuid },
       });
     },
-    [navigateTo, projectUuid, updateJobAndReset]
+    [navigateTo, projectUuid]
   );
 
   const selectJob = React.useCallback(
