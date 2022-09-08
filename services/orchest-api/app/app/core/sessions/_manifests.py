@@ -229,6 +229,12 @@ def _get_session_sidecar_deployment_manifest(
                     },
                     "serviceAccount": f"session-sidecar-sa-{session_uuid}",
                     "serviceAccountName": f"session-sidecar-sa-{session_uuid}",
+                    "dnsConfig": {
+                        "options": [
+                            {"name": "timeout", "value": "30"},  # 30 is max
+                            {"name": "attempts", "value": "2"},  # 5 is max
+                        ],
+                    },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                     ],
@@ -242,6 +248,11 @@ def _get_session_sidecar_deployment_manifest(
                                 "orchest/session-sidecar:"
                                 + CONFIG_CLASS.ORCHEST_VERSION
                             ),
+                            # NOTE: It would be a good idea to increase
+                            # the CPU shares for the sidecar, however,
+                            # the sidecar is started for every session
+                            # which could lead to:
+                            #   `total requests > available requests`
                             "resources": {
                                 "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                             },
@@ -816,6 +827,12 @@ def _get_user_service_deployment_service_manifest(
                         "runAsUser": 0,
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                    },
+                    "dnsConfig": {
+                        "options": [
+                            {"name": "timeout", "value": "30"},  # 30 is max
+                            {"name": "attempts", "value": "2"},  # 5 is max
+                        ],
                     },
                     "volumes": volumes,
                     "containers": [
