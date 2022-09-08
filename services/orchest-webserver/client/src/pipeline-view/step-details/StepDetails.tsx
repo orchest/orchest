@@ -3,7 +3,7 @@ import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import {
   MAX_WIDTH,
   MIN_SECONDARY_SIDE_PANEL_WIDTH,
-  useLayoutStore,
+  useSecondarySidePanelWidth,
 } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
 import { useGlobalContext } from "@/contexts/GlobalContext";
@@ -65,13 +65,11 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
     uiState: { subViewIndex, shouldAutoFocus, stepSelector, steps, openedStep },
     uiStateDispatch,
   } = usePipelineUiStateContext();
+
   const [
     stepDetailsPanelWidth,
     setStepDetailsPanelWidth,
-  ] = useLayoutStore((state) => [
-    state.secondarySidePanelWidth,
-    state.setSecondarySidePanelWidth,
-  ]);
+  ] = useSecondarySidePanelWidth();
 
   const step = steps[openedStep || ""];
 

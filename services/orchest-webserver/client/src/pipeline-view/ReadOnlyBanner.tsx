@@ -1,5 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { useLayoutStore } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
+import { useSecondarySidePanelWidth } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -29,7 +29,7 @@ const ReadOnlyBannerContainer: React.FC = ({ children }) => {
     uiState: { openedStep },
   } = usePipelineUiStateContext();
 
-  const { secondarySidePanelWidth } = useLayoutStore();
+  const [secondarySidePanelWidth] = useSecondarySidePanelWidth();
 
   const widthDiff = openedStep ? secondarySidePanelWidth : 0;
 

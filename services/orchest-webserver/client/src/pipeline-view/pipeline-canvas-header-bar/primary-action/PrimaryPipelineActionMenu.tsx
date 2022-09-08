@@ -10,7 +10,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useRunSteps } from "./useRunSteps";
+import { usePipelineActions } from "./usePipelineActions";
 
 type PrimaryPipelineActionMenuProps = {
   anchor: Element | undefined;
@@ -26,7 +26,7 @@ export const PrimaryPipelineActionMenu = ({
     runAllSteps,
     runIncomingSteps,
     scheduleJob,
-  } = useRunSteps();
+  } = usePipelineActions();
 
   const operationOptions = React.useMemo(
     () =>

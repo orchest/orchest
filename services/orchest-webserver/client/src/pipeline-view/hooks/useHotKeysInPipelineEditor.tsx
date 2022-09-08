@@ -4,7 +4,7 @@ import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { useRunSteps } from "../pipeline-canvas-header-bar/primary-action/useRunSteps";
+import { usePipelineActions } from "../pipeline-canvas-header-bar/primary-action/usePipelineActions";
 import { useDeleteSteps } from "./useDeleteSteps";
 
 const COMMANDS = {
@@ -44,7 +44,7 @@ export const useHotKeysInPipelineEditor = () => {
     runSelectedSteps,
     runIncomingSteps,
     scheduleJob,
-  } = useRunSteps();
+  } = usePipelineActions();
 
   useHotKeys(
     {
