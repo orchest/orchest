@@ -49,6 +49,4 @@ export const useUpdateJobOnUnmount = () => {
   React.useEffect(() => {
     return () => updateJobAndReset();
   }, [updateJobAndReset]);
-
-  return { updateJobAndReset };
 };
