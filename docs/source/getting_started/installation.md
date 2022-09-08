@@ -254,11 +254,11 @@ thus if `kubeadm init phase addon coredns` is ever invoked (which [minikube does
 start](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/#applying-coredns-configuration-changes)),
 then your changes to the configuration of CoreDNS are lost.
 
-What can I do about it? If you are really keen on not having to reapply your changes then you could
-start minikube with a custom bootstrapper (i.e. `minikube start --bootstrapper=mycustomkubeadm`)
-where the custom bootstrapper is basically a fork of `kubeadm` but with a different CoreDNS
-configuration. Or, if you are not using minikube but using `kubeadm` directly, then you could skip
-the `kubeadm` addon phase and deploy them yourself.
+What can I do about it? If you are using `kubeadm` directly, then you could skip the `kubeadm` addon
+phase and deploy the respective addons yourself. In case of minikube there is not much you can do
+besides reapplying the configuration because minikube includes `kubeadm` as the only available
+`--bootstrapper` ([source
+code](https://github.com/kubernetes/minikube/blob/e7764cd1ca1a089c7dd7589446f81d87f62a2e22/pkg/minikube/cluster/cluster.go#L45-L53)).
 ```
 
 ## Closing notes
