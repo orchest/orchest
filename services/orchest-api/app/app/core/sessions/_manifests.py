@@ -296,6 +296,7 @@ def get_orchest_sdk_vars(
 
 def _get_environment_shell_deployment_service_manifest(
     session_uuid: str,
+    environment_uuid: str,
     project_uuid: str,
     pipeline_uuid: str,
     pipeline_path: str,
@@ -315,7 +316,7 @@ def _get_environment_shell_deployment_service_manifest(
     """
 
     metadata = {
-        "name": f"environment-shell-{session_uuid}-{(str(uuid4()))[:6]}",
+        "name": f"environment-shell-{environment_uuid}-{(str(uuid4()))[:6]}",
         "labels": {
             "app": "environment-shell",
             "project_uuid": project_uuid,
@@ -763,12 +764,15 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         {"name": key, "value": value} for key, value in user_defined_env_vars.items()
     ]
     environment.extend(user_defined_env_vars)
-
-    env = get_orchest_sdk_vars(
-        project_uuid, pipeline_uuid, _config.PIPELINE_FILE, session_uuid, session_type
+    environment.extend(
+        get_orchest_sdk_vars(
+            project_uuid,
+            pipeline_uuid,
+            _config.PIPELINE_FILE,
+            session_uuid,
+            session_type,
+        )
     )
-    for k, v in environment.items():
-        env.append({"name": k, "value": v})
 
     volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
         project_uuid, userdir_pvc, project_dir, pipeline_path

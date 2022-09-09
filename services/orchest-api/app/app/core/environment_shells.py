@@ -11,6 +11,7 @@ logger = utils.get_logger()
 
 def launch_environment_shell(
     session_uuid: str,
+    environment_uuid: str,
     project_uuid: str,
     pipeline_uuid: str,
     pipeline_path: str,
@@ -41,6 +42,7 @@ def launch_environment_shell(
 
     (depl, serv,) = _manifests._get_environment_shell_deployment_service_manifest(
         session_uuid,
+        environment_uuid,
         project_uuid,
         pipeline_uuid,
         pipeline_path,

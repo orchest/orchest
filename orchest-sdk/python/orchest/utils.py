@@ -8,6 +8,22 @@ from orchest.error import OrchestNetworkError, StepUUIDResolveError
 from orchest.pipeline import Pipeline
 
 
+def pretty_print_env_var_suggestion(pipeline: Pipeline):
+    print(
+        "Please specify a pipeline step UUID by setting the ORCHEST_STEP_UUID "
+        + "environment variable. Choose one of the following pipeline steps:"
+    )
+    for step in pipeline.steps:
+        print(
+            "ORCHEST_STEP_UUID="
+            + step.properties.get("uuid")
+            + f" (Step {step.properties.get('title')} \
+            { step.properties.get('file_path') })"
+        )
+
+    print("\nFor example by executing: ORCHEST_STEP_UUID=<uuid> python myfile.py")
+
+
 def get_step_uuid(pipeline: Pipeline) -> str:
     """Gets the currently running script's step UUID.
 
@@ -30,7 +46,11 @@ def get_step_uuid(pipeline: Pipeline) -> str:
     # Enterprise Gateway.
     kernel_id = os.environ.get("KERNEL_ID")
     if kernel_id is None:
-        raise StepUUIDResolveError('Environment variable "KERNEL_ID" not present.')
+        # Assuming since KERNEL_ID is missing that we're running in
+        # an environment shell. Print environment variable setter hint.
+        pretty_print_env_var_suggestion(pipeline)
+
+        raise StepUUIDResolveError("Could not resolve the pipeline step UUID.")
 
     # Get JupyterLab sessions to resolve the step's UUID via the id of
     # the running kernel and the step's associated file path.

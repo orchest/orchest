@@ -30,12 +30,9 @@ RUN chown $NB_USER -R /orchest/orchest-sdk \
     && chown $NB_USER -R /orchest/lib && \
     echo -e "jovyan\njovyan" | passwd jovyan
 
-
 # Exclude hostname from default prompt
-RUN echo "export PS1='\u ➜ \W\$ '" >> /home/$NB_USER/.profile && \
-    echo "export PS1='\u ➜ \W\$ '" >> /root/.profile
-
 USER $NB_USER
+RUN echo "export PS1='\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> ~/.bashrc
 
 # Install requirements on base environment
 WORKDIR /orchest/services/base-images/runnable-shared/runner

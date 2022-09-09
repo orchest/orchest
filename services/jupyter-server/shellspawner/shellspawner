@@ -46,6 +46,11 @@ def print_jupyter_warning():
     )
 
 
+def environment_shell_uuid_to_environment_uuid(environment_shell_uuid: str) -> str:
+    random_uuid_suffix_len = 6
+    return environment_shell_uuid[: -(random_uuid_suffix_len + 1)]
+
+
 def environment_shell_uuid_to_name(
     environment_shell_uuid: str, environments: List[Dict[str, Any]]
 ) -> str:
@@ -71,7 +76,8 @@ def environment_shell_uuid_to_name(
 def collect_choice(choice_count: int, prefix: str):
     while True:
         try:
-            print(f"{prefix} [0-{choice_count - 1}]: ", end="", flush=True)
+            choice_end = ("-" + str(choice_count - 1)) if choice_count > 1 else ""
+            print(f"{prefix} [0{choice_end}]: ", end="", flush=True)
             user_input = input()
             index = int(user_input)
             assert index >= 0 and index <= choice_count - 1
@@ -162,7 +168,9 @@ def show_loader(
         waited += speed
         wait_index += 1
 
-    print("Warning! Loader timed out after %d seconds." % timeout)
+    print("")
+    if waited >= timeout:
+        print("Warning! Loader timed out after %d seconds." % timeout)
 
 
 def _spawn_environment_shell(environment: Dict[str, Any]) -> Dict[str, Any]:
@@ -202,7 +210,7 @@ def spawn_environment_shell(environment: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def connect(environment_shell: str):
-    print("Connecting...", end="", flush=True)
+    print("Connecting...", flush=True)
 
     user = "jovyan"  # TODO: support more usernames
     host = environment_shell["host"]
@@ -216,9 +224,10 @@ def connect(environment_shell: str):
     # when they're able to interact with the cluster.
     command = (
         "sshpass -p jovyan ssh "
+        + "-o LogLevel=quiet "
         + "-o StrictHostKeyChecking=no -o ConnectTimeout=5 "
-        + f"-o UserKnownHostsFile=/dev/null {user}@{host} "
-        + "-t \"cd /project-dir; sudo su -c 'bash -l'\""
+        + f"-o UserKnownHostsFile=/dev/null {user}@{host} -t "
+        + '"cd /project-dir; bash"'
     )
 
     co = subprocess.run(command, shell=True)
@@ -245,9 +254,10 @@ def choose_action() -> int:
     print("Choose an option")
     print("[0] Start a new shell ")
     print("[1] Connect to an existing shell ")
-    print("[2] Terminate an existing shell ")
+    print("[2] Restart an existing shell ")
+    print("[3] Terminate an existing shell ")
 
-    return collect_choice(3, "Choose option")
+    return collect_choice(4, "Choose option")
 
 
 def choose_existing_environment_shell(
@@ -295,6 +305,8 @@ def init(autoconnect=False):
         quit()
 
     if action == 0:
+        # Spawn
+
         environment = choose_environment(environments)
         if environment is not None:
             environment_shell = spawn_environment_shell(environment)
@@ -309,6 +321,8 @@ def init(autoconnect=False):
         else:
             quit()
     elif action == 1:
+        # Connect
+
         environment_shell = choose_existing_environment_shell(
             environment_shells, environments, "to connect to"
         )
@@ -317,6 +331,26 @@ def init(autoconnect=False):
         else:
             init()
     elif action == 2:
+        # Restart
+        environment_shell = choose_existing_environment_shell(
+            environment_shells, environments, "to restart"
+        )
+
+        if environment_shell is not None:
+            stop_environment_shell(environment_shell["uuid"])
+            environment_shell = spawn_environment_shell(
+                {
+                    "uuid": environment_shell_uuid_to_environment_uuid(
+                        environment_shell["uuid"]
+                    )
+                }
+            )
+
+            connect(environment_shell)
+        else:
+            init()
+    elif action == 3:
+        # Terminate
         environment_shell = choose_existing_environment_shell(
             environment_shells, environments, "to terminate"
         )
@@ -328,10 +362,10 @@ def init(autoconnect=False):
 
 
 if __name__ == "__main__":
-
-    if sys.argv[1] == "--help":
+    if len(sys.argv) > 1 and sys.argv[1] == "--help":
         print("This terminal supports connecting with Orchest environment shells.")
-        print("To restart, terminate, or start a shell simply exit out of ")
-        print("your current shell by typing 'exit' or typing Ctrl+D.")
+        print("To restart, terminate, start or connect to a shell simply exit out of ")
+        print("your current shell by typing 'exit' or typing Ctrl + D.")
+        print("")
     else:
         init(autoconnect=True)

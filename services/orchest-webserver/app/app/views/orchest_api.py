@@ -357,13 +357,13 @@ def register_orchest_api_views(app, db):
         # shell this is a "client decision" hence it's not handled
         # automatically by the orchest-api.
         project_envs = get_environments(project_uuid)
-        if len(project_envs) > 0:
+        if len(project_envs) > 0 and resp.status_code == 201:
 
             json_data = {
                 "pipeline_uuid": pipeline_uuid,
                 "pipeline_path": pipeline_path,
                 "project_uuid": project_uuid,
-                "environment_uuid": project_envs[0]["uuid"],
+                "environment_uuid": project_envs[0].uuid,
                 "userdir_pvc": app.config["USERDIR_PVC"],
                 "project_dir": project_dir,
             }
@@ -374,7 +374,7 @@ def register_orchest_api_views(app, db):
                 args=(
                     "http://"
                     + app.config["ORCHEST_API_ADDRESS"]
-                    + "/environment-shells/",
+                    + "/api/environment-shells/",
                 ),
                 kwargs={"json": json_data},
             ).start()

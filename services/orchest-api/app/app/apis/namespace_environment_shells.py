@@ -98,6 +98,7 @@ class CreateEnvironmentShell(TwoPhaseFunction):
 
         return launch_environment_shell(
             session_uuid,
+            environment_shell_config["environment_uuid"],
             environment_shell_config["project_uuid"],
             environment_shell_config["pipeline_uuid"],
             environment_shell_config["pipeline_path"],
