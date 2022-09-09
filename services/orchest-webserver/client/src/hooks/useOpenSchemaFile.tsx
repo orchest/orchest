@@ -13,7 +13,7 @@ export const useOpenSchemaFile = (
     shouldCreateFileRef.current = shouldCreateFile;
   }, [shouldCreateFile]);
 
-  const { openNotebook } = useOpenFile();
+  const { openFile } = useOpenFile();
   const createFile = useCreateFile("/project-dir");
 
   const openSchemaFile = React.useCallback(
@@ -22,9 +22,9 @@ export const useOpenSchemaFile = (
 
       const sidecarFilePath = `${filePath}.${type}.json`;
       if (shouldCreateFile) await createFile(sidecarFilePath);
-      openNotebook(e, sidecarFilePath);
+      openFile(e, sidecarFilePath);
     },
-    [createFile, openNotebook]
+    [createFile, openFile]
   );
 
   return { openSchemaFile };
