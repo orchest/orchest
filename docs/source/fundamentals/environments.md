@@ -110,7 +110,7 @@ JupyterLab has integrated support for shell sessions using a terminal emulator. 
 All you need to do is open JupyterLab in a session and click on Terminal:
 
 ```{image} ../img/environment-shells-jupyterlab.png
-:width: 500
+:width: 800
 :alt: Terminal in JupyterLab
 :align: center
 ```
