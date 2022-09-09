@@ -10,7 +10,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
 from app import utils as app_utils
-from app.connections import k8s_core_api, k8s_custom_obj_api
+from app.connections import k8s_core_api
 from app.core import image_utils
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
@@ -405,12 +405,10 @@ def build_environment_image_task(
             )
             raise e
         finally:
-            k8s_custom_obj_api.delete_namespaced_custom_object(
-                "argoproj.io",
-                "v1alpha1",
-                _config.ORCHEST_NAMESPACE,
-                "workflows",
+            # The task was successful or aborted, cleanup the pod.
+            k8s_core_api.delete_namespaced_pod(
                 image_utils.image_build_task_to_pod_name(task_uuid),
+                _config.ORCHEST_NAMESPACE,
             )
 
     # The status of the Celery task is SUCCESS since it has finished

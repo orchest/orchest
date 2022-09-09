@@ -5,38 +5,61 @@ from kubernetes import watch
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_userdir_relpath
 from app import errors, utils
-from app.connections import k8s_core_api, k8s_custom_obj_api
+from app.connections import k8s_core_api
 from config import CONFIG_CLASS
-
-# This way the builder pod is always scheduled on the same node as the
-# registry to have quicker pushes. Moreover, the fact that the builder
-# pod always runs on the same node allow us to make use of on disk cache
-# for layers, which is mounted as a volume.
-_registry_pod_affinity = {
-    "podAffinity": {
-        "requiredDuringSchedulingIgnoredDuringExecution": [
-            {
-                "labelSelector": {
-                    "matchExpressions": [
-                        {
-                            "key": "app",
-                            "operator": "In",
-                            "values": ["docker-registry"],
-                        }
-                    ]
-                },
-                "topologyKey": "kubernetes.io/hostname",
-            }
-        ]
-    }
-}
-
 
 def image_build_task_to_pod_name(task_uuid: str) -> str:
     return f"image-build-task-{task_uuid}"
 
 
-def _get_image_builder_workflow_manifest(
+# Note that both are running with --progress=plain.
+_RUNTIME_TO_IMAGE_BUILDER_CMD = {
+    "docker": (
+        "docker buildx build -f {dockerfile_path} -t {full_image_name} . "
+        "--progress=plain"
+    ),
+    "containerd": (
+        "buildctl build --frontend=dockerfile.v0 --local context=. "
+        "--local dockerfile=. --opt filename=./{dockerfile_path} "
+        "--progress=plain "
+        "--output type=image,name={full_image_name},store=true"
+    ),
+}
+_IMAGE_BUILDER_BUILD_CMD = _RUNTIME_TO_IMAGE_BUILDER_CMD[_config.CONTAINER_RUNTIME]
+
+_RUNTIME_TO_IMAGE_BUILDER_VOLUME_MOUNTS = {
+    "docker": [{"name": "docker-socket", "mountPath": "/var/run/docker.sock"}],
+    "containerd": [
+        {"name": "buildkitd-socket", "mountPath": "/run/buildkit/buildkitd.sock"},
+    ],
+}
+
+_RUNTIME_TO_IMAGE_BUILDER_VOLUMES = {
+    "docker": [
+        {
+            "name": "docker-socket",
+            "path": "/var/run/docker.sock",
+            "hostPath": {"path": "/var/run/docker.sock", "type": "Socket"},
+        }
+    ],
+    "containerd": [
+        {
+            "name": "buildkitd-socket",
+            "hostPath": {
+                "path": "/run/orchest_buildkit/buildkitd.sock",
+                "type": "Socket",
+            },
+        },
+    ],
+}
+
+_IMAGE_BUILDER_VOLUME_MOUNTS = _RUNTIME_TO_IMAGE_BUILDER_VOLUME_MOUNTS[
+    _config.CONTAINER_RUNTIME
+]
+_IMAGE_BUILDER_VOLUMES = _RUNTIME_TO_IMAGE_BUILDER_VOLUMES[_config.CONTAINER_RUNTIME]
+
+
+def _get_image_builder_manifest(
     workflow_name,
     image_name,
     image_tag,
@@ -60,39 +83,34 @@ def _get_image_builder_workflow_manifest(
     reg_ip = utils.get_registry_ip()
     full_image_name = f"{reg_ip}/{image_name}:{image_tag}"
     manifest = {
-        "apiVersion": "argoproj.io/v1alpha1",
-        "kind": "Workflow",
+        "apiVersion": "v1",
+        "kind": "Pod",
         "metadata": {"name": workflow_name},
         "spec": {
-            "entrypoint": "build-env",
-            "templates": [
+            "containers": [
                 {
-                    "name": "build-env",
-                    "container": {
-                        "name": "image-builder",
-                        "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
-                        "workingDir": "/build-context",
-                        "command": ["/bin/sh", "-c"],
-                        "args": [
-                            CONFIG_CLASS.IMAGE_BUILDER_BUILD_CMD.format(
-                                dockerfile_path=dockerfile_path,
-                                full_image_name=full_image_name,
-                            )
-                        ],
-                        "securityContext": {
-                            "privileged": True,
-                        },
-                        "volumeMounts": [
-                            {
-                                "name": "userdir-pvc",
-                                "mountPath": "/build-context",
-                                "subPath": get_userdir_relpath(build_context_host_path),
-                                "readOnly": True,
-                            },
-                            {"name": "dockersock", "mountPath": "/var/run/docker.sock"},
-                        ],
+                    "name": "image-builder",
+                    "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
+                    "workingDir": "/build-context",
+                    "command": ["/bin/sh", "-c"],
+                    "args": [
+                        _IMAGE_BUILDER_BUILD_CMD.format(
+                            dockerfile_path=dockerfile_path,
+                            full_image_name=full_image_name,
+                        )
+                    ],
+                    "securityContext": {
+                        "privileged": True,
                     },
-                    "affinity": _registry_pod_affinity,
+                    "volumeMounts": [
+                        {
+                            "name": "userdir-pvc",
+                            "mountPath": "/build-context",
+                            "subPath": get_userdir_relpath(build_context_host_path),
+                            "readOnly": True,
+                        },
+                    ]
+                    + _IMAGE_BUILDER_VOLUME_MOUNTS,
                 },
             ],
             # The celery task actually takes care of deleting the
@@ -104,8 +122,6 @@ def _get_image_builder_workflow_manifest(
             },
             "dnsPolicy": "ClusterFirst",
             "restartPolicy": "Never",
-            # MULTITENANCY_TODO: different users should have different
-            # pvcs?
             "volumes": [
                 {
                     "name": "userdir-pvc",
@@ -113,37 +129,19 @@ def _get_image_builder_workflow_manifest(
                         "claimName": "userdir-pvc",
                     },
                 },
-                {
-                    "name": "dockersock",
-                    "path": "/var/run/docker.sock",
-                    "hostPath": {"path": "/var/run/docker.sock", "type": "Socket"},
-                },
-            ],
+            ]
+            + _IMAGE_BUILDER_VOLUMES,
         },
     }
 
-    # Mount docker.sock to pull from local docker daemon to enable
-    # pulling base images of the form docker-daemon:<image>.
     if CONFIG_CLASS.DEV_MODE:
-        manifest["spec"]["volumes"].append(
-            {
-                "name": "dockersock",
-                "hostPath": {"path": "/var/run/docker.sock", "type": ""},
-            }
-        )
-        container = manifest["spec"]["templates"][0]["container"]
-        container["volumeMounts"].append(
-            {"name": "dockersock", "mountPath": "/var/run/docker.sock"}
-        )
-        container["args"][0] = container["args"][0].replace(
-            "buildah build",
-            # Check if there is a newer image, if so, pull it.
-            "buildah build --pull=true",
-        )
+        # ENV_PERF_TODO: verify that it "just works" since the runtime
+        # socket is already mounted by default
+        ...
 
     # For extensions that need access to the settings on install.
     if _config.JUPYTER_IMAGE_NAME in image_name:
-        container = manifest["spec"]["templates"][0]["container"]
+        container = manifest["spec"]["containers"][0]
         container["volumeMounts"].append(
             {
                 "name": "userdir-pvc",
@@ -151,13 +149,14 @@ def _get_image_builder_workflow_manifest(
                 "subPath": ".orchest/user-configurations/jupyterlab/user-settings",
             }
         )
-        container["args"][0] = container["args"][0].replace(
-            "buildah build",
-            (
-                "buildah build -v "
-                "/jupyterlab-user-settings:/root/.jupyter/lab/user-settings "
-            ),
-        )
+        # ENV_PERF_TODO: settings should be copied by the dockerfile
+        # container["args"][0] = container["args"][0].replace(
+        #     "buildah build",
+        #     (
+        #         "buildah build -v "
+        #         "/jupyterlab-user-settings:/root/.jupyter/lab/user-settings "
+        #     ),
+        # )
 
     return manifest
 
@@ -174,6 +173,12 @@ class ImageBuildSidecar:
                       ▼    ▲          Setup script  Image
                     Pulling│
                     Base Image
+
+    Transitions of the state machine are implemented based on clues
+    obtained by the logs of the builder pod. At the moment, this
+    implementation works for both the buildkit and buildx based builder.
+    Introducing new builder might mean having to implement different
+    sidecars to deal with differences in logging behaviour.
     """
 
     SETUP_SCRIPT_ERROR_MSG = (
@@ -200,8 +205,12 @@ class ImageBuildSidecar:
         self.build_context = build_context
         self.user_logs_file_object = user_logs_file_object
         self.complete_logs_file_object = complete_logs_file_object
-        self.copying_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+COPY.*")
-        self.userscript_begin_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+RUN.*")
+        self.pulling_regex = re.compile(r"^\s*#\d+\s*sha256:")
+        self.copying_regex = re.compile(r"^\s*#\d+\s*\[\s*\d+\/\d+\s*\]\s*COPY.*")
+        self.userscript_begin_regex = re.compile(
+            r"^\s*#\d+\s*\[\s*\d+\/\d+\s*\]\s*RUN.*"
+        )
+        self.setup_script_cached_regex = re.compile(r"^\s*#\d+\s*CACHED")
 
     def start(self) -> None:
 
@@ -215,7 +224,6 @@ class ImageBuildSidecar:
         for event in w.stream(
             k8s_core_api.read_namespaced_pod_log,
             name=pod_name,
-            container="main",
             namespace=_config.ORCHEST_NAMESPACE,
             follow=True,
         ):
@@ -266,7 +274,7 @@ class ImageBuildSidecar:
         build_context,
     ) -> str:
         pod_name = image_build_task_to_pod_name(task_uuid)
-        manifest = _get_image_builder_workflow_manifest(
+        manifest = _get_image_builder_manifest(
             pod_name,
             image_name,
             image_tag,
@@ -277,9 +285,7 @@ class ImageBuildSidecar:
         msg = "Starting worker...\n"
         self._log(msg, False)
         ns = _config.ORCHEST_NAMESPACE
-        k8s_custom_obj_api.create_namespaced_custom_object(
-            "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
-        )
+        k8s_core_api.create_namespaced_pod(ns, body=manifest)
         utils.wait_for_pod_status(
             pod_name,
             ns,
@@ -289,14 +295,13 @@ class ImageBuildSidecar:
         return pod_name
 
     def _log_starting_build_phase(self, event: str) -> None:
-        if event.startswith("Trying to pull"):
+        if self.pulling_regex.match(event):
             self._log("\nPulling base image...", False)
             self.log_handler_function = self._log_base_image_pull_phase
         elif self.copying_regex.match(event):
             self._log("\nCopying context...", False)
             self.log_handler_function = self._log_copy_context_phase
         else:
-            # Append to "Building image..."
             self._log(".")
 
     def _log_storage_phase(self, pod_name: str) -> None:
@@ -342,7 +347,7 @@ class ImageBuildSidecar:
         return False
 
     def _log_setup_script_phase(self, event: str) -> None:
-        if event.startswith("--> Using cache"):
+        if self.setup_script_cached_regex.match(event):
             self._log("Found cached layer.", True)
             # Will start storing the image next.
             return True
@@ -350,7 +355,17 @@ class ImageBuildSidecar:
             # Will start storing the image next.
             return True
         else:
-            self._log(event, True)
+            # A 'echo "hello"' in the setup script would produce a line
+            # like the following:
+            # '#8 0.514 hello'
+            # For performance reasons we make use of the fact that there
+            # are exactly 2 spaces before the real log to filter out
+            # unwanted text in a way that doesn't hit performance too
+            # much.
+            iterator = re.finditer("\s", event)
+            next(iterator)
+            match = next(iterator)
+            self._log(event[match.end() :], True)
         return False
 
     def _log(self, msg, newline=False):
