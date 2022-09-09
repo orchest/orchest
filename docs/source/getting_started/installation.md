@@ -243,7 +243,7 @@ failing DNS queries during the replacement period.
 
 ```{warning}
 Configuration changes of CoreDNS will be lost when executing `kubeadm upgrade apply` or, in case of
-`minikube`, when stopping and starting your cluster (i.e. `minikube start`) -- see [Kubernetes
+`minikube`, when starting your cluster (i.e. `minikube start`) -- see [Kubernetes
 docs](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/#applying-coredns-configuration-changes).
 Thus you will have to reapply your changes whenever you run `kubeadm upgrade apply` or whenever you
 restart your minikube cluster.
@@ -255,10 +255,11 @@ start](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-recon
 then your changes to the configuration of CoreDNS are lost.
 
 What can I do about it? If you are using `kubeadm` directly, then you could skip the `kubeadm` addon
-phase and deploy the respective addons yourself. In case of minikube there is not much you can do
-besides reapplying the configuration because minikube includes `kubeadm` as the only available
-`--bootstrapper` ([source
-code](https://github.com/kubernetes/minikube/blob/e7764cd1ca1a089c7dd7589446f81d87f62a2e22/pkg/minikube/cluster/cluster.go#L45-L53)).
+phase and deploy the respective addons yourself. In case of minikube you need to overwrite the
+`kubeadm` binary with a custom one that was compiled with a changed CoreDNS manifest (because
+minikube includes `kubeadm` as the only available `--bootstrapper` ([source
+code](https://github.com/kubernetes/minikube/blob/e7764cd1ca1a089c7dd7589446f81d87f62a2e22/pkg/minikube/cluster/cluster.go#L45-L53))).
+Or you could just reapply your CoreDNS manifest changes each time.
 ```
 
 ## Closing notes
