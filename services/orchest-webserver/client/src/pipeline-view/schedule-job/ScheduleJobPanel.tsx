@@ -5,6 +5,8 @@ import {
   useSecondarySidePanelWidth,
 } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
+import { useSaveJobChanges } from "@/jobs-view/hooks/useSaveJobChanges";
+import { useUpdateJobOnUnmount } from "@/jobs-view/hooks/useUpdateJobOnUnmount";
 import { JobEnvVariables } from "@/jobs-view/job-view/JobEnvVariables";
 import { JobOverview } from "@/jobs-view/job-view/JobOverview";
 import { JobParameters } from "@/jobs-view/job-view/JobParameters";
@@ -16,19 +18,24 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { ScheduleJobActions } from "./ScheduleJobActions";
+import { useScheduleJobSnackBarMessage } from "./ScheduleJobSnackBar";
 
 export const ScheduleJobPanel = () => {
   const [panelWidth, setPanelWidth] = useSecondarySidePanelWidth();
-  const {
-    uiState: { draftJob },
-    uiStateDispatch,
-  } = usePipelineUiStateContext();
 
-  const onClose = () => {
+  const { uiStateDispatch } = usePipelineUiStateContext();
+
+  const setSnackBarMessage = useScheduleJobSnackBarMessage(
+    (state) => state.setMessage
+  );
+
+  const onClosePanel = React.useCallback(() => {
     uiStateDispatch({ type: "SET_DRAFT_JOB", payload: undefined });
-  };
+    setSnackBarMessage("Job draft has been saved in Jobs");
+  }, [uiStateDispatch, setSnackBarMessage]);
 
-  if (!draftJob) return null;
+  useSaveJobChanges();
+  useUpdateJobOnUnmount();
 
   return (
     <ResizablePane
@@ -56,7 +63,7 @@ export const ScheduleJobPanel = () => {
         justifyContent="space-between"
       >
         <Box flex={1}>Schedule Job</Box>
-        <IconButton onClick={onClose}>
+        <IconButton onClick={onClosePanel}>
           <CloseOutlined />
         </IconButton>
       </Typography>
