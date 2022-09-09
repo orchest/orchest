@@ -4,4 +4,4 @@ ADD buildkitd.toml /etc/buildkit/buildkitd.toml
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 ENTRYPOINT [ "/usr/bin/buildkitd" ]
-CMD ["--addr", "unix:///run/buildkit/orchest_buildkitd.sock"]
+CMD ["--addr", "unix:///run/orchest_buildkit/buildkitd.sock"]

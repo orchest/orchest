@@ -3,6 +3,7 @@ package orchestcluster
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
@@ -358,7 +359,7 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 		return false, err
 	}
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME"] = runtime
-	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = socketPath
+	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = strings.Replace(socketPath, "unix://", "", -1)
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
 		"image-puller", occ.config.OrchestDefaultVersion)
 
@@ -529,6 +530,13 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Applications = occ.config.DefaultApplications
 	}
 
+	// BuildKitDaemon configs
+	buildKitDaemonImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.BuildKitDaemon, copy.Spec.Orchest.Version)
+	if copy.Spec.Orchest.BuildKitDaemon.Image != buildKitDaemonImage {
+		changed = true
+		copy.Spec.Orchest.BuildKitDaemon.Image = buildKitDaemonImage
+	}
+
 	// set docker-registry default values
 	for i := 0; i < len(copy.Spec.Applications); i++ {
 		app := &copy.Spec.Applications[i]
@@ -678,6 +686,15 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 
 	for _, componentName := range orderOfDeployment {
 		component, ok := components[componentName]
+
+		// Do not create the buildkit-daemon when not needed.
+		if componentName == controller.BuildKitDaemon {
+			containerRuntime, _, _ := detectContainerRuntime(ctx, occ.Client(), orchest)
+			if containerRuntime != "containerd" {
+				continue
+			}
+		}
+
 		if ok {
 			// If component is not ready, the key will be requeued to be checked later
 			if !controller.IsComponentReady(*component) {

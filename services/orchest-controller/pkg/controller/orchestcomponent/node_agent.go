@@ -2,6 +2,7 @@ package orchestcomponent
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -75,6 +76,8 @@ func getNodeAgentDaemonset(registryIP string, metadata metav1.ObjectMeta,
 	var one int64 = 1
 
 	socketPath := utils.GetKeyFromEnvVar(component.Spec.Template.Env, "CONTAINER_RUNTIME_SOCKET")
+	// Apparently needed for old/existing clusters?
+	socketPath = strings.Replace(socketPath, "unix://", "", -1)
 	hostPathSocket := corev1.HostPathType("Socket")
 
 	containerRuntime := utils.GetKeyFromEnvVar(component.Spec.Template.Env, "CONTAINER_RUNTIME")

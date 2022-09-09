@@ -31,6 +31,7 @@ var (
 		controller.AuthServer,
 		controller.OrchestWebserver,
 		controller.NodeAgent,
+		controller.BuildKitDaemon,
 	}
 
 	// Registry helm parameters
@@ -220,6 +221,8 @@ func GetComponentTemplate(name string, orchest *orchestv1alpha1.OrchestCluster) 
 		componentTemplate = orchest.Spec.Orchest.OrchestWebServer.DeepCopy()
 	case controller.NodeAgent:
 		componentTemplate = orchest.Spec.Orchest.NodeAgent.DeepCopy()
+	case controller.BuildKitDaemon:
+		componentTemplate = orchest.Spec.Orchest.BuildKitDaemon.DeepCopy()
 	default:
 		return nil, errors.Errorf("unrecognized component name %s", name)
 	}

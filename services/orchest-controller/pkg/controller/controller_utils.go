@@ -30,6 +30,7 @@ var (
 	AuthServer        = "auth-server"
 	OrchestWebserver  = "orchest-webserver"
 	NodeAgent         = "node-agent"
+	BuildKitDaemon    = "buildkit-daemon"
 
 	// PVC names
 	UserDirName = "userdir-pvc"
