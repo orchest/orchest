@@ -7,9 +7,11 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import React from "react";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
 export const ScheduleJobActions = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
+  const { uiStateDispatch } = usePipelineUiStateContext();
   const scheduleJob = useScheduleJob();
   const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
 
@@ -17,6 +19,11 @@ export const ScheduleJobActions = () => {
     navigateTo(siteMap.jobs.path, {
       query: { projectUuid, jobUuid },
     });
+  };
+
+  const scheduleJobAndClosePanel = () => {
+    scheduleJob();
+    uiStateDispatch({ type: "SET_DRAFT_JOB", payload: undefined });
   };
 
   return (
@@ -41,8 +48,8 @@ export const ScheduleJobActions = () => {
           <Button
             variant="contained"
             disabled={!jobUuid}
-            onClick={scheduleJob}
-            onAuxClick={scheduleJob}
+            onClick={scheduleJobAndClosePanel}
+            onAuxClick={scheduleJobAndClosePanel}
           >
             Schedule Job
           </Button>

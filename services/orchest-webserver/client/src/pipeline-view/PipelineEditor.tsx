@@ -20,6 +20,7 @@ import { PipelineEditorRoot } from "./PipelineEditorRoot";
 import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { ReadOnlyBanner } from "./ReadOnlyBanner";
 import { SaveStatus } from "./SaveStatus";
+import { ScheduleJobPanel } from "./schedule-job/ScheduleJobPanel";
 import { SelectionRectangle } from "./SelectionRectangle";
 import { StepDetails } from "./step-details/StepDetails";
 import { StepExecutionState } from "./StepExecutionState";
@@ -324,6 +325,7 @@ export const PipelineEditor = () => {
             onSave={onSaveDetails}
             onClose={closeDetails}
           />
+          <ScheduleJobPanel />
         </Stack>
         {pipelineJson && (
           <Stack

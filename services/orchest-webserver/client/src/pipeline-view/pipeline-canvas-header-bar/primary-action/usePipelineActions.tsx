@@ -13,6 +13,7 @@ import React from "react";
 export const usePipelineActions = () => {
   const { jobUuid } = useCustomRoute();
   const initJobChanges = useEditJob((state) => state.initJobChanges);
+  const startEditing = useEditJob((state) => state.startEditing);
   const { runUuid, isReadOnly } = usePipelineDataContext();
   const {
     uiState: { selectedSteps, steps },
@@ -70,10 +71,19 @@ export const usePipelineActions = () => {
     if (!isAllowedToCreateJob) return;
     const jobData = await createJob();
     const jobChanges = pickJobChanges(jobData);
-    if (jobChanges) initJobChanges(jobChanges);
-    if (jobData)
-      uiStateDispatch({ type: "SET_DRAFT_JOB", payload: jobData.uuid });
-  }, [createJob, uiStateDispatch, isAllowedToCreateJob, initJobChanges]);
+    if (jobChanges) {
+      initJobChanges(jobChanges);
+      startEditing();
+    }
+    if (jobChanges)
+      uiStateDispatch({ type: "SET_DRAFT_JOB", payload: jobChanges.uuid });
+  }, [
+    createJob,
+    uiStateDispatch,
+    isAllowedToCreateJob,
+    initJobChanges,
+    startEditing,
+  ]);
 
   // No operation is allowed when read-only.
   if (isReadOnly) return {};
