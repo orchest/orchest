@@ -1,6 +1,7 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { JobChanges } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useLoadValueFromJobChanges = <T,>(
@@ -11,13 +12,19 @@ export const useLoadValueFromJobChanges = <T,>(
   const loadValueRef = React.useRef(loadValue);
   const { jobUuid } = useCustomRoute();
   const value = useEditJob((state) => selectorRef.current(state.jobChanges));
-  const isJobLoaded = useEditJob(
-    (state) => jobUuid && jobUuid === state.jobChanges?.uuid
-  );
+  const isJobLoaded = useEditJob((state) => {
+    const jobChangesUuid = state.jobChanges?.uuid;
+    const isEditingInPipelineEditor = !hasValue(jobUuid);
+    const hasLoadedJobChanges = jobUuid === jobChangesUuid;
+    return (
+      hasValue(jobChangesUuid) &&
+      (isEditingInPipelineEditor || hasLoadedJobChanges)
+    );
+  });
 
   const hasLoaded = React.useRef(false);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!hasLoaded.current && isJobLoaded) {
       hasLoaded.current = true;
       loadValueRef.current(value);

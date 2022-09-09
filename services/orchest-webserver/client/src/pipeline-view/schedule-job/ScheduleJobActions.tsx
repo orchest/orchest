@@ -8,12 +8,16 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
+import { useScheduleJobSnackBarMessage } from "./ScheduleJobSnackBar";
 
 export const ScheduleJobActions = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
   const { uiStateDispatch } = usePipelineUiStateContext();
   const scheduleJob = useScheduleJob();
   const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
+  const jobName = useEditJob((state) => state.jobChanges?.name);
+
+  const setMessage = useScheduleJobSnackBarMessage((state) => state.setMessage);
 
   const editInJobs = async () => {
     navigateTo(siteMap.jobs.path, {
@@ -23,6 +27,7 @@ export const ScheduleJobActions = () => {
 
   const scheduleJobAndClosePanel = () => {
     scheduleJob();
+    setMessage(`Job "${jobName}" has been scheduled.`);
     uiStateDispatch({ type: "SET_DRAFT_JOB", payload: undefined });
   };
 
