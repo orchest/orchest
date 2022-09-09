@@ -17,11 +17,11 @@ def pretty_print_env_var_suggestion(pipeline: Pipeline):
         print(
             "ORCHEST_STEP_UUID="
             + step.properties.get("uuid")
-            + f" (Step {step.properties.get('title')} \
-            { step.properties.get('file_path') })"
+            + " (Step %s %s)"
+            % (step.properties.get("title"), step.properties.get("file_path"))
         )
 
-    print("\nFor example by executing: ORCHEST_STEP_UUID=<uuid> python myfile.py")
+    print("\nFor example by executing: ORCHEST_STEP_UUID=<uuid> python myfile.py\n")
 
 
 def get_step_uuid(pipeline: Pipeline) -> str:
