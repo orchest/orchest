@@ -24,6 +24,18 @@ def launch_environment_shell(
     Args:
         session_uuid: UUID to identify the session k8s namespace with,
             which is where all related resources will be deployed.
+        environment_uuid: envirohnment UUID to embed UUID in the service
+            name which is used for pretty-printing and restarts.
+        project_uuid: UUID of the project.
+        pipeline_uuid: UUID of the pipeline.
+        pipeline_path: Relative path (from project directory root) to
+            the pipeline file e.g. 'abc/pipeline.orchest'.
+        userdir_pvc: Name of the k8s PVC e.g. 'userdir-pvc'.
+        project_dir: Name of the project directory e.g. 'my-project'
+            note this is always a single path component.
+        environment_image: The full image specification that can be
+            given directly as the image string to the container runtime.
+
 
     The resources created in k8s
       deployments
