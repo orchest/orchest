@@ -79,6 +79,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "image-puller"
         "image-builder-buildx"
         "image-builder-buildkit"
+        "buildkit-daemon"
     )
 fi
 
@@ -436,6 +437,17 @@ do
             -t "orchest/image-builder-buildkit:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../utility-containers/image-builder-buildkit/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    if [ $IMG == "buildkit-daemon" ]; then
+
+        build_ctx=$DIR/../services/buildkit-daemon
+        build=(docker build --progress=plain \
+            -t "orchest/buildkit-daemon:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/buildkit-daemon/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
