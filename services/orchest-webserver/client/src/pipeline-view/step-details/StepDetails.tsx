@@ -114,7 +114,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
         <Typography
           component="div"
           variant="h6"
-          sx={{ padding: (theme) => theme.spacing(2, 3) }}
+          sx={{ padding: (theme) => theme.spacing(2, 1, 2, 3) }}
           display="flex"
           flexDirection="row"
           justifyContent="space-between"

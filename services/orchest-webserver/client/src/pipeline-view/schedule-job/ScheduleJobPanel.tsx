@@ -5,13 +5,16 @@ import {
   useSecondarySidePanelWidth,
 } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
+import { JobEnvVariables } from "@/jobs-view/job-view/JobEnvVariables";
+import { JobOverview } from "@/jobs-view/job-view/JobOverview";
+import { JobParameters } from "@/jobs-view/job-view/JobParameters";
 import { CloseOutlined } from "@mui/icons-material";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { usePipelineUiState } from "../hooks/usePipelineUiState";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { ScheduleJobActions } from "./ScheduleJobActions";
 
 export const ScheduleJobPanel = () => {
@@ -19,7 +22,8 @@ export const ScheduleJobPanel = () => {
   const {
     uiState: { draftJob },
     uiStateDispatch,
-  } = usePipelineUiState();
+  } = usePipelineUiStateContext();
+
   const onClose = () => {
     uiStateDispatch({ type: "SET_DRAFT_JOB", payload: undefined });
   };
@@ -46,7 +50,7 @@ export const ScheduleJobPanel = () => {
       <Typography
         component="div"
         variant="h6"
-        sx={{ padding: (theme) => theme.spacing(2, 3) }}
+        sx={{ padding: (theme) => theme.spacing(2, 1, 2, 3) }}
         display="flex"
         flexDirection="row"
         justifyContent="space-between"
@@ -62,10 +66,18 @@ export const ScheduleJobPanel = () => {
           flexDirection: "column",
           flex: "1 1 0",
         }}
+        style={{ maxWidth: panelWidth, width: panelWidth }}
       >
-        {
-          // JobView
-        }
+        <Box
+          sx={{
+            padding: (theme) => theme.spacing(0, 3, 3, 3),
+            marginTop: (theme) => theme.spacing(-2),
+          }}
+        >
+          <JobOverview hideSelectPipeline />
+          <JobParameters />
+          <JobEnvVariables />
+        </Box>
       </Overflowable>
       <Stack marginTop="auto">
         <ScheduleJobActions />

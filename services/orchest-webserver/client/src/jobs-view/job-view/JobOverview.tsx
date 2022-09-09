@@ -10,7 +10,9 @@ import { EditJobConfig } from "./EditJobConfig";
 import { EditJobName } from "./EditJobName";
 import { EditJobPipeline } from "./EditJobPipeline";
 
-export const JobOverview = () => {
+type JobOverviewProps = { hideSelectPipeline?: true };
+
+export const JobOverview = ({ hideSelectPipeline }: JobOverviewProps) => {
   const isEditing = useEditJob((state) => state.isEditing);
 
   return (
@@ -21,9 +23,9 @@ export const JobOverview = () => {
         </Typography>
       </AccordionSummary>
       {isEditing && (
-        <AccordionDetails sx={{ paddingTop: (theme) => theme.spacing(2) }}>
+        <AccordionDetails sx={{ padding: (theme) => theme.spacing(2, 0) }}>
           <EditJobName />
-          <EditJobPipeline />
+          {!hideSelectPipeline && <EditJobPipeline />}
           <EditJobConfig />
         </AccordionDetails>
       )}
