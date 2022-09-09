@@ -53,6 +53,14 @@ export const useOpenFile = () => {
     [notebookFilePath, navigateToJupyterLab, pipelineCwd]
   );
 
+  const openFile = React.useCallback(
+    (e: React.MouseEvent | undefined, filePath: string) => {
+      if (pipelineCwd && filePath)
+        navigateToJupyterLab(e, join(pipelineCwd, filePath));
+    },
+    [navigateToJupyterLab, pipelineCwd]
+  );
+
   const openFilePreviewView = React.useCallback(
     (e: React.MouseEvent | undefined, stepUuid: string) => {
       navigateTo(
@@ -79,5 +87,5 @@ export const useOpenFile = () => {
     ]
   );
 
-  return { navigateToJupyterLab, openNotebook, openFilePreviewView };
+  return { navigateToJupyterLab, openNotebook, openFile, openFilePreviewView };
 };

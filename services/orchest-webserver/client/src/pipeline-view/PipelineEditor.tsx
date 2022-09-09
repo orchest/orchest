@@ -92,11 +92,11 @@ export const PipelineEditor = () => {
     [uiStateDispatch]
   );
 
-  const onDoubleClickStep = (stepUUID: string) => {
+  const onDoubleClickStep = (stepUuid: string) => {
     if (isReadOnly) {
-      openFilePreviewView(undefined, stepUUID);
+      openFilePreviewView(undefined, stepUuid);
     } else if (pipelineCwd) {
-      openNotebook(undefined, stepUUID);
+      openNotebook(undefined, stepUuid);
     }
   };
 
