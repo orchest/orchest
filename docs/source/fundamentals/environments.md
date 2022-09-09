@@ -103,6 +103,22 @@ Installing packages with `conda` is also supported but might take longer (due to
 🚨 Do not install packages by running {code}`!pip install <package-name>` inside your Jupyter Notebook. This causes the package to be installed every time you run the Pipeline step. It is not saved in the environment as containers are stateless!
 ```
 
+## Environment shells
+
+JupyterLab has integrated support for shell sessions using a terminal emulator. To run your scripts and CLI commands while developing your data pipeline you can make use of shells that are based on the environments you have in your project. The environment container image is used such that you have access to all installed programs/dependencies.
+
+All you need to do is open JupyterLab in a session and click on Terminal:
+
+```{image} ../img/environment-shells-jupyterlab.png
+:width: 500
+:alt: Terminal in JupyterLab
+:align: center
+```
+
+```{warning}
+If you make any changes to your environment, you'll need to restart your environment shell to see the changes. You can restart your environment shell by exiting out of it by typing Ctrl + D or typing 'exit'.
+```
+
 ## Custom environment images
 
 Fully custom environment images are not recommended. This is because environments require a particular image structure to cater for Jupyter Docker stacks dependencies, Pipeline runs and hosting active Jupyter kernels. Instead, use our default base images and customize them via the _set-up script_.
