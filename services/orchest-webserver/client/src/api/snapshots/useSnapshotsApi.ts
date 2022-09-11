@@ -1,4 +1,5 @@
 import { SnapshotData } from "@/types";
+import { choke } from "@/utils/promise";
 import create from "zustand";
 import { snapshotsApi } from "./snapshotsApi";
 
@@ -7,17 +8,26 @@ export type SnapshotsApi = {
   fetchOne: (snapshotUuid: string) => Promise<SnapshotData | undefined>;
 };
 
-export const useSnapshotsApi = create<SnapshotsApi>((set) => {
+export const useSnapshotsApi = create<SnapshotsApi>((set, get) => {
+  const replaceOrAddSnapshot = (newSnapshot: SnapshotData) => {
+    const { snapshots = [] } = get();
+
+    if (!snapshots.find((snap) => snap.uuid === newSnapshot.uuid)) {
+      return [...snapshots, newSnapshot];
+    } else {
+      return snapshots.map((snap) =>
+        snap.uuid === newSnapshot.uuid ? newSnapshot : snap
+      );
+    }
+  };
+
   return {
-    fetchOne: async (snapshotUuid) => {
+    snapshots: undefined,
+    fetchOne: choke(async (snapshotUuid) => {
       const snapshot = await snapshotsApi.fetchOne(snapshotUuid);
-      set((state) => {
-        const snapshots = state.snapshots?.map((existingSnapshot) =>
-          existingSnapshot.uuid === snapshotUuid ? snapshot : existingSnapshot
-        );
-        return { snapshots };
-      });
+
+      set({ snapshots: replaceOrAddSnapshot(snapshot) });
       return snapshot;
-    },
+    }),
   };
 });
