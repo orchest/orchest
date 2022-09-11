@@ -1,10 +1,11 @@
 import { hasValue } from "@orchest/lib-utils";
 
-export type AnyRecord = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyRecord = Record<string, any>;
 export type PropsOf<T extends AnyRecord> = readonly (keyof T)[];
 export type EntryPredicate = ([string, unknown]) => boolean;
 
-const entryHasValue: EntryPredicate = ([, value]) => !hasValue(value);
+const entryHasValue: EntryPredicate = ([, value]) => hasValue(value);
 
 /**
  * Returns the properties of the record T as a typed array.
