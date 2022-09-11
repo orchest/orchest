@@ -1,3 +1,35 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AsyncFunction<T> = (...args: any[]) => Promise<T>;
+
+/**
+ * Limits creation of new promises from an asynchronous function.
+ * While the the promise from the first call is pending,
+ * consecutive calls with equal arguments returns
+ * the promise from the first call instead of creating a new one.
+ *
+ * This is useful in (for example) fetcher functions when multiple components
+ * can request the same data within short succession.
+ *
+ * Arguments are compared by value using `JSON.stringify`.
+ * @param fn The function to choke.
+ * @returns
+ *  A proxy function that either calls `fn` or
+ *  returns a pending promise created with equal arguments.
+ */
+export const choke = <T, F extends AsyncFunction<T>>(fn: F): F => {
+  const pending: Record<string, Promise<T>> = Object.create(null);
+
+  return ((...args: Parameters<F>) => {
+    const key = args
+      .map((arg) =>
+        typeof arg === "bigint" ? arg.toString() : JSON.stringify(arg)
+      )
+      .join(", ");
+
+    return (pending[key] ??= fn(...args).finally(() => delete pending[key]));
+  }) as F;
+};
+
 export type CancelablePromise<T = unknown> = Promise<T> & {
   isCanceled: () => boolean;
   cancel: () => void;
