@@ -131,6 +131,17 @@ export interface IQueryArgs
   read_only?: "true" | "false";
 }
 
+export type ScopeParameters = {
+  jobUuid: string;
+  runUuid: string;
+  projectUuid: string;
+  pipelineUuid: string;
+  environmentUuid: string;
+  stepUuid: string;
+};
+
+export type ScopeParameter = keyof ScopeParameters;
+
 export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
   queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
 };

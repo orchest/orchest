@@ -1,4 +1,7 @@
+import { RouteName, siteMap } from "@/routingConfig";
+import { ScopeParameter } from "@/types";
 import { openInNewTab } from "@/utils/openInNewTab";
+import { pick, prune } from "@/utils/record";
 import { toQueryString } from "@/utils/routing";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -180,4 +183,29 @@ export {
   useLocationQuery,
   useHistoryListener,
   useCustomRoute,
+};
+
+export const useCreateRouteLink = () => {
+  const currentRoute = useCustomRoute();
+
+  return (name: RouteName, params: Partial<Record<ScopeParameter, string>>) => {
+    const { path, scope = [] } = siteMap[name];
+
+    return (
+      path +
+      toQueryString({ ...pick(currentRoute, ...scope), ...prune(params) })
+    );
+  };
+};
+
+export const useRouteLink = (
+  name: RouteName,
+  params: Partial<Record<ScopeParameter, string>>
+) => {
+  const { path, scope = [] } = siteMap[name];
+  const currentRoute = useCustomRoute();
+
+  return (
+    path + toQueryString({ ...pick(currentRoute, ...scope), ...prune(params) })
+  );
 };
