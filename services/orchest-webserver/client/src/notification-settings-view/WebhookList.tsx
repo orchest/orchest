@@ -2,7 +2,7 @@ import { IconButton } from "@/components/common/IconButton";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { useAppContext } from "@/contexts/AppContext";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { STATUS } from "@/hooks/useAsync";
+import { AsyncStatus } from "@/hooks/useAsync";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import WebhookIcon from "@mui/icons-material/Webhook";
@@ -37,7 +37,9 @@ export const WebhookList = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const onClose = React.useCallback(() => setIsOpen(false), []);
 
-  const webhooksVerifiedStatusRef = React.useRef<Record<string, STATUS>>({});
+  const webhooksVerifiedStatusRef = React.useRef<Record<string, AsyncStatus>>(
+    {}
+  );
 
   React.useEffect(() => {
     webhooks.forEach((hook) => {
