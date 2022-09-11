@@ -1,11 +1,11 @@
-import { useCurrentJobRun } from "@/hooks/useCurrentJobRun";
+import { useActiveJobRun } from "@/hooks/useActiveJobRun";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 
 export const CancelJobRunButton = () => {
-  const { cancelRun, isCancelable } = useCurrentJobRun();
+  const { cancelRun, isCancelable } = useActiveJobRun();
   const title = isCancelable ? "Cancel the job run" : "The job is not running";
 
   return (
