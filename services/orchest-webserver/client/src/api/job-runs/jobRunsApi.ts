@@ -1,5 +1,6 @@
-import { PipelineRun } from "@/types";
+import { JobRunsPage, PipelineRun } from "@/types";
 import { join } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import { fetcher } from "@orchest/lib-utils";
 
 const BASE_URL = "/catch/api-proxy/api/jobs/";
@@ -10,6 +11,11 @@ export type StatusUpdate = {
   status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
 };
 
+export type PageQuery = {
+  page: number;
+  pageSize: number;
+};
+
 export type StepStatusUpdate = StatusUpdate & { stepUuid: string };
 
 export const fetchOne = (jobUuid: string, runUuid: string) =>
@@ -17,6 +23,11 @@ export const fetchOne = (jobUuid: string, runUuid: string) =>
 
 export const fetchAll = (jobUuid: string) =>
   fetcher<PipelineRun[]>(join(BASE_URL, jobUuid, "pipeline_runs"));
+
+export const fetchPage = (jobUuid: string, pageQuery: PageQuery) =>
+  fetcher<JobRunsPage>(
+    join(BASE_URL, jobUuid, "pipeline_runs") + "?" + queryArgs(pageQuery)
+  );
 
 export const setStatus = ({ jobUuid, runUuid, status }: StatusUpdate) =>
   fetcher<void>(join(BASE_URL, jobUuid, runUuid), {
@@ -42,8 +53,9 @@ export const cancel = (jobUuid: string, runUuid: string) =>
 
 export const jobRunsApi = {
   cancel,
-  fetch: fetchOne,
+  fetchOne,
   fetchAll,
+  fetchPage,
   setStatus,
   setStepStatus,
 };

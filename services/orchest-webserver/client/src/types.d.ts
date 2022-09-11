@@ -207,11 +207,18 @@ export type PipelineRunStep = {
   finished_time: string;
 };
 
+export type PipelineRunStatus =
+  | "PENDING"
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED";
+
 export type PipelineRun = {
   uuid: string;
   project_uuid: string;
   pipeline_uuid: string;
-  status: TStatus;
+  status: PipelineRunStatus;
   started_time: string;
   finished_time: string;
   pipeline_steps: PipelineRunStep[];
@@ -222,6 +229,11 @@ export type PipelineRun = {
   pipeline_run_index: number;
   parameters: Record<string, Json>;
   server_time: string;
+};
+
+export type JobRunsPage = {
+  pipeline_runs: PipelineRun[];
+  pagination_data: Pagination;
 };
 
 export type StrategyJsonValue = {
