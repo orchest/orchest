@@ -55,11 +55,6 @@ export const prune = <T extends AnyRecord, R extends AnyRecord = T>(
   predicate: EntryPredicate = entryHasValue
 ) => Object.fromEntries(Object.entries(record).filter(predicate)) as R;
 
-/**
- * Returns a predicate which returns true when a property of a record is strictly equal to a provided value.
- * This is useful in for instance, `Array.find` or `replaces`.
- */
-export const equates = <T extends AnyRecord, P extends keyof T>(
-  prop: P,
-  value: unknown
-) => (item: T) => item[prop] === value;
+/** Checks whether a record has the expected properties from another. */
+export const equalsShallow = (expected: AnyRecord, actual: AnyRecord) =>
+  Object.entries(expected).every(([prop, value]) => actual[prop] === value);
