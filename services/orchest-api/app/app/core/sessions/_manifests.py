@@ -9,7 +9,6 @@ import os
 import shlex
 import traceback
 from typing import Any, Dict, Optional, Tuple
-from uuid import uuid4
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import add_image_puller_if_needed, get_userdir_relpath
@@ -250,7 +249,7 @@ def _get_session_sidecar_deployment_manifest(
                                 "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                             },
                             "imagePullPolicy": "IfNotPresent",
-                            "env": get_orchest_sdk_vars(
+                            "env": _get_orchest_sdk_vars(
                                 project_uuid,
                                 pipeline_uuid,
                                 _config.PIPELINE_FILE,
@@ -280,7 +279,11 @@ def _get_session_sidecar_deployment_manifest(
 
 
 def _get_orchest_sdk_vars(
-    project_uuid, pipeline_uuid, pipeline_file, session_uuid, session_type
+    project_uuid: str,
+    pipeline_uuid: str,
+    pipeline_file: str,
+    session_uuid: str,
+    session_type: SessionType,
 ):
     return [
         {"name": k, "value": v}
@@ -296,7 +299,7 @@ def _get_orchest_sdk_vars(
 
 def _get_environment_shell_deployment_service_manifest(
     session_uuid: str,
-    environment_uuid: str,
+    service_name: str,
     project_uuid: str,
     pipeline_uuid: str,
     pipeline_path: str,
@@ -310,7 +313,7 @@ def _get_environment_shell_deployment_service_manifest(
     session, but has a detached lifecycle in the sense
     that environment shells can be started/stopped
     independently from the session start/stop.
-    
+
     Note that environment shells will always require
     an interactive session to be available and
     stopping an interactive session will always stop
@@ -318,11 +321,12 @@ def _get_environment_shell_deployment_service_manifest(
     """
 
     metadata = {
-        "name": f"environment-shell-{environment_uuid}-{(str(uuid4()))[:6]}",
+        "name": service_name,
         "labels": {
             "app": "environment-shell",
             "project_uuid": project_uuid,
             "session_uuid": session_uuid,
+            "shell_uuid": session_uuid,
         },
     }
 
@@ -372,7 +376,7 @@ def _get_environment_shell_deployment_service_manifest(
                                 pipeline_uuid,
                                 _config.PIPELINE_FILE,
                                 session_uuid,
-                                "interactive",
+                                SessionType.INTERACTIVE,
                             ),
                             "resources": {
                                 "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}

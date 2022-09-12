@@ -1,5 +1,3 @@
-import threading
-
 import requests
 from flask import current_app, jsonify, request
 
@@ -358,7 +356,14 @@ def register_orchest_api_views(app, db):
         # automatically by the orchest-api.
         project_envs = get_environments(project_uuid)
         if len(project_envs) > 0 and resp.status_code == 201:
-
+            # We use the first environment that gets
+            # passed by the endpoint as it's
+            # assumed to be the "default" environment
+            # for this project. Currently, we
+            # don't explicitly encode which
+            # environment is the default. So we
+            # depend on the result being a list
+            # (ordered).
             json_data = {
                 "pipeline_uuid": pipeline_uuid,
                 "pipeline_path": pipeline_path,
@@ -368,16 +373,15 @@ def register_orchest_api_views(app, db):
                 "project_dir": project_dir,
             }
 
-            # Don't wait for the response
-            threading.Thread(
-                target=requests.post,
-                args=(
-                    "http://"
-                    + app.config["ORCHEST_API_ADDRESS"]
-                    + "/api/environment-shells/",
-                ),
-                kwargs={"json": json_data},
-            ).start()
+            url = (
+                "http://"
+                + app.config["ORCHEST_API_ADDRESS"]
+                + "/api/environment-shells/"
+            )
+
+            current_app.config["SCHEDULER"].add_job(
+                requests.post, args=[url], kwargs={"json": json_data}
+            )
 
         return resp.content, resp.status_code, resp.headers.items()
 

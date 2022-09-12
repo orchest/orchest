@@ -15,7 +15,12 @@ RUN apt-get update \
 
 # Build JupyterLab, pre-install thrid-party extensions and our custom
 # extensions.
+RUN mkdir -p /orchest/service/jupyter-server
+WORKDIR /orchest/service/jupyter-server
+
 COPY ./requirements.txt .
+COPY ./lib/python /orchest/lib/python
+
 ARG extension_dir=/jupyterlab-orchest-build
 ARG pip_jupyter_extension_dir=/usr/local/share/jupyter/lab/extensions
 RUN pip install pip --upgrade \
@@ -40,7 +45,6 @@ COPY patch-pip.sh pip-warning.py /
 RUN bash /patch-pip.sh
 
 COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
-
 COPY shellspawner/shellspawner /usr/bin/shellspawner
 
 # Add shellspawner to terminal profile

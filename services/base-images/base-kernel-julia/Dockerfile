@@ -31,9 +31,7 @@ RUN chown $NB_USER -R /orchest/orchest-sdk \
     echo -e "jovyan\njovyan" | passwd jovyan
 
 
-# Exclude hostname from default prompt
 USER $NB_USER
-RUN echo "export PS1='\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> ~/.bashrc
 
 # Install requirements on base environment
 WORKDIR /orchest/services/base-images/runnable-shared/runner
@@ -48,7 +46,7 @@ RUN python -m venv /home/$NB_USER/venv \
     && deactivate
 
 # Empty configuration file for kernel initialization
-RUN touch /home/jovyan/.orchestrc
+RUN touch /home/jovyan/.orchestrc && echo "export PS1='\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> ~/.bashrc
 
 # Get application files.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner

@@ -1,7 +1,7 @@
-"""The environment-shells namespace is used by the 
-orchest-webserver to start environment shells that 
-are container backed shell sessions that let users 
-execute commands in a terminal session that are 
+"""The environment-shells namespace is used by the
+orchest-webserver to start environment shells that
+are container backed shell sessions that let users
+execute commands in a terminal session that are
 based on Orchest Environments created by the user.
 
 The orchest-webserver invokes these endpoints
@@ -10,6 +10,7 @@ script.
 """
 
 from typing import Any, Dict
+from uuid import uuid4
 
 from flask import request
 from flask.globals import current_app
@@ -30,23 +31,11 @@ from app.core.environments import get_env_uuids_to_image_mappings
 api = Namespace("environment-shells", description="Manage environment shells")
 api = schema.register_schema(api)
 
-@api.route("/<string:session_uuid>")
-class EnvironmentShellSessionList(Resource):
-    @api.doc("get_environment_shells")
-    @api.marshal_with(schema.environment_shells, code=200)
-    def get(self, session_uuid):
-        """Gets environment shells for a given session_uuid."""
-        try:
-            environment_shells = get_environment_shells(session_uuid)
-            return {"environment_shells": environment_shells}
-        except Exception as e:
-            return {"message": "%s [%s]" % (e, type(e))}, 500
-
 
 @api.route("/<string:environment_shell_uuid>")
 class EnvironmentShell(Resource):
     @api.doc("delete_environment_shell")
-    def delete(self, environment_shell_uuid):
+    def delete(self, environment_shell_uuid: str):
         """Stop environment shell for a given
         session_uuid/environment_shell_uuid."""
         try:
@@ -58,6 +47,21 @@ class EnvironmentShell(Resource):
 
 @api.route("/")
 class EnvironmentShellList(Resource):
+    @api.doc("get_environment_shells")
+    @api.param("session_uuid")
+    @api.marshal_with(schema.environment_shells, code=200)
+    def get(self):
+        """Gets environment shells for a given session_uuid."""
+        try:
+            session_uuid = request.args.get("session_uuid")
+            if session_uuid is None:
+                return {"message": "session_uuid query argument is required."}, 400
+
+            environment_shells = get_environment_shells(session_uuid)
+            return {"environment_shells": environment_shells}
+        except Exception as e:
+            return {"message": "%s [%s]" % (e, type(e))}, 500
+
     @api.doc("launch_environment_shell")
     @api.expect(schema.environment_shell_config)
     @api.marshal_with(schema.environment_shell, code=201)
@@ -72,7 +76,6 @@ class EnvironmentShellList(Resource):
         if isess is None:
             return {"message": "Session doesn't exist."}, 409
 
-        environment_shell = None
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 environment_shell = CreateEnvironmentShell(tpe).transaction(
@@ -106,9 +109,34 @@ class CreateEnvironmentShell(TwoPhaseFunction):
             + f":{environment_image.tag}"
         )
 
-        return launch_environment_shell(
-            session_uuid,
+        # Construct collateral variables
+        shell_uuid = "%s-%s" % (
             environment_shell_config["environment_uuid"],
+            str(uuid4())[: _config.ENVIRONMENT_SHELL_SUFFIX_UUID_LENGTH],
+        )
+        service_name = f"environment-shell-{shell_uuid}"
+
+        self.collateral_kwargs["service_name"] = service_name
+        self.collateral_kwargs["environment_shell_config"] = environment_shell_config
+        self.collateral_kwargs["environment_image_string"] = environment_image_string
+        self.collateral_kwargs["session_uuid"] = session_uuid
+
+        return {
+            "hostname": service_name,
+            "uuid": shell_uuid,
+            "session_uuid": session_uuid,
+        }
+
+    def _collateral(
+        self,
+        environment_shell_config,
+        environment_image_string,
+        session_uuid,
+        service_name,
+    ):
+        launch_environment_shell(
+            session_uuid,
+            service_name,
             environment_shell_config["project_uuid"],
             environment_shell_config["pipeline_uuid"],
             environment_shell_config["pipeline_path"],
@@ -116,10 +144,3 @@ class CreateEnvironmentShell(TwoPhaseFunction):
             environment_shell_config["project_dir"],
             environment_image_string,
         )
-
-    def _collateral(
-        self,
-        *args,
-        **kwargs,
-    ):
-        pass

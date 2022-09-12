@@ -11,16 +11,26 @@ import subprocess
 import sys
 import threading
 import time
-import urllib
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 from urllib import request
+
+from _orchest.internals import config as _config
 
 # Includes "http://" and "/api"
 ORCHEST_API_ADDRESS = os.environ["ORCHEST_API_ADDRESS"]
 # Includes "http://"
 ORCHEST_WEBSERVER_ADDRESS = os.environ["ORCHEST_WEBSERVER_ADDRESS"]
 LOADING_CHARS = ["⠾", "⠷", "⠯", "⠟", "⠻", "⠽"]
-RANDOM_UUID_SUFFIX_LEN = 6
+RANDOM_UUID_SUFFIX_LEN = _config.ENVIRONMENT_SHELL_SUFFIX_UUID_LENGTH
+
+
+class Action(Enum):
+    START = 0
+    CONNECT = 1
+    RESTART = 2
+    TERMINATE = 3
+
 
 class BackgroundRequest(threading.Thread):
     def __init__(self, request_callable, callable_args):
@@ -52,7 +62,9 @@ def environment_shell_uuid_to_name(
     environment_shell_uuid: str, environments: List[Dict[str, Any]]
 ) -> str:
     # Cut of last random UUID
-    environment_uuid = environment_shell_uuid_to_environment_uuid(environment_shell_uuid)
+    environment_uuid = environment_shell_uuid_to_environment_uuid(
+        environment_shell_uuid
+    )
 
     # Find environment uuid in environments
     name = environment_shell_uuid
@@ -109,7 +121,7 @@ def get_environments() -> List[Dict[str, Any]]:
 def get_environment_shells() -> List[Dict[str, Any]]:
     req = request.Request(
         ORCHEST_API_ADDRESS
-        + "/environment-shells/"
+        + "/environment-shells/?session_uuid="
         + os.environ["ORCHEST_SESSION_UUID"]
     )
     req.add_header("Content-Type", "application/json")
@@ -209,7 +221,7 @@ def connect(environment_shell: str):
     print("Connecting...", flush=True)
 
     user = "jovyan"  # TODO: support more usernames
-    host = environment_shell["host"]
+    hostname = environment_shell["hostname"]
 
     # Why is this reasonable from a security perspective?
     # 1) the container running the SSH daemon is only
@@ -222,7 +234,7 @@ def connect(environment_shell: str):
         "sshpass -p jovyan ssh "
         + "-o LogLevel=quiet "
         + "-o StrictHostKeyChecking=no -o ConnectTimeout=5 "
-        + f"-o UserKnownHostsFile=/dev/null {user}@{host} -t "
+        + f"-o UserKnownHostsFile=/dev/null {user}@{hostname} -t "
         + '"cd /project-dir; bash"'
     )
 
@@ -246,14 +258,14 @@ def choose_environment(environments: List[Dict[str, Any]]) -> Optional[Dict[str,
         return environments[environment_choice]
 
 
-def choose_action() -> int:
+def choose_action() -> Action:
     print("Choose an option")
     print("[0] Start a new shell ")
     print("[1] Connect to an existing shell ")
     print("[2] Restart an existing shell ")
     print("[3] Terminate an existing shell ")
 
-    return collect_choice(4, "Choose option")
+    return Action(collect_choice(4, "Choose option"))
 
 
 def choose_existing_environment_shell(
@@ -289,7 +301,7 @@ def init(autoconnect=False):
     action = None
 
     if len(environment_shells) == 0:
-        action = 0
+        action = Action.START
         auto_chosen = True
     elif len(environment_shells) == 1 and autoconnect:
         # Autoconnect to shell if there's only one
@@ -300,9 +312,7 @@ def init(autoconnect=False):
     if action is None:
         quit()
 
-    if action == 0:
-        # Spawn
-
+    if action == Action.START:
         environment = choose_environment(environments)
         if environment is not None:
             environment_shell = spawn_environment_shell(environment)
@@ -316,8 +326,7 @@ def init(autoconnect=False):
             init()
         else:
             quit()
-    elif action == 1:
-        # Connect
+    elif action == Action.CONNECT:
 
         environment_shell = choose_existing_environment_shell(
             environment_shells, environments, "to connect to"
@@ -326,8 +335,7 @@ def init(autoconnect=False):
             connect(environment_shell)
         else:
             init()
-    elif action == 2:
-        # Restart
+    elif action == Action.RESTART:
         environment_shell = choose_existing_environment_shell(
             environment_shells, environments, "to restart"
         )
@@ -345,8 +353,7 @@ def init(autoconnect=False):
             connect(environment_shell)
         else:
             init()
-    elif action == 3:
-        # Terminate
+    elif action == Action.TERMINATE:
         environment_shell = choose_existing_environment_shell(
             environment_shells, environments, "to terminate"
         )
@@ -362,6 +369,6 @@ if __name__ == "__main__":
         print("This terminal supports connecting with Orchest environment shells.")
         print("To restart, terminate, start or connect to a shell simply exit out of ")
         print("your current shell by typing 'exit' or typing Ctrl + D.")
-        print("")
+        print()
     else:
         init(autoconnect=True)

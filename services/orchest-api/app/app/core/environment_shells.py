@@ -1,5 +1,4 @@
 import time
-from typing import Any, Dict
 
 from _orchest.internals import config as _config
 from app import utils
@@ -11,21 +10,21 @@ logger = utils.get_logger()
 
 def launch_environment_shell(
     session_uuid: str,
-    environment_uuid: str,
+    service_name: str,
     project_uuid: str,
     pipeline_uuid: str,
     pipeline_path: str,
     userdir_pvc: str,
     project_dir: str,
     environment_image: str,
-) -> Dict[str, Any]:
+) -> None:
     """Starts environment shell
 
     Args:
         session_uuid: UUID to identify the session k8s namespace with,
             which is where all related resources will be deployed.
-        environment_uuid: envirohnment UUID to embed UUID in the service
-            name which is used for pretty-printing and restarts.
+        service_name: service name used for the k8s service for
+            host based communication.
         project_uuid: UUID of the project.
         pipeline_uuid: UUID of the pipeline.
         pipeline_path: Relative path (from project directory root) to
@@ -49,12 +48,12 @@ def launch_environment_shell(
     Will be cleaned up when the session is stopped.
     """
 
-    environment_shell_service_k8s_deployment_manifests = []
-    environment_shell_service_manifest = []
-
-    (depl, serv,) = _manifests._get_environment_shell_deployment_service_manifest(
+    (
+        environment_shell_service_manifest,
+        environment_shell_deployment_manifest,
+    ) = _manifests._get_environment_shell_deployment_service_manifest(
         session_uuid,
-        environment_uuid,
+        service_name,
         project_uuid,
         pipeline_uuid,
         pipeline_path,
@@ -62,19 +61,17 @@ def launch_environment_shell(
         project_dir,
         environment_image,
     )
-    environment_shell_service_manifest = serv
-    environment_shell_service_k8s_deployment_manifests.append(depl)
 
     ns = _config.ORCHEST_NAMESPACE
 
-    logger.info("Creating environment shell services deployments.")
-
-    for manifest in environment_shell_service_k8s_deployment_manifests:
-        logger.info(f'Creating deployment {manifest["metadata"]["name"]}')
-        k8s_apps_api.create_namespaced_deployment(
-            ns,
-            manifest,
-        )
+    logger.info(
+        "Creating deployment %s"
+        % (environment_shell_deployment_manifest["metadata"]["name"],)
+    )
+    k8s_apps_api.create_namespaced_deployment(
+        ns,
+        environment_shell_deployment_manifest,
+    )
 
     logger.info(
         f'Creating service {environment_shell_service_manifest["metadata"]["name"]}'
@@ -84,24 +81,13 @@ def launch_environment_shell(
         environment_shell_service_manifest,
     )
 
-    logger.info("Waiting for environment shell service deployments to be ready.")
-    for manifest in environment_shell_service_k8s_deployment_manifests:
-        name = manifest["metadata"]["name"]
-        deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
-        while deployment.status.available_replicas != deployment.spec.replicas:
-            logger.info(f"Waiting for {name}.")
-            time.sleep(1)
-            deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
-
-    environment_shell_uuid = environment_shell_service_manifest["metadata"][
-        "name"
-    ].replace("environment-shell-", "")
-
-    return {
-        "host": environment_shell_service_manifest["metadata"]["name"],
-        "uuid": environment_shell_uuid,
-        "session_uuid": session_uuid,
-    }
+    logger.info("Waiting for environment shell service deployment to be ready.")
+    deployment_name = environment_shell_deployment_manifest["metadata"]["name"]
+    deployment = k8s_apps_api.read_namespaced_deployment_status(deployment_name, ns)
+    while deployment.status.available_replicas != deployment.spec.replicas:
+        logger.info(f"Waiting for {deployment_name}.")
+        time.sleep(1)
+        deployment = k8s_apps_api.read_namespaced_deployment_status(deployment_name, ns)
 
 
 def get_environment_shells(session_uuid):
@@ -116,7 +102,7 @@ def get_environment_shells(session_uuid):
 
         return [
             {
-                "host": service.metadata.name,
+                "hostname": service.metadata.name,
                 "session_uuid": session_uuid,
                 "uuid": service.metadata.name.replace("environment-shell-", ""),
             }

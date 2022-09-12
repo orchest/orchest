@@ -264,7 +264,9 @@ environment_shell = Model(
     {
         "uuid": fields.String(required=True, description="UUID of environment shell"),
         "session_uuid": fields.String(required=True, description="UUID of session"),
-        "host": fields.String(required=True, description="host of k8s service"),
+        "hostname": fields.String(
+            required=True, description="hostname of environment shell in k8s cluster"
+        ),
     },
 )
 
