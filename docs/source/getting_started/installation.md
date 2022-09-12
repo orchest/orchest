@@ -20,7 +20,8 @@ Orchest is in beta.
 
 To install Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). Any cluster should work. You can either pick a managed
 service by one of the certified [cloud platforms](https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/) or create a cluster
-locally. For single node deployments, we recommend using at (the very) least 2 CPU and 8GB of RAM.
+locally. For single node deployments, we recommend using at (the very) least 2 CPU and 8GB of RAM
+(see {ref}`CPU contention <cpu-contention-dns>`).
 Do note that only the following container runtimes are supported:
 
 - [containerd](https://containerd.io/)
@@ -220,8 +221,9 @@ sudo service nginx restart
 
 ### Scarse (CPU) resources - tweak DNS settings
 
-This section applies mostly to single-node deployments (e.g. using minikube) as otherwise you can
-configure your Kubernetes cluster to scale with respect to the current load.
+This section applies mostly to single-node deployments as otherwise you can configure your
+Kubernetes cluster to scale with respect to the current load or separate your control pane nodes from
+your worker nodes.
 
 During times of CPU resource contention, the [CoreDNS](https://coredns.io/) pod could start failing
 its `readinessProbe` leading to `kube-proxy` updating `iptables` rules to stop routing traffic to
@@ -234,35 +236,25 @@ attempts). In order to respect the timeout instead of failing immediately, you c
 
 ```sh
 kubectl edit -n kube-system deploy coredns
-
-# Or for minikube users:
-minikube kubectl -- edit -n kube-system deploy coredns
 ```
 
 ```{note}
-By editing the `coredns` deployment the corresponding pod(s) will get replaced, which can lead to
-failing DNS queries during the replacement period.
+👀 For Minikube users we automatically take care of this. Even the warning below doesn't apply.
 ```
 
 ```{warning}
-Configuration changes of CoreDNS will be lost when executing `kubeadm upgrade apply` or, in case of
-`minikube`, when starting your cluster (i.e. `minikube start`) -- see [Kubernetes
+Configuration changes of CoreDNS will be lost when executing `kubeadm upgrade apply` -- see [Kubernetes
 docs](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/#applying-coredns-configuration-changes).
-Thus you will have to reapply your changes whenever you run `kubeadm upgrade apply` or whenever you
-restart your minikube cluster.
+Thus you will have to reapply your changes whenever you run `kubeadm upgrade apply`.
 
 Why? Well, the [CoreDNS manifests are hardcoded in
 `kubeadm`](https://github.com/kubernetes/kubernetes/blob/4daf5f903b3cb73365093e2f83c18d4d8e53c0c5/cmd/kubeadm/app/phases/addons/dns/manifests.go),
-thus if `kubeadm init phase addon coredns` is ever invoked (which [minikube does on cluster
-start](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/#applying-coredns-configuration-changes)),
-then your changes to the configuration of CoreDNS are lost.
+thus if `kubeadm init phase addon coredns` is ever invoked, then your changes to the configuration
+of CoreDNS are lost.
 
 What can I do about it? If you are using `kubeadm` directly, then you could skip the `kubeadm` addon
-phase and deploy the respective addons yourself. In case of minikube you need to overwrite the
-`kubeadm` binary with a custom one that was compiled with a changed CoreDNS manifest (because
-minikube includes `kubeadm` as the only available `--bootstrapper` ([source
-code](https://github.com/kubernetes/minikube/blob/e7764cd1ca1a089c7dd7589446f81d87f62a2e22/pkg/minikube/cluster/cluster.go#L45-L53))).
-Or you could just reapply your CoreDNS manifest changes each time.
+phase and deploy the respective addons yourself. Or you could just reapply your CoreDNS manifest
+changes each time.
 ```
 
 ## Closing notes
