@@ -822,59 +822,6 @@ button.themed-secondary {
       background: rgba(0, 0, 0, 0.1);
     }
 
-    .connection {
-      position: absolute;
-      left: 0;
-      top: 0;
-
-      z-index: 1;
-
-      &.selected {
-        &:after {
-          background-image: url("/image/arrow-head-blue.svg");
-        }
-      }
-
-      &:after {
-        position: absolute;
-        content: " ";
-        display: block;
-        width: 12px;
-        height: 12px;
-        background-image: url("/image/arrow-head.svg");
-        background-size: contain;
-        background-repeat: no-repeat;
-        right: 7px;
-        bottom: -1px;
-        transition: 0s opacity ease;
-      }
-
-      &.flipped {
-        &:after {
-          bottom: auto;
-          top: -1px;
-        }
-      }
-
-      &.flipped-horizontal {
-        &:after {
-          opacity: 0;
-        }
-      }
-
-      pointer-events: none;
-
-      svg {
-        float: left;
-        pointer-events: none;
-
-        path {
-          cursor: pointer;
-          pointer-events: all;
-        }
-      }
-    }
-
     .pipeline-step {
       position: absolute;
       background: #fff;

@@ -1,5 +1,4 @@
 import { Point2D } from "@/utils/geometry";
-import classNames from "classnames";
 import React from "react";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { getSvgProperties, getTransformProperty } from "./common";
@@ -57,24 +56,21 @@ export const InteractiveConnection = ({
     start,
   ]);
 
-  const { className, width, height, drawn } = svgProperties;
+  const { sx, width, height, drawn } = svgProperties;
 
   const zIndex = -1;
 
   return (
-    <div
-      data-start-uuid={startNodeUUID}
-      data-end-uuid={endNodeUUID}
-      className={classNames("connection", className)}
+    <ConnectionLine
       ref={containerRef}
+      startNodeUuid={startNodeUUID}
+      endNodeUuid={endNodeUUID}
+      width={width}
+      height={height}
+      d={drawn}
+      selected={selected}
+      sx={sx}
       style={{ zIndex, ...transformProperty }}
-    >
-      <ConnectionLine
-        width={width}
-        height={height}
-        d={drawn}
-        selected={selected}
-      />
-    </div>
+    />
   );
 };

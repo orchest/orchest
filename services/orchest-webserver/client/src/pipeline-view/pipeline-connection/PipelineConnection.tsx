@@ -1,5 +1,4 @@
 import { Point2D } from "@/utils/geometry";
-import classNames from "classnames";
 import React from "react";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
@@ -125,28 +124,25 @@ const PipelineConnectionComponent = ({
     [uiStateDispatch, startNodeUUID, endNodeUUID, keysDown]
   );
 
-  const { className, width, height, drawn } = svgProperties;
+  const { sx, width, height, drawn } = svgProperties;
 
   return (
-    <div
-      data-start-uuid={startNodeUUID}
-      data-end-uuid={endNodeUUID}
-      className={classNames("connection", className, selected && "selected")}
+    <ConnectionLine
+      ref={containerRef}
+      selected={selected}
+      startNodeUuid={startNodeUUID}
+      endNodeUuid={endNodeUUID}
       onContextMenu={(event) => {
         event.stopPropagation();
         event.preventDefault();
       }}
-      ref={containerRef}
       style={{ ...transformProperty, zIndex }}
-    >
-      <ConnectionLine
-        selected={selected}
-        onClick={onClickFun}
-        width={width}
-        height={height}
-        d={drawn}
-      />
-    </div>
+      onClick={onClickFun}
+      width={width}
+      height={height}
+      d={drawn}
+      sx={sx}
+    />
   );
 };
 
