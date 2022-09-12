@@ -279,7 +279,7 @@ def _get_session_sidecar_deployment_manifest(
     }
 
 
-def get_orchest_sdk_vars(
+def _get_orchest_sdk_vars(
     project_uuid, pipeline_uuid, pipeline_file, session_uuid, session_type
 ):
     return [
@@ -365,7 +365,7 @@ def _get_environment_shell_deployment_service_manifest(
                             "args": [
                                 "shell",
                             ],
-                            "env": get_orchest_sdk_vars(
+                            "env": _get_orchest_sdk_vars(
                                 project_uuid,
                                 pipeline_uuid,
                                 _config.PIPELINE_FILE,
@@ -765,7 +765,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     ]
     environment.extend(user_defined_env_vars)
     environment.extend(
-        get_orchest_sdk_vars(
+        _get_orchest_sdk_vars(
             project_uuid,
             pipeline_uuid,
             _config.PIPELINE_FILE,
@@ -906,7 +906,7 @@ def _get_user_service_deployment_service_manifest(
         if inherited_key in user_env_variables:
             environment[inherited_key] = user_env_variables[inherited_key]
 
-    env = get_orchest_sdk_vars(
+    env = _get_orchest_sdk_vars(
         project_uuid, pipeline_uuid, _config.PIPELINE_FILE, session_uuid, session_type
     )
 
