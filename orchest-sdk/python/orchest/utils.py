@@ -50,7 +50,10 @@ def get_step_uuid(pipeline: Pipeline) -> str:
         # an environment shell. Print environment variable setter hint.
         pretty_print_env_var_suggestion(pipeline)
 
-        raise StepUUIDResolveError("Could not resolve the pipeline step UUID.")
+        raise StepUUIDResolveError(
+            'Environment variable "STEP_UUID" has to be explicitly passed when'
+            ' executing Pipeline Steps in Environment shells.'
+        )
 
     # Get JupyterLab sessions to resolve the step's UUID via the id of
     # the running kernel and the step's associated file path.
