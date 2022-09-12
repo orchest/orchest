@@ -1,5 +1,5 @@
 import { Point2D } from "@/utils/geometry";
-import classNames from "classnames";
+import { SxProps, Theme } from "@mui/material";
 
 // set SVG properties
 export const lineHeight = 2;
@@ -58,10 +58,19 @@ export const getSvgProperties = (
     svgPadding + targetY - yOffset
   );
 
-  const className = classNames(
-    targetX < arrowWidth * 10 && "flipped-horizontal",
-    targetY < 0 && "flipped"
-  );
+  const sx: SxProps<Theme> = {
+    ...(targetX < arrowWidth * 10
+      ? {
+          opacity: 0,
+        }
+      : null),
+    ...(targetY < 0
+      ? {
+          bottom: "auto",
+          top: "-1px",
+        }
+      : null),
+  };
 
-  return { width, height, drawn, className };
+  return { width, height, drawn, sx };
 };
