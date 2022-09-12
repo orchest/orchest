@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 import urllib
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 from urllib import request
 
 # Includes "http://" and "/api"
@@ -235,7 +235,7 @@ def connect(environment_shell: str):
     init()
 
 
-def choose_environment(environments: List[Dict[str, Any]]) -> Dict[str, Any]:
+def choose_environment(environments: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
 
     print("Available environments")
     for key, value in enumerate(environments):
