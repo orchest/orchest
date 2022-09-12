@@ -24,7 +24,7 @@ logger = utils.get_logger()
 def _get_common_volumes_and_volume_mounts(
     userdir_pvc: str,
     project_dir: str,
-    pipeline_path: str = None,
+    pipeline_path: Optional[str] = None,
     container_project_dir: str = _config.PROJECT_DIR,
     container_pipeline_path: str = _config.PIPELINE_FILE,
     container_data_dir: str = _config.DATA_DIR,
