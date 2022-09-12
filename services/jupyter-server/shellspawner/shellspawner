@@ -32,11 +32,8 @@ class BackgroundRequest(threading.Thread):
         super().__init__()
 
     def run(self):
-        try:
-            self.request_result = self.request_callable(*self.callable_args)
-            self.request_ready = True
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
-            print(e)
+        self.request_result = self.request_callable(*self.callable_args)
+        self.request_ready = True
 
 
 def print_jupyter_warning():
