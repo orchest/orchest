@@ -8,7 +8,7 @@ from orchest.error import OrchestNetworkError, StepUUIDResolveError
 from orchest.pipeline import Pipeline
 
 
-def pretty_print_env_var_suggestion(pipeline: Pipeline):
+def pretty_print_env_var_suggestion(pipeline: Pipeline) -> None:
     print(
         "Please specify a pipeline step UUID by setting the ORCHEST_STEP_UUID "
         + "environment variable. Choose one of the following pipeline steps:"
