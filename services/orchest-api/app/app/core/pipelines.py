@@ -18,7 +18,7 @@ import copy
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Literal, Optional, Set
 
 import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
@@ -29,7 +29,12 @@ from _orchest.internals.utils import (
     get_step_and_kernel_volumes_and_volume_mounts,
 )
 from app.connections import k8s_core_api, k8s_custom_obj_api
-from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
+from app.types import (
+    PipelineDefinition,
+    PipelineProperties,
+    PipelineStepProperties,
+    RunConfig,
+)
 from app.utils import get_logger
 from config import CONFIG_CLASS
 
@@ -99,7 +104,7 @@ async def update_status(
     status: str,
     task_id: str,
     session: aiohttp.ClientSession,
-    type: str,
+    type: Literal["step", "pipeline"],
     run_endpoint: str,
     uuid: Optional[str] = None,
 ) -> Any:
@@ -121,6 +126,9 @@ async def update_status(
 
     elif type == "pipeline":
         url = base_url
+
+    else:
+        raise ValueError("Given `type` of '{type}' is not valid.")
 
     # Just await the response. The proposed fix on the aiohttp GitHub to
     # do `response.json(content_type=None)` still results in parsing
@@ -155,9 +163,6 @@ class PipelineStep:
         # Pipeline methods.
         self._children: List["PipelineStep"] = []
 
-        # Initial status is "PENDING".
-        self._status: str = "PENDING"
-
     def __eq__(self, other) -> bool:
         return self.properties["uuid"] == other.properties["uuid"]
 
@@ -166,7 +171,7 @@ class PipelineStep:
 
     def __str__(self) -> str:
         if self.properties:
-            return f'<PipelineStep: {self.properties["name"]}>'
+            return f'<PipelineStep: {self.properties["title"]}>'
 
         return "<Pipelinestep: None>"
 
@@ -176,20 +181,21 @@ class PipelineStep:
         #       (so maybe for later). And strictly, should also include
         #       its parents.
         if self.properties:
-            return f'PipelineStep({self.properties["name"]!r})'
+            return f'PipelineStep({self.properties["title"]!r})'
 
         return "Pipelinestep(None)"
 
 
 class Pipeline:
-    def __init__(self, steps: List[PipelineStep], properties: Dict[str, str]) -> None:
+    def __init__(
+        self, steps: List[PipelineStep], properties: PipelineProperties
+    ) -> None:
         self.steps = steps
 
-        # TODO: we want to be able to serialize a Pipeline back to a
-        #       json file. Therefore we would need to store the Pipeline
-        #       name and UUID from the json first.
-        # self.properties: Dict[str, str] = {}
-        self.properties = properties
+        # We want to be able to serialize a Pipeline back to a json
+        # file. Therefore we would need to store the Pipeline name and
+        # UUID from the json first.
+        self.properties: PipelineProperties = properties  # type: ignore
 
         # See the sentinel property for explanation.
         self._sentinel: Optional[PipelineStep] = None
@@ -218,12 +224,13 @@ class Pipeline:
                 step.parents.append(steps[uuid])
                 steps[uuid]._children.append(step)
 
-        properties = {
+        properties: PipelineProperties = {
             "name": description["name"],
             "uuid": description["uuid"],
             "settings": description["settings"],
             "parameters": description.get("parameters", {}),
             "services": description.get("services", {}),
+            "version": description.get("version"),
         }
         return cls(list(steps.values()), properties)
 
@@ -235,6 +242,15 @@ class Pipeline:
 
         description.update(self.properties)
         return description
+
+    def get_step(self, uuid: str) -> PipelineStep:
+        # NOTE: This is slow, although reasonable for small/medium size
+        # pipelines.
+        for step in self.steps:
+            if uuid == step.properties["uuid"]:
+                return step
+        else:
+            raise ValueError(f"Step with uuid '{uuid}' not in pipeline.")
 
     def get_environments(self) -> Set[str]:
         """Returns the set of UUIDs of the used environments.
@@ -380,7 +396,7 @@ class Pipeline:
         # new pipeline.
         if inclusive:
             steps_to_be_included = steps
-        elif not inclusive:
+        else:
             steps_to_be_included = steps - set(
                 step for step in self.steps if step.properties["uuid"] in selection
             )
@@ -399,9 +415,7 @@ class Pipeline:
         return f"Pipeline({self.steps!r})"
 
 
-def _step_to_workflow_manifest_task(
-    step: PipelineStep, run_config: Dict[str, Any]
-) -> dict:
+def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -> dict:
     # The working directory is the location of the file being
     # executed.
     project_relative_file_path = os.path.join(
@@ -427,21 +441,6 @@ def _step_to_workflow_manifest_task(
     # risk that the user overwrites internal variables accidentally.
     env_variables = user_env_variables + orchest_env_variables
 
-    # This allows us to edit the container that argo runs for us.
-    pod_spec_patch = json.dumps(
-        {
-            "terminationGracePeriodSeconds": 1,
-            "containers": [
-                {
-                    "name": "main",
-                    "env": env_variables,
-                    "restartPolicy": "Never",
-                    "imagePullPolicy": "IfNotPresent",
-                }
-            ],
-        },
-    )
-
     # Need to reference the ip because the local docker engine will run
     # the container, and if the image is missing it will prompt a pull
     # which will fail because the FQDN can't be resolved by the local
@@ -449,62 +448,214 @@ def _step_to_workflow_manifest_task(
     registry_ip = k8s_core_api.read_namespaced_service(
         _config.REGISTRY, _config.ORCHEST_NAMESPACE
     ).spec.cluster_ip
-
     # The image of the step is the registry address plus the image name.
     image = (
         registry_ip
         + "/"
         + run_config["env_uuid_to_image"][step.properties["environment"]]
     )
-    task = {
-        # "Name cannot begin with a digit when using either 'depends' or
-        # 'dependencies'".
-        "name": f'step-{step.properties["uuid"]}',
-        "dependencies": [f'step-{pstep.properties["uuid"]}' for pstep in step.parents],
-        "template": "step",
-        "arguments": {
-            "parameters": [
-                {
-                    # Used to keep track of the step when getting
-                    # workflow status, since the name we have set is not
-                    # reliable, argo will change it.
-                    "name": "step_uuid",
-                    "value": step.properties["uuid"],
-                },
-                {
-                    "name": "image",
-                    "value": image,
-                },
-                {"name": "working_dir", "value": working_dir},
-                {
-                    "name": "project_relative_file_path",
-                    "value": project_relative_file_path,
-                },
-                {"name": "pod_spec_patch", "value": pod_spec_patch},
-                {
-                    # NOTE: only used by tests.
-                    "name": "tests_uuid",
-                    "value": step.properties["uuid"],
-                },
-                {
-                    "name": "container_runtime",
-                    "value": _config.CONTAINER_RUNTIME,
-                },
-                {
-                    "name": "container_runtime_image",
-                    "value": _config.CONTAINER_RUNTIME_IMAGE,
-                },
-            ]
-        },
-    }
+
+    if CONFIG_CLASS.SINGLE_NODE:
+        # NOTE: In the single-node case we don't run an initContainer to
+        # pre-pull images.
+        task = {
+            # "Name cannot begin with a digit when using either
+            # 'depends' or 'dependencies'".
+            "name": f'step-{step.properties["uuid"]}',
+            "dependencies": [
+                f'step-{pstep.properties["uuid"]}' for pstep in step.parents
+            ],
+            "restartPolicy": "Never",
+            # NOTE: Should never need to pull given that the pipeline
+            # run is scheduled on the only node in the cluster (which
+            # thus has the image).
+            "imagePullPolicy": "IfNotPresent",
+            "env": env_variables,
+            "image": image,
+            "command": [
+                "/orchest/bootscript.sh",
+                "runnable",
+                working_dir,
+                project_relative_file_path,
+            ],
+            "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},
+        }
+    else:
+        # This allows us to edit the container that argo runs for us.
+        pod_spec_patch = json.dumps(
+            {
+                "terminationGracePeriodSeconds": 1,
+                "containers": [
+                    {
+                        # NOTE: The `imagePullPolicy` is already set
+                        # through the `orchest_values.yml` file for
+                        # Argo.
+                        "name": "main",
+                        "env": env_variables,
+                        "restartPolicy": "Never",
+                    }
+                ],
+            },
+        )
+
+        task = {
+            # "Name cannot begin with a digit when using either
+            # 'depends' or 'dependencies'".
+            "name": f'step-{step.properties["uuid"]}',
+            "dependencies": [
+                f'step-{pstep.properties["uuid"]}' for pstep in step.parents
+            ],
+            "template": "step",
+            "arguments": {
+                "parameters": [
+                    {
+                        # Used to keep track of the step when getting
+                        # workflow status, since the name we have set is
+                        # not reliable, argo will change it.
+                        "name": "step_uuid",
+                        "value": step.properties["uuid"],
+                    },
+                    {
+                        "name": "image",
+                        "value": image,
+                    },
+                    {"name": "working_dir", "value": working_dir},
+                    {
+                        "name": "project_relative_file_path",
+                        "value": project_relative_file_path,
+                    },
+                    {"name": "pod_spec_patch", "value": pod_spec_patch},
+                    {
+                        # NOTE: only used by tests.
+                        "name": "tests_uuid",
+                        "value": step.properties["uuid"],
+                    },
+                    {
+                        "name": "container_runtime",
+                        "value": _config.CONTAINER_RUNTIME,
+                    },
+                    {
+                        "name": "container_runtime_image",
+                        "value": _config.CONTAINER_RUNTIME_IMAGE,
+                    },
+                ]
+            },
+        }
+
     return task
+
+
+def _get_pipeline_argo_templates(
+    entrypoint_name: str,
+    volume_mounts: List[dict],
+    pipeline: Pipeline,
+    run_config: RunConfig,
+) -> List[Dict[str, Any]]:
+    # https://argoproj.github.io/argo-workflows/fields/#template
+    if CONFIG_CLASS.SINGLE_NODE:
+        templates = [
+            {
+                "name": entrypoint_name,
+                "failFast": True,
+                "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                "podSpecPatch": json.dumps(
+                    {
+                        "terminationGracePeriodSeconds": 1,
+                    }
+                ),
+                # Security context for the Pod in which the containers
+                # of the containerSet run.
+                "securityContext": {
+                    "runAsUser": 0,
+                    "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
+                    "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
+                },
+                # NOTE: Argo only allows a "dag" or "steps" template to
+                # reference another template, thus we just create
+                # containerSpecs here.
+                "containerSet": {
+                    "retryStrategy": {"retries": 0},
+                    "volumeMounts": volume_mounts,
+                    "containers": [
+                        _step_to_workflow_manifest_task(step, run_config)
+                        for step in pipeline.steps
+                    ],
+                },
+            },
+        ]
+
+    else:
+        image_puller_manifest = get_init_container_manifest(
+            "{{inputs.parameters.image}}",
+            "{{inputs.parameters.container_runtime}}",
+            "{{inputs.parameters.container_runtime_image}}",
+        )
+
+        # The first entry of this list is the definition of the DAG,
+        # while the second entry is the step definition.
+        templates = [
+            {
+                "name": entrypoint_name,
+                "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                "dag": {
+                    "failFast": True,
+                    "tasks": [
+                        _step_to_workflow_manifest_task(step, run_config)
+                        for step in pipeline.steps
+                    ],
+                },
+            },
+            {
+                "name": "step",
+                "securityContext": {
+                    "runAsUser": 0,
+                    "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
+                    "fsGroup": int(os.environ.get("ORCHEST_HOST_GID", "1")),
+                },
+                "inputs": {
+                    "parameters": [
+                        {"name": param}
+                        for param in [
+                            "step_uuid",
+                            "image",
+                            "working_dir",
+                            "project_relative_file_path",
+                            "pod_spec_patch",
+                            "tests_uuid",
+                            "container_runtime",
+                            "container_runtime_image",
+                        ]
+                    ]
+                },
+                "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                "container": {
+                    "image": "{{inputs.parameters.image}}",
+                    "command": [
+                        "/orchest/bootscript.sh",
+                        "runnable",
+                        "{{inputs.parameters.working_dir}}",
+                        "{{inputs.parameters.project_relative_file_path}}",
+                    ],
+                    "volumeMounts": volume_mounts,
+                    "resources": {
+                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    },
+                },
+                "initContainers": [
+                    image_puller_manifest,
+                ],
+                "podSpecPatch": "{{inputs.parameters.pod_spec_patch}}",
+            },
+        ]
+
+    return templates
 
 
 def _pipeline_to_workflow_manifest(
     session_uuid: str,
     workflow_name: str,
     pipeline: Pipeline,
-    run_config: Dict[str, Any],
+    run_config: RunConfig,
 ) -> dict:
     volumes, volume_mounts = get_step_and_kernel_volumes_and_volume_mounts(
         userdir_pvc=run_config["userdir_pvc"],
@@ -516,12 +667,7 @@ def _pipeline_to_workflow_manifest(
     )
 
     # these parameters will be fed by _step_to_workflow_manifest_task
-    image_puller_manifest = get_init_container_manifest(
-        "{{inputs.parameters.image}}",
-        "{{inputs.parameters.container_runtime}}",
-        "{{inputs.parameters.container_runtime_image}}",
-    )
-
+    entrypoint_name = "pipeline"
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -533,7 +679,7 @@ def _pipeline_to_workflow_manifest(
             },
         },
         "spec": {
-            "entrypoint": "pipeline",
+            "entrypoint": entrypoint_name,
             "volumes": volumes,
             # The celery task actually takes care of deleting the
             # workflow, this is just a failsafe.
@@ -544,65 +690,33 @@ def _pipeline_to_workflow_manifest(
             },
             "dnsPolicy": "ClusterFirst",
             "restartPolicy": "Never",
-            # The first entry of this list is the definition of the DAG,
-            # while the second entry is the step definition.
-            "templates": [
-                {
-                    "name": "pipeline",
-                    "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
-                    "dag": {
-                        "failFast": True,
-                        "tasks": [
-                            _step_to_workflow_manifest_task(step, run_config)
-                            for step in pipeline.steps
-                        ],
-                    },
-                },
-                {
-                    "name": "step",
-                    "securityContext": {
-                        "runAsUser": 0,
-                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
-                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
-                    },
-                    "inputs": {
-                        "parameters": [
-                            {"name": param}
-                            for param in [
-                                "step_uuid",
-                                "image",
-                                "working_dir",
-                                "project_relative_file_path",
-                                "pod_spec_patch",
-                                "tests_uuid",
-                                "container_runtime",
-                                "container_runtime_image",
-                            ]
-                        ]
-                    },
-                    "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
-                    "container": {
-                        "image": "{{inputs.parameters.image}}",
-                        "command": [
-                            "/orchest/bootscript.sh",
-                            "runnable",
-                            "{{inputs.parameters.working_dir}}",
-                            "{{inputs.parameters.project_relative_file_path}}",
-                        ],
-                        "volumeMounts": volume_mounts,
-                    },
-                    "initContainers": [
-                        image_puller_manifest,
-                    ],
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
-                    "podSpecPatch": "{{inputs.parameters.pod_spec_patch}}",
-                },
-            ],
+            "templates": _get_pipeline_argo_templates(
+                entrypoint_name=entrypoint_name,
+                volume_mounts=volume_mounts,
+                pipeline=pipeline,
+                run_config=run_config,
+            ),
         },
     }
     return manifest
+
+
+def _is_step_allowed_to_run(
+    step: PipelineStep,
+    steps_to_finish: Set[PipelineStep],
+) -> bool:
+    """Returns whether the given step is allowed to run.
+
+    Args:
+        step: The step we are checking the run requirements for.
+        steps_to_finish: The steps, part of a pipeline run, that have
+            not yet finished (or started) executing.
+
+    Returns:
+        Have all incoming steps completed?
+
+    """
+    return all(s not in steps_to_finish for s in step.parents)
 
 
 async def run_pipeline_workflow(
@@ -620,6 +734,9 @@ async def run_pipeline_workflow(
 
         namespace = _config.ORCHEST_NAMESPACE
 
+        steps_to_start = {step for step in pipeline.steps}
+        steps_to_finish = set(steps_to_start)
+        had_failed_steps = False
         try:
             manifest = _pipeline_to_workflow_manifest(
                 session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
@@ -628,9 +745,6 @@ async def run_pipeline_workflow(
                 "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
             )
 
-            steps_to_start = {step.properties["uuid"] for step in pipeline.steps}
-            steps_to_finish = set(steps_to_start)
-            had_failed_steps = False
             while steps_to_finish:
                 # Note: not async.
                 resp = k8s_custom_obj_api.get_namespaced_custom_object(
@@ -641,56 +755,89 @@ async def run_pipeline_workflow(
                     f"pipeline-run-task-{task_id}",
                 )
                 workflow_nodes: dict = resp.get("status", {}).get("nodes", {})
-                for step in workflow_nodes.values():
-                    # The nodes includes the entire "pipeline" node etc.
-                    if step["templateName"] != "step":
-                        continue
-                    # The step was not run because the workflow failed.
-                    if "inputs" not in step:
-                        continue
+                for argo_node in workflow_nodes.values():
+                    if CONFIG_CLASS.SINGLE_NODE:
+                        if argo_node.get("type", "") != "Container":
+                            continue
 
-                    for param in step["inputs"]["parameters"]:
-                        if param["name"] == "step_uuid":
-                            step_uuid = param["value"]
-                            break
+                        # Argo doesn't allow to work with templates for
+                        # a containerSet. Thus we fall back to the name
+                        # we gave to steps, which includes its uuid.
+                        step_uuid = argo_node.get("displayName")
+                        if step_uuid is None:
+                            # Should never happen.
+                            raise Exception(
+                                "Did not find `displayName` in Argo workflow node:"
+                                f" {argo_node}."
+                            )
+                        else:
+                            step_uuid = step_uuid.replace("step-", "")
+
                     else:
-                        # Should never happen.
-                        raise Exception(
-                            f"Did not find step_uuid in step parameters. Step: {step}."
-                        )
-                    step_status = step["phase"]
-                    step_message = step.get("message", "")
+                        # The nodes includes the entire "pipeline" node
+                        if argo_node["templateName"] != "step":
+                            continue
+                        # The step was not run because the workflow
+                        # failed.
+                        if "inputs" not in argo_node:
+                            continue
+                        if argo_node.get("type", "") != "Pod":
+                            continue
+
+                        for param in argo_node["inputs"]["parameters"]:
+                            if param["name"] == "step_uuid":
+                                step_uuid = param["value"]
+                                break
+                        else:
+                            # Should never happen.
+                            raise Exception(
+                                "Did not find `step_uuid` in parameters of Argo node:"
+                                f" {argo_node}."
+                            )
+
+                    pipeline_step = pipeline.get_step(step_uuid)
+                    argo_node_status = argo_node["phase"]
+                    argo_node_message = argo_node.get("message", "")
                     step_status_update = None
 
                     # Argo does not fail a step if the container is
                     # stuck in a waiting state. Doesn't look like the
                     # pull backoff behavior can be tuned.
-                    if step_status in ["Pending", "Running"] and (
-                        "ImagePullBackOff" in step_message
-                        or "ErrImagePull" in step_message
+                    if argo_node_status in ["Pending", "Running"] and (
+                        "ImagePullBackOff" in argo_node_message
+                        or "ErrImagePull" in argo_node_message
                     ):
                         step_status_update = "FAILURE"
-                    elif step_status == "Running" and step_uuid in steps_to_start:
-                        step_status_update = "STARTED"
-                        steps_to_start.remove(step_uuid)
+
                     elif (
-                        step_status in ["Succeeded", "Failed", "Error"]
-                        and step_uuid in steps_to_finish
+                        argo_node_status == "Running"
+                        and pipeline_step in steps_to_start
+                        # Strictly speaking only needed in single-node
+                        # context as otherwise Argo takes care of
+                        # correctly putting a Step in "Running".
+                        and _is_step_allowed_to_run(pipeline_step, steps_to_finish)
+                    ):
+                        step_status_update = "STARTED"
+                        steps_to_start.remove(pipeline_step)
+
+                    elif (
+                        argo_node_status in ["Succeeded", "Failed", "Error"]
+                        and pipeline_step in steps_to_finish
                     ):
                         step_status_update = {
                             "Succeeded": "SUCCESS",
                             "Failed": "FAILURE",
                             "Error": "FAILURE",
-                        }[step_status]
+                        }[argo_node_status]
 
                     if step_status_update is not None:
                         if step_status_update == "FAILURE":
                             had_failed_steps = True
 
                         if step_status_update in ["FAILURE", "ABORTED", "SUCCESS"]:
-                            steps_to_finish.remove(step_uuid)
-                            if step_uuid in steps_to_start:
-                                steps_to_start.remove(step_uuid)
+                            steps_to_finish.remove(pipeline_step)
+                            if pipeline_step in steps_to_start:
+                                steps_to_start.remove(pipeline_step)
 
                         await update_status(
                             step_status_update,
@@ -722,14 +869,14 @@ async def run_pipeline_workflow(
 
                 await asyncio.sleep(0.25)
 
-            for step_uuid in steps_to_finish:
+            for pipeline_step in steps_to_finish:
                 await update_status(
                     "ABORTED",
                     task_id,
                     session,
                     type="step",
                     run_endpoint=run_config["run_endpoint"],
-                    uuid=step_uuid,
+                    uuid=pipeline_step.properties["uuid"],
                 )
 
             pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
@@ -743,6 +890,15 @@ async def run_pipeline_workflow(
 
         except Exception as e:
             logger.error(e)
+            for pipeline_step in steps_to_finish:
+                await update_status(
+                    "ABORTED",
+                    task_id,
+                    session,
+                    type="step",
+                    run_endpoint=run_config["run_endpoint"],
+                    uuid=pipeline_step.properties["uuid"],
+                )
             await update_status(
                 "FAILURE",
                 task_id,

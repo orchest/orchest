@@ -229,9 +229,6 @@ def _get_session_sidecar_deployment_manifest(
                     },
                     "serviceAccount": f"session-sidecar-sa-{session_uuid}",
                     "serviceAccountName": f"session-sidecar-sa-{session_uuid}",
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                     ],
@@ -245,6 +242,9 @@ def _get_session_sidecar_deployment_manifest(
                                 "orchest/session-sidecar:"
                                 + CONFIG_CLASS.ORCHEST_VERSION
                             ),
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
                             "imagePullPolicy": "IfNotPresent",
                             "env": [
                                 {
@@ -328,9 +328,6 @@ def _get_jupyter_server_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                         volumes_dict["container-runtime-socket"],
@@ -359,6 +356,9 @@ def _get_jupyter_server_deployment_service_manifest(
                                 f"--notebook-dir={_config.PROJECT_DIR}",
                                 f'--ServerApp.base_url=/{metadata["name"]}',
                             ],
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
                             "startupProbe": {
                                 "httpGet": {
                                     "path": f'/{metadata["name"]}/api',
@@ -633,9 +633,6 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                     "serviceAccount": f"jupyter-eg-sa-{session_uuid}",
                     "serviceAccountName": f"jupyter-eg-sa-{session_uuid}",
                     "terminationGracePeriodSeconds": 5,
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                     ],
@@ -646,6 +643,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                                 "orchest/jupyter-enterprise-gateway:"
                                 + CONFIG_CLASS.ORCHEST_VERSION
                             ),
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
                             "imagePullPolicy": "IfNotPresent",
                             "env": environment,
                             "volumeMounts": [
@@ -817,9 +817,6 @@ def _get_user_service_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
                     "volumes": volumes,
                     "containers": [
                         {
@@ -827,6 +824,9 @@ def _get_user_service_deployment_service_manifest(
                             "image": image,
                             "imagePullPolicy": "IfNotPresent",
                             "env": env,
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
                             "volumeMounts": volume_mounts,
                             "ports": [
                                 {"containerPort": port}
