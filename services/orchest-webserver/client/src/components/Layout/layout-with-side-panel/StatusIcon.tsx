@@ -1,7 +1,7 @@
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
+import PauseCircleOutlinedIcon from "@mui/icons-material/PauseCircleOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
 import React from "react";
 
@@ -32,7 +32,7 @@ export const StatusIcon = ({ status }: StatusIconProps) => {
   if (status === "ERROR")
     return <CancelOutlinedIcon {...statusIconDefaultProps} color="error" />;
   if (status === "PAUSED")
-    return <ReplayOutlinedIcon {...statusIconDefaultProps} />;
+    return <PauseCircleOutlinedIcon {...statusIconDefaultProps} />;
 
   return <EditOutlinedIcon {...statusIconDefaultProps} color="action" />;
 };
