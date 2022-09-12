@@ -75,6 +75,7 @@ ENVIRONMENT_IMAGE_REMOVAL_NAME = (
     "removed-orchest-env-{project_uuid}-{environment_uuid}-{build_uuid}"
 )
 
+ENVIRONMENT_SHELL_SUFFIX_UUID_LENGTH = 6
 # Orchest environments that are passed as services, i.e. the image will
 # be used to start a service, have a form of "environment@<env-uuid>".
 ENVIRONMENT_AS_SERVICE_PREFIX = "environment@"
