@@ -51,7 +51,7 @@ class EnvironmentShell(Resource):
         session_uuid/environment_shell_uuid."""
         try:
             stop_environment_shell(environment_shell_uuid)
-            return {}, 201
+            return {}, 200
         except Exception as e:
             return {"message": "%s [%s]" % (e, type(e))}, 500
 
