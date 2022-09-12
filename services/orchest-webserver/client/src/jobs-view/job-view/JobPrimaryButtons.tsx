@@ -1,3 +1,4 @@
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useThrottle } from "@/hooks/useThrottle";
 import Button from "@mui/material/Button";
 import React from "react";
@@ -13,13 +14,19 @@ const useIsEditingActiveCronJob = () => {
 };
 
 const DiscardChangesButton = () => {
+  const { setAsSaved } = useGlobalContext();
   const isEditingActiveCronJob = useIsEditingActiveCronJob();
   const discardActiveCronJobChanges = useEditJob(
     (state) => state.discardActiveCronJobChanges
   );
 
+  const discardChanges = () => {
+    setAsSaved();
+    discardActiveCronJobChanges();
+  };
+
   return isEditingActiveCronJob ? (
-    <Button color="primary" onClick={discardActiveCronJobChanges}>
+    <Button color="primary" onClick={discardChanges}>
       Discard changes
     </Button>
   ) : null;
