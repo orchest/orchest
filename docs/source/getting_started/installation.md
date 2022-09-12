@@ -234,6 +234,9 @@ attempts). In order to respect the timeout instead of failing immediately, you c
 
 ```sh
 kubectl edit -n kube-system deploy coredns
+
+# Or for minikube users:
+minikube kubectl -- edit -n kube-system deploy coredns
 ```
 
 ```{note}
