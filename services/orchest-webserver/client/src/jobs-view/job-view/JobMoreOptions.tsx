@@ -58,8 +58,8 @@ export const JobMoreOptions = () => {
           deleteJob(uuid).then(() => resolve(true));
           return true;
         },
-        confirmLabel: "Delete Environment",
-        cancelLabel: "Keep Environment",
+        confirmLabel: "Delete Job",
+        cancelLabel: "Keep Job",
         confirmButtonColor: "error",
       }
     );

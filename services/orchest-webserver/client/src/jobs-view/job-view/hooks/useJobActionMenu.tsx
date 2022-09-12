@@ -41,7 +41,7 @@ export const useJobActionMenu = () => {
             }
           : undefined,
         {
-          label: hasPaused ? "Resume scheduled job" : "Pause scheduled job",
+          label: hasPaused ? "Resume job" : "Pause job",
           icon: hasPaused ? "resume" : "pause",
           disabled: !isScheduledJob || !isRunning,
           action: hasPaused ? resumeJob : pauseJob,
