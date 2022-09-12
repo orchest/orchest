@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/minikubereconciler"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcluster"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcomponent"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/server"
@@ -157,6 +158,11 @@ func runControllerCmd() error {
 		ingInformer)
 
 	server := server.NewServer(serverConfig, oClusterInformer)
+
+	if utils.DetectK8sDistribution(kClient) == utils.Minikube {
+		minikubeReconciler := minikubereconciler.NewMinikubeReconcilerController(kClient, depInformer)
+		go minikubeReconciler.Run(stopCh)
+	}
 
 	// Start the addon manager
 	go addonManager.Run(stopCh)

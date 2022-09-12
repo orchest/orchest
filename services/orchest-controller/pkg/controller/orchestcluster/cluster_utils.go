@@ -514,9 +514,9 @@ func isIngressAddonRequired(ctx context.Context, client kubernetes.Interface) bo
 	}
 
 	// we first need to detect the k8s distribution
-	k8sDistro, err := utils.DetectK8sDistribution(client)
-	if err != nil {
-		klog.Errorf("Failed to detect k8s distribution: %v", err)
+	k8sDistro := utils.DetectK8sDistribution(client)
+	if k8sDistro == utils.NotDetected {
+		klog.Error("Failed to detect k8s distribution")
 		return false
 	}
 

@@ -82,7 +82,7 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 		"orchest-component",
 		1,
 		kClient,
-		OrchestComponentKind,
+		&OrchestComponentKind,
 	)
 
 	occ := OrchestComponentController{
@@ -102,7 +102,7 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 	occ.oComponentLister = oComponentInformer.Lister()
 
 	// Service event handlers
-	svcWatcher := controller.Watcher[*corev1.Service, *orchestv1alpha1.OrchestComponent]{ctrl}
+	svcWatcher := controller.NewControlleeWatcher[*corev1.Service](ctrl)
 	svcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    svcWatcher.AddObject,
 		UpdateFunc: svcWatcher.UpdateObject,
@@ -112,7 +112,7 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 	occ.svcLister = svcInformer.Lister()
 
 	// Deployment event handlers
-	depWatcher := controller.Watcher[*appsv1.Deployment, *orchestv1alpha1.OrchestComponent]{ctrl}
+	depWatcher := controller.NewControlleeWatcher[*appsv1.Deployment](ctrl)
 	depInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    depWatcher.AddObject,
 		UpdateFunc: depWatcher.UpdateObject,
@@ -122,7 +122,7 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 	occ.depLister = depInformer.Lister()
 
 	// Daemonset event handlers
-	dsWatcher := controller.Watcher[*appsv1.DaemonSet, *orchestv1alpha1.OrchestComponent]{ctrl}
+	dsWatcher := controller.NewControlleeWatcher[*appsv1.DaemonSet, *orchestv1alpha1.OrchestComponent](ctrl)
 	dsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    dsWatcher.AddObject,
 		UpdateFunc: dsWatcher.UpdateObject,
@@ -132,7 +132,7 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 	occ.dsLister = dsInformer.Lister()
 
 	// Ingress event handlers
-	ingWatcher := controller.Watcher[*netsv1.Ingress, *orchestv1alpha1.OrchestComponent]{ctrl}
+	ingWatcher := controller.NewControlleeWatcher[*netsv1.Ingress, *orchestv1alpha1.OrchestComponent](ctrl)
 	ingInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    ingWatcher.AddObject,
 		UpdateFunc: ingWatcher.UpdateObject,

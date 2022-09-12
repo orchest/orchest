@@ -20,13 +20,16 @@ Orchest is in beta.
 
 To install Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). Any cluster should work. You can either pick a managed
 service by one of the certified [cloud platforms](https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/) or create a cluster
-locally. Do note that only the following container runtimes are supported:
+locally. For single node deployments, we recommend using at (the very) least 2 CPU and 8GB of RAM
+(see {ref}`CPU contention <cpu-contention-dns>`).
+Do note that only the following container runtimes are supported:
 
 - [containerd](https://containerd.io/)
 - [Docker](https://www.docker.com/products/container-runtime/)
 
 Pick your deployment environment and Kubernetes distribution and follow the installation steps
-below.
+below. In case you have custom requirements, be sure to first check out the
+{ref}`custom requirements <custom-install-requirements>` section.
 
 (regular-installation)=
 
@@ -44,18 +47,20 @@ The supported operating systems are:
 :file: install_widget.html
 ```
 
-## Starting Orchest
+## Managing your Orchest installation
 
-The installation procedures will leave Orchest up and running.
-To manually start Orchest from the command line, run this command:
+Your Orchest installation can be fully managed through the `orchest-cli`, check out the available
+commands in the {ref}`Orchest CLI reference <cli-reference>`.
 
-```bash
-orchest start
+```{note}
+Your Kubernetes cluster has to be up in order for the `orchest-cli` to be able to interact with it.
 ```
 
-## Special requirements
+(custom-install-requirements)=
 
-If you have **special requirements** (or preferences) for deploying Orchest on your Kubernetes
+## Custom requirements
+
+If you have **custom requirements** (or preferences) for deploying Orchest on your Kubernetes
 cluster, then one of the following subsections might be helpful:
 
 - {ref}`Setting up an FQDN <install-fqdn>`: Reach Orchest using a Fully Qualified Domain Name
@@ -68,6 +73,9 @@ cluster, then one of the following subsections might be helpful:
   the `orchest-cli`.
 - {ref}`Setting up a reverse proxy <reverse-proxy>`: Useful when installing Orchest in remote machines,
   such as AWS EC2 instances.
+- {ref}`Scarse (CPU) resources - tweak DNS settings <cpu-contention-dns>`: Increase DNS query
+  timeout to prevent name resolution failing during time of CPU resource contention. Especially
+  applicable for single node deployments close to the minimum requirement of 2 CPU.
 
 (install-fqdn)=
 
@@ -208,6 +216,46 @@ sudo service nginx restart
 ```
 
 [nginx]: https://nginx.org/en/
+
+(cpu-contention-dns)=
+
+### Scarse (CPU) resources - tweak DNS settings
+
+This section applies mostly to single-node deployments as otherwise you can configure your
+Kubernetes cluster to scale with respect to the current load or separate your control pane nodes from
+your worker nodes.
+
+During times of CPU resource contention, the [CoreDNS](https://coredns.io/) pod could start failing
+its `readinessProbe` leading to `kube-proxy` updating `iptables` rules to stop routing traffic to
+the pod ([k8s
+docs](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#types-of-probe)), for which
+it uses the `REJECT` target. This means that DNS queries will start failing immediately without the
+configured resolver timeout being respected (in Orchest we use a timeout of `30` seconds with `2`
+attempts). In order to respect the timeout instead of failing immediately, you can tweak the
+`readinessProbe` or simply remove it by editing the manifest of the `coredns` deployment:
+
+```sh
+kubectl edit -n kube-system deploy coredns
+```
+
+```{note}
+👀 For Minikube users we automatically take care of this. Even the warning below doesn't apply.
+```
+
+```{warning}
+Configuration changes of CoreDNS will be lost when executing `kubeadm upgrade apply` -- see [Kubernetes
+docs](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/#applying-coredns-configuration-changes).
+Thus you will have to reapply your changes whenever you run `kubeadm upgrade apply`.
+
+Why? Well, the [CoreDNS manifests are hardcoded in
+`kubeadm`](https://github.com/kubernetes/kubernetes/blob/4daf5f903b3cb73365093e2f83c18d4d8e53c0c5/cmd/kubeadm/app/phases/addons/dns/manifests.go),
+thus if `kubeadm init phase addon coredns` is ever invoked, then your changes to the configuration
+of CoreDNS are lost.
+
+What can I do about it? If you are using `kubeadm` directly, then you could skip the `kubeadm` addon
+phase and deploy the respective addons yourself. Or you could just reapply your CoreDNS manifest
+changes each time.
+```
 
 ## Closing notes
 
