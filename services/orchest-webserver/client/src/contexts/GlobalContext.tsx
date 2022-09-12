@@ -204,11 +204,11 @@ const initialState: GlobalContextState = {
   isShowingOnboarding: false,
 };
 
-type ConfirmHandler = (
+export type ConfirmHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
 ) => Promise<boolean> | boolean;
 
-type CancelHandler = (
+export type CancelHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
 ) => Promise<boolean | void> | void | boolean;
 
