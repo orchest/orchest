@@ -310,9 +310,11 @@ def _get_environment_shell_deployment_service_manifest(
     session, but has a detached lifecycle in the sense
     that environment shells can be started/stopped
     independently from the session start/stop.
-
-    When a session is stopped all associated environment
-    shells should always be stopped.
+    
+    Note that environment shells will always require
+    an interactive session to be available and
+    stopping an interactive session will always stop
+    all associated environment shells.
     """
 
     metadata = {
