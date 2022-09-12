@@ -108,7 +108,7 @@ func (minikube *MinikubeReconcilerController) syncDeployments(ctx context.Contex
 		clone := dep.DeepCopy()
 		clone.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
 
-		klog.Info("Removing readiness probe from coredn in minikube.")
+		klog.Info("Removing readiness probe from coredns in minikube.")
 
 		_, err = minikube.client.AppsV1().Deployments(namespace).Update(ctx, clone, v1.UpdateOptions{})
 

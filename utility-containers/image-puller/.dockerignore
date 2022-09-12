@@ -1,0 +1,25 @@
+# Python
+**/*.pyc
+**/venv*
+**/__pycache__*
+**/.eggs*
+**/eggs*
+
+# MyPy
+**/.mypy_cache*
+**/.dmypy.json
+**/dmypy.json
+
+# Front end
+**/node_modules*
+
+**/dist*
+
+# State
+**/*.db
+
+# Pyright / VSCode
+**/pyrightconfig.json
+
+# Helm deployment state
+deploy/k8s
