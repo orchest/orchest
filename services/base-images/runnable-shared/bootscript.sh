@@ -15,6 +15,7 @@ elif [ "$1" = "shell" ]; then
     git config --global --add safe.directory /project-dir
     
     env > /etc/environment
+    # Start and stop ssh using `service` to create required directories
     sudo service ssh start
     sudo service ssh stop
     sudo /usr/sbin/sshd -D
