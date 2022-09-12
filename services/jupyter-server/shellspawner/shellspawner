@@ -75,7 +75,8 @@ def collect_choice(choice_count: int, prefix: str):
             print(f"{prefix} [0{choice_end}]: ", end="", flush=True)
             user_input = input()
             index = int(user_input)
-            assert index >= 0 and index <= choice_count - 1
+            if not (index >= 0 and index <= choice_count - 1):
+                raise ValueError()
             return index
         except KeyboardInterrupt:
             return None
