@@ -2,6 +2,7 @@ import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { Json, StrategyJson } from "@/types";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
+import Tooltip from "@mui/material/Tooltip";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import {
@@ -76,19 +77,32 @@ export const EditJobConfig = () => {
         id: "toggle",
         label: "Include?",
         render: function IncludeToggle(row) {
-          return (
+          if (row.spec === "Parameterless run") return null;
+
+          const isChecked = selectedRuns.some((run) => row.uuid === run);
+          const disabled = selectedRuns.length === 1 && isChecked;
+          const toggle = (
             <Switch
-              checked={selectedRuns.some((run) => row.uuid === run)}
-              onChange={(_, checked) =>
-                setSelectedRuns((current) =>
-                  checked
+              checked={isChecked}
+              disabled={disabled}
+              onChange={(_, newCheckedValue) =>
+                setSelectedRuns((current) => {
+                  return newCheckedValue
                     ? [...current, row.uuid]
-                    : current.filter((selected) => selected !== row.uuid)
-                )
+                    : current.filter((selected) => selected !== row.uuid);
+                })
               }
               size="small"
               inputProps={{ "aria-label": "Include this run" }}
             />
+          );
+
+          return disabled ? (
+            <Tooltip title="At least one run should be included.">
+              <div>{toggle}</div>
+            </Tooltip>
+          ) : (
+            toggle
           );
         },
       },
