@@ -6,7 +6,7 @@ import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import rmtree
+from _orchest.internals.utils import copytree, rmtree
 from app.connections import k8s_core_api
 from app.core import image_utils
 from app.core.sio_streamed_task import SioStreamedTask
@@ -90,7 +90,14 @@ def write_jupyter_dockerfile(base_image, task_uuid, work_dir, bash_script, path)
     flag = CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
-        f"RUN bash < {bash_script} "
+        # To make user settings available to extensions that require it.
+        "RUN mkdir /root/.jupyter/lab -p "
+        "&& rm /root/.jupyter/lab/user-settings -rf "
+        "&& mv _orchest_configurations_jupyterlab_user_settings "
+        "/root/.jupyter/lab/user-settings "
+        # Run the user script.
+        f"&& bash < {bash_script} "
+        # Other internal commands.
         "&& build_path_ext=/jupyterlab-orchest-build/extensions "
         "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions "
         "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "
@@ -155,6 +162,17 @@ def prepare_build_context(task_uuid):
         os.system(f'touch "{snapshot_setup_script_path}"')
 
     base_image = f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+
+    # Copy the settings into the context to make them available during
+    # build. It's done in this "simple" manner to be compatible with all
+    # container runtimes we use to build. This is done for extensions
+    # that need access to (READ) the settings on install. Writes are
+    # currently not supported since both buildkit and buildx do not
+    # support binding a writable directory.
+    copytree(
+        "/userdir/.orchest/user-configurations/jupyterlab/user-settings",
+        os.path.join(snapshot_path, "_orchest_configurations_jupyterlab_user_settings"),
+    )
 
     write_jupyter_dockerfile(
         base_image,

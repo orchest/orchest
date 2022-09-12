@@ -145,14 +145,6 @@ def _get_image_builder_manifest(
                 "subPath": ".orchest/user-configurations/jupyterlab/user-settings",
             }
         )
-        # ENV_PERF_TODO: settings should be copied by the dockerfile
-        # container["args"][0] = container["args"][0].replace(
-        #     "buildah build",
-        #     (
-        #         "buildah build -v "
-        #         "/jupyterlab-user-settings:/root/.jupyter/lab/user-settings "
-        #     ),
-        # )
 
     return manifest
 
