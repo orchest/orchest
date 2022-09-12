@@ -87,7 +87,7 @@ def collect_choice(choice_count: int, prefix: str):
             if choice_count == 1:
                 return 0
 
-            print("Invalid input.")
+            print(f"Invalid input. Enter integer between 0 and {choice_count - 1}.")
             continue
 
 
