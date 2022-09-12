@@ -4,16 +4,13 @@ import { JobData } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import format from "date-fns/format";
 import React from "react";
+import { humanizeDate } from "../common";
 import { useSnapshot } from "../hooks/useSnapshot";
 
 export type JobSummaryProps = {
   job: JobData;
 };
-
-const formatDate = (dateStr: string) =>
-  format(new Date(dateStr), "MMM d yyyy, p");
 
 export const JobSummary = ({ job }: JobSummaryProps) => {
   const { snapshot } = useSnapshot(job.snapshot_uuid);
@@ -30,10 +27,10 @@ export const JobSummary = ({ job }: JobSummaryProps) => {
         </RouteLink>
       </Field>
       <Field name="Scheduled for">
-        {job.next_scheduled_time ? formatDate(job.next_scheduled_time) : "—"}
+        {job.next_scheduled_time ? humanizeDate(job.next_scheduled_time) : "—"}
       </Field>
       <Field name="Snapshot date">
-        {snapshot ? formatDate(snapshot.timestamp) : "—"}
+        {snapshot ? humanizeDate(snapshot.timestamp) : "—"}
       </Field>
     </Stack>
   );
