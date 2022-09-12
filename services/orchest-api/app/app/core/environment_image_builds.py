@@ -274,16 +274,6 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         )
     )
 
-    if CONFIG_CLASS.DEV_MODE:
-        # Don't set it two times.
-        if not base_image.startswith("registry:docker-daemon:"):
-            # Use image from local daemon if instructed to do so.
-            with open(snapshot_setup_script_path, "r") as script_file:
-                first_line = script_file.readline()
-                if "# LOCAL IMAGE" in first_line:
-                    base_image = f"registry:docker-daemon:{base_image}"
-                    _logger.info(f"Using {base_image}.")
-
     dockerfile_name = (
         f".orchest-reserved-env-dockerfile-{project_uuid}-{environment_uuid}"
     )

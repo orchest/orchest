@@ -155,13 +155,6 @@ def prepare_build_context(task_uuid):
         os.system(f'touch "{snapshot_setup_script_path}"')
 
     base_image = f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
-    if CONFIG_CLASS.DEV_MODE:
-        # Use image from local daemon if instructed to do so.
-        with open(snapshot_setup_script_path, "r") as script_file:
-            first_line = script_file.readline()
-            if "# LOCAL IMAGE" in first_line:
-                base_image = f"registry:docker-daemon:{base_image}"
-                logger.info(f"Using {base_image}.")
 
     write_jupyter_dockerfile(
         base_image,

@@ -8,6 +8,7 @@ from app import errors, utils
 from app.connections import k8s_core_api
 from config import CONFIG_CLASS
 
+
 def image_build_task_to_pod_name(task_uuid: str) -> str:
     return f"image-build-task-{task_uuid}"
 
@@ -133,11 +134,6 @@ def _get_image_builder_manifest(
             + _IMAGE_BUILDER_VOLUMES,
         },
     }
-
-    if CONFIG_CLASS.DEV_MODE:
-        # ENV_PERF_TODO: verify that it "just works" since the runtime
-        # socket is already mounted by default
-        ...
 
     # For extensions that need access to the settings on install.
     if _config.JUPYTER_IMAGE_NAME in image_name:
