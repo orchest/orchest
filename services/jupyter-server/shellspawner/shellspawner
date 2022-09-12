@@ -52,7 +52,7 @@ def environment_shell_uuid_to_name(
     environment_shell_uuid: str, environments: List[Dict[str, Any]]
 ) -> str:
     # Cut of last random UUID
-    environment_uuid = environment_shell_uuid[: -(RANDOM_UUID_SUFFIX_LEN + 1)]
+    environment_uuid = environment_shell_uuid_to_environment_uuid(environment_shell_uuid)
 
     # Find environment uuid in environments
     name = environment_shell_uuid
