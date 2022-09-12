@@ -120,6 +120,7 @@ def duplicate_job_spec(job_uuid: str) -> dict:
     job_spec["pipeline_uuid"] = parent_job["pipeline_uuid"]
     job_spec["pipeline_name"] = parent_job["pipeline_name"]
     job_spec["pipeline_run_spec"] = {"run_type": "full", "uuids": []}
+    job_spec["max_retained_pipeline_runs"] = parent_job["max_retained_pipeline_runs"]
 
     if (
         Project.query.filter_by(
