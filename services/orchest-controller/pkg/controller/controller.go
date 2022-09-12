@@ -34,7 +34,7 @@ type Controller[Object client.Object] struct {
 	kubeClient kubernetes.Interface
 
 	// GroupVersionKind of the object this controller handles
-	gvk schema.GroupVersionKind
+	gvk *schema.GroupVersionKind
 
 	workerLoopPeriod time.Duration
 
@@ -55,7 +55,7 @@ type Controller[Object client.Object] struct {
 
 func NewController[Object client.Object](name string, threadiness int,
 	kubeClient kubernetes.Interface,
-	gvk schema.GroupVersionKind) *Controller[Object] {
+	gvk *schema.GroupVersionKind) *Controller[Object] {
 	controller := &Controller[Object]{
 		name:        name,
 		kubeClient:  kubeClient,
@@ -70,7 +70,7 @@ func NewController[Object client.Object](name string, threadiness int,
 // resolveControllerRef returns the controller referenced by a ControllerRef,
 // or nil if the ControllerRef could not be resolved to a matching controller
 // of the correct Kind.
-func (c *Controller[Object]) resolveControllerRef(namespace string, controllerRef *metav1.OwnerReference) *Object {
+func (c *Controller[Object]) resolveControllerRef(namespace string, controllerRef *metav1.OwnerReference) interface{} {
 	// We can't look up by UID, so look up by Name and then verify UID.
 	// Don't even try to look up by Name if it's the wrong Kind.
 	if controllerRef.Kind != c.gvk.Kind {
@@ -91,8 +91,7 @@ func (c *Controller[Object]) resolveControllerRef(namespace string, controllerRe
 		// ControllerRef points to.
 		return nil
 	}
-	typedObj := obj.(Object)
-	return &typedObj
+	return obj
 }
 
 // Run will not return until stopCh is closed. workers determines how many
@@ -138,7 +137,7 @@ func (c *Controller[Object]) processNextWorkItem(ctx context.Context) bool {
 	return true
 }
 
-func (c *Controller[Object]) Enqueue(obj Object) {
+func (c *Controller[Object]) Enqueue(obj interface{}) {
 	key, err := KeyFunc(obj)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", obj, err))
@@ -148,7 +147,7 @@ func (c *Controller[Object]) Enqueue(obj Object) {
 	c.queue.Add(key)
 }
 
-func (c *Controller[Object]) EnqueueAfter(obj Object) {
+func (c *Controller[Object]) EnqueueAfter(obj interface{}) {
 	key, err := KeyFunc(obj)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", obj, err))

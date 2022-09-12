@@ -179,28 +179,29 @@ func NewClusterRoleBindingInformer(factory informers.SharedInformerFactory) rbac
 	return factory.Rbac().V1().ClusterRoleBindings()
 }
 
-func DetectK8sDistribution(client kubernetes.Interface) (KubernetesDistros, error) {
+func DetectK8sDistribution(client kubernetes.Interface) KubernetesDistros {
 	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get node list: %v", err)
+		return NotDetected
 	}
 	if len(nodes.Items) <= 0 {
-		return NotDetected, nil
+		return NotDetected
 	}
 
 	node := nodes.Items[0]
 
 	if _, ok := node.Labels[minikubeLableKey]; ok {
-		return Minikube, nil
+		return Minikube
 	} else if _, ok := node.Labels[microk8sLabelKey]; ok {
-		return Microk8s, nil
+		return Microk8s
 	} else if _, ok := node.Labels[eksLabelKey]; ok {
-		return EKS, nil
+		return EKS
 	} else if _, ok := node.Annotations[k3sAnnotationKey]; ok {
-		return K3s, nil
+		return K3s
 	}
 
-	return NotDetected, nil
+	return NotDetected
 }
 
 // IsDeploymentReady checks if the number of required replicas is equal to number of created replicas

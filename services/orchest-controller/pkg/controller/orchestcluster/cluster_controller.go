@@ -172,7 +172,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 		"orchest-cluster",
 		1,
 		kClient,
-		OrchestClusterKind,
+		&OrchestClusterKind,
 	)
 
 	occ := OrchestClusterController{
@@ -193,7 +193,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	occ.oClusterLister = oClusterInformer.Lister()
 
 	// OrchestComponent event handlers
-	oComponentWatcher := controller.Watcher[*orchestv1alpha1.OrchestComponent, *orchestv1alpha1.OrchestCluster]{ctrl}
+	oComponentWatcher := controller.NewControlleeWatcher[*orchestv1alpha1.OrchestComponent](ctrl)
 	oComponentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    oComponentWatcher.AddObject,
 		UpdateFunc: oComponentWatcher.UpdateObject,
