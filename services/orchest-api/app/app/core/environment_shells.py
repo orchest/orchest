@@ -90,7 +90,7 @@ def launch_environment_shell(
         deployment = k8s_apps_api.read_namespaced_deployment_status(deployment_name, ns)
 
 
-def get_environment_shells(session_uuid):
+def get_environment_shells(session_uuid: str):
     """Gets all related resources, idempotent."""
     ns = _config.ORCHEST_NAMESPACE
     label_selector = f"session_uuid={session_uuid},app=environment-shell"
@@ -118,7 +118,7 @@ def get_environment_shells(session_uuid):
         return []
 
 
-def stop_environment_shell(environment_shell_uuid):
+def stop_environment_shell(environment_shell_uuid: str):
     """Deletes environment shell."""
     # Note: we rely on the fact that deleting the deployment leads to a
     # SIGTERM to the container, which will be used to delete the
