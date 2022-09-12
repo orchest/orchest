@@ -260,7 +260,7 @@ def choose_existing_environment_shell(
     environment_shells: List[Dict[str, Any]],
     environments: List[Dict[str, Any]],
     prompt_suffix: str,
-) -> Dict[str, Any]:
+) -> Optional[Dict[str, Any]]:
     print("Running environment shells")
     for key, environment_shell in enumerate(environment_shells):
         environment_display_name = environment_shell_uuid_to_name(
