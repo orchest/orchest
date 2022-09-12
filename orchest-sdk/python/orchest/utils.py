@@ -52,7 +52,7 @@ def get_step_uuid(pipeline: Pipeline) -> str:
 
         raise StepUUIDResolveError(
             'Environment variable "STEP_UUID" has to be explicitly passed when'
-            ' executing Pipeline Steps in Environment shells.'
+            " executing Pipeline Steps in Environment shells."
         )
 
     # Get JupyterLab sessions to resolve the step's UUID via the id of
