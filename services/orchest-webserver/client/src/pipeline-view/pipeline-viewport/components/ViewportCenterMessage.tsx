@@ -23,11 +23,7 @@ export const ViewportCenterMessage = ({
     <Stack
       direction="column"
       alignItems="center"
-      sx={{
-        transform: (theme) => `translateY(${theme.spacing(-10)})`,
-        zIndex: 1,
-        ...sx,
-      }}
+      sx={{ zIndex: 1, ...sx }}
       {...props}
     >
       <Box
