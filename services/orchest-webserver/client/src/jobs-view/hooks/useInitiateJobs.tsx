@@ -13,12 +13,13 @@ export const useInitiateJobs = () => {
 
   const shouldRefetch = useShouldRefetchPerProject();
 
-  const shouldFetch = useJobsApi(
-    (state) => hasValue(projectUuid) && (!state.jobs || shouldRefetch)
-  );
+  const isNotLoaded = useJobsApi((state) => !hasValue(state.jobs));
+
+  const shouldFetch = hasValue(projectUuid) && (isNotLoaded || shouldRefetch);
+
   const { fetchJobs } = useFetchJobs(projectUuid);
 
   React.useEffect(() => {
     if (shouldFetch) fetchJobs();
-  }, [shouldFetch, projectUuid, fetchJobs]);
+  }, [shouldFetch, fetchJobs]);
 };

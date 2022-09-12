@@ -1,16 +1,14 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import React from "react";
-import { useUpdateJobOnUnmount } from "./useUpdateJobOnUnmount";
 
 /**
- * Provides `selectJob` that navigate to the Environment.
+ * Provides `selectJob` that navigate to the Job.
  */
 export const useSelectJob = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
-  useUpdateJobOnUnmount();
 
-  const saveAndRedirect = React.useCallback(
+  const redirect = React.useCallback(
     (jobUuid: string) => {
       navigateTo(siteMap.jobs.path, {
         query: { projectUuid, jobUuid },
@@ -22,9 +20,9 @@ export const useSelectJob = () => {
   const selectJob = React.useCallback(
     (jobUuid: string) => {
       if (!projectUuid) return;
-      saveAndRedirect(jobUuid);
+      redirect(jobUuid);
     },
-    [projectUuid, saveAndRedirect]
+    [projectUuid, redirect]
   );
 
   return { selectJob };

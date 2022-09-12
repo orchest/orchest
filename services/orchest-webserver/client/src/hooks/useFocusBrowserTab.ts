@@ -100,8 +100,10 @@ export const useFocusBrowserTab = (disabled?: boolean) => {
 
 export const useRegainBrowserTabFocus = () => {
   const isTabFocused = useFocusBrowserTab();
-  const hasBrowserFocusChanged = useHasChanged(isTabFocused);
-  const hasRegainedFocus = isTabFocused && hasBrowserFocusChanged;
+  const hasBrowserFocusChanged = useHasChanged(
+    isTabFocused,
+    (prev, curr) => !prev && curr
+  );
 
-  return hasRegainedFocus;
+  return hasBrowserFocusChanged;
 };
