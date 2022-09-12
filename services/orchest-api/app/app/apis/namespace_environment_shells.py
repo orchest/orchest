@@ -1,3 +1,14 @@
+"""The environment-shells namespace is used by the 
+orchest-webserver to start environment shells that 
+are container backed shell sessions that let users 
+execute commands in a terminal session that are 
+based on Orchest Environments created by the user.
+
+The orchest-webserver invokes these endpoints
+through the JupyterLab terminal's shellspawner
+script.
+"""
+
 from typing import Any, Dict
 
 from flask import request
@@ -18,7 +29,6 @@ from app.core.environments import get_env_uuids_to_image_mappings
 
 api = Namespace("environment-shells", description="Manage environment shells")
 api = schema.register_schema(api)
-
 
 @api.route("/<string:session_uuid>")
 class EnvironmentShellSessionList(Resource):
