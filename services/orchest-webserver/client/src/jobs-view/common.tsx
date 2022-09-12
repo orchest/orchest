@@ -110,6 +110,7 @@ export function generatePipelineRunParamCombinations(
     if (!unpacked.includes(fullParam)) {
       unpacked.push(fullParam);
       const valueArr = params[fullParam];
+      if (!Array.isArray(valueArr)) continue;
       valueArr.forEach((value) => {
         let localParams = JSON.parse(JSON.stringify(params));
         // collapse param list to paramValue
