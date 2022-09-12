@@ -20,7 +20,7 @@ ORCHEST_API_ADDRESS = os.environ["ORCHEST_API_ADDRESS"]
 # Includes "http://"
 ORCHEST_WEBSERVER_ADDRESS = os.environ["ORCHEST_WEBSERVER_ADDRESS"]
 LOADING_CHARS = ["⠾", "⠷", "⠯", "⠟", "⠻", "⠽"]
-
+RANDOM_UUID_SUFFIX_LEN = 6
 
 class BackgroundRequest(threading.Thread):
     def __init__(self, request_callable, callable_args):
@@ -45,17 +45,14 @@ def print_jupyter_warning():
 
 
 def environment_shell_uuid_to_environment_uuid(environment_shell_uuid: str) -> str:
-    random_uuid_suffix_len = 6
-    return environment_shell_uuid[: -(random_uuid_suffix_len + 1)]
+    return environment_shell_uuid[: -(RANDOM_UUID_SUFFIX_LEN + 1)]
 
 
 def environment_shell_uuid_to_name(
     environment_shell_uuid: str, environments: List[Dict[str, Any]]
 ) -> str:
-    random_uuid_suffix_len = 6
-
     # Cut of last random UUID
-    environment_uuid = environment_shell_uuid[: -(random_uuid_suffix_len + 1)]
+    environment_uuid = environment_shell_uuid[: -(RANDOM_UUID_SUFFIX_LEN + 1)]
 
     # Find environment uuid in environments
     name = environment_shell_uuid
@@ -64,7 +61,7 @@ def environment_shell_uuid_to_name(
             name = (
                 environment["name"]
                 + " "
-                + environment_shell_uuid[-random_uuid_suffix_len:]
+                + environment_shell_uuid[-RANDOM_UUID_SUFFIX_LEN:]
             )
             break
 
