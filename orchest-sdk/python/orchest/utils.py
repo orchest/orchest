@@ -17,7 +17,7 @@ def pretty_print_env_var_suggestion(pipeline: Pipeline) -> None:
         print(
             "ORCHEST_STEP_UUID="
             + step.properties.get("uuid")
-            + " (Step %s %s)"
+            + " (Step with title '%s' and path '%s')"
             % (step.properties.get("title"), step.properties.get("file_path"))
         )
 
