@@ -116,10 +116,10 @@ class CreateEnvironmentShell(TwoPhaseFunction):
         )
         service_name = f"environment-shell-{shell_uuid}"
 
-        self.collateral_kwargs["service_name"] = service_name
         self.collateral_kwargs["environment_shell_config"] = environment_shell_config
         self.collateral_kwargs["environment_image_string"] = environment_image_string
         self.collateral_kwargs["session_uuid"] = session_uuid
+        self.collateral_kwargs["service_name"] = service_name
 
         return {
             "hostname": service_name,

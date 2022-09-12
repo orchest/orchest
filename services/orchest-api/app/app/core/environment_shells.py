@@ -49,8 +49,8 @@ def launch_environment_shell(
     """
 
     (
-        environment_shell_service_manifest,
         environment_shell_deployment_manifest,
+        environment_shell_service_manifest,
     ) = _manifests._get_environment_shell_deployment_service_manifest(
         session_uuid,
         service_name,
