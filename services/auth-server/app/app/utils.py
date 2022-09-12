@@ -3,9 +3,9 @@ from __future__ import annotations
 import datetime
 import hashlib
 import os
-from typing import Dict, TypedDict
+from typing import Dict, TypedDict, Union
 
-PathType = str | bytes | os.PathLike
+PathType = Union[str, bytes, os.PathLike]
 
 
 class _InnerAuthCache(TypedDict):
