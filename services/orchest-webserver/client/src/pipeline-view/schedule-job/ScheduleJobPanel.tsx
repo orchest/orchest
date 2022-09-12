@@ -6,7 +6,6 @@ import {
 } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
 import { useSaveJobChanges } from "@/jobs-view/hooks/useSaveJobChanges";
-import { useUpdateJobOnUnmount } from "@/jobs-view/hooks/useUpdateJobOnUnmount";
 import { JobEnvVariables } from "@/jobs-view/job-view/JobEnvVariables";
 import { JobOverview } from "@/jobs-view/job-view/JobOverview";
 import { JobParameters } from "@/jobs-view/job-view/JobParameters";
@@ -35,7 +34,6 @@ export const ScheduleJobPanel = () => {
   }, [uiStateDispatch, setSnackBarMessage]);
 
   useSaveJobChanges();
-  useUpdateJobOnUnmount();
 
   return (
     <ResizablePane

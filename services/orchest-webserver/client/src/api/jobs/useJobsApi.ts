@@ -1,4 +1,5 @@
 import { JobChangesData, JobData, PipelineJson, StrategyJson } from "@/types";
+import { omit } from "@/utils/record";
 import create from "zustand";
 import { jobsApi } from "./jobsApi";
 
@@ -90,10 +91,7 @@ export const useJobsApi = create<JobsApi>((set, get) => {
         if (!projectUuid) return;
         const jobs = get().jobs;
         const fetchedJobData = await jobsApi.fetchAll(projectUuid);
-
-        if (!jobs || fetchedJobData instanceof Error) {
-          return;
-        }
+        if (!jobs) return;
 
         const jobMap = new Map<string, JobData>(
           jobs.map((job) => [job.uuid, job])
@@ -106,9 +104,7 @@ export const useJobsApi = create<JobsApi>((set, get) => {
 
         if (hasStatusChanged) set({ jobs: fetchedJobData });
       } catch (error) {
-        console.error(
-          `Failed to fetch most recent environment builds. ${String(error)}`
-        );
+        console.error(`Failed to fetch jobs. ${String(error)}`);
       }
     },
     post: async (
@@ -136,6 +132,17 @@ export const useJobsApi = create<JobsApi>((set, get) => {
     put: async (changes: JobChangesData) => {
       try {
         await jobsApi.put(changes);
+        set((state) => {
+          const updatedJobs = (state.jobs || []).map((job) => {
+            return job.uuid === changes.uuid
+              ? {
+                  ...job,
+                  ...omit(changes, "confirm_draft"),
+                }
+              : job;
+          });
+          return { jobs: updatedJobs };
+        });
       } catch (error) {
         if (!error?.isCanceled) console.error("Failed to put job changes.");
       }
