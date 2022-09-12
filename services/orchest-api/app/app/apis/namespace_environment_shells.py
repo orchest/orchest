@@ -74,7 +74,7 @@ class EnvironmentShellList(Resource):
             pipeline_uuid=environment_shell_config["pipeline_uuid"],
         ).one_or_none()
         if isess is None:
-            return {"message": "Session doesn't exist."}, 409
+            return {"message": "Session doesn't exist."}, 404
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:

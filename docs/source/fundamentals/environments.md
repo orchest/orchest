@@ -105,7 +105,7 @@ Installing packages with `conda` is also supported but might take longer (due to
 
 ## Environment shells
 
-JupyterLab has integrated support for shell sessions using a terminal emulator. To run your scripts and CLI commands while developing your data pipeline you can make use of shells that are based on the environments you have in your project. The environment container image is used such that you have access to all installed programs/dependencies.
+JupyterLab has integrated support for shell sessions using a terminal emulator. To run your scripts and CLI commands while developing your data Pipeline you can make use of shells that are based on the Environments you have in your Project. The Environment container image is used such that you have access to all installed programs/dependencies.
 
 All you need to do is open JupyterLab and click on Terminal:
 
