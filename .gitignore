@@ -13,6 +13,7 @@ orchest.code-workspace
 #  These files are only present during the build process, but we'll add them to
 #  .gitignore to avoid confusion
 services/*/.dockerignore
+utility-containers/*/.dockerignore
 services/*/lib
 services/orchest-webserver/app/core
 services/orchest-api/orchest-cli/
