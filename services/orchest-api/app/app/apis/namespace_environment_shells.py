@@ -60,7 +60,7 @@ class EnvironmentShell(Resource):
 class EnvironmentShellList(Resource):
     @api.doc("launch_environment_shell")
     @api.expect(schema.environment_shell_config)
-    @api.marshal_with(schema.environment_shell, code=200)
+    @api.marshal_with(schema.environment_shell, code=201)
     def post(self):
         """Launches an environment shell."""
         environment_shell_config = request.get_json()
