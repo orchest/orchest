@@ -116,7 +116,7 @@ All you need to do is open JupyterLab in a session and click on Terminal:
 ```
 
 ```{warning}
-If you make any changes to your environment, you'll need to restart your environment shell to see the changes. You can restart your environment shell by exiting out of it by typing Ctrl + D or typing 'exit'.
+If you make any changes to your Environment, you'll need to restart your Environment shell to see the changes. You can restart your Environment shell by exiting out of it by pressing 'Ctrl + D' or typing 'exit'.
 ```
 
 ## Custom environment images
