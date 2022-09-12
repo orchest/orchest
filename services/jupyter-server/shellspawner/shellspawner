@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-# Zero dependency shell spawner program
-# Connects JupyterLab terminal to an SSH daemon
-# running on an environment shell container.
+"""Zero dependency shell spawner program
+Connects JupyterLab terminal to an SSH daemon
+running on an environment shell container.
+"""
 
 import json
 import os
