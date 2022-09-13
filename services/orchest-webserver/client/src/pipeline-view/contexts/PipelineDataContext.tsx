@@ -92,12 +92,12 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
       setAlert(
         "Error",
         jobUuid
-          ? "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view."
+          ? "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Jobs view."
           : "Could not load pipeline",
         (resolve) => {
           resolve(true);
           if (jobUuid) {
-            navigateTo(siteMap.job.path, { query: { projectUuid, jobUuid } });
+            navigateTo(siteMap.jobs.path, { query: { projectUuid, jobUuid } });
           } else {
             navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
           }

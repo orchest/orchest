@@ -8,7 +8,6 @@ export type RouteName =
   | "filePreview"
   | "environments"
   | "jobs"
-  | "job"
   | "jobRun"
   | "jobRunFilePreview"
   | "pipelineReadonly"
@@ -78,12 +77,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       name: "jobs",
       path: "/jobs",
       title: getTitle("Jobs"),
-    },
-    {
-      name: "job",
-      path: "/job",
-      root: "/jobs",
-      title: getTitle("Job"),
     },
     {
       name: "jobRun",
@@ -220,7 +213,6 @@ const excludedPaths = [
   siteMap.projectSettings.path,
   siteMap.jupyterLab.path,
   siteMap.filePreview.path,
-  siteMap.job.path,
 ];
 
 // used in CommandPalette

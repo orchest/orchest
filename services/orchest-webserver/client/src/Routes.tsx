@@ -2,7 +2,6 @@ import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
 import { EnvironmentsView } from "./environments-view/EnvironmentsView";
 import { JobsView } from "./jobs-view/JobsView";
-import JobView from "./legacy-job-view/JobView";
 import { NotificationSettingsView } from "./notification-settings-view/NotificationSettingsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import { ProjectsView } from "./projects-view/ProjectsView";
@@ -28,7 +27,6 @@ const pathComponentMapping = {
   "/file-preview": FilePreviewView,
   "/environments": EnvironmentsView,
   "/jobs": JobsView,
-  "/job": JobView,
   "/job-run": PipelineView,
   "/job-run/file-preview": FilePreviewView,
   "/settings": SettingsView,

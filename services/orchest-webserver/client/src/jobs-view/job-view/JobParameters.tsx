@@ -3,7 +3,7 @@ import {
   AccordionDetails,
   AccordionSummary,
 } from "@/components/Accordion";
-import { LoadParametersDialog } from "@/edit-job-view/LoadParametersDialog";
+import { LoadParametersDialog } from "@/jobs-view/job-view/LoadParametersDialog";
 import UploadIcon from "@mui/icons-material/Upload";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";

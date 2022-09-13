@@ -1,7 +1,7 @@
 import CronScheduleInput from "@/components/CronScheduleInput";
 import { DateTimeInput } from "@/components/DateTimeInput";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { JobDocLink } from "@/legacy-job-view/JobDocLink";
+import { JobDocLink } from "@/jobs-view/JobDocLink";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";

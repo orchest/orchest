@@ -1,4 +1,4 @@
-import { flattenStrategyJson } from "../commons";
+import { flattenStrategyJson } from "../common";
 import {
   mockParameters,
   mockStrategyJson,

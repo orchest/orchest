@@ -1,4 +1,4 @@
-import { generatePipelineRunParamCombinations } from "../commons";
+import { generatePipelineRunParamCombinations } from "../common";
 import {
   mockParameters,
   mockPipelineRuns,

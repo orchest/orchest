@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAutoCleanUpEnabled } from "@/edit-job-view/useAutoCleanUpEnabled";
+import { useAutoCleanUpEnabled } from "@/jobs-view/job-view/hooks/useAutoCleanUpEnabled";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import InputAdornment from "@mui/material/InputAdornment";
