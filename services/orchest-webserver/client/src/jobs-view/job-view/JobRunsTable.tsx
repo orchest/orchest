@@ -26,7 +26,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { useCancelRun } from "../../hooks/useCancelRun";
+import { useCancelJobRun } from "../../hooks/useCancelJobRun";
 import {
   canCancelRun,
   formatPipelineParams,
@@ -64,7 +64,7 @@ export const JobRunsTable = ({
   setPageSize,
 }: JobRunsTableProps) => {
   const [contextMenu, setContextMenu] = React.useState<ContextMenuState>({});
-  const cancelRun = useCancelRun();
+  const cancelRun = useCancelJobRun();
 
   const openContextMenu = (run: PipelineRun, anchorEl: Element) => {
     setContextMenu({ run, anchorEl, isOpen: true });
@@ -227,7 +227,7 @@ export type RunDetailsProps = { run: PipelineRun; pipelineUrl: string };
 
 export const RunDetails = ({ run, pipelineUrl }: RunDetailsProps) => {
   const { pipeline } = usePipeline(run.project_uuid, run.pipeline_uuid);
-  const cancelRun = useCancelRun();
+  const cancelRun = useCancelJobRun();
   const params = formatPipelineParams(run.parameters);
   const hasParameters = params.length > 0;
 

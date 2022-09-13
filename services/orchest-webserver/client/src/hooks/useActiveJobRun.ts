@@ -1,7 +1,7 @@
 import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
 import React from "react";
 import { useAsync } from "./useAsync";
-import { useCancelRun } from "./useCancelRun";
+import { useCancelJobRun } from "./useCancelJobRun";
 import { useCustomRoute } from "./useCustomRoute";
 
 /**
@@ -10,7 +10,7 @@ import { useCustomRoute } from "./useCustomRoute";
  */
 export const useActiveJobRun = () => {
   const { runUuid } = useCustomRoute();
-  const cancel = useCancelRun();
+  const cancel = useCancelJobRun();
   const fetchRun = useJobRunsApi((api) => api.fetchOne);
   const runs = useJobRunsApi((api) => api.runs || []);
   const { run, status, error } = useAsync();
