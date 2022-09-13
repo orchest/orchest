@@ -1,11 +1,13 @@
 import { SnapshotData } from "@/types";
-import { choke } from "@/utils/promise";
+import { memoizeFor, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { snapshotsApi } from "./snapshotsApi";
 
 export type SnapshotsApi = {
   snapshots?: SnapshotData[];
-  fetchOne: (snapshotUuid: string) => Promise<SnapshotData | undefined>;
+  fetchOne: MemoizePending<
+    (snapshotUuid: string) => Promise<SnapshotData | undefined>
+  >;
 };
 
 export const useSnapshotsApi = create<SnapshotsApi>((set, get) => {
@@ -23,7 +25,7 @@ export const useSnapshotsApi = create<SnapshotsApi>((set, get) => {
 
   return {
     snapshots: undefined,
-    fetchOne: choke(async (snapshotUuid) => {
+    fetchOne: memoizeFor(1000, async (snapshotUuid) => {
       const snapshot = await snapshotsApi.fetchOne(snapshotUuid);
 
       set({ snapshots: replaceOrAddSnapshot(snapshot) });

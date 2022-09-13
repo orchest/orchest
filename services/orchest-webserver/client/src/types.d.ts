@@ -9,6 +9,17 @@ declare module "react" {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyFunction = (...args: any[]) => any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyAsyncFunction = (...args: any[]) => Promise<any>;
+/** Returns the type of the promise result for an asynchronous function */
+export type ResolutionOf<F extends AnyAsyncFunction> = ReturnType<
+  F
+> extends PromiseLike<infer R>
+  ? R
+  : never;
+
 export type Json =
   | string
   | number
