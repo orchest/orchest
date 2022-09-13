@@ -189,25 +189,25 @@ map $http_upgrade $connection_upgrade {
 }
 
 server {
-	listen 80 default_server;
-	listen [::]:80 default_server;
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
-	server_name orchest;
+    server_name orchest;
 
-	location / {
-		proxy_pass http://localorchest.io;
+    location / {
+        proxy_pass http://localorchest.io;
 
-		# For project or file manager uploads.
-		client_max_body_size 0;
+        # For project or file manager uploads.
+        client_max_body_size 0;
 
-		# WebSocket support.
-		proxy_http_version 1.1; 
-		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-		proxy_set_header Host $host;
-		proxy_set_header Upgrade $http_upgrade;
-		proxy_set_header Connection $connection_upgrade;
-		proxy_read_timeout 86400;
-	}
+        # WebSocket support.
+        proxy_http_version 1.1;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 86400;
+    }
 }
 EOF
 
