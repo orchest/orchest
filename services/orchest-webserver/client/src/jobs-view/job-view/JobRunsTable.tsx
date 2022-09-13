@@ -1,24 +1,21 @@
-import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
 import RouteLink from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
-import { PipelineRun, PipelineRunStatus } from "@/types";
-import { capitalize } from "@/utils/text";
+import { usePipeline } from "@/hooks/usePipeline";
+import { PipelineRun } from "@/types";
 import { ChevronRightSharp } from "@mui/icons-material";
-import CancelOutlined from "@mui/icons-material/CancelOutlined";
-import CheckCircleOutline from "@mui/icons-material/CheckCircleOutline";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cs
-import PlayCircleOutline from "@mui/icons-material/PlayCircleOutline";
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
-import {
-  Collapse,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-} from "@mui/material";
+import Alert from "@mui/lab/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import Collapse from "@mui/material/Collapse";
+import IconButton from "@mui/material/IconButton";
+import Link from "@mui/material/Link";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -27,9 +24,16 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import format from "date-fns/format";
+import Typography from "@mui/material/Typography";
 import React from "react";
-import { formatPipelineParams } from "../common";
+import { useCancelRun } from "../../hooks/useCancelRun";
+import {
+  canCancelRun,
+  formatPipelineParams,
+  formatRunStatus,
+  humanizeDate,
+} from "../common";
+import { JobStatusIcon } from "../JobStatusIcon";
 
 export type JobRunsTableProps = {
   runs: PipelineRun[];
@@ -42,7 +46,7 @@ export type JobRunsTableProps = {
 
 const cellStyle: Record<number, React.CSSProperties> = {
   0: { width: 0, padding: 0, margin: 0 },
-  2: { width: "45%" },
+  2: { width: "40%" },
 };
 
 type ContextMenuState = {
@@ -50,9 +54,6 @@ type ContextMenuState = {
   isOpen?: boolean;
   anchorEl?: Element | undefined;
 };
-
-const canCancelRun = (run: PipelineRun | undefined): run is PipelineRun =>
-  run?.status === "STARTED" || run?.status === "PENDING";
 
 export const JobRunsTable = ({
   runs,
@@ -63,7 +64,7 @@ export const JobRunsTable = ({
   setPageSize,
 }: JobRunsTableProps) => {
   const [contextMenu, setContextMenu] = React.useState<ContextMenuState>({});
-  const cancelRun = useJobRunsApi((api) => api.cancel);
+  const cancelRun = useCancelRun();
 
   const openContextMenu = (run: PipelineRun, anchorEl: Element) => {
     setContextMenu({ run, anchorEl, isOpen: true });
@@ -176,8 +177,14 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
         </TableCell>
         <TableCell style={cellStyle[1]}>{run.job_run_index}</TableCell>
         <TableCell style={cellStyle[2]}>
-          <Stack direction="row" justifyContent="space-between">
-            {run.parameters ? formatPipelineParams(run.parameters) : "—"}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <span>
+              {run.parameters ? formatPipelineParams(run.parameters) : "—"}
+            </span>
             <RouteLink underline="none" to={pipelineUrl}>
               VIEW
             </RouteLink>
@@ -186,13 +193,17 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
         <TableCell style={cellStyle[3]}>
           <Chip
             sx={{ paddingLeft: (theme) => theme.spacing(0.5) }}
-            icon={<RunStatusIcon status={run.status} />}
-            label={capitalize(run.status.toLowerCase())}
+            icon={<JobStatusIcon status={run.status} />}
+            label={formatRunStatus(run.status)}
           />
         </TableCell>
         <TableCell style={cellStyle[4]}>
-          <Stack direction="row" justifyContent="space-between">
-            {run.started_time ? formatDate(run.started_time) : "—"}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            {run.started_time ? humanizeDate(run.started_time) : "—"}
             <IconButton
               onClick={({ currentTarget }) => openContextMenu(currentTarget)}
             >
@@ -202,9 +213,9 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
         </TableCell>
       </TableRow>
       <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 1 }}></Box>
+            <RunDetails run={run} pipelineUrl={pipelineUrl} />
           </Collapse>
         </TableCell>
       </TableRow>
@@ -212,22 +223,64 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
   );
 };
 
-type RunStatusIconProps = { status: PipelineRunStatus };
+export type RunDetailsProps = { run: PipelineRun; pipelineUrl: string };
 
-const RunStatusIcon = ({ status }: RunStatusIconProps) => {
-  switch (status) {
-    case "SUCCESS":
-      return <CheckCircleOutline fontSize="small" color="success" />;
-    case "ABORTED":
-      return <StopCircleOutlined fontSize="small" color="error" />;
-    case "FAILURE":
-      return <CancelOutlined fontSize="small" color="error" />;
-    case "STARTED":
-      return <PlayCircleOutline fontSize="small" />;
-    default:
-      return null;
-  }
+export const RunDetails = ({ run, pipelineUrl }: RunDetailsProps) => {
+  const { pipeline } = usePipeline(run.project_uuid, run.pipeline_uuid);
+  const cancelRun = useCancelRun();
+  const params = formatPipelineParams(run.parameters);
+  const hasParameters = params.length > 0;
+
+  return (
+    <Box sx={{ margin: (theme) => theme.spacing(2, 0, 1, 0) }}>
+      <Typography variant="body2">
+        Pipeline: {pipeline ? pipeline.path : "—"}
+      </Typography>
+      {params.map((param, index) => (
+        <Typography
+          variant="caption"
+          key={index}
+          sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+        >
+          {param}
+        </Typography>
+      ))}
+      {!hasParameters && <NoParameterAlert />}
+      <Stack
+        direction="row"
+        sx={{ marginTop: (theme) => theme.spacing(2) }}
+        spacing={2}
+      >
+        <Button href={pipelineUrl}>View pipeline</Button>
+        <Button
+          disabled={!canCancelRun(run)}
+          onClick={() => cancelRun(run.uuid)}
+          color="error"
+        >
+          Cancel run
+        </Button>
+      </Stack>
+    </Box>
+  );
 };
 
-const formatDate = (dateStr: string) =>
-  format(new Date(dateStr), "MMM d yyyy, p");
+export const NoParameterAlert = () => {
+  return (
+    <Alert
+      severity="info"
+      sx={{ margin: (theme) => theme.spacing(2, 0) }}
+      icon={false}
+    >
+      <Typography variant="body2">
+        {"This pipeline doesn't have any parameters defined."}
+      </Typography>
+      <Link
+        target="_blank"
+        href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
+      >
+        {"Learn how"}
+      </Link>
+      {" to parameterize your pipelines and steps."}
+    </Alert>
+  );
+};
