@@ -57,7 +57,7 @@ if [ -x "$(command -v orchest)" ]; then
     orchest install
 else
     # NOTE: Formatting in the last `echo` is needed to make sure that
-    # users can actually run outputted command.
+    # users can actually run the outputted command.
     echo "ERROR: It seems like 'pip' installed 'orchest' outside of your PATH"
     echo "Try opening a new terminal after running:"
     echo "\techo \"export PATH=\\\"\\\$PATH:\\\$HOME/.local/bin\\\"\" >> ~/.profile"
