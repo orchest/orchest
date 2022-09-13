@@ -177,8 +177,9 @@ def send_event(
         app: The Flask application that received the event. The app is
             expected to be have been initialized and to contain the
             following: TELEMETRY_UUID, MAX_JOB_RUNS_PARALLELISM,
-            MAX_INTERACTIVE_RUNS_PARALLELISM. TODO: can we do away with
-            passing the flask app to this module?
+            MAX_INTERACTIVE_RUNS_PARALLELISM, MAX_BUILDS_PARALLELISM.
+            TODO: can we do away with passing the flask app to this
+            module?
         event: The event to send.
         event_data: Information that describes the event. Must follow
             the TelemetryData schema and must already be anonymized,
@@ -244,6 +245,7 @@ def _add_app_properties(data: dict, app: Flask) -> None:
             "MAX_INTERACTIVE_RUNS_PARALLELISM"
         ),
         "max_job_runs_parallelism": app.config.get("MAX_JOB_RUNS_PARALLELISM"),
+        "max_builds_parallelism": app.config.get("MAX_BUILDS_PARALLELISM"),
     }
 
 

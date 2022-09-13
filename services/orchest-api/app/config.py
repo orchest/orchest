@@ -23,12 +23,11 @@ class Config:
     # This is mounted to both the celery worker and orchest-api.
     REGISTRY_TLS_CERT_BUNDLE = "/usr/lib/ssl/certs/additional-ca-cert-bundle.crt"
 
-    # How often to run the scheduling logic when the process is running
-    # as scheduler, in seconds.
-    SCHEDULER_INTERVAL = 10
-    # Same as above, but for image deletion and GC.
-    IMAGES_DELETION_INTERVAL = 120
+    # How often different internal scheduler tasks run.
+    CLEANUP_OLD_SCHEDULER_JOB_RECORDS_INTERVAL = 5 * 60
+    IMAGES_DELETION_INTERVAL = 2 * 60
     NOTIFICATIONS_DELIVERIES_INTERVAL = 1
+    SCHEDULER_INTERVAL = 10
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
 
