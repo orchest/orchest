@@ -45,7 +45,8 @@ RUN python -m venv /home/$NB_USER/venv \
     && deactivate
 
 # Empty configuration file for kernel initialization
-RUN touch /home/jovyan/.orchestrc && echo "export PS1='\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> ~/.bashrc
+RUN touch /home/jovyan/.orchestrc && \
+    echo "export PS1='\${ENVIRONMENT_SHELL_NAME:+(\$ENVIRONMENT_SHELL_NAME)}\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> ~/.bashrc
 
 # Get application files.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner

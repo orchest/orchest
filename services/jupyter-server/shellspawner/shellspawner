@@ -30,6 +30,7 @@ class Action(Enum):
     CONNECT = 1
     RESTART = 2
     TERMINATE = 3
+    NONE = None
 
 
 class BackgroundRequest(threading.Thread):
@@ -51,6 +52,7 @@ def print_jupyter_warning():
         "\nUsing the JupyterLab terminal directly is not recommended "
         + "read more about it in the docs\n"
         + "➜ https://docs.orchest.io/en/stable/fundamentals/environments.html"
+        + "\n\nOpen a new terminal window to get back to environment shells."
     )
 
 
@@ -91,6 +93,7 @@ def collect_choice(choice_count: int, prefix: str):
                 raise ValueError()
             return index
         except KeyboardInterrupt:
+            print()
             return None
         except Exception:
             # Choose first option if only one option,
@@ -144,7 +147,9 @@ def get_project(project_uuid: str) -> Dict[str, Any]:
     return json_resp
 
 
-def stop_environment_shell(environment_shell_uuid: str):
+def stop_environment_shell(
+    environment_shell_uuid: str, environments: List[Dict[str, Any]]
+):
     req = request.Request(
         ORCHEST_API_ADDRESS + "/environment-shells/" + environment_shell_uuid,
         method="DELETE",
@@ -152,6 +157,11 @@ def stop_environment_shell(environment_shell_uuid: str):
     req.add_header("Content-Type", "application/json")
 
     request.urlopen(req)
+
+    print(
+        "Successfully terminated "
+        + environment_shell_uuid_to_name(environment_shell_uuid, environments)
+    )
 
 
 def show_loader(
@@ -217,7 +227,7 @@ def spawn_environment_shell(environment: Dict[str, Any]) -> Dict[str, Any]:
     return t.request_result
 
 
-def connect(environment_shell: str):
+def connect(environment_shell: str, environments: List[Dict[str, Any]]):
     print("Connecting...", flush=True)
 
     user = "jovyan"  # TODO: support more usernames
@@ -230,12 +240,17 @@ def connect(environment_shell: str):
     # through a Jupyter kernel or Python console session
     # 3) the user is authenticated at a network proxy level
     # when they're able to interact with the cluster.
+    environment_shell_name = environment_shell_uuid_to_name(
+        environment_shell["uuid"], environments
+    )
+
     command = (
         "sshpass -p jovyan ssh "
         + "-o LogLevel=quiet "
         + "-o StrictHostKeyChecking=no -o ConnectTimeout=5 "
         + f"-o UserKnownHostsFile=/dev/null {user}@{hostname} -t "
-        + '"cd /project-dir; bash"'
+        + '"cd /project-dir; '
+        + f'ENVIRONMENT_SHELL_NAME=\\"{environment_shell_name}\\" bash"'
     )
 
     co = subprocess.run(command, shell=True)
@@ -298,25 +313,25 @@ def init(autoconnect=False):
     environment_shells = get_environment_shells()
 
     auto_chosen = False
-    action = None
+    action = Action.NONE
 
     if len(environment_shells) == 0:
         action = Action.START
         auto_chosen = True
     elif len(environment_shells) == 1 and autoconnect:
         # Autoconnect to shell if there's only one
-        connect(environment_shells[0])
+        connect(environment_shells[0], environments)
     else:
         action = choose_action()
 
-    if action is None:
+    if action is Action.NONE:
         quit()
 
     if action == Action.START:
         environment = choose_environment(environments)
         if environment is not None:
             environment_shell = spawn_environment_shell(environment)
-            connect(environment_shell)
+            connect(environment_shell, environments)
         elif not auto_chosen:
             # auto_chosen is necessary to allow
             # users to back out of the
@@ -332,7 +347,7 @@ def init(autoconnect=False):
             environment_shells, environments, "to connect to"
         )
         if environment_shell is not None:
-            connect(environment_shell)
+            connect(environment_shell, environments)
         else:
             init()
     elif action == Action.RESTART:
@@ -341,7 +356,7 @@ def init(autoconnect=False):
         )
 
         if environment_shell is not None:
-            stop_environment_shell(environment_shell["uuid"])
+            stop_environment_shell(environment_shell["uuid"], environments)
             environment_shell = spawn_environment_shell(
                 {
                     "uuid": environment_shell_uuid_to_environment_uuid(
@@ -350,7 +365,7 @@ def init(autoconnect=False):
                 }
             )
 
-            connect(environment_shell)
+            connect(environment_shell, environments)
         else:
             init()
     elif action == Action.TERMINATE:
@@ -359,7 +374,7 @@ def init(autoconnect=False):
         )
 
         if environment_shell is not None:
-            stop_environment_shell(environment_shell["uuid"])
+            stop_environment_shell(environment_shell["uuid"], environments)
 
         init()
 
@@ -367,8 +382,11 @@ def init(autoconnect=False):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
         print("This terminal supports connecting with Orchest environment shells.")
-        print("To restart, terminate, start or connect to a shell simply exit out of ")
-        print("your current shell by typing 'exit' or typing Ctrl + D.")
+        print(
+            "To restart, terminate, start or connect to "
+            "another shell simply exit out of "
+        )
+        print("this current shell by typing 'exit' or typing Ctrl + D.")
         print()
     else:
         init(autoconnect=True)

@@ -11,6 +11,7 @@ logger = utils.get_logger()
 def launch_environment_shell(
     session_uuid: str,
     service_name: str,
+    shell_uuid: str,
     project_uuid: str,
     pipeline_uuid: str,
     pipeline_path: str,
@@ -25,6 +26,7 @@ def launch_environment_shell(
             which is where all related resources will be deployed.
         service_name: service name used for the k8s service for
             host based communication.
+        shell_uuid: UUID to identify the shell.
         project_uuid: UUID of the project.
         pipeline_uuid: UUID of the pipeline.
         pipeline_path: Relative path (from project directory root) to
@@ -54,6 +56,7 @@ def launch_environment_shell(
     ) = _manifests._get_environment_shell_deployment_service_manifest(
         session_uuid,
         service_name,
+        shell_uuid,
         project_uuid,
         pipeline_uuid,
         pipeline_path,

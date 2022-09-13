@@ -21,12 +21,12 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.connections import db
+from app.core import environments
 from app.core.environment_shells import (
     get_environment_shells,
     launch_environment_shell,
     stop_environment_shell,
 )
-from app.core.environments import get_env_uuids_to_image_mappings
 
 api = Namespace("environment-shells", description="Manage environment shells")
 api = schema.register_schema(api)
@@ -95,11 +95,13 @@ class CreateEnvironmentShell(TwoPhaseFunction):
             + environment_shell_config["pipeline_uuid"][:18]
         )
 
-        image_mapping = get_env_uuids_to_image_mappings(
-            environment_shell_config["project_uuid"],
-            [environment_shell_config["environment_uuid"]],
+        environment_image = (
+            environments.lock_environment_images_for_interactive_session(
+                environment_shell_config["project_uuid"],
+                environment_shell_config["pipeline_uuid"],
+                set([environment_shell_config["environment_uuid"]]),
+            )[environment_shell_config["environment_uuid"]]
         )
-        environment_image = image_mapping[environment_shell_config["environment_uuid"]]
 
         environment_image_string = (
             _config.ENVIRONMENT_IMAGE_NAME.format(
@@ -120,6 +122,7 @@ class CreateEnvironmentShell(TwoPhaseFunction):
         self.collateral_kwargs["environment_image_string"] = environment_image_string
         self.collateral_kwargs["session_uuid"] = session_uuid
         self.collateral_kwargs["service_name"] = service_name
+        self.collateral_kwargs["shell_uuid"] = shell_uuid
 
         return {
             "hostname": service_name,
@@ -133,10 +136,12 @@ class CreateEnvironmentShell(TwoPhaseFunction):
         environment_image_string,
         session_uuid,
         service_name,
+        shell_uuid,
     ):
         launch_environment_shell(
             session_uuid,
             service_name,
+            shell_uuid,
             environment_shell_config["project_uuid"],
             environment_shell_config["pipeline_uuid"],
             environment_shell_config["pipeline_path"],

@@ -300,6 +300,7 @@ def _get_orchest_sdk_vars(
 def _get_environment_shell_deployment_service_manifest(
     session_uuid: str,
     service_name: str,
+    shell_uuid: str,
     project_uuid: str,
     pipeline_uuid: str,
     pipeline_path: str,
@@ -326,7 +327,7 @@ def _get_environment_shell_deployment_service_manifest(
             "app": "environment-shell",
             "project_uuid": project_uuid,
             "session_uuid": session_uuid,
-            "shell_uuid": session_uuid,
+            "shell_uuid": shell_uuid,
         },
     }
 
@@ -469,10 +470,6 @@ def _get_jupyter_server_deployment_service_manifest(
                             "imagePullPolicy": "IfNotPresent",
                             "volumeMounts": [
                                 volume_mounts_dict["project-dir"],
-                                # TODO: eval (Jacopo): why is the
-                                # pipeline-file mounted
-                                # for jupyter-server?
-                                volume_mounts_dict["pipeline-file"],
                                 volume_mounts_dict["data"],
                                 volume_mounts_dict["jupyterlab-lab"],
                                 volume_mounts_dict["jupyterlab-user-settings"],
