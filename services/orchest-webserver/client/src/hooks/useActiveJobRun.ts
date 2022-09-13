@@ -15,7 +15,7 @@ export const useActiveJobRun = () => {
   const runs = useJobRunsApi((api) => api.runs || []);
   const { run, status, error } = useAsync();
 
-  const currentRun = React.useMemo(
+  const activeRun = React.useMemo(
     () => (runUuid ? runs.find(({ uuid }) => uuid === runUuid) : undefined),
     [runUuid, runs]
   );
@@ -25,17 +25,17 @@ export const useActiveJobRun = () => {
   }, [cancel, runUuid]);
 
   React.useEffect(() => {
-    if (runUuid && !currentRun && status !== "PENDING") {
+    if (runUuid && !activeRun && status !== "PENDING") {
       run(fetchRun(runUuid)).catch();
     }
-  }, [fetchRun, currentRun, runUuid, run, status]);
+  }, [fetchRun, activeRun, runUuid, run, status]);
 
   return {
-    run,
+    run: activeRun,
     cancelRun,
     error,
     isFetching: status === "PENDING",
     isCancelable:
-      currentRun?.status === "STARTED" || currentRun?.status === "PENDING",
+      activeRun?.status === "STARTED" || activeRun?.status === "PENDING",
   };
 };
