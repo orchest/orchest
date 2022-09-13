@@ -30,8 +30,8 @@ var (
 		controller.CeleryWorker,
 		controller.AuthServer,
 		controller.OrchestWebserver,
-		controller.NodeAgent,
 		controller.BuildKitDaemon,
+		controller.NodeAgent,
 	}
 
 	// Registry helm parameters
