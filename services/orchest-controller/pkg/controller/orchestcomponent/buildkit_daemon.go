@@ -81,6 +81,8 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 						},
 					},
 				},
+				// TODO: allow customizing this for k8s flavours that
+				// may have containerd in non standard locations (k3s).
 				{
 					Name: "run-containerd",
 					VolumeSource: corev1.VolumeSource{
@@ -99,6 +101,7 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 						},
 					},
 				},
+				// Use a separate buildkit socket location for safety.
 				{
 					Name: "run-orchest-buildkit",
 					VolumeSource: corev1.VolumeSource{
@@ -108,6 +111,8 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 						},
 					},
 				},
+				// Use a separate buildkit storage for safety
+				// and in case we want to cleanup in the future.
 				{
 					Name: "orchest-buildkit-storage",
 					VolumeSource: corev1.VolumeSource{
@@ -163,9 +168,6 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 							Name:      "containerd-socket",
 							MountPath: socketPath,
 						},
-						// TODO: allow customizing this for k8s
-						// flavours that may have containerd in non
-						// standard locations (k3s).
 						{
 							Name:      "run-containerd",
 							MountPath: "/run/containerd",
@@ -178,8 +180,6 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 							Name:      "run-orchest-buildkit",
 							MountPath: "/run/orchest_buildkit",
 						},
-						// Use a separate buildkit storage for safety
-						// and in case we want to cleanup in the future.
 						{
 							Name:             "orchest-buildkit-storage",
 							MountPath:        "/var/lib/orchest_buildkit",
