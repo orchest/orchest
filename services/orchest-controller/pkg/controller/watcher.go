@@ -12,8 +12,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type Watcher[WatchObject client.Object, ControllerObject client.Object] struct {
+type Watcher[WatchObject, ControllerObject client.Object] struct {
 	*Controller[ControllerObject]
+
+	controllerWatcher bool
+}
+
+func NewControllerWatcher[ControllerObject client.Object](ctrl *Controller[ControllerObject]) Watcher[ControllerObject, ControllerObject] {
+	return Watcher[ControllerObject, ControllerObject]{
+		Controller:        ctrl,
+		controllerWatcher: true,
+	}
+}
+
+func NewControlleeWatcher[WatchObject, ControllerObject client.Object](ctrl *Controller[ControllerObject]) Watcher[WatchObject, ControllerObject] {
+	return Watcher[WatchObject, ControllerObject]{
+		Controller:        ctrl,
+		controllerWatcher: false,
+	}
 }
 
 func (w *Watcher[WatchObject, ControllerObject]) AddObject(obj interface{}) {
@@ -24,6 +40,11 @@ func (w *Watcher[WatchObject, ControllerObject]) AddObject(obj interface{}) {
 
 	if accessor.GetDeletionTimestamp() != nil {
 		w.DeleteObject(obj)
+		return
+	}
+
+	if w.controllerWatcher {
+		w.Enqueue(obj)
 		return
 	}
 
@@ -41,7 +62,7 @@ func (w *Watcher[WatchObject, ControllerObject]) AddObject(obj interface{}) {
 			klog.V(4).Infof("Deployment %s added.", dep.Name)
 			occ.expectations.CreationObserved(ocKey)
 		*/
-		w.Enqueue(*oc)
+		w.Enqueue(oc)
 		return
 	}
 }
@@ -58,13 +79,18 @@ func (w *Watcher[WatchObject, ControllerObject]) UpdateObject(old, cur interface
 		return
 	}
 
+	if w.controllerWatcher {
+		w.Enqueue(cur.(ControllerObject))
+		return
+	}
+
 	curControllerRef := metav1.GetControllerOf(curObj)
 	oldControllerRef := metav1.GetControllerOf(oldObj)
 	controllerRefChanged := !reflect.DeepEqual(curControllerRef, oldControllerRef)
 	if controllerRefChanged && oldControllerRef != nil {
 		// The ControllerRef was changed. Sync the old controller, if any.
 		if oc := w.resolveControllerRef(oldObj.GetNamespace(), oldControllerRef); oc != nil {
-			w.Enqueue(*oc)
+			w.Enqueue(oc)
 		}
 	}
 
@@ -75,7 +101,7 @@ func (w *Watcher[WatchObject, ControllerObject]) UpdateObject(old, cur interface
 			return
 		}
 		klog.V(4).Infof("Object %s updated.", curObj.GetName())
-		w.Enqueue(*oc)
+		w.Enqueue(oc)
 		/*
 			changedToReady := !utils.IsPodReady(oldDep) && utils.IsPodReady(curDep)
 			if changedToReady {
@@ -101,6 +127,11 @@ func (w *Watcher[WatchObject, ControllerObject]) DeleteObject(obj interface{}) {
 		}
 	}
 
+	if w.controllerWatcher {
+		w.Enqueue(typedObj)
+		return
+	}
+
 	controllerRef := metav1.GetControllerOf(typedObj)
 	if controllerRef == nil {
 		return
@@ -117,5 +148,5 @@ func (w *Watcher[WatchObject, ControllerObject]) DeleteObject(obj interface{}) {
 		klog.V(4).Infof("Deployment %s deleted.", dep.Name)
 		occ.expectations.DeletionObserved(ocKey)
 	*/
-	w.Enqueue(*oc)
+	w.Enqueue(oc)
 }

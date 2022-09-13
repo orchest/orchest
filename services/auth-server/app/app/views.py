@@ -1,25 +1,36 @@
+from __future__ import annotations
+
 import datetime
 import os
 import secrets
 import uuid
+from typing import Dict, List, Literal, Tuple, Union
 
 import requests
-from flask import jsonify, redirect, request, send_from_directory
+from flask import (
+    Flask,
+    Request,
+    Response,
+    jsonify,
+    redirect,
+    request,
+    send_from_directory,
+)
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.connections import db
 from app.models import Token, User
-from app.utils import get_auth_cache, set_auth_cache
+from app.utils import PathType, _AuthCacheDictionary, get_auth_cache, set_auth_cache
 
 # This auth_cache is shared between requests
 # within the same Flask process
-_auth_cache = {}
-_auth_cache_age = 3  # in seconds
+_auth_cache: _AuthCacheDictionary = {}
+_auth_cache_age: int = 3  # in seconds
 
 
-def register_views(app):
+def register_views(app: Flask) -> None:
     @app.after_request
-    def add_header(r):
+    def add_header(r: Response) -> Response:
         """
         Disable cache for all auth server requests
         """
@@ -32,7 +43,7 @@ def register_views(app):
     # NOTE! This is an unprotected route for config for client
     # side initialization.
     @app.route("/login/server-config", methods=["GET"])
-    def server_config():
+    def server_config() -> Response:
         return jsonify(
             {
                 "CLOUD": app.config.get("CLOUD"),
@@ -43,7 +54,7 @@ def register_views(app):
             }
         )
 
-    def is_authenticated(request):
+    def is_authenticated(request: Request) -> bool:
         # If authentication is not enabled then the request is always
         # authenticated (by definition).
         if not app.config["AUTH_ENABLED"]:
@@ -66,7 +77,7 @@ def register_views(app):
             .exists()
         ).scalar()
 
-    def serve_static_or_dev(path):
+    def serve_static_or_dev(path: PathType) -> Response:
         file_path = os.path.join(app.config["STATIC_DIR"], path)
         if os.path.isfile(file_path):
             return send_from_directory(app.config["STATIC_DIR"], path)
@@ -76,7 +87,7 @@ def register_views(app):
     # static file serving
     @app.route("/login", defaults={"path": ""}, methods=["GET"])
     @app.route("/login/<path:path>", methods=["GET"])
-    def login_static(path):
+    def login_static(path: PathType) -> Response:
 
         # Automatically redirect to root if request is authenticated
         if is_authenticated(request) and path == "":
@@ -85,7 +96,7 @@ def register_views(app):
         return serve_static_or_dev(path)
 
     @app.route("/login/admin", methods=["GET"])
-    def login_admin():
+    def login_admin() -> Tuple[str, int] | Response:
 
         if not is_authenticated(request):
             return "", 401
@@ -93,7 +104,7 @@ def register_views(app):
         return serve_static_or_dev("/admin")
 
     @app.route("/auth", methods=["GET"])
-    def index():
+    def index() -> Tuple[Literal[""], Literal[200]] | Tuple[Literal[""], Literal[401]]:
         # validate authentication through token
         if is_authenticated(request):
             return "", 200
@@ -101,27 +112,29 @@ def register_views(app):
             return "", 401
 
     @app.route("/login/clear", methods=["GET"])
-    def logout():
+    def logout() -> Response | None:
         resp = redirect_response("/")
         resp.set_cookie("auth_token", "")
         resp.set_cookie("auth_username", "")
         return resp
 
-    def redirect_response(url, redirect_type="server"):
+    def redirect_response(url: str, redirect_type: str = "server") -> Response:
         if redirect_type == "client":
             return jsonify({"redirect": url})
         elif redirect_type == "server":
             return redirect(url)
 
     @app.route("/login/submit", methods=["POST"])
-    def login():
+    def login() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login()
 
     @app.route("/login", methods=["POST"])
-    def login_post():
+    def login_post() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login(redirect_type="server")
 
-    def handle_login(redirect_type="client"):
+    def handle_login(
+        redirect_type: str = "client",
+    ) -> Response | Tuple[Response, Literal[401]] | None:
 
         # Returns a shallow mutable copy of the immutable
         # multi dict.
@@ -178,7 +191,12 @@ def register_views(app):
                     return jsonify({"error": invalid_login_msg}), 401
 
     @app.route("/login/users", methods=["DELETE"])
-    def delete_user():
+    def delete_user() -> Union[
+        Tuple[Literal[""], Literal[401]],
+        Tuple[Response, Literal[500]],
+        Tuple[Response, Literal[405]],
+        Literal[""],
+    ]:
         if not is_authenticated(request):
             return "", 401
 
@@ -202,7 +220,12 @@ def register_views(app):
             return jsonify({"error": "No username supplied."}), 500
 
     @app.route("/login/users", methods=["POST"])
-    def add_user():
+    def add_user() -> Union[
+        Tuple[Literal[""], Literal[401]],
+        Tuple[Response, Literal[409]],
+        Tuple[Response, Literal[400]],
+        Literal[""],
+    ]:
         if not is_authenticated(request):
             return "", 401
 
@@ -234,11 +257,14 @@ def register_views(app):
             return jsonify({"error": "No username supplied."}), 400
 
     @app.route("/login/users", methods=["GET"])
-    def get_users():
+    def get_users() -> Tuple[Literal[""], Literal[401]] | Tuple[Response, Literal[200]]:
         if not is_authenticated(request):
             return "", 401
 
-        data_json = {"users": []}
+        data_json: Dict[
+            Literal["users"],
+            List[Dict[Literal["username"], str]],
+        ] = {"users": []}
         users = User.query.all()
         for user in users:
             if user.username != app.config.get("ORCHEST_CLOUD_RESERVED_USER"):
@@ -247,7 +273,10 @@ def register_views(app):
         return jsonify(data_json), 200
 
     @app.route("/auth/service", methods=["GET"])
-    def auth_service():
+    def auth_service() -> Union[
+        Tuple[Literal[""], Literal[200]],
+        Tuple[Literal[""], Literal[401]],
+    ]:
         global _auth_cache, _auth_cache_age
 
         # Bypass definition based authentication if the request

@@ -16,6 +16,7 @@ from _orchest.internals import utils as _utils
 from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
 from app import error
 from app.config import CONFIG_CLASS as StaticConfig
+from app.core import scheduler
 from app.models import Environment, Pipeline, Project
 from app.schemas import EnvironmentSchema
 
@@ -858,13 +859,19 @@ def get_orchest_examples_json() -> dict:
 _DEFAULT_ORCHEST_UPDATE_INFO_JSON = {"latest_version": None}
 
 
-def get_orchest_update_info_json() -> dict:
+def get_orchest_update_info_json(cache: bool = True) -> dict:
     """Get orchest update info.
+
+    Args:
+        cache: If cache is `False` then refresh cache.
 
     Returns:
         A dictionary mapping latest_version to the latest Orchest
         version.
     """
+    if not cache:
+        jobs = scheduler.Jobs()
+        jobs.handle_orchest_update_info(current_app, interval=0)
 
     path = current_app.config["ORCHEST_UPDATE_INFO_JSON_PATH"]
     if not os.path.exists(path):

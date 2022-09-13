@@ -9,6 +9,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -77,6 +78,9 @@ func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, comp
 func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *appsv1.Deployment {
 
+	dnsResolverTimeout := "10"
+	dnsResolverAttempts := "5"
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,
@@ -93,6 +97,12 @@ func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 					},
 				},
 			},
+			DNSConfig: &corev1.PodDNSConfig{
+				Options: []corev1.PodDNSConfigOption{
+					{Name: "timeout", Value: &dnsResolverTimeout},
+					{Name: "attempts", Value: &dnsResolverAttempts},
+				},
+			},
 			Containers: []corev1.Container{
 				{
 					Name:            controller.OrchestDatabase,
@@ -104,6 +114,9 @@ func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 						},
 					},
 					Env: component.Spec.Template.Env,
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
+					},
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      controller.UserDirName,

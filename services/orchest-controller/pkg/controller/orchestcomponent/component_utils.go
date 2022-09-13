@@ -107,7 +107,7 @@ func detectIngressClass(ctx context.Context, client kubernetes.Interface) (strin
 	}
 
 	for _, ingressClass := range ingressClasses.Items {
-		if ingressClass.Spec.Controller == controller.IngressClassController {
+		if controller.IsNginxIngressClass(ingressClass.Spec.Controller) {
 			return ingressClass.Name, nil
 		}
 	}
