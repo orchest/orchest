@@ -6,6 +6,7 @@ export type CancelablePromise<T = unknown> = Promise<T> & {
 };
 
 export class PromiseCanceledError extends Error {
+  readonly name = "PromiseCanceledError";
   readonly isCanceled = true;
 
   constructor(message = "The promise was canceled.") {
