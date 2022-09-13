@@ -73,7 +73,7 @@ export const ReadOnlyBanner = () => {
           actionLabel: "View all runs",
           action: (event: React.MouseEvent) =>
             navigateTo(
-              siteMap.job.path,
+              siteMap.jobs.path,
               { query: { projectUuid, jobUuid: job?.uuid } },
               event
             ),

@@ -12,20 +12,10 @@ import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
 const BackToJob = () => {
   const { navigateTo } = useCustomRoute();
-  const {
-    isJobRun,
-    job,
-    projectUuid,
-    pipelineUuid,
-    jobUuid,
-  } = usePipelineDataContext();
+  const { isJobRun, job, projectUuid, jobUuid } = usePipelineDataContext();
 
   const goToJob = (e: React.MouseEvent) =>
-    navigateTo(
-      siteMap.job.path,
-      { query: { projectUuid, pipelineUuid, jobUuid } },
-      e
-    );
+    navigateTo(siteMap.jobs.path, { query: { projectUuid, jobUuid } }, e);
 
   if (!isJobRun) return null;
   return isJobRun && job ? (
