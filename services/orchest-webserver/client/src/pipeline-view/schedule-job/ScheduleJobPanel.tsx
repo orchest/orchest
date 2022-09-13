@@ -6,8 +6,8 @@ import {
 } from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
 import { useSaveJobChanges } from "@/jobs-view/hooks/useSaveJobChanges";
+import { EditJobOverview } from "@/jobs-view/job-view/EditJobOverview";
 import { JobEnvVariables } from "@/jobs-view/job-view/JobEnvVariables";
-import { JobOverview } from "@/jobs-view/job-view/JobOverview";
 import { JobParameters } from "@/jobs-view/job-view/JobParameters";
 import { CloseOutlined } from "@mui/icons-material";
 import Box from "@mui/material/Box";
@@ -79,7 +79,7 @@ export const ScheduleJobPanel = () => {
             marginTop: (theme) => theme.spacing(-2),
           }}
         >
-          <JobOverview hideSelectPipeline />
+          <EditJobOverview hideSelectPipeline />
           <JobParameters />
           <JobEnvVariables />
         </Box>
