@@ -13,12 +13,13 @@ var (
 	// list of all addons
 	ArgoWorkflow   = "argo-workflow"
 	DockerRegistry = "docker-registry"
+	IngressNginx   = "ingress-nginx"
 )
 
 type AddonsConfig struct {
 
-	// The list of addons to disable
-	DefaultAddons []string
+	// The list of addons to enable
+	Addons []string
 
 	AssetDir string
 
@@ -27,7 +28,7 @@ type AddonsConfig struct {
 
 func NewDefaultAddonsConfig() AddonsConfig {
 	return AddonsConfig{
-		DefaultAddons: []string{},
+		Addons: []string{},
 
 		AssetDir: "/deploy",
 
@@ -68,6 +69,11 @@ func NewAddonManager(client kubernetes.Interface, config AddonsConfig) *AddonMan
 			path.Join(config.AssetDir, "thirdparty/docker-registry/helm"),
 			path.Join(config.AssetDir, "thirdparty/docker-registry/orchest-values.yaml")))
 
+	addonManager.AddAddon(IngressNginx,
+		NewHelmDeployer(client, IngressNginx,
+			path.Join(config.AssetDir, "thirdparty/ingress-nginx/helm"),
+			path.Join(config.AssetDir, "thirdparty/ingress-nginx/orchest-values.yaml")))
+
 	return &addonManager
 }
 
@@ -79,7 +85,7 @@ func (m *AddonManager) Run(stopCh <-chan struct{}) {
 	defer cancel()
 
 	// Enable default addons
-	for _, addonName := range m.config.DefaultAddons {
+	for _, addonName := range m.config.Addons {
 		m.EnableAddon(ctx, addonName, m.config.DefaultNamespace)
 	}
 

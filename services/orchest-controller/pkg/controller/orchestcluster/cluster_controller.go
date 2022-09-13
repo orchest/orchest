@@ -172,7 +172,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 		"orchest-cluster",
 		1,
 		kClient,
-		OrchestClusterKind,
+		&OrchestClusterKind,
 	)
 
 	occ := OrchestClusterController{
@@ -193,7 +193,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	occ.oClusterLister = oClusterInformer.Lister()
 
 	// OrchestComponent event handlers
-	oComponentWatcher := controller.Watcher[*orchestv1alpha1.OrchestComponent, *orchestv1alpha1.OrchestCluster]{ctrl}
+	oComponentWatcher := controller.NewControlleeWatcher[*orchestv1alpha1.OrchestComponent](ctrl)
 	oComponentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    oComponentWatcher.AddObject,
 		UpdateFunc: oComponentWatcher.UpdateObject,
@@ -534,6 +534,22 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Applications = occ.config.DefaultApplications
 	}
 
+	if !isIngressDisabled(copy) && isIngressAddonRequired(ctx, occ.Client()) {
+		ingressEnabled := false
+		for _, app := range copy.Spec.Applications {
+			if app.Name == addons.IngressNginx {
+				ingressEnabled = true
+			}
+		}
+
+		if !ingressEnabled {
+			copy.Spec.Applications = append(copy.Spec.Applications, orchestv1alpha1.ApplicationSpec{
+				Name: addons.IngressNginx,
+			})
+			changed = true
+		}
+	}
+
 	// set docker-registry default values
 	for i := 0; i < len(copy.Spec.Applications); i++ {
 		app := &copy.Spec.Applications[i]
@@ -780,7 +796,7 @@ func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, nam
 
 func (occ *OrchestClusterController) adoptPVC(ctx context.Context, oldPvc, newPvc *corev1.PersistentVolumeClaim) error {
 
-	if !reflect.DeepEqual(oldPvc.OwnerReferences[0], newPvc.OwnerReferences[0]) {
+	if oldPvc.OwnerReferences == nil || !reflect.DeepEqual(oldPvc.OwnerReferences[0], newPvc.OwnerReferences[0]) {
 		oldPvc.OwnerReferences = newPvc.OwnerReferences
 		_, err := occ.Client().CoreV1().PersistentVolumeClaims(oldPvc.Namespace).Update(ctx, oldPvc, metav1.UpdateOptions{})
 		return err

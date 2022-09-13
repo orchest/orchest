@@ -542,7 +542,19 @@ def _pipeline_to_workflow_manifest(
                 "secondsAfterSuccess": 1000,
                 "secondsAfterFailure": 1000,
             },
+            # NOTE: It would be "better" to set `dnsPolicy` to `None`
+            # and specify the `search` directive in the `dnsConfig`
+            # as to only search within the namespace that Orchest is
+            # installed (and then on the internet). This reduced the
+            # number of DNS queries, since we know that these are the
+            # only two valid options when doing pipeline runs.
             "dnsPolicy": "ClusterFirst",
+            "dnsConfig": {
+                "options": [
+                    {"name": "timeout", "value": "10"},  # 30 is max
+                    {"name": "attempts", "value": "5"},  # 5 is max
+                ],
+            },
             "restartPolicy": "Never",
             # The first entry of this list is the definition of the DAG,
             # while the second entry is the step definition.

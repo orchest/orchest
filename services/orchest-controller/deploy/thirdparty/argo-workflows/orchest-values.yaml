@@ -383,7 +383,7 @@ server:
     # -- Additional ingress labels
     labels: {}
     # -- Defines which ingress controller will implement the resource
-    ingressClassName: ""
+    ingressClassName: "k8s.io/ingress-nginx"
 
     # -- List of ingress hosts
     ## Hostnames must be provided if Ingress is enabled.

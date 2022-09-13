@@ -135,7 +135,7 @@ minikube delete
 minikube start \
   --cpus max \
   --memory max \
-  --addons ingress \
+  --addons ingress metrics-server \
   --mount-string="$(pwd):/orchest-dev-repo" --mount
 ```
 

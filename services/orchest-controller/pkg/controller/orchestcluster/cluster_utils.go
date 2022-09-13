@@ -507,6 +507,38 @@ func isCustomImage(orchest *orchestv1alpha1.OrchestCluster, component, imageName
 	return false
 }
 
+func isIngressAddonRequired(ctx context.Context, client kubernetes.Interface) bool {
+
+	if isNginxIngressInstalled(ctx, client) {
+		return false
+	}
+
+	// we first need to detect the k8s distribution
+	k8sDistro := utils.DetectK8sDistribution(client)
+	if k8sDistro == utils.NotDetected {
+		klog.Error("Failed to detect k8s distribution")
+		return false
+	}
+
+	// In k3s ingress addon can be installed by us
+	switch k8sDistro {
+	case utils.K3s, utils.EKS, utils.GKE:
+		return true
+	default:
+		return false
+	}
+
+}
+
+func isIngressDisabled(orchest *orchestv1alpha1.OrchestCluster) bool {
+
+	if value, ok := orchest.Annotations[controller.IngressAnnotationKey]; ok && value == "false" {
+		return true
+	}
+
+	return false
+}
+
 func isUpdateRequired(orchest *orchestv1alpha1.OrchestCluster, component, imageName string) (newImage string, update bool) {
 
 	update = false
@@ -522,4 +554,23 @@ func isUpdateRequired(orchest *orchestv1alpha1.OrchestCluster, component, imageN
 
 	update = true
 	return
+
+}
+
+func isNginxIngressInstalled(ctx context.Context, client kubernetes.Interface) bool {
+
+	// Detect ingress class name
+	ingressClasses, err := client.NetworkingV1().IngressClasses().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	for _, ingressClass := range ingressClasses.Items {
+		if controller.IsNginxIngressClass(ingressClass.Spec.Controller) {
+			return true
+		}
+	}
+
+	return false
+
 }
