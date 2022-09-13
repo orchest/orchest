@@ -26,8 +26,8 @@ RANDOM_UUID_SUFFIX_LEN = _config.ENVIRONMENT_SHELL_SUFFIX_UUID_LENGTH
 
 
 class Action(Enum):
-    START = 0
-    CONNECT = 1
+    CONNECT = 0
+    START = 1
     RESTART = 2
     TERMINATE = 3
     EXIT = 4
@@ -103,7 +103,10 @@ def collect_choice(choice_count: int, prefix: str):
             if choice_count == 1:
                 return 0
 
-            print(f"Invalid input. Enter integer between 0 and {choice_count - 1}.")
+            print(
+                f"Enter integer between 0 and {choice_count - 1}"
+                " or type Ctrl + C to cancel."
+            )
             continue
 
 
@@ -280,8 +283,8 @@ def choose_environment(environments: List[Dict[str, Any]]) -> Optional[Dict[str,
 
 def choose_action() -> Action:
     print("Choose an option")
-    print("[0] Start a new shell ")
-    print("[1] Connect to an existing shell ")
+    print("[0] Connect to an existing shell ")
+    print("[1] Start a new shell ")
     print("[2] Restart an existing shell ")
     print("[3] Terminate an existing shell ")
     print("[4] Exit to JupyterLab built-in shell ")
@@ -327,6 +330,8 @@ def init(autoconnect=False):
     elif len(environment_shells) == 1 and autoconnect:
         # Autoconnect to shell if there's only one
         connect(environment_shells[0], environments)
+    elif len(environment_shells) > 1 and autoconnect:
+        action = Action.CONNECT
     else:
         action = choose_action()
 
@@ -384,8 +389,7 @@ def init(autoconnect=False):
 
         init()
     elif action == Action.EXIT:
-        # Don't print JupyterLab shell warning if explicitly chosen.
-        pass
+        quit()
 
 
 if __name__ == "__main__":
