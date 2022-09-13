@@ -33,8 +33,9 @@ export const useConfirm = <F extends AnyFunction>(
         confirmLabel,
         cancelLabel,
         onCancel,
-        onConfirm: async () => {
+        onConfirm: async (resolve) => {
           await action(...args);
+          resolve(true);
           return true;
         },
       }),
