@@ -17,20 +17,13 @@ export class PromiseCanceledError extends Error {
  * Wraps a promise in a new one that can be canceled.
  * If the `cancel` function is called, the promise always rejects with a `PromiseCanceledError`,
  * regardless of whether it resolved or rejected.
- * @param original The promise to make cancelable. If already cancelable, the promise is returned as-is.
+ * @param original The original promise to make cancelable.
  * @param onEnd Called immediately when the promise is resolved, rejected, or canceled.
  */
 export function makeCancelable<T>(
   original: Promise<T>,
   onEnd?: () => void
 ): CancelablePromise<T> {
-  if (isCancelable(original)) {
-    if (original.isCanceled()) onEnd?.();
-    else if (onEnd) original.finally(onEnd);
-
-    return original;
-  }
-
   let cancelError: PromiseCanceledError | undefined = undefined;
 
   const promise = new Promise<T>((resolve, reject) => {
