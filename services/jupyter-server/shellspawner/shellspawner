@@ -108,6 +108,11 @@ def collect_choice(choice_count: int, prefix: str):
 
 
 def get_environments() -> List[Dict[str, Any]]:
+    # NOTE: Polling the orchest-webserver here instead of the
+    # orchest-api is okay because Environment shells are only started
+    # as part of an interactive session, which in turn is gated for
+    # Environments to be present. In addition, the name of the
+    # Environments is needed, which doesn't exist in the orchest-api.
     req = request.Request(
         ORCHEST_WEBSERVER_ADDRESS
         + "/store/environments/"
