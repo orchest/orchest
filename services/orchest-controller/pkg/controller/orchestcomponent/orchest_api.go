@@ -180,8 +180,8 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 		volumeMounts = append(volumeMounts, devVolumeMounts...)
 	}
 
-	dnsResolverTimeout := "30"
-	dnsResolverAttempts := "2"
+	dnsResolverTimeout := "10"
+	dnsResolverAttempts := "5"
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{

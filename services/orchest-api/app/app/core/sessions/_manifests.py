@@ -231,8 +231,8 @@ def _get_session_sidecar_deployment_manifest(
                     "serviceAccountName": f"session-sidecar-sa-{session_uuid}",
                     "dnsConfig": {
                         "options": [
-                            {"name": "timeout", "value": "30"},  # 30 is max
-                            {"name": "attempts", "value": "2"},  # 5 is max
+                            {"name": "timeout", "value": "10"},  # 30 is max
+                            {"name": "attempts", "value": "5"},  # 5 is max
                         ],
                     },
                     "volumes": [
@@ -830,8 +830,8 @@ def _get_user_service_deployment_service_manifest(
                     },
                     "dnsConfig": {
                         "options": [
-                            {"name": "timeout", "value": "30"},  # 30 is max
-                            {"name": "attempts", "value": "2"},  # 5 is max
+                            {"name": "timeout", "value": "10"},  # 30 is max
+                            {"name": "attempts", "value": "5"},  # 5 is max
                         ],
                     },
                     "volumes": volumes,

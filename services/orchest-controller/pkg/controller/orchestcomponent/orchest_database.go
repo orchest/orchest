@@ -78,8 +78,8 @@ func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, comp
 func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, component *orchestv1alpha1.OrchestComponent) *appsv1.Deployment {
 
-	dnsResolverTimeout := "30"
-	dnsResolverAttempts := "2"
+	dnsResolverTimeout := "10"
+	dnsResolverAttempts := "5"
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{

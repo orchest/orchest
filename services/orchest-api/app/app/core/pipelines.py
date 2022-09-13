@@ -551,8 +551,8 @@ def _pipeline_to_workflow_manifest(
             "dnsPolicy": "ClusterFirst",
             "dnsConfig": {
                 "options": [
-                    {"name": "timeout", "value": "30"},  # 30 is max
-                    {"name": "attempts", "value": "2"},  # 5 is max
+                    {"name": "timeout", "value": "10"},  # 30 is max
+                    {"name": "attempts", "value": "5"},  # 5 is max
                 ],
             },
             "restartPolicy": "Never",

@@ -232,7 +232,7 @@ its `readinessProbe` leading to `kube-proxy` updating `iptables` rules to stop r
 the pod ([k8s
 docs](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#types-of-probe)), for which
 it uses the `REJECT` target. This means that DNS queries will start failing immediately without the
-configured resolver timeout being respected (in Orchest we use a timeout of `30` seconds with `2`
+configured resolver timeout being respected (in Orchest we use a timeout of `10` seconds with `5`
 attempts). In order to respect the timeout instead of failing immediately, you can tweak the
 `readinessProbe` or simply remove it by editing the manifest of the `coredns` deployment:
 

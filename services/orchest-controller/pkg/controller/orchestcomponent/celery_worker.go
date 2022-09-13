@@ -77,8 +77,8 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 
 	image := component.Spec.Template.Image
 
-	dnsResolverTimeout := "30"
-	dnsResolverAttempts := "2"
+	dnsResolverTimeout := "10"
+	dnsResolverAttempts := "5"
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
