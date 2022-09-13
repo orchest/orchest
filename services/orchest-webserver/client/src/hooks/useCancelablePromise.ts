@@ -5,8 +5,8 @@ import {
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
-const cancelAllPromises = (cancelablePromises: PromiseRecord) =>
-  Object.values(cancelablePromises).forEach((promise) => promise.cancel());
+const cancelAllPromises = (promises: PromiseRecord, message?: string) =>
+  Object.values(promises).forEach((promise) => promise.cancel(message));
 
 type PromiseRecord = Record<number, CancelablePromise>;
 
@@ -33,7 +33,11 @@ export function useCancelablePromise() {
   React.useEffect(() => {
     const { current } = promisesById;
 
-    return () => cancelAllPromises(current);
+    return () =>
+      cancelAllPromises(
+        current,
+        "A component was unmounted during a pending promise."
+      );
   }, []);
 
   return { makeCancelable, cancelAll };
