@@ -1474,6 +1474,7 @@ def _display_spinner(
             visited_states = [curr_status]
         prev_status = curr_status
 
+        num_req_timeouts = 0
         # Use `async_req` to make sure spinner is always loading.
         thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
         while curr_status != end_status or (time.time() - invocation_time < 10):
@@ -1482,6 +1483,27 @@ def _display_spinner(
                 try:
                     resp = thread.get()
                 except client.ApiException as e:
+                    if e.status == 504:  # timeout
+                        echo("\r", nl=False)  # Move cursor to beginning of line
+                        echo("\033[K", nl=False)  # Erase until end of line
+                        echo("🙅 Failed to fetch Orchest cluster status.", err=True)
+
+                        num_req_timeouts += 1
+                        if num_req_timeouts < 3:
+                            thread = _get_namespaced_custom_object(
+                                ns, cluster_name, async_req=True
+                            )
+                            continue
+                        else:
+                            echo(
+                                "Request timeout was hit for the 3rd time. Stopping"
+                                " displaying progress...\n"
+                                f"Note that 'orchest {click_ctx.command.name}' could"
+                                " have completed regardless.",
+                                err=True,
+                            )
+                            sys.exit(1)
+
                     echo(err=True)  # newline
                     echo(f"🙅 Failed to {click_ctx.command.name}.", err=True)
                     if e.status == 404:  # not found
