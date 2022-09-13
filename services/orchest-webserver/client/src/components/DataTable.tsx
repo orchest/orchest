@@ -428,36 +428,42 @@ enum FIXED_ROW_HEIGHT {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const DataTable = <T extends Record<string, any>, C = T>({
-  id,
-  columns,
-  rows: originalRowsFromProp,
-  composeRow = (row) => row,
-  initialOrderBy,
-  initialOrder,
-  deleteSelectedRows,
-  onRowClick,
-  selectable = false,
-  rowHeight,
-  debounceTime = 250,
-  hideSearch,
-  initialSelectedRows = [],
-  selectedRows,
-  setSelectedRows,
-  onChangeSelection,
-  fetcher,
-  isLoading,
-  initialRowsPerPage = 10,
-  containerSx,
-  dense,
-  disabled,
-  disablePagination = false,
-  refreshInterval = null,
-  retainSelectionsOnPageChange,
-  footnote,
-  sx,
-  ...props
-}: DataTableProps<T, C>) => {
+export const DataTable = React.forwardRef(function DataTable<
+  T extends Record<string, any>,
+  C = T
+>(
+  {
+    id,
+    columns,
+    rows: originalRowsFromProp,
+    composeRow = (row) => row,
+    initialOrderBy,
+    initialOrder,
+    deleteSelectedRows,
+    onRowClick,
+    selectable = false,
+    rowHeight,
+    debounceTime = 250,
+    hideSearch,
+    initialSelectedRows = [],
+    selectedRows,
+    setSelectedRows,
+    onChangeSelection,
+    fetcher,
+    isLoading,
+    initialRowsPerPage = 10,
+    containerSx,
+    dense,
+    disabled,
+    disablePagination = false,
+    refreshInterval = null,
+    retainSelectionsOnPageChange,
+    footnote,
+    sx,
+    ...props
+  }: DataTableProps<T, C>,
+  ref: React.ForwardedRef<HTMLDivElement>
+) {
   const { setAlert } = useGlobalContext();
 
   const mounted = useMounted();
@@ -730,7 +736,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
       : FIXED_ROW_HEIGHT.SMALL);
 
   return (
-    <Box sx={{ width: "100%", ...sx }} {...props}>
+    <Box sx={{ width: "100%", ...sx }} {...props} ref={ref}>
       {!hideSearch && (
         <SearchField
           value={searchTerm}
@@ -760,7 +766,7 @@ export const DataTable = <T extends Record<string, any>, C = T>({
               rowCount={rows.length}
               data={columns}
             />
-            <TableBody>
+            <TableBody sx={{ maxHeight: "100px" }}>
               {!error &&
                 rowsInPage.map((row: DataTableRow<T>) => {
                   const isItemSelected = isSelected(row.uuid);
@@ -865,4 +871,6 @@ export const DataTable = <T extends Record<string, any>, C = T>({
       </Box>
     </Box>
   );
-};
+}) as <T extends Record<string, any>, C = T>( //eslint-disable-line @typescript-eslint/no-explicit-any
+  props: DataTableProps<T, C>
+) => JSX.Element;

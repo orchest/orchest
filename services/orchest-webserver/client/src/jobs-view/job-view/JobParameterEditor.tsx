@@ -4,7 +4,6 @@ import {
   AccordionSummary,
 } from "@/components/Accordion";
 import { useTheme } from "@mui/material";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
@@ -14,6 +13,7 @@ import React from "react";
 import { CodeMirror } from "../../components/common/CodeMirror";
 import { useValidJobQueryArgs } from "../hooks/useValidJobQueryArgs";
 import { useEditJob } from "../stores/useEditJob";
+import { useIsEditingParameters } from "../stores/useIsEditingParameters";
 
 const useCodeMirrorValue = (strategyKey: string, parameterKey: string) => {
   const [codeMirrorValue, setCodeMirrorValue] = React.useState<
@@ -107,6 +107,23 @@ export const JobParameterEditor = ({
 
   const theme = useTheme();
 
+  const ref = React.useRef<HTMLDivElement | null>(null);
+
+  const setIsEditingParameters = useIsEditingParameters(
+    (state) => state.setIsEditingParameters
+  );
+
+  const onFocus = React.useCallback(() => {
+    if (ref.current) setIsEditingParameters(true);
+  }, [setIsEditingParameters]);
+
+  const onBlur = React.useCallback(() => {
+    if (ref.current) {
+      setIsEditingParameters(false);
+      ref.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [setIsEditingParameters]);
+
   return isEditing ? (
     <Accordion sx={{ marginLeft: (theme) => theme.spacing(3) }}>
       <AccordionSummary>
@@ -114,9 +131,10 @@ export const JobParameterEditor = ({
       </AccordionSummary>
       <AccordionDetails>
         {hasValue(codeMirrorValue) && (
-          <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
+          <Box sx={{ margin: (theme) => theme.spacing(2, 0) }} ref={ref}>
             <CodeMirror
               borderColor={theme.borderColor}
+              error={!isValidJson}
               value={codeMirrorValue}
               options={{
                 mode: "application/json",
@@ -125,19 +143,20 @@ export const JobParameterEditor = ({
                 autofocus: false,
                 readOnly: isReadOnly,
               }}
+              onFocus={onFocus}
+              onBlur={onBlur}
               onBeforeChange={(editor, data, value) =>
                 setCodeMirrorValue(value)
               }
             />
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ margin: (theme) => theme.spacing(1, 0.5) }}
+            >
+              {!isValidJson ? "Invalid JSON" : " "}
+            </Typography>
           </Box>
-        )}
-        {!isValidJson && (
-          <Alert
-            severity="warning"
-            sx={{ marginTop: (theme) => theme.spacing(2) }}
-          >
-            Invalid JSON
-          </Alert>
         )}
       </AccordionDetails>
     </Accordion>

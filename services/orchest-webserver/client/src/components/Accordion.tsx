@@ -7,9 +7,16 @@ import MuiAccordionSummary, {
 import { styled } from "@mui/material/styles";
 import React from "react";
 
-export const Accordion = styled((props: AccordionProps) => (
-  <MuiAccordion disableGutters elevation={0} square {...props} />
-))({ "&:before": { display: "none" } });
+export const Accordion = styled(
+  React.forwardRef<HTMLDivElement, AccordionProps>(function Accordion(
+    props,
+    ref
+  ) {
+    return (
+      <MuiAccordion disableGutters elevation={0} square {...props} ref={ref} />
+    );
+  })
+)({ "&:before": { display: "none" } });
 
 export const AccordionSummary = styled((props: AccordionSummaryProps) => (
   <MuiAccordionSummary
