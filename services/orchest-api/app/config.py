@@ -3,6 +3,10 @@ import os
 
 from _orchest.internals import config as _config
 
+assert (
+    _config.CONTAINER_RUNTIME is not None
+), "CONTAINER_RUNTIME should be set for the orchest-api and celery-worker."
+
 
 class Config:
     # TODO: Should we read these from ENV variables instead?
