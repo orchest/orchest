@@ -91,7 +91,7 @@ jupyter-core==4.9.2
     #   nbconvert
     #   nbformat
     #   notebook
-jupyter-server==1.16.0
+jupyter-server==1.17.0
     # via
     #   jupyter-server-mathjax
     #   jupyterlab
