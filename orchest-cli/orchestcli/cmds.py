@@ -1253,8 +1253,8 @@ def _run_pod_exec(
         if status != ClusterStatus.RUNNING:
             reason = (
                 "The Orchest Cluster state is "
-                " '{'unknown' if status is None else status.value}', whereas it needs"
-                " to be '{ClusterStatus.RUNNING.value}'. Check:"
+                f" '{'unknown' if status is None else status.value}', whereas it needs"
+                f" to be '{ClusterStatus.RUNNING.value}'. Check:"
                 "\n\torchest status"
             )
             return False, reason
