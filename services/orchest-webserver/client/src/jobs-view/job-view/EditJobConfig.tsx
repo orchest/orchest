@@ -1,5 +1,6 @@
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { Json, StrategyJson } from "@/types";
+import { getHeight } from "@/utils/jquery-replacement";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
@@ -13,6 +14,7 @@ import {
   PipelineRunRow,
 } from "../common";
 import { useEditJob } from "../stores/useEditJob";
+import { useIsEditingParameters } from "../stores/useIsEditingParameters";
 import { AutoCleanUpToggle } from "./AutoCleanUpToggle";
 import { EditJobSchedule } from "./EditJobSchedule";
 import { useIsEditingActiveCronJob } from "./hooks/useIsEditingActiveCronJob";
@@ -110,6 +112,26 @@ export const EditJobConfig = () => {
     [selectedRuns, setSelectedRuns]
   );
 
+  const dataTableRef = React.useRef<HTMLDivElement | null>(null);
+
+  const isEditingParameters = useIsEditingParameters(
+    (state) => state.isEditingParameters
+  );
+
+  // To prevent jumping when editing parameters,fix the height of the table
+  // and remove it when user is no focusing on any parameter fields.
+  const dataTableContainerStyle = React.useMemo<
+    React.CSSProperties | undefined
+  >(() => {
+    if (!isEditingParameters) return undefined;
+    const fixedHeight = getHeight(dataTableRef.current);
+    return {
+      maxHeight: fixedHeight,
+      minHeight: fixedHeight,
+      overflowY: "auto",
+    };
+  }, [isEditingParameters]);
+
   return (
     <Stack
       direction="column"
@@ -128,9 +150,11 @@ export const EditJobConfig = () => {
             borderRadius: (theme) => theme.spacing(0.5),
             overflow: "hidden",
           }}
+          style={dataTableContainerStyle}
           rows={pipelineRunRows}
           retainSelectionsOnPageChange
           data-test-id="job-edit-pipeline-runs"
+          ref={dataTableRef}
         />
       )}
       <AutoCleanUpToggle selectedRuns={selectedRuns} />
