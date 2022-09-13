@@ -17,30 +17,43 @@ export class PromiseCanceledError extends Error {
  * Wraps a promise in a new one that can be canceled.
  * If the `cancel` function is called, the promise always rejects with a `PromiseCanceledError`,
  * regardless of whether it resolved or rejected.
- * @param promise The promise to make cancelable
- * @param onDone Called immediately when the promise is resolved, rejected, or canceled.
+ * @param original The promise to make cancelable. If already cancelable, the promise is returned as-is.
+ * @param onEnd Called immediately when the promise is resolved, rejected, or canceled.
  */
 export function makeCancelable<T>(
-  promise: Promise<T>,
-  onDone?: (error: PromiseCanceledError | undefined) => void
+  original: Promise<T>,
+  onEnd?: () => void
 ): CancelablePromise<T> {
+  if (isCancelable(original)) {
+    if (original.isCanceled()) onEnd?.();
+    else if (onEnd) original.finally(onEnd);
+
+    return original;
+  }
+
   let cancelError: PromiseCanceledError | undefined = undefined;
 
-  const wrapped = new Promise<T>((resolve, reject) => {
-    promise
+  const promise = new Promise<T>((resolve, reject) => {
+    original
       .then((result) => (cancelError ? reject(cancelError) : resolve(result)))
       .catch((error) => (cancelError ? reject(cancelError) : reject(error)))
-      .finally(() => onDone?.(cancelError));
+      .finally(() => onEnd?.());
   });
 
-  return Object.assign(wrapped, {
+  return Object.assign(promise, {
     isCanceled: () => Boolean(cancelError),
     cancel: (message?: string) => {
       cancelError = new PromiseCanceledError(message);
-      onDone?.(cancelError);
+      onEnd?.();
     },
   });
 }
+
+export const isCancelable = <T>(
+  promise: Promise<T>
+): promise is CancelablePromise<T> =>
+  typeof (promise as CancelablePromise).cancel === "function" &&
+  typeof (promise as CancelablePromise).isCanceled === "function";
 
 /** Represents a promise that may be memoized and canceled. */
 export type MemoizedPromise<T = unknown> = CancelablePromise<T> & {
