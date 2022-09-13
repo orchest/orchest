@@ -224,8 +224,8 @@ sudo service nginx restart
 ### Scarse (CPU) resources - tweak DNS settings
 
 This section applies mostly to single-node deployments as otherwise you can configure your
-Kubernetes cluster to scale with respect to the current load or separate your control pane nodes from
-your worker nodes.
+Kubernetes cluster to scale with respect to the current load or separate your control plane nodes
+from your worker nodes.
 
 During times of CPU resource contention, the [CoreDNS](https://coredns.io/) pod could start failing
 its `readinessProbe` leading to `kube-proxy` updating `iptables` rules to stop routing traffic to
