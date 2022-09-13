@@ -1,4 +1,4 @@
-FROM tiangolo/meinheld-gunicorn-flask:python3.8
+FROM tiangolo/meinheld-gunicorn-flask:python3.9
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Refresh SSL certificates

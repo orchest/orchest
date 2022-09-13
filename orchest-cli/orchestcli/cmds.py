@@ -41,13 +41,16 @@ def echo(*args, **kwargs) -> None:
         the `--json` flag.
 
     """
+    if os.getenv("SILENCE_OUTPUT", "false") == "true":
+        return
+
     click_ctx = click.get_current_context(silent=True)
 
     if click_ctx is None:
         return click.echo(*args, **kwargs)
 
     json_flag = click_ctx.params.get("json_flag")
-    if json_flag and json_flag is not None:
+    if json_flag is not None and json_flag:
         return
     else:
         return click.echo(*args, **kwargs)
@@ -1250,8 +1253,8 @@ def _run_pod_exec(
         if status != ClusterStatus.RUNNING:
             reason = (
                 "The Orchest Cluster state is "
-                " '{'unknown' if status is None else status.value}', whereas it needs"
-                " to be '{ClusterStatus.RUNNING.value}'. Check:"
+                f" '{'unknown' if status is None else status.value}', whereas it needs"
+                f" to be '{ClusterStatus.RUNNING.value}'. Check:"
                 "\n\torchest status"
             )
             return False, reason
