@@ -359,6 +359,7 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 		return false, err
 	}
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME"] = runtime
+	// Some k8s flavours place "unix://" in front of the path.
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = strings.Replace(socketPath, "unix://", "", -1)
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
 		"image-puller", occ.config.OrchestDefaultVersion)
