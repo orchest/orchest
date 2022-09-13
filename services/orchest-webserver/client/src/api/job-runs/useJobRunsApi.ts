@@ -1,6 +1,6 @@
 import { createJobStore } from "@/store/scoped";
 import { JobRunsPage, PipelineRun, PipelineRunStatus } from "@/types";
-import { choke } from "@/utils/promise";
+import { memoizeFor, MemoizePending } from "@/utils/promise";
 import { jobRunsApi, JobRunsPageQuery, StatusUpdate } from "./jobRunsApi";
 
 export type JobRunsApi = {
@@ -9,11 +9,11 @@ export type JobRunsApi = {
   /** The currently fetched page. */
   page: JobRunsPage | undefined;
   /** Fetches all runs for the current job and adds it to `runs`. */
-  fetchAll: () => Promise<void>;
+  fetchAll: MemoizePending<() => Promise<void>>;
   /** Fetches a single job run and adds (or replaces) it in `runs`. */
-  fetchOne: (runUuid: string) => Promise<void>;
+  fetchOne: MemoizePending<(runUuid: string) => Promise<void>>;
   /** Fetches a job runs page and updates the `page` property. */
-  fetchPage: (query: JobRunsPageQuery) => Promise<void>;
+  fetchPage: MemoizePending<(query: JobRunsPageQuery) => Promise<void>>;
   /** Cancels a job run and updates the it in `runs` & `page` (if it includes it). */
   cancel: (runUuid: string) => Promise<void>;
   /** Updates the status of a job run in the back-end and updates it in `runs` & `page` (if it includes it). */
@@ -58,15 +58,15 @@ export const useJobRunsApi = createJobStore<JobRunsApi>((set, get) => {
   return {
     page: undefined,
     runs: undefined,
-    fetchOne: choke(async (runUuid) => {
+    fetchOne: memoizeFor(1000, async (runUuid) => {
       const newRun = await jobRunsApi.fetchOne(get().jobUuid, runUuid);
 
       set((state) => ({ runs: replaceOrAddRun(state.runs, newRun) }));
     }),
-    fetchPage: choke(async (query) => {
+    fetchPage: memoizeFor(1000, async (query) => {
       set({ page: await jobRunsApi.fetchPage(get().jobUuid, query) });
     }),
-    fetchAll: choke(async () => {
+    fetchAll: memoizeFor(1000, async () => {
       set({ runs: await jobRunsApi.fetchAll(get().jobUuid) });
     }),
     cancel: async (runUuid) => {

@@ -1,42 +1,12 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AsyncFunction<T> = (...args: any[]) => Promise<T>;
-
-/**
- * Limits creation of new promises from an asynchronous function.
- * While the the promise from the first call is pending,
- * consecutive calls with equal arguments returns
- * the promise from the first call instead of creating a new one.
- *
- * This is useful in (for example) fetcher functions when multiple components
- * can request the same data within short succession.
- *
- * Arguments are compared by value using `JSON.stringify`.
- * @param fn The function to choke.
- * @returns
- *  A proxy function that either calls `fn` or
- *  returns a pending promise created with equal arguments.
- */
-export const choke = <T, F extends AsyncFunction<T>>(fn: F): F => {
-  const pending: Record<string, Promise<T>> = Object.create(null);
-
-  return ((...args: Parameters<F>) => {
-    const key = args
-      .map((arg) =>
-        typeof arg === "bigint" ? arg.toString() : JSON.stringify(arg)
-      )
-      .join(", ");
-
-    return (pending[key] ??= fn(...args).finally(() => delete pending[key]));
-  }) as F;
-};
+import { AnyAsyncFunction, ResolutionOf } from "@/types";
 
 export type CancelablePromise<T = unknown> = Promise<T> & {
-  isCanceled: () => boolean;
-  cancel: () => void;
+  readonly isCanceled: () => boolean;
+  readonly cancel: (message?: string) => void;
 };
 
 export class PromiseCanceledError extends Error {
-  isCanceled = true;
+  readonly isCanceled = true;
 
   constructor(message = "The promise was canceled.") {
     super(message);
@@ -45,30 +15,155 @@ export class PromiseCanceledError extends Error {
 
 /**
  * Wraps a promise in a new one that can be canceled.
- * If the `cancel` function is called, the promise always reject with a `PromiseCanceledError`.
+ * If the `cancel` function is called, the promise always rejects with a `PromiseCanceledError`,
+ * regardless of whether it resolved or rejected.
+ * @param promise The promise to make cancelable
+ * @param onDone Called immediately when the promise is resolved, rejected, or canceled.
  */
-export function toCancelablePromise<T>(
+export function makeCancelable<T>(
   promise: Promise<T>,
-  onCanceled?: () => void
+  onDone?: (error: PromiseCanceledError | undefined) => void
 ): CancelablePromise<T> {
-  let isCanceled = false;
+  let cancelError: PromiseCanceledError | undefined = undefined;
 
-  const wrappedPromise = new Promise<T>((resolve, reject) => {
+  const wrapped = new Promise<T>((resolve, reject) => {
     promise
-      .then((result) => {
-        isCanceled ? reject(new PromiseCanceledError()) : resolve(result);
-      })
-      .catch((error) =>
-        isCanceled ? reject(new PromiseCanceledError()) : reject(error)
-      )
-      .finally(onCanceled);
+      .then((result) => (cancelError ? reject(cancelError) : resolve(result)))
+      .catch((error) => (cancelError ? reject(cancelError) : reject(error)))
+      .finally(() => onDone?.(cancelError));
   });
 
-  return Object.assign(wrappedPromise, {
-    isCanceled: () => isCanceled,
-    cancel: () => {
-      isCanceled = true;
-      onCanceled?.();
+  return Object.assign(wrapped, {
+    isCanceled: () => Boolean(cancelError),
+    cancel: (message?: string) => {
+      cancelError = new PromiseCanceledError(message);
+      onDone?.(cancelError);
     },
   });
 }
+
+/** Represents a promise that may be memoized and canceled. */
+export type MemoizedPromise<T = unknown> = CancelablePromise<T> & {
+  /** Returns true if this promise is (still) memoized. */
+  readonly isMemoized: () => boolean;
+  /** Removes this promise from memory. */
+  readonly forget: () => void;
+};
+
+/**
+ * An asynchronous function which memoizes pending promises.
+ * Memoization can be bypassed by calling `.bypass` instead of calling the function directly.
+ */
+export type MemoizePending<F extends AnyAsyncFunction, T = ResolutionOf<F>> = ((
+  ...args: Parameters<F>
+) => MemoizedPromise<T>) & {
+  /** Bypasses pending promise memoization entirely. */
+  bypass: (...args: Parameters<F>) => CancelablePromise<T>;
+};
+
+export type MemoizeOptions = {
+  /**
+   * How long a promise will be memoized for, in milliseconds.
+   * If not set, the promise is memoized until the promise is resolved or rejected.
+   *
+   * After this duration has elapsed, calls to the function creates a new promise.
+   */
+  duration?: number;
+  /**
+   * If true: promises that have been pending for longer than the configured `duration`
+   * will be canceled and rejected with a `PromiseCanceledError` regardless of their result.
+   * Defaults to `false`.
+   */
+  cancelExpired?: boolean;
+};
+
+/**
+ * Prevents the creation of new promises from an asynchronous function
+ * by memoizing the promise of the first call and returning it for
+ * calls made with identical arguments while the first promise is pending.
+ *
+ * This is useful in (for example) fetcher functions when multiple components
+ * may request the same data within short succession, and you want to prevent
+ * duplicate requests which are going to return the same response.
+ *
+ * Arguments are compared by value using `JSON.stringify`.
+ * @param fn A function which returns a promise to memoize by arguments.
+ * @param options Optional memoization options.
+ * @returns
+ *  A proxy function that either calls `fn` and creates a new memoized promise,
+ *  or returns a pending memoized promise created with identical arguments.
+ */
+export const memoize = <F extends AnyAsyncFunction, T = ResolutionOf<F>>(
+  fn: F,
+  { duration = Infinity, cancelExpired = false }: MemoizeOptions = {}
+): MemoizePending<F, T> => {
+  const pending: Record<string, MemoizedPromise<T>> = Object.create(null);
+
+  const forget = (key: string, promise: MemoizedPromise<T>) => {
+    if (pending[key] === promise) {
+      delete pending[key];
+    }
+  };
+
+  const makeMemoized = (
+    key: string,
+    promise: Promise<T>
+  ): MemoizedPromise<T> => {
+    const memoized: MemoizedPromise<T> = Object.assign(
+      makeCancelable(promise),
+      {
+        isMemoized: () => pending[key] === memoized,
+        forget: () => forget(key, memoized),
+      }
+    );
+
+    memoized.finally(() => forget(key, memoized));
+
+    if (duration !== Infinity) {
+      window.setTimeout(() => {
+        forget(key, memoized);
+
+        if (cancelExpired) {
+          memoized.cancel(`The promise expired after ${duration}ms.`);
+        }
+      }, duration);
+    }
+
+    pending[key] = memoized;
+
+    return memoized;
+  };
+
+  const createKey = (args: Parameters<F>) =>
+    args
+      .map((arg) =>
+        typeof arg === "bigint" ? arg.toString() : JSON.stringify(arg)
+      )
+      .join(", ");
+
+  const proxy = (...args: Parameters<F>) => {
+    const key = createKey(args);
+
+    if (key in pending) {
+      return pending[key];
+    } else {
+      return makeMemoized(key, fn(...args));
+    }
+  };
+
+  return Object.assign(proxy, {
+    bypass: (...args: Parameters<F>) => makeCancelable(fn(...args)),
+  });
+};
+
+/**
+ * Memoizes a pending promises created from identical arguments for a given duration.
+ *
+ * Shorthand for `memoize(fn, { duration, cancelExpired: false })`
+ * @param duration How long to memoize pending promises for, in milliseconds.
+ * @param fn A function which returns a promise to memoize by arguments.
+ */
+export const memoizeFor = <F extends AnyAsyncFunction>(
+  duration: number,
+  fn: F
+) => memoize<F>(fn, { duration, cancelExpired: false });

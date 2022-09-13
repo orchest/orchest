@@ -1,9 +1,12 @@
-import { CancelablePromise, toCancelablePromise } from "@/utils/promise";
+import {
+  CancelablePromise,
+  makeCancelable as asCancelable,
+} from "@/utils/promise";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 const cancelAllPromises = (cancelablePromises: PromiseRecord) =>
-  Object.values(cancelablePromises).forEach((p) => p.cancel());
+  Object.values(cancelablePromises).forEach((promise) => promise.cancel());
 
 type PromiseRecord = Record<number, CancelablePromise>;
 
@@ -13,12 +16,14 @@ export function useCancelablePromise() {
 
   const makeCancelable = React.useCallback(<T = void>(promise: Promise<T>) => {
     const promiseId = nextPromiseId();
-    const cancelable = toCancelablePromise(promise, () => {
-      // Delete the promise once it's canceled:
+    const cancelable = asCancelable(promise, () => {
+      // Delete the promise once it has been resolved, rejected or canceled.
       delete promisesById.current[promiseId];
     });
 
-    return (promisesById.current[promiseId] = cancelable);
+    promisesById.current[promiseId] = cancelable;
+
+    return cancelable;
   }, []);
 
   const cancelAll = React.useCallback(() => {
@@ -26,8 +31,9 @@ export function useCancelablePromise() {
   }, []);
 
   React.useEffect(() => {
-    const currentCancelablePromises = promisesById.current;
-    return () => cancelAllPromises(currentCancelablePromises);
+    const { current } = promisesById;
+
+    return () => cancelAllPromises(current);
   }, []);
 
   return { makeCancelable, cancelAll };

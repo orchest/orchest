@@ -1,26 +1,63 @@
-import { choke } from "../promise";
+import { memoize, PromiseCanceledError } from "../promise";
 
-const createLongPromise = () =>
-  new Promise((resolve) => setTimeout(resolve, 10000));
+const createHungPromise = () => new Promise(() => {});
+const delay = (duration: number) =>
+  new Promise((resolve) => setTimeout(resolve, duration));
 
-describe("promise choking", () => {
-  it("calls the first promise when parameters are identical and it is pending", () => {
-    const fn = (a: number, b: number, c: number) => createLongPromise();
+describe("pending promise memoization", () => {
+  it("returns the memoized promise for pending promises with identical arguments", () => {
+    const fn = (a: number) => createHungPromise();
 
-    const chokedFn = choke(fn);
-    const firstPromise = chokedFn(1, 2, 3);
-    const nextPromise = chokedFn(1, 2, 3);
+    const memoizedFn = memoize(fn);
+    const firstPromise = memoizedFn(1);
+    const nextPromise = memoizedFn(1);
 
     expect(nextPromise).toBe(firstPromise);
   });
 
   it("creates new promises when parameters are not equal", () => {
-    const fn = (a: number, b: number, c: number) => createLongPromise();
+    const fn = (a: number) => createHungPromise();
 
-    const chokedFn = choke(fn);
-    const firstPromise = chokedFn(1, 2, 3);
-    const nextPromise = chokedFn(3, 2, 1);
+    const memoizedFn = memoize(fn);
+    const firstPromise = memoizedFn(1);
+    const nextPromise = memoizedFn(2);
 
     expect(nextPromise).not.toBe(firstPromise);
+  });
+
+  it("bypasses memoization when requested", () => {
+    const fn = (a: number) => createHungPromise();
+
+    const memoizedFn = memoize(fn);
+    const firstPromise = memoizedFn(1);
+    const bypassedPromise = memoizedFn.bypass(1);
+
+    expect(bypassedPromise).not.toBe(firstPromise);
+  });
+
+  it("removes expired promises after their duration has elapsed", async () => {
+    const fn = (a: number) => createHungPromise();
+
+    const duration = 2;
+    const memoizedFn = memoize(fn, { duration });
+    const firstPromise = memoizedFn(1);
+
+    await delay(duration * 2);
+
+    const nextPromise = memoizedFn(1);
+
+    expect(nextPromise).not.toBe(firstPromise);
+  });
+
+  it("cancels expired promises after their duration has elapsed promises if configured", async () => {
+    const fn = (a: number) => createHungPromise();
+
+    const duration = 2;
+    const memoizedFn = memoize(fn, { duration, cancelExpired: true });
+    const promise = memoizedFn(1);
+
+    await delay(duration * 2);
+
+    expect(promise).rejects.toThrowError(PromiseCanceledError);
   });
 });
