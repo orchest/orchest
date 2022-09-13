@@ -79,6 +79,8 @@ def write_jupyter_dockerfile(base_image, task_uuid, work_dir, bash_script, path)
         full_basename = f"docker.io/{base_image}"
 
     statements.append(f"FROM {full_basename}")
+    statements.append("ARG BUILDER_POD_IP")
+    statements.append("ENV BUILDER_POD_IP=${BUILDER_POD_IP}")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     statements.append("COPY . .")
@@ -89,6 +91,21 @@ def write_jupyter_dockerfile(base_image, task_uuid, work_dir, bash_script, path)
     # to see it after the build is done.
     flag = CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
+
+    ssh_options = (
+        'ssh -o "StrictHostKeyChecking=no" '
+        '-o "ServerAliveInterval=30" '
+        '-o "ServerAliveCountMax=30" '
+        '-o "UserKnownHostsFile=/dev/null" '
+    )
+    # This is needed to rsync settings to the userdir since buildkit
+    # does not support writing to "bind" volumes.
+    rsync_jupyter_settings_command = (
+        f"sshpass -p 'root' rsync -v -e '{ssh_options}' "
+        f"-rlP /root/.jupyter/lab/user-settings/ "
+        f"root@$BUILDER_POD_IP:/jupyterlab-user-settings/"
+    )
+
     statements.append(
         # To make user settings available to extensions that require it.
         "RUN mkdir /root/.jupyter/lab -p "
@@ -104,6 +121,7 @@ def write_jupyter_dockerfile(base_image, task_uuid, work_dir, bash_script, path)
         "cp -rfT $userdir_path_ext $build_path_ext &> /dev/null ; fi "
         f"&& echo {flag} "
         f"&& rm {bash_script} "
+        f"&& {rsync_jupyter_settings_command}"
         # The || <error flag> allows to avoid builder errors logs making
         # into it the user logs and tell us that there has been an
         # error.

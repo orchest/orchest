@@ -135,9 +135,14 @@ def _get_image_builder_manifest(
         },
     }
 
-    # For extensions that need access to the settings on install.
+    # Some jupyter extensions might require write access to settings
+    # during the setup script, e.g. on install. Since buildkit and
+    # buildx currently do not support writing to a "bind" volume we let
+    # the container write to its local filesystem then rsync the changes
+    # over.
     if _config.JUPYTER_IMAGE_NAME in image_name:
         container = manifest["spec"]["containers"][0]
+        # Needed to get the existing settings into the build context.
         container["volumeMounts"].append(
             {
                 "name": "userdir-pvc",
@@ -145,6 +150,29 @@ def _get_image_builder_manifest(
                 "subPath": ".orchest/user-configurations/jupyterlab/user-settings",
             }
         )
+        # Needed because the build takes place in the container runtime,
+        # which doesn't have access to the cluster dns.
+        container["env"] = container.get("env", []) + [
+            {
+                "name": "BUILDER_POD_IP",
+                "valueFrom": {"fieldRef": {"fieldPath": "status.podIP"}},
+            }
+        ]
+
+        # To pass the BUILDER_POD_IP env var.
+        container["command"] += ["-a"]
+
+        args = container["args"][0]
+        # Start the ssh server so that the build container can rsync.
+        args = f"/usr/sbin/sshd && {args}"
+        # Need to distinguish between buildkit and buildx args passing.
+        if _config.CONTAINER_RUNTIME == "containerd":
+            args = f"{args} --opt build-arg:BUILDER_POD_IP=$BUILDER_POD_IP"
+        elif _config.CONTAINER_RUNTIME == "docker":
+            args = f"{args} --build-arg=BUILDER_POD_IP=$BUILDER_POD_IP"
+        else:
+            raise ValueError()
+        container["args"] = [args]
 
     return manifest
 

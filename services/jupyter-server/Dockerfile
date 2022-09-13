@@ -4,7 +4,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 RUN apt-get update \
     # Refresh SSL certificates
     && update-ca-certificates --fresh \
-    && apt-get install -yq --no-install-recommends curl git jq ca-certificates \
+    && apt-get install -yq --no-install-recommends curl git jq ca-certificates rsync ssh sshpass \
     # Install nodejs for Jupyter extensions.
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && apt-get install -yq --no-install-recommends nodejs \
