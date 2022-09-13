@@ -11,7 +11,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 USER root
 
 RUN apt-get update \
-    && apt-get install default-libmysqlclient-dev sudo -y
+    && apt-get install openssh-server git default-libmysqlclient-dev sudo -y
 
 RUN passwd -d $NB_USER \
     # Enable `sudo` for the $NB_USER by default.
@@ -27,7 +27,8 @@ COPY ./runnable-shared/runner/requirements* /orchest/services/base-images/runnab
 COPY ./lib/python /orchest/lib/python
 COPY ./orchest-sdk /orchest/orchest-sdk
 RUN chown $NB_USER -R /orchest/orchest-sdk \
-    && chown $NB_USER -R /orchest/lib
+    && chown $NB_USER -R /orchest/lib && \
+    echo -e "jovyan\njovyan" | passwd jovyan
 
 USER $NB_USER
 
@@ -44,7 +45,8 @@ RUN python -m venv /home/$NB_USER/venv \
     && deactivate
 
 # Empty configuration file for kernel initialization
-RUN touch /home/jovyan/.orchestrc
+RUN touch /home/jovyan/.orchestrc && \
+    echo "export PS1='\${ENVIRONMENT_SHELL_NAME:+(\$ENVIRONMENT_SHELL_NAME)}\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> ~/.bashrc
 
 # Get application files.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
@@ -55,6 +57,8 @@ COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runn
 ENV JUPYTER_PATH=/home/$NB_USER/.local/share/jupyter
 ENV HOME=/home/$NB_USER
 ENV BASH_ENV=/home/jovyan/.orchestrc
+
+
 
 # Environment variable that can be set to specify the conda environment
 # to use to start Jupyter kernels.

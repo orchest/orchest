@@ -1,7 +1,7 @@
 import os
 
-ORCHEST_NAMESPACE = os.environ["ORCHEST_NAMESPACE"]
-ORCHEST_CLUSTER = os.environ["ORCHEST_CLUSTER"]
+ORCHEST_NAMESPACE = os.environ.get("ORCHEST_NAMESPACE")
+ORCHEST_CLUSTER = os.environ.get("ORCHEST_CLUSTER")
 
 ORCHEST_MAINTAINER_LABEL = "Orchest B.V. https://www.orchest.io"
 
@@ -18,7 +18,7 @@ ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl", "js"]
 POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
 POSTHOG_HOST = "https://analytics.orchest.io"
 
-ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
+ORCHEST_VERSION = os.environ.get("ORCHEST_VERSION")
 
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
@@ -85,6 +85,7 @@ ENVIRONMENT_IMAGE_REMOVAL_NAME = (
 # Orchest environments that are passed as services, i.e. the image will
 # be used to start a service, have a form of "environment@<env-uuid>".
 ENVIRONMENT_AS_SERVICE_PREFIX = "environment@"
+ENVIRONMENT_SHELL_SUFFIX_UUID_LENGTH = 6
 
 # Kernels
 KERNEL_NAME = "orchest-kernel-{environment_uuid}"
