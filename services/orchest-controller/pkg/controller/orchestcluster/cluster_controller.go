@@ -796,7 +796,7 @@ func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, nam
 
 func (occ *OrchestClusterController) adoptPVC(ctx context.Context, oldPvc, newPvc *corev1.PersistentVolumeClaim) error {
 
-	if !reflect.DeepEqual(oldPvc.OwnerReferences[0], newPvc.OwnerReferences[0]) {
+	if oldPvc.OwnerReferences == nil || !reflect.DeepEqual(oldPvc.OwnerReferences[0], newPvc.OwnerReferences[0]) {
 		oldPvc.OwnerReferences = newPvc.OwnerReferences
 		_, err := occ.Client().CoreV1().PersistentVolumeClaims(oldPvc.Namespace).Update(ctx, oldPvc, metav1.UpdateOptions{})
 		return err
