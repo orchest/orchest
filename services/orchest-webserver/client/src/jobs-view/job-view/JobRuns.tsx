@@ -4,6 +4,7 @@ import {
   AccordionSummary,
 } from "@/components/Accordion";
 import { useDebounce } from "@/hooks/useDebounce";
+import { JobData } from "@/types";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -13,18 +14,26 @@ import React from "react";
 import { useJobRunsPage } from "./hooks/useJobRunsPage";
 import { JobRunsTable } from "./JobRunsTable";
 
-export const JobRuns = () => {
+export type JobRunsProps = { job: JobData };
+
+export const JobRuns = ({ job }: JobRunsProps) => {
   const [pageNumber, setPageNumber] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
   const [fuzzyFilter, setFuzzyFilter] = React.useState("");
   const [search, setSearch] = React.useState("");
-  const { page } = useJobRunsPage({
+  const { page, refresh } = useJobRunsPage({
     page: pageNumber,
     pageSize,
     fuzzyFilter: fuzzyFilter || undefined,
   });
+  const pageNumberRef = React.useRef(pageNumber);
+  pageNumberRef.current = pageNumber;
 
   const debouncedSearch = useDebounce(search, 250);
+
+  React.useEffect(() => {
+    if (pageNumberRef.current === 1) refresh();
+  }, [job.status, refresh]);
 
   React.useEffect(() => {
     setFuzzyFilter((current) => {

@@ -16,5 +16,14 @@ export const useJobRunsPage = ({
     run(fetchPage({ fuzzyFilter, page, pageSize })).catch();
   }, [fetchPage, fuzzyFilter, page, pageSize, run]);
 
-  return { page: currentPage, isFetching: status === "PENDING", error };
+  const refresh = React.useCallback(() => {
+    run(fetchPage.bypass({ fuzzyFilter, page, pageSize })).catch();
+  }, [fetchPage, fuzzyFilter, page, pageSize, run]);
+
+  return {
+    page: currentPage,
+    refresh,
+    isFetching: status === "PENDING",
+    error,
+  };
 };
