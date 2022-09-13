@@ -19,7 +19,7 @@ export const JobView = () => {
     <JobViewContainer>
       <JobViewHeader />
       {!isEditing && job && <JobSummary job={job} />}
-      {!isEditing && jobUuid && <JobRuns />}
+      {!isEditing && job && <JobRuns job={job} />}
       {isEditing && <EditJobOverview />}
       <JobParameters />
       <JobEnvVariables />
