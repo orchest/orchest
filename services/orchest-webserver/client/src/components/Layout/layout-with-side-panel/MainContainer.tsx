@@ -5,12 +5,10 @@ export type MainContainerProps = BoxProps & {
   disablePadding?: boolean;
 };
 
-export const MainContainer: React.FC<MainContainerProps> = ({
-  disablePadding,
-  children,
-  sx,
-  ...props
-}: MainContainerProps) => {
+export const MainContainer = React.forwardRef<
+  HTMLDivElement,
+  MainContainerProps
+>(function MainContainer({ disablePadding, children, sx, ...props }, ref) {
   return (
     <Box
       sx={{
@@ -20,6 +18,7 @@ export const MainContainer: React.FC<MainContainerProps> = ({
         ...sx,
       }}
       {...props}
+      ref={ref}
     >
       <Box
         sx={{
@@ -32,4 +31,4 @@ export const MainContainer: React.FC<MainContainerProps> = ({
       </Box>
     </Box>
   );
-};
+});
