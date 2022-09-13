@@ -9,6 +9,7 @@ import { useSaveJobChanges } from "@/jobs-view/hooks/useSaveJobChanges";
 import { JobEnvVariables } from "@/jobs-view/job-view/JobEnvVariables";
 import { JobOverview } from "@/jobs-view/job-view/JobOverview";
 import { JobParameters } from "@/jobs-view/job-view/JobParameters";
+import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { CloseOutlined } from "@mui/icons-material";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -28,10 +29,12 @@ export const ScheduleJobPanel = () => {
     (state) => state.setMessage
   );
 
+  const jobName = useEditJob((state) => state.jobChanges?.name);
+
   const onClosePanel = React.useCallback(() => {
     uiStateDispatch({ type: "SET_DRAFT_JOB", payload: undefined });
-    setSnackBarMessage("Job draft has been saved in Jobs");
-  }, [uiStateDispatch, setSnackBarMessage]);
+    setSnackBarMessage(`Draft "${jobName}" has been saved in Jobs`);
+  }, [uiStateDispatch, setSnackBarMessage, jobName]);
 
   useSaveJobChanges();
 
