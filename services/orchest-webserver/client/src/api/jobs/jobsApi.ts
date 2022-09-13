@@ -16,7 +16,7 @@ const fetchAll = async (projectUuid: string): Promise<JobData[]> => {
   return unsortedJobs.sort((a, b) => -1 * a.name.localeCompare(b.name));
 };
 
-const fetchJob = async (
+const fetchOne = async (
   jobUuid: string,
   aggregateRunStatuses?: boolean
 ): Promise<JobData> => {
@@ -258,7 +258,7 @@ const fetchStrategyJson = async ({
 
 export const jobsApi = {
   fetchAll,
-  fetchOne: fetchJob,
+  fetchOne,
   post,
   put,
   putJobPipelineUuid,
