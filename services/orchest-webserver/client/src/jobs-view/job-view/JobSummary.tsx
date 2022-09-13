@@ -20,7 +20,7 @@ export const JobSummary = ({ job }: JobSummaryProps) => {
 
   return (
     <Stack direction="row" justifyContent="space-between">
-      <Field name="Schedule">{job.schedule ? "Scheduled" : "Run once"}</Field>
+      <Field name="Schedule">{job.schedule ? "Recurring" : "Run once"}</Field>
       <Field name="Pipeline">
         <RouteLink underline="none" to={pipelineUrl}>
           {job.pipeline_name}
