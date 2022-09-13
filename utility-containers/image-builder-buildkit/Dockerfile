@@ -1,4 +1,4 @@
-FROM moby/buildkit:latest
+FROM moby/buildkit:v0.10.4
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 RUN buildkitd --version \
     && buildctl --version \
