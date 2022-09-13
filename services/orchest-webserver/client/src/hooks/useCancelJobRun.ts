@@ -2,7 +2,7 @@ import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
 import { useConfirm } from "@/hooks/useConfirm";
 
 /** Cancels a job run after the user confirms it. */
-export const useCancelRun = () => {
+export const useCancelJobRun = () => {
   const cancel = useJobRunsApi((api) => api.cancel);
 
   return useConfirm(cancel, {
