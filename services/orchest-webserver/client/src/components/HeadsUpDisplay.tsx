@@ -13,6 +13,7 @@ export const HeadsUpDisplay = styled(Stack)`
   pointer-events: none;
   display: flex;
   flex-direction: column;
+  z-index: 0;
 
   > * {
     pointer-events: auto;
