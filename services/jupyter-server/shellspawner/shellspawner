@@ -206,9 +206,8 @@ def _spawn_environment_shell(environment: Dict[str, Any]) -> Dict[str, Any]:
             "project_uuid": os.environ["ORCHEST_PROJECT_UUID"],
             "pipeline_path": os.environ["ORCHEST_SESSION_PIPELINE_PATH"],
             "pipeline_uuid": os.environ["ORCHEST_PIPELINE_UUID"],
-            "userdir_pvc": "userdir-pvc",  # TODO: make dynamic?
-            "project_dir": "/userdir/projects/"
-            + project["path"],  # TODO: make dynamic?
+            "userdir_pvc": "userdir-pvc",
+            "project_dir": "/userdir/projects/" + project["path"],
             "environment_uuid": environment["uuid"],
         }
     ).encode("utf-8")
