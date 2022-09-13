@@ -48,6 +48,11 @@ class BackgroundRequest(threading.Thread):
         self.request_ready = True
 
 
+def print_build_warning():
+    print("Could not connect to SSH in the environment. Try rebuilding ")
+    print("your environment to update to the latest base image.")
+
+
 def print_jupyter_warning():
     print(
         "\nUsing the JupyterLab terminal directly is not recommended "
@@ -165,19 +170,27 @@ def stop_environment_shell(
     )
     req.add_header("Content-Type", "application/json")
 
-    request.urlopen(req)
+    resp = request.urlopen(req)
 
-    print(
-        "Successfully terminated "
-        + environment_shell_uuid_to_name(environment_shell_uuid, environments)
-    )
+    if resp.status == 200:
+        print(
+            "Successfully terminated "
+            + environment_shell_uuid_to_name(environment_shell_uuid, environments)
+        )
+    else:
+        print(
+            "Failed to terminated "
+            + environment_shell_uuid_to_name(environment_shell_uuid, environments)
+            + " received status code "
+            + resp.status
+        )
 
 
 def show_loader(
     check_ready_callable: Callable,
     callable_args: List[Any],
     prompt: str,
-    timeout: float = 60,
+    timeout: float = 30,
 ):
     waited = 0
     wait_index = 0
@@ -263,8 +276,7 @@ def connect(environment_shell: str, environments: List[Dict[str, Any]]):
 
     co = subprocess.run(command, shell=True)
     if co.returncode == 255:
-        print("Could not connect to SSH in the environment. Try rebuilding ")
-        print("your environment to update to the latest base image.")
+        print_build_warning()
 
     # Enter init loop
     init()
@@ -342,7 +354,11 @@ def init(autoconnect=False):
         environment = choose_environment(environments)
         if environment is not None:
             environment_shell = spawn_environment_shell(environment)
-            connect(environment_shell, environments)
+            if environment_shell is None:
+                print_build_warning()
+                init()
+            else:
+                connect(environment_shell, environments)
         elif not auto_chosen:
             # auto_chosen is necessary to allow
             # users to back out of the
@@ -376,7 +392,11 @@ def init(autoconnect=False):
                 }
             )
 
-            connect(environment_shell, environments)
+            if environment_shell is None:
+                print_build_warning()
+                init()
+            else:
+                connect(environment_shell, environments)
         else:
             init()
     elif action == Action.TERMINATE:
