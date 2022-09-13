@@ -30,6 +30,7 @@ class Action(Enum):
     CONNECT = 1
     RESTART = 2
     TERMINATE = 3
+    EXIT = 4
     NONE = None
 
 
@@ -279,8 +280,9 @@ def choose_action() -> Action:
     print("[1] Connect to an existing shell ")
     print("[2] Restart an existing shell ")
     print("[3] Terminate an existing shell ")
+    print("[4] Exit to JupyterLab built-in shell ")
 
-    return Action(collect_choice(4, "Choose option"))
+    return Action(collect_choice(5, "Choose option"))
 
 
 def choose_existing_environment_shell(
@@ -313,7 +315,7 @@ def init(autoconnect=False):
     environment_shells = get_environment_shells()
 
     auto_chosen = False
-    action = Action.NONE
+    action = Action.EXIT
 
     if len(environment_shells) == 0:
         action = Action.START
@@ -377,6 +379,9 @@ def init(autoconnect=False):
             stop_environment_shell(environment_shell["uuid"], environments)
 
         init()
+    elif action == Action.EXIT:
+        # Don't print JupyterLab shell warning if explicitly chosen.
+        pass
 
 
 if __name__ == "__main__":
