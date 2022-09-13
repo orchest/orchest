@@ -46,6 +46,7 @@ from app.models import (
     Job,
     JupyterImageBuild,
     NonInteractivePipelineRun,
+    SchedulerJob,
     Setting,
 )
 from config import CONFIG_CLASS
@@ -446,6 +447,10 @@ def cleanup():
             # unfortunately.
             for jupyter_image_build in jupyter_image_builds:
                 db.session.delete(jupyter_image_build)
+
+            SchedulerJob.query.filter(SchedulerJob.status == "STARTED").update(
+                {"status": "FAILED"}
+            )
 
             db.session.commit()
 
