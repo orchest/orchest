@@ -43,7 +43,7 @@ export const useHotKeysInPipelineEditor = () => {
     runAllSteps,
     runSelectedSteps,
     runIncomingSteps,
-    scheduleJob,
+    createDraftJob,
   } = usePipelineActions();
 
   useHotKeys(
@@ -60,7 +60,7 @@ export const useHotKeysInPipelineEditor = () => {
             runIncomingSteps?.();
           }
           if (COMMANDS.SCHEDULE_JOB.includes(hotKeyEvent.key)) {
-            scheduleJob?.();
+            createDraftJob?.();
           }
           if (COMMANDS.CENTER_VIEW.includes(hotKeyEvent.key)) {
             centerView();
@@ -81,7 +81,7 @@ export const useHotKeysInPipelineEditor = () => {
       runAllSteps,
       runSelectedSteps,
       runIncomingSteps,
-      scheduleJob,
+      createDraftJob,
       centerView,
       centerPipelineOrigin,
       autoLayoutPipeline,
