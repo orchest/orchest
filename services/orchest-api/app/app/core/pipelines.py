@@ -823,18 +823,18 @@ async def run_pipeline_workflow(
 
                     elif (
                         argo_node_status == "Running"
-                        and pipeline_step in steps_to_start
+                        and step_uuid in steps_to_start
                         # Strictly speaking only needed in single-node
                         # context as otherwise Argo takes care of
                         # correctly putting a Step in "Running".
                         and _is_step_allowed_to_run(pipeline_step, steps_to_finish)
                     ):
                         step_status_update = "STARTED"
-                        steps_to_start.remove(pipeline_step)
+                        steps_to_start.remove(step_uuid)
 
                     elif (
                         argo_node_status in ["Succeeded", "Failed", "Error"]
-                        and pipeline_step in steps_to_finish
+                        and step_uuid in steps_to_finish
                     ):
                         step_status_update = {
                             "Succeeded": "SUCCESS",
@@ -847,9 +847,9 @@ async def run_pipeline_workflow(
                             had_failed_steps = True
 
                         if step_status_update in ["FAILURE", "ABORTED", "SUCCESS"]:
-                            steps_to_finish.remove(pipeline_step)
-                            if pipeline_step in steps_to_start:
-                                steps_to_start.remove(pipeline_step)
+                            steps_to_finish.remove(step_uuid)
+                            if step_uuid in steps_to_start:
+                                steps_to_start.remove(step_uuid)
 
                         await update_status(
                             step_status_update,
