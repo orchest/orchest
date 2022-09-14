@@ -7,7 +7,6 @@ import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cs
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
 import Alert from "@mui/lab/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
@@ -25,6 +24,7 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useCancelJobRun } from "../../hooks/useCancelJobRun";
 import {
@@ -215,7 +215,7 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <RunDetails run={run} pipelineUrl={pipelineUrl} />
+            <RunDetails run={run} />
           </Collapse>
         </TableCell>
       </TableRow>
@@ -223,11 +223,10 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
   );
 };
 
-export type RunDetailsProps = { run: PipelineRun; pipelineUrl: string };
+export type RunDetailsProps = { run: PipelineRun };
 
-export const RunDetails = ({ run, pipelineUrl }: RunDetailsProps) => {
+export const RunDetails = ({ run }: RunDetailsProps) => {
   const { pipeline } = usePipeline(run.project_uuid, run.pipeline_uuid);
-  const cancelRun = useCancelJobRun();
   const params = formatPipelineParams(run.parameters);
   const hasParameters = params.length > 0;
 
@@ -236,30 +235,19 @@ export const RunDetails = ({ run, pipelineUrl }: RunDetailsProps) => {
       <Typography variant="body2">
         Pipeline: {pipeline ? pipeline.path : "—"}
       </Typography>
-      {params.map((param, index) => (
-        <Typography
-          variant="caption"
-          key={index}
-          sx={{ paddingLeft: (theme) => theme.spacing(1) }}
-        >
-          {param}
-        </Typography>
-      ))}
+      {params.map(
+        (param, index) =>
+          hasValue(param) && (
+            <Typography
+              variant="caption"
+              key={index}
+              sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+            >
+              {`${param}; `}
+            </Typography>
+          )
+      )}
       {!hasParameters && <NoParameterAlert />}
-      <Stack
-        direction="row"
-        sx={{ marginTop: (theme) => theme.spacing(2) }}
-        spacing={2}
-      >
-        <Button href={pipelineUrl}>View pipeline</Button>
-        <Button
-          disabled={!canCancelRun(run)}
-          onClick={() => cancelRun(run.uuid)}
-          color="error"
-        >
-          Cancel run
-        </Button>
-      </Stack>
     </Box>
   );
 };
