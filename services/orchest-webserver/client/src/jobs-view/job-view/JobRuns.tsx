@@ -12,7 +12,7 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useJobRunsPage } from "./hooks/useJobRunsPage";
-import { usePollJobRuns } from "./hooks/usePollJobRuns";
+import { usePollPageJobRuns } from "./hooks/usePollJobRuns";
 import { JobRunsTable } from "./JobRunsTable";
 
 export type JobRunsProps = { job: JobData };
@@ -27,7 +27,7 @@ export const JobRuns = ({ job }: JobRunsProps) => {
     pageSize,
     fuzzyFilter: fuzzyFilter || undefined,
   });
-  usePollJobRuns(refresh);
+  usePollPageJobRuns(refresh);
   const pageNumberRef = React.useRef(pageNumber);
   pageNumberRef.current = pageNumber;
 
