@@ -138,54 +138,76 @@ export const FileManagerContextMenu: React.FC<{
         .endsWith(`.${allowedType.toLocaleLowerCase()}`)
     );
 
+  const menuItems =
+    metadata?.type === "tree"
+      ? [
+          !isReadOnly && contextPathIsFile && rootIsProject && (
+            <MenuItem
+              key="edit"
+              dense
+              disabled={isReadOnly}
+              onClick={handleContextEdit}
+            >
+              Edit
+            </MenuItem>
+          ),
+          pipelineUuid && contextPathIsAllowedFileType && (
+            <MenuItem key="view" dense onClick={handleContextView}>
+              View
+            </MenuItem>
+          ),
+          !isReadOnly && (
+            <MenuItem
+              key="rename"
+              dense
+              disabled={isReadOnly}
+              onClick={handleContextRename}
+            >
+              Rename
+            </MenuItem>
+          ),
+          !isReadOnly && (
+            <MenuItem
+              key="duplicate"
+              dense
+              disabled={isReadOnly}
+              onClick={handleDuplicate}
+            >
+              Duplicate
+            </MenuItem>
+          ),
+          !isReadOnly && (
+            <MenuItem
+              key="delete"
+              dense
+              disabled={isReadOnly}
+              onClick={handleDelete}
+            >
+              Delete
+            </MenuItem>
+          ),
+          <MenuItem key="download" dense onClick={handleDownload}>
+            Download
+          </MenuItem>,
+          children,
+        ].filter(Boolean)
+      : null;
+
   return (
     <Menu
-      open={metadata !== undefined}
+      open={hasValue(metadata)}
       onClose={handleClose}
       anchorReference="anchorPosition"
       anchorPosition={
-        metadata !== undefined
+        hasValue(metadata)
           ? {
-              top: metadata?.origin[0] ?? 0,
+              top: metadata?.origin[1] ?? 0,
               left: metadata?.origin[0] ?? 0,
             }
           : undefined
       }
     >
-      {metadata?.type === "tree" && (
-        <>
-          {!isReadOnly && contextPathIsFile && rootIsProject && (
-            <MenuItem dense disabled={isReadOnly} onClick={handleContextEdit}>
-              Edit
-            </MenuItem>
-          )}
-          {pipelineUuid && contextPathIsAllowedFileType && (
-            <MenuItem dense onClick={handleContextView}>
-              View
-            </MenuItem>
-          )}
-          {!isReadOnly && (
-            <>
-              <MenuItem
-                dense
-                disabled={isReadOnly}
-                onClick={handleContextRename}
-              >
-                Rename
-              </MenuItem>
-              <MenuItem dense disabled={isReadOnly} onClick={handleDuplicate}>
-                Duplicate
-              </MenuItem>
-              <MenuItem dense disabled={isReadOnly} onClick={handleDelete}>
-                Delete
-              </MenuItem>
-            </>
-          )}
-          <MenuItem dense onClick={handleDownload}>
-            Download
-          </MenuItem>
-        </>
-      )}
+      {menuItems}
       {children}
     </Menu>
   );

@@ -123,10 +123,7 @@ export const FileManagerLocalContextProvider: React.FC<{
       setContextMenu((current) => {
         return current === undefined
           ? {
-              origin: {
-                x: event.clientX - 2,
-                y: event.clientY - 4,
-              },
+              origin: [event.clientX - 2, event.clientY - 4],
               type,
             }
           : undefined;
