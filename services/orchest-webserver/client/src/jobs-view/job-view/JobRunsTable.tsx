@@ -24,7 +24,6 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useCancelJobRun } from "../../hooks/useCancelJobRun";
 import {
@@ -183,7 +182,7 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
             alignItems="center"
           >
             <span>
-              {run.parameters ? formatPipelineParams(run.parameters) : "—"}
+              {formatPipelineParams(run.parameters).join(", ").trim() || "—"}
             </span>
             <RouteLink underline="none" to={pipelineUrl}>
               VIEW
@@ -235,18 +234,7 @@ export const RunDetails = ({ run }: RunDetailsProps) => {
       <Typography variant="body2">
         Pipeline: {pipeline ? pipeline.path : "—"}
       </Typography>
-      {params.map(
-        (param, index) =>
-          hasValue(param) && (
-            <Typography
-              variant="caption"
-              key={index}
-              sx={{ paddingLeft: (theme) => theme.spacing(1) }}
-            >
-              {`${param}; `}
-            </Typography>
-          )
-      )}
+      <Typography variant="caption">{params.join(", ")}</Typography>
       {!hasParameters && <NoParameterAlert />}
     </Box>
   );

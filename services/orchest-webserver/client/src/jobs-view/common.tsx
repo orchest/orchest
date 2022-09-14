@@ -59,7 +59,7 @@ export const pickJobChanges = (jobData?: JobData): JobChanges | undefined => {
 export const formatPipelineParams = (parameters: Record<string, Json>) => {
   return Object.values(parameters).map((parameter) => {
     return parameter === null
-      ? null
+      ? "null"
       : Object.entries(parameter)
           .map(([key, value]) => {
             return `${key}: ${JSON.stringify(value)}`;
