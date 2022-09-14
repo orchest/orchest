@@ -43,7 +43,7 @@ class LatestProjectEnvironmentEnvironmentImage(Resource):
 @api.param("project_uuid", "uuid of the project")
 @api.param("environment_uuid", "uuid of the environment")
 @api.param("tag", "Tag of the image")
-class EnvironmentImage(Resource):
+class EnvironmentImageRegistryStatus(Resource):
     @api.doc("put_environment_image_push_status")
     def put(self, project_uuid, environment_uuid, tag):
         """Notifies that the image has been pushed to the registry."""
@@ -52,6 +52,29 @@ class EnvironmentImage(Resource):
             description="Environment image not found.",
         )
         image.stored_in_registry = True
+        db.session.commit()
+        return {}, 200
+
+
+@api.route(
+    "/<string:project_uuid>/<string:environment_uuid>/<string:tag>/node/<string:node>"
+)
+@api.param("project_uuid", "uuid of the project")
+@api.param("environment_uuid", "uuid of the environment")
+@api.param("tag", "Tag of the image")
+@api.param("node", "Node on which the image was pulled")
+class EnvironmentImageNodeStatus(Resource):
+    @api.doc("put_environment_image_node_state")
+    def put(self, project_uuid, environment_uuid, tag, node):
+        """Notifies that the image has been pulled to a node."""
+
+        models.EnvironmentImage.query.get_or_404(
+            ident=(project_uuid, environment_uuid, int(tag)),
+            description="Environment image not found.",
+        )
+        utils.upsert_environment_image_on_node(
+            project_uuid, environment_uuid, tag, node
+        )
         db.session.commit()
         return {}, 200
 

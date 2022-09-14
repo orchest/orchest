@@ -798,3 +798,47 @@ def upsert_cluster_node(name: str) -> None:
     )
     stmt = stmt.on_conflict_do_nothing(index_elements=[models.ClusterNode.name])
     db.session.execute(stmt)
+
+
+def upsert_jupyter_image_on_node(tag: Union[str, int], node: str) -> None:
+    upsert_cluster_node(node)
+    stmt = insert(models.JupyterImageOnNode).values(
+        [
+            dict(
+                jupyter_image_tag=int(tag),
+                node_name=node,
+            )
+        ]
+    )
+    stmt = stmt.on_conflict_do_nothing(
+        index_elements=[
+            models.JupyterImageOnNode.jupyter_image_tag,
+            models.JupyterImageOnNode.node_name,
+        ]
+    )
+    db.session.execute(stmt)
+
+
+def upsert_environment_image_on_node(
+    project_uuid: str, environment_uuid: str, tag: Union[str, int], node: str
+) -> None:
+    upsert_cluster_node(node)
+    stmt = insert(models.EnvironmentImageOnNode).values(
+        [
+            dict(
+                project_uuid=project_uuid,
+                environment_uuid=environment_uuid,
+                environment_image_tag=int(tag),
+                node_name=node,
+            )
+        ]
+    )
+    stmt = stmt.on_conflict_do_nothing(
+        index_elements=[
+            models.EnvironmentImageOnNode.project_uuid,
+            models.EnvironmentImageOnNode.environment_uuid,
+            models.EnvironmentImageOnNode.environment_image_tag,
+            models.EnvironmentImageOnNode.node_name,
+        ]
+    )
+    db.session.execute(stmt)

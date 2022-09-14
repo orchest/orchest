@@ -282,7 +282,8 @@ def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
 
 
 @api.route("/jupyter-images/<string:tag>/registry")
-class JupyterImage(Resource):
+@api.param("tag", "Tag of the image")
+class JupyterImageRegistryStatus(Resource):
     @api.doc("put_jupyter_image_as_pushed")
     def put(self, tag: str):
         """Notifies that the image has been pushed to the registry."""
@@ -292,5 +293,22 @@ class JupyterImage(Resource):
         )
 
         image.stored_in_registry = True
+        db.session.commit()
+        return {}, 200
+
+
+@api.route("/jupyter-images/<string:tag>/node/<string:node_name>")
+@api.param("tag", "Tag of the image")
+@api.param("node", "Node on which the image was pulled")
+class JupyterImageNodeStatus(Resource):
+    @api.doc("put_jupyter_image_node_state")
+    def put(self, tag: str, node: str):
+        """Notifies that the image has been pulled to a node."""
+
+        models.JupyterImage.query.get_or_404(
+            ident=int(tag),
+            description="Jupyter image not found.",
+        )
+        utils.upsert_jupyter_image_on_node(tag, node)
         db.session.commit()
         return {}, 200
