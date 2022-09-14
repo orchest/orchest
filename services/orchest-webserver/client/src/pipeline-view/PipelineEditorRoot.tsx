@@ -12,7 +12,7 @@ export const PipelineEditorRoot = ({ children }) => {
       onMouseLeave={disableHotKeys}
       position="relative"
       display="flex"
-      direction="column"
+      direction="row"
       width="100%"
       height="100%"
       max-height="100%"

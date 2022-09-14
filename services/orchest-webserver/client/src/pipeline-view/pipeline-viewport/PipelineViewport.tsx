@@ -9,6 +9,7 @@ import {
 } from "@/utils/geometry";
 import { getHeight, getWidth } from "@/utils/jquery-replacement";
 import { setRefs } from "@/utils/refs";
+import Box, { BoxProps } from "@mui/material/Box";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import classNames from "classnames";
 import React from "react";
@@ -46,204 +47,212 @@ const CANVAS_VIEW_MULTIPLE = 3;
 // but some drag-n-drop behaviors requires the offset of PipelineCanvas, so we put usePipelineCanvasState in the context
 // so PipelineEditor can use these state
 
-const PipelineViewportComponent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(function PipelineViewportComponent(
-  { children, className, style, ...props },
-  ref
-) {
-  const { dragFile } = useFileManagerContext();
-  const {
-    disabled,
-    pipelineCwd,
-    isFetchingPipelineJson,
-  } = usePipelineDataContext();
+const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
+  function PipelineViewportComponent(
+    { children, className, sx, ...props },
+    ref
+  ) {
+    const { dragFile } = useFileManagerContext();
+    const {
+      disabled,
+      pipelineCwd,
+      isFetchingPipelineJson,
+    } = usePipelineDataContext();
 
-  const environments = useEnvironmentsApi((state) => state.environments || []);
+    const environments = useEnvironmentsApi(
+      (state) => state.environments || []
+    );
 
-  const { scaleFactor, canvasPointAtPointer } = useCanvasScaling();
-  const { pipelineCanvasRef, newConnection } = usePipelineRefs();
-  const {
-    uiState: {
-      stepSelector,
-      selectedConnection,
-      openedStep,
-      contextMenuUuid,
-      steps,
-      isStepsLoaded,
-    },
-    uiStateDispatch,
-  } = usePipelineUiStateContext();
+    const { scaleFactor, canvasPointAtPointer } = useCanvasScaling();
+    const { pipelineCanvasRef, newConnection } = usePipelineRefs();
+    const {
+      uiState: {
+        stepSelector,
+        selectedConnection,
+        openedStep,
+        contextMenuUuid,
+        steps,
+        isStepsLoaded,
+      },
+      uiStateDispatch,
+    } = usePipelineUiStateContext();
 
-  const {
-    pipelineCanvasState: {
-      panningState,
-      pipelineOffset,
-      pipelineOrigin,
-      pipelineCanvasOffset,
-    },
-    setPipelineCanvasOrigin,
-  } = usePipelineCanvasContext();
+    const {
+      pipelineCanvasState: {
+        panningState,
+        pipelineOffset,
+        pipelineOrigin,
+        pipelineCanvasOffset,
+      },
+      setPipelineCanvasOrigin,
+    } = usePipelineCanvasContext();
 
-  const localRef = React.useRef<HTMLDivElement | null>(null);
-  const [canvasResizeStyle, resizeCanvas] = React.useState<React.CSSProperties>(
-    {}
-  );
+    const localRef = React.useRef<HTMLDivElement | null>(null);
+    const [canvasResizeStyle, resizeCanvas] = React.useState<
+      React.CSSProperties
+    >({});
 
-  useViewportMouseEvents();
+    useViewportMouseEvents();
 
-  React.useEffect(() => {
-    if (
-      isSamePoint(pipelineOffset, INITIAL_PIPELINE_OFFSET) &&
-      scaleFactor === DEFAULT_SCALE_FACTOR
-    ) {
-      setPipelineCanvasOrigin([0, 0]);
-    }
-  }, [scaleFactor, pipelineOffset, setPipelineCanvasOrigin]);
+    React.useEffect(() => {
+      if (
+        isSamePoint(pipelineOffset, INITIAL_PIPELINE_OFFSET) &&
+        scaleFactor === DEFAULT_SCALE_FACTOR
+      ) {
+        setPipelineCanvasOrigin([0, 0]);
+      }
+    }, [scaleFactor, pipelineOffset, setPipelineCanvasOrigin]);
 
-  const updatePipelineCanvasSize = React.useCallback(() => {
-    if (!localRef.current) return;
+    const updatePipelineCanvasSize = React.useCallback(() => {
+      if (!localRef.current) return;
 
-    resizeCanvas({
-      width: getWidth(localRef.current) * CANVAS_VIEW_MULTIPLE,
-      height: getHeight(localRef.current) * CANVAS_VIEW_MULTIPLE,
-    });
-  }, [resizeCanvas, localRef]);
-
-  const onMouseDown = (event: React.MouseEvent) => {
-    if (disabled || contextMenuUuid || !pipelineCanvasRef.current) return;
-    if (selectedConnection) {
-      uiStateDispatch({ type: "DESELECT_CONNECTION" });
-    }
-
-    const isCreatingSelection = event.button === 0 && panningState === "idle";
-
-    if (isCreatingSelection) {
-      uiStateDispatch({
-        type: "CREATE_SELECTOR",
-        payload: getOffset(pipelineCanvasRef.current),
+      resizeCanvas({
+        width: getWidth(localRef.current) * CANVAS_VIEW_MULTIPLE,
+        height: getHeight(localRef.current) * CANVAS_VIEW_MULTIPLE,
       });
-    }
-  };
+    }, [resizeCanvas, localRef]);
 
-  const onMouseUp = (e: React.MouseEvent) => {
-    if (disabled || Boolean(contextMenuUuid)) return;
-    if (e.button === 0) {
-      if (stepSelector.active) {
-        uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
-      } else {
-        uiStateDispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
+    const onMouseDown = (event: React.MouseEvent) => {
+      if (disabled || contextMenuUuid || !pipelineCanvasRef.current) return;
+      if (selectedConnection) {
+        uiStateDispatch({ type: "DESELECT_CONNECTION" });
       }
 
-      if (openedStep) {
-        uiStateDispatch({ type: "SET_OPENED_STEP", payload: undefined });
-      }
+      const isCreatingSelection = event.button === 0 && panningState === "idle";
 
-      if (newConnection.current) {
+      if (isCreatingSelection) {
         uiStateDispatch({
-          type: "REMOVE_CONNECTION",
-          payload: newConnection.current,
+          type: "CREATE_SELECTOR",
+          payload: getOffset(pipelineCanvasRef.current),
         });
       }
-
-      if (dragFile) onDropFiles();
-    }
-  };
-
-  const getApplicableStepFiles = useValidateFilesOnSteps();
-
-  const createStepsWithFiles = React.useCallback(
-    (dropPoint: Point2D) => {
-      if (!pipelineCwd) return;
-      const { allowed } = getApplicableStepFiles();
-
-      const environment = environments.length > 0 ? environments[0] : null;
-
-      allowed.forEach((filePath) => {
-        // Adjust filePath to pipelineCwd, incoming filePath is relative to project
-        // root.
-        const pipelineRelativeFilePath = getFilePathForRelativeToProject(
-          filePath,
-          pipelineCwd
-        );
-        uiStateDispatch(
-          createStepAction(environment, dropPoint, pipelineRelativeFilePath)
-        );
-      });
-    },
-    [uiStateDispatch, pipelineCwd, environments, getApplicableStepFiles]
-  );
-
-  const onDropFiles = React.useCallback(() => {
-    // assign a file to a step cannot be handled here because PipelineStep onMouseUp has e.stopPropagation()
-    // here we only handle "create a new step".
-    const dropPoint = subtractPoints(canvasPointAtPointer(), [
-      STEP_WIDTH / 2,
-      STEP_HEIGHT / 2,
-    ]);
-
-    createStepsWithFiles(dropPoint);
-  }, [createStepsWithFiles, canvasPointAtPointer]);
-
-  React.useEffect(() => {
-    updatePipelineCanvasSize();
-    window.addEventListener("resize", updatePipelineCanvasSize);
-
-    return () => {
-      window.removeEventListener("resize", updatePipelineCanvasSize);
     };
-  }, [updatePipelineCanvasSize]);
 
-  const { handleContextMenu } = usePipelineViewportContextMenu();
+    const onMouseUp = (e: React.MouseEvent) => {
+      if (disabled || Boolean(contextMenuUuid)) return;
+      if (e.button === 0) {
+        if (stepSelector.active) {
+          uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+        } else {
+          uiStateDispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
+        }
 
-  const hasNoStep = React.useMemo(
-    () => isStepsLoaded && Object.keys(steps).length === 0,
-    [steps, isStepsLoaded]
-  );
+        if (openedStep) {
+          uiStateDispatch({ type: "SET_OPENED_STEP", payload: undefined });
+        }
 
-  const showIllustration = !isFetchingPipelineJson && (disabled || hasNoStep);
+        if (newConnection.current) {
+          uiStateDispatch({
+            type: "REMOVE_CONNECTION",
+            payload: newConnection.current,
+          });
+        }
 
-  return (
-    <div
-      className={classNames("pipeline-viewport", panningState, className)}
-      ref={setRefs(localRef, ref)}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
-      onContextMenu={(event) => handleContextMenu(event, "viewport")}
-      style={{ ...style, touchAction: "none" }}
-      {...props}
-    >
-      <GlobalStyles
-        styles={{
-          "html, body": { overscrollBehaviorX: "none" },
+        if (dragFile) onDropFiles();
+      }
+    };
+
+    const getApplicableStepFiles = useValidateFilesOnSteps();
+
+    const createStepsWithFiles = React.useCallback(
+      (dropPoint: Point2D) => {
+        if (!pipelineCwd) return;
+        const { allowed } = getApplicableStepFiles();
+
+        const environment = environments.length > 0 ? environments[0] : null;
+
+        allowed.forEach((filePath) => {
+          // Adjust filePath to pipelineCwd, incoming filePath is relative to project
+          // root.
+          const pipelineRelativeFilePath = getFilePathForRelativeToProject(
+            filePath,
+            pipelineCwd
+          );
+          uiStateDispatch(
+            createStepAction(environment, dropPoint, pipelineRelativeFilePath)
+          );
+        });
+      },
+      [uiStateDispatch, pipelineCwd, environments, getApplicableStepFiles]
+    );
+
+    const onDropFiles = React.useCallback(() => {
+      // assign a file to a step cannot be handled here because PipelineStep onMouseUp has e.stopPropagation()
+      // here we only handle "create a new step".
+      const dropPoint = subtractPoints(canvasPointAtPointer(), [
+        STEP_WIDTH / 2,
+        STEP_HEIGHT / 2,
+      ]);
+
+      createStepsWithFiles(dropPoint);
+    }, [createStepsWithFiles, canvasPointAtPointer]);
+
+    React.useEffect(() => {
+      updatePipelineCanvasSize();
+      window.addEventListener("resize", updatePipelineCanvasSize);
+
+      return () => {
+        window.removeEventListener("resize", updatePipelineCanvasSize);
+      };
+    }, [updatePipelineCanvasSize]);
+
+    const { handleContextMenu } = usePipelineViewportContextMenu();
+
+    const hasNoStep = React.useMemo(
+      () => isStepsLoaded && Object.keys(steps).length === 0,
+      [steps, isStepsLoaded]
+    );
+
+    const showIllustration = !isFetchingPipelineJson && (disabled || hasNoStep);
+
+    return (
+      <Box
+        className={classNames("pipeline-viewport", panningState, className)}
+        ref={setRefs(localRef, ref)}
+        sx={{
+          height: "100%",
+          width: "100%",
+          overflow: "hidden",
+          position: "absolute",
+          touchAction: "none",
+          ...sx,
         }}
-      />
-      {showIllustration && (
-        <FullViewportHolder>
-          {disabled && <NoPipeline />}
-          {!disabled && hasNoStep && <NoStep />}
-        </FullViewportHolder>
-      )}
-      <PipelineCanvas
-        ref={pipelineCanvasRef}
-        style={{
-          transformOrigin: `${pipelineOrigin[0]}px ${pipelineOrigin[1]}px`,
-          transform:
-            `translate(${stringifyPoint(pipelineOffset, "px")}) ` +
-            `scale(${scaleFactor})`,
-          left: pipelineCanvasOffset[0],
-          top: pipelineCanvasOffset[1],
-          ...canvasResizeStyle,
-        }}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onContextMenu={(event) => handleContextMenu(event, "viewport")}
+        {...props}
       >
-        {showIllustration && <Overlay />}
-        {children}
-        <PipelineViewportContextMenu />
-      </PipelineCanvas>
-    </div>
-  );
-});
+        <GlobalStyles
+          styles={{
+            "html, body": { overscrollBehaviorX: "none" },
+          }}
+        />
+        {showIllustration && (
+          <FullViewportHolder>
+            {disabled && <NoPipeline />}
+            {!disabled && hasNoStep && <NoStep />}
+          </FullViewportHolder>
+        )}
+        <PipelineCanvas
+          ref={pipelineCanvasRef}
+          style={{
+            transformOrigin: `${pipelineOrigin[0]}px ${pipelineOrigin[1]}px`,
+            transform:
+              `translate(${stringifyPoint(pipelineOffset, "px")}) ` +
+              `scale(${scaleFactor})`,
+            left: pipelineCanvasOffset[0],
+            top: pipelineCanvasOffset[1],
+            ...canvasResizeStyle,
+          }}
+        >
+          {showIllustration && <Overlay />}
+          {children}
+          <PipelineViewportContextMenu />
+        </PipelineCanvas>
+      </Box>
+    );
+  }
+);
 
 export const PipelineViewport = React.forwardRef<
   HTMLDivElement,
