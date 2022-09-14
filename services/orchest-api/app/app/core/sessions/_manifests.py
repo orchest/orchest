@@ -23,7 +23,7 @@ logger = utils.get_logger()
 def _get_common_volumes_and_volume_mounts(
     userdir_pvc: str,
     project_dir: str,
-    pipeline_path: str,
+    pipeline_path: Optional[str] = None,
     container_project_dir: str = _config.PROJECT_DIR,
     container_pipeline_path: str = _config.PIPELINE_FILE,
     container_data_dir: str = _config.DATA_DIR,
@@ -33,7 +33,6 @@ def _get_common_volumes_and_volume_mounts(
     volume_mounts = {}
 
     relative_project_dir = get_userdir_relpath(project_dir)
-    relative_pipeline_path = os.path.join(relative_project_dir, pipeline_path)
 
     volumes["userdir-pvc"] = {
         "name": "userdir-pvc",
@@ -55,11 +54,15 @@ def _get_common_volumes_and_volume_mounts(
         "mountPath": container_project_dir,
         "subPath": relative_project_dir,
     }
-    volume_mounts["pipeline-file"] = {
-        "name": "userdir-pvc",
-        "mountPath": container_pipeline_path,
-        "subPath": relative_pipeline_path,
-    }
+
+    if pipeline_path is not None:
+        relative_pipeline_path = os.path.join(relative_project_dir, pipeline_path)
+
+        volume_mounts["pipeline-file"] = {
+            "name": "userdir-pvc",
+            "mountPath": container_pipeline_path,
+            "subPath": relative_pipeline_path,
+        }
 
     return volumes, volume_mounts
 
@@ -229,8 +232,11 @@ def _get_session_sidecar_deployment_manifest(
                     },
                     "serviceAccount": f"session-sidecar-sa-{session_uuid}",
                     "serviceAccountName": f"session-sidecar-sa-{session_uuid}",
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    "dnsConfig": {
+                        "options": [
+                            {"name": "timeout", "value": "10"},  # 30 is max
+                            {"name": "attempts", "value": "5"},  # 5 is max
+                        ],
                     },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
@@ -245,28 +251,23 @@ def _get_session_sidecar_deployment_manifest(
                                 "orchest/session-sidecar:"
                                 + CONFIG_CLASS.ORCHEST_VERSION
                             ),
+                            # NOTE: It would be a good idea to increase
+                            # the CPU shares for the sidecar, however,
+                            # the sidecar is started for every session
+                            # which could lead to:
+                            #   `total requests > available requests`
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
                             "imagePullPolicy": "IfNotPresent",
-                            "env": [
-                                {
-                                    "name": "ORCHEST_PROJECT_UUID",
-                                    "value": project_uuid,
-                                },
-                                {
-                                    "name": "ORCHEST_PIPELINE_UUID",
-                                    "value": pipeline_uuid,
-                                },
-                                {
-                                    "name": "ORCHEST_PIPELINE_PATH",
-                                    "value": _config.PIPELINE_FILE,
-                                },
-                                {
-                                    "name": "ORCHEST_SESSION_UUID",
-                                    "value": session_uuid,
-                                },
-                                {
-                                    "name": "ORCHEST_SESSION_TYPE",
-                                    "value": session_type,
-                                },
+                            "env": _get_orchest_sdk_vars(
+                                project_uuid,
+                                pipeline_uuid,
+                                _config.PIPELINE_FILE,
+                                session_uuid,
+                                session_type,
+                            )
+                            + [
                                 {
                                     "name": "ORCHEST_NAMESPACE",
                                     "value": _config.ORCHEST_NAMESPACE,
@@ -286,6 +287,147 @@ def _get_session_sidecar_deployment_manifest(
             },
         },
     }
+
+
+def _get_orchest_sdk_vars(
+    project_uuid: str,
+    pipeline_uuid: str,
+    pipeline_file: str,
+    session_uuid: str,
+    session_type: SessionType,
+):
+    return [
+        {"name": k, "value": v}
+        for k, v in {
+            "ORCHEST_PROJECT_UUID": project_uuid,
+            "ORCHEST_PIPELINE_UUID": pipeline_uuid,
+            "ORCHEST_PIPELINE_PATH": pipeline_file,
+            "ORCHEST_SESSION_UUID": session_uuid,
+            "ORCHEST_SESSION_TYPE": str(session_type),
+        }.items()
+    ]
+
+
+def _get_environment_shell_deployment_service_manifest(
+    session_uuid: str,
+    service_name: str,
+    shell_uuid: str,
+    project_uuid: str,
+    pipeline_uuid: str,
+    pipeline_path: str,
+    userdir_pvc: str,
+    project_dir: str,
+    environment_image: str,
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """
+    This manifest generation is in core/sessions
+    since the environment shell is part of the
+    session, but has a detached lifecycle in the sense
+    that environment shells can be started/stopped
+    independently from the session start/stop.
+
+    Note that environment shells will always require
+    an interactive session to be available and
+    stopping an interactive session will always stop
+    all associated environment shells.
+    """
+
+    metadata = {
+        "name": service_name,
+        "labels": {
+            "app": "environment-shell",
+            "project_uuid": project_uuid,
+            "session_uuid": session_uuid,
+            "shell_uuid": shell_uuid,
+        },
+    }
+
+    volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
+        userdir_pvc, project_dir, pipeline_path
+    )
+
+    registry_ip = utils.get_registry_ip()
+    registry_environment_image = f"{registry_ip}/{environment_image}"
+
+    deployment_manifest = {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": metadata,
+        "spec": {
+            "replicas": 1,
+            "selector": {"matchLabels": metadata["labels"]},
+            "template": {
+                "metadata": metadata,
+                "spec": {
+                    "terminationGracePeriodSeconds": 5,
+                    "securityContext": {
+                        "runAsUser": 0,
+                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                    },
+                    "volumes": [
+                        volumes_dict["userdir-pvc"],
+                        volumes_dict["container-runtime-socket"],
+                    ],
+                    "containers": [
+                        {
+                            "name": metadata["name"],
+                            "image": registry_environment_image,
+                            "imagePullPolicy": "IfNotPresent",
+                            "volumeMounts": [
+                                volume_mounts_dict["project-dir"],
+                                volume_mounts_dict["data"],
+                                volume_mounts_dict["pipeline-file"],
+                            ],
+                            "command": ["/orchest/bootscript.sh"],
+                            "args": [
+                                "shell",
+                            ],
+                            "env": _get_orchest_sdk_vars(
+                                project_uuid,
+                                pipeline_uuid,
+                                _config.PIPELINE_FILE,
+                                session_uuid,
+                                SessionType.INTERACTIVE,
+                            ),
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
+                            "startupProbe": {
+                                "exec": {
+                                    "command": ["echo", "1"],
+                                    "initialDelaySeconds": 1,
+                                    "periodSeconds": 1,
+                                }
+                            },
+                            "ports": [{"containerPort": 22}],
+                        }
+                    ],
+                },
+            },
+        },
+    }
+
+    add_image_puller_if_needed(
+        registry_environment_image,
+        registry_ip,
+        _config.CONTAINER_RUNTIME,
+        _config.CONTAINER_RUNTIME_IMAGE,
+        deployment_manifest,
+    )
+
+    service_manifest = {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": metadata,
+        "spec": {
+            "type": "ClusterIP",
+            "selector": metadata["labels"],
+            "ports": [{"port": 22, "targetPort": 22}],
+        },
+    }
+
+    return deployment_manifest, service_manifest
 
 
 def _get_jupyter_server_deployment_service_manifest(
@@ -328,9 +470,6 @@ def _get_jupyter_server_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                         volumes_dict["container-runtime-socket"],
@@ -342,10 +481,41 @@ def _get_jupyter_server_deployment_service_manifest(
                             "imagePullPolicy": "IfNotPresent",
                             "volumeMounts": [
                                 volume_mounts_dict["project-dir"],
-                                volume_mounts_dict["pipeline-file"],
                                 volume_mounts_dict["data"],
                                 volume_mounts_dict["jupyterlab-lab"],
                                 volume_mounts_dict["jupyterlab-user-settings"],
+                            ],
+                            "env": [
+                                {
+                                    "name": "ORCHEST_PROJECT_UUID",
+                                    "value": project_uuid,
+                                },
+                                {
+                                    "name": "ORCHEST_PIPELINE_UUID",
+                                    "value": session_config["pipeline_uuid"],
+                                },
+                                # Note, this is not the
+                                # ORCHEST_PIPELINE_PATH
+                                # that's used by the SDK that points
+                                # to the absolute path of the mounted
+                                # pipeline file.
+                                # ORCHEST_SESSION_PIPELINE_PATH is used
+                                # to let the shellspawner pass the
+                                # relative pipeline path to the
+                                # environment-shells endpoint.
+                                {
+                                    "name": "ORCHEST_SESSION_PIPELINE_PATH",
+                                    "value": session_config["pipeline_path"],
+                                },
+                                {
+                                    "name": "ORCHEST_API_ADDRESS",
+                                    "value": CONFIG_CLASS.ORCHEST_API_ADDRESS,
+                                },
+                                {
+                                    "name": "ORCHEST_WEBSERVER_ADDRESS",
+                                    "value": CONFIG_CLASS.ORCHEST_WEBSERVER_ADDRESS,
+                                },
+                                {"name": "ORCHEST_SESSION_UUID", "value": session_uuid},
                             ],
                             "args": [
                                 "--allow-root",
@@ -359,6 +529,9 @@ def _get_jupyter_server_deployment_service_manifest(
                                 f"--notebook-dir={_config.PROJECT_DIR}",
                                 f'--ServerApp.base_url=/{metadata["name"]}',
                             ],
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
                             "startupProbe": {
                                 "httpGet": {
                                     "path": f'/{metadata["name"]}/api',
@@ -588,15 +761,10 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         # each kernel."
         "EG_NAMESPACE": _config.ORCHEST_NAMESPACE,
         "EG_SHARED_NAMESPACE": "True",
-        "ORCHEST_PIPELINE_UUID": pipeline_uuid,
-        "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
-        "ORCHEST_PROJECT_UUID": project_uuid,
         "ORCHEST_USERDIR_PVC": userdir_pvc,
         "ORCHEST_PROJECT_DIR": project_dir,
         "ORCHEST_PIPELINE_FILE": pipeline_path,
         "ORCHEST_HOST_GID": os.environ.get("ORCHEST_HOST_GID"),
-        "ORCHEST_SESSION_UUID": session_uuid,
-        "ORCHEST_SESSION_TYPE": session_type,
         "ORCHEST_GPU_ENABLED_INSTANCE": str(CONFIG_CLASS.GPU_ENABLED_INSTANCE),
         "ORCHEST_REGISTRY": registry_ip,
         "ORCHEST_NAMESPACE": _config.ORCHEST_NAMESPACE,
@@ -610,6 +778,15 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         {"name": key, "value": value} for key, value in user_defined_env_vars.items()
     ]
     environment.extend(user_defined_env_vars)
+    environment.extend(
+        _get_orchest_sdk_vars(
+            project_uuid,
+            pipeline_uuid,
+            _config.PIPELINE_FILE,
+            session_uuid,
+            session_type,
+        )
+    )
 
     volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
         project_uuid, userdir_pvc, project_dir, pipeline_path
@@ -633,9 +810,6 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                     "serviceAccount": f"jupyter-eg-sa-{session_uuid}",
                     "serviceAccountName": f"jupyter-eg-sa-{session_uuid}",
                     "terminationGracePeriodSeconds": 5,
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
-                    },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                     ],
@@ -646,6 +820,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                                 "orchest/jupyter-enterprise-gateway:"
                                 + CONFIG_CLASS.ORCHEST_VERSION
                             ),
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
                             "imagePullPolicy": "IfNotPresent",
                             "env": environment,
                             "volumeMounts": [
@@ -743,14 +920,10 @@ def _get_user_service_deployment_service_manifest(
         if inherited_key in user_env_variables:
             environment[inherited_key] = user_env_variables[inherited_key]
 
-    # These are all required for the Orchest SDK to work.
-    environment["ORCHEST_PROJECT_UUID"] = project_uuid
-    environment["ORCHEST_PIPELINE_UUID"] = pipeline_uuid
-    # So that the SDK can access the pipeline file.
-    environment["ORCHEST_PIPELINE_PATH"] = _config.PIPELINE_FILE
-    environment["ORCHEST_SESSION_UUID"] = session_uuid
-    environment["ORCHEST_SESSION_TYPE"] = session_type
-    env = []
+    env = _get_orchest_sdk_vars(
+        project_uuid, pipeline_uuid, _config.PIPELINE_FILE, session_uuid, session_type
+    )
+
     for k, v in environment.items():
         env.append({"name": k, "value": v})
 
@@ -817,8 +990,11 @@ def _get_user_service_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    "dnsConfig": {
+                        "options": [
+                            {"name": "timeout", "value": "10"},  # 30 is max
+                            {"name": "attempts", "value": "5"},  # 5 is max
+                        ],
                     },
                     "volumes": volumes,
                     "containers": [
@@ -827,6 +1003,9 @@ def _get_user_service_deployment_service_manifest(
                             "image": image,
                             "imagePullPolicy": "IfNotPresent",
                             "env": env,
+                            "resources": {
+                                "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                            },
                             "volumeMounts": volume_mounts,
                             "ports": [
                                 {"containerPort": port}

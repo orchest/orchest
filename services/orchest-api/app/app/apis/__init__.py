@@ -4,6 +4,7 @@ from flask_restx import Api
 from app.apis.namespace_ctl import api as ns_ctl
 from app.apis.namespace_environment_image_builds import api as ns_env_image_builds
 from app.apis.namespace_environment_images import api as ns_env_images
+from app.apis.namespace_environment_shells import api as ns_environment_shells
 from app.apis.namespace_environments import api as ns_envs
 from app.apis.namespace_info import api as ns_info
 from app.apis.namespace_jobs import api as ns_jobs
@@ -38,4 +39,5 @@ api.add_namespace(ns_projects)
 api.add_namespace(ns_runs)
 api.add_namespace(ns_services)
 api.add_namespace(ns_sessions)
+api.add_namespace(ns_environment_shells)
 api.add_namespace(ns_validations)

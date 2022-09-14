@@ -1,10 +1,8 @@
 import ProjectFilePicker from "@/components/ProjectFilePicker";
 import { Step } from "@/types";
 import { firstAncestor } from "@/utils/element";
-import { isValidJson } from "@/utils/isValidJson";
 import { hasExtension, join } from "@/utils/path";
 import { toValidFilename } from "@/utils/toValidFilename";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
@@ -18,12 +16,11 @@ import {
   kernelNameToLanguage,
   RefManager,
 } from "@orchest/lib-utils";
-import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
 import { SelectEnvironment } from "./SelectEnvironment";
 import { useStepDetailsContext } from "./StepDetailsContext";
+import { StepParameters } from "./StepParameters";
 
 export type ConnectionDict = Record<
   string,
@@ -67,11 +64,12 @@ export const StepDetailsProperties = ({
   onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
 }) => {
-  const { step, connections } = useStepDetailsContext();
-  // Allows user to edit JSON while typing the text will not be valid JSON.
-  const [editableParameters, setEditableParameters] = React.useState(
-    JSON.stringify(step.parameters, null, 2)
-  );
+  const {
+    step,
+    connections,
+    doesStepFileExist,
+    isCheckingFileValidity,
+  } = useStepDetailsContext();
 
   const refManager = React.useMemo(() => new RefManager(), []);
 
@@ -121,13 +119,6 @@ export const StepDetailsProperties = ({
     },
     [onSave, step.uuid, step.file_path]
   );
-
-  const onChangeParameterJSON = (updatedParameterJSON: string) => {
-    setEditableParameters(updatedParameterJSON);
-    try {
-      onSave({ parameters: JSON.parse(updatedParameterJSON) }, step.uuid, true);
-    } catch (err) {}
-  };
 
   const onChangeKernel = (updatedKernel: string) => {
     if (step.kernel.name !== updatedKernel)
@@ -301,12 +292,6 @@ export const StepDetailsProperties = ({
 
   React.useEffect(setupConnectionListener, [step.uuid]);
 
-  const isParametersValidJson = React.useMemo(() => {
-    return isValidJson(editableParameters);
-  }, [editableParameters]);
-
-  const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
-
   return (
     <div className={"detail-subview"}>
       <Stack direction="column" spacing={3}>
@@ -371,31 +356,7 @@ export const StepDetailsProperties = ({
           }
           onChange={onChangeEnvironment}
         />
-        <Box>
-          <Typography
-            component="h3"
-            variant="subtitle2"
-            sx={{ marginBottom: (theme) => theme.spacing(1) }}
-          >
-            Parameters
-          </Typography>
-          <CodeMirror
-            value={editableParameters}
-            options={{
-              mode: "application/json",
-              theme: "jupyter",
-              lineNumbers: true,
-              readOnly: readOnly === true, // not sure whether CodeMirror accepts 'falsy' values
-            }}
-            onBeforeChange={(editor, data, value) => {
-              onChangeParameterJSON(value);
-            }}
-          />
-          {!isParametersValidJson && (
-            <Alert severity="warning">Your input is not valid JSON.</Alert>
-          )}
-        </Box>
-
+        <StepParameters isReadOnly={readOnly} onSave={onSave} />
         {step.incoming_connections.length != 0 && (
           <Box>
             <Typography

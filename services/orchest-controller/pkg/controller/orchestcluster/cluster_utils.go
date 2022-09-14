@@ -3,6 +3,7 @@ package orchestcluster
 import (
 	"bytes"
 	"net"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -33,6 +34,8 @@ var (
 		controller.NodeAgent,
 	}
 
+	legacyDefaultDomain = "index.docker.io"
+	defaultDomain       = "docker.io"
 	// Registry helm parameters
 	registryServiceIP = "service.clusterIP"
 )
@@ -455,4 +458,119 @@ func detectContainerRuntime(ctx context.Context,
 	}
 
 	return runtime, runtimeSocket, nil
+}
+
+// borrowed from https://github.com/distribution/distribution
+// splitDockerDomain splits a repository name to domain and remotename string.
+// If no valid domain is found, the default domain is used. Repository name
+// needs to be already validated before.
+func splitDockerDomain(name string) (domain, remainder string) {
+	i := strings.IndexRune(name, '/')
+	if i == -1 || (!strings.ContainsAny(name[:i], ".:") && name[:i] != "localhost") {
+		domain, remainder = "", name
+	} else {
+		domain, remainder = name[:i], name[i+1:]
+	}
+	if domain == legacyDefaultDomain {
+		domain = defaultDomain
+	}
+
+	return
+}
+
+func parseImageName(imageName string) (domain, name, tag string) {
+
+	domain, name = splitDockerDomain(imageName)
+	tag = "latest"
+	if tagSep := strings.IndexRune(name, ':'); tagSep > -1 {
+		tag = name[tagSep+1:]
+		name = name[:tagSep]
+	}
+
+	return
+}
+
+func isCalverVersion(version string) bool {
+	matched, _ := regexp.MatchString("^v(\\d{4}\\.)(\\d{2}\\.)(\\d+)$", version)
+	return matched
+}
+
+func isCustomImage(orchest *orchestv1alpha1.OrchestCluster, component, imageName string) bool {
+
+	domain, name, tag := parseImageName(imageName)
+
+	if domain != orchest.Spec.Orchest.Registry ||
+		name != "orchest/"+component || !isCalverVersion(tag) {
+		return true
+	}
+
+	return false
+}
+
+func isIngressAddonRequired(ctx context.Context, client kubernetes.Interface) bool {
+
+	if isNginxIngressInstalled(ctx, client) {
+		return false
+	}
+
+	// we first need to detect the k8s distribution
+	k8sDistro := utils.DetectK8sDistribution(client)
+	if k8sDistro == utils.NotDetected {
+		klog.Error("Failed to detect k8s distribution")
+		return false
+	}
+
+	// In k3s ingress addon can be installed by us
+	switch k8sDistro {
+	case utils.K3s, utils.EKS, utils.GKE:
+		return true
+	default:
+		return false
+	}
+
+}
+
+func isIngressDisabled(orchest *orchestv1alpha1.OrchestCluster) bool {
+
+	if value, ok := orchest.Annotations[controller.IngressAnnotationKey]; ok && value == "false" {
+		return true
+	}
+
+	return false
+}
+
+func isUpdateRequired(orchest *orchestv1alpha1.OrchestCluster, component, imageName string) (newImage string, update bool) {
+
+	update = false
+	newImage = utils.GetFullImageName(orchest.Spec.Orchest.Registry, component, orchest.Spec.Orchest.Version)
+
+	if imageName != "" && isCustomImage(orchest, component, imageName) {
+		return
+	}
+
+	if newImage == imageName {
+		return
+	}
+
+	update = true
+	return
+
+}
+
+func isNginxIngressInstalled(ctx context.Context, client kubernetes.Interface) bool {
+
+	// Detect ingress class name
+	ingressClasses, err := client.NetworkingV1().IngressClasses().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	for _, ingressClass := range ingressClasses.Items {
+		if controller.IsNginxIngressClass(ingressClass.Spec.Controller) {
+			return true
+		}
+	}
+
+	return false
+
 }

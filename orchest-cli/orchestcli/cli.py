@@ -181,6 +181,14 @@ def cli():
     help="Disable deploying Argo as part of Orchest.",
 )
 @click.option(
+    "--no-nginx",
+    "no_nginx",  # name for arg
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Disable deploying Nginx Ingress Controller as part of Orchest.",
+)
+@click.option(
     "--fqdn",
     default=None,
     show_default=True,
@@ -223,6 +231,7 @@ def install(
     cloud: bool,
     dev_mode: bool,
     no_argo: bool,
+    no_nginx: bool,
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
     userdir_pvc_size: int,
@@ -236,6 +245,7 @@ def install(
         cloud,
         dev_mode,
         no_argo,
+        no_nginx,
         fqdn,
         socket_path,
         userdir_pvc_size,

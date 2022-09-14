@@ -41,13 +41,16 @@ def echo(*args, **kwargs) -> None:
         the `--json` flag.
 
     """
+    if os.getenv("SILENCE_OUTPUT", "false") == "true":
+        return
+
     click_ctx = click.get_current_context(silent=True)
 
     if click_ctx is None:
         return click.echo(*args, **kwargs)
 
     json_flag = click_ctx.params.get("json_flag")
-    if json_flag and json_flag is not None:
+    if json_flag is not None and json_flag:
         return
     else:
         return click.echo(*args, **kwargs)
@@ -171,6 +174,7 @@ def install(
     cloud: bool,
     dev_mode: bool,
     no_argo: bool,
+    no_nginx: bool,
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
     userdir_pvc_size: int,
@@ -273,7 +277,7 @@ def install(
         # which is 75s.
         while retries < 4:
             echo(
-                "Failed to install the Orchest Controller, retrying in"
+                "Cannot install the Orchest Controller yet, retrying in"
                 f" {get_backoff_period(retries)} seconds...",
             )
             time.sleep(get_backoff_period(retries))
@@ -311,9 +315,18 @@ def install(
     metadata = {
         "name": cluster_name,
         "namespace": ns,
+        "annotations": {},
     }
     if socket_path is not None:
-        metadata["annotations"] = {"orchest.io/container-runtime-socket": socket_path}
+        metadata["annotations"]["orchest.io/container-runtime-socket"] = socket_path
+
+    if no_nginx:
+        echo(
+            "Disabling 'Nginx Ingress Controller' installation."
+            "\n\tMake sure 'Nginx Ingress Controller' is already installed "
+            "in your cluster"
+        )
+        metadata["annotations"]["controller.orchest.io/deploy-ingress"] = "false"
 
     applications = [
         {
@@ -1240,8 +1253,8 @@ def _run_pod_exec(
         if status != ClusterStatus.RUNNING:
             reason = (
                 "The Orchest Cluster state is "
-                " '{'unknown' if status is None else status.value}', whereas it needs"
-                " to be '{ClusterStatus.RUNNING.value}'. Check:"
+                f" '{'unknown' if status is None else status.value}', whereas it needs"
+                f" to be '{ClusterStatus.RUNNING.value}'. Check:"
                 "\n\torchest status"
             )
             return False, reason
@@ -1461,6 +1474,7 @@ def _display_spinner(
             visited_states = [curr_status]
         prev_status = curr_status
 
+        num_req_timeouts = 0
         # Use `async_req` to make sure spinner is always loading.
         thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
         while curr_status != end_status or (time.time() - invocation_time < 10):
@@ -1469,6 +1483,27 @@ def _display_spinner(
                 try:
                     resp = thread.get()
                 except client.ApiException as e:
+                    if e.status == 504:  # timeout
+                        echo("\r", nl=False)  # Move cursor to beginning of line
+                        echo("\033[K", nl=False)  # Erase until end of line
+                        echo("🙅 Failed to fetch Orchest cluster status.", err=True)
+
+                        num_req_timeouts += 1
+                        if num_req_timeouts < 3:
+                            thread = _get_namespaced_custom_object(
+                                ns, cluster_name, async_req=True
+                            )
+                            continue
+                        else:
+                            echo(
+                                "Request timeout was hit for the 3rd time. Stopping"
+                                " displaying progress...\n"
+                                f"Note that 'orchest {click_ctx.command.name}' could"
+                                " have completed regardless.",
+                                err=True,
+                            )
+                            sys.exit(1)
+
                     echo(err=True)  # newline
                     echo(f"🙅 Failed to {click_ctx.command.name}.", err=True)
                     if e.status == 404:  # not found

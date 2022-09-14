@@ -7,7 +7,7 @@ USER root
 # defailt-libmysqlclient-dev : Orchest dependency
 # libkrb5-dev                : Enterprise Gateway requirement
 RUN apt-get update \
-    && apt-get install -yq --no-install-recommends default-libmysqlclient-dev libkrb5-dev \
+    && apt-get install -yq --no-install-recommends openssh-server git default-libmysqlclient-dev libkrb5-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN passwd -d $NB_USER \
@@ -45,7 +45,8 @@ COPY ./runnable-shared/runner/requirements* /orchest/services/base-images/runnab
 COPY ./lib/python /orchest/lib/python
 COPY ./orchest-sdk /orchest/orchest-sdk
 RUN chown $NB_USER -R /orchest/orchest-sdk \
-    && chown $NB_USER -R /orchest/lib
+    && chown $NB_USER -R /orchest/lib && \
+    echo -e "jovyan\njovyan" | passwd jovyan
 
 USER $NB_USER
 
@@ -65,7 +66,8 @@ RUN python -m venv /home/$NB_USER/venv \
     && deactivate
 
 # Empty configuration file for kernel initialization
-RUN touch /home/jovyan/.orchestrc
+RUN touch /home/jovyan/.orchestrc && \
+    echo "export PS1='\${ENVIRONMENT_SHELL_NAME:+(\$ENVIRONMENT_SHELL_NAME)}\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> ~/.bashrc
 
 # Copy application files as late as possible to avoid cache busting.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
@@ -76,6 +78,7 @@ COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runn
 ENV JUPYTER_PATH=/opt/conda/share/jupyter
 ENV HOME=/home/$NB_USER
 ENV BASH_ENV=/home/jovyan/.orchestrc
+
 
 # Orchest related environment variable that can be set to specify the
 # conda environment to use to start Jupyter kernels.

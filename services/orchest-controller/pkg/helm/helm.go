@@ -164,7 +164,6 @@ func getStatusFromStatusJson(statusJson map[string]interface{}) string {
 		info := statusJson["info"].(map[string]interface{})
 		if info != nil {
 			if info["status"] != nil {
-				klog.Info(info["status"].(string))
 				return info["status"].(string)
 			}
 		}

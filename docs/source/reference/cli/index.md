@@ -1,3 +1,5 @@
+(cli-reference)=
+
 # Orchest CLI reference
 
 Below you will find the most important `orchest-cli` commands that you need to know (you can also get all this

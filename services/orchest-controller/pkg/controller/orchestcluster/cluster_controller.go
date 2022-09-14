@@ -172,7 +172,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 		"orchest-cluster",
 		1,
 		kClient,
-		OrchestClusterKind,
+		&OrchestClusterKind,
 	)
 
 	occ := OrchestClusterController{
@@ -193,7 +193,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	occ.oClusterLister = oClusterInformer.Lister()
 
 	// OrchestComponent event handlers
-	oComponentWatcher := controller.Watcher[*orchestv1alpha1.OrchestComponent, *orchestv1alpha1.OrchestCluster]{ctrl}
+	oComponentWatcher := controller.NewControlleeWatcher[*orchestv1alpha1.OrchestComponent](ctrl)
 	oComponentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    oComponentWatcher.AddObject,
 		UpdateFunc: oComponentWatcher.UpdateObject,
@@ -426,10 +426,10 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	}
 
 	// Orchest-API configs
-	apiImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.OrchestApi, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.OrchestApi.Image != apiImage {
+	newImage, update := isUpdateRequired(copy, controller.OrchestApi, copy.Spec.Orchest.OrchestApi.Image)
+	if update {
 		changed = true
-		copy.Spec.Orchest.OrchestApi.Image = apiImage
+		copy.Spec.Orchest.OrchestApi.Image = newImage
 	}
 
 	if copy.Spec.Orchest.OrchestApi.Env == nil {
@@ -442,10 +442,10 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	changed = changed || envChanged
 
 	// Orchest-Webserver configs
-	webserverImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.OrchestWebserver, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.OrchestWebServer.Image != webserverImage {
+	newImage, update = isUpdateRequired(copy, controller.OrchestWebserver, copy.Spec.Orchest.OrchestWebServer.Image)
+	if update {
 		changed = true
-		copy.Spec.Orchest.OrchestWebServer.Image = webserverImage
+		copy.Spec.Orchest.OrchestWebServer.Image = newImage
 	}
 
 	if copy.Spec.Orchest.OrchestWebServer.Env == nil {
@@ -458,10 +458,10 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	changed = changed || envChanged
 
 	// Celery-Worker configs
-	celeryWorkerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.CeleryWorker, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.CeleryWorker.Image != celeryWorkerImage {
+	newImage, update = isUpdateRequired(copy, controller.CeleryWorker, copy.Spec.Orchest.CeleryWorker.Image)
+	if update {
 		changed = true
-		copy.Spec.Orchest.CeleryWorker.Image = celeryWorkerImage
+		copy.Spec.Orchest.CeleryWorker.Image = newImage
 	}
 
 	if copy.Spec.Orchest.CeleryWorker.Env == nil {
@@ -474,10 +474,10 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	changed = changed || envChanged
 
 	// Auth-Server configs
-	authServerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.AuthServer, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.AuthServer.Image != authServerImage {
+	newImage, update = isUpdateRequired(copy, controller.AuthServer, copy.Spec.Orchest.AuthServer.Image)
+	if update {
 		changed = true
-		copy.Spec.Orchest.AuthServer.Image = authServerImage
+		copy.Spec.Orchest.AuthServer.Image = newImage
 	}
 
 	if copy.Spec.Orchest.AuthServer.Env == nil {
@@ -532,6 +532,22 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	if copy.Spec.Applications == nil {
 		changed = true
 		copy.Spec.Applications = occ.config.DefaultApplications
+	}
+
+	if !isIngressDisabled(copy) && isIngressAddonRequired(ctx, occ.Client()) {
+		ingressEnabled := false
+		for _, app := range copy.Spec.Applications {
+			if app.Name == addons.IngressNginx {
+				ingressEnabled = true
+			}
+		}
+
+		if !ingressEnabled {
+			copy.Spec.Applications = append(copy.Spec.Applications, orchestv1alpha1.ApplicationSpec{
+				Name: addons.IngressNginx,
+			})
+			changed = true
+		}
 	}
 
 	// set docker-registry default values
@@ -780,7 +796,7 @@ func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, nam
 
 func (occ *OrchestClusterController) adoptPVC(ctx context.Context, oldPvc, newPvc *corev1.PersistentVolumeClaim) error {
 
-	if !reflect.DeepEqual(oldPvc.OwnerReferences[0], newPvc.OwnerReferences[0]) {
+	if oldPvc.OwnerReferences == nil || !reflect.DeepEqual(oldPvc.OwnerReferences[0], newPvc.OwnerReferences[0]) {
 		oldPvc.OwnerReferences = newPvc.OwnerReferences
 		_, err := occ.Client().CoreV1().PersistentVolumeClaims(oldPvc.Namespace).Update(ctx, oldPvc, metav1.UpdateOptions{})
 		return err

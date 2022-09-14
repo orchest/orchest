@@ -14,7 +14,7 @@ itsdangerous
 jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
 MarkupSafe<2.1.0
 marshmallow-sqlalchemy
-nbconvert~=6.0.0
+nbconvert~=6.3.0
 nbformat
 psycopg2-binary
 python-engineio
