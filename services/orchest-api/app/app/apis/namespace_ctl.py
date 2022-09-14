@@ -281,26 +281,16 @@ def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
         run_cmds(args=shlex.split(update_cmd))
 
 
-# ENV_PERF_TODO
-@api.route("/set-image-as-pushed-to-the-registry")
-class TobeRemovedSetImagePushedToRegistry(Resource):
+@api.route("/set-jupyter-image-as-pushed")
+class SetJupyterImageAsPushed(Resource):
+    @api.doc("put_set_jupyter_image_as_pushed")
     def put(self):
-        """Orchest images to pre pull on all nodes for a better UX."""
-        image = request.get_json()["image"]
-        image = image.split("/")[1]
-        image, tag = image.split(":")
-        if "orchest-env" in image:
-            project_uuid = image.replace("orchest-env-", "")[:36]
-            env_uuid = image[-36:]
-            image = models.EnvironmentImage.query.get_or_404(
-                ident=(project_uuid, env_uuid, int(tag)),
-                description="Environment image not found.",
-            )
-        elif _config.JUPYTER_IMAGE_NAME in image:
-            image = models.JupyterImage.query.get_or_404(
-                ident=int(tag),
-                description="Jupyter image not found.",
-            )
+        """Notifies that the image has been pushed to the registry."""
+        tag = request.get_json()["tag"]
+        image = models.JupyterImage.query.get_or_404(
+            ident=int(tag),
+            description="Jupyter image not found.",
+        )
 
         image.stored_in_registry = True
         db.session.commit()

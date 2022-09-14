@@ -21,6 +21,8 @@ from typing import Set
 import aiohttp
 from container_runtime import ContainerRuntime
 
+from _orchest.internals import config as _config
+from _orchest.internals import utils as _utils
 from config import CONFIG_CLASS
 
 logger = logging.getLogger("IMAGE_PUSHER")
@@ -61,15 +63,42 @@ async def get_jupyter_images_to_push(session: aiohttp.ClientSession) -> Set[str]
     return set(active_images)
 
 
-async def notify_orchest_api_of_registry_push(
+async def _notify_orchest_api_of_env_image_registry_push(
     session: aiohttp.ClientSession, image: str
 ) -> None:
-    endpoint = "http://orchest-api/api/ctl/set-image-as-pushed-to-the-registry"
-    async with session.put(endpoint, json={"image": image}) as response:
+    proj_uuid, env_uuid, tag = _utils.env_image_name_to_proj_uuid_env_uuid_tag(image)
+    if tag is None:
+        raise ValueError(f"Unexpected image without tag: {image}.")
+    endpoint = f"http://orchest-api/api/environment-images/{proj_uuid}/{env_uuid}/{tag}"
+    async with session.put(endpoint) as response:
         if response.status != 200:
             raise Exception(
                 f"Failed to PUT registry push of {image} to the orchest-api."
             )
+
+
+async def _notify_orchest_api_of_jupyter_image_registry_push(
+    session: aiohttp.ClientSession, image: str
+) -> None:
+    endpoint = "http://orchest-api/api/ctl/set-jupyter-image-as-pushed"
+    tag = _utils.jupyter_image_name_to_tag(image)
+    if tag is None:
+        raise ValueError(f"Unexpected image without tag: {image}.")
+
+    async with session.put(endpoint, json={"tag": tag}) as response:
+        if response.status != 200:
+            raise Exception(
+                f"Failed to PUT registry push of {image} to the orchest-api."
+            )
+
+
+async def notify_orchest_api_of_registry_push(
+    session: aiohttp.ClientSession, image: str
+) -> None:
+    if "orchest-env" in image:
+        await _notify_orchest_api_of_env_image_registry_push(session, image)
+    elif _config.JUPYTER_IMAGE_NAME in image:
+        await _notify_orchest_api_of_jupyter_image_registry_push(session, image)
 
 
 async def _queue_images_to_push(queue: asyncio.Queue, interval: int) -> None:

@@ -39,6 +39,23 @@ class LatestProjectEnvironmentEnvironmentImage(Resource):
         return env_image
 
 
+@api.route("/<string:project_uuid>/<string:environment_uuid>/<string:tag>")
+@api.param("project_uuid", "uuid of the project")
+@api.param("environment_uuid", "uuid of the environment")
+@api.param("tag", "Tag of the image")
+class EnvironmentImage(Resource):
+    @api.doc("put_environment_image_push_status")
+    def put(self, project_uuid, environment_uuid, tag):
+        """Notifies that the image has been pushed to the registry."""
+        image = models.EnvironmentImage.query.get_or_404(
+            ident=(project_uuid, environment_uuid, int(tag)),
+            description="Environment image not found.",
+        )
+        image.stored_in_registry = True
+        db.session.commit()
+        return {}, 200
+
+
 @api.route("/latest")
 class LatestEnvironmentImage(Resource):
     @api.doc("get_latest_environment_image")
