@@ -30,6 +30,7 @@ var (
 		controller.CeleryWorker,
 		controller.AuthServer,
 		controller.OrchestWebserver,
+		controller.BuildKitDaemon,
 		controller.NodeAgent,
 	}
 
@@ -220,6 +221,8 @@ func GetComponentTemplate(name string, orchest *orchestv1alpha1.OrchestCluster) 
 		componentTemplate = orchest.Spec.Orchest.OrchestWebServer.DeepCopy()
 	case controller.NodeAgent:
 		componentTemplate = orchest.Spec.Orchest.NodeAgent.DeepCopy()
+	case controller.BuildKitDaemon:
+		componentTemplate = orchest.Spec.Orchest.BuildKitDaemon.DeepCopy()
 	default:
 		return nil, errors.Errorf("unrecognized component name %s", name)
 	}

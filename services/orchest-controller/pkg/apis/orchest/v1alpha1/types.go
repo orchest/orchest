@@ -70,6 +70,9 @@ const (
 
 	DeployingNodeAgent OrchestClusterEvent = "Deploying node-agent"
 	UpgradingNodeAgent OrchestClusterEvent = "Upgrading node-agent"
+
+	DeployingBuildKitDaemon OrchestClusterEvent = "Deploying buildkit-daemon"
+	UpgradingBuildKitDaemon OrchestClusterEvent = "Upgrading buildkit-daemon"
 )
 
 type OrchestResourcesSpec struct {
@@ -169,6 +172,9 @@ type OrchestSpec struct {
 
 	// If specified, node-agent for this cluster will be deployed with this configuration
 	NodeAgent OrchestComponentTemplate `json:"nodeAgent,omitempty"`
+
+	// If specified, buildkit-daemon for this cluster will be deployed with this configuration
+	BuildKitDaemon OrchestComponentTemplate `json:"buildkitDaemon,omitempty"`
 
 	// If specified, auth-server for this cluster will be deployed with this configuration
 	AuthServer OrchestComponentTemplate `json:"authServer,omitempty"`

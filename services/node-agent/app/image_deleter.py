@@ -142,9 +142,6 @@ async def run():
                             f" {orchest_v}."
                         )
                         for img in orchest_images_on_node:
-                            # Doesn't follow the way we version.
-                            if "orchest/buildah" in img:
-                                continue
                             if ":" not in img:
                                 continue
 

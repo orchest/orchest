@@ -43,6 +43,7 @@ REGISTRY_FQDN = f"docker-registry.{ORCHEST_NAMESPACE}.svc.cluster.local"
 CONTAINER_RUNTIME = os.environ.get("CONTAINER_RUNTIME")
 CONTAINER_RUNTIME_IMAGE = os.environ.get("CONTAINER_RUNTIME_IMAGE")
 CONTAINER_RUNTIME_SOCKET = os.environ.get("CONTAINER_RUNTIME_SOCKET")
+ARGO_EXECUTOR_IMAGE = "quay.io/argoproj/argoexec:v3.2.6"
 
 # Ingress configs
 INGRESS_CLASS = os.environ.get("INGRESS_CLASS", "nginx")

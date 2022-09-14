@@ -155,6 +155,7 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 	occ.reconcilers[controller.AuthServer] = NewAuthServerReconciler(&occ)
 	occ.reconcilers[controller.OrchestWebserver] = NewOrchestWebServerReconciler(&occ)
 	occ.reconcilers[controller.NodeAgent] = NewNodeAgentReconciler(&occ)
+	occ.reconcilers[controller.BuildKitDaemon] = NewBuildKitDaemonReconciler(&occ)
 
 	return &occ
 }

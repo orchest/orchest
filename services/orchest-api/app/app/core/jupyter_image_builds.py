@@ -6,8 +6,8 @@ import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import rmtree
-from app.connections import k8s_core_api, k8s_custom_obj_api
+from _orchest.internals.utils import copytree, rmtree
+from app.connections import k8s_core_api
 from app.core import image_utils
 from app.core.sio_streamed_task import SioStreamedTask
 from app.utils import get_logger
@@ -79,6 +79,8 @@ def write_jupyter_dockerfile(base_image, task_uuid, work_dir, bash_script, path)
         full_basename = f"docker.io/{base_image}"
 
     statements.append(f"FROM {full_basename}")
+    statements.append("ARG BUILDER_POD_IP")
+    statements.append("ENV BUILDER_POD_IP=${BUILDER_POD_IP}")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     statements.append("COPY . .")
@@ -89,14 +91,37 @@ def write_jupyter_dockerfile(base_image, task_uuid, work_dir, bash_script, path)
     # to see it after the build is done.
     flag = CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
+
+    ssh_options = (
+        'ssh -o "StrictHostKeyChecking=no" '
+        '-o "ServerAliveInterval=30" '
+        '-o "ServerAliveCountMax=30" '
+        '-o "UserKnownHostsFile=/dev/null" '
+    )
+    # This is needed to rsync settings to the userdir since buildkit
+    # does not support writing to "bind" volumes.
+    rsync_jupyter_settings_command = (
+        f"sshpass -p 'root' rsync -v -e '{ssh_options}' "
+        f"-rlP /root/.jupyter/lab/user-settings/ "
+        f"root@$BUILDER_POD_IP:/jupyterlab-user-settings/"
+    )
+
     statements.append(
-        f"RUN bash < {bash_script} "
+        # To make user settings available to extensions that require it.
+        "RUN mkdir /root/.jupyter/lab -p "
+        "&& rm /root/.jupyter/lab/user-settings -rf "
+        "&& mv _orchest_configurations_jupyterlab_user_settings "
+        "/root/.jupyter/lab/user-settings "
+        # Run the user script.
+        f"&& bash < {bash_script} "
+        # Other internal commands.
         "&& build_path_ext=/jupyterlab-orchest-build/extensions "
         "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions "
         "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "
         "cp -rfT $userdir_path_ext $build_path_ext &> /dev/null ; fi "
         f"&& echo {flag} "
         f"&& rm {bash_script} "
+        f"&& {rsync_jupyter_settings_command}"
         # The || <error flag> allows to avoid builder errors logs making
         # into it the user logs and tell us that there has been an
         # error.
@@ -155,13 +180,17 @@ def prepare_build_context(task_uuid):
         os.system(f'touch "{snapshot_setup_script_path}"')
 
     base_image = f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
-    if CONFIG_CLASS.DEV_MODE:
-        # Use image from local daemon if instructed to do so.
-        with open(snapshot_setup_script_path, "r") as script_file:
-            first_line = script_file.readline()
-            if "# LOCAL IMAGE" in first_line:
-                base_image = f"registry:docker-daemon:{base_image}"
-                logger.info(f"Using {base_image}.")
+
+    # Copy the settings into the context to make them available during
+    # build. It's done in this "simple" manner to be compatible with all
+    # container runtimes we use to build. This is done for extensions
+    # that need access to (READ) the settings on install. Writes are
+    # currently not supported since both buildkit and buildx do not
+    # support binding a writable directory.
+    copytree(
+        "/userdir/.orchest/user-configurations/jupyterlab/user-settings",
+        os.path.join(snapshot_path, "_orchest_configurations_jupyterlab_user_settings"),
+    )
 
     write_jupyter_dockerfile(
         base_image,
@@ -255,14 +284,10 @@ def build_jupyter_image_task(task_uuid: str, image_tag: str):
             logger.error(e)
             raise e
         finally:
-            # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflow.
-            k8s_custom_obj_api.delete_namespaced_custom_object(
-                "argoproj.io",
-                "v1alpha1",
-                _config.ORCHEST_NAMESPACE,
-                "workflows",
+            # The task was successful or aborted, cleanup the pod.
+            k8s_core_api.delete_namespaced_pod(
                 image_utils.image_build_task_to_pod_name(task_uuid),
+                _config.ORCHEST_NAMESPACE,
             )
 
     # The status of the Celery task is SUCCESS since it has finished
