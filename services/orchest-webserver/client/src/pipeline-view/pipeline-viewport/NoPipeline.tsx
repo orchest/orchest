@@ -8,7 +8,7 @@ export const NoPipeline = (props: StackProps) => {
       imgSrc="/image/no-pipeline.svg"
       title="No Pipelines in Project"
       description="Pipelines are an interactive tool for creating and experimenting with
-    your data workflow. They are made up of steps and connections."
+    your data workflow. They are made up of Steps and connections."
       {...props}
     />
   );

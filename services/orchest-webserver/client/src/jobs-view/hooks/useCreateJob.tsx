@@ -6,7 +6,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
-  const { name, uuid } = pipeline || {};
+  const { name, uuid: pipelineUuid } = pipeline || {};
 
   const jobs = useJobsApi((state) => state.jobs || []);
   const post = useJobsApi((state) => state.post);
@@ -21,14 +21,14 @@ export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
   const { run, status } = useAsync<JobData | undefined>();
 
   const isAllowedToCreateJob =
-    status !== "PENDING" && hasValue(uuid) && hasValue(name);
+    status !== "PENDING" && hasValue(pipelineUuid) && hasValue(name);
 
   const createJob = React.useCallback(async () => {
     if (isAllowedToCreateJob) {
-      const newJob = await run(post(uuid, name, newJobName));
+      const newJob = await run(post(pipelineUuid, name, newJobName));
       return newJob;
     }
-  }, [post, isAllowedToCreateJob, uuid, name, newJobName, run]);
+  }, [post, isAllowedToCreateJob, pipelineUuid, name, newJobName, run]);
 
   return { createJob, isAllowedToCreateJob };
 };
