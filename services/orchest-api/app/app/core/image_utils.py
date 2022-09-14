@@ -32,100 +32,8 @@ _registry_pod_affinity = {
 }
 
 
-def _get_builder_cache_cleanup_workflow_manifest():
-    manifest = {
-        "apiVersion": "argoproj.io/v1alpha1",
-        "kind": "Workflow",
-        "metadata": {"name": "builder-cache-cleanup"},
-        "spec": {
-            "entrypoint": "build-env",
-            "templates": [
-                {
-                    "name": "build-env",
-                    "container": {
-                        "name": "buildah",
-                        "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
-                        "workingDir": "/build-context",
-                        "command": ["/bin/sh", "-c"],
-                        "args": [
-                            " && ".join(
-                                [
-                                    "echo 'Running builda rm'",
-                                    "buildah rm --all",
-                                    "echo 'Running builda rmi'",
-                                    "buildah rmi --all --force",
-                                    "echo 'Running rf'",
-                                    "rm -rf /builder-cache/*",
-                                    "echo 'SUCCESS'",
-                                ]
-                            )
-                        ],
-                        "securityContext": {
-                            "privileged": True,
-                        },
-                        "volumeMounts": [
-                            {
-                                "name": "image-builder-cache-pvc",
-                                "mountPath": "/builder-cache",
-                            },
-                        ],
-                    },
-                    "affinity": _registry_pod_affinity,
-                },
-            ],
-            # The celery task actually takes care of deleting the
-            # workflow, this is just a failsafe.
-            "ttlStrategy": {
-                "secondsAfterCompletion": 100,
-                "secondsAfterSuccess": 100,
-                "secondsAfterFailure": 100,
-            },
-            "restartPolicy": "Never",
-            "volumes": [
-                {
-                    "name": "image-builder-cache-pvc",
-                    "persistentVolumeClaim": {
-                        "claimName": "image-builder-cache-pvc",
-                    },
-                },
-            ],
-        },
-    }
-
-    return manifest
-
-
 def image_build_task_to_pod_name(task_uuid: str) -> str:
     return f"image-build-task-{task_uuid}"
-
-
-def cleanup_builder_cache() -> None:
-    """Cleanup the builder cache.
-
-    This particular function should only be run through the celery
-    worker "builds" queue to ensure that there are no ongoing env or
-    jupyter builds.
-    """
-    manifest = _get_builder_cache_cleanup_workflow_manifest()
-    ns = _config.ORCHEST_NAMESPACE
-    try:
-        k8s_custom_obj_api.create_namespaced_custom_object(
-            "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
-        )
-        utils.wait_for_pod_status(
-            "builder-cache-cleanup",
-            ns,
-            expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
-            max_retries=10,
-        )
-    finally:
-        k8s_custom_obj_api.delete_namespaced_custom_object(
-            "argoproj.io",
-            "v1alpha1",
-            _config.ORCHEST_NAMESPACE,
-            "workflows",
-            "builder-cache-cleanup",
-        )
 
 
 def _get_buildah_image_build_workflow_manifest(
@@ -181,11 +89,6 @@ def _get_buildah_image_build_workflow_manifest(
                                 "subPath": get_userdir_relpath(build_context_host_path),
                                 "readOnly": True,
                             },
-                            {
-                                "name": "image-builder-cache-pvc",
-                                "subPath": "containers",
-                                "mountPath": "/var/lib/containers",
-                            },
                             {"name": "dockersock", "mountPath": "/var/run/docker.sock"},
                         ],
                     },
@@ -208,12 +111,6 @@ def _get_buildah_image_build_workflow_manifest(
                     "name": "userdir-pvc",
                     "persistentVolumeClaim": {
                         "claimName": "userdir-pvc",
-                    },
-                },
-                {
-                    "name": "image-builder-cache-pvc",
-                    "persistentVolumeClaim": {
-                        "claimName": "image-builder-cache-pvc",
                     },
                 },
                 {
@@ -476,9 +373,9 @@ def build_image(
 ):
     """Builds an image with the given tag, context_path and docker file.
 
-    The image build is done through the creation of k8s argo workflows,
-    which needs to be deleted by the caller, the workflows are named as
-    "image-cache-task-{task_uuid}" and "image-build-task-{task_uuid}".
+    The image build is done through the creation of a k8s argo workflow
+    name "image-build-task-{task_uuid}" to be deleted by the caller of
+    this function.
 
     Args:
         task_uuid:

@@ -12,8 +12,9 @@ Orchest is configured through _Settings_. Some settings require Orchest to be re
 ```json
 {
   "AUTH_ENABLED": false,
-  "MAX_JOB_RUNS_PARALLELISM": 4,
+  "MAX_BUILDS_PARALLELISM": 1,
   "MAX_INTERACTIVE_RUNS_PARALLELISM": 4,
+  "MAX_JOB_RUNS_PARALLELISM": 4,
   "TELEMETRY_DISABLED": false,
   "TELEMETRY_UUID": "69b40767-e315-4953-8a2b-355833e344b8"
 }
@@ -25,12 +26,11 @@ Orchest is configured through _Settings_. Some settings require Orchest to be re
 
 Enables authentication. When enabled, Orchest will require a login. Create user accounts through _settings_ > _manage users_. Orchest does not yet support individual user sessions, meaning that there is no granularity or security between users.
 
-`MAX_JOB_RUNS_PARALLELISM`
+`MAX_BUILDS_PARALLELISM`
 
 : Integer between: `[1, 25]`.
 
-Controls the number of Job runs that can be run in parallel across all Jobs. For example, if
-this is set to 3, then only 3 Pipeline runs can run in parallel.
+Controls the total number of {term}`Environment` and JupyterLab image builds that can be run in parallel.
 
 ```{note}
 Do not set an arbitrarily high value as every worker comes with a certain memory overhead,
@@ -45,6 +45,18 @@ Controls the number of {term}`interactive runs <interactive (pipeline) run>` tha
 parallel for different Pipelines at a given time. For example, if this is set to `2`, then
 only `2` different Pipelines can have interactive runs at the same time. This is useful when
 multiple users are using Orchest.
+
+```{note}
+Do not set an arbitrarily high value as every worker comes with a certain memory overhead,
+even when sitting idle.
+```
+
+`MAX_JOB_RUNS_PARALLELISM`
+
+: Integer between: `[1, 25]`.
+
+Controls the number of Job runs that can be run in parallel across all Jobs. For example, if
+this is set to 3, then only 3 Pipeline runs can run in parallel.
 
 ```{note}
 Do not set an arbitrarily high value as every worker comes with a certain memory overhead,

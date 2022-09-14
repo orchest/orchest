@@ -14,10 +14,10 @@ from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree
 from app import create_app
 from app import errors as self_errors
-from app import utils
+from app import models, utils
 from app.celery_app import make_celery
-from app.connections import k8s_custom_obj_api
-from app.core import environments, image_utils, notifications, registry
+from app.connections import db, k8s_custom_obj_api
+from app.core import environments, notifications, registry, scheduler
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipelines import Pipeline, run_pipeline_workflow
@@ -289,6 +289,33 @@ def delete_job_pipeline_run_directories(
     return "SUCCESS"
 
 
+def _should_run_registry_gc() -> bool:
+    # This is needed because registry GC can't be run while a push is -
+    # potentially - ongoing.
+    ongoing_env_builds = db.session.query(
+        db.session.query(models.EnvironmentImageBuild)
+        .filter(models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"]))
+        .exists()
+    ).scalar()
+    ongoing_jupyter_builds = db.session.query(
+        db.session.query(models.JupyterImageBuild)
+        .filter(models.JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
+        .exists()
+    ).scalar()
+    active_env_images_to_be_pushed = environments.get_active_environment_images(
+        stored_in_registry=False
+    )
+    active_jupyter_images_to_be_pushed = utils.get_active_custom_jupyter_images(
+        stored_in_registry=False
+    )
+    return (
+        not active_env_images_to_be_pushed
+        and not active_jupyter_images_to_be_pushed
+        and not ongoing_env_builds
+        and not ongoing_jupyter_builds
+    )
+
+
 @celery.task(bind=True, base=AbortableTask)
 def registry_garbage_collection(self) -> None:
     """Runs the registry garbage collection task.
@@ -297,6 +324,29 @@ def registry_garbage_collection(self) -> None:
     registry garbage collection is run if necessary.
     """
     with application.app_context():
+        try:
+            _registry_garbage_collection()
+            scheduler.notify_scheduled_job_succeeded(self.request.id)
+        except Exception as e:
+            logger.error(e)
+            scheduler.notify_scheduled_job_failed(self.request.id)
+            raise e
+    return "SUCCESS"
+
+
+def _registry_garbage_collection() -> None:
+    with application.app_context():
+        # It's important that the check is made after the scheduler job
+        # is set as 'STARTED' to avoid race conditions. See the
+        # ctl/active-custom-jupyter-images-to-push and
+        # environment-images/to-push endpoints for more details.
+        if not _should_run_registry_gc():
+            logger.info(
+                "Skipping registry GC to avoid a race condition with a potentially "
+                "ongoing image push."
+            )
+            return
+
         has_deleted_images = False
         repositories_to_gc = []
         repos = registry.get_list_of_repositories()
@@ -357,17 +407,16 @@ def registry_garbage_collection(self) -> None:
 
         if has_deleted_images or repositories_to_gc:
             registry.run_registry_garbage_collection(repositories_to_gc)
-        return "SUCCESS"
 
 
 @celery.task(bind=True, base=AbortableTask)
 def process_notifications_deliveries(self):
     with application.app_context():
-        notifications.process_notifications_deliveries_task()
+        try:
+            notifications.process_notifications_deliveries_task()
+            scheduler.notify_scheduled_job_succeeded(self.request.id)
+        except Exception as e:
+            logger.error(e)
+            scheduler.notify_scheduled_job_failed(self.request.id)
+            raise e
     return "SUCCESS"
-
-
-@celery.task(bind=True, base=AbortableTask)
-def cleanup_builder_cache(self):
-    with application.app_context():
-        image_utils.cleanup_builder_cache()

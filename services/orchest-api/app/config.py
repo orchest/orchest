@@ -23,13 +23,11 @@ class Config:
     # This is mounted to both the celery worker and orchest-api.
     REGISTRY_TLS_CERT_BUNDLE = "/usr/lib/ssl/certs/additional-ca-cert-bundle.crt"
 
-    # How often to run the scheduling logic when the process is running
-    # as scheduler, in seconds.
-    SCHEDULER_INTERVAL = 10
-    # Same as above, but for image deletion and GC.
-    IMAGES_DELETION_INTERVAL = 120
-    CLEANUP_BUILDER_CACHE_INTERVAL = 3600 * 24 * 7
+    # How often different internal scheduler tasks run.
+    CLEANUP_OLD_SCHEDULER_JOB_RECORDS_INTERVAL = 5 * 60
+    IMAGES_DELETION_INTERVAL = 2 * 60
     NOTIFICATIONS_DELIVERIES_INTERVAL = 1
+    SCHEDULER_INTERVAL = 10
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
 
@@ -75,7 +73,6 @@ class Config:
         "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "jobs"},
         "app.core.tasks.delete_job_pipeline_run_directories": {"queue": "jobs"},
         "app.core.tasks.run_pipeline": {"queue": "celery"},
-        "app.core.tasks.cleanup_builder_cache": {"queue": "builds"},
         "app.core.tasks.build_environment_image": {"queue": "builds"},
         "app.core.tasks.build_jupyter_image": {"queue": "builds"},
         "app.core.tasks.registry_garbage_collection": {"queue": "builds"},

@@ -2,6 +2,7 @@
 import os
 import shlex
 import subprocess
+from typing import List
 
 from flask import current_app, request
 from flask_restx import Namespace, Resource
@@ -9,8 +10,8 @@ from orchestcli import cmds
 
 from _orchest.internals import config as _config
 from app import models, schema, utils
-from app.celery_app import make_celery
 from app.connections import db
+from app.core import scheduler
 from config import CONFIG_CLASS
 
 ns = Namespace("ctl", description="Orchest-api internal control.")
@@ -80,46 +81,58 @@ class OrchestImagesToPrePull(Resource):
         return pre_pull_orchest_images, 200
 
 
+def _get_formatted_active_jupyter_imgs(
+    stored_in_registry=None, in_node=None
+) -> List[str]:
+    active_custom_jupyter_images = utils.get_active_custom_jupyter_images(
+        stored_in_registry=stored_in_registry, in_node=in_node
+    )
+
+    active_custom_jupyter_image_names = []
+    registry_ip = utils.get_registry_ip()
+    for img in active_custom_jupyter_images:
+        active_custom_jupyter_image_names.append(
+            f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{img.tag}"
+        )
+    return active_custom_jupyter_image_names
+
+
 @api.route("/active-custom-jupyter-images")
 class ActiveCustomJupyterImages(Resource):
     @api.doc("active_custom_jupyter_images")
     def get(self):
-
-        active_custom_jupyter_images = utils.get_active_custom_jupyter_images(
+        active_custom_jupyter_images = _get_formatted_active_jupyter_imgs(
             stored_in_registry=request.args.get(
                 "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]
             ),
             in_node=request.args.get("in_node"),
         )
 
-        active_custom_jupyter_image_names = []
-        registry_ip = utils.get_registry_ip()
-        for img in active_custom_jupyter_images:
-            active_custom_jupyter_image_names.append(
-                f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{img.tag}"
-            )
-
-        return {"active_custom_jupyter_images": active_custom_jupyter_image_names}, 200
+        return {"active_custom_jupyter_images": active_custom_jupyter_images}, 200
 
 
-@api.route("/cleanup-builder-cache")
-class CleanupBuilderCache(Resource):
-    @api.doc("cleanup-builder-cache")
-    def post(self):
-        """Queues the cleanup_builder_cache job.
+@api.route("/active-custom-jupyter-images-to-push")
+class ActiveCustomJupyterImagesToPush(Resource):
+    @api.doc("active_custom_jupyter_images-to-push")
+    def get(self):
+        """To be used by the image-pusher to get images to push."""
+        active_custom_jupyter_images = _get_formatted_active_jupyter_imgs(
+            stored_in_registry=False,
+            in_node=request.args.get("in_node"),
+        )
 
-        The job shares the queue with environment and jupyter builds,
-        since it can't be run concurrently w.r.t. these tasks. The
-        builder cache will be deleted, removing all cached content, e.g.
-        base images, cached pip, conda packages, etc.
+        # This to avoid image pushes running concurrently with a
+        # registry GC, we avoid the race condition by having the
+        # PROCESS_IMAGE_DELETION task status be updated and then having
+        # the task quit if an image build is ongoing or if an image
+        # needs to be pushed. By doing so, together with this check,
+        # makes it so that no concurrent pushes and GCs are going to
+        # run. Also, this call Should be after the images are fetched to
+        # avoid a - very improbable - race condition.
+        if scheduler.is_running(scheduler.SchedulerJobType.PROCESS_IMAGES_FOR_DELETION):
+            active_custom_jupyter_images = []
 
-        """
-        current_app.logger.info("Sending cleanup builder cache task.")
-        celery = make_celery(current_app)
-        res = celery.send_task(name="app.core.tasks.cleanup_builder_cache")
-        res.forget()
-
-        return {}, 201
+        return {"active_custom_jupyter_images": active_custom_jupyter_images}, 200
 
 
 @api.route("/orchest-settings")

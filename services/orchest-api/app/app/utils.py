@@ -13,7 +13,7 @@ from flask import current_app
 from flask_restx import Model
 from flask_sqlalchemy import Pagination
 from kubernetes import client as k8s_client
-from sqlalchemy import and_, desc, or_, text
+from sqlalchemy import desc, or_, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import query, undefer
 
@@ -85,7 +85,7 @@ def update_status_db(
             # For UPDATE or DELETE statements with complex criteria, the
             # 'evaluate' strategy may not be able to evaluate the
             # expression in Python and will raise an error.
-            synchronize_session="fetch",
+            synchronize_session=False,
         )
     )
 
@@ -318,19 +318,29 @@ def _set_interactive_runs_parallelism_at_runtime(
     )
 
 
+def _set_builds_parallelism_at_runtime(
+    current_parallelism: int, new_parallelism: int
+) -> bool:
+    return _set_celery_worker_parallelism_at_runtime(
+        "worker-builds",
+        current_parallelism,
+        new_parallelism,
+    )
+
+
 class OrchestSettings:
     _cloud = _config.CLOUD
 
     # Defines default values for all supported configuration options.
     _config_values = {
-        "MAX_JOB_RUNS_PARALLELISM": {
+        "MAX_BUILDS_PARALLELISM": {
             "default": 1,
             "type": int,
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
             # Will return True if it could apply changes on the fly,
             # False otherwise.
-            "apply-runtime-changes-function": _set_job_runs_parallelism_at_runtime,
+            "apply-runtime-changes-function": _set_builds_parallelism_at_runtime,
         },
         "MAX_INTERACTIVE_RUNS_PARALLELISM": {
             "default": 1,
@@ -338,6 +348,13 @@ class OrchestSettings:
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
             "apply-runtime-changes-function": _set_interactive_runs_parallelism_at_runtime,  # noqa
+        },
+        "MAX_JOB_RUNS_PARALLELISM": {
+            "default": 1,
+            "type": int,
+            "condition": lambda x: 0 < x <= 25,
+            "condition-msg": "within the range [1, 25]",
+            "apply-runtime-changes-function": _set_job_runs_parallelism_at_runtime,
         },
         "AUTH_ENABLED": {
             "default": _config.CLOUD,
@@ -688,13 +705,9 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
     if latest_custom_image is not None:
         images_to_be_removed = images_to_be_removed.filter(
             or_(
-                and_(
-                    # Don't remove the latest valid image.
-                    models.JupyterImage.tag < latest_custom_image.tag,
-                    # Can't delete an image from the registry if it has
-                    # the same digest of an active image.
-                    models.JupyterImage.digest != latest_custom_image.digest,
-                ),
+                # Don't remove the latest valid image.
+                models.JupyterImage.tag < latest_custom_image.tag,
+                # Force a rebuild on Orchest update.
                 models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION,
             )
         )

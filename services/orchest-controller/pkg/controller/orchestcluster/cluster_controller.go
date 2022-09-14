@@ -524,11 +524,6 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Orchest.Resources.UserDirVolumeSize = occ.config.UserdirDefaultVolumeSize
 	}
 
-	if copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize == "" {
-		changed = true
-		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = occ.config.BuilddirDefaultVolumeSize
-	}
-
 	if copy.Spec.Applications == nil {
 		changed = true
 		copy.Spec.Applications = occ.config.DefaultApplications
@@ -670,12 +665,6 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 		return err
 	}
 
-	err = occ.ensurePvc(ctx, generation, controller.BuilderDirName,
-		orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize, orchest)
-	if err != nil {
-		return err
-	}
-
 	err = occ.ensureRbacs(ctx, generation, orchest)
 	if err != nil {
 		return err
@@ -717,6 +706,9 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 			return err
 		}
 	}
+
+	klog.V(4).Infof("Deleting deprecated PVC %s", controller.OldBuilderDirName)
+	occ.deletePvc(ctx, controller.OldBuilderDirName, orchest)
 
 	stopped = true
 	return err
@@ -776,6 +768,20 @@ func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, nam
 
 	return occ.adoptPVC(ctx, oldPvc, newPvc)
 
+}
+
+func (occ *OrchestClusterController) deletePvc(ctx context.Context, name string, orchest *orchestv1alpha1.OrchestCluster) error {
+
+	err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.Infof("PVC %s not found, nothing to delete.", name)
+			return nil
+		}
+		klog.Errorf("Failed to delete PVC %s.", name)
+		return err
+	}
+	return nil
 }
 
 func (occ *OrchestClusterController) adoptPVC(ctx context.Context, oldPvc, newPvc *corev1.PersistentVolumeClaim) error {

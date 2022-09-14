@@ -22,7 +22,6 @@ Overview of the different paths inside the `/userdir`.
 │   ├── database
 │   │   └── data
 │   │       └── <postgres data store>
-│   ├── buildkit-cache
 │   ├── jupyter-img-builds
 │   ├── env-img-builds
 │   ├── orchest_examples_data.json

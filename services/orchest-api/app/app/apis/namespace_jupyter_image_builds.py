@@ -8,12 +8,11 @@ from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc, or_
 
 import app.models as models
-from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
-from app.core import events, registry
+from app.core import events
 from app.errors import SessionInProgressException
 from app.utils import update_status_db, upsert_cluster_node
 from config import CONFIG_CLASS
@@ -109,17 +108,9 @@ class JupyterEnvironmentBuild(Resource):
                 build = models.JupyterImageBuild.query.filter(
                     models.JupyterImageBuild.uuid == jupyter_image_build_uuid
                 ).one()
-                _ = registry.get_manifest_digest(
-                    _config.JUPYTER_IMAGE_NAME,
-                    build.image_tag,
-                )
                 db.session.add(
                     models.JupyterImage(
                         tag=build.image_tag,
-                        # ENV_PERF_TODO: fix this. The image is now
-                        # built on the node directly so we don't have
-                        # access to its digest from the registry.
-                        digest="digest",
                         base_image_version=CONFIG_CLASS.ORCHEST_VERSION,
                         stored_in_registry=False,
                     )

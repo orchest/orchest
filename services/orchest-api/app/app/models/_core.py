@@ -71,23 +71,46 @@ class Setting(BaseModel):
 
 
 class SchedulerJob(BaseModel):
-    """Latest run of a job assigned to a Scheduler."""
+    """Job runs of the internal scheduler."""
 
     __tablename__ = "scheduler_jobs"
 
-    type = db.Column(db.String(50), primary_key=True)
+    uuid = db.Column(
+        db.String(36),
+        primary_key=True,
+        nullable=False,
+        server_default=text("gen_random_uuid()"),
+    )
+
+    type = db.Column(db.String(50), nullable=False)
 
     # Used to make sure different instances of the Scheduler (due to
     # multiple gunicorn workers) don't cause a job to be executed
     # multiple times.
-    timestamp = db.Column(
+    started_time = db.Column(
         TIMESTAMP(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
 
+    finished_time = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    # STARTED, SUCCEEDED, FAILED
+    status = db.Column(
+        db.String(15), unique=False, nullable=False, server_default="SUCCEEDED"
+    )
+
+    __table_args__ = (
+        # For the scheduler to query the latest job by type.
+        Index(None, type, started_time.desc()),
+    )
+
     def __repr__(self):
-        return f"<SchedulerJob: {self.type}>"
+        return f"<SchedulerJob: {self.type}:{self.uuid}>"
 
 
 class Project(BaseModel):
@@ -279,12 +302,14 @@ class EnvironmentImage(BaseModel):
     )
 
     # sha256:<digest>
+    # REMOVABLE_ON_BREAKING_CHANGE
+    # This is needed to not break existing jobs that depended on
+    # environments which had no guarantee of having a unique digest. See
+    # _env_images_that_can_be_deleted for its use.
     digest = db.Column(
         db.String(71),
-        nullable=False,
         index=True,
-        # To migrate existing entries.
-        server_default="Undefined",
+        nullable=True,
     )
 
     # A way to tell us if a particular env image is to be considered
@@ -406,13 +431,6 @@ class JupyterImage(BaseModel):
         db.Integer,
         db.ForeignKey("jupyter_image_builds.image_tag", ondelete="CASCADE"),
         primary_key=True,
-    )
-
-    # sha256:<digest>
-    digest = db.Column(
-        db.String(71),
-        nullable=False,
-        index=True,
     )
 
     # The image was built with a given Orchest version, this field is
