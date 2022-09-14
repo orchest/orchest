@@ -3,6 +3,7 @@ package orchestcluster
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
@@ -439,6 +440,11 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.OrchestApi.Env,
 		occ.config.OrchestApiDefaultEnvVars, false)
+	envChanged = utils.UpsertEnvVariable(
+		&copy.Spec.Orchest.OrchestApi.Env,
+		map[string]string{"SINGLE_NODE": strings.ToUpper(fmt.Sprintf("%t", *copy.Spec.SingleNode))},
+		true,
+	) || envChanged
 	changed = changed || envChanged
 
 	// Orchest-Webserver configs
@@ -471,6 +477,11 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 	envChanged = utils.UpsertEnvVariable(&copy.Spec.Orchest.CeleryWorker.Env,
 		occ.config.CeleryWorkerDefaultEnvVars, false)
+	envChanged = utils.UpsertEnvVariable(
+		&copy.Spec.Orchest.CeleryWorker.Env,
+		map[string]string{"SINGLE_NODE": strings.ToUpper(fmt.Sprintf("%t", *copy.Spec.SingleNode))},
+		true,
+	) || envChanged
 	changed = changed || envChanged
 
 	// Auth-Server configs

@@ -365,6 +365,12 @@ def _get_environment_shell_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
+                    "dnsConfig": {
+                        "options": [
+                            {"name": "timeout", "value": "10"},  # 30 is max
+                            {"name": "attempts", "value": "5"},  # 5 is max
+                        ],
+                    },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                         volumes_dict["container-runtime-socket"],
