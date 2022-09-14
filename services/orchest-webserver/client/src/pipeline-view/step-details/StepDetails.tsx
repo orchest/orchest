@@ -119,7 +119,15 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
           flexDirection="row"
           justifyContent="space-between"
         >
-          <Box flex={1}>{step.title}</Box>
+          <Box
+            flex={1}
+            sx={{
+              color: (theme) =>
+                step.title ? "inherent" : theme.palette.action.active,
+            }}
+          >
+            {step.title || "(Unnamed Step)"}
+          </Box>
           <IconButton onClick={onClose}>
             <CloseOutlined />
           </IconButton>

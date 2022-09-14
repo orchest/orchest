@@ -92,8 +92,14 @@ export const useHotKeysInPipelineEditor = () => {
     {
       "pipeline-editor": {
         [inCanvasCommandsString]: (e, hotKeyEvent) => {
-          if (IN_CANVAS_COMMANDS.SELECT_ALL.includes(hotKeyEvent.key)) {
-            if (document.activeElement?.tagName === "INPUT") return;
+          const isEditingText =
+            document.activeElement?.tagName === "INPUT" ||
+            document.activeElement?.tagName === "TEXTAREA";
+
+          if (
+            IN_CANVAS_COMMANDS.SELECT_ALL.includes(hotKeyEvent.key) &&
+            !isEditingText
+          ) {
             e.preventDefault();
 
             uiStateDispatch({
