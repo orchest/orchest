@@ -297,7 +297,7 @@ class JupyterImageRegistryStatus(Resource):
         return {}, 200
 
 
-@api.route("/jupyter-images/<string:tag>/node/<string:node_name>")
+@api.route("/jupyter-images/<string:tag>/node/<string:node>")
 @api.param("tag", "Tag of the image")
 @api.param("node", "Node on which the image was pulled")
 class JupyterImageNodeStatus(Resource):

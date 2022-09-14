@@ -5,10 +5,45 @@ from enum import Enum
 import aiohttp
 from container_runtime import ContainerRuntime
 
+from _orchest.internals import config as _config
+from _orchest.internals import utils as _utils
+from config import CONFIG_CLASS
+
 
 class Policy(Enum):
     IfNotPresent = "IfNotPresent"
     Always = "Always"
+
+
+async def _notify_orchest_api_of_env_image_pull(
+    session: aiohttp.ClientSession, image: str
+) -> None:
+    proj_uuid, env_uuid, tag = _utils.env_image_name_to_proj_uuid_env_uuid_tag(image)
+    if tag is None:
+        raise ValueError(f"Unexpected image without tag: {image}.")
+    endpoint = (
+        f"http://orchest-api/api/environment-images/{proj_uuid}/{env_uuid}/{tag}/"
+        f"node/{CONFIG_CLASS.CLUSTER_NODE}"
+    )
+    async with session.put(endpoint) as response:
+        if response.status != 200:
+            raise Exception(f"Failed to PUT node pull of {image} to the orchest-api.")
+
+
+async def _notify_orchest_api_of_jupyter_image_pull(
+    session: aiohttp.ClientSession, image: str
+) -> None:
+    tag = _utils.jupyter_image_name_to_tag(image)
+    endpoint = (
+        f"http://orchest-api/api/ctl/jupyter-images/{tag}/node/"
+        f"{CONFIG_CLASS.CLUSTER_NODE}"
+    )
+    if tag is None:
+        raise ValueError(f"Unexpected image without tag: {image}.")
+
+    async with session.put(endpoint) as response:
+        if response.status != 200:
+            raise Exception(f"Failed to PUT node pull of {image} to the orchest-api.")
 
 
 class ImagePuller(object):
@@ -130,6 +165,10 @@ class ImagePuller(object):
                 try:
                     self.logger.info(f"Pulling image '{image_name}'...")
                     if await self.container_runtime.download_image(image_name):
+                        async with aiohttp.ClientSession(trust_env=True) as session:
+                            await self.notify_orchest_api_of_image_pull(
+                                session, image_name
+                            )
                         break
                     self.logger.warning(f"Image '{image_name}' was not downloaded!")
                 except Exception as ex:
@@ -153,3 +192,15 @@ class ImagePuller(object):
             await asyncio.gather(*pullers, get_images_task)
         finally:
             await self.container_runtime.close()
+
+    async def notify_orchest_api_of_image_pull(
+        self, session: aiohttp.ClientSession, image: str
+    ) -> None:
+        if "orchest-env" in image:
+            await _notify_orchest_api_of_env_image_pull(session, image)
+        elif _config.JUPYTER_IMAGE_NAME in image:
+            await _notify_orchest_api_of_jupyter_image_pull(session, image)
+        else:
+            self.logger.info(
+                "Not an environment or jupyter image, not notifying the orchest-api."
+            )
