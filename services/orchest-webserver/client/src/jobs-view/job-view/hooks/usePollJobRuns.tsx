@@ -5,7 +5,8 @@ import React from "react";
 const getNextFullMinuteTime = () => {
   const baseTime = new Date();
   baseTime.setMinutes(baseTime.getMinutes() + 1);
-  baseTime.setSeconds(1);
+  // Scheduled runs sometimes start a bit later, depending on the BE capacity.
+  baseTime.setSeconds(15);
   return baseTime.getTime();
 };
 
@@ -17,6 +18,7 @@ const useRefreshPerMinute = (refresh: () => void) => {
   React.useEffect(() => {
     window.setTimeout(() => {
       refresh();
+      console.log("DEV hey!");
       setNextRefreshTime(getNextFullMinuteTime());
     }, nextRefreshTime - new Date().getTime());
   }, [nextRefreshTime, refresh]);
