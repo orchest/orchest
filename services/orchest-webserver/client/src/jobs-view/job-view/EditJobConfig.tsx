@@ -50,8 +50,9 @@ export const EditJobConfig = () => {
   }, [parameterStrategy]);
 
   const pipelineRunRows = React.useMemo(() => {
-    if (!pipelineJson?.name || !pipelineRuns) return [];
-    return generatePipelineRunRows(pipelineJson.name, pipelineRuns);
+    if (!pipelineJson?.name || !pipelineRuns || pipelineRuns.length === 0)
+      return [];
+    return generatePipelineRunRows(pipelineRuns);
   }, [pipelineRuns, pipelineJson?.name]);
 
   const [selectedRuns, setSelectedRuns] = useSelectedRuns(
@@ -68,19 +69,13 @@ export const EditJobConfig = () => {
         id: "spec",
         label: "Pipeline runs",
         render: function Params(row) {
-          return row.spec === "Parameterless run" ? (
-            <i>{row.spec}</i>
-          ) : (
-            row.spec
-          );
+          return row.spec;
         },
       },
       {
         id: "toggle",
         label: "Include?",
         render: function IncludeToggle(row) {
-          if (row.spec === "Parameterless run") return null;
-
           const isChecked = selectedRuns.some((run) => row.uuid === run);
           const disabled = selectedRuns.length === 1 && isChecked;
           const toggle = (
@@ -140,7 +135,7 @@ export const EditJobConfig = () => {
       sx={{ paddingTop: (theme) => theme.spacing(4) }}
     >
       <EditJobSchedule />
-      {hasValue(parameterStrategy) && (
+      {hasValue(parameterStrategy) && pipelineRunRows.length > 0 && (
         <DataTable<PipelineRunRow, PipelineRunColumn>
           hideSearch
           id="job-edit-pipeline-runs"

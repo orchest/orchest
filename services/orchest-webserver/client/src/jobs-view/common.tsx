@@ -56,8 +56,6 @@ export const pickJobChanges = (jobData?: JobData): JobChanges | undefined => {
   };
 };
 
-export const PARAMETERLESS_RUN = "Parameterless run";
-
 export const formatPipelineParams = (parameters: Record<string, Json>) => {
   return Object.values(parameters).map((parameter) => {
     return parameter === null
@@ -134,7 +132,6 @@ export function generatePipelineRunParamCombinations(
 }
 
 export function generatePipelineRunRows(
-  pipelineName: string,
   pipelineRuns: Record<string, Json>[]
 ): PipelineRunRow[] {
   return pipelineRuns.map((params: Record<string, Json>, index: number) => {
@@ -146,7 +143,7 @@ export function generatePipelineRunRows(
 
     return {
       uuid: index.toString(),
-      spec: pipelineRunSpec.join(", ") || "Parameterless run",
+      spec: pipelineRunSpec.join(", "),
     };
   });
 }
