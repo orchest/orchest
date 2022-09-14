@@ -52,3 +52,16 @@
 .installer-container p {
   margin-block-start: 0;
 }
+
+html[data-theme="dark"] .installer-container {
+  background-color: #202122;
+}
+
+.installer-container .highlight {
+  margin-bottom: 1.15rem;
+}
+
+html .installer-container .highlight:last-child,
+.installer-container p:last-child {
+  margin-bottom: 0;
+}

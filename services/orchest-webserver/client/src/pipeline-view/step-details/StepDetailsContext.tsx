@@ -1,5 +1,7 @@
 import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
+import { useReadFile } from "@/hooks/useReadFile";
 import { PipelineStepState } from "@/types";
+import { JsonSchema, UISchemaElement } from "@jsonforms/core";
 import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
@@ -10,6 +12,10 @@ export type StepDetailsContextType = {
   isCheckingFileValidity: boolean;
   step: PipelineStepState;
   connections: ConnectionDict;
+  parameterSchema?: JsonSchema;
+  isReadingSchemaFile: boolean;
+  parameterUiSchema?: UISchemaElement;
+  isReadingUiSchemaFile: boolean;
 };
 
 export const StepDetailsContext = React.createContext<StepDetailsContextType>(
@@ -36,6 +42,26 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
     allowedExtensions: ALLOWED_STEP_EXTENSIONS,
   });
 
+  const [parameterSchema, isReadingSchemaFile] = useReadFile<JsonSchema>({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    path: step?.file_path.concat(".schema.json"),
+    allowedExtensions: ["json"],
+  });
+
+  const [parameterUiSchema, isReadingUiSchemaFile] = useReadFile<
+    UISchemaElement
+  >({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    path: step?.file_path.concat(".uischema.json"),
+    allowedExtensions: ["json"],
+  });
+
   const connections = React.useMemo(() => {
     if (!step) return {};
 
@@ -54,6 +80,10 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
         isCheckingFileValidity,
         connections,
         step,
+        parameterSchema,
+        isReadingSchemaFile,
+        parameterUiSchema,
+        isReadingUiSchemaFile,
       }}
     >
       {children}

@@ -89,60 +89,7 @@ Pipeline and step level parameters with the same name without one (automatically
 the other, you can access both values.
 ```
 
-You can define Pipeline parameters at two levels:
-
-- Pipelines: The parameters and their values will be available across every Pipeline step.
-- Pipeline steps: The parameters will only be available in which they are defined.
-
-### Editing pipeline parameters
-
-1. Open a Pipeline via the _Pipelines_ option in the left menu pane.
-2. Click on _SETTINGS_ in the top right corner.
-3. Towards the top you will find the _Pipeline parameters_ section.
-4. Input some JSON like {code}`{"my-param": <param-value>}`.
-5. Make sure to _Save_ at the bottom of your screen.
-
-### Editing pipeline step parameters
-
-1. Open a Pipeline via the _Pipelines_ option in the left menu pane.
-2. Click on a Pipeline step to open its _Properties_.
-3. Towards the bottom you will find the _Parameters_ section.
-4. Input some JSON like {code}`{"my-param": <param-value>}`.
-
 (jobs-parameters)=
-
-### Interacting with parameters through code
-
-After you have set parameters for your Pipeline and/or steps you can use their values inside your
-scripts (see {ref}`parameters API reference <api parameters>`).
-
-Let's say you have set the following parameters on your Pipeline:
-
-```json
-{
-  "vegetable": "carrot",
-  "fruit": "banana"
-}
-```
-
-And for your Pipeline step:
-
-```json
-{
-  "candy": "chocolate",
-  "fruit": "apple"
-}
-```
-
-Then inside the Pipeline step you can access the parameters as follows:
-
-```python
-import orchest
-
-# Get the parameters of the current step and the pipeline.
-fruit = orchest.get_step_param("fruit")               # "apple"
-vegetable = orchest.get_pipeline_param("vegetable")   # "carrot"
-```
 
 ### Specify job parameters with a file
 

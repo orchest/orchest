@@ -94,6 +94,7 @@ LIB_IMAGES=(
     "auth-server"
     "celery-worker"
     "jupyter-enterprise-gateway"
+    "jupyter-server"
     "node-agent"
 )
 

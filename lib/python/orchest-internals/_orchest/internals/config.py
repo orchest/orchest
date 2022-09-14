@@ -1,7 +1,7 @@
 import os
 
-ORCHEST_NAMESPACE = os.environ["ORCHEST_NAMESPACE"]
-ORCHEST_CLUSTER = os.environ["ORCHEST_CLUSTER"]
+ORCHEST_NAMESPACE = os.environ.get("ORCHEST_NAMESPACE")
+ORCHEST_CLUSTER = os.environ.get("ORCHEST_CLUSTER")
 
 ORCHEST_MAINTAINER_LABEL = "Orchest B.V. https://www.orchest.io"
 
@@ -18,7 +18,7 @@ ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl", "js"]
 POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
 POSTHOG_HOST = "https://analytics.orchest.io"
 
-ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
+ORCHEST_VERSION = os.environ.get("ORCHEST_VERSION")
 
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
@@ -28,15 +28,22 @@ FLASK_ENV = os.environ.get("FLASK_ENV")
 CLOUD = os.environ.get("CLOUD") == "True"
 ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN")
 GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
-# This represents a container priority w.r.t. CPU time. By default,
-# containers run with a value of 1024. User code/containers such as
-# steps, services, kernels, environment builds are made to run with a
-# lower value so that in conditions of high cpu contention core Orchest
-# services have priority, which helps in being responsive under high
-# load. This is only enforced when CPU cycles are constrained. For more
-# information, see the k8s docs about CPU SHARES.
-USER_CONTAINERS_CPU_SHARES = "500m"
+# This represents a container priority w.r.t. CPU time. By default, the
+# container runtime (e.g. Docker) gives containers a value of 1024m.
+# User code/containers such as steps, services, kernels, environment
+# builds are made to run with a lower value so that in conditions of
+# high cpu contention core Orchest services have priority, which helps
+# in being responsive under high load. This is only enforced when CPU
+# cycles are constrained. For more information, see the k8s docs about
+# CPU SHARES.
+USER_CONTAINERS_CPU_SHARES = "1m"
 REGISTRY = "docker-registry"
+# NOTE: The DNS resolver will not treat this as an FQDN perse (depending
+# on the value of `ndots` in `/etc/resolv.conf` which by default is 5).
+# Thus the `search` directive will be iterated to resolve the domain.
+# This isn't an issue but results in unnecessary DNS queries.
+# Why the default value of `ndots` is set to 5 in Kubernetes:
+# https://github.com/kubernetes/kubernetes/issues/33554#issuecomment-266251056
 REGISTRY_FQDN = f"docker-registry.{ORCHEST_NAMESPACE}.svc.cluster.local"
 
 # Container Runtime configs.
@@ -79,6 +86,7 @@ ENVIRONMENT_IMAGE_REMOVAL_NAME = (
 # Orchest environments that are passed as services, i.e. the image will
 # be used to start a service, have a form of "environment@<env-uuid>".
 ENVIRONMENT_AS_SERVICE_PREFIX = "environment@"
+ENVIRONMENT_SHELL_SUFFIX_UUID_LENGTH = 6
 
 # Kernels
 KERNEL_NAME = "orchest-kernel-{environment_uuid}"

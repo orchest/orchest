@@ -1,10 +1,11 @@
-FROM python:3.8-slim
+FROM python:3.9-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 RUN apt-get update \
     # Refresh SSL certificates
     && update-ca-certificates --fresh \
-    && apt-get install -yq --no-install-recommends curl git jq ca-certificates rsync ssh sshpass \
+    && apt-get install -yq --no-install-recommends curl ssh sshpass git jq \
+    rsync ca-certificates \
     # Install nodejs for Jupyter extensions.
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && apt-get install -yq --no-install-recommends nodejs \
@@ -15,7 +16,12 @@ RUN apt-get update \
 
 # Build JupyterLab, pre-install thrid-party extensions and our custom
 # extensions.
+RUN mkdir -p /orchest/service/jupyter-server
+WORKDIR /orchest/service/jupyter-server
+
 COPY ./requirements.txt .
+COPY ./lib/python /orchest/lib/python
+
 ARG extension_dir=/jupyterlab-orchest-build
 ARG pip_jupyter_extension_dir=/usr/local/share/jupyter/lab/extensions
 RUN pip install pip --upgrade \
@@ -40,6 +46,10 @@ COPY patch-pip.sh pip-warning.py /
 RUN bash /patch-pip.sh
 
 COPY ./jupyter_server_config.py /root/.jupyter/jupyter_server_config.py
+COPY shellspawner/shellspawner /usr/bin/shellspawner
+
+# Add shellspawner to terminal profile
+RUN echo "shellspawner --help && shellspawner" >> ~/.profile
 
 # Hardcoded /project-dir because Python config can't be injected into Dockerfile
 WORKDIR /project-dir

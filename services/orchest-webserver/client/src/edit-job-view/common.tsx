@@ -4,7 +4,6 @@ import {
 } from "@/pipeline-view/file-manager/common";
 import { Json, PipelineJson, StrategyJson } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
-import cloneDeep from "lodash.clonedeep";
 
 type ParamConfig = Record<string, Record<string, string>>;
 
@@ -74,7 +73,7 @@ export const generateStrategyJsonFromParamJsonFile = (
     let step = pipeline.steps[stepUuid];
     if (step.parameters && Object.keys(step.parameters).length > 0) {
       let stepParametersFromPipelineStepDef = toStringifiedParams(
-        cloneDeep(step.parameters),
+        step.parameters,
         true
       );
       if (!strategyJson[stepUuid]) {
@@ -104,7 +103,7 @@ export const generateStrategyJsonFromParamJsonFile = (
 
   // Check for missing pipeline parameters
   let pipelineParametersFromPipelineDef = toStringifiedParams(
-    pipeline.parameters ? cloneDeep(pipeline.parameters) : {},
+    pipeline.parameters || {},
     true
   );
   if (strategyJson[reservedKey] === undefined) {

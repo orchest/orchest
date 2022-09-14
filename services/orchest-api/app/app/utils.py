@@ -59,34 +59,39 @@ def update_status_db(
 
     """
     data = status_update
+    query = model.query.filter_by(**filter_by)
 
     if data["status"] == "STARTED":
         data["started_time"] = datetime.fromisoformat(data["started_time"])
     elif data["status"] in ["SUCCESS", "FAILURE"]:
         data["finished_time"] = datetime.fromisoformat(data["finished_time"])
 
-    res = (
-        model.query.filter_by(**filter_by)
-        .filter(
-            # This implies that an entity cannot be furtherly updated
-            # once it reaches an "end state", i.e. FAILURE, SUCCESS,
-            # ABORTED. This helps avoiding race conditions given by the
-            # orchest-api and a celery task trying to update the same
-            # entity concurrently, for example when a task is aborted.
-            model.status.in_(["PENDING", "STARTED"])
-        )
-        .update(
-            data,
-            # https://docs.sqlalchemy.org/en/14/orm/session_basics.html#orm-expression-update-delete
-            # The default "evaluate" is not reliable, because depending
-            # on the complexity of the model sqlalchemy might not have a
-            # working implementation, in that case it will raise an
-            # exception. From the docs:
-            # For UPDATE or DELETE statements with complex criteria, the
-            # 'evaluate' strategy may not be able to evaluate the
-            # expression in Python and will raise an error.
-            synchronize_session=False,
-        )
+        # It could happen that the status update would take the status
+        # of a step from PENDING to SUCCESS, which would result in the
+        # started_time to never be set. To combat this race condition we
+        # set the started_time equal to the finished_time.
+        entity = query.one()
+        if entity.status == "PENDING":
+            data["started_time"] = data["finished_time"]
+
+    res = query.filter(
+        # This implies that an entity cannot be furtherly updated
+        # once it reaches an "end state", i.e. FAILURE, SUCCESS,
+        # ABORTED. This helps avoiding race conditions given by the
+        # orchest-api and a celery task trying to update the same
+        # entity concurrently, for example when a task is aborted.
+        model.status.in_(["PENDING", "STARTED"])
+    ).update(
+        data,
+        # https://docs.sqlalchemy.org/en/14/orm/session_basics.html#orm-expression-update-delete
+        # The default "evaluate" is not reliable, because depending
+        # on the complexity of the model sqlalchemy might not have a
+        # working implementation, in that case it will raise an
+        # exception. From the docs:
+        # For UPDATE or DELETE statements with complex criteria, the
+        # 'evaluate' strategy may not be able to evaluate the
+        # expression in Python and will raise an error.
+        synchronize_session="fetch",
     )
 
     return bool(res)

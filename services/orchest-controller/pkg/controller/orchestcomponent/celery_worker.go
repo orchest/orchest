@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -76,6 +77,9 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 
 	image := component.Spec.Template.Image
 
+	dnsResolverTimeout := "10"
+	dnsResolverAttempts := "5"
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,
@@ -107,11 +111,20 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 					},
 				},
 			},
+			DNSConfig: &corev1.PodDNSConfig{
+				Options: []corev1.PodDNSConfigOption{
+					{Name: "timeout", Value: &dnsResolverTimeout},
+					{Name: "attempts", Value: &dnsResolverAttempts},
+				},
+			},
 			Containers: []corev1.Container{
 				{
-					Name:            controller.CeleryWorker,
-					Image:           image,
-					Env:             component.Spec.Template.Env,
+					Name:  controller.CeleryWorker,
+					Image: image,
+					Env:   component.Spec.Template.Env,
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
+					},
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					VolumeMounts: []corev1.VolumeMount{
 						{

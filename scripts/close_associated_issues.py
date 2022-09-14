@@ -38,7 +38,7 @@ def get_issues_from_pr_body(body: str) -> list[str]:
     # using operators like `*` and `+`. Therefore the regex just needs
     # to match the entire pattern and we then process on the entire
     # match.
-    pattern = r"(fix|clos|resolv)(e|es|ed)?:? (#\d+(\, )?)+"
+    pattern = r"^(fix|clos|resolv)(e|es|ed)?:? (#\d+(\, )?)+"
 
     # Compiling is more efficient because the expression will be used
     # several times.

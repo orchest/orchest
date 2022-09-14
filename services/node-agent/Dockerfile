@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM python:3.9-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 RUN apt-get update -y && apt-get install curl -y

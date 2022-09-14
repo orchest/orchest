@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -179,6 +180,9 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 		volumeMounts = append(volumeMounts, devVolumeMounts...)
 	}
 
+	dnsResolverTimeout := "10"
+	dnsResolverAttempts := "5"
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: matchLabels,
@@ -186,6 +190,12 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			ServiceAccountName: controller.OrchestApi,
 			Volumes:            volumes,
+			DNSConfig: &corev1.PodDNSConfig{
+				Options: []corev1.PodDNSConfigOption{
+					{Name: "timeout", Value: &dnsResolverTimeout},
+					{Name: "attempts", Value: &dnsResolverAttempts},
+				},
+			},
 			Containers: []corev1.Container{
 				{
 					Name:            controller.OrchestApi,
@@ -198,6 +208,9 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 					},
 					Env:          utils.GetEnvVarFromMap(envMap),
 					VolumeMounts: volumeMounts,
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
+					},
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							HTTPGet: &corev1.HTTPGetAction{
