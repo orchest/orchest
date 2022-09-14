@@ -15,7 +15,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectName } from "./hooks/useProjectName";
 
@@ -57,20 +57,13 @@ export const CreateProjectDialog = ({
   };
 
   const isFormValid = projectName.length > 0 && validation.length === 0;
+
   const onClickCreateProject = async () => {
     if (!isFormValid) return;
 
     onClose();
     try {
       const { project_uuid: projectUuid } = await projectsApi.post(projectName);
-
-      const { pipeline_uuid: pipelineUuid } = await fetcher<{
-        pipeline_uuid: string;
-      }>(`/async/pipelines/create/${projectUuid}`, {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify(defaultPipeline),
-      });
 
       dispatch((state) => {
         const currentProjects = state.projects || [];
@@ -91,20 +84,9 @@ export const CreateProjectDialog = ({
       });
 
       dispatch({ type: "SET_PROJECT", payload: projectUuid });
-      dispatch({
-        type: "SET_PIPELINES",
-        payload: [
-          {
-            uuid: pipelineUuid,
-            name: defaultPipeline.name,
-            path: defaultPipeline.pipeline_path,
-          },
-        ],
-      });
-
       postCreateCallback?.();
       navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid, pipelineUuid },
+        query: { projectUuid: projectUuid },
       });
     } catch (error) {
       postCreateCallback?.();
