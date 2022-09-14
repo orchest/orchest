@@ -86,7 +86,7 @@ Use the following command to add a private SSH key to your terminal session in J
 ```sh
 echo "chmod 400 /data/id_rsa" >> ~/.bashrc
 echo "ssh-add /data/id_rsa 2>/dev/null" >> ~/.bashrc
-echo "if [ -z \$SSH_AGENT_PID ]; then exec ssh-agent bash; fi" >> ~/.bashrc
+echo "if [ -z \$SSH_AGENT_PID ]; then exec ssh-agent bash -c 'shellspawner; bash'; fi" >> ~/.bashrc
 mkdir -p ~/.ssh
 printf "%s\n" "Host github.com" " IdentityFile /data/id_rsa" >> ~/.ssh/config
 ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts

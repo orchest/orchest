@@ -1,4 +1,4 @@
-import { STATUS } from "@/hooks/useAsync";
+import { AsyncStatus } from "@/hooks/useAsync";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -20,7 +20,7 @@ export const WebhookUrlField = ({
   onChange: React.Dispatch<React.SetStateAction<string>>;
   validation: string | undefined;
   disabled: boolean;
-  isVerifiedStatus: STATUS;
+  isVerifiedStatus: AsyncStatus;
   verifyUrl: () => void;
 }) => {
   const [isBlurred, setIsBlurred] = React.useState(false);

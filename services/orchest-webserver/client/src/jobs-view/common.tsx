@@ -3,9 +3,13 @@ import {
   JobChangesData,
   JobData,
   Json,
+  PipelineRun,
+  PipelineRunStatus,
   StrategyJson,
 } from "@/types";
 import { pick } from "@/utils/record";
+import capitalize from "@mui/utils/capitalize";
+import format from "date-fns/format";
 import React from "react";
 
 export const pickJobChangesData = (
@@ -167,3 +171,19 @@ export const generateJobParameters = (
     }, {});
   });
 };
+
+export const formatRunStatus = (status: PipelineRunStatus) => {
+  switch (status) {
+    case "ABORTED":
+      return "Canceled";
+    default:
+      return capitalize(status.toLowerCase());
+  }
+};
+
+export const humanizeDate = (isoDateString: string) =>
+  format(new Date(isoDateString), "MMM d yyyy, p");
+
+export const canCancelRun = (
+  run: PipelineRun | undefined
+): run is PipelineRun => run?.status === "STARTED" || run?.status === "PENDING";

@@ -1,23 +1,35 @@
 import { SnapshotData } from "@/types";
+import { memoizeFor, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { snapshotsApi } from "./snapshotsApi";
 
 export type SnapshotsApi = {
   snapshots?: SnapshotData[];
-  fetchOne: (snapshotUuid: string) => Promise<SnapshotData | undefined>;
+  fetchOne: MemoizePending<
+    (snapshotUuid: string) => Promise<SnapshotData | undefined>
+  >;
 };
 
-export const useSnapshotsApi = create<SnapshotsApi>((set) => {
+export const useSnapshotsApi = create<SnapshotsApi>((set, get) => {
+  const replaceOrAddSnapshot = (newSnapshot: SnapshotData) => {
+    const { snapshots = [] } = get();
+
+    if (!snapshots.find((snap) => snap.uuid === newSnapshot.uuid)) {
+      return [...snapshots, newSnapshot];
+    } else {
+      return snapshots.map((snap) =>
+        snap.uuid === newSnapshot.uuid ? newSnapshot : snap
+      );
+    }
+  };
+
   return {
-    fetchOne: async (snapshotUuid) => {
+    snapshots: undefined,
+    fetchOne: memoizeFor(1000, async (snapshotUuid) => {
       const snapshot = await snapshotsApi.fetchOne(snapshotUuid);
-      set((state) => {
-        const snapshots = state.snapshots?.map((existingSnapshot) =>
-          existingSnapshot.uuid === snapshotUuid ? snapshot : existingSnapshot
-        );
-        return { snapshots };
-      });
+
+      set({ snapshots: replaceOrAddSnapshot(snapshot) });
       return snapshot;
-    },
+    }),
   };
 });

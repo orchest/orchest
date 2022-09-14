@@ -9,6 +9,17 @@ declare module "react" {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyFunction = (...args: any[]) => any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyAsyncFunction = (...args: any[]) => Promise<any>;
+/** Returns the type of the promise result for an asynchronous function */
+export type ResolutionOf<F extends AnyAsyncFunction> = ReturnType<
+  F
+> extends PromiseLike<infer R>
+  ? R
+  : never;
+
 export type Json =
   | string
   | number
@@ -131,6 +142,17 @@ export interface IQueryArgs
   read_only?: "true" | "false";
 }
 
+export type ScopeParameters = {
+  jobUuid: string;
+  runUuid: string;
+  projectUuid: string;
+  pipelineUuid: string;
+  environmentUuid: string;
+  stepUuid: string;
+};
+
+export type ScopeParameter = keyof ScopeParameters;
+
 export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
   queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
 };
@@ -207,11 +229,18 @@ export type PipelineRunStep = {
   finished_time: string;
 };
 
+export type PipelineRunStatus =
+  | "PENDING"
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED";
+
 export type PipelineRun = {
   uuid: string;
   project_uuid: string;
   pipeline_uuid: string;
-  status: TStatus;
+  status: PipelineRunStatus;
   started_time: string;
   finished_time: string;
   pipeline_steps: PipelineRunStep[];
@@ -222,6 +251,11 @@ export type PipelineRun = {
   pipeline_run_index: number;
   parameters: Record<string, Json>;
   server_time: string;
+};
+
+export type JobRunsPage = {
+  pipeline_runs: PipelineRun[];
+  pagination_data: Pagination;
 };
 
 export type StrategyJsonValue = {
