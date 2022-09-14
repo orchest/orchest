@@ -203,7 +203,6 @@ class ContainerRuntime(object):
                 raise ImagePushError(str(e))
 
         elif self.container_runtime == RuntimeType.Containerd:
-            # ENV_PERF_TODO: test this.
             cmd = (
                 f"ctr -n k8s.io -a {self.container_runtime_socket} "
                 f"i push {image_name} --skip-verify "
