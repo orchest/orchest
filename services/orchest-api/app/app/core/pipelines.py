@@ -881,14 +881,14 @@ async def run_pipeline_workflow(
 
                 await asyncio.sleep(0.25)
 
-            for pipeline_step in steps_to_finish:
+            for step_uuid in steps_to_finish:
                 await update_status(
                     "ABORTED",
                     task_id,
                     session,
                     type="step",
                     run_endpoint=run_config["run_endpoint"],
-                    uuid=pipeline_step.properties["uuid"],
+                    uuid=step_uuid,
                 )
 
             pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
