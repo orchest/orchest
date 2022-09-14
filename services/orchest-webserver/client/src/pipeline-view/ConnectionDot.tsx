@@ -4,6 +4,7 @@ import { alpha } from "@mui/material/styles";
 import classNames from "classnames";
 import React from "react";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
+import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 
 const DOT_SIZE = "10px";
@@ -99,6 +100,8 @@ export const ConnectionDot = React.forwardRef<HTMLElement, DotType>(
 
     const { dragFile, resetMove } = useFileManagerContext();
 
+    const { uiStateDispatch } = usePipelineUiStateContext();
+
     const onMouseUpContainer = (
       e: React.MouseEvent<HTMLDivElement, MouseEvent>
     ) => {
@@ -108,6 +111,12 @@ export const ConnectionDot = React.forwardRef<HTMLElement, DotType>(
       e.preventDefault();
       if (dragFile) resetMove();
       if (onMouseUp) onMouseUp(e);
+      if (outgoing && newConnection.current) {
+        uiStateDispatch({
+          type: "REMOVE_CONNECTION",
+          payload: newConnection.current,
+        });
+      }
       if (
         e.button === 0 &&
         incoming &&
