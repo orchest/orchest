@@ -74,11 +74,24 @@ class ImagePuller(object):
                         for image_name in response_json["pre_pull_images"]:
                             await queue.put(image_name)
 
-                    endpoint = f"{self.orchest_api_host}/api/environment-images/active"
+                    endpoint = (
+                        f"{self.orchest_api_host}/api/environment-images/active"
+                        "?stored_in_registry=true"
+                    )
                     async with session.get(endpoint) as response:
                         response_json = await response.json()
                         for image_name in response_json["active_environment_images"]:
                             await queue.put(image_name)
+
+                    endpoint = (
+                        f"{self.orchest_api_host}/api/ctl/active-custom-jupyter-images"
+                        "?stored_in_registry=true"
+                    )
+                    async with session.get(endpoint) as response:
+                        response_json = await response.json()
+                        for image_name in response_json["active_custom_jupyter_images"]:
+                            await queue.put(image_name)
+
                 except Exception as ex:
                     self.logger.error(
                         f"Attempt to get image name from '{self.interval}' "

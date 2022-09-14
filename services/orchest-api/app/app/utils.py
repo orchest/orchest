@@ -13,7 +13,7 @@ from flask import current_app
 from flask_restx import Model
 from flask_sqlalchemy import Pagination
 from kubernetes import client as k8s_client
-from sqlalchemy import and_, desc, or_, text
+from sqlalchemy import desc, or_, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import query, undefer
 
@@ -70,8 +70,8 @@ def update_status_db(
         # of a step from PENDING to SUCCESS, which would result in the
         # started_time to never be set. To combat this race condition we
         # set the started_time equal to the finished_time.
-        step = query.one()
-        if step.status == "PENDING":
+        entity = query.one()
+        if entity.status == "PENDING":
             data["started_time"] = data["finished_time"]
 
     res = query.filter(
@@ -211,19 +211,38 @@ def fuzzy_filter_non_interactive_pipeline_runs(
     return query
 
 
-def get_active_custom_jupyter_images() -> List[models.JupyterImage]:
-    """Returns the list of active jupyter images, sorted by tag DESC."""
-    custom_image = (
-        models.JupyterImage.query.filter(
-            models.JupyterImage.marked_for_removal.is_(False),
-            # Only allow an image that matches this orchest cluster
-            # version.
-            models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
-        )
-        .order_by(desc(models.JupyterImage.tag))
-        .all()
+def get_active_custom_jupyter_images(
+    stored_in_registry: Optional[bool] = None, in_node: Optional[str] = None
+) -> List[models.JupyterImage]:
+    """Returns the list of active jupyter images, sorted by tag DESC.
+
+    Args:
+        stored_in_registry: If not none, it will be applied as a filter
+            to the images. For example, if True, only active images
+            which are already stored in the registry will be returned.
+        in_nodes: If not none, it will be applied as a filter so that
+            only active images that are known by the orchest-api to
+            be on the given node will be returned.
+    """
+    query = db.session.query(models.JupyterImage).filter(
+        models.JupyterImage.marked_for_removal.is_(False),
+        # Only allow an image that matches this orchest cluster
+        # version.
+        models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
     )
-    return custom_image
+
+    if stored_in_registry is not None:
+        query = query.filter(
+            models.JupyterImage.stored_in_registry.is_(stored_in_registry)
+        )
+
+    # TODO: allow filtering with not_in_node.
+    if in_node is not None:
+        query = query.join(models.JupyterImageOnNode).filter(
+            models.JupyterImageOnNode.node_name == in_node
+        )
+
+    return query.all()
 
 
 def get_jupyter_server_image_to_use() -> str:
@@ -304,19 +323,29 @@ def _set_interactive_runs_parallelism_at_runtime(
     )
 
 
+def _set_builds_parallelism_at_runtime(
+    current_parallelism: int, new_parallelism: int
+) -> bool:
+    return _set_celery_worker_parallelism_at_runtime(
+        "worker-builds",
+        current_parallelism,
+        new_parallelism,
+    )
+
+
 class OrchestSettings:
     _cloud = _config.CLOUD
 
     # Defines default values for all supported configuration options.
     _config_values = {
-        "MAX_JOB_RUNS_PARALLELISM": {
+        "MAX_BUILDS_PARALLELISM": {
             "default": 1,
             "type": int,
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
             # Will return True if it could apply changes on the fly,
             # False otherwise.
-            "apply-runtime-changes-function": _set_job_runs_parallelism_at_runtime,
+            "apply-runtime-changes-function": _set_builds_parallelism_at_runtime,
         },
         "MAX_INTERACTIVE_RUNS_PARALLELISM": {
             "default": 1,
@@ -324,6 +353,13 @@ class OrchestSettings:
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
             "apply-runtime-changes-function": _set_interactive_runs_parallelism_at_runtime,  # noqa
+        },
+        "MAX_JOB_RUNS_PARALLELISM": {
+            "default": 1,
+            "type": int,
+            "condition": lambda x: 0 < x <= 25,
+            "condition-msg": "within the range [1, 25]",
+            "apply-runtime-changes-function": _set_job_runs_parallelism_at_runtime,
         },
         "AUTH_ENABLED": {
             "default": _config.CLOUD,
@@ -674,13 +710,9 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
     if latest_custom_image is not None:
         images_to_be_removed = images_to_be_removed.filter(
             or_(
-                and_(
-                    # Don't remove the latest valid image.
-                    models.JupyterImage.tag < latest_custom_image.tag,
-                    # Can't delete an image from the registry if it has
-                    # the same digest of an active image.
-                    models.JupyterImage.digest != latest_custom_image.digest,
-                ),
+                # Don't remove the latest valid image.
+                models.JupyterImage.tag < latest_custom_image.tag,
+                # Force a rebuild on Orchest update.
                 models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION,
             )
         )
@@ -754,3 +786,15 @@ def get_env_vars_update(
 def extract_domain_name(url: str) -> str:
     parsed_url = urlparse(url)
     return f"{parsed_url.scheme}://{parsed_url.netloc}"
+
+
+def upsert_cluster_node(name: str) -> None:
+    stmt = insert(models.ClusterNode).values(
+        [
+            dict(
+                name=name,
+            )
+        ]
+    )
+    stmt = stmt.on_conflict_do_nothing(index_elements=[models.ClusterNode.name])
+    db.session.execute(stmt)

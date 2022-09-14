@@ -19,6 +19,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 
 logger = logging.getLogger("IMAGE_DELETER")
+logger.setLevel(os.environ["ORCHEST_LOG_LEVEL"])
 
 
 def is_env_image(name: str) -> bool:
@@ -55,13 +56,15 @@ async def get_active_environment_images(session: aiohttp.ClientSession) -> Set[s
 
 async def get_active_custom_jupyter_images(session: aiohttp.ClientSession) -> Set[str]:
     """Gets the active custom jupyter images."""
-    endpoint = "http://orchest-api/api/ctl/orchest-images-to-pre-pull"
+    endpoint = "http://orchest-api/api/ctl/active-custom-jupyter-images"
     async with session.get(endpoint) as response:
         response_json = await response.json()
-        pre_pull_images = response_json["pre_pull_images"]
-        active_images = [img for img in pre_pull_images if is_custom_jupyter_image(img)]
-    logger.info(f"Found the following active jupyter custom images: {active_images}")
-    return set(active_images)
+        active_custom_jupyter_images = response_json["active_custom_jupyter_images"]
+    logger.info(
+        "Found the following active jupyter custom images: "
+        f"{active_custom_jupyter_images}"
+    )
+    return set(active_custom_jupyter_images)
 
 
 async def get_images_of_interest_on_node(
@@ -89,6 +92,7 @@ async def get_images_of_interest_on_node(
 
 async def run():
     container_runtime = ContainerRuntime()
+    logger.info("Starting image deleter.")
     try:
         async with aiohttp.ClientSession(trust_env=True) as session:
             while True:
@@ -138,9 +142,6 @@ async def run():
                             f" {orchest_v}."
                         )
                         for img in orchest_images_on_node:
-                            # Doesn't follow the way we version.
-                            if "orchest/buildah" in img:
-                                continue
                             if ":" not in img:
                                 continue
 

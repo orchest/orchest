@@ -70,20 +70,20 @@ const (
 
 	DeployingNodeAgent OrchestClusterEvent = "Deploying node-agent"
 	UpgradingNodeAgent OrchestClusterEvent = "Upgrading node-agent"
+
+	DeployingBuildKitDaemon OrchestClusterEvent = "Deploying buildkit-daemon"
+	UpgradingBuildKitDaemon OrchestClusterEvent = "Upgrading buildkit-daemon"
 )
 
 type OrchestResourcesSpec struct {
 	// If specified, this components will be deployed provided image
 	UserDirVolumeSize string `json:"userDirVolumeSize,omitempty"`
 
-	// If specified, this components will be deployed provided image
-	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
-
-	// If specified, this components will be deployed provided image
-	BuilderCacheDirVolumeSize string `json:"builderCacheDirVolumeSize,omitempty"`
-
 	// The Storage class of user-dir/
 	StorageClassName string `json:"storageClassName,omitempty"`
+
+	// Deprecated and ignored. TODO: remove it?
+	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
 }
 
 type OrchestComponentTemplate struct {
@@ -172,6 +172,9 @@ type OrchestSpec struct {
 
 	// If specified, node-agent for this cluster will be deployed with this configuration
 	NodeAgent OrchestComponentTemplate `json:"nodeAgent,omitempty"`
+
+	// If specified, buildkit-daemon for this cluster will be deployed with this configuration
+	BuildKitDaemon OrchestComponentTemplate `json:"buildkitDaemon,omitempty"`
 
 	// If specified, auth-server for this cluster will be deployed with this configuration
 	AuthServer OrchestComponentTemplate `json:"authServer,omitempty"`

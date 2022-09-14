@@ -359,7 +359,8 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 		return false, err
 	}
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME"] = runtime
-	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = socketPath
+	// Some k8s flavours place "unix://" in front of the path.
+	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = strings.Replace(socketPath, "unix://", "", -1)
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
 		"image-puller", occ.config.OrchestDefaultVersion)
 
@@ -535,14 +536,16 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Orchest.Resources.UserDirVolumeSize = occ.config.UserdirDefaultVolumeSize
 	}
 
-	if copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize == "" {
-		changed = true
-		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = occ.config.BuilddirDefaultVolumeSize
-	}
-
 	if copy.Spec.Applications == nil {
 		changed = true
 		copy.Spec.Applications = occ.config.DefaultApplications
+	}
+
+	// BuildKitDaemon configs
+	buildKitDaemonImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, controller.BuildKitDaemon, copy.Spec.Orchest.Version)
+	if copy.Spec.Orchest.BuildKitDaemon.Image != buildKitDaemonImage {
+		changed = true
+		copy.Spec.Orchest.BuildKitDaemon.Image = buildKitDaemonImage
 	}
 
 	if !isIngressDisabled(copy) && isIngressAddonRequired(ctx, occ.Client()) {
@@ -697,12 +700,6 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 		return err
 	}
 
-	err = occ.ensurePvc(ctx, generation, controller.BuilderDirName,
-		orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize, orchest)
-	if err != nil {
-		return err
-	}
-
 	err = occ.ensureRbacs(ctx, generation, orchest)
 	if err != nil {
 		return err
@@ -716,6 +713,15 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 
 	for _, componentName := range orderOfDeployment {
 		component, ok := components[componentName]
+
+		// Do not create the buildkit-daemon when not needed.
+		if componentName == controller.BuildKitDaemon {
+			containerRuntime, _, _ := detectContainerRuntime(ctx, occ.Client(), orchest)
+			if containerRuntime != "containerd" {
+				continue
+			}
+		}
+
 		if ok {
 			// If component is not ready, the key will be requeued to be checked later
 			if !controller.IsComponentReady(*component) {
@@ -744,6 +750,9 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 			return err
 		}
 	}
+
+	klog.V(4).Infof("Deleting deprecated PVC %s", controller.OldBuilderDirName)
+	occ.deletePvc(ctx, controller.OldBuilderDirName, orchest)
 
 	stopped = true
 	return err
@@ -803,6 +812,20 @@ func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, nam
 
 	return occ.adoptPVC(ctx, oldPvc, newPvc)
 
+}
+
+func (occ *OrchestClusterController) deletePvc(ctx context.Context, name string, orchest *orchestv1alpha1.OrchestCluster) error {
+
+	err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.Infof("PVC %s not found, nothing to delete.", name)
+			return nil
+		}
+		klog.Errorf("Failed to delete PVC %s.", name)
+		return err
+	}
+	return nil
 }
 
 func (occ *OrchestClusterController) adoptPVC(ctx context.Context, oldPvc, newPvc *corev1.PersistentVolumeClaim) error {

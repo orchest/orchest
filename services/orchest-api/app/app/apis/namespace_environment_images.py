@@ -1,17 +1,21 @@
-from flask import abort
+from typing import List
+
+from flask import abort, request
 from flask.globals import current_app
 from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func
 
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseFunction
-from app import models, schema
+from app import models, schema, utils
 from app.apis.namespace_environment_image_builds import DeleteProjectBuilds
-from app.connections import db, k8s_core_api
-from app.core import environments, image_utils
+from app.connections import db
+from app.core import environments, image_utils, scheduler
 
 api = Namespace("environment-images", description="Managing environment images")
 api = schema.register_schema(api)
+
+logger = utils.get_logger()
 
 
 @api.route("/latest/<string:project_uuid>/<string:environment_uuid>")
@@ -53,28 +57,68 @@ class LatestEnvironmentImage(Resource):
         return {"environment_images": latest_env_images}, 200
 
 
+def _get_formatted_active_environment_imgs(
+    stored_in_registry=None, in_node=None
+) -> List[str]:
+    active_env_images = environments.get_active_environment_images(
+        stored_in_registry=stored_in_registry, in_node=in_node
+    )
+
+    active_env_images_names = []
+    registry_ip = utils.get_registry_ip()
+    for img in active_env_images:
+        image = (
+            _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
+            )
+            + ":"
+            + str(img.tag)
+        )
+        active_env_images_names.append(f"{registry_ip}/{image}")
+    return active_env_images_names
+
+
 @api.route("/active")
 class ActiveEnvironmentImages(Resource):
     @api.doc("get_active_environment_images")
     @api.marshal_with(schema.active_environment_images, code=200)
     def get(self):
         """Gets the list of environment images to keep on nodes."""
-        active_env_images = environments.get_active_environment_images()
-        active_env_images_names = []
-        registry_ip = k8s_core_api.read_namespaced_service(
-            _config.REGISTRY, _config.ORCHEST_NAMESPACE
-        ).spec.cluster_ip
-        for img in active_env_images:
-            image = (
-                _config.ENVIRONMENT_IMAGE_NAME.format(
-                    project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
-                )
-                + ":"
-                + str(img.tag)
-            )
-            active_env_images_names.append(f"{registry_ip}/{image}")
 
-        return {"active_environment_images": active_env_images_names}, 200
+        active_env_images = _get_formatted_active_environment_imgs(
+            stored_in_registry=request.args.get(
+                "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]
+            ),
+            in_node=request.args.get("in_node"),
+        )
+
+        return {"active_environment_images": active_env_images}, 200
+
+
+@api.route("/to-push")
+class ActiveEnvironmentImagesToPush(Resource):
+    @api.doc("get_environment_images_to_push")
+    @api.marshal_with(schema.active_environment_images, code=200)
+    def get(self):
+        """To be used by the image-pusher to get images to push."""
+
+        active_env_images = _get_formatted_active_environment_imgs(
+            stored_in_registry=False,
+            in_node=request.args.get("in_node"),
+        )
+
+        # This to avoid image pushes running concurrently with a
+        # registry GC, we avoid the race condition by having the
+        # PROCESS_IMAGE_DELETION task status be updated and then having
+        # the task quit if an image build is ongoing or if an image
+        # needs to be pushed. By doing so, together with this check,
+        # makes it so that no concurrent pushes and GCs are going to
+        # run. Also, this call Should be after the images are fetched to
+        # avoid a - very improbable - race condition.
+        if scheduler.is_running(scheduler.SchedulerJobType.PROCESS_IMAGES_FOR_DELETION):
+            active_env_images = []
+
+        return {"active_environment_images": active_env_images}, 200
 
 
 @api.route(
