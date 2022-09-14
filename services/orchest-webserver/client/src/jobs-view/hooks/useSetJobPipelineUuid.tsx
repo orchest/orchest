@@ -4,8 +4,10 @@ import { JobData } from "@/types";
 import React from "react";
 import { pickJobChanges } from "../common";
 import { useEditJob } from "../stores/useEditJob";
+import { useValidJobQueryArgs } from "./useValidJobQueryArgs";
 
 export const useSetJobPipelineUuid = () => {
+  const { jobUuid } = useValidJobQueryArgs();
   const putJobPipelineUuid = useJobsApi((state) => state.putJobPipelineUuid);
   const { run, status } = useAsync<JobData>();
   const fetchJob = useJobsApi((state) => state.fetchOne);
@@ -17,8 +19,8 @@ export const useSetJobPipelineUuid = () => {
   const previousPipelineUuid = React.useRef(jobPipelineUuid);
 
   const setPipelineUuid = React.useCallback(
-    async (jobUuid: string, pipelineUuid: string) => {
-      if (previousPipelineUuid.current !== pipelineUuid) {
+    async (pipelineUuid: string) => {
+      if (jobUuid && previousPipelineUuid.current !== pipelineUuid) {
         await putJobPipelineUuid(jobUuid, pipelineUuid);
         // After pipeline_uuid is changed, the data that is related to the pipeline are also changed.
         // Re-fetch from BE to ensure data correctness.
@@ -31,7 +33,7 @@ export const useSetJobPipelineUuid = () => {
         });
       }
     },
-    [putJobPipelineUuid, fetchJob, initJobChanges, run]
+    [putJobPipelineUuid, fetchJob, initJobChanges, run, jobUuid]
   );
 
   return { setPipelineUuid, isChangingPipelineUuid: status === "PENDING" };

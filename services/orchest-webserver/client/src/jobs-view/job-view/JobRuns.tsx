@@ -11,13 +11,19 @@ import Chip from "@mui/material/Chip";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { useActiveJob } from "./hooks/useActiveJob";
 import { useJobRunsPage } from "./hooks/useJobRunsPage";
 import { usePollPageJobRuns } from "./hooks/usePollJobRuns";
 import { JobRunsTable } from "./JobRunsTable";
 
-export type JobRunsProps = { job: JobData };
+export const JobRuns = () => {
+  const { activeJob } = useActiveJob();
+  return activeJob ? <JobRunsCore job={activeJob} /> : null;
+};
 
-export const JobRuns = ({ job }: JobRunsProps) => {
+type JobRunsCoreProps = { job: JobData };
+
+const JobRunsCore = ({ job }: JobRunsCoreProps) => {
   const [pageNumber, setPageNumber] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
   const [fuzzyFilter, setFuzzyFilter] = React.useState("");

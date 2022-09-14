@@ -73,17 +73,13 @@ export const useJobsApi = create<JobsApi>((set, get) => {
 
       const projectUuid = job.project_uuid;
 
-      if (projectUuid !== get().projectUuid) {
-        const jobs = await jobsApi.fetchAll(projectUuid);
-        set({ projectUuid, jobs });
-      } else {
-        set((state) => {
-          const jobs = state.jobs?.map((existingJob) =>
-            existingJob.uuid === jobUuid ? job : existingJob
-          );
-          return { jobs };
-        });
-      }
+      set((state) => {
+        if (state.projectUuid !== projectUuid) return {};
+        const jobs = state.jobs?.map((existingJob) =>
+          existingJob.uuid === jobUuid ? job : existingJob
+        );
+        return { jobs };
+      });
 
       return job;
     },
@@ -103,8 +99,10 @@ export const useJobsApi = create<JobsApi>((set, get) => {
           const job = jobMap.get(jobData.uuid || "");
           return !job || job.status !== jobData.status;
         });
-
-        if (hasStatusChanged) set({ jobs: fetchedJobData });
+        set((state) => {
+          if (state.projectUuid !== projectUuid || !hasStatusChanged) return {};
+          return { jobs: fetchedJobData };
+        });
       } catch (error) {
         console.error(`Failed to fetch jobs. ${String(error)}`);
       }

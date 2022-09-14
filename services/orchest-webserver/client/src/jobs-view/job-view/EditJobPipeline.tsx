@@ -12,7 +12,6 @@ import { useEditJob } from "../stores/useEditJob";
 import { useLoadValueFromJobChanges } from "./hooks/useLoadValueFromJobChanges";
 
 export const EditJobPipeline = () => {
-  const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
   const isDraft = useEditJob((state) => state.jobChanges?.status === "DRAFT");
   const snapshotUuid = useEditJob((state) => state.jobChanges?.snapshot_uuid);
 
@@ -45,10 +44,9 @@ export const EditJobPipeline = () => {
   );
 
   const handleChange = async (event: SelectChangeEvent) => {
-    if (!jobUuid) return;
-    const value = event.target.value as string;
-    await setPipelineUuid(jobUuid, value);
-    setJobPipelineUuid(value);
+    const pipelineUuid = event.target.value as string;
+    await setPipelineUuid(pipelineUuid);
+    setJobPipelineUuid(pipelineUuid);
   };
 
   return hasValue(pipelines) ? (

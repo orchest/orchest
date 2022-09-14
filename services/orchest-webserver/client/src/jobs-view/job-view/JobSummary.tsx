@@ -7,12 +7,18 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { humanizeDate } from "../common";
 import { useSnapshot } from "../hooks/useSnapshot";
+import { useActiveJob } from "./hooks/useActiveJob";
 
-export type JobSummaryProps = {
+export const JobSummary = () => {
+  const { activeJob } = useActiveJob();
+  return activeJob ? <JobSummaryCore job={activeJob} /> : null;
+};
+
+type JobSummaryCoreProps = {
   job: JobData;
 };
 
-export const JobSummary = ({ job }: JobSummaryProps) => {
+const JobSummaryCore = ({ job }: JobSummaryCoreProps) => {
   const { snapshot } = useSnapshot(job.snapshot_uuid);
   const pipelineUrl = useRouteLink("pipeline", {
     pipelineUuid: job.pipeline_uuid,
