@@ -69,7 +69,10 @@ async def _notify_orchest_api_of_env_image_registry_push(
     proj_uuid, env_uuid, tag = _utils.env_image_name_to_proj_uuid_env_uuid_tag(image)
     if tag is None:
         raise ValueError(f"Unexpected image without tag: {image}.")
-    endpoint = f"http://orchest-api/api/environment-images/{proj_uuid}/{env_uuid}/{tag}"
+    endpoint = (
+        f"http://orchest-api/api/environment-images/{proj_uuid}/{env_uuid}/{tag}/"
+        "registry"
+    )
     async with session.put(endpoint) as response:
         if response.status != 200:
             raise Exception(
@@ -80,12 +83,12 @@ async def _notify_orchest_api_of_env_image_registry_push(
 async def _notify_orchest_api_of_jupyter_image_registry_push(
     session: aiohttp.ClientSession, image: str
 ) -> None:
-    endpoint = "http://orchest-api/api/ctl/set-jupyter-image-as-pushed"
     tag = _utils.jupyter_image_name_to_tag(image)
+    endpoint = f"http://orchest-api/api/ctl/jupyter-images/{tag}/registry"
     if tag is None:
         raise ValueError(f"Unexpected image without tag: {image}.")
 
-    async with session.put(endpoint, json={"tag": tag}) as response:
+    async with session.put(endpoint) as response:
         if response.status != 200:
             raise Exception(
                 f"Failed to PUT registry push of {image} to the orchest-api."

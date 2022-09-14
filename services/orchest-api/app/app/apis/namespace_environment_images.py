@@ -39,7 +39,7 @@ class LatestProjectEnvironmentEnvironmentImage(Resource):
         return env_image
 
 
-@api.route("/<string:project_uuid>/<string:environment_uuid>/<string:tag>")
+@api.route("/<string:project_uuid>/<string:environment_uuid>/<string:tag>/registry")
 @api.param("project_uuid", "uuid of the project")
 @api.param("environment_uuid", "uuid of the environment")
 @api.param("tag", "Tag of the image")

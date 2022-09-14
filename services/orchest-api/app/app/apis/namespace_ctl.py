@@ -281,12 +281,11 @@ def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
         run_cmds(args=shlex.split(update_cmd))
 
 
-@api.route("/set-jupyter-image-as-pushed")
-class SetJupyterImageAsPushed(Resource):
-    @api.doc("put_set_jupyter_image_as_pushed")
-    def put(self):
+@api.route("/jupyter-images/<string:tag>/registry")
+class JupyterImage(Resource):
+    @api.doc("put_jupyter_image_as_pushed")
+    def put(self, tag: str):
         """Notifies that the image has been pushed to the registry."""
-        tag = request.get_json()["tag"]
         image = models.JupyterImage.query.get_or_404(
             ident=int(tag),
             description="Jupyter image not found.",
