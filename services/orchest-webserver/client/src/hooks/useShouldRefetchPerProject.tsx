@@ -9,7 +9,7 @@ export const useShouldRefetchPerProject = () => {
   const hasRegainedFocus = useRegainBrowserTabFocus();
   const hasChangedProject = useHasChanged(
     projectUuid,
-    (prev, curr) => hasValue(prev) && prev !== curr
+    (prev, curr) => hasValue(curr) && prev !== curr
   );
 
   return hasRegainedFocus || hasChangedProject;

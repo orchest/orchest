@@ -11,11 +11,13 @@ import { getUniqueName } from "@/utils/getUniqueName";
 import { omit } from "@/utils/record";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
-export const isEnvironmentBuilding = (build?: EnvironmentImageBuild) =>
-  hasValue(build) && ["PENDING", "STARTED"].includes(build.status);
+export const isEnvironmentBuilding = (
+  status?: EnvironmentImageBuild["status"]
+) => hasValue(status) && ["PENDING", "STARTED"].includes(status);
 
-export const isEnvironmentFailedToBuild = (build?: EnvironmentImageBuild) =>
-  build && ["ABORTED", "FAILURE"].includes(build.status);
+export const isEnvironmentFailedToBuild = (
+  status?: EnvironmentImageBuild["status"]
+) => status && ["ABORTED", "FAILURE"].includes(status);
 
 export const BUILD_POLL_FREQUENCY = 1000;
 
@@ -26,7 +28,7 @@ export const fetchSessionsInProject = async (projectUuid: string) => {
   return sessionData.sessions;
 };
 
-export function getMostRecentEnvironmentBuildsUrl(
+function getMostRecentEnvironmentBuildsUrl(
   projectUuid: string | undefined,
   environmentUuid?: string
 ) {

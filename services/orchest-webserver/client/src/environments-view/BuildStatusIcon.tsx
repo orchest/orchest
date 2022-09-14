@@ -2,24 +2,26 @@ import {
   StatusIcon,
   StatusIconStatus,
 } from "@/components/Layout/layout-with-side-panel/StatusIcon";
-import { EnvironmentState } from "@/types";
+import { EnvironmentImageBuild } from "@/types";
 import React from "react";
 import { isEnvironmentBuilding, isEnvironmentFailedToBuild } from "./common";
 
 type BuildStatusIconProps = {
-  latestBuild?: EnvironmentState["latestBuild"];
+  latestBuildStatus?: EnvironmentImageBuild["status"];
 };
 
 const getBuildStatusIconStatus = (
-  latestBuild: EnvironmentState["latestBuild"]
+  latestBuildStatus?: EnvironmentImageBuild["status"]
 ): StatusIconStatus => {
-  if (latestBuild?.status === "SUCCESS") return "SUCCESS";
-  if (latestBuild?.status === "PAUSED") return "PAUSED";
-  if (isEnvironmentBuilding(latestBuild)) return "IN_PROGRESS";
-  if (isEnvironmentFailedToBuild(latestBuild)) return "ERROR";
+  if (latestBuildStatus === "SUCCESS") return "SUCCESS";
+  if (latestBuildStatus === "PAUSED") return "PAUSED";
+  if (isEnvironmentBuilding(latestBuildStatus)) return "IN_PROGRESS";
+  if (isEnvironmentFailedToBuild(latestBuildStatus)) return "ERROR";
   return "DRAFT";
 };
 
-export const BuildStatusIcon = ({ latestBuild }: BuildStatusIconProps) => {
-  return <StatusIcon status={getBuildStatusIconStatus(latestBuild)} />;
+export const BuildStatusIcon = ({
+  latestBuildStatus,
+}: BuildStatusIconProps) => {
+  return <StatusIcon status={getBuildStatusIconStatus(latestBuildStatus)} />;
 };

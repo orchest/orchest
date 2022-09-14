@@ -19,6 +19,12 @@ export type EnvironmentBuildStatus =
 export type EnvironmentsApi = {
   projectUuid?: string;
   environments?: EnvironmentState[];
+  setEnvironments: (
+    value:
+      | EnvironmentState[]
+      | undefined
+      | ((environments: EnvironmentState[]) => EnvironmentState[])
+  ) => void;
   setEnvironment: (uuid: string, value: Partial<EnvironmentData>) => void;
   fetchAll: (
     projectUuid: string,
@@ -81,6 +87,15 @@ const getEnvironmentFromState = (state: EnvironmentState): EnvironmentData => {
 
 export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
   return {
+    setEnvironments: (value) => {
+      set((state) => {
+        const updatedEnvironments =
+          value instanceof Function ? value(state.environments || []) : value;
+        return updatedEnvironments
+          ? { environments: updatedEnvironments }
+          : { environments: undefined, projectUuid: undefined };
+      });
+    },
     setEnvironment: (uuid, payload) => {
       set((state) => {
         return {
@@ -144,8 +159,17 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
         projectUuid,
         getEnvironmentFromState({ ...environment, ...payload })
       );
-      // Note: Merging the response into the state after PUT is not always necessary,
-      // It causes an unnecessary re-render for normal cases.
+
+      set((state) => {
+        return {
+          environments: state.environments?.map((env) =>
+            env.uuid === environmentUuid
+              ? { ...env, ...updatedEnvironment }
+              : env
+          ),
+        };
+      });
+
       return updatedEnvironment;
     },
     delete: async (uuid, action) => {

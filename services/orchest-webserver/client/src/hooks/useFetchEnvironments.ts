@@ -1,24 +1,21 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { EnvironmentData } from "@/types";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useAsync } from "./useAsync";
-import { useValidQueryArgs } from "./useValidQueryArgs";
 
-export const useFetchEnvironments = (projectUuid: string | undefined) => {
-  const { projectUuid: validProjectUuid } = useValidQueryArgs({ projectUuid });
-
+export const useFetchEnvironments = () => {
   const { run, status, error } = useAsync<EnvironmentData[]>();
   const request = useEnvironmentsApi((state) => state.fetchAll);
   const environments = useEnvironmentsApi((state) => state.environments || []);
 
-  const isAllowedToFetch = hasValue(validProjectUuid) && status !== "PENDING";
+  const isAllowedToFetch = status !== "PENDING";
 
   const fetchEnvironments = React.useCallback(
-    async (language?: string) => {
-      if (isAllowedToFetch) return run(request(validProjectUuid, language));
+    async (projectUuid: string | undefined, language?: string) => {
+      if (isAllowedToFetch && projectUuid)
+        return run(request(projectUuid, language));
     },
-    [request, validProjectUuid, run, isAllowedToFetch]
+    [request, run, isAllowedToFetch]
   );
 
   return { environments, error, status, fetchEnvironments };

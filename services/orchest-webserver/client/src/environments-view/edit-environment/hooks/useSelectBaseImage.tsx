@@ -26,11 +26,11 @@ export const useSelectBaseImage = () => {
   );
   const name = useEditEnvironment((state) => state.environmentChanges?.name);
   const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
-  const latestBuild = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild
+  const latestBuildStatus = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild?.status
   );
 
-  const disabled = isEnvironmentBuilding(latestBuild);
+  const disabled = isEnvironmentBuilding(latestBuildStatus);
 
   const [
     selectedImage,

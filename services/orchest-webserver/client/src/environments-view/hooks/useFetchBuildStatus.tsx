@@ -1,5 +1,6 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useInterval } from "@/hooks/use-interval";
+import { useValidQueryArgs } from "@/hooks/useValidQueryArgs";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
@@ -8,7 +9,10 @@ import React from "react";
  * Returns the latest environmentImageBuild of the given environment UUID.
  */
 export const useFetchBuildStatus = (environmentUuid?: string) => {
-  const projectUuid = useEnvironmentsApi((state) => state.projectUuid);
+  const projectUuidInStore = useEnvironmentsApi((state) => state.projectUuid);
+  const { projectUuid } = useValidQueryArgs({
+    projectUuid: projectUuidInStore,
+  });
   const environments = useEnvironmentsApi((state) => state.environments);
   const updateBuildStatus = useEnvironmentsApi(
     (state) => state.updateBuildStatus

@@ -6,7 +6,9 @@ import { jobsApi } from "./jobsApi";
 export type JobsApi = {
   projectUuid?: string;
   jobs?: JobData[];
-  setJobs: (value: JobData[] | ((jobs: JobData[]) => JobData[])) => void;
+  setJobs: (
+    value: JobData[] | undefined | ((jobs: JobData[]) => JobData[])
+  ) => void;
   setJob: (uuid: string, value: JobData | ((job: JobData) => JobData)) => void;
   fetchAll: (projectUuid: string, language?: string) => Promise<JobData[]>;
   fetchOne: (
@@ -39,7 +41,7 @@ export type JobsApi = {
 
 export const useJobsApi = create<JobsApi>((set, get) => {
   return {
-    setJobs: (value: JobData[] | ((jobs: JobData[]) => JobData[])) => {
+    setJobs: (value) => {
       set((state) => {
         const updatedJobs =
           value instanceof Function ? value(state.jobs || []) : value;

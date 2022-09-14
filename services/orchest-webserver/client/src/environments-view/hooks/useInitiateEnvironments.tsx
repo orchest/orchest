@@ -9,24 +9,30 @@ import React from "react";
  * Fetch all environments of a project. Will re-fetch when the browser tab regains focus.
  */
 export const useInitiateEnvironments = () => {
-  const { projectUuid } = useCustomRoute();
-
-  const { fetchEnvironments } = useFetchEnvironments(projectUuid);
-  const validate = useEnvironmentsApi((state) => state.validate);
+  const { projectUuid: projectUuidFromRoute } = useCustomRoute();
+  const projectUuid = useEnvironmentsApi((state) => state.projectUuid);
 
   const shouldRefetch = useShouldRefetchPerProject();
+
   const shouldFetch = useEnvironmentsApi(
-    (state) => hasValue(projectUuid) && (!state.environments || shouldRefetch)
+    (state) =>
+      hasValue(projectUuidFromRoute) && (!state.environments || shouldRefetch)
   );
 
+  const { fetchEnvironments } = useFetchEnvironments();
+  const validate = useEnvironmentsApi((state) => state.validate);
   const fetchAndValidate = React.useCallback(async () => {
-    if (projectUuid) {
-      await fetchEnvironments();
+    if (projectUuidFromRoute) {
+      await fetchEnvironments(projectUuidFromRoute);
       await validate();
     }
-  }, [fetchEnvironments, validate, projectUuid]);
-
+  }, [fetchEnvironments, validate, projectUuidFromRoute]);
   React.useEffect(() => {
     if (shouldFetch) fetchAndValidate();
   }, [shouldFetch, fetchAndValidate]);
+
+  const setEnvironments = useEnvironmentsApi((state) => state.setEnvironments);
+  React.useEffect(() => {
+    if (projectUuid !== projectUuidFromRoute) setEnvironments(undefined);
+  }, [projectUuid, projectUuidFromRoute, setEnvironments]);
 };

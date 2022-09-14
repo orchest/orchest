@@ -18,7 +18,6 @@ const useRefreshPerMinute = (refresh: () => void) => {
   React.useEffect(() => {
     window.setTimeout(() => {
       refresh();
-      console.log("DEV hey!");
       setNextRefreshTime(getNextFullMinuteTime());
     }, nextRefreshTime - new Date().getTime());
   }, [nextRefreshTime, refresh]);

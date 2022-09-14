@@ -2,7 +2,6 @@ import Stack from "@mui/material/Stack";
 import React from "react";
 import { BuildEnvironmentButton } from "../BuildEnvironmentButton";
 import { EnvironmentMoreOptions } from "../EnvironmentMoreOptions";
-import { useUpdateEnvironmentOnUnmount } from "../hooks/useUpdateEnvironmentOnUnmount";
 import { BuildStatusAlert } from "./BuildStatusAlert";
 import { EditEnvironmentContainer } from "./EditEnvironmentContainer";
 import { EnvironmentImageBuildLogs } from "./EnvironmentImageBuildLogs";
@@ -11,7 +10,6 @@ import { EnvironmentProperties } from "./EnvironmentProperties";
 import { EnvironmentSetupScript } from "./EnvironmentSetupScript";
 
 export const EditEnvironment = () => {
-  useUpdateEnvironmentOnUnmount();
   return (
     <EditEnvironmentContainer>
       <Stack

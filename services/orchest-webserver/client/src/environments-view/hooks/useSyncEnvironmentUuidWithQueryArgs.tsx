@@ -2,30 +2,26 @@ import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import React from "react";
-import { findEnvironment } from "../common";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
-import { useSelectEnvironmentUuid } from "../stores/useSelectEnvironmentUuid";
 
 /**
  * Performs a side effect that ensures that the stores load the right environment
  * with the given environment_uuid in the query args.
  */
 export const useSyncEnvironmentUuidWithQueryArgs = () => {
-  const {
-    projectUuid,
-    environmentUuid: environmentUuidFromRoute,
-    navigateTo,
-  } = useCustomRoute();
-  const { environmentUuid, setEnvironmentUuid } = useSelectEnvironmentUuid();
-  const environments = useEnvironmentsApi((state) => state.environments);
+  const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
 
-  const targetEnvironmentUuid = React.useMemo(() => {
-    const foundEnvironment =
-      environments?.find((env) => env.uuid === environmentUuidFromRoute) ||
-      environments?.[0];
+  const targetEnvironment = useEnvironmentsApi(
+    (state) => {
+      if (projectUuid !== state.projectUuid) return undefined;
+      const environment =
+        state.environments?.find((env) => env.uuid === environmentUuid) ||
+        state.environments?.[0];
 
-    return foundEnvironment?.uuid;
-  }, [environments, environmentUuidFromRoute]);
+      return environment;
+    },
+    (prev, curr) => prev?.uuid === curr?.uuid
+  );
 
   const redirect = React.useCallback(
     (environmentUuid: string) => {
@@ -37,36 +33,24 @@ export const useSyncEnvironmentUuidWithQueryArgs = () => {
   );
 
   const isEnvironmentUuidFromRouteInvalid =
-    targetEnvironmentUuid && targetEnvironmentUuid !== environmentUuidFromRoute;
-
-  const shouldUpdateEnvironmentUuid =
-    targetEnvironmentUuid && environmentUuid !== targetEnvironmentUuid;
-
-  React.useEffect(() => {
-    if (isEnvironmentUuidFromRouteInvalid) {
-      redirect(targetEnvironmentUuid);
-    } else if (shouldUpdateEnvironmentUuid) {
-      setEnvironmentUuid(targetEnvironmentUuid);
-    }
-  }, [
-    isEnvironmentUuidFromRouteInvalid,
-    redirect,
-    targetEnvironmentUuid,
-    shouldUpdateEnvironmentUuid,
-    setEnvironmentUuid,
-  ]);
-
-  const environmentChanges = React.useMemo(() => {
-    return environmentUuid
-      ? findEnvironment(environments, environmentUuid)
-      : undefined;
-  }, [environments, environmentUuid]);
+    targetEnvironment && targetEnvironment.uuid !== environmentUuid;
 
   const initEnvironmentChanges = useEditEnvironment(
     (state) => state.initEnvironmentChanges
   );
 
   React.useEffect(() => {
-    if (environmentChanges) initEnvironmentChanges(environmentChanges);
-  }, [environmentChanges, initEnvironmentChanges]);
+    if (isEnvironmentUuidFromRouteInvalid) {
+      redirect(targetEnvironment.uuid);
+    } else if (targetEnvironment) {
+      initEnvironmentChanges(targetEnvironment);
+    }
+
+    return () => initEnvironmentChanges(undefined);
+  }, [
+    isEnvironmentUuidFromRouteInvalid,
+    redirect,
+    targetEnvironment,
+    initEnvironmentChanges,
+  ]);
 };

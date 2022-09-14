@@ -24,18 +24,18 @@ const alertMessageMapping: Record<
 };
 
 export const BuildStatusAlert = () => {
-  const latestBuild = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild
+  const latestBuildStatus = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild?.status
   );
-  const latestBuildStatus = latestBuild?.status;
 
   const alert = alertMessageMapping[latestBuildStatus || ""];
+
   return (
     <Collapse in={Boolean(alert)}>
       {hasValue(alert) && (
         <Alert
           severity={alert.severity}
-          icon={<BuildStatusIcon latestBuild={latestBuild} />}
+          icon={<BuildStatusIcon latestBuildStatus={latestBuildStatus} />}
         >
           {alert.message}
         </Alert>

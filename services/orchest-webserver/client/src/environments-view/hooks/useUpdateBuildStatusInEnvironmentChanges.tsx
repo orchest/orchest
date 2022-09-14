@@ -7,27 +7,20 @@ import { useEditEnvironment } from "../stores/useEditEnvironment";
  * Note: should only be used once in a view.
  */
 export const useUpdateBuildStatusInEnvironmentChanges = () => {
-  const environments = useEnvironmentsApi((state) => state.environments);
   const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const latestBuild = useEnvironmentsApi(
+    (state) =>
+      state.environments?.find((env) => env.uuid === uuid)?.latestBuild,
+    (prev, curr) => prev?.status === curr?.status
+  );
+
   const setEnvironmentChanges = useEditEnvironment(
     (state) => state.setEnvironmentChanges
   );
 
-  const environmentChangesFromStore = React.useMemo(
-    () => environments?.find((env) => env.uuid === uuid),
-    [environments, uuid]
-  );
-
-  const latestBuildStatus = React.useMemo(() => {
-    return environmentChangesFromStore?.latestBuild?.status;
-  }, [environmentChangesFromStore?.latestBuild?.status]);
-
   React.useEffect(() => {
-    if (latestBuildStatus) {
-      setEnvironmentChanges({
-        latestBuild: environmentChangesFromStore?.latestBuild,
-      });
+    if (latestBuild) {
+      setEnvironmentChanges({ latestBuild });
     }
-    // `environmentChangesFromStore` is updated too frequently, as we only want to update when status is changed.
-  }, [setEnvironmentChanges, latestBuildStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setEnvironmentChanges, latestBuild]);
 };
