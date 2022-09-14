@@ -10,7 +10,7 @@ loop where:
 import asyncio
 import logging
 import os
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple, Union
 
 import aiohttp
 from container_runtime import ContainerRuntime
@@ -90,6 +90,58 @@ async def get_images_of_interest_on_node(
     return env_images_on_node, custom_jupyter_images_on_node, orchest_images
 
 
+async def has_ongoing_env_build(
+    session: aiohttp.ClientSession,
+    project_uuid: str,
+    environment_uuid: str,
+    tag: Optional[Union[int, str]] = None,
+) -> bool:
+    """Tells if there is an ongoing build for an env image.
+
+    Useful to understand if an image is on the node but not in the
+    active set of images because the environment build is still ongoing,
+    so the orchest-api still doesn't have the image record.
+    """
+    if tag is None:
+        endpoint = (
+            f"http://orchest-api/api/environment-builds/most-recent/"
+            f"{project_uuid}/{environment_uuid}"
+        )
+        async with session.get(endpoint) as response:
+            response_json = await response.json()
+            builds = response_json["environment_image_builds"]
+            if not builds:
+                return False
+            return builds[0]["status"] == "STARTED"
+    else:
+        endpoint = (
+            f"http://orchest-api/api/environment-builds/{project_uuid}/"
+            f"{environment_uuid}/{tag}"
+        )
+        async with session.get(endpoint) as response:
+            if response.status == 404:
+                return False
+            response_json = await response.json()
+            return response_json["status"] == "STARTED"
+
+
+async def has_ongoing_jupyter_build(session: aiohttp.ClientSession) -> bool:
+    """Tells if there is an ongoing build for a jupyter image.
+
+    Useful to understand if an image is on the node but not in the
+    active set of images because the build is still ongoing, so the
+    orchest-api still doesn't have the image record.
+    """
+    endpoint = "http://orchest-api/api/jupyter-builds/most-recent/"
+
+    async with session.get(endpoint) as response:
+        response_json = await response.json()
+        most_recent = response_json["jupyter_image_builds"]
+        if not most_recent:
+            return False
+        return most_recent[0]["status"] == "STARTED"
+
+
 async def run():
     container_runtime = ContainerRuntime()
     logger.info("Starting image deleter.")
@@ -111,7 +163,17 @@ async def run():
                     env_images_to_remove_from_node = []
                     for img in env_images_on_node:
                         if img not in active_env_images:
-                            env_images_to_remove_from_node.append(img)
+                            (
+                                proj_uuid,
+                                env_uuid,
+                                tag,
+                            ) = _utils.env_image_name_to_proj_uuid_env_uuid_tag(img)
+                            # If True, the image record still has to be
+                            # created.
+                            if not await has_ongoing_env_build(
+                                session, proj_uuid, env_uuid, tag
+                            ):
+                                env_images_to_remove_from_node.append(img)
                     env_images_to_remove_from_node.sort()
                     logger.info(
                         "Found the following inactive env images on the node: "
@@ -125,7 +187,10 @@ async def run():
                     custom_jupyter_images_to_remove_from_node = []
                     for img in custom_jupyter_images_on_node:
                         if img not in active_custom_jupyter_images:
-                            custom_jupyter_images_to_remove_from_node.append(img)
+                            # If True, the image record still has to be
+                            # created.
+                            if not await has_ongoing_jupyter_build(session):
+                                custom_jupyter_images_to_remove_from_node.append(img)
                     custom_jupyter_images_to_remove_from_node.sort()
                     logger.info(
                         "Found the following inactive custom jupyter images on the "
@@ -153,14 +218,35 @@ async def run():
                                 if f"{name}:{orchest_v}" in orchest_images_on_node:
                                     orchest_images_to_remove_from_node.append(img)
 
-                    # Remove them.
+                    # Get the set of active images again. This is to
+                    # avoid the following race condition:
+                    # - an image is found on the node but not in the
+                    #   active set because
+                    #   the build is still ongoing
+                    # - the build finishes
+                    # - the query for the ongoing build tells us that
+                    #   there is no build
+                    # - the image is added to the images to delete
+                    # If the image is not in the latest active images
+                    # set it means that the image is really an inactive
+                    # image.
+                    active_env_images = await get_active_environment_images(session)
+                    active_custom_jupyter_images = (
+                        await get_active_custom_jupyter_images(session)
+                    )
+                    active_images = active_env_images.union(
+                        active_custom_jupyter_images
+                    )
+
+                    # Remove inactive images.
                     for img in (
                         env_images_to_remove_from_node
                         + custom_jupyter_images_to_remove_from_node
                         + orchest_images_to_remove_from_node
                     ):
-                        if not await container_runtime.delete_image(img):
-                            logger.error(f"Failed to delete {img}")
+                        if img not in active_images:
+                            if not await container_runtime.delete_image(img):
+                                logger.error(f"Failed to delete {img}")
                 except Exception as ex:
                     logger.error(ex)
                 await asyncio.sleep(60)

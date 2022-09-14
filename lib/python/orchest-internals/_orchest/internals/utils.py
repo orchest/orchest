@@ -9,6 +9,8 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 import requests
 from werkzeug.serving import is_running_from_reloader as _irfr
 
+from _orchest.internals import config as _config
+
 logger = logging.getLogger(__name__)
 
 
@@ -467,3 +469,30 @@ def get_directory_size(path: str, skip_dirs: Optional[Iterable] = None):
                 dirs.remove(skip_dir)
 
     return size
+
+
+def env_image_name_to_proj_uuid_env_uuid_tag(
+    name: str,
+) -> Tuple[str, str, Optional[str]]:
+    """Splits an env image into proj, env uuids and (optionally) tag.
+
+    See config.ENVIRONMENT_IMAGE_NAME for the expected pattern.
+    """
+    tag = None
+    if ":" in name:
+        name, tag = name.split(":")
+    env_uuid = name[-36:]
+    # Because the name has a form of <optional
+    # ip>/orchest-env-<proj_uuid>-<env_uuid>..., i.e. we need to skip
+    # the "-".
+    proj_uuid = name[-73:-37]
+    return proj_uuid, env_uuid, tag
+
+
+def jupyter_image_name_to_tag(name: str) -> Optional[str]:
+    if _config.JUPYTER_IMAGE_NAME not in name:
+        raise ValueError(f"Name doesn't look like {_config.JUPYTER_IMAGE_NAME}.")
+    tag = None
+    if ":" in name:
+        _, tag = name.split(":")
+    return tag
