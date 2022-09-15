@@ -11,14 +11,14 @@ import { useActiveJob } from "./hooks/useActiveJob";
 
 export const JobSummary = () => {
   const { activeJob } = useActiveJob();
-  return activeJob ? <JobSummaryCore job={activeJob} /> : null;
+  return activeJob ? <JobSummaryComponent job={activeJob} /> : null;
 };
 
-type JobSummaryCoreProps = {
+type JobSummaryComponentProps = {
   job: JobData;
 };
 
-const JobSummaryCore = ({ job }: JobSummaryCoreProps) => {
+const JobSummaryComponent = ({ job }: JobSummaryComponentProps) => {
   const { snapshot } = useSnapshot(job.snapshot_uuid);
   const pipelineUrl = useRouteLink("pipeline", {
     pipelineUuid: job.pipeline_uuid,
