@@ -1,4 +1,4 @@
-import { useInterval } from "@/hooks/use-interval";
+import { useInterval } from "@/hooks/useInterval";
 import { LogType } from "@/types";
 import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
