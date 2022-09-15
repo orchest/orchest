@@ -73,11 +73,11 @@ export function validURL(
 }
 
 // used in orchest-webserver only
-export function kernelNameToLanguage(kernel_name) {
+export function kernelNameToLanguage(kernel_name: string): string {
   let mapping = {
     ir: "r",
   };
-  return mapping[kernel_name] ? mapping[kernel_name] : kernel_name;
+  return mapping[kernel_name] || kernel_name;
 }
 
 // used in orchest-webserver only

@@ -1,10 +1,12 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { Language } from "@/types";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { StepCreateEnvironmentButton } from "./StepCreateEnvironmentButton";
 
 type EnvironmentOption = {
   value: string;
@@ -19,7 +21,7 @@ type SelectEnvironmentProps = {
     skipSave?: boolean
   ) => void;
   disabled: boolean;
-  language?: string;
+  language: string;
 };
 
 export const SelectEnvironment = ({
@@ -71,32 +73,42 @@ export const SelectEnvironment = ({
     );
   }, [environmentOptions, onChange, value]);
 
+  const showCreateEnvironmentButton = environmentOptions?.length === 0;
+
   return (
-    <FormControl fullWidth>
-      <InputLabel id="environment-label">Environment</InputLabel>
-      {environmentOptions?.length ? (
-        <Select
-          label="Environment"
-          labelId="environment-label"
-          id="environment"
-          value={value}
-          disabled={disabled}
-          onChange={({ target }) => {
-            const selected = environmentOptions.find(
-              (option) => option.value === target.value
-            );
-            if (selected) onChange(selected.value, selected.label);
-          }}
-        >
-          {environmentOptions.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </Select>
-      ) : (
-        <Select label="Environment" placeholder="Loading …" value="" />
+    <>
+      <StepCreateEnvironmentButton
+        language={language as Language}
+        visible={showCreateEnvironmentButton}
+      />
+      {!showCreateEnvironmentButton && (
+        <FormControl fullWidth>
+          <InputLabel id="environment-label">Environment</InputLabel>
+          {!hasValue(environmentOptions) ? (
+            <Select label="Environment" placeholder="Loading …" value="" />
+          ) : (
+            <Select
+              label="Environment"
+              labelId="environment-label"
+              id="environment"
+              value={value}
+              disabled={disabled}
+              onChange={({ target }) => {
+                const selected = environmentOptions.find(
+                  (option) => option.value === target.value
+                );
+                if (selected) onChange(selected.value, selected.label);
+              }}
+            >
+              {environmentOptions.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
+        </FormControl>
       )}
-    </FormControl>
+    </>
   );
 };

@@ -1,10 +1,10 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
-import { EnvironmentData } from "@/types";
+import { EnvironmentData, EnvironmentSpec, Language } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { getNewEnvironmentName } from "../common";
+import { DEFAULT_BASE_IMAGES, getNewEnvironmentName } from "../common";
 
 export const useCreateEnvironment = () => {
   const { config } = useGlobalContext();
@@ -21,18 +21,32 @@ export const useCreateEnvironment = () => {
   const isAllowedToCreate =
     hasValue(newEnvironmentName) && hasValue(defaultEnvironment);
 
-  const createEnvironment = React.useCallback(() => {
-    if (status !== "PENDING" && isAllowedToCreate) {
-      return run(post(newEnvironmentName, defaultEnvironment));
-    }
-  }, [
-    post,
-    run,
-    status,
-    defaultEnvironment,
-    isAllowedToCreate,
-    newEnvironmentName,
-  ]);
+  const createEnvironment = React.useCallback(
+    async (language?: Language, customEnvironmentName?: string) => {
+      const baseImage = language
+        ? DEFAULT_BASE_IMAGES.find((image) => image.language === language)
+        : defaultEnvironment?.base_image;
+      const environmentSpec = {
+        ...defaultEnvironment,
+        name: "New Environment",
+        base_image: baseImage,
+        language: language || defaultEnvironment?.language,
+      } as EnvironmentSpec;
+      if (status !== "PENDING" && isAllowedToCreate) {
+        return run(
+          post(customEnvironmentName ?? newEnvironmentName, environmentSpec)
+        );
+      }
+    },
+    [
+      post,
+      run,
+      status,
+      defaultEnvironment,
+      isAllowedToCreate,
+      newEnvironmentName,
+    ]
+  );
 
   return {
     createEnvironment,
