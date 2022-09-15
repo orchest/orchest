@@ -36,7 +36,6 @@ export const EnvironmentMoreOptions = () => {
   const { selectEnvironment } = useSelectEnvironment();
 
   const deleteEnvironment = useEnvironmentsApi((state) => state.delete);
-  const isDeleting = useEnvironmentsApi((state) => state.isDeleting);
   const environments = useEnvironmentsApi((state) => state.environments);
 
   const [anchorElement, setAnchorElement] = React.useState<
@@ -95,10 +94,7 @@ export const EnvironmentMoreOptions = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem
-          disabled={!uuid || isDeleting}
-          onClick={showDeleteEnvironmentDialog}
-        >
+        <MenuItem disabled={!uuid} onClick={showDeleteEnvironmentDialog}>
           <ListItemIcon>
             <DeleteOutlineOutlinedIcon fontSize="small" />
           </ListItemIcon>
