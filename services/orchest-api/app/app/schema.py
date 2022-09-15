@@ -1066,6 +1066,23 @@ event = Model(
     },
 )
 
+kernel_spec = Model(
+    "KernelRequest",
+    {
+        "kernel_working_dir": fields.String(required=False),
+        "kernel_username": fields.String(required=False),
+        "kernel_id": fields.String(required=True),
+        "kernel_image": fields.String(required=True),
+        "eg_response_address": fields.String(required=True),
+        "spark_context_init_mode": fields.Boolean(required=False),
+        # TODO: store this data at the interactive session db record
+        # level instead of passing it from jupyter EG.
+        "pipeline_file": fields.String(required=True),
+        "pipeline_path": fields.String(required=True),
+        "project_dir": fields.String(required=True),
+    },
+)
+
 
 def register_schema(api: Namespace) -> Namespace:
     current_module = sys.modules[__name__]

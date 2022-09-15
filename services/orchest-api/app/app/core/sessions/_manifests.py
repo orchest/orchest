@@ -707,44 +707,15 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         },
     }
 
-    # Get user environment variables to pass to Jupyter kernels.
-    try:
-        user_defined_env_vars = utils.get_proj_pip_env_variables(
-            project_uuid, pipeline_uuid
-        )
-
-        # NOTE: Don't allow users to specify change the `PATH` as it
-        # could break user code execution. The `PATH` var is removed
-        # when starting kernels through the jupyter-EG as well.
-        user_defined_env_vars.pop("PATH", None)
-    except Exception:
-        user_defined_env_vars = {}
-
     process_env_whitelist = [
         "ORCHEST_PIPELINE_UUID",
         "ORCHEST_PIPELINE_PATH",
         "ORCHEST_PROJECT_UUID",
-        "ORCHEST_USERDIR_PVC",
         "ORCHEST_PROJECT_DIR",
         "ORCHEST_PIPELINE_FILE",
-        "ORCHEST_HOST_GID",
-        "ORCHEST_SESSION_UUID",
-        "ORCHEST_SESSION_TYPE",
-        "ORCHEST_GPU_ENABLED_INSTANCE",
-        "ORCHEST_REGISTRY",
-        "ORCHEST_CLUSTER",
-        "ORCHEST_NAMESPACE",
     ]
-    process_env_whitelist.extend(list(user_defined_env_vars.keys()))
     process_env_whitelist = ",".join(process_env_whitelist)
 
-    # Need to reference the ip because the local docker engine will
-    # run the container, and if the image is missing it will prompt
-    # a pull which will fail because the FQDN can't be resolved by
-    # the local engine on the node. K8S_TODO: fix this.
-    registry_ip = k8s_core_api.read_namespaced_service(
-        _config.REGISTRY, _config.ORCHEST_NAMESPACE
-    ).spec.cluster_ip
     environment = {
         "EG_MIRROR_WORKING_DIRS": "True",
         "EG_LIST_KERNELS": "True",
@@ -767,23 +738,10 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         # each kernel."
         "EG_NAMESPACE": _config.ORCHEST_NAMESPACE,
         "EG_SHARED_NAMESPACE": "True",
-        "ORCHEST_USERDIR_PVC": userdir_pvc,
         "ORCHEST_PROJECT_DIR": project_dir,
         "ORCHEST_PIPELINE_FILE": pipeline_path,
-        "ORCHEST_HOST_GID": os.environ.get("ORCHEST_HOST_GID"),
-        "ORCHEST_GPU_ENABLED_INSTANCE": str(CONFIG_CLASS.GPU_ENABLED_INSTANCE),
-        "ORCHEST_REGISTRY": registry_ip,
-        "ORCHEST_NAMESPACE": _config.ORCHEST_NAMESPACE,
-        "ORCHEST_CLUSTER": _config.ORCHEST_CLUSTER,
-        "CONTAINER_RUNTIME_SOCKET": _config.CONTAINER_RUNTIME_SOCKET,
-        "CONTAINER_RUNTIME": _config.CONTAINER_RUNTIME,
-        "CONTAINER_RUNTIME_IMAGE": _config.CONTAINER_RUNTIME_IMAGE,
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
-    user_defined_env_vars = [
-        {"name": key, "value": value} for key, value in user_defined_env_vars.items()
-    ]
-    environment.extend(user_defined_env_vars)
     environment.extend(
         _get_orchest_sdk_vars(
             project_uuid,
