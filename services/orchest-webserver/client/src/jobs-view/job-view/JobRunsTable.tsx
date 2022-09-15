@@ -5,7 +5,7 @@ import { PipelineRun } from "@/types";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cs
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
-import Alert from "@mui/lab/Alert";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
@@ -41,6 +41,7 @@ export type JobRunsTableProps = {
   totalCount: number;
   setPageNumber: (pageNumber: number) => void;
   setPageSize: (pageSize: number) => void;
+  onLineToggled: (openRows: number) => void;
 };
 
 const cellStyle: Record<number, React.CSSProperties> = {
@@ -49,8 +50,8 @@ const cellStyle: Record<number, React.CSSProperties> = {
 };
 
 type ContextMenuState = {
-  run?: PipelineRun | undefined;
   isOpen?: boolean;
+  run?: PipelineRun | undefined;
   anchorEl?: Element | undefined;
 };
 
@@ -61,13 +62,14 @@ export const JobRunsTable = ({
   pageNumber,
   setPageNumber,
   setPageSize,
+  onLineToggled,
 }: JobRunsTableProps) => {
   const [contextMenu, setContextMenu] = React.useState<ContextMenuState>({});
+  const [expanded, setExpanded] = React.useState<number>(0);
   const cancelRun = useCancelJobRun();
 
-  const openContextMenu = (run: PipelineRun, anchorEl: Element) => {
+  const openContextMenu = (run: PipelineRun, anchorEl: Element) =>
     setContextMenu({ run, anchorEl, isOpen: true });
-  };
 
   const closeContextMenu = React.useCallback(() => {
     setContextMenu((state) => ({
@@ -84,6 +86,14 @@ export const JobRunsTable = ({
       cancelRun(run.uuid).then(closeContextMenu);
     }
   };
+
+  React.useEffect(() => {
+    setExpanded(0);
+  }, [pageNumber, pageSize]);
+
+  React.useEffect(() => {
+    onLineToggled(expanded);
+  }, [expanded, onLineToggled]);
 
   return (
     <>
@@ -104,6 +114,8 @@ export const JobRunsTable = ({
                 <RunRow
                   key={run.uuid}
                   run={run}
+                  onExpand={() => setExpanded((count) => count + 1)}
+                  onCollapse={() => setExpanded((count) => count - 1)}
                   openContextMenu={(anchorEl) => openContextMenu(run, anchorEl)}
                 />
               ))}
@@ -146,10 +158,17 @@ export const JobRunsTable = ({
 
 type RunRowProps = {
   run: PipelineRun;
+  onExpand: () => void;
+  onCollapse: () => void;
   openContextMenu: (anchorEl: Element) => void;
 };
 
-const RunRow = ({ run, openContextMenu }: RunRowProps) => {
+const RunRow = ({
+  run,
+  openContextMenu,
+  onExpand,
+  onCollapse,
+}: RunRowProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const pipelineUrl = useRouteLink("jobRun", {
     runUuid: run.uuid,
@@ -184,9 +203,11 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
             <span>
               {formatPipelineParams(run.parameters).join(", ").trim() || "—"}
             </span>
-            <RouteLink underline="none" to={pipelineUrl}>
-              VIEW
-            </RouteLink>
+            {run.status !== "PENDING" && (
+              <RouteLink underline="none" to={pipelineUrl}>
+                VIEW
+              </RouteLink>
+            )}
           </Stack>
         </TableCell>
         <TableCell style={cellStyle[3]}>
@@ -213,7 +234,13 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
-          <Collapse in={isOpen} timeout="auto" unmountOnExit>
+          <Collapse
+            in={isOpen}
+            timeout="auto"
+            onEnter={onExpand}
+            onExited={onCollapse}
+            unmountOnExit
+          >
             <RunDetails run={run} />
           </Collapse>
         </TableCell>

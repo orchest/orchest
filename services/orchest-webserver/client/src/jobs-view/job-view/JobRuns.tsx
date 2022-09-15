@@ -12,7 +12,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 import { useJobRunsPage } from "./hooks/useJobRunsPage";
-import { usePollPageJobRuns } from "./hooks/usePollJobRuns";
+import { useJobRunsPolling } from "./hooks/useJobRunsPolling";
 import { JobRunsTable } from "./JobRunsTable";
 
 export const JobRuns = () => {
@@ -21,12 +21,14 @@ export const JobRuns = () => {
   const [pageSize, setPageSize] = React.useState(10);
   const [fuzzyFilter, setFuzzyFilter] = React.useState("");
   const [search, setSearch] = React.useState("");
-  const { page, refresh } = useJobRunsPage({
+  const [hasExpandedRow, setHasExpandedRow] = React.useState(false);
+  const { runs, pagination, refresh } = useJobRunsPage({
     page: pageNumber,
     pageSize,
     fuzzyFilter: fuzzyFilter || undefined,
   });
-  usePollPageJobRuns(refresh);
+
+  useJobRunsPolling(refresh, { disabled: hasExpandedRow });
   const pageNumberRef = React.useRef(pageNumber);
   pageNumberRef.current = pageNumber;
 
@@ -49,7 +51,7 @@ export const JobRuns = () => {
     <Accordion defaultExpanded>
       <AccordionSummary>
         <Typography component="h5" variant="h6">
-          Job Runs {page && <Chip label={page.pagination_data.total_items} />}
+          Job Runs {pagination && <Chip label={pagination.total_items} />}
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
@@ -67,14 +69,15 @@ export const JobRuns = () => {
             }
           />
         </Box>
-        {page && (
+        {pagination && runs && (
           <JobRunsTable
-            runs={page.pipeline_runs}
+            runs={runs}
             pageSize={pageSize}
             setPageSize={setPageSize}
             pageNumber={pageNumber}
             setPageNumber={setPageNumber}
-            totalCount={page.pagination_data.total_items}
+            onLineToggled={(openCount) => setHasExpandedRow(openCount > 0)}
+            totalCount={pagination.total_items}
           />
         )}
       </AccordionDetails>

@@ -1,74 +1,95 @@
-import { createJobStore } from "@/store/scoped";
-import { JobRunsPage, PipelineRun, PipelineRunStatus } from "@/types";
+import { defineStoreScope } from "@/store/scoped";
+import { Pagination, PipelineRun, PipelineRunStatus } from "@/types";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
 import { jobRunsApi, JobRunsPageQuery, StatusUpdate } from "./jobRunsApi";
 
+export type PaginationDetails = Pagination & {
+  page_number: number;
+  page_size: number;
+};
+
 export type JobRunsApi = {
-  /** A list of all the currently fetched runs, in no particular order. */
+  /**
+   * The currently fetched page.
+   * Hydrated by `fetchPage`.
+   */
   runs: PipelineRun[] | undefined;
-  /** The currently fetched page. */
-  page: JobRunsPage | undefined;
-  /** Fetches all runs for the current job and adds it to `runs`. */
-  fetchAll: MemoizePending<() => Promise<void>>;
-  /** Fetches a single job run and adds (or replaces) it in `runs`. */
-  fetchOne: MemoizePending<(runUuid: string) => Promise<void>>;
-  /** Fetches a job runs page and updates the `page` property. */
+  /**
+   * Metadata about the currently fetched page and available items.
+   * Hydrated by `fetchPage`.
+   */
+  pagination: PaginationDetails | undefined;
+  /**
+   * The currently active job run. Hydrated by `fetchActive`.
+   *
+   * Note: This is automatically cleared when `runUuid` changes.
+   */
+  active: PipelineRun | undefined;
+  /** Fetches a job runs page and updates `runs` and `page`. */
   fetchPage: MemoizePending<(query: JobRunsPageQuery) => Promise<void>>;
-  /** Cancels a job run and updates the it in `runs` & `page` (if it includes it). */
+  /**
+   * Fetches the currently active job run as defined by `runUuid` in the current scope.
+   *
+   * Note: Throws if `runUuid` is not available.
+   */
+  fetchActive: MemoizePending<() => Promise<void>>;
+  /** Sets `active` to undefined. */
+  clearActive: () => void;
+  /** Cancels a job run and updates the local state if successful. */
   cancel: (runUuid: string) => Promise<void>;
-  /** Updates the status of a job run in the back-end and updates it in `runs` & `page` (if it includes it). */
+  /** Updates the status of a job run in the back-end. */
   setStatus: (update: StatusUpdate) => Promise<void>;
 };
 
+const create = defineStoreScope({
+  requires: ["jobUuid"],
+  additional: ["runUuid"],
+});
+
 /** A state container for job runs within the active job scope. */
-export const useJobRunsApi = createJobStore<JobRunsApi>((set, get) => {
+export const useJobRunsApi = create<JobRunsApi>((set, get) => {
   const setRunStatus = (
     runs: PipelineRun[],
     runUuid: string,
     status: PipelineRunStatus
   ) => runs.map((run) => (run.uuid === runUuid ? { ...run, status } : run));
 
-  const replaceOrAddRun = (
-    runs: PipelineRun[] | undefined,
-    newRun: PipelineRun
-  ) => {
-    if (runs?.find((run) => run.uuid === newRun.uuid)) {
-      return runs?.map((run) => (run.uuid === newRun.uuid ? newRun : run));
-    } else {
-      return [...(runs || []), newRun];
-    }
-  };
-
   const updateStatus = (runUuid: string, status: PipelineRunStatus) => {
     set((state) => ({
       runs: state.runs ? setRunStatus(state.runs, runUuid, status) : state.runs,
-      page: state.page
-        ? {
-            ...state.page,
-            pipeline_runs: setRunStatus(
-              state.page.pipeline_runs,
-              runUuid,
-              status
-            ),
-          }
-        : state.page,
+      active:
+        state.active?.uuid === runUuid
+          ? { ...state.active, status }
+          : state.active,
     }));
   };
 
   return {
-    page: undefined,
     runs: undefined,
-    fetchOne: memoizeFor(1000, async (runUuid) => {
-      const newRun = await jobRunsApi.fetchOne(get().jobUuid, runUuid);
-
-      set((state) => ({ runs: replaceOrAddRun(state.runs, newRun) }));
-    }),
+    pagination: undefined,
+    active: undefined,
     fetchPage: memoizeFor(1000, async (query) => {
-      set({ page: await jobRunsApi.fetchPage(get().jobUuid, query) });
+      const result = await jobRunsApi.fetchPage(get().jobUuid, query);
+
+      set({
+        runs: result.pipeline_runs,
+        pagination: {
+          ...result.pagination_data,
+          page_number: query.page,
+          page_size: query.pageSize,
+        },
+      });
     }),
-    fetchAll: memoizeFor(1000, async () => {
-      set({ runs: await jobRunsApi.fetchAll(get().jobUuid) });
+    fetchActive: memoizeFor(1000, async () => {
+      const { jobUuid, runUuid } = get();
+
+      if (!runUuid) {
+        throw new Error("A `runUuid` is not defined within the current scope.");
+      }
+
+      set({ active: await jobRunsApi.fetchOne(jobUuid, runUuid) });
     }),
+    clearActive: () => set({ active: undefined }),
     cancel: async (runUuid) => {
       await jobRunsApi.cancel(get().jobUuid, runUuid);
 
@@ -80,4 +101,10 @@ export const useJobRunsApi = createJobStore<JobRunsApi>((set, get) => {
       updateStatus(update.runUuid, update.status);
     },
   };
+});
+
+useJobRunsApi.subscribe((state) => {
+  if (state.active && state.runUuid !== state.active.uuid) {
+    state.clearActive();
+  }
 });
