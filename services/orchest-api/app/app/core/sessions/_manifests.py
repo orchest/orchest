@@ -11,8 +11,9 @@ import traceback
 from typing import Any, Dict, Optional, Tuple
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import add_image_puller_if_needed, get_userdir_relpath
+from _orchest.internals.utils import get_userdir_relpath
 from app import utils
+from app.core import pod_scheduling
 from app.types import SessionConfig, SessionType
 from config import CONFIG_CLASS
 
@@ -412,14 +413,7 @@ def _get_environment_shell_deployment_service_manifest(
             },
         },
     }
-
-    add_image_puller_if_needed(
-        registry_environment_image,
-        registry_ip,
-        _config.CONTAINER_RUNTIME,
-        _config.CONTAINER_RUNTIME_IMAGE,
-        deployment_manifest,
-    )
+    pod_scheduling.modify_env_shell_scheduling_behaviour(deployment_manifest)
 
     service_manifest = {
         "apiVersion": "v1",
@@ -552,14 +546,7 @@ def _get_jupyter_server_deployment_service_manifest(
             },
         },
     }
-
-    add_image_puller_if_needed(
-        utils.get_jupyter_server_image_to_use(),
-        utils.get_registry_ip(),
-        _config.CONTAINER_RUNTIME,
-        _config.CONTAINER_RUNTIME_IMAGE,
-        deployment_manifest,
-    )
+    pod_scheduling.modify_jupyter_server_scheduling_behaviour(deployment_manifest)
 
     service_manifest = {
         "apiVersion": "v1",
@@ -978,13 +965,8 @@ def _get_user_service_deployment_service_manifest(
             },
         },
     }
-
-    add_image_puller_if_needed(
-        image,
-        utils.get_registry_ip(),
-        _config.CONTAINER_RUNTIME,
-        _config.CONTAINER_RUNTIME_IMAGE,
-        deployment_manifest,
+    pod_scheduling.modify_user_service_scheduling_behaviour(
+        session_type, deployment_manifest
     )
 
     # K8S doesn't like empty commands.

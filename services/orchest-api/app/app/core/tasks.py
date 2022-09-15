@@ -77,9 +77,10 @@ async def run_pipeline_async(
     session_uuid: str, run_config: RunConfig, pipeline: Pipeline, task_id: str
 ):
     try:
-        await run_pipeline_workflow(
-            session_uuid, task_id, pipeline, run_config=run_config
-        )
+        with application.app_context():
+            await run_pipeline_workflow(
+                session_uuid, task_id, pipeline, run_config=run_config
+            )
     except Exception as e:
         logger.error(e)
         raise
@@ -215,17 +216,18 @@ def start_non_interactive_pipeline_run(
     session_config["services"] = pipeline_definition.get("services", {})
     session_config["env_uuid_to_image"] = run_config["env_uuid_to_image"]
 
-    with launch_noninteractive_session(
-        session_uuid,
-        session_config,
-        lambda: AbortableAsyncResult(session_uuid).is_aborted(),
-    ):
-        status = run_pipeline(
-            pipeline_definition,
-            run_config,
+    with application.app_context():
+        with launch_noninteractive_session(
             session_uuid,
-            task_id=self.request.id,
-        )
+            session_config,
+            lambda: AbortableAsyncResult(session_uuid).is_aborted(),
+        ):
+            status = run_pipeline(
+                pipeline_definition,
+                run_config,
+                session_uuid,
+                task_id=self.request.id,
+            )
 
     return status
 
