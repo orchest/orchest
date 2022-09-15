@@ -9,8 +9,8 @@ export const EditEnvironmentName = () => {
 
   const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
   const name = useEditEnvironment((state) => state.environmentChanges?.name);
-  const latestBuild = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild
+  const latestBuildStatus = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild?.status
   );
   const setEnvironmentChanges = useEditEnvironment(
     (state) => state.setEnvironmentChanges
@@ -47,7 +47,7 @@ export const EditEnvironmentName = () => {
       error={isInvalid}
       helperText={isInvalid ? "Environment name cannot be blank" : " "}
       label="Environment name"
-      disabled={isEnvironmentBuilding(latestBuild)}
+      disabled={isEnvironmentBuilding(latestBuildStatus)}
       sx={{ width: { xs: "100%", lg: "50%" } }}
     />
   );

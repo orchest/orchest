@@ -41,8 +41,8 @@ export const EnvironmentSetupScript = () => {
   const setupScript = useEditEnvironment(
     (state) => state.environmentChanges?.setup_script
   );
-  const latestBuild = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild
+  const latestBuildStatus = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild?.status
   );
 
   const setEnvironmentChanges = useEditEnvironment(
@@ -67,7 +67,7 @@ export const EnvironmentSetupScript = () => {
         <SetupScriptCodeMirror
           onChange={handleChangeSetupScript}
           value={setupScript}
-          isReadOnly={isEnvironmentBuilding(latestBuild)}
+          isReadOnly={isEnvironmentBuilding(latestBuildStatus)}
         />
       </AccordionDetails>
     </Accordion>
