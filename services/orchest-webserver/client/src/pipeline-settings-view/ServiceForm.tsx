@@ -187,7 +187,7 @@ const ServiceForm: React.FC<{
                   fullWidth
                   helperText={
                     serviceNameError ||
-                    "The name of the service. Up to 36 digits, letters or dashes are allowed."
+                    "The name of the service. Up to 26 digits, lowercase letters or dashes are allowed."
                   }
                   aria-describedby="tooltip-name"
                   data-test-id={`service-${service.name}-name`}

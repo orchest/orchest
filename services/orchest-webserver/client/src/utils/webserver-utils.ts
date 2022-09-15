@@ -50,11 +50,11 @@ export function validatePipeline(pipelineJson: PipelineJson) {
       }
 
       // NOTE: this is enforced at the backend level as well, needs to
-      // be kept in sync.
-      let serviceNameRegex = /^[a-zA-Z\d-]{1,36}$/;
+      // be kept in sync. More info on the regex can be found there.
+      let serviceNameRegex = /^[a-z][0-9a-z\d-]{0,25}$/;
       if (!serviceNameRegex.test(pipelineJson.services[serviceName].name)) {
         errors.push(
-          "Service name contains illegal characters. Only use letters, digits and dashes."
+          "Service name is invalid. Only lowercase letters, digits and dashes are allowed."
         );
       }
       if (pipelineJson.services[serviceName].image.length == 0) {

@@ -112,11 +112,32 @@ def _migrate_1_2_0(pipeline: dict) -> None:
     _fill_missing_order(pipeline.get("services"))
 
 
+def _migrate_1_2_1(pipeline: dict) -> None:
+    def first_alphabetic_character(name: str) -> int:
+        alphabetic_chars = set("abcdefghijklmnopqrstuvwxyz")
+        i = 0
+        while i < len(name) and name[i] not in alphabetic_chars:
+            i += 1
+
+        return i
+
+    # Make sure service name: `is_service_name_valid`->True.
+    services = pipeline.get("services", {})
+    for service in services.values():
+        if "name" in service:
+            service["name"] = service["name"].lower()
+            i = first_alphabetic_character(service["name"])
+            service["name"] = service["name"][i : (i + 26)]
+        else:
+            service["name"] = ""
+
+
 # version: (migration function, version to which it's migrated)
 _version_to_migration_function = {
     "1.0.0": (_migrate_1_0_0, "1.1.0"),
     "1.1.0": (_migrate_1_1_0, "1.2.0"),
     "1.2.0": (_migrate_1_2_0, "1.2.1"),
+    "1.2.1": (_migrate_1_2_1, "1.2.2"),
 }
 
 # Make sure no forward version is repeated.
