@@ -8,6 +8,7 @@ import { JobRuns } from "./JobRuns";
 import { JobSummary } from "./JobSummary";
 import { JobViewContainer } from "./JobViewContainer";
 import { JobViewHeader } from "./JobViewHeader";
+import { WebhookHint } from "./WebhookHint";
 
 export const JobView = () => {
   const isEditing = useEditJob((state) => state.isEditing);
@@ -21,6 +22,7 @@ export const JobView = () => {
       {isEditing && <EditJobOverview />}
       <JobParameters />
       <JobEnvVariables />
+      <WebhookHint />
     </JobViewContainer>
   );
 };
