@@ -62,7 +62,7 @@ CSS_BUNDLE_PATH="dist/style.css"
 TS_SRC_PATH="src/main.tsx"
 SASS_SRC_PATH="src/styles/main.scss"
 
-ESBUILD_ARGS="$TS_SRC_PATH --bundle --target=es6 --sourcemap --tsconfig=tsconfig.build.json --define:__BASE_URL__=\"\" --outfile=$JS_BUNDLE_PATH"
+ESBUILD_ARGS="$TS_SRC_PATH --bundle --supported:import-meta=true --target=es6 --sourcemap --tsconfig=tsconfig.build.json --define:__BASE_URL__=\"\" --outfile=$JS_BUNDLE_PATH"
 SASS_ARGS="$SASS_SRC_PATH --load-path=$NODE_MODULES_PATH $CSS_BUNDLE_PATH"
 
 if $WATCH; then
