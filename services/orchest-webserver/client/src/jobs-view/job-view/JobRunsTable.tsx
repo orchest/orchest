@@ -184,9 +184,11 @@ const RunRow = ({ run, openContextMenu }: RunRowProps) => {
             <span>
               {formatPipelineParams(run.parameters).join(", ").trim() || "—"}
             </span>
-            <RouteLink underline="none" to={pipelineUrl}>
-              VIEW
-            </RouteLink>
+            {run.status !== "PENDING" && (
+              <RouteLink underline="none" to={pipelineUrl}>
+                VIEW
+              </RouteLink>
+            )}
           </Stack>
         </TableCell>
         <TableCell style={cellStyle[3]}>
