@@ -35,8 +35,11 @@ export type UseScopedStore<
   S extends ScopeParameter,
   A extends Exclude<ScopeParameter, S> = never
 > = StoreApi<WithInitialScope<T, S, A>> & {
-  (): T;
-  <U>(selector: (state: T) => U, equals?: (a: U, b: U) => boolean): U;
+  (): WithScopes<T, S, A>;
+  <U>(
+    selector: (state: WithScopes<T, S, A>) => U,
+    equals?: (a: U, b: U) => boolean
+  ): U;
 };
 
 export type ScopeDefinition<
