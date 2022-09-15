@@ -5,7 +5,7 @@ import { PipelineRun } from "@/types";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cs
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
-import Alert from "@mui/lab/Alert";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
