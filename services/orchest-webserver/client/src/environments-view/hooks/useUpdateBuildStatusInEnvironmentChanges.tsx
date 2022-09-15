@@ -1,4 +1,6 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { EnvironmentImageBuild } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 
@@ -11,7 +13,7 @@ export const useUpdateBuildStatusInEnvironmentChanges = () => {
   const latestBuild = useEnvironmentsApi(
     (state) =>
       state.environments?.find((env) => env.uuid === uuid)?.latestBuild,
-    (prev, curr) => prev?.status === curr?.status
+    isLatestBuildStatusUnchanged
   );
 
   const setEnvironmentChanges = useEditEnvironment(
@@ -19,8 +21,16 @@ export const useUpdateBuildStatusInEnvironmentChanges = () => {
   );
 
   React.useEffect(() => {
-    if (latestBuild) {
-      setEnvironmentChanges({ latestBuild });
-    }
+    setEnvironmentChanges({ latestBuild });
   }, [setEnvironmentChanges, latestBuild]);
 };
+
+const isLatestBuildStatusUnchanged = (
+  prev: EnvironmentImageBuild | undefined,
+  curr: EnvironmentImageBuild | undefined
+) =>
+  hasValue(prev) &&
+  hasValue(curr) &&
+  prev.project_uuid === curr.project_uuid &&
+  prev.environment_uuid === curr.environment_uuid &&
+  prev.status === curr.status;
