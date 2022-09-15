@@ -1,9 +1,9 @@
 import { ContainerImageTile } from "@/environments-view/edit-environment/ContainerImageTile";
+import { alpha } from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import { useRadioGroup } from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
-import { alpha } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
@@ -49,6 +49,7 @@ const BaseImageRadioOptionBase = React.memo(function BaseImageRadioOptionBase({
           disableRipple
           sx={{
             width: "100%",
+            "&:hover": { backgroundColor: "transparent" },
             "&:hover > div": {
               backgroundColor: (theme) =>
                 checked
@@ -77,10 +78,10 @@ export const BaseImageRadioOption = React.memo(function BaseImageRadioOption({
   children,
   ...props
 }: BaseImageRadioOptionProps) {
-  const latestBuild = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild
+  const latestBuildStatus = useEditEnvironment(
+    (state) => state.environmentChanges?.latestBuild?.status
   );
-  const disabledOnBuilding = isEnvironmentBuilding(latestBuild);
+  const disabledOnBuilding = isEnvironmentBuilding(latestBuildStatus);
 
   return (
     <BaseImageRadioOptionBase
