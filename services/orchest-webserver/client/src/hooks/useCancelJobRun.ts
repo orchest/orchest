@@ -8,6 +8,7 @@ export const useCancelJobRun = () => {
   return useConfirm(cancel, {
     content: "Are you sure that you want to cancel this Job Run?",
     confirmLabel: "Cancel run",
+    cancelLabel: "Close",
     confirmButtonColor: "error",
   });
 };
