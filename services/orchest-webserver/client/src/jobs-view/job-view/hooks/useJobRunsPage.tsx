@@ -8,7 +8,8 @@ export const useJobRunsPage = ({
   page,
   pageSize,
 }: JobRunsPageQuery) => {
-  const currentPage = useJobRunsApi((api) => api.page);
+  const pagination = useJobRunsApi((api) => api.pagination);
+  const runs = useJobRunsApi((api) => api.runs);
   const fetchPage = useJobRunsApi((api) => api.fetchPage);
   const { error, run, status } = useAsync();
 
@@ -21,7 +22,8 @@ export const useJobRunsPage = ({
   }, [fetchPage, fuzzyFilter, page, pageSize, run]);
 
   return {
-    page: currentPage,
+    pagination,
+    runs,
     refresh,
     isFetching: status === "PENDING",
     error,
