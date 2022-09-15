@@ -220,11 +220,19 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
       const status = getEnvironmentBuildStatus(response);
 
       if (hasActionChanged || status !== get().status) {
-        set({
-          environments: validatedEnvironments,
-          status,
-          buildingEnvironments,
-          environmentsToBeBuilt,
+        set((state) => {
+          const environmentsMap = new Map(
+            (state.environments || []).map((env) => [env.uuid, env])
+          );
+          return {
+            environments: validatedEnvironments.map((env) => ({
+              ...environmentsMap.get(env.uuid),
+              ...env,
+            })),
+            status,
+            buildingEnvironments,
+            environmentsToBeBuilt,
+          };
         });
       }
 

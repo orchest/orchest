@@ -9,35 +9,26 @@ import React from "react";
  * Returns the latest environmentImageBuild of the given environment UUID.
  */
 export const useFetchBuildStatus = (environmentUuid?: string) => {
-  const projectUuidInStore = useEnvironmentsApi((state) => state.projectUuid);
-  const { projectUuid } = useValidQueryArgs({
-    projectUuid: projectUuidInStore,
-  });
-  const environments = useEnvironmentsApi((state) => state.environments);
+  const projectUuid = useEnvironmentsApi((state) => state.projectUuid);
+  const { projectUuid: validProjectUuid } = useValidQueryArgs({ projectUuid });
+  const isStoreLoaded = useEnvironmentsApi(
+    (state) => hasValue(validProjectUuid) && hasValue(state.environments)
+  );
+
   const updateBuildStatus = useEnvironmentsApi(
     (state) => state.updateBuildStatus
   );
-  const hasLoadedBuildStatus = useEnvironmentsApi(
-    (state) => state.hasLoadedBuildStatus
-  );
-
-  const isStoreLoaded = hasValue(projectUuid) && hasValue(environments);
-
-  const initializeBuildStatus = React.useCallback(async () => {
-    if (isStoreLoaded) await updateBuildStatus();
-  }, [isStoreLoaded, updateBuildStatus]);
-
-  const environmentImageBuild = React.useMemo(() => {
-    if (!isStoreLoaded) return;
-    const environment = environments.find(
-      (env) => env.uuid === environmentUuid
-    );
-    return environment?.latestBuild;
-  }, [isStoreLoaded, environments, environmentUuid]);
 
   React.useEffect(() => {
-    initializeBuildStatus();
-  }, [initializeBuildStatus]);
+    if (isStoreLoaded) updateBuildStatus();
+  }, [isStoreLoaded, updateBuildStatus]);
+
+  const environmentImageBuild = useEnvironmentsApi((state) =>
+    !isStoreLoaded
+      ? undefined
+      : state.environments?.find((env) => env.uuid === environmentUuid)
+          ?.latestBuild
+  );
 
   const isBuilding =
     environmentImageBuild &&
@@ -46,6 +37,10 @@ export const useFetchBuildStatus = (environmentUuid?: string) => {
   useInterval(
     updateBuildStatus,
     !isStoreLoaded ? undefined : isBuilding ? 1000 : 5000
+  );
+
+  const hasLoadedBuildStatus = useEnvironmentsApi(
+    (state) => state.hasLoadedBuildStatus
   );
 
   return { environmentImageBuild, isBuilding, hasLoadedBuildStatus };

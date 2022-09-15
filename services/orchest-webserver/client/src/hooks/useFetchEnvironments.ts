@@ -8,14 +8,15 @@ export const useFetchEnvironments = () => {
   const request = useEnvironmentsApi((state) => state.fetchAll);
   const environments = useEnvironmentsApi((state) => state.environments || []);
 
-  const isAllowedToFetch = status !== "PENDING";
+  const isAllowedToFetch = React.useRef(false);
+  isAllowedToFetch.current = status !== "PENDING";
 
   const fetchEnvironments = React.useCallback(
     async (projectUuid: string | undefined, language?: string) => {
-      if (isAllowedToFetch && projectUuid)
+      if (isAllowedToFetch.current && projectUuid)
         return run(request(projectUuid, language));
     },
-    [request, run, isAllowedToFetch]
+    [request, run]
   );
 
   return { environments, error, status, fetchEnvironments };

@@ -1,4 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { pick } from "@/utils/record";
 import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
@@ -57,10 +58,14 @@ export const EnvironmentMenuList = () => {
             hasValue(environmentChanges) &&
             environmentChanges.uuid === environment.uuid;
           const data = selected ? environmentChanges : environment;
+          const selectedData = pick(data, "uuid", "name", "language");
+          const latestBuildStatus = data.latestBuild?.status;
+
           return (
             <EnvironmentMenuItem
               key={environment.uuid}
-              {...data}
+              {...selectedData}
+              latestBuildStatus={latestBuildStatus}
               showStatusIcon={hasLoadedBuildStatus}
               onClick={updateStoreAndRedirect}
               selected={selected}

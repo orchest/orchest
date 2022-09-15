@@ -12,14 +12,23 @@ export const useInitiateEnvironments = () => {
   const { projectUuid: projectUuidFromRoute } = useCustomRoute();
   const projectUuid = useEnvironmentsApi((state) => state.projectUuid);
 
-  const shouldRefetch = useShouldRefetchPerProject();
+  const setEnvironments = useEnvironmentsApi((state) => state.setEnvironments);
 
+  React.useEffect(() => {
+    if (hasValue(projectUuid) && projectUuid !== projectUuidFromRoute) {
+      setEnvironments(undefined);
+    }
+  }, [projectUuid, projectUuidFromRoute, setEnvironments]);
+
+  const shouldRefetch = useShouldRefetchPerProject();
   const shouldFetch = useEnvironmentsApi(
     (state) =>
-      hasValue(projectUuidFromRoute) && (!state.environments || shouldRefetch)
+      hasValue(projectUuidFromRoute) &&
+      (!hasValue(state.environments) || shouldRefetch)
   );
 
   const { fetchEnvironments } = useFetchEnvironments();
+
   const validate = useEnvironmentsApi((state) => state.validate);
   const fetchAndValidate = React.useCallback(async () => {
     if (projectUuidFromRoute) {
@@ -27,12 +36,10 @@ export const useInitiateEnvironments = () => {
       await validate();
     }
   }, [fetchEnvironments, validate, projectUuidFromRoute]);
-  React.useEffect(() => {
-    if (shouldFetch) fetchAndValidate();
-  }, [shouldFetch, fetchAndValidate]);
 
-  const setEnvironments = useEnvironmentsApi((state) => state.setEnvironments);
   React.useEffect(() => {
-    if (projectUuid !== projectUuidFromRoute) setEnvironments(undefined);
-  }, [projectUuid, projectUuidFromRoute, setEnvironments]);
+    if (shouldFetch) {
+      fetchAndValidate();
+    }
+  }, [shouldFetch, fetchAndValidate]);
 };
