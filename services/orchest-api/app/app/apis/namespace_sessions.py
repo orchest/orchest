@@ -128,12 +128,14 @@ class SessionKernelList(Resource):
     """To create kernels to be used by Jupyter EG in a session."""
 
     @api.doc("create_kernel")
-    @api.marshal_with(schema.kernel_spec)
+    @api.expect(schema.kernel_spec)
     def post(self, project_uuid, pipeline_uuid):
         """Lock and get the environment image to use for the kernel."""
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                CreateKernel(tpe).transaction(project_uuid, pipeline_uuid)
+                LaunchKernel(tpe).transaction(
+                    project_uuid, pipeline_uuid, request.get_json()
+                )
         except Exception as e:
             current_app.logger.error(e)
             return {"message": str(e)}, 500
@@ -393,7 +395,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             )
 
 
-class CreateKernel(TwoPhaseFunction):
+class LaunchKernel(TwoPhaseFunction):
     def _transaction(
         self, project_uuid: str, pipeline_uuid: str, kernel_spec: Dict[str, Any]
     ) -> None:
@@ -410,9 +412,9 @@ class CreateKernel(TwoPhaseFunction):
             _config.REGISTRY, _config.ORCHEST_NAMESPACE
         ).spec.cluster_ip
         image_name = (
-            registry_ip
+            f"{registry_ip}/"
             + _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=project_uuid, environment_uuid=pipeline_uuid
+                project_uuid=project_uuid, environment_uuid=env_uuid
             )
             + f":{env_image.tag}"
         )
@@ -455,9 +457,10 @@ class CreateKernel(TwoPhaseFunction):
             "ORCHEST_HOST_GID": os.environ.get("ORCHEST_HOST_GID"),
             "ORCHEST_SESSION_UUID": session_uuid,
             "ORCHEST_SESSION_TYPE": "interactive",
-            "ORCHEST_GPU_ENABLED_INSTANCE": False,
+            "ORCHEST_GPU_ENABLED_INSTANCE": "False",
             "ORCHEST_CLUSTER": _config.ORCHEST_CLUSTER,
             "ORCHEST_NAMESPACE": _config.ORCHEST_NAMESPACE,
+            "KERNEL_ID": kernel_id,
         }
         environment["EG_RESPONSE_ADDRESS"] = kernel_spec["eg_response_address"]
         if kernel_spec.get("spark_context_init_mode") is not None:

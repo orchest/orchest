@@ -1074,7 +1074,7 @@ kernel_spec = Model(
         "kernel_id": fields.String(required=True),
         "kernel_image": fields.String(required=True),
         "eg_response_address": fields.String(required=True),
-        "spark_context_init_mode": fields.Boolean(required=False),
+        "spark_context_init_mode": fields.String(required=False),
         # TODO: store this data at the interactive session db record
         # level instead of passing it from jupyter EG.
         "pipeline_file": fields.String(required=True),

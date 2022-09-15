@@ -42,7 +42,7 @@ def launch_kernel(kernel_id, response_addr, spark_context_init_mode):
             f"http://{_config.ORCHEST_API_ADDRESS}/api/sessions/"
             f"{project_uuid}/{pipeline_uuid}/kernels"
         ),
-        data=kernel_spec,
+        json=kernel_spec,
     )
     if resp.status_code != 201:
         sys.exit(f"Kernel pod request failed: {resp.status_code}, {resp.json()}.")
