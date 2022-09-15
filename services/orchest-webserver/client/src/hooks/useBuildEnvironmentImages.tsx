@@ -4,8 +4,8 @@ import {
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { useBuildEnvironmentImage } from "@/environments-view/hooks/useBuildEnvironmentImage";
-import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useInterval } from "@/hooks/useInterval";
 import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";

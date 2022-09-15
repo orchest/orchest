@@ -7,9 +7,9 @@ import { OrchestVersion, UpdateInfo } from "@/types";
 import Typography from "@mui/material/Typography";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useInterval } from "./use-interval";
 import { useCancelablePromise } from "./useCancelablePromise";
 import { useFetcher } from "./useFetcher";
+import { useInterval } from "./useInterval";
 import { useMatchRoutePaths } from "./useMatchProjectRoot";
 
 const isVersionLTE = (oldVersion: string, newVersion: string) => {

@@ -1,4 +1,4 @@
-import { useInterval } from "@/hooks/use-interval";
+import { useInterval } from "@/hooks/useInterval";
 import { Routes } from "@/Routes";
 import Box from "@mui/material/Box";
 import OpenReplay from "@openreplay/tracker";

@@ -1,11 +1,11 @@
 import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useInterval } from "@/hooks/use-interval";
 import {
   useCancelableFetch,
   useCancelablePromise,
 } from "@/hooks/useCancelablePromise";
+import { useInterval } from "@/hooks/useInterval";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";

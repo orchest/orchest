@@ -1,5 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { useInterval } from "@/hooks/use-interval";
+import { useInterval } from "@/hooks/useInterval";
 import { useValidQueryArgs } from "@/hooks/useValidQueryArgs";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";

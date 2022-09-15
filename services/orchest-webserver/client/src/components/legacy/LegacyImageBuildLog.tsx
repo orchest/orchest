@@ -1,5 +1,5 @@
-import { useInterval } from "@/hooks/use-interval";
 import { useFetcher } from "@/hooks/useFetcher";
+import { useInterval } from "@/hooks/useInterval";
 import { useSocketIO } from "@/pipeline-view/hooks/useSocketIO";
 import { EnvironmentImageBuild } from "@/types";
 import Box from "@mui/material/Box";

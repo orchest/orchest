@@ -1,8 +1,8 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useInterval } from "@/hooks/use-interval";
 import { StateDispatcher, useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
+import { useInterval } from "@/hooks/useInterval";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMounted } from "@/hooks/useMounted";
 import DeleteIcon from "@mui/icons-material/Delete";

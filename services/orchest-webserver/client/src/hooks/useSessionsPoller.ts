@@ -10,9 +10,9 @@ import { OrchestSession } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { matchPath } from "react-router-dom";
-import { useInterval } from "./use-interval";
 import { useCustomRoute } from "./useCustomRoute";
 import { useFetcher } from "./useFetcher";
+import { useInterval } from "./useInterval";
 
 type TSessionStatus = OrchestSession["status"];
 

@@ -1,6 +1,6 @@
 import { TStatus } from "@/components/Status";
-import { useInterval } from "@/hooks/use-interval";
 import { useFetcher } from "@/hooks/useFetcher";
+import { useInterval } from "@/hooks/useInterval";
 import type { PipelineRun } from "@/types";
 import { serverTimeToDate } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
