@@ -479,3 +479,14 @@ def _mark_env_images_that_can_be_removed(
             models.EnvironmentImage.tag,
         ).in_([(img.project_uuid, img.environment_uuid, img.tag) for img in imgs])
     ).update({"marked_for_removal": True})
+
+
+def release_environment_images_for_job(job_uuid: str) -> None:
+    """Releases image locks of the job.
+
+    Does not commit.
+
+    """
+    models.JobInUseImage.query.filter(
+        models.JobInUseImage.job_uuid == job_uuid
+    ).delete()

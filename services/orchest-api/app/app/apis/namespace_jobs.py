@@ -15,7 +15,7 @@ import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from app import schema
+from app import errors, schema
 from app import types as app_types
 from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
@@ -261,10 +261,14 @@ class DraftJobPipelineUpdate(Resource):
                     request.get_json()["pipeline_uuid"],
                 )
         except ValueError as e:
-            return {"message": str(e)}, 409
+            return {"message": str(e), "type": "VALUE_ERROR"}, 409
+        except errors.ImageNotFound as e:
+            return {"message": str(e), "type": "IMAGE_NOT_FOUND"}, 409
+        except errors.PipelineDefinitionNotValid as e:
+            return {"message": str(e), "type": "PIPELINE_DEFINITION_NOT_VALID"}, 409
         except Exception as e:
             current_app.logger.error(e)
-            return {"message": str(e)}, 500
+            return {"message": str(e), "type": "EXCEPTION"}, 500
 
         return {"message": "Job pipeline was updated successfully"}, 200
 
@@ -1489,6 +1493,15 @@ class UpdateDraftJobPipeline(TwoPhaseFunction):
         # Reset them as if the draft has just been created.
         job.parameters = []
         job.strategy_json = {}
+
+        # The different pipeline might use different images.
+        environments.release_environment_images_for_job(job.uuid)
+        pipeline = construct_pipeline(
+            uuids=[], run_type="full", pipeline_definition=job.pipeline_definition
+        )
+        environments.lock_environment_images_for_job(
+            job.uuid, job.project_uuid, pipeline.get_environments()
+        )
 
     def _collateral(self):
         pass
