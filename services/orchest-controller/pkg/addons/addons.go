@@ -1,12 +1,7 @@
 package addons
 
 import (
-	"context"
-	"path"
-
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 var (
@@ -38,6 +33,7 @@ func NewDefaultAddonsConfig() AddonsConfig {
 
 type PreInstallHookFn func(config *orchestv1alpha1.ApplicationSpec) error
 
+/*
 type Addon interface {
 	// Enable the addon. preInstallHooks should be called, before enabling the addon
 	Enable(ctx context.Context, preInstallHooks []PreInstallHookFn, namespace string, app *orchestv1alpha1.ApplicationSpec) error
@@ -134,3 +130,4 @@ func (m *AddonManager) EnableAddon(ctx context.Context, addonName, namespace str
 func (m *AddonManager) Get(name string) Addon {
 	return m.addons[name]
 }
+*/
