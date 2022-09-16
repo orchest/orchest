@@ -53,7 +53,9 @@ def _is_jupyter_image_in_registry(tag: Union[int, str]) -> bool:
     ).scalar()
 
 
-def _get_node_name_hard_affinity(node_name: str) -> Dict[str, Any]:
+def _get_node_affinity(node_names: List[str]) -> Dict[str, Any]:
+    # Need to set a specific node at the application level:
+    # https://github.com/kubernetes/kubernetes/issues/78238.
     return {
         "nodeAffinity": {
             "requiredDuringSchedulingIgnoredDuringExecution": {
@@ -63,7 +65,7 @@ def _get_node_name_hard_affinity(node_name: str) -> Dict[str, Any]:
                             {
                                 "key": "metadata.name",
                                 "operator": "In",
-                                "values": [node_name],
+                                "values": [random.choice(node_names)],
                             }
                         ]
                     }
@@ -78,9 +80,14 @@ def _is_image_of_interest(image: str) -> bool:
 
 
 def _should_constrain_to_nodes(scope: str, image_is_in_registry: bool) -> bool:
-    # interactive -> always constrained to nodes which have the image.
-    # ron-interactive -> only constrained to nodes which have the image
-    # if the image is not in the registry.
+    # Everything that belongs to the interactive scope is constrained to
+    # nodes that already have the image for the sake of getting things
+    # to the user quicker. When it comes to the non-interactive scope we
+    # only have to constrain to the node that has the image if the image
+    # is not in the registry, because that means that there would be no
+    # way to pull the image. In all other cases (non-interactive scope
+    # with the image being in the registry) we don't need to constrain
+    # to nodes.
     return scope == "interactive" or not image_is_in_registry
 
 
@@ -110,9 +117,7 @@ def _get_required_affinity(
     if not _should_constrain_to_nodes(scope, image_is_in_registry):
         return
 
-    # Need to set a specific node at the application level:
-    # https://github.com/kubernetes/kubernetes/issues/78238.
-    return _get_node_name_hard_affinity(random.choice(nodes))
+    return _get_node_affinity(nodes)
 
 
 def _get_pre_pull_init_container_manifest(
@@ -262,11 +267,9 @@ def _modify_pipeline_scheduling_behaviour_multi_node(
         for param in parameters:
             if param["name"] == "image":
                 image = param["value"]
-                break
             if param["name"] == "pod_spec_patch":
                 pod_spec_patch_param = param
                 pod_spec_patch = json.loads(param["value"])
-                break
         if image is None:
             raise ValueError("Didn't find any image among the step task parameters.")
         if pod_spec_patch is None:
@@ -291,6 +294,5 @@ def modify_pipeline_scheduling_behaviour(scope: str, manifest: Dict[str, Any]) -
     if manifest["kind"] != "Workflow":
         raise ValueError("Expected a workflow manifest.")
     if CONFIG_CLASS.SINGLE_NODE:
-        _modify_pipeline_scheduling_behaviour_single_node(scope, manifest)
-        return
+        return _modify_pipeline_scheduling_behaviour_single_node(scope, manifest)
     _modify_pipeline_scheduling_behaviour_multi_node(scope, manifest)
