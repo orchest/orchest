@@ -173,10 +173,11 @@ class ImagePuller(object):
                     self.logger.warning(f"Image '{image_name}' was not downloaded!")
                 except Exception as ex:
                     self.logger.warning(
-                        f"Attempt {retry} to pull image "
-                        f"'{image_name}' failed with "
-                        f"exception - retrying. Exception was: {ex}."
+                        f"Attempt {retry} to pull image '{image_name}' and notify the "
+                        "orchest-api failed with exception - retrying. "
+                        f"Exception was: {ex}."
                     )
+
             queue.task_done()
 
     async def run(self):
