@@ -8,6 +8,7 @@ import (
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/helm"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -38,7 +39,19 @@ func (c *HelmComponent) getReleaseName(namespace string) string {
 	return fmt.Sprintf("%s-%s", namespace, c.name)
 }
 
-func (c *HelmComponent) Update(ctx context.Context, namespace string, message Message) error {
+func (c *HelmComponent) Update(ctx context.Context, namespace string,
+	message Message, eventChan chan Event) {
+
+	var err error
+
+	defer func() {
+		if err != nil {
+			eventChan <- ErrorEvent(err.Error())
+		} else {
+			eventChan <- LogEvent(utils.GetDeployedEvent(c.name))
+		}
+	}()
+
 	releaseName := c.getReleaseName(namespace)
 
 	// Generate the deploy args
@@ -54,7 +67,8 @@ func (c *HelmComponent) Update(ctx context.Context, namespace string, message Me
 
 	app, ok := message.(*orchestv1alpha1.ApplicationSpec)
 	if !ok {
-		return fmt.Errorf("Component %s requires message of type *orchestv1alpha1.ApplicationSpec", c.name)
+		err = fmt.Errorf("Component %s requires message of type *orchestv1alpha1.ApplicationSpec", c.name)
+		return
 	}
 
 	if app != nil && app.Config.Helm != nil && app.Config.Helm.Parameters != nil {
@@ -76,21 +90,23 @@ func (c *HelmComponent) Update(ctx context.Context, namespace string, message Me
 		newConfig, err := helm.RunCommand(ctx, deployArgs.WithTemplate().Build())
 		if err != nil {
 			// Failed to get new config, probably it is best to not update
-			return err
+			return
 		}
 		// Unfortunately, the value returned from helm get manifest has 1 extra byte,
 		// so we need to trim it off.
 		if strings.TrimSpace(newConfig) == strings.TrimSpace(oldConfig) {
 			// There is no need for update, return without err
-			return nil
+			return
 		}
 
 		err = helm.RemoveHelmHistoryIfNeeded(ctx, c.client, releaseName, namespace)
 		if err != nil {
-			return err
+			return
 		}
 
 	}
+
+	eventChan <- LogEvent("helo melo")
 
 	/*
 		for _, preInstall := range preInstallHooks {
@@ -102,17 +118,26 @@ func (c *HelmComponent) Update(ctx context.Context, namespace string, message Me
 	*/
 
 	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
-	return err
+	return
 }
 
-func (c *HelmComponent) Stop(ctx context.Context, namespace string, message Message) error {
-	return nil
+func (c *HelmComponent) Stop(ctx context.Context, namespace string,
+	message Message, eventChan chan Event) {
+	return
 }
 
-func (c *HelmComponent) Start(ctx context.Context, namespace string, message Message) error {
-	return nil
+func (c *HelmComponent) Start(ctx context.Context, namespace string,
+	message Message, eventChan chan Event) {
+	return
 }
 
-func (c *HelmComponent) Delete(ctx context.Context, namespace string, message Message) error {
-	return helm.RemoveRelease(ctx, c.getReleaseName(namespace), namespace)
+func (c *HelmComponent) Delete(ctx context.Context, namespace string,
+	message Message, eventChan chan Event) {
+	err := helm.RemoveRelease(ctx, c.getReleaseName(namespace), namespace)
+
+	if err != nil {
+		eventChan <- ErrorEvent(err.Error())
+	} else {
+		eventChan <- LogEvent(utils.GetDeletedEvent(c.name))
+	}
 }
