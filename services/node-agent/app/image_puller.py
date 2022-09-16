@@ -87,7 +87,69 @@ class ImagePuller(object):
         # pulled are not pulled concurrently again.
         self._curr_pulling_imgs = set()
 
-    async def get_image_names(self, queue: asyncio.Queue):
+    async def _enqueue_pre_pull_orchest_images(
+        self, session: aiohttp.ClientSession, queue: asyncio.Queue
+    ):
+        endpoint = f"{self.orchest_api_host}/api/ctl/orchest-images-to-pre-pull"
+        async with session.get(endpoint) as response:
+            response_json = await response.json()
+            for image_name in response_json["pre_pull_images"]:
+                await queue.put((image_name, False))
+
+    async def _enqueue_active_environment_images(
+        self, session: aiohttp.ClientSession, queue: asyncio.Queue
+    ):
+        endpoint = (
+            f"{self.orchest_api_host}/api/environment-images/active"
+            "?stored_in_registry=true"
+        )
+        async with session.get(endpoint) as response:
+            response_json = await response.json()
+            active_images = response_json["active_environment_images"]
+
+        # Since k8s GC could delete the image from the node we want the
+        # image puller to continuously try to pull all active images, at
+        # the same time, we don't want to have it notify the orchest-api
+        # for every image it (attempts to) pull, but only about the ones
+        # the orchest-api believe are not on the node.
+        endpoint = (
+            f"{self.orchest_api_host}/api/environment-images/active"
+            f"?stored_in_registry=true&not_in_node={CONFIG_CLASS.CLUSTER_NODE}"
+        )
+        async with session.get(endpoint) as response:
+            response_json = await response.json()
+            images_to_notify_api_about_pull = set(
+                response_json["active_environment_images"]
+            )
+
+        for image in active_images:
+            await queue.put((image, image in images_to_notify_api_about_pull))
+
+    async def _enqueue_active_jupyter_images(
+        self, session: aiohttp.ClientSession, queue: asyncio.Queue
+    ):
+        endpoint = (
+            f"{self.orchest_api_host}/api/ctl/active-custom-jupyter-images"
+            "?stored_in_registry=true"
+        )
+        async with session.get(endpoint) as response:
+            response_json = await response.json()
+            active_images = response_json["active_custom_jupyter_images"]
+
+        endpoint = (
+            f"{self.orchest_api_host}/api/ctl/active-custom-jupyter-images"
+            f"?stored_in_registry=true&not_in_node={CONFIG_CLASS.CLUSTER_NODE}"
+        )
+        async with session.get(endpoint) as response:
+            response_json = await response.json()
+            images_to_notify_api_about_pull = set(
+                response_json["active_custom_jupyter_images"]
+            )
+
+        for image in active_images:
+            await queue.put((image, image in images_to_notify_api_about_pull))
+
+    async def get_active_images_to_pull(self, queue: asyncio.Queue):
         """Fetches the image names by calling following endpoints
         of the orchest-api.
             1. /ctl/orchest-images-to-pre-pull
@@ -101,36 +163,13 @@ class ImagePuller(object):
         async with aiohttp.ClientSession(trust_env=True) as session:
             while True:
                 try:
-                    endpoint = (
-                        f"{self.orchest_api_host}/api/ctl/orchest-images-to-pre-pull"
-                    )
-                    async with session.get(endpoint) as response:
-                        response_json = await response.json()
-                        for image_name in response_json["pre_pull_images"]:
-                            await queue.put(image_name)
-
-                    endpoint = (
-                        f"{self.orchest_api_host}/api/environment-images/active"
-                        "?stored_in_registry=true"
-                    )
-                    async with session.get(endpoint) as response:
-                        response_json = await response.json()
-                        for image_name in response_json["active_environment_images"]:
-                            await queue.put(image_name)
-
-                    endpoint = (
-                        f"{self.orchest_api_host}/api/ctl/active-custom-jupyter-images"
-                        "?stored_in_registry=true"
-                    )
-                    async with session.get(endpoint) as response:
-                        response_json = await response.json()
-                        for image_name in response_json["active_custom_jupyter_images"]:
-                            await queue.put(image_name)
-
+                    await self._enqueue_pre_pull_orchest_images(session, queue)
+                    await self._enqueue_active_environment_images(session, queue)
+                    await self._enqueue_active_jupyter_images(session, queue)
                 except Exception as ex:
                     self.logger.error(
-                        f"Attempt to get image name from '{self.interval}' "
-                        f"encountered exception. Exception was: {ex}."
+                        f"Attempt '{self.interval}' to get active images"
+                        f"encountered an exception. Exception was: {ex}."
                     )
                 await asyncio.sleep(self.interval)
 
@@ -148,29 +187,47 @@ class ImagePuller(object):
         """
 
         while True:
-            image_name = await queue.get()
-            if self.policy == Policy.IfNotPresent:
-                if (
+            image_name, should_notify_orchest_api = await queue.get()
+
+            should_pull = self.policy == Policy.Always or (
+                self.policy == Policy.IfNotPresent
+                and not (
                     image_name in self._curr_pulling_imgs
                     or await self.container_runtime.image_exists(image_name)
-                ):
-                    queue.task_done()
-                    continue
-
-            self.logger.info(
-                f"Image '{image_name}' " "is not found - attempting pull..."
+                )
             )
 
             for retry in range(self.num_retries):
                 try:
-                    self.logger.info(f"Pulling image '{image_name}'...")
-                    if await self.container_runtime.download_image(image_name):
+                    if should_pull:
+                        self.logger.info(f"Pulling image '{image_name}'...")
+                        pulled_successfully = (
+                            await self.container_runtime.download_image(image_name)
+                        )
+
+                    # We might need to notify the orchest-api without
+                    # having pulled the image if, for example, the image
+                    # has already been pulled by other means, e.g. by a
+                    # pod using the image which was started on this
+                    # node.
+                    should_notify_orchest_api = should_notify_orchest_api and (
+                        not should_pull or pulled_successfully
+                    )
+                    if should_notify_orchest_api:
                         async with aiohttp.ClientSession(trust_env=True) as session:
                             await self.notify_orchest_api_of_image_pull(
                                 session, image_name
                             )
+                        self.logger.info(
+                            f"Notified orchest-api of pull of '{image_name}'"
+                        )
+                    if should_pull:
+                        if pulled_successfully:
+                            self.logger.info(f"Image '{image_name}' was pulled.")
+                        else:
+                            self.logger.warning(f"Image '{image_name}' was not pulled!")
+                    else:
                         break
-                    self.logger.warning(f"Image '{image_name}' was not downloaded!")
                 except Exception as ex:
                     self.logger.warning(
                         f"Attempt {retry} to pull image '{image_name}' and notify the "
@@ -179,20 +236,6 @@ class ImagePuller(object):
                     )
 
             queue.task_done()
-
-    async def run(self):
-        try:
-            self.logger.info("Starting image puller.")
-            queue = asyncio.Queue()
-
-            get_images_task = asyncio.create_task(self.get_image_names(queue))
-            pullers = [
-                asyncio.create_task(self.pull_image(queue))
-                for _ in range(self.threadiness)
-            ]
-            await asyncio.gather(*pullers, get_images_task)
-        finally:
-            await self.container_runtime.close()
 
     async def notify_orchest_api_of_image_pull(
         self, session: aiohttp.ClientSession, image: str
@@ -205,3 +248,17 @@ class ImagePuller(object):
             self.logger.info(
                 "Not an environment or jupyter image, not notifying the orchest-api."
             )
+
+    async def run(self):
+        try:
+            self.logger.info("Starting image puller.")
+            queue = asyncio.Queue()
+
+            get_images_task = asyncio.create_task(self.get_active_images_to_pull(queue))
+            pullers = [
+                asyncio.create_task(self.pull_image(queue))
+                for _ in range(self.threadiness)
+            ]
+            await asyncio.gather(*pullers, get_images_task)
+        finally:
+            await self.container_runtime.close()
