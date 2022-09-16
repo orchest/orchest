@@ -1,7 +1,6 @@
 import requests
 from flask import current_app, jsonify, request
 
-from _orchest.internals import analytics
 from app import error
 from app.core import jobs
 from app.models import Pipeline, Project
@@ -180,25 +179,7 @@ def register_orchest_api_views(app, db):
     @app.route("/catch/api-proxy/api/jobs", methods=["POST"])
     def catch_api_proxy_jobs_post():
 
-        try:
-            job_spec = jobs.create_job_spec(request.json)
-        except error.EnvironmentsDoNotExist as e:
-            return (
-                jsonify(
-                    {
-                        "message": environments_missing_msg.format(
-                            missing_environment_uuids=[",".join(e.environment_uuids)]
-                        ),
-                    }
-                ),
-                500,
-            )
-
-        resp = requests.post(
-            "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
-            json=job_spec,
-        )
-
+        resp = jobs.create_job(request.json)
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/duplicate", methods=["POST"])
@@ -206,7 +187,8 @@ def register_orchest_api_views(app, db):
 
         json_obj = request.json
         try:
-            job_spec = jobs.duplicate_job_spec(json_obj["job_uuid"])
+            resp = jobs.duplicate_job_spec(json_obj["job_uuid"])
+            return resp.content, resp.status_code, resp.headers.items()
         except error.ProjectDoesNotExist:
             msg = (
                 "The job cannot be duplicated because its project does "
@@ -242,43 +224,6 @@ def register_orchest_api_views(app, db):
                 ),
                 500,
             )
-
-        resp = requests.post(
-            "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
-            json=job_spec,
-        )
-
-        event_type = analytics.Event.ONE_OFF_JOB_DUPLICATED
-        if job_spec["cron_schedule"] is not None:
-            event_type = analytics.Event.CRON_JOB_DUPLICATED
-
-        analytics.send_event(
-            app,
-            event_type,
-            analytics.TelemetryData(
-                event_properties={
-                    "project": {
-                        "uuid": job_spec["project_uuid"],
-                        "job": {
-                            "uuid": json_obj["job_uuid"],
-                            "new_job_uuid": job_spec["uuid"],
-                        },
-                    },
-                    "duplicate_from": json_obj["job_uuid"],
-                    # Deprecated fields, kept to not break the analytics
-                    # BE schema.
-                    "job_definition": None,
-                    "snapshot_size": None,
-                    "deprecated": [
-                        "duplicated_from",
-                        "job_definition",
-                        "snapshot_size",
-                    ],
-                },
-                derived_properties={},
-            ),
-        )
-        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions", methods=["GET"])
     def catch_api_proxy_sessions_get():

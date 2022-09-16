@@ -9,6 +9,7 @@ import requests
 from flask import current_app, safe_join
 
 import app.utils as utils
+from _orchest.internals import analytics
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from app import error
@@ -16,20 +17,7 @@ from app.config import CONFIG_CLASS as config
 from app.models import Pipeline, Project
 
 
-def create_job_spec(config) -> dict:
-    """Returns a job spec based on the provided configuration.
-
-    Args: Initial configuration with which the job spec should be built.
-        project_uuid, pipeline_uuid, pipeline_run_spec, pipeline_name,
-        name are required. Optional entries such as env_variables can be
-        used to further customize the initial state of the newly created
-        job.
-
-    Returns:
-        A job spec that can be POSTED to the orchest-api to create a job
-        that is a duplicate of the job identified by the provided
-        job_uuid.
-    """
+def _create_job_spec(config) -> dict:
     job_spec = copy.deepcopy(config)
     pipeline_path = utils.pipeline_uuid_to_path(
         job_spec["pipeline_uuid"], job_spec["project_uuid"]
@@ -69,7 +57,31 @@ def create_job_spec(config) -> dict:
     return job_spec
 
 
-def duplicate_job_spec(job_uuid: str) -> dict:
+def create_job(config) -> requests.Response:
+    """Returns a job spec based on the provided configuration.
+
+    Args: Initial configuration with which the job spec should be built.
+        project_uuid, pipeline_uuid, pipeline_run_spec, pipeline_name,
+        name are required. Optional entries such as env_variables can be
+        used to further customize the initial state of the newly created
+        job.
+
+    Returns:
+        Response of the orchest-api job creation query.
+    """
+    job_spec = _create_job_spec(config)
+    resp = requests.post(
+        "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
+        json=job_spec,
+    )
+    if resp.status_code != 201:
+        remove_job_directory(
+            job_spec["uuid"], job_spec["pipeline_uuid"], job_spec["project_uuid"]
+        )
+    return resp
+
+
+def duplicate_job_spec(job_uuid: str) -> requests.Response:
     """Returns a job spec to duplicate the provided job.
 
     Args:
@@ -101,9 +113,7 @@ def duplicate_job_spec(job_uuid: str) -> dict:
           every run parameterization should be unique.
 
     Returns:
-        A job spec that can be POSTED to the orchest-api to create a job
-        that is a duplicate of the job identified by the provided
-        job_uuid.
+        Response of the orchest-api job creation query.
     """
     resp = requests.get(
         f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/jobs/{job_uuid}'
@@ -297,7 +307,49 @@ def duplicate_job_spec(job_uuid: str) -> dict:
 
     job_spec["parameters"] = new_job_params
     job_spec["strategy_json"] = new_st_json
-    return create_job_spec(job_spec)
+
+    event_type = analytics.Event.ONE_OFF_JOB_DUPLICATED
+    if job_spec["cron_schedule"] is not None:
+        event_type = analytics.Event.CRON_JOB_DUPLICATED
+
+    job_spec = _create_job_spec(job_spec)
+
+    analytics.send_event(
+        current_app,
+        event_type,
+        analytics.TelemetryData(
+            event_properties={
+                "project": {
+                    "uuid": job_spec["project_uuid"],
+                    "job": {
+                        "uuid": job_uuid,
+                        "new_job_uuid": job_spec["uuid"],
+                    },
+                },
+                "duplicate_from": job_uuid,
+                # Deprecated fields, kept to not break the analytics
+                # BE schema.
+                "job_definition": None,
+                "snapshot_size": None,
+                "deprecated": [
+                    "duplicated_from",
+                    "job_definition",
+                    "snapshot_size",
+                ],
+            },
+            derived_properties={},
+        ),
+    )
+
+    resp = requests.post(
+        "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
+        json=job_spec,
+    )
+    if resp.status_code != 201:
+        remove_job_directory(
+            job_spec["uuid"], job_spec["pipeline_uuid"], job_spec["project_uuid"]
+        )
+    return resp
 
 
 def create_job_directory(job_uuid: str, pipeline_uuid: str, project_uuid: str) -> str:
