@@ -98,10 +98,10 @@ class LatestEnvironmentImage(Resource):
 
 
 def _get_formatted_active_environment_imgs(
-    stored_in_registry=None, in_node=None
+    stored_in_registry=None, in_node=None, not_in_node=None
 ) -> List[str]:
     active_env_images = environments.get_active_environment_images(
-        stored_in_registry=stored_in_registry, in_node=in_node
+        stored_in_registry=stored_in_registry, in_node=in_node, not_in_node=not_in_node
     )
 
     active_env_images_names = []
@@ -119,6 +119,9 @@ def _get_formatted_active_environment_imgs(
 
 
 @api.route("/active")
+@api.param("stored_in_registry")
+@api.param("in_node")
+@api.param("not_in_node")
 class ActiveEnvironmentImages(Resource):
     @api.doc("get_active_environment_images")
     @api.marshal_with(schema.active_environment_images, code=200)
@@ -130,12 +133,14 @@ class ActiveEnvironmentImages(Resource):
                 "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]
             ),
             in_node=request.args.get("in_node"),
+            not_in_node=request.args.get("not_in_node"),
         )
 
         return {"active_environment_images": active_env_images}, 200
 
 
 @api.route("/to-push")
+@api.param("in_node")
 class ActiveEnvironmentImagesToPush(Resource):
     @api.doc("get_environment_images_to_push")
     @api.marshal_with(schema.active_environment_images, code=200)

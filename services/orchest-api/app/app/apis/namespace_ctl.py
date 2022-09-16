@@ -83,10 +83,10 @@ class OrchestImagesToPrePull(Resource):
 
 
 def _get_formatted_active_jupyter_imgs(
-    stored_in_registry=None, in_node=None
+    stored_in_registry=None, in_node=None, not_in_node=None
 ) -> List[str]:
     active_custom_jupyter_images = utils.get_active_custom_jupyter_images(
-        stored_in_registry=stored_in_registry, in_node=in_node
+        stored_in_registry=stored_in_registry, in_node=in_node, not_in_node=not_in_node
     )
 
     active_custom_jupyter_image_names = []
@@ -99,6 +99,9 @@ def _get_formatted_active_jupyter_imgs(
 
 
 @api.route("/active-custom-jupyter-images")
+@api.param("stored_in_registry")
+@api.param("in_node")
+@api.param("not_in_node")
 class ActiveCustomJupyterImages(Resource):
     @api.doc("active_custom_jupyter_images")
     def get(self):
@@ -107,12 +110,14 @@ class ActiveCustomJupyterImages(Resource):
                 "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]
             ),
             in_node=request.args.get("in_node"),
+            not_in_node=request.args.get("not_in_node"),
         )
 
         return {"active_custom_jupyter_images": active_custom_jupyter_images}, 200
 
 
 @api.route("/active-custom-jupyter-images-to-push")
+@api.param("in_node")
 class ActiveCustomJupyterImagesToPush(Resource):
     @api.doc("active_custom_jupyter_images-to-push")
     def get(self):
