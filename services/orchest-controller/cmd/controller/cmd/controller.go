@@ -8,7 +8,6 @@ import (
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/minikubereconciler"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcluster"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcomponent"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/server"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/version"
@@ -134,9 +133,9 @@ func runControllerCmd() error {
 	oClusterInformer := utils.NewOrchestClusterInformer(oClient)
 
 	//Create OrchestCluster Informer
-	oComponentInformer := utils.NewOrchestComponentInformer(oClient)
+	//oComponentInformer := utils.NewOrchestComponentInformer(oClient)
 
-	addonManager := addons.NewAddonManager(kClient, addonsConfig)
+	//addonManager := addons.NewAddonManager(kClient, addonsConfig)
 
 	k8sDistro := utils.DetectK8sDistribution(kClient)
 
@@ -147,36 +146,40 @@ func runControllerCmd() error {
 		controllerConfig,
 		k8sDistro,
 		oClusterInformer,
-		oComponentInformer,
-		addonManager)
+		//oComponentInformer,
+		/*addonManager*/)
 
-	oComponentController := orchestcomponent.NewOrchestComponentController(kClient,
-		oClient,
-		gClient,
-		scheme,
-		oComponentInformer,
-		svcInformer,
-		depInformer,
-		dsInformer,
-		ingInformer)
-
+	/*
+		oComponentController := orchestcomponent.NewOrchestComponentController(kClient,
+			oClient,
+			gClient,
+			scheme,
+			oComponentInformer,
+			svcInformer,
+			depInformer,
+			dsInformer,
+			ingInformer)
+	*/
 	server := server.NewServer(serverConfig, oClusterInformer)
 
-	if k8sDistro == utils.Minikube {
+	// Initializing third party addons
+	addons.InitThirdPartyAddons(kClient, addonsConfig)
+
+	if utils.DetectK8sDistribution(kClient) == utils.Minikube {
 		minikubeReconciler := minikubereconciler.NewMinikubeReconcilerController(kClient, depInformer)
 		go minikubeReconciler.Run(stopCh)
 	}
 
 	// Start the addon manager
-	go addonManager.Run(stopCh)
+	//go addonManager.Run(stopCh)
 
 	// Start Orchest Controllers
 	go oClusterController.Run(stopCh)
-	go oComponentController.Run(stopCh)
+	//go oComponentController.Run(stopCh)
 
 	// Start Orchest Objests Informer
 	go oClusterInformer.Informer().Run(stopCh)
-	go oComponentInformer.Informer().Run(stopCh)
+	//go oComponentInformer.Informer().Run(stopCh)
 
 	// Start Kubernetes Objects Informers
 	go depInformer.Informer().Run(stopCh)
