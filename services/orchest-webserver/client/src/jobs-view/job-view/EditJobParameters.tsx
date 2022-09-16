@@ -34,13 +34,21 @@ export const EditJobParameters = ({ isReadOnly }: EditJobParametersProps) => {
   const parameters = React.useMemo(() => {
     if (!initialStrategyJson || !reservedKey) return;
     const { [reservedKey]: pipelineParams, ...rest } = initialStrategyJson;
-    return [pipelineParams, ...Object.values(rest)];
+    return pipelineParams
+      ? [pipelineParams, ...Object.values(rest)]
+      : Object.values(rest);
   }, [initialStrategyJson, reservedKey]);
 
+  const hasNoParameter = isReadOnly && parameters?.length === 0;
   const shouldRenderPipelineEditor = hasValue(parameters);
 
   return shouldRenderPipelineEditor ? (
     <>
+      {hasNoParameter && (
+        <Typography>
+          <i>No Parameters have been defined.</i>
+        </Typography>
+      )}
       {parameters.map((parameter, index) => {
         if (!parameter) return null;
         const { key: strategyKey, parameters, title } = parameter;
