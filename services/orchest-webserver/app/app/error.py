@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import requests
 
@@ -76,8 +76,3 @@ class JobDoesNotExist(Exception):
 
 class UnexpectedFileSystemState(Exception):
     pass
-
-
-class EnvironmentsDoNotExist(Exception):
-    def __init__(self, environment_uuids=List[str]):
-        self.environment_uuids = environment_uuids

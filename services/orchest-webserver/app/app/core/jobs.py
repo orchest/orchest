@@ -32,20 +32,6 @@ def _create_job_spec(config) -> dict:
         job_spec["pipeline_uuid"], job_spec["project_uuid"]
     )
 
-    # Validate whether the pipeline contains environments
-    # that do not exist in the project.
-    project_environments = utils.get_environments(job_spec["project_uuid"])
-    project_environment_uuids = set(
-        [environment.uuid for environment in project_environments]
-    )
-    pipeline_environment_uuids = utils.get_environments_from_pipeline_json(
-        job_spec["pipeline_definition"]
-    )
-
-    missing_environment_uuids = pipeline_environment_uuids - project_environment_uuids
-    if len(missing_environment_uuids) > 0:
-        raise error.EnvironmentsDoNotExist(missing_environment_uuids)
-
     # Jobs should always have eviction enabled.
     job_spec["pipeline_definition"]["settings"]["auto_eviction"] = True
 
@@ -81,7 +67,7 @@ def create_job(config) -> requests.Response:
     return resp
 
 
-def duplicate_job_spec(job_uuid: str) -> requests.Response:
+def duplicate_job(job_uuid: str) -> requests.Response:
     """Returns a job spec to duplicate the provided job.
 
     Args:

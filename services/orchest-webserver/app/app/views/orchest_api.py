@@ -167,15 +167,6 @@ def register_orchest_api_views(app, db):
         )
         return resp.content, resp.status_code, resp.headers.items()
 
-    environments_missing_msg = (
-        "The pipeline definition references environments "
-        "that do not exist in the project. "
-        "The following environments do not exist:"
-        " {missing_environment_uuids}.\n\n Please make sure all"
-        " pipeline steps are assigned an environment that exists"
-        " in the project."
-    )
-
     @app.route("/catch/api-proxy/api/jobs", methods=["POST"])
     def catch_api_proxy_jobs_post():
 
@@ -187,7 +178,7 @@ def register_orchest_api_views(app, db):
 
         json_obj = request.json
         try:
-            resp = jobs.duplicate_job_spec(json_obj["job_uuid"])
+            resp = jobs.duplicate_job(json_obj["job_uuid"])
             return resp.content, resp.status_code, resp.headers.items()
         except error.ProjectDoesNotExist:
             msg = (
@@ -212,17 +203,6 @@ def register_orchest_api_views(app, db):
             return (
                 jsonify({"message": msg}),
                 409,
-            )
-        except error.EnvironmentsDoNotExist as e:
-            return (
-                jsonify(
-                    {
-                        "message": environments_missing_msg.format(
-                            missing_environment_uuids=[",".join(e.environment_uuids)]
-                        ),
-                    }
-                ),
-                500,
             )
 
     @app.route("/catch/api-proxy/api/sessions", methods=["GET"])
