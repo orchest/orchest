@@ -28,6 +28,7 @@ const getNextJob = (jobs: JobData[], jobUuid: string) => {
 
 export const JobMoreOptions = () => {
   const { setConfirm } = useGlobalContext();
+  const hasValidPipeline = useEditJob((state) => state.hasValidPipeline);
   const name = useEditJob((state) => state.jobChanges?.name);
   const uuid = useEditJob((state) => state.jobChanges?.uuid);
   const { selectJob } = useSelectJob();
@@ -95,26 +96,27 @@ export const JobMoreOptions = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        {actions.map((option) => {
-          const onClick = () => {
-            option.action?.();
-            handleClose();
-          };
+        {hasValidPipeline &&
+          actions.map((option) => {
+            const onClick = () => {
+              option.action?.();
+              handleClose();
+            };
 
-          return (
-            <MenuItem
-              key={option.label}
-              disabled={option.disabled}
-              onClick={onClick}
-            >
-              <ListItemIcon>
-                <JobPrimaryButtonIcon type={option.icon} />
-              </ListItemIcon>
-              <ListItemText>{option.label}</ListItemText>
-            </MenuItem>
-          );
-        })}
-        <Divider />
+            return (
+              <MenuItem
+                key={option.label}
+                disabled={option.disabled}
+                onClick={onClick}
+              >
+                <ListItemIcon>
+                  <JobPrimaryButtonIcon type={option.icon} />
+                </ListItemIcon>
+                <ListItemText>{option.label}</ListItemText>
+              </MenuItem>
+            );
+          })}
+        {hasValidPipeline && <Divider />}
         <MenuItem
           disabled={!isJobChangesLoaded || isDeletingJob}
           onClick={showDeleteEnvironmentDialog}
