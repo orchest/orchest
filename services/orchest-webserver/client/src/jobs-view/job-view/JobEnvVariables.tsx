@@ -10,13 +10,14 @@ import { EditJobEnvVariables } from "./EditJobEnvVariables";
 
 export const JobEnvVariables = () => {
   const isReadOnly = useEditJob((state) => !state.isEditing);
+  const hasValidPipeline = useEditJob((state) => state.hasValidPipeline);
 
   const [expanded, setExpanded] = React.useState(false);
   React.useEffect(() => {
     setExpanded(!isReadOnly);
   }, [isReadOnly]);
 
-  return (
+  return hasValidPipeline ? (
     <Accordion expanded={expanded}>
       <AccordionSummary
         aria-controls="job-env-variables"
@@ -31,5 +32,5 @@ export const JobEnvVariables = () => {
         <EditJobEnvVariables />
       </AccordionDetails>
     </Accordion>
-  );
+  ) : null;
 };

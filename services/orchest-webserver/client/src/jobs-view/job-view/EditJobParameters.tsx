@@ -21,6 +21,7 @@ export const EditJobParameters = ({ isReadOnly }: EditJobParametersProps) => {
   // Therefore, in `equals` function, check if existingStrategy is still empty.
   // Don't re-render if it already has properties.
   const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
+  const hasValidPipeline = useEditJob((state) => state.hasValidPipeline);
   const hasChangedPipeline = useHasChanged(pipelineUuid);
   const initialStrategyJson = useEditJob(
     (state) => state.jobChanges?.strategy_json,
@@ -40,7 +41,7 @@ export const EditJobParameters = ({ isReadOnly }: EditJobParametersProps) => {
   }, [initialStrategyJson, reservedKey]);
 
   const hasNoParameter = isReadOnly && parameters?.length === 0;
-  const shouldRenderPipelineEditor = hasValue(parameters);
+  const shouldRenderPipelineEditor = hasValue(parameters) && hasValidPipeline;
 
   return shouldRenderPipelineEditor ? (
     <>
