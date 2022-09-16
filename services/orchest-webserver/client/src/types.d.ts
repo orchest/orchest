@@ -477,3 +477,7 @@ export type SnapshotData = {
   pipelines: Record<string, PipelineDataInSnapshot>;
   timestamp: string;
 };
+
+export type ValidatedPipelineInSnapshot = PipelineDataInSnapshot & {
+  valid: boolean;
+};

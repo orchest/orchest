@@ -185,7 +185,39 @@ const fetchLatestBuilds = async (
   return response["environment_image_builds"];
 };
 
-const checkLatestBuilds = async ({
+const haveAllEnvironmentsBuilt = async (
+  projectUuid: string,
+  environments: string[]
+) => {
+  try {
+    // To detect if any environment is not yet built, it's unnecessary to wait for all responses.
+    // Return true if any of the environment has zero build.
+    // `Promise.any` is used, instead of `Promise.all`.
+    await Promise.any(
+      environments.map((environmentUuid) => {
+        return new Promise((resolve, reject) => {
+          fetchLatestBuilds(projectUuid, environmentUuid)
+            .then((builds) => {
+              // `Promise.any` is resolved when any of the promises is resolved.
+              // In this case, we have to return a rejection if an environment is built (has more than one build).
+              if (builds.length > 0) {
+                reject();
+              } else {
+                resolve(0);
+              }
+            })
+            .catch(() => resolve(0)); // if the request is rejected, the environment does not exist.
+        });
+      })
+    );
+    return false;
+  } catch (error) {
+    // `Promise.any` will be rejected if all promises are rejected, meaning that all environments have more than zero builds.
+    return true;
+  }
+};
+
+const updateLatestBuildInEnvironments = async ({
   projectUuid,
   environmentUuid,
   environmentStates = [],
@@ -220,7 +252,10 @@ const checkLatestBuilds = async ({
   } catch (error) {
     if (error.message === "requireRefetch") {
       const environmentStates = await fetchAll(projectUuid);
-      return checkLatestBuilds({ projectUuid, environmentStates });
+      return updateLatestBuildInEnvironments({
+        projectUuid,
+        environmentStates,
+      });
     }
     return new FetchError(error);
   }
@@ -234,5 +269,6 @@ export const environmentsApi = {
   validate,
   triggerBuilds,
   cancelBuild,
-  checkLatestBuilds,
+  haveAllEnvironmentsBuilt,
+  updateLatestBuildInEnvironments,
 };

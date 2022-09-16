@@ -247,7 +247,7 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
         const environmentStates = get().environments;
         if (!environmentStates) return;
 
-        const results = await environmentsApi.checkLatestBuilds({
+        const results = await environmentsApi.updateLatestBuildInEnvironments({
           projectUuid,
           environmentStates,
         });
