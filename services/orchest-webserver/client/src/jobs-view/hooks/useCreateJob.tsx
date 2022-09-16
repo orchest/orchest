@@ -1,4 +1,5 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { JobData, PipelineMetaData } from "@/types";
 import { getUniqueName } from "@/utils/getUniqueName";
@@ -6,6 +7,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
+  const { setAlert } = useGlobalContext();
   const { name, uuid: pipelineUuid } = pipeline || {};
 
   const jobs = useJobsApi((state) => state.jobs || []);
@@ -25,10 +27,22 @@ export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
 
   const createJob = React.useCallback(async () => {
     if (isAllowedToCreateJob) {
-      const newJob = await run(post(pipelineUuid, name, newJobName));
-      return newJob;
+      try {
+        const newJob = await run(post(pipelineUuid, name, newJobName));
+        return newJob;
+      } catch (error) {
+        setAlert("Notice", `Unable to create a new Job. ${error.message}`);
+      }
     }
-  }, [post, isAllowedToCreateJob, pipelineUuid, name, newJobName, run]);
+  }, [
+    post,
+    isAllowedToCreateJob,
+    pipelineUuid,
+    name,
+    newJobName,
+    run,
+    setAlert,
+  ]);
 
   return { createJob, isAllowedToCreateJob };
 };
