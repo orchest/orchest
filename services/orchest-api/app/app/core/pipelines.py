@@ -612,8 +612,6 @@ def _get_pipeline_argo_templates(
                             "project_relative_file_path",
                             "pod_spec_patch",
                             "tests_uuid",
-                            "container_runtime",
-                            "container_runtime_image",
                         ]
                     ]
                 },
