@@ -51,6 +51,7 @@ const SaveCronJobChangesButton = () => {
 const JobPrimaryButton = () => {
   const isEditingActiveCronJob = useIsEditingActiveCronJob();
   const status = useEditJob((state) => state.jobChanges?.status);
+  const hasValidPipeline = useEditJob((state) => state.hasValidPipeline);
 
   const hasStarted =
     status === "STARTED" || status === "PENDING" || status === "PAUSED";
@@ -69,7 +70,7 @@ const JobPrimaryButton = () => {
       startIcon={
         iconType ? <JobPrimaryButtonIcon type={iconType} /> : undefined
       }
-      disabled={!status}
+      disabled={!status || !hasValidPipeline}
       onClick={handleClick}
     >
       {buttonLabel}

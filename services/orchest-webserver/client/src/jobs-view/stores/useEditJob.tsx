@@ -37,10 +37,14 @@ export type JobChangesState = {
     payload: Partial<JobChanges> | ((state: JobChanges) => Partial<JobChanges>)
   ) => void;
   resetJobChanges: () => void;
+  hasValidPipeline: boolean;
+  setHasValidPipeline: (value: boolean) => void;
 };
 
 export const useEditJob = create<JobChangesState>((set) => ({
   isEditing: false,
+  hasValidPipeline: true,
+  setHasValidPipeline: (value) => set({ hasValidPipeline: value }),
   hasUnsavedCronJobChanges: false,
   stopEditing: () => set({ isEditing: false }),
   startEditing: () => {
