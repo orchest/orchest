@@ -558,7 +558,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 			copy.Spec.Applications = applications
 			changed = true
 		}
-	} else if isIngressAddonRequired(ctx, occ.Client()) {
+	} else if isIngressAddonRequired(ctx, occ.k8sDistro, occ.Client()) {
 		ingressEnabled := false
 		for _, app := range copy.Spec.Applications {
 			if app.Name == addons.IngressNginx {

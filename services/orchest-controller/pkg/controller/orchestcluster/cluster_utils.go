@@ -507,14 +507,9 @@ func isCustomImage(orchest *orchestv1alpha1.OrchestCluster, component, imageName
 	return false
 }
 
-func isIngressAddonRequired(ctx context.Context, client kubernetes.Interface) bool {
-
-	if isNginxIngressInstalled(ctx, client) {
-		return false
-	}
+func isIngressAddonRequired(ctx context.Context, k8sDistro utils.KubernetesDistros, client kubernetes.Interface) bool {
 
 	// we first need to detect the k8s distribution
-	k8sDistro := utils.DetectK8sDistribution(client)
 	if k8sDistro == utils.NotDetected {
 		klog.Error("Failed to detect k8s distribution")
 		return false
@@ -523,7 +518,7 @@ func isIngressAddonRequired(ctx context.Context, client kubernetes.Interface) bo
 	// In k3s ingress addon can be installed by us
 	switch k8sDistro {
 	case utils.K3s, utils.EKS, utils.GKE:
-		return true
+		return !isNginxIngressInstalled(ctx, client)
 	default:
 		return false
 	}
