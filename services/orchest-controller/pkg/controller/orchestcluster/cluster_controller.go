@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
@@ -153,9 +154,12 @@ type OrchestClusterController struct {
 
 	oClusterLister orchestlisters.OrchestClusterLister
 
-	oComponentLister orchestlisters.OrchestComponentLister
+	//oComponentLister orchestlisters.OrchestComponentLister
 
-	addonManager *addons.AddonManager
+	//addonManager *addons.AddonManager
+
+	clustersLock    sync.RWMutex
+	orchestClusters map[string]*OrchestStateMachine
 }
 
 // NewOrchestClusterController returns a new *OrchestClusterController.
@@ -166,8 +170,8 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	config ControllerConfig,
 	k8sDistro utils.KubernetesDistros,
 	oClusterInformer orchestinformers.OrchestClusterInformer,
-	oComponentInformer orchestinformers.OrchestComponentInformer,
-	addonManager *addons.AddonManager,
+	//oComponentInformer orchestinformers.OrchestComponentInformer,
+	//addonManager *addons.AddonManager,
 ) *OrchestClusterController {
 
 	informerSyncedList := make([]cache.InformerSynced, 0)
@@ -180,12 +184,13 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	)
 
 	occ := OrchestClusterController{
-		oClient:      oClient,
-		gClient:      gClient,
-		scheme:       scheme,
-		config:       config,
+		oClient: oClient,
+		gClient: gClient,
+		scheme:  scheme,
+		config:  config,
 		k8sDistro:    k8sDistro,
-		addonManager: addonManager,
+		//addonManager:    addonManager,
+		orchestClusters: make(map[string]*OrchestStateMachine),
 	}
 
 	// OrchestCluster event handlers
@@ -197,15 +202,17 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	informerSyncedList = append(informerSyncedList, oClusterInformer.Informer().HasSynced)
 	occ.oClusterLister = oClusterInformer.Lister()
 
-	// OrchestComponent event handlers
-	oComponentWatcher := controller.NewControlleeWatcher[*orchestv1alpha1.OrchestComponent](ctrl)
-	oComponentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    oComponentWatcher.AddObject,
-		UpdateFunc: oComponentWatcher.UpdateObject,
-		DeleteFunc: oComponentWatcher.DeleteObject,
-	})
-	informerSyncedList = append(informerSyncedList, oComponentInformer.Informer().HasSynced)
-	occ.oComponentLister = oComponentInformer.Lister()
+	/*
+		// OrchestComponent event handlers
+		oComponentWatcher := controller.NewControlleeWatcher[*orchestv1alpha1.OrchestComponent](ctrl)
+		oComponentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc:    oComponentWatcher.AddObject,
+			UpdateFunc: oComponentWatcher.UpdateObject,
+			DeleteFunc: oComponentWatcher.DeleteObject,
+		})
+		informerSyncedList = append(informerSyncedList, oComponentInformer.Informer().HasSynced)
+		occ.oComponentLister = oComponentInformer.Lister()
+	*/
 
 	ctrl.InformerSyncedList = informerSyncedList
 	ctrl.SyncHandler = occ.syncOrchestCluster
@@ -274,83 +281,7 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 		klog.V(3).Infof("Finished syncing OrchestCluster: %s. duration: (%v)", key, time.Since(startTime))
 	}()
 
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		return err
-	}
-
-	orchest, err := occ.oClient.OrchestV1alpha1().OrchestClusters(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			klog.V(2).Info("OrchestCluster %s resource not found.", key)
-			return nil
-		}
-		// Error reading OrchestCluster - The request will be requeued.
-		return errors.Wrapf(err, "failed to get to OrchestCluster %s", key)
-	}
-
-	if !orchest.GetDeletionTimestamp().IsZero() {
-		// The cluster is deleted, we need to stop it first, then remove the finalizer
-		stopped, err := occ.stopOrchest(ctx, orchest)
-		if err != nil {
-			return nil
-		}
-
-		if stopped {
-			_, err = controller.RemoveFinalizerIfPresent(ctx, occ.gClient, orchest, orchestv1alpha1.Finalizer)
-			return err
-		}
-		return nil
-	}
-
-	// Set a finalizer so we can do cleanup before the object goes away
-	changed, err := controller.AddFinalizerIfNotPresent(ctx, occ.gClient, orchest, orchestv1alpha1.Finalizer)
-	if changed || err != nil {
-		return err
-	}
-
-	// Add kubernetes distro annotation
-	changed, err = controller.AnnotateIfNotPresent(ctx, occ.gClient, orchest, controller.K8sDistroAnnotationKey, string(occ.k8sDistro))
-	if changed || err != nil {
-		return err
-	}
-
-	// If Status struct is not initialized yet, the cluster is new, create it
-	if orchest.Status == nil {
-		// Set the default values in CR if not specified
-		err = occ.updatePhase(ctx, namespace, name, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
-	}
-
-	ok, err := occ.validateOrchestCluster(ctx, orchest)
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	if !ok {
-		err = occ.updatePhase(ctx, namespace, name, orchestv1alpha1.Error, fmt.Sprintf("OrchestCluster object is not valid %s", key))
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	}
-
-	changed, err = occ.setDefaultIfNotSpecified(ctx, orchest)
-	if err != nil {
-		return err
-	}
-
-	// If the object is changed, we return and the object will be requeued.
-	if changed {
-		return nil
-	}
-
-	return occ.manageOrchestCluster(ctx, orchest)
+	return occ.manageOrchestCluster(ctx, key)
 }
 
 func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
@@ -624,15 +555,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster) (err error) {
 
-	updateConditionPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
-		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
-			orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("Deploying %s", app.Name)))
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-		return nil
-	}
+	/*
 
 	registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
 		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
@@ -755,28 +678,73 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 			if !controller.IsComponentReady(*component) {
 				occ.EnqueueAfter(orchest)
 				return
+		registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
+			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
+			if err != nil {
+				klog.Error(err)
+				return err
 			}
-		} else {
 
-			// component does not exist, let't create it
-			componentTemplate, err := GetComponentTemplate(componentName, orchest)
+			if err != nil {
+				return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
+			}
+
+			serviceIP, err := getRegistryServiceIP(&app.Config)
 			if err != nil {
 				return err
 			}
 
-			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
-				orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("deploying %s", componentName)))
+			err = registryCertgen(ctx, occ.Client(), serviceIP, orchest)
 			if err != nil {
-				return errors.Wrapf(err, "failed to update status while changing the state to DeployingOrchest")
+				klog.Error(err)
+				return err
 			}
 
-			newComponent := getOrchestComponent(componentName, generation, componentTemplate, orchest)
-
-			// Creating Orchest Component
-			_, err = occ.oClient.OrchestV1alpha1().OrchestComponents(orchest.Namespace).
-				Create(ctx, newComponent, metav1.CreateOptions{})
-			return err
+			return nil
 		}
+
+		for _, application := range orchest.Spec.Applications {
+			preInstallHooks := []addons.PreInstallHookFn{
+				updateConditionPreInstall,
+			}
+
+			if application.Name == addons.DockerRegistry {
+				preInstallHooks = append(preInstallHooks, registryPreInstall)
+			}
+
+			err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
+			if err != nil {
+				klog.Error(err)
+				return err
+			}
+
+		}
+	*/
+	return nil
+}
+
+func (occ *OrchestClusterController) removeOrchestCluster(key string) {
+
+	occ.clustersLock.Lock()
+	defer occ.clustersLock.Unlock()
+
+	delete(occ.orchestClusters, key)
+
+}
+
+// Installs deployer if the config is changed
+func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, key string) (err error) {
+
+	occ.clustersLock.Lock()
+	defer occ.clustersLock.Unlock()
+
+	cluster, ok := occ.orchestClusters[key]
+	if !ok {
+		cluster, err = NewOrchestStateMachine(key, occ)
+		occ.orchestClusters[key] = cluster
+		go cluster.run(context.Background())
+
+		return err
 	}
 
 	klog.V(4).Infof("Deleting deprecated PVC %s", controller.OldBuilderDirName)
@@ -784,41 +752,141 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 
 	stopped = true
 	return err
+	return cluster.manage(ctx)
+
+	/*
+		if orchest.Status == nil {
+			return errors.Errorf("status object is not initialzed yet %s", orchest.Name)
+		}
+		stopped := false
+		nextPhase, endPhase := determineNextPhase(orchest)
+
+		if nextPhase == endPhase {
+			return
+		}
+
+		err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, nextPhase, "")
+		defer func() {
+			if err == nil && (stopped || endPhase == orchestv1alpha1.DeployedThirdParties) {
+				err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, endPhase, "")
+			}
+		}()
+		if err != nil {
+			return err
+		}
+
+		// we should check for third parties to see if they need to be updated
+		err = occ.ensureThirdPartyDependencies(ctx, orchest)
+		if err != nil {
+			return err
+		}
+
+		// If endPhase is DeployedThirdParties return early to update phase
+		if endPhase == orchestv1alpha1.DeployedThirdParties {
+			return
+		}
+
+		// If endPhase is Paused or nextPhase is Pausing the cluster should be paused first
+		if endPhase == orchestv1alpha1.Stopped || nextPhase == orchestv1alpha1.Stopping {
+			stopped, err = occ.stopOrchest(ctx, orchest)
+			return err
+		}
+
+		generation := fmt.Sprint(orchest.Generation)
+
+		err = occ.ensurePvc(ctx, generation, controller.UserDirName,
+			orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
+		if err != nil {
+			return err
+		}
+
+		err = occ.ensurePvc(ctx, generation, controller.BuilderDirName,
+			orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize, orchest)
+		if err != nil {
+			return err
+		}
+
+		err = occ.ensureRbacs(ctx, generation, orchest)
+		if err != nil {
+			return err
+		}
+
+		// Deploy and Update
+		components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
+		if err != nil {
+			return err
+		}
+
+		for _, componentName := range orderOfDeployment {
+			component, ok := components[componentName]
+			if ok {
+				// If component is not ready, the key will be requeued to be checked later
+				if !controller.IsComponentReady(*component) {
+					occ.EnqueueAfter(orchest)
+					return
+				}
+			} else {
+
+				// component does not exist, let't create it
+				componentTemplate, err := GetComponentTemplate(componentName, orchest)
+				if err != nil {
+					return err
+				}
+
+				err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name,
+					orchestv1alpha1.OrchestClusterEvent(fmt.Sprintf("deploying %s", componentName)))
+				if err != nil {
+					return errors.Wrapf(err, "failed to update status while changing the state to DeployingOrchest")
+				}
+
+				newComponent := getOrchestComponent(componentName, generation, componentTemplate, orchest)
+
+				// Creating Orchest Component
+				_, err = occ.oClient.OrchestV1alpha1().OrchestComponents(orchest.Namespace).
+					Create(ctx, newComponent, metav1.CreateOptions{})
+				return err
+			}
+		}
+
+		stopped = true
+	*/
 }
 
 func (occ *OrchestClusterController) stopOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
 
-	stopped := false
+	/*
+		stopped := false
 
-	// Get the current Components
-	components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
-	if err != nil {
-		return stopped, err
-	}
+		// Get the current Components
+		components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
+		if err != nil {
+			return stopped, err
+		}
 
-	if len(components) > 0 {
-		for i := len(orderOfDeployment) - 1; i >= 0; i-- {
-			component, ok := components[orderOfDeployment[i]]
+		if len(components) > 0 {
+			for i := len(orderOfDeployment) - 1; i >= 0; i-- {
+				component, ok := components[orderOfDeployment[i]]
 
-			// component exist
-			if ok {
-				// If component is already deleted we wait for OrchestComponentController to gracefully delete it
-				// and we requeue the OrchestCluster for continution
-				if !component.GetDeletionTimestamp().IsZero() {
-					occ.EnqueueAfter(orchest)
-					return stopped, nil
-				} else {
-					// The Component is not deleted, we will delete it
-					return stopped, occ.oClient.OrchestV1alpha1().OrchestComponents(orchest.Namespace).
-						Delete(ctx, component.Name, metav1.DeleteOptions{})
+				// component exist
+				if ok {
+					// If component is already deleted we wait for OrchestComponentController to gracefully delete it
+					// and we requeue the OrchestCluster for continution
+					if !component.GetDeletionTimestamp().IsZero() {
+						occ.EnqueueAfter(orchest)
+						return stopped, nil
+					} else {
+						// The Component is not deleted, we will delete it
+						return stopped, occ.oClient.OrchestV1alpha1().OrchestComponents(orchest.Namespace).
+							Delete(ctx, component.Name, metav1.DeleteOptions{})
+					}
 				}
 			}
 		}
-	}
-	// The cluster is paused, remove the restart annotation if present
-	_, err = controller.RemoveAnnotation(ctx, occ.gClient, orchest, controller.RestartAnnotationKey)
-
-	stopped = true
+		// The cluster is paused, remove the restart annotation if present
+		_, err = controller.RemoveAnnotation(ctx, occ.gClient, orchest, controller.RestartAnnotationKey)
+	*/
+	stopped := true
+	var err error
 	return stopped, err
 }
 
@@ -886,9 +954,9 @@ func (occ *OrchestClusterController) ensureRbacs(ctx context.Context, hash strin
 	return nil
 }
 
-func (occ *OrchestClusterController) updatePhase(ctx context.Context,
+func (occ *OrchestClusterController) UpdatePhase(ctx context.Context,
 	namespace, name string,
-	phase orchestv1alpha1.OrchestPhase, reason string) error {
+	phase orchestv1alpha1.OrchestPhase) error {
 
 	orchest, err := occ.oClient.OrchestV1alpha1().OrchestClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -937,7 +1005,7 @@ func (occ *OrchestClusterController) updatePhase(ctx context.Context,
 
 func (occ *OrchestClusterController) updateCondition(ctx context.Context,
 	namespace, name string,
-	event orchestv1alpha1.OrchestClusterEvent) error {
+	event string) error {
 
 	orchest, err := occ.oClient.OrchestV1alpha1().OrchestClusters(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -949,7 +1017,7 @@ func (occ *OrchestClusterController) updateCondition(ctx context.Context,
 		return errors.Wrap(err, "failed to get OrchestCluster")
 	}
 
-	return occ.updateClusterCondition(ctx, orchest, event)
+	return occ.updateClusterCondition(ctx, orchest, orchestv1alpha1.OrchestClusterEvent(event))
 }
 
 // UpdateClusterCondition function will export each condition into the cluster custom resource
@@ -958,7 +1026,7 @@ func (occ *OrchestClusterController) updateClusterCondition(ctx context.Context,
 	event orchestv1alpha1.OrchestClusterEvent) error {
 
 	if orchest.Status == nil {
-		return occ.updatePhase(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.Initializing, "")
+		return occ.UpdatePhase(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.Initializing)
 	}
 
 	conditions := make([]orchestv1alpha1.Condition, 0, len(orchest.Status.Conditions)+1)
