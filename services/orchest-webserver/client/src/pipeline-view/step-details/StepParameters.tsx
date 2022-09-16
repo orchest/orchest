@@ -17,7 +17,7 @@ export const StepParameters = ({
   const { openStepSchemaFile } = useOpenStepSchemaFile();
 
   const onSaveParameters = React.useCallback(
-    (parameters: Record<string, Json>) => {
+    (parameters: Record<string, Json> | undefined) => {
       setStepChanges({ parameters });
     },
     [setStepChanges]
