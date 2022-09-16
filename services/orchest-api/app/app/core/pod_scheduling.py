@@ -1,3 +1,18 @@
+"""Module to inject scheduling and related changes in k8s resources.
+
+Module to modify scheduling behaviour of all k8s resources that could
+involve environment images or custom jupyter images. It uses the fact
+that the orchest-api knows that a certain image is on a certain node and
+if it has been pushed to the registry already to schedule everything
+that is part of the "interactive" scope of Orchest (interactive pipeline
+runs, sessions, services, shells, etc.) to nodes that already have the
+image to avoid the user waiting for the image to be pulled. The
+"non-interactive" scope is less constrained.
+
+For the time being the pre-pull init container is injected in both
+interactive and non-interactive scopes, to account for the fact that k8s
+GC could remove an image from the node in case of disk pressure.
+"""
 import json
 import random
 from typing import Any, Dict, List, Optional, Union

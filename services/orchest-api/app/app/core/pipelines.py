@@ -541,6 +541,10 @@ def _get_pipeline_argo_templates(
     pipeline: Pipeline,
     run_config: RunConfig,
 ) -> List[Dict[str, Any]]:
+    # !Note that modify_pipeline_scheduling_behaviour relies on the
+    # structure and the content of the manifest to inject changes,
+    # verify that you aren't breaking anything when changing thins here.
+    # TODO: add tests for this.
     # https://argoproj.github.io/argo-workflows/fields/#template
     if CONFIG_CLASS.SINGLE_NODE:
         templates = [
