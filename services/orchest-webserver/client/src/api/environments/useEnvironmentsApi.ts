@@ -50,6 +50,7 @@ export type EnvironmentsApi = {
   isTriggeringBuild: boolean;
   triggerBuilds: (environments: string[]) => Promise<void>;
   cancelBuild: (environmentUuid: string) => Promise<void>;
+  isUsedByJobs: (environmentUuid: string) => Promise<boolean | undefined>;
 };
 
 const getEnvironmentBuildStatus = (
@@ -329,6 +330,11 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
           environments: updatedEnvironments,
         };
       });
+    },
+    isUsedByJobs: async (environmentUuid) => {
+      const projectUuid = get().projectUuid;
+      if (!projectUuid) return;
+      return environmentsApi.isUsedByJobs(projectUuid, environmentUuid);
     },
   };
 });

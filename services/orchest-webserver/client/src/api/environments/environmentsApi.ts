@@ -261,6 +261,12 @@ const updateLatestBuildInEnvironments = async ({
   }
 };
 
+const isUsedByJobs = (projectUuid: string, environmentUuid: string) =>
+  fetcher<{ in_use: boolean }>(
+    `/catch/api-proxy/api/environments/in-use/${projectUuid}/${environmentUuid}`,
+    { method: "GET" }
+  ).then((response) => response.in_use);
+
 export const environmentsApi = {
   fetchAll,
   post,
@@ -270,5 +276,6 @@ export const environmentsApi = {
   triggerBuilds,
   cancelBuild,
   haveAllEnvironmentsBuilt,
+  isUsedByJobs,
   updateLatestBuildInEnvironments,
 };

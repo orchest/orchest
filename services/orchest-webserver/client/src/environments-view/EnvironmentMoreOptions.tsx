@@ -37,6 +37,7 @@ export const EnvironmentMoreOptions = () => {
 
   const deleteEnvironment = useEnvironmentsApi((state) => state.delete);
   const environments = useEnvironmentsApi((state) => state.environments);
+  const isUsedByJobs = useEnvironmentsApi((state) => state.isUsedByJobs);
 
   const [anchorElement, setAnchorElement] = React.useState<
     Element | undefined
@@ -45,12 +46,15 @@ export const EnvironmentMoreOptions = () => {
   const handleClose = () => setAnchorElement(undefined);
   const handleOpen = (e: React.MouseEvent) => setAnchorElement(e.currentTarget);
 
-  const showDeleteEnvironmentDialog = () => {
+  const showDeleteEnvironmentDialog = async () => {
     handleClose();
     if (!name || !uuid) return;
+    const isUsed = await isUsedByJobs(uuid);
     setConfirm(
       `Delete "${name}"`,
-      "Are you sure you want to delete this Environment?",
+      isUsed
+        ? `"${name}" is in use by active Jobs. Are you sure you want to delete it? This will abort all jobs that are using it.`
+        : "Are you sure you want to delete this Environment?",
       {
         onConfirm: (resolve) => {
           const nextEnvironmentUuid = getNextEnvironmentUuid(
