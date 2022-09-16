@@ -300,8 +300,11 @@ def _modify_pipeline_scheduling_behaviour_multi_node(
 
         init_containers = pod_spec_patch.get("initContainers", [])
         init_containers.append(_get_pre_pull_init_container_manifest(image))
+        # Quirkness of Argo? The volumes are already defined at the
+        # template spec level but if they aren't set in the pod patch
+        # the pod spec will be considered invalid.
+        pod_spec_patch["volumes"] = manifest["spec"]["volumes"]
         pod_spec_patch["initContainers"] = init_containers
-
         pod_spec_patch_param["value"] = json.dumps(pod_spec_patch)
 
 
