@@ -140,10 +140,11 @@ export function generatePipelineRunRows(
       let paramName = fullParam.split("#").slice(1).join("");
       return `${paramName}: ${JSON.stringify(value)}`;
     });
+    const spec = pipelineRunSpec.join(", ").trim();
 
     return {
       uuid: index.toString(),
-      spec: pipelineRunSpec.join(", "),
+      spec: spec || "—",
     };
   });
 }

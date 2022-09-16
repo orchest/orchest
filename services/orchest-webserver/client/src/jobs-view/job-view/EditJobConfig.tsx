@@ -44,14 +44,13 @@ export const EditJobConfig = () => {
   );
 
   const pipelineRuns = React.useMemo(() => {
-    return parameterStrategy
+    return parameterStrategy && Object.keys(parameterStrategy).length > 0
       ? generatePipelineRuns(parameterStrategy)
       : undefined;
   }, [parameterStrategy]);
 
   const pipelineRunRows = React.useMemo(() => {
-    if (!pipelineJson?.name || !pipelineRuns || pipelineRuns.length === 0)
-      return [];
+    if (!pipelineJson?.name || !pipelineRuns) return [];
     return generatePipelineRunRows(pipelineRuns);
   }, [pipelineRuns, pipelineJson?.name]);
 

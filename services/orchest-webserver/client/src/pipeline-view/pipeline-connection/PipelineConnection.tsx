@@ -48,34 +48,17 @@ const PipelineConnectionComponent = ({
   const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
   const endNode = stepRefs.current[`${endNodeUUID}-incoming`];
 
-  const start = React.useMemo((): Point2D => {
-    if (shouldUpdateStart && startNode) {
-      return getPosition(startNode);
-    } else {
-      return startPoint;
-    }
-  }, [getPosition, shouldUpdateStart, startNode, startPoint]);
+  const start =
+    shouldUpdateStart && startNode ? getPosition(startNode) : startPoint;
 
   const newConnectionEnd = newConnection.current?.end;
 
-  const end = React.useMemo((): Point2D => {
-    if (shouldUpdateEnd && endNode) {
-      return getPosition(endNode);
-    } else if (newConnectionEnd) {
-      return newConnectionEnd;
-    } else if (endPoint) {
-      return endPoint;
-    } else {
-      return startPoint;
-    }
-  }, [
-    endNode,
-    endPoint,
-    getPosition,
-    newConnectionEnd,
-    shouldUpdateEnd,
-    startPoint,
-  ]);
+  const end =
+    shouldUpdateEnd && endNode
+      ? getPosition(endNode)
+      : newConnectionEnd
+      ? newConnectionEnd
+      : endPoint || startPoint;
 
   const transform = React.useCallback(() => {
     setTransformProperty(getTransformProperty(start, end));

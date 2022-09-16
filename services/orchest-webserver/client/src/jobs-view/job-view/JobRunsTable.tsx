@@ -1,16 +1,13 @@
 import RouteLink from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
-import { usePipeline } from "@/hooks/usePipeline";
 import { PipelineRun } from "@/types";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cs
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
-import Link from "@mui/material/Link";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
@@ -252,38 +249,29 @@ const RunRow = ({
 export type RunDetailsProps = { run: PipelineRun };
 
 export const RunDetails = ({ run }: RunDetailsProps) => {
-  const { pipeline } = usePipeline(run.project_uuid, run.pipeline_uuid);
   const params = formatPipelineParams(run.parameters);
   const hasParameters = params.length > 0;
 
   return (
-    <Box sx={{ margin: (theme) => theme.spacing(2, 0, 1, 0) }}>
-      <Typography variant="body2">
-        Pipeline: {pipeline ? pipeline.path : "—"}
-      </Typography>
-      <Typography variant="caption">{params.join(", ")}</Typography>
+    <Stack
+      sx={{ margin: (theme) => theme.spacing(1, 0) }}
+      direction="column"
+      justifyContent="flex-start"
+    >
+      {params.map((param, index) => (
+        <Typography variant="caption" key={index}>
+          {param}
+        </Typography>
+      ))}
       {!hasParameters && <NoParameterAlert />}
-    </Box>
+    </Stack>
   );
 };
 
 export const NoParameterAlert = () => {
   return (
-    <Alert
-      severity="info"
-      sx={{ margin: (theme) => theme.spacing(2, 0) }}
-      icon={false}
-    >
-      <Typography variant="body2">
-        {"This pipeline doesn't have any parameters defined."}
-      </Typography>
-      <Link
-        target="_blank"
-        href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
-      >
-        {"Learn how"}
-      </Link>
-      {" to parameterize your pipelines and steps."}
-    </Alert>
+    <Typography variant="body2">
+      <i>{`This Pipeline didn't have any Parameters defined.`}</i>
+    </Typography>
   );
 };

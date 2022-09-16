@@ -221,20 +221,18 @@ export const PipelineEditor = () => {
           const key = `${startNodeUUID}-${endNodeUUID}-${hash}`;
 
           return (
-            startPoint && (
-              <PipelineConnection
-                key={key}
-                shouldRedraw={flushPage}
-                isNew={isNew}
-                selected={isSelected}
-                startNodeUUID={startNodeUUID}
-                endNodeUUID={endNodeUUID}
-                getPosition={getPosition}
-                startPoint={startPoint}
-                endPoint={endPoint ?? startPoint}
-                shouldUpdate={shouldUpdate}
-              />
-            )
+            <PipelineConnection
+              key={key}
+              shouldRedraw={flushPage}
+              isNew={isNew}
+              selected={isSelected}
+              startNodeUUID={startNodeUUID}
+              endNodeUUID={endNodeUUID}
+              getPosition={getPosition}
+              startPoint={startPoint}
+              endPoint={endPoint ?? startPoint}
+              shouldUpdate={shouldUpdate}
+            />
           );
         })}
         {Object.entries(steps).map((entry) => {

@@ -55,7 +55,7 @@ export const EnvVarList: React.FC<{
 
   return (
     <Stack direction="column" spacing={3} alignItems="flex-start">
-      {variables.length === 0 && (
+      {variables.length === 0 && readOnly && (
         <Typography>
           <i>No environment variables have been defined.</i>
         </Typography>
