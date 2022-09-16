@@ -19,7 +19,8 @@ export const EditJobPipeline = () => {
 
   const [jobPipelineUuid = "", setJobPipelineUuid] = React.useState<string>();
   useLoadValueFromJobChanges(
-    (jobChanges) => jobChanges?.pipeline_uuid,
+    (jobChanges) =>
+      `${jobChanges?.pipeline_uuid}|${jobChanges?.pipeline_definition.name}`,
     setJobPipelineUuid
   );
 
@@ -29,7 +30,7 @@ export const EditJobPipeline = () => {
     const selectedValue = event.target.value as string;
     const [pipelineUuid, pipelineName] = selectedValue.split(/\|(.*)/s);
     await setPipelineUuid(pipelineUuid, pipelineName);
-    setJobPipelineUuid(pipelineUuid);
+    setJobPipelineUuid(selectedValue);
   };
 
   return hasValue(pipelines) ? (

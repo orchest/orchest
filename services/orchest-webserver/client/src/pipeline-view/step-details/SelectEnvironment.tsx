@@ -6,6 +6,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { StepCreateEnvironmentButton } from "./StepCreateEnvironmentButton";
 
 type EnvironmentOption = {
@@ -30,6 +31,7 @@ export const SelectEnvironment = ({
   disabled,
   language,
 }: SelectEnvironmentProps) => {
+  const { isReadOnly } = usePipelineDataContext();
   const allEnvironments = useEnvironmentsApi(
     (state) => state.environments || []
   );
@@ -56,13 +58,14 @@ export const SelectEnvironment = ({
     if (!environmentOptions) return;
 
     const currentEnvironment = environmentOptions.find(
-      (option) => option.value === value // `value` are uuid of the environment
+      (option) => option.value === value // `value` is uuid of the environment
     );
 
-    const fallbackSelection =
-      environmentOptions.length > 0
-        ? environmentOptions[0]
-        : { value: "", label: "" };
+    const fallbackSelection = isReadOnly
+      ? { value: "", label: "" }
+      : environmentOptions.length > 0
+      ? environmentOptions[0]
+      : { value: "", label: "" };
 
     const selection = currentEnvironment || fallbackSelection;
 
@@ -71,7 +74,13 @@ export const SelectEnvironment = ({
       selection.label,
       hasValue(currentEnvironment) // skip saving if it's already current environment
     );
-  }, [environmentOptions, onChange, value]);
+  }, [environmentOptions, onChange, value, isReadOnly]);
+
+  const validValue = React.useMemo(() => {
+    if (environmentOptions?.some((option) => option.value === value))
+      return value;
+    return "";
+  }, [environmentOptions, value]);
 
   const showCreateEnvironmentButton = environmentOptions?.length === 0;
 
@@ -91,7 +100,7 @@ export const SelectEnvironment = ({
               label="Environment"
               labelId="environment-label"
               id="environment"
-              value={value}
+              value={validValue}
               disabled={disabled}
               onChange={({ target }) => {
                 const selected = environmentOptions.find(
