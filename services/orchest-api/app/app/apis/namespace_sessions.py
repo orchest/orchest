@@ -408,9 +408,7 @@ class LaunchKernel(TwoPhaseFunction):
         env_image = environments.lock_environment_images_for_interactive_session(
             project_uuid, pipeline_uuid, set([env_uuid])
         )[env_uuid]
-        registry_ip = k8s_core_api.read_namespaced_service(
-            _config.REGISTRY, _config.ORCHEST_NAMESPACE
-        ).spec.cluster_ip
+        registry_ip = utils.get_registry_ip()
         image_name = (
             f"{registry_ip}/"
             + _config.ENVIRONMENT_IMAGE_NAME.format(

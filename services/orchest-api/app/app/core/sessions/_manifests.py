@@ -13,7 +13,6 @@ from typing import Any, Dict, Optional, Tuple
 from _orchest.internals import config as _config
 from _orchest.internals.utils import add_image_puller_if_needed, get_userdir_relpath
 from app import utils
-from app.connections import k8s_core_api
 from app.types import SessionConfig, SessionType
 from config import CONFIG_CLASS
 
@@ -921,9 +920,7 @@ def _get_user_service_deployment_service_manifest(
         # run the container, and if the image is missing it will prompt
         # a pull which will fail because the FQDN can't be resolved by
         # the local engine on the node. K8S_TODO: fix this.
-        registry_ip = k8s_core_api.read_namespaced_service(
-            _config.REGISTRY, _config.ORCHEST_NAMESPACE
-        ).spec.cluster_ip
+        registry_ip = utils.get_registry_ip()
 
         image = image.replace(prefix, "")
         image = img_mappings[image]
