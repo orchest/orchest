@@ -16,6 +16,7 @@ import { LoadParamFileDescription } from "./LoadParamFileDescription";
 
 export const JobParameters = () => {
   const isReadOnly = useEditJob((state) => !state.isEditing);
+  const hasValidPipeline = useEditJob((state) => state.hasValidPipeline);
   const [expanded, setExpanded] = React.useState(false);
   React.useEffect(() => {
     setExpanded(!isReadOnly);
@@ -42,7 +43,7 @@ export const JobParameters = () => {
     readParameterStrategyFile(path);
   };
 
-  return (
+  return hasValidPipeline ? (
     <Accordion expanded={expanded}>
       <AccordionSummary
         aria-controls="job-parameters"
@@ -82,5 +83,5 @@ export const JobParameters = () => {
         )}
       </AccordionDetails>
     </Accordion>
-  );
+  ) : null;
 };
