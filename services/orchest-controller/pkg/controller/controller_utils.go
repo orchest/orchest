@@ -12,6 +12,7 @@ import (
 	netsv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -58,6 +59,7 @@ var (
 	OwnerLabelKey          = "controller.orchest.io/owner"
 	ControllerPartOfLabel  = "controller.orchest.io/part-of"
 	ComponentLabelKey      = "controller.orchest.io/component"
+	K8sDistroAnnotationKey = "controller.orchest.io/k8s"
 	IngressAnnotationKey   = "controller.orchest.io/deploy-ingress"
 	RestartAnnotationKey   = "orchest.io/restart"
 
@@ -108,6 +110,26 @@ func RemoveFinalizerIfPresent(ctx context.Context,
 	return true, nil
 }
 
+func AnnotateIfNotPresent(ctx context.Context, generalClient client.Client, object client.Object, key, value string) (bool, error) {
+
+	accessor, err := meta.Accessor(object)
+	if err != nil {
+		return false, err
+	}
+
+	if accessor.GetAnnotations() == nil {
+		_, err = AnnotateObject(ctx, generalClient, object, key, value)
+		return true, err
+	}
+
+	if _, ok := accessor.GetAnnotations()[key]; !ok {
+		_, err = AnnotateObject(ctx, generalClient, object, key, value)
+		return true, err
+	}
+
+	return false, nil
+}
+
 func AnnotateObject(ctx context.Context, generalClient client.Client, object client.Object, key, value string) (bool, error) {
 
 	patchData := map[string]interface{}{"metadata": map[string]map[string]string{"annotations": {
@@ -119,7 +141,7 @@ func AnnotateObject(ctx context.Context, generalClient client.Client, object cli
 		return false, err
 	}
 
-	patch := client.RawPatch(types.StrategicMergePatchType, patchBytes)
+	patch := client.RawPatch(types.MergePatchType, patchBytes)
 
 	err = generalClient.Patch(ctx, object, patch)
 	if err != nil {

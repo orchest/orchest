@@ -148,6 +148,8 @@ type OrchestClusterController struct {
 
 	config ControllerConfig
 
+	k8sDistro utils.KubernetesDistros
+
 	oClusterLister orchestlisters.OrchestClusterLister
 
 	oComponentLister orchestlisters.OrchestComponentLister
@@ -161,6 +163,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	gClient client.Client,
 	scheme *runtime.Scheme,
 	config ControllerConfig,
+	k8sDistro utils.KubernetesDistros,
 	oClusterInformer orchestinformers.OrchestClusterInformer,
 	oComponentInformer orchestinformers.OrchestComponentInformer,
 	addonManager *addons.AddonManager,
@@ -180,6 +183,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 		gClient:      gClient,
 		scheme:       scheme,
 		config:       config,
+		k8sDistro:    k8sDistro,
 		addonManager: addonManager,
 	}
 
@@ -300,6 +304,12 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 
 	// Set a finalizer so we can do cleanup before the object goes away
 	changed, err := controller.AddFinalizerIfNotPresent(ctx, occ.gClient, orchest, orchestv1alpha1.Finalizer)
+	if changed || err != nil {
+		return err
+	}
+
+	// Add kubernetes distro annotation
+	changed, err = controller.AnnotateIfNotPresent(ctx, occ.gClient, orchest, controller.K8sDistroAnnotationKey, string(occ.k8sDistro))
 	if changed || err != nil {
 		return err
 	}
