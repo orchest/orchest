@@ -29,7 +29,10 @@ def get_env_uuids_to_image_mappings(
     env_uuid_to_image = {}
     for env_uuid in env_uuids:
         if env_uuid == "":
-            raise self_errors.PipelineDefinitionNotValid("Undefined environment.")
+            raise self_errors.PipelineDefinitionNotValid(
+                "A step doesn't reference any environment. Please make sure all "
+                "pipeline steps and services are assigned an environment."
+            )
 
         # Note: here we are assuming that the database holds the truth,
         # and that if the record is in the database then the image is in

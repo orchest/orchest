@@ -84,6 +84,8 @@ class JobList(Resource):
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 job = CreateJob(tpe).transaction(request.get_json())
+        except (errors.ImageNotFound, errors.PipelineDefinitionNotValid) as e:
+            return {"message": str(e)}, 409
         except Exception as e:
             current_app.logger.error(e)
             return {"message": str(e)}, 500
@@ -1064,6 +1066,17 @@ class AbortJob(TwoPhaseFunction):
 class CreateJob(TwoPhaseFunction):
     """Create a job."""
 
+    def _verify_all_pipelines_have_valid_environments(self, snapshot_uuid: str) -> None:
+        snapshot: models.Snapshot = models.Snapshot.query.get(snapshot_uuid)
+        for _, data in snapshot.pipelines.items():
+            definition = data["definition"]
+            pipeline = construct_pipeline(
+                uuids=[], run_type="full", pipeline_definition=definition
+            )
+            environments.get_env_uuids_to_image_mappings(
+                snapshot.project_uuid, pipeline.get_environments()
+            )
+
     def _transaction(
         self,
         job_spec: Dict[str, Any],
@@ -1094,6 +1107,8 @@ class CreateJob(TwoPhaseFunction):
 
         else:
             raise ValueError("Can't define both cron_schedule and scheduled_start.")
+
+        self._verify_all_pipelines_have_valid_environments(job_spec["snapshot_uuid"])
 
         job = {
             "uuid": job_spec["uuid"],

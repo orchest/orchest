@@ -62,7 +62,10 @@ def create_job(config) -> requests.Response:
     )
     if resp.status_code != 201:
         remove_job_directory(
-            job_spec["uuid"], job_spec["pipeline_uuid"], job_spec["project_uuid"]
+            job_spec["uuid"],
+            job_spec["pipeline_uuid"],
+            job_spec["project_uuid"],
+            job_spec["snapshot_uuid"],
         )
     return resp
 
@@ -333,7 +336,10 @@ def duplicate_job(job_uuid: str) -> requests.Response:
     )
     if resp.status_code != 201:
         remove_job_directory(
-            job_spec["uuid"], job_spec["pipeline_uuid"], job_spec["project_uuid"]
+            job_spec["uuid"],
+            job_spec["pipeline_uuid"],
+            job_spec["project_uuid"],
+            job_spec["snapshot_uuid"],
         )
     return resp
 
