@@ -20,7 +20,8 @@ func (state *StopOrchestState) Do(ctx context.Context, stateMachine *OrchestStat
 
 	// at last
 	if !orchest.GetDeletionTimestamp().IsZero() {
-		stateMachine.exit(ctx)
+		return stateMachine.exit(ctx)
+
 	}
 
 	return nil
