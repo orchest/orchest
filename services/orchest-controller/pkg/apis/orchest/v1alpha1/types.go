@@ -18,7 +18,7 @@ const (
 // OrchestPhase is a label for the condition of a OrchestCluster at the current time.
 type OrchestPhase string
 
-type OrchestClusterEvent string
+//type OrchestClusterEvent string
 
 const (
 	// OrchestClusterPhase
@@ -41,38 +41,37 @@ const (
 	Unhealthy             OrchestPhase = "Unhealthy"
 	Deleting              OrchestPhase = "Deleting"
 
-	//Events
-	// DeployingThirdParties events
-	DeployingArgo         OrchestClusterEvent = "Deploying argo-workflow"
-	DeployingCertManager  OrchestClusterEvent = "Deploying cert-manager"
-	DeployingRegistry     OrchestClusterEvent = "Deploying docker-registry"
-	CreatingCertificates  OrchestClusterEvent = "Creating docker-registry certificates"
-	DeployingNginxIngress OrchestClusterEvent = "Deploying nginx-ingress"
+	/*
+		//Events
+		// DeployingThirdParties events
+		DeployingArgo         OrchestClusterEvent = "Deploying argo-workflow"
+		DeployingCertManager  OrchestClusterEvent = "Deploying cert-manager"
+		DeployingRegistry     OrchestClusterEvent = "Deploying docker-registry"
+		CreatingCertificates  OrchestClusterEvent = "Creating docker-registry certificates"
+		DeployingNginxIngress OrchestClusterEvent = "Deploying nginx-ingress"
 
-	// DeployingOrchest and Upgrading events
-	DeployingOrchestDatabase OrchestClusterEvent = "Deploying orchest-database"
-	UpgradingOrchestDatabase OrchestClusterEvent = "Upgrading orchest-database"
+		// DeployingOrchest and Upgrading events
+		DeployingOrchestDatabase OrchestClusterEvent = "Deploying orchest-database"
+		UpgradingOrchestDatabase OrchestClusterEvent = "Upgrading orchest-database"
 
-	DeployingAuthServer OrchestClusterEvent = "Deploying auth-server"
-	UpgradingAuthServer OrchestClusterEvent = "Upgrading auth-server"
+		DeployingAuthServer OrchestClusterEvent = "Deploying auth-server"
+		UpgradingAuthServer OrchestClusterEvent = "Upgrading auth-server"
 
-	DeployingCeleryWorker OrchestClusterEvent = "Deploying celery-worker"
-	UpgradingCeleryWorker OrchestClusterEvent = "Upgrading celery-worker"
+		DeployingCeleryWorker OrchestClusterEvent = "Deploying celery-worker"
+		UpgradingCeleryWorker OrchestClusterEvent = "Upgrading celery-worker"
 
-	DeployingOrchestApi OrchestClusterEvent = "Deploying orchest-api"
-	UpgradingOrchestApi OrchestClusterEvent = "Upgrading orchest-api"
+		DeployingOrchestApi OrchestClusterEvent = "Deploying orchest-api"
+		UpgradingOrchestApi OrchestClusterEvent = "Upgrading orchest-api"
 
-	DeployingOrchestWebserver OrchestClusterEvent = "Deploying orchest-webserver"
-	UpgradingOrchestWebserver OrchestClusterEvent = "Upgrading orchest-webserver"
+		DeployingOrchestWebserver OrchestClusterEvent = "Deploying orchest-webserver"
+		UpgradingOrchestWebserver OrchestClusterEvent = "Upgrading orchest-webserver"
 
-	DeployingRabbitmq OrchestClusterEvent = "Deploying rabbitmq-server"
-	UpgradingRabbitmq OrchestClusterEvent = "Upgrading rabbitmq-server"
+		DeployingRabbitmq OrchestClusterEvent = "Deploying rabbitmq-server"
+		UpgradingRabbitmq OrchestClusterEvent = "Upgrading rabbitmq-server"
 
-	DeployingNodeAgent OrchestClusterEvent = "Deploying node-agent"
-	UpgradingNodeAgent OrchestClusterEvent = "Upgrading node-agent"
-
-	DeployingBuildKitDaemon OrchestClusterEvent = "Deploying buildkit-daemon"
-	UpgradingBuildKitDaemon OrchestClusterEvent = "Upgrading buildkit-daemon"
+		DeployingNodeAgent OrchestClusterEvent = "Deploying node-agent"
+		UpgradingNodeAgent OrchestClusterEvent = "Upgrading node-agent"
+	*/
 )
 
 type OrchestResourcesSpec struct {
@@ -238,9 +237,9 @@ type OrchestClusterSpec struct {
 }
 
 type Condition struct {
-	Event              OrchestClusterEvent `json:"event,omitempty"`
-	LastHeartbeatTime  metav1.Time         `json:"lastHeartbeatTime,omitempty"`
-	LastTransitionTime metav1.Time         `json:"lastTransitionTime,omitempty"`
+	Event              string      `json:"event,omitempty"`
+	LastHeartbeatTime  metav1.Time `json:"lastHeartbeatTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
 // OrchestClusterStatus defines the status of OrchestCluster
