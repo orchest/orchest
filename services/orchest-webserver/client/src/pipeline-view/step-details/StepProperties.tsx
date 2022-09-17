@@ -18,6 +18,7 @@ import React from "react";
 import { SelectEnvironment } from "./SelectEnvironment";
 import { useStepDetailsContext } from "./StepDetailsContext";
 import { StepParameters } from "./StepParameters";
+import { useAutoFocusStepName } from "./store/useAutoFocusStepName";
 import { useDelayedSavingStepChanges } from "./useDelayedSavingStepChanges";
 
 const KERNEL_OPTIONS = [
@@ -30,16 +31,15 @@ const KERNEL_OPTIONS = [
 type StepPropertiesProps = {
   pipelineCwd: string | undefined;
   readOnly: boolean;
-  shouldAutoFocus: boolean;
   onSave: (payload: Partial<StepState>, uuid: string) => void;
 };
 
 export const StepProperties = ({
   pipelineCwd,
   readOnly,
-  shouldAutoFocus,
   onSave,
 }: StepPropertiesProps) => {
+  const { shouldAutoFocusStepName } = useAutoFocusStepName();
   const handleSave = React.useCallback(
     (payload: Partial<StepState>, uuid: string) => {
       const changes = pick(
@@ -131,7 +131,7 @@ export const StepProperties = ({
   return (
     <Stack direction="column" spacing={3}>
       <TextField
-        autoFocus={shouldAutoFocus}
+        autoFocus={shouldAutoFocusStepName}
         value={step.title}
         onChange={(event) => onChangeTitle(event.target.value)}
         label="Step name"

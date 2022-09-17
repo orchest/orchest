@@ -8,6 +8,7 @@ import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
+import { useSetShouldAutoFocusStepName } from "../step-details/store/useAutoFocusStepName";
 
 const toRoot = (path?: string) => (path?.startsWith("/") ? path : "/" + path);
 
@@ -36,6 +37,8 @@ export const useCreateStep = (): StepCreator => {
   // The user can change it later.
   const [environment] = environments;
 
+  const { setShouldAutoFocusStepName } = useSetShouldAutoFocusStepName();
+
   const createStep = React.useCallback(
     (filePath?: string) => {
       if (pipelineViewportRef.current) {
@@ -53,6 +56,7 @@ export const useCreateStep = (): StepCreator => {
         const stepPath = relativeToPipeline(pipelineCwd, filePath);
 
         uiStateDispatch(createStepAction(environment, position, stepPath));
+        setShouldAutoFocusStepName(true);
       } else {
         console.error("Failed to create step: pipeline viewport not set");
       }
@@ -63,6 +67,7 @@ export const useCreateStep = (): StepCreator => {
       pipelineViewportRef,
       environment,
       pipelineCwd,
+      setShouldAutoFocusStepName,
     ]
   );
 

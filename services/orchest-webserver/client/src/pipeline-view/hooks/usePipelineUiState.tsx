@@ -43,7 +43,6 @@ export type PipelineUiState = {
   openedStep: string | undefined;
   draftJob: string | undefined;
   stepSelector: StepSelectorData;
-  shouldAutoFocus: boolean;
   error?: string | null;
   hash?: string;
   subViewIndex: number;
@@ -325,7 +324,6 @@ export const usePipelineUiState = () => {
         selectedConnection: null,
         selectedSteps: uuids,
         openedMultiStep: uuids.length > 1,
-        shouldAutoFocus: uuids.length === 1,
       });
 
       const deselectAllSteps = () => {
@@ -476,7 +474,6 @@ export const usePipelineUiState = () => {
             ...state,
             grabbedStep: undefined,
             selectedSteps: [],
-            shouldAutoFocus: false,
             stepSelector: {
               start,
               end: start,
@@ -730,7 +727,6 @@ export const usePipelineUiState = () => {
     connections: [],
     selectedConnection: null,
     subViewIndex: 0,
-    shouldAutoFocus: false,
     isDeletingSteps: false,
   });
 

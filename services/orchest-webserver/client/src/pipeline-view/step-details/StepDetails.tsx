@@ -62,7 +62,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
     pipelineJson,
   } = usePipelineDataContext();
   const {
-    uiState: { subViewIndex, shouldAutoFocus, stepSelector, steps, openedStep },
+    uiState: { subViewIndex, stepSelector, steps, openedStep },
     uiStateDispatch,
   } = usePipelineUiStateContext();
 
@@ -162,7 +162,6 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
             <StepProperties
               pipelineCwd={pipelineCwd}
               readOnly={isReadOnly}
-              shouldAutoFocus={shouldAutoFocus}
               onSave={onSave}
             />
           </CustomTabPanel>
