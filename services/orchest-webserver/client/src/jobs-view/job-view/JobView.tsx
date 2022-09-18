@@ -1,4 +1,3 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 import { EditJobOverview } from "./EditJobOverview";
@@ -12,13 +11,12 @@ import { WebhookHint } from "./WebhookHint";
 
 export const JobView = () => {
   const isEditing = useEditJob((state) => state.isEditing);
-  const { jobUuid } = useCustomRoute();
 
   return (
     <JobViewContainer>
       <JobViewHeader />
       {!isEditing && <JobSummary />}
-      {!isEditing && jobUuid && <JobRuns />}
+      {!isEditing && <JobRuns />}
       {isEditing && <EditJobOverview />}
       <JobParameters />
       <JobEnvVariables />

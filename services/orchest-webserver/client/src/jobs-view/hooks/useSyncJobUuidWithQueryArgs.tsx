@@ -1,6 +1,7 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { pickJobChanges } from "../common";
 import { useEditJob } from "../stores/useEditJob";
@@ -18,6 +19,7 @@ export const useSyncJobUuidWithQueryArgs = () => {
 
   const uuid = useEditJob((state) => state.jobChanges?.uuid);
   const initJobChanges = useEditJob((state) => state.initJobChanges);
+  const resetJobChanges = useEditJob((state) => state.resetJobChanges);
   const jobs = useJobsApi((state) => state.jobs);
 
   const targetJob = React.useMemo(() => {
@@ -29,11 +31,12 @@ export const useSyncJobUuidWithQueryArgs = () => {
 
   const redirect = React.useCallback(
     (jobUuid: string) => {
+      resetJobChanges();
       navigateTo(siteMap.jobs.path, {
         query: { projectUuid, jobUuid },
       });
     },
-    [navigateTo, projectUuid]
+    [navigateTo, projectUuid, resetJobChanges]
   );
 
   const isJobUuidFromRouteInvalid =
@@ -41,7 +44,7 @@ export const useSyncJobUuidWithQueryArgs = () => {
 
   const fetchJob = useJobsApi((state) => state.fetchOne);
 
-  const shouldUpdateJobChanges = targetJob && uuid !== targetJob.uuid;
+  const shouldUpdateJobChanges = hasValue(targetJob) && uuid !== targetJob.uuid;
 
   React.useEffect(() => {
     if (isJobUuidFromRouteInvalid) {

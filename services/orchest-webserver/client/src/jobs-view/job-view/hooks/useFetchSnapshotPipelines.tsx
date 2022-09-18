@@ -1,11 +1,18 @@
 import { environmentsApi } from "@/api/environments/environmentsApi";
 import { useFetchSnapshot } from "@/hooks/useFetchSnapshot";
+import { useValidJobQueryArgs } from "@/jobs-view/hooks/useValidJobQueryArgs";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import { ValidatedPipelineInSnapshot } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useFetchSnapshotPipelines = () => {
-  const snapshotUuid = useEditJob((state) => state.jobChanges?.snapshot_uuid);
+  const { projectUuid, jobUuid } = useValidJobQueryArgs();
+  const snapshotUuid = useEditJob((state) =>
+    hasValue(projectUuid) && hasValue(jobUuid)
+      ? state.jobChanges?.snapshot_uuid
+      : undefined
+  );
   const { fetchSnapshot, snapshot } = useFetchSnapshot();
 
   React.useEffect(() => {
@@ -20,8 +27,16 @@ export const useFetchSnapshotPipelines = () => {
     ValidatedPipelineInSnapshot[]
   >();
 
+  const snapshotProjectUuid = React.useMemo(
+    () =>
+      hasValue(projectUuid) && projectUuid === snapshot?.project_uuid
+        ? projectUuid
+        : undefined,
+    [projectUuid, snapshot?.project_uuid]
+  );
+
   const validateEnvironments = React.useCallback(async () => {
-    if (snapshot?.project_uuid && pipelines) {
+    if (snapshotProjectUuid && pipelines) {
       const result = await Promise.all(
         pipelines.map(
           async (pipeline): Promise<ValidatedPipelineInSnapshot> => {
@@ -49,7 +64,7 @@ export const useFetchSnapshotPipelines = () => {
 
             const uniqueEnvironments = new Set(environments);
             const valid = await environmentsApi.haveAllEnvironmentsBuilt(
-              snapshot.project_uuid,
+              snapshotProjectUuid,
               [...uniqueEnvironments]
             );
             return { ...pipeline, valid };
@@ -58,7 +73,7 @@ export const useFetchSnapshotPipelines = () => {
       );
       setValidatedPipelines(result);
     }
-  }, [pipelines, snapshot?.project_uuid]);
+  }, [pipelines, snapshotProjectUuid]);
 
   React.useEffect(() => {
     validateEnvironments();

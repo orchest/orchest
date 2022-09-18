@@ -51,7 +51,9 @@ const SaveCronJobChangesButton = () => {
 const JobPrimaryButton = () => {
   const isEditingActiveCronJob = useIsEditingActiveCronJob();
   const status = useEditJob((state) => state.jobChanges?.status);
-  const hasValidPipeline = useEditJob((state) => state.hasValidPipeline);
+  const hasValidPipeline = useEditJob(
+    (state) => !state.isEditing || state.hasValidPipeline
+  );
 
   const hasStarted =
     status === "STARTED" || status === "PENDING" || status === "PAUSED";

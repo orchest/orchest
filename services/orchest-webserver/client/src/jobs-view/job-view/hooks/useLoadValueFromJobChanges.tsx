@@ -14,9 +14,12 @@ export const useLoadValueFromJobChanges = <T,>(
   const value = useEditJob((state) => selectorRef.current(state.jobChanges));
   const isJobLoaded = useEditJob((state) => {
     const jobChangesUuid = state.jobChanges?.uuid;
+    const isEditing = state.isEditing;
     const isEditingInPipelineEditor = !hasValue(jobUuid);
     const hasLoadedJobChanges = jobUuid === jobChangesUuid;
+
     return (
+      isEditing &&
       hasValue(jobChangesUuid) &&
       (isEditingInPipelineEditor || hasLoadedJobChanges)
     );
