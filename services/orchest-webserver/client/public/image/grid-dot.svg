@@ -1,3 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="1" fill="rgba(0, 0, 0, 0.23)" />
+<svg width="32px" height="32px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <circle cx="16" cy="16" r="1" fill="#c4c4c4" />
 </svg>
