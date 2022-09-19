@@ -1,11 +1,12 @@
 import { ReducerActionWithCallback } from "@/types";
+import { PromiseCanceledError } from "@/utils/promise";
 import React from "react";
 import { useCancelablePromise } from "./useCancelablePromise";
 
-export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
+export type AsyncStatus = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
 export type Action<T, E = Error> = {
-  type: STATUS;
+  type: AsyncStatus;
   data?: T;
   error?: E;
   disableCaching?: boolean;
@@ -18,52 +19,61 @@ export type SetStateAction<T> =
 
 export type StateDispatcher<T> = (setStateAction: SetStateAction<T>) => void;
 
-type State<T, E> = {
-  status: STATUS;
+type AsyncState<T, E> = {
+  status: AsyncStatus;
   data: T | undefined;
   error: E | undefined;
 };
 
 type AsyncReducerAction<T, E> = ReducerActionWithCallback<
-  State<T, E>,
+  AsyncState<T, E>,
   Action<T, E>
 >;
 
+type AsyncReducer<T, E> = (
+  state: AsyncState<T, E>,
+  action: AsyncReducerAction<T, E>
+) => AsyncState<T, E>;
+
 const asyncReducer = <T, E>(
-  state: State<T, E>,
+  state: AsyncState<T, E>,
   _action: AsyncReducerAction<T, E>
-): State<T, E> => {
+): AsyncState<T, E> => {
   const action = _action instanceof Function ? _action(state) : _action;
+
   switch (action.type) {
-    case "PENDING": {
-      const payload = action.disableCaching ? undefined : state.data;
-      return { status: "PENDING", data: payload, error: undefined };
-    }
-    case "RESOLVED": {
+    case "PENDING":
       return {
-        status: "RESOLVED",
-        data: action.data,
+        status: "PENDING",
+        data: action.disableCaching ? undefined : state.data,
         error: undefined,
       };
-    }
-    case "REJECTED": {
+    case "RESOLVED":
+      return { status: "RESOLVED", data: action.data, error: undefined };
+    case "REJECTED":
       return { status: "REJECTED", data: undefined, error: action.error };
-    }
     default: {
       throw new Error(`Unhandled action type: ${action.type}`);
     }
   }
 };
 
-type AsyncParams<T> = {
+export type AsyncParams<T> = {
   initialState?: T;
   disableCaching?: boolean; // if true, data will be set to undefined when re-fetching data
 };
 
-const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
-  const { initialState, disableCaching = false } = params || {};
-  const [state, dispatch] = React.useReducer<
-    (state: State<T, E>, action: AsyncReducerAction<T, E>) => State<T, E>
+/**
+ * Allows for promise state tracking and
+ * prevents promises from resolving when components are unmounted
+ */
+export const useAsync = <T, E = Error>({
+  initialState,
+  disableCaching,
+}: AsyncParams<T> = {}) => {
+  const { makeCancelable } = useCancelablePromise();
+  const [{ data, error, status }, dispatch] = React.useReducer<
+    AsyncReducer<T, E>
   >(asyncReducer, {
     status: "IDLE",
     data: undefined,
@@ -71,51 +81,60 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
     ...initialState,
   });
 
-  const { data, error, status } = state as State<T, E>;
-  const { makeCancelable } = useCancelablePromise();
-
   const run = React.useCallback(
-    (promise: Promise<T>): Promise<T> => {
+    async (promise: Promise<T>): Promise<T | undefined> => {
       dispatch({ type: "PENDING", disableCaching });
-      return makeCancelable(promise).then(
-        (data) => {
-          dispatch({ type: "RESOLVED", data });
-          return data;
-        },
-        (error) => {
-          dispatch({ type: "REJECTED", error });
-          return Promise.reject(error);
+
+      try {
+        const data = await makeCancelable(promise);
+        dispatch({ type: "RESOLVED", data });
+        return data;
+      } catch (error) {
+        if (error instanceof PromiseCanceledError) {
+          return undefined;
         }
-      );
+        dispatch({ type: "REJECTED", error });
+        return Promise.reject(error);
+      }
     },
     [dispatch, disableCaching, makeCancelable]
   );
 
-  const setData: StateDispatcher<T> = React.useCallback(
+  const setData = React.useCallback(
     (setStateAction: SetStateAction<T>) => {
       dispatch((prevState) => {
         const newData =
           setStateAction instanceof Function
             ? setStateAction(prevState.data)
             : setStateAction;
+
         return { type: "RESOLVED", data: newData };
       });
     },
     [dispatch]
   );
+
   const setError = React.useCallback(
     (error) => dispatch({ type: "REJECTED", error }),
     [dispatch]
   );
 
   return {
-    setData,
-    setError,
-    error,
-    status,
-    data,
+    /**
+     * Starts tracking the promise.
+     * If the component is unmounted while the promise is pending,
+     * `undefined` is returned instead of the promise result.
+     */
     run,
+    /** Where the promise is in its lifecycle. */
+    status,
+    /** The error reason for the promise (when rejected). */
+    error,
+    /** The result of the promise (when resolved). */
+    data,
+    /** Sets the data which is normally captured when the promise is resolved. */
+    setData,
+    /** Sets the error which is normally set when the promise is rejected. */
+    setError,
   };
 };
-
-export { useAsync };

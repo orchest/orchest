@@ -38,7 +38,6 @@ const ProjectFilePicker: React.FC<{
   pipelineCwd: string | undefined;
   value: string;
   onChange: (value: string) => void;
-  menuMaxWidth?: string;
   allowedExtensions: readonly string[];
   doesFileExist: boolean;
   isCheckingFileValidity: boolean;
@@ -46,7 +45,6 @@ const ProjectFilePicker: React.FC<{
   onChange,
   pipelineCwd,
   value,
-  menuMaxWidth,
   allowedExtensions,
   doesFileExist,
   isCheckingFileValidity,
@@ -113,7 +111,6 @@ const ProjectFilePicker: React.FC<{
               : "Warning: this file wasn't found in the given path."
           }
           onChangeValue={onChange}
-          menuMaxWidth={menuMaxWidth}
           onSelectMenuItem={onSelectMenuItem}
           generateRelativePath={getFilePathForRelativeToProject}
         />

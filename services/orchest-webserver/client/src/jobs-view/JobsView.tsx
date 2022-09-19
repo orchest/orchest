@@ -1,20 +1,22 @@
-import { Layout } from "@/components/Layout";
-import ProjectBasedView from "@/components/ProjectBasedView";
+import { LayoutWithSidePanel } from "@/components/Layout/layout-with-side-panel/LayoutWithSidePanel";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import JobList from "./JobList";
+import { JobView } from "./job-view/JobView";
+import { JobMenuList } from "./JobMenuList";
 
-const JobsView: React.FC = () => {
-  useSendAnalyticEvent("view:loaded", { name: siteMap.jobs.path });
+export const JobsView = () => {
+  useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
+  const { jobUuid } = useCustomRoute();
 
   return (
-    <Layout>
-      <ProjectBasedView>
-        <JobList />
-      </ProjectBasedView>
-    </Layout>
+    <LayoutWithSidePanel
+      sidePanel={<JobMenuList />}
+      mainContainerProps={{ sx: { paddingTop: 0 } }}
+    >
+      {hasValue(jobUuid) && <JobView />}
+    </LayoutWithSidePanel>
   );
 };
-
-export default JobsView;

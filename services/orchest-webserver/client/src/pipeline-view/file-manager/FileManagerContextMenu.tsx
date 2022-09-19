@@ -1,28 +1,24 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { Position } from "@/types";
+import { Point2D } from "@/utils/geometry";
 import { join } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
-import {
-  cleanFilePath,
-  FILE_MANAGEMENT_ENDPOINT,
-  queryArgs,
-  unpackPath,
-} from "./common";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useOpenFile } from "../hooks/useOpenFile";
+import { cleanFilePath, FILE_MANAGEMENT_ENDPOINT, unpackPath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export type ContextMenuType = "tree" | "background";
 
 export type ContextMenuMetadata =
   | {
-      position: Position;
+      origin: Point2D;
       type: ContextMenuType;
     }
   | undefined;
@@ -30,18 +26,17 @@ export type ContextMenuMetadata =
 export const FileManagerContextMenu: React.FC<{
   metadata: ContextMenuMetadata | undefined;
 }> = ({ metadata, children }) => {
-  const { setAlert } = useAppContext();
-  const { navigateTo, jobUuid } = useCustomRoute();
+  const { setAlert } = useGlobalContext();
+  const { navigateTo, jobUuid, projectUuid } = useCustomRoute();
   const {
-    projectUuid,
     pipelineUuid,
-    isReadOnly,
-    pipelineJson,
-    runUuid,
     pipelineCwd,
-  } = usePipelineEditorContext();
+    isReadOnly,
+    runUuid,
+    pipelineJson,
+  } = usePipelineDataContext();
 
-  const openNotebook = useOpenNoteBook();
+  const { navigateToJupyterLab } = useOpenFile();
 
   const { isJobRun, jobRunQueryArgs } = React.useMemo(() => {
     return {
@@ -70,7 +65,7 @@ export const FileManagerContextMenu: React.FC<{
       `${FILE_MANAGEMENT_ENDPOINT}/duplicate?${queryArgs({
         path,
         root,
-        project_uuid: projectUuid,
+        projectUuid,
       })}`,
       { method: "POST" }
     );
@@ -80,8 +75,8 @@ export const FileManagerContextMenu: React.FC<{
   const handleContextEdit = React.useCallback(() => {
     if (isReadOnly) return;
     handleClose();
-    openNotebook(undefined, cleanFilePath(contextMenuCombinedPath));
-  }, [contextMenuCombinedPath, openNotebook, handleClose, isReadOnly]);
+    navigateToJupyterLab(undefined, cleanFilePath(contextMenuCombinedPath));
+  }, [contextMenuCombinedPath, navigateToJupyterLab, handleClose, isReadOnly]);
 
   const handleContextView = React.useCallback(() => {
     handleClose();
@@ -143,54 +138,76 @@ export const FileManagerContextMenu: React.FC<{
         .endsWith(`.${allowedType.toLocaleLowerCase()}`)
     );
 
+  const menuItems =
+    metadata?.type === "tree"
+      ? [
+          !isReadOnly && contextPathIsFile && rootIsProject && (
+            <MenuItem
+              key="edit"
+              dense
+              disabled={isReadOnly}
+              onClick={handleContextEdit}
+            >
+              Edit
+            </MenuItem>
+          ),
+          pipelineUuid && contextPathIsAllowedFileType && (
+            <MenuItem key="view" dense onClick={handleContextView}>
+              View
+            </MenuItem>
+          ),
+          !isReadOnly && (
+            <MenuItem
+              key="rename"
+              dense
+              disabled={isReadOnly}
+              onClick={handleContextRename}
+            >
+              Rename
+            </MenuItem>
+          ),
+          !isReadOnly && (
+            <MenuItem
+              key="duplicate"
+              dense
+              disabled={isReadOnly}
+              onClick={handleDuplicate}
+            >
+              Duplicate
+            </MenuItem>
+          ),
+          !isReadOnly && (
+            <MenuItem
+              key="delete"
+              dense
+              disabled={isReadOnly}
+              onClick={handleDelete}
+            >
+              Delete
+            </MenuItem>
+          ),
+          <MenuItem key="download" dense onClick={handleDownload}>
+            Download
+          </MenuItem>,
+          children,
+        ].filter(Boolean)
+      : null;
+
   return (
     <Menu
-      open={metadata !== undefined}
+      open={hasValue(metadata)}
       onClose={handleClose}
       anchorReference="anchorPosition"
       anchorPosition={
-        metadata !== undefined
+        hasValue(metadata)
           ? {
-              top: metadata?.position.y || 0,
-              left: metadata?.position.x || 0,
+              top: metadata?.origin[1] ?? 0,
+              left: metadata?.origin[0] ?? 0,
             }
           : undefined
       }
     >
-      {metadata?.type === "tree" && (
-        <>
-          {!isReadOnly && contextPathIsFile && rootIsProject && (
-            <MenuItem dense disabled={isReadOnly} onClick={handleContextEdit}>
-              Edit
-            </MenuItem>
-          )}
-          {pipelineUuid && contextPathIsAllowedFileType && (
-            <MenuItem dense onClick={handleContextView}>
-              View
-            </MenuItem>
-          )}
-          {!isReadOnly && (
-            <>
-              <MenuItem
-                dense
-                disabled={isReadOnly}
-                onClick={handleContextRename}
-              >
-                Rename
-              </MenuItem>
-              <MenuItem dense disabled={isReadOnly} onClick={handleDuplicate}>
-                Duplicate
-              </MenuItem>
-              <MenuItem dense disabled={isReadOnly} onClick={handleDelete}>
-                Delete
-              </MenuItem>
-            </>
-          )}
-          <MenuItem dense onClick={handleDownload}>
-            Download
-          </MenuItem>
-        </>
-      )}
+      {menuItems}
       {children}
     </Menu>
   );

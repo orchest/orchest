@@ -1,5 +1,8 @@
 import { PipelineJson } from "@/types";
-import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import {
+  getPipelineJSONEndpoint,
+  setOutgoingConnections,
+} from "@/utils/webserver-utils";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import { useFetcher } from "./useFetcher";
 
@@ -17,7 +20,9 @@ type PipelineJsonResponse = {
   success: boolean;
 };
 
-const transformResponse = async (response: PipelineJsonResponse) => {
+const transformResponse = async (
+  response: PipelineJsonResponse
+): Promise<PipelineJson> => {
   if (!response.success) {
     return Promise.reject("Failed to fetch pipeline.json");
   }
@@ -71,6 +76,8 @@ const transformResponse = async (response: PipelineJsonResponse) => {
     maxOrder += 1;
   }
 
+  pipelineObj.steps = setOutgoingConnections(pipelineObj.steps);
+
   return pipelineObj;
 };
 
@@ -95,6 +102,7 @@ export const fetchPipelineJson = (
   }>(url).then(transformResponse);
 };
 
+// TODO: replace this with zustand implementation
 export const useFetchPipelineJson = (
   props: FetchPipelineJsonProps | undefined
 ) => {
@@ -110,7 +118,7 @@ export const useFetchPipelineJson = (
     pipelineUuid,
     projectUuid,
     jobUuid,
-    runUuid,
+    jobRunUuid: runUuid,
   });
 
   const { data, setData, fetchData, status, error } = useFetcher<

@@ -29,7 +29,10 @@ def get_env_uuids_to_image_mappings(
     env_uuid_to_image = {}
     for env_uuid in env_uuids:
         if env_uuid == "":
-            raise self_errors.PipelineDefinitionNotValid("Undefined environment.")
+            raise self_errors.PipelineDefinitionNotValid(
+                "A step doesn't reference any environment. Please make sure all "
+                "pipeline steps and services are assigned an environment."
+            )
 
         # Note: here we are assuming that the database holds the truth,
         # and that if the record is in the database then the image is in
@@ -570,3 +573,14 @@ def _mark_env_images_that_can_be_removed(
             models.EnvironmentImage.tag,
         ).in_([(img.project_uuid, img.environment_uuid, img.tag) for img in imgs])
     ).update({"marked_for_removal": True})
+
+
+def release_environment_images_for_job(job_uuid: str) -> None:
+    """Releases image locks of the job.
+
+    Does not commit.
+
+    """
+    models.JobInUseImage.query.filter(
+        models.JobInUseImage.job_uuid == job_uuid
+    ).delete()

@@ -21,6 +21,7 @@ from app.models._core import (
     Project,
     SchedulerJob,
     Setting,
+    Snapshot,
 )
 from app.models._events import (
     AnalyticsSubscriber,

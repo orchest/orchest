@@ -1,7 +1,7 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
-import { useOnboardingDialog } from "@/components/Layout/OnboardingDialog";
-import { useAppContext } from "@/contexts/AppContext";
+import { useOnboardingDialog } from "@/components/Layout/legacy/OnboardingDialog";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -45,7 +45,7 @@ const HelpItem: React.FC<{
 };
 
 const HelpView: React.FC = () => {
-  const { config } = useAppContext();
+  const { config } = useGlobalContext();
 
   useSendAnalyticEvent("view:loaded", { name: siteMap.help.path });
   const { setIsOnboardingDialogOpen } = useOnboardingDialog();

@@ -1,5 +1,11 @@
 @use "sass:math";
 
+// TODO:
+//  Migrate fully to a CSS-in-JS solution.
+//  If you need to add anything to this file,
+//  please migrating the feature to CSS-in-JS
+//  For global styles add it in theme.ts or in main.tsx.
+
 @import "fonts";
 @import "codemirror/lib/codemirror";
 
@@ -35,16 +41,6 @@ $pipelineStepWidth: 190px;
 
 *:focus {
   outline: none;
-}
-
-.Mui-disabled,
-*[disabled] {
-  cursor: not-allowed;
-}
-
-html,
-body {
-  height: 100%;
 }
 
 p {
@@ -196,10 +192,6 @@ a.button {
     height: 100%;
   }
 
-  &.relative {
-    position: relative;
-  }
-
   &:not(.job-view) {
     p {
       line-height: 1.5;
@@ -227,54 +219,6 @@ a.button {
           width: 70%;
           font-weight: 500;
         }
-      }
-    }
-  }
-
-  &.logs-view {
-    .top-buttons {
-      button {
-        background-color: #fff;
-      }
-    }
-    .logs {
-      display: flex;
-      flex-direction: row;
-      height: 100%;
-
-      .log-title {
-        font-weight: 500;
-      }
-
-      .log-section {
-        line-height: 24px;
-        padding: 0 8px;
-        padding-bottom: calc(var(--space-5) / 2);
-        i.material-icons {
-          float: left;
-          margin-right: 10px;
-        }
-      }
-
-      .log-selector {
-        width: 20%;
-        min-width: 250px;
-        max-width: 400px;
-        padding: var(--space-5) calc(var(--space-5) / 2);
-        display: flex;
-        flex-direction: column;
-        border-right: 1px solid $borderColor;
-
-        i.note {
-          font-size: 14px;
-          padding: 8px;
-        }
-      }
-
-      .log-selector-divider {
-        border-bottom: 1px solid $borderColor;
-        width: 100%;
-        height: 0;
       }
     }
   }
@@ -369,7 +313,7 @@ p > i.material-icons.float-left {
 .CodeMirror {
   font-size: $codeSize;
   border-radius: 4px;
-  padding: 12px 0;
+  height: auto;
 }
 
 .xterm-holder {
@@ -444,7 +388,7 @@ p > i.material-icons.float-left {
   flex: 1;
   display: flex;
   position: absolute;
-  padding-top: 64px; // TODO: remove this hard-coded HeaderBar height
+  padding-top: 56px; // TODO: remove this hard-coded HeaderBar height
   top: 0;
   left: 0;
   width: 100%;
@@ -459,73 +403,6 @@ p > i.material-icons.float-left {
       border: 0;
       display: block;
     }
-  }
-}
-
-.file-viewer {
-  .file-description,
-  p {
-    padding: var(--space-5);
-
-    h3 {
-      font-weight: 500;
-    }
-  }
-
-  .file-description {
-    border-bottom: 1px solid $borderColor;
-    z-index: 9;
-
-    .step-navigation {
-      overflow: auto;
-      padding-top: var(--space-5);
-
-      .parents {
-        float: left;
-        button {
-          margin-right: $mdcComponentPadding;
-          &:last-of-type {
-            margin-right: 0;
-          }
-        }
-      }
-      .children {
-        float: right;
-        text-align: right;
-
-        button {
-          margin-left: $mdcComponentPadding;
-          &:first-of-type {
-            margin-left: 0;
-          }
-        }
-      }
-      span {
-        font-size: $codeSize;
-        display: block;
-        color: #999;
-      }
-    }
-  }
-
-  display: flex;
-  flex-direction: column;
-
-  .file-holder {
-    flex: 1;
-    flex-grow: 1;
-  }
-
-  .react-codemirror2 {
-    padding: var(--space-5);
-
-    .CodeMirror {
-      width: 100%;
-      height: 100%;
-    }
-
-    width: 100%;
-    height: 100%;
   }
 }
 
@@ -557,20 +434,6 @@ button.text-button {
     border-bottom: 1px solid black;
   }
   cursor: pointer;
-}
-
-.top-buttons {
-  position: absolute;
-  top: var(--space-5);
-  right: var(--space-5);
-  z-index: 99;
-
-  button {
-    margin-left: 10px;
-    &:first-of-type {
-      margin-left: 0;
-    }
-  }
 }
 
 .bottom-buttons {
@@ -612,22 +475,6 @@ button.text-button {
   .project-settings {
     flex: 1;
     overflow: auto;
-  }
-}
-
-.pipeline-settings-view {
-  .tab-content {
-    padding: var(--space-5) 0;
-  }
-
-  ul {
-    list-style-type: none;
-  }
-
-  .CodeMirror {
-    height: auto;
-    padding: 0;
-    min-height: 60px;
   }
 }
 
@@ -930,137 +777,7 @@ button.themed-secondary {
 }
 
 .pipeline-view {
-  position: relative;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-
-  .pipeline-actions {
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: 9;
-    padding: var(--space-5);
-
-    .services-status {
-      position: absolute;
-      right: 0;
-      padding: var(--space-5);
-      background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 3px 4px 2px rgb(0 0 0 / 10%);
-      margin: 0 var(--space-5);
-
-      h3 {
-        font-weight: 500;
-        margin-bottom: calc(var(--space-5) / 2);
-      }
-
-      h4 {
-        margin-top: calc(var(--space-5) / 2);
-        &:first-of-type {
-          margin-top: 0;
-        }
-      }
-
-      .link-holder {
-        i {
-          display: block;
-          margin-top: calc(var(--space-5) / 2);
-        }
-      }
-
-      .edit-button-holder {
-        border-top: 1px solid $borderColor;
-        padding-top: calc(var(--space-5) / 2);
-        margin-top: calc(var(--space-5) / 2);
-        text-align: center;
-
-        button {
-          margin-bottom: 0;
-        }
-      }
-
-      div.link-holder {
-        margin-top: calc(var(--space-5) / 2);
-        overflow: auto;
-
-        a {
-          color: #000;
-          text-decoration: none;
-
-          span.material-icons {
-            font-size: 22px;
-            float: left;
-            padding-right: 8px;
-            margin-top: -2px;
-          }
-        }
-      }
-    }
-
-    button {
-      min-width: 0;
-    }
-
-    &,
-    .selection-buttons {
-      button {
-        min-width: 0;
-        & + button {
-          margin-left: var(--space-5);
-        }
-      }
-    }
-
-    &.bottom-right {
-      top: auto;
-      bottom: 0;
-      right: 0;
-      left: auto;
-    }
-
-    &.top-left {
-      top: auto;
-      left: 0;
-      bottom: auto;
-      right: auto;
-    }
-
-    &.top-right {
-      button {
-        margin-bottom: var(--space-5);
-      }
-    }
-
-    &.bottom-left {
-      top: auto;
-      bottom: 0;
-      right: auto;
-      left: 0;
-
-      button {
-        margin-top: var(--space-5);
-      }
-
-      .navigation-buttons {
-        display: inline-block;
-      }
-
-      .selection-buttons {
-        display: inline-block;
-        padding-left: var(--space-5);
-      }
-    }
-  }
-
-  .pipeline-steps-outer-holder {
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-    position: absolute;
-
+  .pipeline-viewport {
     &.ready-to-pan {
       cursor: grabbing; // as a fallback
       cursor: grab;
@@ -1084,68 +801,14 @@ button.themed-secondary {
     position: absolute;
     user-select: none;
     -webkit-user-select: none;
-    background-size: 40px 40px;
-    background-image: url("/image/cross-fill.png");
+    background-size: 32px 32px;
+    background-image: url("/image/grid-dot.svg");
     background-repeat: repeat;
-    border: 1px solid #e5e5e5;
 
     .step-selector {
       position: absolute;
       z-index: 0;
       background: rgba(0, 0, 0, 0.1);
-    }
-
-    .connection {
-      position: absolute;
-      left: 0;
-      top: 0;
-
-      z-index: 1;
-
-      &.selected {
-        &:after {
-          background-image: url("/image/arrow-head-blue.svg");
-        }
-      }
-
-      &:after {
-        position: absolute;
-        content: " ";
-        display: block;
-        width: 12px;
-        height: 12px;
-        background-image: url("/image/arrow-head.svg");
-        background-size: contain;
-        background-repeat: no-repeat;
-        right: 7px;
-        bottom: -1px;
-        transition: 0s opacity ease;
-      }
-
-      &.flipped {
-        &:after {
-          bottom: auto;
-          top: -1px;
-        }
-      }
-
-      &.flipped-horizontal {
-        &:after {
-          opacity: 0;
-        }
-      }
-
-      pointer-events: none;
-
-      svg {
-        float: left;
-        pointer-events: none;
-
-        path {
-          cursor: pointer;
-          pointer-events: all;
-        }
-      }
     }
 
     .pipeline-step {
@@ -1279,72 +942,6 @@ button.themed-secondary {
       overflow: hidden;
     }
   }
-
-  .pipeline-details {
-    .CodeMirror {
-      height: 100%;
-    }
-
-    .detail-subview {
-      height: 100%;
-    }
-
-    .log-content {
-      height: 100%;
-
-      > div {
-        height: 100%;
-        > div.xterm {
-          height: 100%;
-        }
-      }
-    }
-
-    .input-group {
-      margin-bottom: var(--space-5);
-    }
-
-    .connection-list {
-      &.dragging {
-        .connection-item {
-          transition: transform 0.3s ease;
-        }
-      }
-
-      .connection-item {
-        overflow: auto;
-        padding: 10px 0;
-        cursor: pointer;
-        user-select: none;
-
-        span.filename {
-          color: #555;
-          display: inline-block;
-        }
-
-        &.swapped-up {
-          transform: translateY(-100%);
-        }
-        &.swapped-down {
-          transform: translateY(100%);
-        }
-
-        &.selected {
-          transition: none;
-        }
-
-        i.material-icons {
-          float: left;
-          padding-right: 10px;
-          margin-top: -2px;
-        }
-      }
-    }
-
-    .multi-field-input {
-      padding-bottom: 20px;
-    }
-  }
 }
 
 .multi-field-input {
@@ -1427,4 +1024,16 @@ button.themed-secondary {
   .pipeline-settings .columns {
     margin-bottom: 0;
   }
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
 }

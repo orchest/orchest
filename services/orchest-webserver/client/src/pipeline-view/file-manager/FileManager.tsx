@@ -1,19 +1,14 @@
 import { generateUploadFiles } from "@/components/DropZone";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDebounce } from "@/hooks/useDebounce";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
+import { queryArgs } from "@/utils/text";
 import LinearProgress, {
   LinearProgressProps,
 } from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
-import Stack from "@mui/material/Stack";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot, treeRoots } from "../common";
-import { CreatePipelineDialog } from "../CreatePipelineDialog";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { ActionBar } from "./ActionBar";
 import {
   FILE_MANAGEMENT_ENDPOINT,
@@ -21,11 +16,11 @@ import {
   isCombinedPathChildless,
   lastSelectedFolderPath,
   mergeTrees,
-  queryArgs,
   searchTrees,
   TreeNode,
   unpackPath,
 } from "./common";
+import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
 import { useFileManagerContext } from "./FileManagerContext";
 import {
@@ -76,11 +71,12 @@ export function FileManager() {
    * States
    */
 
-  const { pipelineUuid, jobUuid, runUuid } = useCustomRoute();
-
   const {
-    state: { projectUuid, pipelineIsReadOnly },
-  } = useProjectsContext();
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+  } = usePipelineDataContext();
 
   const {
     isDragging,
@@ -91,7 +87,7 @@ export function FileManager() {
     setFileTrees,
   } = useFileManagerContext();
 
-  const containerRef = React.useRef<typeof Stack | null>(null);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   // only show the progress if it takes longer than 125 ms
   const [_inProgress, setInProgress] = React.useState(false);
@@ -225,7 +221,9 @@ export function FileManager() {
 
   React.useEffect(() => {
     reload();
-  }, [reload]);
+    // Only load once when on mount.
+    // Put `reload` in the deps would trigger unwanted requests.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     const filterInvalidEntries = createInvalidEntryFilter({
@@ -255,8 +253,10 @@ export function FileManager() {
         });
       }
 
-      // Expand if was expanded prior
-      if (expanded.includes(oldPath) && !expanded.includes(newPath)) {
+      const wasExpandedBeforeMove =
+        expanded.includes(oldPath) && !expanded.includes(newPath);
+
+      if (wasExpandedBeforeMove) {
         setExpanded((expanded) => {
           return [...expanded, newPath];
         });
@@ -279,6 +279,7 @@ export function FileManager() {
           reload={reload}
           setContextMenu={setContextMenu}
         >
+          <CreatePipelineButton />
           <ActionBar
             setExpanded={setExpanded}
             uploadFiles={uploadFiles}
@@ -315,35 +316,6 @@ export function FileManager() {
             )}
           </FileTreeContainer>
         </FileManagerLocalContextProvider>
-        {!pipelineIsReadOnly && (
-          <CreatePipelineDialog>
-            {(onCreateClick) => (
-              <Box
-                sx={{
-                  width: "100%",
-                  margin: (theme) => theme.spacing(0.5, 0, 1, 0),
-                  padding: (theme) => theme.spacing(1),
-                }}
-              >
-                <Button
-                  fullWidth
-                  startIcon={<AddCircleIcon />}
-                  onClick={onCreateClick}
-                  data-test-id="pipeline-create"
-                >
-                  <Box
-                    sx={{
-                      marginTop: (theme) => theme.spacing(0.25),
-                      marginRight: (theme) => theme.spacing(1),
-                    }}
-                  >
-                    Create pipeline
-                  </Box>
-                </Button>
-              </Box>
-            )}
-          </CreatePipelineDialog>
-        )}
       </FileManagerContainer>
     </>
   );

@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { Step } from "@/types";
+import { StepData } from "@/types";
 import {
   basename,
   dirname,
@@ -9,6 +9,7 @@ import {
   join,
   relative,
 } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import { ALLOWED_STEP_EXTENSIONS, fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot } from "../common";
@@ -146,24 +147,6 @@ export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
   }
 };
 
-const camelToSnakeCase = (str: string) =>
-  str
-    .replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
-    .replace(/^_+(.*?)_+$/g, (_, group1) => group1); // Remove leading and trailing underscores.
-
-export const queryArgs = (
-  obj: Record<string, string | number | boolean | undefined | null>
-) => {
-  return Object.entries(obj).reduce((str, [key, value]) => {
-    if (!hasValue(value)) return str;
-    const leadingCharts = str === "" ? str : `${str}&`;
-    const snakeCaseKey = camelToSnakeCase(key);
-    return `${leadingCharts}${snakeCaseKey}=${window.encodeURIComponent(
-      value
-    )}`;
-  }, "");
-};
-
 export const getActiveRoot = (
   selected: string[],
   treeRoots: readonly FileManagementRoot[]
@@ -240,7 +223,7 @@ export const removeLeadingSymbols = (filePath: string) =>
 
 // user might enter "./foo.ipynb", but it's equivalent to "foo.ipynb".
 // this function cleans up the leading "./"
-export const getStepFilePath = (step: Step) =>
+export const getStepFilePath = (step: StepData) =>
   removeLeadingSymbols(step.file_path);
 
 export const searchFilePathsByExtension = ({
@@ -300,7 +283,7 @@ export const findFilesByExtension = async ({
  */
 export const validateFiles = (
   currentStepUuid: string | undefined,
-  steps: Record<string, Step> | undefined,
+  steps: Record<string, StepData> | undefined,
   selectedFiles: string[]
 ) => {
   const allNotebookFileSteps = Object.values(steps || {}).reduce(
@@ -311,7 +294,7 @@ export const validateFiles = (
       }
       return all;
     },
-    [] as Step[]
+    [] as StepData[]
   );
 
   return selectedFiles.reduce(

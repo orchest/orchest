@@ -1,5 +1,5 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipeline } from "@/hooks/useFetchPipeline";
@@ -101,7 +101,7 @@ export const useFetchPipelineSettingsData = ({
 
   const {
     state: { hasUnsavedChanges },
-  } = useAppContext();
+  } = useGlobalContext();
 
   React.useEffect(() => {
     // Only reinitialize if there is no change.

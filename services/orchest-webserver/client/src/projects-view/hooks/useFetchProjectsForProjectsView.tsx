@@ -1,19 +1,22 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { useMounted } from "@/hooks/useMounted";
 import React from "react";
 
 export const useFetchProjectsForProjectsView = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { dispatch } = useProjectsContext();
   const {
-    projects: fetchedProjects = [],
+    projects: fetchedProjects,
     fetchProjects,
     setProjects,
     error: fetchProjectsError,
     isFetchingProjects,
-  } = useFetchProjects({ sessionCounts: true, jobCounts: true });
+  } = useFetchProjects({
+    sessionCounts: true,
+    activeJobCounts: true,
+  });
 
   const mounted = useMounted();
 

@@ -187,9 +187,32 @@ def make_env_var_name_valid(name: str) -> str:
 
 
 def is_service_name_valid(service_name: str) -> bool:
+    """Checks whether the name of a user service is valid.
+
+    The `service_name` must follow:
+        - contain at most 63 - 1 - len(session_uuid) = 26 characters
+        - contain only lowercase alphanumeric characters or '-'
+        - start with an alphabetic character
+
+    The name of user services need to follow certain rules, because
+    the name is used to create a k8s service as follows::
+
+        service_config["name"] + "-" + session_uuid
+
+    From the Kubernetes docs: The name of a Service object must be a
+    valid RFC 1035 label name. This means the name must:
+        - contain at most 63 characters
+        - contain only lowercase alphanumeric characters or '-'
+        - start with an alphabetic character
+        - end with an alphanumeric character
+
+    https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
+    https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#rfc-1035-label-names
+
+    """
     # NOTE: this is enforced at the GUI level as well, needs to be kept
     # in sync.
-    return bool(re.match(r"^[0-9a-zA-Z\-]{1,36}$", service_name))
+    return bool(re.match(r"^[a-z][0-9a-z\-]{0,25}$", service_name))
 
 
 def is_service_definition_valid(service: Dict[str, Any]) -> bool:

@@ -1,91 +1,13 @@
-import { Icon, IIconProps, IIconRef } from "@orchest/design-system";
 import React from "react";
 
 /* eslint-disable react/display-name */
 
-export const IconPostgreSQL = React.forwardRef<IIconRef, IIconProps>(
-  (props, ref) => (
-    <Icon
-      ref={ref}
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
-      fill="none"
-      {...props}
-    >
-      <g clipPath="url(#clip0)">
-        <path
-          d="M47.44 46.59c.41-3.4.29-3.89 2.81-3.34l.65.06c1.94.09 4.48-.32 5.97-1 3.22-1.5 5.12-3.99 1.95-3.33-7.23 1.49-7.72-.96-7.72-.96 7.63-11.32 10.82-25.7 8.07-29.22-7.51-9.6-20.52-5.06-20.73-4.94l-.07.01c-1.43-.3-3.03-.47-4.82-.5-3.28-.05-5.76.86-7.64 2.29 0 0-23.2-9.56-22.11 12.01.22 4.6 6.57 34.73 14.15 25.63 2.76-3.33 5.44-6.15 5.44-6.15a7.02 7.02 0 004.58 1.17l.13-.1c-.04.4-.02.81.05 1.29-1.95 2.18-1.37 2.56-5.27 3.37-3.95.8-1.63 2.26-.12 2.63 1.84.46 6.08 1.11 8.95-2.9l-.11.46c.76.6.7 4.4.82 7.1.1 2.7.29 5.23.84 6.72.55 1.5 1.2 5.33 6.33 4.23 4.28-.92 7.55-2.24 7.85-14.53"
-          fill="#000"
-        />
-        <path
-          d="M47.44 46.59c.41-3.4.29-3.89 2.81-3.34l.65.06c1.94.09 4.48-.32 5.97-1 3.22-1.5 5.12-3.99 1.95-3.33-7.23 1.49-7.72-.96-7.72-.96 7.63-11.32 10.82-25.7 8.07-29.22-7.51-9.6-20.52-5.06-20.73-4.94l-.07.01c-1.43-.3-3.03-.47-4.82-.5-3.28-.05-5.76.86-7.64 2.29 0 0-23.2-9.56-22.11 12.01.22 4.6 6.57 34.73 14.15 25.63 2.76-3.33 5.44-6.15 5.44-6.15a7.02 7.02 0 004.58 1.17l.13-.1c-.04.4-.02.81.05 1.29-1.95 2.18-1.37 2.56-5.27 3.37-3.95.8-1.63 2.26-.12 2.63 1.84.46 6.08 1.11 8.95-2.9l-.11.46c.76.6.7 4.4.82 7.1.1 2.7.29 5.23.84 6.72.55 1.5 1.2 5.33 6.33 4.23 4.28-.92 7.55-2.24 7.85-14.53"
-          stroke="#000"
-          strokeWidth="5.37"
-        />
-        <path
-          d="M58.82 38.97c-7.23 1.5-7.72-.95-7.72-.95 7.63-11.33 10.82-25.7 8.07-29.22-7.51-9.6-20.52-5.06-20.73-4.94l-.07.01c-1.43-.3-3.03-.47-4.83-.5-3.27-.05-5.75.86-7.63 2.29 0 0-23.2-9.56-22.12 12.01.23 4.6 6.58 34.73 14.15 25.63 2.77-3.33 5.45-6.15 5.45-6.15a7.02 7.02 0 004.58 1.17l.13-.1c-.04.4-.02.81.05 1.3-1.95 2.17-1.37 2.55-5.27 3.36-3.95.8-1.63 2.26-.12 2.63 1.84.46 6.08 1.11 8.95-2.9l-.12.46c.77.6 1.3 3.98 1.22 7.03-.1 3.06-.15 5.16.45 6.8.6 1.63 1.2 5.32 6.33 4.22 4.28-.92 6.5-3.3 6.8-7.27.23-2.82.72-2.4.75-4.92l.4-1.2c.46-3.82.08-5.05 2.71-4.48l.65.06c1.94.09 4.48-.32 5.97-1 3.21-1.5 5.12-3.99 1.95-3.34z"
-          fill="#336791"
-        />
-        <path
-          d="M32.02 41.17c-.2 7.11.05 14.28.75 16.02.7 1.74 2.18 5.13 7.31 4.03 4.28-.92 5.84-2.7 6.52-6.62.5-2.88 1.46-10.9 1.58-12.54M25.87 5.5S2.67-4 3.74 17.58c.23 4.6 6.58 34.73 14.15 25.63 2.77-3.33 5.27-5.94 5.27-5.94M38.41 3.77c-.8.25 12.91-5.02 20.7 4.94 2.76 3.52-.43 17.9-8.06 29.22"
-          stroke="#fff"
-          strokeWidth="1.79"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M51.05 37.93s.5 2.45 7.72.96c3.17-.66 1.26 1.83-1.95 3.32-2.63 1.23-8.54 1.54-8.64-.15-.25-4.36 3.1-3.04 2.87-4.13-.22-.99-1.72-1.95-2.72-4.36-.87-2.1-11.9-18.23 3.06-15.83.55-.12-3.9-14.23-17.9-14.46-14-.23-13.53 17.21-13.53 17.21"
-          stroke="#fff"
-          strokeWidth="1.79"
-          strokeLinecap="round"
-          strokeLinejoin="bevel"
-        />
-        <path
-          d="M28.1 39.42c-1.95 2.18-1.38 2.56-5.28 3.37-3.94.8-1.62 2.26-.11 2.63 1.83.46 6.08 1.11 8.95-2.9.87-1.22 0-3.18-1.2-3.67-.59-.24-1.36-.54-2.36.57v0z"
-          stroke="#fff"
-          strokeWidth="1.79"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M27.97 39.38c-.2-1.28.43-2.8 1.09-4.59 1-2.67 3.29-5.35 1.45-13.84-1.37-6.33-10.55-1.32-10.55-.46 0 .86.41 4.35-.16 8.41-.74 5.3 3.38 9.8 8.12 9.33"
-          stroke="#fff"
-          strokeWidth="1.79"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M25.79 20.36c-.04.3.54 1.08 1.29 1.18.75.1 1.4-.5 1.44-.8.04-.3-.54-.61-1.3-.72-.75-.1-1.39.05-1.43.34h0z"
-          fill="#fff"
-          stroke="#fff"
-          strokeWidth=".6"
-        />
-        <path
-          d="M48.7 19.76c.04.3-.54 1.08-1.3 1.18-.74.1-1.39-.5-1.43-.8-.04-.29.54-.61 1.3-.72.74-.1 1.39.05 1.43.34v0z"
-          fill="#fff"
-          stroke="#fff"
-          strokeWidth=".3"
-        />
-        <path
-          d="M51.4 17.74c.11 2.3-.5 3.86-.58 6.3-.12 3.56 1.7 7.63-1.04 11.7"
-          stroke="#fff"
-          strokeWidth="1.79"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </g>
-      <defs>
-        <clipPath id="clip0">
-          <path fill="#fff" transform="translate(1)" d="M0 0h62.09v64H0z" />
-        </clipPath>
-      </defs>
-    </Icon>
-  )
-);
+type SVGProps = React.SVGProps<SVGSVGElement>;
 
-export const IconRedis = React.forwardRef<IIconRef, IIconProps>(
+export const IconRedis = React.forwardRef<SVGSVGElement, SVGProps>(
   (props, ref) => (
-    <Icon
+    <svg
+      style={{ width: 25, height: 25 }}
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
@@ -128,13 +50,14 @@ export const IconRedis = React.forwardRef<IIconRef, IIconProps>(
         d="M36.689 17.573l9.635-3.784.007 6.83-.945.366-8.697-3.412z"
         fill="#9A2928"
       />
-    </Icon>
+    </svg>
   )
 );
 
-export const IconStreamlit = React.forwardRef<IIconRef, IIconProps>(
+export const IconStreamlit = React.forwardRef<SVGSVGElement, SVGProps>(
   (props, ref) => (
-    <Icon
+    <svg
+      style={{ width: 25, height: 25 }}
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
@@ -153,58 +76,61 @@ export const IconStreamlit = React.forwardRef<IIconRef, IIconProps>(
         d="M32.898 15.542c-.496-.723-1.576-.723-2.054 0L20.691 30.64l11.173 5.896 21.175 11.17c.133-.13.24-.256.352-.39.16-.196.308-.407.44-.642L43.043 30.64 32.898 15.542z"
         fill="#BD4043"
       />
-    </Icon>
+    </svg>
   )
 );
 
-export const IconTensorBoard = React.forwardRef<IIconRef, IIconProps>(
-  (props, ref) => (
-    <Icon
-      ref={ref}
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
-      fill="none"
-      {...props}
+export const IconTensorBoard = React.forwardRef<
+  SVGSVGElement,
+  React.SVGProps<SVGSVGElement>
+>((props, ref) => (
+  <svg
+    style={{ width: 25, height: 25 }}
+    ref={ref}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 64 64"
+    fill="none"
+    {...props}
+  >
+    <mask
+      id="icon-tensor-board_a"
+      maskUnits="userSpaceOnUse"
+      x="3"
+      y="0"
+      width="57"
+      height="64"
     >
-      <mask
-        id="icon-tensor-board_a"
-        maskUnits="userSpaceOnUse"
-        x="3"
-        y="0"
-        width="57"
-        height="64"
+      <path
+        d="M32.7128 0L60 15.5471v14.2111l-16.3723-9.5955v7.1662l8.1255 4.7371.1213 12.2676-8.2468-4.737V57.573l-10.9149 6.316V0zm-2.4256 0v63.889l-10.9149-6.316V20.1627L3 29.7582V15.5471L30.2872 0z"
+        fill="#fff"
+      />
+    </mask>
+    <g mask="url(#icon-tensor-board_a)">
+      <path
+        d="M32.7128 0L60 15.5471v14.2111l-16.3723-9.5955v7.1662l8.1255 4.7371.1213 12.2676-8.2468-4.737V57.573l-10.9149 6.316V0zm-2.4256 0v63.889l-10.9149-6.316V20.1627L3 29.7582V15.5471L30.2872 0z"
+        fill="url(#icon-tensor-board_icon-vscode_paint0_linear)"
+      />
+    </g>
+    <defs>
+      <linearGradient
+        id="icon-tensor-board_icon-vscode_paint0_linear"
+        x1="3"
+        y1="31.9445"
+        x2="60"
+        y2="31.9445"
+        gradientUnits="userSpaceOnUse"
       >
-        <path
-          d="M32.7128 0L60 15.5471v14.2111l-16.3723-9.5955v7.1662l8.1255 4.7371.1213 12.2676-8.2468-4.737V57.573l-10.9149 6.316V0zm-2.4256 0v63.889l-10.9149-6.316V20.1627L3 29.7582V15.5471L30.2872 0z"
-          fill="#fff"
-        />
-      </mask>
-      <g mask="url(#icon-tensor-board_a)">
-        <path
-          d="M32.7128 0L60 15.5471v14.2111l-16.3723-9.5955v7.1662l8.1255 4.7371.1213 12.2676-8.2468-4.737V57.573l-10.9149 6.316V0zm-2.4256 0v63.889l-10.9149-6.316V20.1627L3 29.7582V15.5471L30.2872 0z"
-          fill="url(#icon-tensor-board_icon-vscode_paint0_linear)"
-        />
-      </g>
-      <defs>
-        <linearGradient
-          id="icon-tensor-board_icon-vscode_paint0_linear"
-          x1="3"
-          y1="31.9445"
-          x2="60"
-          y2="31.9445"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopColor="#FF6F00" />
-          <stop offset="1" stopColor="#FFA800" />
-        </linearGradient>
-      </defs>
-    </Icon>
-  )
-);
+        <stop stopColor="#FF6F00" />
+        <stop offset="1" stopColor="#FFA800" />
+      </linearGradient>
+    </defs>
+  </svg>
+));
 
-export const IconVSCode = React.forwardRef<IIconRef, IIconProps>(
+export const IconVSCode = React.forwardRef<SVGSVGElement, SVGProps>(
   (props, ref) => (
-    <Icon
+    <svg
+      style={{ width: 25, height: 25 }}
       ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
@@ -318,7 +244,7 @@ export const IconVSCode = React.forwardRef<IIconRef, IIconProps>(
           <path fill="#fff" d="M0 0h64v64H0z" />
         </clipPath>
       </defs>
-    </Icon>
+    </svg>
   )
 );
 /* eslint-enable react/display-name */

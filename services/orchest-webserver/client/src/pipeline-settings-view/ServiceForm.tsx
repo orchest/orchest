@@ -1,6 +1,6 @@
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { Service } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import InfoIcon from "@mui/icons-material/Info";
@@ -65,8 +65,8 @@ const ServiceForm: React.FC<{
   const { projectUuid, pipelineUuid, runUuid } = useCustomRoute();
   const environmentPrefix = "environment@";
 
-  const { environments: environmentOptions = [] } = useFetchEnvironments(
-    projectUuid
+  const environmentOptions = useEnvironmentsApi(
+    (state) => state.environments || []
   );
 
   let [showImageDialog, setShowImageDialog] = React.useState(false);
@@ -187,7 +187,7 @@ const ServiceForm: React.FC<{
                   fullWidth
                   helperText={
                     serviceNameError ||
-                    "The name of the service. Up to 36 digits, letters or dashes are allowed."
+                    "The name of the service. Up to 26 digits, lowercase letters or dashes are allowed."
                   }
                   aria-describedby="tooltip-name"
                   data-test-id={`service-${service.name}-name`}
@@ -564,9 +564,7 @@ const ServiceForm: React.FC<{
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button color="secondary" onClick={onCloseEditImageName}>
-              Cancel
-            </Button>
+            <Button onClick={onCloseEditImageName}>Cancel</Button>
             <Button
               startIcon={<CheckIcon />}
               variant="contained"

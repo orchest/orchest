@@ -4,35 +4,41 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
-import ParamTree from "./ParamTree";
+import { CodeMirror } from "./common/CodeMirror";
+import { ParamTree } from "./ParamTree";
 
-interface IParameterEditorProps {
-  strategyJSON: StrategyJson | undefined;
-  pipelineName: string;
+interface ParameterEditorProps {
+  strategyJson: StrategyJson | undefined;
+  pipelineFilePath: string;
   readOnly?: boolean;
   onParameterChange?: (value: StrategyJson) => void;
+  disableAutofocusCodeMirror?: boolean;
+  "data-test-id": string;
 }
 
-const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
-  const [strategyJSON, setStrategyJson] = React.useState<StrategyJson>(
-    props.strategyJSON || {}
+export const ParameterEditor = ({
+  disableAutofocusCodeMirror,
+  onParameterChange,
+  readOnly,
+  pipelineFilePath,
+  strategyJson: initialStrategyJson = {},
+  "data-test-id": dataTestId,
+}: ParameterEditorProps) => {
+  const [strategyJson, setStrategyJson] = React.useState<StrategyJson>(
+    initialStrategyJson
   );
 
-  const [activeParameter, setActiveParameter] = React.useState<
-    | {
-        key: string;
-        strategyJSONKey: string;
-      }
-    | undefined
-  >(undefined);
+  const [activeParameter, setActiveParameter] = React.useState<string>();
 
   const [codeMirrorValue, setCodeMirrorValue] = React.useState("");
 
-  const editParameter = (key: string, strategyJSONKey: string) => {
-    setActiveParameter({ key, strategyJSONKey });
-    setCodeMirrorValue(strategyJSON[strategyJSONKey].parameters[key]);
-  };
+  const editParameter = React.useCallback(
+    (key: string, strategyJsonKey: string) => {
+      setActiveParameter([key, strategyJsonKey].join("|"));
+      setCodeMirrorValue(strategyJson[strategyJsonKey].parameters[key]);
+    },
+    [strategyJson]
+  );
 
   const isJsonValid = React.useMemo(() => {
     try {
@@ -44,67 +50,52 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
   }, [codeMirrorValue]);
 
   React.useEffect(() => {
-    // By default open editor for first key
     try {
-      let strategyKeys = Object.keys(strategyJSON);
+      const strategyKeys = Object.keys(strategyJson);
       if (strategyKeys.length > 0) {
-        let firstKey = strategyKeys[0];
-        let parameterKeys = Object.keys(strategyJSON[firstKey].parameters);
+        const firstKey = strategyKeys[0];
+        const parameterKeys = Object.keys(strategyJson[firstKey].parameters);
         if (parameterKeys.length > 0) {
           editParameter(parameterKeys[0], firstKey);
         }
       }
-    } catch {
-      // In case something is wrong with the strategyJSON object
-      // don't break.
-    }
-  }, []);
-
-  const codeMirrorRef = React.useRef<CodeMirror | null>(null);
-  React.useEffect(() => {
-    if (activeParameter) {
-      // `editor` is not defined in CodeMirror. So we need this workaround.
-      (codeMirrorRef.current as any)?.editor?.focus(); // eslint-disable-line @typescript-eslint/no-explicit-any
-    }
-  }, [activeParameter]);
+    } catch {}
+  }, [editParameter, strategyJson]);
 
   return (
     <div className="parameter-editor">
       <div className="columns">
         <div className="column">
           <ParamTree
-            pipelineName={props.pipelineName}
-            strategyJSON={strategyJSON}
-            editParameter={editParameter}
+            pipelineName={pipelineFilePath}
+            strategyJson={strategyJson}
+            selectParameter={editParameter}
             activeParameter={activeParameter}
-            data-test-id={props["data-test-id"]}
+            data-test-id={dataTestId}
           />
         </div>
         <div className="column">
-          {hasValue(activeParameter) && !props.readOnly && (
+          {hasValue(activeParameter) && !readOnly && (
             <>
               <CodeMirror
-                ref={codeMirrorRef}
                 value={codeMirrorValue}
                 options={{
                   mode: "application/json",
                   theme: "jupyter",
                   lineNumbers: true,
-                  autofocus: true,
+                  autofocus: !disableAutofocusCodeMirror,
                 }}
                 onBeforeChange={(editor, data, value) => {
+                  const [key, strategyJsonKey] = activeParameter.split("|");
                   setStrategyJson((json) => {
-                    json[activeParameter.strategyJSONKey].parameters[
-                      activeParameter.key
-                    ] = value;
+                    json[strategyJsonKey].parameters[key] = value;
                     setCodeMirrorValue(value);
 
-                    // Only call onParameterChange if valid JSON Array.
                     // Put this block into event-loop to speed up the typing.
                     window.setTimeout(() => {
                       try {
                         if (Array.isArray(JSON.parse(value))) {
-                          props.onParameterChange?.(json);
+                          onParameterChange?.(json);
                         }
                       } catch {
                         console.warn("Invalid JSON entered");
@@ -125,7 +116,7 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
               )}
             </>
           )}
-          {activeParameter !== undefined && props.readOnly === true && (
+          {activeParameter !== undefined && readOnly === true && (
             <>
               <CodeMirror
                 onBeforeChange={() => null}
@@ -150,5 +141,3 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
     </div>
   );
 };
-
-export default ParameterEditor;

@@ -1,7 +1,7 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import { SectionTitle } from "@/components/common/SectionTitle";
 import { Layout } from "@/components/Layout";
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -15,7 +15,7 @@ import { WebhookList } from "./WebhookList";
 
 const ReturnToJobsAlert = () => {
   const { navigateTo, prevPathname } = useCustomRoute();
-  const { webhooks } = useAppInnerContext();
+  const { webhooks } = useAppContext();
 
   const firstSuccess = webhooks.length === 1;
 

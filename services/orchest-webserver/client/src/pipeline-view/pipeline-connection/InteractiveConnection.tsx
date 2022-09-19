@@ -1,105 +1,76 @@
-import { Position } from "@/types";
-import classNames from "classnames";
+import { Point2D } from "@/utils/geometry";
 import React from "react";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { getSvgProperties, getTransformProperty } from "./common";
 import { ConnectionLine } from "./ConnectionLine";
 
+type InteractiveConnectionProps = {
+  startPoint: Point2D;
+  endPoint?: Point2D;
+  selected: boolean;
+  startNodeUUID: string;
+  endNodeUUID: string;
+  getPosition: (element: HTMLElement) => Point2D;
+  shouldUpdate: [boolean, boolean];
+};
+
+/** This connection is rendered when a step is being moved in the pipeline editor. */
 export const InteractiveConnection = ({
   getPosition,
   startNodeUUID,
   endNodeUUID,
   selected,
-  shouldUpdate,
-  stepDomRefs,
-  ...props
-}: {
-  startNodeX: number;
-  startNodeY: number;
-  endNodeX: number | undefined;
-  endNodeY: number | undefined;
-  selected: boolean;
-  startNodeUUID: string;
-  endNodeUUID?: string;
-  getPosition: (element: HTMLElement | undefined | null) => Position | null;
-  shouldUpdate: [boolean, boolean];
-  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
-}) => {
-  const [transformProperty, setTransformProperty] = React.useState(() =>
-    getTransformProperty(props)
-  );
-  const [svgProperties, setSvgProperties] = React.useState(() =>
-    getSvgProperties(props)
-  );
-
-  const [shouldUpdateStart, shouldUpdateEnd] = shouldUpdate;
+  shouldUpdate: [shouldUpdateStart, shouldUpdateEnd],
+  startPoint,
+  endPoint,
+}: InteractiveConnectionProps) => {
+  const { stepRefs } = usePipelineRefs();
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
-  const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
-  const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
-  const startNodePosition = getPosition(startNode);
-  const endNodePosition = getPosition(endNode);
+  const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
+  const endNode = stepRefs.current[`${endNodeUUID}-incoming`];
+  const start = React.useMemo(() => {
+    if (shouldUpdateStart && startNode) {
+      return getPosition(startNode);
+    } else {
+      return startPoint;
+    }
+  }, [getPosition, shouldUpdateStart, startNode, startPoint]);
 
-  const startNodeX =
-    shouldUpdateStart && startNodePosition
-      ? startNodePosition.x
-      : props.startNodeX;
-  const startNodeY =
-    shouldUpdateStart && startNodePosition
-      ? startNodePosition.y
-      : props.startNodeY;
-  const endNodeX =
-    shouldUpdateEnd && endNodePosition ? endNodePosition.x : props.endNodeX;
-  const endNodeY =
-    shouldUpdateEnd && endNodePosition ? endNodePosition.y : props.endNodeY;
+  const end = React.useMemo(() => {
+    if (shouldUpdateEnd && endNode) {
+      return getPosition(endNode);
+    } else {
+      return endPoint;
+    }
+  }, [endNode, endPoint, getPosition, shouldUpdateEnd]);
 
-  const transform = React.useCallback(() => {
-    setTransformProperty(
-      getTransformProperty({
-        startNodeX,
-        startNodeY,
-        endNodeX,
-        endNodeY,
-      })
-    );
-  }, [endNodeX, endNodeY, startNodeX, startNodeY, setTransformProperty]);
+  const transformProperty = React.useMemo(
+    () => getTransformProperty(start, end),
+    [end, start]
+  );
 
-  const redraw = React.useCallback(() => {
-    transform();
-    setSvgProperties(
-      getSvgProperties({
-        startNodeX,
-        startNodeY,
-        endNodeX,
-        endNodeY,
-      })
-    );
-  }, [endNodeX, endNodeY, startNodeX, startNodeY, transform]);
+  const svgProperties = React.useMemo(() => getSvgProperties(start, end), [
+    end,
+    start,
+  ]);
 
-  const shouldRedrawSvg = shouldUpdateStart || shouldUpdateEnd;
-
-  React.useEffect(() => {
-    if (shouldRedrawSvg) redraw();
-  }, [shouldRedrawSvg, redraw]);
-
-  const { className, width, height, drawn } = svgProperties;
+  const { sx, width, height, drawn } = svgProperties;
 
   const zIndex = -1;
 
   return (
-    <div
-      data-start-uuid={startNodeUUID}
-      data-end-uuid={endNodeUUID}
-      className={classNames("connection", className)}
+    <ConnectionLine
       ref={containerRef}
+      startNodeUuid={startNodeUUID}
+      endNodeUuid={endNodeUUID}
+      width={width}
+      height={height}
+      d={drawn}
+      selected={selected}
+      sx={sx}
       style={{ zIndex, ...transformProperty }}
-    >
-      <ConnectionLine
-        width={width}
-        height={height}
-        d={drawn}
-        selected={selected}
-      />
-    </div>
+    />
   );
 };

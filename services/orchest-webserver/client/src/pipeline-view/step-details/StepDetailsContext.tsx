@@ -1,17 +1,26 @@
 import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
 import { useReadFile } from "@/hooks/useReadFile";
-import { PipelineStepState } from "@/types";
+import { StepsDict, StepState } from "@/types";
 import { JsonSchema, UISchemaElement } from "@jsonforms/core";
 import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import React from "react";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { ConnectionDict } from "./StepDetailsProperties";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
+
+/** Represents all the connection a single step has. */
+export type StepConnection = {
+  targetUuid: string;
+  title: string;
+  filePath: string;
+  direction: "incoming" | "outgoing";
+};
 
 export type StepDetailsContextType = {
   doesStepFileExist: boolean;
   isCheckingFileValidity: boolean;
-  step: PipelineStepState;
-  connections: ConnectionDict;
+  step: StepState;
+  connections: StepConnection[];
+  disconnect(startStepUUID: string, endStepUUID: string): void;
   parameterSchema?: JsonSchema;
   isReadingSchemaFile: boolean;
   parameterUiSchema?: UISchemaElement;
@@ -23,16 +32,38 @@ export const StepDetailsContext = React.createContext<StepDetailsContextType>(
 );
 
 export const useStepDetailsContext = () => React.useContext(StepDetailsContext);
+
+const toStepConnection = (
+  direction: "incoming" | "outgoing",
+  steps: StepsDict
+) => (targetUuid: string): StepConnection => ({
+  targetUuid,
+  direction,
+  title: steps[targetUuid].title,
+  filePath: steps[targetUuid].file_path,
+});
+
 export const StepDetailsContextProvider: React.FC = ({ children }) => {
   const {
-    eventVars,
-    pipelineUuid,
     projectUuid,
+    pipelineUuid,
     runUuid,
     jobUuid,
-  } = usePipelineEditorContext();
+  } = usePipelineDataContext();
+  const { uiStateDispatch, uiState } = usePipelineUiStateContext();
+  const { steps, openedStep } = uiState;
 
-  const step = eventVars.steps[eventVars.openedStep || ""];
+  const disconnect = React.useCallback(
+    (startNodeUUID: string, endNodeUUID: string) => {
+      uiStateDispatch({
+        type: "REMOVE_CONNECTION",
+        payload: { startNodeUUID, endNodeUUID },
+      });
+    },
+    [uiStateDispatch]
+  );
+
+  const step = steps[openedStep || ""];
   const [doesStepFileExist, isCheckingFileValidity] = useCheckFileValidity({
     projectUuid,
     pipelineUuid,
@@ -63,19 +94,19 @@ export const StepDetailsContextProvider: React.FC = ({ children }) => {
   });
 
   const connections = React.useMemo(() => {
-    if (!step) return {};
+    if (!step) return [];
 
-    const { incoming_connections = [] } = step;
+    const { incoming_connections, outgoing_connections } = step;
 
-    return incoming_connections.reduce((all, id: string) => {
-      const { title, file_path } = eventVars.steps[id];
-      return { ...all, [id]: { title, file_path } };
-    }, {} as ConnectionDict);
-  }, [eventVars.steps, step]);
+    return incoming_connections
+      .map(toStepConnection("incoming", steps))
+      .concat(outgoing_connections.map(toStepConnection("outgoing", steps)));
+  }, [steps, step]);
 
   return (
     <StepDetailsContext.Provider
       value={{
+        disconnect,
         doesStepFileExist,
         isCheckingFileValidity,
         connections,

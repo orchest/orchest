@@ -1,4 +1,7 @@
+import { RouteName, siteMap } from "@/routingConfig";
+import { ScopeParameter } from "@/types";
 import { openInNewTab } from "@/utils/openInNewTab";
+import { pick, prune } from "@/utils/record";
 import { toQueryString } from "@/utils/routing";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -96,23 +99,23 @@ const useCustomRoute = () => {
   const valueArray = useLocationQuery([
     "job_uuid",
     "run_uuid",
-    "initial_tab",
     "project_uuid",
     "pipeline_uuid",
     "environment_uuid",
     "step_uuid",
     "file_path",
+    "tab",
   ]);
 
   const [
     jobUuid,
     runUuid,
-    initialTab,
     projectUuid,
     pipelineUuid,
     environmentUuid,
     stepUuid,
     filePath,
+    tab,
   ] = valueArray.map((value) => {
     // if value is `null` or `undefined`, return `undefined`
     // stringify the value for all the other cases.
@@ -169,9 +172,9 @@ const useCustomRoute = () => {
     jobUuid,
     runUuid,
     filePath,
-    initialTab,
     location,
     prevPathname,
+    tab,
   };
 };
 
@@ -180,4 +183,29 @@ export {
   useLocationQuery,
   useHistoryListener,
   useCustomRoute,
+};
+
+export const useCreateRouteLink = () => {
+  const currentRoute = useCustomRoute();
+
+  return (name: RouteName, params: Partial<Record<ScopeParameter, string>>) => {
+    const { path, scope = [] } = siteMap[name];
+
+    return (
+      path +
+      toQueryString({ ...pick(currentRoute, ...scope), ...prune(params) })
+    );
+  };
+};
+
+export const useRouteLink = (
+  name: RouteName,
+  params: Partial<Record<ScopeParameter, string>>
+) => {
+  const { path, scope = [] } = siteMap[name];
+  const currentRoute = useCustomRoute();
+
+  return (
+    path + toQueryString({ ...pick(currentRoute, ...scope), ...prune(params) })
+  );
 };
