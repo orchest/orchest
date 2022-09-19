@@ -73,6 +73,8 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
 
   const step = steps[openedStep || ""];
 
+  const stepNameInputRef = React.useRef<HTMLInputElement>();
+
   const onSelectSubView = (
     _: React.SyntheticEvent<Element, Event>,
     index: number
@@ -125,6 +127,11 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
               color: (theme) =>
                 step.title ? "inherent" : theme.palette.action.active,
             }}
+            onClick={() => {
+              if (!step.title && stepNameInputRef.current) {
+                stepNameInputRef.current.focus();
+              }
+            }}
           >
             {step.title || "(Unnamed Step)"}
           </Box>
@@ -163,6 +170,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
               pipelineCwd={pipelineCwd}
               readOnly={isReadOnly}
               onSave={onSave}
+              stepInputRef={stepNameInputRef}
             />
           </CustomTabPanel>
           <CustomTabPanel value={subViewIndex} index={1} name="connections">

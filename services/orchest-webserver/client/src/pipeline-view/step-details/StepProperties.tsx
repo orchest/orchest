@@ -32,12 +32,14 @@ type StepPropertiesProps = {
   pipelineCwd: string | undefined;
   readOnly: boolean;
   onSave: (payload: Partial<StepState>, uuid: string) => void;
+  stepInputRef: React.MutableRefObject<HTMLInputElement | undefined>;
 };
 
 export const StepProperties = ({
   pipelineCwd,
   readOnly,
   onSave,
+  stepInputRef,
 }: StepPropertiesProps) => {
   const { shouldAutoFocusStepName } = useAutoFocusStepName();
   const handleSave = React.useCallback(
@@ -60,6 +62,9 @@ export const StepProperties = ({
 
   const isNotebookStep = hasExtension(step.file_path, "ipynb");
   const titleInputRef = React.useRef<HTMLInputElement>();
+  if (stepInputRef) {
+    stepInputRef.current = titleInputRef.current;
+  }
 
   const onChangeEnvironment = React.useCallback(
     (
