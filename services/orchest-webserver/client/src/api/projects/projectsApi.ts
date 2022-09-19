@@ -26,7 +26,7 @@ export const put = (projectUuid: string, data: PutProjectData): Promise<void> =>
   });
 
 /** Fetches the project with the given UUID   */
-export const fetch = (projectUuid: string) =>
+export const fetchOne = (projectUuid: string) =>
   fetcher<Project>(`/async/projects/${projectUuid}`);
 
 /** Fetches all available projects. */
@@ -41,7 +41,7 @@ export const post = (projectName: string) =>
   });
 
 export const projectsApi = {
-  fetch,
+  fetchOne,
   fetchAll,
   post,
   put,

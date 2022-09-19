@@ -149,7 +149,7 @@ const ProjectSettingsView: React.FC = () => {
     if (!projectUuid) return;
 
     projectsApi
-      .fetch(projectUuid)
+      .fetchOne(projectUuid)
       .then((result) => {
         const { env_variables, ...newState } = pick(
           result,
