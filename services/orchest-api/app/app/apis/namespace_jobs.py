@@ -1,7 +1,8 @@
 import copy
+import re
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
@@ -1068,13 +1069,39 @@ class CreateJob(TwoPhaseFunction):
 
     def _verify_all_pipelines_have_valid_environments(self, snapshot_uuid: str) -> None:
         snapshot: models.Snapshot = models.Snapshot.query.get(snapshot_uuid)
+        environments_pipelines_mapping: Dict[str, Set[str]] = {}
         for _, data in snapshot.pipelines.items():
             definition = data["definition"]
             pipeline = construct_pipeline(
                 uuids=[], run_type="full", pipeline_definition=definition
             )
+            pipeline_uuid = pipeline.properties["uuid"]
+
+            for step in pipeline.steps:
+                environment_uuid = step.properties["environment"]
+                if environment_uuid not in environments_pipelines_mapping:
+                    environments_pipelines_mapping[environment_uuid] = {pipeline_uuid}
+                else:
+                    environments_pipelines_mapping[environment_uuid].add(pipeline_uuid)
+
+        try:
             environments.get_env_uuids_to_image_mappings(
-                snapshot.project_uuid, pipeline.get_environments()
+                snapshot.project_uuid, set(environments_pipelines_mapping.keys())
+            )
+        except (errors.ImageNotFound) as error:
+            # Extract environment uuids from the string.
+            matches = re.search(r"\[(.+)\]", str(error))
+            invalid_environments = list(
+                map((lambda x: x.replace("'", "").strip()), matches.group(1).split(","))
+            )
+
+            pipelines_with_invalid_environments: Set[str] = set()
+            for environment_uuid in invalid_environments:
+                pipelines_with_invalid_environments.update(
+                    environments_pipelines_mapping[environment_uuid]
+                )
+            raise errors.ImageNotFound(
+                ",".join(list(pipelines_with_invalid_environments))
             )
 
     def _transaction(

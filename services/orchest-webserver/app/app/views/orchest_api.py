@@ -170,8 +170,14 @@ def register_orchest_api_views(app, db):
     @app.route("/catch/api-proxy/api/jobs", methods=["POST"])
     def catch_api_proxy_jobs_post():
 
-        resp = jobs.create_job(request.json)
-        return resp.content, resp.status_code, resp.headers.items()
+        try:
+            resp = jobs.create_job(request.json)
+            return resp.content, resp.status_code, resp.headers.items()
+        except (error.OrchestApiRequestError) as error:
+            return (
+                jsonify({"invalid_pipelines": error}),
+                409,
+            )
 
     @app.route("/catch/api-proxy/api/jobs/duplicate", methods=["POST"])
     def catch_api_proxy_jobs_duplicate():
