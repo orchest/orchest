@@ -73,16 +73,6 @@ KERNELSPECS_PATH = ".orchest/kernels/{project_uuid}"
 
 # Environments
 ENVIRONMENT_IMAGE_NAME = "orchest-env-{project_uuid}-{environment_uuid}"
-# NOTE: the build_uuid is rather important, since it allows us to
-# differentiate between builds of the same environment. Without that,
-# different env builds would contend for the same tag (the same
-# environment image removal name), leading to issues in the case of
-# multiple environment images "versions" surviving through multiple
-# updates because of jobs.
-ENVIRONMENT_IMAGE_REMOVAL_NAME = (
-    "removed-orchest-env-{project_uuid}-{environment_uuid}-{build_uuid}"
-)
-
 # Orchest environments that are passed as services, i.e. the image will
 # be used to start a service, have a form of "environment@<env-uuid>".
 ENVIRONMENT_AS_SERVICE_PREFIX = "environment@"

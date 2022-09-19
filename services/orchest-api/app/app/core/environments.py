@@ -236,7 +236,9 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
 
 
 def get_active_environment_images(
-    stored_in_registry: Optional[bool] = None, in_node: Optional[str] = None
+    stored_in_registry: Optional[bool] = None,
+    in_node: Optional[str] = None,
+    not_in_node: Optional[str] = None,
 ) -> List[models.EnvironmentImage]:
     """Gets the list of active environment images (to keep on nodes).
 
@@ -249,10 +251,18 @@ def get_active_environment_images(
             to the environment images. For example, if True, only
             active images which are already stored in the registry will
             be returned.
-        in_nodes: If not none, it will be applied as a filter so that
+        in_node: If not none, it will be applied as a filter so that
             only active images that are known by the orchest-api to
-            be on the given node will be returned.
+            be on the given node will be returned. Can't be used along
+            "not_in_node".
+        not_in_node: If not none, it will be applied as a filter so that
+            only active images that are known by the orchest-api to
+            *not* be on the given node will be returned. Can't be used
+            along "in_node".
     """
+    if in_node is not None and not_in_node is not None:
+        raise ValueError("Can't use both 'in_node' and 'not_in_node' at the same time.")
+
     query = db.session.query(models.EnvironmentImage).filter(
         models.EnvironmentImage.marked_for_removal.is_(False)
     )
@@ -262,10 +272,26 @@ def get_active_environment_images(
             models.EnvironmentImage.stored_in_registry.is_(stored_in_registry)
         )
 
-    # TODO: allow filtering with not_in_node.
     if in_node is not None:
         query = query.join(models.EnvironmentImageOnNode).filter(
             models.EnvironmentImageOnNode.node_name == in_node
+        )
+    elif not_in_node is not None:
+        images_on_node = (
+            db.session.query(models.EnvironmentImageOnNode)
+            .filter(models.EnvironmentImageOnNode.node_name == not_in_node)
+            .with_entities(
+                models.EnvironmentImageOnNode.project_uuid,
+                models.EnvironmentImageOnNode.environment_uuid,
+                models.EnvironmentImageOnNode.environment_image_tag,
+            )
+        ).subquery()
+        query = query.filter(
+            tuple_(
+                models.EnvironmentImage.project_uuid,
+                models.EnvironmentImage.environment_uuid,
+                models.EnvironmentImage.tag,
+            ).not_in(images_on_node),
         )
 
     return query.all()

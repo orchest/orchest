@@ -39,11 +39,11 @@ class LatestProjectEnvironmentEnvironmentImage(Resource):
         return env_image
 
 
-@api.route("/<string:project_uuid>/<string:environment_uuid>/<string:tag>")
+@api.route("/<string:project_uuid>/<string:environment_uuid>/<string:tag>/registry")
 @api.param("project_uuid", "uuid of the project")
 @api.param("environment_uuid", "uuid of the environment")
 @api.param("tag", "Tag of the image")
-class EnvironmentImage(Resource):
+class EnvironmentImageRegistryStatus(Resource):
     @api.doc("put_environment_image_push_status")
     def put(self, project_uuid, environment_uuid, tag):
         """Notifies that the image has been pushed to the registry."""
@@ -52,6 +52,29 @@ class EnvironmentImage(Resource):
             description="Environment image not found.",
         )
         image.stored_in_registry = True
+        db.session.commit()
+        return {}, 200
+
+
+@api.route(
+    "/<string:project_uuid>/<string:environment_uuid>/<string:tag>/node/<string:node>"
+)
+@api.param("project_uuid", "uuid of the project")
+@api.param("environment_uuid", "uuid of the environment")
+@api.param("tag", "Tag of the image")
+@api.param("node", "Node on which the image was pulled")
+class EnvironmentImageNodeStatus(Resource):
+    @api.doc("put_environment_image_node_state")
+    def put(self, project_uuid, environment_uuid, tag, node):
+        """Notifies that the image has been pulled to a node."""
+
+        models.EnvironmentImage.query.get_or_404(
+            ident=(project_uuid, environment_uuid, int(tag)),
+            description="Environment image not found.",
+        )
+        utils.upsert_environment_image_on_node(
+            project_uuid, environment_uuid, tag, node
+        )
         db.session.commit()
         return {}, 200
 
@@ -75,10 +98,10 @@ class LatestEnvironmentImage(Resource):
 
 
 def _get_formatted_active_environment_imgs(
-    stored_in_registry=None, in_node=None
+    stored_in_registry=None, in_node=None, not_in_node=None
 ) -> List[str]:
     active_env_images = environments.get_active_environment_images(
-        stored_in_registry=stored_in_registry, in_node=in_node
+        stored_in_registry=stored_in_registry, in_node=in_node, not_in_node=not_in_node
     )
 
     active_env_images_names = []
@@ -96,6 +119,9 @@ def _get_formatted_active_environment_imgs(
 
 
 @api.route("/active")
+@api.param("stored_in_registry")
+@api.param("in_node")
+@api.param("not_in_node")
 class ActiveEnvironmentImages(Resource):
     @api.doc("get_active_environment_images")
     @api.marshal_with(schema.active_environment_images, code=200)
@@ -107,12 +133,14 @@ class ActiveEnvironmentImages(Resource):
                 "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]
             ),
             in_node=request.args.get("in_node"),
+            not_in_node=request.args.get("not_in_node"),
         )
 
         return {"active_environment_images": active_env_images}, 200
 
 
 @api.route("/to-push")
+@api.param("in_node")
 class ActiveEnvironmentImagesToPush(Resource):
     @api.doc("get_environment_images_to_push")
     @api.marshal_with(schema.active_environment_images, code=200)

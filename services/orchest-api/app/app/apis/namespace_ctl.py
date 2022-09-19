@@ -83,10 +83,10 @@ class OrchestImagesToPrePull(Resource):
 
 
 def _get_formatted_active_jupyter_imgs(
-    stored_in_registry=None, in_node=None
+    stored_in_registry=None, in_node=None, not_in_node=None
 ) -> List[str]:
     active_custom_jupyter_images = utils.get_active_custom_jupyter_images(
-        stored_in_registry=stored_in_registry, in_node=in_node
+        stored_in_registry=stored_in_registry, in_node=in_node, not_in_node=not_in_node
     )
 
     active_custom_jupyter_image_names = []
@@ -99,6 +99,9 @@ def _get_formatted_active_jupyter_imgs(
 
 
 @api.route("/active-custom-jupyter-images")
+@api.param("stored_in_registry")
+@api.param("in_node")
+@api.param("not_in_node")
 class ActiveCustomJupyterImages(Resource):
     @api.doc("active_custom_jupyter_images")
     def get(self):
@@ -107,12 +110,14 @@ class ActiveCustomJupyterImages(Resource):
                 "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]
             ),
             in_node=request.args.get("in_node"),
+            not_in_node=request.args.get("not_in_node"),
         )
 
         return {"active_custom_jupyter_images": active_custom_jupyter_images}, 200
 
 
 @api.route("/active-custom-jupyter-images-to-push")
+@api.param("in_node")
 class ActiveCustomJupyterImagesToPush(Resource):
     @api.doc("active_custom_jupyter_images-to-push")
     def get(self):
@@ -281,17 +286,34 @@ def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
         run_cmds(args=shlex.split(update_cmd))
 
 
-@api.route("/set-jupyter-image-as-pushed")
-class SetJupyterImageAsPushed(Resource):
-    @api.doc("put_set_jupyter_image_as_pushed")
-    def put(self):
+@api.route("/jupyter-images/<string:tag>/registry")
+@api.param("tag", "Tag of the image")
+class JupyterImageRegistryStatus(Resource):
+    @api.doc("put_jupyter_image_as_pushed")
+    def put(self, tag: str):
         """Notifies that the image has been pushed to the registry."""
-        tag = request.get_json()["tag"]
         image = models.JupyterImage.query.get_or_404(
             ident=int(tag),
             description="Jupyter image not found.",
         )
 
         image.stored_in_registry = True
+        db.session.commit()
+        return {}, 200
+
+
+@api.route("/jupyter-images/<string:tag>/node/<string:node>")
+@api.param("tag", "Tag of the image")
+@api.param("node", "Node on which the image was pulled")
+class JupyterImageNodeStatus(Resource):
+    @api.doc("put_jupyter_image_node_state")
+    def put(self, tag: str, node: str):
+        """Notifies that the image has been pulled to a node."""
+
+        models.JupyterImage.query.get_or_404(
+            ident=int(tag),
+            description="Jupyter image not found.",
+        )
+        utils.upsert_jupyter_image_on_node(tag, node)
         db.session.commit()
         return {}, 200
