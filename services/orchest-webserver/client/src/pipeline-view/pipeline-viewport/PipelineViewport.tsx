@@ -227,12 +227,6 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
             "html, body": { overscrollBehaviorX: "none" },
           }}
         />
-        {showIllustration && (
-          <FullViewportHolder>
-            {disabled && <NoPipeline />}
-            {!disabled && hasNoStep && <NoStep />}
-          </FullViewportHolder>
-        )}
         <PipelineCanvas
           ref={pipelineCanvasRef}
           style={{
@@ -249,6 +243,12 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
           {children}
           <PipelineViewportContextMenu />
         </PipelineCanvas>
+        {showIllustration && (
+          <FullViewportHolder>
+            {disabled && <NoPipeline />}
+            {!disabled && hasNoStep && <NoStep />}
+          </FullViewportHolder>
+        )}
       </Box>
     );
   }
