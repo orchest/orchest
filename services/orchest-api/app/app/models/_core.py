@@ -71,23 +71,46 @@ class Setting(BaseModel):
 
 
 class SchedulerJob(BaseModel):
-    """Latest run of a job assigned to a Scheduler."""
+    """Job runs of the internal scheduler."""
 
     __tablename__ = "scheduler_jobs"
 
-    type = db.Column(db.String(50), primary_key=True)
+    uuid = db.Column(
+        db.String(36),
+        primary_key=True,
+        nullable=False,
+        server_default=text("gen_random_uuid()"),
+    )
+
+    type = db.Column(db.String(50), nullable=False)
 
     # Used to make sure different instances of the Scheduler (due to
     # multiple gunicorn workers) don't cause a job to be executed
     # multiple times.
-    timestamp = db.Column(
+    started_time = db.Column(
         TIMESTAMP(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
 
+    finished_time = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    # STARTED, SUCCEEDED, FAILED
+    status = db.Column(
+        db.String(15), unique=False, nullable=False, server_default="SUCCEEDED"
+    )
+
+    __table_args__ = (
+        # For the scheduler to query the latest job by type.
+        Index(None, type, started_time.desc()),
+    )
+
     def __repr__(self):
-        return f"<SchedulerJob: {self.type}>"
+        return f"<SchedulerJob: {self.type}:{self.uuid}>"
 
 
 class Project(BaseModel):
@@ -220,6 +243,15 @@ class EnvironmentImageBuild(BaseModel):
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
 
+    cluster_node = db.Column(
+        db.String(),
+        # Note that we SET NULL on deletion to avoid losing information
+        # about the build if the nodes gets deleted.
+        db.ForeignKey("cluster_nodes.name", ondelete="SET NULL"),
+        # To migrate existing records.
+        nullable=True,
+    )
+
     __table_args__ = (
         Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),
         # To find the latest tag.
@@ -270,12 +302,14 @@ class EnvironmentImage(BaseModel):
     )
 
     # sha256:<digest>
+    # REMOVABLE_ON_BREAKING_CHANGE
+    # This is needed to not break existing jobs that depended on
+    # environments which had no guarantee of having a unique digest. See
+    # _env_images_that_can_be_deleted for its use.
     digest = db.Column(
         db.String(71),
-        nullable=False,
         index=True,
-        # To migrate existing entries.
-        server_default="Undefined",
+        nullable=True,
     )
 
     # A way to tell us if a particular env image is to be considered
@@ -289,11 +323,20 @@ class EnvironmentImage(BaseModel):
         server_default="False",
     )
 
+    stored_in_registry = db.Column(
+        db.Boolean(),
+        nullable=False,
+        # To migrate existing entries.
+        server_default="True",
+    )
+
     __table_args__ = (
         # To find all images of the environment of a project.
         Index(None, "project_uuid", "environment_uuid"),
         # To find the latest tag.
         Index(None, "project_uuid", "environment_uuid", tag.desc()),
+        # To find active images with optional registry filtering.
+        Index(None, "marked_for_removal", "stored_in_registry"),
     )
 
     sessions_using_image = db.relationship(
@@ -366,6 +409,15 @@ class JupyterImageBuild(BaseModel):
     # Nullable to migrate existing values.
     image_tag = db.Column(db.Integer, nullable=True, index=True, unique=True)
 
+    cluster_node = db.Column(
+        db.String(),
+        # Note that we SET NULL on deletion to avoid losing information
+        # about the build if the nodes gets deleted.
+        db.ForeignKey("cluster_nodes.name", ondelete="SET NULL"),
+        # To migrate existing records.
+        nullable=True,
+    )
+
     def __repr__(self):
         return f"<JupyterEnvironmentBuildTask: {self.uuid}>"
 
@@ -381,13 +433,6 @@ class JupyterImage(BaseModel):
         primary_key=True,
     )
 
-    # sha256:<digest>
-    digest = db.Column(
-        db.String(71),
-        nullable=False,
-        index=True,
-    )
-
     # The image was built with a given Orchest version, this field is
     # used to invalidate a jupyter image after an update.
     base_image_version = db.Column(db.String(), nullable=False)
@@ -400,6 +445,18 @@ class JupyterImage(BaseModel):
         index=True,
         nullable=False,
         server_default="False",
+    )
+
+    stored_in_registry = db.Column(
+        db.Boolean(),
+        nullable=False,
+        # To migrate existing entries.
+        server_default="True",
+    )
+
+    __table_args__ = (
+        # To find active images with optional registry filtering.
+        Index(None, "marked_for_removal", "stored_in_registry"),
     )
 
     def __repr__(self):
@@ -1091,5 +1148,89 @@ ForeignKeyConstraint(
         EnvironmentImage.environment_uuid,
         EnvironmentImage.tag,
     ],
+    ondelete="CASCADE",
+)
+
+
+class ClusterNode(BaseModel):
+    """To track where some operations took place or where images are.
+
+    We need this table because the images returned by the k8s node spec
+    are limited, see
+    https://github.com/kubernetes/kubernetes/issues/93488#issuecomment-664717977.
+
+    """
+
+    __tablename__ = "cluster_nodes"
+
+    # https://kubernetes.io/docs/concepts/architecture/nodes/#node-name-uniqueness
+    name = db.Column(db.String(), primary_key=True)
+
+
+class EnvironmentImageOnNode(BaseModel):
+    """To track where an environment image is stored."""
+
+    __tablename__ = "environment_image_on_nodes"
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True
+    )
+
+    node_name = db.Column(db.String(), primary_key=True)
+
+
+ForeignKeyConstraint(
+    [
+        EnvironmentImageOnNode.project_uuid,
+        EnvironmentImageOnNode.environment_uuid,
+        EnvironmentImageOnNode.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
+
+ForeignKeyConstraint(
+    [EnvironmentImageOnNode.node_name],
+    [ClusterNode.name],
+    ondelete="CASCADE",
+)
+
+
+class JupyterImageOnNode(BaseModel):
+    """To track where a custom jupyter image is stored."""
+
+    __tablename__ = "jupyter_image_on_nodes"
+
+    jupyter_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True
+    )
+
+    node_name = db.Column(db.String(), primary_key=True)
+
+
+ForeignKeyConstraint(
+    [JupyterImageOnNode.jupyter_image_tag],
+    [JupyterImage.tag],
+    ondelete="CASCADE",
+)
+
+ForeignKeyConstraint(
+    [JupyterImageOnNode.node_name],
+    [ClusterNode.name],
     ondelete="CASCADE",
 )

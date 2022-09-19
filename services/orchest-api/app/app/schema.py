@@ -417,6 +417,10 @@ status_update = Model(
             description="New status of executable, e.g. pipeline or step",
             enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
         ),
+        "cluster_node": fields.String(
+            required=False,
+            description="Node on which the build took place.",
+        ),
     },
 )
 
@@ -1059,6 +1063,23 @@ event = Model(
         "timestamp": fields.DateTime(
             required=True, description="When the event happened."
         ),
+    },
+)
+
+kernel_spec = Model(
+    "KernelRequest",
+    {
+        "kernel_working_dir": fields.String(required=False),
+        "kernel_username": fields.String(required=False),
+        "kernel_id": fields.String(required=True),
+        "kernel_image": fields.String(required=True),
+        "eg_response_address": fields.String(required=True),
+        "spark_context_init_mode": fields.String(required=False),
+        # TODO: store this data at the interactive session db record
+        # level instead of passing it from jupyter EG.
+        "pipeline_file": fields.String(required=True),
+        "pipeline_path": fields.String(required=True),
+        "project_dir": fields.String(required=True),
     },
 )
 

@@ -102,8 +102,9 @@ echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
 
 ### Installing Orchest without Argo Workflows
 
-If you already have [Argo Workflows](https://argoproj.github.io/argo-workflows/) installed on your
-Kubernetes cluster, then you need to explicitly tell Orchest not to install it again:
+If you already have [Argo Workflows](https://argoproj.github.io/argo-workflows/) installed globally
+(i.e. not namespaced) on your Kubernetes cluster, then you need to explicitly tell Orchest not to
+install it again:
 
 ```bash
 orchest install --no-argo
@@ -115,7 +116,11 @@ of those things to happen).
 
 Now that you are using an Argo Workflows set-up that is not managed by the Orchest Controller, you
 need to make sure that the right set of permissions are configured for Orchest to work as expected.
-Check out the permissions that the Orchest Controller sets for Argo [here](https://github.com/orchest/orchest/tree/v2022.06.5/services/orchest-controller/deploy/thirdparty/argo-workflows/templates).
+Check out the permissions that the Orchest Controller sets for Argo
+[here](https://github.com/orchest/orchest/tree/v2022.08.8/services/orchest-controller/deploy/thirdparty/argo-workflows).
+In addition, Orchest makes use of Argo's [`Container Set`](https://argoproj.github.io/argo-workflows/container-set-template/) in a single-node setting
+(i.e. you have `singleNode: true` in the `OrchestCluster` CR Object) which requires the use of the
+[`Emissary Executor`](https://argoproj.github.io/argo-workflows/workflow-executors/#emissary-emissary).
 
 (install-nginx)=
 

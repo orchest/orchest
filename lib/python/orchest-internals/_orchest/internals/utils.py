@@ -9,6 +9,8 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 import requests
 from werkzeug.serving import is_running_from_reloader as _irfr
 
+from _orchest.internals import config as _config
+
 logger = logging.getLogger(__name__)
 
 
@@ -118,83 +120,6 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     )
 
     return volumes, volume_mounts
-
-
-def get_init_container_manifest(
-    image_to_pull: str,
-    container_runtime: str,
-    image_puller_image: str,
-) -> Dict[str, Any]:
-    init_container = {
-        "name": "image-puller",
-        "image": image_puller_image,
-        "securityContext": {
-            "privileged": True,
-            "runAsUser": 0,
-        },
-        "env": [
-            {
-                "name": "IMAGE_TO_PULL",
-                "value": image_to_pull,
-            },
-            {
-                "name": "CONTAINER_RUNTIME",
-                "value": container_runtime,
-            },
-        ],
-        "command": ["/pull_image.sh"],
-        "volumeMounts": [
-            {
-                "name": "container-runtime-socket",
-                "mountPath": "/var/run/runtime.sock",
-            },
-        ],
-    }
-    return init_container
-
-
-def add_image_puller_if_needed(
-    image_to_pull: str,
-    registry_ip: str,
-    container_runtime: str,
-    image_puller_image: str,
-    deployment_manifest: Dict[str, Any],
-) -> None:
-    """This function injects the image puller init Container into the
-    deployment manifest if the image is in our local docker-registry..
-
-    Args:
-        image_to_pull:
-            The image that image_puller has to pull.
-        registry_ip:
-            our registry ip address
-        container_runtime:
-            The container runtime of the node.
-        image_puller_image:
-            The image of the image puller.
-        deployment_manifest:
-            The deployment manifest.
-
-    """
-    domain, name = split_docker_domain(image_to_pull)
-
-    if domain == registry_ip:
-        image_puller_manifest = get_init_container_manifest(
-            f"{domain}/{name}",
-            container_runtime,
-            image_puller_image,
-        )
-        if (
-            deployment_manifest["spec"]["template"]["spec"].get("initContainers")
-            is None
-        ):
-            deployment_manifest["spec"]["template"]["spec"]["initContainers"] = [
-                image_puller_manifest
-            ]
-        else:
-            deployment_manifest["spec"]["template"]["spec"]["initContainers"].append(
-                image_puller_manifest
-            )
 
 
 # splitDockerDomain splits a repository name to domain and remotename
@@ -467,3 +392,30 @@ def get_directory_size(path: str, skip_dirs: Optional[Iterable] = None):
                 dirs.remove(skip_dir)
 
     return size
+
+
+def env_image_name_to_proj_uuid_env_uuid_tag(
+    name: str,
+) -> Tuple[str, str, Optional[str]]:
+    """Splits an env image into proj, env uuids and (optionally) tag.
+
+    See config.ENVIRONMENT_IMAGE_NAME for the expected pattern.
+    """
+    tag = None
+    if ":" in name:
+        name, tag = name.split(":")
+    env_uuid = name[-36:]
+    # Because the name has a form of <optional
+    # ip>/orchest-env-<proj_uuid>-<env_uuid>..., i.e. we need to skip
+    # the "-".
+    proj_uuid = name[-73:-37]
+    return proj_uuid, env_uuid, tag
+
+
+def jupyter_image_name_to_tag(name: str) -> Optional[str]:
+    if _config.JUPYTER_IMAGE_NAME not in name:
+        raise ValueError(f"Name doesn't look like {_config.JUPYTER_IMAGE_NAME}.")
+    tag = None
+    if ":" in name:
+        _, tag = name.split(":")
+    return tag

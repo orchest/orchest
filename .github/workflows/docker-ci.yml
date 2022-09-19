@@ -35,6 +35,9 @@ jobs:
             -i celery-worker,
             -i session-sidecar,
             -i image-puller,
+            -i image-builder-buildx,
+            -i image-builder-buildkit,
+            -i buildkit-daemon,
           ]
 
     steps:

@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
@@ -10,8 +10,8 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
 from app import utils as app_utils
-from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_image
+from app.connections import k8s_core_api
+from app.core import image_utils
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
@@ -21,14 +21,18 @@ _logger = app_utils.get_logger()
 
 
 def update_environment_image_build_status(
-    status: str,
     session: requests.sessions.Session,
     project_uuid: str,
     environment_uuid: str,
     image_tag: str,
+    status: str,
+    cluster_node: Optional[str] = None,
 ) -> Any:
     """Update environment build status."""
     data = {"status": status}
+    if cluster_node is not None:
+        data["cluster_node"] = cluster_node
+
     if data["status"] == "STARTED":
         data["started_time"] = datetime.utcnow().isoformat()
     elif data["status"] in ["SUCCESS", "FAILURE"]:
@@ -44,9 +48,17 @@ def update_environment_image_build_status(
 
 
 def write_environment_dockerfile(
-    base_image, project_uuid, env_uuid, work_dir, bash_script, path
+    base_image, task_uuid, project_uuid, env_uuid, work_dir, bash_script, path
 ):
     """Write a custom dockerfile with the given specifications.
+
+    ! The dockerfile is written in a way that the layer where the user
+    setup script is run is effectively cached when possible, i.e.  we
+    don't disrupt the caching capability by using task dependent
+    information like the task_uuid in that layer. We make use of the
+    task_uuid in a layer that is created at the end so that each image
+    has a unique digest, which helps reducing complexity when it comes
+    to deleting images from the registry.
 
     This dockerfile is built in an ad-hoc way to later be able to only
     log messages related to the user script. Note that the produced
@@ -54,6 +66,9 @@ def write_environment_dockerfile(
 
     Args:
         base_image: Base image of the docker file.
+        task_uuid: Used to create a layer that is unique for this
+            particular image, this way the registry digest of the image
+            will be unique.
         project_uuid:
         env_uuid:
         work_dir: Working directory.
@@ -129,6 +144,10 @@ def write_environment_dockerfile(
         f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
     )
 
+    # Make it so that the digest of the produced image is unique.
+    statements.append(
+        f"RUN echo '{task_uuid}' | sudo tee /orchest/task_{task_uuid}.txt"
+    )
     statements = "\n".join(statements)
 
     with open(path, "w") as dockerfile:
@@ -255,22 +274,13 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         )
     )
 
-    if CONFIG_CLASS.DEV_MODE:
-        # Don't set it two times.
-        if not base_image.startswith("registry:docker-daemon:"):
-            # Use image from local daemon if instructed to do so.
-            with open(snapshot_setup_script_path, "r") as script_file:
-                first_line = script_file.readline()
-                if "# LOCAL IMAGE" in first_line:
-                    base_image = f"registry:docker-daemon:{base_image}"
-                    _logger.info(f"Using {base_image}.")
-
     dockerfile_name = (
         f".orchest-reserved-env-dockerfile-{project_uuid}-{environment_uuid}"
     )
 
     write_environment_dockerfile(
         base_image,
+        task_uuid,
         project_uuid,
         environment_uuid,
         _config.PROJECT_DIR,
@@ -282,7 +292,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
         docker_ignore.write(".dockerignore\n")
         docker_ignore.write(".orchest\n")
-        docker_ignore.write("%s\n" % dockerfile_name)
+        docker_ignore.write(f"{dockerfile_name}\n")
 
     return {
         "snapshot_path": snapshot_path,
@@ -318,7 +328,7 @@ def build_environment_image_task(
 
         try:
             update_environment_image_build_status(
-                "STARTED", session, project_uuid, environment_uuid, image_tag
+                session, project_uuid, environment_uuid, image_tag, "STARTED"
             )
 
             # Prepare the project snapshot with the correctly placed
@@ -341,7 +351,7 @@ def build_environment_image_task(
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
-                task_lambda=lambda user_logs_fo: build_image(
+                task_lambda=lambda user_logs_fo: image_utils.build_image(
                     task_uuid,
                     image_name,
                     image_tag,
@@ -363,8 +373,17 @@ def build_environment_image_task(
             # Cleanup.
             rmtree(build_context["snapshot_path"])
 
+            pod_name = image_utils.image_build_task_to_pod_name(task_uuid)
+            pod = k8s_core_api.read_namespaced_pod(
+                name=pod_name, namespace=_config.ORCHEST_NAMESPACE
+            )
             update_environment_image_build_status(
-                status, session, project_uuid, environment_uuid, image_tag
+                session,
+                project_uuid,
+                environment_uuid,
+                image_tag,
+                status,
+                pod.spec.node_name,
             )
 
         # Catch all exceptions because we need to make sure to set the
@@ -372,25 +391,14 @@ def build_environment_image_task(
         except Exception as e:
             _logger.error(e)
             update_environment_image_build_status(
-                "FAILURE", session, project_uuid, environment_uuid, image_tag
+                session, project_uuid, environment_uuid, image_tag, "FAILURE"
             )
             raise e
         finally:
-            # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflows.
-            # k8s_custom_obj_api.delete_namespaced_custom_object(
-            #     "argoproj.io",
-            #     "v1alpha1",
-            #     _config.ORCHEST_NAMESPACE,
-            #     "workflows",
-            #     f"image-cache-task-{task_uuid}",
-            # )
-            k8s_custom_obj_api.delete_namespaced_custom_object(
-                "argoproj.io",
-                "v1alpha1",
+            # The task was successful or aborted, cleanup the pod.
+            k8s_core_api.delete_namespaced_pod(
+                image_utils.image_build_task_to_pod_name(task_uuid),
                 _config.ORCHEST_NAMESPACE,
-                "workflows",
-                f"image-build-task-{task_uuid}",
             )
 
     # The status of the Celery task is SUCCESS since it has finished

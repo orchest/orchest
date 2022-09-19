@@ -636,11 +636,3 @@ def register_orchest_api_views(app, db):
         )
 
         return resp.content, resp.status_code, resp.headers.items()
-
-    @app.route("/catch/api-proxy/api/ctl/cleanup-builder-cache", methods=["POST"])
-    def catch_api_proxy_ctl_cleanup_builder_cache():
-        resp = requests.post(
-            f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
-            f"ctl/cleanup-builder-cache"
-        )
-        return resp.content, resp.status_code, resp.headers.items()
