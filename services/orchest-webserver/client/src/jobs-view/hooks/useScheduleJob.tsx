@@ -45,8 +45,18 @@ export const useScheduleJob = () => {
     });
 
     if (isDraftJob) {
+      // If no parameters are given, provide one empty object as a parameterless run.
+      const parameters =
+        jobChanges.parameters.length === 0 ? [{}] : jobChanges.parameters;
       const jobChangesData: DraftJobData = {
-        ...omit(jobChanges, "project_uuid", "pipeline_uuid", "status"),
+        ...omit(
+          jobChanges,
+          "project_uuid",
+          "pipeline_uuid",
+          "status",
+          "parameters"
+        ),
+        parameters,
         confirm_draft: true,
       };
       await put(jobChangesData);
