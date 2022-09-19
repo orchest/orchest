@@ -9,6 +9,7 @@ type ViewportCenterMessageProps = StackProps & {
   title: string;
   description: string;
   docPath?: string;
+  actions?: React.ReactNode;
 };
 
 export const ViewportCenterMessage = ({
@@ -17,6 +18,7 @@ export const ViewportCenterMessage = ({
   description,
   docPath,
   sx,
+  actions,
   ...props
 }: ViewportCenterMessageProps) => {
   return (
@@ -31,6 +33,7 @@ export const ViewportCenterMessage = ({
         src={imgSrc}
         sx={{
           width: "80%",
+          userSelect: "none",
           maxWidth: (theme) => theme.spacing(40),
           marginBottom: (theme) => theme.spacing(2),
         }}
@@ -46,10 +49,21 @@ export const ViewportCenterMessage = ({
       >
         {description}
       </Typography>
-      <ViewDocsLink
-        sx={{ marginTop: (theme) => theme.spacing(4) }}
-        docPath={docPath}
-      />
+      {docPath && (
+        <ViewDocsLink
+          sx={{ marginTop: (theme) => theme.spacing(4) }}
+          docPath={docPath}
+        />
+      )}
+      {actions && (
+        <Stack
+          spacing={2}
+          direction="row"
+          sx={{ marginTop: (theme) => theme.spacing(4) }}
+        >
+          {actions}
+        </Stack>
+      )}
     </Stack>
   );
 };
