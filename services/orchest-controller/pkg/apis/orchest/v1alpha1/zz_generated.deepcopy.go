@@ -428,6 +428,7 @@ func (in *OrchestSpec) DeepCopyInto(out *OrchestSpec) {
 	in.CeleryWorker.DeepCopyInto(&out.CeleryWorker)
 	in.NodeAgent.DeepCopyInto(&out.NodeAgent)
 	in.AuthServer.DeepCopyInto(&out.AuthServer)
+	in.BuildKitDaemon.DeepCopyInto(&out.BuildKitDaemon)
 	return
 }
 

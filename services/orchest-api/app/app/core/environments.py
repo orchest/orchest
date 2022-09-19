@@ -238,16 +238,66 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
     )
 
 
-def get_active_environment_images() -> List[models.EnvironmentImage]:
+def get_active_environment_images(
+    stored_in_registry: Optional[bool] = None,
+    in_node: Optional[str] = None,
+    not_in_node: Optional[str] = None,
+) -> List[models.EnvironmentImage]:
     """Gets the list of active environment images (to keep on nodes).
 
     Assumes that an image that is not marked_for_removal is to be kept
     on nodes, see _env_images_that_can_be_deleted and where
     mark_env_images_that_can_be_removed is called for details.
+
+    Args:
+        stored_in_registry: If not none, it will be applied as a filter
+            to the environment images. For example, if True, only
+            active images which are already stored in the registry will
+            be returned.
+        in_node: If not none, it will be applied as a filter so that
+            only active images that are known by the orchest-api to
+            be on the given node will be returned. Can't be used along
+            "not_in_node".
+        not_in_node: If not none, it will be applied as a filter so that
+            only active images that are known by the orchest-api to
+            *not* be on the given node will be returned. Can't be used
+            along "in_node".
     """
-    return models.EnvironmentImage.query.filter(
+    if in_node is not None and not_in_node is not None:
+        raise ValueError("Can't use both 'in_node' and 'not_in_node' at the same time.")
+
+    query = db.session.query(models.EnvironmentImage).filter(
         models.EnvironmentImage.marked_for_removal.is_(False)
-    ).all()
+    )
+
+    if stored_in_registry is not None:
+        query = query.filter(
+            models.EnvironmentImage.stored_in_registry.is_(stored_in_registry)
+        )
+
+    if in_node is not None:
+        query = query.join(models.EnvironmentImageOnNode).filter(
+            models.EnvironmentImageOnNode.node_name == in_node
+        )
+    elif not_in_node is not None:
+        images_on_node = (
+            db.session.query(models.EnvironmentImageOnNode)
+            .filter(models.EnvironmentImageOnNode.node_name == not_in_node)
+            .with_entities(
+                models.EnvironmentImageOnNode.project_uuid,
+                models.EnvironmentImageOnNode.environment_uuid,
+                models.EnvironmentImageOnNode.environment_image_tag,
+            )
+        ).subquery()
+        query = query.filter(
+            tuple_(
+                models.EnvironmentImage.project_uuid,
+                models.EnvironmentImage.environment_uuid,
+                models.EnvironmentImage.tag,
+            ).not_in(images_on_node),
+        )
+
+    return query.all()
 
 
 def _env_images_that_can_be_deleted(
@@ -263,35 +313,38 @@ def _env_images_that_can_be_deleted(
     - not the "latest" image for a given environment, because that would
         mean that a new session, job or pipeline run could use it
     - not already marked_for_removal
-    - doesn't share the digest with an image that does not respect point
-        1 or 2. This is because the digest is the real "identity" of the
-        image, meaning that a name:tag actually points to digest, and
-        a digest might be pointed at by different image:tag combinations
-        . The registry doesn't allow deletion by image:tag but by
-        digest, hence the edge case. Essentially, we don't want to
-        delete a digest that is in use.
+    - doesn't share the digest with an image that is in use by a job.
+        This particular case is needed to not break existing jobs, all
+        new images are guaranteed to have a unique digest and the
+        problem will not apply in the future. The reason we need to
+        check for the digest is because the digest is the real
+        "identity" of the
+        image when it comes to the registry, meaning that a name:tag
+        actually points to digest, and a digest might be pointed at by
+        different image:tag combinations. The registry doesn't allow
+        deletion by image:tag but by digest, hence the edge case.
+        Essentially, we don't want to delete a digest that is in use.
 
-    Given this, the following query checks for env images which digest
-    is not in the digests that are in use or are considered "latest".
+    Given this, the following query checks for env images which are not
+    in use or which digest is not in the digests in use by jobs.
     When it comes to edge cases (assuming the query is correct):
-    - we don't run the risk of deleting a digest which is in use or
-        latest
-    - we don't run the risk of deleting a digest right after a new
-        "latest" image that uses the same digest has been pushed
-        assuming the task performing the registry deletion runs in the
-        env builds queue, which ensures that no build is taking place
-    - on the nodes, the node-agent is responsible for issuing a
-        deletion to the client, said deletion happens by name:tag, which
-        avoids the risk of deletion unintended images.
+    - we don't run the risk of deleting an image which is in use, latest
+        or which shares its digest with an image in us by a job
+    - on the nodes, the node-agent is responsible for issuing a deletion
+        to the client, said deletion happens by name:tag, which avoids
+        the risk of deleting unintended images.
     """
     if latest_can_be_removed and (project_uuid is None or environment_uuid is None):
         raise ValueError(
             "'latest_can_be_removed' requires project and env uuid to be passed."
         )
 
-    # Digests in use.
     imgs_in_use_by_int_runs = (
-        db.session.query(models.EnvironmentImage.digest)
+        db.session.query(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+            models.EnvironmentImage.tag,
+        )
         .join(models.PipelineRunInUseImage, models.EnvironmentImage.runs_using_image)
         .join(
             models.InteractivePipelineRun,
@@ -300,7 +353,11 @@ def _env_images_that_can_be_deleted(
         .filter(models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]))
     )
     imgs_in_use_by_sessions = (
-        db.session.query(models.EnvironmentImage.digest)
+        db.session.query(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+            models.EnvironmentImage.tag,
+        )
         .join(
             models.InteractiveSessionInUseImage,
             models.EnvironmentImage.sessions_using_image,
@@ -314,7 +371,21 @@ def _env_images_that_can_be_deleted(
         )
     )
     imgs_in_use_by_jobs = (
+        db.session.query(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+            models.EnvironmentImage.tag,
+        )
+        .join(models.JobInUseImage, models.EnvironmentImage.jobs_using_image)
+        .join(models.Job, models.Job.uuid == models.JobInUseImage.job_uuid)
+        .filter(models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]))
+    )
+    img_digests_in_use_by_jobs = (
         db.session.query(models.EnvironmentImage.digest)
+        # The digest is no longer necessary for images that have a
+        # guarantee of having a unique digest, for those images, we
+        # don't store their digest anymore. REMOVABLE_ON_BREAKING_CHANGE
+        .filter(models.EnvironmentImage.digest.is_not(None))
         .join(models.JobInUseImage, models.EnvironmentImage.jobs_using_image)
         .join(models.Job, models.Job.uuid == models.JobInUseImage.job_uuid)
         .filter(models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]))
@@ -322,6 +393,7 @@ def _env_images_that_can_be_deleted(
     imgs_in_use = imgs_in_use_by_int_runs.union(
         imgs_in_use_by_sessions, imgs_in_use_by_jobs
     ).subquery()
+    img_digests_in_use = img_digests_in_use_by_jobs.subquery()
 
     # Latest images digests.
     if not latest_can_be_removed:
@@ -360,18 +432,37 @@ def _env_images_that_can_be_deleted(
         latest_imgs = (
             latest_imgs.from_self()
             .filter(tag_rank == 1)
-            .with_entities(models.EnvironmentImage.digest)
+            .with_entities(
+                models.EnvironmentImage.project_uuid,
+                models.EnvironmentImage.environment_uuid,
+                models.EnvironmentImage.tag,
+            )
             .subquery()
         )
 
     imgs_not_in_use = models.EnvironmentImage.query.with_for_update().filter(
-        models.EnvironmentImage.digest.not_in(imgs_in_use),
         # Assume it's already been processed.
         models.EnvironmentImage.marked_for_removal.is_(False),
+        # Not in use by a session, interactive run or job.
+        tuple_(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+            models.EnvironmentImage.tag,
+        ).not_in(imgs_in_use),
+        # REMOVABLE_ON_BREAKING_CHANGE
+        # The digest is not the same as the digest of an image that is
+        # in use by a job. This is needed to not break existing jobs
+        # that depended on environments which had no guarantee of having
+        # a unique digest.
+        models.EnvironmentImage.digest.not_in(img_digests_in_use),
     )
     if not latest_can_be_removed:
         imgs_not_in_use = imgs_not_in_use.filter(
-            models.EnvironmentImage.digest.not_in(latest_imgs),
+            tuple_(
+                models.EnvironmentImage.project_uuid,
+                models.EnvironmentImage.environment_uuid,
+                models.EnvironmentImage.tag,
+            ).not_in(latest_imgs),
         )
     if project_uuid:
         imgs_not_in_use = imgs_not_in_use.filter(

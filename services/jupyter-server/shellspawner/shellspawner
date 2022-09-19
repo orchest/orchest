@@ -271,7 +271,7 @@ def connect(environment_shell: str, environments: List[Dict[str, Any]]):
         + "-o StrictHostKeyChecking=no -o ConnectTimeout=5 "
         + f"-o UserKnownHostsFile=/dev/null {user}@{hostname} -t "
         + '"cd /project-dir; '
-        + f'ENVIRONMENT_SHELL_NAME=\\"{environment_shell_name}\\" bash"'
+        + f'ENVIRONMENT_SHELL_NAME=\\"{environment_shell_name}\\" sudo -E su"'
     )
 
     co = subprocess.run(command, shell=True)

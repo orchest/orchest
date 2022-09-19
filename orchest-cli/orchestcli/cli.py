@@ -54,7 +54,7 @@ import typing as t
 from gettext import gettext
 
 import click
-from orchestcli import cmds
+from orchestcli import cmds, utils
 from orchestcli._version import __version__
 
 NAMESPACE = "orchest"
@@ -213,9 +213,9 @@ def cli():
     "--builder-pvc-size",
     "builder_pvc_size",
     type=click.IntRange(min=5),
-    default=50,
+    default=None,
     show_default=True,
-    help="Size of the image builder volume claim in Gi.",
+    help="(DEPRECATED) Size of the image builder volume claim in Gi.",
 )
 @click.option(
     "--registry-pvc-size",
@@ -240,6 +240,11 @@ def install(
     **common_options,
 ) -> None:
     """Install Orchest."""
+
+    if builder_pvc_size is not None:
+        # REMOVABLE_ON_BREAKING_CHANGE
+        utils.echo("The 'builder_pvc_size' parameter is deprecated and ignored.")
+
     cmds.install(
         multi_node,
         cloud,
@@ -249,7 +254,6 @@ def install(
         fqdn,
         socket_path,
         userdir_pvc_size,
-        builder_pvc_size,
         registry_pvc_size,
         **common_options,
     )
