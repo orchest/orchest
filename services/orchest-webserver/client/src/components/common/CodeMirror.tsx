@@ -36,7 +36,7 @@ export const CodeMirror = React.forwardRef<HTMLDivElement, CodeMirrorProps>(
         sx={{
           ".CodeMirror": {
             border: (theme) =>
-              `${isFocused ? "2px" : "1px"} solid ${
+              `$2px solid ${
                 error
                   ? theme.palette.error.main
                   : isFocused
