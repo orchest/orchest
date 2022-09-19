@@ -102,7 +102,8 @@ async def notify_orchest_api_of_registry_push(
         await _notify_orchest_api_of_env_image_registry_push(session, image)
     elif _config.JUPYTER_IMAGE_NAME in image:
         await _notify_orchest_api_of_jupyter_image_registry_push(session, image)
-    raise ValueError(f"Invalid image to push: {image}.")
+    else:
+        raise ValueError(f"Invalid image to push: {image}.")
 
 
 async def _queue_images_to_push(queue: asyncio.Queue, interval: int) -> None:

@@ -453,14 +453,14 @@ def process_notification_deliveries(app, task_uuid: str) -> None:
 def notify_scheduled_job_succeeded(uuid: str) -> None:
     models.SchedulerJob.query.with_for_update().filter(
         models.SchedulerJob.uuid == uuid
-    ).update({"status": "SUCCEEDED"})
+    ).update({"status": "SUCCEEDED", "finished_time": datetime.datetime.utcnow()})
     db.session.commit()
 
 
 def notify_scheduled_job_failed(uuid: str) -> None:
     models.SchedulerJob.query.with_for_update().filter(
         models.SchedulerJob.uuid == uuid
-    ).update({"status": "FAILED"})
+    ).update({"status": "FAILED", "finished_time": datetime.datetime.utcnow()})
     db.session.commit()
 
 

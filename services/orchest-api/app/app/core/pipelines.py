@@ -24,11 +24,9 @@ import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import (
-    get_init_container_manifest,
-    get_step_and_kernel_volumes_and_volume_mounts,
-)
+from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
 from app.connections import k8s_core_api, k8s_custom_obj_api
+from app.core import pod_scheduling
 from app.types import (
     PipelineDefinition,
     PipelineProperties,
@@ -530,14 +528,6 @@ def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -
                         "name": "tests_uuid",
                         "value": step.properties["uuid"],
                     },
-                    {
-                        "name": "container_runtime",
-                        "value": _config.CONTAINER_RUNTIME,
-                    },
-                    {
-                        "name": "container_runtime_image",
-                        "value": _config.CONTAINER_RUNTIME_IMAGE,
-                    },
                 ]
             },
         }
@@ -551,6 +541,10 @@ def _get_pipeline_argo_templates(
     pipeline: Pipeline,
     run_config: RunConfig,
 ) -> List[Dict[str, Any]]:
+    # !Note that modify_pipeline_scheduling_behaviour relies on the
+    # structure and the content of the manifest to inject changes,
+    # verify that you aren't breaking anything when changing thins here.
+    # TODO: add tests for this.
     # https://argoproj.github.io/argo-workflows/fields/#template
     if CONFIG_CLASS.SINGLE_NODE:
         templates = [
@@ -585,12 +579,6 @@ def _get_pipeline_argo_templates(
         ]
 
     else:
-        image_puller_manifest = get_init_container_manifest(
-            "{{inputs.parameters.image}}",
-            "{{inputs.parameters.container_runtime}}",
-            "{{inputs.parameters.container_runtime_image}}",
-        )
-
         # The first entry of this list is the definition of the DAG,
         # while the second entry is the step definition.
         templates = [
@@ -606,6 +594,8 @@ def _get_pipeline_argo_templates(
                 },
             },
             {
+                # ! The name is important for the logic that alters the
+                # scheduling behaviour.
                 "name": "step",
                 "securityContext": {
                     "runAsUser": 0,
@@ -622,8 +612,6 @@ def _get_pipeline_argo_templates(
                             "project_relative_file_path",
                             "pod_spec_patch",
                             "tests_uuid",
-                            "container_runtime",
-                            "container_runtime_image",
                         ]
                     ]
                 },
@@ -641,9 +629,6 @@ def _get_pipeline_argo_templates(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                 },
-                "initContainers": [
-                    image_puller_manifest,
-                ],
                 "podSpecPatch": "{{inputs.parameters.pod_spec_patch}}",
             },
         ]
@@ -710,6 +695,9 @@ def _pipeline_to_workflow_manifest(
             ),
         },
     }
+    pod_scheduling.modify_pipeline_scheduling_behaviour(
+        run_config["session_type"], manifest
+    )
     return manifest
 
 
@@ -728,7 +716,7 @@ def _is_step_allowed_to_run(
         Have all incoming steps completed?
 
     """
-    return all(s not in steps_to_finish for s in step.parents)
+    return all(s.properties["uuid"] not in steps_to_finish for s in step.parents)
 
 
 async def run_pipeline_workflow(

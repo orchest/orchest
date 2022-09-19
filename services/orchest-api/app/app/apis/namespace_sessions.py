@@ -14,7 +14,7 @@ from app import errors as self_errors
 from app import schema, utils
 from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db, k8s_core_api
-from app.core import environments, events, sessions
+from app.core import environments, events, pod_scheduling, sessions
 from app.errors import JupyterEnvironmentBuildInProgressException
 from app.types import InteractiveSessionConfig, SessionType
 
@@ -473,12 +473,6 @@ class LaunchKernel(TwoPhaseFunction):
         environment.pop("PATH", None)
         env = [{"name": k, "value": v} for k, v in environment.items()]
 
-        image_puller_manifest = _utils.get_init_container_manifest(
-            image_name,
-            _config.CONTAINER_RUNTIME,
-            _config.CONTAINER_RUNTIME_IMAGE,
-        )
-
         pod_manifest = {
             "apiVersion": "v1",
             "kind": "Pod",
@@ -496,9 +490,6 @@ class LaunchKernel(TwoPhaseFunction):
                 # built-in behaviors."
                 "restartPolicy": "Never",
                 "volumes": vols,
-                "initContainers": [
-                    image_puller_manifest,
-                ],
                 "containers": [
                     {
                         "name": name,
@@ -518,6 +509,7 @@ class LaunchKernel(TwoPhaseFunction):
                 "kernel_working_dir"
             ]
 
+        pod_scheduling.modify_kernel_scheduling_behaviour(pod_manifest)
         self.collateral_kwargs["pod_manifest"] = pod_manifest
 
     def _collateral(self, pod_manifest: Dict[str, Any]):
