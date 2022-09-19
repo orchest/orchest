@@ -57,8 +57,8 @@ export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
                 hasMultiple ? "s" : ""
               } contain${
                 hasMultiple ? "" : "s"
-              } Steps or Services with an invalid Environment. Please make sure all pipeline steps and services are assigned an 
-              environment that exists in the project.`}
+              } Steps or Services with an invalid Environment. Please make sure all Pipeline Steps and Services are assigned an 
+              Environment that exists in the Project.`}
             </Typography>
             <Stack direction="column">
               {invalidPipelines.map((pipelineUuid) => {
