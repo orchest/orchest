@@ -1,11 +1,6 @@
 import { projectsApi } from "@/api/projects/projectsApi";
 import { Code } from "@/components/common/Code";
-import {
-  DropZone,
-  FileWithValidPath,
-  generateUploadFiles,
-  isUploadedViaDropzone,
-} from "@/components/DropZone";
+import { DropZone } from "@/components/DropZone";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -14,6 +9,11 @@ import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchProject } from "@/hooks/useFetchProject";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
+import {
+  FileWithValidPath,
+  isUploadedViaDropzone,
+  useUploader,
+} from "@/hooks/useUploader";
 import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
@@ -35,9 +35,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import LinearProgress, {
-  LinearProgressProps,
-} from "@mui/material/LinearProgress";
+import LinearProgress from "@mui/material/LinearProgress";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { alpha, SxProps, Theme } from "@mui/material/styles";
@@ -257,12 +255,18 @@ export const ImportDialog = ({
   ] = React.useState(false);
 
   const [importStatus, setImportStatus] = React.useState<ImportStatus>("READY");
-
   const [newProjectUuid, setNewProjectUuid] = React.useState<string>();
 
   const isAllowedToCloseWithEscape = React.useMemo(() => {
     return importStatus === "READY";
   }, [importStatus]);
+
+  const { cancelableFetch, cancelAll } = useCancelableFetch();
+  const { uploadFiles, reset: resetUploader, ...uploader } = useUploader({
+    root: "/data",
+    isProjectUpload: true,
+    fetch: cancelableFetch,
+  });
 
   const reset = React.useCallback(() => {
     setShouldShowImportUrlValidation(false);
@@ -271,12 +275,8 @@ export const ImportDialog = ({
     setImportStatus("READY");
     setNewProjectUuid(undefined);
     setTempProjectName(undefined);
-  }, [setImportUrl]);
-
-  const {
-    cancelableFetch,
-    cancelAll: cancelAllCancelablePromises,
-  } = useCancelableFetch();
+    resetUploader();
+  }, [setImportUrl, resetUploader]);
 
   const deleteTempProject = React.useCallback(async () => {
     if (!newProjectUuid) return;
@@ -301,11 +301,11 @@ export const ImportDialog = ({
   const closeDialog = React.useCallback(async () => {
     // if user forces closing the dialog, cancel all cancelable promises,
     // e.g. ongoing uploading file POST requests.
-    cancelAllCancelablePromises();
+    cancelAll();
     deleteTempProject(); // No need to await this call; no point to block user for this.
     reset();
     onClose();
-  }, [cancelAllCancelablePromises, deleteTempProject, onClose, reset]);
+  }, [cancelAll, deleteTempProject, onClose, reset]);
 
   const onFinishedImportingGitRepo = React.useCallback(
     async (result: BackgroundTask | undefined) => {
@@ -320,7 +320,6 @@ export const ImportDialog = ({
       }
       if (result.status === "SUCCESS") {
         setImportStatus("FILES_STORED");
-        setProgress("imported");
         // result.result is project.path (tempProjectName), but project_uuid is not yet available,
         // because it requires a file-discovery request to instantiate `project_uuid`.
         // Therefore, send another GET call to get its uuid.
@@ -358,7 +357,6 @@ export const ImportDialog = ({
 
   const startImportGitRepo = React.useCallback(() => {
     setImportStatus("IMPORTING");
-    setProgress("unknown");
     const gitProjectName = getProjectNameFromUrl(importUrl);
     setProjectName(gitProjectName);
     // This makes the temp name a bit more meaningful,
@@ -421,47 +419,15 @@ export const ImportDialog = ({
     }
   };
 
-  // When importing a git repo, the progress cannot be tracked. So the progress is `unknown`.
-  const [progress, setProgress] = React.useState<
-    number | "unknown" | "imported"
-  >("unknown");
-
-  const progressStyle = React.useMemo<LinearProgressProps["variant"]>(() => {
-    if (progress === "unknown") return "indeterminate";
-    if (isNumber(progress) || progress === "imported") return "determinate";
-    return "indeterminate";
-  }, [progress]);
-
-  const updateProgress = React.useCallback(
-    (completedCount: number, totalCount: number) => {
-      setProgress(Math.round((completedCount / totalCount) * 100));
-    },
-    []
-  );
-
   const [newProjectMetadata, setNewProjectMetadata] = React.useState<
     Project & { fileCount: number }
   >();
 
   const createProjectAndUploadFiles = React.useCallback(
-    async (
-      projectName: string,
-      files: File[] | FileList,
-      onFileUploaded?: (completedCount: number, totalCount: number) => void
-    ) => {
+    async (projectName: string, files: File[] | FileList) => {
       setImportStatus("UPLOADING");
 
-      // Upload files
-      await Promise.all(
-        generateUploadFiles({
-          projectUuid: undefined,
-          root: "/data",
-          path: `/${projectName}/`,
-          isProjectUpload: true,
-          // Use cancelable fetch to prevent mutating states when user cancel uploading.
-          cancelableFetch,
-        })(files, onFileUploaded)
-      );
+      await uploadFiles(`/${projectName}/`, files);
 
       const { project_uuid } = await fetcher<{ project_uuid: string }>(
         `${FILE_MANAGEMENT_ENDPOINT}/import-project-from-data?${queryArgs({
@@ -494,7 +460,7 @@ export const ImportDialog = ({
         });
       }
     },
-    [cancelableFetch]
+    [uploadFiles]
   );
 
   const uploadFilesAndSetImportStatus = React.useCallback(
@@ -510,11 +476,7 @@ export const ImportDialog = ({
 
       try {
         setProjectName("");
-        await createProjectAndUploadFiles(
-          tempProjectName,
-          files,
-          updateProgress
-        );
+        await createProjectAndUploadFiles(tempProjectName, files);
         setImportStatus("FILES_STORED");
         setTempProjectName(undefined);
       } catch (error) {
@@ -528,7 +490,6 @@ export const ImportDialog = ({
       setImportStatus,
       setProjectName,
       setAlert,
-      updateProgress,
       reset,
     ]
   );
@@ -706,22 +667,22 @@ export const ImportDialog = ({
                 )}
                 <Stack direction="row" spacing={1} alignItems="center">
                   <LinearProgress
-                    variant={progressStyle}
-                    value={
-                      progress === "imported"
-                        ? 100
-                        : isNumber(progress)
-                        ? progress
-                        : undefined
+                    variant={
+                      importStatus === "IMPORTING"
+                        ? "indeterminate"
+                        : "determinate"
                     }
+                    value={uploader.inProgress ? uploader.progress : undefined}
                     sx={{ margin: (theme) => theme.spacing(1, 0), flex: 1 }}
                   />
                   <Typography variant="caption">
-                    {isNumber(progress)
-                      ? `${progress} %`
-                      : progress === "unknown"
+                    {uploader.inProgress
+                      ? `${uploader.progress}%`
+                      : importStatus === "IMPORTING"
                       ? "Importing..."
-                      : "Imported!"}
+                      : importStatus === "FILES_STORED"
+                      ? "Imported"
+                      : undefined}
                   </Typography>
                 </Stack>
                 <form

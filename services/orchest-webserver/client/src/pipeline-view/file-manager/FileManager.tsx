@@ -1,9 +1,7 @@
-import { generateUploadFiles } from "@/components/DropZone";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useUploader } from "@/hooks/useUploader";
 import { queryArgs } from "@/utils/text";
-import LinearProgress, {
-  LinearProgressProps,
-} from "@mui/material/LinearProgress";
+import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -64,8 +62,6 @@ const createInvalidEntryFilter = ({
   return [uniqueArr.filter((e) => !invalid.has(e)), foundInvalid];
 };
 
-type ProgressType = LinearProgressProps["variant"];
-
 export function FileManager() {
   /**
    * States
@@ -93,14 +89,8 @@ export function FileManager() {
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [expanded, setExpanded] = React.useState<
-    (FileManagementRoot | string)[]
-  >(["/project-dir"]);
+  const [expanded, setExpanded] = React.useState(["/project-dir"]);
   const [progress, setProgress] = React.useState(0);
-
-  const [progressType, setProgressType] = React.useState<ProgressType>(
-    "determinate"
-  );
   const [contextMenu, setContextMenu] = React.useState<ContextMenuMetadata>(
     undefined
   );
@@ -113,7 +103,6 @@ export function FileManager() {
    * Actions
    */
   const reload = React.useCallback(async () => {
-    setProgressType("determinate");
     setInProgress(true);
 
     await fetchFileTrees(deepestExpand(expanded));
@@ -129,7 +118,6 @@ export function FileManager() {
   const browsePath = React.useCallback(
     async (combinedPath) => {
       if (!projectUuid) return;
-      setProgressType("determinate");
       setInProgress(true);
 
       const { root, path } = unpackPath(combinedPath);
@@ -153,42 +141,23 @@ export function FileManager() {
     [fileTrees, projectUuid, setFileTrees, jobUuid, pipelineUuid, runUuid]
   );
 
-  const doUploadFiles = React.useCallback(
-    (files: File[] | FileList, onUploaded: () => void) => {
-      if (!projectUuid) return;
-      const lastSelectedFolder = lastSelectedFolderPath(selectedFiles);
-      return Promise.all(
-        generateUploadFiles({
-          projectUuid,
-          root,
-          path: lastSelectedFolder,
-          isProjectUpload: false,
-        })(files, onUploaded)
-      );
-    },
-    [projectUuid, selectedFiles, root]
+  const selectedFolder = React.useMemo(
+    () => lastSelectedFolderPath(selectedFiles),
+    [selectedFiles]
   );
 
-  const uploadFiles = React.useCallback(
-    async (files: File[] | FileList) => {
-      let progressTotal = files.length;
-      const progressHolder = { progress: 0 };
-      setInProgress(true);
-      setProgressType("determinate");
+  const uploader = useUploader({
+    projectUuid,
+    root,
+    isProjectUpload: false,
+  });
 
-      await doUploadFiles(files, () => {
-        progressHolder.progress += 1;
-        let progressPercentage = Math.round(
-          (progressHolder.progress / progressTotal) * 100
-        );
-        setProgress(progressPercentage);
-      });
-
-      reload();
-      setInProgress(false);
-    },
-    [reload, doUploadFiles]
-  );
+  React.useEffect(() => {
+    setProgress(uploader.progress);
+  }, [uploader.progress]);
+  React.useEffect(() => {
+    setInProgress(uploader.inProgress);
+  }, [uploader.inProgress]);
 
   /**
    * Callback handlers
@@ -265,14 +234,17 @@ export function FileManager() {
     [expanded, selectedFiles, setSelectedFiles]
   );
 
+  const handleUpload = (files: FileList | File[]) =>
+    uploader.uploadFiles(selectedFolder, files).then(reload);
+
   return (
     <>
-      <FileManagerContainer ref={containerRef} uploadFiles={uploadFiles}>
+      <FileManagerContainer ref={containerRef} uploadFiles={handleUpload}>
         {inProgress && (
           <LinearProgress
             sx={{ position: "absolute", width: "100%" }}
             value={progress}
-            variant={progressType}
+            variant="determinate"
           />
         )}
         <FileManagerLocalContextProvider
@@ -282,7 +254,7 @@ export function FileManager() {
           <CreatePipelineButton />
           <ActionBar
             setExpanded={setExpanded}
-            uploadFiles={uploadFiles}
+            uploadFiles={handleUpload}
             rootFolder={root}
           />
           <FileTreeContainer>
