@@ -1,14 +1,25 @@
 """Handles recurring jobs by assigning them to a given scheduler.
 
-This implementation is in line with the scheduler of the webserver,
-check its module docstring for more info.
+This implementation was initially in line with the scheduler of the
+orchest-webserver, but ended up differentiating on the schema of a task
+record, while in the webserver there is a record for each job type, here
+we have a record for each run of a job, this is needed to keep track of
+the state of some jobs that can interfere with other activities, in
+particular, registry garbage collection and image pushes to the
+registry.
+
+When the scheduler starts a job it takes care of setting it's state to
+"STARTED", upon success or failure it is responsibility of the job logic
+to set a SUCCEEDED or FAILED status, by using the functions provided by
+this module.
 
 """
 import datetime
 import enum
 import logging
 import os
-from typing import Callable
+import uuid
+from typing import Callable, Optional
 
 import sqlalchemy
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -28,7 +39,7 @@ logger = logging.getLogger("job-scheduler")
 
 
 class SchedulerJobType(enum.Enum):
-    CLEANUP_BUILDER_CACHE = "CLEANUP_BUILDER_CACHE"
+    CLEANUP_OLD_SCHEDULER_JOB_RECORDS = "CLEANUP_OLD_SCHEDULER_JOB_RECORDS"
     PROCESS_IMAGES_FOR_DELETION = "PROCESS_IMAGES_FOR_DELETION"
     PROCESS_NOTIFICATIONS_DELIVERIES = "PROCESS_NOTIFICATIONS_DELIVERIES"
     SCHEDULE_JOB_RUNS = "SCHEDULE_JOB_RUNS"
@@ -50,15 +61,10 @@ def add_recurring_jobs_to_scheduler(
     """
     jobs = Jobs()
     recurring_jobs = {
-        "cleanup builder cache": {
+        "cleanup_old_scheduler_job_records": {
             "allowed_to_run": True,
-            # For jobs with a long period rely on the DB instead of the
-            # internal scheduler given that the pod might restart and
-            # the progress through the interval would get lost. In this
-            # particular case the real interval is in days, and is
-            # handled by handle_cleanup_builder_cache.
-            "interval": 3600,
-            "job_func": jobs.handle_cleanup_builder_cache,
+            "interval": app.config["CLEANUP_OLD_SCHEDULER_JOB_RECORDS_INTERVAL"],
+            "job_func": jobs.handle_cleanup_old_scheduler_job_records,
         },
         "schedule job runs": {
             "allowed_to_run": True,
@@ -103,6 +109,28 @@ class Jobs:
     def __init__(self):
         pass
 
+    def handle_cleanup_old_scheduler_job_records(
+        self, app: Flask, interval: int = 0
+    ) -> None:
+        """Cleans up scheduler job records to avoid filling up the db.
+
+        The schedule is defined by the given interval. E.g.
+        `interval=15` will cause this job to run if 15 seconds have
+        passed since the previous run.
+
+        Args:
+            interval: How much time should have passed after the
+                previous execution of this job (in seconds). And thus an
+                `interval=0` will execute the job right away.
+
+        """
+        return self._handle_recurring_scheduler_job(
+            SchedulerJobType.CLEANUP_OLD_SCHEDULER_JOB_RECORDS.value,
+            interval,
+            cleanup_old_scheduler_job_records,
+            app,
+        )
+
     def handle_schedule_job_runs(self, app: Flask, interval: int = 0) -> None:
         """Handles checking for job runs to be scheduled.
 
@@ -143,16 +171,6 @@ class Jobs:
             app,
         )
 
-    def handle_cleanup_builder_cache(self, app: Flask, interval: int = 0) -> None:
-        """Handles cleaning up the builder cache."""
-        interval = max(app.config["CLEANUP_BUILDER_CACHE_INTERVAL"], interval)
-        return self._handle_recurring_scheduler_job(
-            SchedulerJobType.CLEANUP_BUILDER_CACHE.value,
-            interval,
-            cleanup_builder_cache,
-            app,
-        )
-
     @staticmethod
     def _handle_recurring_scheduler_job(
         job_type: str, interval: int, handle_func: Callable, app: Flask
@@ -163,8 +181,6 @@ class Jobs:
                     _HandleRecurringSchedulerJob(tpe).transaction(
                         job_type, interval, handle_func, app
                     )
-        except sqlalchemy.exc.IntegrityError:
-            logger.debug(f"SchedulerJob with type {job_type} already exists.")
         except Exception:
             logger.error(f"Failed to run job with type: {job_type}.")
 
@@ -175,55 +191,56 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
     ):
         self.collateral_kwargs["app"] = app
         self.collateral_kwargs["handle_func"] = handle_func
-        self.collateral_kwargs["run_collateral"] = True
+        self.collateral_kwargs["run_collateral"] = False
+        self.collateral_kwargs["task_uuid"] = None
 
-        query = models.SchedulerJob.query.filter_by(type=job_type)
-
-        # Check whether there is already an entry in the DB, if not
-        # then we need to create it.
-        if query.first() is None:
-            db.session.add(models.SchedulerJob(type=job_type))
-        else:
-            now = datetime.datetime.now(datetime.timezone.utc)
-
-            # Offset in seconds to account for lag in the scheduler
-            # when running jobs. E.g. execution X is slow and execution
-            # X+1 is fast, causing X+1 to not handle the event as the
-            # interval has not yet passed.
-            epsilon = 0.1
-
-            if interval > 0:
-                # The task would always run and thus also for every
-                # concurrent run. This is not what we want.
-                assert epsilon < interval, "Offset too large."
-                dt = interval - epsilon
-            else:
-                dt = 0
-
-            job = (
-                # Skip locked rows to prevent concurrent runs.
-                query.with_for_update(skip_locked=True)
-                # The scheduler will wake up at exactly the right time,
-                # we still check so that slow concurrent runs don't also
-                # run the collateral in case the row is no longer
-                # locked.
-                .filter(
-                    now
-                    >= models.SchedulerJob.timestamp + datetime.timedelta(seconds=dt)
-                ).first()
+        # Lock on the latest job of the same type to avoid race
+        # conditions where multiple schedulers could schedule the same
+        # job. We use nowait=True so that if a concurrent scheduler
+        # runs it won't run a job.
+        try:
+            latest_job_of_type = (
+                models.SchedulerJob.query.with_for_update(nowait=True)
+                .filter(models.SchedulerJob.type == job_type)
+                .order_by(desc(models.SchedulerJob.started_time))
+                .first()
             )
+        except sqlalchemy.exc.OperationalError:
+            logger.info(
+                "A scheduler is running concurrently and took priority in running "
+                f"a {job_type} job."
+            )
+            return
 
-            # Another worker has already handled `handle_func`.
-            if job is None:
-                # Use kwarg instead of raising an error as an error
-                # would be logged by the TPE.
-                self.collateral_kwargs["run_collateral"] = False
-                return
+        # Offset in seconds to account for lag in the scheduler when
+        # running jobs. E.g. execution X is slow and execution X+1 is
+        # fast, causing X+1 to not handle the event as the interval has
+        # not yet passed.
+        if interval > 0:
+            epsilon = 0.1
+            # The task would always run and thus also for every
+            # concurrent run. This is not what we want.
+            assert epsilon < interval, "Offset too large."
+            dt = interval - epsilon
+        else:
+            dt = 0
 
-            job.timestamp = now
+        if latest_job_of_type is None or datetime.datetime.now(
+            datetime.timezone.utc
+        ) >= latest_job_of_type.started_time + datetime.timedelta(seconds=dt):
+            task_uuid = str(uuid.uuid4())
+            db.session.add(
+                models.SchedulerJob(uuid=task_uuid, type=job_type, status="STARTED")
+            )
+            self.collateral_kwargs["run_collateral"] = True
+            self.collateral_kwargs["task_uuid"] = task_uuid
 
     def _collateral(
-        self, app: Flask, handle_func: Callable, run_collateral: bool
+        self,
+        app: Flask,
+        handle_func: Callable,
+        run_collateral: bool,
+        task_uuid: Optional[str],
     ) -> None:
         if not run_collateral:
             # Either the app has restarted and the interval has not
@@ -234,13 +251,54 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
                 " not yet passed."
             )
         else:
-            logger.info(
+            logger.debug(
                 f"SchedulerJob running {handle_func.__name__}: PID {os.getpid()}."
             )
-            return handle_func(app)
+            try:
+                handle_func(app, task_uuid)
+            except Exception as e:
+                logger.error(e)
+                notify_scheduled_job_failed(task_uuid)
+                raise e
 
 
-def schedule_job_runs(app) -> None:
+def cleanup_old_scheduler_job_records(app, task_uuid: str) -> None:
+    logger = logging.getLogger("cleanup_old_scheduler_job_records")
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    with app.app_context():
+
+        logger.info("Deleting old records")
+        for job_type in SchedulerJobType:
+            records_of_job_type_to_keep = (
+                db.session.query(models.SchedulerJob)
+                .filter(models.SchedulerJob.type == job_type.value)
+                .with_entities(
+                    models.SchedulerJob.uuid,
+                )
+                .order_by(desc(models.SchedulerJob.started_time))
+                .limit(500)
+                .subquery()
+            )
+            # Can't use limit and delete in the same query.
+            models.SchedulerJob.query.filter(
+                models.SchedulerJob.uuid.not_in(records_of_job_type_to_keep),
+                models.SchedulerJob.type == job_type.value,
+                models.SchedulerJob.uuid != task_uuid,
+            ).delete(synchronize_session="fetch")
+
+        logger.info("Fixing jobs that failed to report back their status.")
+        models.SchedulerJob.query.filter(
+            models.SchedulerJob.started_time < (now - datetime.timedelta(hours=1)),
+            models.SchedulerJob.status == "STARTED",
+        ).update({"status": "FAILED"})
+        db.session.commit()
+
+        notify_scheduled_job_succeeded(task_uuid)
+
+
+def schedule_job_runs(app, task_uuid: str) -> None:
     """Checks for job runs to be scheduled.
 
     The scheduler works by checking for which jobs are due to be run by
@@ -336,8 +394,10 @@ def schedule_job_runs(app) -> None:
             except Exception as e:
                 logger.error(e)
 
+        notify_scheduled_job_succeeded(task_uuid)
 
-def process_images_for_deletion(app) -> None:
+
+def process_images_for_deletion(app, task_uuid: str) -> None:
     """Processes built images to find inactive ones.
 
     Goes through env images and marks the inactive ones for removal,
@@ -374,21 +434,42 @@ def process_images_for_deletion(app) -> None:
 
         celery = make_celery(app)
         app.logger.info("Sending registry garbage collection task.")
-        res = celery.send_task(name="app.core.tasks.registry_garbage_collection")
+        res = celery.send_task(
+            name="app.core.tasks.registry_garbage_collection", task_id=task_uuid
+        )
         res.forget()
 
 
-def process_notification_deliveries(app) -> None:
+def process_notification_deliveries(app, task_uuid: str) -> None:
     with app.app_context():
         app.logger.debug("Sending process notifications deliveries task.")
         celery = make_celery(app)
-        res = celery.send_task(name="app.core.tasks.process_notifications_deliveries")
+        res = celery.send_task(
+            name="app.core.tasks.process_notifications_deliveries", task_id=task_uuid
+        )
         res.forget()
 
 
-def cleanup_builder_cache(app) -> None:
-    with app.app_context():
-        app.logger.debug("Sending cleanup builder cache task.")
-        celery = make_celery(app)
-        res = celery.send_task(name="app.core.tasks.cleanup_builder_cache")
-        res.forget()
+def notify_scheduled_job_succeeded(uuid: str) -> None:
+    models.SchedulerJob.query.with_for_update().filter(
+        models.SchedulerJob.uuid == uuid
+    ).update({"status": "SUCCEEDED", "finished_time": datetime.datetime.utcnow()})
+    db.session.commit()
+
+
+def notify_scheduled_job_failed(uuid: str) -> None:
+    models.SchedulerJob.query.with_for_update().filter(
+        models.SchedulerJob.uuid == uuid
+    ).update({"status": "FAILED", "finished_time": datetime.datetime.utcnow()})
+    db.session.commit()
+
+
+def is_running(job_type: SchedulerJobType) -> bool:
+    return db.session.query(
+        db.session.query(models.SchedulerJob)
+        .filter(
+            models.SchedulerJob.type == job_type.value,
+            models.SchedulerJob.status == "STARTED",
+        )
+        .exists()
+    ).scalar()

@@ -2,6 +2,7 @@ package orchestcomponent
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -75,9 +76,23 @@ func getNodeAgentDaemonset(registryIP string, metadata metav1.ObjectMeta,
 	var one int64 = 1
 
 	socketPath := utils.GetKeyFromEnvVar(component.Spec.Template.Env, "CONTAINER_RUNTIME_SOCKET")
+	// Apparently needed for old/existing clusters?
+	socketPath = strings.Replace(socketPath, "unix://", "", -1)
 	hostPathSocket := corev1.HostPathType("Socket")
 
 	containerRuntime := utils.GetKeyFromEnvVar(component.Spec.Template.Env, "CONTAINER_RUNTIME")
+
+	// Necessary because the logic currently handling environment
+	// variables does not support "ValueFrom" env variables. TO_DO fix
+	// this.
+	component.Spec.Template.Env = append(component.Spec.Template.Env, corev1.EnvVar{
+		Name: "CLUSTER_NODE",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "spec.nodeName",
+			},
+		},
+	})
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
