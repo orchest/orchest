@@ -8,6 +8,8 @@ from app import errors, utils
 from app.connections import k8s_core_api
 from config import CONFIG_CLASS
 
+ORCHEST_LOG_PREFIX = "[Orchest] "
+
 
 def image_build_task_to_pod_name(task_uuid: str) -> str:
     return f"image-build-task-{task_uuid}"
@@ -234,7 +236,7 @@ class ImageBuildSidecar:
             self.task_uuid, self.image_name, self.image_tag, self.build_context
         )
 
-        self._log("Starting image build...")
+        self._log(utils.wrap_ansi_grey(ORCHEST_LOG_PREFIX + "Starting image build..."))
         self.log_handler_function = self._log_starting_build_phase
         w = watch.Watch()
         for event in w.stream(
@@ -298,7 +300,7 @@ class ImageBuildSidecar:
             build_context["dockerfile_path"],
         )
 
-        msg = "Starting worker...\n"
+        msg = utils.wrap_ansi_grey(ORCHEST_LOG_PREFIX + "Starting worker...\n")
         self._log(msg, False)
         ns = _config.ORCHEST_NAMESPACE
         k8s_core_api.create_namespaced_pod(ns, body=manifest)
@@ -312,16 +314,24 @@ class ImageBuildSidecar:
 
     def _log_starting_build_phase(self, event: str) -> None:
         if self.pulling_regex.match(event):
-            self._log("\nPulling base image...", False)
+            self._log(
+                utils.wrap_ansi_grey(
+                    "\n" + ORCHEST_LOG_PREFIX + "Pulling base image..."
+                ),
+                False,
+            )
             self.log_handler_function = self._log_base_image_pull_phase
         elif self.copying_regex.match(event):
-            self._log("\nCopying context...", False)
+            self._log(
+                utils.wrap_ansi_grey("\n" + ORCHEST_LOG_PREFIX + "Copying context..."),
+                False,
+            )
             self.log_handler_function = self._log_copy_context_phase
         else:
-            self._log(".")
+            self._log(utils.wrap_ansi_grey("."))
 
     def _log_storage_phase(self, pod_name: str) -> None:
-        self._log("Storing image...")
+        self._log(utils.wrap_ansi_grey(ORCHEST_LOG_PREFIX + "Storing image..."))
         done = False
         while not done:
             try:
@@ -332,21 +342,23 @@ class ImageBuildSidecar:
                     max_retries=1,
                 )
             except errors.PodNeverReachedExpectedStatusError:
-                self._log(".")
+                self._log(utils.wrap_ansi_grey("."))
             else:
                 self._log("\n")
                 done = True
         self._check_for_errors_at_pod_level(
             pod_name, ImageBuildSidecar.STORAGE_ERROR_MSG
         )
-        msg = "Done!"
+        msg = utils.wrap_ansi_grey(ORCHEST_LOG_PREFIX + "Done!")
         self._log(msg)
 
     def _log_base_image_pull_phase(self, event: str) -> bool:
         if self.copying_regex.match(event):
             # Is done pulling and has started copying the context.
             self.log_handler_function = self._log_copy_context_phase
-            self._log("\nCopying context...")
+            self._log(
+                utils.wrap_ansi_grey("\n" + ORCHEST_LOG_PREFIX + "Copying context...")
+            )
         else:
             # Append to "Pulling base image..."
             self._log(".")
@@ -355,16 +367,23 @@ class ImageBuildSidecar:
     def _log_copy_context_phase(self, event: str) -> bool:
         if self.userscript_begin_regex.match(event):
             # Is done copying, has started running the set-up script.
-            self._log("\nRunning environment set-up script...", True)
+            self._log(
+                utils.wrap_ansi_grey(
+                    "\n" + ORCHEST_LOG_PREFIX + "Running environment set-up script..."
+                ),
+                True,
+            )
             self.log_handler_function = self._log_setup_script_phase
         else:
             # Append to "Copying context..."
-            self._log(".")
+            self._log(utils.wrap_ansi_grey("."))
         return False
 
     def _log_setup_script_phase(self, event: str) -> None:
         if self.setup_script_cached_regex.match(event):
-            self._log("Found cached layer.", True)
+            self._log(
+                utils.wrap_ansi_grey(ORCHEST_LOG_PREFIX + "Found cached layer."), True
+            )
             # Will start storing the image next.
             return True
         elif event.endswith(CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG):

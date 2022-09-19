@@ -150,6 +150,10 @@ def page_to_pagination_data(pagination: Pagination) -> dict:
     }
 
 
+def wrap_ansi_grey(text):
+    return "\033[38;5;7m" + text + "\033[0m"
+
+
 def wait_for_pod_status(
     name: str,
     namespace: str,
