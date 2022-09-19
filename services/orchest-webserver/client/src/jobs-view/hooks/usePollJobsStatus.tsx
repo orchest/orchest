@@ -19,7 +19,7 @@ export const usePollJobsStatus = () => {
     }
   }, [run, updateStatus]);
 
-  React.useEffect(() => console.log(error), [error]);
+  React.useEffect(() => error && console.log(error), [error]);
 
   useInterval(poll, !isStoreLoaded ? undefined : 1000);
 };
