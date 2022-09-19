@@ -1,8 +1,10 @@
 from app.models._core import (
     ClientHeartbeat,
+    ClusterNode,
     Environment,
     EnvironmentImage,
     EnvironmentImageBuild,
+    EnvironmentImageOnNode,
     InteractivePipelineRun,
     InteractiveSession,
     InteractiveSessionInUseImage,
@@ -10,6 +12,7 @@ from app.models._core import (
     JobInUseImage,
     JupyterImage,
     JupyterImageBuild,
+    JupyterImageOnNode,
     NonInteractivePipelineRun,
     Pipeline,
     PipelineRun,

@@ -103,6 +103,7 @@ export type OrchestConfig = {
 export interface OrchestUserConfig {
   AUTH_ENABLED?: boolean;
   INTERCOM_USER_EMAIL: string;
+  MAX_BUILDS_PARALLELISM: number;
   MAX_INTERACTIVE_RUNS_PARALLELISM: number;
   MAX_JOB_RUNS_PARALLELISM: number;
   TELEMETRY_DISABLED: boolean;
