@@ -31,7 +31,7 @@ export const BuildEnvironmentButton = () => {
   const buttonIcon = isBuilding ? (
     <CircularProgress
       size={20}
-      sx={{ color: (theme) => theme.palette.grey[400] }}
+      sx={{ color: (theme) => theme.palette.background.paper }}
     />
   ) : (
     <BuildCircleOutlinedIcon fontSize="small" />
