@@ -198,7 +198,6 @@ def _get_session_sidecar_deployment_manifest(
     pipeline_path = session_config["pipeline_path"]
     project_dir = session_config["project_dir"]
     userdir_pvc = session_config["userdir_pvc"]
-    session_type = session_type.value
 
     metadata = {
         "name": f"session-sidecar-{session_uuid}",
@@ -432,13 +431,11 @@ def _get_environment_shell_deployment_service_manifest(
 def _get_jupyter_server_deployment_service_manifest(
     session_uuid: str,
     session_config: SessionConfig,
-    session_type: SessionType,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     project_uuid = session_config["project_uuid"]
     pipeline_path = session_config["pipeline_path"]
     project_dir = session_config["project_dir"]
     userdir_pvc = session_config["userdir_pvc"]
-    session_type = session_type.value
 
     metadata = {
         "name": f"jupyter-server-{session_uuid}",
@@ -682,7 +679,6 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     pipeline_path = session_config["pipeline_path"]
     project_dir = session_config["project_dir"]
     userdir_pvc = session_config["userdir_pvc"]
-    session_type = session_type.value
 
     metadata = {
         "name": f"jupyter-eg-{session_uuid}",
@@ -828,7 +824,6 @@ def _get_user_service_deployment_service_manifest(
     project_dir = session_config["project_dir"]
     userdir_pvc = session_config["userdir_pvc"]
     img_mappings = session_config["env_uuid_to_image"]
-    session_type = session_type.value
 
     # Template section
     is_pbp_enabled = service_config.get("preserve_base_path", False)
@@ -849,7 +844,7 @@ def _get_user_service_deployment_service_manifest(
 
     # Get user configured environment variables
     try:
-        if session_type == "noninteractive":
+        if session_type.value == "noninteractive":
             # Get job environment variable overrides
             user_env_variables = session_config["user_env_variables"]
         else:
@@ -966,7 +961,7 @@ def _get_user_service_deployment_service_manifest(
         },
     }
     pod_scheduling.modify_user_service_scheduling_behaviour(
-        session_type, deployment_manifest
+        session_type.value, deployment_manifest
     )
 
     # K8S doesn't like empty commands.
