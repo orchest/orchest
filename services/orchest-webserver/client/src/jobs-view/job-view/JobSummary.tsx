@@ -20,8 +20,10 @@ type JobSummaryComponentProps = {
 
 const JobSummaryComponent = ({ job }: JobSummaryComponentProps) => {
   const { snapshot } = useSnapshot(job.snapshot_uuid);
-  const pipelineUrl = useRouteLink("pipeline", {
+  const pipelineUrl = useRouteLink("jobRun", {
     pipelineUuid: job.pipeline_uuid,
+    jobUuid: job.uuid,
+    snapshotUuid: job.snapshot_uuid,
   });
 
   return (

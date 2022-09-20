@@ -138,13 +138,15 @@ export const PipelineSettingsView: React.FC = () => {
     pipelineUuid,
     jobUuid,
     runUuid,
+    snapshotUuid,
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
 
   const { getSession } = useSessionsContext();
 
-  const isJobRun = hasValue(jobUuid && runUuid);
-  const isReadOnly = isJobRun || isReadOnlyFromQueryString;
+  const isRunningOnSnapshot =
+    hasValue(jobUuid) && hasValue(runUuid || snapshotUuid);
+  const isReadOnly = isRunningOnSnapshot || isReadOnlyFromQueryString;
 
   const isBrowserTabFocused = useFocusBrowserTab();
 
@@ -168,6 +170,7 @@ export const PipelineSettingsView: React.FC = () => {
     pipelineUuid,
     jobUuid,
     runUuid,
+    snapshotUuid,
     isBrowserTabFocused,
   });
 

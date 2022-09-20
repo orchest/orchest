@@ -10,10 +10,11 @@ import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
 const BackToJob = () => {
-  const { isJobRun, job, jobUuid } = usePipelineDataContext();
+  const { isSnapshot, isJobRun, job, jobUuid } = usePipelineDataContext();
   const jobLink = useRouteLink("jobs", { jobUuid });
+  const isRunningOnSnapshot = isSnapshot || isJobRun;
 
-  return isJobRun && job ? (
+  return isRunningOnSnapshot && job ? (
     <Stack direction="row" spacing={1} alignItems="baseline" flexShrink="0">
       <Tooltip title={`Job: ${job.name}`} placement="bottom-start">
         <RouteLink

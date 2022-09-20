@@ -69,7 +69,18 @@ export const ReadOnlyBanner = () => {
     switch (pipelineReadOnlyReason) {
       case "isJobRun":
         return {
-          title: "Job run snapshot",
+          title: `Job run snapshot`,
+          actionLabel: "View all runs",
+          action: (event: React.MouseEvent) =>
+            navigateTo(
+              siteMap.jobs.path,
+              { query: { projectUuid, jobUuid: job?.uuid } },
+              event
+            ),
+        };
+      case "isSnapshot":
+        return {
+          title: `Pipeline snapshot`,
           actionLabel: "View all runs",
           action: (event: React.MouseEvent) =>
             navigateTo(
@@ -162,11 +173,13 @@ export const ReadOnlyBanner = () => {
         >
           Read-only: {title}
         </Box>
-        {pipelineReadOnlyReason === "isJobRun" && hasValue(job) && (
-          <Typography variant="body2">
-            {generateReadOnlyMessage(job.name)}
-          </Typography>
-        )}
+        {(pipelineReadOnlyReason === "isJobRun" ||
+          pipelineReadOnlyReason === "isSnapshot") &&
+          hasValue(job) && (
+            <Typography variant="body2">
+              {generateReadOnlyMessage(job.name)}
+            </Typography>
+          )}
       </Alert>
       {showLinearProgress && (
         <Box

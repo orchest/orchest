@@ -11,6 +11,7 @@ export type RouteName =
   | "jobs"
   | "jobRun"
   | "jobRunFilePreview"
+  | "snapshotFilePreview"
   | "pipelineReadonly"
   | "editJob"
   | "fileManager"
@@ -108,7 +109,7 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       path: "/job-run/file-preview",
       root: "/jobs",
       title: getTitle("Job Run Step File Preview"),
-      scope: ["projectUuid", "jobRunUuid", "pipelineUuid"],
+      scope: ["projectUuid", "jobRunUuid", "pipelineUuid", "snapshotUuid"],
     },
     {
       name: "settings",

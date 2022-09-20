@@ -25,6 +25,7 @@ export type PipelineDataContextType = {
   setPipelineJson: StateDispatcher<PipelineJson>;
   isFetchingPipelineJson: boolean;
   isJobRun: boolean;
+  isSnapshot: boolean;
   pipeline?: PipelineMetaData;
   job?: JobData;
 };
@@ -44,6 +45,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     pipelineUuid: pipelineUuidFromRoute,
     jobUuid,
     runUuid: runUuidFromRoute,
+    snapshotUuid,
     navigateTo,
   } = useCustomRoute();
 
@@ -80,6 +82,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     pipelineUuid,
     jobUuid,
     runUuid,
+    snapshotUuid,
   });
 
   React.useEffect(() => {
@@ -108,8 +111,10 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   }, [error, setAlert, navigateTo, projectUuid, jobUuid]);
 
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
-
-  const { job } = useFetchJob({ jobUuid: isJobRun ? jobUuid : undefined });
+  const isSnapshot = hasValue(jobUuid) && hasValue(snapshotUuid);
+  const { job } = useFetchJob({
+    jobUuid: isSnapshot || isSnapshot ? jobUuid : undefined,
+  });
 
   return (
     <PipelineDataContext.Provider
@@ -127,6 +132,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         setPipelineJson,
         isFetchingPipelineJson,
         isJobRun,
+        isSnapshot,
         job,
       }}
     >

@@ -27,23 +27,27 @@ export const FileManagerContextMenu: React.FC<{
   metadata: ContextMenuMetadata | undefined;
 }> = ({ metadata, children }) => {
   const { setAlert } = useGlobalContext();
-  const { navigateTo, jobUuid, projectUuid } = useCustomRoute();
+  const { navigateTo, jobUuid, projectUuid, snapshotUuid } = useCustomRoute();
   const {
     pipelineUuid,
     pipelineCwd,
     isReadOnly,
     runUuid,
     pipelineJson,
+    isJobRun,
+    isSnapshot,
   } = usePipelineDataContext();
+
+  const isRunningOnSnapshot = isJobRun || isSnapshot;
 
   const { navigateToJupyterLab } = useOpenFile();
 
-  const { isJobRun, jobRunQueryArgs } = React.useMemo(() => {
-    return {
-      isJobRun: hasValue(jobUuid) && hasValue(runUuid),
-      jobRunQueryArgs: { jobUuid, runUuid },
-    };
-  }, [jobUuid, runUuid]);
+  const additionalQueryArgs = React.useMemo(() => {
+    if (!jobUuid) return {};
+    if (runUuid) return { jobUuid, runUuid };
+    if (snapshotUuid) return { jobUuid, snapshotUuid };
+    return {};
+  }, [jobUuid, runUuid, snapshotUuid]);
 
   const {
     reload,
@@ -102,21 +106,26 @@ export const FileManagerContextMenu: React.FC<{
       return;
     }
 
-    navigateTo(siteMap.filePreview.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        stepUuid: foundStep.uuid,
-        ...(isJobRun ? jobRunQueryArgs : undefined),
-      },
-      state: { isReadOnly },
-    });
+    navigateTo(
+      isRunningOnSnapshot
+        ? siteMap.jobRunFilePreview.path
+        : siteMap.filePreview.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          stepUuid: foundStep.uuid,
+          ...additionalQueryArgs,
+        },
+        state: { isReadOnly },
+      }
+    );
   }, [
     contextMenuCombinedPath,
     handleClose,
-    isJobRun,
     isReadOnly,
-    jobRunQueryArgs,
+    isRunningOnSnapshot,
+    additionalQueryArgs,
     navigateTo,
     pipelineCwd,
     pipelineJson?.steps,

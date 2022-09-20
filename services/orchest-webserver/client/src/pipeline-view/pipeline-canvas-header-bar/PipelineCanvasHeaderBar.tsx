@@ -11,7 +11,7 @@ import { PrimaryPipelineButton } from "./primary-action/PrimaryPipelineButton";
 import { ServicesMenu } from "./ServicesMenu";
 
 export const PipelineCanvasHeaderBar = () => {
-  const { isJobRun } = usePipelineDataContext();
+  const { isSnapshot, isJobRun } = usePipelineDataContext();
   const { setFullscreenTab } = usePipelineCanvasContext();
   const openLogs = () => setFullscreenTab("logs");
 
@@ -39,16 +39,15 @@ export const PipelineCanvasHeaderBar = () => {
         <PipelineFileName />
       </Stack>
       <Stack direction="row" flexShrink={0} spacing={1.5} alignItems="center">
-        <Button size="small" onClick={openLogs}>
+        <Button size="small" onClick={openLogs} disabled={isSnapshot}>
           Logs
         </Button>
         <ServicesMenu />
-
         <Divider
           orientation="vertical"
           sx={{ height: (theme) => theme.spacing(3) }}
         />
-        {!isJobRun && <CreateStepButton />}
+        {!isSnapshot && !isJobRun && <CreateStepButton />}
         <PrimaryPipelineButton />
         <PipelineMoreOptionsMenu />
       </Stack>

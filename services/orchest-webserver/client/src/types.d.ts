@@ -146,6 +146,7 @@ export interface IQueryArgs
 export type ScopeParameters = {
   jobUuid: string;
   runUuid: string;
+  snapshotUuid: string;
   projectUuid: string;
   pipelineUuid: string;
   environmentUuid: string;

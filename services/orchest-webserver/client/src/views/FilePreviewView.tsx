@@ -43,8 +43,6 @@ const FilePreviewView = () => {
   const { cancelableFetch } = useCancelableFetch();
   const { makeCancelable } = useCancelablePromise();
 
-  useSendAnalyticEvent("view:loaded", { name: siteMap.filePreview.path });
-
   const {
     navigateTo,
     projectUuid,
@@ -52,11 +50,20 @@ const FilePreviewView = () => {
     stepUuid,
     jobUuid,
     runUuid,
+    snapshotUuid,
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
-
   const isJobRun = hasValue(jobUuid && runUuid);
-  const isReadOnly = isJobRun || isReadOnlyFromQueryString;
+  const isSnapshot = hasValue(jobUuid && snapshotUuid);
+  const isRunningOnSnapshot = isSnapshot || isJobRun;
+
+  const isReadOnly = isRunningOnSnapshot || isReadOnlyFromQueryString;
+
+  useSendAnalyticEvent("view:loaded", {
+    name: isRunningOnSnapshot
+      ? siteMap.jobRunFilePreview.path
+      : siteMap.filePreview.path,
+  });
 
   const [state, setState] = React.useState({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -86,9 +93,9 @@ const FilePreviewView = () => {
     const isJobRun = jobUuid && runUuid;
 
     navigateTo(
-      isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path,
+      isJobRun || isSnapshot ? siteMap.jobRun.path : siteMap.pipeline.path,
       {
-        query: { projectUuid, pipelineUuid, jobUuid, runUuid },
+        query: { projectUuid, pipelineUuid, jobUuid, runUuid, snapshotUuid },
         state: { isReadOnly },
       },
       e

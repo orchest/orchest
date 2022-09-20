@@ -6,18 +6,34 @@ import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
 export const useOpenFile = () => {
-  const { navigateTo, pipelineUuid, projectUuid, jobUuid } = useCustomRoute();
-  const { pipelineCwd, runUuid, isReadOnly } = usePipelineDataContext();
+  const {
+    navigateTo,
+    pipelineUuid,
+    projectUuid,
+    jobUuid,
+    snapshotUuid,
+  } = useCustomRoute();
+  const {
+    pipelineCwd,
+    runUuid,
+    isReadOnly,
+    isJobRun,
+    isSnapshot,
+  } = usePipelineDataContext();
 
   const {
     uiState: { steps },
   } = usePipelineUiStateContext();
 
-  const isJobRun = jobUuid && runUuid;
-  const jobRunQueryArgs = React.useMemo(() => ({ jobUuid, runUuid }), [
-    jobUuid,
-    runUuid,
-  ]);
+  const queryArgs = React.useMemo(
+    () =>
+      isJobRun
+        ? { jobUuid, runUuid }
+        : isSnapshot
+        ? { jobUuid, snapshotUuid }
+        : {},
+    [jobUuid, runUuid, isJobRun, isSnapshot, snapshotUuid]
+  );
 
   const navigateToJupyterLab = React.useCallback(
     (e: React.MouseEvent | undefined, filePathRelativeToRoot: string) => {
@@ -61,30 +77,28 @@ export const useOpenFile = () => {
     [navigateToJupyterLab, pipelineCwd]
   );
 
+  const routePath =
+    isJobRun || isSnapshot
+      ? siteMap.jobRunFilePreview.path
+      : siteMap.filePreview.path;
+
   const openFilePreviewView = React.useCallback(
     (e: React.MouseEvent | undefined, stepUuid: string) => {
       navigateTo(
-        isJobRun ? siteMap.jobRunFilePreview.path : siteMap.filePreview.path,
+        routePath,
         {
           query: {
             projectUuid,
             pipelineUuid,
             stepUuid,
-            ...(isJobRun ? jobRunQueryArgs : undefined),
+            ...queryArgs,
           },
           state: { isReadOnly },
         },
         e
       );
     },
-    [
-      isJobRun,
-      isReadOnly,
-      jobRunQueryArgs,
-      navigateTo,
-      pipelineUuid,
-      projectUuid,
-    ]
+    [routePath, isReadOnly, queryArgs, navigateTo, pipelineUuid, projectUuid]
   );
 
   return { navigateToJupyterLab, openNotebook, openFile, openFilePreviewView };

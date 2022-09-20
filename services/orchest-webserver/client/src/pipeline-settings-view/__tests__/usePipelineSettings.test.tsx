@@ -24,6 +24,7 @@ const useTestHook = (props: {
   pipelineUuid: string | undefined;
   jobUuid: string | undefined;
   runUuid: string | undefined;
+  snapshotUuid: string | undefined;
   isBrowserTabFocused: boolean;
 }) => {
   const {
@@ -42,6 +43,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: string | undefined;
       jobUuid: string | undefined;
       runUuid: string | undefined;
+      snapshotUuid: string | undefined;
       isBrowserTabFocused: boolean;
     },
     ReturnType<typeof usePipelineSettings> & {
@@ -55,6 +57,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: undefined,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: false,
     },
   });
@@ -78,6 +81,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 
@@ -124,6 +128,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 
@@ -140,6 +145,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: false,
     });
 
@@ -177,6 +183,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 
@@ -200,6 +207,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 
@@ -252,6 +260,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: false,
     });
 
@@ -263,6 +272,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 

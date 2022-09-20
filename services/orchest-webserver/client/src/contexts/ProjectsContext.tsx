@@ -36,6 +36,7 @@ const ProjectsContext = React.createContext<IProjectsContext>(
 );
 
 export type PipelineReadOnlyReason =
+  | "isSnapshot"
   | "isJobRun"
   | "environmentsNotYetBuilt"
   | "environmentsBuildInProgress"

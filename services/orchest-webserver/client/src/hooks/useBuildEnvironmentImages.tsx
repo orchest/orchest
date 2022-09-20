@@ -36,11 +36,11 @@ const getInactiveEnvironmentsMessage = (
 };
 
 const usePollBuildStatus = () => {
-  const { runUuid } = useCustomRoute();
+  const { runUuid, snapshotUuid } = useCustomRoute();
   const validate = useEnvironmentsApi((state) => state.validate);
   const status = useEnvironmentsApi((state) => state.status);
 
-  const isJobRun = hasValue(runUuid);
+  const isRunningOnSnapshot = hasValue(runUuid) || hasValue(snapshotUuid);
   const {
     state: { buildRequest },
     dispatch,
@@ -50,10 +50,10 @@ const usePollBuildStatus = () => {
   const [shouldPoll, setShouldPoll] = React.useState(false);
 
   React.useEffect(() => {
-    if (isMounted.current && !isJobRun) {
+    if (isMounted.current && !isRunningOnSnapshot) {
       setShouldPoll(status !== "allEnvironmentsBuilt");
     }
-  }, [status, isMounted, isJobRun]);
+  }, [status, isMounted, isRunningOnSnapshot]);
 
   const checkAllEnvironmentsHaveBeenBuilt = React.useCallback(async () => {
     const result = await validate();
@@ -72,10 +72,10 @@ const usePollBuildStatus = () => {
   );
 
   React.useEffect(() => {
-    if (!isJobRun) {
+    if (!isRunningOnSnapshot) {
       checkAllEnvironmentsHaveBeenBuilt();
     }
-  }, [isJobRun, checkAllEnvironmentsHaveBeenBuilt]);
+  }, [isRunningOnSnapshot, checkAllEnvironmentsHaveBeenBuilt]);
 
   return { setShouldPoll };
 };

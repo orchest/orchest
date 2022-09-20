@@ -4,16 +4,9 @@ import {
   setOutgoingConnections,
 } from "@/utils/webserver-utils";
 import { fetcher, hasValue } from "@orchest/lib-utils";
+import React from "react";
 import { useFetcher } from "./useFetcher";
-
-type FetchPipelineJsonProps = {
-  jobUuid?: string | undefined;
-  runUuid?: string | undefined;
-  pipelineUuid: string | undefined;
-  projectUuid: string | undefined;
-  clearCacheOnUnmount?: boolean;
-  revalidateOnFocus?: boolean;
-};
+import { useFetchSnapshot } from "./useFetchSnapshot";
 
 type PipelineJsonResponse = {
   pipeline_json: string;
@@ -102,6 +95,15 @@ export const fetchPipelineJson = (
   }>(url).then(transformResponse);
 };
 
+type FetchPipelineJsonProps = {
+  jobUuid?: string | undefined;
+  runUuid?: string | undefined;
+  snapshotUuid?: string | undefined;
+  pipelineUuid: string | undefined;
+  projectUuid: string | undefined;
+  clearCacheOnUnmount?: boolean;
+  revalidateOnFocus?: boolean;
+};
 // TODO: replace this with zustand implementation
 export const useFetchPipelineJson = (
   props: FetchPipelineJsonProps | undefined
@@ -111,26 +113,42 @@ export const useFetchPipelineJson = (
     projectUuid,
     jobUuid,
     runUuid,
+    snapshotUuid,
     revalidateOnFocus = true,
   } = props || {};
 
-  const url = getPipelineJSONEndpoint({
-    pipelineUuid,
-    projectUuid,
-    jobUuid,
-    jobRunUuid: runUuid,
-  });
+  const isSnapshot = hasValue(snapshotUuid);
+
+  const pipelineJsonUrl = !isSnapshot
+    ? getPipelineJSONEndpoint({
+        pipelineUuid,
+        projectUuid,
+        jobUuid,
+        jobRunUuid: runUuid,
+      })
+    : undefined;
 
   const { data, setData, fetchData, status, error } = useFetcher<
     PipelineJsonResponse,
     PipelineJson
-  >(url, {
+  >(pipelineJsonUrl, {
     transform: transformResponse,
     revalidateOnFocus,
   });
 
+  const { fetchSnapshot, snapshot } = useFetchSnapshot();
+
+  React.useEffect(() => {
+    if (pipelineUuid && snapshotUuid) fetchSnapshot(snapshotUuid);
+  }, [snapshotUuid, pipelineUuid, fetchSnapshot]);
+
+  const pipelineJsonInSnapshot = React.useMemo(() => {
+    if (snapshot?.project_uuid !== projectUuid || !pipelineUuid) return;
+    return snapshot?.pipelines[pipelineUuid]?.definition;
+  }, [snapshot, pipelineUuid, projectUuid]);
+
   return {
-    pipelineJson: data,
+    pipelineJson: snapshotUuid ? pipelineJsonInSnapshot : data,
     error,
     isFetchingPipelineJson: status === "PENDING",
     fetchPipelineJson: fetchData,
