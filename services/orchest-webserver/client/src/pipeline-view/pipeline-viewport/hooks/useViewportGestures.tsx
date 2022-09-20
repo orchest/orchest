@@ -68,8 +68,8 @@ export const useViewportGestures = (
           const wheelDelta = (deltaY * ZOOM_SCROLL_FACTOR) / 100;
           const originOnCanvas = windowToCanvasPoint([clientX, clientY]);
 
-          setScaleFactor((current) => current - wheelDelta);
           setPipelineCanvasOrigin(originOnCanvas);
+          setScaleFactor((current) => current - wheelDelta);
         } else {
           setPipelineCanvasState((current) => ({
             pipelineOffset: subtractPoints(current.pipelineOffset, [
@@ -82,13 +82,13 @@ export const useViewportGestures = (
       onPinch: ({ offset: [offset], event }) => {
         if (disabled || event instanceof WheelEvent) return;
 
-        setScaleFactor(offset);
-
         const center = getClientCenter(event);
 
         if (hasValue(center)) {
           setPipelineCanvasOrigin(windowToCanvasPoint(center));
         }
+
+        setScaleFactor(offset);
       },
     },
     {
