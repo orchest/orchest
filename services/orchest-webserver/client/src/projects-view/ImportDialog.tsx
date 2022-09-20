@@ -672,7 +672,7 @@ export const ImportDialog = ({
                         ? "indeterminate"
                         : "determinate"
                     }
-                    value={uploader.inProgress ? uploader.progress : undefined}
+                    value={uploader.inProgress ? uploader.progress : 100}
                     sx={{ margin: (theme) => theme.spacing(1, 0), flex: 1 }}
                   />
                   <Typography variant="caption">
