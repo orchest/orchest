@@ -1,5 +1,4 @@
 import copy
-import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Set, Tuple
@@ -85,8 +84,13 @@ class JobList(Resource):
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 job = CreateJob(tpe).transaction(request.get_json())
-        except (errors.ImageNotFound, errors.PipelineDefinitionNotValid) as e:
+        except (errors.PipelineDefinitionNotValid) as e:
             return {"message": str(e)}, 409
+        except (errors.PipelinesHaveInvalidEnvironments) as e:
+            return {
+                "message": str(e),
+                "invalid_pipelines": e.uuids,
+            }, 409
         except Exception as e:
             current_app.logger.error(e)
             return {"message": str(e)}, 500
@@ -1086,22 +1090,18 @@ class CreateJob(TwoPhaseFunction):
 
         try:
             environments.get_env_uuids_to_image_mappings(
-                snapshot.project_uuid, set(environments_pipelines_mapping.keys())
+                snapshot.project_uuid, set(environments_pipelines_mapping.keys()), True
             )
-        except (errors.ImageNotFound) as error:
-            # Extract environment uuids from the string.
-            matches = re.search(r"\[(.+)\]", str(error))
-            invalid_environments = list(
-                map((lambda x: x.replace("'", "").strip()), matches.group(1).split(","))
-            )
-
+        except (errors.ImageNotFoundWithUUIDs) as error:
+            invalid_environments = error.uuids
             pipelines_with_invalid_environments: Set[str] = set()
             for environment_uuid in invalid_environments:
                 pipelines_with_invalid_environments.update(
                     environments_pipelines_mapping[environment_uuid]
                 )
-            raise errors.ImageNotFound(
-                ",".join(list(pipelines_with_invalid_environments))
+            raise errors.PipelinesHaveInvalidEnvironments(
+                list(pipelines_with_invalid_environments),
+                "Pipelines contains invalid environment UUIDs.",
             )
 
     def _transaction(

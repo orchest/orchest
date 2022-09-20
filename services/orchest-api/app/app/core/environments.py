@@ -13,7 +13,7 @@ logger = utils.get_logger()
 
 
 def get_env_uuids_to_image_mappings(
-    project_uuid: str, env_uuids: Set[str]
+    project_uuid: str, env_uuids: Set[str], error_includes_data=False
 ) -> Dict[str, models.EnvironmentImage]:
     """Map each environment uuid to its latest image entry.
 
@@ -51,13 +51,16 @@ def get_env_uuids_to_image_mappings(
         env_uuid for env_uuid, image in env_uuid_to_image.items() if image is None
     ]
     if len(envs_missing_image) > 0:
-        msg = (
+        message = (
             "Some referenced environments do not exist in the project. The "
             f"following environments do not exist: {envs_missing_image}.\n\n"
             "Please make sure all pipeline steps and services are assigned an "
             "environment that exists in the project."
         )
-        raise self_errors.ImageNotFound(msg)
+        if error_includes_data:
+            raise self_errors.ImageNotFoundWithUUIDs(envs_missing_image, message)
+        else:
+            raise self_errors.ImageNotFound(message)
 
     return env_uuid_to_image
 

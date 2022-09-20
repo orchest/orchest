@@ -173,9 +173,10 @@ def register_orchest_api_views(app, db):
         try:
             resp = jobs.create_job(request.json)
             return resp.content, resp.status_code, resp.headers.items()
-        except (error.OrchestApiRequestError) as error:
+        except (error.OrchestApiRequestError) as e:
+
             return (
-                jsonify({"invalid_pipelines": error}),
+                jsonify(e),
                 409,
             )
 
