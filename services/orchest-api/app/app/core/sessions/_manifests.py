@@ -303,7 +303,7 @@ def _get_orchest_sdk_vars(
             "ORCHEST_PIPELINE_UUID": pipeline_uuid,
             "ORCHEST_PIPELINE_PATH": pipeline_file,
             "ORCHEST_SESSION_UUID": session_uuid,
-            "ORCHEST_SESSION_TYPE": str(session_type),
+            "ORCHEST_SESSION_TYPE": session_type.value,
         }.items()
     ]
 
