@@ -355,7 +355,7 @@ export const pathFromElement = (element: HTMLElement): string | undefined => {
 const getFilePathInDataFolder = (dragFilePath: string) =>
   cleanFilePath(dragFilePath);
 
-export const getFilePathForRelativeToProject = (
+export const getFilePathRelativeToPipeline = (
   absFilePath: string,
   pipelineCwd: string
 ) => {

@@ -85,7 +85,9 @@ export const FileManagerContextMenu: React.FC<{
 
     const foundStep = Object.values(pipelineJson?.steps || {}).find((step) => {
       const filePath = join(pipelineCwd, step.file_path);
-      return filePath === cleanFilePath(contextMenuCombinedPath);
+      return (
+        filePath.replace(/^\//, "") === cleanFilePath(contextMenuCombinedPath)
+      );
     });
 
     if (!foundStep) {

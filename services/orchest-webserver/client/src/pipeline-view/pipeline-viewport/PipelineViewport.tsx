@@ -1,5 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { getFilePathForRelativeToProject } from "@/pipeline-view/file-manager/common";
+import { getFilePathRelativeToPipeline } from "@/pipeline-view/file-manager/common";
 import { getOffset } from "@/utils/element";
 import {
   isSamePoint,
@@ -164,7 +164,7 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
         allowed.forEach((filePath) => {
           // Adjust filePath to pipelineCwd, incoming filePath is relative to project
           // root.
-          const pipelineRelativeFilePath = getFilePathForRelativeToProject(
+          const pipelineRelativeFilePath = getFilePathRelativeToPipeline(
             filePath,
             pipelineCwd
           );

@@ -20,7 +20,7 @@ import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "./contexts/PipelineDataContext";
 import { usePipelineRefs } from "./contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
-import { getFilePathForRelativeToProject } from "./file-manager/common";
+import { getFilePathRelativeToPipeline } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
@@ -248,7 +248,7 @@ const PipelineStepComponent = React.forwardRef<
         type: "ASSIGN_FILE_TO_STEP",
         payload: {
           stepUuid: uuid,
-          filePath: getFilePathForRelativeToProject(dragFile.path, pipelineCwd),
+          filePath: getFilePathRelativeToPipeline(dragFile.path, pipelineCwd),
         },
       });
       resetMove();

@@ -1,5 +1,5 @@
 import {
-  getFilePathForRelativeToProject,
+  getFilePathRelativeToPipeline,
   prettifyRoot,
 } from "@/pipeline-view/file-manager/common";
 import { FileTree } from "@/types";
@@ -112,7 +112,7 @@ const ProjectFilePicker: React.FC<{
           }
           onChangeValue={onChange}
           onSelectMenuItem={onSelectMenuItem}
-          generateRelativePath={getFilePathForRelativeToProject}
+          generateRelativePath={getFilePathRelativeToPipeline}
         />
       )}
     </>
