@@ -51,7 +51,7 @@ export const useUpdateJobPipelineUuid = () => {
           const jobChanges = pickJobChanges(fetchedJob);
           if (jobChanges) {
             initJobChanges(jobChanges);
-            previousPipelineUuid.current === fetchedJob?.pipeline_uuid;
+            previousPipelineUuid.current = fetchedJob?.pipeline_uuid;
           }
         });
       }
