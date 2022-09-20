@@ -61,7 +61,7 @@ export const CanvasScalingProvider: React.FC = ({ children }) => {
 
   const canvasPointAtPointer = React.useCallback(
     () => windowToCanvasPoint(getMousePoint()),
-    [getMousePoint, windowToCanvasPoint]
+    [windowToCanvasPoint]
   );
 
   return (
