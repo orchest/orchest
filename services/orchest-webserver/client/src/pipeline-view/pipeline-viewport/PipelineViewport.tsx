@@ -7,7 +7,6 @@ import {
   stringifyPoint,
   subtractPoints,
 } from "@/utils/geometry";
-import { getHeight, getWidth } from "@/utils/jquery-replacement";
 import { setRefs } from "@/utils/refs";
 import Box, { BoxProps } from "@mui/material/Box";
 import GlobalStyles from "@mui/material/GlobalStyles";
@@ -37,8 +36,6 @@ import {
   PipelineViewportContextMenuProvider,
   usePipelineViewportContextMenu,
 } from "./PipelineViewportContextMenu";
-
-const CANVAS_VIEW_MULTIPLE = 3;
 
 // scaling and drag-n-drop behaviors can be (almost) entirely separated
 // scaling is only mutating the css properties of PipelineCanvas, it has nothing to do with drag-n-drop.
@@ -88,9 +85,6 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
     } = usePipelineCanvasContext();
 
     const localRef = React.useRef<HTMLDivElement | null>(null);
-    const [canvasResizeStyle, resizeCanvas] = React.useState<
-      React.CSSProperties
-    >({});
 
     useViewportMouseEvents();
 
@@ -102,15 +96,6 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
         setPipelineCanvasOrigin([0, 0]);
       }
     }, [scaleFactor, pipelineOffset, setPipelineCanvasOrigin]);
-
-    const updatePipelineCanvasSize = React.useCallback(() => {
-      if (!localRef.current) return;
-
-      resizeCanvas({
-        width: getWidth(localRef.current) * CANVAS_VIEW_MULTIPLE,
-        height: getHeight(localRef.current) * CANVAS_VIEW_MULTIPLE,
-      });
-    }, [resizeCanvas, localRef]);
 
     const onMouseDown = (event: React.MouseEvent) => {
       if (disabled || contextMenuUuid || !pipelineCanvasRef.current) return;
@@ -187,15 +172,6 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
       createStepsWithFiles(dropPoint);
     }, [createStepsWithFiles, canvasPointAtPointer]);
 
-    React.useEffect(() => {
-      updatePipelineCanvasSize();
-      window.addEventListener("resize", updatePipelineCanvasSize);
-
-      return () => {
-        window.removeEventListener("resize", updatePipelineCanvasSize);
-      };
-    }, [updatePipelineCanvasSize]);
-
     const { handleContextMenu } = usePipelineViewportContextMenu();
 
     const hasNoStep = React.useMemo(
@@ -236,7 +212,6 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
               `scale(${scaleFactor})`,
             left: pipelineCanvasOffset[0],
             top: pipelineCanvasOffset[1],
-            ...canvasResizeStyle,
           }}
         >
           {showIllustration && <Overlay />}

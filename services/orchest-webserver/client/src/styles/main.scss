@@ -796,14 +796,20 @@ button.themed-secondary {
     }
   }
 
+  .pipeline-canvas-holder {
+    height: 100%;
+    width: 100%;
+    background-size: 32px 32px;
+    background-image: url("/image/grid-dot.svg");
+    background-repeat: repeat;
+    position: relative;
+  }
+
   .pipeline-steps-holder {
     height: 100%;
     position: absolute;
     user-select: none;
     -webkit-user-select: none;
-    background-size: 32px 32px;
-    background-image: url("/image/grid-dot.svg");
-    background-repeat: repeat;
 
     .step-selector {
       position: absolute;

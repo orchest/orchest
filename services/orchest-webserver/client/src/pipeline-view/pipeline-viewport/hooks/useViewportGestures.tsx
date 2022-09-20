@@ -54,8 +54,8 @@ export const useViewportGestures = (
 
   useGesture(
     {
-      onWheel: ({ event }) => {
-        if (disabled) return;
+      onWheel: ({ event, last }) => {
+        if (disabled || last) return;
 
         // NOTE:
         //  While the pinch handler may also handle CTRL/META + scroll
