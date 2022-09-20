@@ -11,6 +11,7 @@ export const NoPipeline = () => {
       title="No Pipelines in Project"
       description="Pipelines are an interactive tool for creating and experimenting with
     your data workflow. They are made up of Steps and connections."
+      docPath="/fundamentals/pipelines.html"
       actions={
         <CreatePipelineDialog>
           {(createPipeline) => (

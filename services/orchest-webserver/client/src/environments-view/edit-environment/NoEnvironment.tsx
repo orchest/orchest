@@ -9,7 +9,7 @@ export const NoEnvironment = (props: StackProps) => {
         imgSrc="/image/no-environment.svg"
         title="No Environments"
         description={`Environments define the conditions in which Pipeline steps execute scripts and kernels.`}
-        docPath="https://docs.orchest.io/en/stable/fundamentals/environments.html"
+        docPath="/fundamentals/environments.html"
         {...props}
       />
     </Stack>
