@@ -37,6 +37,7 @@ export const NoStep = () => {
         actions={
           <>
             <Button
+              disabled={isReadOnly}
               onClick={() => setIsFileDialogOpen(true)}
               startIcon={<NoteAddOutlined />}
               variant="contained"
@@ -45,7 +46,11 @@ export const NoStep = () => {
             </Button>
             <UploadFilesForm multiple upload={handleFileUpload}>
               {(onClick) => (
-                <Button onClick={onClick} startIcon={<UploadFileOutlined />}>
+                <Button
+                  disabled={isReadOnly}
+                  onClick={onClick}
+                  startIcon={<UploadFileOutlined />}
+                >
                   Upload files
                 </Button>
               )}
