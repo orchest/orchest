@@ -17,9 +17,9 @@ export const JobViewContainer = ({ children }: JobViewContainerProps) => {
   useUpdateStatusInJobChanges();
 
   const jobs = useJobsApi((state) => state.jobs);
-  const hasNoJobs = !Boolean(jobs?.length);
+  const hasNoJob = Boolean(jobs && !jobs.length);
 
-  return hasNoJobs ? (
+  return hasNoJob ? (
     <NoJob />
   ) : (
     <Stack
