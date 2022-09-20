@@ -49,21 +49,16 @@ export const ViewportCenterMessage = ({
       >
         {description}
       </Typography>
-      {docPath && (
-        <ViewDocsLink
-          sx={{ marginTop: (theme) => theme.spacing(4) }}
-          docPath={docPath}
-        />
-      )}
-      {actions && (
+      {
         <Stack
           spacing={2}
           direction="row"
           sx={{ marginTop: (theme) => theme.spacing(4) }}
         >
           {actions}
+          {docPath && <ViewDocsLink docPath={docPath} />}
         </Stack>
-      )}
+      }
     </Stack>
   );
 };
