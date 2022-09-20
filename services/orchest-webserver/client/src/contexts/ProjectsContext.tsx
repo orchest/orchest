@@ -50,6 +50,7 @@ export type ProjectsContextState = {
   pipeline: PipelineMetaData | undefined;
   projects: Project[] | undefined;
   examples: Example[] | undefined;
+  hasProjects: boolean;
   hasLoadedProjects: boolean;
   hasLoadedPipelinesInPipelineEditor: boolean;
   newPipelineUuid: string | undefined;
@@ -126,6 +127,7 @@ const initialState: ProjectsContextState = {
   pipeline: undefined,
   projects: undefined,
   examples: undefined,
+  hasProjects: false,
   hasLoadedProjects: false,
   hasLoadedPipelinesInPipelineEditor: false,
   newPipelineUuid: undefined,
@@ -314,6 +316,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             ...state,
             projects: action.payload,
             projectUuid: initialProjectUuid,
+            hasProjects: action.payload.length > 0,
             hasLoadedProjects: true,
           };
         }

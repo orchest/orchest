@@ -1,4 +1,5 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -19,6 +20,7 @@ import { ExampleList } from "./ExampleList";
 import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
 import { ImportSuccessDialog } from "./ImportSuccessDialog";
+import { NoProject } from "./NoProject";
 import { ProjectList } from "./ProjectList";
 import { ProjectsTabs } from "./ProjectsTabs";
 import { ProjectTabPanel } from "./ProjectTabPanel";
@@ -30,6 +32,9 @@ export const ProjectsView = () => {
     state: { hasCompletedOnboarding },
   } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
+  const {
+    state: { hasLoadedProjects, hasProjects },
+  } = useProjectsContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
 
   useFetchProjectsForProjectsView();
@@ -37,9 +42,9 @@ export const ProjectsView = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
 
-  const onCreateClick = () => setIsCreateDialogOpen(true);
-  const onCloseCreateProjectModal = () => setIsCreateDialogOpen(false);
-  const onImport = () => setIsImportDialogOpen(true);
+  const openCreateDialog = () => setIsCreateDialogOpen(true);
+  const closeCreateDialog = () => setIsCreateDialogOpen(false);
+  const openImportDialog = () => setIsImportDialogOpen(true);
 
   const [importUrl, setImportUrl] = useImportUrlFromQueryString();
   // if user loads the app with a pre-filled import_url in their query string
@@ -95,7 +100,7 @@ export const ProjectsView = () => {
           setNewProject(newProject);
         }}
         importWhenOpen={importWhenOpen}
-        confirmButtonLabel={`Save`}
+        confirmButtonLabel="Save"
       />
       <ImportSuccessDialog
         open={isOpenImportExampleSuccessDialog}
@@ -111,7 +116,7 @@ export const ProjectsView = () => {
       />
       <CreateProjectDialog
         open={isCreateDialogOpen}
-        onClose={onCloseCreateProjectModal}
+        onClose={closeCreateDialog}
       />
       <ProjectTabsContextProvider>
         <Stack
@@ -126,7 +131,7 @@ export const ProjectsView = () => {
               <Button
                 variant="text"
                 startIcon={<DownloadOutlinedIcon />}
-                onClick={onImport}
+                onClick={openImportDialog}
                 data-test-id="import-project"
               >
                 Import
@@ -134,7 +139,7 @@ export const ProjectsView = () => {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={onCreateClick}
+                onClick={openCreateDialog}
                 data-test-id="add-project"
               >
                 New project
@@ -160,7 +165,13 @@ export const ProjectsView = () => {
           index={PROJECT_TAB.MY_PROJECTS}
           sx={{ padding: (theme) => theme.spacing(2, 0) }}
         >
-          <ProjectList />
+          {hasLoadedProjects && hasProjects && <ProjectList />}
+          {hasLoadedProjects && !hasProjects && (
+            <NoProject
+              createProject={openCreateDialog}
+              importProject={openImportDialog}
+            />
+          )}
         </ProjectTabPanel>
         <ProjectTabPanel
           id="example-projects"

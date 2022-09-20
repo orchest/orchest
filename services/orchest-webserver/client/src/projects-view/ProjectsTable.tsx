@@ -13,7 +13,6 @@ import Box from "@mui/material/Box";
 import Tooltip from "@mui/material/Tooltip";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { NoProject } from "./NoProject";
 
 export type ProjectRow = Pick<
   Project,
@@ -27,7 +26,7 @@ export const ProjectsTable = ({
   projectsBeingDeleted,
   openProjectMenu,
 }: {
-  projects: Project[] | undefined;
+  projects: Project[];
   projectsBeingDeleted: string[];
   openProjectMenu: (
     uuid: string
@@ -89,9 +88,7 @@ export const ProjectsTable = ({
     });
   }, [projects, projectsBeingDeleted]);
 
-  return projects && projectRows.length === 0 ? (
-    <NoProject />
-  ) : (
+  return (
     <DataTable<ProjectRow>
       id="project-list"
       isLoading={!hasValue(projects)}

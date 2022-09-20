@@ -121,11 +121,13 @@ export const ProjectList = () => {
 
   return (
     <>
-      <ProjectsTable
-        projects={projects}
-        openProjectMenu={openProjectMenu}
-        projectsBeingDeleted={projectsBeingDeleted}
-      />
+      {projects && (
+        <ProjectsTable
+          projects={projects}
+          openProjectMenu={openProjectMenu}
+          projectsBeingDeleted={projectsBeingDeleted}
+        />
+      )}
       {selectedProjectMenuButton && (
         <Menu
           anchorEl={selectedProjectMenuButton.element}

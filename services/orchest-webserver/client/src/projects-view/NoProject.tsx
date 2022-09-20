@@ -1,40 +1,39 @@
-import { ViewDocsLink } from "@/components/common/ViewDocsLink";
-import Box from "@mui/material/Box";
+import { ViewportCenterMessage } from "@/pipeline-view/pipeline-viewport/components/ViewportCenterMessage";
+import { AddOutlined, DownloadOutlined } from "@mui/icons-material";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import React from "react";
 
-export const NoProject = () => {
+type NoProjectProps = {
+  importProject: VoidFunction;
+  createProject: VoidFunction;
+};
+
+export const NoProject = ({ importProject, createProject }: NoProjectProps) => {
   return (
     <Stack
       direction="column"
       alignItems="center"
-      sx={{ marginTop: (theme) => theme.spacing(4) }}
+      sx={{ marginTop: (theme) => theme.spacing(6) }}
     >
-      <Typography variant="h5">No Projects</Typography>
-      <Typography
-        variant="body1"
-        align="center"
-        sx={{
-          width: (theme) => theme.spacing(44),
-          marginTop: (theme) => theme.spacing(1),
-        }}
-      >
-        Projects are the main container for organizing related Pipelines, Jobs,
-        Environments and code.
-      </Typography>
-      <Box
-        component="img"
-        src="/image/no-project.svg"
-        sx={{
-          width: "24%",
-          maxWidth: (theme) => theme.spacing(40),
-          margin: (theme) => theme.spacing(2, 0, 0, 0),
-        }}
-      />
-      <ViewDocsLink
-        sx={{ marginTop: (theme) => theme.spacing(4) }}
-        docPath="/fundamentals/projects.html"
+      <ViewportCenterMessage
+        imgSrc="/image/no-project.svg"
+        title="No Projects"
+        description="Projects are the main container for organizing related Pipelines, Jobs, Environments and code."
+        actions={
+          <>
+            <Button
+              variant="contained"
+              onClick={createProject}
+              startIcon={<AddOutlined />}
+            >
+              New project
+            </Button>
+            <Button onClick={importProject} startIcon={<DownloadOutlined />}>
+              Import
+            </Button>
+          </>
+        }
       />
     </Stack>
   );
