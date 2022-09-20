@@ -1,5 +1,7 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useScopeParameters } from "@/hooks/useScopeParameters";
 import Stack from "@mui/material/Stack";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useSaveJobChanges } from "../hooks/useSaveJobChanges";
 import { useUpdateStatusInJobChanges } from "../hooks/useUpdateStatusInJobChanges";
@@ -16,18 +18,24 @@ export const JobViewContainer = ({ children }: JobViewContainerProps) => {
   useSaveJobChanges();
   useUpdateStatusInJobChanges();
 
+  const { jobUuid } = useScopeParameters();
   const jobs = useJobsApi((state) => state.jobs);
-  const hasNoJob = Boolean(jobs && !jobs.length);
+  const isLoading = Boolean(!jobs);
+  const hasNoJobs = !isLoading && jobs?.length;
 
-  return hasNoJob ? (
-    <NoJob />
-  ) : (
-    <Stack
-      direction="column"
-      spacing={3}
-      sx={{ paddingBottom: (theme) => theme.spacing(6) }}
-    >
-      {children}
-    </Stack>
-  );
+  if (isLoading) {
+    return null;
+  } else if (!hasNoJobs) {
+    return <NoJob />;
+  } else {
+    return (
+      <Stack
+        direction="column"
+        spacing={3}
+        sx={{ paddingBottom: (theme) => theme.spacing(6) }}
+      >
+        {hasValue(jobUuid) ? children : null}
+      </Stack>
+    );
+  }
 };
