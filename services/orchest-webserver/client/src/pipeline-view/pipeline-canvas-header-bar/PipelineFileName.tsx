@@ -1,9 +1,8 @@
+import RouteLink from "@/components/RouteLink";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/routingConfig";
+import { useRouteLink } from "@/hooks/useCustomRoute";
 import { basename } from "@/utils/path";
 import { ellipsis } from "@/utils/styles";
-import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -11,29 +10,23 @@ import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
 const BackToJob = () => {
-  const { navigateTo } = useCustomRoute();
-  const { isJobRun, job, projectUuid, jobUuid } = usePipelineDataContext();
+  const { isJobRun, job, jobUuid } = usePipelineDataContext();
+  const jobLink = useRouteLink("jobs", { jobUuid });
 
-  const goToJob = (e: React.MouseEvent) =>
-    navigateTo(siteMap.jobs.path, { query: { projectUuid, jobUuid } }, e);
-
-  if (!isJobRun) return null;
   return isJobRun && job ? (
-    <Stack direction="row" spacing={1} alignItems="baseline">
+    <Stack direction="row" spacing={1} alignItems="baseline" flexShrink="0">
       <Tooltip title={`Job: ${job.name}`} placement="bottom-start">
-        <Link
+        <RouteLink
+          to={jobLink}
           underline="hover"
-          onClick={goToJob}
-          onAuxClick={goToJob}
+          variant="subtitle2"
           sx={{
             cursor: "pointer",
             color: (theme) => theme.palette.grey[700],
-            // fontWeight: (theme) => theme.typography.caption.fontWeight,
           }}
-          variant="subtitle2"
         >
-          {job?.name}
-        </Link>
+          {job.name}
+        </RouteLink>
       </Tooltip>
       <Typography variant="caption">/</Typography>
     </Stack>
