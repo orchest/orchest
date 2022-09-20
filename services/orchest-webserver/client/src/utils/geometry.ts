@@ -59,3 +59,19 @@ export const rectsIntersect = (r1: Rect, r2: Rect) =>
     r2.origin[1] > r1.origin[1] + r1.height ||
     r2.origin[1] + r2.height < r1.origin[1]
   );
+
+/**
+ * Returns the center point of a list of points.
+ * Note: Returns `[NaN, NaN]` if no points are provided.
+ */
+export const centroid = (points: readonly Readonly<Point2D>[]): Point2D => {
+  let cx = 0;
+  let cy = 0;
+
+  for (const [x, y] of points) {
+    cx += x;
+    cy += y;
+  }
+
+  return [cx / points.length, cy / points.length];
+};

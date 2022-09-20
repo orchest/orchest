@@ -1,4 +1,5 @@
-import { Point2D, subtractPoints } from "@/utils/geometry";
+import { centroid, Point2D, subtractPoints } from "@/utils/geometry";
+import { hasValue } from "@orchest/lib-utils";
 import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import React from "react";
 import { useCanvasScaling } from "../../contexts/CanvasScalingContext";
@@ -53,26 +54,40 @@ export const useViewportGestures = (
 
   useGesture(
     {
-      onWheel: ({ pinching, wheeling, delta }) => {
-        if (disabled || pinching || !wheeling) return;
+      onWheel: ({ event }) => {
+        if (disabled) return;
 
-        setPipelineCanvasState((current) => ({
-          pipelineOffset: subtractPoints(current.pipelineOffset, delta),
-        }));
-      },
-      onPinch: ({ pinching, offset: [offset], event }) => {
-        if (disabled || !pinching) return;
-        const { clientX, clientY } = event as WheelEvent | PointerEvent;
+        // NOTE:
+        //  While the pinch handler may also handle CTRL/META + scroll
+        //  for zooming actions, it causes both of these handlers to
+        //  trigger at the same time, and it causes jankiness.
+        //  So we let this handler handle all wheel events!
 
-        const originOnCanvas = windowToCanvasPoint([clientX, clientY]);
-        setPipelineCanvasOrigin(originOnCanvas);
-
-        if (event instanceof WheelEvent) {
-          const wheelDelta = (event.deltaY * ZOOM_SCROLL_FACTOR) / 100;
+        if (isZooming(event)) {
+          const { deltaY, clientX, clientY } = event;
+          const wheelDelta = (deltaY * ZOOM_SCROLL_FACTOR) / 100;
+          const originOnCanvas = windowToCanvasPoint([clientX, clientY]);
 
           setScaleFactor((current) => current - wheelDelta);
+          setPipelineCanvasOrigin(originOnCanvas);
         } else {
-          setScaleFactor(offset);
+          setPipelineCanvasState((current) => ({
+            pipelineOffset: subtractPoints(current.pipelineOffset, [
+              event.deltaX,
+              event.deltaY,
+            ]),
+          }));
+        }
+      },
+      onPinch: ({ offset: [offset], event }) => {
+        if (disabled || event instanceof WheelEvent) return;
+
+        setScaleFactor(offset);
+
+        const center = getClientCenter(event);
+
+        if (hasValue(center)) {
+          setPipelineCanvasOrigin(windowToCanvasPoint(center));
         }
       },
     },
@@ -83,4 +98,20 @@ export const useViewportGestures = (
   );
 
   return zoomBy;
+};
+
+const isZooming = (event: WheelEvent) => event.ctrlKey || event.metaKey;
+
+const getClientCenter = (
+  event: PointerEvent | TouchEvent
+): Point2D | undefined => {
+  if ("clientX" in event && "clientY" in event) {
+    return [event.clientX, event.clientY];
+  } else if (event instanceof TouchEvent && event.touches.length > 0) {
+    return centroid(
+      [...event.touches].map(({ clientX, clientY }) => [clientX, clientY])
+    );
+  } else {
+    return undefined;
+  }
 };
