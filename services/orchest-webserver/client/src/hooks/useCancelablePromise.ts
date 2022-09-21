@@ -1,56 +1,52 @@
-import { fetcher, uuidv4 } from "@orchest/lib-utils";
+import {
+  CancelablePromise,
+  makeCancelable as asCancelable,
+} from "@/utils/promise";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
-export type CancelablePromise<T> = {
-  promise: Promise<T>;
-  cancel: () => void;
-};
+const cancelAllPromises = (promises: PromiseRecord, message?: string) =>
+  Object.values(promises).forEach((promise) => promise.cancel(message));
+
+type PromiseRecord = Record<number, CancelablePromise>;
 
 // https://reactjs.org/blog/2015/12/16/ismounted-antipattern.html
-function _makeCancelable<T>(promise: Promise<T>, callback?: () => void) {
-  let isCanceled = false;
-  const wrappedPromise = new Promise<T>((resolve, reject) => {
-    promise
-      .then((val) => (isCanceled ? reject({ isCanceled }) : resolve(val)))
-      .catch((error) => (isCanceled ? reject({ isCanceled }) : reject(error)))
-      .finally(() => callback?.());
-  });
-  return {
-    promise: wrappedPromise,
-    cancel() {
-      isCanceled = true;
-      callback?.();
-    },
-  };
-}
-
 export function useCancelablePromise() {
-  const cancelablePromises = React.useRef<
-    Record<string, CancelablePromise<unknown>>
-  >({});
+  const promisesById = React.useRef<PromiseRecord>({});
 
-  const makeCancelable = React.useCallback(function <T = void>(p: Promise<T>) {
-    const uuid = uuidv4();
-    const cPromise = _makeCancelable(p, () => {
-      delete cancelablePromises.current[uuid]; // Use the callback to clean up the promise.
+  const makeCancelable = React.useCallback(<T = void>(promise: Promise<T>) => {
+    const promiseId = nextPromiseId();
+    const cancelable = asCancelable(promise, () => {
+      // Delete the promise once it has been resolved, rejected or canceled.
+      delete promisesById.current[promiseId];
     });
-    cancelablePromises.current[uuid] = cPromise;
-    return cPromise.promise;
+
+    promisesById.current[promiseId] = cancelable;
+
+    return cancelable;
   }, []);
 
   const cancelAll = React.useCallback(() => {
-    () => {
-      Object.values(cancelablePromises.current).forEach((p) => p.cancel());
-      cancelablePromises.current = {};
-    };
+    () => cancelAllPromises(promisesById.current);
   }, []);
 
   React.useEffect(() => {
-    return () => cancelAll();
-  }, [cancelAll]);
+    const { current } = promisesById;
+
+    return () =>
+      cancelAllPromises(
+        current,
+        "A component was unmounted during a pending promise."
+      );
+  }, []);
 
   return { makeCancelable, cancelAll };
 }
+
+export type CancelableFetch<T> = (
+  url: string,
+  params?: RequestInit | undefined
+) => Promise<T>;
 
 export function useCancelableFetch() {
   const { makeCancelable, cancelAll } = useCancelablePromise();
@@ -63,3 +59,7 @@ export function useCancelableFetch() {
 
   return { cancelableFetch, cancelAll };
 }
+
+let lastPromiseId = 0;
+
+const nextPromiseId = () => ++lastPromiseId;

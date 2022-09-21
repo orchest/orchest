@@ -1,16 +1,15 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { useParameterReservedKey } from "@/jobs-view/job-view/hooks/useParameterReservedKey";
 import { ParameterDocs } from "@/pipeline-settings-view/PipelineSettingsView";
-import {
-  FILE_MANAGEMENT_ENDPOINT,
-  queryArgs,
-} from "@/pipeline-view/file-manager/common";
+import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { PipelineJson } from "@/types";
 import { copyToClipboard } from "@/utils/copyToClipboard";
 import { isValidJson } from "@/utils/isValidJson";
+import { queryArgs } from "@/utils/text";
 import {
   generateStrategyJson,
   pipelinePathToJsonLocation,
@@ -96,32 +95,23 @@ export const GenerateParametersDialog = ({
     pipelineUuid,
   });
 
-  const { config, setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
+  const { reservedKey } = useParameterReservedKey();
 
   const [parameterFileString, setParameterFileString] = React.useState("");
   const parameterFileStringForValidation = useDebounce(
     parameterFileString,
     1000
   );
-  const [copyButtonText, setCopyButtontext] = React.useState("Copy");
+  const [copyButtonText, setCopyButtonText] = React.useState("Copy");
 
   React.useEffect(() => {
-    setParameterFileString(
-      pipelineJsonToParams(
-        pipelineJson,
-        config?.PIPELINE_PARAMETERS_RESERVED_KEY
-      )
-    );
-  }, [pipelineJson, config?.PIPELINE_PARAMETERS_RESERVED_KEY]);
+    setParameterFileString(pipelineJsonToParams(pipelineJson, reservedKey));
+  }, [pipelineJson, reservedKey]);
 
   const copyParams = () => {
-    copyToClipboard(
-      pipelineJsonToParams(
-        pipelineJson,
-        config?.PIPELINE_PARAMETERS_RESERVED_KEY
-      )
-    );
-    setCopyButtontext("Copied!");
+    copyToClipboard(pipelineJsonToParams(pipelineJson, reservedKey));
+    setCopyButtonText("Copied!");
   };
 
   const onCreateFile = (filePath: string | undefined) => {

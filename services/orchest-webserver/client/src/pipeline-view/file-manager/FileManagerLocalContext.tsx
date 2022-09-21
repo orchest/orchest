@@ -1,10 +1,11 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { basename } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
@@ -13,7 +14,6 @@ import {
   filterRedundantChildPaths,
   findPipelineFiles,
   prettifyRoot,
-  queryArgs,
   unpackPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -24,7 +24,7 @@ export type FileManagerLocalContextType = {
   handleClose: () => void;
   handleContextMenu: (
     event: React.MouseEvent,
-    combinedPath: string,
+    combinedPath: string | undefined,
     type?: ContextMenuType
   ) => void;
   handleSelect: (
@@ -85,9 +85,10 @@ export const FileManagerLocalContextProvider: React.FC<{
   reload: () => Promise<void>;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuMetadata>>;
 }> = ({ children, reload, setContextMenu }) => {
-  const { setConfirm } = useAppContext();
+  const { setConfirm } = useGlobalContext();
   const {
-    state: { pipelines = [] },
+    state: { pipelines = [], pipelineReadOnlyReason },
+    dispatch,
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
@@ -105,7 +106,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [pipelines, pipelineUuid]);
 
   const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
-    string
+    string | undefined
   >();
   const [fileInRename, setFileInRename] = React.useState<string>();
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
@@ -113,7 +114,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   const handleContextMenu = React.useCallback(
     (
       event: React.MouseEvent,
-      combinedPath: string,
+      combinedPath: string | undefined,
       type: ContextMenuType = "tree"
     ) => {
       event.preventDefault();
@@ -122,10 +123,7 @@ export const FileManagerLocalContextProvider: React.FC<{
       setContextMenu((current) => {
         return current === undefined
           ? {
-              position: {
-                x: event.clientX - 2,
-                y: event.clientY - 4,
-              },
+              origin: [event.clientX - 2, event.clientY - 4],
               type,
             }
           : undefined;
@@ -146,21 +144,17 @@ export const FileManagerLocalContextProvider: React.FC<{
     setContextMenu(undefined);
   }, [setContextMenu]);
 
-  const {
-    state: { pipelineIsReadOnly },
-    dispatch,
-  } = useProjectsContext();
-
   const handleContextRename = React.useCallback(() => {
-    if (pipelineIsReadOnly || !contextMenuCombinedPath) return;
+    if (pipelineReadOnlyReason || !contextMenuCombinedPath) return;
 
     handleClose();
     setFileInRename(contextMenuCombinedPath);
     setFileRenameNewName(basename(contextMenuCombinedPath));
-  }, [contextMenuCombinedPath, handleClose, pipelineIsReadOnly]);
+  }, [contextMenuCombinedPath, handleClose, pipelineReadOnlyReason]);
 
   const handleDelete = React.useCallback(async () => {
-    if (pipelineIsReadOnly || !contextMenuCombinedPath || !projectUuid) return;
+    if (pipelineReadOnlyReason || !contextMenuCombinedPath || !projectUuid)
+      return;
 
     handleClose();
 
@@ -254,7 +248,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     reload,
     setConfirm,
     handleClose,
-    pipelineIsReadOnly,
+    pipelineReadOnlyReason,
     pipeline?.path,
     navigateTo,
     dispatch,

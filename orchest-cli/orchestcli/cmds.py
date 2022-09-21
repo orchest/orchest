@@ -33,56 +33,13 @@ if t.TYPE_CHECKING:
 sys.stdout.reconfigure(encoding="utf-8")
 
 
-def echo(*args, **kwargs) -> None:
-    """Wrapped `click.echo`.
-
-    Note:
-        Will do nothing in case the current CLI command is invoked with
-        the `--json` flag.
-
-    """
-    if os.getenv("SILENCE_OUTPUT", "false") == "true":
-        return
-
-    click_ctx = click.get_current_context(silent=True)
-
-    if click_ctx is None:
-        return click.echo(*args, **kwargs)
-
-    json_flag = click_ctx.params.get("json_flag")
-    if json_flag is not None and json_flag:
-        return
-    else:
-        return click.echo(*args, **kwargs)
-
-
-JECHO_CALLS = 0
-
-
-def jecho(*args, **kwargs) -> None:
-    """JSON echo."""
-    # Invoking `jecho` multiple times within one CLI invocation would
-    # mean that the final output is not JSON parsable.
-    global JECHO_CALLS
-    assert JECHO_CALLS == 0, "`jecho` should only be called once per CLI invocation."
-    JECHO_CALLS += 1
-
-    message = kwargs.get("message")
-    if message is not None:
-        kwargs["message"] = json.dumps(message, sort_keys=True, indent=True)
-    else:
-        if args and args[0] is not None:
-            args = (json.dumps(args[0], sort_keys=True, indent=True), *args[1:])
-    return click.echo(*args, **kwargs)  # type: ignore
-
-
 try:
     try:
         config.load_kube_config()
     except config.config_exception.ConfigException:
         config.load_incluster_config()
 except Exception as e:
-    echo(
+    utils.echo(
         "Aborting..."
         f"\nCould not load kube-config file: {e}"
         "\nFor example for minikube, you need to make sure your cluster"
@@ -178,7 +135,6 @@ def install(
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
     userdir_pvc_size: int,
-    builder_pvc_size: int,
     registry_pvc_size: int,
     **kwargs,
 ) -> None:
@@ -189,11 +145,11 @@ def install(
         CORE_API.create_namespace(client.V1Namespace(metadata={"name": ns}))
     except client.ApiException as e:
         if e.reason == "Conflict":
-            echo(f"Installing into existing namespace: {ns}.")
+            utils.echo(f"Installing into existing namespace: {ns}.")
 
     manifest_file_name = "orchest-controller.yaml"
 
-    echo("Installing the Orchest Controller to manage the Orchest Cluster...")
+    utils.echo("Installing the Orchest Controller to manage the Orchest Cluster...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
@@ -202,7 +158,7 @@ def install(
     else:
         version = _fetch_latest_available_version(curr_version=None, is_cloud=cloud)
         if version is None:
-            echo(
+            utils.echo(
                 "Failed to fetch latest available version. Without the version"
                 " the Orchest Controller can't be installed. Please try again"
                 " in a short moment.",
@@ -214,7 +170,7 @@ def install(
                 version, manifest_file_name
             )
         except RuntimeError as e:
-            echo(f"{e}", err=True)
+            utils.echo(f"{e}", err=True)
             sys.exit(1)
 
     # Makes the namespace configurable.
@@ -247,20 +203,20 @@ def install(
             [json.dumps(resource) for resource in conflicting_k8s_resources]
         )
 
-        echo(
+        utils.echo(
             "In case you are trying to install additional 'orchestclusters'"
             " then please note that this is not yet supported. On update the"
             " cluster-level resources of one 'orchestcluster' could become"
             " incompatible with another 'orchestcluster'.",
             err=True,
         )
-        echo(
+        utils.echo(
             "Orchest seems to have been installed before and was incorrectly"
             " uninstalled, leaving dangling state. Please ensure you are on"
             " a compatible 'orchest-cli' version and run:\n\torchest uninstall",
             err=True,
         )
-        echo(
+        utils.echo(
             "If uninstalling doesn't work, then please try to remove the"
             " following resources manually before installing again:"
             f"\n{conflicting_k8s_resources_msg}",
@@ -276,7 +232,7 @@ def install(
         # NOTE: Total possible wait of `sum(5 * 2**x for x in range(4))`
         # which is 75s.
         while retries < 4:
-            echo(
+            utils.echo(
                 "Cannot install the Orchest Controller yet, retrying in"
                 f" {get_backoff_period(retries)} seconds...",
             )
@@ -305,7 +261,7 @@ def install(
             else:
                 break
         else:
-            echo(
+            utils.echo(
                 f"Installation aborted. Kubernetes API message:\n{exc_msg}",
                 err=True,
             )
@@ -321,7 +277,7 @@ def install(
         metadata["annotations"]["orchest.io/container-runtime-socket"] = socket_path
 
     if no_nginx:
-        echo(
+        utils.echo(
             "Disabling 'Nginx Ingress Controller' installation."
             "\n\tMake sure 'Nginx Ingress Controller' is already installed "
             "in your cluster"
@@ -344,7 +300,7 @@ def install(
         }
     ]
     if no_argo:
-        echo(
+        utils.echo(
             "Disabling 'Argo Workflows' installation."
             "\n\tMake sure 'Argo Workflows' is already installed in your cluster"
             "\n\tand has the right permissions set in order to work properly"
@@ -373,7 +329,6 @@ def install(
             "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
             "resources": {
                 "userDirVolumeSize": f"{userdir_pvc_size}Gi",
-                "builderCacheDirVolumeSize": f"{builder_pvc_size}Gi",
             },
         },
     }
@@ -397,46 +352,48 @@ def install(
         )
     except client.ApiException as e:
         if e.status == 409:  # conflict
-            echo("Orchest is already installed. To update, run:", err=True)
-            echo("\torchest update", err=True)
+            utils.echo("Orchest is already installed. To update, run:", err=True)
+            utils.echo("\torchest update", err=True)
         else:
-            echo("Failed to install Orchest.", err=True)
-            echo("Could not create the required namespaced custom object.", err=True)
+            utils.echo("Failed to install Orchest.", err=True)
+            utils.echo(
+                "Could not create the required namespaced custom object.", err=True
+            )
         sys.exit(1)
 
-    echo("Setting up the Orchest Cluster...", nl=True)
+    utils.echo("Setting up the Orchest Cluster...", nl=True)
     _display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
 
     if fqdn is not None:
-        echo(f"🚀 Done! Orchest is up with FQDN {fqdn}\n")
+        utils.echo(f"🚀 Done! Orchest is up with FQDN {fqdn}\n")
 
         if platform.system() == "Darwin":
-            echo(
+            utils.echo(
                 "💻 To access it locally, run `sudo minikube tunnel` "
                 f"and map 127.0.0.1 to {fqdn} in your hosts file:"
             )
-            echo()
-            echo(f'  echo "127.0.0.1 {fqdn}" | sudo tee -a /etc/hosts')
+            utils.echo()
+            utils.echo(f'  echo "127.0.0.1 {fqdn}" | sudo tee -a /etc/hosts')
         else:
-            echo(
+            utils.echo(
                 "💻 To access it locally, "
                 f"map `minikube ip` to {fqdn} in your hosts file:"
             )
-            echo()
-            echo(f'  echo "$(minikube ip) {fqdn}" | sudo tee -a /etc/hosts')
+            utils.echo()
+            utils.echo(f'  echo "$(minikube ip) {fqdn}" | sudo tee -a /etc/hosts')
 
-        echo()
-        echo(f"Once done, you can open http://{fqdn} in your browser.")
+        utils.echo()
+        utils.echo(f"Once done, you can open http://{fqdn} in your browser.")
     else:
-        echo("🚀 Done! Orchest is up!\n")
+        utils.echo("🚀 Done! Orchest is up!\n")
 
         if platform.system() == "Darwin":
-            echo(
+            utils.echo(
                 "💻 To access it locally, "
                 "run `sudo minikube tunnel` and browse to http://localhost"
             )
         else:
-            echo(
+            utils.echo(
                 "💻 To access it locally, "
                 "browse to the IP address returned by `minikube ip`"
             )
@@ -457,17 +414,19 @@ def uninstall(**kwargs) -> None:
 
     ns = kwargs["namespace"]
 
-    echo("Uninstalling Orchest...")
+    utils.echo("Uninstalling Orchest...")
 
     # Remove all orchest related custom resources in the namespace.
     # Otherwise the namespace can't be removed due to the configured
     # finalizers on the orchestcluster resources.
-    echo("Removing all Orchest Clusters...")
+    utils.echo("Removing all Orchest Clusters...")
     try:
         _remove_custom_objects(ns)
     except client.ApiException as e:
         if e.status == 404:
-            echo(f"No Orchest Clusters found to delete in namespace: '{ns}'.", err=True)
+            utils.echo(
+                f"No Orchest Clusters found to delete in namespace: '{ns}'.", err=True
+            )
         else:
             raise
     else:
@@ -482,7 +441,7 @@ def uninstall(**kwargs) -> None:
 
     # Removing the namespace will also remove all resources contained in
     # it.
-    echo(f"Removing '{ns}' namespace...")
+    utils.echo(f"Removing '{ns}' namespace...")
     delete_issued = False
     while True:
         try:
@@ -498,7 +457,7 @@ def uninstall(**kwargs) -> None:
         time.sleep(1)
 
     # Delete cluster level resources.
-    echo("Removing Orchest's cluster-level resources...")
+    utils.echo("Removing Orchest's cluster-level resources...")
     funcs = [
         [RBAC_API.delete_cluster_role, ("orchest-controller",)],
         [RBAC_API.delete_cluster_role_binding, ("orchest-controller",)],
@@ -511,7 +470,7 @@ def uninstall(**kwargs) -> None:
         except client.ApiException:
             pass
 
-    echo("\nSuccessfully uninstalled Orchest.")
+    utils.echo("\nSuccessfully uninstalled Orchest.")
 
 
 # NOTE:
@@ -576,21 +535,21 @@ def update(
         is_cloud_mode = _is_orchest_in_cloud_mode(ns, cluster_name)
 
     except CRObjectNotFound as e:
-        echo(
+        utils.echo(
             f"Failed to fetch current Orchest Cluster {tmp_fetching} to make"
             " sure the cluster isn't downgraded.",
             err=True,
         )
-        echo(e, err=True)
+        utils.echo(e, err=True)
         sys.exit(1)
 
     except KeyError:
-        echo(
+        utils.echo(
             f"Failed to fetch current Orchest Cluster {tmp_fetching} to make"
             " sure the cluster isn't downgraded.",
             err=True,
         )
-        echo(
+        utils.echo(
             "Make sure your CLI version is compatible with the running"
             " Orchest Cluster version.",
             err=True,
@@ -600,25 +559,27 @@ def update(
     if version is None:
         version = _fetch_latest_available_version(curr_version, is_cloud_mode)
         if version is None:
-            echo("Failed to fetch latest available version to update to.", err=True)
+            utils.echo(
+                "Failed to fetch latest available version to update to.", err=True
+            )
             sys.exit(1)
     else:
         # Verify user input.
         if not _is_calver_version(version):
-            echo(
+            utils.echo(
                 f"The format of the given version '{version}'"
                 " is incorrect and can't be updated to.",
                 err=True,
             )
-            echo("The version should follow CalVer, e.g. 'v2022.02.4'.", err=True)
+            utils.echo("The version should follow CalVer, e.g. 'v2022.02.4'.", err=True)
             sys.exit(1)
 
     if curr_version == version:
-        echo(f"Orchest Cluster is already on version: {version}.")
+        utils.echo(f"Orchest Cluster is already on version: {version}.")
         sys.exit()
     elif not lte(curr_version, version):
-        echo("Aborting update. Downgrading is not supported.", err=True)
-        echo(
+        utils.echo("Aborting update. Downgrading is not supported.", err=True)
+        utils.echo(
             f"Orchest Cluster is on version '{curr_version}',"
             f" which is newer than the given version '{version}'.",
             err=True,
@@ -627,7 +588,7 @@ def update(
 
     manifest_file_name = "orchest-controller.yaml"
 
-    echo("Updating the Orchest Controller deployment requirements...")
+    utils.echo("Updating the Orchest Controller deployment requirements...")
     if dev_mode:
         # NOTE: orchest-cli commands to be invoked in Orchest directory
         # root for relative path to work.
@@ -639,7 +600,7 @@ def update(
                 version, manifest_file_name
             )
         except RuntimeError as e:
-            echo(f"{e}", err=True)
+            utils.echo(f"{e}", err=True)
             sys.exit(1)
 
     # The namespace to install the controller in should be the same as
@@ -653,7 +614,7 @@ def update(
             yaml_objects=yml_deploy_controller,
         )
     except utils.FailToCreateError as e:
-        echo(
+        utils.echo(
             "Failed to update Orchest. Could not apply 'orchest-controller'"
             f" manifests: \n{e}",
             err=True,
@@ -681,7 +642,7 @@ def update(
                 controller_pod_labels = obj["spec"]["selector"]["matchLabels"]
                 break
         except StopIteration:
-            echo(
+            utils.echo(
                 "Aborting update. No deployment manifest is defined for the"
                 " 'orchest-controller'.",
                 err=True,
@@ -694,7 +655,7 @@ def update(
     # NOTE: use a while instead of watch command because the watch
     # could time out due to us changing labels in versions and thus the
     # watch command not returning anything.
-    echo("Updating the Orchest Controller deployment...")
+    utils.echo("Updating the Orchest Controller deployment...")
     label_selector = ",".join(
         [f"{key}={value}" for key, value in controller_pod_labels.items()]
     )
@@ -708,7 +669,7 @@ def update(
             continue
 
         if len(resp.items) > 1:
-            echo(
+            utils.echo(
                 "Aborting update. Multiple 'orchest-controller' pods found, whilst"
                 "expecting only 1.",
                 err=True,
@@ -728,7 +689,7 @@ def update(
 
         time.sleep(1)
 
-    echo("Updating the Orchest Cluster...")
+    utils.echo("Updating the Orchest Cluster...")
     try:
         patch_namespaced_custom_object(
             name=cluster_name,
@@ -736,20 +697,20 @@ def update(
             body={"spec": {"orchest": {"version": version}}},
         )
     except client.ApiException as e:
-        echo("Failed to update the Orchest Cluster version.", err=True)
+        utils.echo("Failed to update the Orchest Cluster version.", err=True)
         if e.status == 404:  # not found
-            echo(
+            utils.echo(
                 f"The Orchest Cluster named '{cluster_name}' in namespace"
                 f" '{ns}' could not be found.",
                 err=True,
             )
         else:
-            echo(f"Reason: {e.reason}", err=True)
+            utils.echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
     if watch_flag:
         _display_spinner(None, ClusterStatus.RUNNING)
-        echo("Successfully updated Orchest!")
+        utils.echo("Successfully updated Orchest!")
 
 
 def patch(
@@ -839,7 +800,7 @@ def patch(
             command,
         )
 
-    echo("Patching the Orchest Cluster.")
+    utils.echo("Patching the Orchest Cluster.")
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
     if dev is None:
@@ -848,8 +809,8 @@ def patch(
         try:
             disable_telemetry()
         except RuntimeError as e:
-            echo(e, err=True)
-            echo("Failed to disable telemetry. Continuing.", err=True)
+            utils.echo(e, err=True)
+            utils.echo("Failed to disable telemetry. Continuing.", err=True)
 
         env_var_dev = {"name": "FLASK_ENV", "value": "development"}
 
@@ -857,11 +818,11 @@ def patch(
             "minikube start --cpus max --memory max "
             '--mount-string="$(pwd):/orchest-dev-repo" --mount'
         )
-        echo(
+        utils.echo(
             "Note that when running in dev mode you need to have mounted the orchest "
             "repository into minikube. For example by running the following when "
             f"creating the cluster, while being in the repo: '{_cmd}'. The behaviour "
-            "of mounting in minikube is driver dependant and has some open issues, "
+            "of mounting in minikube is driver dependent and has some open issues, "
             "so try to stay on the proven path. A cluster created through the "
             "scripts/install_minikube.sh script, for example, would lead to the mount "
             "only working on the master node, due to the kvm driver."
@@ -888,8 +849,8 @@ def patch(
     try:
         custom_object = _get_namespaced_custom_object(ns, cluster_name)
     except CRObjectNotFound as e:
-        echo("Failed to patch Orchest Cluster.", err=True)
-        echo(e, err=True)
+        utils.echo("Failed to patch Orchest Cluster.", err=True)
+        utils.echo(e, err=True)
         sys.exit(1)
     orchest_spec_patch = {
         "authServer": {
@@ -924,18 +885,18 @@ def patch(
             body={"spec": {"orchest": orchest_spec_patch}},
         )
     except client.ApiException as e:
-        echo("Failed to patch the Orchest Cluster.", err=True)
+        utils.echo("Failed to patch the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
-            echo(
+            utils.echo(
                 f"The Orchest Cluster named '{cluster_name}' in namespace"
                 f" '{ns}' could not be found.",
                 err=True,
             )
         else:
-            echo(f"Reason: {e.reason}", err=True)
+            utils.echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
     else:
-        echo("Successfully patched the Orchest Cluster.")
+        utils.echo("Successfully patched the Orchest Cluster.")
 
     # Depending on the current cluster's state, `orchest patch` should
     # not wait for the cluster's state to reach the same state again.
@@ -947,14 +908,16 @@ def patch(
         custom_object  # type: ignore
     )
     if curr_status in [ClusterStatus.RUNNING, ClusterStatus.STOPPED]:
-        echo(f"Waiting for Orchest Cluster status to become: {curr_status.value}.")
+        utils.echo(
+            f"Waiting for Orchest Cluster status to become: {curr_status.value}."
+        )
         # In case of STOPPED the spinner will run for 10s anyways.
         _display_spinner(None, curr_status)
     else:
         if curr_status is None:
             curr_status = ClusterStatus.UNKNOWN
-        echo(f"Orchest Cluster status is: {curr_status.value}")
-        echo(
+        utils.echo(f"Orchest Cluster status is: {curr_status.value}")
+        utils.echo(
             "You might want to try running:"
             f"\n\torchest status --wait={ClusterStatus.RUNNING.value}"
         )
@@ -973,18 +936,18 @@ def version(json_flag: bool, latest_flag: bool, **kwargs) -> None:
 
     except CRObjectNotFound as e:
         if json_flag:
-            jecho({})
+            utils.jecho({})
         else:
-            echo("Failed to fetch Orchest Cluster version.", err=True)
-            echo(e, err=True)
+            utils.echo("Failed to fetch Orchest Cluster version.", err=True)
+            utils.echo(e, err=True)
         sys.exit(1)
 
     except KeyError:
         if json_flag:
-            jecho({})
+            utils.jecho({})
         else:
-            echo("Failed to fetch Orchest Cluster version.", err=True)
-            echo(
+            utils.echo("Failed to fetch Orchest Cluster version.", err=True)
+            utils.echo(
                 "Make sure your CLI version is compatible with the running"
                 " Orchest Cluster version.",
                 err=True,
@@ -992,9 +955,9 @@ def version(json_flag: bool, latest_flag: bool, **kwargs) -> None:
         sys.exit(1)
 
     if json_flag:
-        jecho({"version": version})
+        utils.jecho({"version": version})
     else:
-        echo(version)
+        utils.echo(version)
 
 
 def status(
@@ -1009,14 +972,16 @@ def status(
         status = _get_orchest_cluster_status(ns, cluster_name)
     except CRObjectNotFound as e:
         if json_flag:
-            jecho({})
+            utils.jecho({})
         else:
-            echo("Failed to fetch Orchest Cluster status.", err=True)
-            echo(e, err=True)
+            utils.echo("Failed to fetch Orchest Cluster status.", err=True)
+            utils.echo(e, err=True)
         sys.exit(1)
 
     if status is None:
-        echo("Failed to fetch Orchest Cluster status. Please try again.", err=True)
+        utils.echo(
+            "Failed to fetch Orchest Cluster status. Please try again.", err=True
+        )
     else:
         if json_flag:
             if wait_for_status is not None:
@@ -1025,7 +990,7 @@ def status(
                     visited_states = _display_spinner(status, wait_for_status, file=f)
                 finally:
                     f.close()
-                jecho(
+                utils.jecho(
                     {
                         "status": wait_for_status.value,
                         "previous_status": [
@@ -1038,19 +1003,19 @@ def status(
                 )
 
             else:
-                jecho({"status": status.value})
+                utils.jecho({"status": status.value})
         else:
             if wait_for_status is not None:
                 _display_spinner(status, wait_for_status)
             else:
-                echo(status.value)
+                utils.echo(status.value)
 
 
 def stop(watch: bool, **kwargs) -> None:
     """Stops Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
-    echo("Stopping the Orchest Cluster.")
+    utils.echo("Stopping the Orchest Cluster.")
     try:
         patch_namespaced_custom_object(
             name=cluster_name,
@@ -1058,27 +1023,27 @@ def stop(watch: bool, **kwargs) -> None:
             body={"spec": {"orchest": {"pause": True}}},
         )
     except client.ApiException as e:
-        echo("Failed to stop the Orchest Cluster.", err=True)
+        utils.echo("Failed to stop the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
-            echo(
+            utils.echo(
                 f"The Orchest Cluster named '{cluster_name}' in namespace"
                 f" '{ns}' could not be found.",
                 err=True,
             )
         else:
-            echo(f"Reason: {e.reason}", err=True)
+            utils.echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
     if watch:
         _display_spinner(None, ClusterStatus.STOPPED)
-        echo("Successfully stopped Orchest.")
+        utils.echo("Successfully stopped Orchest.")
 
 
 def start(watch: bool, **kwargs) -> None:
     """Starts Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
-    echo("Starting the Orchest Cluster.")
+    utils.echo("Starting the Orchest Cluster.")
     try:
         patch_namespaced_custom_object(
             name=cluster_name,
@@ -1086,32 +1051,32 @@ def start(watch: bool, **kwargs) -> None:
             body={"spec": {"orchest": {"pause": False}}},
         )
     except client.ApiException as e:
-        echo("Failed to start the Orchest Cluster.", err=True)
+        utils.echo("Failed to start the Orchest Cluster.", err=True)
         if e.status == 404:  # not found
-            echo(
+            utils.echo(
                 f"The Orchest Cluster named '{cluster_name}' in namespace"
                 f" '{ns}' could not be found.",
                 err=True,
             )
         else:
-            echo(f"Reason: {e.reason}", err=True)
+            utils.echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
     if watch:
         _display_spinner(None, ClusterStatus.RUNNING)
-        echo("Successfully started Orchest.")
+        utils.echo("Successfully started Orchest.")
 
 
 def restart(watch: bool, **kwargs) -> None:
     """Restarts Orchest."""
     ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
-    echo("Restarting the Orchest Cluster.")
+    utils.echo("Restarting the Orchest Cluster.")
     try:
         status = _get_orchest_cluster_status(ns, cluster_name)
     except CRObjectNotFound as e:
-        echo("Failed to restart the Orchest Cluster.", err=True)
-        echo(e, err=True)
+        utils.echo("Failed to restart the Orchest Cluster.", err=True)
+        utils.echo(e, err=True)
         sys.exit(1)
 
     try:
@@ -1131,13 +1096,13 @@ def restart(watch: bool, **kwargs) -> None:
                 field_manager="StrategicMergePatch",
             )
     except client.ApiException as e:
-        echo("Failed to restart the Orchest Cluster.", err=True)
-        echo(f"Reason: {e.reason}", err=True)
+        utils.echo("Failed to restart the Orchest Cluster.", err=True)
+        utils.echo(f"Reason: {e.reason}", err=True)
         sys.exit(1)
 
     if watch:
         _display_spinner(status, ClusterStatus.RUNNING)
-        echo("Successfully restarted Orchest.")
+        utils.echo("Successfully restarted Orchest.")
 
 
 # Application command.
@@ -1158,13 +1123,13 @@ def adduser(
         token = non_interactive_token
     else:
         if non_interactive_password:
-            echo(
+            utils.echo(
                 "Can't use `--non-interactive-password` without `--non-interactive`",
                 err=True,
             )
             sys.exit(1)
         if non_interactive_token:
-            echo(
+            utils.echo(
                 "Can't use `--non-interactive-token` without `--non-interactive`",
                 err=True,
             )
@@ -1179,16 +1144,16 @@ def adduser(
     try:
         _add_user(ns, cluster_name, username, password, is_admin, token)
     except ValueError as e:
-        echo(f"Failed to add specified user: {username}.", err=True)
-        echo(e, err=True)
+        utils.echo(f"Failed to add specified user: {username}.", err=True)
+        utils.echo(e, err=True)
         sys.exit(1)
     except RuntimeError as e:
-        echo(f"Failed to add specified user: {username}.", err=True)
+        utils.echo(f"Failed to add specified user: {username}.", err=True)
         # NOTE: A newline is already returned by the auth-server.
-        echo(e, err=True, nl=False)
+        utils.echo(e, err=True, nl=False)
         sys.exit(1)
 
-    echo(f"Successfully added {'admin' if is_admin else ''} user: {username}.")
+    utils.echo(f"Successfully added {'admin' if is_admin else ''} user: {username}.")
 
 
 def _add_user(
@@ -1424,20 +1389,19 @@ def _display_spinner(
     def echo(*args, **kwargs):
         """Local echo function.
 
-        Inside the function one can now call the regular `echo` instead
-        of always having to call `echo(..., file=file)`.
+        Inside the function one can now call `echo` instead of always
+        having to call `utils.echo(..., file=file)`.
 
         """
-        global echo
         nonlocal file
 
         if file is None:
             file = sys.stdout
 
         if kwargs.get("file") is None:
-            return echo(*args, file=file, **kwargs)
+            return utils.echo(*args, file=file, **kwargs)
         else:
-            return echo(*args, **kwargs)
+            return utils.echo(*args, **kwargs)
 
     # Get the required arguments to get the status of the custom object
     # from the click context.
@@ -1474,6 +1438,7 @@ def _display_spinner(
             visited_states = [curr_status]
         prev_status = curr_status
 
+        num_req_timeouts = 0
         # Use `async_req` to make sure spinner is always loading.
         thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
         while curr_status != end_status or (time.time() - invocation_time < 10):
@@ -1482,6 +1447,27 @@ def _display_spinner(
                 try:
                     resp = thread.get()
                 except client.ApiException as e:
+                    if e.status == 504:  # timeout
+                        echo("\r", nl=False)  # Move cursor to beginning of line
+                        echo("\033[K", nl=False)  # Erase until end of line
+                        echo("🙅 Failed to fetch Orchest cluster status.", err=True)
+
+                        num_req_timeouts += 1
+                        if num_req_timeouts < 3:
+                            thread = _get_namespaced_custom_object(
+                                ns, cluster_name, async_req=True
+                            )
+                            continue
+                        else:
+                            echo(
+                                "Request timeout was hit for the 3rd time. Stopping"
+                                " displaying progress...\n"
+                                f"Note that 'orchest {click_ctx.command.name}' could"
+                                " have completed regardless.",
+                                err=True,
+                            )
+                            sys.exit(1)
+
                     echo(err=True)  # newline
                     echo(f"🙅 Failed to {click_ctx.command.name}.", err=True)
                     if e.status == 404:  # not found

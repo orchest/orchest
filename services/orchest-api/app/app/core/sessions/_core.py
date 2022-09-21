@@ -102,7 +102,7 @@ def launch(
             serv,
             ingress,
         ) = _manifests._get_jupyter_server_deployment_service_manifest(
-            session_uuid, session_config, session_type
+            session_uuid, session_config
         )
         orchest_session_service_k8s_deployment_manifests.append(depl)
         orchest_session_service_k8s_service_manifests.append(serv)

@@ -1,4 +1,4 @@
-import { Job } from "@/types";
+import { JobData } from "@/types";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -91,16 +91,16 @@ export const StatusInline: React.FC<{
   size?: IconSize;
 }> = ({ status, size = "medium" }) => {
   return (
-    <Tooltip title={statusMapping[status].text}>
+    <Tooltip title={statusMapping?.[status]?.text || ""}>
       <Stack
         component="span"
         direction="row"
         alignItems="center"
         justifyContent="center"
       >
-        {statusMapping[status].icon(size)}
+        {statusMapping?.[status]?.icon(size)}
         <Typography component="span" sx={visuallyHidden}>
-          {statusMapping[status].text}
+          {statusMapping?.[status]?.text}
         </Typography>
       </Stack>
     </Tooltip>
@@ -108,7 +108,7 @@ export const StatusInline: React.FC<{
 };
 
 export type RenderedJobStatus =
-  | Job["status"]
+  | JobData["status"]
   | "FAILURE"
   | "MIXED_FAILURE"
   | "MIXED_PENDING";

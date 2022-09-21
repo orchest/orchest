@@ -1,4 +1,4 @@
-import { ConfirmDispatcher } from "@/contexts/AppContext";
+import { ConfirmDispatcher } from "@/contexts/GlobalContext";
 import { tryUntilTrue } from "@/utils/webserver-utils";
 
 // This is to enable using hotkeys to open CommandPalette.

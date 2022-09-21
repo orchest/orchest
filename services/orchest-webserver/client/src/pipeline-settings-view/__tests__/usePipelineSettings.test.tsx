@@ -1,4 +1,7 @@
-import { AppContextProvider, useAppContext } from "@/contexts/AppContext";
+import {
+  GlobalContextProvider,
+  useGlobalContext,
+} from "@/contexts/GlobalContext";
 import { ProjectsContextProvider } from "@/contexts/ProjectsContext";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
 import { chance } from "@/__mocks__/common.mock";
@@ -10,9 +13,9 @@ import { usePipelineSettings } from "../hooks/usePipelineSettings";
 
 const wrapper = ({ children = null, shouldStart }) => {
   return (
-    <AppContextProvider shouldStart={shouldStart}>
+    <GlobalContextProvider shouldStart={shouldStart}>
       <ProjectsContextProvider>{children}</ProjectsContextProvider>;
-    </AppContextProvider>
+    </GlobalContextProvider>
   );
 };
 
@@ -21,11 +24,12 @@ const useTestHook = (props: {
   pipelineUuid: string | undefined;
   jobUuid: string | undefined;
   runUuid: string | undefined;
+  snapshotUuid: string | undefined;
   isBrowserTabFocused: boolean;
 }) => {
   const {
     state: { hasUnsavedChanges },
-  } = useAppContext();
+  } = useGlobalContext();
   const values = usePipelineSettings(props);
   return { ...values, hasUnsavedChanges };
 };
@@ -39,6 +43,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: string | undefined;
       jobUuid: string | undefined;
       runUuid: string | undefined;
+      snapshotUuid: string | undefined;
       isBrowserTabFocused: boolean;
     },
     ReturnType<typeof usePipelineSettings> & {
@@ -52,6 +57,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: undefined,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: false,
     },
   });
@@ -75,6 +81,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 
@@ -121,6 +128,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 
@@ -137,6 +145,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: false,
     });
 
@@ -174,6 +183,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 
@@ -197,6 +207,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 
@@ -249,6 +260,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: false,
     });
 
@@ -260,6 +272,7 @@ describe("useFetchPipelineSettings", () => {
       pipelineUuid: mockPipelineUuid,
       jobUuid: undefined,
       runUuid: undefined,
+      snapshotUuid: undefined,
       isBrowserTabFocused: true,
     });
 

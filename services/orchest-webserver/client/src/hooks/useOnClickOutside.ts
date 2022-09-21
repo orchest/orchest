@@ -1,12 +1,12 @@
 import React from "react";
 
 const isClickingOnRef = <T extends HTMLElement>(
-  ref: React.RefObject<T>,
+  ref: React.RefObject<T | undefined>,
   event: Event
 ) => ref.current && ref.current.contains(event.target as Node);
 
 export const useOnClickOutside = <T extends HTMLElement>(
-  refs: React.RefObject<T> | React.RefObject<T>[],
+  refs: React.RefObject<T | undefined> | React.RefObject<T | undefined>[],
   callback: (event: TouchEvent | MouseEvent) => void
 ) => {
   React.useEffect(() => {

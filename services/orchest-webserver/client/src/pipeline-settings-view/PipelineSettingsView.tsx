@@ -6,15 +6,16 @@ import {
   DataTableRow,
 } from "@/components/DataTable";
 import EnvVarList from "@/components/EnvVarList";
-import { Layout } from "@/components/Layout";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/routingConfig";
+import {
+  PipelineSettingsTab,
+  usePipelineCanvasContext,
+} from "@/pipeline-view/contexts/PipelineCanvasContext";
 import type {
   PipelineJson,
   Service,
@@ -26,8 +27,8 @@ import {
   validatePipeline,
 } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
+import LightbulbOutlined from "@mui/icons-material/LightbulbOutlined";
 import ListIcon from "@mui/icons-material/List";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import SaveIcon from "@mui/icons-material/Save";
@@ -45,7 +46,6 @@ import {
   Alert as CustomAlert,
   AlertDescription,
   AlertHeader,
-  IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
@@ -92,13 +92,17 @@ export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
-const tabMapping: Record<string, number> = {
+const tabMapping: Record<PipelineSettingsTab, number> = {
   configuration: 0,
   "environment-variables": 1,
   services: 2,
 };
 
-const tabs = [
+const tabs: {
+  id: PipelineSettingsTab;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
   {
     id: "configuration",
     label: "Configuration",
@@ -116,7 +120,7 @@ const tabs = [
   },
 ];
 
-const PipelineSettingsView: React.FC = () => {
+export const PipelineSettingsView: React.FC = () => {
   // global states
   const { dispatch } = useProjectsContext();
   const {
@@ -124,27 +128,25 @@ const PipelineSettingsView: React.FC = () => {
     setAlert,
     setConfirm,
     setAsSaved,
-  } = useAppContext();
+  } = useGlobalContext();
 
-  useSendAnalyticEvent("view:loaded", { name: siteMap.pipelineSettings.path });
-
-  useEnsureValidPipeline();
+  useSendAnalyticEvent("view:loaded", { name: "/pipeline-settings" });
 
   // data from route
   const {
-    navigateTo,
     projectUuid,
     pipelineUuid,
     jobUuid,
     runUuid,
-    initialTab,
+    snapshotUuid,
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
 
   const { getSession } = useSessionsContext();
 
-  const isJobRun = hasValue(jobUuid && runUuid);
-  const isReadOnly = isJobRun || isReadOnlyFromQueryString;
+  const isRunningOnSnapshot =
+    hasValue(jobUuid) && hasValue(runUuid || snapshotUuid);
+  const isReadOnly = isRunningOnSnapshot || isReadOnlyFromQueryString;
 
   const isBrowserTabFocused = useFocusBrowserTab();
 
@@ -168,6 +170,7 @@ const PipelineSettingsView: React.FC = () => {
     pipelineUuid,
     jobUuid,
     runUuid,
+    snapshotUuid,
     isBrowserTabFocused,
   });
 
@@ -183,8 +186,10 @@ const PipelineSettingsView: React.FC = () => {
     return new Set(Object.values(services || {}).map((s) => s.name));
   }, [services]);
 
+  const { fullscreenTab, setFullscreenTab } = usePipelineCanvasContext();
+
   const [tabIndex, setTabIndex] = React.useState<number>(
-    hasValue(initialTab) ? tabMapping[initialTab] : 0
+    hasValue(fullscreenTab) ? tabMapping[fullscreenTab] : 0
   );
 
   const [servicesChanged, setServicesChanged] = React.useState(false);
@@ -242,19 +247,9 @@ const PipelineSettingsView: React.FC = () => {
     e: React.SyntheticEvent<Element, Event>,
     index: number
   ) => {
+    const { id } = tabs[index];
     setTabIndex(index);
-  };
-
-  const closeSettings = () => {
-    navigateTo(isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        jobUuid,
-        runUuid,
-      },
-      state: { isReadOnly },
-    });
+    setFullscreenTab(id);
   };
 
   const validateServiceEnvironmentVariables = (pipeline: PipelineJson) => {
@@ -327,7 +322,7 @@ const PipelineSettingsView: React.FC = () => {
     const [pipelineJsonChanges, pipelineChanges] = await Promise.allSettled([
       fetcher<{ success: boolean; reason?: string; message?: string }>(
         `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-        { method: "POST", body: formData }
+        { method: "PUT", body: formData }
       ),
 
       fetcher<{ success: boolean; reason?: string; message?: string }>(
@@ -465,7 +460,7 @@ const PipelineSettingsView: React.FC = () => {
   );
 
   return (
-    <Layout>
+    <Box sx={{ padding: (theme) => theme.spacing(2) }}>
       {isGenerateParametersDialogOpen && projectUuid && pipelineUuid && (
         <GenerateParametersDialog
           pipelinePath={pipelinePath}
@@ -477,28 +472,11 @@ const PipelineSettingsView: React.FC = () => {
           runUuid={runUuid}
         />
       )}
-      <div className="view-page pipeline-settings-view">
+      <div>
         {!hasLoaded ? (
           <LinearProgress />
         ) : (
-          <div className="pipeline-settings">
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography variant="h6" component="h2">
-                Pipeline settings
-              </Typography>
-              <IconButton
-                title="Close"
-                onClick={closeSettings}
-                data-test-id="pipeline-settings-close"
-              >
-                <CloseIcon />
-              </IconButton>
-            </Stack>
-
+          <div>
             <Tabs
               value={tabIndex}
               onChange={onSelectTab}
@@ -516,7 +494,7 @@ const PipelineSettingsView: React.FC = () => {
               ))}
             </Tabs>
 
-            <div className="tab-view trigger-overflow">
+            <div>
               <CustomTabPanel value={tabIndex} index={0} name="configuration">
                 <div className="configuration">
                   <form
@@ -659,7 +637,7 @@ const PipelineSettingsView: React.FC = () => {
                   />
                   <CustomAlert status="info">
                     <AlertHeader>
-                      <IconLightBulbOutline />
+                      <LightbulbOutlined fontSize="small" />
                       Want to start using Services?
                     </AlertHeader>
                     <AlertDescription>
@@ -705,23 +683,19 @@ const PipelineSettingsView: React.FC = () => {
             </div>
 
             {!isReadOnly && (
-              <div className="bottom-buttons observe-overflow">
-                <Button
-                  variant="contained"
-                  onClick={saveGeneralForm}
-                  startIcon={<SaveIcon />}
-                  disabled={!isMemorySizeValid}
-                  data-test-id="pipeline-settings-save"
-                >
-                  {hasUnsavedChanges ? "SAVE*" : "SAVE"}
-                </Button>
-              </div>
+              <Button
+                variant="contained"
+                onClick={saveGeneralForm}
+                startIcon={<SaveIcon />}
+                disabled={!isMemorySizeValid}
+                data-test-id="pipeline-settings-save"
+              >
+                {hasUnsavedChanges ? "SAVE*" : "SAVE"}
+              </Button>
             )}
           </div>
         )}
       </div>
-    </Layout>
+    </Box>
   );
 };
-
-export default PipelineSettingsView;

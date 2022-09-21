@@ -2,9 +2,9 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import AddIcon from "@mui/icons-material/Add";
-import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import { SxProps, Theme } from "@mui/material/styles";
 import React from "react";
 
 export interface IProjectBasedViewProps {
@@ -14,7 +14,10 @@ export interface IProjectBasedViewProps {
 const message =
   "It looks like you don't have any projects yet! To get started using Orchest create your first project.";
 
-const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({ children }) => {
+const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
+  children,
+  sx,
+}) => {
   const { navigateTo } = useCustomRoute();
   const {
     state: { hasLoadedProjects, projectUuid },
@@ -24,7 +27,7 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({ children }) => {
     navigateTo(siteMap.projects.path, undefined, e);
 
   return (
-    <Box className="view-page">
+    <Box className="view-page" sx={sx}>
       {!hasLoadedProjects ? null : projectUuid ? (
         children
       ) : (

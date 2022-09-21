@@ -1,10 +1,11 @@
+import BuildPendingDialog from "@/components/BuildPendingDialog";
 import { Layout } from "@/components/Layout";
+import ProjectBasedView from "@/components/ProjectBasedView";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useInterval } from "@/hooks/use-interval";
 import {
   useCancelableFetch,
   useCancelablePromise,
@@ -12,10 +13,11 @@ import {
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { useInterval } from "@/hooks/useInterval";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type {
-  Pipeline,
+  PipelineData,
   PipelineJson,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
@@ -24,7 +26,6 @@ import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
@@ -44,6 +45,9 @@ const JupyterLabView = () => {
     startSession,
     state: { sessions },
   } = useSessionsContext();
+  const {
+    state: { pipelineReadOnlyReason },
+  } = useProjectsContext();
 
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState<
     number | undefined
@@ -51,17 +55,14 @@ const JupyterLabView = () => {
   const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
   const [pipelineCwd, setPipelineCwd] = React.useState<string>();
 
-  const session = React.useMemo(() => getSession(pipelineUuid), [
-    pipelineUuid,
-    getSession,
-  ]);
+  const session = React.useMemo(
+    () => (pipelineReadOnlyReason ? undefined : getSession(pipelineUuid)),
+    [pipelineUuid, getSession, pipelineReadOnlyReason]
+  );
 
   React.useEffect(() => {
     return () => {
-      if (window.orchest.jupyter) {
-        window.orchest.jupyter?.hide();
-      }
-
+      window.orchest.jupyter?.hide();
       setVerifyKernelsInterval(undefined);
     };
   }, []);
@@ -72,7 +73,7 @@ const JupyterLabView = () => {
     try {
       const [fetchedPipelineJson, pipeline] = await Promise.all([
         makeCancelable(fetchPipelineJson({ pipelineUuid, projectUuid })),
-        cancelableFetch<Pipeline>(
+        cancelableFetch<PipelineData>(
           `/async/pipelines/${projectUuid}/${pipelineUuid}`
         ),
       ]);
@@ -80,30 +81,34 @@ const JupyterLabView = () => {
       setPipelineJson(fetchedPipelineJson);
       setPipelineCwd(pipeline.path.replace(/\/?[^\/]*.orchest$/, "/"));
     } catch (error) {
-      console.error("Could not load pipeline.json");
-      console.error(error);
+      if (!error.isCanceled) {
+        console.error("");
+        console.error("Failed to load pipeline.json: " + String(error));
+      }
     }
   }, [cancelableFetch, makeCancelable, pipelineUuid, projectUuid]);
 
-  const isSessionsLoaded = hasValue(sessions);
-  const hasSession = hasValue(session);
-
-  // Launch the session if it doesn't exist
+  // Launch the session on mount.
   React.useEffect(() => {
-    if (!isSessionsLoaded) return;
-    if (!hasSession && pipelineUuid && projectUuid) {
+    if (pipelineUuid && projectUuid && sessions) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB)
-        .then((isSessionStarted) => {
-          if (isSessionStarted) {
+        .then((result) => {
+          if (result === true) {
             // Force reloading the view.
             dispatch({
-              type: "SET_PIPELINE_IS_READONLY",
-              payload: false,
+              type: "SET_PIPELINE_READONLY_REASON",
+              payload: undefined,
             });
             navigateTo(siteMap.jupyterLab.path, {
               query: { projectUuid, pipelineUuid },
             });
-          } else {
+          } else if (
+            ![
+              "environmentsNotYetBuilt",
+              "environmentsBuildInProgress",
+              "environmentsFailedToBuild",
+            ].includes(result.message)
+          ) {
             // When failed, it could be that the pipeline does no loner exist.
             // Navigate back to PipelineEditor.
             navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
@@ -113,49 +118,34 @@ const JupyterLabView = () => {
           navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
         });
     }
-  }, [
-    dispatch,
-    isSessionsLoaded,
-    hasSession,
-    startSession,
-    pipelineUuid,
-    projectUuid,
-    navigateTo,
-  ]);
+  }, [startSession, pipelineUuid, projectUuid, navigateTo, sessions, dispatch]);
 
   const conditionalRenderingOfJupyterLab = React.useCallback(() => {
-    if (window.orchest.jupyter) {
-      if (session?.status === "RUNNING" && hasSession) {
-        if (!window.orchest.jupyter?.isShowing()) {
-          window.orchest.jupyter?.show();
-          if (filePath) window.orchest.jupyter?.navigateTo(filePath);
-        }
-      } else {
-        window.orchest.jupyter?.hide();
+    if (session?.status === "RUNNING") {
+      if (!window.orchest.jupyter?.isShowing()) {
+        window.orchest.jupyter?.show();
+        if (filePath) window.orchest.jupyter?.navigateTo(filePath);
       }
+    } else {
+      window.orchest.jupyter?.hide();
     }
-  }, [filePath, hasSession, session?.status]);
-
-  const updateJupyterInstance = React.useCallback(() => {
-    if (session?.base_url) {
-      let baseAddress = "//" + window.location.host + session.base_url;
-      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
-    }
-  }, [session?.base_url]);
+  }, [filePath, session?.status]);
 
   React.useEffect(() => {
-    if (session?.status === "RUNNING" && hasSession) {
+    if (session?.status === "RUNNING") {
       conditionalRenderingOfJupyterLab();
       fetchPipeline();
     }
-  }, [
-    session?.status,
-    hasSession,
-    conditionalRenderingOfJupyterLab,
-    fetchPipeline,
-  ]);
+  }, [session?.status, conditionalRenderingOfJupyterLab, fetchPipeline]);
 
   // On any session change
+
+  const updateJupyterInstance = React.useCallback(() => {
+    if (session?.base_url) {
+      const baseAddress = "//" + window.location.host + session.base_url;
+      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
+    }
+  }, [session?.base_url]);
 
   React.useEffect(() => {
     updateJupyterInstance();
@@ -198,24 +188,35 @@ const JupyterLabView = () => {
 
   return (
     <Layout disablePadding>
-      <Stack
-        justifyContent="center"
-        alignItems="center"
-        sx={{ height: "100%" }}
+      <ProjectBasedView
+        sx={{ padding: (theme) => theme.spacing(4), height: "100%" }}
       >
-        <Box
-          sx={{
-            textAlign: "center",
-            width: "100%",
-            maxWidth: "400px",
-          }}
+        <Stack
+          justifyContent="center"
+          alignItems="center"
+          sx={{ height: "100%" }}
         >
-          <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
-            Setting up JupyterLab…
-          </Typography>
-          <LinearProgress />
-        </Box>
-      </Stack>
+          <Box
+            sx={{
+              textAlign: "center",
+              width: "100%",
+              maxWidth: "400px",
+            }}
+          >
+            <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
+              Setting up JupyterLab…
+            </Typography>
+            <LinearProgress />
+          </Box>
+        </Stack>
+      </ProjectBasedView>
+      <BuildPendingDialog
+        onCancel={() => {
+          navigateTo(siteMap.pipeline.path, {
+            query: { projectUuid, pipelineUuid },
+          });
+        }}
+      />
     </Layout>
   );
 };

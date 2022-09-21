@@ -1,12 +1,13 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
-import { basename, dirname } from "@/utils/path";
+import { basename, dirname, join } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -15,7 +16,7 @@ import Stack from "@mui/material/Stack";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot } from "../common";
-import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
+import { useOpenFile } from "../hooks/useOpenFile";
 import {
   cleanFilePath,
   FileTrees,
@@ -33,7 +34,6 @@ import {
   Move,
   pathFromElement,
   prettifyRoot,
-  queryArgs,
   ROOT_SEPARATOR,
   UnpackedPath,
   unpackMove,
@@ -42,8 +42,8 @@ import {
 import { DragIndicator } from "./DragIndicator";
 import { useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
-import { TreeItem } from "./TreeItem";
-import { TreeRow } from "./TreeRow";
+import { FileTreeItem } from "./FileTreeItem";
+import { FileTreeRow } from "./FileTreeRow";
 
 export type FileTreeProps = {
   treeRoots: readonly FileManagementRoot[];
@@ -65,7 +65,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   handleToggle,
   onMoved,
 }: FileTreeProps) {
-  const { setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
   const { projectUuid, navigateTo } = useCustomRoute();
   const { getSession, stopSession } = useSessionsContext();
   const {
@@ -80,12 +80,14 @@ export const FileTree = React.memo(function FileTreeComponent({
     isDragging,
     fileTrees,
   } = useFileManagerContext();
+
   const {
     handleSelect,
     reload,
     setFileInRename,
   } = useFileManagerLocalContext();
-  const openNotebook = useOpenNoteBook();
+
+  const { navigateToJupyterLab } = useOpenFile();
 
   const pipelineByPath = React.useCallback(
     (path) => {
@@ -122,10 +124,17 @@ export const FileTree = React.memo(function FileTreeComponent({
           });
         }
       } else {
-        openNotebook(undefined, cleanFilePath(path));
+        navigateToJupyterLab(undefined, cleanFilePath(path));
       }
     },
-    [pipelineByPath, pipelines, projectUuid, setAlert, navigateTo, openNotebook]
+    [
+      pipelineByPath,
+      pipelines,
+      projectUuid,
+      setAlert,
+      navigateTo,
+      navigateToJupyterLab,
+    ]
   );
 
   const draggedFiles = React.useMemo(() => {
@@ -401,9 +410,10 @@ export const FileTree = React.memo(function FileTreeComponent({
         multiSelect
       >
         {treeRoots.map((root) => {
-          let combinedPath = `${root}${ROOT_SEPARATOR}/`;
+          const combinedPath = join(root, ROOT_SEPARATOR + "/");
+
           return (
-            <TreeItem
+            <FileTreeItem
               disableDragging
               key={root}
               nodeId={root}
@@ -416,7 +426,7 @@ export const FileTree = React.memo(function FileTreeComponent({
               data-path={combinedPath}
               labelText={prettifyRoot(root)}
             >
-              <TreeRow
+              <FileTreeRow
                 setDragFile={setDragFile}
                 treeNodes={fileTrees[root].children}
                 hoveredPath={hoveredPath}
@@ -426,7 +436,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                   handleMoves([[oldPath, newPath]])
                 }
               />
-            </TreeItem>
+            </FileTreeItem>
           );
         })}
       </TreeView>

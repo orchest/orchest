@@ -1,7 +1,6 @@
 import requests
 from flask import current_app, jsonify, request
 
-from _orchest.internals import analytics
 from app import error
 from app.core import jobs
 from app.models import Pipeline, Project
@@ -11,7 +10,6 @@ from app.utils import (
     get_project_directory,
     pipeline_uuid_to_path,
     project_uuid_to_path,
-    remove_job_directory,
     request_args_to_string,
 )
 
@@ -169,45 +167,26 @@ def register_orchest_api_views(app, db):
         )
         return resp.content, resp.status_code, resp.headers.items()
 
-    environments_missing_msg = (
-        "The pipeline definition references environments "
-        "that do not exist in the project. "
-        "The following environments do not exist:"
-        " {missing_environment_uuids}.\n\n Please make sure all"
-        " pipeline steps are assigned an environment that exists"
-        " in the project."
-    )
-
-    @app.route("/catch/api-proxy/api/jobs/", methods=["POST"])
+    @app.route("/catch/api-proxy/api/jobs", methods=["POST"])
     def catch_api_proxy_jobs_post():
 
         try:
-            job_spec = jobs.create_job_spec(request.json)
-        except error.EnvironmentsDoNotExist as e:
+            resp = jobs.create_job(request.json)
+            return resp.content, resp.status_code, resp.headers.items()
+        except (error.OrchestApiRequestError) as e:
+
             return (
-                jsonify(
-                    {
-                        "message": environments_missing_msg.format(
-                            missing_environment_uuids=[",".join(e.environment_uuids)]
-                        ),
-                    }
-                ),
-                500,
+                jsonify(e),
+                409,
             )
-
-        resp = requests.post(
-            "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
-            json=job_spec,
-        )
-
-        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/duplicate", methods=["POST"])
     def catch_api_proxy_jobs_duplicate():
 
         json_obj = request.json
         try:
-            job_spec = jobs.duplicate_job_spec(json_obj["job_uuid"])
+            resp = jobs.duplicate_job(json_obj["job_uuid"])
+            return resp.content, resp.status_code, resp.headers.items()
         except error.ProjectDoesNotExist:
             msg = (
                 "The job cannot be duplicated because its project does "
@@ -232,54 +211,6 @@ def register_orchest_api_views(app, db):
                 jsonify({"message": msg}),
                 409,
             )
-        except error.EnvironmentsDoNotExist as e:
-            return (
-                jsonify(
-                    {
-                        "message": environments_missing_msg.format(
-                            missing_environment_uuids=[",".join(e.environment_uuids)]
-                        ),
-                    }
-                ),
-                500,
-            )
-
-        resp = requests.post(
-            "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
-            json=job_spec,
-        )
-
-        event_type = analytics.Event.ONE_OFF_JOB_DUPLICATED
-        if job_spec["cron_schedule"] is not None:
-            event_type = analytics.Event.CRON_JOB_DUPLICATED
-
-        analytics.send_event(
-            app,
-            event_type,
-            analytics.TelemetryData(
-                event_properties={
-                    "project": {
-                        "uuid": job_spec["project_uuid"],
-                        "job": {
-                            "uuid": json_obj["job_uuid"],
-                            "new_job_uuid": job_spec["uuid"],
-                        },
-                    },
-                    "duplicate_from": json_obj["job_uuid"],
-                    # Deprecated fields, kept to not break the analytics
-                    # BE schema.
-                    "job_definition": None,
-                    "snapshot_size": None,
-                    "deprecated": [
-                        "duplicated_from",
-                        "job_definition",
-                        "snapshot_size",
-                    ],
-                },
-                derived_properties={},
-            ),
-        )
-        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/sessions", methods=["GET"])
     def catch_api_proxy_sessions_get():
@@ -385,7 +316,7 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/runs/", methods=["GET", "POST"])
+    @app.route("/catch/api-proxy/api/runs", methods=["GET", "POST"])
     def catch_api_proxy_runs():
 
         if request.method == "POST":
@@ -498,6 +429,12 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/jobs/<job_uuid>/pipeline", methods=["PUT"])
+    def catch_api_proxy_job_pipeline_put(job_uuid):
+
+        resp = jobs.change_draft_job_pipeline(job_uuid, request.json["pipeline_uuid"])
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/<run_uuid>", methods=["GET"])
     def catch_api_proxy_job_runs_single(job_uuid, run_uuid):
 
@@ -545,7 +482,7 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/jobs/", methods=["get"])
+    @app.route("/catch/api-proxy/api/jobs", methods=["get"])
     def catch_api_proxy_jobs_get_all():
 
         resp = requests.get(
@@ -558,37 +495,29 @@ def register_orchest_api_views(app, db):
     @app.route("/catch/api-proxy/api/jobs/cleanup/<job_uuid>", methods=["delete"])
     def catch_api_proxy_jobs_cleanup(job_uuid):
         try:
-            # Get data before issuing deletion to the orchest-api. This
-            # is needed to retrieve the job pipeline uuid and project
-            # uuid. TODO: if the caller of the job knows about those
-            # ids, we could avoid making a request to the orchest-api.
             resp = requests.get(
                 (
                     f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api'
                     f"/jobs/{job_uuid}"
                 )
             )
-            data = resp.json()
+            job = resp.json()
 
             if resp.status_code == 200:
-                pipeline_uuid = data["pipeline_uuid"]
-                project_uuid = data["project_uuid"]
-
-                # Tell the orchest-api that the job does not exist
-                # anymore, will be stopped if necessary then cleaned up
-                # from the orchest-api db.
-                resp = requests.delete(
-                    f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
-                    f"jobs/cleanup/{job_uuid}"
+                # Will delete the job as a collateral effect.
+                jobs.remove_job_directory(
+                    job_uuid,
+                    job["pipeline_uuid"],
+                    job["project_uuid"],
+                    job["snapshot_uuid"],
                 )
 
-                remove_job_directory(job_uuid, pipeline_uuid, project_uuid)
                 return resp.content, resp.status_code, resp.headers.items()
 
             elif resp.status_code == 404:
                 raise ValueError(f"Job {job_uuid} does not exist.")
             else:
-                raise Exception(f"{data}, {resp.status_code}")
+                raise error.OrchestApiRequestError(response=resp)
 
         except Exception as e:
             msg = f"Error during job deletion:{e}"
@@ -637,10 +566,10 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route("/catch/api-proxy/api/ctl/cleanup-builder-cache", methods=["POST"])
-    def catch_api_proxy_ctl_cleanup_builder_cache():
-        resp = requests.post(
+    @app.route("/catch/api-proxy/api/snapshots/<snapshot_uuid>", methods=["GET"])
+    def catch_api_proxy_snapshots_get_snapshot(snapshot_uuid: str):
+        resp = requests.get(
             f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
-            f"ctl/cleanup-builder-cache"
+            f"snapshots/{snapshot_uuid}"
         )
         return resp.content, resp.status_code, resp.headers.items()

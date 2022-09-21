@@ -50,6 +50,24 @@ export const useLocalStorage = <T>(
     [privateKey]
   );
 
+  /**
+   * Save value to localstorage without triggering a re-render.
+   */
+  const saveToLocalstorage = React.useCallback(
+    (value: T | ((value: T) => T)) => {
+      try {
+        const valueToSave =
+          value instanceof Function ? value(storedValue) : value;
+        cachedItemString.current = JSON.stringify(valueToSave);
+        if (privateKey)
+          window.localStorage.setItem(privateKey, cachedItemString.current);
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    [storedValue, privateKey]
+  );
+
   // stay sync when the value is updated by other tabs
   React.useEffect(() => {
     const onStorage = (e: StorageEvent): void => {
@@ -68,5 +86,5 @@ export const useLocalStorage = <T>(
     return () => window.removeEventListener("storage", onStorage);
   }, [privateKey, defaultValue]);
 
-  return [storedValue, setValue] as const;
+  return [storedValue, setValue, saveToLocalstorage] as const;
 };

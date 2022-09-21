@@ -43,7 +43,7 @@ fi
 
 if ! minikube status | grep "host" | grep "Running" > /dev/null ; then
     echo "Starting minikube..."
-    minikube start --cpus max --memory max --disk-size 50g 
+    minikube start --cpus max --memory max --disk-size 50g
 fi
 
 if ! minikube addons list | grep "ingress " | grep "enabled" > /dev/null ; then
@@ -53,4 +53,12 @@ fi
 
 pip install orchest-cli --upgrade
 
-orchest install
+if [ -x "$(command -v orchest)" ]; then
+    orchest install
+else
+    # NOTE: Formatting in the last `echo` is needed to make sure that
+    # users can actually run the outputted command.
+    echo "ERROR: It seems like 'pip' installed 'orchest' outside of your PATH"
+    echo "Try opening a new terminal after running:"
+    echo "\techo \"export PATH=\\\"\\\$PATH:\\\$HOME/.local/bin\\\"\" >> ~/.profile"
+fi

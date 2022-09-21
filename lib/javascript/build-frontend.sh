@@ -62,7 +62,7 @@ CSS_BUNDLE_PATH="dist/style.css"
 TS_SRC_PATH="src/main.tsx"
 SASS_SRC_PATH="src/styles/main.scss"
 
-ESBUILD_ARGS="$TS_SRC_PATH --bundle --minify --target=es6 --sourcemap --tsconfig=tsconfig.build.json --define:__BASE_URL__=\"\" --outfile=$JS_BUNDLE_PATH"
+ESBUILD_ARGS="$TS_SRC_PATH --bundle --supported:import-meta=true --target=es6 --sourcemap --tsconfig=tsconfig.build.json --define:__BASE_URL__=\"\" --outfile=$JS_BUNDLE_PATH"
 SASS_ARGS="$SASS_SRC_PATH --load-path=$NODE_MODULES_PATH $CSS_BUNDLE_PATH"
 
 if $WATCH; then
@@ -72,10 +72,10 @@ if $WATCH; then
   DEBUG_CSS_FILENAME="style.css?hash=${DATE_UNIX}"
   index_template_fill $DEBUG_JS_FILENAME $DEBUG_CSS_FILENAME "watch"
   sass $SASS_ARGS --watch &
-  esbuild $ESBUILD_ARGS --watch
+  NODE_ENV=development esbuild $ESBUILD_ARGS --watch
 else
   sass $SASS_ARGS && echo "Compiled $SASS_SRC_PATH successfully!" &
-  esbuild $ESBUILD_ARGS
+  esbuild $ESBUILD_ARGS --minify
 
   wait $(jobs -p)
 

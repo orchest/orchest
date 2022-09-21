@@ -1,7 +1,8 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { getPageCommands, siteMap } from "@/routingConfig";
-import { Job, Project } from "@/types";
+import { JobData, Project } from "@/types";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import List from "@mui/material/List";
@@ -41,12 +42,10 @@ const fetchPipelines = () => {
   return fetchObjects<Pipeline>("/async/pipelines", "result");
 };
 
-const fetchProjects = () => {
-  return fetchObjects<Project>("/async/projects");
-};
+const fetchProjects = () => projectsApi.fetchAll();
 
 const fetchJobs = () => {
-  return fetchObjects<Job>("/catch/api-proxy/api/jobs/", "jobs");
+  return fetchObjects<JobData>("/catch/api-proxy/api/jobs", "jobs");
 };
 
 type ProjectObject = { list: Command[]; paths: Record<string, string> };
@@ -84,10 +83,11 @@ const generatePipelineCommands = (
       title: `Settings: ${pipelineDisplay}`,
       action: "openPage",
       data: {
-        path: siteMap.pipelineSettings.path,
+        path: siteMap.pipeline.path,
         query: {
           pipelineUuid: uuid,
           projectUuid: project_uuid,
+          tab: "configuration",
         },
       },
     },
@@ -95,10 +95,11 @@ const generatePipelineCommands = (
       title: `Logs: ${pipelineDisplay}`,
       action: "openPage",
       data: {
-        path: siteMap.logs.path,
+        path: siteMap.pipeline.path,
         query: {
           pipelineUuid: uuid,
           projectUuid: project_uuid,
+          tab: "logs",
         },
       },
     },
@@ -152,17 +153,19 @@ const commandsFromProject = (project: Project): Command => {
   };
 };
 
-const commandsFromJob = (projectPaths: Record<string, string>, job: Job) => {
+const commandsFromJob = (
+  projectPaths: Record<string, string>,
+  job: JobData
+) => {
   const title =
     job.status == "DRAFT"
       ? `Edit job: ${job.name} [${projectPaths[job.project_uuid]}]`
       : `Job: ${job.name} [${projectPaths[job.project_uuid]}]`;
-  const path = job.status == "DRAFT" ? siteMap.editJob.path : siteMap.job.path;
   return {
     title,
     action: "openPage",
     data: {
-      path,
+      path: siteMap.jobs.path,
       query: { projectUuid: job.project_uuid, jobUuid: job.uuid },
     },
   };

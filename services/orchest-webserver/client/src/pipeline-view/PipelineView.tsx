@@ -1,58 +1,69 @@
 import { Layout } from "@/components/Layout";
+import { MainSidePanel } from "@/components/Layout/layout-with-side-panel/MainSidePanel";
 import ProjectBasedView from "@/components/ProjectBasedView";
-import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext";
-import { PipelineEditorContextProvider } from "./contexts/PipelineEditorContext";
+import { PipelineSettingsView } from "../pipeline-settings-view/PipelineSettingsView";
+import { FullScreenDialogHolder } from "./components/FullScreenDialogHolder";
+import { PipelineContextProviders } from "./contexts/PipelineContextProviders";
 import { FileManager } from "./file-manager/FileManager";
-import { FileManagerContextProvider } from "./file-manager/FileManagerContext";
-import { MainSidePanel } from "./MainSidePanel";
+import { PipelineFileName } from "./pipeline-canvas-header-bar/PipelineFileName";
+import { PipelineLogs } from "./pipeline-logs-dialog/PipelineLogs";
 import { PipelineEditor } from "./PipelineEditor";
 import { SessionsPanel } from "./sessions-panel/SessionsPanel";
 
+type FullScreenDialogHeaderProps = { title: string };
+
+const FullScreenDialogHeader = ({ title }: FullScreenDialogHeaderProps) => {
+  const printTitle = `${title}:`;
+  return (
+    <Stack direction="row" alignItems="baseline">
+      <Typography
+        variant="h5"
+        sx={{ marginRight: (theme) => theme.spacing(1) }}
+      >
+        {printTitle}
+      </Typography>
+      <PipelineFileName hideBackToJob />
+    </Stack>
+  );
+};
+
 const PipelineView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.pipeline.path });
-  const { setIsDrawerOpen } = useAppContext();
   const {
-    state: { pipelineIsReadOnly, projectUuid, pipeline },
+    state: { pipelineReadOnlyReason, projectUuid },
   } = useProjectsContext();
-
-  const { jobUuid, runUuid } = useCustomRoute();
-
-  React.useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setIsDrawerOpen(false);
-    }, 500);
-    return () => window.clearTimeout(timeout);
-  }, [setIsDrawerOpen]);
 
   return (
     <Layout disablePadding={hasValue(projectUuid)}>
       {projectUuid ? (
-        <PipelineEditorContextProvider>
-          <FileManagerContextProvider
-            projectUuid={projectUuid}
-            pipelineUuid={pipeline?.uuid}
-            jobUuid={jobUuid}
-            runUuid={runUuid}
+        <PipelineContextProviders>
+          <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
+            <MainSidePanel>
+              <FileManager />
+              {!pipelineReadOnlyReason && <SessionsPanel />}
+            </MainSidePanel>
+            <PipelineEditor />
+          </Stack>
+          <FullScreenDialogHolder
+            dialogId="logs"
+            title={<FullScreenDialogHeader title="Logs" />}
           >
-            <PipelineCanvasContextProvider>
-              <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
-                <MainSidePanel>
-                  <FileManager />
-                  {!pipelineIsReadOnly && <SessionsPanel />}
-                </MainSidePanel>
-                <PipelineEditor />
-              </Stack>
-            </PipelineCanvasContextProvider>
-          </FileManagerContextProvider>
-        </PipelineEditorContextProvider>
+            <PipelineLogs />
+          </FullScreenDialogHolder>
+          <FullScreenDialogHolder
+            dialogId={["configuration", "environment-variables", "services"]}
+            title={<FullScreenDialogHeader title="Pipeline settings" />}
+          >
+            <PipelineSettingsView />
+          </FullScreenDialogHolder>
+        </PipelineContextProviders>
       ) : (
         <ProjectBasedView />
       )}

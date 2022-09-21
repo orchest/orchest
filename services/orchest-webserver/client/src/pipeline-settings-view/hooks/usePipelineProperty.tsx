@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import React from "react";
 
 type UsePipelinePropertyParams<T> = {
@@ -13,7 +13,7 @@ export function usePipelineProperty<T>({
   initialValue,
   hash,
 }: UsePipelinePropertyParams<T>) {
-  const { setAsSaved } = useAppContext();
+  const { setAsSaved } = useGlobalContext();
 
   const [pipelineProperty, localSetPipelineProperty] = React.useState<
     T | undefined

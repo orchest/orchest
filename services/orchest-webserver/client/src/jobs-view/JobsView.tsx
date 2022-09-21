@@ -1,20 +1,19 @@
-import { Layout } from "@/components/Layout";
-import ProjectBasedView from "@/components/ProjectBasedView";
+import { LayoutWithSidePanel } from "@/components/Layout/layout-with-side-panel/LayoutWithSidePanel";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";
-import JobList from "./JobList";
+import { JobView } from "./job-view/JobView";
+import { JobMenuList } from "./JobMenuList";
 
-const JobsView: React.FC = () => {
-  useSendAnalyticEvent("view:loaded", { name: siteMap.jobs.path });
+export const JobsView = () => {
+  useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
 
   return (
-    <Layout>
-      <ProjectBasedView>
-        <JobList />
-      </ProjectBasedView>
-    </Layout>
+    <LayoutWithSidePanel
+      sidePanel={<JobMenuList />}
+      mainContainerProps={{ sx: { paddingTop: 0 } }}
+    >
+      <JobView />
+    </LayoutWithSidePanel>
   );
 };
-
-export default JobsView;
