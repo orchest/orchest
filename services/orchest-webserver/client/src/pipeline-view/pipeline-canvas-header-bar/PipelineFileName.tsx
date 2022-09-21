@@ -34,7 +34,11 @@ const BackToJob = () => {
   ) : null;
 };
 
-export const PipelineFileName = () => {
+type PipelineFileNameProps = {
+  hideBackToJob?: boolean;
+};
+
+export const PipelineFileName = ({ hideBackToJob }: PipelineFileNameProps) => {
   const {
     state: { pipeline },
   } = useProjectsContext();
@@ -48,7 +52,7 @@ export const PipelineFileName = () => {
 
   return fileNameWithoutExtension ? (
     <Stack direction="row" spacing={1} alignItems="baseline" width="inherit">
-      <BackToJob />
+      {!hideBackToJob && <BackToJob />}
       <Tooltip title={`Project files/${path}`} placement="bottom-start">
         <Stack direction="row" alignItems="baseline" width="inherit">
           <Typography component="h2" variant="h5" sx={ellipsis()}>

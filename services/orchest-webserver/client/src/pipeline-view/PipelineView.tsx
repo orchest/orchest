@@ -29,7 +29,7 @@ const FullScreenDialogHeader = ({ title }: FullScreenDialogHeaderProps) => {
       >
         {printTitle}
       </Typography>
-      <PipelineFileName />
+      <PipelineFileName hideBackToJob />
     </Stack>
   );
 };
