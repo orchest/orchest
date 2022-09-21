@@ -113,7 +113,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
   const isSnapshot = hasValue(jobUuid) && hasValue(snapshotUuid);
   const { job } = useFetchJob({
-    jobUuid: isSnapshot || isSnapshot ? jobUuid : undefined,
+    jobUuid: isJobRun || isSnapshot ? jobUuid : undefined,
   });
 
   return (
