@@ -1,6 +1,8 @@
 package orchestcomponent
 
 import (
+	"strings"
+
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
@@ -63,6 +65,117 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 	hostPathDirectoryOrCreate := corev1.HostPathDirectoryOrCreate
 	bidirectional_propagation := corev1.MountPropagationBidirectional
 
+	runContainerdPath := "/run/containerd"
+	varLibContainerdPath := "/var/lib/containerd"
+
+	// TODO: use distribution from https://github.com/orchest/orchest/pull/1267.
+	if strings.Contains(socketPath, "microk8s") {
+		runContainerdPath = "/var/snap/microk8s/common/run/containerd"
+		varLibContainerdPath = "/var/snap/microk8s/common/var/lib/containerd"
+	}
+
+	volumes := []corev1.Volume{
+		{
+			Name: "containerd-socket",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: socketPath,
+					Type: &hostPathSocket,
+				},
+			},
+		},
+		{
+			Name: "run-containerd",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: runContainerdPath,
+					Type: &hostPathDirectoryOrCreate,
+				},
+			},
+		},
+		{
+			Name: "var-lib-containerd",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: varLibContainerdPath,
+					Type: &hostPathDirectoryOrCreate,
+				},
+			},
+		},
+		// Use a separate buildkit socket location for safety.
+		{
+			Name: "run-orchest-buildkit",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/run/orchest_buildkit",
+					Type: &hostPathDirectoryOrCreate,
+				},
+			},
+		},
+		// Use a separate buildkit storage for safety
+		// and in case we want to cleanup in the future.
+		{
+			Name: "orchest-buildkit-storage",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/lib/orchest_buildkit",
+					Type: &hostPathDirectoryOrCreate,
+				},
+			},
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "containerd-socket",
+			MountPath: "/run/containerd/containerd.sock",
+		},
+		{
+			Name:      "run-containerd",
+			MountPath: "/run/containerd",
+		},
+		{
+			Name:      "var-lib-containerd",
+			MountPath: "/var/lib/containerd",
+		},
+		{
+			Name:      "run-orchest-buildkit",
+			MountPath: "/run/orchest_buildkit",
+		},
+		{
+			Name:             "orchest-buildkit-storage",
+			MountPath:        "/var/lib/orchest_buildkit",
+			MountPropagation: &bidirectional_propagation,
+		},
+	}
+
+	if strings.Contains(socketPath, "microk8s") {
+		volumes = append(volumes, corev1.Volume{
+			Name: "run-containerd-fifo",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/run/containerd/fifo",
+					Type: &hostPathDirectoryOrCreate,
+				},
+			},
+		})
+
+		volumeMounts = append(volumeMounts,
+			corev1.VolumeMount{
+				Name:      "run-containerd-fifo",
+				MountPath: "/run/containerd/fifo",
+			},
+			corev1.VolumeMount{
+				Name:      "run-containerd",
+				MountPath: runContainerdPath,
+			},
+			corev1.VolumeMount{
+				Name:      "var-lib-containerd",
+				MountPath: varLibContainerdPath,
+			},
+		)
+	}
+
 	var var_one int64 = 1
 	var var_true bool = true
 	template := corev1.PodTemplateSpec{
@@ -71,58 +184,7 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 		},
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: &var_one,
-			Volumes: []corev1.Volume{
-				{
-					Name: "containerd-socket",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: socketPath,
-							Type: &hostPathSocket,
-						},
-					},
-				},
-				// TODO: allow customizing this for k8s flavours that
-				// may have containerd in non standard locations (k3s).
-				{
-					Name: "run-containerd",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/run/containerd",
-							Type: &hostPathDirectoryOrCreate,
-						},
-					},
-				},
-				{
-					Name: "var-lib-containerd",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/var/lib/containerd",
-							Type: &hostPathDirectoryOrCreate,
-						},
-					},
-				},
-				// Use a separate buildkit socket location for safety.
-				{
-					Name: "run-orchest-buildkit",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/run/orchest_buildkit",
-							Type: &hostPathDirectoryOrCreate,
-						},
-					},
-				},
-				// Use a separate buildkit storage for safety
-				// and in case we want to cleanup in the future.
-				{
-					Name: "orchest-buildkit-storage",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/var/lib/orchest_buildkit",
-							Type: &hostPathDirectoryOrCreate,
-						},
-					},
-				},
-			},
+			Volumes:                       volumes,
 			Containers: []corev1.Container{
 				{
 					Name:            controller.BuildKitDaemon,
@@ -163,30 +225,7 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 						InitialDelaySeconds: 5,
 						PeriodSeconds:       30,
 					},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "containerd-socket",
-							MountPath: socketPath,
-						},
-						{
-							Name:      "run-containerd",
-							MountPath: "/run/containerd",
-						},
-						{
-							Name:      "var-lib-containerd",
-							MountPath: "/var/lib/containerd",
-						},
-						{
-							Name:      "run-orchest-buildkit",
-							MountPath: "/run/orchest_buildkit",
-						},
-						{
-							Name:             "orchest-buildkit-storage",
-							MountPath:        "/var/lib/orchest_buildkit",
-							MountPropagation: &bidirectional_propagation,
-						},
-					},
-				},
+					VolumeMounts: volumeMounts},
 			},
 		},
 	}
