@@ -14,18 +14,20 @@ IMGS=(
 	"orchest-webserver"
 )
 
-VERSION="v2022.09.1"
-for IMG in ${IMGS[@]}
-do
-    echo "saving ${IMG}:${VERSION}"
-	docker save --output "/tmp/${IMG}.tar" "orchest/${IMG}:${VERSION}" &
-done
-wait < <(jobs -p)
+if [ "${1}" != "skip-docker" ]; then
+	VERSION="v2022.09.1"
+	for IMG in ${IMGS[@]}
+	do
+			echo "saving ${IMG}:${VERSION}"
+		docker save --output "/tmp/${IMG}.tar" "orchest/${IMG}:${VERSION}" &
+	done
+	wait < <(jobs -p)
+fi
 
 for IMG in ${IMGS[@]}
 do
     echo "loading ${IMG}"
-	microk8s images import < "/tmp/${IMG}.tar" &
+	microk8s ctr image import - < "/tmp/${IMG}.tar" &
 done
 
 wait < <(jobs -p)
