@@ -800,13 +800,12 @@ button.themed-secondary {
     height: 100%;
     width: 100%;
     background-size: 32px 32px;
-    background-image: url("/image/grid-dot.svg");
     background-repeat: repeat;
     position: relative;
   }
 
   .pipeline-steps-holder {
-    height: 100%;
+    background-image: url("/image/grid-dot.svg");
     position: absolute;
     user-select: none;
     -webkit-user-select: none;
