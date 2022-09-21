@@ -409,6 +409,17 @@ def process_images_for_deletion(app, task_uuid: str) -> None:
     module would need a bit of a refactoring.
     """
     with app.app_context():
+
+        # Needed to cleanup records that failed to update their status
+        # in order to resume pushing. A temporary fix. TODO: fix this.
+        models.SchedulerJob.query.filter(
+            models.SchedulerJob.uuid != task_uuid,
+            models.SchedulerJob.type
+            == SchedulerJobType.PROCESS_IMAGES_FOR_DELETION.value,
+            models.SchedulerJob.status == "STARTED",
+        ).update({"status": "FAILED"})
+        db.session.commit()
+
         environments.mark_env_images_that_can_be_removed()
         utils.mark_custom_jupyter_images_to_be_removed()
         db.session.commit()
