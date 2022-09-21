@@ -46,16 +46,6 @@ export function checkHeartbeat(url: string, retries = 250) {
 }
 
 // used in orchest-webserver only
-export function intersectRect(r1, r2) {
-  return !(
-    r2.x > r1.x + r1.width ||
-    r2.x + r2.width < r1.x ||
-    r2.y > r1.y + r1.height ||
-    r2.y + r2.height < r1.y
-  );
-}
-
-// used in orchest-webserver only
 export function activeElementIsInput() {
   return document.activeElement
     ? ["TEXTAREA", "INPUT"].includes(document.activeElement.tagName)
@@ -83,11 +73,11 @@ export function validURL(
 }
 
 // used in orchest-webserver only
-export function kernelNameToLanguage(kernel_name) {
+export function kernelNameToLanguage(kernel_name: string): string {
   let mapping = {
     ir: "r",
   };
-  return mapping[kernel_name] ? mapping[kernel_name] : kernel_name;
+  return mapping[kernel_name] || kernel_name;
 }
 
 // used in orchest-webserver only

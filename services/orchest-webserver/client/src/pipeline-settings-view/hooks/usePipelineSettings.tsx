@@ -11,6 +11,7 @@ export const usePipelineSettings = ({
   pipelineUuid,
   jobUuid,
   runUuid,
+  snapshotUuid,
   isBrowserTabFocused,
 }: UseFetchPipelineSettingsParams) => {
   const {
@@ -26,6 +27,7 @@ export const usePipelineSettings = ({
     pipelineUuid,
     jobUuid,
     runUuid,
+    snapshotUuid,
     isBrowserTabFocused,
   });
 

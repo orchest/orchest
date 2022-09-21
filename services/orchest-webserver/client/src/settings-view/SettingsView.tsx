@@ -2,7 +2,7 @@ import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
@@ -13,12 +13,12 @@ import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SaveIcon from "@mui/icons-material/Save";
 import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
 import TuneIcon from "@mui/icons-material/Tune";
-import { Typography } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { checkHeartbeat, fetcher, hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
@@ -35,9 +35,9 @@ const SettingsView: React.FC = () => {
     setConfirm,
     state: { hasUnsavedChanges },
     config: orchestConfig,
-  } = useAppContext();
+  } = useGlobalContext();
 
-  const { orchestVersion, checkUpdate } = useAppInnerContext();
+  const { orchestVersion, checkUpdate } = useAppContext();
 
   useSendAnalyticEvent("view:loaded", { name: siteMap.settings.path });
 

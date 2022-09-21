@@ -1,11 +1,11 @@
 import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/Layout";
-import { useAppContext } from "@/contexts/AppContext";
-import { useInterval } from "@/hooks/use-interval";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   useCancelableFetch,
   useCancelablePromise,
 } from "@/hooks/useCancelablePromise";
+import { useInterval } from "@/hooks/useInterval";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
@@ -17,7 +17,7 @@ import { checkHeartbeat, fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 const UpdateView: React.FC = () => {
-  const { setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.update.path });
 
   const { cancelableFetch } = useCancelableFetch();

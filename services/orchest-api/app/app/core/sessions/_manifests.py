@@ -11,9 +11,9 @@ import traceback
 from typing import Any, Dict, Optional, Tuple
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import add_image_puller_if_needed, get_userdir_relpath
+from _orchest.internals.utils import get_userdir_relpath
 from app import utils
-from app.connections import k8s_core_api
+from app.core import pod_scheduling
 from app.types import SessionConfig, SessionType
 from config import CONFIG_CLASS
 
@@ -198,7 +198,6 @@ def _get_session_sidecar_deployment_manifest(
     pipeline_path = session_config["pipeline_path"]
     project_dir = session_config["project_dir"]
     userdir_pvc = session_config["userdir_pvc"]
-    session_type = session_type.value
 
     metadata = {
         "name": f"session-sidecar-{session_uuid}",
@@ -365,6 +364,12 @@ def _get_environment_shell_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
+                    "dnsConfig": {
+                        "options": [
+                            {"name": "timeout", "value": "10"},  # 30 is max
+                            {"name": "attempts", "value": "5"},  # 5 is max
+                        ],
+                    },
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                         volumes_dict["container-runtime-socket"],
@@ -407,14 +412,7 @@ def _get_environment_shell_deployment_service_manifest(
             },
         },
     }
-
-    add_image_puller_if_needed(
-        registry_environment_image,
-        registry_ip,
-        _config.CONTAINER_RUNTIME,
-        _config.CONTAINER_RUNTIME_IMAGE,
-        deployment_manifest,
-    )
+    pod_scheduling.modify_env_shell_scheduling_behaviour(deployment_manifest)
 
     service_manifest = {
         "apiVersion": "v1",
@@ -433,13 +431,11 @@ def _get_environment_shell_deployment_service_manifest(
 def _get_jupyter_server_deployment_service_manifest(
     session_uuid: str,
     session_config: SessionConfig,
-    session_type: SessionType,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     project_uuid = session_config["project_uuid"]
     pipeline_path = session_config["pipeline_path"]
     project_dir = session_config["project_dir"]
     userdir_pvc = session_config["userdir_pvc"]
-    session_type = session_type.value
 
     metadata = {
         "name": f"jupyter-server-{session_uuid}",
@@ -547,14 +543,7 @@ def _get_jupyter_server_deployment_service_manifest(
             },
         },
     }
-
-    add_image_puller_if_needed(
-        utils.get_jupyter_server_image_to_use(),
-        utils.get_registry_ip(),
-        _config.CONTAINER_RUNTIME,
-        _config.CONTAINER_RUNTIME_IMAGE,
-        deployment_manifest,
-    )
+    pod_scheduling.modify_jupyter_server_scheduling_behaviour(deployment_manifest)
 
     service_manifest = {
         "apiVersion": "v1",
@@ -690,7 +679,6 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     pipeline_path = session_config["pipeline_path"]
     project_dir = session_config["project_dir"]
     userdir_pvc = session_config["userdir_pvc"]
-    session_type = session_type.value
 
     metadata = {
         "name": f"jupyter-eg-{session_uuid}",
@@ -701,44 +689,15 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         },
     }
 
-    # Get user environment variables to pass to Jupyter kernels.
-    try:
-        user_defined_env_vars = utils.get_proj_pip_env_variables(
-            project_uuid, pipeline_uuid
-        )
-
-        # NOTE: Don't allow users to specify change the `PATH` as it
-        # could break user code execution. The `PATH` var is removed
-        # when starting kernels through the jupyter-EG as well.
-        user_defined_env_vars.pop("PATH", None)
-    except Exception:
-        user_defined_env_vars = {}
-
     process_env_whitelist = [
         "ORCHEST_PIPELINE_UUID",
         "ORCHEST_PIPELINE_PATH",
         "ORCHEST_PROJECT_UUID",
-        "ORCHEST_USERDIR_PVC",
         "ORCHEST_PROJECT_DIR",
         "ORCHEST_PIPELINE_FILE",
-        "ORCHEST_HOST_GID",
-        "ORCHEST_SESSION_UUID",
-        "ORCHEST_SESSION_TYPE",
-        "ORCHEST_GPU_ENABLED_INSTANCE",
-        "ORCHEST_REGISTRY",
-        "ORCHEST_CLUSTER",
-        "ORCHEST_NAMESPACE",
     ]
-    process_env_whitelist.extend(list(user_defined_env_vars.keys()))
     process_env_whitelist = ",".join(process_env_whitelist)
 
-    # Need to reference the ip because the local docker engine will
-    # run the container, and if the image is missing it will prompt
-    # a pull which will fail because the FQDN can't be resolved by
-    # the local engine on the node. K8S_TODO: fix this.
-    registry_ip = k8s_core_api.read_namespaced_service(
-        _config.REGISTRY, _config.ORCHEST_NAMESPACE
-    ).spec.cluster_ip
     environment = {
         "EG_MIRROR_WORKING_DIRS": "True",
         "EG_LIST_KERNELS": "True",
@@ -761,23 +720,10 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         # each kernel."
         "EG_NAMESPACE": _config.ORCHEST_NAMESPACE,
         "EG_SHARED_NAMESPACE": "True",
-        "ORCHEST_USERDIR_PVC": userdir_pvc,
         "ORCHEST_PROJECT_DIR": project_dir,
         "ORCHEST_PIPELINE_FILE": pipeline_path,
-        "ORCHEST_HOST_GID": os.environ.get("ORCHEST_HOST_GID"),
-        "ORCHEST_GPU_ENABLED_INSTANCE": str(CONFIG_CLASS.GPU_ENABLED_INSTANCE),
-        "ORCHEST_REGISTRY": registry_ip,
-        "ORCHEST_NAMESPACE": _config.ORCHEST_NAMESPACE,
-        "ORCHEST_CLUSTER": _config.ORCHEST_CLUSTER,
-        "CONTAINER_RUNTIME_SOCKET": _config.CONTAINER_RUNTIME_SOCKET,
-        "CONTAINER_RUNTIME": _config.CONTAINER_RUNTIME,
-        "CONTAINER_RUNTIME_IMAGE": _config.CONTAINER_RUNTIME_IMAGE,
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
-    user_defined_env_vars = [
-        {"name": key, "value": value} for key, value in user_defined_env_vars.items()
-    ]
-    environment.extend(user_defined_env_vars)
     environment.extend(
         _get_orchest_sdk_vars(
             project_uuid,
@@ -878,7 +824,6 @@ def _get_user_service_deployment_service_manifest(
     project_dir = session_config["project_dir"]
     userdir_pvc = session_config["userdir_pvc"]
     img_mappings = session_config["env_uuid_to_image"]
-    session_type = session_type.value
 
     # Template section
     is_pbp_enabled = service_config.get("preserve_base_path", False)
@@ -899,7 +844,7 @@ def _get_user_service_deployment_service_manifest(
 
     # Get user configured environment variables
     try:
-        if session_type == "noninteractive":
+        if session_type.value == "noninteractive":
             # Get job environment variable overrides
             user_env_variables = session_config["user_env_variables"]
         else:
@@ -957,9 +902,7 @@ def _get_user_service_deployment_service_manifest(
         # run the container, and if the image is missing it will prompt
         # a pull which will fail because the FQDN can't be resolved by
         # the local engine on the node. K8S_TODO: fix this.
-        registry_ip = k8s_core_api.read_namespaced_service(
-            _config.REGISTRY, _config.ORCHEST_NAMESPACE
-        ).spec.cluster_ip
+        registry_ip = utils.get_registry_ip()
 
         image = image.replace(prefix, "")
         image = img_mappings[image]
@@ -1017,13 +960,8 @@ def _get_user_service_deployment_service_manifest(
             },
         },
     }
-
-    add_image_puller_if_needed(
-        image,
-        utils.get_registry_ip(),
-        _config.CONTAINER_RUNTIME,
-        _config.CONTAINER_RUNTIME_IMAGE,
-        deployment_manifest,
+    pod_scheduling.modify_user_service_scheduling_behaviour(
+        session_type.value, deployment_manifest
     )
 
     # K8S doesn't like empty commands.

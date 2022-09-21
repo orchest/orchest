@@ -8,7 +8,8 @@
     "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
     "setup": "npm i -g pnpm@~7.0.0",
-    "test": "pnpm run -r --parallel test:ci"
+    "test": "pnpm run -r --parallel test:ci",
+    "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.4.0",

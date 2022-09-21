@@ -1,5 +1,6 @@
-import { useInterval } from "@/hooks/use-interval";
+import { useInterval } from "@/hooks/useInterval";
 import { LogType } from "@/types";
+import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
@@ -9,13 +10,14 @@ import { useSocketIO } from "./hooks/useSocketIO";
 
 const HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
 
-export interface ILogViewerProps {
+export interface LogViewerProps {
   pipelineUuid: string | undefined;
   projectUuid: string | undefined;
   jobUuid: string | undefined | null;
   runUuid: string | undefined | null;
   type: LogType;
   logId: string;
+  terminalSx?: SxProps<Theme>;
 }
 
 export const LogViewer = ({
@@ -25,7 +27,8 @@ export const LogViewer = ({
   projectUuid,
   runUuid,
   type,
-}: ILogViewerProps) => {
+  terminalSx,
+}: LogViewerProps) => {
   const sessionUuid = React.useMemo<string>(() => uuidv4(), []);
   const [heartbeatInterval, setHeartbeatInterval] = React.useState<
     number | null
@@ -166,6 +169,7 @@ export const LogViewer = ({
         "> div": {
           height: "100%",
         },
+        ...terminalSx,
       }}
     >
       <XTerm addons={[fitAddon]} ref={xtermRef} />
