@@ -1,5 +1,5 @@
 import { useJobsApi } from "@/api/jobs/useJobsApi";
-import RouteLink from "@/components/RouteLink";
+import { RouteLink } from "@/components/RouteLink";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";

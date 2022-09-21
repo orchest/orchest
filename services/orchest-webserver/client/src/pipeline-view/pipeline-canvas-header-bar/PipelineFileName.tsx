@@ -1,4 +1,4 @@
-import RouteLink from "@/components/RouteLink";
+import { RouteLink } from "@/components/RouteLink";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useRouteLink } from "@/hooks/useCustomRoute";
 import { basename } from "@/utils/path";

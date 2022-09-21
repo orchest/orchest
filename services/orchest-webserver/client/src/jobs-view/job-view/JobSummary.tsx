@@ -1,4 +1,4 @@
-import RouteLink from "@/components/RouteLink";
+import { RouteLink } from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
 import { JobData } from "@/types";
 import Box from "@mui/material/Box";

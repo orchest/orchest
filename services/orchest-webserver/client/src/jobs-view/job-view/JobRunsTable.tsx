@@ -1,4 +1,4 @@
-import RouteLink from "@/components/RouteLink";
+import { RouteLink } from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
 import { PipelineRun } from "@/types";
 import { ChevronRightSharp } from "@mui/icons-material";
