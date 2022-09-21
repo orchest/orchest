@@ -1,4 +1,4 @@
-import { ViewportCenterMessage } from "@/pipeline-view/pipeline-viewport/components/ViewportCenterMessage";
+import { EmptyState } from "@/components/common/EmptyState";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import Button from "@mui/material/Button";
 import Stack, { StackProps } from "@mui/material/Stack";
@@ -17,7 +17,7 @@ export const NoEnvironment = (props: StackProps) => {
 
   return (
     <Stack justifyContent="center" alignItems="center" sx={{ height: "100%" }}>
-      <ViewportCenterMessage
+      <EmptyState
         imgSrc="/image/no-environment.svg"
         title="No Environments"
         description={`Environments define the conditions in which Pipeline steps execute scripts and kernels.`}
