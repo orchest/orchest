@@ -20,7 +20,7 @@ export const EnvironmentMenuList = () => {
 
   const setEnvironment = useEnvironmentsApi((state) => state.setEnvironment);
   const environments = useEnvironmentsApi((state) => state.environments);
-  const { selectEnvironment } = useSelectEnvironment();
+  const selectEnvironment = useSelectEnvironment();
 
   const updateStoreAndRedirect = (uuid: string) => {
     const environment = environmentDataFromState(environmentChanges);
@@ -43,7 +43,7 @@ export const EnvironmentMenuList = () => {
     >
       <CreateEnvironmentButton
         sx={{ flexShrink: 0 }}
-        onCreated={updateStoreAndRedirect}
+        onCreated={selectEnvironment}
       />
       <MenuList
         sx={{

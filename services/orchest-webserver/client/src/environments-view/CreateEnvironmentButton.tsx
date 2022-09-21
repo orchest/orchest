@@ -16,7 +16,7 @@ export const CreateEnvironmentButton = ({
   onCreated,
   ...props
 }: CreateEnvironmentButtonProps) => {
-  const { createEnvironment, isAllowedToCreate } = useCreateEnvironment();
+  const { createEnvironment, canCreateEnvironment } = useCreateEnvironment();
   const onCreate = async () => {
     const newEnvironment = await createEnvironment();
     if (newEnvironment) onCreated(newEnvironment.uuid);
@@ -25,7 +25,7 @@ export const CreateEnvironmentButton = ({
   return (
     <CreateEntityButton
       onClick={onCreate}
-      disabled={!isAllowedToCreate}
+      disabled={!canCreateEnvironment}
       {...props}
     >
       New environment
