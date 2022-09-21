@@ -22,7 +22,7 @@ export const EditEnvironmentContainer = ({
 
   const environments = useEnvironmentsApi((state) => state.environments);
   const isLoading = !hasValue(environments);
-  const hasNoEnvironments = !isLoading && environments.length > 0;
+  const hasNoEnvironments = !isLoading && environments.length === 0;
 
   if (isLoading) {
     return null;
