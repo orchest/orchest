@@ -23,7 +23,10 @@ import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
-import { INITIAL_PIPELINE_OFFSET } from "../hooks/usePipelineCanvasState";
+import {
+  INITIAL_PIPELINE_OFFSET,
+  PIPELINE_CANVAS_SIZE,
+} from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { FullViewportHolder } from "./components/FullViewportHolder";
 import { Overlay } from "./components/Overlay";
@@ -206,6 +209,9 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
         <PipelineCanvas
           ref={pipelineCanvasRef}
           style={{
+            width: PIPELINE_CANVAS_SIZE,
+            height: PIPELINE_CANVAS_SIZE,
+            boxSizing: "content-box",
             transformOrigin: `${pipelineOrigin[0]}px ${pipelineOrigin[1]}px`,
             transform:
               `translate(${stringifyPoint(pipelineOffset, "px")}) ` +
