@@ -10,11 +10,6 @@ type MainSidePanelProps = { children: React.ReactNode };
 export const MainSidePanel = ({ children }: MainSidePanelProps) => {
   const [mainSidePanelWidth, setMainSidePanelWidth] = useMainSidePanelWidth();
 
-  const onSetSize = React.useCallback(
-    (width: number) => setMainSidePanelWidth(width),
-    [setMainSidePanelWidth]
-  );
-
   return (
     <ResizablePane
       direction="horizontal"
@@ -29,7 +24,7 @@ export const MainSidePanel = ({ children }: MainSidePanelProps) => {
         flexDirection: "column",
         height: "100%",
       }}
-      onSetSize={onSetSize}
+      onSetSize={setMainSidePanelWidth}
     >
       {children}
     </ResizablePane>
