@@ -33,8 +33,7 @@ export const EnvironmentMoreOptions = () => {
     (state) => state.environmentChanges?.action
   );
 
-  const { selectEnvironment } = useSelectEnvironment();
-
+  const selectEnvironment = useSelectEnvironment();
   const deleteEnvironment = useEnvironmentsApi((state) => state.delete);
   const environments = useEnvironmentsApi((state) => state.environments);
   const isUsedByJobs = useEnvironmentsApi((state) => state.isUsedByJobs);

@@ -65,10 +65,10 @@ export const usePipelineActions = () => {
     doRunSteps(selectedSteps, "incoming");
   }, [doRunSteps, selectedSteps]);
 
-  const { createJob, isAllowedToCreateJob } = useCreateJob(pipeline);
+  const { createJob, canCreateJob } = useCreateJob(pipeline);
 
   const createDraftJob = React.useCallback(async () => {
-    if (!isAllowedToCreateJob) return;
+    if (!canCreateJob) return;
     const jobData = await createJob();
     const jobChanges = pickJobChanges(jobData);
     if (jobChanges) {
@@ -77,13 +77,7 @@ export const usePipelineActions = () => {
     }
     if (jobChanges)
       uiStateDispatch({ type: "SET_DRAFT_JOB", payload: jobChanges.uuid });
-  }, [
-    createJob,
-    uiStateDispatch,
-    isAllowedToCreateJob,
-    initJobChanges,
-    startEditing,
-  ]);
+  }, [canCreateJob, createJob, uiStateDispatch, initJobChanges, startEditing]);
 
   // No operation is allowed when read-only.
   if (isReadOnly) return {};
