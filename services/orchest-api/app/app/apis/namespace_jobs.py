@@ -1345,7 +1345,10 @@ class UpdateJobParameters(TwoPhaseFunction):
                 # One time job that needs to run right now. The
                 # scheduler will not pick it up because it does not have
                 # a next_scheduled_time.
-                if job.next_scheduled_time is None:
+                if job.next_scheduled_time is None or job.next_scheduled_time.replace(
+                    tzinfo=timezone.utc
+                ) <= datetime.now(timezone.utc):
+                    job.next_scheduled_time = None
                     job.last_scheduled_time = datetime.now(timezone.utc)
                     UpdateJobParameters._register_job_updated_event(
                         old_job, job.as_dict()
