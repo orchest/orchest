@@ -410,7 +410,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         multiSelect
       >
         {treeRoots.map((root) => {
-          const combinedPath = join(root, ROOT_SEPARATOR + "/");
+          const combinedPath = join(root + ROOT_SEPARATOR + "/");
 
           return (
             <FileTreeItem
