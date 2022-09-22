@@ -1345,7 +1345,10 @@ class UpdateJobParameters(TwoPhaseFunction):
                 # One time job that needs to run right now. The
                 # scheduler will not pick it up because it does not have
                 # a next_scheduled_time.
-                if job.next_scheduled_time is None:
+                if job.next_scheduled_time is None or job.next_scheduled_time.replace(
+                    tzinfo=timezone.utc
+                ) <= datetime.now(timezone.utc):
+                    job.next_scheduled_time = None
                     job.last_scheduled_time = datetime.now(timezone.utc)
                     UpdateJobParameters._register_job_updated_event(
                         old_job, job.as_dict()
@@ -1823,6 +1826,16 @@ class AbortJobPipelineRun(TwoPhaseFunction):
         UpdateJobPipelineRun(self.tpe).transaction(
             job_uuid, run_uuid, {"status": "ABORTED"}
         )
+        job = (
+            db.session.query(
+                models.Job.project_uuid,
+                models.Job.pipeline_uuid,
+            )
+            .filter_by(uuid=job_uuid)
+            .one()
+        )
+
+        events.register_job_pipeline_run_cancelled(job.project_uuid, job_uuid, run_uuid)
         return True
 
     def _collateral(self):

@@ -12,7 +12,7 @@ from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import errors as self_errors
 from app import schema, utils
-from app.apis.namespace_runs import AbortPipelineRun
+from app.apis.namespace_runs import AbortInteractivePipelineRun
 from app.connections import db, k8s_core_api
 from app.core import environments, events, pod_scheduling, sessions
 from app.errors import JupyterEnvironmentBuildInProgressException
@@ -333,7 +333,7 @@ class StopInteractiveSession(TwoPhaseFunction):
                 models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
             ).one_or_none()
             if run is not None:
-                AbortPipelineRun(self.tpe).transaction(run.uuid)
+                AbortInteractivePipelineRun(self.tpe).transaction(run.uuid)
 
             session.status = "STOPPING"
             session_uuid = project_uuid[:18] + pipeline_uuid[:18]

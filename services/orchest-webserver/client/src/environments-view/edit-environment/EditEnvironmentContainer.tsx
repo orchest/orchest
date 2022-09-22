@@ -20,20 +20,23 @@ export const EditEnvironmentContainer = ({
   useSaveEnvironmentChanges();
   useUpdateBuildStatusInEnvironmentChanges();
 
-  const hasNoEnvironment = useEnvironmentsApi((state) =>
-    !hasValue(state.environments) ? undefined : state.environments.length === 0
-  );
+  const environments = useEnvironmentsApi((state) => state.environments);
+  const isLoading = !hasValue(environments);
+  const hasNoEnvironments = !isLoading && environments.length === 0;
 
-  if (!hasValue(hasNoEnvironment)) return null;
-  return hasNoEnvironment ? (
-    <NoEnvironment />
-  ) : (
-    <Stack
-      direction="column"
-      spacing={3}
-      sx={{ paddingBottom: (theme) => theme.spacing(6) }}
-    >
-      {children}
-    </Stack>
-  );
+  if (isLoading) {
+    return null;
+  } else if (hasNoEnvironments) {
+    return <NoEnvironment />;
+  } else {
+    return (
+      <Stack
+        direction="column"
+        spacing={3}
+        sx={{ paddingBottom: (theme) => theme.spacing(6) }}
+      >
+        {children}
+      </Stack>
+    );
+  }
 };

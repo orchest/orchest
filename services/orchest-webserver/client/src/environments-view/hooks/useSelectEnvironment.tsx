@@ -19,5 +19,5 @@ export const useSelectEnvironment = () => {
     [navigateTo, projectUuid]
   );
 
-  return { selectEnvironment };
+  return selectEnvironment;
 };

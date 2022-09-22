@@ -2,7 +2,6 @@ import {
   CreateEntityButton,
   CreateEntityButtonProps,
 } from "@/blocks/CreateEntityButton";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import React from "react";
 import { pickJobChanges } from "./common";
@@ -16,27 +15,12 @@ type CreateJobButtonProps = Omit<
   onCreated: (uuids: string) => void;
 };
 
-// TODO: replace this with usePipelinesApi using zustand.
-const useGetValidPipeline = () => {
-  const {
-    state: { pipelines = [], pipeline },
-  } = useProjectsContext();
-
-  const validPipeline = React.useMemo(() => {
-    return pipeline || pipelines[0];
-  }, [pipelines, pipeline]);
-
-  return validPipeline;
-};
-
 export const CreateJobButton = ({
   onCreated,
   ...props
 }: CreateJobButtonProps) => {
   const { projectUuid } = useCustomRoute();
-
-  const pipeline = useGetValidPipeline();
-  const { createJob, isAllowedToCreateJob } = useCreateJob(pipeline);
+  const { createJob, canCreateJob, pipeline } = useCreateJob();
 
   const { withConfirmation } = useUnsavedChangesWarning();
 
@@ -52,7 +36,7 @@ export const CreateJobButton = ({
   return (
     <CreateEntityButton
       onClick={() => withConfirmation(onCreate)}
-      disabled={!isAllowedToCreateJob}
+      disabled={!canCreateJob}
       {...props}
     >
       New job

@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/common/EmptyState";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useUploader } from "@/hooks/useUploader";
@@ -9,7 +10,6 @@ import { lastSelectedFolderPath } from "../file-manager/common";
 import { CreateFileDialog } from "../file-manager/CreateFileDialog";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useCreateStep } from "../hooks/useCreateStep";
-import { ViewportCenterMessage } from "./components/ViewportCenterMessage";
 
 export const NoStep = () => {
   const { selectedFiles, fetchFileTrees } = useFileManagerContext();
@@ -30,7 +30,7 @@ export const NoStep = () => {
 
   return (
     <>
-      <ViewportCenterMessage
+      <EmptyState
         imgSrc="/image/files.svg"
         title="No scripts or notebooks"
         description={`There are no files in this Project yet. Create or upload a file to get started.`}
