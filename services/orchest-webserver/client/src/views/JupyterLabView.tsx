@@ -160,7 +160,7 @@ const JupyterLabView = () => {
 
   useInterval(
     () => {
-      if (window.orchest.jupyter?.isJupyterLoaded() && pipelineJson) {
+      if (window.orchest.jupyter?.isRendered() && pipelineJson) {
         for (let stepUUID in pipelineJson.steps) {
           let step = pipelineJson.steps[stepUUID];
 
@@ -187,24 +187,26 @@ const JupyterLabView = () => {
       <ProjectBasedView
         sx={{ padding: (theme) => theme.spacing(4), height: "100%" }}
       >
-        <Stack
-          justifyContent="center"
-          alignItems="center"
-          sx={{ height: "100%" }}
-        >
-          <Box
-            sx={{
-              textAlign: "center",
-              width: "100%",
-              maxWidth: "400px",
-            }}
+        {!window.orchest.jupyter?.isLoaded() && (
+          <Stack
+            justifyContent="center"
+            alignItems="center"
+            sx={{ height: "100%" }}
           >
-            <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
-              Setting up JupyterLab…
-            </Typography>
-            <LinearProgress />
-          </Box>
-        </Stack>
+            <Box
+              sx={{
+                textAlign: "center",
+                width: "100%",
+                maxWidth: "400px",
+              }}
+            >
+              <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
+                Setting up JupyterLab…
+              </Typography>
+              <LinearProgress />
+            </Box>
+          </Stack>
+        )}
       </ProjectBasedView>
       <BuildPendingDialog
         onCancel={() => {

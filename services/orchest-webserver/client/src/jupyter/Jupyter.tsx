@@ -1,5 +1,6 @@
 import { ConfirmDispatcher } from "@/contexts/GlobalContext";
 import { tryUntilTrue } from "@/utils/webserver-utils";
+import { hasValue } from "@orchest/lib-utils";
 
 // This is to enable using hotkeys to open CommandPalette.
 // Proxy all the keydown events in the iframe to the hosting document object.
@@ -121,19 +122,21 @@ class Jupyter {
       brittle internal/private APIs.
     */
     window.clearInterval(this.showCheckInterval);
+
     this.showCheckInterval = window.setInterval(() => {
       if (this.iframeHasLoaded) {
         this._unhide();
 
-        if (this.hasJupyterRenderingGlitched()) {
+        if (this.failedToRender()) {
           console.log("Reloading iframe because JupyterLab failed to render");
+
           this.reloadIframe();
-        } else if (!this.isJupyterPage()) {
+        } else if (!this.hasJupyterIframe()) {
           console.log(
             "Reloading iframe page because JupyterLab page not loaded (4XX or 5XX)"
           );
           this.reloadIframe();
-        } else if (this.isJupyterPage() && !this.isJupyterLoaded()) {
+        } else if (this.hasJupyterIframe() && !this.isRendered()) {
           // console.log("Still initializing page.");
           // This can run 100+ times easily, hiding
           // console.log to avoid cluttering
@@ -148,8 +151,8 @@ class Jupyter {
 
   isShowing() {
     return (
-      this.isJupyterPage() &&
-      this.isJupyterLoaded() &&
+      this.hasJupyterIframe() &&
+      this.isRendered() &&
       !this.jupyterHolder.classList.contains("hidden")
     );
   }
@@ -207,59 +210,45 @@ class Jupyter {
     }
   }
 
-  isJupyterPage() {
-    try {
-      if (
-        this.iframe?.contentWindow?.document.getElementById(
-          "jupyter-config-data"
-        )
-      ) {
+  hasJupyterIframe() {
+    return Boolean(
+      this.iframe?.contentWindow?.document.getElementById("jupyter-config-data")
+    );
+  }
+
+  isLoaded() {
+    return Boolean(this.iframe?.contentWindow?._orchest_app?.shell?.widgets());
+  }
+
+  isRendered() {
+    if (!this.isLoaded()) return false;
+
+    const widgets = this.iframe?.contentWindow?._orchest_app.shell.widgets();
+
+    let widget;
+    while ((widget = widgets.next())) {
+      if (hasValue(widget.node.offsetParent)) {
         return true;
       }
-    } catch {
-      return false;
     }
+
+    return false;
   }
 
-  isJupyterLoaded() {
-    try {
-      let widgets = this.iframe?.contentWindow?._orchest_app.shell.widgets();
+  hasShellRenderingProblem() {
+    const shellNode = this.iframe?.contentWindow?._orchest_app.shell.node;
+    const contentPanel = shellNode?.querySelector("#jp-main-content-panel");
 
-      // a widget is on screen
-      let widgetOnScreen = false;
-      let widget;
-      while ((widget = widgets.next())) {
-        if (widget.node.offsetParent !== null) {
-          widgetOnScreen = true;
-          break;
-        }
-      }
-      return (
-        this.iframe?.contentWindow?._orchest_app !== undefined && widgetOnScreen
-      );
-    } catch {
-      return false;
-    }
+    if (!contentPanel) return true;
+
+    return (
+      contentPanel.clientWidth !== shellNode.clientWidth ||
+      contentPanel.clientWidth <= 500
+    );
   }
 
-  isJupyterShellRenderedCorrectly() {
-    try {
-      return (
-        this.iframe?.contentWindow?._orchest_app.shell.node.querySelector(
-          "#jp-main-content-panel"
-        ).clientWidth ===
-          this.iframe?.contentWindow?._orchest_app.shell.node.clientWidth ||
-        this.iframe?.contentWindow?._orchest_app.shell.node.querySelector(
-          "#jp-main-content-panel"
-        ).clientWidth > 500
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  hasJupyterRenderingGlitched() {
-    return this.isJupyterLoaded() && !this.isJupyterShellRenderedCorrectly();
+  failedToRender() {
+    return this.isRendered() && this.hasShellRenderingProblem();
   }
 
   reloadIframe() {
@@ -373,7 +362,7 @@ class Jupyter {
 
     tryUntilTrue(
       () => {
-        if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {
+        if (this.failedToRender()) {
           try {
             this.iframe?.contentWindow?._orchest_docmanager.openOrReveal(
               filePath
