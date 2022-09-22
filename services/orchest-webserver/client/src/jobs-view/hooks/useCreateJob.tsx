@@ -61,7 +61,17 @@ const InvalidEnvironmentsError = ({
   );
 };
 
-export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
+// TODO: replace this with usePipelinesApi using zustand.
+const useFirstBestPipeline = (desired: PipelineMetaData | undefined) => {
+  const {
+    state: { pipelines = [], pipeline },
+  } = useProjectsContext();
+
+  return desired || pipeline || pipelines[0];
+};
+
+export const useCreateJob = (desiredPipeline?: PipelineMetaData) => {
+  const pipeline = useFirstBestPipeline(desiredPipeline);
   const { setAlert } = useGlobalContext();
   const { name, uuid: pipelineUuid } = pipeline || {};
   const jobs = useJobsApi((state) => state.jobs || []);
@@ -76,14 +86,13 @@ export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
 
   const { run, status } = useAsync<JobData | undefined>();
 
-  const isAllowedToCreateJob =
+  const canCreateJob =
     status !== "PENDING" && hasValue(pipelineUuid) && hasValue(name);
 
   const createJob = React.useCallback(async () => {
-    if (isAllowedToCreateJob) {
+    if (canCreateJob) {
       try {
-        const newJob = await run(post(pipelineUuid, name, newJobName));
-        return newJob;
+        return await run(post(pipelineUuid, name, newJobName));
       } catch (error) {
         const invalidPipelines: string[] | undefined =
           error.body?.invalid_pipelines;
@@ -97,15 +106,14 @@ export const useCreateJob = (pipeline: PipelineMetaData | undefined) => {
         );
       }
     }
-  }, [
-    post,
-    isAllowedToCreateJob,
-    pipelineUuid,
-    name,
-    newJobName,
-    run,
-    setAlert,
-  ]);
+  }, [post, canCreateJob, pipelineUuid, name, newJobName, run, setAlert]);
 
-  return { createJob, isAllowedToCreateJob };
+  return {
+    /** Creates the new job. */
+    createJob,
+    /** Whether the job can be created at the current moment in time. */
+    canCreateJob,
+    /** The pipeline that the job will be created for. */
+    pipeline,
+  };
 };

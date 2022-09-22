@@ -20,7 +20,7 @@ export const StepCreateEnvironmentButton = ({
 }: StepCreateEnvironmentButtonProps) => {
   const { navigateTo, projectUuid } = useCustomRoute();
   const { setAlert } = useGlobalContext();
-  const { createEnvironment, isAllowedToCreate } = useCreateEnvironment();
+  const { createEnvironment, canCreateEnvironment } = useCreateEnvironment();
   const createEnvironmentAndRedirect = async () => {
     try {
       const environment = await createEnvironment(
@@ -41,7 +41,7 @@ export const StepCreateEnvironmentButton = ({
     <FormControl fullWidth>
       <Button
         startIcon={<AddIcon />}
-        disabled={!isAllowedToCreate}
+        disabled={!canCreateEnvironment}
         sx={{ height: (theme) => theme.spacing(7) }}
         onClick={createEnvironmentAndRedirect}
       >

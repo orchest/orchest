@@ -52,6 +52,7 @@ const post = (
         uuids: [],
       },
       parameters: [],
+      max_retained_pipeline_runs: 250,
     }),
   });
 

@@ -4,7 +4,7 @@ import Stack, { StackProps } from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
-type ViewportCenterMessageProps = StackProps & {
+type EmptyStateProps = StackProps & {
   imgSrc: string;
   title: string;
   description: string;
@@ -12,7 +12,7 @@ type ViewportCenterMessageProps = StackProps & {
   actions?: React.ReactNode;
 };
 
-export const ViewportCenterMessage = ({
+export const EmptyState = ({
   imgSrc,
   title,
   description,
@@ -20,7 +20,7 @@ export const ViewportCenterMessage = ({
   sx,
   actions,
   ...props
-}: ViewportCenterMessageProps) => {
+}: EmptyStateProps) => {
   return (
     <Stack
       direction="column"

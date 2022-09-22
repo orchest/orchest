@@ -1,4 +1,4 @@
-import { ViewportCenterMessage } from "@/pipeline-view/pipeline-viewport/components/ViewportCenterMessage";
+import { EmptyState } from "@/components/common/EmptyState";
 import { AddOutlined, DownloadOutlined } from "@mui/icons-material";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -16,7 +16,7 @@ export const NoProject = ({ importProject, createProject }: NoProjectProps) => {
       alignItems="center"
       sx={{ marginTop: (theme) => theme.spacing(6) }}
     >
-      <ViewportCenterMessage
+      <EmptyState
         imgSrc="/image/no-project.svg"
         title="No Projects"
         description="Projects are the main container for organizing related Pipelines, Jobs, Environments and code."
