@@ -94,13 +94,9 @@ const JupyterLabView = () => {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB)
         .then((result) => {
           if (result === true) {
-            // Force reloading the view.
             dispatch({
               type: "SET_PIPELINE_READONLY_REASON",
               payload: undefined,
-            });
-            navigateTo(siteMap.jupyterLab.path, {
-              query: { projectUuid, pipelineUuid },
             });
           } else if (
             ![
