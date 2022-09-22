@@ -9,18 +9,12 @@ import { useJobActions } from "./useJobActions";
 export const useJobActionMenu = () => {
   const status = useEditJob((state) => state.jobChanges?.status);
   const schedule = useEditJob((state) => state.jobChanges?.schedule);
-  const nextScheduledTime = useEditJob(
-    (state) => state.jobChanges?.next_scheduled_time
-  );
   const { resumeJob, pauseJob, duplicateJob, triggerJobNow } = useJobActions();
 
   const isCronJob = hasValue(schedule);
-  const isOneOffJob = !schedule && hasValue(nextScheduledTime);
-  const isScheduledJob = isCronJob || isOneOffJob;
 
   const isAllowedToTriggerScheduledRuns =
-    (isCronJob && ["PAUSED", "STARTED"].includes(status || "")) ||
-    (isOneOffJob && status === "PENDING");
+    isCronJob && ["PAUSED", "STARTED"].includes(status || "");
 
   const isRunning = ["PAUSED", "STARTED", "PENDING"].includes(status || "");
   const hasPaused = status === "PAUSED";
@@ -43,7 +37,7 @@ export const useJobActionMenu = () => {
         {
           label: hasPaused ? "Resume job" : "Pause job",
           icon: hasPaused ? "resume" : "pause",
-          disabled: !isScheduledJob || !isRunning,
+          disabled: !isCronJob || !isRunning,
           action: hasPaused ? resumeJob : pauseJob,
         },
         {
@@ -67,7 +61,7 @@ export const useJobActionMenu = () => {
       duplicateJob,
       hasPaused,
       isRunning,
-      isScheduledJob,
+      isCronJob,
       pauseJob,
       resumeJob,
       triggerJobNow,
