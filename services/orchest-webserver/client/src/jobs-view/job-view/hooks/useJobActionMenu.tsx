@@ -34,18 +34,22 @@ export const useJobActionMenu = () => {
               action: startEditingActiveCronJob,
             }
           : undefined,
-        {
-          label: hasPaused ? "Resume job" : "Pause job",
-          icon: hasPaused ? "resume" : "pause",
-          disabled: !isCronJob || !isRunning,
-          action: hasPaused ? resumeJob : pauseJob,
-        },
-        {
-          label: "Trigger job now",
-          icon: "run",
-          disabled: !isAllowedToTriggerScheduledRuns,
-          action: triggerJobNow,
-        },
+        isCronJob
+          ? {
+              label: hasPaused ? "Resume job" : "Pause job",
+              icon: hasPaused ? "resume" : "pause",
+              disabled: !isCronJob || !isRunning,
+              action: hasPaused ? resumeJob : pauseJob,
+            }
+          : undefined,
+        isCronJob
+          ? {
+              label: "Trigger job now",
+              icon: "run",
+              disabled: !isAllowedToTriggerScheduledRuns,
+              action: triggerJobNow,
+            }
+          : undefined,
         {
           label: "Copy job configuration",
           icon: "duplicate",
