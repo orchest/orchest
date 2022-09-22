@@ -38,7 +38,7 @@ export const useJobActionMenu = () => {
           ? {
               label: hasPaused ? "Resume job" : "Pause job",
               icon: hasPaused ? "resume" : "pause",
-              disabled: !isCronJob || !isRunning,
+              disabled: !isRunning,
               action: hasPaused ? resumeJob : pauseJob,
             }
           : undefined,
