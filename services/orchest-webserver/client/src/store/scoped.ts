@@ -27,7 +27,8 @@ export type ScopedStateCreator<
   A extends Exclude<ScopeParameter, S> = never
 > = (
   setState: StateSetter<WithScopes<T, S, A>>,
-  getState: () => WithScopes<T, S, A>
+  getState: () => WithScopes<T, S, A>,
+  store: StoreApi<WithInitialScope<T, S, A>>
 ) => T;
 
 export type UseScopedStore<
