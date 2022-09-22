@@ -19,7 +19,7 @@ No frameworks. No YAML. Just write your data processing code directly in **Pytho
 **Julia**.
 
 <p align="center">
-  <img width="100%" src="https://user-images.githubusercontent.com/1309307/191776173-25622160-5f02-4494-b10f-e01239da4f2c.gif">
+  <img width="100%" src="https://user-images.githubusercontent.com/1309307/191785568-ce4857c3-e71f-4b71-84ce-dfa5d65a98f9.gif">
 </p>
 
 <p align="center">
