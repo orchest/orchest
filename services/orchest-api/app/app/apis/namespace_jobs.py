@@ -1823,6 +1823,16 @@ class AbortJobPipelineRun(TwoPhaseFunction):
         UpdateJobPipelineRun(self.tpe).transaction(
             job_uuid, run_uuid, {"status": "ABORTED"}
         )
+        job = (
+            db.session.query(
+                models.Job.project_uuid,
+                models.Job.pipeline_uuid,
+            )
+            .filter_by(uuid=job_uuid)
+            .one()
+        )
+
+        events.register_job_pipeline_run_cancelled(job.project_uuid, job_uuid, run_uuid)
         return True
 
     def _collateral(self):
