@@ -25,6 +25,7 @@ export const useCreateEnvironment = () => {
     async (language?: Language, customEnvironmentName?: string) => {
       const baseImage = language
         ? DEFAULT_BASE_IMAGES.find((image) => image.language === language)
+            ?.base_image
         : defaultEnvironment?.base_image;
       const environmentSpec = {
         ...defaultEnvironment,
