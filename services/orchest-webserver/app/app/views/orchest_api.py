@@ -167,6 +167,8 @@ def register_orchest_api_views(app, db):
         )
         return resp.content, resp.status_code, resp.headers.items()
 
+    # The cloud BE depends on this endpoint for some functionality,
+    # handle with care.
     @app.route("/catch/api-proxy/api/jobs", methods=["POST"])
     def catch_api_proxy_jobs_post():
 
