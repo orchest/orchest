@@ -62,7 +62,7 @@ export const templates: ServiceTemplates = {
       command: "bash",
       args:
         "-c 'umask 002 && code-server --auth none --bind-addr 0.0.0.0:8080 /home/coder/code-server'",
-      exposed: true,
+      exposed: false,
       requires_authentication: true,
       image: "codercom/code-server:latest",
       name: "vscode",

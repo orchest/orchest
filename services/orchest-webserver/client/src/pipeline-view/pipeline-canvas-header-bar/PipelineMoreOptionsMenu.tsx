@@ -12,6 +12,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useFileManagerContext } from "../file-manager/FileManagerContext";
 
 const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
   return fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
@@ -20,6 +21,7 @@ const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
 };
 
 export const PipelineMoreOptionsMenu = () => {
+  const { fetchFileTrees } = useFileManagerContext();
   const { setConfirm } = useGlobalContext();
   const { isReadOnly } = usePipelineDataContext();
   const {
@@ -52,6 +54,7 @@ export const PipelineMoreOptionsMenu = () => {
               ),
             };
           });
+          fetchFileTrees();
           resolve(true);
           return true;
         },

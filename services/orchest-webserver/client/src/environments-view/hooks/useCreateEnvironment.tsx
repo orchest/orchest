@@ -18,7 +18,7 @@ export const useCreateEnvironment = () => {
     defaultEnvironment?.name || "New environment",
     environments
   );
-  const isAllowedToCreate =
+  const canCreateEnvironment =
     hasValue(newEnvironmentName) && hasValue(defaultEnvironment);
 
   const createEnvironment = React.useCallback(
@@ -32,18 +32,18 @@ export const useCreateEnvironment = () => {
         base_image: baseImage,
         language: language || defaultEnvironment?.language,
       } as EnvironmentSpec;
-      if (status !== "PENDING" && isAllowedToCreate) {
+      if (status !== "PENDING" && canCreateEnvironment) {
         return run(
           post(customEnvironmentName ?? newEnvironmentName, environmentSpec)
         );
       }
     },
     [
-      post,
-      run,
-      status,
       defaultEnvironment,
-      isAllowedToCreate,
+      status,
+      canCreateEnvironment,
+      run,
+      post,
       newEnvironmentName,
     ]
   );
@@ -51,6 +51,6 @@ export const useCreateEnvironment = () => {
   return {
     createEnvironment,
     isCreating: status === "PENDING",
-    isAllowedToCreate,
+    canCreateEnvironment,
   };
 };
