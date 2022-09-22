@@ -18,7 +18,9 @@
 No frameworks. No YAML. Just write your data processing code directly in **Python**, **R** or
 **Julia**.
 
-https://user-images.githubusercontent.com/1309307/191747788-f44c087b-9e84-48b5-ba41-02361efd490e.mp4
+<p align="center">
+  <img width="100%" src="https://user-images.githubusercontent.com/1309307/191772388-8e56528f-95e5-4975-8b3e-888062d18f53.gif">
+</p>
 
 <p align="center">
   <i>💡 Watch the <a target="_blank" href="https://vimeo.com/589879082">full narrated video</a> to learn more about building data pipelines in Orchest.</i>
