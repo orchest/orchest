@@ -1,4 +1,4 @@
-import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
+import { useActiveJobRunApi } from "@/api/job-runs/useActiveJobRunApi";
 import React from "react";
 import { useAsync } from "./useAsync";
 import { useCancelJobRun } from "./useCancelJobRun";
@@ -8,14 +8,11 @@ import { useCancelJobRun } from "./useCancelJobRun";
  * and provides functions to interface with said run.
  */
 export const useActiveJobRun = () => {
-  const cancel = useCancelJobRun();
-  const fetchActive = useJobRunsApi((api) => api.fetchActive);
-  const activeRun = useJobRunsApi((api) => api.active);
+  const fetchActive = useActiveJobRunApi((api) => api.fetch);
+  const activeRun = useActiveJobRunApi((api) => api.run);
+  const cancel = useActiveJobRunApi((api) => api.cancel);
+  const cancelRun = useCancelJobRun(cancel);
   const { run, status, error } = useAsync();
-
-  const cancelRun = React.useCallback(() => {
-    if (activeRun) cancel(activeRun.uuid);
-  }, [cancel, activeRun]);
 
   React.useEffect(() => {
     if (!activeRun && status !== "PENDING") {

@@ -19,22 +19,8 @@ export type JobRunsApi = {
    * Hydrated by `fetchPage`.
    */
   pagination: PaginationDetails | undefined;
-  /**
-   * The currently active job run. Hydrated by `fetchActive`.
-   *
-   * Note: This is automatically cleared when `runUuid` changes.
-   */
-  active: PipelineRun | undefined;
   /** Fetches a job runs page and updates `runs` and `page`. */
   fetchPage: MemoizePending<(query: JobRunsPageQuery) => Promise<void>>;
-  /**
-   * Fetches the currently active job run as defined by `runUuid` in the current scope.
-   *
-   * Note: Throws if `runUuid` is not available.
-   */
-  fetchActive: MemoizePending<() => Promise<void>>;
-  /** Sets `active` to undefined. */
-  clearActive: () => void;
   /** Cancels a job run and updates the local state if successful. */
   cancel: (runUuid: string) => Promise<void>;
   /** Updates the status of a job run in the back-end. */
@@ -57,10 +43,6 @@ export const useJobRunsApi = create<JobRunsApi>((set, get) => {
   const updateStatus = (runUuid: string, status: PipelineRunStatus) => {
     set((state) => ({
       runs: state.runs ? setRunStatus(state.runs, runUuid, status) : state.runs,
-      active:
-        state.active?.uuid === runUuid
-          ? { ...state.active, status }
-          : state.active,
     }));
   };
 
@@ -80,16 +62,6 @@ export const useJobRunsApi = create<JobRunsApi>((set, get) => {
         },
       });
     }),
-    fetchActive: memoizeFor(1000, async () => {
-      const { jobUuid, runUuid } = get();
-
-      if (!runUuid) {
-        throw new Error("A `runUuid` is not defined within the current scope.");
-      }
-
-      set({ active: await jobRunsApi.fetchOne(jobUuid, runUuid) });
-    }),
-    clearActive: () => set({ active: undefined }),
     cancel: async (runUuid) => {
       await jobRunsApi.cancel(get().jobUuid, runUuid);
 
@@ -101,10 +73,4 @@ export const useJobRunsApi = create<JobRunsApi>((set, get) => {
       updateStatus(update.runUuid, update.status);
     },
   };
-});
-
-useJobRunsApi.subscribe((state) => {
-  if (state.active && state.runUuid !== state.active.uuid) {
-    state.clearActive();
-  }
 });
