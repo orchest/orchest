@@ -246,7 +246,7 @@ class Jupyter {
   }
 
   hasRenderingProblem() {
-    const shellNode = this.iframe?.contentWindow?._orchest_app.shell.node;
+    const shellNode = this.getApp()?.shell?.node;
     const contentPanel = shellNode?.querySelector("#jp-main-content-panel");
 
     if (!contentPanel) return true;
