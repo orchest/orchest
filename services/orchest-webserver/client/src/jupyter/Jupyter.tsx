@@ -127,7 +127,7 @@ class Jupyter {
       if (this.iframeHasLoaded) {
         this._unhide();
 
-        if (this.failedToRender()) {
+        if (this.hasRendered() && this.hasRenderingProblem()) {
           console.log("Reloading iframe because JupyterLab failed to render");
 
           this.reloadIframe();
@@ -136,7 +136,7 @@ class Jupyter {
             "Reloading iframe page because JupyterLab page not loaded (4XX or 5XX)"
           );
           this.reloadIframe();
-        } else if (this.hasJupyterIframe() && !this.isRendered()) {
+        } else if (this.hasJupyterIframe() && !this.hasRendered()) {
           // console.log("Still initializing page.");
           // This can run 100+ times easily, hiding
           // console.log to avoid cluttering
@@ -152,7 +152,7 @@ class Jupyter {
   isShowing() {
     return (
       this.hasJupyterIframe() &&
-      this.isRendered() &&
+      this.hasRendered() &&
       !this.jupyterHolder.classList.contains("hidden")
     );
   }
@@ -179,14 +179,24 @@ class Jupyter {
     this.reloadOnShow = true;
   }
 
+  getApp() {
+    return this.iframe?.contentWindow?._orchest_app;
+  }
+
+  getWidgets(name?: string) {
+    return this.getApp()?.shell?.widgets(name);
+  }
+
+  getDocManager() {
+    return this.iframe?.contentWindow?._orchest_docmanager;
+  }
+
   _reloadFilesFromDisk() {
-    if (this.iframe?.contentWindow?._orchest_app) {
+    const docManager = this.getDocManager();
+    const citer = this.getWidgets("main");
+
+    if (citer && docManager) {
       this.reloadOnShow = false;
-
-      let lab = this.iframe?.contentWindow?._orchest_app;
-      let docManager = this.iframe?.contentWindow?._orchest_docmanager;
-
-      let citer = lab.shell.widgets("main");
 
       let widget;
       while ((widget = citer.next())) {
@@ -198,7 +208,7 @@ class Jupyter {
           !widget.model.dirty
         ) {
           // for each widget revert if not dirty
-          let ctx = docManager.contextForWidget(widget);
+          const ctx = docManager.contextForWidget(widget);
 
           // ctx is undefined when widgets are closed
           // although widgets("main") seems to only return active widgets
@@ -216,14 +226,14 @@ class Jupyter {
     );
   }
 
-  isLoaded() {
-    return Boolean(this.iframe?.contentWindow?._orchest_app?.shell?.widgets());
+  hasLoaded() {
+    return Boolean(this.getWidgets());
   }
 
-  isRendered() {
-    if (!this.isLoaded()) return false;
+  hasRendered() {
+    const widgets = this.getWidgets();
 
-    const widgets = this.iframe?.contentWindow?._orchest_app.shell.widgets();
+    if (!widgets) return false;
 
     let widget;
     while ((widget = widgets.next())) {
@@ -235,7 +245,7 @@ class Jupyter {
     return false;
   }
 
-  hasShellRenderingProblem() {
+  hasRenderingProblem() {
     const shellNode = this.iframe?.contentWindow?._orchest_app.shell.node;
     const contentPanel = shellNode?.querySelector("#jp-main-content-panel");
 
@@ -245,10 +255,6 @@ class Jupyter {
       contentPanel.clientWidth !== shellNode.clientWidth ||
       contentPanel.clientWidth <= 500
     );
-  }
-
-  failedToRender() {
-    return this.isRendered() && this.hasShellRenderingProblem();
   }
 
   reloadIframe() {
@@ -264,30 +270,25 @@ class Jupyter {
     this.pendingKernelChanges[`${notebook}-${kernel}`] = value;
   }
 
+  /**
+   * @param notebook the file path relative to the project directory root.
+   *  E.g. somedir/myipynb.ipynb (no starting slash)
+   * @param kernel name of the kernel (orchest-kernel-<uuid>)
+   */
   setNotebookKernel(notebook: string, kernel: string) {
-    /**
-     *   @param {string} notebook relative path to the Jupyter file from the
-     *   perspective of the root of the project directory.
-     *   E.g. somedir/myipynb.ipynb (no starting slash)
-     *   @param {string} kernel name of the kernel (orchest-kernel-<uuid>)
-     */
-
     let warningMessage =
       "Do you want to change the active kernel of the opened " +
       "Notebook? \n\nYou will lose the current kernel's state if no other Notebook " +
       "is attached to it.";
 
-    if (this.iframe?.contentWindow?._orchest_app) {
-      let docManager = this.iframe?.contentWindow?._orchest_docmanager;
+    const docManager = this.getDocManager();
 
-      let notebookWidget = docManager.findWidget(notebook);
+    if (this.getApp() && docManager) {
+      const notebookWidget = docManager.findWidget(notebook);
+
       if (notebookWidget) {
-        let sessionContext = notebookWidget.context.sessionContext;
-        if (
-          sessionContext &&
-          sessionContext.session &&
-          sessionContext.session.kernel
-        ) {
+        const sessionContext = notebookWidget.context.sessionContext;
+        if (sessionContext?.session?.kernel) {
           if (sessionContext.session.kernel.name !== kernel) {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
@@ -351,31 +352,18 @@ class Jupyter {
     }
   }
 
-  navigateTo(filePath: string) {
-    /**
-     *   @param {string} filePath relative path to the Jupyter file from the
-     *   perspective of the root of the project directory.
-     *   E.g. somedir/myipynb.ipynb (no starting slash)
-     */
-
+  openFile(filePath: string) {
     if (!filePath) return;
+
+    const isFileOpen = () =>
+      Boolean(this.getDocManager()?.findWidget(filePath)?.isVisible);
+    const openOrRevealFile = () =>
+      Boolean(this.getDocManager()?.openOrReveal(filePath)?.isVisible);
 
     tryUntilTrue(
       () => {
-        if (this.failedToRender()) {
-          try {
-            this.iframe?.contentWindow?._orchest_docmanager.openOrReveal(
-              filePath
-            );
-            return (
-              this.iframe?.contentWindow?._orchest_docmanager.findWidget(
-                filePath
-              ) !== undefined
-            );
-          } catch (err) {
-            // fail silently
-            return false;
-          }
+        if (this.hasRendered() && !this.hasRenderingProblem()) {
+          return isFileOpen() || openOrRevealFile();
         } else {
           return false;
         }

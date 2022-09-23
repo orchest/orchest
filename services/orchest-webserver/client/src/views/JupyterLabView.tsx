@@ -120,7 +120,7 @@ const JupyterLabView = () => {
     if (session?.status === "RUNNING") {
       if (!window.orchest.jupyter?.isShowing()) {
         window.orchest.jupyter?.show();
-        if (filePath) window.orchest.jupyter?.navigateTo(filePath);
+        if (filePath) window.orchest.jupyter?.openFile(filePath);
       }
     } else {
       window.orchest.jupyter?.hide();
@@ -160,7 +160,7 @@ const JupyterLabView = () => {
 
   useInterval(
     () => {
-      if (window.orchest.jupyter?.isRendered() && pipelineJson) {
+      if (window.orchest.jupyter?.hasRendered() && pipelineJson) {
         for (let stepUUID in pipelineJson.steps) {
           let step = pipelineJson.steps[stepUUID];
 
@@ -187,7 +187,7 @@ const JupyterLabView = () => {
       <ProjectBasedView
         sx={{ padding: (theme) => theme.spacing(4), height: "100%" }}
       >
-        {!window.orchest.jupyter?.isLoaded() && (
+        {!window.orchest.jupyter?.hasLoaded() && (
           <Stack
             justifyContent="center"
             alignItems="center"
