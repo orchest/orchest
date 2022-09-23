@@ -410,45 +410,41 @@ def process_images_for_deletion(app, task_uuid: str) -> None:
     """
     with app.app_context():
 
-        # Needed to cleanup records that failed to update their status
-        # in order to resume pushing. A temporary fix. TODO: fix this.
-        models.SchedulerJob.query.filter(
-            models.SchedulerJob.uuid != task_uuid,
-            models.SchedulerJob.type
-            == SchedulerJobType.PROCESS_IMAGES_FOR_DELETION.value,
-            models.SchedulerJob.status == "STARTED",
-        ).update({"status": "FAILED"})
-        db.session.commit()
+        try:
+            environments.mark_env_images_that_can_be_removed()
+            utils.mark_custom_jupyter_images_to_be_removed()
+            db.session.commit()
 
-        environments.mark_env_images_that_can_be_removed()
-        utils.mark_custom_jupyter_images_to_be_removed()
-        db.session.commit()
+            # Don't queue the task if there are build tasks going, this
+            # is a "cheap" way to avoid piling up multiple garbage
+            # collection tasks while a build is ongoing.
+            if db.session.query(
+                db.session.query(models.EnvironmentImageBuild)
+                .filter(models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"]))
+                .exists()
+            ).scalar():
+                app.logger.info("Ongoing build, not queueing registry gc task.")
+                notify_scheduled_job_succeeded(task_uuid)
+                return
 
-        # Don't queue the task if there are build tasks going, this is a
-        # "cheap" way to avoid piling up multiple garbage collection
-        # tasks while a build is ongoing.
-        if db.session.query(
-            db.session.query(models.EnvironmentImageBuild)
-            .filter(models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar():
-            app.logger.info("Ongoing build, not queueing registry gc task.")
-            return
+            if db.session.query(
+                db.session.query(models.JupyterImageBuild)
+                .filter(models.JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
+                .exists()
+            ).scalar():
+                app.logger.info("Ongoing build, not queueing registry gc task.")
+                notify_scheduled_job_succeeded(task_uuid)
+                return
 
-        if db.session.query(
-            db.session.query(models.JupyterImageBuild)
-            .filter(models.JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar():
-            app.logger.info("Ongoing build, not queueing registry gc task.")
-            return
-
-        celery = make_celery(app)
-        app.logger.info("Sending registry garbage collection task.")
-        res = celery.send_task(
-            name="app.core.tasks.registry_garbage_collection", task_id=task_uuid
-        )
-        res.forget()
+            celery = make_celery(app)
+            app.logger.info("Sending registry garbage collection task.")
+            res = celery.send_task(
+                name="app.core.tasks.registry_garbage_collection", task_id=task_uuid
+            )
+            res.forget()
+        except Exception as e:
+            logger.error(e)
+            notify_scheduled_job_failed(task_uuid)
 
 
 def process_notification_deliveries(app, task_uuid: str) -> None:

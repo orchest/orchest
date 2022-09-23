@@ -485,7 +485,12 @@ class OrchestSettings:
                 dict(
                     name=k,
                     value={"value": v},
-                    requires_restart=k in settings_requiring_restart,
+                    # Set it to False because the only time that there
+                    # won't be a conflict on insert is when installing
+                    # Orchest. On genuine changes the requires_restart
+                    # status of the setting is determined by the
+                    # "on_conflict" statement below.
+                    requires_restart=False,
                 )
                 for k, v in settings_as_dict.items()
             ]
@@ -494,7 +499,7 @@ class OrchestSettings:
             index_elements=[models.Setting.name],
             set_=dict(
                 value=stmt.excluded.value,
-                requires_restart=stmt.excluded.requires_restart,
+                requires_restart=stmt.excluded.name.in_(settings_requiring_restart),
             ),
         )
         db.session.execute(stmt)
