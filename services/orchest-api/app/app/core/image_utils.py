@@ -19,7 +19,8 @@ def image_build_task_to_pod_name(task_uuid: str) -> str:
 _RUNTIME_TO_IMAGE_BUILDER_CMD = {
     "docker": (
         "docker buildx build -f {dockerfile_path} -t {full_image_name} . "
-        "--progress=plain"
+        # See https://github.com/awslabs/amazon-eks-ami/issues/183.
+        "--progress=plain --network=host"
     ),
     "containerd": (
         "buildctl build --frontend=dockerfile.v0 --local context=. "
