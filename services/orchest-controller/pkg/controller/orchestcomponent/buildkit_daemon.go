@@ -72,6 +72,9 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 	if strings.Contains(socketPath, "microk8s") {
 		runContainerdPath = "/var/snap/microk8s/common/run/containerd"
 		varLibContainerdPath = "/var/snap/microk8s/common/var/lib/containerd"
+	} else if strings.Contains(socketPath, "k3s") {
+		runContainerdPath = "/var/run/k3s/containerd"
+		varLibContainerdPath = "/var/lib/rancher/k3s/agent/containerd"
 	}
 
 	volumes := []corev1.Volume{
@@ -149,7 +152,7 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 		},
 	}
 
-	if strings.Contains(socketPath, "microk8s") {
+	if strings.Contains(socketPath, "microk8s") || strings.Contains(socketPath, "k3s") {
 		volumes = append(volumes, corev1.Volume{
 			Name: "run-containerd-fifo",
 			VolumeSource: corev1.VolumeSource{

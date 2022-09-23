@@ -70,7 +70,8 @@ class="pre">orchest-cli</span></code>:</p>
 <div class="highlight">
 <pre>
 pip install --upgrade orchest-cli
-orchest install
+# Omit the socket path if you pointed k3s to use the system containerd.
+orchest install --socket-path=/run/k3s/containerd/containerd.sock
 </pre>
 </div>
 <p>Now that Orchest is installed, it can be reached on the IP address returned by:</p>
