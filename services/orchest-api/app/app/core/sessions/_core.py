@@ -49,6 +49,9 @@ def launch(
 
         should_abort = always_false
 
+    if session_type not in [SessionType.INTERACTIVE, SessionType.NONINTERACTIVE]:
+        raise ValueError(f"Invalid session type: {session_type}.")
+
     # Internal Orchest session services.
     orchest_session_service_k8s_deployment_manifests = []
     orchest_session_service_k8s_service_manifests = []
@@ -56,26 +59,6 @@ def launch(
     session_rbac_roles = []
     session_rbac_service_accounts = []
     session_rbac_rolebindings = []
-    if session_type in [SessionType.INTERACTIVE, SessionType.NONINTERACTIVE]:
-        if session_config.get("services", {}):
-            logger.info("Adding session sidecar to log user services.")
-            (
-                role,
-                service_account,
-                rolebinding,
-            ) = _manifests._get_session_sidecar_rbac_manifests(
-                session_uuid, session_config
-            )
-            session_rbac_roles.append(role)
-            session_rbac_service_accounts.append(service_account)
-            session_rbac_rolebindings.append(rolebinding)
-            orchest_session_service_k8s_deployment_manifests.append(
-                _manifests._get_session_sidecar_deployment_manifest(
-                    session_uuid, session_config, session_type
-                )
-            )
-    else:
-        raise ValueError(f"Invalid session type: {session_type}.")
 
     if session_type == SessionType.INTERACTIVE:
         (
@@ -124,6 +107,22 @@ def launch(
         user_session_service_k8s_service_manifests.append(serv)
         if ingress is not None:
             user_session_service_k8s_ingress_manifests.append(ingress)
+
+    if user_session_service_k8s_deployment_manifests:
+        logger.info("Adding session sidecar to log user services.")
+        (
+            role,
+            service_account,
+            rolebinding,
+        ) = _manifests._get_session_sidecar_rbac_manifests(session_uuid, session_config)
+        session_rbac_roles.append(role)
+        session_rbac_service_accounts.append(service_account)
+        session_rbac_rolebindings.append(rolebinding)
+        orchest_session_service_k8s_deployment_manifests.append(
+            _manifests._get_session_sidecar_deployment_manifest(
+                session_uuid, session_config, session_type
+            )
+        )
 
     ns = _config.ORCHEST_NAMESPACE
 
