@@ -15,10 +15,12 @@ const useSocketIOStore = create<SocketIO>((set) => ({
     set((state) => {
       const currentSocket = state.sockets[namespace];
       if (currentSocket) return {};
+      // Socket, by default, will attempt to connect automatically upon creation.
+      // Therefore, no need to call `socket.connect(...)` manually.
       const socket = io(namespace, {
         transports: ["websocket"],
         upgrade: false,
-        reconnection: false,
+        reconnection: false, // Prevent automatically attempting to reconnect when being disconnected.
         closeOnBeforeunload: true,
       });
       return { sockets: { ...state.sockets, [namespace]: socket } };
