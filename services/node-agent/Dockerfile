@@ -13,8 +13,11 @@ ENV CONTAINERD_DOWNLOAD_URL="https://github.com/containerd/containerd/releases/d
 # insecure registries by default and for which the ssl certificates
 # injection did not fix the issue, like in kubernetes for docker for
 # desktop.
-RUN apt-get update && apt-get install -y buildah && buildah version && \
-    apt-get clean
+RUN apt-get update \
+    && apt-get install -yq --no-install-recommends buildah \
+    && buildah version \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install containerd.
 RUN curl -L $CONTAINERD_DOWNLOAD_URL --output containerd-$CONTAINERD_VERSION-linux-amd64.tar.gz \
