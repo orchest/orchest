@@ -30,10 +30,11 @@ const alertMessageMapping: Record<
 };
 
 export const JobStatusAlert = () => {
+  const isEditing = useEditJob((state) => state.isEditing);
   const jobStatus = useEditJob((state) => state.jobChanges?.status);
   const { resumeJob } = useJobActions();
 
-  const alert = alertMessageMapping[jobStatus || ""];
+  const alert = isEditing ? undefined : alertMessageMapping[jobStatus || ""];
   return (
     <Collapse in={Boolean(alert)}>
       {hasValue(alert) && (
