@@ -7,6 +7,7 @@ import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
+import { CANVAS_PADDING } from "../pipeline-viewport/common";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { useSetShouldAutoFocusStepName } from "../step-details/store/useAutoFocusStepName";
 
@@ -49,8 +50,8 @@ export const useCreateStep = (): StepCreator => {
         const [offsetX, offsetY] = pipelineOffset;
 
         const position: Point2D = [
-          -offsetX + clientWidth / 2 - STEP_WIDTH / 2,
-          -offsetY + clientHeight / 2 - STEP_HEIGHT / 2,
+          -offsetX + clientWidth / 2 - STEP_WIDTH / 2 - CANVAS_PADDING,
+          -offsetY + clientHeight / 2 - STEP_HEIGHT / 2 - CANVAS_PADDING,
         ];
 
         const stepPath = relativeToPipeline(pipelineCwd, filePath);
