@@ -104,7 +104,7 @@ jupyter-core==4.11.1
     #   nbformat
 jupyterlab-pygments==0.2.2
     # via nbconvert
-mako==1.2.1
+mako==1.2.2
     # via alembic
 markupsafe==2.0.1
     # via
