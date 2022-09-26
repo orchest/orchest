@@ -24,8 +24,12 @@ export type PipelineDataContextType = {
   pipelineJson?: PipelineJson;
   setPipelineJson: StateDispatcher<PipelineJson>;
   isFetchingPipelineJson: boolean;
+  /** Whether this is a pipeline from a job run. */
   isJobRun: boolean;
+  /** Whether this is a snapshot of a pipeline run. */
   isSnapshot: boolean;
+  /** Whether this is an interactive pipeline: not a job run nor snapshot. */
+  isInteractive: boolean;
   pipeline?: PipelineMetaData;
   job?: JobData;
 };
@@ -112,6 +116,8 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
 
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
   const isSnapshot = hasValue(jobUuid) && hasValue(snapshotUuid);
+  const isInteractive = !isJobRun && !isSnapshot;
+
   const { job } = useFetchJob({
     jobUuid: isJobRun || isSnapshot ? jobUuid : undefined,
   });
@@ -128,6 +134,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         runUuid,
         setRunUuid,
         isReadOnly,
+        isInteractive,
         pipelineJson,
         setPipelineJson,
         isFetchingPipelineJson,

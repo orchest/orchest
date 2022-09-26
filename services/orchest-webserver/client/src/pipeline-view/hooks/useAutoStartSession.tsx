@@ -21,7 +21,7 @@ export const useAutoStartSession = () => {
     dispatch,
   } = useProjectsContext();
   const { setAlert, setConfirm } = useGlobalContext();
-  const { isJobRun } = usePipelineDataContext();
+  const { isInteractive } = usePipelineDataContext();
   const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();
 
   const session = React.useMemo(() => getSession(pipeline?.uuid), [
@@ -30,7 +30,7 @@ export const useAutoStartSession = () => {
   ]);
 
   const shouldCheckIfAutoStartIsNeeded =
-    !isJobRun && // This is not a job run
+    isInteractive && // This is an interactive pipeline
     hasValue(sessions) && // `sessions` is available to look up
     hasValue(pipeline?.uuid) && // `pipeline` is loaded.
     pipelineUuidFromRoute === pipeline?.uuid && // Only auto-start the pipeline that user is viewing.
