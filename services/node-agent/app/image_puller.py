@@ -202,8 +202,8 @@ class ImagePuller(object):
                 try:
                     if should_pull:
                         self.logger.info(f"Pulling image '{image_name}'...")
-                        pulled_successfully = (
-                            await self.container_runtime.download_image(image_name)
+                        pulled_successfully = await self.container_runtime.pull_image(
+                            image_name
                         )
 
                     # We might need to notify the orchest-api without

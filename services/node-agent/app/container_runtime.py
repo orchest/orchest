@@ -134,14 +134,14 @@ class ContainerRuntime(object):
         success, _, _ = await self.execute_cmd(cmd=cmd)
         return success
 
-    async def download_image(self, image_name: str) -> bool:
-        """Downloads (pulls) the named image.
+    async def pull_image(self, image_name: str) -> bool:
+        """Pulls the named image.
 
         Args:
-            image_name: The name of the image for downloading.
+            image_name: The name of the image to pull.
 
         Returns:
-            True if download was successful, False otherwise.
+            True if the pull was successful, False otherwise.
 
         """
         result = True
