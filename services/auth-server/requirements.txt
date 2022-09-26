@@ -22,7 +22,7 @@ flask==1.1.1
     #   flask-migrate
     #   flask-script
     #   flask-sqlalchemy
-    #   orchest-internals
+    #   sanitized-package
 flask-migrate==2.5.3
     # via -r requirements.in
 flask-script==2.0.6
@@ -43,7 +43,7 @@ jinja2==3.0.3
     # via
     #   -r requirements.in
     #   flask
-mako==1.2.0
+mako==1.2.2
     # via alembic
 markupsafe==2.1.1
     # via
@@ -52,7 +52,7 @@ markupsafe==2.1.1
 monotonic==1.6
     # via posthog
 posthog==1.4.7
-    # via orchest-internals
+    # via sanitized-package
 psycopg2-binary==2.8.6
     # via -r requirements.in
 python-dateutil==2.8.2
@@ -60,8 +60,8 @@ python-dateutil==2.8.2
 requests==2.26.0
     # via
     #   -r requirements.in
-    #   orchest-internals
     #   posthog
+    #   sanitized-package
 six==1.16.0
     # via
     #   posthog
