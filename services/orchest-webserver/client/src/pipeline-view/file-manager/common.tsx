@@ -356,12 +356,13 @@ const getFilePathInDataFolder = (dragFilePath: string) =>
   cleanFilePath(dragFilePath);
 
 export const getFilePathRelativeToPipeline = (
-  absFilePath: string,
+  fullFilePath: string | undefined,
   pipelineCwd: string
 ) => {
-  return isInDataFolder(absFilePath)
-    ? getFilePathInDataFolder(absFilePath)
-    : relative(pipelineCwd, cleanFilePath(absFilePath));
+  if (!hasValue(fullFilePath)) return pipelineCwd;
+  return isInDataFolder(fullFilePath)
+    ? getFilePathInDataFolder(fullFilePath)
+    : relative(pipelineCwd, cleanFilePath(fullFilePath));
 };
 
 export const lastSelectedFolderPath = (selectedFiles: string[]) => {

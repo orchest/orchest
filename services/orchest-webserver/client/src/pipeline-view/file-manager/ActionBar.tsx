@@ -48,7 +48,7 @@ export function ActionBar({
       reload();
 
       if (file.shouldCreateStep) {
-        createStep(file.projectPath);
+        createStep(file.fullPath);
       }
     },
     [createStep, setSelectedFiles, reload]
