@@ -5,7 +5,7 @@ import os
 import re
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import requests
 from flask import current_app, safe_join
@@ -859,3 +859,32 @@ def get_orchest_update_info_json(cache: bool = True) -> dict:
                 )
                 return _DEFAULT_ORCHEST_EXAMPLES_JSON
             return data
+
+
+def get_interactive_run_logs_path(project_uuid: uuid, pipeline_uuid: str) -> str:
+    return os.path.join(
+        get_project_directory(project_uuid),
+        ".orchest",
+        "pipelines",
+        pipeline_uuid,
+        "logs",
+    )
+
+
+def delete_interactive_run_logs(
+    project_uuid: str, pipeline_uuid: str, step_uuids: List[str]
+) -> None:
+    if not step_uuids:
+        return
+
+    log_files = " ".join(
+        [
+            os.path.join(
+                get_interactive_run_logs_path(project_uuid, pipeline_uuid),
+                f"{step_uuid}.log",
+            )
+            for step_uuid in step_uuids
+        ]
+    )
+
+    os.system(f"rm -rf {log_files}")
