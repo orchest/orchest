@@ -230,13 +230,39 @@ class ContainerRuntime(object):
         self.logger.debug(f"Image is deleted: '{image_name}'")
         return result
 
+    async def _push_image_for_docker_with_buildah(self, image_name: str) -> bool:
+        """Push an img from docker runtime to the registry with buildah.
+
+        See _pull_image_for_docker_with_buildah for more details. The
+        issue about temporary storage also applies.
+        """
+        self.logger.info(f"Attempting to push {image_name} with buildah.")
+        cmd = (
+            f"buildah pull docker-daemon:{image_name} && "
+            f"buildah push --tls-verify=false '{image_name}' && "
+            f"buildah rmi {image_name} && buildah rmi -p"
+        )
+        success, _, _ = await self.execute_cmd(cmd=cmd)
+        return success
+
     async def push_image(self, image_name: str) -> None:
         self.logger.debug(f"Pushing: '{image_name}'")
         if self.container_runtime == RuntimeType.Docker:
             try:
                 await self.aclient.images.push(name=image_name)
             except aiodocker.DockerError as e:
-                raise ImagePushError(str(e))
+                success = False
+                # e.status (status code) will be 500 for different
+                # failures , so we resort to partially matching the
+                # message. The message will look like the following for
+                # the case we are interested in:
+                # 'get "<url>": x509: certificate signed by unknown
+                # authority.
+                if "certificate" in e.message.lower():
+                    success = await self._push_image_for_docker_with_buildah(image_name)
+
+                if not success:
+                    raise ImagePushError(str(e))
 
         elif self.container_runtime == RuntimeType.Containerd:
             cmd = (
@@ -246,9 +272,4 @@ class ContainerRuntime(object):
             success, stdout, stderr = await self.execute_cmd(cmd=cmd)
             if not success:
                 raise ImagePushError(f"STDOUT: {stdout}\nSTDERR: {stderr}")
-        # ENV_PERF_TODO:
-        # Cover case of docker failing to push because of missing
-        # certificates , see the edge case in pull_image.sh. This will
-        # likely involve using a third party tool like buildah to push
-        # things separately.
         self.logger.debug(f"Image pushed: '{image_name}'")
