@@ -46,13 +46,10 @@ export const ImageBuildLog = ({
       // ignore terminal outputs from other builds
       if (data.identity === streamIdentity) {
         if (data.action === "sio_streamed_task_output") {
-          let lines = (data.output || "").split("\n");
+          const lines = (data.output || "").split("\n");
           for (let x = 0; x < lines.length; x++) {
-            if (x === lines.length - 1) {
-              xtermRef.current?.terminal.write(lines[x]);
-            } else {
-              xtermRef.current?.terminal.write(lines[x] + "\n\r");
-            }
+            if (x > 0) xtermRef.current?.terminal.write("\n\r");
+            xtermRef.current?.terminal.write(lines[x]);
           }
         } else if (data["action"] == "sio_streamed_task_started") {
           // This blocking mechanism makes sure old build logs are
