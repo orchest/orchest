@@ -40,43 +40,36 @@ export const ImageBuildLog = ({
   }, [fitAddon, xtermRef]);
 
   const socket = useSocketIO(socketIONamespace);
-  const hasRegisteredSocketIO = React.useRef(false);
-
-  React.useEffect(() => {
-    hasRegisteredSocketIO.current = false;
-  }, [socket]);
-
-  React.useEffect(() => {
-    if (!hasRegisteredSocketIO.current && !ignoreIncomingLogs) {
-      hasRegisteredSocketIO.current = true;
-      socket.on(
-        "sio_streamed_task_data",
-        (data: { action: string; identity: string; output?: string }) => {
-          // ignore terminal outputs from other builds
-          if (data.identity === streamIdentity) {
-            if (
-              data.action === "sio_streamed_task_output" &&
-              !ignoreIncomingLogs
-            ) {
-              let lines = (data.output || "").split("\n");
-              for (let x = 0; x < lines.length; x++) {
-                if (x == lines.length - 1) {
-                  xtermRef.current?.terminal.write(lines[x]);
-                } else {
-                  xtermRef.current?.terminal.write(lines[x] + "\n\r");
-                }
-              }
-            } else if (data["action"] == "sio_streamed_task_started") {
-              // This blocking mechanism makes sure old build logs are
-              // not displayed after the user has started a build
-              // during an ongoing build.
-              xtermRef.current?.terminal.reset();
+  const socketEventListener = React.useCallback(
+    (data: { action: string; identity: string; output?: string }) => {
+      if (!streamIdentity) return;
+      // ignore terminal outputs from other builds
+      if (data.identity === streamIdentity) {
+        if (data.action === "sio_streamed_task_output") {
+          let lines = (data.output || "").split("\n");
+          for (let x = 0; x < lines.length; x++) {
+            if (x === lines.length - 1) {
+              xtermRef.current?.terminal.write(lines[x]);
+            } else {
+              xtermRef.current?.terminal.write(lines[x] + "\n\r");
             }
           }
+        } else if (data["action"] == "sio_streamed_task_started") {
+          // This blocking mechanism makes sure old build logs are
+          // not displayed after the user has started a build
+          // during an ongoing build.
+          xtermRef.current?.terminal.reset();
         }
-      );
-    }
-  }, [socket, xtermRef, ignoreIncomingLogs, streamIdentity]);
+      }
+    },
+    [streamIdentity]
+  );
+  React.useEffect(() => {
+    socket?.on("sio_streamed_task_data", socketEventListener);
+    return () => {
+      socket?.off("sio_streamed_task_data", socketEventListener);
+    };
+  }, [socket, xtermRef, socketEventListener]);
 
   React.useEffect(() => {
     fitTerminal();

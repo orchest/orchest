@@ -110,7 +110,7 @@ export const LegacyImageBuildLog = ({
   React.useEffect(() => {
     if (!hasRegisteredSocketIO.current) {
       hasRegisteredSocketIO.current = true;
-      socket.on(
+      socket?.on(
         "sio_streamed_task_data",
         (data: { action: string; identity: string; output?: string }) => {
           // ignore terminal outputs from other builds
