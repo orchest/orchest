@@ -64,8 +64,8 @@ export const LogViewer = ({
   );
 
   const initializeSocketIOListener = React.useCallback(() => {
-    socket.on("pty-output", onPtyOutputHandler);
-    socket.on("pty-reset", onPtyReset);
+    socket?.on("pty-output", onPtyOutputHandler);
+    socket?.on("pty-reset", onPtyReset);
 
     setHeartbeatInterval(HEARTBEAT_INTERVAL);
   }, [onPtyOutputHandler, onPtyReset, socket]);
@@ -105,7 +105,7 @@ export const LogViewer = ({
       data["job_uuid"] = jobUuid;
     }
 
-    socket.emit("pty-log-manager", data);
+    socket?.emit("pty-log-manager", data);
   }, [
     jobUuid,
     logId,
@@ -119,7 +119,7 @@ export const LogViewer = ({
 
   useInterval(() => {
     if (sessionUuid) {
-      socket.emit("pty-log-manager", {
+      socket?.emit("pty-log-manager", {
         action: "heartbeat",
         session_uuid: sessionUuid,
       });
@@ -138,13 +138,13 @@ export const LogViewer = ({
 
     return () => {
       // stop logging
-      socket.emit("pty-log-manager", {
+      socket?.emit("pty-log-manager", {
         action: "stop-logs",
         session_uuid: sessionUuid,
       });
 
-      socket.off("pty-output", onPtyOutputHandler);
-      socket.off("pty-reset", onPtyReset);
+      socket?.off("pty-output", onPtyOutputHandler);
+      socket?.off("pty-reset", onPtyReset);
 
       window.removeEventListener("resize", fitTerminal);
     };
