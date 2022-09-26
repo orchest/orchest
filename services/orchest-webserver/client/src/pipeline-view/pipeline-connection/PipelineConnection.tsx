@@ -15,13 +15,13 @@ type PipelineConnectionProps = {
   endNodeUUID?: string;
   selected: boolean;
   shouldUpdate: readonly [boolean, boolean];
-  getPosition: (element: HTMLElement) => Point2D;
+  getElementPosition: (element: HTMLElement) => Point2D;
 };
 
 const PipelineConnectionComponent = ({
   shouldRedraw,
   isNew,
-  getPosition,
+  getElementPosition,
   selected,
   startNodeUUID,
   endNodeUUID,
@@ -49,13 +49,13 @@ const PipelineConnectionComponent = ({
   const endNode = stepRefs.current[`${endNodeUUID}-incoming`];
 
   const start =
-    shouldUpdateStart && startNode ? getPosition(startNode) : startPoint;
+    shouldUpdateStart && startNode ? getElementPosition(startNode) : startPoint;
 
   const newConnectionEnd = newConnection.current?.end;
 
   const end =
     shouldUpdateEnd && endNode
-      ? getPosition(endNode)
+      ? getElementPosition(endNode)
       : newConnectionEnd
       ? newConnectionEnd
       : endPoint || startPoint;

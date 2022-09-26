@@ -1,6 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { getFilePathRelativeToPipeline } from "@/pipeline-view/file-manager/common";
-import { getOffset } from "@/utils/element";
 import {
   isSamePoint,
   Point2D,
@@ -23,11 +22,9 @@ import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
-import {
-  INITIAL_PIPELINE_OFFSET,
-  PIPELINE_CANVAS_SIZE,
-} from "../hooks/usePipelineCanvasState";
+import { INITIAL_PIPELINE_OFFSET } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
+import { CANVAS_SIZE_WITH_PADDING } from "./common";
 import { FullViewportHolder } from "./components/FullViewportHolder";
 import { Overlay } from "./components/Overlay";
 import { useViewportMouseEvents } from "./hooks/useViewportMouseEvents";
@@ -111,7 +108,7 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
       if (isCreatingSelection) {
         uiStateDispatch({
           type: "CREATE_SELECTOR",
-          payload: getOffset(pipelineCanvasRef.current),
+          payload: canvasPointAtPointer(),
         });
       }
     };
@@ -209,8 +206,8 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
         <PipelineCanvas
           ref={pipelineCanvasRef}
           style={{
-            width: PIPELINE_CANVAS_SIZE,
-            height: PIPELINE_CANVAS_SIZE,
+            width: CANVAS_SIZE_WITH_PADDING,
+            height: CANVAS_SIZE_WITH_PADDING,
             boxSizing: "content-box",
             transformOrigin: `${pipelineOrigin[0]}px ${pipelineOrigin[1]}px`,
             transform:

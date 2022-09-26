@@ -1,0 +1,3 @@
+export const CANVAS_PADDING = 5000;
+export const CANVAS_SIZE = 2000;
+export const CANVAS_SIZE_WITH_PADDING = CANVAS_SIZE + CANVAS_PADDING * 2;

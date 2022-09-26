@@ -124,7 +124,7 @@ type PipelineStepProps = {
   savePositions: () => void;
   onDoubleClick: (stepUUID: string) => void;
   interactiveConnections: Connection[];
-  getPosition: (node: HTMLElement) => Point2D;
+  getElementPosition: (node: HTMLElement) => Point2D;
   children: React.ReactNode;
 };
 
@@ -141,7 +141,7 @@ const PipelineStepComponent = React.forwardRef<
     onDoubleClick,
     // the cursor-controlled step also renders all the interactive connections, to ensure the precision of the positions
     interactiveConnections,
-    getPosition,
+    getElementPosition,
     children, // expose children, so that children doesn't re-render when step is being dragged
   },
   ref
@@ -524,8 +524,8 @@ const PipelineStepComponent = React.forwardRef<
             boolean
           ];
 
-          const startPoint = getPosition(startNode);
-          const endPoint = endNode ? getPosition(endNode) : undefined;
+          const startPoint = getElementPosition(startNode);
+          const endPoint = endNode ? getElementPosition(endNode) : undefined;
 
           const key = `${startNodeUUID}-${endNodeUUID}-interactive`;
           const selected =
@@ -538,7 +538,7 @@ const PipelineStepComponent = React.forwardRef<
                 key={key}
                 startNodeUUID={startNodeUUID}
                 endNodeUUID={endNodeUUID}
-                getPosition={getPosition}
+                getPosition={getElementPosition}
                 selected={selected}
                 startPoint={startPoint}
                 endPoint={endPoint}

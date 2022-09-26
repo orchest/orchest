@@ -1,15 +1,21 @@
 import { getOffset } from "@/utils/element";
-import { dividePoint, Point2D, subtractPoints } from "@/utils/geometry";
+import { Point2D } from "@/utils/geometry";
 import { clamp } from "@/utils/math";
 import { getMousePoint } from "@/utils/mouse";
 import React from "react";
+import { CANVAS_PADDING } from "../pipeline-viewport/common";
 import { usePipelineRefs } from "./PipelineRefsContext";
 
 export type CanvasScaling = {
   scaleFactor: number;
   setScaleFactor: React.Dispatch<React.SetStateAction<number>>;
-  /** Given a position within the browser window, returns the unscaled position on the canvas. */
-  windowToCanvasPoint: (windowPoint: Point2D) => Point2D;
+  /**
+   * Given a position within the browser window, returns the unscaled position on the canvas.
+   * By default this function will take the `CANVAS_PADDING` into account.
+   * @param windowPoint The position within the window.
+   * @param padding Overrides the default `CANVAS_PADDING`.
+   */
+  windowToCanvasPoint: (windowPoint: Point2D, padding?: number) => Point2D;
   /** Returns the point on the canvas where the pointer is currently located. */
   canvasPointAtPointer: () => Point2D;
 };
@@ -51,10 +57,16 @@ export const CanvasScalingProvider: React.FC = ({ children }) => {
   );
 
   const windowToCanvasPoint = React.useCallback(
-    (point: Readonly<Point2D>): Point2D => {
-      const canvasOffset = getOffset(pipelineCanvasRef.current);
+    (
+      [pointX, pointY]: Readonly<Point2D>,
+      padding = CANVAS_PADDING
+    ): Point2D => {
+      const [offsetX, offsetY] = getOffset(pipelineCanvasRef.current);
 
-      return dividePoint(subtractPoints(point, canvasOffset), scaleFactor);
+      return [
+        (pointX - offsetX) / scaleFactor - padding,
+        (pointY - offsetY) / scaleFactor - padding,
+      ];
     },
     [scaleFactor, pipelineCanvasRef]
   );

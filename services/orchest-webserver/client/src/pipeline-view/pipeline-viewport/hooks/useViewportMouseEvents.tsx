@@ -3,16 +3,15 @@ import { usePipelineCanvasContext } from "@/pipeline-view/contexts/PipelineCanva
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
-import { getOffset } from "@/utils/element";
-import { addPoints, dividePoint, subtractPoints } from "@/utils/geometry";
-import { getMouseDelta, getMousePoint } from "@/utils/mouse";
+import { addPoints } from "@/utils/geometry";
+import { getMouseDelta } from "@/utils/mouse";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 /**A hook that handles all mouse events that within the pipeline viewport. */
 export const useViewportMouseEvents = () => {
   const { disabled } = usePipelineDataContext();
-  const { scaleFactor } = useCanvasScaling();
+  const { canvasPointAtPointer } = useCanvasScaling();
   const { keysDown, pipelineCanvasRef, newConnection } = usePipelineRefs();
 
   const {
@@ -33,20 +32,16 @@ export const useViewportMouseEvents = () => {
       return;
     }
 
-    const canvasOffset = getOffset(pipelineCanvasRef.current);
-
     // update newConnection's position
     if (newConnection.current) {
-      const end = dividePoint(
-        subtractPoints(getMousePoint(), canvasOffset),
-        scaleFactor
-      );
-
-      newConnection.current = { ...newConnection.current, end };
+      newConnection.current.end = canvasPointAtPointer();
     }
 
     if (stepSelector.active) {
-      uiStateDispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
+      uiStateDispatch({
+        type: "UPDATE_STEP_SELECTOR",
+        payload: canvasPointAtPointer(),
+      });
     }
 
     if (panningState === "panning") {
@@ -59,11 +54,9 @@ export const useViewportMouseEvents = () => {
     newConnection,
     stepSelector.active,
     panningState,
-    getMousePoint,
-    scaleFactor,
+    canvasPointAtPointer,
     uiStateDispatch,
     setPipelineCanvasState,
-    getMouseDelta,
   ]);
 
   const onMouseLeaveViewport = React.useCallback(() => {

@@ -15,6 +15,7 @@ import { useOpenFile } from "./hooks/useOpenFile";
 import { useSavePipelineJson } from "./hooks/useSavePipelineJson";
 import { PipelineCanvasHeaderBar } from "./pipeline-canvas-header-bar/PipelineCanvasHeaderBar";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
+import { CANVAS_PADDING } from "./pipeline-viewport/common";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { PipelineEditorRoot } from "./PipelineEditorRoot";
 import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
@@ -27,25 +28,28 @@ import { StepExecutionState } from "./StepExecutionState";
 import { ZoomControls } from "./zoom-controls/ZoomControls";
 
 const localElementPosition = (
+  [canvasOffsetX, canvasOffsetY]: Readonly<Point2D>,
   [offsetX, offsetY]: Readonly<Point2D>,
-  [parentOffsetX, parentOffsetY]: Readonly<Point2D>,
   scaleFactor: number
 ): Point2D => [
-  (offsetX - parentOffsetX) / scaleFactor,
-  (offsetY - parentOffsetY) / scaleFactor,
+  (offsetX - canvasOffsetX) / scaleFactor,
+  (offsetY - canvasOffsetY) / scaleFactor,
 ];
 
-const elementCenter = (
-  parentRef: React.MutableRefObject<HTMLDivElement | null>,
+const elementCenterOnCanvas = (
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>,
   scaleFactor: number
 ) => (node: HTMLElement): Point2D => {
   const [x, y] = localElementPosition(
+    getOffset(canvasRef.current),
     getOffset(node),
-    getOffset(parentRef.current),
     scaleFactor
   );
 
-  return [x + node.clientWidth / 2, y + node.clientHeight / 2];
+  return [
+    x + node.clientWidth / 2 - CANVAS_PADDING,
+    y + node.clientHeight / 2 - CANVAS_PADDING,
+  ];
 };
 
 export const PipelineEditor = () => {
@@ -78,8 +82,8 @@ export const PipelineEditor = () => {
 
   const hasSteps = Object.keys(steps).length;
 
-  const getPosition = React.useMemo(() => {
-    return elementCenter(pipelineCanvasRef, scaleFactor);
+  const getElementPosition = React.useMemo(() => {
+    return elementCenterOnCanvas(pipelineCanvasRef, scaleFactor);
   }, [pipelineCanvasRef, scaleFactor]);
 
   useSavePipelineJson();
@@ -228,7 +232,7 @@ export const PipelineEditor = () => {
               selected={isSelected}
               startNodeUUID={startNodeUUID}
               endNodeUUID={endNodeUUID}
-              getPosition={getPosition}
+              getElementPosition={getElementPosition}
               startPoint={startPoint}
               endPoint={endPoint ?? startPoint}
               shouldUpdate={shouldUpdate}
@@ -266,7 +270,7 @@ export const PipelineEditor = () => {
               }
               interactiveConnections={interactiveConnections}
               onDoubleClick={onDoubleClickStep}
-              getPosition={getPosition}
+              getElementPosition={getElementPosition}
             >
               <ConnectionDot
                 incoming

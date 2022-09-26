@@ -44,7 +44,7 @@ export const useViewportGestures = (
     (origin: Point2D, delta: number) => {
       if (disabled) return;
 
-      const relativeOrigin = windowToCanvasPoint(origin);
+      const relativeOrigin = windowToCanvasPoint(origin, 0);
 
       setPipelineCanvasOrigin(relativeOrigin);
       setScaleFactor((current) => current + delta);
@@ -66,7 +66,7 @@ export const useViewportGestures = (
         if (isZooming(event)) {
           const { deltaY, clientX, clientY } = event;
           const wheelDelta = (deltaY * ZOOM_SCROLL_FACTOR) / 100;
-          const originOnCanvas = windowToCanvasPoint([clientX, clientY]);
+          const originOnCanvas = windowToCanvasPoint([clientX, clientY], 0);
 
           setPipelineCanvasOrigin(originOnCanvas);
           setScaleFactor((current) => current - wheelDelta);
@@ -85,7 +85,7 @@ export const useViewportGestures = (
         const center = getClientCenter(event);
 
         if (hasValue(center)) {
-          setPipelineCanvasOrigin(windowToCanvasPoint(center));
+          setPipelineCanvasOrigin(windowToCanvasPoint(center, 0));
         }
 
         setScaleFactor(offset);

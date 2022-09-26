@@ -1,8 +1,11 @@
 import { Point2D } from "@/utils/geometry";
 import React from "react";
+import { CANVAS_PADDING } from "../pipeline-viewport/common";
 
-export const PIPELINE_CANVAS_SIZE = 2000;
-export const INITIAL_PIPELINE_OFFSET: Point2D = [-1, -1];
+export const INITIAL_PIPELINE_OFFSET: Point2D = [
+  -CANVAS_PADDING,
+  -CANVAS_PADDING,
+];
 
 type PanningState = "ready-to-pan" | "panning" | "idle";
 

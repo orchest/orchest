@@ -83,12 +83,10 @@ export const useViewportKeyboardEvents = () => {
   );
 
   const centerPipelineOrigin = React.useCallback(() => {
-    const viewportOffset = getOffset(pipelineViewportRef.current ?? undefined);
-    const canvasOffset = getOffset(pipelineCanvasRef.current ?? undefined);
+    if (!pipelineViewportRef.current) return;
 
-    if (pipelineViewportRef.current === null) {
-      return;
-    }
+    const viewportOffset = getOffset(pipelineViewportRef.current);
+    const canvasOffset = getOffset(pipelineCanvasRef.current);
 
     const viewportWidth = pipelineViewportRef.current.clientWidth;
     const viewportHeight = pipelineViewportRef.current.clientHeight;
