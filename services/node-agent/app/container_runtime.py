@@ -111,7 +111,7 @@ class ContainerRuntime(object):
         return result
 
     async def _pull_image_for_docker_with_buildah(self, image_name: str) -> bool:
-        """Pulls and image in the docker runtime using buildah.
+        """Pulls an image in the docker runtime using buildah.
 
         Necessary when docker refuses to pull from insecure registries.
         Note that this is going to be much slower and will temporarily
