@@ -8,12 +8,20 @@ WORKDIR /tmp/download
 ARG CONTAINERD_VERSION="1.6.4"
 ENV CONTAINERD_DOWNLOAD_URL="https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-amd64.tar.gz"
 
-# install containerd
+# Install Buildah. This is needed to pull and push images without ssl
+# verification for container runtimes which don't allow interacting with
+# insecure registries by default and for which the ssl certificates
+# injection did not fix the issue, like in kubernetes for docker for
+# desktop.
+RUN apt-get update && apt-get install -y buildah && buildah version && \
+    apt-get clean
+
+# Install containerd.
 RUN curl -L $CONTAINERD_DOWNLOAD_URL --output containerd-$CONTAINERD_VERSION-linux-amd64.tar.gz \
     && tar zxvf containerd-$CONTAINERD_VERSION-linux-amd64.tar.gz -C /tmp/download \
     && mv /tmp/download/bin/ctr /usr/local/bin
 
-# install crictl
+# Install crictl.
 ARG CRICTL_VERSION="v1.24.1"
 ENV CRICTL_DOWNLOAD_URL=https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-amd64.tar.gz
 RUN curl -L $CRICTL_DOWNLOAD_URL --output crictl-$CRICTL_VERSION-linux-amd64.tar.gz \

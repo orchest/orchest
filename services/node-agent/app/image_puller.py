@@ -153,7 +153,8 @@ class ImagePuller(object):
         """Fetches the image names by calling following endpoints
         of the orchest-api.
             1. /ctl/orchest-images-to-pre-pull
-            2. /environment-images/active
+            2. /ctl/active-custom-jupyter-images
+            3. /environment-images/active
         Args:
             queue: The queue to put the image names to, the queue will
             be consumed by puller tasks.
