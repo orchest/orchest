@@ -1,5 +1,6 @@
 import { ConfirmDispatcher } from "@/contexts/GlobalContext";
 import { tryUntilTrue } from "@/utils/webserver-utils";
+import { hasValue } from "@orchest/lib-utils";
 
 // This is to enable using hotkeys to open CommandPalette.
 // Proxy all the keydown events in the iframe to the hosting document object.
@@ -121,19 +122,21 @@ class Jupyter {
       brittle internal/private APIs.
     */
     window.clearInterval(this.showCheckInterval);
+
     this.showCheckInterval = window.setInterval(() => {
       if (this.iframeHasLoaded) {
         this._unhide();
 
-        if (this.hasJupyterRenderingGlitched()) {
+        if (this.hasRendered() && this.hasRenderingProblem()) {
           console.log("Reloading iframe because JupyterLab failed to render");
+
           this.reloadIframe();
-        } else if (!this.isJupyterPage()) {
+        } else if (!this.hasJupyterIframe()) {
           console.log(
             "Reloading iframe page because JupyterLab page not loaded (4XX or 5XX)"
           );
           this.reloadIframe();
-        } else if (this.isJupyterPage() && !this.isJupyterLoaded()) {
+        } else if (this.hasJupyterIframe() && !this.hasRendered()) {
           // console.log("Still initializing page.");
           // This can run 100+ times easily, hiding
           // console.log to avoid cluttering
@@ -148,8 +151,8 @@ class Jupyter {
 
   isShowing() {
     return (
-      this.isJupyterPage() &&
-      this.isJupyterLoaded() &&
+      this.hasJupyterIframe() &&
+      this.hasRendered() &&
       !this.jupyterHolder.classList.contains("hidden")
     );
   }
@@ -176,14 +179,24 @@ class Jupyter {
     this.reloadOnShow = true;
   }
 
+  getApp() {
+    return this.iframe?.contentWindow?._orchest_app;
+  }
+
+  getWidgets(name?: string) {
+    return this.getApp()?.shell?.widgets(name);
+  }
+
+  getDocManager() {
+    return this.iframe?.contentWindow?._orchest_docmanager;
+  }
+
   _reloadFilesFromDisk() {
-    if (this.iframe?.contentWindow?._orchest_app) {
+    const docManager = this.getDocManager();
+    const citer = this.getWidgets("main");
+
+    if (citer && docManager) {
       this.reloadOnShow = false;
-
-      let lab = this.iframe?.contentWindow?._orchest_app;
-      let docManager = this.iframe?.contentWindow?._orchest_docmanager;
-
-      let citer = lab.shell.widgets("main");
 
       let widget;
       while ((widget = citer.next())) {
@@ -195,7 +208,7 @@ class Jupyter {
           !widget.model.dirty
         ) {
           // for each widget revert if not dirty
-          let ctx = docManager.contextForWidget(widget);
+          const ctx = docManager.contextForWidget(widget);
 
           // ctx is undefined when widgets are closed
           // although widgets("main") seems to only return active widgets
@@ -207,59 +220,41 @@ class Jupyter {
     }
   }
 
-  isJupyterPage() {
-    try {
-      if (
-        this.iframe?.contentWindow?.document.getElementById(
-          "jupyter-config-data"
-        )
-      ) {
+  hasJupyterIframe() {
+    return Boolean(
+      this.iframe?.contentWindow?.document.getElementById("jupyter-config-data")
+    );
+  }
+
+  hasLoaded() {
+    return Boolean(this.getWidgets());
+  }
+
+  hasRendered() {
+    const widgets = this.getWidgets();
+
+    if (!widgets) return false;
+
+    let widget;
+    while ((widget = widgets.next())) {
+      if (hasValue(widget.node.offsetParent)) {
         return true;
       }
-    } catch {
-      return false;
     }
+
+    return false;
   }
 
-  isJupyterLoaded() {
-    try {
-      let widgets = this.iframe?.contentWindow?._orchest_app.shell.widgets();
+  hasRenderingProblem() {
+    const shellNode = this.getApp()?.shell?.node;
+    const contentPanel = shellNode?.querySelector("#jp-main-content-panel");
 
-      // a widget is on screen
-      let widgetOnScreen = false;
-      let widget;
-      while ((widget = widgets.next())) {
-        if (widget.node.offsetParent !== null) {
-          widgetOnScreen = true;
-          break;
-        }
-      }
-      return (
-        this.iframe?.contentWindow?._orchest_app !== undefined && widgetOnScreen
-      );
-    } catch {
-      return false;
-    }
-  }
+    if (!contentPanel) return true;
 
-  isJupyterShellRenderedCorrectly() {
-    try {
-      return (
-        this.iframe?.contentWindow?._orchest_app.shell.node.querySelector(
-          "#jp-main-content-panel"
-        ).clientWidth ===
-          this.iframe?.contentWindow?._orchest_app.shell.node.clientWidth ||
-        this.iframe?.contentWindow?._orchest_app.shell.node.querySelector(
-          "#jp-main-content-panel"
-        ).clientWidth > 500
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  hasJupyterRenderingGlitched() {
-    return this.isJupyterLoaded() && !this.isJupyterShellRenderedCorrectly();
+    return (
+      contentPanel.clientWidth !== shellNode.clientWidth ||
+      contentPanel.clientWidth <= 500
+    );
   }
 
   reloadIframe() {
@@ -275,30 +270,25 @@ class Jupyter {
     this.pendingKernelChanges[`${notebook}-${kernel}`] = value;
   }
 
+  /**
+   * @param notebook the file path relative to the project directory root.
+   *  E.g. somedir/myipynb.ipynb (no starting slash)
+   * @param kernel name of the kernel (orchest-kernel-<uuid>)
+   */
   setNotebookKernel(notebook: string, kernel: string) {
-    /**
-     *   @param {string} notebook relative path to the Jupyter file from the
-     *   perspective of the root of the project directory.
-     *   E.g. somedir/myipynb.ipynb (no starting slash)
-     *   @param {string} kernel name of the kernel (orchest-kernel-<uuid>)
-     */
-
     let warningMessage =
       "Do you want to change the active kernel of the opened " +
       "Notebook? \n\nYou will lose the current kernel's state if no other Notebook " +
       "is attached to it.";
 
-    if (this.iframe?.contentWindow?._orchest_app) {
-      let docManager = this.iframe?.contentWindow?._orchest_docmanager;
+    const docManager = this.getDocManager();
 
-      let notebookWidget = docManager.findWidget(notebook);
+    if (this.getApp() && docManager) {
+      const notebookWidget = docManager.findWidget(notebook);
+
       if (notebookWidget) {
-        let sessionContext = notebookWidget.context.sessionContext;
-        if (
-          sessionContext &&
-          sessionContext.session &&
-          sessionContext.session.kernel
-        ) {
+        const sessionContext = notebookWidget.context.sessionContext;
+        if (sessionContext?.session?.kernel) {
           if (sessionContext.session.kernel.name !== kernel) {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
@@ -362,31 +352,18 @@ class Jupyter {
     }
   }
 
-  navigateTo(filePath: string) {
-    /**
-     *   @param {string} filePath relative path to the Jupyter file from the
-     *   perspective of the root of the project directory.
-     *   E.g. somedir/myipynb.ipynb (no starting slash)
-     */
-
+  openFile(filePath: string) {
     if (!filePath) return;
+
+    const isFileOpen = () =>
+      Boolean(this.getDocManager()?.findWidget(filePath)?.isVisible);
+    const openOrRevealFile = () =>
+      Boolean(this.getDocManager()?.openOrReveal(filePath)?.isVisible);
 
     tryUntilTrue(
       () => {
-        if (this.isJupyterShellRenderedCorrectly() && this.isJupyterLoaded()) {
-          try {
-            this.iframe?.contentWindow?._orchest_docmanager.openOrReveal(
-              filePath
-            );
-            return (
-              this.iframe?.contentWindow?._orchest_docmanager.findWidget(
-                filePath
-              ) !== undefined
-            );
-          } catch (err) {
-            // fail silently
-            return false;
-          }
+        if (this.hasRendered() && !this.hasRenderingProblem()) {
+          return isFileOpen() || openOrRevealFile();
         } else {
           return false;
         }
