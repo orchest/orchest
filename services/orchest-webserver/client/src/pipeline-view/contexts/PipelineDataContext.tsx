@@ -24,11 +24,11 @@ export type PipelineDataContextType = {
   pipelineJson?: PipelineJson;
   setPipelineJson: StateDispatcher<PipelineJson>;
   isFetchingPipelineJson: boolean;
-  /** Whether this is a pipeline from a job run. */
+  /** If true, this pipeline is from a job run. */
   isJobRun: boolean;
-  /** Whether this is a snapshot of a pipeline run. */
+  /** If true, this pipeline is a snapshot for a job. */
   isSnapshot: boolean;
-  /** Whether this is an interactive pipeline: not a job run nor snapshot. */
+  /** If true, this pipeline is interactive: it is not a job snapshot or from a job run. */
   isInteractive: boolean;
   pipeline?: PipelineMetaData;
   job?: JobData;
