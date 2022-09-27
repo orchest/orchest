@@ -50,8 +50,8 @@ export const useCreateStep = (): StepCreator => {
         const [offsetX, offsetY] = pipelineOffset;
 
         const position: Point2D = [
-          -offsetX + clientWidth / 2 - STEP_WIDTH / 2 - CANVAS_PADDING,
-          -offsetY + clientHeight / 2 - STEP_HEIGHT / 2 - CANVAS_PADDING,
+          -(offsetX + CANVAS_PADDING) + clientWidth / 2 - STEP_WIDTH / 2,
+          -(offsetY + CANVAS_PADDING) + clientHeight / 2 - STEP_HEIGHT / 2,
         ];
 
         const stepPath = relativeToPipeline(pipelineCwd, filePath);
