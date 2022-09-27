@@ -3,7 +3,9 @@ import { useRouteLink } from "@/hooks/useCustomRoute";
 import { JobData } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import cronstrue from "cronstrue";
 import React from "react";
 import { humanizeDate } from "../common";
 import { useSnapshot } from "../hooks/useSnapshot";
@@ -28,7 +30,15 @@ const JobSummaryComponent = ({ job }: JobSummaryComponentProps) => {
 
   return (
     <Stack direction="row" justifyContent="space-between">
-      <Field name="Schedule">{job.schedule ? "Recurring" : "Run once"}</Field>
+      <Field name="Schedule">
+        {job.schedule ? (
+          <Tooltip title={cronstrue.toString(job.schedule)}>
+            <span>Recurring ({job.schedule})</span>
+          </Tooltip>
+        ) : (
+          "Run once"
+        )}
+      </Field>
       <Field name="Pipeline">
         <RouteLink underline="none" to={pipelineUrl}>
           {job.pipeline_name}
