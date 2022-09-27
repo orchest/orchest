@@ -115,7 +115,7 @@ Once you have followed any of the procedures above to parametrize your Pipeline:
 
 1. Make sure you have defined some parameters or you will only be able to schedule the Pipeline as is.
 2. Click on _Jobs_ in the left menu pane.
-3. Click the _+ Create job_ button to configure your job.
+3. Click the _+ new job_ button to configure your job.
 4. Choose a _Job name_ and the _Pipeline_ you want to run the job for.
 5. Your default set of parameters are pre-loaded. By clicking on the values a JSON editor opens,
    allowing you to add additional values you would like the Pipeline to run for.
