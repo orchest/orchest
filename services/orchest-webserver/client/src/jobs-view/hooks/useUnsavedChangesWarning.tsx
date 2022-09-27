@@ -17,7 +17,7 @@ export const useUnsavedChangesWarning = () => {
   const shouldConfirm = isEditingActiveCronJob && hasUnsavedCronJobChanges;
 
   const withConfirmation = React.useCallback(
-    (action: () => void) => {
+    (action: () => Promise<void>) => {
       if (shouldConfirm) {
         // Remove the unsaved changes warning triggered by GlobalContext.
         // and trigger the warning manually.
@@ -27,8 +27,7 @@ export const useUnsavedChangesWarning = () => {
           "There are unsaved changes. Are you sure you want to navigate away?",
           (resolve) => {
             discardActiveCronJobChanges();
-            action();
-            resolve(true);
+            action().then(() => resolve(true));
             return true;
           }
         );

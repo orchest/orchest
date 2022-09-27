@@ -11,7 +11,7 @@ type EnvironmentMenuItemProps = Pick<
 > & {
   selected: boolean;
   showStatusIcon: boolean;
-  onClick: (uuid: string) => void;
+  onClick: (event: React.MouseEvent, uuid: string) => void;
   latestBuildStatus: TStatus | undefined;
 };
 
