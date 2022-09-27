@@ -62,7 +62,7 @@ def file_reader_loop(sio):
             for session_uuid in list(log_file_store):
                 check_timeout(session_uuid)
 
-            for session_uuid in log_file_store.keys():
+            for session_uuid in list(log_file_store):
                 try:
                     read_emit_all_content(file_handles[session_uuid], sio, session_uuid)
                 except Exception as e:
@@ -108,6 +108,15 @@ def read_emit_all_content(file, sio, session_uuid):
         latest_log_file = open(get_log_path(log_file_store[session_uuid]), "rb")
         latest_log_file.seek(0)
         read_log_uuid = latest_log_file.readline().decode("utf-8").strip()
+    except FileNotFoundError:
+        logging.info("The file has been removed, resetting logs.")
+        clear_log_file(session_uuid)
+        sio.emit(
+            "pty-log-manager",
+            {"action": "pty-reset", "session_uuid": session_uuid},
+            namespace="/pty",
+        )
+        return
     except IOError as e:
         logging.info("Could not read latest log file: %s" % e)
         return
