@@ -1,4 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { FileTree } from "@/types";
 import { getOffset } from "@/utils/element";
 import {
   isSamePoint,
@@ -6,9 +7,11 @@ import {
   stringifyPoint,
   subtractPoints,
 } from "@/utils/geometry";
+import { hasExtension } from "@/utils/path";
 import { setRefs } from "@/utils/refs";
 import Box, { BoxProps } from "@mui/material/Box";
 import GlobalStyles from "@mui/material/GlobalStyles";
+import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import {
@@ -28,10 +31,10 @@ import {
 } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { FullViewportHolder } from "./components/FullViewportHolder";
-import { Overlay } from "./components/Overlay";
 import { useViewportMouseEvents } from "./hooks/useViewportMouseEvents";
 import { NoPipeline } from "./NoPipeline";
-import { NoStep } from "./NoStep";
+import { NoScripts } from "./NoScripts";
+import { NoSteps } from "./NoSteps";
 import { PipelineCanvas } from "./PipelineCanvas";
 import {
   PipelineViewportContextMenu,
@@ -51,12 +54,16 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
     { children, className, sx, ...props },
     ref
   ) {
-    const { dragFile } = useFileManagerContext();
+    const { dragFile, fileTrees } = useFileManagerContext();
     const {
       disabled,
       pipelineCwd,
       isFetchingPipelineJson,
     } = usePipelineDataContext();
+    const isFileTreeLoaded = React.useMemo(
+      () => Object.keys(fileTrees).length > 0,
+      [fileTrees]
+    );
 
     const environments = useEnvironmentsApi(
       (state) => state.environments || []
@@ -166,12 +173,19 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
 
     const { handleContextMenu } = usePipelineViewportContextMenu();
 
-    const hasNoStep = React.useMemo(
-      () => isStepsLoaded && Object.keys(steps).length === 0,
-      [steps, isStepsLoaded]
-    );
+    const hasSteps = React.useMemo(() => {
+      return Object.keys(steps).length > 0;
+    }, [steps]);
 
-    const showIllustration = !isFetchingPipelineJson && (disabled || hasNoStep);
+    const hasScripts = React.useMemo(() => {
+      // If there are steps: don't traverse the project dir.
+      return hasSteps || hasSomeScriptFile(fileTrees["/project-dir"]);
+    }, [fileTrees, hasSteps]);
+
+    const hasEmptyState =
+      !isFetchingPipelineJson &&
+      isFileTreeLoaded &&
+      (disabled || !hasScripts || (isStepsLoaded && !hasSteps));
 
     return (
       <Box
@@ -209,20 +223,42 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
             top: pipelineCanvasOffset[1],
           }}
         >
-          {showIllustration && <Overlay />}
           {children}
           <PipelineViewportContextMenu />
         </PipelineCanvas>
-        {showIllustration && (
+        {hasEmptyState && (
           <FullViewportHolder>
-            {disabled && <NoPipeline />}
-            {!disabled && hasNoStep && <NoStep />}
+            <PipelineEmptyState
+              hasPipeline={!disabled}
+              hasSteps={hasSteps}
+              hasScripts={hasScripts}
+            />
           </FullViewportHolder>
         )}
       </Box>
     );
   }
 );
+
+const PipelineEmptyState = ({
+  hasPipeline,
+  hasScripts,
+  hasSteps,
+}: {
+  hasPipeline: boolean;
+  hasScripts: boolean;
+  hasSteps: boolean;
+}) => {
+  if (!hasPipeline) {
+    return <NoPipeline />;
+  } else if (!hasSteps && !hasScripts) {
+    return <NoScripts />;
+  } else if (!hasSteps) {
+    return <NoSteps />;
+  } else {
+    return null;
+  }
+};
 
 export const PipelineViewport = React.forwardRef<
   HTMLDivElement,
@@ -234,3 +270,15 @@ export const PipelineViewport = React.forwardRef<
     </PipelineViewportContextMenuProvider>
   );
 });
+
+const hasSomeScriptFile = (node: FileTree | undefined | null, depth = 3) => {
+  if (depth <= 0) {
+    return false;
+  } else if (node?.path && node.type === "file") {
+    return hasExtension(node.path, ...ALLOWED_STEP_EXTENSIONS);
+  } else if (node?.children) {
+    return node.children.some((node) => hasSomeScriptFile(node, depth - 1));
+  } else {
+    return false;
+  }
+};
