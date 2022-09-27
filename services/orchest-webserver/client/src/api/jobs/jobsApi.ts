@@ -51,7 +51,7 @@ const post = (
         run_type: "full",
         uuids: [],
       },
-      parameters: [],
+      parameters: [{}],
       max_retained_pipeline_runs: 250,
     }),
   });
