@@ -271,11 +271,13 @@ export const PipelineViewport = React.forwardRef<
   );
 });
 
-const hasSomeScriptFile = (node: FileTree | undefined | null) => {
-  if (node?.path && node.type === "file") {
+const hasSomeScriptFile = (node: FileTree | undefined | null, depth = 3) => {
+  if (depth <= 0) {
+    return false;
+  } else if (node?.path && node.type === "file") {
     return hasExtension(node.path, ...ALLOWED_STEP_EXTENSIONS);
   } else if (node?.children) {
-    return node.children.some(hasSomeScriptFile);
+    return node.children.some((node) => hasSomeScriptFile(node, depth - 1));
   } else {
     return false;
   }
