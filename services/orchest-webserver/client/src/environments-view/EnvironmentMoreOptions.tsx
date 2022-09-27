@@ -62,7 +62,7 @@ export const EnvironmentMoreOptions = () => {
           );
 
           deleteEnvironment(uuid, action).then(() => {
-            selectEnvironment(nextEnvironmentUuid);
+            selectEnvironment(undefined, nextEnvironmentUuid);
             resolve(true);
           });
 

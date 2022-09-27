@@ -54,7 +54,7 @@ export const JobMoreOptions = () => {
         onConfirm: (resolve) => {
           const nextJob = getNextJob(jobs, uuid);
 
-          selectJob(nextJob.uuid);
+          selectJob(undefined, nextJob.uuid);
           deleteJob(uuid).then(() => resolve(true));
           return true;
         },

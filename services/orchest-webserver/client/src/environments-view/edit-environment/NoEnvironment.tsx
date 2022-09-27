@@ -10,9 +10,9 @@ export const NoEnvironment = (props: StackProps) => {
   const { createEnvironment, canCreateEnvironment } = useCreateEnvironment();
   const selectEnvironment = useSelectEnvironment();
 
-  const create = () =>
+  const create = (event: React.MouseEvent) =>
     createEnvironment().then(
-      (environment) => environment && selectEnvironment(environment.uuid)
+      (environment) => environment && selectEnvironment(event, environment.uuid)
     );
 
   return (
