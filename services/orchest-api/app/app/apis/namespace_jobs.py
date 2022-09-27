@@ -1536,7 +1536,7 @@ class UpdateDraftJobPipeline(TwoPhaseFunction):
         )
 
         # Reset them as if the draft has just been created.
-        job.parameters = []
+        job.parameters = [{}]
         job.strategy_json = {}
 
         # The different pipeline might use different images.
