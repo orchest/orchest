@@ -9,7 +9,7 @@ type JobMenuItemProps = {
   subtitle: string;
   jobStatus: JobStatus | undefined;
   selected: boolean;
-  onClick: (uuid: string) => void;
+  onClick: (event: React.MouseEvent, uuid: string) => void;
 };
 
 export const JobMenuItem = React.memo(function JobMenuItem({
