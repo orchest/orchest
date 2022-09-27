@@ -1,5 +1,4 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { getFilePathRelativeToPipeline } from "@/pipeline-view/file-manager/common";
 import {
   isSamePoint,
   Point2D,
@@ -11,7 +10,6 @@ import Box, { BoxProps } from "@mui/material/Box";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import classNames from "classnames";
 import React from "react";
-import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import {
   DEFAULT_SCALE_FACTOR,
   useCanvasScaling,
@@ -22,6 +20,7 @@ import { usePipelineRefs } from "../contexts/PipelineRefsContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
+import { useCreateStep } from "../hooks/useCreateStep";
 import { INITIAL_PIPELINE_OFFSET } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { CANVAS_SIZE_WITH_PADDING } from "./common";
@@ -139,26 +138,16 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
 
     const getApplicableStepFiles = useValidateFilesOnSteps();
 
+    const createStep = useCreateStep();
+
     const createStepsWithFiles = React.useCallback(
       (dropPoint: Point2D) => {
-        if (!pipelineCwd) return;
         const { allowed } = getApplicableStepFiles();
-
-        const environment = environments.length > 0 ? environments[0] : null;
-
         allowed.forEach((filePath) => {
-          // Adjust filePath to pipelineCwd, incoming filePath is relative to project
-          // root.
-          const pipelineRelativeFilePath = getFilePathRelativeToPipeline(
-            filePath,
-            pipelineCwd
-          );
-          uiStateDispatch(
-            createStepAction(environment, dropPoint, pipelineRelativeFilePath)
-          );
+          createStep(filePath, dropPoint);
         });
       },
-      [uiStateDispatch, pipelineCwd, environments, getApplicableStepFiles]
+      [createStep, getApplicableStepFiles]
     );
 
     const onDropFiles = React.useCallback(() => {
