@@ -248,6 +248,10 @@ def _modify_pipeline_scheduling_behaviour_single_node(
         init_containers.append(init_container)
     spec["initContainers"] = init_containers
 
+    # In case pipeline doesn't have any steps.
+    if not images:
+        return
+
     # By using only 1 image to specify affinity we are doing a bit of a
     # breach of abstraction, we are "using" the fact that we are in
     # single_node.
