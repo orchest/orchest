@@ -48,25 +48,13 @@ not including them in the project directory snapshot. Alternatively, you can add
 
 To create and run a job in Orchest, follow these instructions:
 
-1. Click on _Jobs_ in the left menu pane.
-2. Click the _+ Create job_ button to configure your job.
-3. Choose a _Job name_ and the _Pipeline_ you want to run the job for.
-4. By default, the job is configured to run once immediately (_Now_).
-   Alternatively, use the radio buttons to either schedule it for _Later_, or set a _Recurring_ schedule.
-5. Press _Run job_.
-
-```{figure} ../img/job-new.png
-:align: center
-:width: 428
-:alt: Dialog that shows how to create a new job in Orchest
-
-New job dialog.
-```
+1. Click on _Jobs_ in navigation bar.
+2. Click the _+ new job_ button to create a new job.
+3. Configure the job.
+4. Press _run job_.
 
 To inspect the result of your job; click on the job you just created, choose a specific Pipeline run
-(the one you want to inspect) and click on _View pipeline_. The Pipeline is now opened in
-{term}`read-only mode` giving you the opportunity to check the logs or to open the
-HTML version of you notebooks.
+(the one you want to inspect) and click on _VIEW_. The Pipeline is now opened in {term}`read-only mode` giving you the opportunity to check the logs or to open the HTML version of you notebooks.
 
 ```{note}
 💡 Upon job creation, Orchest (under the hood) takes a snapshot of the required environments.

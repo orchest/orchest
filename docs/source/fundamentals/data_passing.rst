@@ -139,7 +139,7 @@ For example, this is how the data connections look like for step 3 of the exampl
 You can reorder the list with drag and drop.
 
 .. image:: ../img/step-connections.png
-  :width: 300
+  :width: 400
   :align: center
   :alt: Ordering data connections in the visual pipeline editor in Orchest
 
