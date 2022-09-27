@@ -16,6 +16,7 @@ export const useJobScheduleOption = () => {
   const [scheduleOption, setScheduleOption] = React.useState<ScheduleOption>(
     "one-off"
   );
+
   const initialScheduleOption = useEditJob((state) => {
     const isLoading =
       !hasValue(state.jobChanges) || jobUuid !== state.jobChanges.uuid;
@@ -38,20 +39,37 @@ export const useJobScheduleOption = () => {
   const [cronString, setCronString] = useCronString();
   const [nextScheduledTime, setNextScheduledTime] = useScheduleDateTime();
 
+  const setSchedule = React.useCallback(
+    (value: ScheduleOption) => {
+      if (value === "one-off") {
+        setJobChanges({
+          next_scheduled_time: toUtcDateTimeString(nextScheduledTime),
+          schedule: null,
+        });
+      }
+      if (value === "recurring") {
+        setJobChanges({
+          next_scheduled_time: null,
+          schedule: cronString,
+        });
+      }
+    },
+    [cronString, nextScheduledTime, setJobChanges]
+  );
+
+  const jobPipelineUuid = useEditJob(
+    (state) => state.jobChanges?.pipeline_uuid
+  );
   React.useEffect(() => {
-    if (scheduleOption === "one-off") {
-      setJobChanges({
-        next_scheduled_time: toUtcDateTimeString(nextScheduledTime),
-        schedule: null,
-      });
+    if (initialScheduleOption && jobPipelineUuid) {
+      setScheduleOption(initialScheduleOption);
+      setSchedule(initialScheduleOption);
     }
-    if (scheduleOption === "recurring") {
-      setJobChanges({
-        next_scheduled_time: null,
-        schedule: cronString,
-      });
-    }
-  }, [scheduleOption, setJobChanges, nextScheduledTime, cronString]);
+  }, [initialScheduleOption, jobPipelineUuid, setSchedule]);
+
+  React.useEffect(() => {
+    setSchedule(scheduleOption);
+  }, [scheduleOption, setSchedule]);
 
   return {
     scheduleOption,
