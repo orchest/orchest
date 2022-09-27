@@ -877,14 +877,12 @@ def delete_interactive_run_logs(
     if not step_uuids:
         return
 
-    log_files = " ".join(
-        [
-            os.path.join(
-                get_interactive_run_logs_path(project_uuid, pipeline_uuid),
-                f"{step_uuid}.log",
-            )
-            for step_uuid in step_uuids
-        ]
-    )
+    log_files = [
+        os.path.join(
+            get_interactive_run_logs_path(project_uuid, pipeline_uuid),
+            f"{step_uuid}.log",
+        )
+        for step_uuid in step_uuids
+    ]
 
-    os.system(f"rm -rf {log_files}")
+    _utils.rmtree(log_files)

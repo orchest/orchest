@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import subprocess
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import requests
 from werkzeug.serving import is_running_from_reloader as _irfr
@@ -274,7 +274,7 @@ def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
     return True
 
 
-def rmtree(path, ignore_errors=False) -> None:
+def rmtree(path: Union[str, Iterable[str]], ignore_errors=False) -> None:
     """A wrapped rm -rf.
 
     Alternative to `shutil.rmtree` to prevent it blocking the main
@@ -284,7 +284,15 @@ def rmtree(path, ignore_errors=False) -> None:
         OSError if it failed to copy.
 
     """
-    exit_code = subprocess.call(["rm", "-rf", path], stderr=subprocess.STDOUT)
+    cmd = ["rm", "-rf"]
+    if isinstance(path, str):
+        cmd.append(path)
+    elif isinstance(path, Iterable):
+        cmd.extend(path)
+    else:
+        raise ValueError(f"Path must be a string or an Iterable, found: {type(path)}.")
+
+    exit_code = subprocess.call(cmd, stderr=subprocess.STDOUT)
     if exit_code != 0 and not ignore_errors:
         raise OSError(f"Failed to rm {path}: {exit_code}.")
 
