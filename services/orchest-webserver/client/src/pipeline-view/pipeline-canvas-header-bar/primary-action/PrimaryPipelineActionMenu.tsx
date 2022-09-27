@@ -1,4 +1,5 @@
 import { RunIncomingIcon } from "@/components/common/icons/RunIncomingIcon";
+import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
 import { modifierKey } from "@/utils/platform";
 import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
@@ -27,6 +28,9 @@ export const PrimaryPipelineActionMenu = ({
     runIncomingSteps,
     createDraftJob,
   } = usePipelineActions();
+  const {
+    uiState: { steps, selectedSteps },
+  } = usePipelineUiStateContext();
 
   const operationOptions = React.useMemo(
     () =>
@@ -47,7 +51,11 @@ export const PrimaryPipelineActionMenu = ({
           label: "Run incoming",
           icon: <RunIncomingIcon />,
           hotKey: "I",
-          action: runIncomingSteps,
+          action: selectedSteps.every(
+            (uuid) => steps[uuid].incoming_connections.length === 0
+          )
+            ? undefined
+            : runIncomingSteps,
         },
         {
           label: "Schedule Job",
@@ -56,7 +64,14 @@ export const PrimaryPipelineActionMenu = ({
           action: createDraftJob,
         },
       ] as const,
-    [runAllSteps, runIncomingSteps, runSelectedSteps, createDraftJob]
+    [
+      runAllSteps,
+      runSelectedSteps,
+      selectedSteps,
+      runIncomingSteps,
+      createDraftJob,
+      steps,
+    ]
   );
 
   return (

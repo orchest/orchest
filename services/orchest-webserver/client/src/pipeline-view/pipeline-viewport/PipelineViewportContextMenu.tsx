@@ -179,7 +179,11 @@ export const PipelineViewportContextMenu = () => {
           {
             type: "item",
             title: "Run incoming",
-            disabled: isReadOnly,
+            disabled:
+              isReadOnly ||
+              selectedSteps.every(
+                (uuid) => steps[uuid].incoming_connections.length === 0
+              ),
             action: () => {
               executeRun([contextMenuUuid], "incoming");
             },
