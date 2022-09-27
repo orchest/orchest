@@ -42,7 +42,11 @@ const JupyterLabView = () => {
 
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
   const { setAlert } = useGlobalContext();
-  const { getSession, startSession } = useSessionsContext();
+  const {
+    getSession,
+    startSession,
+    state: { sessions },
+  } = useSessionsContext();
   const {
     state: { pipelineReadOnlyReason },
   } = useProjectsContext();
@@ -88,7 +92,7 @@ const JupyterLabView = () => {
 
   // Launch the session on mount.
   React.useEffect(() => {
-    if (pipelineUuid && projectUuid && !session) {
+    if (pipelineUuid && projectUuid && sessions && !session) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB)
         .then((result) => {
           if (result === true) {
@@ -113,6 +117,7 @@ const JupyterLabView = () => {
         });
     }
   }, [
+    sessions,
     startSession,
     pipelineUuid,
     projectUuid,
