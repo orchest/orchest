@@ -16,6 +16,7 @@ export const useJobScheduleOption = () => {
   const [scheduleOption, setScheduleOption] = React.useState<ScheduleOption>(
     "one-off"
   );
+
   const initialScheduleOption = useEditJob((state) => {
     const isLoading =
       !hasValue(state.jobChanges) || jobUuid !== state.jobChanges.uuid;
@@ -27,31 +28,44 @@ export const useJobScheduleOption = () => {
       : "one-off";
   });
 
-  const hasInitialized = React.useRef(false);
+  const jobPipelineUuid = useEditJob(
+    (state) => state.jobChanges?.pipeline_uuid
+  );
+  const hasInitializedForPipelineUuid = React.useRef(jobPipelineUuid);
   React.useEffect(() => {
-    if (initialScheduleOption && !hasInitialized.current) {
-      hasInitialized.current = true;
+    if (
+      initialScheduleOption &&
+      hasInitializedForPipelineUuid.current !== jobPipelineUuid
+    ) {
+      hasInitializedForPipelineUuid.current = jobPipelineUuid;
       setScheduleOption(initialScheduleOption);
     }
-  }, [initialScheduleOption]);
+  }, [initialScheduleOption, jobPipelineUuid]);
 
   const [cronString, setCronString] = useCronString();
   const [nextScheduledTime, setNextScheduledTime] = useScheduleDateTime();
 
+  const setSchedule = React.useCallback(
+    (value: ScheduleOption) => {
+      if (value === "one-off") {
+        setJobChanges({
+          next_scheduled_time: toUtcDateTimeString(nextScheduledTime),
+          schedule: null,
+        });
+      }
+      if (value === "recurring") {
+        setJobChanges({
+          next_scheduled_time: null,
+          schedule: cronString,
+        });
+      }
+    },
+    [cronString, nextScheduledTime, setJobChanges]
+  );
+
   React.useEffect(() => {
-    if (scheduleOption === "one-off") {
-      setJobChanges({
-        next_scheduled_time: toUtcDateTimeString(nextScheduledTime),
-        schedule: null,
-      });
-    }
-    if (scheduleOption === "recurring") {
-      setJobChanges({
-        next_scheduled_time: null,
-        schedule: cronString,
-      });
-    }
-  }, [scheduleOption, setJobChanges, nextScheduledTime, cronString]);
+    setSchedule(scheduleOption);
+  }, [scheduleOption, setSchedule, jobPipelineUuid]);
 
   return {
     scheduleOption,
