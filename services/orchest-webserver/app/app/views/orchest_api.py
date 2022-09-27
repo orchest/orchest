@@ -5,6 +5,7 @@ from app import error
 from app.core import jobs
 from app.models import Pipeline, Project
 from app.utils import (
+    delete_interactive_run_logs,
     get_environments,
     get_pipeline_json,
     get_project_directory,
@@ -337,6 +338,12 @@ def register_orchest_api_views(app, db):
                 "pipeline_uuid": json_obj["pipeline_definition"]["uuid"],
                 "project_uuid": json_obj["project_uuid"],
             }
+
+            delete_interactive_run_logs(
+                json_obj["project_uuid"],
+                json_obj["run_config"]["pipeline_uuid"],
+                json_obj.get("uuids", []),
+            )
 
             resp = requests.post(
                 "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/runs/",
