@@ -1,6 +1,11 @@
+import { smoothstep } from "@/utils/math";
 import { SxProps } from "@mui/material";
 import Box from "@mui/material/Box";
 import React from "react";
+import {
+  MIN_SCALE_FACTOR,
+  useCanvasScaling,
+} from "../contexts/CanvasScalingContext";
 import { PIPELINE_CANVAS_SIZE } from "../hooks/usePipelineCanvasState";
 
 /** How many pixels the background overflows in each direction. */
@@ -20,5 +25,8 @@ const backgroundStyle: SxProps = {
 };
 
 export const PipelineCanvasBackground = () => {
-  return <Box sx={backgroundStyle} />;
+  const { scaleFactor } = useCanvasScaling();
+  const opacity = smoothstep(scaleFactor, MIN_SCALE_FACTOR, 1);
+
+  return <Box style={{ opacity }} sx={backgroundStyle} />;
 };
