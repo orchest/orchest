@@ -1,6 +1,7 @@
 import BuildPendingDialog from "@/components/BuildPendingDialog";
 import { Layout } from "@/components/Layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
@@ -40,6 +41,7 @@ const JupyterLabView = () => {
   const { dispatch } = useProjectsContext();
 
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
+  const { setAlert } = useGlobalContext();
   const {
     getSession,
     startSession,
@@ -90,7 +92,7 @@ const JupyterLabView = () => {
 
   // Launch the session on mount.
   React.useEffect(() => {
-    if (pipelineUuid && projectUuid && sessions) {
+    if (pipelineUuid && projectUuid && sessions && !session) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB)
         .then((result) => {
           if (result === true) {
@@ -105,7 +107,7 @@ const JupyterLabView = () => {
               "environmentsFailedToBuild",
             ].includes(result.message)
           ) {
-            // When failed, it could be that the pipeline does no loner exist.
+            // When failed, it could be that the pipeline does no longer exist.
             // Navigate back to PipelineEditor.
             navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
           }
@@ -114,7 +116,16 @@ const JupyterLabView = () => {
           navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
         });
     }
-  }, [startSession, pipelineUuid, projectUuid, navigateTo, sessions, dispatch]);
+  }, [
+    sessions,
+    startSession,
+    pipelineUuid,
+    projectUuid,
+    navigateTo,
+    dispatch,
+    setAlert,
+    session,
+  ]);
 
   const conditionalRenderingOfJupyterLab = React.useCallback(() => {
     if (session?.status === "RUNNING") {
@@ -181,6 +192,21 @@ const JupyterLabView = () => {
     },
     pipelineJson ? verifyKernelsInterval : undefined
   );
+
+  React.useEffect(() => {
+    if (session?.status === "STOPPING") {
+      setAlert(
+        "Session stopping",
+        "Your pipeline session is still stopping, " +
+          "please try opening JupyterLab again once the session has stopped.",
+        {
+          confirmLabel: "Close",
+          onConfirm: () => true,
+        }
+      );
+      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+    }
+  }, [setAlert, navigateTo, session?.status, projectUuid]);
 
   return (
     <Layout disablePadding>

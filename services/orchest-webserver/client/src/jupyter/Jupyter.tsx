@@ -146,7 +146,7 @@ class Jupyter {
           window.clearInterval(this.showCheckInterval);
         }
       }
-    }, 10);
+    }, 300);
   }
 
   isShowing() {
