@@ -190,15 +190,13 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
 
     const hasScripts = React.useMemo(() => {
       // If there are steps: don't traverse the project dir.
-      return !hasSteps && hasSomeScriptFile(fileTrees["/project-dir"]);
+      return hasSteps || hasSomeScriptFile(fileTrees["/project-dir"]);
     }, [fileTrees, hasSteps]);
 
     const hasEmptyState =
-      disabled ||
-      (!isFetchingPipelineJson &&
-        isStepsLoaded &&
-        isFileTreeLoaded &&
-        (!hasSteps || !hasScripts));
+      !isFetchingPipelineJson &&
+      isFileTreeLoaded &&
+      (disabled || !hasScripts || (isStepsLoaded && !hasSteps));
 
     return (
       <Box
