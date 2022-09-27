@@ -12,7 +12,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 import { useJobRunsPage } from "./hooks/useJobRunsPage";
-import { useJobRunsPolling } from "./hooks/useJobRunsPolling";
+import { usePollPageJobRuns } from "./hooks/usePollJobRuns";
 import { JobRunsTable } from "./JobRunsTable";
 
 export const JobRuns = () => {
@@ -28,7 +28,7 @@ export const JobRuns = () => {
     fuzzyFilter: fuzzyFilter || undefined,
   });
 
-  useJobRunsPolling(refresh, { disabled: hasExpandedRow });
+  usePollPageJobRuns(refresh, { disabled: hasExpandedRow });
   const pageNumberRef = React.useRef(pageNumber);
   pageNumberRef.current = pageNumber;
 

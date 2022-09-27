@@ -2,6 +2,7 @@ from collections import deque
 from threading import Lock
 
 from flask import current_app, request
+from flask_socketio import disconnect
 
 from _orchest.internals import config as _config
 from app.utils import project_uuid_to_path
@@ -17,9 +18,14 @@ def register_build_listener(namespace, socketio):
     def connect_pty():
         current_app.logger.info("socket.io client connected on /pty")
 
+    @socketio.on("disconnect", namespace="/pty")
+    def disconnect_pty():
+        current_app.logger.info("socket.io client disconnected on /pty")
+        disconnect(sid=request.sid, namespace="/pty")
+
     @socketio.on("connect", namespace=namespace)
     def connect_build_logger():
-        current_app.logger.info("socket.io client connected on %s" % namespace)
+        current_app.logger.info(f"socket.io client connected on {namespace}")
 
         with lock:
 
@@ -37,6 +43,11 @@ def register_build_listener(namespace, socketio):
                     room=request.sid,
                     namespace=namespace,
                 )
+
+    @socketio.on("disconnect", namespace=namespace)
+    def disconnect_build_logger():
+        current_app.logger.info(f"socket.io client disconnected on {namespace}")
+        disconnect(sid=request.sid, namespace=namespace)
 
     @socketio.on("sio_streamed_task_data", namespace=namespace)
     def process_sio_streamed_task_data(data):

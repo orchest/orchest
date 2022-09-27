@@ -21,6 +21,10 @@ class ImagePushError(Exception):
     ...
 
 
+class ImagePullError(Exception):
+    ...
+
+
 class ContainerRuntime(object):
     def __init__(self) -> None:
 
@@ -55,7 +59,7 @@ class ContainerRuntime(object):
 
         Returns:
             Tuple of result and stdout of the command, the result is
-            True if the command where succfull.
+            True if the command was successful.
         """
         process = await asyncio.create_subprocess_shell(
             **kwargs, stdin=subprocess.PIPE, stdout=subprocess.PIPE
@@ -71,7 +75,7 @@ class ContainerRuntime(object):
             stderr = stderr.decode().strip()
 
         self.logger.debug(
-            f"excuted a command with returncide: {returncode} command: {kwargs}"
+            f"Executed a command with return code: {returncode} command: {kwargs}"
         )
 
         return returncode == 0, stdout, stderr
@@ -106,14 +110,38 @@ class ContainerRuntime(object):
         )
         return result
 
-    async def download_image(self, image_name: str) -> bool:
-        """Downloads (pulls) the named image.
+    async def _pull_image_for_docker_with_buildah(self, image_name: str) -> bool:
+        """Pulls an image in the docker runtime using buildah.
+
+        Necessary when docker refuses to pull from insecure registries.
+        Note that this is going to be much slower and will temporarily
+        use storage.
+
+        Note that this has the open issue of leaving dangling storage in
+        cases where the logic would be interrupted before being able to
+        cleanup the temporarily stored image. For example if the
+        node-agent pod restarts during that moment, and the image is not
+        considered for pulling anymore or if, somehow, this function is
+        not called because docker managed to pull.
+        """
+        self.logger.info(f"Attempting to pull {image_name} with buildah.")
+        cmd = (
+            f"buildah pull --tls-verify=false {image_name} && "
+            f"buildah push --disable-compression '{image_name}' "
+            f"docker-daemon:{image_name} && "
+            f"buildah rmi {image_name} && buildah rmi -p"
+        )
+        success, _, _ = await self.execute_cmd(cmd=cmd)
+        return success
+
+    async def pull_image(self, image_name: str) -> bool:
+        """Pulls the named image.
 
         Args:
-            image_name: The name of the image for downloading.
+            image_name: The name of the image to pull.
 
         Returns:
-            True if download was successful, False otherwise.
+            True if the pull was successful, False otherwise.
 
         """
         result = True
@@ -123,8 +151,16 @@ class ContainerRuntime(object):
         if self.container_runtime == RuntimeType.Docker:
             try:
                 await self.aclient.images.pull(image_name)
-            except aiodocker.DockerError:
+            except aiodocker.DockerError as e:
                 result = False
+                # e.status (status code) will be 500 for different
+                # failures , so we resort to partially matching the
+                # message. The message will look like the following for
+                # the case we are interested in:
+                # 'get "<url>": x509: certificate signed by unknown
+                # authority.
+                if "certificate" in e.message.lower():
+                    result = await self._pull_image_for_docker_with_buildah(image_name)
             finally:
                 self._curr_pulling_imgs.remove(image_name)
         elif self.container_runtime == RuntimeType.Containerd:
@@ -194,13 +230,39 @@ class ContainerRuntime(object):
         self.logger.debug(f"Image is deleted: '{image_name}'")
         return result
 
+    async def _push_image_for_docker_with_buildah(self, image_name: str) -> bool:
+        """Push an img from docker runtime to the registry with buildah.
+
+        See _pull_image_for_docker_with_buildah for more details. The
+        issue about temporary storage also applies.
+        """
+        self.logger.info(f"Attempting to push {image_name} with buildah.")
+        cmd = (
+            f"buildah pull docker-daemon:{image_name} && "
+            f"buildah push --tls-verify=false '{image_name}' && "
+            f"buildah rmi {image_name} && buildah rmi -p"
+        )
+        success, _, _ = await self.execute_cmd(cmd=cmd)
+        return success
+
     async def push_image(self, image_name: str) -> None:
         self.logger.debug(f"Pushing: '{image_name}'")
         if self.container_runtime == RuntimeType.Docker:
             try:
                 await self.aclient.images.push(name=image_name)
             except aiodocker.DockerError as e:
-                raise ImagePushError(str(e))
+                success = False
+                # e.status (status code) will be 500 for different
+                # failures , so we resort to partially matching the
+                # message. The message will look like the following for
+                # the case we are interested in:
+                # 'get "<url>": x509: certificate signed by unknown
+                # authority.
+                if "certificate" in e.message.lower():
+                    success = await self._push_image_for_docker_with_buildah(image_name)
+
+                if not success:
+                    raise ImagePushError(str(e))
 
         elif self.container_runtime == RuntimeType.Containerd:
             cmd = (
@@ -210,9 +272,4 @@ class ContainerRuntime(object):
             success, stdout, stderr = await self.execute_cmd(cmd=cmd)
             if not success:
                 raise ImagePushError(f"STDOUT: {stdout}\nSTDERR: {stderr}")
-        # ENV_PERF_TODO:
-        # Cover case of docker failing to push because of missing
-        # certificates , see the edge case in pull_image.sh. This will
-        # likely involve using a third party tool like buildah to push
-        # things separately.
         self.logger.debug(f"Image pushed: '{image_name}'")

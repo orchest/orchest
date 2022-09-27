@@ -9,11 +9,13 @@ export const useSelectEnvironment = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
 
   const selectEnvironment = React.useCallback(
-    (uuid: string) => {
+    (event: React.MouseEvent | undefined, uuid: string) => {
       if (projectUuid) {
-        navigateTo(siteMap.environments.path, {
-          query: { projectUuid, environmentUuid: uuid },
-        });
+        navigateTo(
+          siteMap.environments.path,
+          { query: { projectUuid, environmentUuid: uuid } },
+          event
+        );
       }
     },
     [navigateTo, projectUuid]

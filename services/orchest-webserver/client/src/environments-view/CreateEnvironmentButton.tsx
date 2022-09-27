@@ -9,7 +9,7 @@ type CreateEnvironmentButtonProps = Omit<
   CreateEntityButtonProps,
   "children" | "onClick" | "disabled"
 > & {
-  onCreated: (uuid: string) => void;
+  onCreated: (event: React.MouseEvent, uuid: string) => void;
 };
 
 export const CreateEnvironmentButton = ({
@@ -17,9 +17,9 @@ export const CreateEnvironmentButton = ({
   ...props
 }: CreateEnvironmentButtonProps) => {
   const { createEnvironment, canCreateEnvironment } = useCreateEnvironment();
-  const onCreate = async () => {
+  const onCreate = async (event: React.MouseEvent) => {
     const newEnvironment = await createEnvironment();
-    if (newEnvironment) onCreated(newEnvironment.uuid);
+    if (newEnvironment) onCreated(event, newEnvironment.uuid);
   };
 
   return (

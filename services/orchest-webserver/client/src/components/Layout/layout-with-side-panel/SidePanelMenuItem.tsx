@@ -13,7 +13,7 @@ type SidePanelMenuItemProps = {
   statusIconTooltip: string;
   selected: boolean;
   showStatusIcon: boolean;
-  onClick: (uuid: string) => void;
+  onClick: (event: React.MouseEvent, uuid: string) => void;
 };
 
 export const SidePanelMenuItem = React.memo(function SidePanelMenuItem({
@@ -32,7 +32,7 @@ export const SidePanelMenuItem = React.memo(function SidePanelMenuItem({
       key={uuid}
       selected={selected}
       divider
-      onClick={() => onClick(uuid)}
+      onClick={(event) => onClick(event, uuid)}
       sx={{
         display: "flex",
         flexDirection: "row",

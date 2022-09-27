@@ -1135,6 +1135,14 @@ class CreateJob(TwoPhaseFunction):
         else:
             raise ValueError("Can't define both cron_schedule and scheduled_start.")
 
+        if not job_spec.get("parameters", []):
+            raise ValueError(
+                (
+                    "Cannot use an empty list of parameters. That would result in the "
+                    "job having no runs."
+                )
+            )
+
         self._verify_all_pipelines_have_valid_environments(job_spec["snapshot_uuid"])
 
         job = {
@@ -1246,6 +1254,14 @@ class UpdateJobParameters(TwoPhaseFunction):
                         "a job which is not a cron job."
                     )
                 )
+            if not parameters:
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot use an empty list of "
+                        "parameters. That would result in the job having no runs."
+                    )
+                )
+
             job.parameters = parameters
 
         if env_variables is not None:
@@ -1536,7 +1552,7 @@ class UpdateDraftJobPipeline(TwoPhaseFunction):
         )
 
         # Reset them as if the draft has just been created.
-        job.parameters = []
+        job.parameters = [{}]
         job.strategy_json = {}
 
         # The different pipeline might use different images.

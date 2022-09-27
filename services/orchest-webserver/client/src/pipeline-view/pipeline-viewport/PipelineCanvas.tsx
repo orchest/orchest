@@ -1,4 +1,5 @@
 import React from "react";
+import { PipelineCanvasBackground } from "./PipelineCanvasBackground";
 
 export const PipelineCanvas = React.forwardRef<
   HTMLDivElement,
@@ -11,6 +12,7 @@ export const PipelineCanvas = React.forwardRef<
       ref={ref}
       {...props}
     >
+      <PipelineCanvasBackground />
       {children}
     </div>
   );

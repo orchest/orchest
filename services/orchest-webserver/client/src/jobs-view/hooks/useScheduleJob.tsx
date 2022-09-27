@@ -16,12 +16,7 @@ export const useScheduleJob = () => {
   const stopEditing = useEditJob((state) => state.stopEditing);
 
   const scheduleJob = React.useCallback(async () => {
-    const hasSchedule =
-      hasValue(jobChanges) &&
-      (hasValue(jobChanges.schedule) ||
-        hasValue(jobChanges.next_scheduled_time));
-
-    if (!hasSchedule) return;
+    if (!hasValue(jobChanges)) return;
 
     stopEditing();
 

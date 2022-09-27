@@ -179,8 +179,11 @@ export const formatRunStatus = (status: PipelineRunStatus) => {
   }
 };
 
+const ensureUTC = (isoDateString: string) =>
+  isoDateString.endsWith("+00:00") ? isoDateString : isoDateString + "+00:00";
+
 export const humanizeDate = (isoDateString: string) =>
-  format(new Date(isoDateString), "MMM d yyyy, p");
+  format(Date.parse(ensureUTC(isoDateString)), "MMM d yyyy, p");
 
 export const canCancelRun = (
   run: PipelineRun | undefined

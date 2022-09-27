@@ -13,14 +13,6 @@ Environments define the conditions in which Pipeline steps execute scripts and k
 - Configurable through their set-up script (on the environments page) to install additional packages.
 - Versioned and belong to a single {ref}`project <projects>`.
 
-```{figure} ../img/environments-list.png
-:align: center
-:width: 758
-:alt: List of environments for a given Orchest project
-
-The list of environments for a given Orchest project.
-```
-
 (languages)=
 
 ## Choosing a programming language in Orchest
@@ -39,7 +31,7 @@ For example: `Java`, `Scala`, `Go` or `C++`.
 ## Building an environment
 
 1. Go to the _Environments_ page.
-2. Create a new _Environment_.
+2. Create a _new Environment_.
 3. Choose an _Environment name_.
 4. Choose a base image.
 5. Choose one of the supported languages.

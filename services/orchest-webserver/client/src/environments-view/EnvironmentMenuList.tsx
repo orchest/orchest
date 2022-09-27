@@ -22,12 +22,12 @@ export const EnvironmentMenuList = () => {
   const environments = useEnvironmentsApi((state) => state.environments);
   const selectEnvironment = useSelectEnvironment();
 
-  const updateStoreAndRedirect = (uuid: string) => {
+  const updateStoreAndRedirect = (event: React.MouseEvent, uuid: string) => {
     const environment = environmentDataFromState(environmentChanges);
     if (environment) {
       setEnvironment(environment.uuid, environment);
     }
-    selectEnvironment(uuid);
+    selectEnvironment(event, uuid);
   };
 
   const { hasLoadedBuildStatus } = useFetchBuildStatus();

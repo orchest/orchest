@@ -11,7 +11,7 @@ import { CreateFileDialog } from "../file-manager/CreateFileDialog";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useCreateStep } from "../hooks/useCreateStep";
 
-export const NoStep = () => {
+export const NoScripts = () => {
   const { selectedFiles, fetchFileTrees } = useFileManagerContext();
   const { isReadOnly, pipeline, projectUuid } = usePipelineDataContext();
   const createStep = useCreateStep();

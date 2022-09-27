@@ -29,11 +29,11 @@ For absolute paths, all files of a project are mounted to the `/project-dir` dir
 
 ## Getting started with projects in Orchest
 
-You can get started with projects by:
+You can get started with Projects by:
 
-- Creating a new project
-- Importing an existing project using its git repository URL (see {ref}`how to import a project <how-to-import-a-project>`).
-- Importing Orchest curated or community contributed examples.
+- Creating a new Project
+- Importing an existing Project
+- Importing Orchest curated or community contributed examples through the _Projects_ page.
 
 ```{tip}
 👉 See {ref}`quickstart tutorial <quickstart>`.
@@ -43,12 +43,12 @@ You can get started with projects by:
 
 ## Importing a project
 
-To import an existing project into Orchest, go the the _Projects_ section, then click the _Import Project_ button.
+To import an existing Project into Orchest: open the _Project_ dropdown menu and click the _import_ button.
 
 ```{figure} ../img/project-import.png
 :align: center
 :alt: Importing a project in Orchest.
-:width: 800
+:width: 400
 ```
 
 ```{tip}
@@ -59,11 +59,13 @@ To import an existing project into Orchest, go the the _Projects_ section, then 
 
 ## Project versioning
 
-A project's `.orchest` directory should be versioned since it defines the {ref}`environment <environments>` in use. This enables the project to run on every machine.
+A Project's `.orchest` directory should be versioned since it defines the {ref}`Environments <environments>` the Project uses. This enables the Project to run on every machine.
 
-The `/data` directory can be used to store data locally that is accessible by all pipelines across all projects, even by jobs.
+The `/data` directory can be used to store data locally that is accessible by all Pipelines across
+all Projects, even by {ref}`Jobs <jobs>`.
 
-Secrets should be set with {ref}`environment variables <environment-variables>` to avoid them being versioned.
+Secrets on te other hand, should be set with {ref}`environment variables <environment-variables>` to
+avoid them being versioned.
 
 (git-inside-orchest)=
 

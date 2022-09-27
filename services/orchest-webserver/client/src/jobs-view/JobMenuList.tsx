@@ -23,9 +23,10 @@ export const JobMenuList = () => {
   const { selectJob } = useSelectJob();
   usePollJobsStatus();
 
-  const redirect = React.useCallback((uuid: string) => selectJob(uuid), [
-    selectJob,
-  ]);
+  const redirect = React.useCallback(
+    (event: React.MouseEvent, uuid: string) => selectJob(event, uuid),
+    [selectJob]
+  );
 
   return (
     <Stack
@@ -60,7 +61,9 @@ export const JobMenuList = () => {
               jobStatus={jobStatus}
               name={name}
               subtitle={pipelinePathAndSnapshotDatetime}
-              onClick={(uuid) => withConfirmation(() => redirect(uuid))}
+              onClick={(event, uuid) =>
+                withConfirmation(async () => redirect(event, uuid))
+              }
             />
           );
         })}
