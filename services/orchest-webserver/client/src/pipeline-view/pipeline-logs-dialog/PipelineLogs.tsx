@@ -15,9 +15,9 @@ import ListSubheader from "@mui/material/ListSubheader";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
-import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { topologicalSort } from "./common";
 import { LogViewerPlaceHolder } from "./LogViewerPlaceHolder";
 
@@ -27,9 +27,12 @@ export const PipelineLogs = () => {
     pipelineUuid,
     jobUuid,
     runUuid,
-    pipelineJson,
     isJobRun,
   } = usePipelineDataContext();
+
+  const {
+    uiState: { steps },
+  } = usePipelineUiStateContext();
 
   useSendAnalyticEvent("view:loaded", {
     name: isJobRun ? "/job-run/logs" : "/logs",
@@ -39,9 +42,8 @@ export const PipelineLogs = () => {
   const isQueryArgsComplete = hasValue(pipelineUuid) && hasValue(projectUuid);
 
   const sortedSteps = React.useMemo(() => {
-    if (!pipelineJson) return undefined;
-    return topologicalSort(cloneDeep(pipelineJson.steps));
-  }, [pipelineJson]);
+    return topologicalSort(steps);
+  }, [steps]);
 
   const { getSession } = useSessionsContext();
 
