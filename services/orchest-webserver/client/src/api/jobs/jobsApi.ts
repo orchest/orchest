@@ -10,10 +10,9 @@ import { queryArgs } from "@/utils/text";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
 const fetchAll = async (projectUuid: string): Promise<JobData[]> => {
-  const unsortedJobs = await fetcher<{ jobs: JobData[] }>(
+  return fetcher<{ jobs: JobData[] }>(
     `/catch/api-proxy/api/jobs?${queryArgs({ projectUuid })}`
   ).then((response) => response.jobs);
-  return unsortedJobs.sort((a, b) => -1 * a.name.localeCompare(b.name));
 };
 
 const fetchOne = async (
