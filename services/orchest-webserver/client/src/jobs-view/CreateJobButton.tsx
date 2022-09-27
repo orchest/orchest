@@ -12,7 +12,7 @@ type CreateJobButtonProps = Omit<
   CreateEntityButtonProps,
   "children" | "onClick" | "disabled"
 > & {
-  onCreated: (uuids: string) => void;
+  onCreated: (event: React.MouseEvent, uuids: string) => void;
 };
 
 export const CreateJobButton = ({
@@ -24,18 +24,23 @@ export const CreateJobButton = ({
 
   const { withConfirmation } = useUnsavedChangesWarning();
 
-  const onCreate = React.useCallback(async () => {
-    if (!pipeline) return;
-    const newJob = await createJob();
-    const changes = pickJobChanges(newJob);
-    if (projectUuid && newJob && changes) {
-      onCreated(newJob.uuid);
-    }
-  }, [createJob, onCreated, pipeline, projectUuid]);
+  const onCreate = React.useCallback(
+    async (event: React.MouseEvent) => {
+      if (!pipeline) return;
+      const newJob = await createJob();
+      const changes = pickJobChanges(newJob);
+      if (projectUuid && newJob && changes) {
+        onCreated(event, newJob.uuid);
+      }
+    },
+    [createJob, onCreated, pipeline, projectUuid]
+  );
 
   return (
     <CreateEntityButton
-      onClick={() => withConfirmation(onCreate)}
+      onClick={(event: React.MouseEvent) =>
+        withConfirmation(() => onCreate(event))
+      }
       disabled={!canCreateJob}
       {...props}
     >

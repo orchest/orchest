@@ -59,8 +59,8 @@ export const NavigationTabsBase = ({
 
   // `useNavTabIndex` will update navTabIndex based on the URL route.
   // Therefor, it's not necessary to manipulate the value of `Tabs` using `onChange`.
-  const onClickTab = (itemIndex: number) => {
-    navigateTo(navItems[itemIndex].path);
+  const onClickTab = (event: React.MouseEvent, itemIndex: number) => {
+    navigateTo(navItems[itemIndex].path, undefined, event);
   };
   const theme = useTheme();
 
@@ -104,8 +104,8 @@ export const NavigationTabsBase = ({
               label={menuItem.label}
               icon={menuItem.icon}
               aria-label={menuItem.label}
-              onClick={() => onClickTab(index)}
-              onAuxClick={() => onClickTab(index)}
+              onClick={(event) => onClickTab(event, index)}
+              onAuxClick={(event) => onClickTab(event, index)}
             />
           );
         })}
@@ -128,8 +128,8 @@ export const NavigationTabsBase = ({
             label={menuItem.label}
             icon={menuItem.icon}
             aria-label={menuItem.label}
-            onClick={() => onClickTab(index)}
-            onAuxClick={() => onClickTab(index)}
+            onClick={(event) => onClickTab(event, index)}
+            onAuxClick={(event) => onClickTab(event, index)}
           />
         );
       })}

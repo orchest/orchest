@@ -9,18 +9,16 @@ export const useSelectJob = () => {
   const { navigateTo, projectUuid } = useCustomRoute();
 
   const redirect = React.useCallback(
-    (jobUuid: string) => {
-      navigateTo(siteMap.jobs.path, {
-        query: { projectUuid, jobUuid },
-      });
+    (event: React.MouseEvent | undefined, jobUuid: string) => {
+      navigateTo(siteMap.jobs.path, { query: { projectUuid, jobUuid } }, event);
     },
     [navigateTo, projectUuid]
   );
 
   const selectJob = React.useCallback(
-    (jobUuid: string) => {
+    (event: React.MouseEvent | undefined, jobUuid: string) => {
       if (!projectUuid) return;
-      redirect(jobUuid);
+      redirect(event, jobUuid);
     },
     [projectUuid, redirect]
   );
