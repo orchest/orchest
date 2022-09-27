@@ -28,13 +28,19 @@ export const useJobScheduleOption = () => {
       : "one-off";
   });
 
-  const hasInitialized = React.useRef(false);
+  const jobPipelineUuid = useEditJob(
+    (state) => state.jobChanges?.pipeline_uuid
+  );
+  const hasInitializedForPipelineUuid = React.useRef(jobPipelineUuid);
   React.useEffect(() => {
-    if (initialScheduleOption && !hasInitialized.current) {
-      hasInitialized.current = true;
+    if (
+      initialScheduleOption &&
+      hasInitializedForPipelineUuid.current !== jobPipelineUuid
+    ) {
+      hasInitializedForPipelineUuid.current = jobPipelineUuid;
       setScheduleOption(initialScheduleOption);
     }
-  }, [initialScheduleOption]);
+  }, [initialScheduleOption, jobPipelineUuid]);
 
   const [cronString, setCronString] = useCronString();
   const [nextScheduledTime, setNextScheduledTime] = useScheduleDateTime();
@@ -57,19 +63,9 @@ export const useJobScheduleOption = () => {
     [cronString, nextScheduledTime, setJobChanges]
   );
 
-  const jobPipelineUuid = useEditJob(
-    (state) => state.jobChanges?.pipeline_uuid
-  );
-  React.useEffect(() => {
-    if (initialScheduleOption && jobPipelineUuid) {
-      setScheduleOption(initialScheduleOption);
-      setSchedule(initialScheduleOption);
-    }
-  }, [initialScheduleOption, jobPipelineUuid, setSchedule]);
-
   React.useEffect(() => {
     setSchedule(scheduleOption);
-  }, [scheduleOption, setSchedule]);
+  }, [scheduleOption, setSchedule, jobPipelineUuid]);
 
   return {
     scheduleOption,
