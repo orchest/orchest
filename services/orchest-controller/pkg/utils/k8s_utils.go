@@ -56,6 +56,7 @@ const (
 	microk8sLabelKey = "node.kubernetes.io/microk8s-controlplane"
 	k3sAnnotationKey = "k3s.io/hostname"
 	eksLabelKey      = "k8s.io/cloud-provider-aws"
+	gkeLabelKey      = "topology.gke.io/zone"
 )
 
 func GetClientsOrDie(inCluster bool, scheme *runtime.Scheme) (
@@ -197,6 +198,8 @@ func DetectK8sDistribution(client kubernetes.Interface) KubernetesDistros {
 		return Microk8s
 	} else if _, ok := node.Labels[eksLabelKey]; ok {
 		return EKS
+	} else if _, ok := node.Labels[gkeLabelKey]; ok {
+		return GKE
 	} else if _, ok := node.Annotations[k3sAnnotationKey]; ok {
 		return K3s
 	}
