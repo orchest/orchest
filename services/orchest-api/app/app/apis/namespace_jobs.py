@@ -1246,6 +1246,14 @@ class UpdateJobParameters(TwoPhaseFunction):
                         "a job which is not a cron job."
                     )
                 )
+            if not parameters:
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot use an empty list of "
+                        "parameters. That would result in the job having no runs."
+                    )
+                )
+
             job.parameters = parameters
 
         if env_variables is not None:
