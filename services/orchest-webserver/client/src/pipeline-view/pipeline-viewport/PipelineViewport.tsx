@@ -194,10 +194,11 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
     }, [fileTrees, hasSteps]);
 
     const hasEmptyState =
-      !isFetchingPipelineJson &&
-      isStepsLoaded &&
-      isFileTreeLoaded &&
-      (disabled || !hasSteps || !hasScripts);
+      disabled ||
+      (!isFetchingPipelineJson &&
+        isStepsLoaded &&
+        isFileTreeLoaded &&
+        (!hasSteps || !hasScripts));
 
     return (
       <Box
