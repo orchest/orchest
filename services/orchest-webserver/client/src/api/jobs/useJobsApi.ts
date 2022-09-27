@@ -170,9 +170,7 @@ export const useJobsApi = create<JobsApi>((set, get) => {
       const duplicatedJob = await jobsApi.duplicate(jobUuid);
       set((state) => {
         const jobs = state.jobs || [];
-        const originalJobIndex = jobs.findIndex((job) => job.uuid === jobUuid);
-        jobs.splice(originalJobIndex + 1, 0, duplicatedJob);
-        return { jobs };
+        return { jobs: [duplicatedJob, ...jobs] };
       });
       return duplicatedJob;
     },
