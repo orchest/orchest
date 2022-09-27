@@ -33,7 +33,7 @@ export const useJobActions = () => {
   const duplicateJob = React.useCallback(async () => {
     if (!uuid) return;
     const duplicatedJob = await duplicate(uuid);
-    selectJob(duplicatedJob.uuid);
+    selectJob(undefined, duplicatedJob.uuid);
   }, [duplicate, selectJob, uuid]);
 
   const triggerJobNow = React.useCallback(async () => {
