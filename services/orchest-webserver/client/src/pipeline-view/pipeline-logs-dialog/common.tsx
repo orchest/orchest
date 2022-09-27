@@ -39,9 +39,9 @@ export const topologicalSort = (steps: StepsDict) => {
 
   // Find roots
   for (const step of Object.values(steps)) {
-    // if (step.incoming_connections.length == 0) {
-    addSelfAndChildren(step);
-    // }
+    if (step.incoming_connections.length == 0) {
+      addSelfAndChildren(step);
+    }
   }
 
   return sortedStepKeys.map((stepUUID) => steps[stepUUID]);
