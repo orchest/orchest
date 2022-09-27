@@ -514,9 +514,9 @@ const StopSessionMessage = ({
     <Box>
       {isRename
         ? "You are renaming a pipeline file. " +
-          "Its session will have to be stopped before proceeding"
+          "Its session will have to be stopped before proceeding. "
         : "You are moving pipeline files. " +
-          "Their sessions have to be stopped before proceeding"}
+          "Their sessions have to be stopped before proceeding. "}
       Do you want to proceed?
     </Box>
     <ul>

@@ -38,7 +38,7 @@ export const useValidateFilesOnSteps = () => {
             <Box>
               {`Supported file extensions are: `}
               {allowedExtensionsMarkup}
-              {`Unable to apply following files to a step:`}
+              {`. Unable to apply following files to a step:`}
             </Box>
             <ul>
               {forbidden.map((file) => (

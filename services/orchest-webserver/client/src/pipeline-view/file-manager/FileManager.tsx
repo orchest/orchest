@@ -1,4 +1,5 @@
 import { useDebounce } from "@/hooks/useDebounce";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { useUploader } from "@/hooks/useUploader";
 import { queryArgs } from "@/utils/text";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -188,11 +189,12 @@ export function FileManager() {
    * Final component init
    */
 
+  const hasChangedProject = useHasChanged(projectUuid);
   React.useEffect(() => {
     reload();
-    // Only load once when on mount.
+    // Only load when projectUuid is updated.
     // Put `reload` in the deps would trigger unwanted requests.
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasChangedProject]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     const filterInvalidEntries = createInvalidEntryFilter({
