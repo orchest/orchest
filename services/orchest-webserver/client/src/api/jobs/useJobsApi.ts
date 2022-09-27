@@ -123,9 +123,7 @@ export const useJobsApi = create<JobsApi>((set, get) => {
       );
       set((state) => {
         const jobs = state.jobs ? [draftJob, ...state.jobs] : [draftJob];
-        return {
-          jobs: jobs.sort((a, b) => -1 * a.name.localeCompare(b.name)),
-        };
+        return { jobs };
       });
       return draftJob;
     },
