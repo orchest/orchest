@@ -554,6 +554,9 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 			}
 			applications = append(applications, app)
 		}
+
+		// If ingress is enabled, it has to be removed from the .Spec.Applications,
+		// k8s ensures we are using the latest object version.
 		if ingressEnabled {
 			copy.Spec.Applications = applications
 			changed = true
