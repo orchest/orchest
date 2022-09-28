@@ -515,7 +515,6 @@ func isIngressAddonRequired(ctx context.Context, k8sDistro utils.KubernetesDistr
 		return false
 	}
 
-	// In k3s ingress addon can be installed by us
 	switch k8sDistro {
 	case utils.K3s, utils.EKS, utils.GKE:
 		return !isNginxIngressInstalled(ctx, client)

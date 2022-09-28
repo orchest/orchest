@@ -548,7 +548,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		ingressEnabled := false
 		applications := make([]orchestv1alpha1.ApplicationSpec, 0, 0)
 		for _, app := range copy.Spec.Applications {
-			if app.Name != addons.IngressNginx {
+			if app.Name == addons.IngressNginx {
 				ingressEnabled = true
 				continue
 			}
