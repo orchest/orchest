@@ -1,6 +1,6 @@
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
-import { EditJobOverview } from "./EditJobOverview";
+import { EditJobProperties } from "./EditJobProperties";
 import { JobEnvVariables } from "./JobEnvVariables";
 import { JobParameters } from "./JobParameters";
 import { JobRuns } from "./JobRuns";
@@ -17,7 +17,7 @@ export const JobView = () => {
       <JobViewHeader />
       {!isEditing && <JobSummary />}
       {!isEditing && <JobRuns />}
-      {isEditing && <EditJobOverview />}
+      {isEditing && <EditJobProperties />}
       <JobParameters />
       <JobEnvVariables />
       <WebhookHint />
