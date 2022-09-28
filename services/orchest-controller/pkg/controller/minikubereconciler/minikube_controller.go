@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	kubeSystemNameSpace = "kube-system"
-	corednsDeployment   = "coredns"
+	kubeSystemNameSpace    = "kube-system"
+	corednsDeployment      = "coredns"
+	ingressNginxNameSpace  = "ingress-nginx"
+	ingressNginxDeployment = "ingress-nginx-controller"
 )
 
 // MinikubeReconcilerController reconciles the the minikube resources in a way orchest expexts like:
@@ -84,8 +86,8 @@ func (minikube *MinikubeReconcilerController) syncDeployments(ctx context.Contex
 		return err
 	}
 
-	// If it is not core-dns, return
-	if namespace != kubeSystemNameSpace || name != corednsDeployment {
+	if !((namespace == kubeSystemNameSpace && name == corednsDeployment) ||
+		(namespace == ingressNginxNameSpace && name == ingressNginxDeployment)) {
 		return nil
 	}
 
@@ -104,15 +106,39 @@ func (minikube *MinikubeReconcilerController) syncDeployments(ctx context.Contex
 		return nil
 	}
 
-	if dep.Spec.Template.Spec.Containers[0].ReadinessProbe != nil {
-		clone := dep.DeepCopy()
-		clone.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
+	if name == corednsDeployment {
+		if dep.Spec.Template.Spec.Containers[0].ReadinessProbe != nil {
+			clone := dep.DeepCopy()
+			clone.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
 
-		klog.Info("Removing readiness probe from coredns in minikube.")
+			klog.Info("Removing readiness probe from coredns in minikube.")
 
-		_, err = minikube.client.AppsV1().Deployments(namespace).Update(ctx, clone, v1.UpdateOptions{})
+			_, err = minikube.client.AppsV1().Deployments(namespace).Update(ctx, clone, v1.UpdateOptions{})
 
-		return err
+			return err
+		}
+		// To avoid nginx going down during periods of high cpu
+		// contention in instances with low resources.
+	} else if name == ingressNginxDeployment {
+		var timeoutValue int32 = 15
+
+		container := dep.Spec.Template.Spec.Containers[0]
+
+		if container.ReadinessProbe != nil && container.ReadinessProbe.TimeoutSeconds < timeoutValue {
+			clone := dep.DeepCopy()
+			clone.Spec.Template.Spec.Containers[0].ReadinessProbe.TimeoutSeconds = timeoutValue
+			klog.Info("Altering readiness probe for ingress-nginx in minikube.")
+			_, err = minikube.client.AppsV1().Deployments(namespace).Update(ctx, clone, v1.UpdateOptions{})
+			return err
+		}
+		if container.LivenessProbe != nil && container.LivenessProbe.TimeoutSeconds < timeoutValue {
+			clone := dep.DeepCopy()
+			clone.Spec.Template.Spec.Containers[0].LivenessProbe.TimeoutSeconds = timeoutValue
+			klog.Info("Altering liveness probe for ingress-nginx in minikube.")
+			_, err = minikube.client.AppsV1().Deployments(namespace).Update(ctx, clone, v1.UpdateOptions{})
+			return err
+		}
+
 	}
 
 	return nil
