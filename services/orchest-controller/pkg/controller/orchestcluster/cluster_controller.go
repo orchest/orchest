@@ -544,7 +544,24 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Applications = occ.config.DefaultApplications
 	}
 
-	if !isIngressDisabled(copy) && isIngressAddonRequired(ctx, occ.Client()) {
+	if isIngressDisabled(copy) {
+		ingressEnabled := false
+		applications := make([]orchestv1alpha1.ApplicationSpec, 0, 0)
+		for _, app := range copy.Spec.Applications {
+			if app.Name == addons.IngressNginx {
+				ingressEnabled = true
+				continue
+			}
+			applications = append(applications, app)
+		}
+
+		// If ingress is enabled, it has to be removed from the .Spec.Applications,
+		// k8s ensures we are using the latest object version.
+		if ingressEnabled {
+			copy.Spec.Applications = applications
+			changed = true
+		}
+	} else if isIngressAddonRequired(ctx, occ.k8sDistro, occ.Client()) {
 		ingressEnabled := false
 		for _, app := range copy.Spec.Applications {
 			if app.Name == addons.IngressNginx {
