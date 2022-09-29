@@ -14,12 +14,18 @@ const scrolledSx: SxProps<Theme> = {
   boxShadow: "0 0 12px rgba(0, 0, 0, 0.1)",
 };
 
+export type StickyHeaderState = { scrolled: boolean };
+
+export type StickyHeaderProps = StackProps & {
+  children: (state: StickyHeaderState) => React.ReactNode;
+};
+
 /**
  * A header that sticks to the top of the page.
  * If the header is within the `ScrollPane` component,
  * it gets a shadow below it when the pane is scrolled.
  */
-export const StickyHeader = ({ sx, ...props }: StackProps) => {
+export const StickyHeader = ({ sx, children, ...props }: StickyHeaderProps) => {
   const [contentPane, setContentPane] = React.useState<HTMLElement>();
   const [scrolled, setScrolled] = React.useState(false);
 
@@ -42,18 +48,23 @@ export const StickyHeader = ({ sx, ...props }: StackProps) => {
     [scrolled, sx]
   );
 
+  const state = React.useMemo(() => ({ scrolled }), [scrolled]);
+
+  console.log(state);
+
   return (
     <Stack
       {...props}
       ref={findContentPaneParent}
       top={0}
       paddingTop={4}
-      paddingBottom={2}
       position="sticky"
       width="100%"
       marginBottom={4}
       sx={combinedSx}
-    />
+    >
+      {children(state)}
+    </Stack>
   );
 };
 

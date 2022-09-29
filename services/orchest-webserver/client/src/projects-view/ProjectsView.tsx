@@ -8,6 +8,7 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import Alert from "@mui/material/Alert";
+import Stack from "@mui/material/Stack";
 import React from "react";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { ExampleList } from "./ExampleList";
@@ -76,14 +77,18 @@ export const ProjectsView = () => {
     <>
       <ProjectTabsContextProvider>
         <ViewLayout
-          header={
-            <ProjectsHeader
-              onClickImport={openImportDialog}
-              onClickCreate={openCreateDialog}
-            />
-          }
+          header={({ scrolled }) => (
+            <Stack spacing={3}>
+              <ProjectsHeader
+                onClickImport={openImportDialog}
+                onClickCreate={openCreateDialog}
+              />
+              <ProjectsTabs
+                style={scrolled ? { borderBottom: "none" } : undefined}
+              />
+            </Stack>
+          )}
         >
-          <ProjectsTabs />
           <ProjectTabPanel
             id="projects"
             index={PROJECT_TAB.MY_PROJECTS}

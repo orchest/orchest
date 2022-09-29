@@ -12,7 +12,7 @@ export const EnvironmentsView = () => {
   return (
     <ViewLayout
       sidePanel={<EnvironmentMenuList />}
-      header={<EnvironmentHeader />}
+      header={() => <EnvironmentHeader />}
     >
       <EditEnvironment />
     </ViewLayout>

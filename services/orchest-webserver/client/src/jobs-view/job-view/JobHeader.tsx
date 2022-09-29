@@ -7,7 +7,7 @@ import { JobStatusAlert } from "./JobStatusAlert";
 
 export const JobHeader = () => {
   return (
-    <Stack direction="column" spacing={3}>
+    <Stack direction="column" spacing={3} paddingBottom={2}>
       <Stack direction="row" spacing={3} alignItems="center">
         <JobName />
         <JobPrimaryButtons />

@@ -10,7 +10,7 @@ export const JobsView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
 
   return (
-    <ViewLayout sidePanel={<JobMenuList />} header={<JobHeader />}>
+    <ViewLayout sidePanel={<JobMenuList />} header={() => <JobHeader />}>
       <JobView />
     </ViewLayout>
   );

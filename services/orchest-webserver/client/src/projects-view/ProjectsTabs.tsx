@@ -1,17 +1,17 @@
 import { useUpdateQueryArgs } from "@/hooks/useUpdateQueryArgs";
 import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
+import Tabs, { TabsProps } from "@mui/material/Tabs";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectTabsContext } from "./ProjectTabsContext";
 
 const projectTabs = ["My projects", "Example projects"];
 
-type ProjectsTabsProps = {
+type ProjectsTabsProps = TabsProps & {
   children?: (projectTabIndex: number) => React.ReactNode;
 };
 
-export const ProjectsTabs = ({ children }: ProjectsTabsProps) => {
+export const ProjectsTabs = ({ children, sx, ...props }: ProjectsTabsProps) => {
   const { projectTabIndex, setProjectTabIndex } = useProjectTabsContext();
   const { updateQueryArgs } = useUpdateQueryArgs();
 
@@ -28,7 +28,11 @@ export const ProjectsTabs = ({ children }: ProjectsTabsProps) => {
       <Tabs
         value={projectTabIndex}
         aria-label="Projects tabs"
-        sx={{ borderBottom: (theme) => `1px solid ${theme.borderColor}` }}
+        sx={{
+          borderBottom: (theme) => `1px solid ${theme.borderColor}`,
+          ...sx,
+        }}
+        {...props}
       >
         {projectTabs.map((projectTab, index) => {
           return (

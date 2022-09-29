@@ -4,13 +4,13 @@ import { CenteredStack } from "./CenteredStack";
 import { Layout } from "./Layout";
 import { MainSidePanel } from "./MainSidePanel";
 import { ScrollPane } from "./ScrollPane";
-import { StickyHeader } from "./StickyHeader";
+import { StickyHeader, StickyHeaderProps } from "./StickyHeader";
 
 export type ViewLayoutProps = StackProps & {
   /** A side panel that will be rendered to the left of the main content (children). */
   sidePanel?: React.ReactNode;
   /** A sticky header that floats above the main content (children). */
-  header?: React.ReactNode;
+  header?: StickyHeaderProps["children"];
 };
 
 /**
@@ -30,7 +30,7 @@ export const ViewLayout = React.forwardRef<HTMLDivElement, ViewLayoutProps>(
           <ScrollPane>
             {header && (
               <StickyHeader zIndex={2}>
-                <CenteredStack>{header}</CenteredStack>
+                {(state) => <CenteredStack>{header(state)}</CenteredStack>}
               </StickyHeader>
             )}
 
