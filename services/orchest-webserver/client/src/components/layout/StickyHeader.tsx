@@ -1,11 +1,17 @@
-import { SxProps, Theme } from "@mui/material";
+import { alpha, SxProps, Theme } from "@mui/material";
 import Stack, { StackProps } from "@mui/material/Stack";
 import React from "react";
 import { SCROLL_PANE_CLASS } from "./ScrollPane";
 
 const baseSx: SxProps<Theme> = {
   backgroundColor: (theme) => theme.palette.background.paper,
-  transition: "box-shadow 200ms ease-out",
+  transition: "all 200ms ease-out",
+};
+
+const scrolledSx: SxProps<Theme> = {
+  backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.8),
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 0 12px rgba(0, 0, 0, 0.1)",
 };
 
 /**
@@ -30,6 +36,12 @@ export const StickyHeader = ({ sx, ...props }: StackProps) => {
     return () => contentPane?.removeEventListener("scroll", onScroll);
   }, [contentPane]);
 
+  const combinedSx = React.useMemo(
+    () =>
+      scrolled ? { ...baseSx, ...scrolledSx, ...sx } : { ...baseSx, ...sx },
+    [scrolled, sx]
+  );
+
   return (
     <Stack
       {...props}
@@ -40,11 +52,7 @@ export const StickyHeader = ({ sx, ...props }: StackProps) => {
       position="sticky"
       width="100%"
       marginBottom={4}
-      sx={{
-        ...baseSx,
-        ...sx,
-        boxShadow: scrolled ? "0 0 12px rgba(0, 0, 0, 0.15)" : undefined,
-      }}
+      sx={combinedSx}
     />
   );
 };
