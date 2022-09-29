@@ -6,15 +6,8 @@ import type {
   StepsDict,
   StepState,
 } from "@/types";
-import {
-  createRect,
-  dividePoint,
-  Point2D,
-  rectsIntersect,
-  subtractPoints,
-} from "@/utils/geometry";
+import { createRect, Point2D, rectsIntersect } from "@/utils/geometry";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
-import { getMousePoint } from "@/utils/mouse";
 import { setOutgoingConnections } from "@/utils/webserver-utils";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import produce from "immer";
@@ -129,11 +122,11 @@ export type Action =
     }
   | {
       type: "CREATE_SELECTOR";
-      payload: Readonly<Point2D>;
+      payload: Point2D;
     }
   | {
       type: "UPDATE_STEP_SELECTOR";
-      payload: Readonly<Point2D>;
+      payload: Point2D;
     }
   | {
       type: "SET_STEP_SELECTOR_INACTIVE";
@@ -461,22 +454,13 @@ export const usePipelineUiState = () => {
         }
 
         case "CREATE_SELECTOR": {
-          // not dragging the canvas, so user must be creating a selection rectangle
-          // NOTE: this also deselect all steps
-          const canvasOffset = action.payload;
-
-          const start = dividePoint(
-            subtractPoints(getMousePoint(), canvasOffset),
-            scaleFactor
-          );
-
           return {
             ...state,
             grabbedStep: undefined,
             selectedSteps: [],
             stepSelector: {
-              start,
-              end: start,
+              start: action.payload,
+              end: action.payload,
               active: true,
             },
           };
@@ -567,19 +551,12 @@ export const usePipelineUiState = () => {
         }
 
         case "UPDATE_STEP_SELECTOR": {
-          const canvasOffset = action.payload;
-
-          const end = dividePoint(
-            subtractPoints(getMousePoint(), canvasOffset),
-            scaleFactor
-          );
-
-          const newRect = { ...state.stepSelector, end };
-
-          const rect = createRect(newRect.start, newRect.end);
+          const newRect = { ...state.stepSelector, end: action.payload };
+          const rect = createRect(newRect.start, action.payload);
 
           return produce(state, (draft) => {
             draft.stepSelector = newRect;
+
             // for each step perform intersect
             if (newRect.active) {
               draft.selectedSteps = [];

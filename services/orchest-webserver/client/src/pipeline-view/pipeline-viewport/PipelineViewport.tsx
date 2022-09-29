@@ -1,6 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { FileTree } from "@/types";
-import { getOffset } from "@/utils/element";
 import {
   isSamePoint,
   Point2D,
@@ -117,7 +116,7 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
       if (isCreatingSelection) {
         uiStateDispatch({
           type: "CREATE_SELECTOR",
-          payload: getOffset(pipelineCanvasRef.current),
+          payload: canvasPointAtPointer(),
         });
       }
     };
