@@ -2,7 +2,7 @@ import {
   StatusIcon,
   statusIconDefaultProps,
   StatusIconStatus,
-} from "@/components/layout";
+} from "@/components/common/StatusIcon";
 import { JobStatus } from "@/types";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import React from "react";

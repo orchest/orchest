@@ -1,4 +1,4 @@
-import { StatusIcon, StatusIconStatus } from "@/components/layout";
+import { StatusIcon, StatusIconStatus } from "@/components/common/StatusIcon";
 import { JobStatus } from "@/types";
 import React from "react";
 

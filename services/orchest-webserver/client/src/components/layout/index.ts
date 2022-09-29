@@ -3,7 +3,6 @@ export * from "./Layout";
 export * from "./MainSidePanel";
 export * from "./ScrollPane";
 export * from "./SidePanelMenuItem";
-export * from "./StatusIcon";
 export * from "./StickyHeader";
 export * from "./stores/useLayoutStore";
 export * from "./ViewLayout";

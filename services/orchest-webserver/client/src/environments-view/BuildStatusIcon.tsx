@@ -1,4 +1,4 @@
-import { StatusIcon, StatusIconStatus } from "@/components/layout";
+import { StatusIcon, StatusIconStatus } from "@/components/common/StatusIcon";
 import { EnvironmentImageBuild } from "@/types";
 import React from "react";
 import { isEnvironmentBuilding, isEnvironmentFailedToBuild } from "./common";
