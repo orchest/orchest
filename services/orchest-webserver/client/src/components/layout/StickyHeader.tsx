@@ -16,7 +16,7 @@ const scrolledSx: SxProps<Theme> = {
 
 export type StickyHeaderState = { scrolled: boolean };
 
-export type StickyHeaderProps = StackProps & {
+export type StickyHeaderProps = Omit<StackProps, "children"> & {
   children: (state: StickyHeaderState) => React.ReactNode;
 };
 
