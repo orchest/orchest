@@ -332,7 +332,12 @@ def has_busy_kernels(session_uuid: str) -> bool:
     service_name = f"jupyter-server-{session_uuid}"
     # Coupled with the jupyter-server service port.
     url = f"http://{service_name}/{service_name}/api/kernels"
-    response = requests.get(url, timeout=2.0)
+    session = utils.get_session_with_retries()
+    try:
+        response = session.get(url, timeout=5.0)
+    # Might fail under heavy load.
+    except (requests.ConnectionError, requests.Timeout, requests.HTTPError):
+        return True
 
     # Expected format: a list of dictionaries.
     # [{'id': '3af6f3b9-4358-43b9-b2dd-03b51c4f7881', 'name':
