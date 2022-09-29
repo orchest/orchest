@@ -1,6 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
-import { Layout } from "@/components/Layout";
+import { Layout } from "@/components/layout";
 import { LegacyImageBuildLog } from "@/components/legacy/LegacyImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";

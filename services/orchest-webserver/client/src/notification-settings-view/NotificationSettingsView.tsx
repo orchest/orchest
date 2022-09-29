@@ -1,6 +1,6 @@
 import { PageTitle } from "@/components/common/PageTitle";
 import { SectionTitle } from "@/components/common/SectionTitle";
-import { Layout } from "@/components/Layout";
+import { Layout } from "@/components/layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";

@@ -1,5 +1,4 @@
-import { Layout } from "@/components/Layout";
-import { MainSidePanel } from "@/components/Layout/MainSidePanel";
+import { Layout, MainSidePanel } from "@/components/layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";

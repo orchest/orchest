@@ -1,5 +1,4 @@
-import { CenteredStack } from "@/components/Layout/CenteredStack";
-import { MainContainer } from "@/components/Layout/MainContainer";
+import { CenteredStack, MainContainer } from "@/components/layout";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";

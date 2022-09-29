@@ -1,5 +1,5 @@
 import { ConsoleOutput } from "@/components/ConsoleOutput";
-import { Layout } from "@/components/Layout";
+import { Layout } from "@/components/layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   useCancelableFetch,

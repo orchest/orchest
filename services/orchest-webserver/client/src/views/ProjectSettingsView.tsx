@@ -1,7 +1,7 @@
 import { projectsApi } from "@/api/projects/projectsApi";
 import { PageTitle } from "@/components/common/PageTitle";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
-import { Layout } from "@/components/Layout";
+import { Layout } from "@/components/layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";

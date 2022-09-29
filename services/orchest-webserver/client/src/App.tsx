@@ -8,7 +8,7 @@ import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
 import { CommandPalette } from "./components/CommandPalette";
-import { OnboardingDialog } from "./components/Layout/legacy/OnboardingDialog";
+import { OnboardingDialog } from "./components/layout/legacy/OnboardingDialog";
 import { SystemDialog } from "./components/SystemDialog";
 import { AppContextProvider } from "./contexts/AppContext";
 import { useGlobalContext } from "./contexts/GlobalContext";
