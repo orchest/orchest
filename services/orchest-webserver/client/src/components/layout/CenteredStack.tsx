@@ -13,7 +13,7 @@ const baseSx: SxProps<Theme> = {
 
 /**
  * Provides a `Stack` component that aligns the content in the center with some horizontal padding.
- * Commonly used inside the `ContentPane` and `StickyHeader` to ensure content has the same width in both.
+ * Commonly used inside the `ScrollPane` and `StickyHeader` to ensure content has the same width in both.
  */
 export const CenteredStack = React.forwardRef<HTMLDivElement, StackProps>(
   function CenteredStack({ sx, ...props }, ref) {
