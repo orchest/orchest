@@ -336,7 +336,12 @@ def has_busy_kernels(session_uuid: str) -> bool:
     try:
         response = session.get(url, timeout=3.0)
     # Might fail under heavy load.
-    except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as e:
+    except (
+        requests.ConnectionError,
+        requests.Timeout,
+        requests.HTTPError,
+        requests.exceptions.RetryError,
+    ) as e:
         logger.warning(f"Failed to query kernels: {e}. Will be considered as busy.")
         return True
 
