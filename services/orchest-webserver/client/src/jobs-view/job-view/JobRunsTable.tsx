@@ -1,12 +1,13 @@
 import { RouteLink } from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
-import { PipelineRun } from "@/types";
+import { PipelineRun, PipelineRunStatus } from "@/types";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cs
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
+import { blue, green, red } from "@mui/material/colors";
 import IconButton from "@mui/material/IconButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -208,12 +209,9 @@ const RunRow = ({
           </Stack>
         </TableCell>
         <TableCell style={cellStyle[3]}>
-          <Chip
-            sx={{ paddingLeft: (theme) => theme.spacing(0.5) }}
-            icon={<JobStatusIcon status={run.status} />}
-            label={formatRunStatus(run.status)}
-          />
+          <StatusChip status={run.status} />
         </TableCell>
+
         <TableCell style={cellStyle[4]}>
           <Stack
             direction="row"
@@ -273,5 +271,26 @@ export const NoParameterAlert = () => {
     <Typography variant="body2">
       <i>{`This Pipeline didn't have any Parameters defined.`}</i>
     </Typography>
+  );
+};
+
+const statusColor: Record<PipelineRunStatus, string | undefined> = {
+  ABORTED: red[50],
+  STARTED: blue[50],
+  PENDING: undefined,
+  FAILURE: red[50],
+  SUCCESS: green[50],
+};
+
+const StatusChip = ({ status }: { status: PipelineRunStatus }) => {
+  return (
+    <Chip
+      sx={{
+        paddingLeft: (theme) => theme.spacing(0.5),
+        backgroundColor: statusColor[status],
+      }}
+      icon={<JobStatusIcon status={status} />}
+      label={formatRunStatus(status)}
+    />
   );
 };
