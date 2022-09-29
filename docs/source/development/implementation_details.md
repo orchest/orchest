@@ -277,3 +277,36 @@ the builder pod contains the `buildctl` CLI and mounts the `buildkitd` socket, t
 built by issuing `buildctl` commands. To clarify, this means that the `buildkitd` socket is exposed
 to the host through a volume mount, and is then "picked up" by the builder pod by mounting the same
 location from the host.
+
+## Pod scheduling in Orchest
+
+In order to provide a better user experience, Orchest distinguishes activities between what could be
+called an "interactive scope" and a "non-interactive scope". The interactive scope includes any
+activity where the user is directly involved in waiting to continue its tasks. For example, an
+interactive pipeline run, a Jupyter kernel starting, waiting for an interactive session to be ready,
+etc. Obviously, we want to make events part of this scope happen as quickly as possible.
+
+Given this premise, and the fact that the `orchest-api` knows on which node(s) an environment image
+is, Orchest interacts with the scheduling of pods of interest in order to have the best user
+experience while balancing node pressure across the cluster. The entire logic can be found in the
+`pod_scheduling.py` module of the `orchest-api`, and it's, at the high level, pretty simple:
+anything that belongs to the **interactive scope** is scheduled to be **on any node that already
+contains the images**, while the **non-interactive scope** is scheduled **on any node**,
+regardless of the fact that the image is there already or if a pull will be needed.
+
+This means that no pull will be needed to start pods related to the interactive scope, reducing the
+time that the user would have to wait if, for example, the pod backing a step of an interactive run
+would, instead, have been scheduled on a node that doesn't have the image already.
+
+Example:
+
+- a user imports a project containing one environment.
+- the environment is built on the node.
+- immediately after the image has been built, the user can start a session, start an interactive
+  run, interact with a Jupyter kernel. These will all be scheduled on the node already containing
+  the image.
+- the image gets pushed to the registry by the `node-agent`.
+- after the image has been pushed to the registry and pulled to the other nodes, all these
+  activities belonging to the interactive scope could be scheduled on any node. This means that the
+  time window during which there is single node pressure is given by the time it takes to push the
+  newly built image to the registry and spread it to the other nodes.
