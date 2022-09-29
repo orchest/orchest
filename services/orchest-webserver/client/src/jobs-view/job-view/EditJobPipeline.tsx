@@ -40,7 +40,10 @@ export const EditJobPipeline = () => {
   return hasValue(pipelines) ? (
     <FormControl
       disabled={disabled}
-      sx={{ width: "50%", minWidth: (theme) => theme.spacing(35) }}
+      sx={{
+        width: { xs: "80%", lg: "32%" },
+        minWidth: (theme) => theme.spacing(35),
+      }}
     >
       <InputLabel
         id="job-pipeline-select-label"

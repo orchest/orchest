@@ -9,16 +9,16 @@ import { EditJobConfig } from "./EditJobConfig";
 import { EditJobName } from "./EditJobName";
 import { EditJobPipeline } from "./EditJobPipeline";
 
-type JobOverviewProps = { hideSelectPipeline?: true };
+type EditJobPropertiesProps = { hideSelectPipeline?: true };
 
-export const EditJobOverview = ({
+export const EditJobProperties = ({
   hideSelectPipeline = undefined,
-}: JobOverviewProps) => {
+}: EditJobPropertiesProps) => {
   return (
     <Accordion defaultExpanded>
       <AccordionSummary aria-controls="job-overview" id="job-overview-header">
         <Typography component="h5" variant="h6">
-          Overview
+          Properties
         </Typography>
       </AccordionSummary>
       <AccordionDetails sx={{ padding: (theme) => theme.spacing(2, 0) }}>
