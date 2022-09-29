@@ -1,7 +1,7 @@
 """API endpoints for unspecified orchest-api level information."""
 from datetime import datetime, timezone
 
-from flask import current_app
+from flask import current_app, request
 from flask_restx import Namespace, Resource
 
 from app import models, schema
@@ -13,6 +13,13 @@ api = schema.register_schema(api)
 
 
 @api.route("/idle")
+@api.param(
+    "skip_details",
+    (
+        "If true then will return as soon as Orchest is found to not be idle. The "
+        "'details' entry of the returned json might thus be incomplete."
+    ),
+)
 class IdleCheck(Resource):
     @api.doc("orchest_api_idle")
     @api.marshal_with(
@@ -32,7 +39,12 @@ class IdleCheck(Resource):
             state is reported by JupyterLab, and reflects the fact that
             a kernel is not actively doing some compute.
         """
-        idleness_data = is_orchest_idle()
+        idleness_data = is_orchest_idle(
+            skip_details=request.args.get(
+                "skip_details", default=False, type=lambda v: v in ["True", "true"]
+            )
+        )
+
         return idleness_data, 200
 
 
@@ -57,13 +69,19 @@ class ClientHeartBeat(Resource):
         return "", 200
 
 
-def is_orchest_idle() -> dict:
+def is_orchest_idle(skip_details: bool = False) -> dict:
     """Checks if the orchest-api is idle.
+
+    Args:
+        skip_details: If True this function will return as soon as it
+        finds out that Orchest is not idle. The "details" entry of the
+        returned dictionary might thus be incomplete.
 
     Returns:
         See schema.idleness_check_result for details.
     """
     data = {}
+    result = {"details": data, "idle": False}
 
     # Active clients.
     threshold = (
@@ -75,25 +93,11 @@ def is_orchest_idle() -> dict:
         .filter(models.ClientHeartbeat.timestamp > threshold)
         .exists()
     ).scalar()
-
-    # Find busy kernels.
-    data["busy_kernels"] = False
-    isessions = models.InteractiveSession.query.filter(
-        models.InteractiveSession.status.in_(["RUNNING"])
-    ).all()
-    for session in isessions:
-        if sessions.has_busy_kernels(
-            session.project_uuid[:18] + session.pipeline_uuid[:18]
-        ):
-            data["busy_kernels"] = True
-            break
+    if data["active_clients"] and skip_details:
+        return result
 
     # Assumes the model has a uuid field and its lifecycle contains the
-    # PENDING and STARTED statuses. NOTE: we could be stopping earlier
-    # on truthy values since we already know the orchest-api is idle at
-    # this point, but providing all details might allow to further build
-    # on this "feature" in the future without fragmenting users due to
-    # different versions.
+    # PENDING and STARTED statuses.
     for name, model in [
         ("ongoing_environment_image_builds", models.EnvironmentImageBuild),
         ("ongoing_jupyterlab_builds", models.JupyterImageBuild),
@@ -105,7 +109,22 @@ def is_orchest_idle() -> dict:
             .filter(model.status.in_(["PENDING", "STARTED"]))
             .exists()
         ).scalar()
+        if data[name] and skip_details:
+            return result
 
-    result = {"details": data}
+    # Find busy kernels.
+    data["busy_kernels"] = False
+    isessions = models.InteractiveSession.query.filter(
+        models.InteractiveSession.status.in_(["RUNNING"])
+    ).all()
+    for session in isessions:
+        if sessions.has_busy_kernels(
+            session.project_uuid[:18] + session.pipeline_uuid[:18]
+        ):
+            data["busy_kernels"] = True
+            if skip_details:
+                return result
+            break
+
     result["idle"] = not any(data.values())
     return result
