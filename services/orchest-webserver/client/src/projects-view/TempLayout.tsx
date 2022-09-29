@@ -1,3 +1,4 @@
+import { CenteredStack } from "@/components/Layout/layout-with-side-panel/CenteredStack";
 import { MainContainer } from "@/components/Layout/layout-with-side-panel/MainContainer";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
@@ -6,10 +7,9 @@ import React from "react";
 
 // TODO: Replace the Layout component with this when other views are implemented
 export const TempLayout: React.FC<{
-  disablePadding?: boolean;
   toolbarElements?: React.ReactNode;
   loading?: boolean;
-}> = ({ children, disablePadding, toolbarElements, loading }) => {
+}> = ({ children, toolbarElements, loading }) => {
   return (
     <Stack
       direction="column"
@@ -34,13 +34,14 @@ export const TempLayout: React.FC<{
         </Toolbar>
       )}
       <MainContainer
-        disablePadding={disablePadding}
         sx={{
           marginTop: (theme) =>
             loading && !toolbarElements ? theme.spacing(-0.5) : 0,
         }}
       >
-        {children}
+        <CenteredStack sx={{ paddingTop: (theme) => theme.spacing(4) }}>
+          {children}
+        </CenteredStack>
       </MainContainer>
     </Stack>
   );

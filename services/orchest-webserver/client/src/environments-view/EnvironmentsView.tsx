@@ -3,6 +3,7 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";
 import { EditEnvironment } from "./edit-environment/EditEnvironment";
+import { EnvironmentHeader } from "./EnvironmentHeader";
 import { EnvironmentMenuList } from "./EnvironmentMenuList";
 
 export const EnvironmentsView = () => {
@@ -11,7 +12,7 @@ export const EnvironmentsView = () => {
   return (
     <LayoutWithSidePanel
       sidePanel={<EnvironmentMenuList />}
-      mainContainerProps={{ sx: { paddingTop: 0 } }}
+      header={<EnvironmentHeader />}
     >
       <EditEnvironment />
     </LayoutWithSidePanel>
