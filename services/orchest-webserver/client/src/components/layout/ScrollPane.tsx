@@ -1,12 +1,12 @@
 import Stack, { StackProps } from "@mui/material/Stack";
 import React from "react";
 
-export const MAIN_CONTAINER_CLASS = "MainContainer";
+export const SCROLL_PANE_CLASS = "ScrollPane";
 
 /** A scrollable pane commonly used for the main content of the view. */
-export const MainContainer = ({ ...props }: StackProps) => (
+export const ScrollPane = ({ ...props }: StackProps) => (
   <Stack
-    className={MAIN_CONTAINER_CLASS}
+    className={SCROLL_PANE_CLASS}
     width="100%"
     justifyContent="flex-start"
     alignItems="flex-start"

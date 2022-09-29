@@ -1,4 +1,4 @@
-import { LayoutWithSidePanel } from "@/components/layout";
+import { ViewLayout } from "@/components/layout";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";
@@ -10,11 +10,11 @@ export const EnvironmentsView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
 
   return (
-    <LayoutWithSidePanel
+    <ViewLayout
       sidePanel={<EnvironmentMenuList />}
       header={<EnvironmentHeader />}
     >
       <EditEnvironment />
-    </LayoutWithSidePanel>
+    </ViewLayout>
   );
 };

@@ -15,8 +15,11 @@ const paneSx: SxProps<Theme> = {
   height: "100%",
 };
 
-/** A resizable & scrollable side pane, commonly used for menus. */
-export const MainSidePanel: React.FC = ({ children }) => {
+/**
+ * A resizable & scrollable side pane, commonly used for menus.
+ *
+ */
+export const MainSidePanel: React.FC = (props) => {
   const [mainSidePanelWidth, setMainSidePanelWidth] = useMainSidePanelWidth();
 
   return (
@@ -28,8 +31,7 @@ export const MainSidePanel: React.FC = ({ children }) => {
       position="relative"
       sx={paneSx}
       onSetSize={setMainSidePanelWidth}
-    >
-      {children}
-    </ResizablePane>
+      {...props}
+    />
   );
 };

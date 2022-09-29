@@ -1,4 +1,4 @@
-import { CenteredStack, MainContainer } from "@/components/layout";
+import { CenteredStack, ScrollPane } from "@/components/layout";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
@@ -32,7 +32,7 @@ export const TempLayout: React.FC<{
           {toolbarElements}
         </Toolbar>
       )}
-      <MainContainer
+      <ScrollPane
         sx={{
           marginTop: (theme) =>
             loading && !toolbarElements ? theme.spacing(-0.5) : 0,
@@ -41,7 +41,7 @@ export const TempLayout: React.FC<{
         <CenteredStack sx={{ paddingTop: (theme) => theme.spacing(4) }}>
           {children}
         </CenteredStack>
-      </MainContainer>
+      </ScrollPane>
     </Stack>
   );
 };

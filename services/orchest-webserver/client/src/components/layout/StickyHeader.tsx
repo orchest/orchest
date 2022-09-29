@@ -1,7 +1,7 @@
 import { SxProps, Theme } from "@mui/material";
 import Stack, { StackProps } from "@mui/material/Stack";
 import React from "react";
-import { MAIN_CONTAINER_CLASS } from "./MainContainer";
+import { SCROLL_PANE_CLASS } from "./ScrollPane";
 
 const baseSx: SxProps<Theme> = {
   backgroundColor: (theme) => theme.palette.background.paper,
@@ -10,15 +10,15 @@ const baseSx: SxProps<Theme> = {
 
 /**
  * A header that sticks to the top of the page.
- * If the header is within the `ContentPane` component,
- * it gets a shadow below it if the pane is scrolled.
+ * If the header is within the `ScrollPane` component,
+ * it gets a shadow below it when the pane is scrolled.
  */
 export const StickyHeader = ({ sx, ...props }: StackProps) => {
   const [contentPane, setContentPane] = React.useState<HTMLElement>();
   const [scrolled, setScrolled] = React.useState(false);
 
   const findContentPaneParent = React.useCallback(
-    (header: HTMLDivElement) => setContentPane(findContentPane(header)),
+    (header: HTMLDivElement) => setContentPane(findScrollPane(header)),
     []
   );
 
@@ -49,10 +49,10 @@ export const StickyHeader = ({ sx, ...props }: StackProps) => {
   );
 };
 
-const findContentPane = (element: HTMLElement | undefined | null) => {
-  if (element?.parentElement?.classList.contains(MAIN_CONTAINER_CLASS)) {
+const findScrollPane = (element: HTMLElement | undefined | null) => {
+  if (element?.parentElement?.classList.contains(SCROLL_PANE_CLASS)) {
     return element.parentElement;
   } else if (element?.parentElement) {
-    return findContentPane(element.parentElement);
+    return findScrollPane(element.parentElement);
   }
 };

@@ -1,4 +1,4 @@
-import { LayoutWithSidePanel } from "@/components/layout";
+import { ViewLayout } from "@/components/layout";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";
@@ -10,8 +10,8 @@ export const JobsView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
 
   return (
-    <LayoutWithSidePanel sidePanel={<JobMenuList />} header={<JobHeader />}>
+    <ViewLayout sidePanel={<JobMenuList />} header={<JobHeader />}>
       <JobView />
-    </LayoutWithSidePanel>
+    </ViewLayout>
   );
 };
