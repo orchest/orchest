@@ -50,8 +50,6 @@ export const StickyHeader = ({ sx, children, ...props }: StickyHeaderProps) => {
 
   const state = React.useMemo(() => ({ scrolled }), [scrolled]);
 
-  console.log(state);
-
   return (
     <Stack
       {...props}
