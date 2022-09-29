@@ -334,7 +334,7 @@ def has_busy_kernels(session_uuid: str) -> bool:
     url = f"http://{service_name}/{service_name}/api/kernels"
     session = utils.get_session_with_retries()
     try:
-        response = session.get(url, timeout=5.0)
+        response = session.get(url, timeout=3.0)
     # Might fail under heavy load.
     except (requests.ConnectionError, requests.Timeout, requests.HTTPError):
         return True
