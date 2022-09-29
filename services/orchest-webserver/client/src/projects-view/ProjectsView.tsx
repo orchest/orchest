@@ -1,3 +1,4 @@
+import { ViewLayout } from "@/components/layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -6,15 +7,8 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
-import AddIcon from "@mui/icons-material/Add";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import LaunchOutlinedIcon from "@mui/icons-material/LaunchOutlined";
 import Alert from "@mui/material/Alert";
-import Button from "@mui/material/Button";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import React from "react";
-import { ActionButtonsContainer } from "./ActionButtonsContainer";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { ExampleList } from "./ExampleList";
 import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
@@ -22,10 +16,10 @@ import { ImportDialog } from "./ImportDialog";
 import { ImportSuccessDialog } from "./ImportSuccessDialog";
 import { NoProject } from "./NoProject";
 import { ProjectList } from "./ProjectList";
+import { ProjectsHeader } from "./ProjectsHeader";
 import { ProjectsTabs } from "./ProjectsTabs";
 import { ProjectTabPanel } from "./ProjectTabPanel";
 import { ProjectTabsContextProvider, PROJECT_TAB } from "./ProjectTabsContext";
-import { TempLayout } from "./TempLayout";
 
 export const ProjectsView = () => {
   const {
@@ -55,14 +49,6 @@ export const ProjectsView = () => {
     }
   }, [importUrl, hasCompletedOnboarding]);
 
-  const navigateToOrchestExampleRepo = () => {
-    window.open(
-      "https://github.com/orchest/orchest-examples",
-      "_blank",
-      "noopener,noreferrer"
-    );
-  };
-
   const [isShowingWarning, setIsShowingWarning] = useLocalStorage(
     "example-warning",
     true
@@ -87,7 +73,50 @@ export const ProjectsView = () => {
   };
 
   return (
-    <TempLayout>
+    <>
+      <ProjectTabsContextProvider>
+        <ViewLayout
+          header={
+            <ProjectsHeader
+              onClickImport={openImportDialog}
+              onClickCreate={openCreateDialog}
+            />
+          }
+        >
+          <ProjectsTabs />
+          <ProjectTabPanel
+            id="projects"
+            index={PROJECT_TAB.MY_PROJECTS}
+            sx={{ padding: (theme) => theme.spacing(2, 0) }}
+          >
+            {hasLoadedProjects && hasProjects && <ProjectList />}
+            {hasLoadedProjects && !hasProjects && (
+              <NoProject
+                createProject={openCreateDialog}
+                importProject={openImportDialog}
+              />
+            )}
+          </ProjectTabPanel>
+          <ProjectTabPanel
+            id="example-projects"
+            index={PROJECT_TAB.EXAMPLE_PROJECTS}
+          >
+            {isShowingWarning && (
+              <Alert
+                severity="warning"
+                tabIndex={-1}
+                onClose={dismissWarning}
+                sx={{ marginTop: (theme) => theme.spacing(2) }}
+              >
+                Warning: Unverified community content has not been checked by
+                Orchest and could contain malicious code.
+              </Alert>
+            )}
+            <ExampleList importProject={importExample} />
+          </ProjectTabPanel>
+        </ViewLayout>
+      </ProjectTabsContextProvider>
+
       <ImportDialog
         importUrl={importUrl}
         setImportUrl={setImportUrl}
@@ -118,79 +147,6 @@ export const ProjectsView = () => {
         open={isCreateDialogOpen}
         onClose={closeCreateDialog}
       />
-      <ProjectTabsContextProvider>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ marginBottom: (theme) => theme.spacing(1) }}
-        >
-          <Typography variant="h4">Projects</Typography>
-          <Stack direction="row" spacing={2}>
-            <ActionButtonsContainer projectTabIndex={PROJECT_TAB.MY_PROJECTS}>
-              <Button
-                variant="text"
-                startIcon={<DownloadOutlinedIcon />}
-                onClick={openImportDialog}
-                data-test-id="import-project"
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={openCreateDialog}
-                data-test-id="add-project"
-              >
-                New project
-              </Button>
-            </ActionButtonsContainer>
-            <ActionButtonsContainer
-              projectTabIndex={PROJECT_TAB.EXAMPLE_PROJECTS}
-            >
-              <Button
-                variant="contained"
-                endIcon={<LaunchOutlinedIcon />}
-                onClick={navigateToOrchestExampleRepo}
-                data-test-id="submit-example"
-              >
-                Submit example
-              </Button>
-            </ActionButtonsContainer>
-          </Stack>
-        </Stack>
-        <ProjectsTabs />
-        <ProjectTabPanel
-          id="projects"
-          index={PROJECT_TAB.MY_PROJECTS}
-          sx={{ padding: (theme) => theme.spacing(2, 0) }}
-        >
-          {hasLoadedProjects && hasProjects && <ProjectList />}
-          {hasLoadedProjects && !hasProjects && (
-            <NoProject
-              createProject={openCreateDialog}
-              importProject={openImportDialog}
-            />
-          )}
-        </ProjectTabPanel>
-        <ProjectTabPanel
-          id="example-projects"
-          index={PROJECT_TAB.EXAMPLE_PROJECTS}
-        >
-          {isShowingWarning && (
-            <Alert
-              severity="warning"
-              tabIndex={-1}
-              onClose={dismissWarning}
-              sx={{ marginTop: (theme) => theme.spacing(2) }}
-            >
-              Warning: Unverified community content has not been checked by
-              Orchest and could contain malicious code.
-            </Alert>
-          )}
-          <ExampleList importProject={importExample} />
-        </ProjectTabPanel>
-      </ProjectTabsContextProvider>
-    </TempLayout>
+    </>
   );
 };
