@@ -5,7 +5,7 @@ import { SCROLL_PANE_CLASS } from "./ScrollPane";
 
 const baseSx: SxProps<Theme> = {
   backgroundColor: (theme) => theme.palette.background.paper,
-  transition: "box-shadow 320ms ease-in",
+  transition: "box-shadow 200ms ease-out",
 };
 
 /**
@@ -43,7 +43,7 @@ export const StickyHeader = ({ sx, ...props }: StackProps) => {
       sx={{
         ...baseSx,
         ...sx,
-        boxShadow: (theme) => (scrolled ? theme.shadows[1] : undefined),
+        boxShadow: scrolled ? "0 0 12px rgba(0, 0, 0, 0.15)" : undefined,
       }}
     />
   );
