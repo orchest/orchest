@@ -3,7 +3,7 @@ import {
   MAX_WIDTH,
   MIN_SECONDARY_SIDE_PANEL_WIDTH,
   useSecondarySidePanelWidth,
-} from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
+} from "@/components/Layout/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
 import { useSaveJobChanges } from "@/jobs-view/hooks/useSaveJobChanges";
 import { EditJobProperties } from "@/jobs-view/job-view/EditJobProperties";

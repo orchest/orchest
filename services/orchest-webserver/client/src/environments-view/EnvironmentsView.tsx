@@ -1,4 +1,4 @@
-import { LayoutWithSidePanel } from "@/components/Layout/layout-with-side-panel/LayoutWithSidePanel";
+import { LayoutWithSidePanel } from "@/components/Layout/LayoutWithSidePanel";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";

@@ -4,7 +4,7 @@ import {
   MAX_WIDTH,
   MIN_SECONDARY_SIDE_PANEL_WIDTH,
   useSecondarySidePanelWidth,
-} from "@/components/Layout/layout-with-side-panel/stores/useLayoutStore";
+} from "@/components/Layout/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";

@@ -1,7 +1,4 @@
-import {
-  StatusIcon,
-  StatusIconStatus,
-} from "@/components/Layout/layout-with-side-panel/StatusIcon";
+import { StatusIcon, StatusIconStatus } from "@/components/Layout/StatusIcon";
 import { JobStatus } from "@/types";
 import React from "react";
 

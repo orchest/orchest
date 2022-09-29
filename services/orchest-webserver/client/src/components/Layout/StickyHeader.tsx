@@ -8,6 +8,11 @@ const baseSx: SxProps<Theme> = {
   transition: "box-shadow 320ms ease-in",
 };
 
+/**
+ * A header that sticks to the top of the page.
+ * If the header is within the `ContentPane` component,
+ * it gets a shadow below it if the pane is scrolled.
+ */
 export const StickyHeader = ({ sx, ...props }: StackProps) => {
   const [contentPane, setContentPane] = React.useState<HTMLElement>();
   const [scrolled, setScrolled] = React.useState(false);

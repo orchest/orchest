@@ -3,6 +3,7 @@ import React from "react";
 
 export const MAIN_CONTAINER_CLASS = "MainContainer";
 
+/** A scrollable pane commonly used for the main content of the view. */
 export const MainContainer = ({ ...props }: StackProps) => (
   <Stack
     className={MAIN_CONTAINER_CLASS}
