@@ -553,7 +553,10 @@ def register_orchest_api_views(app, db):
     @app.route("/catch/api-proxy/idle", methods=["GET"])
     def catch_idle_check_get():
         resp = requests.get(
-            (f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/info/idle')
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/info/idle'
+                + request_args_to_string(request.args)
+            )
         )
         return resp.content, resp.status_code, resp.headers.items()
 

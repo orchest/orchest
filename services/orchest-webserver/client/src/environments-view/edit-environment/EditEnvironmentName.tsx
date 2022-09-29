@@ -48,7 +48,7 @@ export const EditEnvironmentName = () => {
       helperText={isInvalid ? "Environment name cannot be blank" : " "}
       label="Environment name"
       disabled={isEnvironmentBuilding(latestBuildStatus)}
-      sx={{ width: { xs: "100%", lg: "50%" } }}
+      sx={{ width: { xs: "100%", lg: "49%" } }}
     />
   );
 };

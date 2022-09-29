@@ -8,11 +8,13 @@ from datetime import datetime
 from typing import Container, Dict, Iterable, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
+import requests
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_restx import Model
 from flask_sqlalchemy import Pagination
 from kubernetes import client as k8s_client
+from requests.packages.urllib3.util.retry import Retry
 from sqlalchemy import desc, or_, text, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import query, undefer
@@ -882,3 +884,19 @@ def upsert_environment_image_on_node(
         ]
     )
     db.session.execute(stmt)
+
+
+_retry_strategy = Retry(
+    total=5,
+    status_forcelist=[429, 500, 502, 503, 504],
+    method_whitelist=["GET", "PUT"],
+    backoff_factor=1,
+)
+_rq_adapter = requests.adapters.HTTPAdapter(max_retries=_retry_strategy)
+
+
+def get_session_with_retries() -> requests.Session:
+    session = requests.Session()
+    session.mount("http://", _rq_adapter)
+    session.mount("https://", _rq_adapter)
+    return session

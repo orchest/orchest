@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
@@ -20,20 +21,22 @@ export const EditJobName = () => {
   };
 
   return (
-    <TextField
-      required
-      value={value}
-      onFocus={() => setHasEdited(true)}
-      onBlur={() => {
-        const trimmedValue = value.trim();
-        if (trimmedValue) setJobChanges({ name: trimmedValue });
-      }}
-      onChange={handleChange}
-      InputLabelProps={{ required: false }}
-      error={isInvalid}
-      helperText={isInvalid ? "Job name cannot be blank" : " "}
-      label="Job name"
-      sx={{ width: { xs: "100%", lg: "70%" } }}
-    />
+    <Box>
+      <TextField
+        required
+        value={value}
+        onFocus={() => setHasEdited(true)}
+        onBlur={() => {
+          const trimmedValue = value.trim();
+          if (trimmedValue) setJobChanges({ name: trimmedValue });
+        }}
+        onChange={handleChange}
+        InputLabelProps={{ required: false }}
+        error={isInvalid}
+        helperText={isInvalid ? "Job name cannot be blank" : " "}
+        label="Job name"
+        sx={{ width: { xs: "100%", lg: "49%" } }}
+      />
+    </Box>
   );
 };
