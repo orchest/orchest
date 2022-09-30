@@ -557,168 +557,168 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 
 	/*
 
-	registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
-		err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
+			registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
+				err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
+				if err != nil {
+					klog.Error(err)
+					return err
+				}
 
-		if err != nil {
-			return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
-		}
+				if err != nil {
+					return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
+				}
 
-		serviceIP, err := getRegistryServiceIP(&app.Config)
-		if err != nil {
-			return err
-		}
+				serviceIP, err := getRegistryServiceIP(&app.Config)
+				if err != nil {
+					return err
+				}
 
-		err = registryCertgen(ctx, occ.Client(), serviceIP, orchest)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
+				err = registryCertgen(ctx, occ.Client(), serviceIP, orchest)
+				if err != nil {
+					klog.Error(err)
+					return err
+				}
 
-		return nil
-	}
-
-	for _, application := range orchest.Spec.Applications {
-		preInstallHooks := []addons.PreInstallHookFn{
-			updateConditionPreInstall,
-		}
-
-		if application.Name == addons.DockerRegistry {
-			preInstallHooks = append(preInstallHooks, registryPreInstall)
-		}
-
-		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
-	}
-
-	return nil
-
-}
-
-// Installs deployer if the config is changed
-func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (err error) {
-
-	if orchest.Status == nil {
-		return errors.Errorf("status object is not initialzed yet %s", orchest.Name)
-	}
-	stopped := false
-	nextPhase, endPhase := determineNextPhase(orchest)
-
-	if nextPhase == endPhase {
-		return
-	}
-
-	err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, nextPhase, "")
-	defer func() {
-		if err == nil && (stopped || endPhase == orchestv1alpha1.DeployedThirdParties) {
-			err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, endPhase, "")
-		}
-	}()
-	if err != nil {
-		return err
-	}
-
-	// we should check for third parties to see if they need to be updated
-	err = occ.ensureThirdPartyDependencies(ctx, orchest)
-	if err != nil {
-		return err
-	}
-
-	// If endPhase is DeployedThirdParties return early to update phase
-	if endPhase == orchestv1alpha1.DeployedThirdParties {
-		return
-	}
-
-	// If endPhase is Paused or nextPhase is Pausing the cluster should be paused first
-	if endPhase == orchestv1alpha1.Stopped || nextPhase == orchestv1alpha1.Stopping {
-		stopped, err = occ.stopOrchest(ctx, orchest)
-		return err
-	}
-
-	generation := fmt.Sprint(orchest.Generation)
-
-	err = occ.ensurePvc(ctx, generation, controller.UserDirName,
-		orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
-	if err != nil {
-		return err
-	}
-
-	err = occ.ensureRbacs(ctx, generation, orchest)
-	if err != nil {
-		return err
-	}
-
-	// Deploy and Update
-	components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
-	if err != nil {
-		return err
-	}
-
-	for _, componentName := range orderOfDeployment {
-		component, ok := components[componentName]
-
-		// Do not create the buildkit-daemon when not needed.
-		if componentName == controller.BuildKitDaemon {
-			containerRuntime, _, _ := detectContainerRuntime(ctx, occ.Client(), orchest)
-			if containerRuntime != "containerd" {
-				continue
-			}
-		}
-
-		if ok {
-			// If component is not ready, the key will be requeued to be checked later
-			if !controller.IsComponentReady(*component) {
-				occ.EnqueueAfter(orchest)
-				return
-		registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
-			err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
-			if err != nil {
-				klog.Error(err)
-				return err
+				return nil
 			}
 
-			if err != nil {
-				return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
-			}
+			for _, application := range orchest.Spec.Applications {
+				preInstallHooks := []addons.PreInstallHookFn{
+					updateConditionPreInstall,
+				}
 
-			serviceIP, err := getRegistryServiceIP(&app.Config)
-			if err != nil {
-				return err
-			}
+				if application.Name == addons.DockerRegistry {
+					preInstallHooks = append(preInstallHooks, registryPreInstall)
+				}
 
-			err = registryCertgen(ctx, occ.Client(), serviceIP, orchest)
-			if err != nil {
-				klog.Error(err)
-				return err
+				err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
+				if err != nil {
+					klog.Error(err)
+					return err
+				}
+
 			}
 
 			return nil
+
 		}
 
-		for _, application := range orchest.Spec.Applications {
-			preInstallHooks := []addons.PreInstallHookFn{
-				updateConditionPreInstall,
+		// Installs deployer if the config is changed
+		func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (err error) {
+
+			if orchest.Status == nil {
+				return errors.Errorf("status object is not initialzed yet %s", orchest.Name)
+			}
+			stopped := false
+			nextPhase, endPhase := determineNextPhase(orchest)
+
+			if nextPhase == endPhase {
+				return
 			}
 
-			if application.Name == addons.DockerRegistry {
-				preInstallHooks = append(preInstallHooks, registryPreInstall)
-			}
-
-			err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
+			err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, nextPhase, "")
+			defer func() {
+				if err == nil && (stopped || endPhase == orchestv1alpha1.DeployedThirdParties) {
+					err = occ.updatePhase(ctx, orchest.Namespace, orchest.Name, endPhase, "")
+				}
+			}()
 			if err != nil {
-				klog.Error(err)
 				return err
 			}
 
-		}
+			// we should check for third parties to see if they need to be updated
+			err = occ.ensureThirdPartyDependencies(ctx, orchest)
+			if err != nil {
+				return err
+			}
+
+			// If endPhase is DeployedThirdParties return early to update phase
+			if endPhase == orchestv1alpha1.DeployedThirdParties {
+				return
+			}
+
+			// If endPhase is Paused or nextPhase is Pausing the cluster should be paused first
+			if endPhase == orchestv1alpha1.Stopped || nextPhase == orchestv1alpha1.Stopping {
+				stopped, err = occ.stopOrchest(ctx, orchest)
+				return err
+			}
+
+			generation := fmt.Sprint(orchest.Generation)
+
+			err = occ.ensurePvc(ctx, generation, controller.UserDirName,
+				orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
+			if err != nil {
+				return err
+			}
+
+			err = occ.ensureRbacs(ctx, generation, orchest)
+			if err != nil {
+				return err
+			}
+
+			// Deploy and Update
+			components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
+			if err != nil {
+				return err
+			}
+
+			for _, componentName := range orderOfDeployment {
+				component, ok := components[componentName]
+
+				// Do not create the buildkit-daemon when not needed.
+				if componentName == controller.BuildKitDaemon {
+					containerRuntime, _, _ := detectContainerRuntime(ctx, occ.Client(), orchest)
+					if containerRuntime != "containerd" {
+						continue
+					}
+				}
+
+				if ok {
+					// If component is not ready, the key will be requeued to be checked later
+					if !controller.IsComponentReady(*component) {
+						occ.EnqueueAfter(orchest)
+						return
+				registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
+					err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
+					if err != nil {
+						klog.Error(err)
+						return err
+					}
+
+					if err != nil {
+						return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
+					}
+
+					serviceIP, err := getRegistryServiceIP(&app.Config)
+					if err != nil {
+						return err
+					}
+
+					err = registryCertgen(ctx, occ.Client(), serviceIP, orchest)
+					if err != nil {
+						klog.Error(err)
+						return err
+					}
+
+					return nil
+				}
+
+				for _, application := range orchest.Spec.Applications {
+					preInstallHooks := []addons.PreInstallHookFn{
+						updateConditionPreInstall,
+					}
+
+					if application.Name == addons.DockerRegistry {
+						preInstallHooks = append(preInstallHooks, registryPreInstall)
+					}
+
+					err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
+					if err != nil {
+						klog.Error(err)
+						return err
+					}
+
+				}
 	*/
 	return nil
 }
@@ -747,11 +747,6 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, k
 		return err
 	}
 
-	klog.V(4).Infof("Deleting deprecated PVC %s", controller.OldBuilderDirName)
-	occ.deletePvc(ctx, controller.OldBuilderDirName, orchest)
-
-	stopped = true
-	return err
 	return cluster.manage(ctx)
 
 	/*
@@ -847,6 +842,9 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, k
 				return err
 			}
 		}
+
+		klog.V(4).Infof("Deleting deprecated PVC %s", controller.OldBuilderDirName)
+		occ.deletePvc(ctx, controller.OldBuilderDirName, orchest)
 
 		stopped = true
 	*/
@@ -1017,13 +1015,13 @@ func (occ *OrchestClusterController) updateCondition(ctx context.Context,
 		return errors.Wrap(err, "failed to get OrchestCluster")
 	}
 
-	return occ.updateClusterCondition(ctx, orchest, orchestv1alpha1.OrchestClusterEvent(event))
+	return occ.updateClusterCondition(ctx, orchest, event)
 }
 
 // UpdateClusterCondition function will export each condition into the cluster custom resource
 func (occ *OrchestClusterController) updateClusterCondition(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster,
-	event orchestv1alpha1.OrchestClusterEvent) error {
+	event string) error {
 
 	if orchest.Status == nil {
 		return occ.UpdatePhase(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.Initializing)
