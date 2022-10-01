@@ -21,11 +21,11 @@ export const useJobScheduleOption = () => {
     const isLoading =
       !hasValue(state.jobChanges) || jobUuid !== state.jobChanges.uuid;
 
-    return isLoading
+    return (isLoading
       ? undefined
       : hasValue(state.jobChanges?.schedule)
       ? "recurring"
-      : "one-off";
+      : "one-off") as ScheduleOption | undefined;
   });
 
   const jobPipelineUuid = useEditJob(
@@ -33,12 +33,12 @@ export const useJobScheduleOption = () => {
   );
   const hasInitializedForPipelineUuid = React.useRef<string>();
   const shouldSetScheduleOption =
-    initialScheduleOption &&
+    hasValue(initialScheduleOption) &&
     (!hasValue(hasInitializedForPipelineUuid.current) ||
       hasInitializedForPipelineUuid.current !== jobPipelineUuid);
 
   React.useEffect(() => {
-    if (initialScheduleOption && shouldSetScheduleOption) {
+    if (shouldSetScheduleOption) {
       hasInitializedForPipelineUuid.current = jobPipelineUuid;
       setScheduleOption(initialScheduleOption);
     }
