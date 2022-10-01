@@ -31,16 +31,18 @@ export const useJobScheduleOption = () => {
   const jobPipelineUuid = useEditJob(
     (state) => state.jobChanges?.pipeline_uuid
   );
-  const hasInitializedForPipelineUuid = React.useRef(jobPipelineUuid);
+  const hasInitializedForPipelineUuid = React.useRef<string>();
+  const shouldSetScheduleOption =
+    initialScheduleOption &&
+    (!hasValue(hasInitializedForPipelineUuid.current) ||
+      hasInitializedForPipelineUuid.current !== jobPipelineUuid);
+
   React.useEffect(() => {
-    if (
-      initialScheduleOption &&
-      hasInitializedForPipelineUuid.current !== jobPipelineUuid
-    ) {
+    if (initialScheduleOption && shouldSetScheduleOption) {
       hasInitializedForPipelineUuid.current = jobPipelineUuid;
       setScheduleOption(initialScheduleOption);
     }
-  }, [initialScheduleOption, jobPipelineUuid]);
+  }, [initialScheduleOption, jobPipelineUuid, shouldSetScheduleOption]);
 
   const [cronString, setCronString] = useCronString();
   const [nextScheduledTime, setNextScheduledTime] = useScheduleDateTime();
