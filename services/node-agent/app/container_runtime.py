@@ -163,10 +163,16 @@ class ContainerRuntime(object):
                 # e.status (status code) will be 500 for different
                 # failures , so we resort to partially matching the
                 # message. The message will look like the following for
-                # the case we are interested in:
-                # 'get "<url>": x509: certificate signed by unknown
-                # authority.
-                if "certificate" in e.message.lower():
+                # the case we are interested in: 'get "<url>": x509:
+                # certificate signed by unknown authority.
+                if (
+                    "certificate" in e.message.lower()
+                    or
+                    # Happens on docker for desktop where the container
+                    # runtime can't get in touch with the registry
+                    # service through its ip.
+                    "timeout exceeded" in e.message.lower()
+                ):
                     result = await self._pull_image_for_docker_with_buildah(image_name)
             finally:
                 self._curr_pulling_imgs.remove(image_name)
