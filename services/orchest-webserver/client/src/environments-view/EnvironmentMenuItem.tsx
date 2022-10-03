@@ -1,4 +1,4 @@
-import { SidePanelMenuItem } from "@/components/layout";
+import { SidePanelMenuItem } from "@/components/layout/SidePanelMenuItem";
 import { TStatus } from "@/components/Status";
 import { EnvironmentState } from "@/types";
 import React from "react";

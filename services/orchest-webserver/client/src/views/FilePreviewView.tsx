@@ -1,6 +1,6 @@
 import { IconButton } from "@/components/common/IconButton";
 import { PageTitle } from "@/components/common/PageTitle";
-import { Layout } from "@/components/layout";
+import { Layout } from "@/components/layout/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import {

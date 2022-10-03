@@ -1,4 +1,4 @@
-import { Layout } from "@/components/layout";
+import { Layout } from "@/components/layout/Layout";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";

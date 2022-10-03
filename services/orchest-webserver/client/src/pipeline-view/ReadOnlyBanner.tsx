@@ -1,5 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { useSecondarySidePanelWidth } from "@/components/layout";
+import { useSecondarySidePanelWidth } from "@/components/layout/stores/useLayoutStore";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import { useCustomRoute } from "@/hooks/useCustomRoute";

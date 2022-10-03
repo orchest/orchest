@@ -1,5 +1,5 @@
 import { PageTitle } from "@/components/common/PageTitle";
-import { Layout } from "@/components/layout";
+import { Layout } from "@/components/layout/Layout";
 import { useOnboardingDialog } from "@/components/layout/legacy/OnboardingDialog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";

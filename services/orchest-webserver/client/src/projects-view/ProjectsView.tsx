@@ -1,4 +1,4 @@
-import { ViewLayout } from "@/components/layout";
+import { ViewLayout } from "@/components/layout/ViewLayout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
