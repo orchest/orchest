@@ -5,7 +5,6 @@ import { SCROLL_PANE_CLASS } from "./ScrollPane";
 
 const baseSx: SxProps<Theme> = {
   backgroundColor: (theme) => theme.palette.background.paper,
-  transition: "all 200ms ease-out",
 };
 
 const scrolledSx: SxProps<Theme> = {
