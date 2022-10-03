@@ -33,16 +33,17 @@ const DiscardChangesButton = () => {
 };
 
 const SaveCronJobChangesButton = () => {
+  const { setAsSaved } = useGlobalContext();
   const isEditingActiveCronJob = useIsEditingActiveCronJob();
   const saveActiveCronJobChanges = useEditJob(
     (state) => state.saveActiveCronJobChanges
   );
+  const saveChanges = () => {
+    setAsSaved();
+    saveActiveCronJobChanges();
+  };
   return isEditingActiveCronJob ? (
-    <Button
-      color="primary"
-      variant="contained"
-      onClick={saveActiveCronJobChanges}
-    >
+    <Button color="primary" variant="contained" onClick={saveChanges}>
       Save job
     </Button>
   ) : null;
