@@ -2,6 +2,7 @@ import time
 from contextlib import contextmanager
 from typing import Callable, List, Optional
 
+import kubernetes
 import requests
 
 from _orchest.internals import config as _config
@@ -236,7 +237,12 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
             k8s_networking_api.delete_namespaced_ingress,
         ),
         # It's important that this stays after deployments and services
-        # to avoid dangling kernel pods started by Jupyter EG.
+        # to avoid dangling kernel pods started by Jupyter EG. Note,
+        # this means that we might be trying to delete a pod which is
+        # already deleted because of a deployment deletion. However,
+        # this could already be the case because this function is
+        # idempotent and could be called multiple times for the same
+        # session.
         ("pods", k8s_core_api.list_namespaced_pod, k8s_core_api.delete_namespaced_pod),
         (
             "service_accounts",
@@ -285,7 +291,16 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
     # assume that the container or (worker) process will keep running
     # once we return.
     for thread in resource_delete_threads:
-        thread.get()
+        try:
+            thread.get()
+        except kubernetes.client.exceptions.ApiException as e:
+            # For idempotency.
+            if e.status != 404:
+                logger.error(str(e))
+                exceptions.append(e)
+        except Exception as e:
+            logger.error(str(e))
+            exceptions.append(e)
 
     # TODO: move to exception groups
     # https://www.python.org/dev/peps/pep-0654/.
