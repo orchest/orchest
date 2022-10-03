@@ -22,26 +22,26 @@ export const MAX_WIDTH = window.innerWidth / 2;
 
 export const useLayoutStore = create(
   persist<LayoutState>(
-    (set, get) => ({
+    (set) => ({
       mainSidePanelWidth: DEFAULT_MAIN_SIDE_PANEL_WIDTH,
       setMainSidePanelWidth: (value) => {
-        set({
+        set(({ mainSidePanelWidth }) => ({
           mainSidePanelWidth: clamp(
-            getValue(get().mainSidePanelWidth, value),
+            getValue(mainSidePanelWidth, value),
             MIN_MAIN_SIDE_PANEL_WIDTH,
             MAX_WIDTH
           ),
-        });
+        }));
       },
       secondarySidePanelWidth: DEFAULT_SECONDARY_SIDE_PANEL_WIDTH,
       setSecondarySidePanelWidth: (value) => {
-        set({
+        set(({ secondarySidePanelWidth }) => ({
           secondarySidePanelWidth: clamp(
-            getValue(get().secondarySidePanelWidth, value),
+            getValue(secondarySidePanelWidth, value),
             MIN_SECONDARY_SIDE_PANEL_WIDTH,
             MAX_WIDTH
           ),
-        });
+        }));
       },
     }),
     { name: "orchest.layout" }

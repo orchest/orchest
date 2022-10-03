@@ -1,5 +1,5 @@
 import BuildPendingDialog from "@/components/BuildPendingDialog";
-import { Layout } from "@/components/Layout";
+import { Layout } from "@/components/layout/Layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
