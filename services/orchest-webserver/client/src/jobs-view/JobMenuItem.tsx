@@ -1,4 +1,4 @@
-import { SidePanelMenuItem } from "@/components/Layout/layout-with-side-panel/SidePanelMenuItem";
+import { SidePanelMenuItem } from "@/components/layout/SidePanelMenuItem";
 import { JobStatus } from "@/types";
 import React from "react";
 import { JobStatusIcon } from "./JobStatusIcon";

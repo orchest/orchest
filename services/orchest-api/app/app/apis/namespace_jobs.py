@@ -1837,11 +1837,6 @@ class AbortJobPipelineRun(TwoPhaseFunction):
         if not could_abort:
             return False
 
-        # This will take care of updating the job status thus freeing
-        # locked env images, and processing stale ones.
-        UpdateJobPipelineRun(self.tpe).transaction(
-            job_uuid, run_uuid, {"status": "ABORTED"}
-        )
         job = (
             db.session.query(
                 models.Job.project_uuid,
@@ -1850,8 +1845,16 @@ class AbortJobPipelineRun(TwoPhaseFunction):
             .filter_by(uuid=job_uuid)
             .one()
         )
-
+        # Needs to happen before UpdateJobPipelineRun because that call
+        # could delete the run through DeleteNonRetainedJobPipelineRuns.
         events.register_job_pipeline_run_cancelled(job.project_uuid, job_uuid, run_uuid)
+
+        # This will take care of updating the job status thus freeing
+        # locked env images, and processing stale ones.
+        UpdateJobPipelineRun(self.tpe).transaction(
+            job_uuid, run_uuid, {"status": "ABORTED"}
+        )
+
         return True
 
     def _collateral(self):

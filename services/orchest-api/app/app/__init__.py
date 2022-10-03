@@ -466,7 +466,7 @@ def cleanup():
             ).all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for run in runs:
-                    AbortJobPipelineRun(tpe).transaction(run.uuid)
+                    AbortJobPipelineRun(tpe).transaction(run.job_uuid, run.uuid)
 
             # Delete old JupyterEnvironmentBuilds on to avoid
             # accumulation in the DB. Leave the latest such that the

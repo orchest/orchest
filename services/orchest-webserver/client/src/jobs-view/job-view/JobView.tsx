@@ -6,7 +6,6 @@ import { JobParameters } from "./JobParameters";
 import { JobRuns } from "./JobRuns";
 import { JobSummary } from "./JobSummary";
 import { JobViewContainer } from "./JobViewContainer";
-import { JobViewHeader } from "./JobViewHeader";
 import { WebhookHint } from "./WebhookHint";
 
 export const JobView = () => {
@@ -14,7 +13,6 @@ export const JobView = () => {
 
   return (
     <JobViewContainer>
-      <JobViewHeader />
       {!isEditing && <JobSummary />}
       {!isEditing && <JobRuns />}
       {isEditing && <EditJobProperties />}
