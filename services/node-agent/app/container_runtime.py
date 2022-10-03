@@ -27,7 +27,11 @@ class ImagePullError(Exception):
 
 def _failed_to_reach_registry(aiodocker_resp=Iterable[Dict[str, Any]]) -> bool:
     for item in aiodocker_resp:
-        if isinstance(item, dict) and "deadline exceeded" in item.get("error", ""):
+        if isinstance(item, dict) and (
+            # Both cases have been observed.
+            "deadline exceeded" in item.get("error", "").lower()
+            or "timeout exceeded" in item.get("error", "").lower()
+        ):
             return True
     return False
 
