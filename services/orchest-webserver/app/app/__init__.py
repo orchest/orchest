@@ -34,7 +34,6 @@ from app.core.scheduler import add_recurring_jobs_to_scheduler
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
-from app.utils import get_repo_tag
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
@@ -85,8 +84,6 @@ def create_app(to_migrate_db=False):
             f"http://{config.CONFIG_CLASS.ORCHEST_API_ADDRESS}/api/ctl/orchest-settings"
         ).json()
         app.config.update(orchest_config)
-
-    app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 
     # Create the database if it does not exist yet. Roughly equal to a
     # "CREATE DATABASE IF NOT EXISTS <db_name>" call.

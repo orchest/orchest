@@ -19,7 +19,6 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
 from app import error as app_error
-from app.consts import JSON_SCHEMA_FILE_EXTENSIONS
 from app.core.filemanager import (
     allowed_file,
     find_unique_duplicate_filepath,
@@ -55,7 +54,6 @@ from app.utils import (
     get_pipeline_path,
     get_project_directory,
     get_project_snapshot_size,
-    get_repo_tag,
     get_session_counts,
     get_snapshot_directory,
     is_valid_data_path,
@@ -247,7 +245,7 @@ def register_views(app, db):
 
     @app.route("/async/version", methods=["GET"])
     def version():
-        return {"version": get_repo_tag()}
+        return {"version": _config.ORCHEST_VERSION}
 
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
@@ -1070,7 +1068,10 @@ def register_views(app, db):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
-        elif any(path.endswith(extension) for extension in JSON_SCHEMA_FILE_EXTENSIONS):
+        elif any(
+            path.endswith(extension)
+            for extension in app.config["JSON_SCHEMA_FILE_EXTENSIONS"]
+        ):
             pipeline_dir = get_pipeline_directory(
                 pipeline_uuid=pipeline_uuid,
                 project_uuid=project_uuid,
