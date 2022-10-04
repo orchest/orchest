@@ -1,23 +1,55 @@
 import React from "react";
-import io from "socket.io-client";
+import { io, Socket } from "socket.io-client";
+import create from "zustand";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Socket = Record<"on" | "off" | "emit" | "close", any> & {
-  connect: (namespace: string, params: Record<string, string[]>) => Socket;
-  disconnect: () => void;
-  close: () => void; // Synonym of socket.disconnect().
+type SocketIO = {
+  sockets: Record<string, Socket>;
+  init: (namespace: string | undefined) => void;
+  disconnect: (namespace: string | undefined) => void;
 };
 
-export const useSocketIO = (namespace: string) => {
-  const socket = React.useMemo<Socket>(() => {
-    return io.connect(namespace, { transports: ["websocket"] });
-  }, [namespace]);
+const useSocketIOStore = create<SocketIO>((set) => ({
+  sockets: {},
+  init: (namespace) => {
+    if (!namespace) return;
+    set((state) => {
+      const currentSocket = state.sockets[namespace];
+      if (currentSocket) return {};
+      // Socket, by default, will attempt to connect automatically upon creation.
+      // Therefore, no need to call `socket.connect(...)` manually.
+      const socket = io(namespace, {
+        transports: ["websocket"],
+        upgrade: false,
+        reconnection: false, // Prevent automatically attempting to reconnect when being disconnected.
+        closeOnBeforeunload: true,
+      });
+      return { sockets: { ...state.sockets, [namespace]: socket } };
+    });
+  },
+  disconnect: (namespace) => {
+    if (!namespace) return;
+    set((state) => {
+      const { [namespace]: socket, ...sockets } = state.sockets;
+      if (socket) {
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+      return { sockets };
+    });
+  },
+}));
+
+export const useSocketIO = (namespace: string | undefined) => {
+  const init = useSocketIOStore((state) => state.init);
+  const disconnect = useSocketIOStore((state) => state.disconnect);
+  const socket = useSocketIOStore((state) =>
+    namespace ? state.sockets[namespace] : undefined
+  );
 
   React.useEffect(() => {
-    return () => {
-      socket.disconnect();
-    };
-  }, [socket]);
+    init(namespace);
+    return () => disconnect(namespace);
+  }, [init, namespace, disconnect]);
 
   return socket;
 };

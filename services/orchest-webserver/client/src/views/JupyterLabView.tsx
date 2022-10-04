@@ -1,10 +1,12 @@
-import { Layout } from "@/components/Layout";
+import BuildPendingDialog from "@/components/BuildPendingDialog";
+import { Layout } from "@/components/layout/Layout";
+import ProjectBasedView from "@/components/ProjectBasedView";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useInterval } from "@/hooks/use-interval";
 import {
   useCancelableFetch,
   useCancelablePromise,
@@ -12,10 +14,11 @@ import {
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { useInterval } from "@/hooks/useInterval";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import type {
-  Pipeline,
+  PipelineData,
   PipelineJson,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
@@ -24,7 +27,6 @@ import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
@@ -39,11 +41,15 @@ const JupyterLabView = () => {
   const { dispatch } = useProjectsContext();
 
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
+  const { setAlert } = useGlobalContext();
   const {
     getSession,
     startSession,
     state: { sessions },
   } = useSessionsContext();
+  const {
+    state: { pipelineReadOnlyReason },
+  } = useProjectsContext();
 
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState<
     number | undefined
@@ -51,17 +57,14 @@ const JupyterLabView = () => {
   const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
   const [pipelineCwd, setPipelineCwd] = React.useState<string>();
 
-  const session = React.useMemo(() => getSession(pipelineUuid), [
-    pipelineUuid,
-    getSession,
-  ]);
+  const session = React.useMemo(
+    () => (pipelineReadOnlyReason ? undefined : getSession(pipelineUuid)),
+    [pipelineUuid, getSession, pipelineReadOnlyReason]
+  );
 
   React.useEffect(() => {
     return () => {
-      if (window.orchest.jupyter) {
-        window.orchest.jupyter?.hide();
-      }
-
+      window.orchest.jupyter?.hide();
       setVerifyKernelsInterval(undefined);
     };
   }, []);
@@ -72,7 +75,7 @@ const JupyterLabView = () => {
     try {
       const [fetchedPipelineJson, pipeline] = await Promise.all([
         makeCancelable(fetchPipelineJson({ pipelineUuid, projectUuid })),
-        cancelableFetch<Pipeline>(
+        cancelableFetch<PipelineData>(
           `/async/pipelines/${projectUuid}/${pipelineUuid}`
         ),
       ]);
@@ -80,31 +83,31 @@ const JupyterLabView = () => {
       setPipelineJson(fetchedPipelineJson);
       setPipelineCwd(pipeline.path.replace(/\/?[^\/]*.orchest$/, "/"));
     } catch (error) {
-      console.error("Could not load pipeline.json");
-      console.error(error);
+      if (!error.isCanceled) {
+        console.error("");
+        console.error("Failed to load pipeline.json: " + String(error));
+      }
     }
   }, [cancelableFetch, makeCancelable, pipelineUuid, projectUuid]);
 
-  const isSessionsLoaded = hasValue(sessions);
-  const hasSession = hasValue(session);
-
-  // Launch the session if it doesn't exist
+  // Launch the session on mount.
   React.useEffect(() => {
-    if (!isSessionsLoaded) return;
-    if (!hasSession && pipelineUuid && projectUuid) {
+    if (pipelineUuid && projectUuid && sessions && !session) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB)
-        .then((isSessionStarted) => {
-          if (isSessionStarted) {
-            // Force reloading the view.
+        .then((result) => {
+          if (result === true) {
             dispatch({
-              type: "SET_PIPELINE_IS_READONLY",
-              payload: false,
+              type: "SET_PIPELINE_READONLY_REASON",
+              payload: undefined,
             });
-            navigateTo(siteMap.jupyterLab.path, {
-              query: { projectUuid, pipelineUuid },
-            });
-          } else {
-            // When failed, it could be that the pipeline does no loner exist.
+          } else if (
+            ![
+              "environmentsNotYetBuilt",
+              "environmentsBuildInProgress",
+              "environmentsFailedToBuild",
+            ].includes(result.message)
+          ) {
+            // When failed, it could be that the pipeline does no longer exist.
             // Navigate back to PipelineEditor.
             navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
           }
@@ -114,48 +117,42 @@ const JupyterLabView = () => {
         });
     }
   }, [
-    dispatch,
-    isSessionsLoaded,
-    hasSession,
+    sessions,
     startSession,
     pipelineUuid,
     projectUuid,
     navigateTo,
+    dispatch,
+    setAlert,
+    session,
   ]);
 
   const conditionalRenderingOfJupyterLab = React.useCallback(() => {
-    if (window.orchest.jupyter) {
-      if (session?.status === "RUNNING" && hasSession) {
-        if (!window.orchest.jupyter?.isShowing()) {
-          window.orchest.jupyter?.show();
-          if (filePath) window.orchest.jupyter?.navigateTo(filePath);
-        }
-      } else {
-        window.orchest.jupyter?.hide();
+    if (session?.status === "RUNNING") {
+      if (!window.orchest.jupyter?.isShowing()) {
+        window.orchest.jupyter?.show();
+        if (filePath) window.orchest.jupyter?.openFile(filePath);
       }
+    } else {
+      window.orchest.jupyter?.hide();
     }
-  }, [filePath, hasSession, session?.status]);
-
-  const updateJupyterInstance = React.useCallback(() => {
-    if (session?.base_url) {
-      let baseAddress = "//" + window.location.host + session.base_url;
-      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
-    }
-  }, [session?.base_url]);
+  }, [filePath, session?.status]);
 
   React.useEffect(() => {
-    if (session?.status === "RUNNING" && hasSession) {
+    if (session?.status === "RUNNING") {
       conditionalRenderingOfJupyterLab();
       fetchPipeline();
     }
-  }, [
-    session?.status,
-    hasSession,
-    conditionalRenderingOfJupyterLab,
-    fetchPipeline,
-  ]);
+  }, [session?.status, conditionalRenderingOfJupyterLab, fetchPipeline]);
 
   // On any session change
+
+  const updateJupyterInstance = React.useCallback(() => {
+    if (session?.base_url) {
+      const baseAddress = "//" + window.location.host + session.base_url;
+      window.orchest.jupyter?.updateJupyterInstance(baseAddress);
+    }
+  }, [session?.base_url]);
 
   React.useEffect(() => {
     updateJupyterInstance();
@@ -174,7 +171,7 @@ const JupyterLabView = () => {
 
   useInterval(
     () => {
-      if (window.orchest.jupyter?.isJupyterLoaded() && pipelineJson) {
+      if (window.orchest.jupyter?.hasRendered() && pipelineJson) {
         for (let stepUUID in pipelineJson.steps) {
           let step = pipelineJson.steps[stepUUID];
 
@@ -196,26 +193,54 @@ const JupyterLabView = () => {
     pipelineJson ? verifyKernelsInterval : undefined
   );
 
+  React.useEffect(() => {
+    if (session?.status === "STOPPING") {
+      setAlert(
+        "Session stopping",
+        "Your pipeline session is still stopping, " +
+          "please try opening JupyterLab again once the session has stopped.",
+        {
+          confirmLabel: "Close",
+          onConfirm: () => true,
+        }
+      );
+      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+    }
+  }, [setAlert, navigateTo, session?.status, projectUuid]);
+
   return (
     <Layout disablePadding>
-      <Stack
-        justifyContent="center"
-        alignItems="center"
-        sx={{ height: "100%" }}
+      <ProjectBasedView
+        sx={{ padding: (theme) => theme.spacing(4), height: "100%" }}
       >
-        <Box
-          sx={{
-            textAlign: "center",
-            width: "100%",
-            maxWidth: "400px",
-          }}
-        >
-          <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
-            Setting up JupyterLab…
-          </Typography>
-          <LinearProgress />
-        </Box>
-      </Stack>
+        {!window.orchest.jupyter?.hasLoaded() && (
+          <Stack
+            justifyContent="center"
+            alignItems="center"
+            sx={{ height: "100%" }}
+          >
+            <Box
+              sx={{
+                textAlign: "center",
+                width: "100%",
+                maxWidth: "400px",
+              }}
+            >
+              <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
+                Setting up JupyterLab…
+              </Typography>
+              <LinearProgress />
+            </Box>
+          </Stack>
+        )}
+      </ProjectBasedView>
+      <BuildPendingDialog
+        onCancel={() => {
+          navigateTo(siteMap.pipeline.path, {
+            query: { projectUuid, pipelineUuid },
+          });
+        }}
+      />
     </Layout>
   );
 };

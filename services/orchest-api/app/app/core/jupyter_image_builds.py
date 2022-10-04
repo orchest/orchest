@@ -1,14 +1,14 @@
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import rmtree
-from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_image
+from _orchest.internals.utils import copytree, rmtree
+from app.connections import k8s_core_api
+from app.core import image_utils
 from app.core.sio_streamed_task import SioStreamedTask
 from app.utils import get_logger
 from config import CONFIG_CLASS
@@ -19,12 +19,16 @@ __JUPYTER_BUILD_FULL_LOGS_DIRECTORY = "/tmp/jupyter_image_builds_logs"
 
 
 def update_jupyter_image_build_status(
-    status: str,
     session: requests.sessions.Session,
-    jupyter_image_build_uuid,
+    jupyter_image_build_uuid: str,
+    status: str,
+    cluster_node: Optional[str] = None,
 ) -> Any:
     """Update Jupyter build status."""
     data = {"status": status}
+    if cluster_node is not None:
+        data["cluster_node"] = cluster_node
+
     if data["status"] == "STARTED":
         data["started_time"] = datetime.utcnow().isoformat()
     elif data["status"] in ["SUCCESS", "FAILURE"]:
@@ -39,8 +43,16 @@ def update_jupyter_image_build_status(
         return response.json()
 
 
-def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
+def write_jupyter_dockerfile(base_image, task_uuid, work_dir, bash_script, path):
     """Write a custom dockerfile with the given specifications.
+
+    ! The dockerfile is written in a way that the layer where the user
+    setup script is run is effectively cached when possible, i.e.  we
+    don't disrupt the caching capability by using task dependent
+    information like the task_uuid in that layer. We make use of the
+    task_uuid in a layer that is created at the end so that each image
+    has a unique digest, which helps reducing complexity when it comes
+    to deleting images from the registry.
 
     This dockerfile is built in an ad-hoc way to later be able to only
     log messages related to the user script. Note that the produced
@@ -48,6 +60,9 @@ def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
 
     Args:
         work_dir: Working directory.
+        task_uuid: Used to create a layer that is unique for this
+            particular image, this way the registry digest of the image
+            will be unique.
         bash_script: Script to run in a RUN command.
         path: Where to save the file.
 
@@ -64,6 +79,8 @@ def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
         full_basename = f"docker.io/{base_image}"
 
     statements.append(f"FROM {full_basename}")
+    statements.append("ARG BUILDER_POD_IP")
+    statements.append("ENV BUILDER_POD_IP=${BUILDER_POD_IP}")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     statements.append("COPY . .")
@@ -74,14 +91,37 @@ def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
     # to see it after the build is done.
     flag = CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
+
+    ssh_options = (
+        'ssh -o "StrictHostKeyChecking=no" '
+        '-o "ServerAliveInterval=30" '
+        '-o "ServerAliveCountMax=30" '
+        '-o "UserKnownHostsFile=/dev/null" '
+    )
+    # This is needed to rsync settings to the userdir since buildkit
+    # does not support writing to "bind" volumes.
+    rsync_jupyter_settings_command = (
+        f"sshpass -p 'root' rsync -v -e '{ssh_options}' "
+        f"-rlP /root/.jupyter/lab/user-settings/ "
+        f"root@$BUILDER_POD_IP:/jupyterlab-user-settings/"
+    )
+
     statements.append(
-        f"RUN bash < {bash_script} "
+        # To make user settings available to extensions that require it.
+        "RUN mkdir /root/.jupyter/lab -p "
+        "&& rm /root/.jupyter/lab/user-settings -rf "
+        "&& mv _orchest_configurations_jupyterlab_user_settings "
+        "/root/.jupyter/lab/user-settings "
+        # Run the user script.
+        f"&& bash < {bash_script} "
+        # Other internal commands.
         "&& build_path_ext=/jupyterlab-orchest-build/extensions "
         "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions "
         "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "
         "cp -rfT $userdir_path_ext $build_path_ext &> /dev/null ; fi "
         f"&& echo {flag} "
         f"&& rm {bash_script} "
+        f"&& {rsync_jupyter_settings_command}"
         # The || <error flag> allows to avoid builder errors logs making
         # into it the user logs and tell us that there has been an
         # error.
@@ -93,6 +133,10 @@ def write_jupyter_dockerfile(base_image, work_dir, bash_script, path):
     # on the process WORKDIR being the project directory.
     statements.append("WORKDIR /project-dir")
 
+    # Make it so that the digest of the produced image is unique.
+    statements.append(
+        f"RUN mkdir -p /orchest && echo '{task_uuid}' > /orchest/task_{task_uuid}.txt"
+    )
     statements = "\n".join(statements)
 
     with open(path, "w") as dockerfile:
@@ -136,20 +180,28 @@ def prepare_build_context(task_uuid):
         os.system(f'touch "{snapshot_setup_script_path}"')
 
     base_image = f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
-    if CONFIG_CLASS.DEV_MODE:
-        # Use image from local daemon if instructed to do so.
-        with open(snapshot_setup_script_path, "r") as script_file:
-            first_line = script_file.readline()
-            if "# LOCAL IMAGE" in first_line:
-                base_image = f"registry:docker-daemon:{base_image}"
-                logger.info(f"Using {base_image}.")
+
+    # Copy the settings into the context to make them available during
+    # build. It's done in this "simple" manner to be compatible with all
+    # container runtimes we use to build. This is done for extensions
+    # that need access to (READ) the settings on install. Writes are
+    # currently not supported since both buildkit and buildx do not
+    # support binding a writable directory.
+    copytree(
+        "/userdir/.orchest/user-configurations/jupyterlab/user-settings",
+        os.path.join(snapshot_path, "_orchest_configurations_jupyterlab_user_settings"),
+    )
 
     write_jupyter_dockerfile(
         base_image,
+        task_uuid,
         "tmp/jupyter",
         bash_script_name,
         os.path.join(snapshot_path, dockerfile_name),
     )
+    with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
+        docker_ignore.write(".dockerignore\n")
+        docker_ignore.write(f"{dockerfile_name}\n")
 
     res = {
         "snapshot_path": snapshot_path,
@@ -177,7 +229,7 @@ def build_jupyter_image_task(task_uuid: str, image_tag: str):
     with requests.sessions.Session() as session:
 
         try:
-            update_jupyter_image_build_status("STARTED", session, task_uuid)
+            update_jupyter_image_build_status(session, task_uuid, "STARTED")
 
             # Prepare the project snapshot with the correctly placed
             # dockerfile, scripts, etc.
@@ -195,7 +247,7 @@ def build_jupyter_image_task(task_uuid: str, image_tag: str):
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
-                task_lambda=lambda user_logs_fo: build_image(
+                task_lambda=lambda user_logs_fo: image_utils.build_image(
                     task_uuid,
                     image_name,
                     image_tag,
@@ -217,23 +269,25 @@ def build_jupyter_image_task(task_uuid: str, image_tag: str):
             # cleanup
             rmtree(build_context["snapshot_path"])
 
-            update_jupyter_image_build_status(status, session, task_uuid)
+            pod_name = image_utils.image_build_task_to_pod_name(task_uuid)
+            pod = k8s_core_api.read_namespaced_pod(
+                name=pod_name, namespace=_config.ORCHEST_NAMESPACE
+            )
+            update_jupyter_image_build_status(
+                session, task_uuid, status, pod.spec.node_name
+            )
 
         # Catch all exceptions because we need to make sure to set the
         # build state to failed.
         except Exception as e:
-            update_jupyter_image_build_status("FAILURE", session, task_uuid)
+            update_jupyter_image_build_status(session, task_uuid, "FAILURE")
             logger.error(e)
             raise e
         finally:
-            # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflow.
-            k8s_custom_obj_api.delete_namespaced_custom_object(
-                "argoproj.io",
-                "v1alpha1",
+            # The task was successful or aborted, cleanup the pod.
+            k8s_core_api.delete_namespaced_pod(
+                image_utils.image_build_task_to_pod_name(task_uuid),
                 _config.ORCHEST_NAMESPACE,
-                "workflows",
-                f"image-build-task-{task_uuid}",
             )
 
     # The status of the Celery task is SUCCESS since it has finished

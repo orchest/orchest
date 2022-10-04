@@ -9,10 +9,10 @@ const OverflowContainer = styled("div")(() => ({
 
 // this container increase padding-right if the vertical scrollbar appears
 // * NOTE: this container requires a parent container with display: flex
-export const Overflowable: React.FC<{ sx?: SxProps<Theme> }> = ({
-  children,
-  sx,
-}) => {
+export const Overflowable: React.FC<{
+  sx?: SxProps<Theme>;
+  style?: React.CSSProperties;
+}> = ({ children, sx, style }) => {
   const [overflown, setOverflown] = React.useState(false);
   const onOverflown = React.useCallback(() => setOverflown(true), []);
   React.useEffect(() => {
@@ -27,6 +27,7 @@ export const Overflowable: React.FC<{ sx?: SxProps<Theme> }> = ({
         ...sx,
         ...(overflown ? { paddingRight: (theme) => theme.spacing(2.5) } : null),
       }}
+      style={style}
     >
       {children}
     </OverflowContainer>

@@ -29,12 +29,12 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app import utils
 from app.apis import blueprint as api
 from app.apis.namespace_environment_image_builds import AbortEnvironmentImageBuild
-from app.apis.namespace_jobs import AbortJob
+from app.apis.namespace_jobs import AbortJob, AbortJobPipelineRun
 from app.apis.namespace_jupyter_image_builds import (
     AbortJupyterEnvironmentBuild,
     CreateJupyterEnvironmentBuild,
 )
-from app.apis.namespace_runs import AbortPipelineRun
+from app.apis.namespace_runs import AbortInteractivePipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db, k8s_core_api
 from app.core import sessions
@@ -47,6 +47,7 @@ from app.models import (
     Job,
     JupyterImageBuild,
     NonInteractivePipelineRun,
+    SchedulerJob,
     Setting,
 )
 from config import CONFIG_CLASS
@@ -423,7 +424,7 @@ def cleanup():
             ).all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for run in runs:
-                    AbortPipelineRun(tpe).transaction(run.uuid)
+                    AbortInteractivePipelineRun(tpe).transaction(run.uuid)
 
             app.logger.info("Shutting down interactive sessions.")
             int_sessions = InteractiveSession.query.all()
@@ -465,7 +466,7 @@ def cleanup():
             ).all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for run in runs:
-                    AbortPipelineRun(tpe).transaction(run.uuid)
+                    AbortJobPipelineRun(tpe).transaction(run.job_uuid, run.uuid)
 
             # Delete old JupyterEnvironmentBuilds on to avoid
             # accumulation in the DB. Leave the latest such that the
@@ -482,6 +483,10 @@ def cleanup():
             # unfortunately.
             for jupyter_image_build in jupyter_image_builds:
                 db.session.delete(jupyter_image_build)
+
+            SchedulerJob.query.filter(SchedulerJob.status == "STARTED").update(
+                {"status": "FAILED"}
+            )
 
             db.session.commit()
 

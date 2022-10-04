@@ -1,23 +1,12 @@
 import * as React from "react";
-import { styled } from "../core";
-import type { ExtractVariants, ICSSProp } from "../types";
 
-const LogoSvg = styled("svg", {
-  include: "box",
-  width: "100%",
-  height: "auto",
-  verticalAlign: "middle",
-  color: "$logo",
-});
-
-export type ILogoRef = SVGSVGElement;
-export interface ILogoProps extends ExtractVariants<typeof LogoSvg>, ICSSProp {}
+type SVGProps = React.SVGProps<SVGSVGElement>;
 
 /* eslint-disable react/display-name */
 
-export const LogoBrand = React.forwardRef<ILogoRef, ILogoProps>(
+export const LogoBrand = React.forwardRef<SVGSVGElement, SVGProps>(
   (props, ref) => (
-    <LogoSvg
+    <svg
       ref={ref}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -39,7 +28,7 @@ export const LogoBrand = React.forwardRef<ILogoRef, ILogoProps>(
         stroke="currentColor"
         strokeWidth="5"
       />
-    </LogoSvg>
+    </svg>
   )
 );
 

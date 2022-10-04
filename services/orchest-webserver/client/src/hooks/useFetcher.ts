@@ -4,14 +4,19 @@ import { useAsync } from "./useAsync";
 import { useFocusBrowserTab } from "./useFocusBrowserTab";
 import { useHasChanged } from "./useHasChanged";
 
+export type UseFetcherParams<
+  FetchedValue,
+  Data = FetchedValue
+> = RequestInit & {
+  disableFetchOnMount?: boolean;
+  revalidateOnFocus?: boolean;
+  transform?: (data: FetchedValue) => Data | Promise<Data>;
+  disableCaching?: boolean;
+};
+
 export function useFetcher<FetchedValue, Data = FetchedValue>(
   url: string | undefined,
-  params?: RequestInit & {
-    disableFetchOnMount?: boolean;
-    revalidateOnFocus?: boolean;
-    transform?: (data: FetchedValue) => Data | Promise<Data>;
-    disableCaching?: boolean;
-  }
+  params?: UseFetcherParams<FetchedValue, Data>
 ) {
   const {
     disableFetchOnMount,
@@ -38,14 +43,14 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
     paramsRef.current = fetchParams;
   }, [fetchParams]);
 
-  const isFocused = useFocusBrowserTab();
+  const isFocused = useFocusBrowserTab(!revalidateOnFocus);
   const hasBrowserFocusChanged = useHasChanged(isFocused);
 
   const shouldReFetch =
     revalidateOnFocus && hasBrowserFocusChanged && isFocused;
 
   const fetchData = React.useCallback(
-    (newUrl?: unknown): Promise<Data> | void => {
+    async (newUrl?: unknown): Promise<void | Data> => {
       const targetUrl = typeof newUrl === "string" ? newUrl || url : url;
       if (!targetUrl) return;
       return run(
@@ -71,7 +76,9 @@ export function useFetcher<FetchedValue, Data = FetchedValue>(
 
     if (isMounting || isUrlChanged || isRefetching) {
       urlRef.current = url;
-      fetchData();
+      fetchData().catch((error) =>
+        console.error(`Failed to fetch: ${error.message || "Unknown reason."}`)
+      );
     }
   }, [fetchData, url, disableFetchOnMount, shouldReFetch]);
 

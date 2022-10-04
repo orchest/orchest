@@ -1,22 +1,20 @@
-import { Layout } from "@/components/Layout";
-import ProjectBasedView from "@/components/ProjectBasedView";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { ViewLayout } from "@/components/layout/ViewLayout";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";
-import EnvironmentList from "./EnvironmentList";
+import { EditEnvironment } from "./edit-environment/EditEnvironment";
+import { EnvironmentHeader } from "./EnvironmentHeader";
+import { EnvironmentMenuList } from "./EnvironmentMenuList";
 
-const EnvironmentsView: React.FC = () => {
-  const { projectUuid } = useCustomRoute();
+export const EnvironmentsView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
 
   return (
-    <Layout>
-      <ProjectBasedView>
-        <EnvironmentList projectUuid={projectUuid} />
-      </ProjectBasedView>
-    </Layout>
+    <ViewLayout
+      sidePanel={<EnvironmentMenuList />}
+      header={() => <EnvironmentHeader />}
+    >
+      <EditEnvironment />
+    </ViewLayout>
   );
 };
-
-export default EnvironmentsView;

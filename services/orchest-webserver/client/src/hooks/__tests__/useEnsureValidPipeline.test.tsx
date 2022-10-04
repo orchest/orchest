@@ -1,13 +1,13 @@
 import {
-  IProjectsContextState,
   ProjectsContextAction,
   ProjectsContextProvider,
+  ProjectsContextState,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { PipelineMetaData } from "@/types";
 import { chance } from "@/__mocks__/common.mock";
 import {
-  getPipelineMedadatas,
+  listPipelineMetadata,
   mockProjects,
 } from "@/__mocks__/mockProjects.mock";
 import { server } from "@/__mocks__/server.mock";
@@ -28,17 +28,21 @@ let mockData: {
 };
 
 const navigateToMock = jest.fn(
-  (pipelineUuid: string, replace: boolean) => undefined
+  (projectUuid: string, pipelineUuid: string, replace: boolean) => undefined
 );
 
 const wrapper = ({ children = null }) => {
   return <ProjectsContextProvider>{children}</ProjectsContextProvider>;
 };
 
-const useTestHook = (pipelineUuid: string | undefined) => {
+const useTestHook = (
+  projectUuid: string | undefined,
+  pipelineUuid: string | undefined
+) => {
   const { state, dispatch } = useProjectsContext();
   const shouldShowAlert = useEnsureValidPipelineBase(
     navigateToMock,
+    projectUuid,
     pipelineUuid
   );
 
@@ -56,8 +60,8 @@ const resetMock = () => {
     mockProjects.get(project2Uuid).pipelines.get(chance.guid());
   });
 
-  const project1Pipelines = getPipelineMedadatas(project1Uuid);
-  const project2Pipelines = getPipelineMedadatas(project2Uuid);
+  const project1Pipelines = listPipelineMetadata(project1Uuid);
+  const project2Pipelines = listPipelineMetadata(project2Uuid);
 
   mockData = {
     project1Uuid,
@@ -77,16 +81,17 @@ describe("useEnsureValidPipeline", () => {
   } = renderHook<
     {
       children?: null;
+      projectUuid: string | undefined;
       pipelineUuid: string | undefined;
     },
     {
-      state: IProjectsContextState;
+      state: ProjectsContextState;
       dispatch: (value: ProjectsContextAction) => void;
       shouldShowAlert: boolean;
     }
-  >(({ pipelineUuid }) => useTestHook(pipelineUuid), {
+  >(({ projectUuid, pipelineUuid }) => useTestHook(projectUuid, pipelineUuid), {
     wrapper,
-    initialProps: { pipelineUuid: undefined },
+    initialProps: { projectUuid: undefined, pipelineUuid: undefined },
   });
 
   const loadProject1AfterMounted = async (
@@ -98,29 +103,33 @@ describe("useEnsureValidPipeline", () => {
         type: "SET_PROJECT",
         payload: mockData.project1Uuid,
       });
+      result.current.dispatch({
+        type: "SET_PIPELINES",
+        payload: mockData.project1Pipelines,
+      });
     });
 
-    rerender({ pipelineUuid });
+    rerender({ projectUuid: mockData.project1Uuid, pipelineUuid });
 
-    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
-    expect(result.current.state.pipelines).toEqual(undefined);
-    expect(result.current.state.pipeline).toEqual(undefined);
-    expect(result.current.shouldShowAlert).toEqual(false);
-
-    await waitForNextUpdate();
     expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
     expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
-    expect(result.current.state.pipeline).toEqual(expectedPipeline);
+    expect(result.current.state.pipeline).toEqual(
+      mockData.project1Pipelines[0]
+    );
     expect(result.current.shouldShowAlert).toEqual(false);
     expect(navigateToMock.mock.calls.length).toEqual(1);
-    expect(navigateToMock.mock.calls[0]).toEqual([expectedPipeline.uuid, true]);
+    expect(navigateToMock.mock.calls[0]).toEqual([
+      mockData.project1Uuid,
+      expectedPipeline.uuid,
+      false,
+    ]);
   };
 
   beforeEach(async () => {
     localStorage.clear();
     resetMock();
 
-    rerender({ pipelineUuid: undefined });
+    rerender({ projectUuid: mockData.project1Uuid, pipelineUuid: undefined });
 
     expect(result.current.state.projectUuid).toEqual(undefined);
     expect(result.current.state.pipelines).toEqual(undefined);
@@ -151,7 +160,10 @@ describe("useEnsureValidPipeline", () => {
   it("should not redirect if target pipeline UUID is the same", async () => {
     await loadProject1AfterMounted(undefined, mockData.project1Pipelines[0]);
 
-    rerender({ pipelineUuid: mockData.project1Pipelines[1].uuid });
+    rerender({
+      projectUuid: mockData.project1Uuid,
+      pipelineUuid: mockData.project1Pipelines[1].uuid,
+    });
 
     expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
     expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
@@ -160,11 +172,8 @@ describe("useEnsureValidPipeline", () => {
     );
     expect(result.current.shouldShowAlert).toEqual(false);
 
+    // Didn't redirect. This call is from loadProject1AfterMounted.
     expect(navigateToMock.mock.calls.length).toEqual(1);
-    expect(navigateToMock.mock.calls[0]).toEqual([
-      mockData.project1Pipelines[0].uuid,
-      true,
-    ]);
   });
 
   it("should refetch pipelines when switching projects", async () => {
@@ -175,68 +184,28 @@ describe("useEnsureValidPipeline", () => {
         type: "SET_PROJECT",
         payload: mockData.project2Uuid,
       });
+      result.current.dispatch({
+        type: "SET_PIPELINES",
+        payload: mockData.project2Pipelines,
+      });
     });
 
-    rerender({ pipelineUuid: undefined });
+    rerender({ projectUuid: mockData.project2Uuid, pipelineUuid: undefined });
 
     expect(result.current.state.projectUuid).toEqual(mockData.project2Uuid);
-    expect(result.current.state.pipelines).toEqual(undefined);
-    expect(result.current.state.pipeline).toEqual(undefined);
-
-    await waitForNextUpdate();
-
     expect(result.current.state.projectUuid).toEqual(mockData.project2Uuid);
     expect(result.current.state.pipelines).toEqual(mockData.project2Pipelines);
     expect(result.current.state.pipeline).toEqual(
       mockData.project2Pipelines[0]
     );
+
+    expect(navigateToMock.mock.calls.length).toEqual(2);
+    expect(navigateToMock.mock.calls[1]).toEqual([
+      mockData.project2Uuid,
+      mockData.project2Pipelines[0].uuid,
+      false,
+    ]);
     expect(result.current.shouldShowAlert).toEqual(false);
-  });
-
-  it("should load the last-seen pipeline within the same project if pipeline UUID is undefined", async () => {
-    await loadProject1AfterMounted(undefined, mockData.project1Pipelines[0]);
-
-    // Visit the non-first pipeline as the last-seen pipeline
-    rerender({ pipelineUuid: mockData.project1Pipelines[1].uuid });
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project1Pipelines[1]
-    );
-    expect(result.current.shouldShowAlert).toEqual(false);
-
-    expect(navigateToMock.mock.calls.length).toEqual(1);
-
-    // Set pipelineUuid as undefined
-    rerender({ pipelineUuid: undefined });
-
-    // Load the last-seen pipeline instead of the default "fist" pipeline
-    expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project1Pipelines[1]
-    );
-    expect(navigateToMock.mock.calls.length).toEqual(1);
-  });
-
-  it("should load the last-seen pipeline with an alert if pipelineUuid is invalid", async () => {
-    await loadProject1AfterMounted(undefined, mockData.project1Pipelines[0]);
-
-    rerender({ pipelineUuid: mockData.project1Pipelines[1].uuid });
-
-    expect(navigateToMock.mock.calls.length).toEqual(1);
-
-    rerender({ pipelineUuid: "invalid-pipeline-uuid" });
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project1Pipelines[1]
-    );
-
-    expect(navigateToMock.mock.calls.length).toEqual(1);
-
-    expect(result.current.shouldShowAlert).toEqual(true);
   });
 
   it("should navigate to the new pipeline without an alert after creating a new pipeline", async () => {
@@ -256,11 +225,14 @@ describe("useEnsureValidPipeline", () => {
       });
     });
 
-    rerender({ pipelineUuid: newPipelineUuid });
+    rerender({
+      projectUuid: mockData.project1Uuid,
+      pipelineUuid: newPipelineUuid,
+    });
 
     expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
     expect(result.current.state.pipelines).toEqual(
-      getPipelineMedadatas(mockData.project1Uuid)
+      listPipelineMetadata(mockData.project1Uuid)
     );
     expect(result.current.state.pipeline).toEqual(
       mockProjects.get(mockData.project1Uuid).pipelines.get(newPipelineUuid)
@@ -269,87 +241,11 @@ describe("useEnsureValidPipeline", () => {
     expect(result.current.state.newPipelineUuid).toEqual(newPipelineUuid);
     expect(result.current.shouldShowAlert).toEqual(false);
 
-    expect(navigateToMock.mock.calls.length).toEqual(1);
-  });
-
-  it("should load the last-seen pipeline per project if pipeline UUID is undefined", async () => {
-    await loadProject1AfterMounted(undefined, mockData.project1Pipelines[0]);
-    // projectUuid is already set to mockData.project1Uuid
-    // Load project1Pipelines[1], which is NOT the first pipeline in the list
-    rerender({ pipelineUuid: mockData.project1Pipelines[1].uuid });
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project1Pipelines[1]
-    );
-
-    rerender({ pipelineUuid: undefined });
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project1Pipelines[1]
-    );
-
-    // Load project2Pipelines[1], which is NOT the first pipeline in the list
-    act(() => {
-      result.current.dispatch({
-        type: "SET_PROJECT",
-        payload: mockData.project2Uuid,
-      });
-    });
-
-    rerender({ pipelineUuid: mockData.project2Pipelines[1].uuid });
-
-    await waitForNextUpdate();
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project2Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project2Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project2Pipelines[1]
-    );
-
-    rerender({ pipelineUuid: undefined });
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project2Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project2Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project2Pipelines[1]
-    );
-
-    act(() => {
-      result.current.dispatch({
-        type: "SET_PROJECT",
-        payload: mockData.project1Uuid,
-      });
-    });
-
-    rerender({ pipelineUuid: undefined });
-
-    await waitForNextUpdate();
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project1Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project1Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project1Pipelines[1]
-    );
-
-    act(() => {
-      result.current.dispatch({
-        type: "SET_PROJECT",
-        payload: mockData.project2Uuid,
-      });
-    });
-
-    rerender({ pipelineUuid: undefined });
-
-    await waitForNextUpdate();
-
-    expect(result.current.state.projectUuid).toEqual(mockData.project2Uuid);
-    expect(result.current.state.pipelines).toEqual(mockData.project2Pipelines);
-    expect(result.current.state.pipeline).toEqual(
-      mockData.project2Pipelines[1]
-    );
+    expect(navigateToMock.mock.calls.length).toEqual(2);
+    expect(navigateToMock.mock.calls[1]).toEqual([
+      mockData.project1Uuid,
+      newPipelineUuid,
+      false,
+    ]);
   });
 });

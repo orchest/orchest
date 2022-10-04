@@ -2,6 +2,7 @@ import time
 from contextlib import contextmanager
 from typing import Callable, List, Optional
 
+import kubernetes
 import requests
 
 from _orchest.internals import config as _config
@@ -49,6 +50,9 @@ def launch(
 
         should_abort = always_false
 
+    if session_type not in [SessionType.INTERACTIVE, SessionType.NONINTERACTIVE]:
+        raise ValueError(f"Invalid session type: {session_type}.")
+
     # Internal Orchest session services.
     orchest_session_service_k8s_deployment_manifests = []
     orchest_session_service_k8s_service_manifests = []
@@ -56,26 +60,6 @@ def launch(
     session_rbac_roles = []
     session_rbac_service_accounts = []
     session_rbac_rolebindings = []
-    if session_type in [SessionType.INTERACTIVE, SessionType.NONINTERACTIVE]:
-        if session_config.get("services", {}):
-            logger.info("Adding session sidecar to log user services.")
-            (
-                role,
-                service_account,
-                rolebinding,
-            ) = _manifests._get_session_sidecar_rbac_manifests(
-                session_uuid, session_config
-            )
-            session_rbac_roles.append(role)
-            session_rbac_service_accounts.append(service_account)
-            session_rbac_rolebindings.append(rolebinding)
-            orchest_session_service_k8s_deployment_manifests.append(
-                _manifests._get_session_sidecar_deployment_manifest(
-                    session_uuid, session_config, session_type
-                )
-            )
-    else:
-        raise ValueError(f"Invalid session type: {session_type}.")
 
     if session_type == SessionType.INTERACTIVE:
         (
@@ -102,7 +86,7 @@ def launch(
             serv,
             ingress,
         ) = _manifests._get_jupyter_server_deployment_service_manifest(
-            session_uuid, session_config, session_type
+            session_uuid, session_config
         )
         orchest_session_service_k8s_deployment_manifests.append(depl)
         orchest_session_service_k8s_service_manifests.append(serv)
@@ -124,6 +108,22 @@ def launch(
         user_session_service_k8s_service_manifests.append(serv)
         if ingress is not None:
             user_session_service_k8s_ingress_manifests.append(ingress)
+
+    if user_session_service_k8s_deployment_manifests:
+        logger.info("Adding session sidecar to log user services.")
+        (
+            role,
+            service_account,
+            rolebinding,
+        ) = _manifests._get_session_sidecar_rbac_manifests(session_uuid, session_config)
+        session_rbac_roles.append(role)
+        session_rbac_service_accounts.append(service_account)
+        session_rbac_rolebindings.append(rolebinding)
+        orchest_session_service_k8s_deployment_manifests.append(
+            _manifests._get_session_sidecar_deployment_manifest(
+                session_uuid, session_config, session_type
+            )
+        )
 
     ns = _config.ORCHEST_NAMESPACE
 
@@ -237,7 +237,12 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
             k8s_networking_api.delete_namespaced_ingress,
         ),
         # It's important that this stays after deployments and services
-        # to avoid dangling kernel pods started by Jupyter EG.
+        # to avoid dangling kernel pods started by Jupyter EG. Note,
+        # this means that we might be trying to delete a pod which is
+        # already deleted because of a deployment deletion. However,
+        # this could already be the case because this function is
+        # idempotent and could be called multiple times for the same
+        # session.
         ("pods", k8s_core_api.list_namespaced_pod, k8s_core_api.delete_namespaced_pod),
         (
             "service_accounts",
@@ -286,7 +291,16 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
     # assume that the container or (worker) process will keep running
     # once we return.
     for thread in resource_delete_threads:
-        thread.get()
+        try:
+            thread.get()
+        except kubernetes.client.exceptions.ApiException as e:
+            # For idempotency.
+            if e.status != 404:
+                logger.error(str(e))
+                exceptions.append(e)
+        except Exception as e:
+            logger.error(str(e))
+            exceptions.append(e)
 
     # TODO: move to exception groups
     # https://www.python.org/dev/peps/pep-0654/.
@@ -333,7 +347,18 @@ def has_busy_kernels(session_uuid: str) -> bool:
     service_name = f"jupyter-server-{session_uuid}"
     # Coupled with the jupyter-server service port.
     url = f"http://{service_name}/{service_name}/api/kernels"
-    response = requests.get(url, timeout=2.0)
+    session = utils.get_session_with_retries()
+    try:
+        response = session.get(url, timeout=3.0)
+    # Might fail under heavy load.
+    except (
+        requests.ConnectionError,
+        requests.Timeout,
+        requests.HTTPError,
+        requests.exceptions.RetryError,
+    ) as e:
+        logger.warning(f"Failed to query kernels: {e}. Will be considered as busy.")
+        return True
 
     # Expected format: a list of dictionaries.
     # [{'id': '3af6f3b9-4358-43b9-b2dd-03b51c4f7881', 'name':

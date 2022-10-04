@@ -1,3 +1,6 @@
+from typing import List
+
+
 class SessionInProgressException(Exception):
     pass
 
@@ -38,8 +41,20 @@ class ImageNotFound(Exception):
     pass
 
 
+class ImageNotFoundWithUUIDs(Exception):
+    def __init__(self, uuids: List[str], *args):
+        self.uuids = uuids
+        super().__init__(*args)
+
+
+class PipelinesHaveInvalidEnvironments(Exception):
+    def __init__(self, uuids: List[str], *args):
+        self.uuids = uuids
+        super().__init__(*args)
+
+
 class ImageRegistryDeletionError(Exception):
-    ...
+    pass
 
 
 class DeliveryFailed(Exception):

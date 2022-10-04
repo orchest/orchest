@@ -1,4 +1,7 @@
-import { ProjectsContextProvider } from "@/contexts/ProjectsContext";
+import {
+  ProjectsContextProvider,
+  useProjectsContext,
+} from "@/contexts/ProjectsContext";
 import { Project } from "@/types";
 import { chance } from "@/__mocks__/common.mock";
 import { mockProjects } from "@/__mocks__/mockProjects.mock";
@@ -18,13 +21,16 @@ const useTestHook = (
   projectUuidFromRoute: string | undefined,
   targetRoutePath: string | undefined
 ) => {
+  const {
+    state: { projects },
+  } = useProjectsContext();
   const values = useProjectSelector(
     projectUuidFromRoute,
     targetRoutePath,
     navigateToMock
   );
 
-  return values;
+  return { ...values, projects };
 };
 
 const generateMockProjects = (totalProjectCount = 7) => {
@@ -47,7 +53,7 @@ describe("useProjectSelector", () => {
     },
     {
       validProjectUuid: string | undefined;
-      projects: Project[];
+      projects: Project[] | undefined;
       shouldShowInvalidProjectUuidAlert: boolean;
       onChangeProject: (uuid: string) => void;
     }
@@ -76,7 +82,7 @@ describe("useProjectSelector", () => {
       targetRoutePath: undefined,
     });
 
-    expect(result.current.projects).toEqual([]);
+    expect(result.current.projects).toEqual(undefined);
     expect(result.current.validProjectUuid).toEqual(undefined);
     expect(result.current.shouldShowInvalidProjectUuidAlert).toEqual(false);
     expect(navigateToMock.mock.calls.length).toBe(0);

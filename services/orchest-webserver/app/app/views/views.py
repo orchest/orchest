@@ -19,7 +19,6 @@ from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
 from app import error as app_error
-from app.consts import JSON_SCHEMA_FILE_EXTENSIONS
 from app.core.filemanager import (
     allowed_file,
     find_unique_duplicate_filepath,
@@ -55,7 +54,6 @@ from app.utils import (
     get_pipeline_path,
     get_project_directory,
     get_project_snapshot_size,
-    get_repo_tag,
     get_session_counts,
     get_snapshot_directory,
     is_valid_data_path,
@@ -247,7 +245,7 @@ def register_views(app, db):
 
     @app.route("/async/version", methods=["GET"])
     def version():
-        return {"version": get_repo_tag()}
+        return {"version": _config.ORCHEST_VERSION}
 
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
@@ -349,11 +347,7 @@ def register_views(app, db):
                 current_app.logger.error(f"Failed to read setup_script {fnf_error}")
                 return ""
 
-    # Deprecated: With the new FileManager, this endpoint is no longer
-    # used by FE.
-    @app.route(
-        "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]
-    )
+    @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["DELETE"])
     def pipelines_delete(project_uuid, pipeline_uuid):
 
         try:
@@ -524,8 +518,8 @@ def register_views(app, db):
         if request.args.get("session_counts") == "true":
             session_counts = get_session_counts()
 
-        if request.args.get("job_counts") == "true":
-            job_counts = get_job_counts()
+        if request.args.get("active_job_counts") == "true":
+            active_job_counts = get_job_counts({"active": "true"})
 
         for project in projects:
 
@@ -554,8 +548,10 @@ def register_views(app, db):
                     {"session_count": session_counts.get(project["uuid"], 0)}
                 )
 
-            if request.args.get("job_counts") == "true":
-                project.update({"job_count": job_counts.get(project["uuid"], 0)})
+            if request.args.get("active_job_counts") == "true":
+                project.update(
+                    {"active_job_count": active_job_counts.get(project["uuid"], 0)}
+                )
 
         return jsonify(projects)
 
@@ -582,12 +578,12 @@ def register_views(app, db):
                 500,
             )
 
-    @app.route("/async/projects", methods=["DELETE"])
-    def projects_delete():
+    @app.route("/async/projects/<project_uuid>", methods=["DELETE"])
+    def projects_delete(project_uuid):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                DeleteProject(tpe).transaction(request.json["project_uuid"])
+                DeleteProject(tpe).transaction(project_uuid)
         except Exception as e:
             return (
                 jsonify({"message": f"Failed to delete the project. Error: {e}"}),
@@ -835,11 +831,11 @@ def register_views(app, db):
         )
 
     @app.route(
-        "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "POST"]
+        "/async/pipelines/json/<project_uuid>/<pipeline_uuid>", methods=["GET", "PUT"]
     )
     def pipelines_json(project_uuid, pipeline_uuid):
 
-        if request.method == "POST":
+        if request.method == "PUT":
 
             pipeline_json_path = get_pipeline_path(
                 pipeline_uuid,
@@ -1072,7 +1068,10 @@ def register_views(app, db):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
-        elif any(path.endswith(extension) for extension in JSON_SCHEMA_FILE_EXTENSIONS):
+        elif any(
+            path.endswith(extension)
+            for extension in app.config["JSON_SCHEMA_FILE_EXTENSIONS"]
+        ):
             pipeline_dir = get_pipeline_directory(
                 pipeline_uuid=pipeline_uuid,
                 project_uuid=project_uuid,

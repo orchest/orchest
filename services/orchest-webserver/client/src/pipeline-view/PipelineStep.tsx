@@ -1,31 +1,31 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Connection,
-  PipelineStepMetaData,
-  PipelineStepState,
   PipelineStepStatus,
-  Position,
+  StepMetaData,
+  StepState,
 } from "@/types";
+import { addPoints, dividePoint, Point2D } from "@/utils/geometry";
+import { getMouseDelta } from "@/utils/mouse";
 import Box from "@mui/material/Box";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
+import { useCanvasScaling } from "./contexts/CanvasScalingContext";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
-import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { getFilePathForRelativeToProject } from "./file-manager/common";
+import { usePipelineDataContext } from "./contexts/PipelineDataContext";
+import { usePipelineRefs } from "./contexts/PipelineRefsContext";
+import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
+import { getFilePathRelativeToPipeline } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
-import {
-  ContextMenuItem,
-  PipelineEditorContextMenu,
-  useContextMenu,
-} from "./hooks/useContextMenu";
-import { RunStepsType } from "./hooks/useInteractiveRuns";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
+import { usePipelineViewportContextMenu } from "./pipeline-viewport/PipelineViewportContextMenu";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
@@ -116,29 +116,25 @@ export const getStateText = (executionState: ExecutionState) => {
   return stateText;
 };
 
+type PipelineStepProps = {
+  data: StepState;
+  selected: boolean;
+  movedToTop: boolean;
+  isStartNodeOfNewConnection: boolean;
+  savePositions: () => void;
+  onDoubleClick: (stepUUID: string) => void;
+  interactiveConnections: Connection[];
+  getPosition: (node: HTMLElement) => Point2D;
+  children: React.ReactNode;
+};
+
 const PipelineStepComponent = React.forwardRef<
   HTMLDivElement,
-  {
-    data: PipelineStepState;
-    selected: boolean;
-    executeRun: (uuids: string[], type: RunStepsType) => Promise<void>;
-    onOpenNotebook: (e: React.MouseEvent) => void;
-    onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
-    movedToTop: boolean;
-    isStartNodeOfNewConnection: boolean;
-    savePositions: () => void;
-    onDoubleClick: (stepUUID: string) => void;
-    interactiveConnections: Connection[];
-    getPosition: (node: HTMLElement | undefined | null) => Position | null;
-    children: React.ReactNode;
-  }
+  PipelineStepProps
 >(function PipelineStep(
   {
     data,
     selected,
-    executeRun,
-    onOpenNotebook,
-    onOpenFilePreviewView,
     movedToTop,
     isStartNodeOfNewConnection,
     savePositions,
@@ -151,30 +147,29 @@ const PipelineStepComponent = React.forwardRef<
   ref
 ) {
   const [, forceUpdate] = useForceUpdate();
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
+  const { projectUuid, jobUuid } = useCustomRoute();
   const {
-    metadataPositions,
-    projectUuid,
     pipelineUuid,
     pipelineCwd,
-    stepDomRefs,
     isReadOnly,
-    zIndexMax,
-    dispatch,
-    mouseTracker,
-    newConnection,
-    keysDown,
-    jobUuid,
     runUuid,
-    eventVars: {
-      cursorControlledStep,
-      steps,
-      selectedSteps,
-      stepSelector,
-      selectedConnection,
-    },
-    isContextMenuOpen,
-  } = usePipelineEditorContext();
+  } = usePipelineDataContext();
+  const { scaleFactor } = useCanvasScaling();
+  const {
+    uiState: { contextMenuUuid },
+  } = usePipelineUiStateContext();
+  const {
+    keysDown,
+    draggedStepPositions,
+    stepRefs,
+    zIndexMax,
+    newConnection,
+  } = usePipelineRefs();
+  const {
+    uiState: { stepSelector, grabbedStep, selectedSteps, selectedConnection },
+    uiStateDispatch,
+  } = usePipelineUiStateContext();
   const { selectedFiles, dragFile, resetMove } = useFileManagerContext();
 
   const {
@@ -187,7 +182,7 @@ const PipelineStepComponent = React.forwardRef<
   // only persist meta_data for manipulating location with a local state
   // the rest will be updated together with pipelineJson (i.e. data)
   const { uuid, title, meta_data, file_path } = data;
-  const [metadata, setMetadata] = React.useState<PipelineStepMetaData>(() => ({
+  const [metadata, setMetadata] = React.useState<StepMetaData>(() => ({
     ...meta_data,
   }));
 
@@ -195,19 +190,19 @@ const PipelineStepComponent = React.forwardRef<
 
   const dragCount = React.useRef(0);
 
-  const isOnDragging = dragCount.current === DRAG_CLICK_SENSITIVITY;
+  const isDragging = dragCount.current === DRAG_CLICK_SENSITIVITY;
 
   const shouldMoveToTop =
-    isOnDragging ||
+    isDragging ||
     isMouseDown.current ||
     movedToTop ||
-    (!isSelectorActive && (selected || cursorControlledStep === uuid));
+    (!isSelectorActive && (selected || grabbedStep === uuid));
 
   const zIndex = useUpdateZIndex(shouldMoveToTop, zIndexMax);
 
   const resetDraggingVariables = React.useCallback(() => {
-    if (hasValue(cursorControlledStep)) {
-      dispatch({
+    if (hasValue(grabbedStep)) {
+      uiStateDispatch({
         type: "SET_CURSOR_CONTROLLED_STEP",
         payload: undefined,
       });
@@ -215,7 +210,7 @@ const PipelineStepComponent = React.forwardRef<
     isMouseDown.current = false;
     dragCount.current = 0;
     forceUpdate();
-  }, [dragCount, forceUpdate, dispatch, cursorControlledStep]);
+  }, [dragCount, forceUpdate, uiStateDispatch, grabbedStep]);
 
   const finishDragging = React.useCallback(() => {
     savePositions();
@@ -228,12 +223,12 @@ const PipelineStepComponent = React.forwardRef<
   // handles all mouse up cases except "just finished dragging"
   // because user might start to drag while their cursor is not over this step (due to the mouse sensitivity)
   // so this onMouseUp on the DOM won't work
-  const onMouseUp = (e: React.MouseEvent) => {
+  const onMouseUp = (event: React.MouseEvent) => {
     // user is panning the canvas
     if (keysDown.has("Space")) return;
 
-    e.stopPropagation();
-    e.preventDefault();
+    event.stopPropagation();
+    event.preventDefault();
 
     if (dragFile) {
       if (selectedFiles.length > 1) {
@@ -249,28 +244,28 @@ const PipelineStepComponent = React.forwardRef<
       }
 
       if (!pipelineCwd) return;
-      dispatch({
+      uiStateDispatch({
         type: "ASSIGN_FILE_TO_STEP",
         payload: {
           stepUuid: uuid,
-          filePath: getFilePathForRelativeToProject(dragFile.path, pipelineCwd),
+          filePath: getFilePathRelativeToPipeline(dragFile.path, pipelineCwd),
         },
       });
       resetMove();
     }
 
     if (isSelectorActive) {
-      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      uiStateDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
 
     if (newConnection.current) {
-      dispatch({ type: "MAKE_CONNECTION", payload: uuid });
+      uiStateDispatch({ type: "MAKE_CONNECTION", payload: uuid });
     }
 
     // this condition means user is just done dragging
     // we cannot clean up dragging variables here
     // skip resetDraggingVariables and let onClick take over (onClick is called right after onMouseUp)
-    if (isMouseDown.current && isOnDragging) return;
+    if (isMouseDown.current && isDragging) return;
 
     // this happens if user started dragging on the edge (i.e. continue dragging without actually hovering on the step)
     // and release their cursor on non-canvas elements (e.g. other steps, connections)
@@ -290,69 +285,70 @@ const PipelineStepComponent = React.forwardRef<
   }, [finishDragging]);
 
   const onMouseDown = React.useCallback(
-    (e: React.MouseEvent) => {
+    (event: React.MouseEvent) => {
       // user is panning the canvas or context menu is open
-      if (keysDown.has("Space") || isContextMenuOpen) return;
+      if (keysDown.has("Space") || Boolean(contextMenuUuid)) return;
 
-      e.stopPropagation();
-      e.preventDefault();
-      if (e.button === 0) {
+      event.stopPropagation();
+      event.preventDefault();
+      if (event.button === 0) {
         isMouseDown.current = true;
         forceUpdate();
       }
     },
-    [forceUpdate, keysDown, isContextMenuOpen]
+    [forceUpdate, keysDown, contextMenuUuid]
   );
 
-  const { handleContextMenu, ...contextMenuProps } = useContextMenu();
-  const onContextMenu = async (e: React.MouseEvent) => {
-    const ctrlKeyPressed = e.ctrlKey || e.metaKey;
+  const { handleContextMenu } = usePipelineViewportContextMenu();
+
+  const onContextMenu = async (event: React.MouseEvent) => {
+    const ctrlKeyPressed = event.ctrlKey || event.metaKey;
     if (!selected) {
-      dispatch({
+      uiStateDispatch({
         type: "SELECT_STEPS",
         payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
       });
     }
-    handleContextMenu(e);
+    handleContextMenu(event, uuid);
   };
 
-  const onClick = async (e: React.MouseEvent) => {
+  const onClick = async (event: React.MouseEvent) => {
     // user is panning the canvas or context menu is open
-    if (keysDown.has("Space") || isContextMenuOpen) return;
+    if (keysDown.has("Space") || Boolean(contextMenuUuid)) return;
 
-    e.stopPropagation();
-    e.preventDefault();
+    event.stopPropagation();
+    event.preventDefault();
 
-    if (e.detail === 1) {
+    if (event.detail === 1) {
       // even user is actually dragging, React still sees it as a click
       // maybe because cursor remains on the same position over the DOM
       // we can intercept this "click" event and handle it as a "done-dragging" case
-      if (isOnDragging) {
+      if (isDragging) {
         finishDragging();
         return;
       }
 
-      const ctrlKeyPressed = e.ctrlKey || e.metaKey;
+      const ctrlKeyPressed = event.ctrlKey || event.metaKey;
 
       // if this step (and possibly other steps) are selected,
       // press ctrl/cmd and select this step => remove this step from the selection
       if (selected && ctrlKeyPressed) {
-        dispatch({ type: "DESELECT_STEPS", payload: [uuid] });
+        uiStateDispatch({ type: "DESELECT_STEPS", payload: [uuid] });
         return;
       }
       // only need to re-render if step is not selected
       if (!selected) {
-        dispatch({
+        uiStateDispatch({
           type: "SELECT_STEPS",
           payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
         });
       }
       if (selected) {
-        dispatch({ type: "SET_OPENED_STEP", payload: uuid });
+        uiStateDispatch({ type: "SET_OPENED_STEP", payload: uuid });
       }
       resetDraggingVariables();
     }
-    if (e.detail === 2 && projectUuid && pipelineUuid) {
+    if (event.detail === 2 && projectUuid && pipelineUuid) {
       const valid = await isValidFile({
         projectUuid,
         pipelineUuid,
@@ -366,12 +362,12 @@ const PipelineStepComponent = React.forwardRef<
   };
 
   const onMouseLeave = React.useCallback(
-    (e: MouseEvent) => {
+    (event: MouseEvent) => {
       // user is panning the canvas
       if (keysDown.has("Space")) return;
 
-      e.preventDefault();
-      e.stopPropagation();
+      event.preventDefault();
+      event.stopPropagation();
       // if cursor moves too fast, or move out of canvas, we need to remove the dragging state
       isMouseDown.current = false;
       savePositions();
@@ -389,13 +385,13 @@ const PipelineStepComponent = React.forwardRef<
       return;
     }
 
-    if (!cursorControlledStep) {
-      dispatch({
+    if (!grabbedStep) {
+      uiStateDispatch({
         type: "SET_CURSOR_CONTROLLED_STEP",
         payload: uuid,
       });
     }
-  }, [cursorControlledStep, dispatch, uuid]);
+  }, [grabbedStep, uiStateDispatch, uuid]);
 
   const onMouseMove = React.useCallback(() => {
     // user is panning the canvas
@@ -405,41 +401,41 @@ const PipelineStepComponent = React.forwardRef<
       return;
     }
 
-    if (!hasValue(cursorControlledStep)) detectDraggingBehavior();
+    if (!hasValue(grabbedStep)) detectDraggingBehavior();
 
     // user is dragging this step
-    const isBeingDragged = cursorControlledStep === uuid;
+    const isBeingDragged = grabbedStep === uuid;
     // multiple steps selected, user dragged one of the selected steps (but not the current one)
     const shouldFollowControlledStep =
       selected &&
       !isSelectorActive &&
-      hasValue(cursorControlledStep) &&
-      selectedSteps.includes(cursorControlledStep);
+      hasValue(grabbedStep) &&
+      selectedSteps.includes(grabbedStep);
 
     const shouldMoveWithCursor = isBeingDragged || shouldFollowControlledStep;
 
     if (shouldMoveWithCursor) {
       setMetadata((current) => {
-        const { x, y } = mouseTracker.current.delta;
-        const updatedPosition = [
-          current.position[0] + x,
-          current.position[1] + y,
-        ] as [number, number];
-        metadataPositions.current[uuid] = updatedPosition;
+        const updatedPosition = addPoints(
+          current.position,
+          dividePoint(getMouseDelta(), scaleFactor)
+        );
+
+        draggedStepPositions.current[uuid] = updatedPosition;
         return { ...current, position: updatedPosition };
       });
     }
   }, [
-    mouseTracker,
     keysDown,
-    uuid,
-    isSelectorActive,
-    selected,
-    cursorControlledStep,
     disabledDragging,
-    selectedSteps,
-    metadataPositions,
+    grabbedStep,
     detectDraggingBehavior,
+    uuid,
+    selected,
+    isSelectorActive,
+    selectedSteps,
+    scaleFactor,
+    draggedStepPositions,
   ]);
 
   // use mouseTracker to get mouse movements
@@ -456,89 +452,20 @@ const PipelineStepComponent = React.forwardRef<
 
   const [x, y] = metadata.position;
   const transform = `translateX(${x}px) translateY(${y}px)`;
-  const isCursorControlled = cursorControlledStep === uuid;
+  const isGrabbed = grabbedStep === uuid;
 
   const [isHovering, setIsHovering] = React.useState(false);
 
-  const onMouseOverContainer = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const onMouseOverContainer = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     if (newConnection.current || dragFile) setIsHovering(true);
   };
-  const onMouseOutContainer = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const onMouseOutContainer = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     setIsHovering(false);
   };
-
-  const selectionContainsNotebooks = React.useMemo(
-    () =>
-      selectedSteps
-        .map((s) => steps[s])
-        .filter((step) => step.file_path.endsWith(".ipynb")).length > 0,
-    [selectedSteps, steps]
-  );
-
-  const menuItems: ContextMenuItem[] = [
-    {
-      type: "item",
-      title: "Duplicate",
-      disabled: isReadOnly || selectionContainsNotebooks,
-      action: () => {
-        dispatch({ type: "DUPLICATE_STEPS", payload: [uuid] });
-      },
-    },
-    {
-      type: "item",
-      title: "Delete",
-      disabled: isReadOnly,
-      action: () => {
-        dispatch({ type: "REMOVE_STEPS", payload: selectedSteps });
-      },
-    },
-    {
-      type: "item",
-      title: "Properties",
-      action: () => {
-        dispatch({ type: "SELECT_SUB_VIEW", payload: 0 });
-      },
-    },
-    {
-      type: "item",
-      title: "Open in JupyterLab",
-      disabled: isReadOnly,
-      action: ({ event }) => {
-        dispatch({ type: "SET_OPENED_STEP", payload: uuid });
-        onOpenNotebook(event);
-      },
-    },
-    {
-      type: "item",
-      title: "Open in File Viewer",
-      action: ({ event }) => {
-        onOpenFilePreviewView(event, uuid);
-      },
-    },
-    {
-      type: "separator",
-    },
-    {
-      type: "item",
-      title: "Run this step",
-      disabled: isReadOnly,
-      action: () => {
-        executeRun([uuid], "selection");
-      },
-    },
-    {
-      type: "item",
-      title: "Run incoming",
-      disabled: isReadOnly,
-      action: () => {
-        executeRun([uuid], "incoming");
-      },
-    },
-  ];
 
   return (
     <>
@@ -564,15 +491,17 @@ const PipelineStepComponent = React.forwardRef<
       >
         {children}
       </Box>
-      <PipelineEditorContextMenu {...contextMenuProps} menuItems={menuItems} />
-      {isCursorControlled && // the cursor-controlled step also renders all the interactive connections
+      {isGrabbed && // the cursor-controlled step also renders all the interactive connections
         interactiveConnections.map((connection) => {
           if (!connection) return null;
 
           const { startNodeUUID, endNodeUUID } = connection;
-          const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
+
+          if (!endNodeUUID) return null;
+
+          const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
           const endNode = endNodeUUID
-            ? stepDomRefs.current[`${endNodeUUID}-incoming`]
+            ? stepRefs.current[`${endNodeUUID}-incoming`]
             : undefined;
 
           // startNode is required
@@ -581,22 +510,22 @@ const PipelineStepComponent = React.forwardRef<
           // if the connection is attached to a selected step,
           // the connection should update its start/end node, to move along with the step
           const shouldUpdateStart =
-            cursorControlledStep === startNodeUUID ||
+            grabbedStep === startNodeUUID ||
             (selectedSteps.includes(startNodeUUID) &&
-              selectedSteps.includes(cursorControlledStep));
+              selectedSteps.includes(grabbedStep));
 
           const shouldUpdateEnd =
-            cursorControlledStep === endNodeUUID ||
+            grabbedStep === endNodeUUID ||
             (selectedSteps.includes(endNodeUUID || "") &&
-              selectedSteps.includes(cursorControlledStep));
+              selectedSteps.includes(grabbedStep));
 
           const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as [
             boolean,
             boolean
           ];
 
-          let startNodePosition = getPosition(startNode);
-          let endNodePosition = getPosition(endNode);
+          const startPoint = getPosition(startNode);
+          const endPoint = endNode ? getPosition(endNode) : undefined;
 
           const key = `${startNodeUUID}-${endNodeUUID}-interactive`;
           const selected =
@@ -604,18 +533,15 @@ const PipelineStepComponent = React.forwardRef<
             selectedConnection?.endNodeUUID === endNodeUUID;
 
           return (
-            startNodePosition && (
+            startPoint && (
               <InteractiveConnection
                 key={key}
                 startNodeUUID={startNodeUUID}
                 endNodeUUID={endNodeUUID}
                 getPosition={getPosition}
                 selected={selected}
-                stepDomRefs={stepDomRefs}
-                startNodeX={startNodePosition.x}
-                startNodeY={startNodePosition.y}
-                endNodeX={endNodePosition?.x}
-                endNodeY={endNodePosition?.y}
+                startPoint={startPoint}
+                endPoint={endPoint}
                 shouldUpdate={shouldUpdate}
               />
             )

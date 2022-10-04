@@ -1,5 +1,4 @@
-import "@/.wdyr";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -63,12 +62,12 @@ export const CreateFileDialog = ({
   onClose,
   onSuccess,
 }: CreateFileDialogProps) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const { selectedFiles } = useFileManagerContext();
   const { register, handleSubmit, watch, reset } = useForm<FileFormData>({
     defaultValues: defaultFormState(canCreateStep),
   });
-  const { run, setError, error, status } = useAsync<string>();
+  const { run, setError, error, status } = useAsync<void>();
 
   const selectedFolder = React.useMemo(
     () => lastSelectedFolderPath(selectedFiles),
@@ -85,14 +84,14 @@ export const CreateFileDialog = ({
         file.extension
       );
 
-      await run(createFile(projectPath))
-        .then((fullPath) => {
+      await run(
+        createFile(projectPath).then((fullPath) => {
           onClose();
           onSuccess({ projectPath, fullPath, shouldCreateStep });
         })
-        .catch(setError);
+      );
     },
-    [selectedFolder, run, createFile, setError, onSuccess, onClose]
+    [run, createFile, onSuccess, onClose, selectedFolder]
   );
 
   React.useEffect(() => {
@@ -108,7 +107,7 @@ export const CreateFileDialog = ({
     if (isOpen) {
       reset(defaultFormState(canCreateStep));
     }
-  }, [isOpen, canCreateStep, reset]);
+  }, [reset, isOpen, canCreateStep]);
 
   const [fileName, extension, shouldCreateStep] = watch([
     "fileName",

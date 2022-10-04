@@ -137,25 +137,6 @@ redis_client.set("hello", "there")
 redis_client.get("hello")
 ```
 
-(logs)=
-
-## Logs
-
-You can keep track of all your services (and steps) logs through the `LOGS` button in the pipeline
-editor.
-
-```{figure} ../img/logs-pointer.png
-:align: center
-:width: 600
-:alt: Button to get to the service logs
-```
-
-```{figure} ../img/service-logs.png
-:align: center
-:width: 600
-:alt: Service logs in Orchest
-```
-
 ## Permissions of files written by a service
 
 If you make use of the project or data directory mounts, you need make sure that data is written

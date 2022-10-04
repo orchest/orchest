@@ -2,11 +2,11 @@ import { JsonSchemaType, useOpenSchemaFile } from "@/hooks/useOpenSchemaFile";
 import { join } from "@/utils/path";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useStepDetailsContext } from "./StepDetailsContext";
 
 export const useOpenStepSchemaFile = () => {
-  const { pipelineCwd } = usePipelineEditorContext();
+  const { pipelineCwd } = usePipelineDataContext();
 
   const { step, parameterSchema, parameterUiSchema } = useStepDetailsContext();
   const { openSchemaFile } = useOpenSchemaFile(

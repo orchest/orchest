@@ -58,7 +58,8 @@ To keep Orchest's disk footprint to a minimal you can use the following best pra
 
 ## How to use a GPU in Orchest?
 
-Currently GPU support is not yet available. Coming soon!
+Currently GPU support is not yet available. Coming soon! See
+[#1280](https://github.com/orchest/orchest/issues/1280).
 
 (skip-notebook-cells)=
 

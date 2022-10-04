@@ -4,9 +4,9 @@ import DoDisturbOnOutlinedIcon from "@mui/icons-material/DoDisturbOnOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import HourglassTopOutlinedIcon from "@mui/icons-material/HourglassTopOutlined";
-import { SxProps, Theme } from "@mui/material";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import { SxProps, Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
@@ -56,7 +56,7 @@ export const ImageBuildStatus = ({
   build: EnvironmentImageBuild | undefined;
   sx?: SxProps<Theme>;
 }) => {
-  const inProgress = ["PENDING", "STARTED"].includes(build?.status);
+  const inProgress = ["PENDING", "STARTED"].includes(build?.status || "");
   return build ? (
     <Stack
       direction="column"
@@ -64,13 +64,13 @@ export const ImageBuildStatus = ({
       sx={{ paddingBottom: (theme) => theme.spacing(0.5), ...sx }}
     >
       <Stack direction="row" spacing={1} alignItems="center">
-        {statusIconMapping[build.status].icon}
+        {statusIconMapping[build.status]?.icon}
         <Typography
           variant="body2"
           color="InfoText"
           data-test-id="environments-build-status"
         >
-          {statusIconMapping[build.status].message}
+          {statusIconMapping[build.status]?.message}
         </Typography>
       </Stack>
       <LinearProgress

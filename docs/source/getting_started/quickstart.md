@@ -35,8 +35,7 @@ gratification type, and the screenshot at the top of this article intrigued you,
 the [Github repository](https://github.com/orchest/quickstart) for the code used in this article.
 Then come back to learn how everything works!"
 
-To get started in Orchest you can import the GitHub repository URL
-`https://github.com/orchest/quickstart` through the UI:
+To get started in Orchest you can import the "Quickstart Pipeline" example Project through the UI:
 
 ```{figure} ../img/quickstart/import-project.png
 :align: center
@@ -44,47 +43,46 @@ To get started in Orchest you can import the GitHub repository URL
 :alt: Import existing project in Orchest
 ```
 
-## Create your first project in Orchest
+## Create your first Project in Orchest
 
-To start, make sure you have {ref}`installed Orchest <regular-installation>` or go to your [Orchest Cloud](https://cloud.orchest.io/) account.
-Next, create a new {ref}`project <projects>` named `quickstart`. After creating the project, you will see that it
-does not yet have any {term}`pipelines <(Data science) pipeline>`.
+To start, make sure you have {ref}`installed Orchest <regular-installation>` or go to your [Orchest
+Cloud](https://cloud.orchest.io/) account. Next, create a new {ref}`Project <projects>` named
+`quickstart`. After creating the Project, you will automatically be taken to the Pipeline editor.
+Note that Orchest has created an empty default {term}`Pipeline <(Data science) pipeline>` for you,
+called `main.orchest`.
 
 ```{figure} ../img/quickstart/project-creation.png
 :align: center
 :width: 800
-:alt: List of projects in Orchest
+:alt: Empty Pipeline editor in Orchest.
 ```
 
 ```{note}
-All code in this quickstart is written in Python, nevertheless,
-Orchest also supports other languages such as R.
+All code in this quickstart is written in Python, nevertheless, Orchest also supports other
+languages such as R.
 ```
 
 ## Get California housing data
 
-The logical next step is to create the first Pipeline called `California housing` and open the
-pipeline editor. This will automatically boot an {term}`interactive session <Interactive session>` so
-you can interactively edit the Python script Orchest creates. The rest of the steps will be Jupyter Notebooks!
+After creating the Project, it is still empty. Let's create a _new file_ to start building your
+Pipeline. Name your file `get-data` and choose the `.py` extension. Make sure to check the
+_Create a new step for this file_ box to automatically create a Step for the file:
 
-1. Create a new step by clicking: _+ new step_.
-2. Enter a _Title_ and _File path_, respectively `Get housing data` and `get-data.py`.
-
-```{figure} ../img/quickstart/step-properties.png
+```{figure} ../img/quickstart/file-creation.png
 :align: center
-:width: 300
-:alt: Step properties of an Orchest Pipeline
+:width: 500
+:alt: Creating a file in the Pipeline editor.
 ```
 
 ```{note}
-The changes you make to the Pipeline (through the pipeline editor) are saved automatically.
+The changes you make to the Pipeline (through the Pipeline editor) are saved automatically.
 ```
 
-Now you can start writing our code through the familiar JupyterLab interface, simply press _edit in
-JupyterLab_ (making sure you have the step selected) and paste in the following code:
+Now you can start writing some code through the familiar JupyterLab interface, simply press _edit in
+JupyterLab_ and paste in the following code:
 
 ```{code-block} python
-:emphasize-lines: 11, 19
+:emphasize-lines: 2, 3, 11, 19
 :linenos: true
 
 import orchest
@@ -92,7 +90,7 @@ import pandas as pd
 from sklearn import datasets
 
 # Explicitly cache the data in the "/data" directory since the
-# kernel is running in a Docker container, which are stateless.
+# kernel is running in a container, which are stateless.
 # The "/data" directory is a special directory managed by Orchest
 # to allow data to be persisted and shared across pipelines and
 # even projects.
@@ -113,35 +111,40 @@ A few lines in the code above are highlighted to emphasize important nuts and bo
 get a better understanding of building pipelines in Orchest. These nuts and bolts are explained
 below:
 
+> Line `2` and `3` import third-party packages that need to be installed in the {ref}`Environment <environments>`. Environments define the execution environment in which your scripts are executed.
+> To install `pandas` and `sklearn` simply head over to the _Environments_ tab, add
+> `pip install pandas sklearn` to the _setup script_ and press _Build_. That is all it takes to
+> build a container under the hood in which your script will be executed!
+>
 > Line `11` caches the data in the `/data` directory. This is actually the `userdir/data` directory
-> (from the Orchest GitHub repository) that gets mounted in the respective Docker container running your code.
+> (from the Orchest GitHub repository) that gets mounted in the respective container running your code.
 > This allows you to access the data from any pipeline, even from pipelines in different projects.
 > Data should be stored in `/data` not only for sharing purposes, but also to make sure that {ref}`jobs <jobs>`
 > do not unnecessarily copy the data when creating the snapshot for reproducibility reasons.
 >
-> Secondly, line `19` showcases the usage of the {ref}`Orchest SDK <orchest sdk>` to
+> Lastly, line `19` showcases the usage of the {ref}`Orchest SDK <orchest sdk>` to
 > {ref}`pass data between pipeline steps <data passing>`. Keep in mind that calling
 > {meth}`orchest.transfer.output` multiple times will result in the data getting overwritten,
 > in other words: only output data once per step!
 
-To run the code, switch back to the pipeline editor, select the step and press _run selected steps_.
-After just a few seconds you should see that the step completed successfully. Check the logs
-to confirm - they contain the latest STDOUT of the script.
+To run the code, switch back to the Pipeline editor and press _run all_. After just a few seconds
+you should see that the Step completed successfully. Select the Step and check the logs to confirm -
+they contain the latest STDOUT of the `get-data.py` script.
 
 ```{figure} ../img/quickstart/step-logs.png
 :align: center
-:width: 300
+:width: 400
 :alt: Step logs of an Orchest Pipeline
 ```
 
-Remember that running the code will output the converted housing data, so in the next step you can
+Remember that running the code will output the converted housing data, so in the next Step you can
 now retrieve and explore that data!
 
 ## Data exploration
 
-Now that you have downloaded the data, the next Pipeline Step can explore it. Create another Pipeline
-Step with _Title_ `Data exploration` and _File path_ `explore-data.ipynb`, and connect the two
-Pipeline Steps.
+Now that you have downloaded the data, the next Pipeline Step can explore it. Create another file
+called `explore-data.ipynb` (again make sure to check the box to automatically create a Step for
+it), and connect the two Pipeline Steps.
 
 ```{figure} ../img/quickstart/pipeline-two-steps.png
 :align: center
@@ -150,23 +153,13 @@ Pipeline Steps.
 ```
 
 You can get the code for this Pipeline Step from the `explore-data.ipynb` [file in the GitHub
-repository](https://github.com/orchest/quickstart/blob/main/explore-data.ipynb).
+repository](https://github.com/orchest/quickstart/blob/main/explore-data.ipynb) by copy-pasting the
+code, or using the _upload file_ functionality from the built-in file-manager:
 
-Maybe you already noticed the imports in the previous step:
-
-```python
-import orchest
-import pandas as pd
-from sklearn import datasets
-```
-
-These dependencies are satisfied by default, because the {ref}`environments <environments>`
-are based on the [Jupyter Docker Stacks](https://jupyter-docker-stacks.readthedocs.io/en/latest/)
-which come pre-installed with common data science packages.
-
-```{note}
-Adding additional dependencies (even system level dependencies) can be done by using
-{ref}`environments <environments>`.
+```{figure} ../img/quickstart/upload-file.png
+:align: center
+:width: 400
+:alt: File-manager actions
 ```
 
 ## Finalizing the pipeline
@@ -184,7 +177,6 @@ A successful Pipeline run of the final Pipeline.
 
 ```{note}
 The {term}`interactive session <Interactive session>` does not shut down automatically and thus the
-resources will keep running when editing another P ipeline, you can shut down the session manually
-by clicking on the shut down button. Of course all resources are shut down when you shut down
-your self-hosted Orchest by running the command `orchest stop`.
+resources will keep running when editing another Pipeline, you can shut down the session manually
+by clicking the toggle button in the *Pipeline sessions* section in the Pipeline editor.
 ```

@@ -20,6 +20,7 @@ class Config:
 
     DEFAULT_ENVIRONMENTS = _config.DEFAULT_ENVIRONMENTS
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
+    JSON_SCHEMA_FILE_EXTENSIONS = [".schema.json", ".uischema.json"]
 
     POLL_ORCHEST_EXAMPLES_JSON = True
     ORCHEST_EXAMPLES_JSON_PATH = "/userdir/.orchest/orchest_examples_data.json"
@@ -29,8 +30,6 @@ class Config:
     ORCHEST_UPDATE_INFO_JSON_PATH = "/userdir/.orchest/orchest_update_info.json"
     ORCHEST_UPDATE_INFO_JSON_POLL_INTERVAL = 60
 
-    # TODO: point readthedocs to stable instead of latest once stable
-    #  is up
     ORCHEST_WEB_URLS = {
         "readthedocs": "https://docs.orchest.io/en/stable",
         "slack": (
@@ -45,12 +44,12 @@ class Config:
             "orchest_examples_data.json"
         ),
         "orchest_update_info_json": (
-            _config.ORCHEST_UPDATE_INFO_URL.format(version=os.getenv("ORCHEST_VERSION"))
+            _config.ORCHEST_UPDATE_INFO_URL.format(version=_config.ORCHEST_VERSION)
         ),
     }
 
     ENVIRONMENT_DEFAULTS = {
-        "name": "Python 3",
+        "name": "Python",
         "language": "python",
         "gpu_support": False,
         "base_image": DEFAULT_ENVIRONMENTS[0]["base_image"],

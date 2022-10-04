@@ -30,7 +30,7 @@ import {
 type ParameterEditorWithJsonFormProps = {
   initialValue: Json;
   isReadOnly: boolean;
-  onSave: (parameters: Record<string, Json>) => void;
+  onSave: (parameters: Record<string, Json> | undefined) => void;
   parameterSchema: JsonSchema | undefined;
   parameterUiSchema: UISchemaElement | undefined;
   openSchemaFile: (e: React.MouseEvent, type: JsonSchemaType) => void;
@@ -90,7 +90,10 @@ export const ParameterEditorWithJsonForm = ({
   const onChangeParameterJSON = (updatedParameterJsonString: string) => {
     setEditableParameters(updatedParameterJsonString);
     try {
-      const parsedData = JSON.parse(updatedParameterJsonString);
+      const parsedData =
+        updatedParameterJsonString.trim() === ""
+          ? undefined
+          : JSON.parse(updatedParameterJsonString);
       onSave(parsedData);
       setParametersData(parsedData);
     } catch (err) {}

@@ -1,4 +1,5 @@
 import React from "react";
+import { useHasChanged } from "./useHasChanged";
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
 
@@ -62,7 +63,7 @@ const generateHandleVisibilityChange = (
   }
 };
 
-export const useFocusBrowserTab = () => {
+export const useFocusBrowserTab = (disabled?: boolean) => {
   const handleVisibilityChangeRef = React.useRef<() => void>();
   const [isFocused, setIsFocused] = React.useState(
     hasWindow && document[visibilityState] === "visible"
@@ -74,6 +75,7 @@ export const useFocusBrowserTab = () => {
   }
   React.useEffect(() => {
     if (
+      !disabled &&
       hasWindow &&
       document[hidden] !== undefined &&
       !!handleVisibilityChangeRef.current
@@ -92,6 +94,16 @@ export const useFocusBrowserTab = () => {
         );
       }
     };
-  }, []);
+  }, [disabled]);
   return isFocused;
+};
+
+export const useRegainBrowserTabFocus = () => {
+  const isTabFocused = useFocusBrowserTab();
+  const hasBrowserFocusChanged = useHasChanged(
+    isTabFocused,
+    (prev, curr) => !prev && curr
+  );
+
+  return hasBrowserFocusChanged;
 };

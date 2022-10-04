@@ -12,7 +12,7 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from _orchest.internals.utils import rmtree
 from app import error
 from app.connections import db
-from app.core.pipelines import AddPipelineFromFS, DeletePipeline
+from app.core.pipelines import AddPipelineFromFS, CreatePipeline, DeletePipeline
 from app.kernel_manager import populate_kernels
 from app.models import BackgroundTask, Environment, Pipeline, Project
 from app.utils import (
@@ -150,6 +150,15 @@ class CreateProject(TwoPhaseFunction):
 
         if not skip_env_builds:
             build_environments_for_project(project_uuid, environments)
+
+        # Create a Pipeline if none exists yet. In Orchest many actions
+        # are dependent on a Pipeline existing, so let's make sure a
+        # Pipeline always exists.
+        pipeline_paths = find_pipelines_in_dir(
+            full_project_path, relative_to=full_project_path
+        )
+        if not pipeline_paths:
+            CreatePipeline(self.tpe).transaction(project_uuid, "Main", "main.orchest")
 
         Project.query.filter_by(uuid=project_uuid, path=project_path).update(
             {"status": "READY"}

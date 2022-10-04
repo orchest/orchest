@@ -1,24 +1,21 @@
-import { useAppContext } from "@/contexts/AppContext";
-import { useInterval } from "@/hooks/use-interval";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { StateDispatcher, useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
+import { useInterval } from "@/hooks/useInterval";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMounted } from "@/hooks/useMounted";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import SearchIcon from "@mui/icons-material/Search";
 import Alert from "@mui/material/Alert";
 import Box, { BoxProps } from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Collapse from "@mui/material/Collapse";
 import Fade from "@mui/material/Fade";
-import InputBase from "@mui/material/InputBase";
-import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import { alpha, styled, SxProps, Theme } from "@mui/material/styles";
+import { SxProps, Theme } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -32,40 +29,7 @@ import { visuallyHidden } from "@mui/utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { IconButton } from "./common/IconButton";
-
-const SearchContainer = styled("div")(({ theme }) => ({
-  position: "relative",
-  borderRadius: theme.spacing(1),
-  border: `1px solid ${alpha(theme.palette.grey[300], 0.8)}`,
-  backgroundColor: alpha(theme.palette.grey[100], 0.2),
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.grey[100], 0.6),
-  },
-  margin: theme.spacing(2, 0),
-  width: "100%",
-}));
-
-const SearchIconWrapper = styled("div")(({ theme }) => ({
-  padding: theme.spacing(0, 1, 0, 2),
-  color: theme.palette.grey[400],
-  height: "100%",
-  position: "absolute",
-  pointerEvents: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-}));
-
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  color: "inherit",
-  width: "100%",
-  "& .MuiInputBase-input": {
-    padding: theme.spacing(1.5, 1, 1.5, 0),
-    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-    transition: theme.transitions.create("width"),
-    width: "100%",
-  },
-}));
+import { SearchField } from "./SearchField";
 
 function descendingComparator(
   a: Record<string, string | number>,
@@ -108,6 +72,7 @@ export type DataTableColumn<T, C = T> = {
 
 export type DataTableRow<T> = T & {
   uuid: string;
+  disabled?: boolean;
   // in case you're rendering something totally different from the data
   // provide a searchIndex for matching user's search term
   searchIndex?: string;
@@ -165,7 +130,7 @@ function EnhancedTableHead<T, C>(props: EnhancedTableProps<T, C>) {
         {data.map((headCell, index) => (
           <TableCell
             key={headCell.id.toString()}
-            align={index === 0 ? "left" : headCell.align || "center"}
+            align={index === 0 ? "left" : headCell.align || "left"}
             padding={headCell.disablePadding ? "none" : "normal"}
             sortDirection={orderBy === headCell.id ? order : false}
           >
@@ -328,7 +293,11 @@ function Row<T, C>({
         <TableCell component="th" align="left" id={labelId} scope="row">
           <CellContainer
             isLoading={isLoading}
-            sx={columns[0]?.sx}
+            sx={{
+              color: (theme) =>
+                disabled ? theme.palette.action.disabled : undefined,
+              ...columns[0]?.sx,
+            }}
             onAuxClick={handleClickRow}
           >
             {renderCell(columns[0], data, disabled)}
@@ -338,11 +307,15 @@ function Row<T, C>({
           return (
             <TableCell
               key={column.id.toString()}
-              align={column.align || "center"}
+              align={column.align || "left"}
             >
               <CellContainer
                 isLoading={isLoading}
-                sx={column.sx}
+                sx={{
+                  color: (theme) =>
+                    disabled ? theme.palette.action.disabled : undefined,
+                  ...column.sx,
+                }}
                 onAuxClick={handleClickRow}
               >
                 {column.sortable ? (
@@ -455,37 +428,43 @@ enum FIXED_ROW_HEIGHT {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const DataTable = <T extends Record<string, any>, C = T>({
-  id,
-  columns,
-  rows: originalRowsFromProp,
-  composeRow = (row) => row,
-  initialOrderBy,
-  initialOrder,
-  deleteSelectedRows,
-  onRowClick,
-  selectable = false,
-  rowHeight,
-  debounceTime = 250,
-  hideSearch,
-  initialSelectedRows = [],
-  selectedRows,
-  setSelectedRows,
-  onChangeSelection,
-  fetcher,
-  isLoading,
-  initialRowsPerPage = 10,
-  containerSx,
-  dense,
-  disabled,
-  disablePagination = false,
-  refreshInterval = null,
-  retainSelectionsOnPageChange,
-  footnote,
-  tableContainerElevation = 1,
-  ...props
-}: DataTableProps<T, C>) => {
-  const { setAlert } = useAppContext();
+export const DataTable = React.forwardRef(function DataTable<
+  T extends Record<string, any>,
+  C = T
+>(
+  {
+    id,
+    columns,
+    rows: originalRowsFromProp,
+    composeRow = (row) => row,
+    initialOrderBy,
+    initialOrder,
+    deleteSelectedRows,
+    onRowClick,
+    selectable = false,
+    rowHeight,
+    debounceTime = 250,
+    hideSearch,
+    initialSelectedRows = [],
+    selectedRows,
+    setSelectedRows,
+    onChangeSelection,
+    fetcher,
+    isLoading,
+    initialRowsPerPage = 10,
+    containerSx,
+    dense,
+    disabled,
+    disablePagination = false,
+    refreshInterval = null,
+    retainSelectionsOnPageChange,
+    footnote,
+    sx,
+    ...props
+  }: DataTableProps<T, C>,
+  ref: React.ForwardedRef<HTMLDivElement>
+) {
+  const { setAlert } = useGlobalContext();
 
   const mounted = useMounted();
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -757,25 +736,15 @@ export const DataTable = <T extends Record<string, any>, C = T>({
       : FIXED_ROW_HEIGHT.SMALL);
 
   return (
-    <Box sx={{ width: "100%" }} {...props}>
+    <Box sx={{ width: "100%", ...sx }} {...props} ref={ref}>
       {!hideSearch && (
-        <SearchContainer>
-          <SearchIconWrapper>
-            <SearchIcon />
-          </SearchIconWrapper>
-          <StyledInputBase
-            placeholder="Search"
-            inputProps={{ "aria-label": "search" }}
-            value={searchTerm}
-            disabled={isTableDisabled}
-            onChange={handleChangeSearchTerm}
-          />
-        </SearchContainer>
+        <SearchField
+          value={searchTerm}
+          disabled={isTableDisabled}
+          onChange={handleChangeSearchTerm}
+        />
       )}
-      <Paper
-        elevation={tableContainerElevation}
-        sx={{ width: "100%", marginBottom: 2 }}
-      >
+      <Box sx={{ width: "100%" }}>
         <TableContainer sx={containerSx}>
           <Table
             sx={{ minWidth: 750 }}
@@ -797,14 +766,16 @@ export const DataTable = <T extends Record<string, any>, C = T>({
               rowCount={rows.length}
               data={columns}
             />
-            <TableBody>
+            <TableBody sx={{ maxHeight: "100px" }}>
               {!error &&
                 rowsInPage.map((row: DataTableRow<T>) => {
                   const isItemSelected = isSelected(row.uuid);
+                  const isRowDisabled =
+                    isTableDisabled || row.disabled || false;
                   return (
                     <Row<T, C>
                       isLoading={isFetchingData}
-                      disabled={isTableDisabled}
+                      disabled={isRowDisabled}
                       hover={hasValue(onRowClick) || hasValue(row.details)}
                       tableId={id}
                       data={composeRow(row, setData, fetchData)}
@@ -897,7 +868,9 @@ export const DataTable = <T extends Record<string, any>, C = T>({
             />
           )}
         </Stack>
-      </Paper>
+      </Box>
     </Box>
   );
-};
+}) as <T extends Record<string, any>, C = T>( //eslint-disable-line @typescript-eslint/no-explicit-any
+  props: DataTableProps<T, C>
+) => JSX.Element;

@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { siteMap } from "@/routingConfig";
@@ -7,9 +7,9 @@ import { OrchestVersion, UpdateInfo } from "@/types";
 import Typography from "@mui/material/Typography";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useInterval } from "./use-interval";
 import { useCancelablePromise } from "./useCancelablePromise";
 import { useFetcher } from "./useFetcher";
+import { useInterval } from "./useInterval";
 import { useMatchRoutePaths } from "./useMatchProjectRoot";
 
 const isVersionLTE = (oldVersion: string, newVersion: string) => {
@@ -96,7 +96,7 @@ const useVersionsPoller = () => {
 // it is best to place this hook in top-level components (i.e. the ones
 // defined in the routingConfig.tsx).
 export const useCheckUpdate = () => {
-  const { setConfirm, setAlert } = useAppContext();
+  const { setConfirm, setAlert } = useGlobalContext();
   const { navigateTo, location } = useCustomRoute();
 
   const [skipVersion, setSkipVersion] = useLocalStorage<string | null>(

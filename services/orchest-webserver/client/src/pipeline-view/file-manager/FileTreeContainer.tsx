@@ -13,7 +13,7 @@ export const FileTreeContainer: React.FC = ({ children }) => {
         maxHeight: "100%",
         overflowY: "auto",
         flex: 1,
-        paddingBottom: (theme) => theme.spacing(2),
+        padding: (theme) => theme.spacing(0, 1, 2),
       }}
       onContextMenu={(e) => {
         handleContextMenu(e, "", "background");

@@ -1,13 +1,15 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
 export const useAutoStartSession = () => {
   const {
@@ -16,10 +18,11 @@ export const useAutoStartSession = () => {
     startSession,
   } = useSessionsContext();
   const {
-    state: { pipeline, pipelineIsReadOnly },
+    state: { pipeline, pipelineReadOnlyReason },
     dispatch,
   } = useProjectsContext();
-  const { setAlert, setConfirm } = useAppContext();
+  const { setAlert, setConfirm } = useGlobalContext();
+  const { isInteractive } = usePipelineDataContext();
   const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();
 
   const session = React.useMemo(() => getSession(pipeline?.uuid), [
@@ -28,16 +31,23 @@ export const useAutoStartSession = () => {
   ]);
 
   const shouldCheckIfAutoStartIsNeeded =
+    isInteractive && // This is an interactive pipeline
     hasValue(sessions) && // `sessions` is available to look up
     hasValue(pipeline?.uuid) && // `pipeline` is loaded.
     pipelineUuidFromRoute === pipeline?.uuid && // Only auto-start the pipeline that user is viewing.
-    !pipelineIsReadOnly &&
+    !pipelineReadOnlyReason &&
     !hasValue(session); // `session` of the current pipeline is not yet launched.
 
   // The only case that auto-start should be disabled is that
   // session.status was once set as "STOPPING",
   // because this state "STOPPING" can only happen if user clicks on "Stop Session" on purpose.
   const startedPipelineUuid = React.useRef<string>();
+
+  const environmentFinishedBuilding = useHasChanged(
+    pipelineReadOnlyReason,
+    (prev, curr) => hasValue(prev) && !hasValue(curr)
+  );
+
   React.useEffect(() => {
     if (session?.status === "STOPPING")
       startedPipelineUuid.current = pipeline?.uuid;
@@ -45,18 +55,16 @@ export const useAutoStartSession = () => {
 
   const requestStartSession = React.useCallback(
     async (pipelineUuid: string) => {
-      const [hasStartedOperation, error] = await startSession(
+      const result = await startSession(
         pipelineUuid,
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
-      if (
-        !hasStartedOperation &&
-        error.status === 423 &&
-        error.message === "JupyterEnvironmentBuildInProgress"
-      ) {
+      if (result === true) return;
+      if (result.message === "environmentsBuildInProgress") return;
+      if (result.message === "JupyterEnvironmentBuildInProgress") {
         dispatch({
-          type: "SET_PIPELINE_IS_READONLY",
-          payload: true,
+          type: "SET_PIPELINE_READONLY_REASON",
+          payload: "JupyterEnvironmentBuildInProgress",
         });
         setConfirm(
           "Notice",
@@ -69,8 +77,11 @@ export const useAutoStartSession = () => {
             confirmLabel: "Configure JupyterLab",
           }
         );
-      } else if (error?.message) {
-        setAlert("Error", `Error while starting the session: ${String(error)}`);
+      } else {
+        setAlert(
+          "Error",
+          `Error while starting the session: ${String(result)}`
+        );
       }
     },
     [navigateTo, setAlert, setConfirm, startSession, dispatch]
@@ -80,7 +91,8 @@ export const useAutoStartSession = () => {
     if (
       pipeline?.uuid &&
       shouldCheckIfAutoStartIsNeeded &&
-      startedPipelineUuid.current !== pipeline?.uuid
+      (startedPipelineUuid.current !== pipeline?.uuid ||
+        environmentFinishedBuilding)
     ) {
       startedPipelineUuid.current = pipeline?.uuid;
       requestStartSession(pipeline.uuid);
@@ -90,6 +102,7 @@ export const useAutoStartSession = () => {
     startSession,
     pipeline?.uuid,
     requestStartSession,
+    environmentFinishedBuilding,
   ]);
 
   /**
@@ -112,5 +125,5 @@ export const useAutoStartSession = () => {
     }
   }, [session]);
 
-  return session;
+  return { session, startSession };
 };

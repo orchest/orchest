@@ -1,7 +1,7 @@
 import { OrchestUserConfig } from "@/types";
 import { rest } from "msw";
 import { mockConfig } from "./mockConfig.mock";
-import { getPipelineMedadatas, mockProjects } from "./mockProjects.mock";
+import { listPipelineMetadata, mockProjects } from "./mockProjects.mock";
 
 export const handlers = [
   rest.get("/async/user-config", (req, res, ctx) => {
@@ -58,7 +58,7 @@ export const handlers = [
     const projectUuid = req.params.projectUuid as string;
     if (!projectUuid) return res(ctx.status(404));
 
-    const pipelines = getPipelineMedadatas(projectUuid);
+    const pipelines = listPipelineMetadata(projectUuid);
 
     return res(ctx.json({ result: pipelines }));
   }),

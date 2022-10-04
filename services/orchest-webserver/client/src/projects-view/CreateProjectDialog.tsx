@@ -1,6 +1,12 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { projectsApi } from "@/api/projects/projectsApi";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import {
+  INITIAL_PIPELINE_NAME,
+  INITIAL_PIPELINE_PATH,
+} from "@/pipeline-view/CreatePipelineDialog";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import Button from "@mui/material/Button";
@@ -9,22 +15,39 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectName } from "./hooks/useProjectName";
 
+const defaultPipeline = {
+  name: INITIAL_PIPELINE_NAME,
+  pipeline_path: INITIAL_PIPELINE_PATH,
+};
+
+type CreateProjectDialogProps = {
+  open?: boolean;
+  onClose?: () => void;
+  children?: (onOpen: () => void) => React.ReactNode;
+  postCreateCallback?: () => void;
+};
+
 export const CreateProjectDialog = ({
-  isOpen,
-  onClose,
-  projects,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  projects: Project[];
-}) => {
-  const { setAlert } = useAppContext();
+  open: isOpenByParent,
+  onClose: onCloseByParent,
+  postCreateCallback,
+  children,
+}: CreateProjectDialogProps) => {
+  const { setAlert } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
-  const { dispatch } = useProjectsContext();
+  const {
+    state: { projects = [] },
+    dispatch,
+  } = useProjectsContext();
+
+  const { isOpen, onClose, onOpen } = useControlledIsOpen(
+    isOpenByParent,
+    onCloseByParent
+  );
 
   const [projectName, setProjectName, validation] = useProjectName(projects);
 
@@ -40,38 +63,33 @@ export const CreateProjectDialog = ({
 
     onClose();
     try {
-      const { project_uuid } = await fetcher<{ project_uuid: string }>(
-        "/async/projects",
-        {
-          method: "POST",
-          headers: HEADER.JSON,
-          body: JSON.stringify({ name: projectName }),
-        }
-      );
+      const { project_uuid: projectUuid } = await projectsApi.post(projectName);
 
-      dispatch((state) => ({
-        type: "SET_PROJECTS",
-        payload: [
-          ...state.projects,
-          {
-            path: projectName,
-            uuid: project_uuid,
-            pipeline_count: 0,
-            job_count: 0,
-            environment_count: 1, // by default, a project gets an environment Python 3
-            project_snapshot_size: 0,
-            env_variables: {},
-            status: "READY",
-          },
-        ],
-      }));
+      dispatch((state) => {
+        const currentProjects = state.projects || [];
+        const newProject: Project = {
+          path: projectName,
+          uuid: projectUuid,
+          pipeline_count: 0,
+          active_job_count: 0,
+          environment_count: 1, // by default, a project gets an environment Python 3
+          project_snapshot_size: 0,
+          env_variables: {},
+          status: "READY",
+        };
+        return {
+          type: "SET_PROJECTS",
+          payload: [...currentProjects, newProject],
+        };
+      });
 
-      dispatch({ type: "SET_PROJECT", payload: project_uuid });
-
+      dispatch({ type: "SET_PROJECT", payload: projectUuid });
+      postCreateCallback?.();
       navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid: project_uuid },
+        query: { projectUuid: projectUuid },
       });
     } catch (error) {
+      postCreateCallback?.();
       setAlert(
         "Error",
         `Could not create project. ${error.message || "Reason unknown."}`
@@ -80,46 +98,49 @@ export const CreateProjectDialog = ({
   };
 
   return (
-    <Dialog open={isOpen} onClose={closeDialog} fullWidth maxWidth="xs">
-      <form
-        id="create-project"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onClickCreateProject();
-        }}
-      >
-        <DialogTitle>Create a new project</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            autoFocus
-            required
-            sx={{ marginTop: (theme) => theme.spacing(2) }}
-            label="Project name"
-            error={validation.length > 0}
-            helperText={validation || " "}
-            value={projectName}
-            onChange={(e) =>
-              setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
-            }
-            data-test-id="project-name-textfield"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button color="secondary" tabIndex={-1} onClick={closeDialog}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            type="submit"
-            form="create-project"
-            disabled={!isFormValid}
-            data-test-id="create-project"
-          >
-            Create project
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+    <>
+      {hasValue(children) && children(onOpen)}
+      <Dialog open={isOpen} onClose={closeDialog} fullWidth maxWidth="xs">
+        <form
+          id="create-project"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onClickCreateProject();
+          }}
+        >
+          <DialogTitle>New project</DialogTitle>
+          <DialogContent>
+            <TextField
+              fullWidth
+              autoFocus
+              required
+              sx={{ marginTop: (theme) => theme.spacing(2) }}
+              label="Project name"
+              error={validation.length > 0}
+              helperText={validation || " "}
+              value={projectName}
+              onChange={(e) =>
+                setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
+              }
+              data-test-id="project-name-textfield"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button tabIndex={-1} onClick={closeDialog}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              type="submit"
+              form="create-project"
+              disabled={!isFormValid}
+              data-test-id="create-project"
+            >
+              Create project
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+    </>
   );
 };

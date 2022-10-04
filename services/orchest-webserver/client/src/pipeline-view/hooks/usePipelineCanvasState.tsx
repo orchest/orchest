@@ -1,21 +1,22 @@
+import { Point2D } from "@/utils/geometry";
 import React from "react";
 
-export const INITIAL_PIPELINE_POSITION = [-1, -1] as [number, number];
+export const PIPELINE_CANVAS_SIZE = 2000;
+export const INITIAL_PIPELINE_OFFSET: Point2D = [-1, -1];
 
 type PanningState = "ready-to-pan" | "panning" | "idle";
 
 export type PipelineCanvasState = {
-  pipelineOrigin: number[];
-  pipelineStepsHolderOffsetLeft: number;
-  pipelineStepsHolderOffsetTop: number;
-  pipelineOffset: [number, number];
+  pipelineOrigin: Point2D;
+  pipelineOffset: Point2D;
+  pipelineCanvasOffset: Point2D;
   panningState: PanningState;
 };
-let initialState: PipelineCanvasState = {
+
+const initialState: PipelineCanvasState = {
   pipelineOrigin: [0, 0],
-  pipelineStepsHolderOffsetLeft: 0,
-  pipelineStepsHolderOffsetTop: 0,
-  pipelineOffset: INITIAL_PIPELINE_POSITION,
+  pipelineCanvasOffset: [0, 0],
+  pipelineOffset: INITIAL_PIPELINE_OFFSET,
   panningState: "idle",
 };
 
@@ -26,6 +27,7 @@ const reducer = (
     | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
 ) => {
   const mutation = _mutation instanceof Function ? _mutation(state) : _mutation;
+
   return { ...state, ...mutation };
 };
 

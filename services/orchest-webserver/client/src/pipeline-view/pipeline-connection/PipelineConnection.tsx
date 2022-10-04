@@ -1,104 +1,80 @@
-import { NewConnection, Position } from "@/types";
-import classNames from "classnames";
+import { Point2D } from "@/utils/geometry";
 import React from "react";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { EventVarsAction } from "../hooks/useEventVars";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useUpdateZIndex } from "../hooks/useZIndexMax";
 import { getSvgProperties, getTransformProperty } from "./common";
 import { ConnectionLine } from "./ConnectionLine";
 
-const PipelineConnectionComponent: React.FC<{
+type PipelineConnectionProps = {
   shouldRedraw: boolean;
   isNew: boolean;
-  startNodeX: number;
-  startNodeY: number;
-  endNodeX: number | undefined;
-  endNodeY: number | undefined;
+  startPoint: Point2D;
+  endPoint?: Point2D | undefined;
   startNodeUUID: string;
   endNodeUUID?: string;
-  getPosition: (element: HTMLElement | undefined | null) => Position | null;
-  eventVarsDispatch: React.Dispatch<EventVarsAction>;
   selected: boolean;
-  zIndexMax: React.MutableRefObject<number>;
-  shouldUpdate: [boolean, boolean];
-  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
-  cursorControlledStep: string | undefined;
-  newConnection: React.MutableRefObject<NewConnection | undefined>;
-}> = ({
+  shouldUpdate: readonly [boolean, boolean];
+  getPosition: (element: HTMLElement) => Point2D;
+};
+
+const PipelineConnectionComponent = ({
   shouldRedraw,
   isNew,
   getPosition,
-  eventVarsDispatch,
   selected,
-  zIndexMax,
   startNodeUUID,
   endNodeUUID,
   shouldUpdate,
-  stepDomRefs,
-  cursorControlledStep,
-  newConnection,
-  ...props
-}) => {
-  const { keysDown } = usePipelineEditorContext();
+  startPoint,
+  endPoint,
+}: PipelineConnectionProps) => {
+  const { keysDown, newConnection, stepRefs, zIndexMax } = usePipelineRefs();
+  const {
+    uiState: { grabbedStep },
+    uiStateDispatch,
+  } = usePipelineUiStateContext();
   const [transformProperty, setTransformProperty] = React.useState(() =>
-    getTransformProperty(props)
+    getTransformProperty(startPoint, endPoint)
   );
   const [svgProperties, setSvgProperties] = React.useState(() =>
-    getSvgProperties(props)
+    getSvgProperties(startPoint, endPoint)
   );
 
   const [shouldUpdateStart, shouldUpdateEnd] = shouldUpdate;
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
-  const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
-  const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
-  const startNodePosition = getPosition(startNode);
-  const endNodePosition = getPosition(endNode) || {
-    x: newConnection.current?.xEnd,
-    y: newConnection.current?.yEnd,
-  };
+  const startNode = stepRefs.current[`${startNodeUUID}-outgoing`];
+  const endNode = stepRefs.current[`${endNodeUUID}-incoming`];
 
-  const startNodeX =
-    shouldUpdateStart && startNodePosition
-      ? startNodePosition.x
-      : props.startNodeX;
-  const startNodeY =
-    shouldUpdateStart && startNodePosition
-      ? startNodePosition.y
-      : props.startNodeY;
-  const endNodeX = shouldUpdateEnd ? endNodePosition.x : props.endNodeX;
-  const endNodeY = shouldUpdateEnd ? endNodePosition.y : props.endNodeY;
+  const start =
+    shouldUpdateStart && startNode ? getPosition(startNode) : startPoint;
+
+  const newConnectionEnd = newConnection.current?.end;
+
+  const end =
+    shouldUpdateEnd && endNode
+      ? getPosition(endNode)
+      : newConnectionEnd
+      ? newConnectionEnd
+      : endPoint || startPoint;
 
   const transform = React.useCallback(() => {
-    setTransformProperty(
-      getTransformProperty({
-        startNodeX,
-        startNodeY,
-        endNodeX,
-        endNodeY,
-      })
-    );
-  }, [endNodeX, endNodeY, startNodeX, startNodeY, setTransformProperty]);
+    setTransformProperty(getTransformProperty(start, end));
+  }, [start, end]);
 
   const redraw = React.useCallback(() => {
     transform();
-    setSvgProperties(
-      getSvgProperties({
-        startNodeX,
-        startNodeY,
-        endNodeX,
-        endNodeY,
-      })
-    );
-  }, [endNodeX, endNodeY, startNodeX, startNodeY, transform]);
+    setSvgProperties(getSvgProperties(start, end));
+  }, [end, start, transform]);
 
   // Similar to PipelineStep, here we track the positions of startNode and endNode
-  // via stepDomRefs, and update the SVG accordingly
+  // via stepRefs, and update the SVG accordingly
   // so that we can ONLY re-render relevant connections and get away from performance penalty
 
   const shouldRedrawSvg =
-    (cursorControlledStep || isNew) && (shouldUpdateStart || shouldUpdateEnd);
+    (grabbedStep || isNew) && (shouldUpdateStart || shouldUpdateEnd);
 
   const onMouseMove = React.useCallback(() => {
     if (shouldRedrawSvg) redraw();
@@ -117,42 +93,39 @@ const PipelineConnectionComponent: React.FC<{
   const zIndex = useUpdateZIndex(isNew, zIndexMax);
 
   const onClickFun = React.useCallback(
-    (e) => {
+    (event) => {
       // user is panning the canvas
       if (keysDown.has("Space")) return;
-      if (e.button === 0 && endNodeUUID) {
-        e.stopPropagation();
-        eventVarsDispatch({
+      if (event.button === 0 && endNodeUUID) {
+        event.stopPropagation();
+        uiStateDispatch({
           type: "SELECT_CONNECTION",
           payload: { startNodeUUID, endNodeUUID },
         });
       }
     },
-    [eventVarsDispatch, startNodeUUID, endNodeUUID, keysDown]
+    [uiStateDispatch, startNodeUUID, endNodeUUID, keysDown]
   );
 
-  const { className, width, height, drawn } = svgProperties;
+  const { sx, width, height, drawn } = svgProperties;
 
   return (
-    <div
-      data-start-uuid={startNodeUUID}
-      data-end-uuid={endNodeUUID}
-      className={classNames("connection", className, selected && "selected")}
-      onContextMenu={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-      }}
+    <ConnectionLine
       ref={containerRef}
+      selected={selected}
+      startNodeUuid={startNodeUUID}
+      endNodeUuid={endNodeUUID}
+      onContextMenu={(event) => {
+        event.stopPropagation();
+        event.preventDefault();
+      }}
       style={{ ...transformProperty, zIndex }}
-    >
-      <ConnectionLine
-        selected={selected}
-        onClick={onClickFun}
-        width={width}
-        height={height}
-        d={drawn}
-      />
-    </div>
+      onClick={onClickFun}
+      width={width}
+      height={height}
+      d={drawn}
+      sx={sx}
+    />
   );
 };
 

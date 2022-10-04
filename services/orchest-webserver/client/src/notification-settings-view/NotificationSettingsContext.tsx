@@ -1,4 +1,4 @@
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useAppContext } from "@/contexts/AppContext";
 import { StateDispatcher } from "@/hooks/useAsync";
 import React from "react";
 import { EventForDisplay } from "./common";
@@ -18,7 +18,7 @@ export const useNotificationSettingsContext = () =>
   React.useContext(NotificationSettingsContext);
 
 export const NotificationSettingsContextProvider: React.FC = ({ children }) => {
-  const { webhooks } = useAppInnerContext();
+  const { webhooks } = useAppContext();
   const {
     notificationEventTypes = [],
     enabledEventTypes = [],

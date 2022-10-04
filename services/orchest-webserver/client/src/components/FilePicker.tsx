@@ -84,7 +84,6 @@ export type FilePickerProps = {
   onChangeValue: (value: FilePickerProps["value"]) => void;
   tree: FileTree;
   value: string;
-  menuMaxWidth?: string;
   onSelectMenuItem: (node: FileTree) => void;
   allowedExtensions: readonly string[];
   generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
@@ -187,7 +186,6 @@ const FilePicker: React.FC<FilePickerProps> = ({
   onChangeValue,
   helperText,
   icon,
-  menuMaxWidth,
   onSelectMenuItem,
   generateRelativePath,
   allowedExtensions,
@@ -290,7 +288,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
         isDropdownOpen &&
         menuFirstItemRef.current !== document.activeElement
       ) {
-        // Some other MUI might aggresively grab the focus.
+        // Some other MUI might aggressively grab the focus.
         // As long as pressing Enter when Dropdown is open, force focusing the first menu element.
         event.preventDefault();
         menuFirstItemRef.current?.focus();
@@ -331,48 +329,39 @@ const FilePicker: React.FC<FilePickerProps> = ({
           sx={{
             maxHeight: ITEM_HEIGHT * 4.5,
             overflowY: "auto",
-            width: menuMaxWidth || "24ch",
             position: "absolute",
             top: (theme) => theme.spacing(7),
             zIndex: 10,
           }}
         >
           <MenuList dense>
-            {options && (
-              <>
-                {!isRootNode && (
-                  <MenuItem onClick={onNavigateUp} ref={menuFirstItemRef}>
-                    <ListItemIcon>
-                      <TurnLeftOutlinedIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Navigate up</ListItemText>
-                  </MenuItem>
-                )}
-                {options.map((childNode, index) => {
-                  const nodeName = childNode.name;
-                  return (
-                    <MenuItem
-                      key={childNode.name}
-                      onClick={(e) => onSelectListItem(e, childNode)}
-                      ref={
-                        isRootNode && index === 0 ? menuFirstItemRef : undefined
-                      }
-                    >
-                      {childNode.type === "directory" && (
-                        <ListItemIcon>
-                          <FolderIcon fontSize="small" />
-                        </ListItemIcon>
-                      )}
-                      <ListItemText inset={childNode.type !== "directory"}>
-                        {`${nodeName}${
-                          childNode.type === "directory" ? "/" : ""
-                        }`}
-                      </ListItemText>
-                    </MenuItem>
-                  );
-                })}
-              </>
+            {options && !isRootNode && (
+              <MenuItem onClick={onNavigateUp} ref={menuFirstItemRef}>
+                <ListItemIcon>
+                  <TurnLeftOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Navigate up</ListItemText>
+              </MenuItem>
             )}
+            {options?.map((childNode, index) => {
+              const nodeName = childNode.name;
+              return (
+                <MenuItem
+                  key={childNode.name}
+                  onClick={(e) => onSelectListItem(e, childNode)}
+                  ref={isRootNode && index === 0 ? menuFirstItemRef : undefined}
+                >
+                  {childNode.type === "directory" && (
+                    <ListItemIcon>
+                      <FolderIcon fontSize="small" />
+                    </ListItemIcon>
+                  )}
+                  <ListItemText inset={childNode.type !== "directory"}>
+                    {`${nodeName}${childNode.type === "directory" ? "/" : ""}`}
+                  </ListItemText>
+                </MenuItem>
+              );
+            })}
           </MenuList>
         </Paper>
       )}

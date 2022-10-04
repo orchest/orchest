@@ -1,31 +1,26 @@
-import { relative } from "@/utils/path";
+import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { Point2D } from "@/utils/geometry";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { usePipelineRefs } from "../contexts/PipelineRefsContext";
+import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
+import { getFilePathRelativeToPipeline } from "../file-manager/common";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
-
-const toRoot = (path?: string) => (path?.startsWith("/") ? path : "/" + path);
-
-const unroot = (path?: string) =>
-  path?.startsWith("/") ? path.substring(1) : path;
-
-const relativeToPipeline = (pipelinePath?: string, path?: string) =>
-  path ? unroot(relative(toRoot(pipelinePath), path)) : path;
+import { useSetShouldAutoFocusStepName } from "../step-details/store/useAutoFocusStepName";
 
 /**
  * Creates a new step in the pipeline.
  * @param filePath (Optional) the file path, relative to `project-dir:`, e.g. `/foo.py`.
  */
-export type StepCreator = (filePath?: string) => void;
+export type StepCreator = (filePath?: string, position?: Point2D) => void;
 
 export const useCreateStep = (): StepCreator => {
-  const {
-    dispatch,
-    environments,
-    pipelineViewportRef,
-    pipelineCwd,
-  } = usePipelineEditorContext();
+  const environments = useEnvironmentsApi((state) => state.environments || []);
+  const { pipelineCwd } = usePipelineDataContext();
+  const { uiStateDispatch } = usePipelineUiStateContext();
+  const { pipelineViewportRef } = usePipelineRefs();
   const {
     pipelineCanvasState: { pipelineOffset },
   } = usePipelineCanvasContext();
@@ -34,8 +29,11 @@ export const useCreateStep = (): StepCreator => {
   // The user can change it later.
   const [environment] = environments;
 
+  const { setShouldAutoFocusStepName } = useSetShouldAutoFocusStepName();
+
   const createStep = React.useCallback(
-    (filePath?: string) => {
+    (fullFilePath?: string, position?: Point2D) => {
+      if (!pipelineCwd) return;
       if (pipelineViewportRef.current) {
         // When new steps are successively created then we don't want
         // them to be spawned on top of each other.
@@ -43,19 +41,32 @@ export const useCreateStep = (): StepCreator => {
         const { clientWidth, clientHeight } = pipelineViewportRef.current;
         const [offsetX, offsetY] = pipelineOffset;
 
-        const position = {
-          x: -offsetX + clientWidth / 2 - STEP_WIDTH / 2,
-          y: -offsetY + clientHeight / 2 - STEP_HEIGHT / 2,
-        };
+        const targetPosition: Point2D = position || [
+          -offsetX + clientWidth / 2 - STEP_WIDTH / 2,
+          -offsetY + clientHeight / 2 - STEP_HEIGHT / 2,
+        ];
 
-        const stepPath = relativeToPipeline(pipelineCwd, filePath);
+        const stepPath = getFilePathRelativeToPipeline(
+          fullFilePath,
+          pipelineCwd
+        );
 
-        dispatch(createStepAction(environment, position, stepPath));
+        uiStateDispatch(
+          createStepAction(environment, targetPosition, stepPath)
+        );
+        setShouldAutoFocusStepName(true);
       } else {
         console.error("Failed to create step: pipeline viewport not set");
       }
     },
-    [pipelineOffset, dispatch, pipelineViewportRef, environment, pipelineCwd]
+    [
+      pipelineOffset,
+      uiStateDispatch,
+      pipelineViewportRef,
+      environment,
+      pipelineCwd,
+      setShouldAutoFocusStepName,
+    ]
   );
 
   return createStep;

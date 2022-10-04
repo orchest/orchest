@@ -1,5 +1,5 @@
-import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
+import { Point2D } from "./utils/geometry";
 
 declare module "react" {
   interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
@@ -8,6 +8,17 @@ declare module "react" {
     webkitdirectory?: string;
   }
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyFunction = (...args: any[]) => any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyAsyncFunction = (...args: any[]) => Promise<any>;
+/** Returns the type of the promise result for an asynchronous function */
+export type ResolutionOf<F extends AnyAsyncFunction> = ReturnType<
+  F
+> extends PromiseLike<infer R>
+  ? R
+  : never;
 
 export type Json =
   | string
@@ -62,12 +73,12 @@ export type ColorScale = PartialRecord<
   string
 >;
 
-export type DefaultEnvironment = Omit<Environment, "uuid" | "project_uuid">;
+export type EnvironmentSpec = Omit<EnvironmentData, "uuid" | "project_uuid">;
 
 export type OrchestConfig = {
   CLOUD: boolean;
   CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
-  ENVIRONMENT_DEFAULTS: DefaultEnvironment;
+  ENVIRONMENT_DEFAULTS: EnvironmentSpec;
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;
   OPENREPLAY_PROJECT_KEY: string;
@@ -92,6 +103,7 @@ export type OrchestConfig = {
 export interface OrchestUserConfig {
   AUTH_ENABLED?: boolean;
   INTERCOM_USER_EMAIL: string;
+  MAX_BUILDS_PARALLELISM: number;
   MAX_INTERACTIVE_RUNS_PARALLELISM: number;
   MAX_JOB_RUNS_PARALLELISM: number;
   TELEMETRY_DISABLED: boolean;
@@ -131,6 +143,18 @@ export interface IQueryArgs
   read_only?: "true" | "false";
 }
 
+export type ScopeParameters = {
+  jobUuid: string;
+  runUuid: string;
+  snapshotUuid: string;
+  projectUuid: string;
+  pipelineUuid: string;
+  environmentUuid: string;
+  stepUuid: string;
+};
+
+export type ScopeParameter = keyof ScopeParameters;
+
 export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
   queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
 };
@@ -139,7 +163,7 @@ export type Project = {
   path: string;
   uuid: string;
   pipeline_count: number;
-  job_count: number | undefined;
+  active_job_count: number | undefined;
   environment_count: number;
   project_snapshot_size: number;
   env_variables: Record<string, string>;
@@ -149,7 +173,7 @@ export type Project = {
 
 export type Language = "python" | "r" | "julia" | "javascript";
 
-export type Environment = {
+export type EnvironmentData = {
   uuid: string;
   project_uuid: string;
   base_image: string;
@@ -159,8 +183,13 @@ export type Environment = {
   setup_script: string;
 };
 
+export type EnvironmentState = EnvironmentData & {
+  action?: EnvironmentAction;
+  latestBuild?: EnvironmentImageBuild;
+};
+
 export type CustomImage = Pick<
-  Environment,
+  EnvironmentData,
   "base_image" | "language" | "gpu_support"
 >;
 
@@ -194,20 +223,29 @@ export type JobStatus =
   | "FAILURE"
   | "DRAFT";
 
+export type PipelineRunStep = {
+  run_uuid: string;
+  step_uuid: string;
+  status: PipelineStepStatus;
+  started_time: string;
+  finished_time: string;
+};
+
+export type PipelineRunStatus =
+  | "PENDING"
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED";
+
 export type PipelineRun = {
   uuid: string;
   project_uuid: string;
   pipeline_uuid: string;
-  status: TStatus;
+  status: PipelineRunStatus;
   started_time: string;
   finished_time: string;
-  pipeline_steps: {
-    run_uuid: string;
-    step_uuid: string;
-    status: PipelineStepStatus;
-    started_time: string;
-    finished_time: string;
-  }[];
+  pipeline_steps: PipelineRunStep[];
   env_variables: Record<string, string>;
   job_uuid: string;
   job_run_index: number;
@@ -217,33 +255,30 @@ export type PipelineRun = {
   server_time: string;
 };
 
-export type StrategyJson = Record<
-  string,
-  { parameters: Record<string, string>; key?: string; title?: string }
->;
+export type JobRunsPage = {
+  pipeline_runs: PipelineRun[];
+  pagination_data: Pagination;
+};
 
-export type Job = {
+export type StrategyJsonValue = {
+  parameters: Record<string, string>;
+  key: string;
+  title?: string;
+};
+
+export type StrategyJson = Record<string, StrategyJsonValue>;
+
+export type JobData = {
   uuid: string;
   pipeline_uuid: string;
   project_uuid: string;
   total_scheduled_executions: number;
   total_scheduled_pipeline_runs: number;
-  pipeline_definition: {
-    name: string;
-    parameters: Record<string, Json>;
-    settings: {
-      auto_eviction: boolean;
-      data_passing_memory_size: string;
-    };
-    uuid: string;
-    steps: Record<string, Step>;
-    version: string;
-    services: Record<string, Service>;
-  };
-  next_scheduled_time: string | undefined;
+  pipeline_definition: PipelineJson;
+  next_scheduled_time: string | null;
   last_scheduled_time: string;
   parameters: Record<string, Json>[];
-  schedule: string;
+  schedule: string | null;
   pipeline_run_spec: {
     uuids: string[];
     project_uuid: string;
@@ -263,29 +298,68 @@ export type Job = {
   env_variables: Record<string, string>;
   max_retained_pipeline_runs: number;
   pipeline_run_status_counts: Record<TStatus, number | undefined>;
+  snapshot_uuid: string;
 };
 
-export type Step = {
+export type JobChangesData = {
+  confirm_draft?: true; // If provided, the submitted job will no longer be a draft.
+  next_scheduled_time?: string | null; // For scheduled jobs.
+  schedule?: string | null; // For cron jobs.
+} & Pick<
+  JobData,
+  | "uuid"
+  | "name"
+  | "parameters"
+  | "strategy_json"
+  | "env_variables"
+  | "max_retained_pipeline_runs"
+>;
+
+export type JobChanges = JobChangesData & {
+  project_uuid: string;
+  pipeline_uuid: string;
+  status: JobStatus;
+  snapshot_uuid: string;
+  pipeline_path: string;
+  pipeline_definition: PipelineJson;
+  loadedStrategyFilePath?: string | undefined;
+};
+
+export type DraftJobData = Omit<
+  JobChangesData,
+  "status" | "project_uuid" | "pipeline_uuid"
+> & { confirm_draft: true };
+
+export type UnidirectionalStepNode = {
   uuid: string;
-  title: string;
   incoming_connections: string[];
+  outgoing_connections?: string[];
+};
+
+export type StepNode = UnidirectionalStepNode & {
+  outgoing_connections: string[];
+};
+
+export type StepMetaData = {
+  hidden: boolean;
+  position: Point2D;
+};
+
+export type StepState = StepNode & {
+  title: string;
   environment: string;
   file_path: string;
+  parameters: Record<string, any>;
+  meta_data: StepMetaData;
   kernel: {
     display_name?: string;
     name?: string;
   };
-  meta_data: { hidden: boolean; position: [number, number] };
-  parameters: Record<string, Json>;
 };
 
-export type MouseTracker = {
-  client: Position;
-  prev: Position;
-  delta: Position;
-  unscaledPrev: Position;
-  unscaledDelta: Position;
-};
+export type StepData = Omit<StepState, "outgoing_connections">;
+
+export type StepsDict = Record<string, StepState>;
 
 export type Connection = {
   startNodeUUID: string;
@@ -293,27 +367,10 @@ export type Connection = {
 };
 
 export type NewConnection = Connection & {
-  xEnd?: number;
-  yEnd?: number;
+  end?: Point2D;
 };
-
-export type Position = { x: number; y: number };
 
 export type LogType = "step" | "service";
-
-export type PipelineStepMetaData = {
-  hidden: boolean;
-  position: [number, number];
-};
-
-export type PipelineStepState = Step & {
-  outgoing_connections?: string[];
-  meta_data?: PipelineStepMetaData;
-};
-
-export type StepsDict = Record<string, PipelineStepState>;
-
-export type Offset = { top: number; left: number };
 
 export type Service = {
   image: string;
@@ -342,7 +399,7 @@ export type FileTree = {
   children: FileTree[];
 };
 
-export type Pipeline = {
+export type PipelineData = {
   env_variables: Record<string, string>;
   path: string;
   project_uuid: string;
@@ -365,11 +422,14 @@ export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
   settings: PipelineSettings;
-  steps: Record<string, Step>;
+  steps: Record<string, StepData>;
   uuid: string;
   version: string;
   services?: Record<string, Service>;
+  hash?: string;
 };
+
+export type PipelineState = PipelineJson & { steps: Record<string, StepState> };
 
 export type Example = {
   description: string; // 280 characters
@@ -406,4 +466,20 @@ export type UpdateInfo = {
 
 export type OrchestVersion = {
   version: string | null | undefined;
+};
+
+export type PipelineDataInSnapshot = {
+  path: string;
+  definition: PipelineJson;
+};
+
+export type SnapshotData = {
+  uuid: string;
+  project_uuid: string;
+  pipelines: Record<string, PipelineDataInSnapshot>;
+  timestamp: string;
+};
+
+export type ValidatedPipelineInSnapshot = PipelineDataInSnapshot & {
+  valid: boolean;
 };

@@ -2,18 +2,22 @@
 import os
 import shlex
 import subprocess
+from typing import List
 
 from flask import current_app, request
 from flask_restx import Namespace, Resource
 from orchestcli import cmds
 
 from _orchest.internals import config as _config
-from app import schema, utils
-from app.celery_app import make_celery
+from app import models, schema, utils
+from app.connections import db
+from app.core import scheduler
 from config import CONFIG_CLASS
 
 ns = Namespace("ctl", description="Orchest-api internal control.")
 api = schema.register_schema(ns)
+
+logger = utils.logger
 
 
 @api.route("/start-update")
@@ -65,35 +69,76 @@ class OrchestImagesToPrePull(Resource):
     def get(self):
         """Orchest images to pre pull on all nodes for a better UX."""
         pre_pull_orchest_images = [
-            f"orchest/jupyter-enterprise-gateway:{CONFIG_CLASS.ORCHEST_VERSION}",
-            f"orchest/session-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
             CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
-            utils.get_jupyter_server_image_to_use(),
+            _config.ARGO_EXECUTOR_IMAGE,
             _config.CONTAINER_RUNTIME_IMAGE,
+            f"docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}",
+            f"docker.io/orchest/base-kernel-py:{CONFIG_CLASS.ORCHEST_VERSION}",
+            f"docker.io/orchest/jupyter-enterprise-gateway:{CONFIG_CLASS.ORCHEST_VERSION}",  # noqa
+            f"docker.io/orchest/session-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
         ]
         pre_pull_orchest_images = {"pre_pull_images": pre_pull_orchest_images}
 
         return pre_pull_orchest_images, 200
 
 
-@api.route("/cleanup-builder-cache")
-class CleanupBuilderCache(Resource):
-    @api.doc("cleanup-builder-cache")
-    def post(self):
-        """Queues the cleanup_builder_cache job.
+def _get_formatted_active_jupyter_imgs(
+    stored_in_registry=None, in_node=None, not_in_node=None
+) -> List[str]:
+    active_custom_jupyter_images = utils.get_active_custom_jupyter_images(
+        stored_in_registry=stored_in_registry, in_node=in_node, not_in_node=not_in_node
+    )
 
-        The job shares the queue with environment and jupyter builds,
-        since it can't be run concurrently w.r.t. these tasks. The
-        builder cache will be deleted, removing all cached content, e.g.
-        base images, cached pip, conda packages, etc.
+    active_custom_jupyter_image_names = []
+    registry_ip = utils.get_registry_ip()
+    for img in active_custom_jupyter_images:
+        active_custom_jupyter_image_names.append(
+            f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{img.tag}"
+        )
+    return active_custom_jupyter_image_names
 
-        """
-        current_app.logger.info("Sending cleanup builder cache task.")
-        celery = make_celery(current_app)
-        res = celery.send_task(name="app.core.tasks.cleanup_builder_cache")
-        res.forget()
 
-        return {}, 201
+@api.route("/active-custom-jupyter-images")
+@api.param("stored_in_registry")
+@api.param("in_node")
+@api.param("not_in_node")
+class ActiveCustomJupyterImages(Resource):
+    @api.doc("active_custom_jupyter_images")
+    def get(self):
+        active_custom_jupyter_images = _get_formatted_active_jupyter_imgs(
+            stored_in_registry=request.args.get(
+                "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]
+            ),
+            in_node=request.args.get("in_node"),
+            not_in_node=request.args.get("not_in_node"),
+        )
+
+        return {"active_custom_jupyter_images": active_custom_jupyter_images}, 200
+
+
+@api.route("/active-custom-jupyter-images-to-push")
+@api.param("in_node")
+class ActiveCustomJupyterImagesToPush(Resource):
+    @api.doc("active_custom_jupyter_images-to-push")
+    def get(self):
+        """To be used by the image-pusher to get images to push."""
+        active_custom_jupyter_images = _get_formatted_active_jupyter_imgs(
+            stored_in_registry=False,
+            in_node=request.args.get("in_node"),
+        )
+
+        # This to avoid image pushes running concurrently with a
+        # registry GC, we avoid the race condition by having the
+        # PROCESS_IMAGE_DELETION task status be updated and then having
+        # the task quit if an image build is ongoing or if an image
+        # needs to be pushed. By doing so, together with this check,
+        # makes it so that no concurrent pushes and GCs are going to
+        # run. Also, this call Should be after the images are fetched to
+        # avoid a - very improbable - race condition.
+        if scheduler.is_running(scheduler.SchedulerJobType.PROCESS_IMAGES_FOR_DELETION):
+            active_custom_jupyter_images = []
+
+        return {"active_custom_jupyter_images": active_custom_jupyter_images}, 200
 
 
 @api.route("/orchest-settings")
@@ -239,3 +284,36 @@ def _run_update_in_venv(namespace: str, cluster_name: str, dev_mode: bool):
         )
 
         run_cmds(args=shlex.split(update_cmd))
+
+
+@api.route("/jupyter-images/<string:tag>/registry")
+@api.param("tag", "Tag of the image")
+class JupyterImageRegistryStatus(Resource):
+    @api.doc("put_jupyter_image_as_pushed")
+    def put(self, tag: str):
+        """Notifies that the image has been pushed to the registry."""
+        image = models.JupyterImage.query.get_or_404(
+            ident=int(tag),
+            description="Jupyter image not found.",
+        )
+
+        image.stored_in_registry = True
+        db.session.commit()
+        return {}, 200
+
+
+@api.route("/jupyter-images/<string:tag>/node/<string:node>")
+@api.param("tag", "Tag of the image")
+@api.param("node", "Node on which the image was pulled")
+class JupyterImageNodeStatus(Resource):
+    @api.doc("put_jupyter_image_node_state")
+    def put(self, tag: str, node: str):
+        """Notifies that the image has been pulled to a node."""
+
+        models.JupyterImage.query.get_or_404(
+            ident=int(tag),
+            description="Jupyter image not found.",
+        )
+        utils.upsert_jupyter_image_on_node(tag, node)
+        db.session.commit()
+        return {}, 200

@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -33,9 +33,9 @@ export const CreateWebhookDialog: React.FC<{
   isOpen: boolean;
   onClose: () => void;
 }> = ({ isOpen, onClose }) => {
-  const { setWebhooks, fetchWebhooks } = useAppInnerContext();
+  const { setWebhooks, fetchWebhooks } = useAppContext();
   const { enabledEventTypes } = useNotificationSettingsContext();
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
 
   const [webhookName, setWebhookName] = React.useState("");
   const [secret, setSecret] = React.useState("");

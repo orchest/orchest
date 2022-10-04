@@ -1,4 +1,5 @@
 import CssBaseline from "@mui/material/CssBaseline";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
@@ -29,6 +30,14 @@ window.addEventListener("load", async () => {
 
     ReactDOM.render(
       <DesignProvider>
+        <GlobalStyles
+          styles={{
+            "html, body": { height: "100%" },
+            ".Mui-disabled, *[disabled]": {
+              cursor: "not-allowed",
+            },
+          }}
+        />
         <OrchestProvider>
           <CssBaseline />
           <App />

@@ -5,7 +5,7 @@ import { useFetcher } from "./useFetcher";
 export const useFetchProjects = (params: {
   shouldFetch?: boolean;
   sessionCounts?: boolean;
-  jobCounts?: boolean;
+  activeJobCounts?: boolean;
   skipDiscovery?: boolean;
 }) => {
   const { shouldFetch = true, ...restParams } = params;
@@ -18,6 +18,7 @@ export const useFetchProjects = (params: {
   return {
     projects: data,
     error,
+    status,
     isFetchingProjects: status === "PENDING",
     fetchProjects: fetchData,
     setProjects: setData,

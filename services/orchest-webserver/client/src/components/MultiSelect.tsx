@@ -1,11 +1,6 @@
-import {
-  Box,
-  IconButton,
-  IconCrossSolid,
-  styled,
-  useId,
-} from "@orchest/design-system";
-import * as React from "react";
+import Chip from "@mui/material/Chip";
+import { Box, styled, useId } from "@orchest/design-system";
+import React from "react";
 
 const isValueWhitespace = (value: string) => !value.replace(/\s/g, "").length;
 const isNumeric = (value: string) => value.match("^\\d+$") != null;
@@ -44,7 +39,7 @@ type TMultiSelectContext = {
   setItems: React.Dispatch<TMultiSelectItems>;
   error?: string;
   setError?: React.Dispatch<string>;
-  removeItem?: (item: IMultiSelectItem) => void;
+  removeItem: (item: IMultiSelectItem) => void;
 } & Pick<IMultiSelectInputProps, "required" | "type">;
 
 export type TMultiSelectProps = {
@@ -52,8 +47,8 @@ export type TMultiSelectProps = {
   disabled?: boolean;
 } & Pick<TMultiSelectContext, "items" | "required" | "type">;
 
-const MultiSelectContext = React.createContext<TMultiSelectContext | null>(
-  null
+const MultiSelectContext = React.createContext<TMultiSelectContext>(
+  {} as TMultiSelectContext
 );
 
 const useMultiSelect = () => React.useContext(MultiSelectContext);
@@ -67,7 +62,7 @@ export const MultiSelect: React.FC<TMultiSelectProps> = ({
   disabled = false,
   ...props
 }) => {
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | undefined>();
   const [inputValue, setInputValue] = React.useState("");
   const [items, setItems] = React.useState(initialItems);
 
@@ -107,8 +102,8 @@ export const MultiSelect: React.FC<TMultiSelectProps> = ({
     setInputValue("");
   };
 
-  const checkErrors = (value) => {
-    setError(null);
+  const checkErrors = (value: string) => {
+    setError(undefined);
 
     if (type === "number" && !isNumeric(value)) {
       setError(`"${value}" is invalid. Please enter a number.`);
@@ -202,7 +197,7 @@ export const MultiSelectLabel: React.FC<{ screenReaderOnly?: boolean }> = ({
     <Box
       as="label"
       {...getLabelProps()}
-      css={screenReaderOnly && { include: "screenReaderOnly" }}
+      css={screenReaderOnly ? { include: "screenReaderOnly" } : {}}
     >
       {children}
     </Box>
@@ -254,15 +249,6 @@ const MultiSelectInputList = styled("ul", {
   "> li": { margin: "$$gapInner", "&:last-child": { flexGrow: 1 } },
 });
 
-const MultiSelectInputChip = styled("li", {
-  include: "box",
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "$1 $2",
-  backgroundColor: "$gray200",
-  borderRadius: "$rounded",
-});
-
 const MultiSelectInputElement = styled("input", {
   include: "box",
   display: "block",
@@ -277,50 +263,22 @@ const MultiSelectInputElement = styled("input", {
 export const MultiSelectInput: React.FC = () => {
   const { error, getInputProps, items, removeItem } = useMultiSelect();
 
-  const [tabIndices, setTabIndices] = React.useState(
-    Array(items.length).fill(-1)
-  );
-
-  const setTabIndex = ({ index, value }: { index: number; value: -1 | 0 }) =>
-    setTabIndices(
-      items.map((_, i) => (i === index ? value : value === 0 ? -1 : 0))
-    );
   const inputProps = getInputProps();
 
   return (
     <MultiSelectInputContainer hasError={error ? true : false}>
       <MultiSelectInputList role="list">
         {items.map((selectedItem, index) => (
-          <MultiSelectInputChip
+          <Chip
             key={index}
-            onClick={() => setTabIndex({ index, value: 0 })}
-            onBlur={() => setTabIndex({ index, value: -1 })}
-          >
-            {selectedItem.value}
-            <IconButton
-              color="multiply"
-              size="3"
-              rounded
-              title="Remove"
-              type="button"
-              tabIndex={tabIndices[index]}
-              onClick={() => {
-                if (!inputProps.disabled) {
-                  removeItem(selectedItem);
-                }
-              }}
-              css={{
-                marginLeft: "$1",
-                color: "$white",
-                opacity: inputProps.disabled ? 0.5 : 1,
-                backgroundColor: "$gray600",
-                padding: "calc($1 / 2)",
-                "&:hover, &:focus": { backgroundColor: "$gray800" },
-              }}
-            >
-              <IconCrossSolid />
-            </IconButton>
-          </MultiSelectInputChip>
+            label={selectedItem.value}
+            onDelete={() => {
+              if (!inputProps.disabled) {
+                removeItem(selectedItem);
+              }
+            }}
+            sx={{ marginRight: (theme) => theme.spacing(0.5) }}
+          />
         ))}
         <li>
           <MultiSelectInputElement type="text" {...inputProps} />

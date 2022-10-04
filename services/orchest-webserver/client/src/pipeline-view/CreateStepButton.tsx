@@ -1,18 +1,25 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import AddIcon from "@mui/icons-material/Add";
+import Button from "@mui/material/Button";
 import React from "react";
 import { useCreateStep } from "./hooks/useCreateStep";
-import { PipelineActionButton } from "./PipelineActionButton";
 
 export const CreateStepButton = () => {
+  const {
+    state: { pipelineReadOnlyReason },
+  } = useProjectsContext();
+
   const createStep = useCreateStep();
 
   return (
-    <PipelineActionButton
+    <Button
+      size="small"
       onClick={() => createStep()}
       startIcon={<AddIcon />}
+      disabled={Boolean(pipelineReadOnlyReason)}
       data-test-id="step-create"
     >
       NEW STEP
-    </PipelineActionButton>
+    </Button>
   );
 };

@@ -13,6 +13,7 @@ which it will migrate.
 Note that the system only supports forward migrations.
 
 """
+import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 from _orchest.internals import utils as _utils
@@ -112,11 +113,57 @@ def _migrate_1_2_0(pipeline: dict) -> None:
     _fill_missing_order(pipeline.get("services"))
 
 
+def _migrate_1_2_1(pipeline: dict) -> None:
+    def first_alphabetic_character(name: str) -> int:
+        alphabetic_chars = set("abcdefghijklmnopqrstuvwxyz")
+        i = 0
+        while i < len(name) and name[i] not in alphabetic_chars:
+            i += 1
+
+        return i
+
+    services = pipeline.get("services")
+    if services is None:
+        return
+
+    # Make sure service name: `is_service_name_valid`->True.
+    name_changes = {}
+    for service in services.values():
+        if "name" in service:
+            old_name = service["name"]
+
+            new_name = old_name.lower()
+            i = first_alphabetic_character(new_name)
+            new_name = new_name[i : (i + 26)]
+
+            if new_name != old_name:
+                name_changes[old_name] = new_name
+        else:
+            service["name"] = ""
+
+    # In a very unlucky situation multiple services could be renamed to
+    # the same `new_name`, e.g. `1vscode` and `2vscode` both get renamed
+    # to `vscode`. This is very hard to fix and unlikely to happen, thus
+    # we fall back to a truncated uuid.
+    for name_self in name_changes:
+        for name_other in name_changes:
+            if name_changes[name_self] == name_changes[name_other]:
+                name_changes[name_other] = str(uuid.uuid4())[:26]
+
+    for old_name, new_name in name_changes.items():
+        # `services` keys need to be equal to their `name`, otherwise
+        # users can not rename the service.
+        services[new_name] = services[old_name]
+        services[new_name]["name"] = new_name
+        del services[old_name]
+
+
 # version: (migration function, version to which it's migrated)
 _version_to_migration_function = {
     "1.0.0": (_migrate_1_0_0, "1.1.0"),
     "1.1.0": (_migrate_1_1_0, "1.2.0"),
     "1.2.0": (_migrate_1_2_0, "1.2.1"),
+    "1.2.1": (_migrate_1_2_1, "1.2.2"),
 }
 
 # Make sure no forward version is repeated.

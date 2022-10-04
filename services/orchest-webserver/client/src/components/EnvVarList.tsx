@@ -55,7 +55,7 @@ export const EnvVarList: React.FC<{
 
   return (
     <Stack direction="column" spacing={3} alignItems="flex-start">
-      {variables.length === 0 && (
+      {variables.length === 0 && readOnly && (
         <Typography>
           <i>No environment variables have been defined.</i>
         </Typography>
@@ -86,7 +86,6 @@ export const EnvVarList: React.FC<{
                   onChange(e.target.value, idx, "name");
                 }}
                 label="Name"
-                autoFocus
                 disabled={readOnly === true}
                 data-test-id={`${testId}-env-var-name`}
                 data-test-title={`${testId}-env-var-${pair.name}-name`}
@@ -111,13 +110,12 @@ export const EnvVarList: React.FC<{
       })}
       {!readOnly && (
         <Button
-          variant="contained"
           startIcon={<AddIcon />}
-          color="secondary"
+          color="primary"
           onClick={onAdd}
           data-test-id={`${testId}-env-var-add`}
         >
-          Create new variable
+          New variable
         </Button>
       )}
     </Stack>

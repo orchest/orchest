@@ -1,7 +1,7 @@
 import { PipelineMetaData } from "@/types";
 import { chance } from "@/__mocks__/common.mock";
 import {
-  getPipelineMedadatas,
+  listPipelineMetadata,
   mockProjects,
 } from "@/__mocks__/mockProjects.mock";
 import { act, renderHook } from "@testing-library/react-hooks";
@@ -34,8 +34,8 @@ const resetMock = () => {
     mockProjects.get(project2Uuid).pipelines.get(chance.guid());
   });
 
-  const project1Pipelines = getPipelineMedadatas(project1Uuid);
-  const project2Pipelines = getPipelineMedadatas(project2Uuid);
+  const project1Pipelines = listPipelineMetadata(project1Uuid);
+  const project2Pipelines = listPipelineMetadata(project2Uuid);
 
   mockData = {
     project1Uuid,

@@ -15,18 +15,8 @@ export const useSavingIndicator = () => {
     [dispatch]
   );
 
-  const timeoutRef = React.useRef<number>();
-
   React.useEffect(() => {
-    window.clearTimeout(timeoutRef.current);
-    if (ongoingSaves > 0) {
-      timeoutRef.current = window.setTimeout(() => {
-        setPipelineSaveStatus("saving");
-      }, 100);
-    }
-    if (ongoingSaves === 0) {
-      setPipelineSaveStatus("saved");
-    }
+    setPipelineSaveStatus(ongoingSaves > 0 ? "saving" : "saved");
   }, [ongoingSaves, setPipelineSaveStatus]);
 
   return setOngoingSaves;

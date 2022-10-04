@@ -314,7 +314,7 @@ controller:
       scheme: HTTP
     initialDelaySeconds: 10
     periodSeconds: 10
-    timeoutSeconds: 1
+    timeoutSeconds: 10
     successThreshold: 1
     failureThreshold: 5
   readinessProbe:
@@ -325,7 +325,7 @@ controller:
       scheme: HTTP
     initialDelaySeconds: 10
     periodSeconds: 10
-    timeoutSeconds: 1
+    timeoutSeconds: 10
     successThreshold: 1
     failureThreshold: 3
 
@@ -805,13 +805,13 @@ defaultBackend:
     initialDelaySeconds: 30
     periodSeconds: 10
     successThreshold: 1
-    timeoutSeconds: 5
+    timeoutSeconds: 10
   readinessProbe:
     failureThreshold: 6
     initialDelaySeconds: 0
     periodSeconds: 5
     successThreshold: 1
-    timeoutSeconds: 5
+    timeoutSeconds: 10
 
   # -- Node tolerations for server scheduling to nodes with taints
   ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/

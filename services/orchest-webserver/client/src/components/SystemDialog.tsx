@@ -2,15 +2,16 @@ import {
   Confirm,
   PromptMessage,
   PromptMessageType,
-  useAppContext,
-} from "@/contexts/AppContext";
+  useGlobalContext,
+} from "@/contexts/GlobalContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { setRefs } from "@/utils/refs";
 import Button, { ButtonProps } from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { hasValue, typedIncludes } from "@orchest/lib-utils";
+import { hasValue, typedIncludes, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 
 type CancellableMessage = Extract<PromptMessage, Confirm>;
@@ -39,27 +40,15 @@ const DelayedFocusButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
       return () => window.clearTimeout(timeout);
     }, []);
 
-    return (
-      <Button
-        ref={(node: HTMLButtonElement) => {
-          localRef.current = node;
-          if (typeof ref === "function") {
-            ref(node);
-          } else if (ref) {
-            ref.current = node;
-          }
-        }}
-        {...props}
-      />
-    );
+    return <Button ref={setRefs(localRef, ref)} {...props} />;
   }
 );
 
-export const SystemDialog: React.FC = () => {
+export const SystemDialog = () => {
   const {
     state: { promptMessages },
     deletePromptMessage,
-  } = useAppContext();
+  } = useGlobalContext();
   const promptMessage = promptMessages.length > 0 ? promptMessages[0] : null;
 
   const sendEvent = useSendAnalyticEvent();
@@ -103,6 +92,7 @@ export const SystemDialog: React.FC = () => {
     <Dialog open={hasValue(promptMessage)} onClose={dialogOnClose}>
       <form
         id={`${promptMessage.type}-form`}
+        key={`${promptMessage.type}-form-${uuidv4()}`}
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -113,7 +103,7 @@ export const SystemDialog: React.FC = () => {
         <DialogContent>{promptMessage.content}</DialogContent>
         <DialogActions>
           {isCancellable && (
-            <Button color="secondary" onClick={cancel} tabIndex={-1}>
+            <Button onClick={cancel} tabIndex={-1}>
               {promptMessage.cancelLabel || "Cancel"}
             </Button>
           )}
@@ -121,6 +111,7 @@ export const SystemDialog: React.FC = () => {
             type="submit"
             form={`${promptMessage.type}-form`}
             variant="contained"
+            color={promptMessage.confirmButtonColor}
             data-test-id="confirm-dialog-ok"
           >
             {promptMessage.confirmLabel || "Confirm"}

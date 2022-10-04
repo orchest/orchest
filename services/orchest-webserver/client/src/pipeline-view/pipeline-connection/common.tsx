@@ -1,4 +1,5 @@
-import classNames from "classnames";
+import { Point2D } from "@/utils/geometry";
+import { SxProps, Theme } from "@mui/material";
 
 // set SVG properties
 export const lineHeight = 2;
@@ -11,7 +12,7 @@ export const curvedHorizontal = (
   x2: number,
   y2: number
 ) => {
-  let line = [];
+  let line: (number | string)[] = [];
   let mx = x1 + (x2 - x1) / 2;
 
   line.push("M", x1, y1);
@@ -20,22 +21,15 @@ export const curvedHorizontal = (
   return line.join(" ");
 };
 
-export const getTransformProperty = ({
-  startNodeX,
-  startNodeY,
-  endNodeX = startNodeX,
-  endNodeY = startNodeY,
-}: {
-  startNodeX: number;
-  startNodeY: number;
-  endNodeX?: number;
-  endNodeY?: number;
-}) => {
-  let targetX = endNodeX - startNodeX;
-  let targetY = endNodeY - startNodeY;
+export const getTransformProperty = (
+  [startNodeX, startNodeY]: Point2D,
+  [endNodeX, endNodeY]: Point2D = [startNodeX, startNodeY]
+) => {
+  const targetX = endNodeX - startNodeX;
+  const targetY = endNodeY - startNodeY;
 
-  let xOffset = Math.min(targetX, 0);
-  let yOffset = Math.min(targetY, 0);
+  const xOffset = Math.min(targetX, 0);
+  const yOffset = Math.min(targetY, 0);
 
   const translateX = startNodeX - svgPadding + xOffset;
   const translateY = startNodeY - svgPadding + yOffset - lineHeight / 2;
@@ -45,22 +39,15 @@ export const getTransformProperty = ({
   };
 };
 
-export const getSvgProperties = ({
-  startNodeX,
-  startNodeY,
-  endNodeX = startNodeX,
-  endNodeY = startNodeY,
-}: {
-  startNodeX: number;
-  startNodeY: number;
-  endNodeX?: number;
-  endNodeY?: number;
-}) => {
-  let targetX = endNodeX - startNodeX;
-  let targetY = endNodeY - startNodeY;
+export const getSvgProperties = (
+  [startNodeX, startNodeY]: Point2D,
+  [endNodeX, endNodeY]: Point2D = [startNodeX, startNodeY]
+) => {
+  const targetX = endNodeX - startNodeX;
+  const targetY = endNodeY - startNodeY;
 
-  let xOffset = Math.min(targetX, 0);
-  let yOffset = Math.min(targetY, 0);
+  const xOffset = Math.min(targetX, 0);
+  const yOffset = Math.min(targetY, 0);
 
   const width = Math.abs(targetX) + 2 * svgPadding + "px";
   const height = Math.abs(targetY) + 2 * svgPadding + "px";
@@ -71,10 +58,19 @@ export const getSvgProperties = ({
     svgPadding + targetY - yOffset
   );
 
-  const className = classNames(
-    targetX < arrowWidth * 10 && "flipped-horizontal",
-    targetY < 0 && "flipped"
-  );
+  const sx: SxProps<Theme> = {
+    ...(targetX < arrowWidth * 10
+      ? {
+          opacity: 0,
+        }
+      : null),
+    ...(targetY < 0
+      ? {
+          bottom: "auto",
+          top: "-1px",
+        }
+      : null),
+  };
 
-  return { width, height, drawn, className };
+  return { width, height, drawn, sx };
 };

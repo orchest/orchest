@@ -1,4 +1,4 @@
-import { STATUS } from "@/hooks/useAsync";
+import { AsyncStatus } from "@/hooks/useAsync";
 import { ExtractStringLiteralType } from "@/types";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -11,7 +11,7 @@ import React from "react";
 import { useVerifyWebhook } from "./useVerifyWebhook";
 
 type StatusMessageKey = ExtractStringLiteralType<
-  STATUS,
+  AsyncStatus,
   "PENDING" | "RESOLVED" | "REJECTED"
 >;
 
@@ -53,7 +53,9 @@ export const WebhookVerifiedCheck = ({
   webhooksVerifiedStatusRef,
 }: {
   subscriberUuid: string;
-  webhooksVerifiedStatusRef: React.MutableRefObject<Record<string, STATUS>>;
+  webhooksVerifiedStatusRef: React.MutableRefObject<
+    Record<string, AsyncStatus>
+  >;
 }) => {
   const { status, verify } = useVerifyWebhook(subscriberUuid);
 

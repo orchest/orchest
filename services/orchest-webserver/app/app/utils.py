@@ -5,7 +5,7 @@ import os
 import re
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Dict, List, Optional
 
 import requests
 from flask import current_app, safe_join
@@ -13,12 +13,14 @@ from flask import current_app, safe_join
 from _orchest.internals import compat as _compat
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
-from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
+from _orchest.internals.utils import is_services_definition_valid, rmtree
 from app import error
 from app.config import CONFIG_CLASS as StaticConfig
 from app.core import scheduler
 from app.models import Environment, Pipeline, Project
 from app.schemas import EnvironmentSchema
+
+USER_DIR = StaticConfig.USER_DIR
 
 
 # Directory resolves
@@ -30,9 +32,6 @@ def get_pipeline_path(
     pipeline_path=None,
 ):
     """Returns path to pipeline definition file (including .orchest)"""
-
-    USER_DIR = StaticConfig.USER_DIR
-
     if pipeline_path is None:
         pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid)
 
@@ -64,9 +63,6 @@ def get_job_directory(pipeline_uuid, project_uuid, job_uuid):
     snapshot/
     <pipeline_run_uuid>/<project copy>
     """
-
-    USER_DIR = StaticConfig.USER_DIR
-
     return safe_join(USER_DIR, "jobs", project_uuid, pipeline_uuid, job_uuid)
 
 
@@ -95,11 +91,6 @@ def get_project_directory(
     run_uuid: Optional[str] = None,
 ):
     project_path = project_uuid_to_path(project_uuid)
-
-    if job_uuid is None and run_uuid is None:
-        # Load from user's projects directory.
-        # pipeline_uuid is ignored even if it's provided.
-        return safe_join(_config.USERDIR_PROJECTS, project_path)
 
     if job_uuid is None and run_uuid is None:
         # Load from user's projects directory.
@@ -336,10 +327,6 @@ def get_hash(path):
     return hasher.hexdigest()
 
 
-def get_repo_tag():
-    return os.getenv("ORCHEST_VERSION")
-
-
 def clear_folder(folder):
     try:
         for filename in os.listdir(folder):
@@ -413,8 +400,9 @@ def project_entity_counts(project_uuid, get_job_count=False, get_session_count=F
     return counts
 
 
-def get_job_counts():
-    return get_api_entity_counts("/api/jobs/", "jobs")
+def get_job_counts(args: Optional[Dict[str, str]]):
+    query_args = request_args_to_string(args)
+    return get_api_entity_counts(f"/api/jobs/{query_args}", "jobs")
 
 
 def get_session_counts():
@@ -482,69 +470,8 @@ def find_pipelines_in_dir(path, relative_to=None):
     return pipelines
 
 
-def write_config(app, key, value):
-
-    try:
-        conf_json_path = "/config/config.json"
-
-        if not os.path.isfile(conf_json_path):
-            os.system("touch " + conf_json_path)
-
-        with open(conf_json_path, "r") as f:
-            try:
-                conf_data = json.load(f)
-            except Exception as e:
-                print("JSON read error: %s" % e)
-                conf_data = {}
-
-            conf_data[key] = value
-
-            app.config.update(conf_data)
-        with open(conf_json_path, "w") as f:
-            try:
-                json.dump(conf_data, f)
-            except Exception as e:
-                current_app.logger.debug(e)
-    except Exception as e:
-        current_app.logger.debug(e)
-
-    # always set rw permissions on file
-    os.system("chmod o+rw " + conf_json_path)
-
-
-def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
-
-    snapshot_path = get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid)
-
-    os.makedirs(os.path.split(snapshot_path)[0], exist_ok=True)
-
-    project_dir = safe_join(
-        current_app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
-    )
-
-    copytree(project_dir, snapshot_path, use_gitignore=True)
-
-
-def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
-
-    job_project_path = safe_join(current_app.config["USER_DIR"], "jobs", project_uuid)
-    job_pipeline_path = safe_join(job_project_path, pipeline_uuid)
-    job_path = safe_join(job_pipeline_path, job_uuid)
-
-    if os.path.isdir(job_path):
-        rmtree(job_path, ignore_errors=True)
-
-    # Clean up parent directory if this job removal created empty
-    # directories.
-    remove_dir_if_empty(job_pipeline_path)
-    remove_dir_if_empty(job_project_path)
-
-
 def remove_job_pipeline_run_directory(run_uuid, job_uuid, pipeline_uuid, project_uuid):
-
-    job_project_path = safe_join(current_app.config["USER_DIR"], "jobs", project_uuid)
-    job_pipeline_path = safe_join(job_project_path, pipeline_uuid)
-    job_path = safe_join(job_pipeline_path, job_uuid)
+    job_path = get_job_directory(pipeline_uuid, project_uuid, job_uuid)
     job_pipeline_run_path = safe_join(job_path, run_uuid)
 
     if os.path.isdir(job_pipeline_run_path):
@@ -553,7 +480,7 @@ def remove_job_pipeline_run_directory(run_uuid, job_uuid, pipeline_uuid, project
 
 def remove_project_jobs_directories(project_uuid):
 
-    project_jobs_path = safe_join(current_app.config["USER_DIR"], "jobs", project_uuid)
+    project_jobs_path = safe_join(USER_DIR, "jobs", project_uuid)
 
     if os.path.isdir(project_jobs_path):
         rmtree(project_jobs_path, ignore_errors=True)
@@ -628,7 +555,7 @@ def create_file(
             file.write(file_content)
 
 
-def request_args_to_string(args):
+def request_args_to_string(args: Optional[Dict[str, str]]):
     if args is None or len(args) == 0:
         return ""
     return "?" + "&".join([key + "=" + value for key, value in args.items()])
@@ -886,3 +813,30 @@ def get_orchest_update_info_json(cache: bool = True) -> dict:
                 )
                 return _DEFAULT_ORCHEST_EXAMPLES_JSON
             return data
+
+
+def get_interactive_run_logs_path(project_uuid: uuid, pipeline_uuid: str) -> str:
+    return os.path.join(
+        get_project_directory(project_uuid),
+        ".orchest",
+        "pipelines",
+        pipeline_uuid,
+        "logs",
+    )
+
+
+def delete_interactive_run_logs(
+    project_uuid: str, pipeline_uuid: str, step_uuids: List[str]
+) -> None:
+    if not step_uuids:
+        return
+
+    log_files = [
+        os.path.join(
+            get_interactive_run_logs_path(project_uuid, pipeline_uuid),
+            f"{step_uuid}.log",
+        )
+        for step_uuid in step_uuids
+    ]
+
+    _utils.rmtree(log_files)

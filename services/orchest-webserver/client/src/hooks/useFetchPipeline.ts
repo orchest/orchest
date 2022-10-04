@@ -1,4 +1,4 @@
-import { Pipeline } from "@/types";
+import { PipelineData } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import { useFetcher } from "./useFetcher";
 
@@ -14,13 +14,13 @@ export const fetchPipeline = (
   pipelineUuid: string | undefined
 ) =>
   projectUuid && pipelineUuid
-    ? fetcher<Pipeline>(`/async/pipelines/${projectUuid}/${pipelineUuid}`)
+    ? fetcher<PipelineData>(`/async/pipelines/${projectUuid}/${pipelineUuid}`)
     : undefined;
 
 export const useFetchPipeline = (props: FetchPipelineProps | undefined) => {
   const { projectUuid, pipelineUuid } = props || {};
 
-  const { data, error, status, fetchData, setData } = useFetcher<Pipeline>(
+  const { data, error, status, fetchData, setData } = useFetcher<PipelineData>(
     projectUuid && pipelineUuid
       ? `/async/pipelines/${projectUuid}/${pipelineUuid}`
       : undefined

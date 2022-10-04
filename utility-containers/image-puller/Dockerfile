@@ -25,6 +25,8 @@ RUN rm -rf /tmp/download \
 ###############################################################################
 FROM ubuntu:22.04
 
+LABEL maintainer="Orchest B.V. https://www.orchest.io"
+
 COPY --from=base /bin/ctr /bin/ctr
 COPY --from=base /bin/docker /bin/docker
 

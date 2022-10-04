@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, TypedDict
 
 __all__ = [
     "PipelineStepProperties",
+    "PipelineProperties",
     "PipelineSettings",
     "ServiceDefinition",
     "PipelineDefinition",
@@ -46,14 +47,17 @@ class ServiceDefinition(TypedDict):
     order: int
 
 
-class PipelineDefinition(TypedDict):
+class PipelineProperties(TypedDict):
     name: str
     parameters: Dict[str, Any]
     services: Dict[str, ServiceDefinition]
     settings: PipelineSettings
-    steps: Dict[str, PipelineStepProperties]
     uuid: str
     version: str
+
+
+class PipelineDefinition(PipelineProperties):
+    steps: Dict[str, PipelineStepProperties]
 
 
 class RunConfig(TypedDict):
@@ -63,7 +67,7 @@ class RunConfig(TypedDict):
     pipeline_uuid: str
     project_dir: str
     project_uuid: str
-    run_endpoint: Optional[str]
+    run_endpoint: str
     session_type: str  # interactive, noninteractive
     session_uuid: str
     user_env_variables: Dict[str, str]

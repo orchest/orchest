@@ -1,6 +1,6 @@
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { useAppContext } from "@/contexts/AppContext";
-import { useAppInnerContext } from "@/contexts/AppInnerContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import Switch from "@mui/material/Switch";
 import React from "react";
 import { displayEventMappings, EventForDisplay } from "./common";
@@ -24,8 +24,8 @@ const eventExplanationMappings: Record<EventForDisplay, string> = {
 };
 
 export const NotificationEventsForm = () => {
-  const { setAlert } = useAppContext();
-  const { webhooks } = useAppInnerContext();
+  const { setAlert } = useGlobalContext();
+  const { webhooks } = useAppContext();
   const {
     notificationEventTypes,
     enabledEventTypes,

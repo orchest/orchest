@@ -2,6 +2,11 @@
 set -euo pipefail
 
 if [ "$CONTAINER_RUNTIME" = containerd ]; then
+    image_exist=$(ctr -n k8s.io -a=/var/run/runtime.sock images ls name=="${IMAGE_TO_PULL}" -q)
+    if [ -n "${image_exist}" ]; then
+        echo "Image ${IMAGE_TO_PULL} exists, skip pulling."
+        exit 0
+    fi
     ctr -n=k8s.io -a=/var/run/runtime.sock i pull "${IMAGE_TO_PULL}" --skip-verify
 elif [ "$CONTAINER_RUNTIME" = docker ]; then
 

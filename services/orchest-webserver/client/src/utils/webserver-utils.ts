@@ -3,9 +3,9 @@ import {
   EnvironmentValidationData,
   Json,
   PipelineJson,
-  PipelineStepState,
   Service,
-  Step,
+  StepData,
+  UnidirectionalStepNode,
 } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 import { hasExtension } from "./path";
+import { omit } from "./record";
 
 const ajv = new Ajv({
   allowUnionTypes: true,
@@ -49,11 +50,11 @@ export function validatePipeline(pipelineJson: PipelineJson) {
       }
 
       // NOTE: this is enforced at the backend level as well, needs to
-      // be kept in sync.
-      let serviceNameRegex = /^[a-zA-Z\d-]{1,36}$/;
+      // be kept in sync. More info on the regex can be found there.
+      let serviceNameRegex = /^[a-z][0-9a-z\d-]{0,25}$/;
       if (!serviceNameRegex.test(pipelineJson.services[serviceName].name)) {
         errors.push(
-          "Service name contains illegal characters. Only use letters, digits and dashes."
+          "Service name is invalid. Only lowercase letters, digits and dashes are allowed."
         );
       }
       if (pipelineJson.services[serviceName].image.length == 0) {
@@ -126,45 +127,41 @@ export function filterServices(
 }
 
 /**
- * Augment incoming_connections with outgoing_connections to be able
- * to traverse from root nodes. Reset outgoing_connections state.
- * Note: this function mutates the original steps object
- * @param steps
- * @returns stepsWithOutgoingConnections
+ * Returns a shallow copy of the steps which includes `outgoing_connections` alongside
+ * the `incoming_connections` for each step.
  */
-export function addOutgoingConnections<
-  T extends Record<
-    string,
-    Pick<PipelineStepState, "incoming_connections" | "outgoing_connections">
-  >
->(steps: T) {
-  Object.keys(steps).forEach((stepUuid) => {
-    // Every step NEEDs to have an `.outgoing_connections` defined.
-    steps[stepUuid].outgoing_connections =
-      steps[stepUuid].outgoing_connections || [];
+export function setOutgoingConnections<N extends UnidirectionalStepNode>(
+  steps: Record<string, N>
+): Record<string, N & { outgoing_connections: string[] }> {
+  const newSteps = Object.fromEntries(
+    Object.entries(steps).map(([uuid, step]) => [
+      uuid,
+      { ...step, outgoing_connections: [] as string[] },
+    ])
+  );
 
-    steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
-      const outgoingConnections = new Set(
-        steps[incomingConnectionUuid].outgoing_connections || []
-      );
-      outgoingConnections.add(stepUuid);
-      steps[incomingConnectionUuid].outgoing_connections = [
-        ...outgoingConnections,
-      ];
+  Object.entries(newSteps).forEach(([uuid, step]) => {
+    step.incoming_connections.forEach((incomingUuid) => {
+      const outgoing = newSteps[incomingUuid].outgoing_connections;
+
+      if (!outgoing.includes(uuid)) {
+        newSteps[incomingUuid].outgoing_connections = [...outgoing, uuid];
+      }
     });
   });
-  return steps;
+
+  return newSteps;
 }
 
-export function clearOutgoingConnections<
-  T,
-  K extends Omit<T, "outgoing_connections">
->(steps: T): K {
-  return Object.entries(steps).reduce((newObj, [stepUuid, step]) => {
-    const { outgoing_connections, ...cleanStep } = step; // eslint-disable-line @typescript-eslint/no-unused-vars
-
-    return { ...newObj, [stepUuid]: cleanStep };
-  }, {} as K);
+export function clearOutgoingConnections<S extends UnidirectionalStepNode>(
+  steps: Record<string, S>
+): Record<string, Omit<S, "outgoing_connections">> {
+  return Object.fromEntries(
+    Object.entries(steps).map(([uuid, step]) => [
+      uuid,
+      { ...omit(step, "outgoing_connections") },
+    ])
+  );
 }
 
 export function getServiceURLs(
@@ -242,8 +239,10 @@ export type BackgroundTask =
       result: null;
     };
 
-export const pipelinePathToJsonLocation = (pipelinePath: string) => {
-  if (!pipelinePath.endsWith(".orchest")) {
+export const pipelinePathToJsonLocation = (
+  pipelinePath: string | undefined
+) => {
+  if (!pipelinePath || !pipelinePath.endsWith(".orchest")) {
     return;
   }
   return pipelinePath.slice(0, -".orchest".length) + ".parameters.json";
@@ -380,18 +379,14 @@ export function getPipelineJSONEndpoint({
 
 export function getPipelineStepParents(
   stepUUID: string,
-  pipelineJSON: PipelineJson
-) {
-  let incomingConnections: string[] = [];
-  for (let step of Object.values(pipelineJSON.steps)) {
-    if (step.uuid === stepUUID) {
-      incomingConnections = step.incoming_connections;
-      break;
-    }
-  }
+  data: PipelineJson
+): StepData[] {
+  const step = Object.values(data.steps).find((step) => step.uuid === stepUUID);
 
-  return incomingConnections.map(
-    (parentStepUUID) => pipelineJSON.steps[parentStepUUID]
+  if (!step) return [];
+
+  return step.incoming_connections.map(
+    (parentStepUUID) => data.steps[parentStepUUID]
   );
 }
 
@@ -413,9 +408,9 @@ const generateParameterLists = (parameters: Record<string, Json>) => {
 
 export const generateStrategyJson = (
   pipeline: PipelineJson,
-  reservedKey: string
+  reservedKey = ""
 ) => {
-  let strategyJSON = {};
+  const strategyJSON = {};
 
   if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
     strategyJSON[reservedKey] = {
@@ -447,17 +442,11 @@ export const generateStrategyJson = (
 
 export function getPipelineStepChildren(
   stepUUID: string,
-  pipelineJSON: PipelineJson
-) {
-  let childSteps: Step[] = [];
-
-  for (let step of Object.values(pipelineJSON.steps)) {
-    if (step.incoming_connections.includes(stepUUID)) {
-      childSteps.push(step);
-    }
-  }
-
-  return childSteps;
+  pipelineState: PipelineJson
+): StepData[] {
+  return Object.values(pipelineState.steps).filter((step) =>
+    step.incoming_connections.includes(stepUUID)
+  );
 }
 
 export function setWithRetry<T>(
@@ -466,7 +455,7 @@ export function setWithRetry<T>(
   getter: () => T,
   retries: number,
   delay: number
-) {
+): number | undefined {
   if (retries == 0) {
     console.warn("Failed to set with retry for setter (timeout):", setter);
     return;
@@ -483,7 +472,8 @@ export function setWithRetry<T>(
   } catch (error) {
     console.warn("Getter produced an error.", getter, error);
   }
-  return setTimeout(() => {
+
+  return window.setTimeout(() => {
     retries -= 1;
     setWithRetry(value, setter, getter, retries, delay);
   }, delay);
@@ -511,7 +501,7 @@ export function tryUntilTrue(
 export function envVariablesArrayToDict(
   envVariables: EnvVarPair[] = []
 ):
-  | { status: "resolved"; value: Record<string, unknown> }
+  | { status: "resolved"; value: Record<string, string> }
   | { status: "rejected"; error: string } {
   const result = {} as Record<string, string>;
   const seen = new Set();
@@ -570,7 +560,7 @@ export function pascalCaseToCapitalized(viewName) {
 }
 
 export function isNumber(value: unknown): value is number {
-  return !isNaN(Number(value));
+  return typeof value !== "boolean" && !isNaN(Number(value));
 }
 
 export const withPlural = (

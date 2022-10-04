@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -45,7 +45,7 @@ export const CreatePipelineDialog = ({
 }: {
   children: (onCreateClick: () => void) => React.ReactNode;
 }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const {
     dispatch,
     state: { pipelines = [] },
@@ -81,7 +81,7 @@ export const CreatePipelineDialog = ({
   const createPipeline = React.useCallback(
     async ({ name, path }: { name: string; path: string }) => {
       try {
-        const { pipeline_uuid } = await run(
+        const response = await run(
           fetcher<{ pipeline_uuid: string }>(
             `/async/pipelines/create/${projectUuid}`,
             {
@@ -91,6 +91,8 @@ export const CreatePipelineDialog = ({
             }
           )
         );
+        const { pipeline_uuid } = response || {};
+        if (!pipeline_uuid) return;
         onClose();
         dispatch({
           type: "ADD_PIPELINE",
@@ -190,12 +192,7 @@ export const CreatePipelineDialog = ({
             />
           </DialogContent>
           <DialogActions>
-            <Button
-              startIcon={<CloseIcon />}
-              color="secondary"
-              onClick={onClose}
-              tabIndex={-1}
-            >
+            <Button startIcon={<CloseIcon />} onClick={onClose} tabIndex={-1}>
               Cancel
             </Button>
             <Button

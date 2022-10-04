@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import {
   getSessionKey,
@@ -9,9 +9,10 @@ import { siteMap } from "@/routingConfig";
 import { OrchestSession } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { matchPath, useLocation } from "react-router-dom";
-import { useInterval } from "./use-interval";
+import { matchPath } from "react-router-dom";
+import { useCustomRoute } from "./useCustomRoute";
 import { useFetcher } from "./useFetcher";
+import { useInterval } from "./useInterval";
 
 type TSessionStatus = OrchestSession["status"];
 
@@ -27,21 +28,18 @@ type FetchSessionResponse = {
  * NOTE: useSessionsPoller should only be placed in HeaderBar
  */
 export const useSessionsPoller = () => {
+  const { location } = useCustomRoute();
   const { dispatch } = useSessionsContext();
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const {
-    state: { pipeline, pipelineIsReadOnly },
+    state: { pipeline, pipelineReadOnlyReason },
   } = useProjectsContext();
-
-  const location = useLocation();
 
   // add the view paths that requires polling sessions
   const matchRooViews = matchPath(location.pathname, [
     siteMap.configureJupyterLab.path,
   ]);
   const matchPipelineViews = matchPath(location.pathname, [
-    siteMap.pipelineSettings.path,
-    siteMap.logs.path,
     siteMap.pipeline.path,
     siteMap.jupyterLab.path,
   ]);
@@ -51,7 +49,9 @@ export const useSessionsPoller = () => {
   // 2. in the above views AND pipelineUuid is given AND is not read-only
   const shouldPoll =
     matchRooViews?.isExact ||
-    (!pipelineIsReadOnly && hasValue(pipeline) && matchPipelineViews?.isExact);
+    (!pipelineReadOnlyReason &&
+      hasValue(pipeline) &&
+      matchPipelineViews?.isExact);
 
   const { data: sessions, error, fetchData: fetchSessions } = useFetcher<
     FetchSessionResponse,

@@ -655,51 +655,22 @@ Integration tests are being ported to k8s, stay tuned :)!
 
 (environment-base-images-changes)=
 
-### Test Environment base image changes
+### Test Environment or custom Jupyter base image changes
 
-By default, the image builder will pull a base image from Docker Hub based on the version of the
-cluster. For example, when building an environment image using the provided "python" base image, the
-builder will pull `docker.io/orchest/base-kernel-py:<cluster version>`. This makes it difficult to
-test changes to environment base images.
+When building environment or custom Jupyter images the image builder mounts
+the socket of the container runtime running on the node. This means that, to test changes
+to a base image, all that is needed is to build or load the new base image in the
+container runtime. Example:
 
-When running Orchest in development mode (`orchest patch --dev`), the docker socket
-**of the cluster node** will be exposed to the builder. When that's the case, it's
-possible to instruct the builder to pull from the local daemon by adding `# LOCAL IMAGE` to the
-first line of the custom build script.
-
-Example:
-
-- `orchest patch --dev`
-- `eval $(minikube -p minikube docker-env)`
-- `bash scripts/build_container.sh -i base-kernel-py -o v2022.05.3 -t v2022.05.3`
-- select the image of choice or specify a custom one like `orchest/base-kernel-new-language`
-- add `# LOCAL IMAGE` to the first line of the custom build script and build
-
-```{note}
-As you rebuild, the image builder will pull the newest image.
+```bash
+# Make changes to services/base-images/base-kernel-py/Dockerfile, then:
+eval $(minikube -p minikube docker-env)
+bash scripts/build_container.sh -o v2022.08.11 -t v2022.08.11  -i base-kernel-py
+# That's it, you can now build an environment image in Orchest using the
+# new python base image.
 ```
 
-```{note}
-When you specify a custom image you can also specify the image tag to avoid the back-end making
-assumptions for you.
-```
-
-### Test `jupyter-server` base image changes
-
-Required reading: {ref}`testing environment base image changes <environment-base-images-changes>`.
-Again, simply add `# LOCAL IMAGE` to the first line of the custom build script.
-
-Example:
-
-- `orchest patch --dev`
-- `eval $(minikube -p minikube docker-env)`
-- `bash scripts/build_container.sh -i jupyter-server -o v2022.05.3 -t v2022.05.3`
-- add `# LOCAL IMAGE` to the first line of the custom build script and build
-
-```{note}
-It's currently not possible to specify a custom tag, the back-end will always
-try to pull an image with a tag equal to the cluster version.
-```
+Currently, this has only been tested with docker as the container runtime.
 
 ### Test running Orchest on `containerd`
 

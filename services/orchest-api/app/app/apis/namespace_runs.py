@@ -124,7 +124,7 @@ class Run(Resource):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                could_abort = AbortPipelineRun(tpe).transaction(run_uuid)
+                could_abort = AbortInteractivePipelineRun(tpe).transaction(run_uuid)
         except Exception as e:
             return {"message": str(e)}, 500
 
@@ -207,11 +207,6 @@ class AbortPipelineRun(TwoPhaseFunction):
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
 
-        run = models.PipelineRun.query.filter(models.PipelineRun.uuid == run_uuid).one()
-        events.register_interactive_pipeline_run_cancelled(
-            run.project_uuid, run.pipeline_uuid, run_uuid
-        )
-
         self.collateral_kwargs["run_uuid"] = run_uuid if can_abort else None
 
         return can_abort
@@ -229,6 +224,24 @@ class AbortPipelineRun(TwoPhaseFunction):
         # aborted status.
         res.abort()
         celery_app.control.revoke(run_uuid)
+
+
+class AbortInteractivePipelineRun(TwoPhaseFunction):
+    """Aborts an interactive pipeline run."""
+
+    def _transaction(self, run_uuid):
+        could_abort = AbortPipelineRun(self.tpe).transaction(run_uuid)
+        if not could_abort:
+            return False
+
+        run = models.PipelineRun.query.filter(models.PipelineRun.uuid == run_uuid).one()
+        events.register_interactive_pipeline_run_cancelled(
+            run.project_uuid, run.pipeline_uuid, run_uuid
+        )
+        return True
+
+    def _collateral(self):
+        pass
 
 
 class CreateInteractiveRun(TwoPhaseFunction):

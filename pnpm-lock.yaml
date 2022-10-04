@@ -152,11 +152,9 @@ importers:
       '@types/chance': ^1.1.3
       '@types/codemirror': ^5.60.5
       '@types/jest': ^27.4.0
-      '@types/jquery': ^3.5.6
       '@types/lodash': ^4.14.172
       '@types/lodash.clonedeep': ^4.5.6
       '@types/lodash.isstring': ^4.0.6
-      '@types/lodash.merge': ^4.6.6
       '@types/node': 15.0.1
       '@types/pascalcase': ^1.0.0
       '@types/react': 17.0.3
@@ -188,7 +186,6 @@ importers:
       jest-localstorage-mock: ^2.4.21
       lodash.clonedeep: ^4.5.0
       lodash.isstring: ^4.0.1
-      lodash.merge: ^4.6.2
       msw: ^0.39.2
       pascalcase: ^1.0.0
       prop-types: ^15.8.1
@@ -196,7 +193,6 @@ importers:
       react-codemirror2: ^7.2.1
       react-dom: ^17.0.2
       react-dropzone: ^12.0.4
-      react-github-btn: ^1.2.1
       react-hook-form: ^7.33.1
       react-minimal-pie-chart: 8.2.0
       react-router-dom: ^5.3.0
@@ -209,6 +205,7 @@ importers:
       xterm: ^4.0.0
       xterm-addon-fit: ^0.4.0
       xterm-for-react: ^1.0.4
+      zustand: ^4.0.0
     dependencies:
       '@emotion/react': 11.10.0_tfthlizw7gbxq2fqo7csfn7gui
       '@emotion/styled': 11.10.0_vt7urmpcbibnh2yu5ficyzqkvm
@@ -237,13 +234,11 @@ importers:
       isomorphic-unfetch: 3.1.0
       lodash.clonedeep: 4.5.0
       lodash.isstring: 4.0.1
-      lodash.merge: 4.6.2
       pascalcase: 1.0.0
       react: 17.0.2
       react-codemirror2: 7.2.1_y7rnrawrnxkzy72f65zkad5hce
       react-dom: 17.0.2_react@17.0.2
       react-dropzone: 12.1.0_react@17.0.2
-      react-github-btn: 1.3.0
       react-hook-form: 7.34.0_react@17.0.2
       react-minimal-pie-chart: 8.2.0_sfoxds7t5ydpegc3knd667wn6m
       react-router-dom: 5.3.3_react@17.0.2
@@ -253,6 +248,7 @@ importers:
       xterm: 4.19.0
       xterm-addon-fit: 0.4.0_xterm@4.19.0
       xterm-for-react: 1.0.4_sfoxds7t5ydpegc3knd667wn6m
+      zustand: 4.0.0_immer@9.0.15+react@17.0.2
     devDependencies:
       '@babel/core': 7.18.10
       '@babel/plugin-transform-modules-commonjs': 7.18.6_@babel+core@7.18.10
@@ -264,11 +260,9 @@ importers:
       '@types/chance': 1.1.3
       '@types/codemirror': 5.60.5
       '@types/jest': 27.5.2
-      '@types/jquery': 3.5.14
       '@types/lodash': 4.14.182
       '@types/lodash.clonedeep': 4.5.7
       '@types/lodash.isstring': 4.0.7
-      '@types/lodash.merge': 4.6.7
       '@types/node': 15.0.1
       '@types/pascalcase': 1.0.1
       '@types/react': 17.0.3
@@ -2080,7 +2074,6 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.0
       '@jridgewell/sourcemap-codec': 1.4.14
-    dev: true
 
   /@jsonforms/core/3.0.0-rc.0:
     resolution: {integrity: sha512-+B/sQ2C4ez+CQQo+gAilAauc154nSKshW3ZYT8Nndi3kaES6QG0I+8XVILYbkwFSRC1RzHnqD3sesZPEaKEptw==}
@@ -2764,12 +2757,6 @@ packages:
       pretty-format: 27.5.1
     dev: true
 
-  /@types/jquery/3.5.14:
-    resolution: {integrity: sha512-X1gtMRMbziVQkErhTQmSe2jFwwENA/Zr+PprCkF63vFq+Yt5PZ4AlKqgmeNlwgn7dhsXEK888eIW2520EpC+xg==}
-    dependencies:
-      '@types/sizzle': 2.3.3
-    dev: true
-
   /@types/js-levenshtein/1.1.1:
     resolution: {integrity: sha512-qC4bCqYGy1y/NP7dDVr7KJarn+PbX1nSpwA7JXdu0HxT3QYjO8MJ+cntENtHFVy2dRAyBV23OZ6MxsW1AM1L8g==}
     dev: true
@@ -2797,12 +2784,6 @@ packages:
 
   /@types/lodash.isstring/4.0.7:
     resolution: {integrity: sha512-gt4q4n1Who4JxLeFR/kduS2Tia+biQk/zdbIkOfMvAldXHJdcC5SsvZREchkwa4CwKK+DqhIm3wfigFYzNKS8Q==}
-    dependencies:
-      '@types/lodash': 4.14.182
-    dev: true
-
-  /@types/lodash.merge/4.6.7:
-    resolution: {integrity: sha512-OwxUJ9E50gw3LnAefSHJPHaBLGEKmQBQ7CZe/xflHkyy/wH2zVyEIAKReHvVrrn7zKdF58p16We9kMfh7v0RRQ==}
     dependencies:
       '@types/lodash': 4.14.182
     dev: true
@@ -5485,10 +5466,6 @@ packages:
       assert-plus: 1.0.0
     dev: true
 
-  /github-buttons/2.21.1:
-    resolution: {integrity: sha512-n9bCQ8sj+5oX1YH5NeyWGbAclRDtHEhMBzqw2ctsWpdEHOwVgfruRu0VIVy01Ah10dd/iFajMHYU71L7IBWBOw==}
-    dev: false
-
   /glob-parent/5.1.2:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
     engines: {node: '>= 6'}
@@ -7021,6 +6998,7 @@ packages:
 
   /lodash.merge/4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+    dev: true
 
   /lodash.once/4.1.1:
     resolution: {integrity: sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==}
@@ -7834,12 +7812,6 @@ packages:
       '@babel/runtime': 7.18.9
       react: 17.0.2
     dev: true
-
-  /react-github-btn/1.3.0:
-    resolution: {integrity: sha512-IpyNbbYENfmYOLoRkeKauAZF5PTkplawRquSiI7uDVJBUCVrR5jQ9zYBx4TlpzhWeYU+BIfKNnXtz2wvQJPsZg==}
-    dependencies:
-      github-buttons: 2.21.1
-    dev: false
 
   /react-hook-form/7.34.0_react@17.0.2:
     resolution: {integrity: sha512-s0/TJ09NVlEk2JPp3yit1WnMuPNBXFmUKEQPulgDi9pYBw/ZmmAFHe6AXWq73Y+kp8ye4OcMf0Jv+i/qLPektg==}
@@ -9218,6 +9190,14 @@ packages:
       tslib: 2.4.0
     dev: false
 
+  /use-sync-external-store/1.2.0_react@17.0.2:
+    resolution: {integrity: sha512-eEgnFxGQ1Ife9bzYs6VLi8/4X6CObHMw9Qr9tPY43iKwsPw8xE8+EFsf/2cFZ5S3esXgpWgtSCtLNS41F+sKPA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      react: 17.0.2
+    dev: false
+
   /use/3.1.1:
     resolution: {integrity: sha512-cwESVXlO3url9YWlFW/TA9cshCEhtu7IKJ/p5soJ/gGpj7vbvFrAY/eIioQ6Dw23KjZhYgiIo8HOs1nQ2vr/oQ==}
     engines: {node: '>=0.10.0'}
@@ -9549,3 +9529,20 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
     dev: true
+
+  /zustand/4.0.0_immer@9.0.15+react@17.0.2:
+    resolution: {integrity: sha512-OrsfQTnRXF1LZ9/vR/IqN9ws5EXUhb149xmPjErZnUrkgxS/gAHGy2dPNIVkVvoxrVe1sIydn4JjF0dYHmGeeQ==}
+    engines: {node: '>=12.7.0'}
+    peerDependencies:
+      immer: '>=9.0'
+      react: '>=16.8'
+    peerDependenciesMeta:
+      immer:
+        optional: true
+      react:
+        optional: true
+    dependencies:
+      immer: 9.0.15
+      react: 17.0.2
+      use-sync-external-store: 1.2.0_react@17.0.2
+    dev: false

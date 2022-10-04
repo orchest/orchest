@@ -1,12 +1,14 @@
+import Stack from "@mui/material/Stack";
 import React from "react";
-import { ILogViewerProps, LogViewer } from "../LogViewer";
+import { LogViewer, LogViewerProps } from "../LogViewer";
 import { useStepDetailsContext } from "./StepDetailsContext";
 
-export const StepDetailsLogs = (props: Omit<ILogViewerProps, "logId">) => {
+export const StepDetailsLogs = (props: Omit<LogViewerProps, "logId">) => {
   const { step } = useStepDetailsContext();
+
   return (
-    <div className={"detail-subview"}>
+    <Stack height="100%">
       <LogViewer {...props} logId={step.uuid} />
-    </div>
+    </Stack>
   );
 };

@@ -1,8 +1,10 @@
 import { TStatus } from "@/components/Status";
-import { useInterval } from "@/hooks/use-interval";
 import { useFetcher } from "@/hooks/useFetcher";
+import { useInterval } from "@/hooks/useInterval";
 import type { PipelineRun } from "@/types";
 import { serverTimeToDate } from "@/utils/webserver-utils";
+import { hasValue } from "@orchest/lib-utils";
+import React from "react";
 import { ExecutionState } from "../PipelineStep";
 
 const STATUS_POLL_FREQUENCY = 500;
@@ -24,29 +26,52 @@ export const convertStepsToObject = (pipelineRun: PipelineRun) => {
   }, {} as StepExecutionStateObj);
 };
 
+export const PIPELINE_RUNNING_STATES: Partial<TStatus>[] = [
+  "PENDING",
+  "STARTED",
+];
+
+export const PIPELINE_IDLING_STATES: Partial<TStatus>[] = [
+  "SUCCESS",
+  "ABORTED",
+  "FAILURE",
+];
+
+export const isPipelineRunning = (runStatus?: TStatus) =>
+  hasValue(runStatus) && PIPELINE_RUNNING_STATES.includes(runStatus);
+
+export const isPipelineIdling = (runStatus?: TStatus) =>
+  hasValue(runStatus) && PIPELINE_IDLING_STATES.includes(runStatus);
+
 /**
- * a poller hook that checks run status
+ * A poller hook that checks run status. It only polls if pipeline is running.
  */
-export const useStepExecutionState = (
-  url: string | undefined,
-  callback: (status: TStatus) => void
-) => {
-  const { data = {}, setData, fetchData } = useFetcher<
-    PipelineRun,
-    StepExecutionStateObj
-  >(url, {
+export const useStepExecutionState = (url: string | undefined) => {
+  const [runStatus, setRunStatus] = React.useState<TStatus>();
+  const {
+    data: stepExecutionState,
+    setData: setStepExecutionState,
+    fetchData,
+  } = useFetcher<PipelineRun, StepExecutionStateObj>(url, {
     transform: (data) => {
-      callback(data.status);
+      setRunStatus(data.status);
       return convertStepsToObject(data);
     },
+    revalidateOnFocus: true,
   });
 
-  useInterval(() => {
-    fetchData();
-  }, STATUS_POLL_FREQUENCY);
+  const shouldPoll = isPipelineRunning(runStatus);
+
+  useInterval(
+    () => {
+      fetchData();
+    },
+    shouldPoll ? STATUS_POLL_FREQUENCY : undefined
+  );
 
   return {
-    stepExecutionState: data,
-    setStepExecutionState: setData,
+    runStatus,
+    stepExecutionState,
+    setStepExecutionState,
   };
 };

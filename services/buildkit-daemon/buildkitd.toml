@@ -1,0 +1,9 @@
+root = "/var/lib/orchest_buildkit"
+
+[worker.oci]
+  enabled = false
+[worker.containerd]
+  enabled = true
+  namespace = "k8s.io"
+  address = "/run/containerd/containerd.sock"
+  platforms = [ "linux/amd64" ]

@@ -47,6 +47,7 @@ export const useDragElement = ({
     },
     [onStopDragging]
   );
+
   React.useEffect(() => {
     if (isDragging && !hasStartedTrackingMouseMove.current) {
       hasStartedTrackingMouseMove.current = true;

@@ -1,4 +1,4 @@
-import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
@@ -26,7 +26,7 @@ export const useImportGitRepo = (
   importUrl: string,
   onComplete: (result?: BackgroundTask) => void
 ) => {
-  const { setAlert } = useAppContext();
+  const { setAlert } = useGlobalContext();
   const backgroundTaskPoller = React.useMemo(
     () => new BackgroundTaskPoller(),
     []

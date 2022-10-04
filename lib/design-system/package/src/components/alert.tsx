@@ -1,14 +1,12 @@
 import { useId } from "@radix-ui/react-id";
 import * as React from "react";
 import { styled } from "../core";
-import {
-  Icon,
-  IconChevronLeftOutline,
-  IconChevronRightOutline,
-} from "../icons";
+import { IconChevronLeftOutline, IconChevronRightOutline } from "../icons";
 import type { ExtractVariants, ICSSProp } from "../types";
 import { IconButton } from "./icon-button";
 import { Text, TTextVariants } from "./text";
+
+// FIXME: Replace me with MUI
 
 /* eslint-disable react/display-name */
 
@@ -120,7 +118,7 @@ const StyledAlertHeader = styled("p", {
   display: "flex",
   alignItems: "center",
   fontWeight: "$bold",
-  [`> ${Icon}, > svg:not([class])`]: {
+  [`svg:not([class])`]: {
     display: "inline-flex",
     flexShrink: 0,
     alignSelf: "center",
