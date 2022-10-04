@@ -1,10 +1,10 @@
+import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { PageTitle } from "@/components/common/PageTitle";
 import { SectionTitle } from "@/components/common/SectionTitle";
 import { Layout } from "@/components/layout/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -48,12 +48,6 @@ const ReturnToJobsAlert = () => {
 };
 
 export const NotificationSettingsView = () => {
-  const { navigateTo } = useCustomRoute();
-
-  const returnToSettings = () => {
-    navigateTo(siteMap.settings.path);
-  };
-
   return (
     <Layout>
       <Stack
@@ -62,14 +56,7 @@ export const NotificationSettingsView = () => {
         sx={{ maxWidth: "1000px" }}
       >
         <NotificationSettingsContextProvider>
-          <Button
-            color="secondary"
-            startIcon={<ArrowBackIcon />}
-            onAuxClick={returnToSettings}
-            onClick={returnToSettings}
-          >
-            Back to settings
-          </Button>
+          <BackToOrchestSettingsButton />
           <PageTitle sx={{ marginTop: (theme) => theme.spacing(2.5) }}>
             Notification settings
           </PageTitle>
