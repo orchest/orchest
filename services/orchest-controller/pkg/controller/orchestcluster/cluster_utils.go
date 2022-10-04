@@ -7,10 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/certs"
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
+	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
@@ -24,15 +23,12 @@ import (
 )
 
 var (
-	orderOfDeployment = []string{
-		controller.OrchestDatabase,
-		controller.Rabbitmq,
-		controller.OrchestApi,
-		controller.CeleryWorker,
-		controller.AuthServer,
-		controller.OrchestWebserver,
-		controller.BuildKitDaemon,
-		controller.NodeAgent,
+	deploymentStages = [][]string{
+		{controller.OrchestDatabase, controller.Rabbitmq},
+		{controller.OrchestApi},
+		{controller.CeleryWorker},
+		{controller.AuthServer},
+		{controller.OrchestWebserver, controller.BuildKitDaemon, controller.NodeAgent},
 	}
 
 	legacyDefaultDomain = "index.docker.io"
@@ -40,32 +36,6 @@ var (
 	// Registry helm parameters
 	registryServiceIP = "service.clusterIP"
 )
-
-// This function is borrowed from projectcountour
-func registryCertgen(ctx context.Context,
-	client kubernetes.Interface,
-	serviceIP string,
-	orchest *orchestv1alpha1.OrchestCluster) error {
-	generatedCerts, err := certs.GenerateCerts(
-		&certs.Configuration{
-			IP:        serviceIP,
-			Lifetime:  365,
-			Namespace: orchest.Namespace,
-		})
-	if err != nil {
-		klog.Error("failed to generate certificates")
-		return err
-	}
-
-	owner := *metav1.NewControllerRef(orchest, OrchestClusterKind)
-
-	if err := utils.OutputCerts(ctx, orchest.Namespace, owner, client, generatedCerts); err != nil {
-		klog.Errorf("failed output certificates, error: %v", err)
-		return err
-	}
-
-	return nil
-}
 
 func getPersistentVolumeClaim(name, volumeSize, hash string,
 	orchest *orchestv1alpha1.OrchestCluster) *corev1.PersistentVolumeClaim {
@@ -252,17 +222,6 @@ func getOrchestComponent(name, hash string,
 
 }
 
-// getRegistryServiceIP retrives the defined registry service IP from config
-func getRegistryServiceIP(config *orchestv1alpha1.ApplicationConfig) (string, error) {
-	for _, param := range config.Helm.Parameters {
-		if param.Name == registryServiceIP {
-			return param.Value, nil
-		}
-	}
-
-	return "", errors.Errorf("registry service IP not found in config")
-}
-
 // setRegistryServiceIP defines the registry service IP if not defined
 func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 	namespace string, app *orchestv1alpha1.ApplicationSpec) (bool, error) {
@@ -296,7 +255,7 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 
 	//Now we get the ClusterIP of the service if present
 	var currentIP string
-	registryService, err := client.CoreV1().Services(namespace).Get(ctx, addons.DockerRegistry, metav1.GetOptions{})
+	registryService, err := client.CoreV1().Services(namespace).Get(ctx, registry.DockerRegistry, metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
 			return changed, err
