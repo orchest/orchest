@@ -5,7 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
+	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/components"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/minikubereconciler"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcluster"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/server"
@@ -19,7 +20,7 @@ var (
 	inCluster        = true
 	controllerConfig = orchestcluster.NewDefaultControllerConfig()
 	serverConfig     = server.NewDefaultServerConfig()
-	addonsConfig     = addons.NewDefaultAddonsConfig()
+	componentsConfig = registry.NewDefaultComponentsConfig()
 )
 
 func NewControllerCommand() *cobra.Command {
@@ -93,14 +94,14 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&serverConfig.Endpoint,
 		"endpoint", serverConfig.Endpoint, "The endpoint of Http Server")
 
-	cmd.PersistentFlags().StringArrayVar(&addonsConfig.Addons, "enable", addonsConfig.Addons,
+	cmd.PersistentFlags().StringArrayVar(&componentsConfig.Components, "enable", componentsConfig.Components,
 		"Default addons to enable on orchest-controller installation")
 
-	cmd.PersistentFlags().StringVar(&addonsConfig.AssetDir,
-		"assetDir", addonsConfig.AssetDir, "The directory of assets")
+	cmd.PersistentFlags().StringVar(&componentsConfig.AssetDir,
+		"assetDir", componentsConfig.AssetDir, "The directory of assets")
 
-	cmd.PersistentFlags().StringVar(&addonsConfig.DefaultNamespace,
-		"namespace", addonsConfig.DefaultNamespace, "The default namespace for installing addons")
+	cmd.PersistentFlags().StringVar(&componentsConfig.DefaultNamespace,
+		"namespace", componentsConfig.DefaultNamespace, "The default namespace for installing addons")
 
 	cmd.PersistentFlags().BoolVar(&inCluster,
 		"inCluster", true, "In/Out cluster indicator")
@@ -129,7 +130,7 @@ func runControllerCmd() error {
 	dsInformer := utils.NewDaemonSetInformer(informerFactory)
 	// Create Ingress Informer
 	ingInformer := utils.NewIngressInformer(informerFactory)
-
+	// Create OrchestCluster Informer
 	oClusterInformer := utils.NewOrchestClusterInformer(oClient)
 
 	//Create OrchestCluster Informer
@@ -145,9 +146,7 @@ func runControllerCmd() error {
 		scheme,
 		controllerConfig,
 		k8sDistro,
-		oClusterInformer,
-		//oComponentInformer,
-		/*addonManager*/)
+		oClusterInformer)
 
 	/*
 		oComponentController := orchestcomponent.NewOrchestComponentController(kClient,
@@ -163,23 +162,19 @@ func runControllerCmd() error {
 	server := server.NewServer(serverConfig, oClusterInformer)
 
 	// Initializing third party addons
-	addons.InitThirdPartyAddons(kClient, addonsConfig)
+	components.InitThirdPartyComponents(kClient, componentsConfig)
+	components.InitNativeComponents(stopCh, kClient, svcInformer, depInformer, dsInformer, ingInformer)
 
-	if utils.DetectK8sDistribution(kClient) == utils.Minikube {
+	if k8sDistro == utils.Minikube {
 		minikubeReconciler := minikubereconciler.NewMinikubeReconcilerController(kClient, depInformer)
 		go minikubeReconciler.Run(stopCh)
 	}
 
-	// Start the addon manager
-	//go addonManager.Run(stopCh)
-
 	// Start Orchest Controllers
 	go oClusterController.Run(stopCh)
-	//go oComponentController.Run(stopCh)
 
 	// Start Orchest Objests Informer
 	go oClusterInformer.Informer().Run(stopCh)
-	//go oComponentInformer.Informer().Run(stopCh)
 
 	// Start Kubernetes Objects Informers
 	go depInformer.Informer().Run(stopCh)
