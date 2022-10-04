@@ -208,3 +208,105 @@ step_uuid = orchest.utils.get_step_uuid(p)
 
 Lastly, there is `ORCHEST_PROJECT_DIR` which is used to make the entire project directory available
 through the JupyterLab UI and is thus only set for interactive Jupyter kernels.
+
+## Building environment and custom jupyter images
+
+Environment and custom JupyterLab images are built directly on the node by talking to the container
+runtime. This allows faster builds given that we can push the image to the internal registry later
+and asynchronously with respect to the actual build.
+
+When a build is started by the user, a task in the `celery-worker` will create a pod in charge of
+getting in touch with the container runtime and following the build. We let k8s schedule the pod on
+any node it prefers, but we keep track of it for later use. The celery task following the build will
+stream the logs of the building pod to the client through a websocket connection, with the websocket
+server being the `orchest-webserver`.
+
+Once the build is done, the image is pushed to the internal registry by the `node-agent`, a
+`daemonset` that is in charge of a number of activities that need to happen on every node. This
+happens transparently, meaning that the build will be considered done the moment the image is built,
+and not after it has been pushed, and the user will be able to use that image immediately, e.g.
+through a pipeline run.
+
+### Distributing the image around the cluster
+
+In a single node cluster there are no other nodes to pull the image into, but built images are
+pushed to the internal registry regardless. This is because the k8s garbage collection task could
+delete images from the node in case of disk pressure. If that happens, the `node-agent` will pull
+the image back into the node by pulling it from the internal registry.
+
+In a multi node cluster things are slightly different, but not that much: on each node, the
+`node-agent` will check if the image is on the node, and, if not, will pull the image from the
+registry. Once an image is pulled on a node the `orchest-api` is notified by the `node-agent`. This
+information is used later for scheduling pods.
+
+To summarize, given `N` nodes:
+
+- the image is built using the container runtime, it's now on `1` node.
+- the `node-agent` running on the node notices the new image, and pushes it to the registry.
+- the `node-agent` pods running on the other `N - 1` nodes notice (by querying the `orchest-api`)
+  that there is an image that is on the registry but not on the node, they pull the image.
+- the image is now on all `N` nodes. If the image gets deleted from a node by k8s garbage collection
+  it will be pulled again.
+
+### Interfacing with different container runtimes
+
+Talking directly to the container runtime gives us flexibility but also the burden of taking care of
+every quirk or leaky abstraction related to the particular runtime we are interfacing with. The
+points of interest in our logic, i.e. where changes related to container runtimes are likely to
+happen, are the `orchet-api` module in charge of building images and the `orchest-controller`, which
+might have to change some Orchest cluster level configuration based on the runtime.
+
+#### Docker
+
+When it comes to docker things are pretty easy, we just mount the docker socket from the host in the
+builder pod, which image contains the `docker-cli`, and build the image through that.
+
+#### Containerd
+
+Things are slightly more complex when it comes to `containerd`. Since `containerd` doesn't offer an
+high level way of building images we use `buildkit` to indirectly interface with it for builds.
+Differently from the simple `docker` case, we can't just launch a builder pod containing an
+ephemeral `buildkit` daemon and mount the `containerd` socket to said pod because bidirectional
+mounting propagation is required in order to make this work when the `buildkit` daemon runs in a
+container and `containerd` runs on the host, and we considered continuously creating and bringing
+down the daemon too risky when it comes to leaving dangling mounts on the host.
+
+Given that, when the `containerd` runtime is detected a `buildkitd` daemonset is created. Now that
+we have a `buildkit` daemon running on every node, building becomes similar to the `docker` case,
+the builder pod contains the `buildctl` CLI and mounts the `buildkitd` socket, the image is then
+built by issuing `buildctl` commands. To clarify, this means that the `buildkitd` socket is exposed
+to the host through a volume mount, and is then "picked up" by the builder pod by mounting the same
+location from the host.
+
+## Pod scheduling in Orchest
+
+In order to provide a better user experience, Orchest distinguishes activities between what could be
+called an "interactive scope" and a "non-interactive scope". The interactive scope includes any
+activity where the user is directly involved in waiting to continue its tasks. For example, an
+interactive pipeline run, a Jupyter kernel starting, waiting for an interactive session to be ready,
+etc. Obviously, we want to make events part of this scope happen as quickly as possible.
+
+Given this premise, and the fact that the `orchest-api` knows on which node(s) an environment image
+is, Orchest interacts with the scheduling of pods of interest in order to have the best user
+experience while balancing node pressure across the cluster. The entire logic can be found in the
+`pod_scheduling.py` module of the `orchest-api`, and it's, at the high level, pretty simple:
+anything that belongs to the **interactive scope** is scheduled to be **on any node that already
+contains the images**, while the **non-interactive scope** is scheduled **on any node**,
+regardless of the fact that the image is there already or if a pull will be needed.
+
+This means that no pull will be needed to start pods related to the interactive scope, reducing the
+time that the user would have to wait if, for example, the pod backing a step of an interactive run
+would, instead, have been scheduled on a node that doesn't have the image already.
+
+Example:
+
+- a user imports a project containing one environment.
+- the environment is built on the node.
+- immediately after the image has been built, the user can start a session, start an interactive
+  run, interact with a Jupyter kernel. These will all be scheduled on the node already containing
+  the image.
+- the image gets pushed to the registry by the `node-agent`.
+- after the image has been pushed to the registry and pulled to the other nodes, all these
+  activities belonging to the interactive scope could be scheduled on any node. This means that the
+  time window during which there is single node pressure is given by the time it takes to push the
+  newly built image to the registry and spread it to the other nodes.
