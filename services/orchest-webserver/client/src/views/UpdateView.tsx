@@ -1,3 +1,4 @@
+import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/layout/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
@@ -142,9 +143,11 @@ const UpdateView: React.FC = () => {
 
   return (
     <Layout>
+      <BackToOrchestSettingsButton />
       <Paper
         sx={{
-          padding: (theme) => theme.spacing(3),
+          padding: (theme) => theme.spacing(3, 3, 1, 3),
+          marginTop: (theme) => theme.spacing(2),
         }}
         className={"view-page update-page"}
       >

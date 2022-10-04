@@ -1,3 +1,4 @@
+import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
 import { useJobsApi } from "@/api/jobs/useJobsApi";
 import { useCancelJob } from "@/hooks/useCancelJob";
 import { useSelectJob } from "@/jobs-view/hooks/useSelectJob";
@@ -17,6 +18,8 @@ export const useJobActions = () => {
   const triggerScheduledRuns = useJobsApi(
     (state) => state.triggerScheduledRuns
   );
+  const fetchPage = useJobRunsApi((state) => state.fetchPage);
+  const pageSize = useJobRunsApi((state) => state.pagination?.page_size);
 
   const pauseJob = React.useCallback(() => {
     if (uuid) pauseCronJob(uuid);
@@ -39,7 +42,8 @@ export const useJobActions = () => {
   const triggerJobNow = React.useCallback(async () => {
     if (!uuid) return;
     await triggerScheduledRuns(uuid);
-  }, [triggerScheduledRuns, uuid]);
+    fetchPage({ page: 1, pageSize: pageSize || 10 });
+  }, [triggerScheduledRuns, uuid, pageSize, fetchPage]);
 
   return {
     scheduleJob,
