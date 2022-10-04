@@ -149,6 +149,8 @@ type OrchestClusterController struct {
 
 	config ControllerConfig
 
+	k8sDistro utils.KubernetesDistros
+
 	oClusterLister orchestlisters.OrchestClusterLister
 
 	oComponentLister orchestlisters.OrchestComponentLister
@@ -162,6 +164,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	gClient client.Client,
 	scheme *runtime.Scheme,
 	config ControllerConfig,
+	k8sDistro utils.KubernetesDistros,
 	oClusterInformer orchestinformers.OrchestClusterInformer,
 	oComponentInformer orchestinformers.OrchestComponentInformer,
 	addonManager *addons.AddonManager,
@@ -181,6 +184,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 		gClient:      gClient,
 		scheme:       scheme,
 		config:       config,
+		k8sDistro:    k8sDistro,
 		addonManager: addonManager,
 	}
 
@@ -305,6 +309,12 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 		return err
 	}
 
+	// Add kubernetes distro annotation
+	changed, err = controller.AnnotateIfNotPresent(ctx, occ.gClient, orchest, controller.K8sDistroAnnotationKey, string(occ.k8sDistro))
+	if changed || err != nil {
+		return err
+	}
+
 	// If Status struct is not initialized yet, the cluster is new, create it
 	if orchest.Status == nil {
 		// Set the default values in CR if not specified
@@ -363,6 +373,7 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_SOCKET"] = strings.Replace(socketPath, "unix://", "", -1)
 	occ.config.OrchestDefaultEnvVars["CONTAINER_RUNTIME_IMAGE"] = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
 		"image-puller", occ.config.OrchestDefaultVersion)
+	occ.config.OrchestDefaultEnvVars["K8S_DISTRO"] = string(occ.k8sDistro)
 
 	return true, err
 }
@@ -548,7 +559,24 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.Orchest.BuildKitDaemon.Image = buildKitDaemonImage
 	}
 
-	if !isIngressDisabled(copy) && isIngressAddonRequired(ctx, occ.Client()) {
+	if isIngressDisabled(copy) {
+		ingressEnabled := false
+		applications := make([]orchestv1alpha1.ApplicationSpec, 0, 0)
+		for _, app := range copy.Spec.Applications {
+			if app.Name == addons.IngressNginx {
+				ingressEnabled = true
+				continue
+			}
+			applications = append(applications, app)
+		}
+
+		// If ingress is enabled, it has to be removed from the .Spec.Applications,
+		// k8s ensures we are using the latest object version.
+		if ingressEnabled {
+			copy.Spec.Applications = applications
+			changed = true
+		}
+	} else if isIngressAddonRequired(ctx, occ.k8sDistro, occ.Client()) {
 		ingressEnabled := false
 		for _, app := range copy.Spec.Applications {
 			if app.Name == addons.IngressNginx {

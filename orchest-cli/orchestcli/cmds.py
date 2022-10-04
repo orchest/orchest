@@ -364,8 +364,30 @@ def install(
     utils.echo("Setting up the Orchest Cluster...", nl=True)
     _display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
 
+    # Print some final help messages depending on k8s distro.
+    try:
+        curr_co = _get_namespaced_custom_object(ns, cluster_name)
+        k8s_distro = curr_co["metadata"]["annotations"].get("controller.orchest.io/k8s")
+    except Exception:
+        k8s_distro = None
+
+    # NOTE: minikube is our primary installation target and thus is the
+    # only case we explicitly print the extensive help messages for.
+    if k8s_distro is None or k8s_distro != "minikube":
+        utils.echo("🚀 Done! Orchest is up!\n")
+        if k8s_distro is None:
+            utils.echo("To learn how to reach Orchest, please refer to:")
+        else:
+            utils.echo(
+                f"To learn how to reach Orchest on {k8s_distro}, please refer to:"
+            )
+        utils.echo(
+            "\thttps://docs.orchest.io/en/stable/getting_started/installation.html"
+        )
+        return
+
     if fqdn is not None:
-        utils.echo(f"🚀 Done! Orchest is up with FQDN {fqdn}\n")
+        utils.echo(f"🚀 Done! Orchest is up with FQDN: {fqdn}\n")
 
         if platform.system() == "Darwin":
             utils.echo(

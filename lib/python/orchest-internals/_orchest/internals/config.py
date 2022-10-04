@@ -46,6 +46,9 @@ REGISTRY = "docker-registry"
 # https://github.com/kubernetes/kubernetes/issues/33554#issuecomment-266251056
 REGISTRY_FQDN = f"docker-registry.{ORCHEST_NAMESPACE}.svc.cluster.local"
 
+# Kubernetes distribution Orchest is running on.
+K8S_DISTRO = os.environ.get("K8S_DISTRO")
+
 # Container Runtime configs.
 CONTAINER_RUNTIME = os.environ.get("CONTAINER_RUNTIME")
 CONTAINER_RUNTIME_IMAGE = os.environ.get("CONTAINER_RUNTIME_IMAGE")
