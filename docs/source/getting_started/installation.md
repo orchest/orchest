@@ -81,8 +81,9 @@ cluster, then one of the following subsections might be helpful:
 
 ### Setting up an FQDN
 
-If you would rather reach Orchest using a Fully Qualified Domain Name (FQDN) instead of using the
-cluster's IP directly, you can install Orchest using:
+If you would rather reach Orchest using a Fully Qualified Domain Name (FQDN), e.g. by simply going
+to `http://localorchest.io` in your browser, instead of using the cluster's IP directly, you can
+install Orchest using:
 
 ```bash
 orchest install --fqdn="localorchest.io"
@@ -90,13 +91,27 @@ orchest install --fqdn="localorchest.io"
 
 % or, if you have already installed Orchest but would like to set up an FQDN
 
-Next, make Orchest reachable locally through the FQDN:
+For local Kubernetes clusters such as minikube, you can now make Orchest reachable through the
+FQDN by:
 
+`````{tab-set}
+````{tab-item} Linux
 ```bash
 # Set up the default Fully Qualified Domain Name (FQDN) in your
 # /etc/hosts so that you can reach Orchest locally.
-echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
+echo "$(minikube ip)\tlocalorchest.io" | sudo tee -a /etc/hosts
 ```
+````
+````{tab-item} macOS
+```bash
+# Set up the default Fully Qualified Domain Name (FQDN) in your
+# /etc/hosts so that you can reach Orchest locally.
+echo "127.0.0.1\tlocalorchest.io" | sudo tee -a /etc/hosts
+```
+
+And don't forget to also run `sudo minikube tunnel`.
+````
+`````
 
 (install-argo)=
 

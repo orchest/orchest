@@ -138,11 +138,14 @@ func runControllerCmd() error {
 
 	addonManager := addons.NewAddonManager(kClient, addonsConfig)
 
+	k8sDistro := utils.DetectK8sDistribution(kClient)
+
 	oClusterController := orchestcluster.NewOrchestClusterController(kClient,
 		oClient,
 		gClient,
 		scheme,
 		controllerConfig,
+		k8sDistro,
 		oClusterInformer,
 		oComponentInformer,
 		addonManager)
@@ -159,7 +162,7 @@ func runControllerCmd() error {
 
 	server := server.NewServer(serverConfig, oClusterInformer)
 
-	if utils.DetectK8sDistribution(kClient) == utils.Minikube {
+	if k8sDistro == utils.Minikube {
 		minikubeReconciler := minikubereconciler.NewMinikubeReconcilerController(kClient, depInformer)
 		go minikubeReconciler.Run(stopCh)
 	}
