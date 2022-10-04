@@ -1,5 +1,5 @@
 import { getOffset } from "@/utils/element";
-import { dividePoint, Point2D, subtractPoints } from "@/utils/geometry";
+import { Point2D } from "@/utils/geometry";
 import { clamp } from "@/utils/math";
 import { getMousePoint } from "@/utils/mouse";
 import React from "react";
@@ -51,10 +51,10 @@ export const CanvasScalingProvider: React.FC = ({ children }) => {
   );
 
   const windowToCanvasPoint = React.useCallback(
-    (point: Readonly<Point2D>): Point2D => {
-      const canvasOffset = getOffset(pipelineCanvasRef.current);
+    ([x, y]: Readonly<Point2D>): Point2D => {
+      const [offsetX, offsetY] = getOffset(pipelineCanvasRef.current);
 
-      return dividePoint(subtractPoints(point, canvasOffset), scaleFactor);
+      return [(x - offsetX) / scaleFactor, (y - offsetY) / scaleFactor];
     },
     [scaleFactor, pipelineCanvasRef]
   );

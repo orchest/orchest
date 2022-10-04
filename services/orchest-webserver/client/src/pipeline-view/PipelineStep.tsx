@@ -8,7 +8,7 @@ import {
   StepMetaData,
   StepState,
 } from "@/types";
-import { addPoints, dividePoint, Point2D } from "@/utils/geometry";
+import { Point2D } from "@/utils/geometry";
 import { getMouseDelta } from "@/utils/mouse";
 import Box from "@mui/material/Box";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
@@ -416,13 +416,15 @@ const PipelineStepComponent = React.forwardRef<
 
     if (shouldMoveWithCursor) {
       setMetadata((current) => {
-        const updatedPosition = addPoints(
-          current.position,
-          dividePoint(getMouseDelta(), scaleFactor)
-        );
+        const [x, y] = current.position;
+        const [mouseX, mouseY] = getMouseDelta();
+        const newPosition: Point2D = [
+          (x + mouseX) / scaleFactor,
+          (y + mouseY) / scaleFactor,
+        ];
 
-        draggedStepPositions.current[uuid] = updatedPosition;
-        return { ...current, position: updatedPosition };
+        draggedStepPositions.current[uuid] = newPosition;
+        return { ...current, position: newPosition };
       });
     }
   }, [
