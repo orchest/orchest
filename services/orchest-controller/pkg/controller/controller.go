@@ -158,6 +158,10 @@ func (c *Controller[Object]) EnqueueAfter(obj interface{}) {
 	c.queue.AddAfter(key, time.Second)
 }
 
+func (c *Controller[Object]) EnqueueKey(key string) {
+	c.queue.Add(key)
+}
+
 func (c *Controller[Object]) Client() kubernetes.Interface {
 	return c.kubeClient
 }
