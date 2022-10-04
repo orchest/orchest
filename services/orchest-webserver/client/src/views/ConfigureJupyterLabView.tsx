@@ -1,3 +1,4 @@
+import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/layout/Layout";
@@ -11,6 +12,7 @@ import { EnvironmentImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Snackbar from "@mui/material/Snackbar";
@@ -209,7 +211,11 @@ const ConfigureJupyterLabView: React.FC = () => {
 
   return (
     <Layout>
-      <div className={"view-page jupyterlab-config-page"}>
+      <BackToOrchestSettingsButton />
+      <Box
+        className={"view-page jupyterlab-config-page"}
+        sx={{ marginTop: (theme) => theme.spacing(2) }}
+      >
         {hasValue(jupyterSetupScript) ? (
           <>
             <PageTitle>Configure JupyterLab</PageTitle>
@@ -302,7 +308,7 @@ const ConfigureJupyterLabView: React.FC = () => {
         ) : (
           <LinearProgress />
         )}
-      </div>
+      </Box>
       <Snackbar
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         open={showStoppingAllSessionsWarning}
