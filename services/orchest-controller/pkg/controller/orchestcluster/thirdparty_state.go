@@ -2,10 +2,15 @@ package orchestcluster
 
 import (
 	"context"
+	"time"
 
-	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
+)
+
+var (
+	deployTimeOut time.Duration = time.Second * 5
+	deployRetry                 = 5
 )
 
 type DeployThirdPartyState struct{}
@@ -23,12 +28,15 @@ func (state *DeployThirdPartyState) Do(ctx context.Context, stateMachine *Orches
 	deployedApps := 0
 	for _, application := range orchest.Spec.Applications {
 
-		if ok := stateMachine.containsCondition(addons.LogEvent(utils.GetDeployingEvent(application.Name))); !ok {
-			err := stateMachine.Deploy(ctx, application.Name, &application)
+		deployingEvent := utils.GetDeployingEvent(application.Name)
+		if ok := stateMachine.containsCondition(deployingEvent); !ok {
+			err := stateMachine.Deploy(ctx, application.Name, deployingEvent, deployTimeOut, deployRetry, &application)
 			if err != nil {
 				return err
 			}
-		} else if stateMachine.containsCondition(addons.LogEvent(utils.GetDeployedEvent(application.Name))) {
+		}
+
+		if stateMachine.containsCondition(utils.GetDeployedEvent(application.Name)) {
 			deployedApps++
 		}
 	}
