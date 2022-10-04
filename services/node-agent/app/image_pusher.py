@@ -131,9 +131,6 @@ async def _push_image(
                 # Note: the name already incudes the registry.
                 await container_runtime.push_image(image)
 
-                # Said notification will, very likely,  be later removed
-                # in favour of the orchest-api periodically checking the
-                # registry.
                 logger.info("Notifying the `orchest-api` of the push.")
                 await notify_orchest_api_of_registry_push(session, image)
 

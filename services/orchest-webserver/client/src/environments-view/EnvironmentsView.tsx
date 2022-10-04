@@ -1,19 +1,20 @@
-import { LayoutWithSidePanel } from "@/components/Layout/layout-with-side-panel/LayoutWithSidePanel";
+import { ViewLayout } from "@/components/layout/ViewLayout";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import React from "react";
 import { EditEnvironment } from "./edit-environment/EditEnvironment";
+import { EnvironmentHeader } from "./EnvironmentHeader";
 import { EnvironmentMenuList } from "./EnvironmentMenuList";
 
 export const EnvironmentsView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
 
   return (
-    <LayoutWithSidePanel
+    <ViewLayout
       sidePanel={<EnvironmentMenuList />}
-      mainContainerProps={{ sx: { paddingTop: 0 } }}
+      header={() => <EnvironmentHeader />}
     >
       <EditEnvironment />
-    </LayoutWithSidePanel>
+    </ViewLayout>
   );
 };
