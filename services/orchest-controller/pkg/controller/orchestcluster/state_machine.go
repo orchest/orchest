@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
@@ -22,12 +22,15 @@ type StateHandler interface {
 
 type requestInfo struct {
 	timeoutFn    *time.Timer
-	responseChan chan addons.Event
+	responseChan chan registry.Event
 	retryCount   int
 }
 
 type responseInfo struct {
-	responseEvent addons.Event
+	componentName string
+	message       any
+	retryCount    int
+	responseEvent registry.Event
 	requestEvent  string
 }
 
@@ -39,8 +42,8 @@ type OrchestStateMachine struct {
 	//stateLock    sync.RWMutex
 	currentState orchestv1alpha1.OrchestPhase
 
-	// the map of requests sent to components the the requestInfo
-	requests map[string]*requestInfo
+	// the map of requests sent to components
+	requests map[string]struct{}
 
 	responseChan chan *responseInfo
 	// the cancel function of the context of this state machine
@@ -77,9 +80,9 @@ func NewOrchestStateMachine(orchestKey string,
 		name:          name,
 		namespace:     namespace,
 		controller:    controller,
-		responseChan:  make(chan addons.Event, 10),
-		orchestChan:   make(chan *orchestv1alpha1.OrchestCluster, 10),
-		requests:      make(map[string]*requestInfo),
+		responseChan:  make(chan *responseInfo, 20),
+		orchestChan:   make(chan *orchestv1alpha1.OrchestCluster, 20),
+		requests:      make(map[string]struct{}),
 		currentState:  orchestv1alpha1.Unknown,
 		stateHandlers: make(map[orchestv1alpha1.OrchestPhase]StateHandler),
 	}
@@ -118,21 +121,9 @@ func (sm *OrchestStateMachine) updateConditions(orchest *orchestv1alpha1.Orchest
 }
 */
 
-func (sm *OrchestStateMachine) updateCondition(ctx context.Context, event string,
-	timeout time.Duration, retryCount int) error {
+func (sm *OrchestStateMachine) updateCondition(ctx context.Context, event string) error {
 
-	responseChan := make(chan addons.Event)
-	sm.requests[event] = &requestInfo{
-		timeoutFn: time.AfterFunc(timeout, func() {
-			sm.responseChan <- &responseInfo{
-				responseEvent: addons.ErrorEvent("Timeout"),
-				requestEvent:  event,
-			}
-		}),
-		retryCount:   retryCount,
-		responseChan: responseChan,
-	}
-
+	sm.requests[event] = struct{}{}
 	err := sm.controller.updateCondition(ctx, sm.namespace, sm.name, event)
 	if err != nil {
 		klog.Error(err)
@@ -149,25 +140,70 @@ func (sm *OrchestStateMachine) containsCondition(event string) bool {
 }
 
 func (sm *OrchestStateMachine) Deploy(ctx context.Context, componentName string,
-	timeout time.Duration, retryCount int, message any) error {
-	err := sm.updateCondition(ctx, utils.GetDeployingEvent(componentName), timeout, retryCount)
+	deployingEvent string, timeout time.Duration, retryCount int, message any) error {
+
+	klog.Infof("Deploying component %s, namespace=%s, name=%s retry=%d", componentName, sm.namespace, sm.name, retryCount)
+	timeoutTimer := time.NewTimer(timeout)
+	responseChan := make(chan registry.Event)
+	sm.requests[deployingEvent] = struct{}{}
+	go func() {
+	loop:
+		for {
+			select {
+			case event := <-responseChan:
+				klog.Info("received event for component ", componentName, event)
+				switch event.(type) {
+				case registry.LogEvent:
+					sm.responseChan <- &responseInfo{
+						componentName: componentName,
+						message:       message,
+						requestEvent:  deployingEvent,
+						retryCount:    retryCount,
+						responseEvent: event,
+					}
+
+				case registry.ErrorEvent, registry.SuccessEvent:
+					sm.responseChan <- &responseInfo{
+						componentName: componentName,
+						message:       message,
+						requestEvent:  deployingEvent,
+						retryCount:    retryCount,
+						responseEvent: event,
+					}
+					klog.Info("registry.ErrorEvent, registry.SuccessEvent ", componentName, event)
+					break loop
+				default:
+					sm.responseChan <- &responseInfo{
+						requestEvent:  deployingEvent,
+						responseEvent: registry.ErrorEvent("Unrecognized event"),
+						componentName: componentName,
+						message:       message,
+						retryCount:    retryCount,
+					}
+					break loop
+				}
+			case <-timeoutTimer.C:
+				klog.V(2).Info("received timeout for component ", componentName)
+				sm.responseChan <- &responseInfo{
+					requestEvent:  deployingEvent,
+					responseEvent: registry.TimeOutEvent(fmt.Sprintf("Timeout in deploying %s", componentName)),
+					componentName: componentName,
+					message:       message,
+					retryCount:    retryCount,
+				}
+				break loop
+			}
+		}
+		klog.Info("finished ", deployingEvent)
+	}()
+
+	err := sm.updateCondition(ctx, deployingEvent)
 	if err != nil {
 		klog.Error(err)
 		return err
 	}
-	go addons.Registry.Deploy(ctx, componentName, sm.namespace, message, sm.eventChan)
+	go registry.Registry.Deploy(ctx, componentName, sm.namespace, message, responseChan)
 
-	/*
-		if err == nil {
-			err := sm.updateCondition(ctx, controller.GetDeployedEvent(componentName))
-			if err != nil {
-				klog.Error(err)
-				return err
-			}
-		}
-
-		return err
-	*/
 	return nil
 }
 
@@ -240,8 +276,35 @@ loop:
 		select {
 		case <-ctx.Done():
 			break loop
-		case event := <-sm.eventChan:
-			sm.updateCondition(ctx, event)
+		case info := <-sm.responseChan:
+			switch info.responseEvent.(type) {
+			case registry.LogEvent:
+				sm.updateCondition(ctx, info.responseEvent.String())
+			case registry.ErrorEvent, registry.TimeOutEvent:
+				_, ok := sm.requests[info.requestEvent]
+				if !ok {
+					klog.Errorf("The requested event does not exist, event= %s", info.requestEvent)
+				}
+
+				sm.updateCondition(ctx, info.responseEvent.String())
+
+				if info.retryCount == 1 {
+					sm.toState(context.Background(), orchestv1alpha1.Error)
+				} else {
+					// deploy it again
+					sm.Deploy(ctx, info.componentName, info.requestEvent, deployTimeOut, info.retryCount-1, info.message)
+				}
+			case registry.SuccessEvent:
+				orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
+				if err != nil {
+					klog.Error("failed to get OrchestCluster, name=%s, namespace=%s", sm.name, sm.namespace)
+				}
+
+				sm.updateCondition(ctx, utils.GetDeployedEvent(info.componentName))
+				sm.orchestChan <- orchest
+			default:
+				klog.Errorf("Unrecognized event received for OrchestCluster, name=%s, namespace=%s, %s", sm.name, sm.namespace, info.responseEvent.String())
+			}
 		case orchest := <-sm.orchestChan:
 			sm.doState(ctx, orchest)
 		}
