@@ -251,6 +251,7 @@ def _add_system_properties(data: dict) -> None:
     data["system_properties"] = {
         "host_os": os.environ.get("HOST_OS"),
         "gpu_enabled_instance": _config.GPU_ENABLED_INSTANCE,
+        "k8s_distro": _config.K8S_DISTRO,
     }
 
 
