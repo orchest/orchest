@@ -1,4 +1,4 @@
-package addons
+package components
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/helm"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"k8s.io/client-go/kubernetes"
@@ -19,20 +20,16 @@ type HelmComponent struct {
 	client     kubernetes.Interface
 }
 
-func RegisterHelmAddon(client kubernetes.Interface,
+func NewHelmComponent(client kubernetes.Interface,
 	name, deployDir string,
-	valuesPath string) error {
+	valuesPath string) registry.Component {
 
-	component := &HelmComponent{
+	return &HelmComponent{
 		name:       name,
 		client:     client,
 		deployDir:  deployDir,
 		valuesPath: valuesPath,
 	}
-
-	RegisterAddon(name, component)
-
-	return nil
 }
 
 func (c *HelmComponent) getReleaseName(namespace string) string {
@@ -40,15 +37,15 @@ func (c *HelmComponent) getReleaseName(namespace string) string {
 }
 
 func (c *HelmComponent) Update(ctx context.Context, namespace string,
-	message Message, eventChan chan Event) {
+	message registry.Message, eventChan chan registry.Event) {
 
 	var err error
 
 	defer func() {
 		if err != nil {
-			eventChan <- ErrorEvent(err.Error())
+			eventChan <- registry.ErrorEvent(err.Error())
 		} else {
-			eventChan <- LogEvent(utils.GetDeployedEvent(c.name))
+			eventChan <- registry.SuccessEvent{}
 		}
 	}()
 
@@ -106,38 +103,27 @@ func (c *HelmComponent) Update(ctx context.Context, namespace string,
 
 	}
 
-	eventChan <- LogEvent("helo melo")
-
-	/*
-		for _, preInstall := range preInstallHooks {
-			err = preInstall(app)
-			if err != nil {
-				return err
-			}
-		}
-	*/
-
 	_, err = helm.RunCommand(ctx, deployArgs.WithUpgradeInstall().Build())
 	return
 }
 
 func (c *HelmComponent) Stop(ctx context.Context, namespace string,
-	message Message, eventChan chan Event) {
+	message registry.Message, eventChan chan registry.Event) {
 	return
 }
 
 func (c *HelmComponent) Start(ctx context.Context, namespace string,
-	message Message, eventChan chan Event) {
+	message registry.Message, eventChan chan registry.Event) {
 	return
 }
 
 func (c *HelmComponent) Delete(ctx context.Context, namespace string,
-	message Message, eventChan chan Event) {
+	message registry.Message, eventChan chan registry.Event) {
 	err := helm.RemoveRelease(ctx, c.getReleaseName(namespace), namespace)
 
 	if err != nil {
-		eventChan <- ErrorEvent(err.Error())
+		eventChan <- registry.ErrorEvent(err.Error())
 	} else {
-		eventChan <- LogEvent(utils.GetDeletedEvent(c.name))
+		eventChan <- registry.LogEvent(utils.GetDeletedEvent(c.name))
 	}
 }
