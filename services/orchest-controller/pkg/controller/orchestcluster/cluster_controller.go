@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
+	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/version"
@@ -115,7 +115,7 @@ func NewDefaultControllerConfig() ControllerConfig {
 		},
 		DefaultApplications: []orchestv1alpha1.ApplicationSpec{
 			{
-				Name: addons.ArgoWorkflow,
+				Name: registry.ArgoWorkflow,
 				Config: orchestv1alpha1.ApplicationConfig{
 					Helm: &orchestv1alpha1.ApplicationConfigHelm{
 						Parameters: []orchestv1alpha1.HelmParameter{
@@ -128,7 +128,7 @@ func NewDefaultControllerConfig() ControllerConfig {
 				},
 			},
 			{
-				Name: addons.DockerRegistry,
+				Name: registry.DockerRegistry,
 			},
 		},
 		RabbitmqDefaultEnvVars: make(map[string]string, 0),
@@ -510,14 +510,14 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	} else if isIngressAddonRequired(ctx, occ.k8sDistro, occ.Client()) {
 		ingressEnabled := false
 		for _, app := range copy.Spec.Applications {
-			if app.Name == addons.IngressNginx {
+			if app.Name == registry.IngressNginx {
 				ingressEnabled = true
 			}
 		}
 
 		if !ingressEnabled {
 			copy.Spec.Applications = append(copy.Spec.Applications, orchestv1alpha1.ApplicationSpec{
-				Name: addons.IngressNginx,
+				Name: registry.IngressNginx,
 			})
 			changed = true
 		}
@@ -526,7 +526,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	// set docker-registry default values
 	for i := 0; i < len(copy.Spec.Applications); i++ {
 		app := &copy.Spec.Applications[i]
-		if app.Name == addons.DockerRegistry {
+		if app.Name == registry.DockerRegistry {
 
 			registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), copy.Namespace, app)
 			if err != nil {
@@ -557,51 +557,7 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 
 	/*
 
-			registryPreInstall := func(app *orchestv1alpha1.ApplicationSpec) error {
-				err = occ.updateCondition(ctx, orchest.Namespace, orchest.Name, orchestv1alpha1.CreatingCertificates)
-				if err != nil {
-					klog.Error(err)
-					return err
-				}
 
-				if err != nil {
-					return errors.Wrapf(err, "failed to update orchest with registry service ip  %q", orchest.Name)
-				}
-
-				serviceIP, err := getRegistryServiceIP(&app.Config)
-				if err != nil {
-					return err
-				}
-
-				err = registryCertgen(ctx, occ.Client(), serviceIP, orchest)
-				if err != nil {
-					klog.Error(err)
-					return err
-				}
-
-				return nil
-			}
-
-			for _, application := range orchest.Spec.Applications {
-				preInstallHooks := []addons.PreInstallHookFn{
-					updateConditionPreInstall,
-				}
-
-				if application.Name == addons.DockerRegistry {
-					preInstallHooks = append(preInstallHooks, registryPreInstall)
-				}
-
-				err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
-				if err != nil {
-					klog.Error(err)
-					return err
-				}
-
-			}
-
-			return nil
-
-		}
 
 		// Installs deployer if the config is changed
 		func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (err error) {
@@ -703,22 +659,7 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 					return nil
 				}
 
-				for _, application := range orchest.Spec.Applications {
-					preInstallHooks := []addons.PreInstallHookFn{
-						updateConditionPreInstall,
-					}
 
-					if application.Name == addons.DockerRegistry {
-						preInstallHooks = append(preInstallHooks, registryPreInstall)
-					}
-
-					err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
-					if err != nil {
-						klog.Error(err)
-						return err
-					}
-
-				}
 	*/
 	return nil
 }
