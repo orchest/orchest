@@ -48,20 +48,18 @@ func (w *Watcher[WatchObject, ControllerObject]) AddObject(obj interface{}) {
 		return
 	}
 
+	// If it has an orchest owner annotation, we process it.
+	if ownerKey, ok := accessor.GetAnnotations()[OwnerLabelKey]; ok {
+		w.Enqueue(ownerKey)
+	}
+
 	// If it has a ControllerRef, we should process it.
 	if controllerRef := metav1.GetControllerOf(accessor); controllerRef != nil {
 		oc := w.resolveControllerRef(accessor.GetNamespace(), controllerRef)
 		if oc == nil {
 			return
 		}
-		/*
-			ocKey, err := KeyFunc(oc)
-			if err != nil {
-				return
-			}
-			klog.V(4).Infof("Deployment %s added.", dep.Name)
-			occ.expectations.CreationObserved(ocKey)
-		*/
+
 		w.Enqueue(oc)
 		return
 	}
@@ -102,12 +100,7 @@ func (w *Watcher[WatchObject, ControllerObject]) UpdateObject(old, cur interface
 		}
 		klog.V(4).Infof("Object %s updated.", curObj.GetName())
 		w.Enqueue(oc)
-		/*
-			changedToReady := !utils.IsPodReady(oldDep) && utils.IsPodReady(curDep)
-			if changedToReady {
-				// TODO
-			}
-		*/
+
 		return
 	}
 }
@@ -140,13 +133,6 @@ func (w *Watcher[WatchObject, ControllerObject]) DeleteObject(obj interface{}) {
 	if oc == nil {
 		return
 	}
-	/*
-		ocKey, err := KeyFunc(oc)
-		if err != nil {
-			return
-		}
-		klog.V(4).Infof("Deployment %s deleted.", dep.Name)
-		occ.expectations.DeletionObserved(ocKey)
-	*/
+
 	w.Enqueue(oc)
 }
