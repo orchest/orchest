@@ -407,11 +407,11 @@ func CloneAndAddLabel(labels, addLabels map[string]string) map[string]string {
 
 // This function is borrowed from projectcountour
 // OutputCerts outputs the certs in certs as directed by config.
-func OutputCerts(ctx context.Context, namespace string, owner metav1.OwnerReference,
+func OutputCerts(ctx context.Context, namespace string,
 	client kubernetes.Interface, certs *certs.Certificates) error {
 	var secrets []*corev1.Secret
 
-	secrets, err := AsSecrets(namespace, owner, certs)
+	secrets, err := AsSecrets(namespace, certs)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create secret from cets")
 	}
@@ -449,14 +449,13 @@ func WriteSecretsKube(ctx context.Context, client kubernetes.Interface, secrets 
 // AsSecrets transforms the given Certificates struct into a slice of
 // Secrets in in compact Secret format, which is compatible with
 // both cert-manager and Contour.
-func AsSecrets(namespace string, owner metav1.OwnerReference, certdata *certs.Certificates) ([]*corev1.Secret, error) {
+func AsSecrets(namespace string, certdata *certs.Certificates) ([]*corev1.Secret, error) {
 
 	return []*corev1.Secret{
 		newSecret(
 			corev1.SecretTypeTLS,
 			"registry-tls-secret",
 			namespace,
-			owner,
 			map[string][]byte{
 				CACertificateKey:        certdata.CACertificate,
 				corev1.TLSCertKey:       certdata.RegistryCertificate,
@@ -467,7 +466,7 @@ func AsSecrets(namespace string, owner metav1.OwnerReference, certdata *certs.Ce
 
 // This function is borrowed from projectcountour
 func newSecret(secretType corev1.SecretType, name string, namespace string,
-	owner metav1.OwnerReference, data map[string][]byte) *corev1.Secret {
+	data map[string][]byte) *corev1.Secret {
 	return &corev1.Secret{
 		Type: secretType,
 		TypeMeta: metav1.TypeMeta{
@@ -479,9 +478,6 @@ func newSecret(secretType corev1.SecretType, name string, namespace string,
 			Namespace: namespace,
 			Labels: map[string]string{
 				"app": "docker-registry",
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				owner,
 			},
 		},
 		Data: data,
