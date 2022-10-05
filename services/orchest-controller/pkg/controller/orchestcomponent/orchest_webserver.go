@@ -163,6 +163,17 @@ func getOrchestWebserverDeployment(metadata metav1.ObjectMeta,
 					},
 					VolumeMounts: volumeMounts,
 				},
+				{
+					Name:            "log-streamer",
+					Command:         []string{"python"},
+					Args:            []string{"/orchest/services/orchest-webserver/app/scripts/log_streamer.py"},
+					Image:           image,
+					ImagePullPolicy: corev1.PullIfNotPresent,
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
+					},
+					VolumeMounts: volumeMounts,
+				},
 			},
 		},
 	}
