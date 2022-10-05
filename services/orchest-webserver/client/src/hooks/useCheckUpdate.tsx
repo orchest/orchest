@@ -141,7 +141,7 @@ export const useCheckUpdate = () => {
             resolve(false);
             return false;
           },
-          confirmLabel: "Update",
+          confirmLabel: "Go to Update view",
           cancelLabel: "Skip this version",
         }
       );
