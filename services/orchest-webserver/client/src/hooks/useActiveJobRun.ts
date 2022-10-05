@@ -25,7 +25,5 @@ export const useActiveJobRun = () => {
     cancelRun,
     error,
     isFetching: status === "PENDING",
-    isCancelable:
-      activeRun?.status === "STARTED" || activeRun?.status === "PENDING",
   };
 };
