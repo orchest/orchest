@@ -4,10 +4,10 @@ import { useInteractiveRunsContext } from "./contexts/InteractiveRunsContext";
 import { ExecutionState, getStateText, StepStatus } from "./PipelineStep";
 
 export const StepExecutionState = ({ stepUuid }: { stepUuid: string }) => {
-  const { stepExecutionState } = useInteractiveRunsContext();
+  const { stepRunStates } = useInteractiveRunsContext();
 
-  const executionState = stepExecutionState
-    ? stepExecutionState[stepUuid] || { status: "IDLE" }
+  const executionState = stepRunStates
+    ? stepRunStates[stepUuid] || { status: "IDLE" }
     : { status: "IDLE" };
 
   const stateText = getStateText(executionState as ExecutionState);

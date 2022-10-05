@@ -1,10 +1,9 @@
 import { jobRunsApi } from "@/api/job-runs/jobRunsApi";
+import { pipelineRunsApi } from "@/api/pipeline-runs/pipelineRunsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { OrchestSession } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import { RunStepsType, useInteractiveRuns } from "../hooks/useInteractiveRuns";
 import { usePipelineDataContext } from "./PipelineDataContext";
@@ -43,7 +42,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
   const isSessionRunning = session?.status === "RUNNING";
 
   const {
-    stepExecutionState,
+    stepRunStates,
     displayedPipelineStatus,
     setDisplayedPipelineStatus,
     executeRun,
@@ -76,19 +75,16 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
             return true;
           }
         );
-        return;
-      }
-
-      try {
-        setDisplayedPipelineStatus("CANCELING");
-        await fetcher(`${PIPELINE_RUN_STATUS_ENDPOINT}/${runUuid}`, {
-          method: "DELETE",
-        });
-      } catch (error) {
-        setAlert(
-          "Error",
-          `Could not cancel pipeline run for runUuid ${runUuid}`
-        );
+      } else if (runUuid) {
+        try {
+          setDisplayedPipelineStatus("CANCELING");
+          await pipelineRunsApi.cancel(runUuid);
+        } catch (error) {
+          setAlert(
+            "Error",
+            `Could not cancel pipeline run for runUuid ${runUuid}`
+          );
+        }
       }
     },
     [setAlert, setConfirm, setDisplayedPipelineStatus, displayedPipelineStatus]
@@ -118,7 +114,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
   return (
     <InteractiveRunsContext.Provider
       value={{
-        stepExecutionState,
+        stepRunStates,
         displayedPipelineStatus,
         setDisplayedPipelineStatus,
         executeRun,

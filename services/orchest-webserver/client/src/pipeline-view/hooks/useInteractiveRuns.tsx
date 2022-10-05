@@ -1,18 +1,15 @@
+import { pipelineRunsApi } from "@/api/pipeline-runs/pipelineRunsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { PipelineJson, PipelineRun } from "@/types";
-import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+import { PipelineJson } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import {
-  PIPELINE_JOBS_STATUS_ENDPOINT,
-  PIPELINE_RUN_STATUS_ENDPOINT,
-} from "../common";
-import {
-  convertStepsToObject,
+  createStepRunStates,
   isPipelineIdling,
   isPipelineRunning,
-  useStepExecutionState,
-} from "./useStepExecutionState";
+  usePollPipelineRunStatus,
+} from "./usePollRunStatus";
 
 export type RunStepsType = "selection" | "incoming";
 
@@ -40,17 +37,11 @@ export const useInteractiveRuns = ({
     DisplayedPipelineStatus
   >("IDLING");
 
-  const runStatusEndpoint = jobUuid
-    ? `${PIPELINE_JOBS_STATUS_ENDPOINT}/${jobUuid}`
-    : PIPELINE_RUN_STATUS_ENDPOINT;
-
   const {
     runStatus,
-    stepExecutionState,
-    setStepExecutionState,
-  } = useStepExecutionState(
-    runUuid ? `${runStatusEndpoint}/${runUuid}` : undefined
-  );
+    stepRunStates,
+    setStepRunStates,
+  } = usePollPipelineRunStatus(jobUuid, runUuid);
 
   React.useEffect(() => {
     if (!hasValue(runStatus)) return;
@@ -67,25 +58,19 @@ export const useInteractiveRuns = ({
 
   const executePipelineSteps = React.useCallback(
     async (uuids: string[], type: RunStepsType) => {
-      if (!pipelineJson) return;
-      try {
-        const result = await fetcher<PipelineRun>(
-          PIPELINE_RUN_STATUS_ENDPOINT,
-          {
-            method: "POST",
-            headers: HEADER.JSON,
-            body: JSON.stringify({
-              uuids: uuids,
-              project_uuid: projectUuid,
-              run_type: type,
-              pipeline_definition: pipelineJson,
-            }),
-          }
-        );
+      if (!pipelineJson || !projectUuid) return;
 
-        setStepExecutionState((current) => ({
+      try {
+        const result = await pipelineRunsApi.runSteps({
+          projectUuid,
+          stepUuids: uuids,
+          pipelineDefinition: pipelineJson,
+          type,
+        });
+
+        setStepRunStates((current) => ({
           ...current,
-          ...convertStepsToObject(result),
+          ...createStepRunStates(result),
         }));
         setRunUuid(result.uuid);
         return true;
@@ -97,7 +82,7 @@ export const useInteractiveRuns = ({
         return false;
       }
     },
-    [projectUuid, setStepExecutionState, setAlert, pipelineJson, setRunUuid]
+    [pipelineJson, projectUuid, setStepRunStates, setRunUuid, setAlert]
   );
 
   const executeRun = React.useCallback(
@@ -122,7 +107,7 @@ export const useInteractiveRuns = ({
   );
 
   return {
-    stepExecutionState,
+    stepRunStates,
     displayedPipelineStatus,
     setDisplayedPipelineStatus,
     executeRun,
