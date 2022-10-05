@@ -41,7 +41,7 @@ export const isPipelineRunning = (runStatus?: PipelineRunStatus) =>
 export const isPipelineIdling = (runStatus?: PipelineRunStatus) =>
   hasValue(runStatus) && PIPELINE_IDLING_STATES.includes(runStatus);
 
-const STATUS_POLL_FREQUENCY = 500;
+const STATUS_POLL_FREQUENCY = 1000;
 
 /**
  * A poller hook that checks status of
