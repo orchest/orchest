@@ -336,9 +336,7 @@ def schedule_job_runs(app, task_uuid: str) -> None:
                     "schedule",
                     "next_scheduled_time",
                 )
-            )
-            # Ignore drafts.
-            .filter(models.Job.status != "DRAFT")
+            ).filter(models.Job.status.in_(["PENDING", "STARTED"]))
             # Filter out jobs that do not have to run anymore.
             .filter(models.Job.next_scheduled_time.isnot(None))
             # Jobs which have next_scheduled_time before now need to to

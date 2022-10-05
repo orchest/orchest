@@ -1003,6 +1003,8 @@ class AbortJob(TwoPhaseFunction):
         self.collateral_kwargs["job_uuid"] = job_uuid
         self.collateral_kwargs["project_uuid"] = None
 
+        # Can't lock for update with a joinedload.
+        models.Job.query.with_for_update().filter_by(uuid=job_uuid).one_or_none()
         job = (
             models.Job.query.options(joinedload(models.Job.pipeline_runs))
             .filter_by(uuid=job_uuid)
