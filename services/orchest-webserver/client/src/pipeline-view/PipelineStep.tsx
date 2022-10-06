@@ -1,4 +1,5 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { StepRunState } from "@/hooks/useActivePipelineRun";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
@@ -18,7 +19,6 @@ import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { getFilePathRelativeToPipeline } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
-import { StepRunState } from "./hooks/useActivePipelineRun";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 import { usePipelineViewportContextMenu } from "./pipeline-viewport/PipelineViewportContextMenu";
