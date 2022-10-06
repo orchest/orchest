@@ -5,7 +5,7 @@ import os
 import time
 from asyncio import subprocess
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import aiodocker
 
@@ -23,6 +23,17 @@ class ImagePushError(Exception):
 
 class ImagePullError(Exception):
     ...
+
+
+def _failed_to_reach_registry(aiodocker_resp=Iterable[Dict[str, Any]]) -> bool:
+    for item in aiodocker_resp:
+        if isinstance(item, dict) and (
+            # Both cases have been observed.
+            "deadline exceeded" in item.get("error", "").lower()
+            or "timeout exceeded" in item.get("error", "").lower()
+        ):
+            return True
+    return False
 
 
 class ContainerRuntime(object):
@@ -156,10 +167,16 @@ class ContainerRuntime(object):
                 # e.status (status code) will be 500 for different
                 # failures , so we resort to partially matching the
                 # message. The message will look like the following for
-                # the case we are interested in:
-                # 'get "<url>": x509: certificate signed by unknown
-                # authority.
-                if "certificate" in e.message.lower():
+                # the case we are interested in: 'get "<url>": x509:
+                # certificate signed by unknown authority.
+                if (
+                    "certificate" in e.message.lower()
+                    or
+                    # Happens on docker for desktop where the container
+                    # runtime can't get in touch with the registry
+                    # service through its ip.
+                    "timeout exceeded" in e.message.lower()
+                ):
                     result = await self._pull_image_for_docker_with_buildah(image_name)
             finally:
                 self._curr_pulling_imgs.remove(image_name)
@@ -249,7 +266,17 @@ class ContainerRuntime(object):
         self.logger.debug(f"Pushing: '{image_name}'")
         if self.container_runtime == RuntimeType.Docker:
             try:
-                await self.aclient.images.push(name=image_name)
+                aiodocker_resp = await self.aclient.images.push(name=image_name)
+                # Happens on docker for desktop where the container
+                # runtime can't get in touch with the registry service
+                # through its ip.
+                if _failed_to_reach_registry(aiodocker_resp):
+                    self.logger.warning(
+                        "Failed to reach the registry, trying push through buildah."
+                    )
+                    success = await self._push_image_for_docker_with_buildah(image_name)
+                    if not success:
+                        raise ImagePushError(str(aiodocker_resp))
             except aiodocker.DockerError as e:
                 success = False
                 # e.status (status code) will be 500 for different

@@ -12,11 +12,9 @@ import json
 import logging
 import os
 import signal
-import subprocess
 import sys
 from logging.config import dictConfig
 from pprint import pformat
-from subprocess import Popen
 
 import requests
 import werkzeug
@@ -175,25 +173,7 @@ def create_app(to_migrate_db=False):
     register_socketio_broadcast(socketio)
     register_analytics_views(app, db)
 
-    processes = []
-
-    if (
-        os.environ.get("FLASK_ENV") != "development"
-        or _utils.is_running_from_reloader()
-    ):
-        file_dir = os.path.dirname(os.path.realpath(__file__))
-
-        # log_streamer process
-        log_streamer_process = Popen(
-            ["python3", "-m", "scripts.log_streamer"],
-            cwd=os.path.join(file_dir, ".."),
-            stderr=subprocess.STDOUT,
-        )
-
-        app.logger.info("Started log_streamer.py")
-        processes.append(log_streamer_process)
-
-    return app, socketio, processes
+    return app, socketio, []
 
 
 def init_logging():
