@@ -57,7 +57,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
     setDisplayStatus("CANCELING");
 
     if (isJobRun()) {
-      await cancelJobRun();
+      cancelJobRun();
     } else {
       await cancel().catch((error) =>
         setAlert(
