@@ -1,4 +1,4 @@
-package orchestcomponent
+package components
 
 import (
 	"context"
@@ -17,9 +17,10 @@ import (
 
 var (
 	DeletePropagationForeground = metav1.DeletionPropagation("Foreground")
+	OrchestComponentKind        = orchestv1alpha1.SchemeGroupVersion.WithKind("OrchestComponent")
 )
 
-func getServiceManifest(metadata metav1.ObjectMeta,
+func GetServiceManifest(metadata metav1.ObjectMeta,
 	matchLabels map[string]string, port int,
 	component *orchestv1alpha1.OrchestComponent) *corev1.Service {
 
@@ -41,7 +42,7 @@ func getServiceManifest(metadata metav1.ObjectMeta,
 	return service
 }
 
-func getDevVolumes(service string, mountApp, mountClient, mountInternalLib bool) ([]corev1.Volume, []corev1.VolumeMount) {
+func GetDevVolumes(service string, mountApp, mountClient, mountInternalLib bool) ([]corev1.Volume, []corev1.VolumeMount) {
 
 	volumeType := corev1.HostPathDirectoryOrCreate
 
@@ -98,7 +99,7 @@ func getDevVolumes(service string, mountApp, mountClient, mountInternalLib bool)
 	return volumes, volumeMounts
 }
 
-func detectIngressClass(ctx context.Context, client kubernetes.Interface) (string, error) {
+func DetectIngressClass(ctx context.Context, client kubernetes.Interface) (string, error) {
 
 	// Detect ingress class name
 	ingressClasses, err := client.NetworkingV1().IngressClasses().List(ctx, metav1.ListOptions{})
@@ -116,7 +117,7 @@ func detectIngressClass(ctx context.Context, client kubernetes.Interface) (strin
 
 }
 
-func getIngressManifest(metadata metav1.ObjectMeta, path, ingressClass string,
+func GetIngressManifest(metadata metav1.ObjectMeta, path, ingressClass string,
 	enableAuth, enableSignin bool, component *orchestv1alpha1.OrchestComponent) *netsv1.Ingress {
 
 	ingressMeta := *metadata.DeepCopy()
@@ -172,15 +173,15 @@ func getIngressManifest(metadata metav1.ObjectMeta, path, ingressClass string,
 	return ingress
 }
 
-func isDeploymentUpdated(newDep *appsv1.Deployment, oldDep *appsv1.Deployment) bool {
+func IsDeploymentUpdated(newDep *appsv1.Deployment, oldDep *appsv1.Deployment) bool {
 	if oldHash, _ := oldDep.Labels[controller.DeploymentHashLabelKey]; oldHash == utils.ComputeHash(&newDep.Spec) {
 		return true
 	}
 	return false
 }
 
-// isServiceReady aims to check if the service is reachable or not
-func isServiceReady(ctx context.Context, client kubernetes.Interface, service *corev1.Service) bool {
+// IsServiceReady aims to check if the service is reachable or not
+func IsServiceReady(ctx context.Context, client kubernetes.Interface, service *corev1.Service) bool {
 	ep, err := client.CoreV1().Endpoints(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
 	if err != nil || len(ep.Subsets) == 0 {
 		return false
@@ -189,17 +190,17 @@ func isServiceReady(ctx context.Context, client kubernetes.Interface, service *c
 	return true
 }
 
-// isDeploymentReady checks if the number of required replicas is equal to number of created replicas
-func isDeploymentReady(dep *appsv1.Deployment) bool {
+// IsDeploymentReady checks if the number of required replicas is equal to number of created replicas
+func IsDeploymentReady(dep *appsv1.Deployment) bool {
 	return dep.Spec.Replicas != nil && *dep.Spec.Replicas == dep.Status.ReadyReplicas
 }
 
-// isIngressReady checks fore readiness of the ingress
-func isIngressReady(ing *netsv1.Ingress) bool {
+// IsIngressReady checks fore readiness of the ingress
+func IsIngressReady(ing *netsv1.Ingress) bool {
 	return len(ing.Status.LoadBalancer.Ingress) > 0
 }
 
-func isDevelopmentEnabled(envMap map[string]string) bool {
+func IsDevelopmentEnabled(envMap map[string]string) bool {
 	value, ok := envMap["FLASK_ENV"]
 	if ok && value == "development" {
 		return true
