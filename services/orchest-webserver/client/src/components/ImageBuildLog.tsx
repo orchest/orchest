@@ -50,20 +50,20 @@ export const ImageBuildLog = ({
   const socket = useSocketIO(socketIONamespace);
   const socketEventListener = React.useCallback(
     (data: { action: string; identity: string; output?: string }) => {
-      if (!streamIdentity) return;
-      if (data.identity === streamIdentity) {
-        if (data["action"] == "sio_streamed_task_started") {
-          xtermRef.current?.terminal.reset();
-        }
+      if (!streamIdentity || data.identity !== streamIdentity) return;
 
-        const shouldPrint = [
-          "sio_streamed_task_output",
-          "sio_streamed_task_buffer",
-        ].includes(data.action);
+      if (data["action"] == "sio_streamed_task_started") {
+        xtermRef.current?.terminal.reset();
+        return;
+      }
 
-        if (shouldPrint) {
-          printLogs(data.output);
-        }
+      const shouldPrintLogs = [
+        "sio_streamed_task_output",
+        "sio_streamed_task_buffer",
+      ].includes(data.action);
+
+      if (shouldPrintLogs) {
+        printLogs(data.output);
       }
     },
     [streamIdentity, printLogs]
