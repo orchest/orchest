@@ -148,7 +148,7 @@ func NewOrchestComponentController(kClient kubernetes.Interface,
 	occ.Controller = ctrl
 
 	// Init reconcilers
-	occ.reconcilers[controller.OrchestDatabase] = NewOrchestDatabaseReconciler(&occ)
+	//occ.reconcilers[controller.OrchestDatabase] = NewOrchestDatabaseReconciler(&occ)
 	occ.reconcilers[controller.OrchestApi] = NewOrchestApiReconciler(&occ)
 	occ.reconcilers[controller.Rabbitmq] = NewRabbitmqServerReconciler(&occ)
 	occ.reconcilers[controller.CeleryWorker] = NewCeleryWorkerReconciler(&occ)
