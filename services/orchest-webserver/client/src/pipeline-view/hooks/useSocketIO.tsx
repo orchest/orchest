@@ -41,15 +41,13 @@ const useSocketIOStore = create<SocketIO>((set) => ({
 
 export const useSocketIO = (namespace: string | undefined) => {
   const init = useSocketIOStore((state) => state.init);
-  const disconnect = useSocketIOStore((state) => state.disconnect);
   const socket = useSocketIOStore((state) =>
     namespace ? state.sockets[namespace] : undefined
   );
 
   React.useEffect(() => {
-    init(namespace);
-    return () => disconnect(namespace);
-  }, [init, namespace, disconnect]);
+    if (namespace) init(namespace);
+  }, [init, namespace]);
 
   return socket;
 };

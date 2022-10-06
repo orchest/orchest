@@ -62,6 +62,7 @@ export const ImageBuildLog = ({
     [streamIdentity]
   );
   React.useEffect(() => {
+    socket?.emit("logs");
     socket?.on("sio_streamed_task_data", socketEventListener);
     return () => {
       socket?.off("sio_streamed_task_data", socketEventListener);
