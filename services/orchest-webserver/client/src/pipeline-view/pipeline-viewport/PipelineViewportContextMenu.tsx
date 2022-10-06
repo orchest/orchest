@@ -9,11 +9,11 @@ import { subtractPoints } from "@/utils/geometry";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { SCALE_UNIT, useCanvasScaling } from "../contexts/CanvasScalingContext";
-import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useDeleteSteps } from "../hooks/useDeleteSteps";
+import { useInteractiveRuns } from "../hooks/useInteractiveRuns";
 import { useOpenFile } from "../hooks/useOpenFile";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
@@ -32,7 +32,7 @@ export const PipelineViewportContextMenu = () => {
     autoLayoutPipeline,
     uiStateDispatch,
   } = usePipelineUiStateContext();
-  const { startRun } = useInteractiveRunsContext();
+  const { startRun } = useInteractiveRuns();
   const { centerView, zoomBy } = usePipelineCanvasContext();
 
   const { deleteSelectedSteps } = useDeleteSteps();

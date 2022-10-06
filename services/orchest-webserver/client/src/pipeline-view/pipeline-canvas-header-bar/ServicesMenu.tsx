@@ -1,16 +1,17 @@
 import ArrowDropDownOutlinedIcon from "@mui/icons-material/ArrowDropDownOutlined";
 import Button from "@mui/material/Button";
 import React from "react";
-import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
+import { useInteractiveRuns } from "../hooks/useInteractiveRuns";
 import { ServicesMenuComponent } from "./ServicesMenuComponent";
 import { useServices } from "./useServices";
 
 export const ServicesMenu = () => {
-  const { displayStatus } = useInteractiveRunsContext();
+  const { displayStatus } = useInteractiveRuns();
   const servicesButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const { anchor, services, showServices, hideServices } = useServices(
     displayStatus === "RUNNING"
   );
+
   return (
     <>
       <Button

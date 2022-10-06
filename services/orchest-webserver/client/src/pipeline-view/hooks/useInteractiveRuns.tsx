@@ -6,9 +6,9 @@ import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
 import { useCancelJobRun } from "@/hooks/useCancelJobRun";
 import { OrchestSession } from "@/types";
 import React from "react";
-import { useAutoStartSession } from "../hooks/useAutoStartSession";
-import { usePipelineRuns } from "../hooks/usePipelineRuns";
-import { usePipelineDataContext } from "./PipelineDataContext";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useAutoStartSession } from "./useAutoStartSession";
+import { usePipelineRuns } from "./usePipelineRuns";
 
 export type InteractiveRunsContextType = ReturnType<typeof usePipelineRuns> & {
   cancelRun: ({
@@ -26,10 +26,7 @@ export const InteractiveRunsContext = React.createContext<
   InteractiveRunsContextType
 >({} as InteractiveRunsContextType);
 
-export const useInteractiveRunsContext = () =>
-  React.useContext(InteractiveRunsContext);
-
-export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
+export const useInteractiveRuns = () => {
   const { setConfirm, setAlert } = useGlobalContext();
   const { pipelineJson } = usePipelineDataContext();
   const { session, startSession } = useAutoStartSession();
@@ -96,19 +93,13 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
     [startRun, setConfirm, startSession, isSessionRunning, pipelineJson]
   );
 
-  return (
-    <InteractiveRunsContext.Provider
-      value={{
-        stepRunStates,
-        displayStatus: displayStatus,
-        setDisplayStatus: setDisplayStatus,
-        startRun: startRun,
-        cancelRun,
-        runSteps,
-        session,
-      }}
-    >
-      {children}
-    </InteractiveRunsContext.Provider>
-  );
+  return {
+    stepRunStates,
+    displayStatus,
+    setDisplayStatus,
+    startRun,
+    cancelRun,
+    runSteps,
+    session,
+  };
 };
