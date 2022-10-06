@@ -54,18 +54,17 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
       return;
     }
 
+    setDisplayStatus("CANCELING");
+
     if (isJobRun()) {
       await cancelJobRun();
     } else {
-      try {
-        setDisplayStatus("CANCELING");
-        await cancel();
-      } catch (error) {
+      await cancel().catch((error) =>
         setAlert(
           "Failed to cancel pipeline run",
           <ErrorSummary error={error} />
-        );
-      }
+        )
+      );
     }
   }, [
     displayStatus,
