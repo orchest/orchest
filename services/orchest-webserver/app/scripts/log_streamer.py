@@ -282,7 +282,7 @@ def main():
     sio = socketio.Client()
     logging.getLogger("engineio").setLevel(logging.ERROR)
 
-    sio.connect("http://localhost", namespaces=["/pty"])
+    sio.connect("http://localhost", namespaces=["/pty"], wait_timeout=3)
 
     @sio.on("connect", namespace="/pty")
     def on_connect():
