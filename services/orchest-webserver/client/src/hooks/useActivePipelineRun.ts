@@ -141,7 +141,15 @@ export const createStepRunStates = (run: PipelineRun) =>
         started_time: serverTimeToDate(step.started_time),
         finished_time: serverTimeToDate(step.finished_time),
         server_time: serverTimeToDate(run.server_time),
-        status: run.status === "ABORTED" ? "ABORTED" : step.status,
+        status:
+          run.status === "ABORTED"
+            ? hasStepRunEnded(step.status)
+              ? step.status
+              : "ABORTED"
+            : step.status,
       },
     ])
   );
+
+const hasStepRunEnded = (status: PipelineStepStatus) =>
+  status === "FAILURE" || status === "SUCCESS";
