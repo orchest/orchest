@@ -49,8 +49,12 @@ func (w *Watcher[WatchObject, ControllerObject]) AddObject(obj interface{}) {
 	}
 
 	// If it has an orchest owner annotation, we process it.
-	if ownerKey, ok := accessor.GetAnnotations()[OwnerLabelKey]; ok {
-		w.Enqueue(ownerKey)
+	if owner, ok := accessor.GetLabels()[OwnerLabelKey]; ok {
+		if owner == w.name {
+			key := accessor.GetNamespace() + "/" + owner
+			w.EnqueueKey(key)
+		}
+		return
 	}
 
 	// If it has a ControllerRef, we should process it.
@@ -122,6 +126,15 @@ func (w *Watcher[WatchObject, ControllerObject]) DeleteObject(obj interface{}) {
 
 	if w.controllerWatcher {
 		w.Enqueue(typedObj)
+		return
+	}
+
+	// If it has an orchest owner annotation, we process it.
+	if owner, ok := typedObj.GetLabels()[OwnerLabelKey]; ok {
+		if owner == w.name {
+			key := typedObj.GetNamespace() + "/" + owner
+			w.EnqueueKey(key)
+		}
 		return
 	}
 
