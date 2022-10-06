@@ -128,7 +128,7 @@ async def _push_image(
             try:
                 image = await queue.get()
                 logger.info("Pushing image to the registry.")
-                # Note: the name already incudes the registry.
+                # Note: the name already includes the registry.
                 await container_runtime.push_image(image)
 
                 logger.info("Notifying the `orchest-api` of the push.")
@@ -144,7 +144,9 @@ async def run(interval: int = 10, threadiness: int = 2) -> None:
     container_runtime = ContainerRuntime()
     logger.info("Starting image pusher.")
     try:
-        queue = asyncio.Queue()
+        # maxsize to avoid the queue being filled up with duplicate work
+        # and reduce pressure on the orchest-api when not needed.
+        queue = asyncio.Queue(maxsize=threadiness)
 
         get_images_task = asyncio.create_task(_queue_images_to_push(queue, interval))
         pushers = [

@@ -253,7 +253,10 @@ class ImagePuller(object):
     async def run(self):
         try:
             self.logger.info("Starting image puller.")
-            queue = asyncio.Queue()
+            # maxsize to avoid the queue being filled up with duplicate
+            # work and reduce pressure on the orchest-api when not
+            # needed.
+            queue = asyncio.Queue(maxsize=self.threadiness)
 
             get_images_task = asyncio.create_task(self.get_active_images_to_pull(queue))
             pullers = [
