@@ -56,5 +56,8 @@ export const prune = <T extends AnyRecord, R extends AnyRecord = T>(
 ) => Object.fromEntries(Object.entries(record).filter(predicate)) as R;
 
 /** Checks whether a record has the expected properties from another. */
-export const equalsShallow = (expected: AnyRecord, actual: AnyRecord) =>
-  Object.entries(expected).every(([prop, value]) => actual[prop] === value);
+export const equalsShallow = <T extends AnyRecord, A extends T>(
+  expected: T,
+  actual: A,
+  props = propsOf(expected)
+) => props.every((prop) => actual[prop] === expected[prop]);
