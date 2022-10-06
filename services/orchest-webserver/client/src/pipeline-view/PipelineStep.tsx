@@ -37,72 +37,49 @@ export const StepStatus = ({ value }: { value: string }) => {
   return stepStatusMapping[value];
 };
 
-const formatSeconds = (seconds: number) => {
-  // Hours, minutes and seconds
-  let hrs = ~~(seconds / 3600);
-  let mins = ~~((seconds % 3600) / 60);
-  let secs = ~~seconds % 60;
+const formatDuration = (start: Date, end: Date) =>
+  formatSeconds(Math.round((+end - +start) / 1000));
 
-  let ret = "";
-  if (hrs > 0) {
-    ret += hrs + "h ";
-  }
-  if (mins > 0) {
-    ret += mins + "m ";
-  }
-  ret += secs + "s";
-  return ret;
+const formatSeconds = (seconds: number) => {
+  const hrs = ~~(seconds / 3600);
+  const mins = ~~((seconds % 3600) / 60);
+  const secs = ~~seconds % 60;
+
+  let duration = "";
+
+  if (hrs > 0) duration += hrs + "h ";
+  if (mins > 0) duration += mins + "m ";
+
+  return duration + secs + "s";
 };
 
-export const getStateText = (executionState: StepRunState) => {
-  let stateText = "Ready";
+export const getStateText = ({
+  status,
+  started_time,
+  finished_time,
+  server_time,
+}: StepRunState) => {
+  const duration =
+    started_time && finished_time
+      ? ` (${formatDuration(started_time, finished_time)})`
+      : started_time && server_time
+      ? ` (${formatDuration(started_time, server_time)})`
+      : "";
 
-  if (
-    executionState.status === "SUCCESS" &&
-    executionState.started_time &&
-    executionState.finished_time
-  ) {
-    let seconds = Math.round(
-      (executionState.finished_time.getTime() -
-        executionState.started_time.getTime()) /
-        1000
-    );
-
-    stateText = "Completed (" + formatSeconds(seconds) + ")";
+  switch (status) {
+    case "SUCCESS":
+      return "Completed" + duration;
+    case "FAILURE":
+      return "Failure" + duration;
+    case "STARTED":
+      return "Running" + duration;
+    case "PENDING":
+      return "Pending";
+    case "ABORTED":
+      return "Canceled";
+    default:
+      return "Ready";
   }
-  if (executionState.status === "FAILURE") {
-    let seconds = 0;
-
-    if (executionState.started_time && executionState.finished_time) {
-      seconds = Math.round(
-        (executionState.finished_time.getTime() -
-          executionState.started_time.getTime()) /
-          1000
-      );
-    }
-
-    stateText = "Failure (" + formatSeconds(seconds) + ")";
-  }
-  if (executionState.status === "STARTED") {
-    let seconds = 0;
-
-    if (executionState.started_time && executionState.server_time) {
-      seconds = Math.round(
-        (executionState.server_time.getTime() -
-          executionState.started_time.getTime()) /
-          1000
-      );
-    }
-
-    stateText = "Running (" + formatSeconds(seconds) + ")";
-  }
-  if (executionState.status == "PENDING") {
-    stateText = "Pending";
-  }
-  if (executionState.status == "ABORTED") {
-    stateText = "Aborted";
-  }
-  return stateText;
 };
 
 type PipelineStepProps = {
