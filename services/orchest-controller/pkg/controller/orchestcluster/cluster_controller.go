@@ -184,11 +184,11 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	)
 
 	occ := OrchestClusterController{
-		oClient: oClient,
-		gClient: gClient,
-		scheme:  scheme,
-		config:  config,
-		k8sDistro:    k8sDistro,
+		oClient:   oClient,
+		gClient:   gClient,
+		scheme:    scheme,
+		config:    config,
+		k8sDistro: k8sDistro,
 		//addonManager:    addonManager,
 		orchestClusters: make(map[string]*OrchestStateMachine),
 	}
@@ -494,7 +494,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		ingressEnabled := false
 		applications := make([]orchestv1alpha1.ApplicationSpec, 0, 0)
 		for _, app := range copy.Spec.Applications {
-			if app.Name == addons.IngressNginx {
+			if app.Name == registry.IngressNginx {
 				ingressEnabled = true
 				continue
 			}
