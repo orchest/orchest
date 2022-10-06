@@ -1,16 +1,15 @@
-import { jobRunsApi } from "@/api/job-runs/jobRunsApi";
-import { pipelineRunsApi } from "@/api/pipeline-runs/pipelineRunsApi";
+import { RunStepsType } from "@/api/pipeline-runs/pipelineRunsApi";
+import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { OrchestSession } from "@/types";
 import React from "react";
+import { useActivePipelineRun } from "../hooks/useActivePipelineRun";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
-import { RunStepsType, useInteractiveRuns } from "../hooks/useInteractiveRuns";
+import { usePipelineRuns } from "../hooks/usePipelineRuns";
 import { usePipelineDataContext } from "./PipelineDataContext";
 
-export type InteractiveRunsContextType = ReturnType<
-  typeof useInteractiveRuns
-> & {
+export type InteractiveRunsContextType = ReturnType<typeof usePipelineRuns> & {
   cancelRun: ({
     jobUuid,
     runUuid,
@@ -31,64 +30,59 @@ export const useInteractiveRunsContext = () =>
 
 export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
   const { setConfirm, setAlert } = useGlobalContext();
-
-  const {
-    projectUuid,
-    pipelineJson,
-    runUuid,
-    setRunUuid,
-  } = usePipelineDataContext();
+  const { pipelineJson } = usePipelineDataContext();
   const { session, startSession } = useAutoStartSession();
+  const cancel = useActivePipelineRun((state) => state.cancel);
+  const isJobRun = useActivePipelineRun((state) => state.isJobRun);
   const isSessionRunning = session?.status === "RUNNING";
 
   const {
     stepRunStates,
-    displayedPipelineStatus,
-    setDisplayedPipelineStatus,
-    executeRun,
-  } = useInteractiveRuns({ projectUuid, runUuid, setRunUuid, pipelineJson });
+    displayStatus,
+    setDisplayStatus,
+    startRun,
+  } = usePipelineRuns(pipelineJson);
 
-  const cancelRun = React.useCallback(
-    async ({ jobUuid, runUuid }: { jobUuid?: string; runUuid?: string }) => {
-      if (displayedPipelineStatus === "IDLING") {
-        console.error("There is no pipeline running.");
-        return;
-      }
-      if (displayedPipelineStatus === "CANCELING") {
-        console.error("A cancelling run operation in progress.");
-        return;
-      }
-      // Double-check if user attempts to cancel a job run.
-      if (jobUuid && runUuid) {
-        setConfirm(
-          "Warning",
-          "Are you sure that you want to cancel this job run?",
-          async (resolve) => {
-            setDisplayedPipelineStatus("CANCELING");
-            try {
-              await jobRunsApi.cancel(jobUuid, runUuid);
-              resolve(true);
-            } catch (error) {
-              setAlert("Error", `Failed to cancel this job run.`);
-              resolve(false);
-            }
-            return true;
+  const cancelRun = React.useCallback(async () => {
+    if (displayStatus === "IDLING") {
+      console.error("There is no pipeline running.");
+      return;
+    } else if (displayStatus === "CANCELING") {
+      console.error("A cancelling run operation in progress.");
+      return;
+    }
+
+    if (isJobRun()) {
+      setConfirm(
+        "Warning",
+        "Are you sure that you want to cancel this job run?",
+        async (resolve) => {
+          setDisplayStatus("CANCELING");
+          try {
+            await cancel();
+            resolve(true);
+          } catch (error) {
+            setAlert(
+              "Failed to cancel job run",
+              <ErrorSummary error={error} />
+            );
+            resolve(false);
           }
-        );
-      } else if (runUuid) {
-        try {
-          setDisplayedPipelineStatus("CANCELING");
-          await pipelineRunsApi.cancel(runUuid);
-        } catch (error) {
-          setAlert(
-            "Error",
-            `Could not cancel pipeline run for runUuid ${runUuid}`
-          );
+          return true;
         }
+      );
+    } else {
+      try {
+        setDisplayStatus("CANCELING");
+        await cancel();
+      } catch (error) {
+        setAlert(
+          "Failed to cancel pipeline run",
+          <ErrorSummary error={error} />
+        );
       }
-    },
-    [setAlert, setConfirm, setDisplayedPipelineStatus, displayedPipelineStatus]
-  );
+    }
+  }, [displayStatus, isJobRun, setConfirm, setDisplayStatus, cancel, setAlert]);
 
   const runSteps = React.useCallback(
     (uuids: string[], type: RunStepsType) => {
@@ -106,18 +100,18 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
         return;
       }
 
-      executeRun(uuids, type);
+      startRun(uuids, type);
     },
-    [executeRun, setConfirm, startSession, isSessionRunning, pipelineJson]
+    [startRun, setConfirm, startSession, isSessionRunning, pipelineJson]
   );
 
   return (
     <InteractiveRunsContext.Provider
       value={{
         stepRunStates,
-        displayedPipelineStatus,
-        setDisplayedPipelineStatus,
-        executeRun,
+        displayStatus: displayStatus,
+        setDisplayStatus: setDisplayStatus,
+        startRun: startRun,
         cancelRun,
         runSteps,
         session,

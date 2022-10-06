@@ -32,7 +32,7 @@ export const PipelineViewportContextMenu = () => {
     autoLayoutPipeline,
     uiStateDispatch,
   } = usePipelineUiStateContext();
-  const { executeRun } = useInteractiveRunsContext();
+  const { startRun } = useInteractiveRunsContext();
   const { centerView, zoomBy } = usePipelineCanvasContext();
 
   const { deleteSelectedSteps } = useDeleteSteps();
@@ -82,7 +82,7 @@ export const PipelineViewportContextMenu = () => {
             title: "Run selected steps",
             disabled: isReadOnly || selectedSteps.length === 0,
             action: () => {
-              executeRun(selectedSteps, "selection");
+              startRun(selectedSteps, "selection");
             },
           },
           {
@@ -173,7 +173,7 @@ export const PipelineViewportContextMenu = () => {
             title: "Run this step",
             disabled: isReadOnly,
             action: () => {
-              executeRun([contextMenuUuid], "selection");
+              startRun([contextMenuUuid], "selection");
             },
           },
           {
@@ -185,7 +185,7 @@ export const PipelineViewportContextMenu = () => {
                 (uuid) => steps[uuid].incoming_connections.length === 0
               ),
             action: () => {
-              executeRun([contextMenuUuid], "incoming");
+              startRun([contextMenuUuid], "incoming");
             },
           },
         ];

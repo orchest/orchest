@@ -2,12 +2,7 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
-import {
-  Connection,
-  PipelineStepStatus,
-  StepMetaData,
-  StepState,
-} from "@/types";
+import { Connection, StepMetaData, StepState } from "@/types";
 import { Point2D } from "@/utils/geometry";
 import { getMouseDelta } from "@/utils/mouse";
 import Box from "@mui/material/Box";
@@ -23,19 +18,13 @@ import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { getFilePathRelativeToPipeline } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
+import { StepRunState } from "./hooks/useActivePipelineRun";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 import { usePipelineViewportContextMenu } from "./pipeline-viewport/PipelineViewportContextMenu";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
-
-export type ExecutionState = {
-  finished_time?: Date;
-  server_time?: Date;
-  started_time?: Date;
-  status: PipelineStepStatus;
-};
 
 const stepStatusMapping: Record<string, JSX.Element> = {
   SUCCESS: <span className="success">✓ </span>,
@@ -65,7 +54,7 @@ const formatSeconds = (seconds: number) => {
   return ret;
 };
 
-export const getStateText = (executionState: ExecutionState) => {
+export const getStateText = (executionState: StepRunState) => {
   let stateText = "Ready";
 
   if (
