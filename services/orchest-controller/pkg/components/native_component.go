@@ -2,6 +2,8 @@ package components
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
@@ -23,6 +25,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type command int
+
+const (
+	Update command = iota
+	Stop
+	Start
+	Delete
+)
+
+type NativeComponentReconciler interface {
+	Reconcile(context.Context, *orchestv1alpha1.OrchestComponent) error
+
+	Uninstall(context.Context, *orchestv1alpha1.OrchestComponent) (bool, error)
+}
+
+type componentState struct {
+	cmd       command
+	template  *orchestv1alpha1.OrchestComponentTemplate
+	eventChan chan registry.Event
+}
+
 type NativeComponent[Object client.Object] struct {
 	*controller.Controller[Object]
 
@@ -34,13 +57,17 @@ type NativeComponent[Object client.Object] struct {
 
 	scheme *runtime.Scheme
 
-	depLister appslister.DeploymentLister
+	componentsLock sync.RWMutex
+	// map of namespaces to the desired state of a component
+	componentStates map[string]*componentState
 
-	dsLister appslister.DaemonSetLister
+	DepLister appslister.DeploymentLister
 
-	svcLister corelister.ServiceLister
+	DsLister appslister.DaemonSetLister
 
-	ingLister netslister.IngressLister
+	SvcLister corelister.ServiceLister
+
+	IngLister netslister.IngressLister
 }
 
 func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{},
@@ -55,15 +82,16 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 	informerSyncedList := make([]cache.InformerSynced, 0)
 
 	ctrl := controller.NewController[Object](
-		fmt.Sprintf("Native component for %s", name),
+		name,
 		1,
 		client,
 		nil,
 	)
 
 	nativeComponent := &NativeComponent[Object]{
-		name:   name,
-		client: client,
+		name:            name,
+		client:          client,
+		componentStates: make(map[string]*componentState),
 	}
 
 	// Deployment event handlers
@@ -74,7 +102,7 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 		DeleteFunc: depWatcher.DeleteObject,
 	})
 	informerSyncedList = append(informerSyncedList, depInformer.Informer().HasSynced)
-	nativeComponent.depLister = depInformer.Lister()
+	nativeComponent.DepLister = depInformer.Lister()
 
 	// Service event handlers
 	svcWatcher := controller.NewControlleeWatcher[*corev1.Service](ctrl)
@@ -84,7 +112,7 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 		DeleteFunc: svcWatcher.DeleteObject,
 	})
 	informerSyncedList = append(informerSyncedList, svcInformer.Informer().HasSynced)
-	nativeComponent.svcLister = svcInformer.Lister()
+	nativeComponent.SvcLister = svcInformer.Lister()
 
 	// Daemonset event handlers
 	dsWatcher := controller.NewControlleeWatcher[*appsv1.DaemonSet](ctrl)
@@ -94,7 +122,7 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 		DeleteFunc: dsWatcher.DeleteObject,
 	})
 	informerSyncedList = append(informerSyncedList, dsInformer.Informer().HasSynced)
-	nativeComponent.dsLister = dsInformer.Lister()
+	nativeComponent.DsLister = dsInformer.Lister()
 
 	// Ingress event handlers
 	ingWatcher := controller.NewControlleeWatcher[*netsv1.Ingress](ctrl)
@@ -104,7 +132,7 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 		DeleteFunc: ingWatcher.DeleteObject,
 	})
 	informerSyncedList = append(informerSyncedList, ingInformer.Informer().HasSynced)
-	nativeComponent.ingLister = ingInformer.Lister()
+	nativeComponent.IngLister = ingInformer.Lister()
 
 	ctrl.InformerSyncedList = informerSyncedList
 
@@ -117,9 +145,46 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 	return nativeComponent
 }
 
-func (component *NativeComponent[Object]) syncHandler(ctx context.Context, key string) error {
+func (c *NativeComponent[Object]) syncHandler(ctx context.Context, key string) error {
 
-	klog.Infof("ffffffffffff %s name= %s", key, component.name)
+	startTime := time.Now()
+	klog.V(3).Infof("Started syncing %s: %s.", c.name, key)
+	defer func() {
+		klog.V(3).Infof("Finished syncing %s: %s. duration: (%v)", c.name, key, time.Since(startTime))
+	}()
+
+	namespace, _, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return err
+	}
+
+	c.componentsLock.RLock()
+	defer c.componentsLock.RUnlock()
+	componentState, ok := c.componentStates[namespace]
+	if !ok {
+		klog.V(2).Info("Component %s is not registered yet with component controller.", key)
+		return nil
+	}
+
+	defer func() {
+		if err == nil {
+			//componentState.eventChan <- registry.SuccessEvent{}
+		}
+	}()
+
+	switch componentState.cmd {
+	case Update:
+
+	case Stop:
+		fallthrough
+	case Start:
+		fallthrough
+	case Delete:
+		klog.Info("delete")
+	}
+
+	componentState.eventChan <- registry.LogEvent("Hello")
+
 	return nil
 }
 
@@ -141,7 +206,16 @@ func (c *NativeComponent[Object]) Update(ctx context.Context, namespace string,
 		return
 	}
 
-	component.Env = nil
+	c.componentsLock.Lock()
+	defer c.componentsLock.Unlock()
+	c.componentStates[namespace] = &componentState{
+		cmd:       Update,
+		eventChan: eventChan,
+		template:  component,
+	}
+
+	key := namespace + "/" + c.name
+	c.EnqueueKey(key)
 
 	klog.Infof("update is called, %s", c.name)
 
