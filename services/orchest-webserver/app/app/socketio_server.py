@@ -91,7 +91,7 @@ def register_build_listener(namespace, socketio):
 
                 # Send the entire buffer.
                 socketio.emit(
-                    "sio_streamed_task_buffer",
+                    "sio_streamed_task_data",
                     {
                         "identity": data["identity"],
                         "output": "".join(build_buffer.get(data["identity"], [])),
