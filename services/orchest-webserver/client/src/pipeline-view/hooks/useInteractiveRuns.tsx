@@ -4,27 +4,10 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
 import { useCancelJobRun } from "@/hooks/useCancelJobRun";
-import { OrchestSession } from "@/types";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useAutoStartSession } from "./useAutoStartSession";
 import { usePipelineRuns } from "./usePipelineRuns";
-
-export type InteractiveRunsContextType = ReturnType<typeof usePipelineRuns> & {
-  cancelRun: ({
-    jobUuid,
-    runUuid,
-  }: {
-    jobUuid?: string | undefined;
-    runUuid?: string | undefined;
-  }) => Promise<void>;
-  runSteps: (uuids: string[], type: RunStepsType) => void;
-  session: OrchestSession | undefined;
-};
-
-export const InteractiveRunsContext = React.createContext<
-  InteractiveRunsContextType
->({} as InteractiveRunsContextType);
 
 export const useInteractiveRuns = () => {
   const { setConfirm, setAlert } = useGlobalContext();
