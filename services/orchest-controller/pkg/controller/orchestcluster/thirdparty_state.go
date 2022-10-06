@@ -2,15 +2,9 @@ package orchestcluster
 
 import (
 	"context"
-	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
-)
-
-var (
-	deployTimeOut time.Duration = time.Second * 5
-	deployRetry                 = 5
 )
 
 type DeployThirdPartyState struct{}

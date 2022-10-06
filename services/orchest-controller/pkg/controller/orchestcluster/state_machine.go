@@ -15,6 +15,11 @@ import (
 	"k8s.io/klog/v2"
 )
 
+var (
+	deployTimeOut = time.Minute * 5
+	deployRetry   = 5
+)
+
 type StateHandler interface {
 	To(ctx context.Context, stateMachine *OrchestStateMachine)
 	Do(ctx context.Context, stateMachine *OrchestStateMachine, orchest *orchestv1alpha1.OrchestCluster) error
@@ -151,7 +156,7 @@ func (sm *OrchestStateMachine) Deploy(ctx context.Context, componentName string,
 		for {
 			select {
 			case event := <-responseChan:
-				klog.Info("received event for component ", componentName, event)
+				klog.V(2).Infof("received event for component %s, event= %s", componentName, event)
 				switch event.(type) {
 				case registry.LogEvent:
 					sm.responseChan <- &responseInfo{
@@ -170,7 +175,6 @@ func (sm *OrchestStateMachine) Deploy(ctx context.Context, componentName string,
 						retryCount:    retryCount,
 						responseEvent: event,
 					}
-					klog.Info("registry.ErrorEvent, registry.SuccessEvent ", componentName, event)
 					break loop
 				default:
 					sm.responseChan <- &responseInfo{
