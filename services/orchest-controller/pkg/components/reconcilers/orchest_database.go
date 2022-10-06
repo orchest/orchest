@@ -1,9 +1,10 @@
-package orchestcomponent
+package reconcilers
 
 import (
 	"context"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/components"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
@@ -11,26 +12,27 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type OrchestDatabaseReconciler struct {
-	*OrchestComponentController
+type OrchestDatabaseReconciler[Object client.Object] struct {
+	*components.NativeComponent[Object]
 }
 
-func NewOrchestDatabaseReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
-	return &OrchestDatabaseReconciler{
-		ctrl,
+func NewOrchestDatabaseReconciler[Object client.Object](component *components.NativeComponent[Object]) components.NativeComponentReconciler {
+	return &OrchestDatabaseReconciler[Object]{
+		component,
 	}
 }
 
-func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *OrchestDatabaseReconciler[Object]) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
 
 	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestDatabase, component)
-	metadata := controller.GetMetadata(controller.OrchestDatabase, hash, component, OrchestComponentKind)
+	metadata := controller.GetMetadata(controller.OrchestDatabase, hash, component, components.OrchestComponentKind)
 	newDep := getOrchestDatabaseDeployment(metadata, matchLabels, component)
 
-	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
+	oldDep, err := reconciler.DepLister.Deployments(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
@@ -40,16 +42,16 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 		return err
 	}
 
-	if !isDeploymentUpdated(newDep, oldDep) {
+	if !components.IsDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
 		reconciler.EnqueueAfter(component)
 		return err
 	}
 
-	svc, err := reconciler.svcLister.Services(component.Namespace).Get(component.Name)
+	svc, err := reconciler.SvcLister.Services(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			svc = getServiceManifest(metadata, matchLabels, 5432, component)
+			svc = components.GetServiceManifest(metadata, matchLabels, 5432, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
 			return err
@@ -57,16 +59,17 @@ func (reconciler *OrchestDatabaseReconciler) Reconcile(ctx context.Context, comp
 		return err
 	}
 
-	if isServiceReady(ctx, reconciler.Client(), svc) && isDeploymentReady(oldDep) {
-		return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
+	if components.IsServiceReady(ctx, reconciler.Client(), svc) && components.IsDeploymentReady(oldDep) {
+		return nil
+		//return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
 	}
 
 	return nil
 }
 
-func (reconciler *OrchestDatabaseReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+func (reconciler *OrchestDatabaseReconciler[Object]) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{
-		PropagationPolicy: &DeletePropagationForeground,
+		PropagationPolicy: &components.DeletePropagationForeground,
 	})
 	if err != nil && !kerrors.IsNotFound(err) {
 		return false, err
