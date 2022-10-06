@@ -34,6 +34,13 @@ class OngoingPullForSameImage(ImagePullError):
 
 
 class ContainerRuntime(object):
+    """Class to interface the underlying container runtime.
+
+    This class is meant to be used by a single threaded async
+    application. Given the sets used to keep track of pushes and pulls
+    this class can't be used in a multi process/thread context.
+    """
+
     def __init__(self) -> None:
 
         self.container_runtime = RuntimeType(os.getenv("CONTAINER_RUNTIME"))
