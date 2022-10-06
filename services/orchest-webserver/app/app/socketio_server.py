@@ -87,6 +87,19 @@ def register_build_listener(namespace, socketio):
                     include_self=False,
                     namespace=namespace,
                 )
+            elif data["action"] == "sio_streamed_task_buffer_request":
+
+                # Send the entire buffer.
+                socketio.emit(
+                    "sio_streamed_task_buffer",
+                    {
+                        "identity": data["identity"],
+                        "output": "".join(build_buffer.get(data["identity"], [])),
+                        "action": "sio_streamed_task_buffer",
+                    },
+                    room=request.sid,
+                    namespace=namespace,
+                )
 
 
 def register_socketio_broadcast(socketio):
