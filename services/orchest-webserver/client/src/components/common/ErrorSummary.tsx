@@ -1,19 +1,24 @@
+import { extractErrorDetails } from "@/utils/error";
+import { ArrowRightSharp } from "@mui/icons-material";
+import { Collapse, Stack } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
 export type ErrorSummaryProps = {
+  /** Some error-like object, string, or similar. */
   error: unknown;
 };
 
 export const ErrorSummary = ({ error }: ErrorSummaryProps) => {
+  const [showDetails, setShowDetails] = React.useState(false);
   const { name, message, stack } = extractErrorDetails(error);
 
   return (
     <>
-      <Box marginBottom={2}>
-        <Typography variant="body2">
+      <Box>
+        <Typography variant="subtitle1">
           {name && (
             <strong>
               {name}
@@ -24,34 +29,32 @@ export const ErrorSummary = ({ error }: ErrorSummaryProps) => {
         </Typography>
       </Box>
       {stack && (
-        <Alert icon={false} color="error">
-          <pre>{stack}</pre>
-        </Alert>
+        <Box marginTop={4}>
+          <Stack
+            onClick={() => setShowDetails(!showDetails)}
+            direction="row"
+            justifyContent="flex-start"
+            alignItems="center"
+            sx={{ cursor: "pointer" }}
+          >
+            <ArrowRightSharp
+              color="action"
+              style={{
+                transition: "all 250ms ease-out",
+                transform: showDetails ? "rotateZ(90deg)" : undefined,
+              }}
+            />
+            <Typography color="text.secondary" variant="caption">
+              {showDetails ? "Collapse details" : "Expand details"}
+            </Typography>
+          </Stack>
+          <Collapse orientation="vertical" in={showDetails}>
+            <Alert icon={false} color="error" sx={{ marginTop: 2 }}>
+              <pre>{stack}</pre>
+            </Alert>
+          </Collapse>
+        </Box>
       )}
     </>
   );
-};
-
-export type ErrorDetails = {
-  name: string;
-  message?: string;
-  stack?: string;
-};
-
-const extractErrorDetails = (error: unknown): ErrorDetails => {
-  if (!error) {
-    return { name: "Unknown error" };
-  } else if (error instanceof Error) {
-    return error;
-  } else if (typeof error === "string") {
-    return { name: "Message", message: error };
-  } else if (typeof error === "object") {
-    return {
-      name: error["name"] ?? "Error",
-      message: error["message"] ?? undefined,
-      stack: error["stack"] ?? undefined,
-    };
-  } else {
-    return { name: "Error", message: String(error) };
-  }
 };
