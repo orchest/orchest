@@ -170,7 +170,7 @@ func getOrchestWebserverDeployment(metadata metav1.ObjectMeta,
 					Image:           image,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
+						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("20m")},
 					},
 					VolumeMounts: volumeMounts,
 				},
