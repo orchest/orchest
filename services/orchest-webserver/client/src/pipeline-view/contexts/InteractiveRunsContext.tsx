@@ -3,6 +3,7 @@ import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
+import { useCancelJobRun } from "@/hooks/useCancelJobRun";
 import { OrchestSession } from "@/types";
 import React from "react";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
@@ -33,6 +34,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
   const { pipelineJson } = usePipelineDataContext();
   const { session, startSession } = useAutoStartSession();
   const cancel = useActivePipelineRun((state) => state.cancel);
+  const cancelJobRun = useCancelJobRun(cancel);
   const isJobRun = useActivePipelineRun((state) => state.isJobRun);
   const isSessionRunning = session?.status === "RUNNING";
 
@@ -53,24 +55,7 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
     }
 
     if (isJobRun()) {
-      setConfirm(
-        "Warning",
-        "Are you sure that you want to cancel this job run?",
-        async (resolve) => {
-          setDisplayStatus("CANCELING");
-          try {
-            await cancel();
-            resolve(true);
-          } catch (error) {
-            setAlert(
-              "Failed to cancel job run",
-              <ErrorSummary error={error} />
-            );
-            resolve(false);
-          }
-          return true;
-        }
-      );
+      await cancelJobRun();
     } else {
       try {
         setDisplayStatus("CANCELING");
@@ -82,7 +67,14 @@ export const InteractiveRunsContextProvider: React.FC = ({ children }) => {
         );
       }
     }
-  }, [displayStatus, isJobRun, setConfirm, setDisplayStatus, cancel, setAlert]);
+  }, [
+    displayStatus,
+    isJobRun,
+    cancelJobRun,
+    setDisplayStatus,
+    cancel,
+    setAlert,
+  ]);
 
   const runSteps = React.useCallback(
     (uuids: string[], type: RunStepsType) => {
