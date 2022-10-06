@@ -43,7 +43,7 @@ async def get_environment_images_to_push(session: aiohttp.ClientSession) -> Set[
     async with session.get(endpoint) as response:
         response_json = await response.json()
         active_images = response_json["active_environment_images"]
-    logger.info(f"Found the following active env images to push: {active_images}")
+    logger.debug(f"Found the following active env images to push: {active_images}")
     return set(active_images)
 
 
@@ -57,7 +57,7 @@ async def get_jupyter_images_to_push(session: aiohttp.ClientSession) -> Set[str]
     async with session.get(endpoint) as response:
         response_json = await response.json()
         active_images = response_json["active_custom_jupyter_images"]
-    logger.info(
+    logger.debug(
         f"Found the following active custom jupyter images to push: {active_images}"
     )
     return set(active_images)

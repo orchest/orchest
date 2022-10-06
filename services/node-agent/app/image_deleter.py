@@ -50,7 +50,7 @@ async def get_active_environment_images(session: aiohttp.ClientSession) -> Set[s
     async with session.get(endpoint) as response:
         response_json = await response.json()
         active_images = response_json["active_environment_images"]
-    logger.info(f"Found the following active env images: {active_images}")
+    logger.debug(f"Found the following active env images: {active_images}")
     return set(active_images)
 
 
@@ -60,7 +60,7 @@ async def get_active_custom_jupyter_images(session: aiohttp.ClientSession) -> Se
     async with session.get(endpoint) as response:
         response_json = await response.json()
         active_custom_jupyter_images = response_json["active_custom_jupyter_images"]
-    logger.info(
+    logger.debug(
         "Found the following active jupyter custom images: "
         f"{active_custom_jupyter_images}"
     )
@@ -175,10 +175,11 @@ async def run():
                             ):
                                 env_images_to_remove_from_node.append(img)
                     env_images_to_remove_from_node.sort()
-                    logger.info(
-                        "Found the following inactive env images on the node: "
-                        f"{env_images_to_remove_from_node}, will be removed."
-                    )
+                    if env_images_to_remove_from_node:
+                        logger.info(
+                            "Found the following inactive env images on the node: "
+                            f"{env_images_to_remove_from_node}, will be removed."
+                        )
 
                     # Find inactive custom jupyter images on the node.
                     active_custom_jupyter_images = (
@@ -192,17 +193,18 @@ async def run():
                             if not await has_ongoing_jupyter_build(session):
                                 custom_jupyter_images_to_remove_from_node.append(img)
                     custom_jupyter_images_to_remove_from_node.sort()
-                    logger.info(
-                        "Found the following inactive custom jupyter images on the "
-                        f"node: {custom_jupyter_images_to_remove_from_node}, will be "
-                        "removed."
-                    )
+                    if custom_jupyter_images_to_remove_from_node:
+                        logger.info(
+                            "Found the following inactive custom jupyter images on the "
+                            f"node: {custom_jupyter_images_to_remove_from_node}, will "
+                            "be removed."
+                        )
 
                     # Find old orchest images on the node.
                     orchest_v = _get_orchest_version()
                     orchest_images_to_remove_from_node = []
                     if orchest_v is not None:
-                        logger.info(
+                        logger.debug(
                             "Looking for Orchest images which version differs from: "
                             f" {orchest_v}."
                         )
