@@ -1,12 +1,11 @@
 import { RunStepsType } from "@/api/pipeline-runs/pipelineRunsApi";
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useAsync } from "@/hooks/useAsync";
+import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
+import { useFetchActivePipelineRun } from "@/hooks/useFetchActivePipelineRun";
 import { PipelineJson } from "@/types";
 import { isPipelineIdling, isPipelineRunning } from "@/utils/pipeline";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useActivePipelineRun } from "./useActivePipelineRun";
 
 /**
  * This is a FE-only pipeline status mapping. The actual status from BE does not always fit from user's perspective.
@@ -25,16 +24,10 @@ export const usePipelineRuns = (pipelineDefinition?: PipelineJson) => {
     "IDLING"
   );
 
-  const fetchRun = useActivePipelineRun((state) => state.fetch);
-  const runStatus = useActivePipelineRun((state) => state.run?.status);
+  const activeRun = useFetchActivePipelineRun();
+  const runStatus = activeRun?.status;
   const stepRunStates = useActivePipelineRun((state) => state.stepStates);
   const runSteps = useActivePipelineRun((state) => state.runSteps);
-
-  const { run, status } = useAsync<void>();
-
-  if (!hasValue(runStatus) && status === "IDLE") {
-    run(fetchRun());
-  }
 
   React.useEffect(() => {
     if (isPipelineRunning(runStatus)) {

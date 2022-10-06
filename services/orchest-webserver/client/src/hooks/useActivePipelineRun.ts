@@ -117,8 +117,7 @@ export const useActivePipelineRun = create<ActiveRunApi>(
         const state = get();
         const runUuid = state.run?.uuid ?? state.runUuid;
 
-        if (!runUuid) return;
-        if (!isPipelineRunning(state.run?.status)) return;
+        if (!runUuid || !isPipelineRunning(state.run?.status)) return;
 
         if (state.jobUuid) {
           await jobRunsApi.cancel(state.jobUuid, runUuid);
