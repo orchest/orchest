@@ -148,14 +148,33 @@ class ContainerRuntime(object):
         Args:
             image_name: The name of the image to pull.
 
+        Raises:
+            OngoingPullForSameImage: If a pull for the same image is
+                already ongoing.
+
         Returns:
             True if the pull was successful, False otherwise.
 
         """
-        result = True
-        t0 = time.time()
+        if image_name in self._ongoing_pulls:
+            raise OngoingPullForSameImage()
+        self._ongoing_pulls.add(image_name)
 
-        self._curr_pulling_imgs.add(image_name)
+        t0 = time.time()
+        try:
+            result = await self._pull_image(image_name)
+        finally:
+            self._ongoing_pulls.remove(image_name)
+
+        t1 = time.time()
+        if result:
+            self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
+        return result
+
+    async def _pull_image(self, image_name: str) -> bool:
+
+        result = True
+
         if self.container_runtime == RuntimeType.Docker:
             try:
                 await self.aclient.images.pull(image_name)
@@ -169,20 +188,12 @@ class ContainerRuntime(object):
                 # authority.
                 if "certificate" in e.message.lower():
                     result = await self._pull_image_for_docker_with_buildah(image_name)
-            finally:
-                self._curr_pulling_imgs.remove(image_name)
         elif self.container_runtime == RuntimeType.Containerd:
             cmd = (
                 f"ctr -n k8s.io -a {self.container_runtime_socket} "
                 f"i pull {image_name} --skip-verify "
             )
             result, _, _ = await self.execute_cmd(cmd=cmd)
-
-        self._curr_pulling_imgs.remove(image_name)
-
-        t1 = time.time()
-        if result is True:
-            self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
 
         return result
 
