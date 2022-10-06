@@ -32,7 +32,9 @@ const runSteps = ({
   });
 
 const cancel = (runUuid: string) =>
-  fetcher(join(PIPELINE_RUN_STATUS_ENDPOINT, runUuid), { method: "DELETE" });
+  fetcher<void>(join(PIPELINE_RUN_STATUS_ENDPOINT, runUuid), {
+    method: "DELETE",
+  });
 
 export const fetchAll = (projectUuid: string, pipelineUuid: string) =>
   fetcher<{ runs: PipelineRun[] }>(
