@@ -19,7 +19,7 @@ import os
 from typing import Set
 
 import aiohttp
-from container_runtime import ContainerRuntime
+from container_runtime import ContainerRuntime, OngoingPushForSameImage
 
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
@@ -134,6 +134,8 @@ async def _push_image(
                 logger.info("Notifying the `orchest-api` of the push.")
                 await notify_orchest_api_of_registry_push(session, image)
 
+            except OngoingPushForSameImage:
+                logger.info(f"{image} is already being pushed, skipping task.")
             except Exception as e:
                 logger.error(f"Failed to push image, {e}.")
             finally:

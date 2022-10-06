@@ -25,6 +25,14 @@ class ImagePullError(Exception):
     ...
 
 
+class OngoingPushForSameImage(ImagePushError):
+    ...
+
+
+class OngoingPullForSameImage(ImagePullError):
+    ...
+
+
 class ContainerRuntime(object):
     def __init__(self) -> None:
 
@@ -33,9 +41,9 @@ class ContainerRuntime(object):
         self.logger = logging.getLogger("CONTAINER_RUNTIME_CLI")
         self.logger.setLevel(os.getenv("CONTAINER_RUNTIME_LOG_LEVEL", "INFO"))
 
-        # Container to make sure that images that are already being
-        # pulled are not pulled concurrently again.
-        self._curr_pulling_imgs = set()
+        # Avoid concurrent pushes/pulls of the same image.
+        self._ongoing_pushes = set()
+        self._ongoing_pulls = set()
 
         self._aclient: Optional[aiodocker.Docker] = None
 
@@ -246,6 +254,23 @@ class ContainerRuntime(object):
         return success
 
     async def push_image(self, image_name: str) -> None:
+        """Pushes an image.
+
+        Raises:
+            ImagePushError: If the image push failed.
+            OngoingPushForSameImage: If a push for the same image is
+                already ongoing.
+
+        """
+        if image_name in self._ongoing_pushes:
+            raise OngoingPushForSameImage()
+        self._ongoing_pushes.add(image_name)
+        try:
+            await self._push_image(image_name)
+        finally:
+            self._ongoing_pushes.remove(image_name)
+
+    async def _push_image(self, image_name: str) -> None:
         self.logger.debug(f"Pushing: '{image_name}'")
         if self.container_runtime == RuntimeType.Docker:
             try:
@@ -263,7 +288,6 @@ class ContainerRuntime(object):
 
                 if not success:
                     raise ImagePushError(str(e))
-
         elif self.container_runtime == RuntimeType.Containerd:
             cmd = (
                 f"ctr -n k8s.io -a {self.container_runtime_socket} "
