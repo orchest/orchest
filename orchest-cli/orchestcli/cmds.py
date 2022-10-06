@@ -23,7 +23,10 @@ import click
 import requests
 import yaml
 from kubernetes import client, config, stream
+from kubernetes.client.api_client import ApiClient
+from kubernetes.client.configuration import Configuration
 from orchestcli import utils
+from urllib3.util.retry import Retry
 
 # Only when running a type checker, e.g. mypy, would we do the following
 # imports. Apart from type checking these imports are not needed.
@@ -50,12 +53,27 @@ except Exception as e:
 
 ORCHEST_NAMESPACE = re.compile("(namespace: )([-a-z]+)")
 
-API_CLIENT = client.ApiClient()
-APPS_API = client.AppsV1Api()
-CORE_API = client.CoreV1Api()
-CUSTOM_OBJECT_API = client.CustomObjectsApi()
-EXT_API = client.ApiextensionsV1Api()
-RBAC_API = client.RbacAuthorizationV1Api()
+
+# Keep in sync with the one in
+# services/orchest-api/app/app/connections.py.
+def _get_k8s_api_client() -> ApiClient:
+    configuration = Configuration.get_default_copy()
+    _retry_strategy = Retry(
+        total=5,
+        backoff_factor=1,
+    )
+    # See urllib3 poolmanager.py usage of "retries".
+    configuration.retries = _retry_strategy
+    a = ApiClient(configuration=configuration)
+    return a
+
+
+API_CLIENT = _get_k8s_api_client()
+APPS_API = client.AppsV1Api(api_client=API_CLIENT)
+CORE_API = client.CoreV1Api(api_client=API_CLIENT)
+CUSTOM_OBJECT_API = client.CustomObjectsApi(api_client=API_CLIENT)
+EXT_API = client.ApiextensionsV1Api(api_client=API_CLIENT)
+RBAC_API = client.RbacAuthorizationV1Api(api_client=API_CLIENT)
 
 get_namespaced_custom_object = partial(
     CUSTOM_OBJECT_API.get_namespaced_custom_object,
