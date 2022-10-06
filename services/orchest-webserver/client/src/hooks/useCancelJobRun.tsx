@@ -9,8 +9,8 @@ export const useCancelJobRun = <F extends AnyAsyncFunction>(cancel: F) => {
   const { setAlert } = useGlobalContext();
 
   return useConfirm(
-    () =>
-      cancel().catch((error) =>
+    (...args: Parameters<F>) =>
+      cancel(...args).catch((error) =>
         setAlert("Failed to cancel job run", <ErrorSummary error={error} />)
       ),
     {
