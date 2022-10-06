@@ -19,7 +19,9 @@ func (state *DeployOrchestState) To(ctx context.Context, stateMachine *OrchestSt
 
 func (state *DeployOrchestState) Do(ctx context.Context, stateMachine *OrchestStateMachine, orchest *orchestv1alpha1.OrchestCluster) error {
 
-	for _, stage := range deploymentStages {
+	var i int
+	var stage []string
+	for i, stage = range deploymentStages {
 
 		deployedApps := 0
 		for _, component := range stage {
@@ -43,8 +45,12 @@ func (state *DeployOrchestState) Do(ctx context.Context, stateMachine *OrchestSt
 
 		// All components of this stage are not deployed yet, so we can not move to the next stage,
 		if deployedApps != len(stage) {
-			break
+			return nil
 		}
+	}
+
+	if i == len(deploymentStages)-1 {
+		stateMachine.toState(ctx, orchestv1alpha1.Running)
 	}
 	return nil
 }
