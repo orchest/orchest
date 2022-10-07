@@ -85,6 +85,23 @@ export const useActivePipelineRun = create<ActiveRunApi>(
       }
     });
 
+    const fetchBestPipelineRun = async () => {
+      const state = get();
+      const runUuid = state.run?.uuid ?? state.runUuid;
+
+      if (state.jobUuid && runUuid) {
+        return await jobRunsApi.fetchOne(state.jobUuid, runUuid);
+      } else if (runUuid) {
+        return await pipelineRunsApi.fetchOne(runUuid);
+      } else if (state.pipelineUuid) {
+        return await pipelineRunsApi
+          .fetchAll(state.projectUuid, state.pipelineUuid)
+          .then((runs) => runs[0]);
+      } else {
+        return undefined;
+      }
+    };
+
     return {
       run: undefined,
       stepStates: undefined,
@@ -97,20 +114,7 @@ export const useActivePipelineRun = create<ActiveRunApi>(
         });
       }),
       fetch: memoizeFor(900, async () => {
-        const state = get();
-        const runUuid = state.run?.uuid ?? state.runUuid;
-
-        if (state.jobUuid && runUuid) {
-          set({ run: await jobRunsApi.fetchOne(state.jobUuid, runUuid) });
-        } else if (runUuid) {
-          set({ run: await pipelineRunsApi.fetchOne(runUuid) });
-        } else if (state.pipelineUuid) {
-          set({
-            run: await pipelineRunsApi
-              .fetchAll(state.projectUuid, state.pipelineUuid)
-              .then((runs) => runs[0]),
-          });
-        }
+        set({ run: await fetchBestPipelineRun() });
       }),
       isJobRun: () => hasValue(get().jobUuid),
       cancel: async () => {
