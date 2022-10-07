@@ -49,7 +49,11 @@ export const ErrorSummary = ({ error }: ErrorSummaryProps) => {
             </Typography>
           </Stack>
           <Collapse orientation="vertical" in={showDetails}>
-            <Alert icon={false} color="error" sx={{ marginTop: 2 }}>
+            <Alert
+              icon={false}
+              color="error"
+              sx={{ marginTop: 2, maxHeight: "320px" }}
+            >
               <pre>{stack}</pre>
             </Alert>
           </Collapse>
