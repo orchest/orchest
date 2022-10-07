@@ -67,10 +67,16 @@ export const useActivePipelineRun = create<ActiveRunApi>(
     subscribe(function startPolling(state, prev) {
       if (state.run === prev.run) return;
 
-      window.clearTimeout(pollHandle);
+      window.clearInterval(pollHandle);
 
       if (isPipelineRunning(state.run?.status)) {
-        pollHandle = window.setTimeout(state.fetch, STATUS_POLL_FREQUENCY);
+        pollHandle = window.setInterval(state.fetch, STATUS_POLL_FREQUENCY);
+      }
+    });
+
+    subscribe(function stopPolling(state) {
+      if (!hasValue(state?.run) || !isPipelineRunning(state.run.status)) {
+        window.clearInterval(pollHandle);
       }
     });
 
