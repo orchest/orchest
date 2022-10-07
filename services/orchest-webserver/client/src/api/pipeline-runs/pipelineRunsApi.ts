@@ -36,14 +36,14 @@ const cancel = (runUuid: string) =>
     method: "DELETE",
   });
 
-export const fetchAll = (projectUuid: string, pipelineUuid: string) =>
+const fetchAll = (projectUuid: string, pipelineUuid: string) =>
   fetcher<{ runs: PipelineRun[] }>(
     PIPELINE_RUN_STATUS_ENDPOINT +
       "?" +
       queryArgs({ projectUuid, pipelineUuid })
   ).then((data) => data.runs);
 
-export const fetchOne = (runUuid: string) =>
+const fetchOne = (runUuid: string) =>
   fetcher<PipelineRun>(join(PIPELINE_RUN_STATUS_ENDPOINT, runUuid));
 
 export const pipelineRunsApi = {
