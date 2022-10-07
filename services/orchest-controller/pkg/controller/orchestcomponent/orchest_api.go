@@ -209,7 +209,7 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 					Env:          utils.GetEnvVarFromMap(envMap),
 					VolumeMounts: volumeMounts,
 					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
+						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("200m")},
 					},
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
