@@ -21,9 +21,11 @@ export type StepRunState = {
 /** Step run states by Step UUID. */
 export type StepRunStates = Record<string, StepRunState>;
 
+const additionalScopeProps = ["runUuid", "jobUuid", "pipelineUuid"] as const;
+
 const create = defineStoreScope({
   requires: ["projectUuid"],
-  additional: ["runUuid", "jobUuid", "pipelineUuid"],
+  additional: additionalScopeProps,
 });
 
 export type RunStepsQuery = Omit<StepStatusQuery, "projectUuid">;
@@ -51,8 +53,6 @@ export type ActiveRunApi = {
 
 const STATUS_POLL_FREQUENCY = 1000;
 
-const scopeProps = ["pipelineUuid", "runUuid", "jobUuid"] as const;
-
 /**
  * Allows fetching, canceling and monitoring of the active pipeline run.
  * Supports both Interactive Runs and Job Runs.
@@ -61,7 +61,7 @@ export const useActivePipelineRun = create<ActiveRunApi>(
   (set, get, { subscribe }) => {
     let pollHandle = -1;
 
-    subscribe((state, prev) => {
+    subscribe(function startPolling(state, prev) {
       if (state.run === prev.run) return;
 
       window.clearTimeout(pollHandle);
@@ -71,7 +71,7 @@ export const useActivePipelineRun = create<ActiveRunApi>(
       }
     });
 
-    subscribe((state, prev) => {
+    subscribe(function updateStepStates(state, prev) {
       if (hasValue(state.run) && state.run !== prev.run) {
         set({ stepStates: createStepRunStates(state.run) });
       } else if (hasValue(state.stepStates) && !state.run) {
@@ -79,8 +79,8 @@ export const useActivePipelineRun = create<ActiveRunApi>(
       }
     });
 
-    subscribe((state, prev) => {
-      if (!equalsShallow(state, prev, scopeProps)) {
+    subscribe(function clearRun(state, prev) {
+      if (!equalsShallow(state, prev, additionalScopeProps)) {
         set({ run: undefined });
       }
     });
