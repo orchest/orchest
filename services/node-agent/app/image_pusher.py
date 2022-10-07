@@ -19,7 +19,7 @@ import os
 from typing import Set
 
 import aiohttp
-from container_runtime import ContainerRuntime
+from container_runtime import ContainerRuntime, OngoingPushForSameImage
 
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
@@ -43,7 +43,7 @@ async def get_environment_images_to_push(session: aiohttp.ClientSession) -> Set[
     async with session.get(endpoint) as response:
         response_json = await response.json()
         active_images = response_json["active_environment_images"]
-    logger.info(f"Found the following active env images to push: {active_images}")
+    logger.debug(f"Found the following active env images to push: {active_images}")
     return set(active_images)
 
 
@@ -57,7 +57,7 @@ async def get_jupyter_images_to_push(session: aiohttp.ClientSession) -> Set[str]
     async with session.get(endpoint) as response:
         response_json = await response.json()
         active_images = response_json["active_custom_jupyter_images"]
-    logger.info(
+    logger.debug(
         f"Found the following active custom jupyter images to push: {active_images}"
     )
     return set(active_images)
@@ -128,12 +128,14 @@ async def _push_image(
             try:
                 image = await queue.get()
                 logger.info("Pushing image to the registry.")
-                # Note: the name already incudes the registry.
+                # Note: the name already includes the registry.
                 await container_runtime.push_image(image)
 
                 logger.info("Notifying the `orchest-api` of the push.")
                 await notify_orchest_api_of_registry_push(session, image)
 
+            except OngoingPushForSameImage:
+                logger.info(f"{image} is already being pushed, skipping task.")
             except Exception as e:
                 logger.error(f"Failed to push image, {e}.")
             finally:
@@ -144,7 +146,9 @@ async def run(interval: int = 10, threadiness: int = 2) -> None:
     container_runtime = ContainerRuntime()
     logger.info("Starting image pusher.")
     try:
-        queue = asyncio.Queue()
+        # maxsize to avoid the queue being filled up with duplicate work
+        # and reduce pressure on the orchest-api when not needed.
+        queue = asyncio.Queue(maxsize=threadiness)
 
         get_images_task = asyncio.create_task(_queue_images_to_push(queue, interval))
         pushers = [

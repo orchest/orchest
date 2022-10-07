@@ -36,16 +36,31 @@
      - Action
 
    * - :kbd:`Space` + click + drag
-     - Pan canvas*
+     - Pan canvas *
+
+   * - Scroll up/down
+     - Pan the canvas up/down *
+
+   * - Scroll left/right
+     - Pan the canvas left/right *
+
+   * - :kbd:`Shift` + scroll up/down
+     - Pan the canvas left/right *
+
+   * - :kbd:`Shift` + scroll left/right
+     - Pan the canvas up/down *
+
+   * - :kbd:`Ctrl` (or :kbd:`⌘`) + scroll up/down
+     - Zoom in/out *
 
    * - :kbd:`Ctrl` + click
      - Select multiple steps
 
    * - :kbd:`Ctrl` + :kbd:`A`
-     - Select all steps*
+     - Select all steps *
 
    * - :kbd:`Ctrl` + :kbd:`Enter`
-     - Run selected steps*
+     - Run selected steps *
 
    * - :kbd:`H`
      - Center view and reset zoom
@@ -60,4 +75,4 @@
      - Open file in JupyterLab
 ```
 
-\* Requires mouse to hover the canvas
+\* Requires mouse to hover the pipeline viewport

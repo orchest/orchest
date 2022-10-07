@@ -123,7 +123,7 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 					Image: image,
 					Env:   component.Spec.Template.Env,
 					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
+						Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("250m")},
 					},
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					VolumeMounts: []corev1.VolumeMount{

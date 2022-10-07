@@ -519,7 +519,7 @@ func isIngressAddonRequired(ctx context.Context, k8sDistro utils.KubernetesDistr
 	}
 
 	switch k8sDistro {
-	case utils.K3s, utils.EKS, utils.GKE:
+	case utils.K3s, utils.EKS, utils.GKE, utils.DockerDesktop:
 		return !isNginxIngressInstalled(ctx, client)
 	default:
 		return false

@@ -5,7 +5,7 @@ import os
 import time
 from asyncio import subprocess
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import aiodocker
 
@@ -25,7 +25,33 @@ class ImagePullError(Exception):
     ...
 
 
+class OngoingPushForSameImage(ImagePushError):
+    ...
+
+
+class OngoingPullForSameImage(ImagePullError):
+    ...
+
+
+def _failed_to_reach_registry(aiodocker_resp=Iterable[Dict[str, Any]]) -> bool:
+    for item in aiodocker_resp:
+        if isinstance(item, dict) and (
+            # Both cases have been observed.
+            "deadline exceeded" in item.get("error", "").lower()
+            or "timeout exceeded" in item.get("error", "").lower()
+        ):
+            return True
+    return False
+
+
 class ContainerRuntime(object):
+    """Class to interface the underlying container runtime.
+
+    This class is meant to be used by a single threaded async
+    application. Given the sets used to keep track of pushes and pulls
+    this class can't be used in a multi process/thread context.
+    """
+
     def __init__(self) -> None:
 
         self.container_runtime = RuntimeType(os.getenv("CONTAINER_RUNTIME"))
@@ -33,9 +59,9 @@ class ContainerRuntime(object):
         self.logger = logging.getLogger("CONTAINER_RUNTIME_CLI")
         self.logger.setLevel(os.getenv("CONTAINER_RUNTIME_LOG_LEVEL", "INFO"))
 
-        # Container to make sure that images that are already being
-        # pulled are not pulled concurrently again.
-        self._curr_pulling_imgs = set()
+        # Avoid concurrent pushes/pulls of the same image.
+        self._ongoing_pushes = set()
+        self._ongoing_pulls = set()
 
         self._aclient: Optional[aiodocker.Docker] = None
 
@@ -140,14 +166,33 @@ class ContainerRuntime(object):
         Args:
             image_name: The name of the image to pull.
 
+        Raises:
+            OngoingPullForSameImage: If a pull for the same image is
+                already ongoing.
+
         Returns:
             True if the pull was successful, False otherwise.
 
         """
-        result = True
-        t0 = time.time()
+        if image_name in self._ongoing_pulls:
+            raise OngoingPullForSameImage()
+        self._ongoing_pulls.add(image_name)
 
-        self._curr_pulling_imgs.add(image_name)
+        t0 = time.time()
+        try:
+            result = await self._pull_image(image_name)
+        finally:
+            self._ongoing_pulls.remove(image_name)
+
+        t1 = time.time()
+        if result:
+            self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
+        return result
+
+    async def _pull_image(self, image_name: str) -> bool:
+
+        result = True
+
         if self.container_runtime == RuntimeType.Docker:
             try:
                 await self.aclient.images.pull(image_name)
@@ -156,25 +201,23 @@ class ContainerRuntime(object):
                 # e.status (status code) will be 500 for different
                 # failures , so we resort to partially matching the
                 # message. The message will look like the following for
-                # the case we are interested in:
-                # 'get "<url>": x509: certificate signed by unknown
-                # authority.
-                if "certificate" in e.message.lower():
+                # the case we are interested in: 'get "<url>": x509:
+                # certificate signed by unknown authority.
+                if (
+                    "certificate" in e.message.lower()
+                    or
+                    # Happens on docker for desktop where the container
+                    # runtime can't get in touch with the registry
+                    # service through its ip.
+                    "timeout exceeded" in e.message.lower()
+                ):
                     result = await self._pull_image_for_docker_with_buildah(image_name)
-            finally:
-                self._curr_pulling_imgs.remove(image_name)
         elif self.container_runtime == RuntimeType.Containerd:
             cmd = (
                 f"ctr -n k8s.io -a {self.container_runtime_socket} "
                 f"i pull {image_name} --skip-verify "
             )
             result, _, _ = await self.execute_cmd(cmd=cmd)
-
-        self._curr_pulling_imgs.remove(image_name)
-
-        t1 = time.time()
-        if result is True:
-            self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
 
         return result
 
@@ -246,10 +289,37 @@ class ContainerRuntime(object):
         return success
 
     async def push_image(self, image_name: str) -> None:
+        """Pushes an image.
+
+        Raises:
+            ImagePushError: If the image push failed.
+            OngoingPushForSameImage: If a push for the same image is
+                already ongoing.
+
+        """
+        if image_name in self._ongoing_pushes:
+            raise OngoingPushForSameImage()
+        self._ongoing_pushes.add(image_name)
+        try:
+            await self._push_image(image_name)
+        finally:
+            self._ongoing_pushes.remove(image_name)
+
+    async def _push_image(self, image_name: str) -> None:
         self.logger.debug(f"Pushing: '{image_name}'")
         if self.container_runtime == RuntimeType.Docker:
             try:
-                await self.aclient.images.push(name=image_name)
+                aiodocker_resp = await self.aclient.images.push(name=image_name)
+                # Happens on docker for desktop where the container
+                # runtime can't get in touch with the registry service
+                # through its ip.
+                if _failed_to_reach_registry(aiodocker_resp):
+                    self.logger.warning(
+                        "Failed to reach the registry, trying push through buildah."
+                    )
+                    success = await self._push_image_for_docker_with_buildah(image_name)
+                    if not success:
+                        raise ImagePushError(str(aiodocker_resp))
             except aiodocker.DockerError as e:
                 success = False
                 # e.status (status code) will be 500 for different
@@ -263,7 +333,6 @@ class ContainerRuntime(object):
 
                 if not success:
                     raise ImagePushError(str(e))
-
         elif self.container_runtime == RuntimeType.Containerd:
             cmd = (
                 f"ctr -n k8s.io -a {self.container_runtime_socket} "

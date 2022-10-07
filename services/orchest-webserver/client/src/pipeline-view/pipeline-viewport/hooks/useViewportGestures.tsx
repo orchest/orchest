@@ -71,11 +71,12 @@ export const useViewportGestures = (
           setPipelineCanvasOrigin(originOnCanvas);
           setScaleFactor((current) => current - wheelDelta);
         } else {
+          const delta: Point2D = isScrollAxisSwapped(event)
+            ? [event.deltaY, event.deltaX]
+            : [event.deltaX, event.deltaY];
+
           setPipelineCanvasState((current) => ({
-            pipelineOffset: subtractPoints(current.pipelineOffset, [
-              event.deltaX,
-              event.deltaY,
-            ]),
+            pipelineOffset: subtractPoints(current.pipelineOffset, delta),
           }));
         }
       },
@@ -100,7 +101,14 @@ export const useViewportGestures = (
   return zoomBy;
 };
 
+/** Holding Ctrl (or Command on Mac) triggers zooming. */
 const isZooming = (event: WheelEvent) => event.ctrlKey || event.metaKey;
+
+/**
+ * Holding Shift swaps X and Y axises when scrolling,
+ * so you can scroll horizontally even if you have a mouse without a horizontal scroll wheel.
+ */
+const isScrollAxisSwapped = (event: WheelEvent) => event.shiftKey;
 
 const getClientCenter = (
   event: PointerEvent | TouchEvent
