@@ -102,7 +102,7 @@ pip install --upgrade orchest-cli
 orchest install
 </pre>
 </div>
-<p>Now that Orchest is installed, it can be reached on localhost, port 80.</p>`,
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost:80">localhost</a>.</p>`,
       },
     },
     macOS: {
@@ -148,7 +148,7 @@ pip install --upgrade orchest-cli
 orchest install
 </pre>
 </div>
-<p>Now that Orchest is installed, it can be reached on localhost, port 80.</p>`,
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost:80">localhost</a>.</p>`,
       },
     },
     Windows: {
@@ -275,7 +275,7 @@ pip install --upgrade orchest-cli
 orchest install
 </pre>
 </div>
-<p>Now that Orchest is installed, it can be reached on localhost, port 80.</p>`,
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost:80">localhost</a>.</p>`,
       },
     },
     Cloud: {
