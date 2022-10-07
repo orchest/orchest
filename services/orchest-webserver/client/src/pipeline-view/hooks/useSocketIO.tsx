@@ -1,3 +1,4 @@
+import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
 import React from "react";
 import { io, Socket } from "socket.io-client";
 import create from "zustand";
@@ -40,6 +41,7 @@ const useSocketIOStore = create<SocketIO>((set) => ({
 }));
 
 export const useSocketIO = (namespace: string | undefined) => {
+  const isBrowserTabFocused = useFocusBrowserTab();
   const init = useSocketIOStore((state) => state.init);
   const disconnect = useSocketIOStore((state) => state.disconnect);
   const socket = useSocketIOStore((state) =>
@@ -47,9 +49,14 @@ export const useSocketIO = (namespace: string | undefined) => {
   );
 
   React.useEffect(() => {
-    init(namespace);
-    return () => disconnect(namespace);
-  }, [init, namespace, disconnect]);
+    if (!namespace) return;
+
+    if (isBrowserTabFocused) {
+      init(namespace);
+    } else {
+      disconnect(namespace);
+    }
+  }, [init, namespace, isBrowserTabFocused, disconnect]);
 
   return socket;
 };

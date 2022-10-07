@@ -80,6 +80,23 @@ orchest install --socket-path=/run/k3s/containerd/containerd.sock
       -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'</pre>
 </div>`,
       },
+      "Docker Desktop": {
+        instructions: `
+<p>Follow the instructions to <a href="https://docs.docker.com/desktop/install/linux-install/"> install
+Docker Desktop </a> on linux.</p>
+<p>Once installed, go to its settings (top right) and if you wish to do so, change the
+allocated resources. At least 2 cpus, 8GB of memory and 15GB of disk are required.</p>
+<p><a href="https://docs.docker.com/desktop/kubernetes/"> Enable kubernetes in Docker Desktop</a></p>
+<p>Now Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost:80">localhost</a>.</p>`,
+      },
     },
     macOS: {
       minikube: {
@@ -101,6 +118,23 @@ will simply proceed to the next step.</p>
 running the <code class="docutils literal notranslate"><span class="pre">minikube
 tunnel</span></code> daemon.
           `,
+      },
+      "Docker Desktop": {
+        instructions: `
+<p>Follow the instructions to <a href="https://docs.docker.com/desktop/install/mac-install/"> install
+Docker Desktop </a> on macOS.</p>
+<p>Once installed, go to its settings (top right) and if you wish to do so, change the
+allocated resources. At least 2 cpus, 8GB of memory and 15GB of disk are required.</p>
+<p><a href="https://docs.docker.com/desktop/kubernetes/"> Enable kubernetes in Docker Desktop</a></p>
+<p>Now Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost:80">localhost</a>.</p>`,
       },
     },
     Windows: {
@@ -200,6 +234,27 @@ orchest install
   <pre>kubectl get service orchest-ingress-nginx-controller -n orchest \\
       -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'</pre>
 </div>`,
+      },
+      "Docker Desktop": {
+        instructions: `
+<p>For Orchest to work on Windows, Docker Desktop has to be configured to use WSL 2 (<a class="reference
+external" href="https://docs.docker.com/desktop/windows/wsl/">Docker Desktop WSL 2 backend</a>).
+For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
+opening the distribution using the Start menu or by <a class="reference external"
+href="https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal">setting
+up the Windows Terminal</a>.</p>        
+<p>Once installed, go to its settings (top right) and if you wish to do so, change the
+allocated resources. At least 2 cpus, 8GB of memory and 15GB of disk are required.</p>
+<p><a href="https://docs.docker.com/desktop/kubernetes/"> Enable kubernetes in Docker Desktop</a></p>
+<p>Now Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+<p>Now that Orchest is installed, it can be reached on <a href="http://localhost:80">localhost</a>.</p>`,
       },
     },
     Cloud: {
