@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 
 import aiohttp
-from container_runtime import ContainerRuntime
+from container_runtime import ContainerRuntime, OngoingPullForSameImage
 
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
@@ -82,10 +82,6 @@ class ImagePuller(object):
         self.container_runtime = ContainerRuntime()
         self.logger = logging.getLogger("IMAGE_PULLER")
         self.logger.setLevel(image_puller_log_level)
-
-        # Container to make sure that images that are already being
-        # pulled are not pulled concurrently again.
-        self._curr_pulling_imgs = set()
 
     async def _enqueue_pre_pull_orchest_images(
         self, session: aiohttp.ClientSession, queue: asyncio.Queue
@@ -192,10 +188,7 @@ class ImagePuller(object):
 
             should_pull = self.policy == Policy.Always or (
                 self.policy == Policy.IfNotPresent
-                and not (
-                    image_name in self._curr_pulling_imgs
-                    or await self.container_runtime.image_exists(image_name)
-                )
+                and not await self.container_runtime.image_exists(image_name)
             )
 
             for retry in range(self.num_retries):
@@ -225,10 +218,16 @@ class ImagePuller(object):
                     if should_pull:
                         if pulled_successfully:
                             self.logger.info(f"Image '{image_name}' was pulled.")
+                            break
                         else:
                             self.logger.warning(f"Image '{image_name}' was not pulled!")
                     else:
                         break
+                except OngoingPullForSameImage:
+                    self.logger.info(
+                        f"{image_name} is already being pulled, skipping task."
+                    )
+                    break
                 except Exception as ex:
                     self.logger.warning(
                         f"Attempt {retry} to pull image '{image_name}' and notify the "
@@ -253,7 +252,10 @@ class ImagePuller(object):
     async def run(self):
         try:
             self.logger.info("Starting image puller.")
-            queue = asyncio.Queue()
+            # maxsize to avoid the queue being filled up with duplicate
+            # work and reduce pressure on the orchest-api when not
+            # needed.
+            queue = asyncio.Queue(maxsize=self.threadiness)
 
             get_images_task = asyncio.create_task(self.get_active_images_to_pull(queue))
             pullers = [
