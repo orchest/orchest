@@ -1,4 +1,5 @@
 import { hasValue } from "@orchest/lib-utils";
+import React from "react";
 import { useActivePipelineRun } from "./useActivePipelineRun";
 import { useAsync } from "./useAsync";
 
@@ -11,9 +12,11 @@ export const useFetchActivePipelineRun = () => {
   const fetchActiveRun = useActivePipelineRun((state) => state.fetch);
   const { run, status } = useAsync();
 
-  if (!hasValue(activeRun) && status === "IDLE") {
-    run(fetchActiveRun());
-  }
+  React.useEffect(() => {
+    if (!hasValue(activeRun) && status === "IDLE") {
+      run(fetchActiveRun());
+    }
+  }, [activeRun, fetchActiveRun, run, status]);
 
   return activeRun;
 };
