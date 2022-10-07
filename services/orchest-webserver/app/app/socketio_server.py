@@ -23,27 +23,6 @@ def register_build_listener(namespace, socketio):
         current_app.logger.info("socket.io client disconnected on /pty")
         disconnect(sid=request.sid, namespace="/pty")
 
-    @socketio.on("connect", namespace=namespace)
-    def connect_build_logger():
-        current_app.logger.info(f"socket.io client connected on {namespace}")
-
-        with lock:
-
-            # send build_buffers
-            for key, value in build_buffer.items():
-
-                # send buffer to new client
-                socketio.emit(
-                    "sio_streamed_task_data",
-                    {
-                        "identity": key,
-                        "output": "".join(value),
-                        "action": "sio_streamed_task_output",
-                    },
-                    room=request.sid,
-                    namespace=namespace,
-                )
-
     @socketio.on("disconnect", namespace=namespace)
     def disconnect_build_logger():
         current_app.logger.info(f"socket.io client disconnected on {namespace}")
@@ -85,6 +64,19 @@ def register_build_listener(namespace, socketio):
                     "sio_streamed_task_data",
                     data,
                     include_self=False,
+                    namespace=namespace,
+                )
+            elif data["action"] == "sio_streamed_task_buffer_request":
+
+                # Send the entire buffer.
+                socketio.emit(
+                    "sio_streamed_task_data",
+                    {
+                        "identity": data["identity"],
+                        "output": "".join(build_buffer.get(data["identity"], [])),
+                        "action": "sio_streamed_task_buffer",
+                    },
+                    room=request.sid,
                     namespace=namespace,
                 )
 
