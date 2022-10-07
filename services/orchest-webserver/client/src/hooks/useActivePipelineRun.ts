@@ -55,7 +55,10 @@ const STATUS_POLL_FREQUENCY = 1000;
 
 /**
  * Allows fetching, canceling and monitoring of the active pipeline run.
- * Supports both Interactive Runs and Job Runs.
+ * While the active Pipeline is running, the store will automatically poll
+ * the back-end to keep track of its current status.
+ *
+ * This store supports both Interactive Runs and Job Runs.
  */
 export const useActivePipelineRun = create<ActiveRunApi>(
   (set, get, { subscribe }) => {
