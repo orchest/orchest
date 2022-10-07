@@ -80,6 +80,30 @@ orchest install --socket-path=/run/k3s/containerd/containerd.sock
       -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'</pre>
 </div>`,
       },
+      "Docker Desktop": {
+        instructions: `
+<p>Follow the instructions to <a href="https://docs.docker.com/desktop/install/linux-install/"> install
+Docker Desktop </a> on linux.</p>
+<p>Once installed, go to its settings (top right) and if you wish to do so, change the
+allocated resources. At least 2 cpus, 8GB of memory and 15GB of disk are required.</p>
+<p><a href="https://docs.docker.com/desktop/kubernetes/"> Enable kubernetes in Docker Desktop</a></p>
+<p>Install the nginx ingress (or any other ingress of preference)</p>
+<div class="highlight">
+<pre>
+kubectl apply -f \
+https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.1/deploy/static/provider/cloud/deploy.yaml
+</pre>
+</div>
+<p>Now Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+<p>Now that Orchest is installed, it can be reached on localhost, port 80.</p>`,
+      },
     },
     macOS: {
       minikube: {
@@ -101,6 +125,30 @@ will simply proceed to the next step.</p>
 running the <code class="docutils literal notranslate"><span class="pre">minikube
 tunnel</span></code> daemon.
           `,
+      },
+      "Docker Desktop": {
+        instructions: `
+<p>Follow the instructions to <a href="https://docs.docker.com/desktop/install/mac-install/"> install
+Docker Desktop </a> on macOS.</p>
+<p>Once installed, go to its settings (top right) and if you wish to do so, change the
+allocated resources. At least 2 cpus, 8GB of memory and 15GB of disk are required.</p>
+<p><a href="https://docs.docker.com/desktop/kubernetes/"> Enable kubernetes in Docker Desktop</a></p>
+<p>Install the nginx ingress (or any other ingress of preference)</p>
+<div class="highlight">
+<pre>
+kubectl apply -f \
+https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.1/deploy/static/provider/cloud/deploy.yaml
+</pre>
+</div>
+<p>Now Orchest can be installed using the <code class="docutils literal notranslate"><span
+class="pre">orchest-cli</span></code>:</p>
+<div class="highlight">
+<pre>
+pip install --upgrade orchest-cli
+orchest install
+</pre>
+</div>
+<p>Now that Orchest is installed, it can be reached on localhost, port 80.</p>`,
       },
     },
     Windows: {
