@@ -44,19 +44,22 @@ const (
 	CACertificateKey = "ca.crt"
 
 	// Kubernetes distributions
-	NotDetected KubernetesDistros = ""
-	Minikube    KubernetesDistros = "minikube"
-	Microk8s    KubernetesDistros = "microk8s"
-	EKS         KubernetesDistros = "eks"
-	GKE         KubernetesDistros = "gke"
-	K3s         KubernetesDistros = "k3s"
+	NotDetected   KubernetesDistros = ""
+	Minikube      KubernetesDistros = "minikube"
+	Microk8s      KubernetesDistros = "microk8s"
+	EKS           KubernetesDistros = "eks"
+	GKE           KubernetesDistros = "gke"
+	K3s           KubernetesDistros = "k3s"
+	DockerDesktop KubernetesDistros = "dockerDesktop"
 
 	// Detection lables
-	minikubeLableKey = "minikube.k8s.io/name"
-	microk8sLabelKey = "node.kubernetes.io/microk8s-controlplane"
-	k3sAnnotationKey = "k3s.io/hostname"
-	eksLabelKey      = "k8s.io/cloud-provider-aws"
-	gkeLabelKey      = "topology.gke.io/zone"
+	minikubeLableKey        = "minikube.k8s.io/name"
+	microk8sLabelKey        = "node.kubernetes.io/microk8s-controlplane"
+	k3sAnnotationKey        = "k3s.io/hostname"
+	eksLabelKey             = "k8s.io/cloud-provider-aws"
+	gkeLabelKey             = "topology.gke.io/zone"
+	dockerDesktopLabelKey   = "kubernetes.io/hostname"
+	dockerDesktopLabelValue = "docker-desktop"
 )
 
 func GetClientsOrDie(inCluster bool, scheme *runtime.Scheme) (
@@ -202,6 +205,8 @@ func DetectK8sDistribution(client kubernetes.Interface) KubernetesDistros {
 		return GKE
 	} else if _, ok := node.Annotations[k3sAnnotationKey]; ok {
 		return K3s
+	} else if value, ok := node.Labels[dockerDesktopLabelKey]; ok && value == dockerDesktopLabelValue {
+		return DockerDesktop
 	}
 
 	return NotDetected
