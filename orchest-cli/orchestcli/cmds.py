@@ -69,11 +69,11 @@ def _get_k8s_api_client() -> ApiClient:
 
 
 API_CLIENT = _get_k8s_api_client()
-APPS_API = client.AppsV1Api(api_client=API_CLIENT)
-CORE_API = client.CoreV1Api(api_client=API_CLIENT)
-CUSTOM_OBJECT_API = client.CustomObjectsApi(api_client=API_CLIENT)
-EXT_API = client.ApiextensionsV1Api(api_client=API_CLIENT)
-RBAC_API = client.RbacAuthorizationV1Api(api_client=API_CLIENT)
+APPS_API = client.AppsV1Api(api_client=_get_k8s_api_client())
+CORE_API = client.CoreV1Api(api_client=_get_k8s_api_client())
+CUSTOM_OBJECT_API = client.CustomObjectsApi(api_client=_get_k8s_api_client())
+EXT_API = client.ApiextensionsV1Api(api_client=_get_k8s_api_client())
+RBAC_API = client.RbacAuthorizationV1Api(api_client=_get_k8s_api_client())
 
 get_namespaced_custom_object = partial(
     CUSTOM_OBJECT_API.get_namespaced_custom_object,
