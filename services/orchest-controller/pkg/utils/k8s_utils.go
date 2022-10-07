@@ -50,7 +50,7 @@ const (
 	EKS           KubernetesDistros = "eks"
 	GKE           KubernetesDistros = "gke"
 	K3s           KubernetesDistros = "k3s"
-	DockerDesktop KubernetesDistros = "dockerDesktop"
+	DockerDesktop KubernetesDistros = "docker-desktop"
 
 	// Detection lables
 	minikubeLableKey        = "minikube.k8s.io/name"
