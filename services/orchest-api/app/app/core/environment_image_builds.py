@@ -105,8 +105,8 @@ def write_environment_dockerfile(
     # Permission statements.
     ps = [
         "chown -R :$(id -g) . > /dev/null 2>&1 ",
-        "find . -type d -exec chmod g+rwxs {} \; > /dev/null 2>&1 ",
-        "find . -type f -exec chmod g+rwx {} \; > /dev/null 2>&1 ",
+        "find . -type d -not -perm -g+rwxs -exec chmod g+rwxs '{}' + > /dev/null 2>&1 ",
+        "find . -type f -not -perm -g+rwx -exec chmod g+rwx '{}' + > /dev/null 2>&1 ",
         "chmod g+rwx . > /dev/null 2>&1 ",
     ]
     # sudo'd permission statements.
