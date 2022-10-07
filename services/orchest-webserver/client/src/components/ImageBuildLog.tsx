@@ -39,34 +39,47 @@ export const ImageBuildLog = ({
     }
   }, [fitAddon, xtermRef]);
 
+  const printLogs = React.useCallback((logs: string | undefined) => {
+    const lines = (logs || "").split("\n");
+    for (let x = 0; x < lines.length; x++) {
+      if (x > 0) xtermRef.current?.terminal.write("\n\r");
+      xtermRef.current?.terminal.write(lines[x]);
+    }
+  }, []);
+
   const socket = useSocketIO(socketIONamespace);
   const socketEventListener = React.useCallback(
     (data: { action: string; identity: string; output?: string }) => {
-      if (!streamIdentity) return;
-      // ignore terminal outputs from other builds
-      if (data.identity === streamIdentity) {
-        if (data.action === "sio_streamed_task_output") {
-          const lines = (data.output || "").split("\n");
-          for (let x = 0; x < lines.length; x++) {
-            if (x > 0) xtermRef.current?.terminal.write("\n\r");
-            xtermRef.current?.terminal.write(lines[x]);
-          }
-        } else if (data["action"] == "sio_streamed_task_started") {
-          // This blocking mechanism makes sure old build logs are
-          // not displayed after the user has started a build
-          // during an ongoing build.
-          xtermRef.current?.terminal.reset();
-        }
+      if (!streamIdentity || data.identity !== streamIdentity) return;
+
+      if (data["action"] == "sio_streamed_task_started") {
+        xtermRef.current?.terminal.reset();
+        return;
+      }
+
+      const shouldPrintLogs = [
+        "sio_streamed_task_output",
+        "sio_streamed_task_buffer",
+      ].includes(data.action);
+
+      if (shouldPrintLogs) {
+        printLogs(data.output);
       }
     },
-    [streamIdentity]
+    [streamIdentity, printLogs]
   );
   React.useEffect(() => {
-    socket?.on("sio_streamed_task_data", socketEventListener);
+    if (streamIdentity) {
+      socket?.emit("sio_streamed_task_data", {
+        action: "sio_streamed_task_buffer_request",
+        identity: streamIdentity,
+      });
+      socket?.on("sio_streamed_task_data", socketEventListener);
+    }
     return () => {
       socket?.off("sio_streamed_task_data", socketEventListener);
     };
-  }, [socket, xtermRef, socketEventListener]);
+  }, [socket, xtermRef, socketEventListener, streamIdentity]);
 
   React.useEffect(() => {
     fitTerminal();

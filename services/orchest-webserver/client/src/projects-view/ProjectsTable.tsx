@@ -57,7 +57,7 @@ export const ProjectsTable = ({
       {
         id: "settings",
         label: "",
-        sx: { margin: (theme) => theme.spacing(-0.5, 0) },
+        sx: { margin: (theme) => theme.spacing(-0.5, 0), textAlign: "right" },
         render: function ProjectSettingsButton(row, disabled) {
           return !projectsBeingDeleted.includes(row.uuid) ? (
             <IconButton
