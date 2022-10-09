@@ -1,4 +1,4 @@
-package orchestcomponent
+package reconcilers
 
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -10,81 +10,81 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type OrchestWebServerReconciler struct {
-	*OrchestComponentController
+type OrchestWebServerReconciler[Object client.Object] struct {
+	*controller.Controller[Object]
 	ingressClass string
 }
 
-func NewOrchestWebServerReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
-	return &OrchestWebServerReconciler{
-		ctrl,
+func NewOrchestWebServerReconciler[Object client.Object](controller *controller.Controller[Object]) ComponentReconciler {
+	return &OrchestWebServerReconciler[Object]{
+		controller,
 		"",
 	}
 }
 
-func (reconciler *OrchestWebServerReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *OrchestWebServerReconciler[Object]) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestWebserver, component)
 	metadata := controller.GetMetadata(controller.OrchestWebserver, hash, component, OrchestComponentKind)
 	newDep := getOrchestWebserverDeployment(metadata, matchLabels, component)
 
-	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
+	oldDep, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
-			reconciler.EnqueueAfter(component)
-			return err
 		}
-		return err
+		reconciler.EnqueueAfter(component)
+		return false, err
 	}
 
 	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
 		reconciler.EnqueueAfter(component)
-		return err
+		return false, err
 	}
 
-	svc, err := reconciler.svcLister.Services(component.Namespace).Get(component.Name)
+	svc, err := reconciler.Client().CoreV1().Services(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			svc = getServiceManifest(metadata, matchLabels, 80, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
-			reconciler.EnqueueAfter(component)
-			return err
 		}
-		return err
+		reconciler.EnqueueAfter(component)
+		return false, err
 	}
 
 	if reconciler.ingressClass == "" {
 		reconciler.ingressClass, err = detectIngressClass(ctx, reconciler.Client())
 		if err != nil {
-			return err
+			reconciler.EnqueueAfter(component)
+			return false, err
 		}
 	}
 
-	oldIng, err := reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
+	oldIng, err := reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
 			ing := getIngressManifest(metadata, "/", reconciler.ingressClass, true, true, component)
 			_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Create(ctx, ing, metav1.CreateOptions{})
-			reconciler.EnqueueAfter(component)
-			return err
 		}
-		return err
+		reconciler.EnqueueAfter(component)
+		return false, err
 	}
 
-	if isServiceReady(ctx, reconciler.Client(), svc) &&
-		isDeploymentReady(oldDep) && isIngressReady(oldIng) {
-		return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
+	if !isServiceReady(ctx, reconciler.Client(), svc) ||
+		!isDeploymentReady(oldDep) && isIngressReady(oldIng) {
+		reconciler.EnqueueAfter(component)
+		return false, err
 	}
 
-	return nil
+	return true, err
 }
 
-func (reconciler *OrchestWebServerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+func (reconciler *OrchestWebServerReconciler[Object]) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
