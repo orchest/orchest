@@ -22,15 +22,15 @@ func (state *DeployThirdPartyState) Do(ctx context.Context, stateMachine *Orches
 	deployedApps := 0
 	for _, application := range orchest.Spec.Applications {
 
-		deployingEvent := utils.GetDeployingEvent(application.Name)
+		deployingEvent := utils.GetCreatingEvent(application.Name)
 		if ok := stateMachine.containsCondition(deployingEvent); !ok {
-			err := stateMachine.Deploy(ctx, application.Name, deployingEvent, deployTimeOut, deployRetry, &application)
+			err := stateMachine.Create(ctx, application.Name, deployingEvent, deployTimeOut, deployRetry, &application)
 			if err != nil {
 				return err
 			}
 		}
 
-		if stateMachine.containsCondition(utils.GetDeployedEvent(application.Name)) {
+		if stateMachine.containsCondition(utils.GetCreatedEvent(application.Name)) {
 			deployedApps++
 		}
 	}

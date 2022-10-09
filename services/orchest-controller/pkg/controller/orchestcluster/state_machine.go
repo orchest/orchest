@@ -144,10 +144,10 @@ func (sm *OrchestStateMachine) containsCondition(event string) bool {
 	return ok
 }
 
-func (sm *OrchestStateMachine) Deploy(ctx context.Context, componentName string,
+func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 	deployingEvent string, timeout time.Duration, retryCount int, message any) error {
 
-	klog.Infof("Deploying component %s, namespace=%s, name=%s retry=%d", componentName, sm.namespace, sm.name, retryCount)
+	klog.Infof("Creating %s, namespace=%s, name=%s retry=%d", componentName, sm.namespace, sm.name, retryCount)
 	timeoutTimer := time.NewTimer(timeout)
 	responseChan := make(chan registry.Event)
 	sm.requests[deployingEvent] = struct{}{}
@@ -296,7 +296,7 @@ loop:
 					sm.toState(context.Background(), orchestv1alpha1.Error)
 				} else {
 					// deploy it again
-					sm.Deploy(ctx, info.componentName, info.requestEvent, deployTimeOut, info.retryCount-1, info.message)
+					sm.Create(ctx, info.componentName, info.requestEvent, deployTimeOut, info.retryCount-1, info.message)
 				}
 			case registry.SuccessEvent:
 				orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
@@ -304,7 +304,7 @@ loop:
 					klog.Error("failed to get OrchestCluster, name=%s, namespace=%s", sm.name, sm.namespace)
 				}
 
-				sm.updateCondition(ctx, utils.GetDeployedEvent(info.componentName))
+				sm.updateCondition(ctx, utils.GetCreatedEvent(info.componentName))
 				sm.orchestChan <- orchest
 			default:
 				klog.Errorf("Unrecognized event received for OrchestCluster, name=%s, namespace=%s, %s", sm.name, sm.namespace, info.responseEvent.String())
