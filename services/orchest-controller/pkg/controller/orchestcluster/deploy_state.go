@@ -2,8 +2,10 @@ package orchestcluster
 
 import (
 	"context"
+	"fmt"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 )
 
@@ -21,24 +23,44 @@ func (state *DeployOrchestState) Do(ctx context.Context, stateMachine *OrchestSt
 
 	var i int
 	var stage []string
-	for i, stage = range deploymentStages {
+
+	generation := fmt.Sprint(orchest.Generation)
+
+	// First we make sure resources are created
+	// {controller.Resources},
+	creatingEvent := utils.GetCreatingEvent(controller.Resources)
+	if ok := stateMachine.containsCondition(creatingEvent); !ok {
+		err := stateMachine.Create(ctx, controller.Resources, creatingEvent, deployTimeOut, deployRetry, orchest)
+		if err != nil {
+			return err
+		}
+	}
+	// if resources are not created yet, we move on
+	if !stateMachine.containsCondition(utils.GetCreatedEvent(controller.Resources)) {
+		return nil
+	}
+
+	for i, stage = range creationStages {
 
 		deployedApps := 0
-		for _, component := range stage {
-			deployingEvent := utils.GetDeployingEvent(component)
+		for _, componentName := range stage {
+			creatingEvent := utils.GetCreatingEvent(componentName)
 
-			if ok := stateMachine.containsCondition(deployingEvent); !ok {
-				template, err := GetComponentTemplate(component, orchest)
+			if ok := stateMachine.containsCondition(creatingEvent); !ok {
+				template, err := GetComponentTemplate(componentName, orchest)
 				if err != nil {
 					return err
 				}
-				err = stateMachine.Deploy(ctx, component, deployingEvent, deployTimeOut, deployRetry, template)
+
+				component := getOrchestComponent(componentName, generation, template, orchest)
+
+				err = stateMachine.Create(ctx, componentName, creatingEvent, deployTimeOut, deployRetry, component)
 				if err != nil {
 					return err
 				}
 			}
 
-			if stateMachine.containsCondition(utils.GetDeployedEvent(component)) {
+			if stateMachine.containsCondition(utils.GetCreatedEvent(componentName)) {
 				deployedApps++
 			}
 		}
@@ -49,7 +71,7 @@ func (state *DeployOrchestState) Do(ctx context.Context, stateMachine *OrchestSt
 		}
 	}
 
-	if i == len(deploymentStages)-1 {
+	if i == len(creationStages)-1 {
 		stateMachine.toState(ctx, orchestv1alpha1.Running)
 	}
 	return nil
