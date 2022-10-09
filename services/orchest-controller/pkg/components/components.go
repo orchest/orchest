@@ -6,6 +6,8 @@ import (
 	"path"
 
 	appsv1 "k8s.io/api/apps/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	//corev1 "k8s.io/api/core/v1"
 	//netsv1 "k8s.io/api/networking/v1"
 	//kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -14,6 +16,7 @@ import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/certs"
 	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/components/reconcilers"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
@@ -105,46 +108,151 @@ func InitThirdPartyComponents(client kubernetes.Interface, config registry.Compo
 		path.Join(config.AssetDir, "thirdparty/ingress-nginx/orchest-values.yaml")))
 }
 
-func InitNativeComponents(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+func InitOrchestComponents(stopCh <-chan struct{}, client kubernetes.Interface, gClient client.Client,
+	svcInformer coreinformers.ServiceInformer,
 	depInformer appsinformers.DeploymentInformer,
 	dsInformer appsinformers.DaemonSetInformer,
 	ingInformer netsinformers.IngressInformer) {
 
-	orchestDatabase := NewNativeComponent[*appsv1.Deployment](controller.OrchestDatabase, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+	resourcesComponent := newResourcesComponent(controller.Resources, client, gClient)
+	databaseComponent := newOrchestDatabaseComponent(stopCh, client, svcInformer, depInformer, dsInformer, ingInformer)
+	rabbitmqComponent := newRabbitmqComponent(stopCh, client, svcInformer, depInformer, dsInformer, ingInformer)
+	orchestApiComponent := newOrchestApiComponent(stopCh, client, svcInformer, depInformer, dsInformer, ingInformer)
+	celeryWorkerComponent := newCeleryWorkerComponent(stopCh, client, svcInformer, depInformer, dsInformer, ingInformer)
+	authServerComponent := newAuthServerComponent(stopCh, client, svcInformer, depInformer, dsInformer, ingInformer)
+	orchestWebserverComponent := newOrchestWebserverComponent(stopCh, client, svcInformer, depInformer, dsInformer, ingInformer)
+	nodeAgentComponent := newNodeAgentComponent(stopCh, client, svcInformer, depInformer, dsInformer, ingInformer)
+	buildKitDaemonComponent := newBuildKitDaemonComponent(stopCh, client, svcInformer, depInformer, dsInformer, ingInformer)
 
-	orchestApi := NewNativeComponent[*appsv1.Deployment](controller.OrchestApi, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+	registry.RegisterComponent(controller.Resources, resourcesComponent)
+	registry.RegisterComponent(controller.OrchestDatabase, databaseComponent)
+	registry.RegisterComponent(controller.Rabbitmq, rabbitmqComponent)
+	registry.RegisterComponent(controller.OrchestApi, orchestApiComponent)
+	registry.RegisterComponent(controller.CeleryWorker, celeryWorkerComponent)
+	registry.RegisterComponent(controller.AuthServer, authServerComponent)
+	registry.RegisterComponent(controller.OrchestWebserver, orchestWebserverComponent)
+	registry.RegisterComponent(controller.NodeAgent, nodeAgentComponent)
+	registry.RegisterComponent(controller.BuildKitDaemon, buildKitDaemonComponent)
 
-	orchestApiCleanup := NewNativeComponent[*appsv1.Deployment](controller.OrchestApiCleanup, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+	//registry.RegisterComponent(controller.OrchestApiCleanup, orchestApiCleanup)
+}
 
-	rabbitmq := NewNativeComponent[*appsv1.Deployment](controller.Rabbitmq, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+func newOrchestDatabaseComponent(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+	depInformer appsinformers.DeploymentInformer,
+	dsInformer appsinformers.DaemonSetInformer,
+	ingInformer netsinformers.IngressInformer) registry.Component {
 
-	celeryWorker := NewNativeComponent[*appsv1.Deployment](controller.CeleryWorker, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+	ctrl := controller.NewController[*appsv1.Deployment](controller.OrchestDatabase, 1, client, nil)
 
-	authServer := NewNativeComponent[*appsv1.Deployment](controller.AuthServer, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+	reconciler := reconcilers.NewOrchestDatabaseReconciler(ctrl)
 
-	orchestWebserver := NewNativeComponent[*appsv1.Deployment](controller.OrchestWebserver, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+	component := NewNativeComponent(controller.OrchestDatabase, stopCh,
+		client, ctrl, reconciler, svcInformer, depInformer, dsInformer, ingInformer)
 
-	nodeAgent := NewNativeComponent[*appsv1.DaemonSet](controller.NodeAgent, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+	return component
+}
 
-	buildKitDaemon := NewNativeComponent[*appsv1.DaemonSet](controller.BuildKitDaemon, stopCh,
-		client, svcInformer, depInformer, dsInformer, ingInformer)
+func newRabbitmqComponent(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+	depInformer appsinformers.DeploymentInformer,
+	dsInformer appsinformers.DaemonSetInformer,
+	ingInformer netsinformers.IngressInformer) registry.Component {
 
-	registry.RegisterComponent(controller.OrchestDatabase, orchestDatabase)
-	registry.RegisterComponent(controller.OrchestApi, orchestApi)
-	registry.RegisterComponent(controller.OrchestApiCleanup, orchestApiCleanup)
-	registry.RegisterComponent(controller.Rabbitmq, rabbitmq)
-	registry.RegisterComponent(controller.CeleryWorker, celeryWorker)
-	registry.RegisterComponent(controller.AuthServer, authServer)
-	registry.RegisterComponent(controller.OrchestWebserver, orchestWebserver)
-	registry.RegisterComponent(controller.NodeAgent, nodeAgent)
-	registry.RegisterComponent(controller.BuildKitDaemon, buildKitDaemon)
+	ctrl := controller.NewController[*appsv1.Deployment](controller.Rabbitmq, 1, client, nil)
 
+	reconciler := reconcilers.NewRabbitmqServerReconciler(ctrl)
+
+	component := NewNativeComponent(controller.Rabbitmq, stopCh,
+		client, ctrl, reconciler, svcInformer, depInformer, dsInformer, ingInformer)
+
+	return component
+}
+
+func newOrchestApiComponent(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+	depInformer appsinformers.DeploymentInformer,
+	dsInformer appsinformers.DaemonSetInformer,
+	ingInformer netsinformers.IngressInformer) registry.Component {
+
+	ctrl := controller.NewController[*appsv1.Deployment](controller.OrchestApi, 1, client, nil)
+
+	reconciler := reconcilers.NewOrchestApiReconciler(ctrl)
+
+	component := NewNativeComponent(controller.OrchestApi, stopCh,
+		client, ctrl, reconciler, svcInformer, depInformer, dsInformer, ingInformer)
+
+	return component
+}
+
+func newCeleryWorkerComponent(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+	depInformer appsinformers.DeploymentInformer,
+	dsInformer appsinformers.DaemonSetInformer,
+	ingInformer netsinformers.IngressInformer) registry.Component {
+
+	ctrl := controller.NewController[*appsv1.Deployment](controller.CeleryWorker, 1, client, nil)
+
+	reconciler := reconcilers.NewCeleryWorkerReconciler(ctrl)
+
+	component := NewNativeComponent(controller.CeleryWorker, stopCh,
+		client, ctrl, reconciler, svcInformer, depInformer, dsInformer, ingInformer)
+
+	return component
+}
+
+func newAuthServerComponent(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+	depInformer appsinformers.DeploymentInformer,
+	dsInformer appsinformers.DaemonSetInformer,
+	ingInformer netsinformers.IngressInformer) registry.Component {
+
+	ctrl := controller.NewController[*appsv1.Deployment](controller.AuthServer, 1, client, nil)
+
+	reconciler := reconcilers.NewAuthServerReconciler(ctrl)
+
+	component := NewNativeComponent(controller.AuthServer, stopCh,
+		client, ctrl, reconciler, svcInformer, depInformer, dsInformer, ingInformer)
+
+	return component
+}
+
+func newOrchestWebserverComponent(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+	depInformer appsinformers.DeploymentInformer,
+	dsInformer appsinformers.DaemonSetInformer,
+	ingInformer netsinformers.IngressInformer) registry.Component {
+
+	ctrl := controller.NewController[*appsv1.Deployment](controller.OrchestWebserver, 1, client, nil)
+
+	reconciler := reconcilers.NewOrchestWebServerReconciler(ctrl)
+
+	component := NewNativeComponent(controller.OrchestWebserver, stopCh,
+		client, ctrl, reconciler, svcInformer, depInformer, dsInformer, ingInformer)
+
+	return component
+}
+
+func newNodeAgentComponent(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+	depInformer appsinformers.DeploymentInformer,
+	dsInformer appsinformers.DaemonSetInformer,
+	ingInformer netsinformers.IngressInformer) registry.Component {
+
+	ctrl := controller.NewController[*appsv1.DaemonSet](controller.NodeAgent, 1, client, nil)
+
+	reconciler := reconcilers.NewNodeAgentReconciler(ctrl)
+
+	component := NewNativeComponent(controller.NodeAgent, stopCh,
+		client, ctrl, reconciler, svcInformer, depInformer, dsInformer, ingInformer)
+
+	return component
+}
+
+func newBuildKitDaemonComponent(stopCh <-chan struct{}, client kubernetes.Interface, svcInformer coreinformers.ServiceInformer,
+	depInformer appsinformers.DeploymentInformer,
+	dsInformer appsinformers.DaemonSetInformer,
+	ingInformer netsinformers.IngressInformer) registry.Component {
+
+	ctrl := controller.NewController[*appsv1.DaemonSet](controller.BuildKitDaemon, 1, client, nil)
+
+	reconciler := reconcilers.NewBuildKitDaemonReconciler(ctrl)
+
+	component := NewNativeComponent(controller.BuildKitDaemon, stopCh,
+		client, ctrl, reconciler, svcInformer, depInformer, dsInformer, ingInformer)
+
+	return component
 }
