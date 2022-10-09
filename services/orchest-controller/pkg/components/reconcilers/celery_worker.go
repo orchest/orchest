@@ -1,4 +1,4 @@
-package orchestcomponent
+package reconcilers
 
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -10,51 +10,50 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type CeleryWorkerReconciler struct {
-	*OrchestComponentController
+type CeleryWorkerReconciler[Object client.Object] struct {
+	*controller.Controller[Object]
 }
 
-func NewCeleryWorkerReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
-	return &CeleryWorkerReconciler{
-		ctrl,
+func NewCeleryWorkerReconciler[Object client.Object](controller *controller.Controller[Object]) ComponentReconciler {
+	return &CeleryWorkerReconciler[Object]{
+		controller,
 	}
 }
 
-func (reconciler *CeleryWorkerReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *CeleryWorkerReconciler[Object]) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.CeleryWorker, component)
 	metadata := controller.GetMetadata(controller.CeleryWorker, hash, component, OrchestComponentKind)
 	newDep := getCeleryWorkerDeployment(metadata, matchLabels, component)
 
-	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
+	oldDep, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
-			return err
 		}
-		return err
+		return false, err
 	}
 
 	if !isDeploymentUpdated(newDep, oldDep) {
-		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
+		_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
 		reconciler.EnqueueAfter(component)
-		return err
+		return false, nil
 	}
 
-	if isDeploymentReady(oldDep) {
-		err = reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
-	} else {
-		err = reconciler.updatePhase(ctx, component, orchestv1alpha1.OrchestPhase(orchestv1alpha1.DeployingCeleryWorker))
+	if !isDeploymentReady(oldDep) {
+		reconciler.EnqueueAfter(component)
+		return false, nil
 	}
 
-	return err
+	return true, nil
 }
 
-func (reconciler *CeleryWorkerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+func (reconciler *CeleryWorkerReconciler[Object]) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	dep, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
