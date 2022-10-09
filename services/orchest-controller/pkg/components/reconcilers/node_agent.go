@@ -1,10 +1,11 @@
-package orchestcomponent
+package reconcilers
 
 import (
 	"fmt"
 	"strings"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"golang.org/x/net/context"
@@ -12,24 +13,25 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type NodeAgentReconciler struct {
-	*OrchestComponentController
+type NodeAgentReconciler[Object client.Object] struct {
+	*controller.Controller[Object]
 }
 
-func NewNodeAgentReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
-	return &NodeAgentReconciler{
-		ctrl,
+func NewNodeAgentReconciler[Object client.Object](controller *controller.Controller[Object]) ComponentReconciler {
+	return &NodeAgentReconciler[Object]{
+		controller,
 	}
 }
 
-func (reconciler *NodeAgentReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *NodeAgentReconciler[Object]) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	// first retrive the registry IP
-	registryService, err := reconciler.Client().CoreV1().Services(component.Namespace).Get(ctx, addons.DockerRegistry, metav1.GetOptions{})
+	registryService, err := reconciler.Client().CoreV1().Services(component.Namespace).Get(ctx, componentregistry.DockerRegistry, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	registryIP := registryService.Spec.ClusterIP
@@ -39,24 +41,23 @@ func (reconciler *NodeAgentReconciler) Reconcile(ctx context.Context, component 
 	metadata := controller.GetMetadata(controller.NodeAgent, hash, component, OrchestComponentKind)
 	newDs, err := getNodeAgentDaemonset(registryIP, metadata, matchLabels, component)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	_, err = reconciler.dsLister.DaemonSets(component.Namespace).Get(component.Name)
+	_, err = reconciler.Client().AppsV1().DaemonSets(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			_, err = reconciler.Client().AppsV1().DaemonSets(component.Namespace).Create(ctx, newDs, metav1.CreateOptions{})
-			reconciler.EnqueueAfter(component)
-			return err
 		}
-		return err
+		reconciler.EnqueueAfter(component)
+		return false, err
 	}
 
-	return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
+	return true, err
 
 }
 
-func (reconciler *NodeAgentReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+func (reconciler *NodeAgentReconciler[Object]) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	err := reconciler.Client().AppsV1().DaemonSets(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
