@@ -1,4 +1,4 @@
-package orchestcomponent
+package reconcilers
 
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -11,26 +11,30 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type OrchestApiReconciler struct {
-	*OrchestComponentController
+type OrchestApiReconciler[Object client.Object] struct {
+	*controller.Controller[Object]
 	ingressClass string
 }
 
-func NewOrchestApiReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
-	return &OrchestApiReconciler{
-		ctrl,
+func NewOrchestApiReconciler[Object client.Object](controller *controller.Controller[Object]) ComponentReconciler {
+	return &OrchestApiReconciler[Object]{
+		controller,
 		"",
 	}
 }
 
-func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (err error) {
+func (reconciler *OrchestApiReconciler[Object]) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+
+	var err error
 
 	if reconciler.ingressClass == "" {
 		reconciler.ingressClass, err = detectIngressClass(ctx, reconciler.Client())
 		if err != nil {
-			return err
+			reconciler.EnqueueAfter(component)
+			return false, err
 		}
 	}
 
@@ -40,52 +44,52 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 	newDep := getOrchestApiDeployment(metadata, matchLabels, component,
 		[]corev1.EnvVar{{Name: "INGRESS_CLASS", Value: reconciler.ingressClass}})
 
-	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
+	oldDep, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
-			return err
+			return false, err
 		}
-		return err
+		return true, err
 	}
 
 	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
 		reconciler.EnqueueAfter(component)
-		return err
+		return false, err
 	}
 
-	svc, err := reconciler.svcLister.Services(component.Namespace).Get(component.Name)
+	svc, err := reconciler.Client().CoreV1().Services(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			svc = getServiceManifest(metadata, matchLabels, 80, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
-			return err
+			return false, err
 		}
-		return err
+		return false, err
 	}
-	_, err = reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
+	_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			ing := getIngressManifest(metadata, "/orchest-api", reconciler.ingressClass, true, false, component)
 			_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Create(ctx, ing, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
-			return err
+			return false, err
 		}
-		return err
+		return false, err
 	}
 
-	if isServiceReady(ctx, reconciler.Client(), svc) &&
-		isDeploymentReady(oldDep) {
-		return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
+	if !isServiceReady(ctx, reconciler.Client(), svc) || !isDeploymentReady(oldDep) {
+		reconciler.EnqueueAfter(component)
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
-func (reconciler *OrchestApiReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+func (reconciler *OrchestApiReconciler[Object]) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{
 		PropagationPolicy: &DeletePropagationForeground,
