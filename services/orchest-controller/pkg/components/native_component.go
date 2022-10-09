@@ -7,6 +7,7 @@ import (
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/components/reconcilers"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
@@ -34,15 +35,9 @@ const (
 	Delete
 )
 
-type NativeComponentReconciler interface {
-	Reconcile(context.Context, *orchestv1alpha1.OrchestComponent) error
-
-	Uninstall(context.Context, *orchestv1alpha1.OrchestComponent) (bool, error)
-}
-
 type componentState struct {
 	cmd       command
-	template  *orchestv1alpha1.OrchestComponentTemplate
+	component *orchestv1alpha1.OrchestComponent
 	eventChan chan registry.Event
 }
 
@@ -68,25 +63,22 @@ type NativeComponent[Object client.Object] struct {
 	SvcLister corelister.ServiceLister
 
 	IngLister netslister.IngressLister
+
+	reconciler reconcilers.ComponentReconciler
 }
 
 func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{},
 	client kubernetes.Interface,
 	//gClient client.Client,
 	//scheme *runtime.Scheme,
+	ctrl *controller.Controller[Object],
+	reconciler reconcilers.ComponentReconciler,
 	svcInformer coreinformers.ServiceInformer,
 	depInformer appsinformers.DeploymentInformer,
 	dsInformer appsinformers.DaemonSetInformer,
 	ingInformer netsinformers.IngressInformer) registry.Component {
 
 	informerSyncedList := make([]cache.InformerSynced, 0)
-
-	ctrl := controller.NewController[Object](
-		name,
-		1,
-		client,
-		nil,
-	)
 
 	nativeComponent := &NativeComponent[Object]{
 		name:            name,
@@ -139,6 +131,7 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 	ctrl.SyncHandler = nativeComponent.syncHandler
 
 	nativeComponent.Controller = ctrl
+	nativeComponent.reconciler = reconciler
 
 	go nativeComponent.Run(stopCh)
 
@@ -166,15 +159,17 @@ func (c *NativeComponent[Object]) syncHandler(ctx context.Context, key string) e
 		return nil
 	}
 
+	success := false
+
 	defer func() {
-		if err == nil {
-			//componentState.eventChan <- registry.SuccessEvent{}
+		if success {
+			componentState.eventChan <- registry.SuccessEvent{}
 		}
 	}()
 
 	switch componentState.cmd {
 	case Update:
-
+		success, err = c.reconciler.Reconcile(ctx, componentState.component)
 	case Stop:
 		fallthrough
 	case Start:
@@ -182,8 +177,6 @@ func (c *NativeComponent[Object]) syncHandler(ctx context.Context, key string) e
 	case Delete:
 		klog.Info("delete")
 	}
-
-	componentState.eventChan <- registry.LogEvent("Hello")
 
 	return nil
 }
@@ -200,9 +193,9 @@ func (c *NativeComponent[Object]) Update(ctx context.Context, namespace string,
 		}
 	}()
 
-	component, ok := message.(*orchestv1alpha1.OrchestComponentTemplate)
+	component, ok := message.(*orchestv1alpha1.OrchestComponent)
 	if !ok {
-		err = fmt.Errorf("Component %s requires message of type *orchestv1alpha1.OrchestComponentTemplate", c.name)
+		err = fmt.Errorf("Component %s requires message of type *orchestv1alpha1.OrchestComponent", c.name)
 		return
 	}
 
@@ -211,7 +204,7 @@ func (c *NativeComponent[Object]) Update(ctx context.Context, namespace string,
 	c.componentStates[namespace] = &componentState{
 		cmd:       Update,
 		eventChan: eventChan,
-		template:  component,
+		component: component,
 	}
 
 	key := namespace + "/" + c.name
