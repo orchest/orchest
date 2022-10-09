@@ -1,4 +1,4 @@
-package orchestcomponent
+package reconcilers
 
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -9,60 +9,62 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type RabbitmqServerReconciler struct {
-	*OrchestComponentController
+type RabbitmqServerReconciler[Object client.Object] struct {
+	*controller.Controller[Object]
 }
 
-func NewRabbitmqServerReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
-	return &RabbitmqServerReconciler{
-		ctrl,
+func NewRabbitmqServerReconciler[Object client.Object](controller *controller.Controller[Object]) ComponentReconciler {
+	return &RabbitmqServerReconciler[Object]{
+		Controller: controller,
 	}
 }
 
-func (reconciler *RabbitmqServerReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *RabbitmqServerReconciler[Object]) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.Rabbitmq, component)
 	metadata := controller.GetMetadata(controller.Rabbitmq, hash, component, OrchestComponentKind)
 	newDep := getRabbitMqDeployment(metadata, matchLabels, component)
 
-	oldDep, err := reconciler.depLister.Deployments(component.Namespace).Get(component.Name)
+	oldDep, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
-			return err
+			return false, nil
 		}
-		return err
+		return false, err
 	}
 
 	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
 		reconciler.EnqueueAfter(component)
-		return err
+		return false, err
 	}
 
-	svc, err := reconciler.svcLister.Services(component.Namespace).Get(component.Name)
+	svc, err := reconciler.Client().CoreV1().Services(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			svc = getServiceManifest(metadata, matchLabels, 5672, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
-			return err
+			return false, nil
 		}
-		return err
+		return false, err
 	}
 
-	if isServiceReady(ctx, reconciler.Client(), svc) && isDeploymentReady(oldDep) {
-		return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
+	if !isServiceReady(ctx, reconciler.Client(), svc) || !isDeploymentReady(oldDep) {
+		reconciler.EnqueueAfter(component)
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
-func (reconciler *RabbitmqServerReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+func (reconciler *RabbitmqServerReconciler[Object]) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
 		return false, err
