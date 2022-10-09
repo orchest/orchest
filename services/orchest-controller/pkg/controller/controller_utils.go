@@ -23,6 +23,7 @@ import (
 
 var (
 	//Components
+	Resources         = "orchest-resources"
 	OrchestDatabase   = "orchest-database"
 	OrchestApi        = "orchest-api"
 	OrchestApiCleanup = "orchest-api-cleanup"
@@ -215,11 +216,11 @@ func GetMetadata(resourceName, hash string,
 	labels := GetResourceLables(resourceName, hash, object)
 
 	metadata := metav1.ObjectMeta{
-		Name:            resourceName,
-		Namespace:       object.GetNamespace(),
-		Labels:          labels,
-		Annotations:     object.GetAnnotations(),
-		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(object, kind)},
+		Name:        resourceName,
+		Namespace:   object.GetNamespace(),
+		Labels:      labels,
+		Annotations: object.GetAnnotations(),
+		//OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(object, kind)},
 	}
 
 	return metadata
