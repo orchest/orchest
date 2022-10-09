@@ -47,12 +47,12 @@ func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 	printer.Fprintf(hasher, "%#v", objectToWrite)
 }
 
-func GetDeployingEvent(component string) string {
-	return fmt.Sprintf("Deploying %s", component)
+func GetCreatingEvent(component string) string {
+	return fmt.Sprintf("Creating %s", component)
 }
 
-func GetDeployedEvent(component string) string {
-	return fmt.Sprintf("Deployed %s", component)
+func GetCreatedEvent(component string) string {
+	return fmt.Sprintf("Created %s", component)
 }
 
 func GetDeletedEvent(component string) string {
