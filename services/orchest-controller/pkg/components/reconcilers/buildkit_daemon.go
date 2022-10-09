@@ -1,4 +1,4 @@
-package orchestcomponent
+package reconcilers
 
 import (
 	"strings"
@@ -11,42 +11,42 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type BuildKitDaemonReconciler struct {
-	*OrchestComponentController
+type BuildKitDaemonReconciler[Object client.Object] struct {
+	*controller.Controller[Object]
 }
 
-func NewBuildKitDaemonReconciler(ctrl *OrchestComponentController) OrchestComponentReconciler {
-	return &BuildKitDaemonReconciler{
-		ctrl,
+func NewBuildKitDaemonReconciler[Object client.Object](controller *controller.Controller[Object]) ComponentReconciler {
+	return &BuildKitDaemonReconciler[Object]{
+		controller,
 	}
 }
 
-func (reconciler *BuildKitDaemonReconciler) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *BuildKitDaemonReconciler[Object]) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.BuildKitDaemon, component)
 	metadata := controller.GetMetadata(controller.BuildKitDaemon, hash, component, OrchestComponentKind)
 	newDs, err := getBuildKitDaemonDaemonset(metadata, matchLabels, component)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	_, err = reconciler.dsLister.DaemonSets(component.Namespace).Get(component.Name)
+	_, err = reconciler.Client().AppsV1().DaemonSets(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			_, err = reconciler.Client().AppsV1().DaemonSets(component.Namespace).Create(ctx, newDs, metav1.CreateOptions{})
-			reconciler.EnqueueAfter(component)
-			return err
 		}
-		return err
+		reconciler.EnqueueAfter(component)
+		return false, err
 	}
 
-	return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
+	return true, err
 
 }
 
-func (reconciler *BuildKitDaemonReconciler) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
+func (reconciler *BuildKitDaemonReconciler[Object]) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	err := reconciler.Client().AppsV1().DaemonSets(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
