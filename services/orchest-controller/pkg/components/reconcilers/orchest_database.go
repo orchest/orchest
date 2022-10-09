@@ -4,7 +4,6 @@ import (
 	"context"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/components"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,60 +15,61 @@ import (
 )
 
 type OrchestDatabaseReconciler[Object client.Object] struct {
-	*components.NativeComponent[Object]
+	*controller.Controller[Object]
 }
 
-func NewOrchestDatabaseReconciler[Object client.Object](component *components.NativeComponent[Object]) components.NativeComponentReconciler {
+func NewOrchestDatabaseReconciler[Object client.Object](controller *controller.Controller[Object]) ComponentReconciler {
 	return &OrchestDatabaseReconciler[Object]{
-		component,
+		Controller: controller,
 	}
 }
 
-func (reconciler *OrchestDatabaseReconciler[Object]) Reconcile(ctx context.Context, component *orchestv1alpha1.OrchestComponent) error {
+func (reconciler *OrchestDatabaseReconciler[Object]) Reconcile(ctx context.Context,
+	component *orchestv1alpha1.OrchestComponent) (bool, error) {
 
 	hash := utils.ComputeHash(component)
 	matchLabels := controller.GetResourceMatchLables(controller.OrchestDatabase, component)
-	metadata := controller.GetMetadata(controller.OrchestDatabase, hash, component, components.OrchestComponentKind)
+	metadata := controller.GetMetadata(controller.OrchestDatabase, hash, component, OrchestComponentKind)
 	newDep := getOrchestDatabaseDeployment(metadata, matchLabels, component)
 
-	oldDep, err := reconciler.DepLister.Deployments(component.Namespace).Get(component.Name)
+	oldDep, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if kerrors.IsNotFound(err) {
 			_, err = reconciler.Client().AppsV1().Deployments(component.Namespace).Create(ctx, newDep, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
-			return err
+			return false, nil
 		}
-		return err
+		return false, err
 	}
 
-	if !components.IsDeploymentUpdated(newDep, oldDep) {
+	if !isDeploymentUpdated(newDep, oldDep) {
 		_, err := reconciler.Client().AppsV1().Deployments(component.Namespace).Update(ctx, newDep, metav1.UpdateOptions{})
 		reconciler.EnqueueAfter(component)
-		return err
+		return false, err
 	}
 
-	svc, err := reconciler.SvcLister.Services(component.Namespace).Get(component.Name)
+	svc, err := reconciler.Client().CoreV1().Services(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
-			svc = components.GetServiceManifest(metadata, matchLabels, 5432, component)
+		if kerrors.IsNotFound(err) {
+			svc = getServiceManifest(metadata, matchLabels, 5432, component)
 			_, err = reconciler.Client().CoreV1().Services(component.Namespace).Create(ctx, svc, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
-			return err
+			return false, nil
 		}
-		return err
+		return false, err
 	}
 
-	if components.IsServiceReady(ctx, reconciler.Client(), svc) && components.IsDeploymentReady(oldDep) {
-		return nil
-		//return reconciler.updatePhase(ctx, component, orchestv1alpha1.Running)
+	if !isServiceReady(ctx, reconciler.Client(), svc) || !isDeploymentReady(oldDep) {
+		reconciler.EnqueueAfter(component)
+		return false, err
 	}
 
-	return nil
+	return true, err
 }
 
 func (reconciler *OrchestDatabaseReconciler[Object]) Uninstall(ctx context.Context, component *orchestv1alpha1.OrchestComponent) (bool, error) {
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{
-		PropagationPolicy: &components.DeletePropagationForeground,
+		PropagationPolicy: &DeletePropagationForeground,
 	})
 	if err != nil && !kerrors.IsNotFound(err) {
 		return false, err
