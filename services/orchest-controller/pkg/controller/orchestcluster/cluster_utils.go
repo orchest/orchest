@@ -14,16 +14,14 @@ import (
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
-	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
 
 var (
-	deploymentStages = [][]string{
+	creationStages = [][]string{
 		{controller.OrchestDatabase, controller.Rabbitmq},
 		{controller.OrchestApi},
 		{controller.CeleryWorker},
@@ -36,37 +34,6 @@ var (
 	// Registry helm parameters
 	registryServiceIP = "service.clusterIP"
 )
-
-func getPersistentVolumeClaim(name, volumeSize, hash string,
-	orchest *orchestv1alpha1.OrchestCluster) *corev1.PersistentVolumeClaim {
-
-	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
-
-	accessMode := corev1.ReadWriteMany
-	if orchest.Spec.SingleNode != nil && *orchest.Spec.SingleNode {
-		accessMode = corev1.ReadWriteOnce
-	}
-
-	spec := corev1.PersistentVolumeClaimSpec{
-		AccessModes: []corev1.PersistentVolumeAccessMode{accessMode},
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volumeSize),
-			},
-		},
-	}
-
-	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
-		spec.StorageClassName = &orchest.Spec.Orchest.Resources.StorageClassName
-	}
-
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metadata,
-		Spec:       spec,
-	}
-
-	return pvc
-}
 
 func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 	orchestv1alpha1.OrchestPhase, orchestv1alpha1.OrchestPhase) {
