@@ -163,7 +163,7 @@ func runControllerCmd() error {
 
 	// Initializing third party addons
 	components.InitThirdPartyComponents(kClient, componentsConfig)
-	components.InitNativeComponents(stopCh, kClient, svcInformer, depInformer, dsInformer, ingInformer)
+	components.InitOrchestComponents(stopCh, kClient, gClient, svcInformer, depInformer, dsInformer, ingInformer)
 
 	if k8sDistro == utils.Minikube {
 		minikubeReconciler := minikubereconciler.NewMinikubeReconcilerController(kClient, depInformer)
