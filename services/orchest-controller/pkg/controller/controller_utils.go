@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -74,20 +75,20 @@ var (
 
 // AddFinalizer adds specified finalizer string to object
 func AddFinalizerIfNotPresent(ctx context.Context,
-	generalClient client.Client,
-	object client.Object,
+	oClient versioned.Interface,
+	orchest *orchestv1alpha1.OrchestCluster,
 	finalizer string) (bool, error) {
 
-	if utils.Contains(object.GetFinalizers(), finalizer) {
+	if utils.Contains(orchest.GetFinalizers(), finalizer) {
 		return false, nil
 	}
 
-	klog.V(2).Infof("Object does not have finalizer, Object: %s", object.GetName())
-	copy := object.DeepCopyObject().(client.Object)
+	klog.V(2).Infof("Object does not have finalizer, Object: %s", orchest.GetName())
+	copy := orchest.DeepCopy()
 
 	copy.SetFinalizers(append(copy.GetFinalizers(), finalizer))
 
-	err := generalClient.Update(ctx, copy, &client.UpdateOptions{})
+	_, err := oClient.OrchestV1alpha1().OrchestClusters(copy.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to add finalizer %q to %q", finalizer, copy.GetName())
 	}
