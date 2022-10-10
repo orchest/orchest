@@ -114,18 +114,6 @@ func NewOrchestStateMachine(orchestKey string,
 	return sm, nil
 }
 
-/*
-func (sm *OrchestStateMachine) updateConditions(orchest *orchestv1alpha1.OrchestCluster) {
-	if orchest.Status == nil {
-		return
-	}
-
-	for _, condtion := range orchest.Status.Conditions {
-		sm.requests[condtion.Event] = struct{}{}
-	}
-}
-*/
-
 func (sm *OrchestStateMachine) updateCondition(ctx context.Context, event string) error {
 
 	sm.requests[event] = struct{}{}
@@ -198,7 +186,6 @@ func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 				break loop
 			}
 		}
-		klog.Info("finished ", deployingEvent)
 	}()
 
 	err := sm.updateCondition(ctx, deployingEvent)
@@ -338,7 +325,7 @@ func (sm *OrchestStateMachine) manage(ctx context.Context) error {
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
-	changed, err := controller.AddFinalizerIfNotPresent(ctx, sm.controller.gClient, orchest, orchestv1alpha1.Finalizer)
+	changed, err := controller.AddFinalizerIfNotPresent(ctx, sm.controller.oClient, orchest, orchestv1alpha1.Finalizer)
 	if changed || err != nil {
 		return err
 	}
