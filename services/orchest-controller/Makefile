@@ -48,6 +48,10 @@ crds: $(CONTROLLER_GEN)
 codegen:
 	@./hack/update-codegen.sh
 
+.PHONY: generate-mocks
+generate-mocks:
+	go generate ./internal/mock	
+
 .PHONY: manifestgen
 manifestgen: crds
 	@if [ -z "${TAGNAME}" ] ; then echo "TAGNAME must be set" ; exit 1 ; fi
