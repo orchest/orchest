@@ -154,10 +154,6 @@ type OrchestClusterController struct {
 
 	oClusterLister orchestlisters.OrchestClusterLister
 
-	//oComponentLister orchestlisters.OrchestComponentLister
-
-	//addonManager *addons.AddonManager
-
 	clustersLock    sync.RWMutex
 	orchestClusters map[string]*OrchestStateMachine
 }
@@ -170,8 +166,6 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	config ControllerConfig,
 	k8sDistro utils.KubernetesDistros,
 	oClusterInformer orchestinformers.OrchestClusterInformer,
-	//oComponentInformer orchestinformers.OrchestComponentInformer,
-	//addonManager *addons.AddonManager,
 ) *OrchestClusterController {
 
 	informerSyncedList := make([]cache.InformerSynced, 0)
@@ -184,12 +178,11 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	)
 
 	occ := OrchestClusterController{
-		oClient:   oClient,
-		gClient:   gClient,
-		scheme:    scheme,
-		config:    config,
-		k8sDistro: k8sDistro,
-		//addonManager:    addonManager,
+		oClient:         oClient,
+		gClient:         gClient,
+		scheme:          scheme,
+		config:          config,
+		k8sDistro:       k8sDistro,
 		orchestClusters: make(map[string]*OrchestStateMachine),
 	}
 
@@ -201,18 +194,6 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	})
 	informerSyncedList = append(informerSyncedList, oClusterInformer.Informer().HasSynced)
 	occ.oClusterLister = oClusterInformer.Lister()
-
-	/*
-		// OrchestComponent event handlers
-		oComponentWatcher := controller.NewControlleeWatcher[*orchestv1alpha1.OrchestComponent](ctrl)
-		oComponentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc:    oComponentWatcher.AddObject,
-			UpdateFunc: oComponentWatcher.UpdateObject,
-			DeleteFunc: oComponentWatcher.DeleteObject,
-		})
-		informerSyncedList = append(informerSyncedList, oComponentInformer.Informer().HasSynced)
-		occ.oComponentLister = oComponentInformer.Lister()
-	*/
 
 	ctrl.InformerSyncedList = informerSyncedList
 	ctrl.SyncHandler = occ.syncOrchestCluster
@@ -271,6 +252,16 @@ func (occ *OrchestClusterController) deleteOrchestCluster(obj interface{}) {
 func (occ *OrchestClusterController) getOrchestCluster(namespace, name string) (
 	interface{}, error) {
 	return occ.oClusterLister.OrchestClusters(namespace).Get(name)
+}
+
+func (occ *OrchestClusterController) getOrchestStateMachine(key string) *OrchestStateMachine {
+	occ.clustersLock.RLock()
+	defer occ.clustersLock.RUnlock()
+	stateMachine, ok := occ.orchestClusters[key]
+	if !ok {
+		return nil
+	}
+	return stateMachine
 }
 
 func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key string) error {
@@ -552,11 +543,6 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	return false, nil
 }
 
-func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
-	orchest *orchestv1alpha1.OrchestCluster) (err error) {
-	return nil
-}
-
 func (occ *OrchestClusterController) removeOrchestCluster(key string) {
 
 	occ.clustersLock.Lock()
@@ -623,22 +609,6 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, k
 
 		generation := fmt.Sprint(orchest.Generation)
 
-		err = occ.ensurePvc(ctx, generation, controller.UserDirName,
-			orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
-		if err != nil {
-			return err
-		}
-
-		err = occ.ensurePvc(ctx, generation, controller.BuilderDirName,
-			orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize, orchest)
-		if err != nil {
-			return err
-		}
-
-		err = occ.ensureRbacs(ctx, generation, orchest)
-		if err != nil {
-			return err
-		}
 
 		// Deploy and Update
 		components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
@@ -677,8 +647,6 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, k
 			}
 		}
 
-		klog.V(4).Infof("Deleting deprecated PVC %s", controller.OldBuilderDirName)
-		occ.deletePvc(ctx, controller.OldBuilderDirName, orchest)
 
 		stopped = true
 	*/
