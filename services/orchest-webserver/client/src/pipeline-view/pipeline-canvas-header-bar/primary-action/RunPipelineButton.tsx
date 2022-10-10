@@ -23,7 +23,7 @@ export const RunPipelineButton = () => {
   const closeMenu = () => setAnchor(undefined);
 
   const {
-    displayedPipelineStatus,
+    displayStatus,
     runSelectedSteps,
     runAllSteps,
     shouldRunAll,
@@ -35,9 +35,9 @@ export const RunPipelineButton = () => {
   const [buttonLabel, executeOperation] = React.useMemo(() => {
     if (pipelineReadOnlyReason) {
       return ["Run all", undefined];
-    } else if (displayedPipelineStatus === "RUNNING") {
+    } else if (displayStatus === "RUNNING") {
       return ["Cancel run", cancelRun];
-    } else if (displayedPipelineStatus === "CANCELING") {
+    } else if (displayStatus === "CANCELING") {
       return ["Cancelling...", undefined];
     } else if (shouldRunAll) {
       return ["Run all", runAllSteps];
@@ -47,7 +47,7 @@ export const RunPipelineButton = () => {
   }, [
     pipelineReadOnlyReason,
     cancelRun,
-    displayedPipelineStatus,
+    displayStatus,
     runAllSteps,
     runSelectedSteps,
     shouldRunAll,
@@ -58,11 +58,11 @@ export const RunPipelineButton = () => {
     ? withThrottle(executeOperation)
     : undefined;
 
-  React.useEffect(() => reset(), [displayedPipelineStatus, reset]);
+  React.useEffect(() => reset(), [displayStatus, reset]);
 
   const disabled = Boolean(pipelineReadOnlyReason) || hasNoStep;
-  const isIdling = displayedPipelineStatus === "IDLING";
-  const isRunning = displayedPipelineStatus === "RUNNING";
+  const isIdling = displayStatus === "IDLING";
+  const isRunning = displayStatus === "RUNNING";
 
   return (
     <>
@@ -74,9 +74,7 @@ export const RunPipelineButton = () => {
         size="small"
       >
         <Button
-          startIcon={
-            <PrimaryPipelineActionIcon status={displayedPipelineStatus} />
-          }
+          startIcon={<PrimaryPipelineActionIcon status={displayStatus} />}
           onClick={handleClick}
         >
           {buttonLabel}

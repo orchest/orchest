@@ -1,130 +1,88 @@
+import { RunStepsType } from "@/api/pipeline-runs/pipelineRunsApi";
+import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { PipelineJson, PipelineRun } from "@/types";
-import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
+import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
+import { useCancelJobRun } from "@/hooks/useCancelJobRun";
 import React from "react";
-import {
-  PIPELINE_JOBS_STATUS_ENDPOINT,
-  PIPELINE_RUN_STATUS_ENDPOINT,
-} from "../common";
-import {
-  convertStepsToObject,
-  isPipelineIdling,
-  isPipelineRunning,
-  useStepExecutionState,
-} from "./useStepExecutionState";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useAutoStartSession } from "./useAutoStartSession";
+import { usePipelineRuns } from "./usePipelineRuns";
 
-export type RunStepsType = "selection" | "incoming";
-
-/**
- * This is a FE-only pipeline status mapping. The actual status from BE does not always fit from user's perspective.
- * For example, BE doesn't have the status "CANCELING".
- */
-export type DisplayedPipelineStatus = "IDLING" | "RUNNING" | "CANCELING";
-
-export const useInteractiveRuns = ({
-  projectUuid,
-  runUuid,
-  setRunUuid,
-  pipelineJson,
-}: {
-  projectUuid?: string;
-  runUuid?: string;
-  setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
-  pipelineJson?: PipelineJson;
-}) => {
-  const { jobUuid } = useCustomRoute();
-  const { setAlert } = useGlobalContext();
-
-  const [displayedPipelineStatus, setDisplayedPipelineStatus] = React.useState<
-    DisplayedPipelineStatus
-  >("IDLING");
-
-  const runStatusEndpoint = jobUuid
-    ? `${PIPELINE_JOBS_STATUS_ENDPOINT}/${jobUuid}`
-    : PIPELINE_RUN_STATUS_ENDPOINT;
+export const useInteractiveRuns = () => {
+  const { setConfirm, setAlert } = useGlobalContext();
+  const { pipelineJson } = usePipelineDataContext();
+  const { session, startSession } = useAutoStartSession();
+  const cancel = useActivePipelineRun((state) => state.cancel);
+  const cancelJobRun = useCancelJobRun(cancel);
+  const isJobRun = useActivePipelineRun((state) => state.isJobRun);
+  const isSessionRunning = session?.status === "RUNNING";
 
   const {
-    runStatus,
-    stepExecutionState,
-    setStepExecutionState,
-  } = useStepExecutionState(
-    runUuid ? `${runStatusEndpoint}/${runUuid}` : undefined
-  );
+    stepRunStates,
+    displayStatus,
+    setDisplayStatus,
+    startRun,
+  } = usePipelineRuns(pipelineJson);
 
-  React.useEffect(() => {
-    if (!hasValue(runStatus)) return;
-    if (isPipelineRunning(runStatus)) {
-      setDisplayedPipelineStatus("RUNNING");
+  const cancelRun = React.useCallback(async () => {
+    if (displayStatus === "IDLING") {
+      console.error("There is no pipeline running.");
+      return;
+    } else if (displayStatus === "CANCELING") {
+      console.error("A cancelling run operation in progress.");
+      return;
     }
-    if (isPipelineIdling(runStatus)) {
-      // make sure stale opened files are reloaded in active
-      // Jupyter instance
-      window.orchest.jupyter?.reloadFilesFromDisk();
-      setDisplayedPipelineStatus("IDLING");
-    }
-  }, [runStatus]);
 
-  const executePipelineSteps = React.useCallback(
-    async (uuids: string[], type: RunStepsType) => {
-      if (!pipelineJson) return;
-      try {
-        const result = await fetcher<PipelineRun>(
-          PIPELINE_RUN_STATUS_ENDPOINT,
-          {
-            method: "POST",
-            headers: HEADER.JSON,
-            body: JSON.stringify({
-              uuids: uuids,
-              project_uuid: projectUuid,
-              run_type: type,
-              pipeline_definition: pipelineJson,
-            }),
+    setDisplayStatus("CANCELING");
+
+    if (isJobRun()) {
+      cancelJobRun();
+    } else {
+      await cancel().catch((error) =>
+        setAlert(
+          "Failed to cancel pipeline run",
+          <ErrorSummary error={error} />
+        )
+      );
+    }
+  }, [
+    displayStatus,
+    isJobRun,
+    cancelJobRun,
+    setDisplayStatus,
+    cancel,
+    setAlert,
+  ]);
+
+  const runSteps = React.useCallback(
+    (uuids: string[], type: RunStepsType) => {
+      if (uuids.length === 0) return;
+      if (!isSessionRunning && pipelineJson) {
+        setConfirm(
+          "Notice",
+          "An active session is required to execute an interactive run. Do you want to start the session first?",
+          (resolve) => {
+            startSession(pipelineJson.uuid, BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
+            resolve(true);
+            return true;
           }
-        );
-
-        setStepExecutionState((current) => ({
-          ...current,
-          ...convertStepsToObject(result),
-        }));
-        setRunUuid(result.uuid);
-        return true;
-      } catch (error) {
-        setAlert(
-          "Error",
-          `Failed to start interactive run. ${error.message || "Unknown error"}`
-        );
-        return false;
-      }
-    },
-    [projectUuid, setStepExecutionState, setAlert, pipelineJson, setRunUuid]
-  );
-
-  const executeRun = React.useCallback(
-    async (uuids: string[], type: RunStepsType) => {
-      if (displayedPipelineStatus === "RUNNING") {
-        setAlert(
-          "Error",
-          "The pipeline is currently executing, please wait until it completes."
         );
         return;
       }
-      setDisplayedPipelineStatus("RUNNING");
-      const executionStarted = await executePipelineSteps(uuids, type);
-      if (!executionStarted) setDisplayedPipelineStatus("IDLING");
+
+      startRun(uuids, type);
     },
-    [
-      executePipelineSteps,
-      setDisplayedPipelineStatus,
-      displayedPipelineStatus,
-      setAlert,
-    ]
+    [startRun, setConfirm, startSession, isSessionRunning, pipelineJson]
   );
 
   return {
-    stepExecutionState,
-    displayedPipelineStatus,
-    setDisplayedPipelineStatus,
-    executeRun,
+    stepRunStates,
+    displayStatus,
+    setDisplayStatus,
+    startRun,
+    cancelRun,
+    runSteps,
+    session,
   };
 };

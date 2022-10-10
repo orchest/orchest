@@ -1,3 +1,4 @@
+import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
 import { RouteLink } from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
 import { PipelineRun, PipelineRunStatus } from "@/types";
@@ -64,7 +65,8 @@ export const JobRunsTable = ({
 }: JobRunsTableProps) => {
   const [contextMenu, setContextMenu] = React.useState<ContextMenuState>({});
   const [expanded, setExpanded] = React.useState<number>(0);
-  const cancelRun = useCancelJobRun();
+  const cancel = useJobRunsApi((api) => api.cancel);
+  const cancelRun = useCancelJobRun(cancel);
 
   const openContextMenu = (run: PipelineRun, anchorEl: Element) =>
     setContextMenu({ run, anchorEl, isOpen: true });

@@ -3,13 +3,13 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
+import { useFetchActivePipelineRun } from "@/hooks/useFetchActivePipelineRun";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
 import { JobData, PipelineJson, PipelineMetaData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
 
 export type PipelineDataContextType = {
@@ -19,7 +19,6 @@ export type PipelineDataContextType = {
   pipelineCwd?: string;
   runUuid?: string;
   jobUuid?: string;
-  setRunUuid: React.Dispatch<React.SetStateAction<string | undefined>>;
   isReadOnly: boolean;
   pipelineJson?: PipelineJson;
   setPipelineJson: StateDispatcher<PipelineJson>;
@@ -68,7 +67,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const pipelineUuid =
     pipeline?.uuid === pipelineUuidFromRoute ? pipeline?.uuid : undefined;
 
-  const { runUuid, setRunUuid } = useFetchInteractiveRun();
+  const activePipelineRun = useFetchActivePipelineRun();
 
   useIsReadOnly();
 
@@ -85,7 +84,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     projectUuid,
     pipelineUuid,
     jobUuid,
-    runUuid,
+    runUuid: activePipelineRun?.uuid,
     snapshotUuid,
   });
 
@@ -131,8 +130,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         pipeline,
         pipelineCwd,
         jobUuid,
-        runUuid,
-        setRunUuid,
+        runUuid: activePipelineRun?.uuid,
         isReadOnly,
         isInteractive,
         pipelineJson,
