@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Union
 import aiohttp
 from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
+from celery.signals import worker_process_init
 from celery.utils.log import get_task_logger
 
 from _orchest.internals import config as _config
@@ -33,6 +34,20 @@ logger = get_task_logger(__name__)
 # create_all should only be called once per app right?
 application = create_app(CONFIG_CLASS, use_db=True, register_api=False)
 celery = make_celery(application, use_backend_db=True)
+
+
+@worker_process_init.connect
+def dispose_of_existing_db_pool(**kwargs):
+    """Disposes of existing db connections to avoid post-fork issues.
+
+    The disposal is necessary to avoid issues with concurrent usage of
+    the pool by different workers in the pre-fork celery model.
+
+        https://docs.sqlalchemy.org/en/latest/core/pooling.html#using-connection-pools-with-multiprocessing
+    """
+    with application.app_context():
+        db.engine.dispose()
+        print("Disposed of existing db connection pool.")
 
 
 # This will not work yet, because Celery does not yet support asyncio
