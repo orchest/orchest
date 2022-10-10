@@ -20,8 +20,10 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/informers"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
@@ -32,6 +34,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,7 +65,7 @@ const (
 	dockerDesktopLabelValue = "docker-desktop"
 )
 
-func GetClientsOrDie(inCluster bool, scheme *runtime.Scheme) (
+func GetClientsOrDie(inCluster bool, fakeUrl string, scheme *runtime.Scheme) (
 	kubernetes.Interface,
 	versioned.Interface,
 	client.Client) {
@@ -75,7 +78,7 @@ func GetClientsOrDie(inCluster bool, scheme *runtime.Scheme) (
 			klog.Fatalf("Can not get kubernetes config: %v", err)
 		}
 	} else {
-		config, err = BuildOutsideClusterConfig()
+		config, err = BuildOutsideClusterConfig(fakeUrl)
 		if err != nil {
 			klog.Fatalf("Can not get kubernetes config: %v", err)
 		}
@@ -91,9 +94,21 @@ func GetClientsOrDie(inCluster bool, scheme *runtime.Scheme) (
 		klog.Fatalf("Can not get orchest client: %v", err)
 	}
 
-	mapper, err := apiutil.NewDynamicRESTMapper(config)
-	if err != nil {
-		klog.Fatalf("Can not get rest mapper: %v", err)
+	var mapper meta.RESTMapper
+
+	// This is added for testing
+	if fakeUrl != "" {
+		gvks := scheme.AllKnownTypes()
+		gvs := make([]schema.GroupVersion, 0, len(gvks))
+		for gvk, _ := range gvks {
+			gvs = append(gvs, gvk.GroupVersion())
+		}
+		mapper = meta.NewDefaultRESTMapper(gvs)
+	} else {
+		mapper, err = apiutil.NewDynamicRESTMapper(config)
+		if err != nil {
+			klog.Fatalf("Can not get rest mapper: %v", err)
+		}
 	}
 
 	clientOptions := client.Options{Scheme: scheme, Mapper: mapper}
@@ -117,7 +132,11 @@ func GetScheme() *runtime.Scheme {
 }
 
 // BuildOutsideClusterConfig returns k8s config
-func BuildOutsideClusterConfig() (*rest.Config, error) {
+func BuildOutsideClusterConfig(fakeUrl string) (*rest.Config, error) {
+	if fakeUrl != "" {
+		return BuildFakeKubeConfig(fakeUrl), nil
+	}
+
 	kubeConfig := GetEnvOrDefault("KUBECONFIG", "~/.kube/config")
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfig)
@@ -125,6 +144,10 @@ func BuildOutsideClusterConfig() (*rest.Config, error) {
 		return nil, errors.Wrap(err, "faile to build")
 	}
 	return config, nil
+}
+
+func BuildFakeKubeConfig(url string) *restclient.Config {
+	return &restclient.Config{Host: url, ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Group: "", Version: "v1"}}}
 }
 
 func GetEnvOrDefault(key, defaultValue string) string {
