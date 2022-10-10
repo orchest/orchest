@@ -55,6 +55,7 @@ Get started with an example project:
 - [Train and compare 3 regression models](https://github.com/orchest/quickstart)
 - [Connecting to an external database using SQLAlchemy](https://github.com/astrojuanlu/orchest-sqlalchemy)
 - [Run dbt in Orchest for a dbt + Python transform pipeline](https://github.com/ricklamers/orchest-dbt)
+- [Use PySpark in Orchest](https://github.com/ricklamers/orchest-hello-spark)
 
 👉 Check out the full list of [example projects](https://github.com/orchest/orchest-examples).
 
