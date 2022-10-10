@@ -9,6 +9,7 @@ type CodeMirrorProps = Omit<
   "onFocus" | "onBlur" | "ref"
 > & {
   borderColor?: string;
+  error?: boolean;
   /** Makes the editor read-only, but also fades the text out and displays a lock icon. */
   locked?: boolean;
   onFocus?: () => void;
