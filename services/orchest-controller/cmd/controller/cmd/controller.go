@@ -119,7 +119,7 @@ func runControllerCmd() error {
 	scheme := utils.GetScheme()
 
 	// Initialize clients
-	kClient, oClient, gClient := utils.GetClientsOrDie(inCluster, scheme)
+	kClient, oClient, gClient := utils.GetClientsOrDie(inCluster, "", scheme)
 	// Create Shared Informer Factory
 	informerFactory := utils.NewInformerFactory(kClient)
 	// Create Service Informer
@@ -133,11 +133,6 @@ func runControllerCmd() error {
 	// Create OrchestCluster Informer
 	oClusterInformer := utils.NewOrchestClusterInformer(oClient)
 
-	//Create OrchestCluster Informer
-	//oComponentInformer := utils.NewOrchestComponentInformer(oClient)
-
-	//addonManager := addons.NewAddonManager(kClient, addonsConfig)
-
 	k8sDistro := utils.DetectK8sDistribution(kClient)
 
 	oClusterController := orchestcluster.NewOrchestClusterController(kClient,
@@ -148,17 +143,6 @@ func runControllerCmd() error {
 		k8sDistro,
 		oClusterInformer)
 
-	/*
-		oComponentController := orchestcomponent.NewOrchestComponentController(kClient,
-			oClient,
-			gClient,
-			scheme,
-			oComponentInformer,
-			svcInformer,
-			depInformer,
-			dsInformer,
-			ingInformer)
-	*/
 	server := server.NewServer(serverConfig, oClusterInformer)
 
 	// Initializing third party addons
