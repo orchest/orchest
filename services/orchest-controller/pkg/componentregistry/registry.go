@@ -49,6 +49,10 @@ func RegisterComponent(name string, component Component) {
 	klog.Infof("A Component with the same name is already registered with the registry, name=%s", name)
 }
 
+func ReplaceComponent(name string, component Component) {
+	Registry.components[name] = component
+}
+
 type Message any
 
 type Event interface {
