@@ -100,13 +100,7 @@ const JupyterLabView = () => {
               type: "SET_PIPELINE_READONLY_REASON",
               payload: undefined,
             });
-          } else if (
-            ![
-              "environmentsNotYetBuilt",
-              "environmentsBuildInProgress",
-              "environmentsFailedToBuild",
-            ].includes(result.message)
-          ) {
+          } else if (shouldRedirectToPipelineEditor(result.message)) {
             // When failed, it could be that the pipeline does no longer exist.
             // Navigate back to PipelineEditor.
             navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
@@ -246,3 +240,19 @@ const JupyterLabView = () => {
 };
 
 export default JupyterLabView;
+
+const shouldRedirectToPipelineEditor = (errorMessage: string) => {
+  switch (errorMessage) {
+    case "environmentsNotYetBuilt":
+    case "environmentsBuildInProgress":
+    case "environmentsFailedToBuild":
+    // There can sometimes be a race-condition
+    // when the session is fetched after the
+    // POST request to create a new one has been fired.
+    // This is fine, and we don't have to redirect back.
+    case "Session already exists.":
+      return false;
+    default:
+      return true;
+  }
+};

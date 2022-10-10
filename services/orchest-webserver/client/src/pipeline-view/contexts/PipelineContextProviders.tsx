@@ -1,6 +1,5 @@
 import React from "react";
 import { CanvasScalingProvider } from "./CanvasScalingContext";
-import { InteractiveRunsContextProvider } from "./InteractiveRunsContext";
 import { PipelineCanvasContextProvider } from "./PipelineCanvasContext";
 import { PipelineDataContextProvider } from "./PipelineDataContext";
 import { PipelineRefsProvider } from "./PipelineRefsContext";
@@ -14,11 +13,9 @@ export const PipelineContextProviders: React.FC = ({ children }) => {
         <PipelineDataContextProvider>
           <PipelineUiStateContextProvider>
             <ProjectFileManagerContextProvider>
-              <InteractiveRunsContextProvider>
-                <PipelineCanvasContextProvider>
-                  {children}
-                </PipelineCanvasContextProvider>
-              </InteractiveRunsContextProvider>
+              <PipelineCanvasContextProvider>
+                {children}
+              </PipelineCanvasContextProvider>
             </ProjectFileManagerContextProvider>
           </PipelineUiStateContextProvider>
         </PipelineDataContextProvider>

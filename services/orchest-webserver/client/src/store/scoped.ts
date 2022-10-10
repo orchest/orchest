@@ -27,7 +27,8 @@ export type ScopedStateCreator<
   A extends Exclude<ScopeParameter, S> = never
 > = (
   setState: StateSetter<WithScopes<T, S, A>>,
-  getState: () => WithScopes<T, S, A>
+  getState: () => WithScopes<T, S, A>,
+  store: StoreApi<WithInitialScope<T, S, A>>
 ) => T;
 
 export type UseScopedStore<
@@ -53,14 +54,14 @@ export type ScopeDefinition<
    * Note: The store may only be accessed once all these parameters are available.
    * Attempting to access the store outside its required scope throws an error.
    */
-  requires: S[];
+  requires: readonly S[];
   /**
    * Additional scope parameters to add to and track within the state.
    *
    * These parameters may not be available within the scope
    * in which case they are `undefined` within the state.
    */
-  additional?: A[] | undefined;
+  additional?: readonly A[] | undefined;
 };
 
 /** Creates a zustand store that is scoped to the active project. */

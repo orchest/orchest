@@ -1,20 +1,18 @@
+import { RunStepsType } from "@/api/pipeline-runs/pipelineRunsApi";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { pickJobChanges } from "@/jobs-view/common";
 import { useCreateJob } from "@/jobs-view/hooks/useCreateJob";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
-import { useInteractiveRunsContext } from "@/pipeline-view/contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "@/pipeline-view/contexts/PipelineUiStateContext";
-import { RunStepsType } from "@/pipeline-view/hooks/useInteractiveRuns";
+import { useInteractiveRuns } from "@/pipeline-view/hooks/useInteractiveRuns";
 import React from "react";
 
 export const usePipelineActions = () => {
-  const { jobUuid } = useCustomRoute();
   const initJobChanges = useEditJob((state) => state.initJobChanges);
   const startEditing = useEditJob((state) => state.startEditing);
-  const { runUuid, isReadOnly } = usePipelineDataContext();
+  const { isReadOnly } = usePipelineDataContext();
   const {
     uiState: { selectedSteps, steps },
     uiStateDispatch,
@@ -24,21 +22,13 @@ export const usePipelineActions = () => {
     state: { pipeline },
   } = useProjectsContext();
 
-  const {
-    displayedPipelineStatus,
-    runSteps,
-    cancelRun,
-  } = useInteractiveRunsContext();
-
-  const doCancelRun = React.useCallback(() => {
-    return cancelRun({ jobUuid, runUuid });
-  }, [jobUuid, runUuid, cancelRun]);
+  const { displayStatus, runSteps, cancelRun } = useInteractiveRuns();
 
   const doRunSteps = React.useCallback(
     (stepsToRun: string[], type: RunStepsType) => {
-      if (displayedPipelineStatus === "IDLING") runSteps(stepsToRun, type);
+      if (displayStatus === "IDLING") runSteps(stepsToRun, type);
     },
-    [displayedPipelineStatus, runSteps]
+    [displayStatus, runSteps]
   );
 
   const allSteps = Object.keys(steps);
@@ -86,12 +76,12 @@ export const usePipelineActions = () => {
   const hasSteps = allSteps.length > 0;
 
   return {
-    displayedPipelineStatus,
+    displayStatus,
     shouldRunAll,
     runIncomingSteps: hasSelectedSteps ? runIncomingSteps : undefined,
     runSelectedSteps: hasSelectedSteps ? runSelectedSteps : undefined,
     runAllSteps: hasSteps ? runAllSteps : undefined,
-    cancelRun: doCancelRun,
+    cancelRun,
     createDraftJob,
   };
 };

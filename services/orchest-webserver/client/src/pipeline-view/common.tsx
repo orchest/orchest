@@ -9,9 +9,6 @@ import {
 import { omit } from "@/utils/record";
 import { setOutgoingConnections } from "@/utils/webserver-utils";
 
-export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs";
-export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs";
-
 export const DRAG_CLICK_SENSITIVITY = 3;
 
 export type FileManagementRoot = "/project-dir" | "/data";

@@ -9,11 +9,11 @@ import { subtractPoints } from "@/utils/geometry";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { SCALE_UNIT, useCanvasScaling } from "../contexts/CanvasScalingContext";
-import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useDeleteSteps } from "../hooks/useDeleteSteps";
+import { useInteractiveRuns } from "../hooks/useInteractiveRuns";
 import { useOpenFile } from "../hooks/useOpenFile";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
@@ -32,7 +32,7 @@ export const PipelineViewportContextMenu = () => {
     autoLayoutPipeline,
     uiStateDispatch,
   } = usePipelineUiStateContext();
-  const { executeRun } = useInteractiveRunsContext();
+  const { startRun } = useInteractiveRuns();
   const { centerView, zoomBy } = usePipelineCanvasContext();
 
   const { deleteSelectedSteps } = useDeleteSteps();
@@ -82,7 +82,7 @@ export const PipelineViewportContextMenu = () => {
             title: "Run selected steps",
             disabled: isReadOnly || selectedSteps.length === 0,
             action: () => {
-              executeRun(selectedSteps, "selection");
+              startRun(selectedSteps, "selection");
             },
           },
           {
@@ -173,7 +173,7 @@ export const PipelineViewportContextMenu = () => {
             title: "Run this step",
             disabled: isReadOnly,
             action: () => {
-              executeRun([contextMenuUuid], "selection");
+              startRun([contextMenuUuid], "selection");
             },
           },
           {
@@ -185,7 +185,7 @@ export const PipelineViewportContextMenu = () => {
                 (uuid) => steps[uuid].incoming_connections.length === 0
               ),
             action: () => {
-              executeRun([contextMenuUuid], "incoming");
+              startRun([contextMenuUuid], "incoming");
             },
           },
         ];

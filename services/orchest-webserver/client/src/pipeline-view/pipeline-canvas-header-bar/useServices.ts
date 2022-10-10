@@ -1,13 +1,13 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { filterServices } from "@/utils/webserver-utils";
 import React from "react";
-import { useInteractiveRunsContext } from "../contexts/InteractiveRunsContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useInteractiveRuns } from "../hooks/useInteractiveRuns";
 
 export const useServices = (jobRunRunning: boolean) => {
   const { jobUuid } = useCustomRoute();
   const { pipelineJson, isSnapshot, isJobRun } = usePipelineDataContext();
-  const { session } = useInteractiveRunsContext();
+  const { session } = useInteractiveRuns();
   const [anchor, setAnchor] = React.useState<Element>();
 
   const showServices = React.useCallback((e: React.MouseEvent) => {
