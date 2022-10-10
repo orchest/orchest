@@ -4,6 +4,9 @@ import {
   AccordionSummary,
 } from "@/components/Accordion";
 import { CodeMirror } from "@/components/common/CodeMirror";
+import LockOutlined from "@mui/icons-material/LockOutlined";
+import Box from "@mui/material/Box";
+import { grey } from "@mui/material/colors";
 import Typography from "@mui/material/Typography";
 import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
@@ -23,17 +26,43 @@ const SetupScriptCodeMirror = React.memo(function SetupScriptCodeMirror({
   locked,
 }: SetupScriptCodeMirrorProps) {
   return (
-    <CodeMirror
-      locked={locked}
-      value={value}
-      onBeforeChange={(_, __, newValue) => onChange(newValue)}
-      options={{
-        mode: "application/x-sh",
-        theme: "dracula",
-        lineNumbers: true,
-        viewportMargin: Infinity,
+    <Box
+      sx={{
+        position: "relative",
+        ".CodeMirror-scroll": {
+          opacity: locked ? 0.5 : undefined,
+        },
+        ".CodeMirror-lines": {
+          cursor: locked ? "not-allowed" : undefined,
+        },
       }}
-    />
+    >
+      <CodeMirror
+        locked={locked}
+        value={value}
+        onBeforeChange={(_, __, newValue) => onChange(newValue)}
+        options={{
+          mode: "application/x-sh",
+          theme: "dracula",
+          lineNumbers: true,
+          readOnly: locked,
+          viewportMargin: Infinity,
+        }}
+      />
+      {locked && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            padding: 2,
+            pointerEvents: "none",
+          }}
+        >
+          <LockOutlined style={{ fill: grey[200] }} fontSize="small" />
+        </Box>
+      )}
+    </Box>
   );
 });
 
