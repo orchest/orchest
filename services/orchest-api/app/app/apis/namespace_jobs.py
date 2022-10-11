@@ -470,29 +470,6 @@ class PipelineStepStatus(Resource):
         )
         return step.__dict__
 
-    @api.doc("set_pipeline_run_pipeline_step_status")
-    @api.expect(schema.status_update)
-    def put(self, job_uuid, run_uuid, step_uuid):
-        """Set the status of a pipeline step of a pipeline run."""
-        status_update = request.get_json()
-
-        filter_by = {
-            "run_uuid": run_uuid,
-            "step_uuid": step_uuid,
-        }
-        try:
-            update_status_db(
-                status_update,
-                model=models.PipelineRunStep,
-                filter_by=filter_by,
-            )
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            return {"message": "Failed update operation."}, 500
-
-        return {"message": "Status was updated successfully."}, 200
-
 
 @api.route("/cleanup/<string:job_uuid>")
 @api.param("job_uuid", "UUID of job")
