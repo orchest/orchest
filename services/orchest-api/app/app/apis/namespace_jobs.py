@@ -413,22 +413,6 @@ class PipelineRun(Resource):
             abort(404, "Given job has no run with given run_uuid")
         return non_interactive_run.__dict__
 
-    @api.doc("set_pipeline_run_status")
-    @api.expect(schema.status_update)
-    def put(self, job_uuid, run_uuid):
-        """Set the status of a pipeline run."""
-
-        try:
-            with TwoPhaseExecutor(db.session) as tpe:
-                UpdateJobPipelineRun(tpe).transaction(
-                    job_uuid, run_uuid, request.get_json()["status"]
-                )
-        except Exception as e:
-            current_app.logger.error(e)
-            return {"message": str(e)}, 500
-
-        return {"message": "Status was updated successfully"}, 200
-
     @api.doc("delete_run")
     @api.response(200, "Run terminated")
     def delete(self, job_uuid, run_uuid):

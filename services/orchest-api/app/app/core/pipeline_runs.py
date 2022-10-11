@@ -13,10 +13,8 @@ parameters.
 import asyncio
 import json
 import os
-from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Set
+from typing import Any, Dict, List, Set
 
-import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 import app.utils as utils
@@ -35,45 +33,8 @@ from config import CONFIG_CLASS
 logger = utils.get_logger()
 
 
-async def update_status(
-    status: str,
-    task_id: str,
-    session: aiohttp.ClientSession,
-    type: Literal["step", "pipeline"],
-    run_endpoint: str,
-    uuid: Optional[str] = None,
-) -> Any:
-    """Updates status of `type` via the orchest-api.
-
-    Args:
-        type: One of ``['pipeline', 'step']``.
-    """
-    data = {"status": status}
-    if data["status"] == "STARTED":
-        data["started_time"] = datetime.utcnow().isoformat()
-    elif data["status"] in ["SUCCESS", "FAILURE"]:
-        data["finished_time"] = datetime.utcnow().isoformat()
-
-    base_url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_endpoint}/{task_id}"
-
-    if type == "step":
-        url = f"{base_url}/{uuid}"
-
-    elif type == "pipeline":
-        url = base_url
-
-    else:
-        raise ValueError("Given `type` of '{type}' is not valid.")
-
-    # Just await the response. The proposed fix on the aiohttp GitHub to
-    # do `response.json(content_type=None)` still results in parsing
-    # issues.
-    await session.put(url, json=data)
-
-
 def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -> dict:
-    # The working directory is the location of the file being
-    # executed.
+    # The working directory is the location of the file being executed.
     project_relative_file_path = os.path.join(
         os.path.split(run_config["pipeline_path"])[0], step.properties["file_path"]
     )

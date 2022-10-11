@@ -214,7 +214,6 @@ def start_non_interactive_pipeline_run(
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
     run_config["project_dir"] = run_dir
-    run_config["run_endpoint"] = f"jobs/{job_uuid}"
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
@@ -227,7 +226,6 @@ def start_non_interactive_pipeline_run(
     # interest for the session_config.
     session_config = copy.deepcopy(run_config)
     session_config.pop("env_uuid_to_image")
-    session_config.pop("run_endpoint")
     session_config["userdir_pvc"] = userdir_pvc
     session_config["services"] = pipeline_definition.get("services", {})
     session_config["env_uuid_to_image"] = run_config["env_uuid_to_image"]

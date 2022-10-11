@@ -54,7 +54,6 @@ class RunList(Resource):
     def post(self):
         """Starts a new (interactive) pipeline run."""
         post_data = request.get_json()
-        post_data["run_config"]["run_endpoint"] = "runs"
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
@@ -81,23 +80,6 @@ class Run(Resource):
         if run is None:
             abort(404, description="Run not found.")
         return run.__dict__
-
-    @api.doc("set_run_status")
-    @api.expect(schema.status_update)
-    def put(self, run_uuid):
-        """Sets the status of a pipeline run."""
-
-        try:
-            with TwoPhaseExecutor(db.session) as tpe:
-                UpdateInteractivePipelineRun(tpe).transaction(
-                    run_uuid, request.get_json()["status"]
-                )
-        except Exception as e:
-            current_app.logger.error(e)
-            db.session.rollback()
-            return {"message": "Failed update operation."}, 500
-
-        return {"message": "Status was updated successfully."}, 200
 
     @api.doc("delete_run")
     @api.response(200, "Run terminated")
