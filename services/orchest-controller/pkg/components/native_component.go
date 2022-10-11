@@ -175,7 +175,7 @@ func (c *NativeComponent[Object]) syncHandler(ctx context.Context, key string) e
 	case Start:
 		fallthrough
 	case Delete:
-		klog.Info("delete")
+		success, err = c.reconciler.Uninstall(ctx, componentState.component)
 	}
 
 	return nil
@@ -210,7 +210,7 @@ func (c *NativeComponent[Object]) Update(ctx context.Context, namespace string,
 	key := namespace + "/" + c.name
 	c.EnqueueKey(key)
 
-	klog.Infof("update is called, %s", c.name)
+	klog.V(2).Infof("update is called, %s", c.name)
 
 }
 
@@ -226,4 +226,32 @@ func (c *NativeComponent[Object]) Start(ctx context.Context, namespace string,
 
 func (c *NativeComponent[Object]) Delete(ctx context.Context, namespace string,
 	message registry.Message, eventChan chan registry.Event) {
+
+	var err error
+
+	// The success is already sent by the inner component, if there is
+	defer func() {
+		if err != nil {
+			eventChan <- registry.ErrorEvent(err.Error())
+		}
+	}()
+
+	component, ok := message.(*orchestv1alpha1.OrchestComponent)
+	if !ok {
+		err = fmt.Errorf("Component %s requires message of type *orchestv1alpha1.OrchestComponent", c.name)
+		return
+	}
+
+	c.componentsLock.Lock()
+	defer c.componentsLock.Unlock()
+	c.componentStates[namespace] = &componentState{
+		cmd:       Delete,
+		eventChan: eventChan,
+		component: component,
+	}
+
+	key := namespace + "/" + c.name
+	c.EnqueueKey(key)
+
+	klog.V(2).Info("delete is called")
 }
