@@ -421,7 +421,7 @@ class PipelineRun(Resource):
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 UpdateJobPipelineRun(tpe).transaction(
-                    job_uuid, run_uuid, request.get_json()
+                    job_uuid, run_uuid, request.get_json()["status"]
                 )
         except Exception as e:
             current_app.logger.error(e)
@@ -1640,9 +1640,7 @@ class DeleteJobPipelineRun(TwoPhaseFunction):
 class UpdateJobPipelineRun(TwoPhaseFunction):
     """Update a pipeline run of a job."""
 
-    def _transaction(
-        self, job_uuid: str, pipeline_run_uuid: str, status_update: Dict[str, Any]
-    ):
+    def _transaction(self, job_uuid: str, pipeline_run_uuid: str, status: str):
         """Set the status of a pipeline run."""
 
         filter_by = {
@@ -1655,7 +1653,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
 
         if update_status_db(
-            status_update,
+            {"status": status},
             model=models.NonInteractivePipelineRun,
             filter_by=filter_by,
         ):
@@ -1664,22 +1662,20 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                 "FAILURE": events.register_job_pipeline_run_failed,
                 "ABORTED": events.register_job_pipeline_run_cancelled,
                 "STARTED": events.register_job_pipeline_run_started,
-            }[status_update["status"]](
+            }[status](
                 job.project_uuid,
                 job_uuid,
                 pipeline_run_uuid,
             )
 
         # See if the job is done running (all its runs are done).
-        if status_update["status"] in ["SUCCESS", "FAILURE", "ABORTED"]:
+        if status in ["SUCCESS", "FAILURE", "ABORTED"]:
 
             # Only non recurring jobs terminate to SUCCESS.
             if job.schedule is None:
                 self._update_one_off_job(job)
             else:
-                self._update_cron_job_run(
-                    job, pipeline_run_uuid, status_update["status"]
-                )
+                self._update_cron_job_run(job, pipeline_run_uuid, status)
 
             DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
 
@@ -1815,9 +1811,7 @@ class AbortJobPipelineRun(TwoPhaseFunction):
 
         # This will take care of updating the job status thus freeing
         # locked env images, and processing stale ones.
-        UpdateJobPipelineRun(self.tpe).transaction(
-            job_uuid, run_uuid, {"status": "ABORTED"}
-        )
+        UpdateJobPipelineRun(self.tpe).transaction(job_uuid, run_uuid, "ABORTED")
 
         return True
 

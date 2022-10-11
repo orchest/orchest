@@ -21,7 +21,11 @@ from celery.contrib.abortable import AbortableAsyncResult
 
 import app.utils as utils
 from _orchest.internals import config as _config
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
+from app import models
+from app.apis.namespace_jobs import UpdateJobPipelineRun
+from app.apis.namespace_runs import UpdateInteractivePipelineRun
 from app.connections import db, k8s_core_api, k8s_custom_obj_api
 from app.core import pod_scheduling
 from app.core.pipelines import Pipeline, PipelineStep
@@ -373,18 +377,40 @@ def _is_step_allowed_to_run(
     return all(s.properties["uuid"] not in steps_to_finish for s in step.parents)
 
 
+def _update_pipeline_run_status(
+    run_config: Dict[str, Any], run_uuid: str, status: str
+) -> None:
+    with TwoPhaseExecutor(db.session) as tpe:
+        if run_config["session_type"] == "interactive":
+            UpdateInteractivePipelineRun(tpe).transaction(run_uuid, status)
+        else:
+            run = (
+                db.session.query(models.NonInteractivePipelineRun.job_uuid)
+                .filter_by(uuid=run_uuid)
+                .one()
+            )
+            UpdateJobPipelineRun(tpe).transaction(run.job_uuid, run_uuid, status)
+
+
+def _should_exit_loop(run_config: Dict[str, Any], run_uuid: str) -> bool:
+    if AbortableAsyncResult(run_uuid).is_aborted():
+        return True
+
+    if run_config["session_type"] == "interactive":
+        model = models.InteractivePipelineRun
+    else:
+        model = models.NonInteractivePipelineRun
+
+    run = db.session.query(model.status).filter_by(uuid=run_uuid).one_or_none()
+    return run is None or run.status in ["SUCCESS", "FAILURE", "ABORTED"]
+
+
 async def run_pipeline_workflow(
     session_uuid: str, task_id: str, pipeline: Pipeline, *, run_config: RunConfig
 ):
     async with aiohttp.ClientSession() as session:
 
-        await update_status(
-            "STARTED",
-            task_id,
-            session,
-            type="pipeline",
-            run_endpoint=run_config["run_endpoint"],
-        )
+        _update_pipeline_run_status(run_config, task_id, "STARTED")
 
         namespace = _config.ORCHEST_NAMESPACE
 
@@ -501,21 +527,8 @@ async def run_pipeline_workflow(
                 if not steps_to_finish or had_failed_steps:
                     break
 
-                if AbortableAsyncResult(task_id).is_aborted():
+                if _should_exit_loop(run_config, task_id):
                     break
-
-                async with session.get(
-                    f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_config["run_endpoint"]}'
-                    f"/{task_id}"
-                ) as response:
-                    run_status = await response.json()
-                    # Might not be there if it has been deleted.
-                    if run_status.get("status", "ABORTED") in [
-                        "SUCCESS",
-                        "FAILURE",
-                        "ABORTED",
-                    ]:
-                        break
 
                 await asyncio.sleep(0.25)
 
@@ -524,22 +537,10 @@ async def run_pipeline_workflow(
                 db.session.commit()
 
             pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
-            await update_status(
-                pipeline_status,
-                task_id,
-                session,
-                type="pipeline",
-                run_endpoint=run_config["run_endpoint"],
-            )
+            _update_pipeline_run_status(run_config, task_id, pipeline_status)
 
         except Exception as e:
             logger.error(e)
             utils.update_steps_status(task_id, steps_to_finish, "ABORTED")
             db.session.commit()
-            await update_status(
-                "FAILURE",
-                task_id,
-                session,
-                type="pipeline",
-                run_endpoint=run_config["run_endpoint"],
-            )
+            _update_pipeline_run_status(run_config, task_id, "FAILURE")
