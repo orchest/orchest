@@ -5,7 +5,7 @@ import uuid
 from collections import ChainMap
 from copy import deepcopy
 from datetime import datetime
-from typing import Container, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Container, Dict, Iterable, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import requests
@@ -42,7 +42,10 @@ logger = get_logger()
 
 
 def update_status_db(
-    status_update: Dict[str, str], model: Model, filter_by: Dict[str, str]
+    status_update: Dict[str, str],
+    model: Model,
+    filter_by: Optional[Dict[str, str]] = None,
+    filter_: Optional[List[Any]] = None,
 ) -> bool:
     """Updates the status attribute of particular entry in the database.
 
@@ -54,15 +57,23 @@ def update_status_db(
         status_update: The new status {'status': 'STARTED'}.
         model: Database model to update the status of. Assumed to have a
             status column mapping to a string.
-        filter_by: The filter to query the exact resource for which to
-            update its status.
+        filter_by: Allows filtering using sqlalchemy filter_by operator.
+        filter_: Allows filtering using sqlalchemy filter operator. When
+            both filter and filter_by are defined both are applied.
 
     Returns:
         True if at least 1 row was updated, false otherwise.
 
     """
     data = status_update
-    query = model.query.filter_by(**filter_by)
+    if filter_by is None and filter_ is None:
+        raise ValueError("Either filter_by or filter must be defined.")
+
+    query = model.query
+    if filter_by is not None:
+        query = query.filter_by(**filter_by)
+    if filter_ is not None:
+        query = query.filter(*filter_)
 
     if data["status"] == "STARTED":
         data["started_time"] = (
@@ -923,26 +934,13 @@ def update_steps_status(run_uuid: str, step_uuids: Iterable[str], status: str) -
     Returns:
         True if at least 1 row was updated, false otherwise.
 
-    Note to reviewer: this function will likely be merged with
-    update_status_db in a later commit.
     """
-    update = {"status": status}
-    if status == "STARTED":
-        update["started_time"] = datetime.utcnow()
-    elif status in ["SUCCESS", "FAILURE"]:
-        update["finished_time"] = datetime.utcnow()
-
-        # It could happen that the status update would take the status
-        # of a step from PENDING to SUCCESS, which would result in the
-        # started_time to never be set.
-        update["started_time"] = coalesce(
-            models.PipelineRunStep.started_time, update["finished_time"]
-        )
-
-    res = models.PipelineRunStep.query.filter(
-        models.PipelineRunStep.status.in_(["PENDING", "STARTED"]),
-        models.PipelineRunStep.run_uuid == run_uuid,
-        models.PipelineRunStep.step_uuid.in_(list(step_uuids)),
-    ).update(update)
-
-    return bool(res)
+    return update_status_db(
+        {"status": status},
+        models.PipelineRunStep,
+        filter_=[
+            models.PipelineRunStep.status.in_(["PENDING", "STARTED"]),
+            models.PipelineRunStep.run_uuid == run_uuid,
+            models.PipelineRunStep.step_uuid.in_(list(step_uuids)),
+        ],
+    )
