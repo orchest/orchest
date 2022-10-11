@@ -9,7 +9,7 @@ import { ImageBuildStatus } from "./ImageBuildStatus";
 
 type ImageBuildLogProps = {
   build?: EnvironmentImageBuild;
-  ignoreIncomingLogs: boolean;
+  shouldCleanLogs: boolean;
   socketIONamespace?: string;
   streamIdentity: string | undefined;
   hideDefaultStatus?: boolean;
@@ -17,7 +17,7 @@ type ImageBuildLogProps = {
 
 export const ImageBuildLog = ({
   build,
-  ignoreIncomingLogs,
+  shouldCleanLogs,
   socketIONamespace = "",
   streamIdentity,
   hideDefaultStatus,
@@ -90,10 +90,10 @@ export const ImageBuildLog = ({
   }, [fitTerminal]);
 
   React.useEffect(() => {
-    if (ignoreIncomingLogs) {
+    if (shouldCleanLogs) {
       xtermRef.current?.terminal.reset();
     }
-  }, [ignoreIncomingLogs, xtermRef]);
+  }, [shouldCleanLogs, xtermRef]);
 
   useEscapeToBlur();
 

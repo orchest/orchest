@@ -41,7 +41,7 @@ export const EnvironmentImageBuildLogs = () => {
   // Rest logs upon disconnection, in order to prevent duplicated logs when connections is re-established.
   const isBrowserTabFocused = useFocusBrowserTab();
 
-  const ignoreIncomingLogs =
+  const shouldCleanLogs =
     !isBrowserTabFocused ||
     isTriggeringBuild ||
     streamIdentity !== streamIdentityFromStore;
@@ -58,7 +58,7 @@ export const EnvironmentImageBuildLogs = () => {
       </AccordionSummary>
       <AccordionDetails>
         <ImageBuildLog
-          ignoreIncomingLogs={ignoreIncomingLogs}
+          shouldCleanLogs={shouldCleanLogs}
           hideDefaultStatus
           build={latestBuild}
           socketIONamespace={
