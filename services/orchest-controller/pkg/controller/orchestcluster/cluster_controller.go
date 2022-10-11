@@ -297,6 +297,11 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 		"image-puller", occ.config.OrchestDefaultVersion)
 	occ.config.OrchestDefaultEnvVars["K8S_DISTRO"] = string(occ.k8sDistro)
 
+	// Update the creation stages based on runtime
+	if runtime != "containerd" {
+		creationStages[len(creationStages)-1] = []string{controller.OrchestWebserver, controller.NodeAgent}
+	}
+
 	return true, err
 }
 
@@ -653,41 +658,7 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, k
 }
 
 func (occ *OrchestClusterController) stopOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
-
-	/*
-		stopped := false
-
-		// Get the current Components
-		components, err := GetOrchestComponents(ctx, orchest, occ.oComponentLister)
-		if err != nil {
-			return stopped, err
-		}
-
-		if len(components) > 0 {
-			for i := len(orderOfDeployment) - 1; i >= 0; i-- {
-				component, ok := components[orderOfDeployment[i]]
-
-				// component exist
-				if ok {
-					// If component is already deleted we wait for OrchestComponentController to gracefully delete it
-					// and we requeue the OrchestCluster for continution
-					if !component.GetDeletionTimestamp().IsZero() {
-						occ.EnqueueAfter(orchest)
-						return stopped, nil
-					} else {
-						// The Component is not deleted, we will delete it
-						return stopped, occ.oClient.OrchestV1alpha1().OrchestComponents(orchest.Namespace).
-							Delete(ctx, component.Name, metav1.DeleteOptions{})
-					}
-				}
-			}
-		}
-		// The cluster is paused, remove the restart annotation if present
-		_, err = controller.RemoveAnnotation(ctx, occ.gClient, orchest, controller.RestartAnnotationKey)
-	*/
-	stopped := true
-	var err error
-	return stopped, err
+	return false, nil
 }
 
 func (occ *OrchestClusterController) UpdatePhase(ctx context.Context,
