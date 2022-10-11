@@ -95,11 +95,13 @@ func (reconciler *OrchestApiReconciler[Object]) Uninstall(ctx context.Context, c
 		PropagationPolicy: &DeletePropagationForeground,
 	})
 	if err != nil && !kerrors.IsNotFound(err) {
+		reconciler.EnqueueAfter(component)
 		return false, err
 	}
 
 	err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
+		reconciler.EnqueueAfter(component)
 		return false, err
 	}
 
@@ -108,6 +110,7 @@ func (reconciler *OrchestApiReconciler[Object]) Uninstall(ctx context.Context, c
 	// fact that Orchest is being stopped, see (register_orchest_stop).
 	pod, err := reconciler.Client().CoreV1().Pods(component.Namespace).Get(ctx, controller.OrchestApiCleanup, metav1.GetOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
+		reconciler.EnqueueAfter(component)
 		return false, err
 	} else if kerrors.IsNotFound(err) {
 		// Cleanup pod is not found, we should create it
@@ -122,12 +125,15 @@ func (reconciler *OrchestApiReconciler[Object]) Uninstall(ctx context.Context, c
 	}
 
 	if !utils.IsPodActive(ctx, reconciler.Client(), pod) {
-		// we won't delete the pod, the cleanup pod will be garbage collected once the OrchestComponent resource deleted
-		return true, nil
-	} else {
-		return false, nil
+		err = reconciler.Client().CoreV1().Pods(component.Namespace).Delete(ctx, controller.OrchestApiCleanup, metav1.DeleteOptions{})
+		if err == nil {
+			return true, nil
+		}
+
 	}
 
+	reconciler.EnqueueAfter(component)
+	return false, nil
 }
 
 func getOrchestApiDeployment(metadata metav1.ObjectMeta,

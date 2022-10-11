@@ -61,6 +61,7 @@ func (reconciler *NodeAgentReconciler[Object]) Uninstall(ctx context.Context, co
 
 	err := reconciler.Client().AppsV1().DaemonSets(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
+		reconciler.EnqueueAfter(component)
 		return false, err
 	}
 

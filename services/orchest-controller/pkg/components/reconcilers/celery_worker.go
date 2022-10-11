@@ -68,6 +68,7 @@ func (reconciler *CeleryWorkerReconciler[Object]) Uninstall(ctx context.Context,
 		})
 	}
 
+	reconciler.EnqueueAfter(component)
 	return false, err
 }
 
