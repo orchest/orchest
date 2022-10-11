@@ -55,6 +55,10 @@ func GetCreatedEvent(component string) string {
 	return fmt.Sprintf("Created %s", component)
 }
 
+func GetDeletingEvent(component string) string {
+	return fmt.Sprintf("Deleting %s", component)
+}
+
 func GetDeletedEvent(component string) string {
 	return fmt.Sprintf("Deleted %s", component)
 }
