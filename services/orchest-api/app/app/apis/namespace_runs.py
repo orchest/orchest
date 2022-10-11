@@ -87,29 +87,11 @@ class Run(Resource):
     def put(self, run_uuid):
         """Sets the status of a pipeline run."""
 
-        filter_by = {"uuid": run_uuid}
-        status_update = request.get_json()
         try:
-            has_updated = update_status_db(
-                status_update, model=models.PipelineRun, filter_by=filter_by
-            )
-            if has_updated:
-                run = models.InteractivePipelineRun.query.filter(
-                    models.InteractivePipelineRun.uuid == run_uuid
-                ).one()
-                if status_update["status"] == "STARTED":
-                    events.register_interactive_pipeline_run_started(
-                        run.project_uuid, run.pipeline_uuid, run_uuid
-                    )
-                elif status_update["status"] == "FAILURE":
-                    events.register_interactive_pipeline_run_failed(
-                        run.project_uuid, run.pipeline_uuid, run_uuid
-                    )
-                elif status_update["status"] == "SUCCESS":
-                    events.register_interactive_pipeline_run_succeeded(
-                        run.project_uuid, run.pipeline_uuid, run_uuid
-                    )
-            db.session.commit()
+            with TwoPhaseExecutor(db.session) as tpe:
+                UpdateInteractivePipelineRun(tpe).transaction(
+                    run_uuid, request.get_json()["status"]
+                )
         except Exception as e:
             current_app.logger.error(e)
             db.session.rollback()
@@ -348,3 +330,33 @@ class CreateInteractiveRun(TwoPhaseFunction):
             self.collateral_kwargs["task_id"],
         )
         db.session.commit()
+
+
+class UpdateInteractivePipelineRun(TwoPhaseFunction):
+    """Updates an interactive pipeline run."""
+
+    def _transaction(self, run_uuid: str, status: str):
+        filter_by = {"uuid": run_uuid}
+        status_update = {"status": status}
+        has_updated = update_status_db(
+            status_update, model=models.PipelineRun, filter_by=filter_by
+        )
+        if has_updated:
+            run = models.InteractivePipelineRun.query.filter(
+                models.InteractivePipelineRun.uuid == run_uuid
+            ).one()
+            if status_update["status"] == "STARTED":
+                events.register_interactive_pipeline_run_started(
+                    run.project_uuid, run.pipeline_uuid, run_uuid
+                )
+            elif status_update["status"] == "FAILURE":
+                events.register_interactive_pipeline_run_failed(
+                    run.project_uuid, run.pipeline_uuid, run_uuid
+                )
+            elif status_update["status"] == "SUCCESS":
+                events.register_interactive_pipeline_run_succeeded(
+                    run.project_uuid, run.pipeline_uuid, run_uuid
+                )
+
+    def _collateral(self):
+        pass
