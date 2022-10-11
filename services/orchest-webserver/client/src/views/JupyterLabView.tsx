@@ -255,7 +255,6 @@ const shouldRedirectToPipelineEditor = (error: Error) => {
     case "environmentsNotYetBuilt":
     case "environmentsBuildInProgress":
     case "environmentsFailedToBuild":
-    case "Session already exists.":
       return false;
     default:
       return true;
