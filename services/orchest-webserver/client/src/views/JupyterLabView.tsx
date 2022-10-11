@@ -27,6 +27,7 @@ import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { FetchError } from "@orchest/lib-utils";
 import React from "react";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
@@ -100,7 +101,7 @@ const JupyterLabView = () => {
               type: "SET_PIPELINE_READONLY_REASON",
               payload: undefined,
             });
-          } else if (shouldRedirectToPipelineEditor(result.message)) {
+          } else if (shouldRedirectToPipelineEditor(result)) {
             // When failed, it could be that the pipeline does no longer exist.
             // Navigate back to PipelineEditor.
             navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
@@ -241,16 +242,19 @@ const JupyterLabView = () => {
 
 export default JupyterLabView;
 
-const shouldRedirectToPipelineEditor = (errorMessage: string) => {
-  switch (errorMessage) {
-    case "environmentsNotYetBuilt":
-    case "environmentsBuildInProgress":
-    case "environmentsFailedToBuild":
+const shouldRedirectToPipelineEditor = (error: Error) => {
+  if (error instanceof FetchError && error.status === 409) {
     // There can sometimes be a race-condition
     // when the session is fetched after the
     // POST request to create a new one has been fired.
     // This is fine, and we don't have to redirect back.
-    case "Session already exists.":
+    return false;
+  }
+
+  switch (error.message) {
+    case "environmentsNotYetBuilt":
+    case "environmentsBuildInProgress":
+    case "environmentsFailedToBuild":
       return false;
     default:
       return true;

@@ -7,7 +7,7 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
-import { hasValue } from "@orchest/lib-utils";
+import { FetchError, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
@@ -60,6 +60,7 @@ export const useAutoStartSession = () => {
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
       if (result === true) return;
+      if (result instanceof FetchError && result.status === 409) return; // When the session already exists, you get a 409 (CONFLICT).
       if (result.message === "environmentsBuildInProgress") return;
       if (result.message === "JupyterEnvironmentBuildInProgress") {
         dispatch({
