@@ -209,7 +209,7 @@ controller:
     httpGet:
       port: 6060
       path: /healthz
-    failureThreshold: 3
+    failureThreshold: 5
     initialDelaySeconds: 90
     periodSeconds: 60
     timeoutSeconds: 30
