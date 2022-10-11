@@ -3,6 +3,7 @@ package orchestcluster
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -18,6 +19,7 @@ import (
 var (
 	deployTimeOut = time.Minute * 5
 	deployRetry   = 5
+	deleteRetry   = 5
 )
 
 type StateHandler interface {
@@ -97,6 +99,7 @@ func NewOrchestStateMachine(orchestKey string,
 	sm.stateHandlers[orchestv1alpha1.DeployingOrchest] = NewDeployOrchestState()
 	sm.stateHandlers[orchestv1alpha1.Updating] = NewUpdateOrchestState()
 	sm.stateHandlers[orchestv1alpha1.Stopping] = NewStopOrchestState()
+	sm.stateHandlers[orchestv1alpha1.Stopped] = NewStoppedOrchestState()
 	sm.stateHandlers[orchestv1alpha1.Starting] = NewStartOrchestState()
 	sm.stateHandlers[orchestv1alpha1.Running] = NewRunningState()
 	sm.stateHandlers[orchestv1alpha1.Error] = NewErrorState()
@@ -130,6 +133,19 @@ func (sm *OrchestStateMachine) updateCondition(ctx context.Context, event string
 func (sm *OrchestStateMachine) containsCondition(event string) bool {
 	_, ok := sm.requests[event]
 	return ok
+}
+
+func (sm *OrchestStateMachine) isDeleted() bool {
+	orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.V(2).Info("OrchestCluster not found, name=%s, namespace=%s", sm.name, sm.namespace)
+			return false
+		}
+		// Error reading OrchestCluster - The request will be requeued.
+		return false
+	}
+	return !orchest.GetDeletionTimestamp().IsZero()
 }
 
 func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
@@ -194,6 +210,61 @@ func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 		return err
 	}
 	go registry.Registry.Deploy(ctx, componentName, sm.namespace, message, responseChan)
+
+	return nil
+}
+
+func (sm *OrchestStateMachine) Delete(ctx context.Context, componentName string,
+	deletingEvent string, retryCount int, message any) error {
+
+	klog.Infof("Deleting %s, namespace=%s, name=%s", componentName, sm.namespace, sm.name)
+	responseChan := make(chan registry.Event)
+	sm.requests[deletingEvent] = struct{}{}
+	go func() {
+	loop:
+		for {
+			select {
+			case event := <-responseChan:
+				klog.V(2).Infof("received event for component %s, event= %s", componentName, event)
+				switch event.(type) {
+				case registry.LogEvent:
+					sm.responseChan <- &responseInfo{
+						componentName: componentName,
+						message:       message,
+						requestEvent:  deletingEvent,
+						retryCount:    retryCount,
+						responseEvent: event,
+					}
+
+				case registry.ErrorEvent, registry.SuccessEvent:
+					sm.responseChan <- &responseInfo{
+						componentName: componentName,
+						message:       message,
+						requestEvent:  deletingEvent,
+						retryCount:    retryCount,
+						responseEvent: event,
+					}
+					break loop
+				default:
+					sm.responseChan <- &responseInfo{
+						requestEvent:  deletingEvent,
+						responseEvent: registry.ErrorEvent("Unrecognized event"),
+						componentName: componentName,
+						message:       message,
+						retryCount:    retryCount,
+					}
+					break loop
+				}
+			}
+		}
+	}()
+
+	err := sm.updateCondition(ctx, deletingEvent)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+	go registry.Registry.Delete(ctx, componentName, sm.namespace, message, responseChan)
 
 	return nil
 }
@@ -282,16 +353,25 @@ loop:
 				if info.retryCount == 1 {
 					sm.toState(context.Background(), orchestv1alpha1.Error)
 				} else {
-					// deploy it again
-					sm.Create(ctx, info.componentName, info.requestEvent, deployTimeOut, info.retryCount-1, info.message)
+					// If it Deleting event, delete again
+					if strings.HasPrefix(info.requestEvent, "Deleting") {
+						sm.Delete(ctx, info.componentName, info.requestEvent, info.retryCount-1, info.message)
+					} else { // otherwise it is Creating event, we need to create it again
+						sm.Create(ctx, info.componentName, info.requestEvent, deployTimeOut, info.retryCount-1, info.message)
+					}
 				}
 			case registry.SuccessEvent:
 				orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
 				if err != nil {
 					klog.Error("failed to get OrchestCluster, name=%s, namespace=%s", sm.name, sm.namespace)
 				}
-
-				sm.updateCondition(ctx, utils.GetCreatedEvent(info.componentName))
+				// If it Deleting event, we update with deleted event
+				if strings.HasPrefix(info.requestEvent, "Deleting") {
+					sm.updateCondition(ctx, utils.GetDeletedEvent(info.componentName))
+				} else { // otherwise it is Creating event, we need to create it again
+					sm.updateCondition(ctx, utils.GetCreatedEvent(info.componentName))
+				}
+				// we call the doState again, to see if it is time to move to the next state
 				sm.orchestChan <- orchest
 			default:
 				klog.Errorf("Unrecognized event received for OrchestCluster, name=%s, namespace=%s, %s", sm.name, sm.namespace, info.responseEvent.String())
@@ -316,7 +396,7 @@ func (sm *OrchestStateMachine) manage(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to get OrchestCluster, name=%s, namespace=%s", sm.name, sm.namespace)
 	}
 
-	if !orchest.GetDeletionTimestamp().IsZero() {
+	if !orchest.GetDeletionTimestamp().IsZero() && orchest.Status.Phase != orchestv1alpha1.Stopped {
 		// The cluster is deleted.
 		err = sm.toState(ctx, orchestv1alpha1.Stopping)
 		if err != nil {
@@ -347,6 +427,17 @@ func (sm *OrchestStateMachine) manage(ctx context.Context) error {
 	// If the object is changed, we return and the object will be requeued.
 	if changed {
 		return nil
+	}
+
+	if orchest.Spec.Orchest.Pause != nil &&
+		*orchest.Spec.Orchest.Pause &&
+		orchest.Status.Phase != orchestv1alpha1.Stopped {
+		return sm.toState(ctx, orchestv1alpha1.Stopping)
+	} else if _, ok := orchest.GetAnnotations()[controller.RestartAnnotationKey]; ok {
+		return sm.toState(ctx, orchestv1alpha1.Stopping)
+	} else if orchest.Status.ObservedGeneration != orchest.Generation {
+		// If the hash is changed, the cluster enters upgrading state and then running
+		return sm.toState(ctx, orchestv1alpha1.Updating)
 	}
 
 	sm.orchestChan <- orchest
