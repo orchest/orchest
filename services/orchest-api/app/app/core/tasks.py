@@ -21,7 +21,8 @@ from app.connections import db, k8s_custom_obj_api
 from app.core import environments, notifications, registry, scheduler
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
-from app.core.pipelines import Pipeline, run_pipeline_workflow
+from app.core.pipeline_runs import run_pipeline_workflow
+from app.core.pipelines import Pipeline
 from app.core.sessions import launch_noninteractive_session
 from app.types import PipelineDefinition, RunConfig
 from config import CONFIG_CLASS
