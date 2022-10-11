@@ -408,139 +408,134 @@ def _should_exit_loop(run_config: Dict[str, Any], run_uuid: str) -> bool:
 async def run_pipeline_workflow(
     session_uuid: str, task_id: str, pipeline: Pipeline, *, run_config: RunConfig
 ):
-    async with aiohttp.ClientSession() as session:
+    _update_pipeline_run_status(run_config, task_id, "STARTED")
 
-        _update_pipeline_run_status(run_config, task_id, "STARTED")
+    namespace = _config.ORCHEST_NAMESPACE
 
-        namespace = _config.ORCHEST_NAMESPACE
+    steps_to_start = {step.properties["uuid"] for step in pipeline.steps}
+    steps_to_finish = set(steps_to_start)
+    had_failed_steps = False
+    try:
+        manifest = _pipeline_to_workflow_manifest(
+            session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
+        )
+        k8s_custom_obj_api.create_namespaced_custom_object(
+            "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
+        )
 
-        steps_to_start = {step.properties["uuid"] for step in pipeline.steps}
-        steps_to_finish = set(steps_to_start)
-        had_failed_steps = False
-        try:
-            manifest = _pipeline_to_workflow_manifest(
-                session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
+        while steps_to_finish:
+            resp = k8s_custom_obj_api.get_namespaced_custom_object(
+                "argoproj.io",
+                "v1alpha1",
+                namespace,
+                "workflows",
+                f"pipeline-run-task-{task_id}",
             )
-            k8s_custom_obj_api.create_namespaced_custom_object(
-                "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
-            )
+            workflow_nodes: dict = resp.get("status", {}).get("nodes", {})
+            for argo_node in workflow_nodes.values():
+                if CONFIG_CLASS.SINGLE_NODE:
+                    if argo_node.get("type", "") != "Container":
+                        continue
 
-            while steps_to_finish:
-                # Note: not async.
-                resp = k8s_custom_obj_api.get_namespaced_custom_object(
-                    "argoproj.io",
-                    "v1alpha1",
-                    namespace,
-                    "workflows",
-                    f"pipeline-run-task-{task_id}",
-                )
-                workflow_nodes: dict = resp.get("status", {}).get("nodes", {})
-                for argo_node in workflow_nodes.values():
-                    if CONFIG_CLASS.SINGLE_NODE:
-                        if argo_node.get("type", "") != "Container":
-                            continue
-
-                        # Argo doesn't allow to work with templates for
-                        # a containerSet. Thus we fall back to the name
-                        # we gave to steps, which includes its uuid.
-                        step_uuid = argo_node.get("displayName")
-                        if step_uuid is None:
-                            # Should never happen.
-                            raise Exception(
-                                "Did not find `displayName` in Argo workflow node:"
-                                f" {argo_node}."
-                            )
-                        else:
-                            step_uuid = step_uuid.replace("step-", "")
-
-                    else:
-                        # The nodes includes the entire "pipeline" node
-                        if argo_node["templateName"] != "step":
-                            continue
-                        # The step was not run because the workflow
-                        # failed.
-                        if "inputs" not in argo_node:
-                            continue
-                        if argo_node.get("type", "") != "Pod":
-                            continue
-
-                        for param in argo_node["inputs"]["parameters"]:
-                            if param["name"] == "step_uuid":
-                                step_uuid = param["value"]
-                                break
-                        else:
-                            # Should never happen.
-                            raise Exception(
-                                "Did not find `step_uuid` in parameters of Argo node:"
-                                f" {argo_node}."
-                            )
-
-                    pipeline_step = pipeline.get_step(step_uuid)
-                    argo_node_status = argo_node["phase"]
-                    argo_node_message = argo_node.get("message", "")
-                    step_status_update = None
-
-                    # Argo does not fail a step if the container is
-                    # stuck in a waiting state. Doesn't look like the
-                    # pull backoff behavior can be tuned.
-                    if argo_node_status in ["Pending", "Running"] and (
-                        "ImagePullBackOff" in argo_node_message
-                        or "ErrImagePull" in argo_node_message
-                    ):
-                        step_status_update = "FAILURE"
-
-                    elif (
-                        argo_node_status == "Running"
-                        and step_uuid in steps_to_start
-                        # Strictly speaking only needed in single-node
-                        # context as otherwise Argo takes care of
-                        # correctly putting a Step in "Running".
-                        and _is_step_allowed_to_run(pipeline_step, steps_to_finish)
-                    ):
-                        step_status_update = "STARTED"
-                        steps_to_start.remove(step_uuid)
-
-                    elif (
-                        argo_node_status in ["Succeeded", "Failed", "Error"]
-                        and step_uuid in steps_to_finish
-                    ):
-                        step_status_update = {
-                            "Succeeded": "SUCCESS",
-                            "Failed": "FAILURE",
-                            "Error": "FAILURE",
-                        }[argo_node_status]
-
-                    if step_status_update is not None:
-                        if step_status_update == "FAILURE":
-                            had_failed_steps = True
-
-                        if step_status_update in ["FAILURE", "ABORTED", "SUCCESS"]:
-                            steps_to_finish.remove(step_uuid)
-                            if step_uuid in steps_to_start:
-                                steps_to_start.remove(step_uuid)
-
-                        utils.update_steps_status(
-                            task_id, [step_uuid], step_status_update
+                    # Argo doesn't allow to work with templates for a
+                    # containerSet. Thus we fall back to the name we
+                    # gave to steps, which includes its uuid.
+                    step_uuid = argo_node.get("displayName")
+                    if step_uuid is None:
+                        # Should never happen.
+                        raise Exception(
+                            "Did not find `displayName` in Argo workflow node:"
+                            f" {argo_node}."
                         )
-                        db.session.commit()
+                    else:
+                        step_uuid = step_uuid.replace("step-", "")
 
-                if not steps_to_finish or had_failed_steps:
-                    break
+                else:
+                    # The nodes includes the entire "pipeline" node.
+                    if argo_node["templateName"] != "step":
+                        continue
+                    # The step was not run because the workflow failed.
+                    if "inputs" not in argo_node:
+                        continue
+                    if argo_node.get("type", "") != "Pod":
+                        continue
 
-                if _should_exit_loop(run_config, task_id):
-                    break
+                    for param in argo_node["inputs"]["parameters"]:
+                        if param["name"] == "step_uuid":
+                            step_uuid = param["value"]
+                            break
+                    else:
+                        # Should never happen.
+                        raise Exception(
+                            "Did not find `step_uuid` in parameters of Argo node:"
+                            f" {argo_node}."
+                        )
 
-                await asyncio.sleep(0.25)
+                pipeline_step = pipeline.get_step(step_uuid)
+                argo_node_status = argo_node["phase"]
+                argo_node_message = argo_node.get("message", "")
+                step_status_update = None
 
-            if steps_to_finish:
-                utils.update_steps_status(task_id, steps_to_finish, "ABORTED")
-                db.session.commit()
+                # Argo does not fail a step if the container is stuck in
+                # a waiting state. Doesn't look like the pull backoff
+                # behavior can be tuned.
+                if argo_node_status in ["Pending", "Running"] and (
+                    "ImagePullBackOff" in argo_node_message
+                    or "ErrImagePull" in argo_node_message
+                ):
+                    step_status_update = "FAILURE"
 
-            pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
-            _update_pipeline_run_status(run_config, task_id, pipeline_status)
+                elif (
+                    argo_node_status == "Running"
+                    and step_uuid in steps_to_start
+                    # Strictly speaking only needed in single-node
+                    # context as otherwise Argo takes care of correctly
+                    # putting a Step in "Running".
+                    and _is_step_allowed_to_run(pipeline_step, steps_to_finish)
+                ):
+                    step_status_update = "STARTED"
+                    steps_to_start.remove(step_uuid)
 
-        except Exception as e:
-            logger.error(e)
+                elif (
+                    argo_node_status in ["Succeeded", "Failed", "Error"]
+                    and step_uuid in steps_to_finish
+                ):
+                    step_status_update = {
+                        "Succeeded": "SUCCESS",
+                        "Failed": "FAILURE",
+                        "Error": "FAILURE",
+                    }[argo_node_status]
+
+                if step_status_update is not None:
+                    if step_status_update == "FAILURE":
+                        had_failed_steps = True
+
+                    if step_status_update in ["FAILURE", "ABORTED", "SUCCESS"]:
+                        steps_to_finish.remove(step_uuid)
+                        if step_uuid in steps_to_start:
+                            steps_to_start.remove(step_uuid)
+
+                    utils.update_steps_status(task_id, [step_uuid], step_status_update)
+                    db.session.commit()
+
+            if not steps_to_finish or had_failed_steps:
+                break
+
+            if _should_exit_loop(run_config, task_id):
+                logger.info(f"Run {task_id} was aborted, exiting task.")
+                break
+
+            await asyncio.sleep(0.25)
+
+        if steps_to_finish:
             utils.update_steps_status(task_id, steps_to_finish, "ABORTED")
             db.session.commit()
-            _update_pipeline_run_status(run_config, task_id, "FAILURE")
+
+        pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
+        _update_pipeline_run_status(run_config, task_id, pipeline_status)
+
+    except Exception as e:
+        logger.error(e)
+        utils.update_steps_status(task_id, steps_to_finish, "ABORTED")
+        db.session.commit()
+        _update_pipeline_run_status(run_config, task_id, "FAILURE")
