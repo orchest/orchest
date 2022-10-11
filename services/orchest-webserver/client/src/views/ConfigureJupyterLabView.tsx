@@ -1,6 +1,7 @@
 import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
+import { SnackBar } from "@/components/common/SnackBar";
 import { Layout } from "@/components/layout/Layout";
 import { LegacyImageBuildLog } from "@/components/legacy/LegacyImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
@@ -15,7 +16,6 @@ import SaveIcon from "@mui/icons-material/Save";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
@@ -309,7 +309,7 @@ const ConfigureJupyterLabView: React.FC = () => {
           <LinearProgress />
         )}
       </Box>
-      <Snackbar
+      <SnackBar
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         open={showStoppingAllSessionsWarning}
         message="Stopping all active sessions..."
