@@ -9,7 +9,7 @@ import { ImageBuildStatus } from "./ImageBuildStatus";
 
 type ImageBuildLogProps = {
   build?: EnvironmentImageBuild;
-  ignoreIncomingLogs: boolean;
+  shouldCleanLogs: boolean;
   socketIONamespace?: string;
   streamIdentity: string | undefined;
   hideDefaultStatus?: boolean;
@@ -17,7 +17,7 @@ type ImageBuildLogProps = {
 
 export const ImageBuildLog = ({
   build,
-  ignoreIncomingLogs,
+  shouldCleanLogs,
   socketIONamespace = "",
   streamIdentity,
   hideDefaultStatus,
@@ -41,10 +41,10 @@ export const ImageBuildLog = ({
 
   const printLogs = React.useCallback((logs: string | undefined) => {
     const lines = (logs || "").split("\n");
-    for (let x = 0; x < lines.length; x++) {
-      if (x > 0) xtermRef.current?.terminal.write("\n\r");
-      xtermRef.current?.terminal.write(lines[x]);
-    }
+    lines.forEach((line, index) => {
+      if (index > 0) xtermRef.current?.terminal.write("\n\r");
+      xtermRef.current?.terminal.write(line);
+    });
   }, []);
 
   const socket = useSocketIO(socketIONamespace);
@@ -90,10 +90,10 @@ export const ImageBuildLog = ({
   }, [fitTerminal]);
 
   React.useEffect(() => {
-    if (ignoreIncomingLogs) {
+    if (shouldCleanLogs) {
       xtermRef.current?.terminal.reset();
     }
-  }, [ignoreIncomingLogs, xtermRef]);
+  }, [shouldCleanLogs, xtermRef]);
 
   useEscapeToBlur();
 

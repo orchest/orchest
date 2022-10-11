@@ -7,6 +7,7 @@ import {
 import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
@@ -36,9 +37,14 @@ export const EnvironmentImageBuildLogs = () => {
       : undefined;
 
   const streamIdentityFromStore = `${environmentChangesProjectUuid}-${uuid}`;
+  // SocketIO connection is disconnected when browser tab loses focus.
+  // Rest logs upon disconnection, in order to prevent duplicated logs when connections is re-established.
+  const isBrowserTabFocused = useFocusBrowserTab();
 
-  const ignoreIncomingLogs =
-    isTriggeringBuild || streamIdentity !== streamIdentityFromStore;
+  const shouldCleanLogs =
+    !isBrowserTabFocused ||
+    isTriggeringBuild ||
+    streamIdentity !== streamIdentityFromStore;
 
   return (
     <Accordion defaultExpanded>
@@ -52,7 +58,7 @@ export const EnvironmentImageBuildLogs = () => {
       </AccordionSummary>
       <AccordionDetails>
         <ImageBuildLog
-          ignoreIncomingLogs={ignoreIncomingLogs}
+          shouldCleanLogs={shouldCleanLogs}
           hideDefaultStatus
           build={latestBuild}
           socketIONamespace={

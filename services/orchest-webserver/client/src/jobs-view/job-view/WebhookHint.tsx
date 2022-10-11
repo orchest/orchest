@@ -1,3 +1,4 @@
+import { SnackBar } from "@/components/common/SnackBar";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
@@ -6,7 +7,6 @@ import { siteMap } from "@/routingConfig";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
-import Snackbar from "@mui/material/Snackbar";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 
@@ -60,7 +60,7 @@ export const WebhookHint = () => {
   );
 
   return (
-    <Snackbar
+    <SnackBar
       open={showHint}
       autoHideDuration={6000}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
