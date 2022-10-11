@@ -4,7 +4,6 @@ import (
 	"context"
 
 	registry "github.com/orchest/orchest/services/orchest-controller/pkg/componentregistry"
-	"k8s.io/klog/v2"
 )
 
 type FakeComponent struct {
@@ -12,9 +11,7 @@ type FakeComponent struct {
 }
 
 func healthyUpdate(ctx context.Context, ns string, msg registry.Message, eventChan chan registry.Event) {
-	klog.Info("fffffffffffffff")
 	eventChan <- registry.SuccessEvent{}
-	klog.Info("ddddddddddddddd")
 }
 
 func faultyUpdate(ctx context.Context, ns string, msg registry.Message, eventChan chan registry.Event) {
