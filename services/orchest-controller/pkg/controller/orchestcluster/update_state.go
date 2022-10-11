@@ -17,5 +17,5 @@ func (state *UpdateOrchestState) To(ctx context.Context, stateMachine *OrchestSt
 }
 
 func (state *UpdateOrchestState) Do(ctx context.Context, stateMachine *OrchestStateMachine, orchest *orchestv1alpha1.OrchestCluster) error {
-	return nil
+	return stateMachine.toState(ctx, orchestv1alpha1.Stopping)
 }
