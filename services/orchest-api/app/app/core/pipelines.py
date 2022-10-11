@@ -23,9 +23,10 @@ from typing import Any, Dict, Iterable, List, Literal, Optional, Set
 import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
+import app.utils as utils
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
-from app.connections import k8s_core_api, k8s_custom_obj_api
+from app.connections import db, k8s_core_api, k8s_custom_obj_api
 from app.core import pod_scheduling
 from app.types import (
     PipelineDefinition,
@@ -33,10 +34,9 @@ from app.types import (
     PipelineStepProperties,
     RunConfig,
 )
-from app.utils import get_logger
 from config import CONFIG_CLASS
 
-logger = get_logger()
+logger = utils.get_logger()
 
 
 def construct_pipeline(
@@ -839,14 +839,10 @@ async def run_pipeline_workflow(
                             if step_uuid in steps_to_start:
                                 steps_to_start.remove(step_uuid)
 
-                        await update_status(
-                            step_status_update,
-                            task_id,
-                            session,
-                            type="step",
-                            run_endpoint=run_config["run_endpoint"],
-                            uuid=step_uuid,
+                        utils.update_steps_status(
+                            task_id, [step_uuid], step_status_update
                         )
+                        db.session.commit()
 
                 if not steps_to_finish or had_failed_steps:
                     break
@@ -869,15 +865,9 @@ async def run_pipeline_workflow(
 
                 await asyncio.sleep(0.25)
 
-            for step_uuid in steps_to_finish:
-                await update_status(
-                    "ABORTED",
-                    task_id,
-                    session,
-                    type="step",
-                    run_endpoint=run_config["run_endpoint"],
-                    uuid=step_uuid,
-                )
+            if steps_to_finish:
+                utils.update_steps_status(task_id, steps_to_finish, "ABORTED")
+                db.session.commit()
 
             pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
             await update_status(
@@ -890,15 +880,8 @@ async def run_pipeline_workflow(
 
         except Exception as e:
             logger.error(e)
-            for step_uuid in steps_to_finish:
-                await update_status(
-                    "ABORTED",
-                    task_id,
-                    session,
-                    type="step",
-                    run_endpoint=run_config["run_endpoint"],
-                    uuid=step_uuid,
-                )
+            utils.update_steps_status(task_id, steps_to_finish, "ABORTED")
+            db.session.commit()
             await update_status(
                 "FAILURE",
                 task_id,

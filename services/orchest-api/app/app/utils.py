@@ -18,6 +18,7 @@ from requests.packages.urllib3.util.retry import Retry
 from sqlalchemy import desc, or_, text, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import query, undefer
+from sqlalchemy.sql.functions import coalesce
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -64,9 +65,17 @@ def update_status_db(
     query = model.query.filter_by(**filter_by)
 
     if data["status"] == "STARTED":
-        data["started_time"] = datetime.fromisoformat(data["started_time"])
+        data["started_time"] = (
+            datetime.fromisoformat(data["started_time"])
+            if data.get("started_time") is not None
+            else datetime.utcnow()
+        )
     elif data["status"] in ["SUCCESS", "FAILURE"]:
-        data["finished_time"] = datetime.fromisoformat(data["finished_time"])
+        data["finished_time"] = (
+            datetime.fromisoformat(data["finished_time"])
+            if data.get("finished_time") is not None
+            else datetime.utcnow()
+        )
 
         # It could happen that the status update would take the status
         # of a step from PENDING to SUCCESS, which would result in the
@@ -74,7 +83,7 @@ def update_status_db(
         # set the started_time equal to the finished_time.
         entity = query.one()
         if entity.status == "PENDING":
-            data["started_time"] = data["finished_time"]
+            data["started_time"] = coalesce(model.started_time, data["finished_time"])
 
     res = query.filter(
         # This implies that an entity cannot be furtherly updated
@@ -900,3 +909,40 @@ def get_session_with_retries() -> requests.Session:
     session.mount("http://", _rq_adapter)
     session.mount("https://", _rq_adapter)
     return session
+
+
+def update_steps_status(run_uuid: str, step_uuids: Iterable[str], status: str) -> bool:
+    """Updates the status of some steps, does not commit.
+
+    A step that has already reached an end state, i.e. FAILURE,
+    SUCCESS, ABORTED, will not be updated.
+
+    Args:
+        status: The new status.
+
+    Returns:
+        True if at least 1 row was updated, false otherwise.
+
+    Note to reviewer: this function will likely be merged with
+    update_status_db in a later commit.
+    """
+    update = {"status": status}
+    if status == "STARTED":
+        update["started_time"] = datetime.utcnow()
+    elif status in ["SUCCESS", "FAILURE"]:
+        update["finished_time"] = datetime.utcnow()
+
+        # It could happen that the status update would take the status
+        # of a step from PENDING to SUCCESS, which would result in the
+        # started_time to never be set.
+        update["started_time"] = coalesce(
+            models.PipelineRunStep.started_time, update["finished_time"]
+        )
+
+    res = models.PipelineRunStep.query.filter(
+        models.PipelineRunStep.status.in_(["PENDING", "STARTED"]),
+        models.PipelineRunStep.run_uuid == run_uuid,
+        models.PipelineRunStep.step_uuid.in_(list(step_uuids)),
+    ).update(update)
+
+    return bool(res)
