@@ -114,3 +114,17 @@ func (registery *ComponentRegistry) Deploy(ctx context.Context, name, namespace 
 
 	addon.Update(ctx, namespace, message, eventChan)
 }
+
+func (registery *ComponentRegistry) Delete(ctx context.Context, name, namespace string,
+	message Message, eventChan chan Event) {
+	addon, ok := registery.components[name]
+
+	if !ok {
+		err := errors.New(fmt.Sprintf("Component %s is not registered with the component registry", name))
+		klog.Error(err)
+		eventChan <- ErrorEvent(err.Error())
+		return
+	}
+
+	addon.Delete(ctx, namespace, message, eventChan)
+}
