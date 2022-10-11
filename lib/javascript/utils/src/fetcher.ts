@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export class FetchError<B = any> extends Error {
+  readonly name = "FetchError";
   readonly status?: number;
   readonly body?: B;
 
