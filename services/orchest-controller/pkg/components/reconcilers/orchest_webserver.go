@@ -88,11 +88,13 @@ func (reconciler *OrchestWebServerReconciler[Object]) Uninstall(ctx context.Cont
 
 	err := reconciler.Client().AppsV1().Deployments(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
+		reconciler.EnqueueAfter(component)
 		return false, err
 	}
 
 	err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
+		reconciler.EnqueueAfter(component)
 		return false, err
 	}
 	return true, nil

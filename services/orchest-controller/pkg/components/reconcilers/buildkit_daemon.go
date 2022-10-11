@@ -50,6 +50,7 @@ func (reconciler *BuildKitDaemonReconciler[Object]) Uninstall(ctx context.Contex
 
 	err := reconciler.Client().AppsV1().DaemonSets(component.Namespace).Delete(ctx, component.Name, metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
+		reconciler.EnqueueAfter(component)
 		return false, err
 	}
 
