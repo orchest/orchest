@@ -92,9 +92,7 @@ def update_status_db(
         # of a step from PENDING to SUCCESS, which would result in the
         # started_time to never be set. To combat this race condition we
         # set the started_time equal to the finished_time.
-        entity = query.one()
-        if entity.status == "PENDING":
-            data["started_time"] = coalesce(model.started_time, data["finished_time"])
+        data["started_time"] = coalesce(model.started_time, data["finished_time"])
 
     res = query.filter(
         # This implies that an entity cannot be furtherly updated

@@ -10,9 +10,9 @@ perform a pipeline run given a Pipeline instance and some configuration
 parameters.
 
 """
-import asyncio
 import json
 import os
+import time
 from typing import Any, Dict, List, Set
 
 from celery.contrib.abortable import AbortableAsyncResult
@@ -353,7 +353,7 @@ def _update_pipeline_run_status(
             UpdateJobPipelineRun(tpe).transaction(run.job_uuid, run_uuid, status)
 
 
-def _should_exit_loop(run_config: Dict[str, Any], run_uuid: str) -> bool:
+def _pipeline_has_reached_end_state(run_config: Dict[str, Any], run_uuid: str) -> bool:
     if AbortableAsyncResult(run_uuid).is_aborted():
         return True
 
@@ -366,7 +366,7 @@ def _should_exit_loop(run_config: Dict[str, Any], run_uuid: str) -> bool:
     return run is None or run.status in ["SUCCESS", "FAILURE", "ABORTED"]
 
 
-async def run_pipeline_workflow(
+def run_pipeline_workflow(
     session_uuid: str, task_id: str, pipeline: Pipeline, *, run_config: RunConfig
 ):
     _update_pipeline_run_status(run_config, task_id, "STARTED")
@@ -482,11 +482,11 @@ async def run_pipeline_workflow(
             if not steps_to_finish or had_failed_steps:
                 break
 
-            if _should_exit_loop(run_config, task_id):
-                logger.info(f"Run {task_id} was aborted, exiting task.")
+            if _pipeline_has_reached_end_state(run_config, task_id):
+                logger.info(f"Run {task_id} was aborted or deleted, exiting task.")
                 break
 
-            await asyncio.sleep(0.25)
+            time.sleep(0.25)
 
         if steps_to_finish:
             utils.update_steps_status(task_id, steps_to_finish, "ABORTED")
