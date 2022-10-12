@@ -353,7 +353,7 @@ def _update_pipeline_run_status(
             UpdateJobPipelineRun(tpe).transaction(run.job_uuid, run_uuid, status)
 
 
-def _should_exit_loop(run_config: Dict[str, Any], run_uuid: str) -> bool:
+def _pipeline_has_reached_end_state(run_config: Dict[str, Any], run_uuid: str) -> bool:
     if AbortableAsyncResult(run_uuid).is_aborted():
         return True
 
@@ -482,8 +482,8 @@ async def run_pipeline_workflow(
             if not steps_to_finish or had_failed_steps:
                 break
 
-            if _should_exit_loop(run_config, task_id):
-                logger.info(f"Run {task_id} was aborted, exiting task.")
+            if _pipeline_has_reached_end_state(run_config, task_id):
+                logger.info(f"Run {task_id} was aborted or deleted, exiting task.")
                 break
 
             await asyncio.sleep(0.25)
