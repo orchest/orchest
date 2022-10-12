@@ -28,7 +28,7 @@ type FetchSessionResponse = {
  * NOTE: useSessionsPoller should only be placed in HeaderBar
  */
 export const useSessionsPoller = () => {
-  const { location } = useCustomRoute();
+  const { location, pipelineUuid } = useCustomRoute();
   const { dispatch } = useSessionsContext();
   const { setAlert } = useGlobalContext();
   const {
@@ -51,9 +51,10 @@ export const useSessionsPoller = () => {
     matchRooViews?.isExact ||
     (!pipelineReadOnlyReason &&
       hasValue(pipeline) &&
+      pipeline.uuid === pipelineUuid &&
       matchPipelineViews?.isExact);
 
-  const { data: sessions, error, fetchData: fetchSessions } = useFetcher<
+  const { error, fetchData: fetchSessions } = useFetcher<
     FetchSessionResponse,
     Record<string, OrchestSession>
   >(SESSIONS_ENDPOINT, {
@@ -74,13 +75,22 @@ export const useSessionsPoller = () => {
   // and Orchest sessions are not bound to a single user, therefore
   // this session (i.e. pipeline session) is used by potentially multiple users
   // in order to facilitate multiple users working at the same time, FE needs to check pipeline sessions at all times
-  useInterval(() => fetchSessions(), shouldPoll ? 1000 : undefined);
+  useInterval(
+    () =>
+      fetchSessions().then((response) => {
+        if (response) {
+          dispatch({
+            type: "SET_SESSIONS",
+            payload: response,
+          });
+        }
+      }),
+    shouldPoll ? 1000 : undefined
+  );
 
   React.useEffect(() => {
     if (shouldPoll) fetchSessions();
   }, [shouldPoll, fetchSessions]);
-
-  const isLoading = !sessions && !error;
 
   React.useEffect(() => {
     if (error) {
@@ -88,11 +98,4 @@ export const useSessionsPoller = () => {
       console.error("Unable to fetch sessions", error);
     }
   }, [error, setAlert]);
-
-  React.useEffect(() => {
-    dispatch({
-      type: "SET_SESSIONS",
-      payload: sessions,
-    });
-  }, [sessions, dispatch, isLoading]);
 };

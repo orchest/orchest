@@ -1,7 +1,7 @@
+import { SnackBar } from "@/components/common/SnackBar";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import Button from "@mui/material/Button";
-import Snackbar from "@mui/material/Snackbar";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import create from "zustand";
@@ -48,7 +48,7 @@ export const ScheduleJobSnackBar = () => {
   };
 
   return (
-    <Snackbar
+    <SnackBar
       open={hasValue(snackBarMessage)}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       autoHideDuration={3000}

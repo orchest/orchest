@@ -413,22 +413,6 @@ class PipelineRun(Resource):
             abort(404, "Given job has no run with given run_uuid")
         return non_interactive_run.__dict__
 
-    @api.doc("set_pipeline_run_status")
-    @api.expect(schema.status_update)
-    def put(self, job_uuid, run_uuid):
-        """Set the status of a pipeline run."""
-
-        try:
-            with TwoPhaseExecutor(db.session) as tpe:
-                UpdateJobPipelineRun(tpe).transaction(
-                    job_uuid, run_uuid, request.get_json()
-                )
-        except Exception as e:
-            current_app.logger.error(e)
-            return {"message": str(e)}, 500
-
-        return {"message": "Status was updated successfully"}, 200
-
     @api.doc("delete_run")
     @api.response(200, "Run terminated")
     def delete(self, job_uuid, run_uuid):
@@ -469,29 +453,6 @@ class PipelineStepStatus(Resource):
             description="Combination of given job, run and step not found",
         )
         return step.__dict__
-
-    @api.doc("set_pipeline_run_pipeline_step_status")
-    @api.expect(schema.status_update)
-    def put(self, job_uuid, run_uuid, step_uuid):
-        """Set the status of a pipeline step of a pipeline run."""
-        status_update = request.get_json()
-
-        filter_by = {
-            "run_uuid": run_uuid,
-            "step_uuid": step_uuid,
-        }
-        try:
-            update_status_db(
-                status_update,
-                model=models.PipelineRunStep,
-                filter_by=filter_by,
-            )
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            return {"message": "Failed update operation."}, 500
-
-        return {"message": "Status was updated successfully."}, 200
 
 
 @api.route("/cleanup/<string:job_uuid>")
@@ -1663,9 +1624,7 @@ class DeleteJobPipelineRun(TwoPhaseFunction):
 class UpdateJobPipelineRun(TwoPhaseFunction):
     """Update a pipeline run of a job."""
 
-    def _transaction(
-        self, job_uuid: str, pipeline_run_uuid: str, status_update: Dict[str, Any]
-    ):
+    def _transaction(self, job_uuid: str, pipeline_run_uuid: str, status: str):
         """Set the status of a pipeline run."""
 
         filter_by = {
@@ -1678,7 +1637,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
 
         if update_status_db(
-            status_update,
+            {"status": status},
             model=models.NonInteractivePipelineRun,
             filter_by=filter_by,
         ):
@@ -1687,22 +1646,20 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                 "FAILURE": events.register_job_pipeline_run_failed,
                 "ABORTED": events.register_job_pipeline_run_cancelled,
                 "STARTED": events.register_job_pipeline_run_started,
-            }[status_update["status"]](
+            }[status](
                 job.project_uuid,
                 job_uuid,
                 pipeline_run_uuid,
             )
 
         # See if the job is done running (all its runs are done).
-        if status_update["status"] in ["SUCCESS", "FAILURE", "ABORTED"]:
+        if status in ["SUCCESS", "FAILURE", "ABORTED"]:
 
             # Only non recurring jobs terminate to SUCCESS.
             if job.schedule is None:
                 self._update_one_off_job(job)
             else:
-                self._update_cron_job_run(
-                    job, pipeline_run_uuid, status_update["status"]
-                )
+                self._update_cron_job_run(job, pipeline_run_uuid, status)
 
             DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
 
@@ -1838,9 +1795,7 @@ class AbortJobPipelineRun(TwoPhaseFunction):
 
         # This will take care of updating the job status thus freeing
         # locked env images, and processing stale ones.
-        UpdateJobPipelineRun(self.tpe).transaction(
-            job_uuid, run_uuid, {"status": "ABORTED"}
-        )
+        UpdateJobPipelineRun(self.tpe).transaction(job_uuid, run_uuid, "ABORTED")
 
         return True
 

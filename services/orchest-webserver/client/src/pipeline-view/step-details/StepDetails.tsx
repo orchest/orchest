@@ -6,8 +6,8 @@ import {
   useSecondarySidePanelWidth,
 } from "@/components/layout/stores/useLayoutStore";
 import { ResizablePane } from "@/components/ResizablePane";
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHideIntercom } from "@/hooks/useHideIntercom";
 import { StepState } from "@/types";
 import { CloseOutlined } from "@mui/icons-material";
 import Box from "@mui/material/Box";
@@ -83,15 +83,8 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
   const shouldHideStepDetails =
     !openedStep || !step || !pipelineJson || stepSelector.active;
 
-  const { hideIntercom, showIntercom } = useGlobalContext();
-
-  React.useEffect(() => {
-    if (shouldHideStepDetails) {
-      showIntercom();
-    } else {
-      hideIntercom();
-    }
-  }, [shouldHideStepDetails, hideIntercom, showIntercom]);
+  const shouldHideIntercom = !shouldHideStepDetails;
+  useHideIntercom(shouldHideIntercom);
 
   if (shouldHideStepDetails) return null;
 

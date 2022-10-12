@@ -67,7 +67,6 @@ class RunConfig(TypedDict):
     pipeline_uuid: str
     project_dir: str
     project_uuid: str
-    run_endpoint: str
     session_type: str  # interactive, noninteractive
     session_uuid: str
     user_env_variables: Dict[str, str]

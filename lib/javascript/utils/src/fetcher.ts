@@ -1,36 +1,64 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export class FetchError<B = any> extends Error {
+export class FetchError extends Error {
+  readonly name = "FetchError";
+  /** The HTTP status code of the response. */
   readonly status?: number;
-  readonly body?: B;
+  /** Commonly the serialized JSON body, or the body text if not JSON. */
+  readonly body?: any;
 
-  constructor(message: string, status?: number, body?: B) {
+  constructor(message: string, status?: number, body?: any) {
     super(message);
     this.status = status;
     this.body = body;
   }
+
+  static async fromResponse(response: Response): Promise<FetchError> {
+    if (isJsonResponse(response)) {
+      const body = await getJsonPayload(response);
+      const message =
+        typeof body.message === "string"
+          ? `${formatStatus(response)} / ${body.message}`
+          : formatStatus(response);
+
+      return new FetchError(message, response.status, body);
+    } else {
+      const body = await response.text();
+
+      return new FetchError(formatStatus(response), response.status, body);
+    }
+  }
 }
+
+const formatStatus = (response: Response) =>
+  response.statusText
+    ? `${response.status} (${response.statusText})`
+    : response.status.toString();
+
+const isJsonResponse = (response: Response) =>
+  Boolean(response.headers.get("content-type")?.startsWith("application/json"));
+
+const getJsonPayload = async <T = any>(response: Response): Promise<T> => {
+  const body = await response.text();
+
+  return body === "" ? {} : JSON.parse(body);
+};
 
 const getFullUrl = (url: string) => `${__BASE_URL__}${url}`;
 
-export const fetcher = async <T, E = any>(
+export const fetcher = async <T>(
   url: string,
   params?: RequestInit
-) => {
+): Promise<T> => {
   const targetUrl = getFullUrl(url);
-
   const response = await window.fetch(targetUrl, params);
-  const body = await response.text();
-  const data = body === "" ? {} : JSON.parse(body);
 
   if (!response.ok || response.status >= 299) {
-    const { message } = data;
+    const error = await FetchError.fromResponse(response);
 
-    return Promise.reject(
-      new FetchError<E>(message || response.statusText, response.status, data)
-    );
+    return Promise.reject(error);
+  } else {
+    return await getJsonPayload<T>(response);
   }
-
-  return data as T;
 };
 
 export type Fetcher<T = void> = (

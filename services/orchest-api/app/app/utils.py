@@ -5,7 +5,7 @@ import uuid
 from collections import ChainMap
 from copy import deepcopy
 from datetime import datetime
-from typing import Container, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Container, Dict, Iterable, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import requests
@@ -18,6 +18,7 @@ from requests.packages.urllib3.util.retry import Retry
 from sqlalchemy import desc, or_, text, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import query, undefer
+from sqlalchemy.sql.functions import coalesce
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -41,7 +42,10 @@ logger = get_logger()
 
 
 def update_status_db(
-    status_update: Dict[str, str], model: Model, filter_by: Dict[str, str]
+    status_update: Dict[str, str],
+    model: Model,
+    filter_by: Optional[Dict[str, str]] = None,
+    filter_: Optional[List[Any]] = None,
 ) -> bool:
     """Updates the status attribute of particular entry in the database.
 
@@ -53,28 +57,42 @@ def update_status_db(
         status_update: The new status {'status': 'STARTED'}.
         model: Database model to update the status of. Assumed to have a
             status column mapping to a string.
-        filter_by: The filter to query the exact resource for which to
-            update its status.
+        filter_by: Allows filtering using sqlalchemy filter_by operator.
+        filter_: Allows filtering using sqlalchemy filter operator. When
+            both filter and filter_by are defined both are applied.
 
     Returns:
         True if at least 1 row was updated, false otherwise.
 
     """
     data = status_update
-    query = model.query.filter_by(**filter_by)
+    if filter_by is None and filter_ is None:
+        raise ValueError("Either filter_by or filter must be defined.")
+
+    query = model.query
+    if filter_by is not None:
+        query = query.filter_by(**filter_by)
+    if filter_ is not None:
+        query = query.filter(*filter_)
 
     if data["status"] == "STARTED":
-        data["started_time"] = datetime.fromisoformat(data["started_time"])
+        data["started_time"] = (
+            datetime.fromisoformat(data["started_time"])
+            if data.get("started_time") is not None
+            else datetime.utcnow()
+        )
     elif data["status"] in ["SUCCESS", "FAILURE"]:
-        data["finished_time"] = datetime.fromisoformat(data["finished_time"])
+        data["finished_time"] = (
+            datetime.fromisoformat(data["finished_time"])
+            if data.get("finished_time") is not None
+            else datetime.utcnow()
+        )
 
         # It could happen that the status update would take the status
         # of a step from PENDING to SUCCESS, which would result in the
         # started_time to never be set. To combat this race condition we
         # set the started_time equal to the finished_time.
-        entity = query.one()
-        if entity.status == "PENDING":
-            data["started_time"] = data["finished_time"]
+        data["started_time"] = coalesce(model.started_time, data["finished_time"])
 
     res = query.filter(
         # This implies that an entity cannot be furtherly updated
@@ -900,3 +918,27 @@ def get_session_with_retries() -> requests.Session:
     session.mount("http://", _rq_adapter)
     session.mount("https://", _rq_adapter)
     return session
+
+
+def update_steps_status(run_uuid: str, step_uuids: Iterable[str], status: str) -> bool:
+    """Updates the status of some steps, does not commit.
+
+    A step that has already reached an end state, i.e. FAILURE,
+    SUCCESS, ABORTED, will not be updated.
+
+    Args:
+        status: The new status.
+
+    Returns:
+        True if at least 1 row was updated, false otherwise.
+
+    """
+    return update_status_db(
+        {"status": status},
+        models.PipelineRunStep,
+        filter_=[
+            models.PipelineRunStep.status.in_(["PENDING", "STARTED"]),
+            models.PipelineRunStep.run_uuid == run_uuid,
+            models.PipelineRunStep.step_uuid.in_(list(step_uuids)),
+        ],
+    )

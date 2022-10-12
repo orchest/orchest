@@ -1,12 +1,9 @@
-import asyncio
 import copy
 import json
 import os
 import shutil
 from typing import Dict, List, Optional, Union
 
-import aiohttp
-from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.signals import worker_process_init
 from celery.utils.log import get_task_logger
@@ -21,7 +18,8 @@ from app.connections import db, k8s_custom_obj_api
 from app.core import environments, notifications, registry, scheduler
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
-from app.core.pipelines import Pipeline, run_pipeline_workflow
+from app.core.pipeline_runs import run_pipeline_workflow
+from app.core.pipelines import Pipeline
 from app.core.sessions import launch_noninteractive_session
 from app.types import PipelineDefinition, RunConfig
 from config import CONFIG_CLASS
@@ -48,71 +46,6 @@ def dispose_of_existing_db_pool(**kwargs):
     with application.app_context():
         db.engine.dispose()
         print("Disposed of existing db connection pool.")
-
-
-# This will not work yet, because Celery does not yet support asyncio
-# tasks. In Celery 5.0 however this should be possible.
-# https://stackoverflow.com/questions/39815771/how-to-combine-celery-with-asyncio
-class APITask(Task):
-    """
-
-    Idea:
-        Make the aiohttp.ClientSession persistent. Then we get:
-
-        "So if you’re making several requests to the same host, the
-        underlying TCP connection will be reused, which can result in a
-        significant performance increase."
-
-    Recources:
-        https://docs.celeryproject.org/en/master/userguide/tasks.html#instantiation
-    """
-
-    _session = None
-
-    async def get_clientsession(self):
-        return await aiohttp.ClientSession()
-
-    @property
-    async def session(self):
-        """
-        TODO:
-            Think about how to create this property since await in a
-            property is not according to PEP8
-            https://stackoverflow.com/questions/54984337/how-should-you-create-properties-when-using-asyncio
-
-            Possibility:
-            https://async-property.readthedocs.io/en/latest/readme.html
-        """
-        if self._session is None:
-            self._session = await self.get_clientsession()
-        return self._session
-
-
-async def run_pipeline_async(
-    session_uuid: str, run_config: RunConfig, pipeline: Pipeline, task_id: str
-):
-    try:
-        with application.app_context():
-            await run_pipeline_workflow(
-                session_uuid, task_id, pipeline, run_config=run_config
-            )
-    except Exception as e:
-        logger.error(e)
-        raise
-    finally:
-        # We get here either because the task was successful or was
-        # aborted, in any case, delete the workflow.
-        k8s_custom_obj_api.delete_namespaced_custom_object(
-            "argoproj.io",
-            "v1alpha1",
-            _config.ORCHEST_NAMESPACE,
-            "workflows",
-            f"pipeline-run-task-{task_id}",
-        )
-
-    # The celery task has completed successfully. This is not
-    # related to the success or failure of the pipeline itself.
-    return "SUCCESS"
 
 
 @celery.task(bind=True, base=AbortableTask)
@@ -149,11 +82,28 @@ def run_pipeline(
     # session = run_pipeline.session
     task_id = task_id if task_id is not None else self.request.id
 
-    # TODO: could make the celery task fail in case the pipeline run
-    # failed. Although the run did complete successfully from a task
-    # scheduler perspective.
-    # https://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
-    return asyncio.run(run_pipeline_async(session_uuid, run_config, pipeline, task_id))
+    try:
+        with application.app_context():
+            run_pipeline_workflow(
+                session_uuid, task_id, pipeline, run_config=run_config
+            )
+    except Exception as e:
+        logger.error(e)
+        raise
+    finally:
+        # We get here either because the task was successful or was
+        # aborted, in any case, delete the workflow.
+        k8s_custom_obj_api.delete_namespaced_custom_object(
+            "argoproj.io",
+            "v1alpha1",
+            _config.ORCHEST_NAMESPACE,
+            "workflows",
+            f"pipeline-run-task-{task_id}",
+        )
+
+    # The celery task has completed successfully. This is not related to
+    # the success or failure of the pipeline itself.
+    return "SUCCESS"
 
 
 @celery.task(bind=True, base=AbortableTask)
@@ -213,7 +163,6 @@ def start_non_interactive_pipeline_run(
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
     run_config["project_dir"] = run_dir
-    run_config["run_endpoint"] = f"jobs/{job_uuid}"
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
     # with the new `pipeline.json` that contains the new parameters for
@@ -226,7 +175,6 @@ def start_non_interactive_pipeline_run(
     # interest for the session_config.
     session_config = copy.deepcopy(run_config)
     session_config.pop("env_uuid_to_image")
-    session_config.pop("run_endpoint")
     session_config["userdir_pvc"] = userdir_pvc
     session_config["services"] = pipeline_definition.get("services", {})
     session_config["env_uuid_to_image"] = run_config["env_uuid_to_image"]

@@ -54,7 +54,6 @@ class RunList(Resource):
     def post(self):
         """Starts a new (interactive) pipeline run."""
         post_data = request.get_json()
-        post_data["run_config"]["run_endpoint"] = "runs"
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
@@ -81,41 +80,6 @@ class Run(Resource):
         if run is None:
             abort(404, description="Run not found.")
         return run.__dict__
-
-    @api.doc("set_run_status")
-    @api.expect(schema.status_update)
-    def put(self, run_uuid):
-        """Sets the status of a pipeline run."""
-
-        filter_by = {"uuid": run_uuid}
-        status_update = request.get_json()
-        try:
-            has_updated = update_status_db(
-                status_update, model=models.PipelineRun, filter_by=filter_by
-            )
-            if has_updated:
-                run = models.InteractivePipelineRun.query.filter(
-                    models.InteractivePipelineRun.uuid == run_uuid
-                ).one()
-                if status_update["status"] == "STARTED":
-                    events.register_interactive_pipeline_run_started(
-                        run.project_uuid, run.pipeline_uuid, run_uuid
-                    )
-                elif status_update["status"] == "FAILURE":
-                    events.register_interactive_pipeline_run_failed(
-                        run.project_uuid, run.pipeline_uuid, run_uuid
-                    )
-                elif status_update["status"] == "SUCCESS":
-                    events.register_interactive_pipeline_run_succeeded(
-                        run.project_uuid, run.pipeline_uuid, run_uuid
-                    )
-            db.session.commit()
-        except Exception as e:
-            current_app.logger.error(e)
-            db.session.rollback()
-            return {"message": "Failed update operation."}, 500
-
-        return {"message": "Status was updated successfully."}, 200
 
     @api.doc("delete_run")
     @api.response(200, "Run terminated")
@@ -148,27 +112,6 @@ class StepStatus(Resource):
             description="Run and step combination not found",
         )
         return step.__dict__
-
-    @api.doc("set_step_status")
-    @api.expect(schema.status_update)
-    def put(self, run_uuid, step_uuid):
-        """Sets the status of a pipeline step."""
-        status_update = request.get_json()
-
-        # TODO: first check the status and make sure it says PENDING or
-        #       whatever. Because if is empty then this would write it
-        #       and then get overwritten afterwards with "PENDING".
-        filter_by = {"run_uuid": run_uuid, "step_uuid": step_uuid}
-        try:
-            update_status_db(
-                status_update, model=models.PipelineRunStep, filter_by=filter_by
-            )
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            return {"message": "Failed update operation."}, 500
-
-        return {"message": "Status was updated successfully."}, 200
 
 
 class AbortPipelineRun(TwoPhaseFunction):
@@ -369,3 +312,33 @@ class CreateInteractiveRun(TwoPhaseFunction):
             self.collateral_kwargs["task_id"],
         )
         db.session.commit()
+
+
+class UpdateInteractivePipelineRun(TwoPhaseFunction):
+    """Updates an interactive pipeline run."""
+
+    def _transaction(self, run_uuid: str, status: str):
+        filter_by = {"uuid": run_uuid}
+        status_update = {"status": status}
+        has_updated = update_status_db(
+            status_update, model=models.PipelineRun, filter_by=filter_by
+        )
+        if has_updated:
+            run = models.InteractivePipelineRun.query.filter(
+                models.InteractivePipelineRun.uuid == run_uuid
+            ).one()
+            if status_update["status"] == "STARTED":
+                events.register_interactive_pipeline_run_started(
+                    run.project_uuid, run.pipeline_uuid, run_uuid
+                )
+            elif status_update["status"] == "FAILURE":
+                events.register_interactive_pipeline_run_failed(
+                    run.project_uuid, run.pipeline_uuid, run_uuid
+                )
+            elif status_update["status"] == "SUCCESS":
+                events.register_interactive_pipeline_run_succeeded(
+                    run.project_uuid, run.pipeline_uuid, run_uuid
+                )
+
+    def _collateral(self):
+        pass
