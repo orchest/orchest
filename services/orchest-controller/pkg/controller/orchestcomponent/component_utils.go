@@ -122,11 +122,10 @@ func getIngressManifest(metadata metav1.ObjectMeta, path, ingressClass string,
 	ingressMeta := *metadata.DeepCopy()
 
 	if ingressMeta.Annotations == nil {
-		ingressMeta.Annotations = map[string]string{
-			// No limit
-			"nginx.ingress.kubernetes.io/proxy-body-size": "0",
-		}
+		ingressMeta.Annotations = make(map[string]string)
 	}
+
+	ingressMeta.Annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = "0"
 
 	if enableAuth {
 		authServiceName := fmt.Sprintf("http://auth-server.%s.svc.cluster.local/auth", component.Namespace)
