@@ -131,7 +131,6 @@ def test_pipeline_run_call_order(testio, monkeypatch):
         "pipeline_path": "",
         "pipeline_uuid": "",
         "project_uuid": "",
-        "run_endpoint": None,
         "env_uuid_docker_id_mappings": MockEnvUUIDDockerIDMapping(),
         "userdir_pvc": "",
         "user_env_variables": {},
