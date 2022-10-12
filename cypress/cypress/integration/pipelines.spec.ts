@@ -29,7 +29,7 @@ describe("pipelines", () => {
     reset();
     cy.setOnboardingCompleted("true");
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
-    cy.goToMenu("pipelines");
+    cy.navigateViaTopMenu("pipeline");
   });
 
   it("creates a pipeline", () => {
@@ -138,7 +138,7 @@ describe("pipelines", () => {
     beforeEach(() => {
       cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
       assertEnvIsBuilt();
-      cy.goToMenu("pipelines");
+      cy.navigateViaTopMenu("pipeline");
     });
 
     it("opens the pipeline editor, ", () => {

@@ -50,7 +50,7 @@ describe("file system interactions", () => {
         .join(" && ")
     );
 
-    cy.goToMenu("projects");
+    cy.navigateViaProjectDrawer("projects");
     reloadUntilElementsLoaded(
       "project-list-row",
       () => {
