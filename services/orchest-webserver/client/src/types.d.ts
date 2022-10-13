@@ -465,7 +465,7 @@ export type UpdateInfo = {
 };
 
 export type OrchestVersion = {
-  version: string | null | undefined;
+  version: string;
 };
 
 export type PipelineDataInSnapshot = {

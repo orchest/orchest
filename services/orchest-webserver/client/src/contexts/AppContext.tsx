@@ -8,7 +8,8 @@ import React from "react";
 import { useAutoFetchPipelines } from "./useAutoFetchPipelines";
 
 export type AppContextType = {
-  orchestVersion: string | null | undefined;
+  orchestVersion: string | undefined;
+  fetchOrchestVersion: () => Promise<string | void>;
   checkUpdate: () => Promise<void>;
   webhooks: NotificationWebhookSubscriber[];
   setWebhooks: StateDispatcher<NotificationWebhookSubscriber[]>;
@@ -22,7 +23,7 @@ export const AppContext = React.createContext<AppContextType>(
 export const useAppContext = () => React.useContext(AppContext);
 
 export const AppContextProvider: React.FC = ({ children }) => {
-  const { checkUpdate, orchestVersion } = useCheckUpdate();
+  const { checkUpdate, fetchOrchestVersion, orchestVersion } = useCheckUpdate();
   const {
     subscribers: webhooks = [],
     setSubscribers: setWebhooks,
@@ -45,6 +46,7 @@ export const AppContextProvider: React.FC = ({ children }) => {
       value={{
         checkUpdate,
         orchestVersion,
+        fetchOrchestVersion,
         webhooks,
         setWebhooks,
         fetchWebhooks,
