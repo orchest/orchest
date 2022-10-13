@@ -33,6 +33,7 @@ export const ProjectSelectorToggle = ({
     <Button
       onClick={onClick}
       tabIndex={tabIndex}
+      data-test-id="project-selector"
       id="navigation-toggle"
       sx={{
         height: (theme) => theme.spacing(7),
