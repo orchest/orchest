@@ -1,4 +1,3 @@
-import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { FileTree } from "@/types";
 import {
   isSamePoint,
@@ -54,18 +53,10 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
     ref
   ) {
     const { dragFile, fileTrees } = useFileManagerContext();
-    const {
-      disabled,
-      pipelineCwd,
-      isFetchingPipelineJson,
-    } = usePipelineDataContext();
+    const { disabled, isFetchingPipelineJson } = usePipelineDataContext();
     const isFileTreeLoaded = React.useMemo(
       () => Object.keys(fileTrees).length > 0,
       [fileTrees]
-    );
-
-    const environments = useEnvironmentsApi(
-      (state) => state.environments || []
     );
 
     const { scaleFactor, canvasPointAtPointer } = useCanvasScaling();
