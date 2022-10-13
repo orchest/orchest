@@ -127,7 +127,7 @@ DEFAULT_SETUP_SCRIPT = """#!/bin/bash
 DEFAULT_ENVIRONMENTS = [
     {
         "name": "Python 3",
-        "base_image": f'orchest/base-kernel-py:{os.getenv("ORCHEST_VERSION")}',
+        "base_image": "orchest/base-kernel-py",
         "language": "python",
         "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,
