@@ -1,3 +1,4 @@
+import { useHasChanged } from "@/hooks/useHasChanged";
 import {
   DEFAULT_SCALE_FACTOR,
   SCALE_INCREMENTS,
@@ -52,42 +53,28 @@ export const useViewportKeyboardEvents = () => {
     pipelineCanvasState,
     setPipelineCanvasState,
   ] = usePipelineCanvasState();
-  const { isReadOnly } = usePipelineDataContext();
-
-  // We offset the starting point a bit when the read-only banner is visible.
-  const startingOffset = React.useMemo<Readonly<Point2D>>(
-    () => (isReadOnly ? READ_ONLY_STARTING_OFFSET : NO_STARTING_OFFSET),
-    [isReadOnly]
+  const { isReadOnly, pipelineUuid } = usePipelineDataContext();
+  const changedPipeline = useHasChanged(
+    pipelineUuid,
+    (prev, curr) => prev !== curr && curr !== undefined
   );
 
-  // Re/set the starting position if the user is at a "bad starting" offset.
-  React.useEffect(() => {
-    setPipelineCanvasState((current) => {
-      const isAtBadStartingOffset = isSamePoint(
-        current.pipelineOffset,
-        addPoints(
-          INITIAL_PIPELINE_OFFSET,
-          startingOffset === NO_STARTING_OFFSET
-            ? READ_ONLY_STARTING_OFFSET
-            : NO_STARTING_OFFSET
-        )
-      );
-
-      return {
-        pipelineOffset: isAtBadStartingOffset
-          ? addPoints(INITIAL_PIPELINE_OFFSET, startingOffset)
-          : current.pipelineOffset,
-      };
-    });
-  }, [setPipelineCanvasState, startingOffset]);
+  // We offset the starting point a bit when the read-only banner is visible.
+  const startingOffsetRef = React.useRef<Readonly<Point2D>>(NO_STARTING_OFFSET);
+  startingOffsetRef.current = isReadOnly
+    ? READ_ONLY_STARTING_OFFSET
+    : NO_STARTING_OFFSET;
 
   const resetPipelineCanvas = React.useCallback(() => {
     setPipelineCanvasState({
-      pipelineOffset: addPoints(INITIAL_PIPELINE_OFFSET, startingOffset),
+      pipelineOffset: addPoints(
+        INITIAL_PIPELINE_OFFSET,
+        startingOffsetRef.current
+      ),
       pipelineCanvasOffset: [0, 0],
       pipelineOrigin: [0, 0],
     });
-  }, [setPipelineCanvasState, startingOffset]);
+  }, [setPipelineCanvasState]);
 
   const centerView = React.useCallback(() => {
     resetPipelineCanvas();
@@ -180,6 +167,30 @@ export const useViewportKeyboardEvents = () => {
     pipelineViewportRef,
     setPipelineCanvasOrigin
   );
+
+  // Reset the pipeline canvas position when the pipeline changes.
+  React.useEffect(resetPipelineCanvas, [changedPipeline, resetPipelineCanvas]);
+
+  // Apply the offset if readonly is set to true and the canvas hasn't moved
+  React.useEffect(() => {
+    if (!isReadOnly) return;
+
+    setPipelineCanvasState((current) => {
+      const isAtWrongStart = isSamePoint(
+        INITIAL_PIPELINE_OFFSET,
+        current.pipelineOffset
+      );
+
+      return isAtWrongStart
+        ? {
+            pipelineOffset: addPoints(
+              INITIAL_PIPELINE_OFFSET,
+              startingOffsetRef.current
+            ),
+          }
+        : current;
+    });
+  }, [isReadOnly, setPipelineCanvasState]);
 
   React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
