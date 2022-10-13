@@ -80,7 +80,7 @@ const useLatestVersion = () => {
 };
 
 const useVersionsPoller = () => {
-  const { orchestVersion } = useOrchestVersion();
+  const { orchestVersion, fetchOrchestVersion } = useOrchestVersion();
   const { latestVersion, fetchLatestVersion } = useLatestVersion();
 
   // Only check the latest version every hour, because the latest Orchest version gets
@@ -89,7 +89,7 @@ const useVersionsPoller = () => {
     fetchLatestVersion();
   }, 3600000);
 
-  return { orchestVersion, latestVersion };
+  return { orchestVersion, fetchOrchestVersion, latestVersion };
 };
 
 // To limit the number of api calls and make sure only one prompt is shown,
@@ -110,7 +110,11 @@ export const useCheckUpdate = () => {
     siteMap.settings,
     siteMap.help,
   ]);
-  const { orchestVersion, latestVersion } = useVersionsPoller();
+  const {
+    orchestVersion,
+    fetchOrchestVersion,
+    latestVersion,
+  } = useVersionsPoller();
 
   const promptUpdate = React.useCallback(
     (localVersion: string, versionToUpdate: string) => {
@@ -206,5 +210,5 @@ export const useCheckUpdate = () => {
     location,
   ]);
 
-  return { orchestVersion, checkUpdate };
+  return { orchestVersion, fetchOrchestVersion, checkUpdate };
 };
