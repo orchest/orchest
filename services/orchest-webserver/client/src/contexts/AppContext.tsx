@@ -8,8 +8,8 @@ import React from "react";
 import { useAutoFetchPipelines } from "./useAutoFetchPipelines";
 
 export type AppContextType = {
-  orchestVersion: string | null | undefined;
-  fetchOrchestVersion: () => Promise<string | void | null | undefined>;
+  orchestVersion: string | undefined;
+  fetchOrchestVersion: () => Promise<string | void>;
   checkUpdate: () => Promise<void>;
   webhooks: NotificationWebhookSubscriber[];
   setWebhooks: StateDispatcher<NotificationWebhookSubscriber[]>;

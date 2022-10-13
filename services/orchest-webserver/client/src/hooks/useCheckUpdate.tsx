@@ -62,10 +62,10 @@ const requestToCheckVersions = async ({
 };
 
 const useOrchestVersion = () => {
-  const { data, fetchData } = useFetcher<
-    OrchestVersion,
-    string | null | undefined
-  >("/async/version", { transform: (data) => data.version });
+  const { data, fetchData } = useFetcher<OrchestVersion, string>(
+    "/async/version",
+    { transform: (data) => data.version }
+  );
 
   return { orchestVersion: data, fetchOrchestVersion: fetchData };
 };
