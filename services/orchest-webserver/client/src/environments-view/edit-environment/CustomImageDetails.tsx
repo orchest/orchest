@@ -30,7 +30,7 @@ const DEFAULT_FORM_STATE: CustomImage = {
   gpu_support: false,
 };
 
-export const isDefaultImage = (baseImage: string) => {
+const isDefaultImage = (baseImage: string) => {
   baseImage = baseImage.toLowerCase().trim();
 
   return DEFAULT_BASE_IMAGES.some((image) => baseImage === image.base_image);

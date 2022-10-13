@@ -38,7 +38,8 @@ describe("services", () => {
         `cp -r ${PROJECTS.SERVICES_CONNECTIVITY.get_path()} ../userdir/projects/`
       );
 
-      cy.goToMenu("projects");
+      cy.navigateViaProjectDrawer("projects");
+
       reloadUntilElementsLoaded("project-list-row", () => {
         cy.findByTestId("project-list").should("exist");
         return cy.findByTestId("loading-table-row").should("not.exist");
@@ -49,7 +50,7 @@ describe("services", () => {
 
     context("requires a running interactive session", () => {
       beforeEach(() => {
-        cy.goToMenu("pipelines");
+        cy.navigateViaTopMenu("pipeline");
         cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
         cy.findAllByTestId(
           TEST_ID.SESSION_TOGGLE_BUTTON
@@ -86,7 +87,7 @@ describe("services", () => {
 
     context("has created a job draft", () => {
       beforeEach(() => {
-        cy.goToMenu("jobs");
+        cy.navigateViaTopMenu("jobs");
         cy.findByTestId(TEST_ID.JOB_CREATE).click();
         cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
         cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
@@ -121,7 +122,7 @@ describe("services", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
     assertEnvIsBuilt();
-    cy.goToMenu("pipelines");
+    cy.navigateViaTopMenu("pipeline");
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Stop session", {
       timeout: 60000,
@@ -165,7 +166,7 @@ describe("services", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
     assertEnvIsBuilt();
-    cy.goToMenu("pipelines");
+    cy.navigateViaTopMenu("pipeline");
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
 
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
@@ -187,7 +188,7 @@ describe("services", () => {
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
 
     // Create and run the job.
-    cy.goToMenu("jobs");
+    cy.navigateViaTopMenu("jobs");
     cy.findByTestId(TEST_ID.JOB_CREATE).click();
     cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
     cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
@@ -270,7 +271,7 @@ describe("services", () => {
         envVars.pipelines_env_vars_values
       );
       assertEnvIsBuilt();
-      cy.goToMenu("pipelines");
+      cy.navigateViaTopMenu("pipeline");
 
       // Create and configure the service.
       cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
@@ -408,7 +409,7 @@ describe("services", () => {
         envVars.pipelines_env_vars_values
       );
       assertEnvIsBuilt();
-      cy.goToMenu("pipelines");
+      cy.navigateViaTopMenu("pipeline");
 
       // Create and configure the service.
       cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
@@ -478,7 +479,7 @@ describe("services", () => {
       }
 
       // Create and run the job.
-      cy.goToMenu("jobs");
+      cy.navigateViaTopMenu("jobs");
       cy.findByTestId(TEST_ID.JOB_CREATE).click();
       cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
       cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();

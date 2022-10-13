@@ -118,6 +118,7 @@ export const ProjectSelectorMenu = ({
       <Stack direction="row" alignItems="center">
         <Button
           variant="text"
+          data-test-id="project-drawer/projects"
           tabIndex={0}
           sx={{
             flex: 1,

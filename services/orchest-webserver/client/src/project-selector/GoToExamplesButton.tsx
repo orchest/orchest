@@ -14,6 +14,7 @@ export const GoToExamplesButton = ({ onClick }: { onClick: () => void }) => {
     <Button
       variant="text"
       tabIndex={0}
+      data-test-id="project-drawer/examples"
       sx={{
         flex: 1,
         borderRadius: 0,

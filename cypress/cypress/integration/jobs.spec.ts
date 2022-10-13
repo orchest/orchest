@@ -93,7 +93,8 @@ function verifyJobRunsParameters(
 }
 
 const loadProject = () => {
-  cy.goToMenu("projects");
+  cy.navigateViaProjectDrawer("projects");
+
   reloadUntilElementsLoaded("project-list-row", () => {
     cy.findByTestId("project-list").should("exist");
     return cy.findByTestId("loading-table-row").should("not.exist");
@@ -122,7 +123,7 @@ describe("jobs", () => {
     });
     context("has created a job draft", () => {
       beforeEach(() => {
-        cy.goToMenu("jobs");
+        cy.navigateViaTopMenu("jobs");
         cy.findByTestId(TEST_ID.JOB_CREATE).click();
         cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
         cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
@@ -347,7 +348,7 @@ describe("jobs", () => {
         pipelineEnvVars.values
       );
 
-      cy.goToMenu("jobs");
+      cy.navigateViaTopMenu("jobs");
       cy.findByTestId(TEST_ID.JOB_CREATE).click();
       cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
       cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
@@ -415,7 +416,7 @@ describe("jobs", () => {
 
     context("has created a job draft", () => {
       beforeEach(() => {
-        cy.goToMenu("jobs");
+        cy.navigateViaTopMenu("jobs");
         cy.findByTestId(TEST_ID.JOB_CREATE).click();
         cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
         cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();

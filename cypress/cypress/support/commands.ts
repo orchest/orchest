@@ -54,10 +54,16 @@ declare global {
       getIframe(dataTestId: string): Chainable<JQuery<any>>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
       getProjectUUID(project: string): Chainable<string>;
-      goToMenu(
-        entry: string,
-        predicate?: (location: Location) => boolean
+      navigateViaTopMenu(
+        to:
+          | "pipeline"
+          | "jupyter-lab"
+          | "jobs"
+          | "environments"
+          | "settings"
+          | "help"
       ): Chainable<string>;
+      navigateViaProjectDrawer(to: "projects" | "examples"): Chainable<string>;
       importProject(url: string, name?: string): Chainable<undefined>;
       reset(): Chainable<undefined>;
       setOnboardingCompleted(value: TBooleanString): Chainable<undefined>;
@@ -105,21 +111,20 @@ Cypress.Commands.add("cleanProjectsDir", () => {
 });
 
 Cypress.Commands.add("createProject", (name) => {
-  cy.goToMenu("projects");
+  cy.navigateViaProjectDrawer("projects");
   cy.findByTestId(TEST_ID.ADD_PROJECT)
     .should("exist")
     .and("be.visible")
     .click();
   cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
   cy.findByTestId(TEST_ID.CREATE_PROJECT).click();
-  cy.url().should("include", "/pipelines");
   cy.findByTestId("project-selector").contains(name);
-  cy.goToMenu("projects");
+
   return cy.reload();
 });
 
 Cypress.Commands.add("importProject", (url, name) => {
-  cy.goToMenu("projects");
+  cy.navigateViaProjectDrawer("projects");
   cy.findByTestId(TEST_ID.IMPORT_PROJECT)
     .should("exist")
     .and("be.visible")
@@ -135,7 +140,7 @@ Cypress.Commands.add(
     cy.log("======= Start adding project env vars.");
     cy.intercept("PUT", /.*/).as("allPuts");
     assert(names.length == values.length);
-    cy.goToMenu("projects");
+    cy.navigateViaProjectDrawer("projects");
     cy.findByTestId(`settings-button-${project}`).click();
     cy.wait(100);
     for (let i = 0; i < names.length; i++) {
@@ -162,7 +167,7 @@ Cypress.Commands.add(
     assert(names.length == values.length);
     cy.log("======= Start adding pipeline env vars.");
     cy.intercept("PUT", /.*/).as("allPuts");
-    cy.goToMenu("pipelines");
+    cy.navigateViaTopMenu("pipeline");
     cy.findByTestId(`pipeline-list-row`).first().click();
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
     cy.findByTestId(
@@ -183,7 +188,7 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add("createUser", (name, password) => {
-  cy.goToMenu("settings");
+  cy.navigateViaTopMenu("settings");
   cy.findByTestId(TEST_ID.MANAGE_USERS)
     .scrollIntoView()
     .should("be.visible")
@@ -207,7 +212,7 @@ Cypress.Commands.add("createUser", (name, password) => {
 });
 
 Cypress.Commands.add("deleteUser", (name) => {
-  cy.goToMenu("settings");
+  cy.navigateViaTopMenu("settings");
   cy.findByTestId(TEST_ID.MANAGE_USERS)
     .scrollIntoView()
     .should("be.visible")
@@ -225,7 +230,7 @@ Cypress.Commands.add("deleteUser", (name) => {
 // Note: currently not idempotent.
 Cypress.Commands.add("deleteAllUsers", () => {
   cy.intercept("DELETE", /.*/).as("allDeletes");
-  cy.goToMenu("settings");
+  cy.navigateViaTopMenu("settings");
   cy.findByTestId(TEST_ID.MANAGE_USERS)
     .scrollIntoView()
     .should("be.visible")
@@ -282,7 +287,7 @@ Cypress.Commands.add(
 
 Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
   cy.log("======== Start creating pipeline");
-  cy.goToMenu("pipelines");
+  cy.navigateViaTopMenu("pipeline");
   cy.findByTestId(TEST_ID.PIPELINE_CREATE).should("be.visible").click();
   cy.findByTestId(TEST_ID.PIPELINE_NAME_TEXTFIELD)
     .should("be.visible")
@@ -307,7 +312,7 @@ Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
   cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Start session", {
     timeout: 60000,
   });
-  cy.goToMenu("pipelines");
+  cy.navigateViaTopMenu("pipeline");
   cy.log("======== Done creating pipeline");
 });
 
@@ -363,7 +368,7 @@ Cypress.Commands.add(
 Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
   count = count || 1;
   cy.intercept("DELETE", /.*/).as("allDeletes");
-  cy.goToMenu("environments");
+  cy.navigateViaTopMenu("environments");
   // at least one should appear
   reloadUntilElementsLoaded(
     "environment-list-row",
@@ -395,7 +400,7 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
 // Note: currently not idempotent.
 Cypress.Commands.add("deleteAllPipelines", () => {
   cy.intercept("DELETE", /.*/).as("allDeletes");
-  cy.goToMenu("pipelines");
+  cy.navigateViaTopMenu("pipeline");
   // set rows != 0 then deleta
   cy.findByTestId(TEST_ID.PIPELINES_TABLE_TOGGLE_ALL_ROWS).click();
   cy.findByTestId(TEST_ID.PIPELINE_DELETE).click();
@@ -428,30 +433,22 @@ Cypress.Commands.add("getProjectUUID", (project: string) => {
     );
 });
 
-Cypress.Commands.add(
-  "goToMenu",
-  (entry: string, predicate?: (location: Location) => boolean) => {
-    cy.log(`======= Start navigating to "/${entry}" via menu`)
-      .wrap([
-        "projects",
-        "pipelines",
-        "environments",
-        "file_manager",
-        "settings",
-        "jobs",
-      ])
-      .should("include", entry);
+Cypress.Commands.add("navigateViaProjectDrawer", (entry) => {
+  cy.log(`:: Navigating to "${entry}" via the project drawer`);
 
-    cy.findByTestId(`menu-${entry}`).click();
+  cy.findByTestId("project-selector").click();
+  cy.findByTestId(`project-drawer/${entry}`).click();
 
-    if (predicate) {
-      cy.location().should("satisfy", predicate);
-    } else {
-      cy.location("pathname").should("equal", `/${entry}`);
-    }
-    cy.log(`======= Done navigating to "/${entry}" via menu`);
-  }
-);
+  cy.location("pathname").should("equal", `/${entry}`);
+});
+
+Cypress.Commands.add("navigateViaTopMenu", (entry) => {
+  cy.log(`:: Navigating to "${entry}" via the top menu`);
+
+  cy.findByTestId(`top-menu/${entry}`).click();
+
+  cy.location("pathname").should("equal", `/${entry}`);
+});
 
 //Assumes environment names are unique.
 Cypress.Commands.add(

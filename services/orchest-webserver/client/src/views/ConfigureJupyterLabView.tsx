@@ -9,7 +9,7 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { EnvironmentImageBuild } from "@/types";
+import { JupyterImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
@@ -47,7 +47,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   // local states
   const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
   const [jupyterBuild, setJupyterEnvironmentBuild] = React.useState<
-    EnvironmentImageBuild | undefined
+    JupyterImageBuild | undefined
   >(undefined);
 
   const [isBuildingImage, setIsBuildingImage] = React.useState(false);
@@ -95,17 +95,15 @@ const ConfigureJupyterLabView: React.FC = () => {
 
     try {
       await save();
-      let response = await cancelableFetch<{ jupyter_image_build: any }>(
-        "/catch/api-proxy/api/jupyter-builds",
-        { method: "POST" }
-      );
+      const response = await cancelableFetch<{
+        jupyter_image_build: JupyterImageBuild;
+      }>("/catch/api-proxy/api/jupyter-builds", { method: "POST" });
 
-      setJupyterEnvironmentBuild(response["jupyter_image_build"]);
+      setJupyterEnvironmentBuild(response.jupyter_image_build);
     } catch (error) {
       if (!error.isCanceled) {
         setIgnoreIncomingLogs(false);
-
-        if (error.message === "SessionInProgressException") {
+        if (error.body?.message === "SessionInProgressException") {
           setConfirm(
             "Warning",
             <>
@@ -137,7 +135,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       }
     }
     setIsBuildingImage(false);
-  }, [deleteAllSessions, save, setAlert, setConfirm]);
+  }, [deleteAllSessions, save, setAlert, setConfirm, cancelableFetch]);
 
   const cancelImageBuild = async () => {
     // send DELETE to cancel ongoing build
@@ -179,7 +177,7 @@ const ConfigureJupyterLabView: React.FC = () => {
     } catch (e) {
       setAlert("Error", `Failed to fetch setup script. ${e}`);
     }
-  }, [setAlert]);
+  }, [setAlert, cancelableFetch]);
 
   React.useEffect(() => {
     getSetupScript();

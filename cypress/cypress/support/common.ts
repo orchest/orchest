@@ -86,11 +86,10 @@ export enum TEST_ID {
   JOB_UPDATE = "job-update",
   JUPYTERLAB_IFRAME = "jupyterlab-iframe",
   MANAGE_USERS = "manage-users",
-  MENU_ENVIRONMENTS = "menu-environments",
-  MENU_JOBS = "menu-jobs",
-  MENU_PIPELINE = "menu-pipelines",
-  MENU_PROJECTS = "menu-projects",
-  MENU_SETTINGS = "menu-settings",
+  TOP_MENU_ENVIRONMENTS = "top-menu/environments",
+  TOP_MENU_JOBS = "top-menu/jobs",
+  TOP_MENU_PIPELINE = "top-menu/pipelines",
+  TOP_MENU_SETTINGS = "top-menu/settings",
   NEW_USER_NAME = "new-user-name",
   NEW_USER_PASSWORD = "new-user-password",
   ONBOARDING_CLOSE = "onboarding-close",
@@ -490,14 +489,14 @@ export function mergeEnvVariables(envVariables: string[][][]) {
 // tests are operating under a single environment.
 export function assertEnvIsBuilt() {
   // Make sure the environment is built.
-  cy.goToMenu("environments");
+  cy.navigateViaTopMenu("environments");
   cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
   cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
     .scrollIntoView()
     .should("be.visible")
     .contains("Build successfully completed!", { timeout: 20000 });
 
-  cy.goToMenu("pipelines");
+  cy.navigateViaTopMenu("pipelines");
 }
 
 export function reset() {

@@ -10,23 +10,26 @@ describe("projects", () => {
     cy.disableCheckUpdate();
     reset();
     cy.setOnboardingCompleted("true");
-    cy.goToMenu("projects");
+    cy.navigateViaProjectDrawer("projects");
   });
 
   context("should have projects after running", () => {
     afterEach(() => {
-      cy.goToMenu("projects");
+      cy.navigateViaProjectDrawer("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should(
         "have.length.at.least",
         1
       );
-      ["pipelines", "jobs", "environments"].map((menuEntry) => {
-        cy.goToMenu(menuEntry);
-        cy.findByTestId("project-selector").should(
-          "contain.text",
-          SAMPLE_PROJECT_NAMES.P1
-        );
-      });
+
+      (["pipeline", "jobs", "environments", "jupyter-lab"] as const).map(
+        (entry) => {
+          cy.navigateViaTopMenu(entry);
+          cy.findByTestId("project-selector").should(
+            "contain.text",
+            SAMPLE_PROJECT_NAMES.P1
+          );
+        }
+      );
     });
 
     it("creates a project", () => {
