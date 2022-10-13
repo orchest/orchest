@@ -172,7 +172,7 @@ export const useViewportKeyboardEvents = () => {
   React.useEffect(resetPipelineCanvas, [changedPipeline, resetPipelineCanvas]);
 
   // Apply the offset if readonly is set to true and the canvas hasn't moved
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!isReadOnly) return;
 
     setPipelineCanvasState((current) => {
