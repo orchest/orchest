@@ -3,13 +3,19 @@ import {
   SCALE_INCREMENTS,
   useCanvasScaling,
 } from "@/pipeline-view/contexts/CanvasScalingContext";
+import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { usePipelineRefs } from "@/pipeline-view/contexts/PipelineRefsContext";
 import {
   INITIAL_PIPELINE_OFFSET,
   usePipelineCanvasState,
 } from "@/pipeline-view/hooks/usePipelineCanvasState";
 import { getOffset } from "@/utils/element";
-import { multiplyPoint, Point2D } from "@/utils/geometry";
+import {
+  addPoints,
+  isSamePoint,
+  multiplyPoint,
+  Point2D,
+} from "@/utils/geometry";
 import { activeElementIsInput } from "@orchest/lib-utils";
 import React from "react";
 import { useViewportGestures } from "./useViewportGestures";
@@ -32,6 +38,9 @@ const nearestIncrementIndex = (value: number) => {
   return bestIndex;
 };
 
+const READ_ONLY_STARTING_OFFSET: Readonly<Point2D> = [0, 75];
+const NO_STARTING_OFFSET: Readonly<Point2D> = [0, 0];
+
 export const useViewportKeyboardEvents = () => {
   const {
     pipelineViewportRef,
@@ -43,13 +52,42 @@ export const useViewportKeyboardEvents = () => {
     pipelineCanvasState,
     setPipelineCanvasState,
   ] = usePipelineCanvasState();
+  const { isReadOnly } = usePipelineDataContext();
+
+  // We offset the starting point a bit when the read-only banner is visible.
+  const startingOffset = React.useMemo<Readonly<Point2D>>(
+    () => (isReadOnly ? READ_ONLY_STARTING_OFFSET : NO_STARTING_OFFSET),
+    [isReadOnly]
+  );
+
+  // Re/set the starting position if the user is at a "bad starting" offset.
+  React.useEffect(() => {
+    setPipelineCanvasState((current) => {
+      const isAtBadStartingOffset = isSamePoint(
+        current.pipelineOffset,
+        addPoints(
+          INITIAL_PIPELINE_OFFSET,
+          startingOffset === NO_STARTING_OFFSET
+            ? READ_ONLY_STARTING_OFFSET
+            : NO_STARTING_OFFSET
+        )
+      );
+
+      return {
+        pipelineOffset: isAtBadStartingOffset
+          ? addPoints(INITIAL_PIPELINE_OFFSET, startingOffset)
+          : current.pipelineOffset,
+      };
+    });
+  }, [setPipelineCanvasState, startingOffset]);
 
   const resetPipelineCanvas = React.useCallback(() => {
     setPipelineCanvasState({
-      pipelineOffset: INITIAL_PIPELINE_OFFSET,
+      pipelineOffset: addPoints(INITIAL_PIPELINE_OFFSET, startingOffset),
       pipelineCanvasOffset: [0, 0],
+      pipelineOrigin: [0, 0],
     });
-  }, [setPipelineCanvasState]);
+  }, [setPipelineCanvasState, startingOffset]);
 
   const centerView = React.useCallback(() => {
     resetPipelineCanvas();
