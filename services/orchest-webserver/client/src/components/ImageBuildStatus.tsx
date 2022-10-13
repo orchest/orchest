@@ -1,4 +1,4 @@
-import { EnvironmentImageBuild } from "@/types";
+import { EnvironmentImageBuild, JupyterImageBuild } from "@/types";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DoDisturbOnOutlinedIcon from "@mui/icons-material/DoDisturbOnOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
@@ -53,7 +53,7 @@ export const ImageBuildStatus = ({
   build,
   sx,
 }: {
-  build: EnvironmentImageBuild | undefined;
+  build: EnvironmentImageBuild | JupyterImageBuild | undefined;
   sx?: SxProps<Theme>;
 }) => {
   const inProgress = ["PENDING", "STARTED"].includes(build?.status || "");
