@@ -385,8 +385,8 @@ const PipelineStepComponent = React.forwardRef<
         const [x, y] = current.position;
         const [mouseX, mouseY] = getMouseDelta();
         const newPosition: Point2D = [
-          (x + mouseX) / scaleFactor,
-          (y + mouseY) / scaleFactor,
+          x + mouseX / scaleFactor,
+          y + mouseY / scaleFactor,
         ];
 
         draggedStepPositions.current[uuid] = newPosition;
