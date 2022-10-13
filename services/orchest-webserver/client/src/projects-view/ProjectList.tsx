@@ -131,7 +131,6 @@ export const ProjectList = () => {
       {selectedProjectMenuButton && (
         <Menu
           anchorEl={selectedProjectMenuButton.element}
-          id="project-menu"
           open={Boolean(selectedProjectMenuButton)}
           onClose={closeProjectMenu}
           transformOrigin={{ horizontal: "right", vertical: "top" }}

@@ -20,7 +20,7 @@ describe("interactive runs", () => {
     cy.setOnboardingCompleted("true");
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     assertEnvIsBuilt();
-    cy.goToMenu("pipelines");
+    cy.navigateViaTopMenu("pipeline");
   });
 
   context("requires an empty pipeline and a running session", () => {

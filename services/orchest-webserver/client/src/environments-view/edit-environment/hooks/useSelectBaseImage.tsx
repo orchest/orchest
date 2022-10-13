@@ -1,5 +1,4 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { useAppContext } from "@/contexts/AppContext";
 import {
   BASE_IMAGE_LANGUAGES,
   DEFAULT_BASE_IMAGES,
@@ -11,14 +10,12 @@ import { CustomImage } from "@/types";
 import { capitalize } from "@/utils/text";
 import React from "react";
 import { useBaseImageStore } from "../stores/useBaseImageStore";
-import { getDefaultImageFromEnvironment } from "./useLoadSelectedBaseImage";
 
 /**
  * Provides functions to select a base image for the environment, including
  * the custom image.
  */
 export const useSelectBaseImage = () => {
-  const { orchestVersion } = useAppContext();
   const environments = useEnvironmentsApi((state) => state.environments);
 
   const setEnvironmentChanges = useEditEnvironment(
@@ -32,35 +29,21 @@ export const useSelectBaseImage = () => {
 
   const disabled = isEnvironmentBuilding(latestBuildStatus);
 
-  const [
-    selectedImage,
-    setSelectedImage,
-    customImage,
-    editCustomImageInStore,
-    environmentUuid,
-  ] = useBaseImageStore((state) => [
-    state.selectedImage,
-    state.setSelectedImage,
-    state.customImage,
-    state.editCustomImage,
-    state.environmentUuid,
-  ]);
+  const selectedImage = useBaseImageStore((state) => state.selectedImage);
+  const setSelectedImage = useBaseImageStore((state) => state.setSelectedImage);
+  const customImage = useBaseImageStore((state) => state.customImage);
+  const environmentUuid = useBaseImageStore((state) => state.environmentUuid);
+  const editCustomImageInStore = useBaseImageStore(
+    (state) => state.editCustomImage
+  );
 
   const isTouched = React.useRef(false);
 
   const save = React.useCallback(() => {
     if (isTouched.current) {
-      // Save the base image without the version if the version is the current Orchest version.
-      // So that later when user update to a newer version, this environment will automatically get updated.
-      const baseImageForSaving =
-        getDefaultImageFromEnvironment(
-          selectedImage.base_image,
-          orchestVersion
-        ) || selectedImage;
-
-      setEnvironmentChanges(baseImageForSaving);
+      setEnvironmentChanges(selectedImage);
     }
-  }, [selectedImage, setEnvironmentChanges, orchestVersion]);
+  }, [selectedImage, setEnvironmentChanges]);
 
   React.useEffect(() => {
     save();
@@ -114,10 +97,8 @@ export const useSelectBaseImage = () => {
         return;
       }
 
-      const foundDefaultImage = DEFAULT_BASE_IMAGES.find((image) =>
-        [image.base_image, `${image.base_image}:${orchestVersion}`].includes(
-          baseImage
-        )
+      const foundDefaultImage = DEFAULT_BASE_IMAGES.find(
+        (image) => image.base_image === baseImage
       );
       if (foundDefaultImage) {
         setSelectedImage(uuid, foundDefaultImage);
@@ -127,7 +108,6 @@ export const useSelectBaseImage = () => {
     [
       customImage,
       disabled,
-      orchestVersion,
       setSelectedImage,
       uuid,
       changeEnvironmentPrefixPerLanguage,

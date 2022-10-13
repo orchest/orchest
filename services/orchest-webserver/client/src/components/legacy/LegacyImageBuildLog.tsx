@@ -1,7 +1,7 @@
 import { useFetcher } from "@/hooks/useFetcher";
 import { useInterval } from "@/hooks/useInterval";
 import { useSocketIO } from "@/pipeline-view/hooks/useSocketIO";
-import { EnvironmentImageBuild } from "@/types";
+import { EnvironmentImageBuild, JupyterImageBuild } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -49,7 +49,7 @@ const useFetchEnvironmentBuild = ({
 };
 
 type ImageBuildLogProps = {
-  build: EnvironmentImageBuild | undefined;
+  build: EnvironmentImageBuild | JupyterImageBuild | undefined;
   ignoreIncomingLogs: boolean;
   buildRequestEndpoint: string;
   buildsKey: string;

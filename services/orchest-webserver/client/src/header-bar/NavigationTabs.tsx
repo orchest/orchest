@@ -2,6 +2,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { navigationRoutes, siteMap } from "@/routingConfig";
+import { join } from "@/utils/path";
 import { isNumber } from "@/utils/webserver-utils";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -46,15 +47,12 @@ export const NavigationTabsBase = ({
   projectMenuItems,
 }: NavigationTabsBaseProps) => {
   const { navigateTo } = useCustomRoute();
-
   const matchRoute = useMatchRoutePaths(navigationRoutes);
-
   const navItems = React.useMemo(
     () =>
       disabled ? systemMenuItems : [...projectMenuItems, ...systemMenuItems],
     [projectMenuItems, disabled]
   );
-
   const navTabIndex = useNavTabIndex({ matchRoute, navItems });
 
   // `useNavTabIndex` will update navTabIndex based on the URL route.
@@ -62,6 +60,7 @@ export const NavigationTabsBase = ({
   const onClickTab = (event: React.MouseEvent, itemIndex: number) => {
     navigateTo(navItems[itemIndex].path, undefined, event);
   };
+
   const theme = useTheme();
 
   // It's illegal to wrap Tab with Tooltip. So the Tooltip needs to wrap Tabs
@@ -70,18 +69,17 @@ export const NavigationTabsBase = ({
     <Stack direction="row">
       <NavigationTabsTooltip>
         <Tabs value={false} aria-label="Navigation items" disabled={disabled}>
-          {projectMenuItems.map((menuItem) => {
-            return (
-              <CustomTab
-                key={menuItem.label}
-                tabIndex={0}
-                label={menuItem.label}
-                icon={menuItem.icon}
-                aria-label={menuItem.label}
-                disabled
-              />
-            );
-          })}
+          {projectMenuItems.map((menuItem) => (
+            <CustomTab
+              key={menuItem.path}
+              data-test-id={join("top-menu", menuItem.path.split("?")[0])}
+              tabIndex={0}
+              label={menuItem.label}
+              icon={menuItem.icon}
+              aria-label={menuItem.label}
+              disabled
+            />
+          ))}
         </Tabs>
       </NavigationTabsTooltip>
       <Tabs
@@ -95,20 +93,19 @@ export const NavigationTabsBase = ({
           style: { backgroundColor: theme.palette.common.black },
         }}
       >
-        {systemMenuItems.map((menuItem, index) => {
-          return (
-            <CustomTab
-              key={menuItem.label}
-              tabIndex={0}
-              disabled={!menuItem.icon && disabled}
-              label={menuItem.label}
-              icon={menuItem.icon}
-              aria-label={menuItem.label}
-              onClick={(event) => onClickTab(event, index)}
-              onAuxClick={(event) => onClickTab(event, index)}
-            />
-          );
-        })}
+        {systemMenuItems.map((menuItem, index) => (
+          <CustomTab
+            key={menuItem.path}
+            data-test-id={join("top-menu", menuItem.path.split("?")[0])}
+            tabIndex={0}
+            disabled={!menuItem.icon && disabled}
+            label={menuItem.label}
+            icon={menuItem.icon}
+            aria-label={menuItem.label}
+            onClick={(event) => onClickTab(event, index)}
+            onAuxClick={(event) => onClickTab(event, index)}
+          />
+        ))}
       </Tabs>
     </Stack>
   ) : (
@@ -122,7 +119,8 @@ export const NavigationTabsBase = ({
       {navItems.map((menuItem, index) => {
         return (
           <CustomTab
-            key={menuItem.label}
+            key={menuItem.path}
+            data-test-id={join("top-menu", menuItem.path.split("?")[0])}
             tabIndex={0}
             disabled={!menuItem.icon && disabled}
             label={menuItem.label}
