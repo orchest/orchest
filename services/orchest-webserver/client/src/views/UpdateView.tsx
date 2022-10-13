@@ -1,6 +1,7 @@
 import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/layout/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import {
   useCancelableFetch,
@@ -19,6 +20,7 @@ import React from "react";
 
 const UpdateView: React.FC = () => {
   const { setConfirm, setAlert } = useGlobalContext();
+  const { fetchOrchestVersion } = useAppContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.update.path });
 
   const { cancelableFetch } = useCancelableFetch();
@@ -126,6 +128,7 @@ const UpdateView: React.FC = () => {
             ...prevState,
             updating: false,
           }));
+          fetchOrchestVersion();
           setUpdatePollInterval(null);
         } else {
           setState((prevState) => ({
