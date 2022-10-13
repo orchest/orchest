@@ -206,6 +206,14 @@ export type EnvironmentImageBuild = {
   celery_task_uuid: string;
 };
 
+export type JupyterImageBuild = {
+  finished_time: null | string;
+  requested_time: string;
+  started_time: null | string;
+  status: TStatus;
+  uuid: string;
+};
+
 export type PipelineStepStatus =
   | "STARTED"
   | "SUCCESS"
