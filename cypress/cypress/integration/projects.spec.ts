@@ -1,6 +1,5 @@
 import {
   QUICKSTART_URL,
-  reset,
   SAMPLE_PROJECT_NAMES,
   TEST_ID,
 } from "../support/common";
@@ -8,9 +7,9 @@ import {
 describe("projects", () => {
   beforeEach(() => {
     cy.disableCheckUpdate();
-    reset();
+    cy.deleteAllProjects();
+    cy.visit("/projects", { log: false });
     cy.setOnboardingCompleted("true");
-    cy.navigateViaProjectDrawer("projects");
   });
 
   context("should have projects after running", () => {

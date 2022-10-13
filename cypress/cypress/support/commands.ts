@@ -34,7 +34,7 @@ declare global {
         waitBuild?: boolean
       ): Chainable<undefined>;
       createPipeline(name: string, path?: string): Chainable<undefined>;
-      createProject(name: string): Chainable<AUTWindow>;
+      deleteAllProjects(): Chainable<void>;
       createStep(
         title: string,
         createNewFile?: boolean,
@@ -132,6 +132,20 @@ Cypress.Commands.add("importProject", (url, name) => {
   cy.findByTestId(TEST_ID.PROJECT_URL_TEXTFIELD).type(url);
   cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
   cy.findByTestId(TEST_ID.IMPORT_PROJECT_OK).click();
+});
+
+Cypress.Commands.add("deleteAllProjects", () => {
+  cy.log(":: Deleting all projects!");
+
+  cy.request("GET", "/async/projects")
+    .as("projectsToDelete")
+    .then((response) => {
+      for (const project of response.body) {
+        cy.request("DELETE", "/async/projects/" + project.uuid).as(
+          "deleteProject"
+        );
+      }
+    });
 });
 
 Cypress.Commands.add(
