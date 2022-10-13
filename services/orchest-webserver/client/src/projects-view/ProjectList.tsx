@@ -130,13 +130,17 @@ export const ProjectList = () => {
       )}
       {selectedProjectMenuButton && (
         <Menu
+          data-test-id="project-list-context-menu"
           anchorEl={selectedProjectMenuButton.element}
           open={Boolean(selectedProjectMenuButton)}
           onClose={closeProjectMenu}
           transformOrigin={{ horizontal: "right", vertical: "top" }}
           anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         >
-          <MenuItem onClick={openSettings}>
+          <MenuItem
+            onClick={openSettings}
+            data-test-id="project-list-context-menu-settings"
+          >
             <ListItemIcon>
               <SettingsOutlinedIcon fontSize="small" />
             </ListItemIcon>
@@ -144,7 +148,10 @@ export const ProjectList = () => {
           </MenuItem>
           <MenuItem onClick={startRename(selectedProjectMenuButton.uuid)}>
             <ListItemIcon>
-              <EditOutlinedIcon fontSize="small" />
+              <EditOutlinedIcon
+                fontSize="small"
+                data-test-id="project-list-context-menu-rename"
+              />
             </ListItemIcon>
             Rename project
           </MenuItem>
@@ -152,7 +159,10 @@ export const ProjectList = () => {
             onClick={() => deleteProject(selectedProjectMenuButton.name)}
           >
             <ListItemIcon>
-              <DeleteOutlineOutlinedIcon fontSize="small" />
+              <DeleteOutlineOutlinedIcon
+                fontSize="small"
+                data-test-id="project-list-context-menu-delete"
+              />
             </ListItemIcon>
             Delete Project
           </MenuItem>

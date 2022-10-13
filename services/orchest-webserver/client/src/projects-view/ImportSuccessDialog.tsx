@@ -30,12 +30,18 @@ const ImportSuccessDialog = ({
         </div>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Continue browsing</Button>
+        <Button
+          onClick={onClose}
+          data-test-id="import-success-dialog-close-button"
+        >
+          Continue browsing
+        </Button>
         <Button
           variant="contained"
           autoFocus
           onClick={viewPipeline}
           onAuxClick={viewPipeline}
+          data-test-id="import-success-dialog-view-pipeline-button"
         >
           View pipeline
         </Button>
