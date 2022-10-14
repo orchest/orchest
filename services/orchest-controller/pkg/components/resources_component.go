@@ -71,16 +71,6 @@ func (c *ResourcesComponent) Update(ctx context.Context, namespace string,
 	err = c.deletePvc(ctx, controller.OldBuilderDirName, orchest)
 }
 
-func (c *ResourcesComponent) Stop(ctx context.Context, namespace string,
-	message registry.Message, eventChan chan registry.Event) {
-	return
-}
-
-func (c *ResourcesComponent) Start(ctx context.Context, namespace string,
-	message registry.Message, eventChan chan registry.Event) {
-	return
-}
-
 func (c *ResourcesComponent) Delete(ctx context.Context, namespace string,
 	message registry.Message, eventChan chan registry.Event) {
 }
