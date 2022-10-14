@@ -34,7 +34,8 @@ declare global {
         waitBuild?: boolean
       ): Chainable<undefined>;
       createPipeline(name: string, path?: string): Chainable<undefined>;
-      createProject(name: string): Chainable<AUTWindow>;
+      createProject(path: string): Chainable<void>;
+      deleteAllProjects(): Chainable<void>;
       createStep(
         title: string,
         createNewFile?: boolean,
@@ -54,6 +55,8 @@ declare global {
       getIframe(dataTestId: string): Chainable<JQuery<any>>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
       getProjectUUID(project: string): Chainable<string>;
+      assertInProjectsTable(path: string): Chainable;
+      navigateToProjectSettings(path: string): Chainable;
       navigateViaTopMenu(
         to:
           | "pipeline"
@@ -64,7 +67,6 @@ declare global {
           | "help"
       ): Chainable<string>;
       navigateViaProjectDrawer(to: "projects" | "examples"): Chainable<string>;
-      importProject(url: string, name?: string): Chainable<undefined>;
       reset(): Chainable<undefined>;
       setOnboardingCompleted(value: TBooleanString): Chainable<undefined>;
       totalEnvironmentImages(
@@ -111,38 +113,34 @@ Cypress.Commands.add("cleanProjectsDir", () => {
 });
 
 Cypress.Commands.add("createProject", (name) => {
-  cy.navigateViaProjectDrawer("projects");
-  cy.findByTestId(TEST_ID.ADD_PROJECT)
-    .should("exist")
-    .and("be.visible")
-    .click();
-  cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
-  cy.findByTestId(TEST_ID.CREATE_PROJECT).click();
-  cy.findByTestId("project-selector").contains(name);
+  cy.log(`:: Creating project: "${name}".`);
 
-  return cy.reload();
+  cy.request("POST", "/async/projects", { name }).as("createProject");
 });
 
-Cypress.Commands.add("importProject", (url, name) => {
-  cy.navigateViaProjectDrawer("projects");
-  cy.findByTestId(TEST_ID.IMPORT_PROJECT)
-    .should("exist")
-    .and("be.visible")
-    .click();
-  cy.findByTestId(TEST_ID.PROJECT_URL_TEXTFIELD).type(url);
-  cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
-  cy.findByTestId(TEST_ID.IMPORT_PROJECT_OK).click();
+Cypress.Commands.add("deleteAllProjects", () => {
+  cy.log(":: Deleting all projects!");
+
+  cy.request("GET", "/async/projects")
+    .as("projectsToDelete")
+    .then((response) => {
+      for (const project of response.body) {
+        cy.request("DELETE", "/async/projects/" + project.uuid).as(
+          "deleteProject"
+        );
+      }
+    });
 });
 
 Cypress.Commands.add(
   "addProjectEnvVars",
-  (project: string, names: string[], values: string[]) => {
-    cy.log("======= Start adding project env vars.");
+  (projectPath: string, names: string[], values: string[]) => {
+    cy.log(":: Adding project environment variables");
     cy.intercept("PUT", /.*/).as("allPuts");
-    assert(names.length == values.length);
-    cy.navigateViaProjectDrawer("projects");
-    cy.findByTestId(`settings-button-${project}`).click();
-    cy.wait(100);
+    assert(names.length === values.length);
+
+    cy.navigateToProjectSettings(projectPath);
+
     for (let i = 0; i < names.length; i++) {
       cy.findByTestId(TEST_ID.PROJECT_ENV_VAR_ADD).click();
       // Would not support concurrent adds.
@@ -157,7 +155,6 @@ Cypress.Commands.add(
     }
     cy.findByTestId(TEST_ID.PROJECT_SETTINGS_SAVE).click();
     cy.wait("@allPuts");
-    cy.log("======= Done adding project env vars.");
   }
 );
 
@@ -433,21 +430,42 @@ Cypress.Commands.add("getProjectUUID", (project: string) => {
     );
 });
 
+Cypress.Commands.add("assertInProjectsTable", (path) => {
+  cy.navigateViaProjectDrawer("projects");
+  cy.findByTestId(TEST_ID.PROJECTS_TABLE_ROW(path))
+    .should("be.visible")
+    .should("contain.text", path);
+});
+
 Cypress.Commands.add("navigateViaProjectDrawer", (entry) => {
   cy.log(`:: Navigating to "${entry}" via the project drawer`);
 
-  cy.findByTestId("project-selector").click();
-  cy.findByTestId(`project-drawer/${entry}`).click();
-
-  cy.location("pathname").should("equal", `/${entry}`);
+  cy.findByTestId("project-selector", { timeout: 2500 }).click();
+  cy.findByTestId(`project-drawer/${entry}`, { timeout: 2500 }).click();
 });
 
 Cypress.Commands.add("navigateViaTopMenu", (entry) => {
   cy.log(`:: Navigating to "${entry}" via the top menu`);
 
-  cy.findByTestId(`top-menu/${entry}`).click();
+  cy.findByTestId(`top-menu/${entry}`, { timeout: 2500 }).click({
+    force: true,
+  });
+});
 
-  cy.location("pathname").should("equal", `/${entry}`);
+Cypress.Commands.add("navigateToProjectSettings", (path) => {
+  cy.log(`:: Navigating to project settings of "${path}" using /projects.`);
+
+  cy.navigateViaProjectDrawer("projects");
+
+  cy.findByTestId(TEST_ID.PROJECTS_SETTINGS_BUTTON(path))
+    .should("be.visible")
+    .click();
+
+  cy.findByTestId(TEST_ID.PROJECT_LIST_CONTEXT_MENU_SETTINGS, {
+    timeout: 2500,
+  })
+    .should("be.visible")
+    .click();
 });
 
 //Assumes environment names are unique.

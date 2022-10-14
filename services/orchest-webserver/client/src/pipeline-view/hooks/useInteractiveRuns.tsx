@@ -2,17 +2,22 @@ import { RunStepsType } from "@/api/pipeline-runs/pipelineRunsApi";
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
 import { useCancelJobRun } from "@/hooks/useCancelJobRun";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { useAutoStartSession } from "./useAutoStartSession";
 import { usePipelineRuns } from "./usePipelineRuns";
 
 export const useInteractiveRuns = () => {
   const { setConfirm, setAlert } = useGlobalContext();
-  const { pipelineJson } = usePipelineDataContext();
-  const { session, startSession } = useAutoStartSession();
+  const { pipelineJson, pipeline } = usePipelineDataContext();
+  const { getSession, startSession } = useSessionsContext();
+
+  const session = React.useMemo(() => {
+    return getSession(pipeline?.uuid);
+  }, [getSession, pipeline?.uuid]);
+
   const cancel = useActivePipelineRun((state) => state.cancel);
   const cancelJobRun = useCancelJobRun(cancel);
   const isJobRun = useActivePipelineRun((state) => state.isJobRun);

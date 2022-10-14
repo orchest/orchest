@@ -1,11 +1,5 @@
-import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
 import { FileTree } from "@/types";
-import {
-  isSamePoint,
-  Point2D,
-  stringifyPoint,
-  subtractPoints,
-} from "@/utils/geometry";
+import { Point2D, stringifyPoint, subtractPoints } from "@/utils/geometry";
 import { hasExtension } from "@/utils/path";
 import { setRefs } from "@/utils/refs";
 import Box, { BoxProps } from "@mui/material/Box";
@@ -13,10 +7,7 @@ import GlobalStyles from "@mui/material/GlobalStyles";
 import { ALLOWED_STEP_EXTENSIONS } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
-import {
-  DEFAULT_SCALE_FACTOR,
-  useCanvasScaling,
-} from "../contexts/CanvasScalingContext";
+import { useCanvasScaling } from "../contexts/CanvasScalingContext";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineRefs } from "../contexts/PipelineRefsContext";
@@ -24,10 +15,7 @@ import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { useCreateStep } from "../hooks/useCreateStep";
-import {
-  INITIAL_PIPELINE_OFFSET,
-  PIPELINE_CANVAS_SIZE,
-} from "../hooks/usePipelineCanvasState";
+import { PIPELINE_CANVAS_SIZE } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { FullViewportHolder } from "./components/FullViewportHolder";
 import { useViewportMouseEvents } from "./hooks/useViewportMouseEvents";
@@ -54,18 +42,10 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
     ref
   ) {
     const { dragFile, fileTrees } = useFileManagerContext();
-    const {
-      disabled,
-      pipelineCwd,
-      isFetchingPipelineJson,
-    } = usePipelineDataContext();
+    const { disabled, isFetchingPipelineJson } = usePipelineDataContext();
     const isFileTreeLoaded = React.useMemo(
       () => Object.keys(fileTrees).length > 0,
       [fileTrees]
-    );
-
-    const environments = useEnvironmentsApi(
-      (state) => state.environments || []
     );
 
     const { scaleFactor, canvasPointAtPointer } = useCanvasScaling();
@@ -89,21 +69,11 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
         pipelineOrigin,
         pipelineCanvasOffset,
       },
-      setPipelineCanvasOrigin,
     } = usePipelineCanvasContext();
 
     const localRef = React.useRef<HTMLDivElement | null>(null);
 
     useViewportMouseEvents();
-
-    React.useEffect(() => {
-      if (
-        isSamePoint(pipelineOffset, INITIAL_PIPELINE_OFFSET) &&
-        scaleFactor === DEFAULT_SCALE_FACTOR
-      ) {
-        setPipelineCanvasOrigin([0, 0]);
-      }
-    }, [scaleFactor, pipelineOffset, setPipelineCanvasOrigin]);
 
     const onMouseDown = (event: React.MouseEvent) => {
       if (disabled || contextMenuUuid || !pipelineCanvasRef.current) return;

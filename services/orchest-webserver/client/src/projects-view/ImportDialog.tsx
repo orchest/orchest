@@ -704,7 +704,7 @@ export const ImportDialog = ({
                       ? projectNameValidation
                       : { helperText: " " })}
                     disabled={importStatus === "SAVING_PROJECT_NAME"}
-                    data-test-id="project-name-textfield"
+                    data-test-id="import-dialog-name-input"
                   />
                 </form>
               </Stack>
@@ -713,7 +713,11 @@ export const ImportDialog = ({
         </DialogContent>
         <DialogActions>
           {isShowingCancelButton && (
-            <Button onClick={closeDialog} tabIndex={-1}>
+            <Button
+              onClick={closeDialog}
+              tabIndex={-1}
+              data-test-id="import-project-dialog-close-button"
+            >
               {`Cancel${hideUploadOption ? "" : " upload"}`}
             </Button>
           )}
@@ -723,7 +727,7 @@ export const ImportDialog = ({
               disabled={importUrlValidation.error}
               type="submit"
               form="import-project"
-              data-test-id="import-project-ok"
+              data-test-id="import-project-dialog-next-button"
             >
               Import
             </Button>
@@ -739,6 +743,7 @@ export const ImportDialog = ({
               }
               type="submit"
               form="save-project-name"
+              data-test-id="import-project-dialog-next-button"
             >
               {confirmButtonLabel}
             </Button>
