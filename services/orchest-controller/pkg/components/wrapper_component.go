@@ -39,7 +39,7 @@ func (c *WrapperComponent) Update(ctx context.Context, namespace string,
 	for _, preInstall := range c.preInstallHooks {
 		err = preInstall(message, namespace, eventChan)
 		if err != nil {
-			break
+			return
 		}
 	}
 
