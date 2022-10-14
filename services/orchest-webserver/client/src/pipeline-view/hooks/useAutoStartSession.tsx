@@ -30,11 +30,34 @@ export const useAutoStartSession = () => {
     pipeline?.uuid,
   ]);
 
+  const hasLoadedPipeline =
+    hasValue(pipelineUuidFromRoute) && pipelineUuidFromRoute === pipeline?.uuid;
+
+  const shouldShowJupyterLabWarning =
+    hasLoadedPipeline &&
+    pipelineReadOnlyReason === "JupyterEnvironmentBuildInProgress";
+
+  React.useEffect(() => {
+    if (shouldShowJupyterLabWarning) {
+      setConfirm(
+        "Notice",
+        "A JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
+        {
+          onConfirm: () => {
+            navigateTo(siteMap.configureJupyterLab.path);
+            return true;
+          },
+          confirmLabel: "Configure JupyterLab",
+        }
+      );
+    }
+  }, [shouldShowJupyterLabWarning, setConfirm, navigateTo]);
+
   const shouldCheckIfAutoStartIsNeeded =
     isInteractive && // This is an interactive pipeline
     hasValue(sessions) && // `sessions` is available to look up
     hasValue(pipeline?.uuid) && // `pipeline` is loaded.
-    pipelineUuidFromRoute === pipeline?.uuid && // Only auto-start the pipeline that user is viewing.
+    hasLoadedPipeline && // Only auto-start the pipeline that user is viewing.
     !pipelineReadOnlyReason &&
     !hasValue(session); // `session` of the current pipeline is not yet launched.
 
@@ -64,23 +87,16 @@ export const useAutoStartSession = () => {
         if (result.status === 409) return; // When the session already exists, you get a 409 (CONFLICT).
 
         const errorMessage = result.body?.message || result.message;
-        if (errorMessage === "environmentsBuildInProgress") return;
-        if (errorMessage === "JupyterEnvironmentBuildInProgress") {
+        const shouldUpdateReadOnlyReason =
+          errorMessage === "environmentsBuildInProgress" ||
+          errorMessage === "JupyterEnvironmentBuildInProgress";
+
+        if (shouldUpdateReadOnlyReason) {
           dispatch({
             type: "SET_PIPELINE_READONLY_REASON",
-            payload: "JupyterEnvironmentBuildInProgress",
+            payload: errorMessage,
           });
-          setConfirm(
-            "Notice",
-            "A JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
-            {
-              onConfirm: () => {
-                navigateTo(siteMap.configureJupyterLab.path);
-                return true;
-              },
-              confirmLabel: "Configure JupyterLab",
-            }
-          );
+          return;
         }
       } else {
         setAlert(
@@ -89,7 +105,7 @@ export const useAutoStartSession = () => {
         );
       }
     },
-    [navigateTo, setAlert, setConfirm, startSession, dispatch]
+    [setAlert, startSession, dispatch]
   );
 
   React.useEffect(() => {
