@@ -60,24 +60,28 @@ export const useAutoStartSession = () => {
         BUILD_IMAGE_SOLUTION_VIEW.PIPELINE
       );
       if (result === true) return;
-      if (result instanceof FetchError && result.status === 409) return; // When the session already exists, you get a 409 (CONFLICT).
-      if (result.message === "environmentsBuildInProgress") return;
-      if (result.message === "JupyterEnvironmentBuildInProgress") {
-        dispatch({
-          type: "SET_PIPELINE_READONLY_REASON",
-          payload: "JupyterEnvironmentBuildInProgress",
-        });
-        setConfirm(
-          "Notice",
-          "A JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
-          {
-            onConfirm: () => {
-              navigateTo(siteMap.configureJupyterLab.path);
-              return true;
-            },
-            confirmLabel: "Configure JupyterLab",
-          }
-        );
+      if (result instanceof FetchError) {
+        if (result.status === 409) return; // When the session already exists, you get a 409 (CONFLICT).
+
+        const errorMessage = result.body?.message || result.message;
+        if (errorMessage === "environmentsBuildInProgress") return;
+        if (errorMessage === "JupyterEnvironmentBuildInProgress") {
+          dispatch({
+            type: "SET_PIPELINE_READONLY_REASON",
+            payload: "JupyterEnvironmentBuildInProgress",
+          });
+          setConfirm(
+            "Notice",
+            "A JupyterLab environment build is in progress. You can cancel to view the pipeline in read-only mode.",
+            {
+              onConfirm: () => {
+                navigateTo(siteMap.configureJupyterLab.path);
+                return true;
+              },
+              confirmLabel: "Configure JupyterLab",
+            }
+          );
+        }
       } else {
         setAlert(
           "Error",
