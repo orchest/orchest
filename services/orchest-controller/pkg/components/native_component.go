@@ -2,7 +2,6 @@ package components
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -30,13 +29,12 @@ type command int
 
 const (
 	Update command = iota
-	Stop
-	Start
 	Delete
 )
 
 type componentState struct {
 	cmd       command
+	namespace string
 	component *orchestv1alpha1.OrchestComponent
 	eventChan chan registry.Event
 }
@@ -52,9 +50,11 @@ type NativeComponent[Object client.Object] struct {
 
 	scheme *runtime.Scheme
 
-	componentsLock sync.RWMutex
 	// map of namespaces to the desired state of a component
 	componentStates map[string]*componentState
+
+	controllerCh chan string
+	componentCh  chan *componentState
 
 	DepLister appslister.DeploymentLister
 
@@ -84,6 +84,8 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 		name:            name,
 		client:          client,
 		componentStates: make(map[string]*componentState),
+		controllerCh:    make(chan string, 10),
+		componentCh:     make(chan *componentState, 10),
 	}
 
 	// Deployment event handlers
@@ -134,8 +136,42 @@ func NewNativeComponent[Object client.Object](name string, stopCh <-chan struct{
 	nativeComponent.reconciler = reconciler
 
 	go nativeComponent.Run(stopCh)
+	go nativeComponent.reconcile(stopCh)
 
 	return nativeComponent
+}
+
+func (c *NativeComponent[Object]) reconcile(stopCh <-chan struct{}) {
+
+loop:
+	for {
+		select {
+		case namespace := <-c.controllerCh:
+			if componentState, ok := c.componentStates[namespace]; ok {
+				var success bool
+				switch componentState.cmd {
+				case Update:
+					success, _ = c.reconciler.Reconcile(context.Background(), componentState.component)
+				case Delete:
+					success, _ = c.reconciler.Uninstall(context.Background(), componentState.component)
+				}
+				if success {
+					componentState.eventChan <- registry.SuccessEvent{}
+				}
+			}
+		case componentState := <-c.componentCh:
+			/*
+				oldState, ok := c.componentStates[componentState.namespace]
+				if ok {
+					oldState.eventChan <- registry.AbbortEvent{}
+				}
+			*/
+			c.componentStates[componentState.namespace] = componentState
+			c.controllerCh <- componentState.namespace
+		case <-stopCh:
+			break loop
+		}
+	}
 }
 
 func (c *NativeComponent[Object]) syncHandler(ctx context.Context, key string) error {
@@ -151,32 +187,7 @@ func (c *NativeComponent[Object]) syncHandler(ctx context.Context, key string) e
 		return err
 	}
 
-	c.componentsLock.RLock()
-	defer c.componentsLock.RUnlock()
-	componentState, ok := c.componentStates[namespace]
-	if !ok {
-		klog.V(2).Info("Component %s is not registered yet with component controller.", key)
-		return nil
-	}
-
-	success := false
-
-	defer func() {
-		if success {
-			componentState.eventChan <- registry.SuccessEvent{}
-		}
-	}()
-
-	switch componentState.cmd {
-	case Update:
-		success, err = c.reconciler.Reconcile(ctx, componentState.component)
-	case Stop:
-		fallthrough
-	case Start:
-		fallthrough
-	case Delete:
-		success, err = c.reconciler.Uninstall(ctx, componentState.component)
-	}
+	c.controllerCh <- namespace
 
 	return nil
 }
@@ -199,29 +210,18 @@ func (c *NativeComponent[Object]) Update(ctx context.Context, namespace string,
 		return
 	}
 
-	c.componentsLock.Lock()
-	defer c.componentsLock.Unlock()
-	c.componentStates[namespace] = &componentState{
+	klog.Infof(("received Update in native component %s"), c.name)
+	defer func() {
+		klog.Infof(("processed Update in native component %s"), c.name)
+	}()
+
+	c.componentCh <- &componentState{
+		namespace: namespace,
 		cmd:       Update,
 		eventChan: eventChan,
 		component: component,
 	}
 
-	key := namespace + "/" + c.name
-	c.EnqueueKey(key)
-
-	klog.V(2).Infof("update is called, %s", c.name)
-
-}
-
-func (c *NativeComponent[Object]) Stop(ctx context.Context, namespace string,
-	message registry.Message, eventChan chan registry.Event) {
-	return
-}
-
-func (c *NativeComponent[Object]) Start(ctx context.Context, namespace string,
-	message registry.Message, eventChan chan registry.Event) {
-	return
 }
 
 func (c *NativeComponent[Object]) Delete(ctx context.Context, namespace string,
@@ -241,17 +241,15 @@ func (c *NativeComponent[Object]) Delete(ctx context.Context, namespace string,
 		err = fmt.Errorf("Component %s requires message of type *orchestv1alpha1.OrchestComponent", c.name)
 		return
 	}
+	klog.Infof(("received Delete in native component %s"), c.name)
+	defer func() {
+		klog.Infof(("processed Delete in native component %s"), c.name)
+	}()
 
-	c.componentsLock.Lock()
-	defer c.componentsLock.Unlock()
-	c.componentStates[namespace] = &componentState{
+	c.componentCh <- &componentState{
 		cmd:       Delete,
+		namespace: namespace,
 		eventChan: eventChan,
 		component: component,
 	}
-
-	key := namespace + "/" + c.name
-	c.EnqueueKey(key)
-
-	klog.V(2).Info("delete is called")
 }
