@@ -24,6 +24,13 @@ func (state *DeployOrchestState) Do(ctx context.Context, stateMachine *OrchestSt
 	var i int
 	var stage []string
 
+	if orchest.Spec.Orchest.Pause != nil &&
+		*orchest.Spec.Orchest.Pause {
+		return stateMachine.toState(ctx, orchestv1alpha1.Stopping)
+	} else if _, ok := orchest.GetAnnotations()[controller.RestartAnnotationKey]; ok {
+		return stateMachine.toState(ctx, orchestv1alpha1.Stopping)
+	}
+
 	generation := fmt.Sprint(orchest.Generation)
 
 	// First we make sure resources are created
