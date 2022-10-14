@@ -450,18 +450,14 @@ Cypress.Commands.add("getProjectUUID", (project: string) => {
 Cypress.Commands.add("navigateViaProjectDrawer", (entry) => {
   cy.log(`:: Navigating to "${entry}" via the project drawer`);
 
-  cy.findByTestId("project-selector").click();
-  cy.findByTestId(`project-drawer/${entry}`).click();
-
-  cy.location("pathname").should("equal", `/${entry}`);
+  cy.findByTestId("project-selector", { timeout: 2500 }).click();
+  cy.findByTestId(`project-drawer/${entry}`, { timeout: 2500 }).click();
 });
 
 Cypress.Commands.add("navigateViaTopMenu", (entry) => {
   cy.log(`:: Navigating to "${entry}" via the top menu`);
 
-  cy.findByTestId(`top-menu/${entry}`).click();
-
-  cy.location("pathname").should("equal", `/${entry}`);
+  cy.findByTestId(`top-menu/${entry}`, { timeout: 2500 }).click();
 });
 
 Cypress.Commands.add("navigateToProjectSettings", (path) => {
