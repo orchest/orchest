@@ -34,6 +34,7 @@ declare global {
         waitBuild?: boolean
       ): Chainable<undefined>;
       createPipeline(name: string, path?: string): Chainable<undefined>;
+      createProject(path: string): Chainable<void>;
       deleteAllProjects(): Chainable<void>;
       createStep(
         title: string,
@@ -54,6 +55,7 @@ declare global {
       getIframe(dataTestId: string): Chainable<JQuery<any>>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
       getProjectUUID(project: string): Chainable<string>;
+      assertInProjectsTable(path: string): Chainable;
       navigateToProjectSettings(path: string): Chainable;
       navigateViaTopMenu(
         to:
@@ -65,7 +67,6 @@ declare global {
           | "help"
       ): Chainable<string>;
       navigateViaProjectDrawer(to: "projects" | "examples"): Chainable<string>;
-      importProject(url: string, name?: string): Chainable<undefined>;
       reset(): Chainable<undefined>;
       setOnboardingCompleted(value: TBooleanString): Chainable<undefined>;
       totalEnvironmentImages(
@@ -112,27 +113,9 @@ Cypress.Commands.add("cleanProjectsDir", () => {
 });
 
 Cypress.Commands.add("createProject", (name) => {
-  cy.navigateViaProjectDrawer("projects");
-  cy.findByTestId(TEST_ID.ADD_PROJECT)
-    .should("exist")
-    .and("be.visible")
-    .click();
-  cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
-  cy.findByTestId(TEST_ID.CREATE_PROJECT).click();
-  cy.findByTestId("project-selector").contains(name);
+  cy.log(`:: Creating project: "${name}".`);
 
-  return cy.reload();
-});
-
-Cypress.Commands.add("importProject", (url, name) => {
-  cy.navigateViaProjectDrawer("projects");
-  cy.findByTestId(TEST_ID.IMPORT_PROJECT)
-    .should("exist")
-    .and("be.visible")
-    .click();
-  cy.findByTestId(TEST_ID.PROJECT_URL_TEXTFIELD).type(url);
-  cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
-  cy.findByTestId(TEST_ID.IMPORT_PROJECT_OK).click();
+  cy.request("POST", "/async/projects", { name }).as("createProject");
 });
 
 Cypress.Commands.add("deleteAllProjects", () => {
@@ -445,6 +428,13 @@ Cypress.Commands.add("getProjectUUID", (project: string) => {
       (body: Array<{ uuid: string; path: string }>) =>
         body.filter((obj) => obj.path == project)[0].uuid
     );
+});
+
+Cypress.Commands.add("assertInProjectsTable", (path) => {
+  cy.navigateViaProjectDrawer("projects");
+  cy.findByTestId(TEST_ID.PROJECTS_TABLE_ROW(path))
+    .should("be.visible")
+    .should("contain.text", path);
 });
 
 Cypress.Commands.add("navigateViaProjectDrawer", (entry) => {
