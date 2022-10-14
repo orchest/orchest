@@ -447,7 +447,9 @@ Cypress.Commands.add("navigateViaProjectDrawer", (entry) => {
 Cypress.Commands.add("navigateViaTopMenu", (entry) => {
   cy.log(`:: Navigating to "${entry}" via the top menu`);
 
-  cy.findByTestId(`top-menu/${entry}`, { timeout: 2500 }).click();
+  cy.findByTestId(`top-menu/${entry}`, { timeout: 2500 }).click({
+    force: true,
+  });
 });
 
 Cypress.Commands.add("navigateToProjectSettings", (path) => {
