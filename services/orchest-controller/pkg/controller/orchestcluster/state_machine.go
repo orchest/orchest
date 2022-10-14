@@ -429,17 +429,6 @@ func (sm *OrchestStateMachine) manage(ctx context.Context) error {
 		return nil
 	}
 
-	if orchest.Spec.Orchest.Pause != nil &&
-		*orchest.Spec.Orchest.Pause &&
-		orchest.Status.Phase != orchestv1alpha1.Stopped {
-		return sm.toState(ctx, orchestv1alpha1.Stopping)
-	} else if _, ok := orchest.GetAnnotations()[controller.RestartAnnotationKey]; ok {
-		return sm.toState(ctx, orchestv1alpha1.Stopping)
-	} else if orchest.Status.ObservedGeneration != orchest.Generation {
-		// If the hash is changed, the cluster enters upgrading state and then running
-		return sm.toState(ctx, orchestv1alpha1.Updating)
-	}
-
 	sm.orchestChan <- orchest
 
 	return nil
