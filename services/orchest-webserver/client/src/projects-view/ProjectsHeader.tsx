@@ -39,7 +39,7 @@ export const ProjectsHeader = ({
             variant="text"
             startIcon={<DownloadOutlined />}
             onClick={onClickImport}
-            data-test-id="import-project"
+            data-test-id="projects-header-import-button"
           >
             Import
           </Button>
@@ -47,7 +47,7 @@ export const ProjectsHeader = ({
             variant="contained"
             startIcon={<AddOutlined />}
             onClick={onClickCreate}
-            data-test-id="add-project"
+            data-test-id="projects-header-new-project-button"
           >
             New project
           </Button>

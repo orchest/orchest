@@ -401,7 +401,7 @@ export const PipelineSettingsView: React.FC = () => {
                 "Warning",
                 `Are you sure you want to delete the service: ${row.name}?`,
                 async (resolve) => {
-                  deleteService(row.uuid)
+                  deleteService(row.id)
                     .then(() => {
                       resolve(true);
                     })
@@ -434,7 +434,7 @@ export const PipelineSettingsView: React.FC = () => {
 
     return sortedServices.map(([order, service]) => {
       return {
-        uuid: order,
+        id: order,
         name: service.name,
         scope: service.scope
           .map((scopeAsString) => scopeMap[scopeAsString])
@@ -655,7 +655,7 @@ export const PipelineSettingsView: React.FC = () => {
                     <ServiceTemplatesDialog
                       onSelection={(template) => {
                         const newOrder =
-                          parseInt(serviceRows.slice(-1)[0]?.uuid || "0") + 1;
+                          parseInt(serviceRows.slice(-1)[0]?.id || "0") + 1;
                         const newService = instantiateNewService(
                           allServiceNames,
                           template,

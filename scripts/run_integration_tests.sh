@@ -68,7 +68,7 @@ fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 echo "Making sure Orchest is running..."
-${DIR}/../orchest status || ${DIR}/../orchest start || (echo "Could not start Orchest." && exit 1)
+orchest status || orchest start || (echo "Could not start Orchest." && exit 1)
 
 echo -e "Removing all environment images..."
 [ ! -z "$(docker images --filter 'label=_orchest_env_build_task_uuid' -q)" ] && docker rmi -f $(docker images --filter "label=_orchest_env_build_task_uuid" -q) > /dev/null

@@ -16,9 +16,9 @@ import React from "react";
 
 export type ProjectRow = Pick<
   Project,
-  "path" | "pipeline_count" | "session_count" | "active_job_count"
+  "uuid" | "path" | "pipeline_count" | "session_count" | "active_job_count"
 > & {
-  settings: string;
+  settings: boolean;
 };
 
 export const ProjectsTable = ({
@@ -64,8 +64,8 @@ export const ProjectsTable = ({
               title="More options"
               disabled={disabled}
               size="small"
-              data-test-id={`settings-button-${row.path}`}
               onClick={openProjectMenu(row.uuid)}
+              data-test-id={`project-settings-button-${row.id}`}
             >
               <MoreHorizOutlinedIcon fontSize="small" />
             </IconButton>
@@ -82,7 +82,8 @@ export const ProjectsTable = ({
     return projects.map((project) => {
       return {
         ...project,
-        settings: project.path,
+        id: project.path,
+        settings: true,
         disabled: projectsBeingDeleted.includes(project.uuid),
       };
     });
@@ -90,7 +91,7 @@ export const ProjectsTable = ({
 
   return (
     <DataTable<ProjectRow>
-      id="project-list"
+      id="projects-table"
       isLoading={!hasValue(projects)}
       hideSearch
       onRowClick={onRowClick}

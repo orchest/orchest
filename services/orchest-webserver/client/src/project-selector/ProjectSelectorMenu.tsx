@@ -70,7 +70,7 @@ export const ProjectSelectorMenu = ({
               startIcon={<AddIcon />}
               onClick={onOpen}
               sx={{ flex: 1 }}
-              data-test-id="add-project"
+              data-test-id="project-selector-menu-new-project"
             >
               New
             </Button>

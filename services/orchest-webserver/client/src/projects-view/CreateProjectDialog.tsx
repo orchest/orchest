@@ -100,7 +100,13 @@ export const CreateProjectDialog = ({
   return (
     <>
       {hasValue(children) && children(onOpen)}
-      <Dialog open={isOpen} onClose={closeDialog} fullWidth maxWidth="xs">
+      <Dialog
+        open={isOpen}
+        onClose={closeDialog}
+        data-test-id="create-project-dialog"
+        fullWidth
+        maxWidth="xs"
+      >
         <form
           id="create-project"
           onSubmit={(e) => {
@@ -122,7 +128,7 @@ export const CreateProjectDialog = ({
               onChange={(e) =>
                 setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
               }
-              data-test-id="project-name-textfield"
+              data-test-id="create-project-dialog-name-input"
             />
           </DialogContent>
           <DialogActions>
@@ -134,7 +140,7 @@ export const CreateProjectDialog = ({
               type="submit"
               form="create-project"
               disabled={!isFormValid}
-              data-test-id="create-project"
+              data-test-id="create-project-dialog-submit-button"
             >
               Create project
             </Button>

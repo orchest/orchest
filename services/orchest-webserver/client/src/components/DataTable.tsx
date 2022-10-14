@@ -67,11 +67,15 @@ export type DataTableColumn<T, C = T> = {
   sortable?: boolean;
   align?: "inherit" | "left" | "center" | "right" | "justify";
   sx?: SxProps<Theme>;
-  render?: (row: T & { uuid: string }, disabled?: boolean) => React.ReactNode;
+  render?: (row: T & { id: string }, disabled?: boolean) => React.ReactNode;
 };
 
 export type DataTableRow<T> = T & {
-  uuid: string;
+  /**
+   * Something that uniquely identifies the row within the table.
+   * Used as `key` and within the `data-test-id`.
+   */
+  id: string;
   disabled?: boolean;
   // in case you're rendering something totally different from the data
   // provide a searchIndex for matching user's search term
@@ -244,13 +248,13 @@ function Row<T, C>({
   const handleClickRow = (e: React.MouseEvent) => {
     if (!disabled) {
       setIsOpen((current) => {
-        onRowClick(e, data.uuid, !current);
+        onRowClick(e, data.id, !current);
         return !current;
       });
     }
   };
 
-  const labelId = `checkbox-${data.uuid}`;
+  const labelId = `checkbox-${data.id}`;
 
   return (
     <>
@@ -260,7 +264,7 @@ function Row<T, C>({
         role="checkbox"
         aria-checked={isSelected}
         tabIndex={-1}
-        key={data.uuid}
+        key={data.id}
         selected={isSelected}
         sx={{
           ...(data.details
@@ -271,7 +275,9 @@ function Row<T, C>({
             : null),
           height: data.details ? rowHeight - 1 : rowHeight,
         }}
-        data-test-id={isLoading ? "loading-table-row" : `${tableId}-row`}
+        data-test-id={
+          isLoading ? "loading-table-row" : `${tableId}-row-${data.id}`
+        }
       >
         {selectable && (
           <TableCell padding="checkbox" align="center">
@@ -283,7 +289,7 @@ function Row<T, C>({
                 color="primary"
                 checked={isSelected}
                 disabled={disabled}
-                onClick={(e) => onClickCheckbox(e, data.uuid)}
+                onClick={(e) => onClickCheckbox(e, data.id)}
                 inputProps={{ "aria-labelledby": labelId }}
                 data-test-id={`${tableId}-row-checkbox`}
               />
@@ -347,7 +353,7 @@ function Row<T, C>({
 }
 
 export type DataTableFetcherResponse<T> = {
-  rows: (T & { uuid: string })[];
+  rows: (T & { id: string })[];
   totalCount: number;
 };
 
@@ -363,10 +369,10 @@ type DataTableFetcher<T> = (props: {
 type DataTableProps<T, C = T> = {
   columns: DataTableColumn<T, C>[];
   fetcher?: DataTableFetcher<T>;
-  rows?: (T & { uuid: string })[];
+  rows?: (T & { id: string })[];
   // this prop is useful when `rows` is not given, and the data is fetched from within via `fetcher`
   composeRow?: (
-    row: T & { uuid: string },
+    row: T & { id: string },
     setData: StateDispatcher<DataTableFetcherResponse<T>>,
     fetchData: () => void
   ) => DataTableRow<T>;
@@ -565,11 +571,7 @@ export const DataTable = React.forwardRef(function DataTable<
     ? rows.length
     : data?.totalCount || rows.length;
 
-  const rowsInPage = React.useMemo<
-    (T & {
-      uuid: string;
-    })[]
-  >(() => {
+  const rowsInPage = React.useMemo<(T & { id: string })[]>(() => {
     if (!hasValue(rowsPerPage)) return rows;
     const startIndex = Math.max(page - 1, 0) * rowsPerPage;
     const slicedRows = useClientSideSearchAndPagination
@@ -766,10 +768,10 @@ export const DataTable = React.forwardRef(function DataTable<
               rowCount={rows.length}
               data={columns}
             />
-            <TableBody sx={{ maxHeight: "100px" }}>
+            <TableBody sx={{ maxHeight: "100px" }} data-test-id={`${id}-rows`}>
               {!error &&
                 rowsInPage.map((row: DataTableRow<T>) => {
-                  const isItemSelected = isSelected(row.uuid);
+                  const isItemSelected = isSelected(row.id);
                   const isRowDisabled =
                     isTableDisabled || row.disabled || false;
                   return (
@@ -784,9 +786,9 @@ export const DataTable = React.forwardRef(function DataTable<
                       onRowClick={handleClickRow}
                       onClickCheckbox={handleClickCheckbox}
                       selectable={selectable}
-                      isDetailsOpen={rowsShowingDetails.includes(row.uuid)}
+                      isDetailsOpen={rowsShowingDetails.includes(row.id)}
                       rowHeight={renderedRowHeight}
-                      key={row.uuid}
+                      key={row.id}
                     />
                   );
                 })}

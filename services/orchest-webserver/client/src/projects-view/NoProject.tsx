@@ -26,10 +26,15 @@ export const NoProject = ({ importProject, createProject }: NoProjectProps) => {
               variant="contained"
               onClick={createProject}
               startIcon={<AddOutlined />}
+              data-test-id="project-empty-state-new-project-button"
             >
               New project
             </Button>
-            <Button onClick={importProject} startIcon={<DownloadOutlined />}>
+            <Button
+              onClick={importProject}
+              startIcon={<DownloadOutlined />}
+              data-test-id="project-empty-state-import-button"
+            >
               Import
             </Button>
           </>
