@@ -5,6 +5,7 @@ import { SnackBar } from "@/components/common/SnackBar";
 import { Layout } from "@/components/layout/Layout";
 import { LegacyImageBuildLog } from "@/components/legacy/LegacyImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -86,6 +87,21 @@ const ConfigureJupyterLabView: React.FC = () => {
       console.error(e);
     }
   }, [jupyterSetupScript, setAsSaved, cancelableFetch]);
+
+  const {
+    dispatch,
+    state: { pipelineReadOnlyReason },
+  } = useProjectsContext();
+  React.useEffect(() => {
+    if (isBuildingImage) {
+      dispatch({
+        type: "SET_PIPELINE_READONLY_REASON",
+        payload: "JupyterEnvironmentBuildInProgress",
+      });
+    } else if (pipelineReadOnlyReason === "JupyterEnvironmentBuildInProgress") {
+      dispatch({ type: "SET_PIPELINE_READONLY_REASON", payload: undefined });
+    }
+  }, [dispatch, isBuildingImage, pipelineReadOnlyReason]);
 
   const buildImage = React.useCallback(async () => {
     window.orchest.jupyter?.unload();
