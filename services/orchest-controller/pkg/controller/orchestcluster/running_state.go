@@ -17,5 +17,9 @@ func (state *RunningState) To(ctx context.Context, stateMachine *OrchestStateMac
 }
 
 func (state *RunningState) Do(ctx context.Context, stateMachine *OrchestStateMachine, orchest *orchestv1alpha1.OrchestCluster) error {
+	if orchest.Status.ObservedGeneration != orchest.Generation {
+		// If the ObservedGeneration is different that the actual Generation we go to stopping state.
+		return stateMachine.toState(ctx, orchestv1alpha1.Stopping)
+	}
 	return nil
 }
