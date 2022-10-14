@@ -48,16 +48,6 @@ func (c *WrapperComponent) Update(ctx context.Context, namespace string,
 	return
 }
 
-func (c *WrapperComponent) Stop(ctx context.Context, namespace string,
-	message registry.Message, eventChan chan registry.Event) {
-	return
-}
-
-func (c *WrapperComponent) Start(ctx context.Context, namespace string,
-	message registry.Message, eventChan chan registry.Event) {
-	return
-}
-
 func (c *WrapperComponent) Delete(ctx context.Context, namespace string,
 	message registry.Message, eventChan chan registry.Event) {
 }

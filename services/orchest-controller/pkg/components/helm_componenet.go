@@ -107,16 +107,6 @@ func (c *HelmComponent) Update(ctx context.Context, namespace string,
 	return
 }
 
-func (c *HelmComponent) Stop(ctx context.Context, namespace string,
-	message registry.Message, eventChan chan registry.Event) {
-	return
-}
-
-func (c *HelmComponent) Start(ctx context.Context, namespace string,
-	message registry.Message, eventChan chan registry.Event) {
-	return
-}
-
 func (c *HelmComponent) Delete(ctx context.Context, namespace string,
 	message registry.Message, eventChan chan registry.Event) {
 	err := helm.RemoveRelease(ctx, c.getReleaseName(namespace), namespace)

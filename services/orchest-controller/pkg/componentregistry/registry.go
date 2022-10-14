@@ -83,15 +83,15 @@ func (event TimeOutEvent) String() string {
 	return string(event)
 }
 
+type AbbortEvent struct{}
+
+func (event AbbortEvent) String() string {
+	return string("Abborted")
+}
+
 type Component interface {
 	// Updates the deployed component, install if not deployed yet
 	Update(ctx context.Context, namespace string, message Message, eventChan chan Event)
-
-	// Stops the deployed component
-	Stop(ctx context.Context, namespace string, message Message, eventChan chan Event)
-
-	// Starts the stopped component
-	Start(ctx context.Context, namespace string, message Message, eventChan chan Event)
 
 	// Deletes the deployed component.
 	Delete(ctx context.Context, namespace string, message Message, eventChan chan Event)
