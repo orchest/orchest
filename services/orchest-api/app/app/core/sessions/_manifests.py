@@ -575,10 +575,14 @@ def _get_jupyter_server_deployment_service_manifest(
         ]
     }
 
+    ingress_metadata = copy.deepcopy(metadata)
+    ingress_metadata["annotations"] = {
+        "nginx.ingress.kubernetes.io/proxy-body-size": "0"
+    }
     ingress_manifest = {
         "apiVersion": "networking.k8s.io/v1",
         "kind": "Ingress",
-        "metadata": metadata,
+        "metadata": ingress_metadata,
         "spec": {
             "ingressClassName": _config.INGRESS_CLASS,
             "rules": [ingress_rule],
