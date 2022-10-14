@@ -54,6 +54,7 @@ declare global {
       getIframe(dataTestId: string): Chainable<JQuery<any>>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
       getProjectUUID(project: string): Chainable<string>;
+      navigateToProjectSettings(path: string): Chainable;
       navigateViaTopMenu(
         to:
           | "pipeline"
@@ -150,13 +151,13 @@ Cypress.Commands.add("deleteAllProjects", () => {
 
 Cypress.Commands.add(
   "addProjectEnvVars",
-  (project: string, names: string[], values: string[]) => {
-    cy.log("======= Start adding project env vars.");
+  (projectPath: string, names: string[], values: string[]) => {
+    cy.log(":: Adding project environment variables");
     cy.intercept("PUT", /.*/).as("allPuts");
-    assert(names.length == values.length);
-    cy.navigateViaProjectDrawer("projects");
-    cy.findByTestId(`settings-button-${project}`).click();
-    cy.wait(100);
+    assert(names.length === values.length);
+
+    cy.navigateToProjectSettings(projectPath);
+
     for (let i = 0; i < names.length; i++) {
       cy.findByTestId(TEST_ID.PROJECT_ENV_VAR_ADD).click();
       // Would not support concurrent adds.
@@ -171,7 +172,6 @@ Cypress.Commands.add(
     }
     cy.findByTestId(TEST_ID.PROJECT_SETTINGS_SAVE).click();
     cy.wait("@allPuts");
-    cy.log("======= Done adding project env vars.");
   }
 );
 
@@ -462,6 +462,22 @@ Cypress.Commands.add("navigateViaTopMenu", (entry) => {
   cy.findByTestId(`top-menu/${entry}`).click();
 
   cy.location("pathname").should("equal", `/${entry}`);
+});
+
+Cypress.Commands.add("navigateToProjectSettings", (path) => {
+  cy.log(`:: Navigating to project settings of "${path}" using /projects.`);
+
+  cy.navigateViaProjectDrawer("projects");
+
+  cy.findByTestId(TEST_ID.PROJECTS_SETTINGS_BUTTON(path))
+    .should("be.visible")
+    .click();
+
+  cy.findByTestId(TEST_ID.PROJECT_LIST_CONTEXT_MENU_SETTINGS, {
+    timeout: 2500,
+  })
+    .should("be.visible")
+    .click();
 });
 
 //Assumes environment names are unique.
