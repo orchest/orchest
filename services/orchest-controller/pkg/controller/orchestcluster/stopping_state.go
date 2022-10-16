@@ -4,7 +4,6 @@ import (
 	"context"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 )
 
 type StopOrchestState struct{}
@@ -25,19 +24,16 @@ func (state *StopOrchestState) Do(ctx context.Context, stateMachine *OrchestStat
 		deletedApps := 0
 		for _, componentName := range creationStages[i] {
 
-			deletingEvent := utils.GetDeletingEvent(componentName)
-			deletedEvent := utils.GetDeletedEvent(componentName)
-
-			if stateMachine.containsCondition(deletedEvent) {
+			if stateMachine.isDeleted(componentName) {
 				deletedApps++
-			} else if !stateMachine.containsCondition(deletingEvent) {
+			} else if !stateMachine.expectDeletion(componentName) {
 				template, err := GetComponentTemplate(componentName, orchest)
 				if err != nil {
 					return err
 				}
 
 				component := getOrchestComponent(componentName, "", template, orchest)
-				err = stateMachine.Delete(ctx, componentName, deletingEvent, deployRetry, component)
+				err = stateMachine.Delete(ctx, componentName, deployRetry, component)
 				if err != nil {
 					return err
 				}

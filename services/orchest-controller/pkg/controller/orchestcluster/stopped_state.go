@@ -15,7 +15,7 @@ func NewStoppedOrchestState() StateHandler {
 
 func (state *StoppedOrchestState) To(ctx context.Context, stateMachine *OrchestStateMachine) {
 	// The cluster is deleted, the StateMachine should exit
-	if stateMachine.isDeleted() {
+	if stateMachine.isOrchestDeleted() {
 		stateMachine.exit(ctx)
 	}
 }
@@ -23,7 +23,7 @@ func (state *StoppedOrchestState) To(ctx context.Context, stateMachine *OrchestS
 func (state *StoppedOrchestState) Do(ctx context.Context, stateMachine *OrchestStateMachine, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// The cluster is deleted, the StateMachine should exit
-	if stateMachine.isDeleted() {
+	if stateMachine.isOrchestDeleted() {
 		return stateMachine.exit(ctx)
 	}
 
