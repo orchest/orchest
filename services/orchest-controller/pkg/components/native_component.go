@@ -152,20 +152,29 @@ loop:
 				switch componentState.cmd {
 				case Update:
 					success, _ = c.reconciler.Reconcile(context.Background(), componentState.component)
+
 				case Delete:
 					success, _ = c.reconciler.Uninstall(context.Background(), componentState.component)
+
 				}
 				if success {
-					componentState.eventChan <- registry.SuccessEvent{}
+					if componentState.eventChan != nil {
+						componentState.eventChan <- registry.SuccessEvent{}
+						componentState.eventChan = nil
+					}
+
+					if componentState.cmd == Delete {
+						delete(c.componentStates, namespace)
+					}
 				}
 			}
 		case componentState := <-c.componentCh:
-			/*
-				oldState, ok := c.componentStates[componentState.namespace]
-				if ok {
-					oldState.eventChan <- registry.AbbortEvent{}
-				}
-			*/
+
+			//oldState, ok := c.componentStates[componentState.namespace]
+			//if ok {
+			//	oldState.eventChan <- registry.AbbortEvent{}
+			//}
+
 			c.componentStates[componentState.namespace] = componentState
 			c.controllerCh <- componentState.namespace
 		case <-stopCh:
@@ -210,9 +219,9 @@ func (c *NativeComponent[Object]) Update(ctx context.Context, namespace string,
 		return
 	}
 
-	klog.Infof(("received Update in native component %s"), c.name)
+	klog.V(2).Infof(("received Update in native component %s"), c.name)
 	defer func() {
-		klog.Infof(("processed Update in native component %s"), c.name)
+		klog.V(2).Infof(("processed Update in native component %s"), c.name)
 	}()
 
 	c.componentCh <- &componentState{
@@ -241,9 +250,9 @@ func (c *NativeComponent[Object]) Delete(ctx context.Context, namespace string,
 		err = fmt.Errorf("Component %s requires message of type *orchestv1alpha1.OrchestComponent", c.name)
 		return
 	}
-	klog.Infof(("received Delete in native component %s"), c.name)
+	klog.V(2).Infof(("received Delete in native component %s"), c.name)
 	defer func() {
-		klog.Infof(("processed Delete in native component %s"), c.name)
+		klog.V(2).Infof(("processed Delete in native component %s"), c.name)
 	}()
 
 	c.componentCh <- &componentState{
