@@ -3,7 +3,6 @@ package orchestcluster
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -38,8 +37,16 @@ type responseInfo struct {
 	message       any
 	retryCount    int
 	responseEvent registry.Event
-	requestEvent  string
 }
+
+type componentState int
+
+const (
+	Creating componentState = iota
+	Created                 // Created means Running
+	Deleting
+	Deleted
+)
 
 type OrchestStateMachine struct {
 	stateHandlers map[orchestv1alpha1.OrchestPhase]StateHandler
@@ -49,14 +56,14 @@ type OrchestStateMachine struct {
 	//stateLock    sync.RWMutex
 	currentState orchestv1alpha1.OrchestPhase
 
-	// the map of requests sent to components
-	requests map[string]struct{}
+	// the map of component name to component states
+	components map[string]componentState
 
 	responseChan chan *responseInfo
 	// the cancel function of the context of this state machine
 	cancel context.CancelFunc
 
-	orchestChan chan *orchestv1alpha1.OrchestCluster
+	runChan chan struct{}
 
 	// Name and namespace, and key of the OrchestCluster
 	key       string
@@ -88,8 +95,8 @@ func NewOrchestStateMachine(orchestKey string,
 		namespace:     namespace,
 		controller:    controller,
 		responseChan:  make(chan *responseInfo, 20),
-		orchestChan:   make(chan *orchestv1alpha1.OrchestCluster, 20),
-		requests:      make(map[string]struct{}),
+		runChan:       make(chan struct{}, 20),
+		components:    make(map[string]componentState),
 		currentState:  orchestv1alpha1.Unknown,
 		stateHandlers: make(map[orchestv1alpha1.OrchestPhase]StateHandler),
 	}
@@ -100,7 +107,6 @@ func NewOrchestStateMachine(orchestKey string,
 	sm.stateHandlers[orchestv1alpha1.Updating] = NewUpdateOrchestState()
 	sm.stateHandlers[orchestv1alpha1.Stopping] = NewStopOrchestState()
 	sm.stateHandlers[orchestv1alpha1.Stopped] = NewStoppedOrchestState()
-	sm.stateHandlers[orchestv1alpha1.Starting] = NewStartOrchestState()
 	sm.stateHandlers[orchestv1alpha1.Running] = NewRunningState()
 	sm.stateHandlers[orchestv1alpha1.Error] = NewErrorState()
 
@@ -119,23 +125,52 @@ func NewOrchestStateMachine(orchestKey string,
 
 func (sm *OrchestStateMachine) updateCondition(ctx context.Context, event string) error {
 
-	sm.requests[event] = struct{}{}
 	err := sm.controller.updateCondition(ctx, sm.namespace, sm.name, event)
 	if err != nil {
 		klog.Error(err)
-		delete(sm.requests, event)
 		return err
 	}
 
 	return nil
 }
 
-func (sm *OrchestStateMachine) containsCondition(event string) bool {
-	_, ok := sm.requests[event]
+func (sm *OrchestStateMachine) expectCreation(componentName string) bool {
+	state, ok := sm.components[componentName]
+	if ok {
+		return state == Creating || state == Created
+	}
+
 	return ok
 }
 
-func (sm *OrchestStateMachine) isDeleted() bool {
+func (sm *OrchestStateMachine) isCreated(componentName string) bool {
+	state, ok := sm.components[componentName]
+	if ok {
+		return state == Created
+	}
+
+	return ok
+}
+
+func (sm *OrchestStateMachine) expectDeletion(componentName string) bool {
+	state, ok := sm.components[componentName]
+	if ok {
+		return state == Deleting || state == Deleted
+	}
+
+	return ok
+}
+
+func (sm *OrchestStateMachine) isDeleted(componentName string) bool {
+	state, ok := sm.components[componentName]
+	if ok {
+		return state == Deleted
+	}
+
+	return ok
+}
+
+func (sm *OrchestStateMachine) isOrchestDeleted() bool {
 	orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -149,12 +184,13 @@ func (sm *OrchestStateMachine) isDeleted() bool {
 }
 
 func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
-	deployingEvent string, timeout time.Duration, retryCount int, message any) error {
+	timeout time.Duration, retryCount int, message any) error {
 
 	klog.Infof("Creating %s, namespace=%s, name=%s retry=%d", componentName, sm.namespace, sm.name, retryCount)
 	timeoutTimer := time.NewTimer(timeout)
 	responseChan := make(chan registry.Event)
-	sm.requests[deployingEvent] = struct{}{}
+	sm.components[componentName] = Creating
+
 	go func() {
 	loop:
 		for {
@@ -166,7 +202,6 @@ func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 					sm.responseChan <- &responseInfo{
 						componentName: componentName,
 						message:       message,
-						requestEvent:  deployingEvent,
 						retryCount:    retryCount,
 						responseEvent: event,
 					}
@@ -175,14 +210,12 @@ func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 					sm.responseChan <- &responseInfo{
 						componentName: componentName,
 						message:       message,
-						requestEvent:  deployingEvent,
 						retryCount:    retryCount,
 						responseEvent: event,
 					}
 					break loop
 				default:
 					sm.responseChan <- &responseInfo{
-						requestEvent:  deployingEvent,
 						responseEvent: registry.ErrorEvent("Unrecognized event"),
 						componentName: componentName,
 						message:       message,
@@ -193,7 +226,6 @@ func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 			case <-timeoutTimer.C:
 				klog.V(2).Info("received timeout for component ", componentName)
 				sm.responseChan <- &responseInfo{
-					requestEvent:  deployingEvent,
 					responseEvent: registry.TimeOutEvent(fmt.Sprintf("Timeout in deploying %s", componentName)),
 					componentName: componentName,
 					message:       message,
@@ -204,7 +236,7 @@ func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 		}
 	}()
 
-	err := sm.updateCondition(ctx, deployingEvent)
+	err := sm.updateCondition(ctx, utils.GetCreatingEvent(componentName))
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -215,11 +247,19 @@ func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 }
 
 func (sm *OrchestStateMachine) Delete(ctx context.Context, componentName string,
-	deletingEvent string, retryCount int, message any) error {
+	retryCount int, message any) error {
 
 	klog.Infof("Deleting %s, namespace=%s, name=%s", componentName, sm.namespace, sm.name)
 	responseChan := make(chan registry.Event)
-	sm.requests[deletingEvent] = struct{}{}
+	sm.components[componentName] = Deleting
+
+	err := sm.updateCondition(ctx, utils.GetDeletingEvent(componentName))
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+	go registry.Registry.Delete(ctx, componentName, sm.namespace, message, responseChan)
+
 	go func() {
 	loop:
 		for {
@@ -231,7 +271,6 @@ func (sm *OrchestStateMachine) Delete(ctx context.Context, componentName string,
 					sm.responseChan <- &responseInfo{
 						componentName: componentName,
 						message:       message,
-						requestEvent:  deletingEvent,
 						retryCount:    retryCount,
 						responseEvent: event,
 					}
@@ -240,14 +279,12 @@ func (sm *OrchestStateMachine) Delete(ctx context.Context, componentName string,
 					sm.responseChan <- &responseInfo{
 						componentName: componentName,
 						message:       message,
-						requestEvent:  deletingEvent,
 						retryCount:    retryCount,
 						responseEvent: event,
 					}
 					break loop
 				default:
 					sm.responseChan <- &responseInfo{
-						requestEvent:  deletingEvent,
 						responseEvent: registry.ErrorEvent("Unrecognized event"),
 						componentName: componentName,
 						message:       message,
@@ -259,20 +296,10 @@ func (sm *OrchestStateMachine) Delete(ctx context.Context, componentName string,
 		}
 	}()
 
-	err := sm.updateCondition(ctx, deletingEvent)
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-	go registry.Registry.Delete(ctx, componentName, sm.namespace, message, responseChan)
-
 	return nil
 }
 
 func (sm *OrchestStateMachine) toState(ctx context.Context, nextState orchestv1alpha1.OrchestPhase) error {
-
-	//sm.stateLock.Lock()
-	//defer sm.stateLock.Unlock()
 
 	if nextState == sm.currentState {
 		klog.V(2).Info("No state transition, name=%s, namespace=%s", sm.name, sm.namespace)
@@ -343,9 +370,9 @@ loop:
 			case registry.LogEvent:
 				sm.updateCondition(ctx, info.responseEvent.String())
 			case registry.ErrorEvent, registry.TimeOutEvent:
-				_, ok := sm.requests[info.requestEvent]
+				componentState, ok := sm.components[info.componentName]
 				if !ok {
-					klog.Errorf("The requested event does not exist, event= %s", info.requestEvent)
+					klog.Errorf("received response for component was not expected, component= %s , received= %s", info.componentName, info.responseEvent)
 				}
 
 				sm.updateCondition(ctx, info.responseEvent.String())
@@ -354,29 +381,38 @@ loop:
 					sm.toState(context.Background(), orchestv1alpha1.Error)
 				} else {
 					// If it Deleting event, delete again
-					if strings.HasPrefix(info.requestEvent, "Deleting") {
-						sm.Delete(ctx, info.componentName, info.requestEvent, info.retryCount-1, info.message)
+					if componentState == Deleting {
+						sm.Delete(ctx, info.componentName, info.retryCount-1, info.message)
 					} else { // otherwise it is Creating event, we need to create it again
-						sm.Create(ctx, info.componentName, info.requestEvent, deployTimeOut, info.retryCount-1, info.message)
+						sm.Create(ctx, info.componentName, deployTimeOut, info.retryCount-1, info.message)
 					}
 				}
 			case registry.SuccessEvent:
-				orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
-				if err != nil {
-					klog.Error("failed to get OrchestCluster, name=%s, namespace=%s", sm.name, sm.namespace)
+				componentState, ok := sm.components[info.componentName]
+				if !ok {
+					klog.Errorf("received response for component was not expected, component= %s , received= %s", info.componentName, info.responseEvent)
+					continue
 				}
+
 				// If it Deleting event, we update with deleted event
-				if strings.HasPrefix(info.requestEvent, "Deleting") {
+				if componentState == Deleting {
+					sm.components[info.componentName] = Deleted
 					sm.updateCondition(ctx, utils.GetDeletedEvent(info.componentName))
-				} else { // otherwise it is Creating event, we need to create it again
+				} else if componentState == Creating { // otherwise it is Creating event, we need to create it again
+					sm.components[info.componentName] = Created
 					sm.updateCondition(ctx, utils.GetCreatedEvent(info.componentName))
 				}
 				// we call the doState again, to see if it is time to move to the next state
-				sm.orchestChan <- orchest
+				sm.runChan <- struct{}{}
 			default:
 				klog.Errorf("Unrecognized event received for OrchestCluster, name=%s, namespace=%s, %s", sm.name, sm.namespace, info.responseEvent.String())
 			}
-		case orchest := <-sm.orchestChan:
+		case <-sm.runChan:
+			orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
+			if err != nil {
+				klog.Error("failed to get OrchestCluster, name=%s, namespace=%s", sm.name, sm.namespace)
+				continue
+			}
 			sm.doState(ctx, orchest)
 		}
 	}
@@ -394,14 +430,6 @@ func (sm *OrchestStateMachine) manage(ctx context.Context) error {
 		}
 		// Error reading OrchestCluster - The request will be requeued.
 		return errors.Wrapf(err, "failed to get OrchestCluster, name=%s, namespace=%s", sm.name, sm.namespace)
-	}
-
-	if !orchest.GetDeletionTimestamp().IsZero() && orchest.Status.Phase != orchestv1alpha1.Stopped {
-		// The cluster is deleted.
-		err = sm.toState(ctx, orchestv1alpha1.Stopping)
-		if err != nil {
-			return err
-		}
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
@@ -429,7 +457,7 @@ func (sm *OrchestStateMachine) manage(ctx context.Context) error {
 		return nil
 	}
 
-	sm.orchestChan <- orchest
+	sm.runChan <- struct{}{}
 
 	return nil
 }
