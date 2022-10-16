@@ -696,8 +696,7 @@ func (occ *OrchestClusterController) UpdatePhase(ctx context.Context,
 
 		orchest.Status.ObservedHash = utils.ComputeHash(&orchest.Spec)
 
-		if orchest.Status.Phase != orchestv1alpha1.Starting &&
-			orchest.Status.Phase != orchestv1alpha1.DeployingOrchest {
+		if orchest.Status.Phase == orchestv1alpha1.Running || orchest.Status.Phase == orchestv1alpha1.Stopped {
 			orchest.Status.ObservedGeneration = orchest.Generation
 		}
 	}
