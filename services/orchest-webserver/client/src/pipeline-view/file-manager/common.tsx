@@ -73,7 +73,7 @@ export const isInProjectFolder = (combinedPath: string) =>
  */
 export const unpackPath = (combinedPath: string): UnpackedPath => {
   const root = combinedPath.split(":")[0] as FileManagementRoot;
-  const path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
+  const path = combinedPath.slice(root.length + ROOT_SEPARATOR.length) || "/";
 
   return { root, path };
 };
