@@ -10,7 +10,6 @@ import { treeRoots } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { ActionBar } from "./ActionBar";
 import {
-  combinePath,
   FileTrees,
   findTreeNode,
   getActiveRoot,
@@ -158,18 +157,15 @@ export function FileManager() {
   React.useEffect(() => {
     if (Object.keys(fileTrees).length === 0) return;
 
-    const newSelected = filterExistingNodes(fileTrees, selectedFiles);
+    const pruneMissingPaths = (paths: string[]) => {
+      const filtered = filterExistingNodes(fileTrees, paths);
 
-    if (newSelected.length !== selectedFiles.length) {
-      setSelectedFiles(newSelected);
-    }
+      return filtered.length !== paths.length ? filtered : paths;
+    };
 
-    const newExpanded = filterExistingNodes(fileTrees, expanded);
-
-    if (newExpanded.length < expanded.length) {
-      setExpanded(newExpanded);
-    }
-  }, [fileTrees]); // eslint-disable-line react-hooks/exhaustive-deps
+    setSelectedFiles(pruneMissingPaths);
+    setExpanded(pruneMissingPaths);
+  }, [fileTrees, setSelectedFiles]);
 
   const allTreesHaveLoaded = treeRoots.every((root) =>
     hasValue(fileTrees[root])
@@ -261,6 +257,6 @@ const filterExistingNodes = (
   combinedPaths: string[]
 ): string[] =>
   combinedPaths
-    .map(unpackPath)
-    .filter(({ root, path }) => hasValue(findTreeNode(fileTrees[root], path)))
-    .map(combinePath);
+    .map((originalPath) => [originalPath, unpackPath(originalPath)] as const)
+    .filter(([, { root, path }]) => findTreeNode(fileTrees[root], path))
+    .map(([originalPath]) => originalPath);
