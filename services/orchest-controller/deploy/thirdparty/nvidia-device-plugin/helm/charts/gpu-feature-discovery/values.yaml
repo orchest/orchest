@@ -1,0 +1,23 @@
+noTimestamp: null
+sleepInterval: null
+
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: ""
+selectorLabelsOverride: {}
+
+imagePullSecrets: []
+image:
+  repository: nvcr.io/nvidia/gpu-feature-discovery
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext:
+  privileged: true
+
+resources: {}
+nodeSelector:
+  feature.node.kubernetes.io/pci-10de.present: "true" # NVIDIA vendor ID

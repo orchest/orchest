@@ -1,0 +1,14 @@
+{{- if eq (include "nvidia-device-plugin.hasEmbeddedConfigMap" .) "true" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nvidia-device-plugin.configMapName" . }}
+  namespace: {{ include "nvidia-device-plugin.namespace" . }}
+  labels:
+    {{- include "nvidia-device-plugin.labels" . | nindent 4 }}
+data:
+{{- range $name, $contents := $.Values.config.map }}
+  {{ $name }}: |-
+{{ $contents | indent 4 }}
+{{- end -}}
+{{- end -}}

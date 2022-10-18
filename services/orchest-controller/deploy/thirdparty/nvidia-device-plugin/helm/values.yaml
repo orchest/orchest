@@ -1,0 +1,112 @@
+# Plugin configuration
+# Only one of "name" or "map" should ever be set for a given deployment.
+# Use "name" to point to an external ConfigMap with a list of configurations.
+# Use "map" to build an integrated ConfigMap from a set of configurations as
+# part of this helm chart. An example of setting "map" might be:
+# config:
+#   map:
+#     default: |-
+#       version: v1
+#       flags:
+#         migStrategy: none
+#     mig-single: |-
+#       version: v1
+#       flags:
+#         migStrategy: single
+#     mig-mixed: |-
+#       version: v1
+#       flags:
+#         migStrategy: mixed
+config:
+  # ConfigMap name if pulling from an external ConfigMap
+  name: ""
+  # Set of named configs to build an integrated ConfigMap from
+  map: {}
+  # Default config name within the ConfigMap
+  default: ""
+  # List of fallback strategies to attempt if no config is selected and no default is provided
+  fallbackStrategies: ["named" , "single"]
+
+legacyDaemonsetAPI: null
+compatWithCPUManager: null
+migStrategy: null
+failOnInitError: null
+deviceListStrategy: null
+deviceIDStrategy: null
+nvidiaDriverRoot: null
+
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: ""
+selectorLabelsOverride: {}
+
+allowDefaultNamespace: false
+
+imagePullSecrets: []
+image:
+  repository: nvcr.io/nvidia/k8s-device-plugin
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+updateStrategy:
+  type: RollingUpdate
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
+resources: {}
+nodeSelector: {}
+affinity: {}
+tolerations:
+  # This toleration is deprecated. Kept here for backward compatibility
+  # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+# Mark this pod as a critical add-on; when enabled, the critical add-on
+# scheduler reserves resources for critical add-on pods so that they can
+# be rescheduled after a failure.
+# See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
+priorityClassName: "system-node-critical"
+
+runtimeClassName: null
+
+# Subcharts
+nfd:
+  nameOverride: node-feature-discovery
+  master:
+    extraLabelNs:
+      - nvidia.com
+    serviceAccount:
+      name: node-feature-discovery
+
+  worker:
+    tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+    - key: "nvidia.com/gpu"
+      operator: "Equal"
+      value: "present"
+      effect: "NoSchedule"
+    config:
+      sources:
+        pci:
+          deviceClassWhitelist:
+          - "02"
+          - "0200"
+          - "0207"
+          - "0300"
+          - "0302"
+          deviceLabelFields:
+          - vendor
+gfd:
+  enabled: false
+  nameOverride: gpu-feature-discovery
+  namespaceOverride: ""

@@ -1,0 +1,39 @@
+{{- $hasEmbeddedConfigMap := (include "nvidia-device-plugin.hasEmbeddedConfigMap" .) | trim }}
+{{- $hasDefaultConfig := (include "nvidia-device-plugin.hasDefaultConfig" .) | trim }}
+
+{{- if .Values.namespace }}
+{{- $error := "" }}
+{{- $error = printf "%s\nValue 'namespace' set to %s" $error .Values.namespace }}
+{{- $error = printf "%s\nSetting an explicit 'namespace' in values.yaml or via --set on the command line is no longer supported." $error }}
+{{- $error = printf "%s\nUse --namespace (with --create-namespace as necessary) instead." $error }}
+{{- $error = printf "%s\nSee: https://helm.sh/docs/helm/helm_install/#options" $error }}
+{{- fail $error }}
+{{- end }}
+
+{{- if and (eq (include "nvidia-device-plugin.namespace" .) "default") ( eq .Values.namespaceOverride "") (not .Values.allowDefaultNamespace) }}
+{{- $error := "" }}
+{{- $error = printf "%s\nRunning in the 'default' namespace is not recommended." $error }}
+{{- $error = printf "%s\nSet 'allowDefaultNamespace=true' to bypass this error." $error }}
+{{- $error = printf "%s\nOtherwise, use --namespace (with --create-namespace as necessary) to run in a specific namespace." $error }}
+{{- $error = printf "%s\nSee: https://helm.sh/docs/helm/helm_install/#options" $error }}
+{{- fail $error }}
+{{- end }}
+
+{{- if and .Values.config.name .Values.config.map }}
+{{- $error := "" }}
+{{- $error = printf "%s\nOnly one of 'config.name' or 'config.map' should ever be set for a given deployment." $error }}
+{{- $error = printf "%s\nUse 'config.name' to point to an external ConfigMap with a list of configurations." $error }}
+{{- $error = printf "%s\nUse 'config.map' to build an integrated ConfigMap from a set of configurations as part of this helm chart." $error }}
+{{- fail $error }}
+{{- end }}
+
+{{- if and (eq $hasEmbeddedConfigMap "true") (eq $hasDefaultConfig "false") }}
+{{- $error := "" }}
+{{- $error = printf "%s\nA default config must be provided when more than one configuration is set in 'config.map'." $error }}
+{{- $error = printf "%s\nEither set the default using 'config.default' or provide a list of fallback strategies to try in 'config.fallbackStrategies'." $error }}
+{{- $error = printf "%s\nThe 'named' fallback will look for a 'config.map' entry with the special name 'default'." $error }}
+{{- $error = printf "%s\nThe 'single' fallback will look to see if only a single config has been provided and make that the default." $error }}
+{{- $error = printf "%s\nThe 'empty' fallback will apply an empty config if none of the other fallbacks are successful." $error }}
+{{- $error = printf "%s\nFallbacks are attempted in order and the current set is %s." $error .Values.config.fallbackStrategies }}
+{{- fail $error }}
+{{- end }}
