@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { StepData } from "@/types";
+import { FileTree, StepData } from "@/types";
 import {
   basename,
   dirname,
@@ -25,23 +25,6 @@ export type TreeNode = {
   type: "directory" | "file";
   name: string;
   root: boolean;
-};
-
-export const searchTree = (
-  path: string,
-  tree: TreeNode,
-  res: { parent?: TreeNode; node?: TreeNode } = {}
-) => {
-  for (const node of tree.children) {
-    if (node.path === path) {
-      res.parent = tree;
-      res.node = node;
-      break;
-    } else if (node.children) {
-      searchTree(path, node, res);
-    }
-  }
-  return res;
 };
 
 export const ROOT_SEPARATOR = ":";
@@ -135,18 +118,6 @@ export function isFileEntry(
   return entry.isFile;
 }
 
-export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
-  const { parent } = searchTree(subTree.path, tree);
-  if (!parent) return;
-  for (let i = 0; i < parent.children.length; i++) {
-    const child = parent.children[i];
-    if (child.path === subTree.path) {
-      parent.children[i] = subTree;
-      break;
-    }
-  }
-};
-
 export const getActiveRoot = (
   selected: string[],
   treeRoots: readonly FileManagementRoot[]
@@ -158,45 +129,42 @@ export const getActiveRoot = (
   }
 };
 
-const isPathChildless = (path: string, tree: TreeNode) => {
-  const { node } = searchTree(path, tree);
+export const replaceTreeNode = (
+  root: TreeNode,
+  replacement: TreeNode
+): TreeNode => {
+  const children: TreeNode[] = [];
 
-  return Boolean(node?.children.length);
+  for (const child of root.children) {
+    if (child.path === replacement.path) {
+      children.push(replacement);
+    } else if (child.type === "file") {
+      children.push(child);
+    } else if (child.type === "directory") {
+      children.push(replaceTreeNode(child, replacement));
+    }
+  }
+
+  return { ...root, children };
 };
 
-export const isCombinedPathChildless = (
-  combinedPath: string,
-  roots: FileTrees
-) => {
-  const { root, path } = unpackPath(combinedPath);
+export const findTreeNode = (
+  root: FileTree | undefined,
+  path: string
+): FileTree | undefined => {
+  if (!root || root.path === path) return root;
 
-  return isPathChildless(path, roots[root]);
-};
+  for (const child of root.children) {
+    if (child.path === path) {
+      return child;
+    } else if (child.type === "directory") {
+      const node = findTreeNode(child, path);
 
-export const searchTrees = ({
-  combinedPath,
-  treeRoots,
-  fileTrees,
-}: {
-  combinedPath: string;
-  treeRoots: readonly FileManagementRoot[];
-  fileTrees: Record<string, TreeNode>;
-}) => {
-  if (treeRoots.includes(combinedPath as FileManagementRoot)) {
-    return { node: combinedPath };
+      if (hasValue(node)) return node;
+    }
   }
 
-  let { root, path } = unpackPath(combinedPath);
-  if (!fileTrees[root]) {
-    return {};
-  }
-
-  let result = searchTree(path, fileTrees[root]);
-  if (result.node !== undefined) {
-    return result;
-  } else {
-    return {};
-  }
+  return undefined;
 };
 
 export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
