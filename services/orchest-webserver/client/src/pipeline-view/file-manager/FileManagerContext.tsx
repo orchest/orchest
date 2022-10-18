@@ -4,8 +4,7 @@ import { queryArgs } from "@/utils/text";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot, treeRoots } from "../common";
-import type { FileTrees, TreeNode } from "./common";
-import { FILE_MANAGEMENT_ENDPOINT } from "./common";
+import { FileTrees, FILE_MANAGEMENT_ENDPOINT, TreeNode } from "./common";
 
 type DragFile = {
   labelText: string;
