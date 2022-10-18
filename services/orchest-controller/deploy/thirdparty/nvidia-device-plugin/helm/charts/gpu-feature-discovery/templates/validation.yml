@@ -1,0 +1,8 @@
+{{- if and (eq (include "gpu-feature-discovery.namespace" .) "default") ( eq .Values.namespaceOverride "") (not .Values.allowDefaultNamespace) }}
+{{- $error := "" }}
+{{- $error = printf "%s\nRunning in the 'default' namespace is not recommended." $error }}
+{{- $error = printf "%s\nSet 'allowDefaultNamespace=true' to bypass this error." $error }}
+{{- $error = printf "%s\nOtherwise, use --namespace (with --create-namespace as necessary) to run in a specific namespace." $error }}
+{{- $error = printf "%s\nSee: https://helm.sh/docs/helm/helm_install/#options" $error }}
+{{- fail $error }}
+{{- end }}

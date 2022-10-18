@@ -1,0 +1,212 @@
+# Copyright (c) 2019, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{{- $hasConfigMap := (include "nvidia-device-plugin.hasConfigMap" .) | trim }}
+{{- $configMapName := (include "nvidia-device-plugin.configMapName" .) | trim }}
+{{- $migStrategiesAreAllNone := (include "nvidia-device-plugin.allPossibleMigStrategiesAreNone" .) | trim }}
+
+{{- if .Values.legacyDaemonsetAPI }}
+apiVersion: extensions/v1beta1
+{{- else }}
+apiVersion: apps/v1
+{{- end }}
+kind: DaemonSet
+metadata:
+  name: {{ include "nvidia-device-plugin.fullname" . }}
+  namespace: {{ include "nvidia-device-plugin.namespace" . }}
+  labels:
+    {{- include "nvidia-device-plugin.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.legacyDaemonsetAPI }}
+  selector:
+    matchLabels:
+      {{- include "nvidia-device-plugin.selectorLabels" . | nindent 6 }}
+  {{- end }}
+  {{- with .Values.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "nvidia-device-plugin.templateLabels" . | nindent 8 }}
+      annotations:
+        {{- include "nvidia-device-plugin.podAnnotations" (dict "local" . "root" .) | nindent 8 }}
+    spec:
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      {{- if .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if eq $hasConfigMap "true" }}
+      serviceAccountName: {{ include "nvidia-device-plugin.fullname" . }}-service-account
+      shareProcessNamespace: true
+      initContainers:
+      - image: {{ include "nvidia-device-plugin.fullimage" . }}
+        name: nvidia-device-plugin-init
+        command: ["config-manager"]
+        env:
+        - name: ONESHOT
+          value: "true"
+        - name: KUBECONFIG
+          value: ""
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: "spec.nodeName"
+        - name: NODE_LABEL
+          value: "nvidia.com/device-plugin.config"
+        - name: CONFIG_FILE_SRCDIR
+          value: "/available-configs"
+        - name: CONFIG_FILE_DST
+          value: "/config/config.yaml"
+        - name: DEFAULT_CONFIG
+          value: "{{ .Values.config.default }}"
+        - name: FALLBACK_STRATEGIES
+          value: "{{ join "," .Values.config.fallbackStrategies }}"
+        - name: SEND_SIGNAL
+          value: "false"
+        - name: SIGNAL
+          value: ""
+        - name: PROCESS_TO_SIGNAL
+          value: ""
+        volumeMounts:
+          - name: available-configs
+            mountPath: /available-configs
+          - name: config
+            mountPath: /config
+      {{- end }}
+      containers:
+      {{- if eq $hasConfigMap "true" }}
+      - image: {{ include "nvidia-device-plugin.fullimage" . }}
+        name: nvidia-device-plugin-sidecar
+        command: ["config-manager"]
+        env:
+        - name: ONESHOT
+          value: "false"
+        - name: KUBECONFIG
+          value: ""
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: "spec.nodeName"
+        - name: NODE_LABEL
+          value: "nvidia.com/device-plugin.config"
+        - name: CONFIG_FILE_SRCDIR
+          value: "/available-configs"
+        - name: CONFIG_FILE_DST
+          value: "/config/config.yaml"
+        - name: DEFAULT_CONFIG
+          value: "{{ .Values.config.default }}"
+        - name: FALLBACK_STRATEGIES
+          value: "{{ join "," .Values.config.fallbackStrategies }}"
+        - name: SEND_SIGNAL
+          value: "true"
+        - name: SIGNAL
+          value: "1" # SIGHUP
+        - name: PROCESS_TO_SIGNAL
+          value: "nvidia-device-plugin"
+        volumeMounts:
+          - name: available-configs
+            mountPath: /available-configs
+          - name: config
+            mountPath: /config
+        securityContext:
+          {{- include "nvidia-device-plugin.securityContext" . | nindent 10 }}
+      {{- end }}
+      - image: {{ include "nvidia-device-plugin.fullimage" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: nvidia-device-plugin-ctr
+        env:
+        {{- if typeIs "string" .Values.migStrategy }}
+          - name: MIG_STRATEGY
+            value: "{{ .Values.migStrategy }}"
+        {{- end }}
+        {{- if typeIs "bool" .Values.failOnInitError }}
+          - name: FAIL_ON_INIT_ERROR
+            value: "{{ .Values.failOnInitError }}"
+        {{- end }}
+        {{- if typeIs "bool" .Values.compatWithCPUManager }}
+          - name: PASS_DEVICE_SPECS
+            value: "{{ .Values.compatWithCPUManager }}"
+        {{- end }}
+        {{- if typeIs "string" .Values.deviceListStrategy }}
+          - name: DEVICE_LIST_STRATEGY
+            value: "{{ .Values.deviceListStrategy }}"
+        {{- end }}
+        {{- if typeIs "string" .Values.deviceIDStrategy }}
+          - name: DEVICE_ID_STRATEGY
+            value: "{{ .Values.deviceIDStrategy }}"
+        {{- end }}
+        {{- if typeIs "string" .Values.nvidiaDriverRoot }}
+          - name: NVIDIA_DRIVER_ROOT
+            value: "{{ .Values.nvidiaDriverRoot }}"
+        {{- end }}
+        {{- if eq $hasConfigMap "true" }}
+          - name: CONFIG_FILE
+            value: /config/config.yaml
+        {{- end }}
+        {{- if ne $migStrategiesAreAllNone "true" }}
+          - name: NVIDIA_MIG_MONITOR_DEVICES
+            value: all
+        {{- end }}
+        securityContext:
+          {{- include "nvidia-device-plugin.securityContext" . | nindent 10 }}
+        volumeMounts:
+          - name: device-plugin
+            mountPath: /var/lib/kubelet/device-plugins
+          {{- if eq $hasConfigMap "true" }}
+          - name: available-configs
+            mountPath: /available-configs
+          - name: config
+            mountPath: /config
+          {{- end }}
+        {{- with .Values.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        {{- if eq $hasConfigMap "true" }}
+        - name: available-configs
+          configMap:
+            name: "{{ $configMapName }}"
+        - name: config
+          emptyDir: {}
+        {{- end }}
+      {{- $nodeSelector := .Values.nodeSelector }}
+      {{- if and (empty $nodeSelector) .Subcharts.gfd }}
+      {{- $nodeSelector = .Subcharts.gfd.Values.nodeSelector }}
+      {{- end }}
+      {{- with $nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
