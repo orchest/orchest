@@ -21,7 +21,16 @@ config:
   # ConfigMap name if pulling from an external ConfigMap
   name: ""
   # Set of named configs to build an integrated ConfigMap from
-  map: {}
+  map:
+    default: |-
+      version: v1
+      sharing:
+        timeSlicing:
+          renameByDefault: false
+          failRequestsGreaterThanOne: false
+          resources:
+          - name: nvidia.com/gpu
+            replicas: 100
   # Default config name within the ConfigMap
   default: ""
   # List of fallback strategies to attempt if no config is selected and no default is provided
