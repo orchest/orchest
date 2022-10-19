@@ -73,7 +73,7 @@ export function FileManager() {
     async (depth?: number) => {
       setInProgress(true);
 
-      await fetchFileTrees(depth);
+      await fetchFileTrees(Math.max(2, depth ?? 0));
 
       setInProgress(false);
     },

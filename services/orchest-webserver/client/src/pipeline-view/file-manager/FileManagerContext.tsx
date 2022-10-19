@@ -85,6 +85,21 @@ export const FileManagerContextProvider: React.FC<{
 
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
 
+  const baseParamsRef = React.useRef<{
+    projectUuid?: string;
+    pipelineUuid?: string;
+    jobUuid?: string;
+    runUuid?: string;
+  }>({});
+  baseParamsRef.current = React.useMemo(
+    () =>
+      // Pipeline UUID only has to be included for jobs & job runs.
+      jobUuid && runUuid
+        ? { projectUuid, pipelineUuid, jobUuid, runUuid }
+        : { projectUuid },
+    [jobUuid, pipelineUuid, projectUuid, runUuid]
+  );
+
   const resetMove = React.useCallback(() => {
     // Needs to be delayed to prevent tree toggle
     // while dragging.
@@ -102,22 +117,14 @@ export const FileManagerContextProvider: React.FC<{
       root: FileManagementRoot,
       path?: string | undefined,
       depth = hasValue(path) ? 1 : 2
-    ) =>
-      cancelableFetch<TreeNode>(
-        `${FILE_MANAGEMENT_ENDPOINT}/browse?` +
-          queryArgs(
-            prune({
-              projectUuid,
-              pipelineUuid,
-              jobUuid,
-              runUuid,
-              root,
-              path: path || undefined,
-              depth,
-            })
-          )
-      ),
-    [cancelableFetch, projectUuid, pipelineUuid, jobUuid, runUuid]
+    ) => {
+      const params = { ...baseParamsRef.current, root, path, depth };
+
+      return cancelableFetch<TreeNode>(
+        `${FILE_MANAGEMENT_ENDPOINT}/browse?` + queryArgs(prune(params))
+      );
+    },
+    [cancelableFetch]
   );
 
   const fetchFileTrees = React.useCallback(
