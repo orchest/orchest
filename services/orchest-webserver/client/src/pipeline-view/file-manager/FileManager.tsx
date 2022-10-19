@@ -1,5 +1,4 @@
 import { useDebounce } from "@/hooks/useDebounce";
-import { useHasChanged } from "@/hooks/useHasChanged";
 import { useUploader } from "@/hooks/useUploader";
 import { isDirectory, segments } from "@/utils/path";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -32,12 +31,12 @@ import { FileTreeContainer } from "./FileTreeContainer";
 const START_EXPANDED = ["/project-dir:/"];
 
 export function FileManager() {
-  /**
-   * States
-   */
-
-  const { projectUuid } = usePipelineDataContext();
-
+  const {
+    projectUuid,
+    pipelineUuid,
+    runUuid,
+    jobUuid,
+  } = usePipelineDataContext();
   const {
     isDragging,
     selectedFiles,
@@ -149,14 +148,13 @@ export function FileManager() {
     [browsePath, expanded, fileTrees, isDragging]
   );
 
-  const hasChangedProject = useHasChanged(
-    projectUuid,
-    (prev, current) => hasValue(prev) && prev !== current
-  );
-
   React.useEffect(() => {
+    if (!projectUuid) return;
+    // The below causes a 400:
+    if (jobUuid && runUuid && !pipelineUuid) return;
+
     reload();
-  }, [hasChangedProject, reload]);
+  }, [projectUuid, pipelineUuid, runUuid, jobUuid, reload]);
 
   React.useEffect(() => {
     if (Object.keys(fileTrees).length === 0) return;
