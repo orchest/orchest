@@ -13,6 +13,7 @@ var (
 	ArgoWorkflow   = "argo-workflow"
 	DockerRegistry = "docker-registry"
 	IngressNginx   = "ingress-nginx"
+	NvidiaPlugin   = "nvidia-plugin"
 
 	Registry = ComponentRegistry{
 		components: make(map[string]Component),

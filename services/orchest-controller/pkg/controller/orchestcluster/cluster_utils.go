@@ -453,6 +453,52 @@ func isIngressAddonRequired(ctx context.Context, k8sDistro utils.KubernetesDistr
 
 }
 
+func syncThirdPartyApplication(appName string, orchest *orchestv1alpha1.OrchestCluster, k8sdistro utils.KubernetesDistros) bool {
+
+	changed := false
+	value, ok := orchest.Annotations[controller.GetAppAnnotationKey(appName)]
+
+	// the annotation for the application is present
+	if ok {
+		// it has to be enaled, if not yet
+		if value == "true" {
+			if _, ok := orchest.Spec.Applications[appName]; !ok {
+				orchest.Spec.Applications[appName] = orchestv1alpha1.ApplicationSpec{
+					Name: appName,
+					Config: orchestv1alpha1.ApplicationConfig{
+						Helm: &orchestv1alpha1.ApplicationConfigHelm{},
+					},
+				}
+				changed = true
+			}
+		} else if value == "false" {
+			// it has to be removed, if enabled
+			if _, ok := orchest.Spec.Applications[appName]; ok {
+				delete(orchest.Spec.Applications, appName)
+				changed = true
+			}
+		}
+	}
+
+	return changed
+}
+
+func isNvidiaRequired(orchest *orchestv1alpha1.OrchestCluster, k8sdistro utils.KubernetesDistros) bool {
+
+	// GKE installs the nvidia device plugin itself
+	if k8sdistro == utils.GKE {
+		return false
+	}
+
+	if value, ok := orchest.Annotations[controller.GpuAnnotationKey]; ok && value == "true" {
+		return true
+	}
+
+	_, ok := orchest.Annotations[registry.NvidiaPlugin]
+
+	return !ok
+}
+
 func isIngressDisabled(orchest *orchestv1alpha1.OrchestCluster) bool {
 
 	if value, ok := orchest.Annotations[controller.IngressAnnotationKey]; ok && value == "false" {

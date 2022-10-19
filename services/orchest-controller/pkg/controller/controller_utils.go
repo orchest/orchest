@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -65,13 +66,20 @@ var (
 	ControllerPartOfLabel  = "controller.orchest.io/part-of"
 	ComponentLabelKey      = "controller.orchest.io/component"
 	K8sDistroAnnotationKey = "controller.orchest.io/k8s"
+	ArgoAnnotationKey      = "controller.orchest.io/deploy-argo"
+	RegistryAnnotationKey  = "controller.orchest.io/deploy-registry"
 	IngressAnnotationKey   = "controller.orchest.io/deploy-ingress"
+	GpuAnnotationKey       = "controller.orchest.io/deploy-gpu"
 	RestartAnnotationKey   = "orchest.io/restart"
 
 	// Runtime annotations
 	KubeAdmCRISocketAnnotationKey           = "kubeadm.alpha.kubernetes.io/cri-socket"
 	ContainerRuntimeSocketPathAnnotationKey = "orchest.io/container-runtime-socket"
 )
+
+func GetAppAnnotationKey(app string) string {
+	return fmt.Sprintf("controller.orchest.io/deploy-%s", app)
+}
 
 // AddFinalizer adds specified finalizer string to object
 func AddFinalizerIfNotPresent(ctx context.Context,
