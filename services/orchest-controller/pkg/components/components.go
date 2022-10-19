@@ -106,6 +106,10 @@ func InitThirdPartyComponents(client kubernetes.Interface, config registry.Compo
 	registry.RegisterComponent(registry.IngressNginx, NewHelmComponent(client, registry.IngressNginx,
 		path.Join(config.AssetDir, "thirdparty/ingress-nginx/helm"),
 		path.Join(config.AssetDir, "thirdparty/ingress-nginx/orchest-values.yaml")))
+
+	registry.RegisterComponent(registry.NvidiaPlugin, NewHelmComponent(client, registry.NvidiaPlugin,
+		path.Join(config.AssetDir, "thirdparty/nvidia-device-plugin/helm"),
+		path.Join(config.AssetDir, "thirdparty/nvidia-device-plugin/orchest-values.yaml")))
 }
 
 func InitOrchestComponents(stopCh <-chan struct{}, client kubernetes.Interface, gClient client.Client,
