@@ -4,6 +4,6 @@ metadata:
   name: cluster-1
   namespace: orchest
   annotations:
-    controller.orchest.io/deploy-gpu: "true"
+    controller.orchest.io/deploy-nvidia-plugin: "true"
 spec:
   singleNode: true
