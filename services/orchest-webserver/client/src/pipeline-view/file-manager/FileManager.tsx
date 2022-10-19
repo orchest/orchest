@@ -148,7 +148,10 @@ export function FileManager() {
     [browsePath, expanded, fileTrees, isDragging]
   );
 
-  const hasChangedProject = useHasChanged(projectUuid);
+  const hasChangedProject = useHasChanged(
+    projectUuid,
+    (prev, current) => hasValue(prev) && prev !== current
+  );
 
   React.useEffect(() => {
     reload();
