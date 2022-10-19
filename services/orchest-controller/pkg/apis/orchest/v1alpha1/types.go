@@ -233,7 +233,7 @@ type OrchestClusterSpec struct {
 
 	RabbitMq OrchestComponentTemplate `json:"rabbitMq,omitempty"`
 
-	Applications []ApplicationSpec `json:"applications,omitempty"`
+	Applications map[string]ApplicationSpec `json:"applications,omitempty"`
 }
 
 type Condition struct {

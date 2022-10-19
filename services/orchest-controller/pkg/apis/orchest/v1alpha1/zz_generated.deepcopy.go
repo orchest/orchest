@@ -206,9 +206,9 @@ func (in *OrchestClusterSpec) DeepCopyInto(out *OrchestClusterSpec) {
 	in.RabbitMq.DeepCopyInto(&out.RabbitMq)
 	if in.Applications != nil {
 		in, out := &in.Applications, &out.Applications
-		*out = make([]ApplicationSpec, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = make(map[string]ApplicationSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
 		}
 	}
 	return
@@ -427,8 +427,8 @@ func (in *OrchestSpec) DeepCopyInto(out *OrchestSpec) {
 	in.OrchestWebServer.DeepCopyInto(&out.OrchestWebServer)
 	in.CeleryWorker.DeepCopyInto(&out.CeleryWorker)
 	in.NodeAgent.DeepCopyInto(&out.NodeAgent)
-	in.AuthServer.DeepCopyInto(&out.AuthServer)
 	in.BuildKitDaemon.DeepCopyInto(&out.BuildKitDaemon)
+	in.AuthServer.DeepCopyInto(&out.AuthServer)
 	return
 }
 
