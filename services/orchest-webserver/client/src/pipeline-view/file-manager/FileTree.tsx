@@ -6,7 +6,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
-import { basename, dirname, join } from "@/utils/path";
+import { basename, dirname } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -19,6 +19,7 @@ import { FileManagementRoot } from "../common";
 import { useOpenFile } from "../hooks/useOpenFile";
 import {
   cleanFilePath,
+  combinePath,
   FileTrees,
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
@@ -34,7 +35,6 @@ import {
   Move,
   pathFromElement,
   prettifyRoot,
-  ROOT_SEPARATOR,
   UnpackedPath,
   unpackMove,
   unpackPath,
@@ -410,13 +410,13 @@ export const FileTree = React.memo(function FileTreeComponent({
         multiSelect
       >
         {treeRoots.map((root) => {
-          const combinedPath = join(root + ROOT_SEPARATOR + "/");
+          const combinedPath = combinePath({ root, path: "/" });
 
           return (
             <FileTreeItem
               disableDragging
               key={root}
-              nodeId={root}
+              nodeId={combinedPath}
               sx={{
                 backgroundColor:
                   hoveredPath === combinedPath

@@ -29,7 +29,7 @@ import { FileManagerLocalContextProvider } from "./FileManagerLocalContext";
 import { FileTree } from "./FileTree";
 import { FileTreeContainer } from "./FileTreeContainer";
 
-const START_EXPANDED = ["/project-dir"];
+const START_EXPANDED = ["/project-dir:/"];
 
 export function FileManager() {
   /**
