@@ -10,6 +10,7 @@ import { treeRoots } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { ActionBar } from "./ActionBar";
 import {
+  combinePath,
   FileTrees,
   findTreeNode,
   getActiveRoot,
@@ -260,6 +261,6 @@ const filterExistingNodes = (
   combinedPaths: string[]
 ): string[] =>
   combinedPaths
-    .map((originalPath) => [originalPath, unpackPath(originalPath)] as const)
-    .filter(([, { root, path }]) => findTreeNode(fileTrees[root], path))
-    .map(([originalPath]) => originalPath);
+    .map(unpackPath)
+    .filter(({ root, path }) => findTreeNode(fileTrees[root], path))
+    .map(combinePath);

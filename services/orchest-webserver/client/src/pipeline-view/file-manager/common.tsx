@@ -1,5 +1,5 @@
 import { Code } from "@/components/common/Code";
-import { FileTree, StepData } from "@/types";
+import { StepData } from "@/types";
 import {
   basename,
   dirname,
@@ -56,7 +56,7 @@ export const isInProjectFolder = (combinedPath: string) =>
  */
 export const unpackPath = (combinedPath: string): UnpackedPath => {
   const root = combinedPath.split(":")[0] as FileManagementRoot;
-  const path = combinedPath.slice(root.length + ROOT_SEPARATOR.length) || "/";
+  const path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
 
   return { root, path };
 };
@@ -136,7 +136,7 @@ export const replaceTreeNode = (
   const children: TreeNode[] = [];
 
   for (const child of root.children) {
-    if (child.path === replacement.path) {
+    if (pathMatchesNode(child, replacement.path)) {
       children.push(replacement);
     } else if (child.type === "file") {
       children.push(child);
@@ -148,14 +148,18 @@ export const replaceTreeNode = (
   return { ...root, children };
 };
 
+/** Checks if the node matches the provided path. */
+const pathMatchesNode = (node: TreeNode, path: string) =>
+  node.path === path || (node.root && (path === "" || path === "/"));
+
 export const findTreeNode = (
-  root: FileTree | undefined,
+  root: TreeNode | undefined,
   path: string
-): FileTree | undefined => {
-  if (!root || root.path === path) return root;
+): TreeNode | undefined => {
+  if (!root || pathMatchesNode(root, path)) return root;
 
   for (const child of root.children) {
-    if (child.path === path) {
+    if (pathMatchesNode(child, path)) {
       return child;
     } else if (child.type === "directory") {
       const node = findTreeNode(child, path);
