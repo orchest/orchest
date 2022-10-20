@@ -120,7 +120,7 @@ export const CreateFolderDialog = ({
               startAdornment: (
                 <InputAdornment position="start">
                   {truncateForDisplay(
-                    join(prettifyRoot(root), lastSelectedFolder, "/")
+                    join(prettifyRoot(root), lastSelectedFolder)
                   )}
                 </InputAdornment>
               ),
