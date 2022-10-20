@@ -1,10 +1,10 @@
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
-import { FileTree } from "@/types";
+import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { treeRoots } from "../common";
-import type { FileTrees } from "./common";
-import { FILE_MANAGEMENT_ENDPOINT } from "./common";
+import { FileManagementRoot, treeRoots } from "../common";
+import { FileTrees, FILE_MANAGEMENT_ENDPOINT, TreeNode } from "./common";
 
 type DragFile = {
   labelText: string;
@@ -28,7 +28,23 @@ export type FileManagerContextType = {
   isDragging: boolean;
   setIsDragging: React.Dispatch<React.SetStateAction<boolean>>;
   resetMove: () => void;
+  /**
+   * Fetches (or reloads) all file trees to a certain depth.
+   * Anything deeper than the provided depth will be pruned in the updated file trees.
+   * @param depth How many subdirectories deep to search.
+   */
   fetchFileTrees: (depth?: number) => Promise<void>;
+  /**
+   * Fetches a portion of the file tree from the back-end and updates the file trees.
+   * @param root The root to search: either `/project-dir` or `/data`.
+   * @param path The path to browser, or `undefined` if you want to search from the root.
+   * @param depth How many subdirectories deep to search. Defaults to 1 when a path is specified otherwise 2.
+   */
+  browse: (
+    root: FileManagementRoot,
+    path?: string,
+    depth?: number
+  ) => Promise<TreeNode>;
   fileTrees: FileTrees;
   setFileTrees: React.Dispatch<React.SetStateAction<FileTrees>>;
   fileTreeDepth: React.MutableRefObject<number>;
@@ -46,7 +62,7 @@ export const FileManagerContextProvider: React.FC<{
   jobUuid?: string | undefined;
   runUuid?: string | undefined;
 }> = ({ children, projectUuid, pipelineUuid, jobUuid, runUuid }) => {
-  const fileTreeDepth = React.useRef<number>(3);
+  const fileTreeDepth = React.useRef<number>(2);
   const [selectedFiles, _setSelectedFiles] = React.useState<string[]>([]);
 
   const setSelectedFiles = React.useCallback(
@@ -69,6 +85,21 @@ export const FileManagerContextProvider: React.FC<{
 
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
 
+  const baseParamsRef = React.useRef<{
+    projectUuid?: string;
+    pipelineUuid?: string;
+    jobUuid?: string;
+    runUuid?: string;
+  }>({});
+  baseParamsRef.current = React.useMemo(
+    () =>
+      // Pipeline UUID only has to be included for jobs & job runs.
+      jobUuid && runUuid
+        ? { projectUuid, pipelineUuid, jobUuid, runUuid }
+        : { projectUuid },
+    [jobUuid, pipelineUuid, projectUuid, runUuid]
+  );
+
   const resetMove = React.useCallback(() => {
     // Needs to be delayed to prevent tree toggle
     // while dragging.
@@ -79,61 +110,42 @@ export const FileManagerContextProvider: React.FC<{
     }, 1);
   }, [setIsDragging, setDragFile, setHoveredPath]);
 
-  const browseUrl = React.useMemo(() => {
-    if (!projectUuid) return undefined;
-    const commonArgs = {
-      projectUuid,
-      depth: fileTreeDepth.current,
-    };
-
-    // For normal pipelines, FileManager reads from the whole project, it doesn't need `pipelineUuid`.
-    // `pipelineUuid` is only needed together with `jobuuid`, so that it could read from the snapshot.
-    return `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs(
-      pipelineUuid && jobUuid
-        ? {
-            pipelineUuid,
-            jobUuid,
-            runUuid,
-            ...commonArgs,
-          }
-        : commonArgs
-    )}`;
-  }, [projectUuid, pipelineUuid, jobUuid, runUuid]);
-
   const { cancelableFetch } = useCancelableFetch();
+
+  const browse = React.useCallback(
+    (
+      root: FileManagementRoot,
+      path?: string | undefined,
+      depth = hasValue(path) ? 1 : 2
+    ) => {
+      const params = { ...baseParamsRef.current, root, path, depth };
+
+      return cancelableFetch<TreeNode>(
+        `${FILE_MANAGEMENT_ENDPOINT}/browse?` + queryArgs(prune(params))
+      );
+    },
+    [cancelableFetch]
+  );
 
   const fetchFileTrees = React.useCallback(
     async (depth?: number) => {
-      if (!browseUrl) return;
-      if (depth) {
-        fileTreeDepth.current = Math.max(fileTreeDepth.current, depth);
-      }
-
-      const newFiles = await Promise.all(
-        treeRoots.map(async (root) => {
-          try {
-            const file = await cancelableFetch<FileTree>(
-              `${browseUrl}&${queryArgs({ root })}`
-            );
-            return { key: root, file };
-          } catch (error) {
-            return undefined;
-          }
-        })
+      const newRoots = await Promise.all(
+        treeRoots.map((root) =>
+          browse(root, undefined, depth)
+            .then((node) => [root, node] as const)
+            .catch(() => [root, undefined] as const)
+        )
       );
 
-      setFileTrees(
-        newFiles.reduce((obj, curr) => {
-          return curr ? { ...obj, [curr.key]: curr.file } : obj;
-        }, {})
-      );
+      setFileTrees(prune(Object.fromEntries(newRoots)));
     },
-    [browseUrl, cancelableFetch]
+    [browse]
   );
 
   return (
     <FileManagerContext.Provider
       value={{
+        browse,
         selectedFiles,
         setSelectedFiles,
         dragFile,

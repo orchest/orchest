@@ -1,22 +1,20 @@
 import { useDebounce } from "@/hooks/useDebounce";
-import { useHasChanged } from "@/hooks/useHasChanged";
 import { useUploader } from "@/hooks/useUploader";
-import { queryArgs } from "@/utils/text";
+import { isDirectory, segments } from "@/utils/path";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { FileManagementRoot, treeRoots } from "../common";
+import { treeRoots } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { ActionBar } from "./ActionBar";
 import {
-  FILE_MANAGEMENT_ENDPOINT,
+  combinePath,
+  FileTrees,
+  findTreeNode,
   getActiveRoot,
-  isCombinedPathChildless,
   lastSelectedFolderPath,
-  mergeTrees,
-  searchTrees,
-  TreeNode,
+  replaceTreeNode,
   unpackPath,
 } from "./common";
 import { CreatePipelineButton } from "./CreatePipelineButton";
@@ -30,57 +28,22 @@ import { FileManagerLocalContextProvider } from "./FileManagerLocalContext";
 import { FileTree } from "./FileTree";
 import { FileTreeContainer } from "./FileTreeContainer";
 
-const deepestExpand = (expanded: string[]) => {
-  if (expanded.length === 0) {
-    return 0;
-  }
-  return Math.max(
-    ...expanded.map((e) => unpackPath(e).path.split("/").length - 1)
-  );
-};
-
-const createInvalidEntryFilter = ({
-  treeRoots,
-  fileTrees,
-}: {
-  treeRoots: readonly FileManagementRoot[];
-  fileTrees: Record<string, TreeNode>;
-}) => (combinedPathList: string[]): [string[], boolean] => {
-  let invalid = new Set();
-  let foundInvalid = false;
-
-  combinedPathList.forEach((combinedPath) => {
-    if (
-      searchTrees({ combinedPath, treeRoots, fileTrees }).node === undefined
-    ) {
-      foundInvalid = true;
-      invalid.add(combinedPath);
-    }
-  });
-
-  const uniqueArr = Array.from(new Set(combinedPathList));
-
-  return [uniqueArr.filter((e) => !invalid.has(e)), foundInvalid];
-};
+const START_EXPANDED = ["/project-dir:/"];
 
 export function FileManager() {
-  /**
-   * States
-   */
-
   const {
     projectUuid,
     pipelineUuid,
-    jobUuid,
     runUuid,
+    jobUuid,
   } = usePipelineDataContext();
-
   const {
     isDragging,
     selectedFiles,
     setSelectedFiles,
     fileTrees,
     fetchFileTrees,
+    browse,
     setFileTrees,
   } = useFileManagerContext();
 
@@ -90,26 +53,32 @@ export function FileManager() {
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [expanded, setExpanded] = React.useState(["/project-dir"]);
+  const [expanded, setExpanded] = React.useState<string[]>(START_EXPANDED);
   const [progress, setProgress] = React.useState(0);
   const [contextMenu, setContextMenu] = React.useState<ContextMenuMetadata>(
     undefined
   );
+  const deepestExpandRef = React.useRef(0);
+
+  deepestExpandRef.current = React.useMemo(() => {
+    if (expanded.length === 0) return 0;
+    else return Math.max(...expanded.map(directoryLevel));
+  }, [expanded]);
 
   const root = React.useMemo(() => getActiveRoot(selectedFiles, treeRoots), [
     selectedFiles,
   ]);
 
-  /**
-   * Actions
-   */
-  const reload = React.useCallback(async () => {
-    setInProgress(true);
+  const reload = React.useCallback(
+    async (depth?: number) => {
+      setInProgress(true);
 
-    await fetchFileTrees(deepestExpand(expanded));
+      await fetchFileTrees(Math.max(2, depth ?? 0));
 
-    setInProgress(false);
-  }, [expanded, fetchFileTrees]);
+      setInProgress(false);
+    },
+    [fetchFileTrees]
+  );
 
   const collapseAll = () => {
     setExpanded([]);
@@ -117,29 +86,27 @@ export function FileManager() {
   };
 
   const browsePath = React.useCallback(
-    async (combinedPath) => {
+    async (combinedPath: string) => {
       if (!projectUuid) return;
+
       setInProgress(true);
 
       const { root, path } = unpackPath(combinedPath);
+      const existingNode = findTreeNode(fileTrees[root], path);
 
-      const url = `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
-        projectUuid,
-        pipelineUuid,
-        jobUuid,
-        runUuid,
-        root,
-        path,
-      })}`;
+      // If this node has already been loaded,
+      // we don't reload it.
+      if (existingNode?.children.length) return;
 
-      const response = await fetcher<TreeNode>(url);
+      const node = await browse(root, path, 1);
 
-      // Augment existing fileTree with path specific tree
-      mergeTrees(response, fileTrees[root]);
-      setFileTrees(fileTrees);
+      setFileTrees({
+        ...fileTrees,
+        [root]: replaceTreeNode(fileTrees[root], node),
+      });
       setInProgress(false);
     },
-    [fileTrees, projectUuid, setFileTrees, jobUuid, pipelineUuid, runUuid]
+    [browse, fileTrees, projectUuid, setFileTrees]
   );
 
   const selectedFolder = React.useMemo(
@@ -160,57 +127,47 @@ export function FileManager() {
     setInProgress(uploader.inProgress);
   }, [uploader.inProgress]);
 
-  /**
-   * Callback handlers
-   */
-
   const handleToggle = React.useCallback(
-    (event: React.SyntheticEvent<Element, Event>, nodeIds: string[]) => {
+    (event: React.SyntheticEvent<Element, Event>, paths: string[]) => {
       if (!isDragging) {
-        // Newly expanded Ids
-        let expandedSet = new Set(expanded);
-        let addedIds = nodeIds.filter((e) => !expandedSet.has(e));
+        const newPaths = paths.filter((path) => !expanded.includes(path));
 
-        // Note, nodeIds are absolute paths
-        addedIds.forEach((combinedPath) => {
-          if (isCombinedPathChildless(combinedPath, fileTrees)) {
-            // Attempt path load
+        newPaths.forEach((combinedPath) => {
+          const { root, path } = unpackPath(combinedPath);
+          const node = findTreeNode(fileTrees[root], path);
+
+          // Only attempt to load paths if it appears as the node hasn't been fetched.
+          if (!node?.children.length && node?.type === "directory") {
             browsePath(combinedPath);
           }
         });
 
-        setExpanded(nodeIds);
+        setExpanded(paths);
       }
     },
     [browsePath, expanded, fileTrees, isDragging]
   );
 
-  /**
-   * Final component init
-   */
-
-  const hasChangedProject = useHasChanged(projectUuid);
   React.useEffect(() => {
+    if (!projectUuid) return;
+    // The below causes a 400:
+    if (jobUuid && runUuid && !pipelineUuid) return;
+
     reload();
-    // Only load when projectUuid is updated.
-    // Put `reload` in the deps would trigger unwanted requests.
-  }, [hasChangedProject]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectUuid, pipelineUuid, runUuid, jobUuid, reload]);
 
   React.useEffect(() => {
-    const filterInvalidEntries = createInvalidEntryFilter({
-      treeRoots,
-      fileTrees,
-    });
-    // Check expansion/selection based
-    let [newSelect, foundInvalidSelect] = filterInvalidEntries(selectedFiles);
-    let [newExpanded, foundInvalidExpanded] = filterInvalidEntries(expanded);
-    if (foundInvalidSelect) {
-      setSelectedFiles(newSelect);
-    }
-    if (foundInvalidExpanded) {
-      setExpanded(newExpanded);
-    }
-  }, [fileTrees]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (Object.keys(fileTrees).length === 0) return;
+
+    const pruneMissingPaths = (paths: string[]) => {
+      const filtered = filterExistingNodes(fileTrees, paths);
+
+      return filtered.length !== paths.length ? filtered : paths;
+    };
+
+    setSelectedFiles(pruneMissingPaths);
+    setExpanded(pruneMissingPaths);
+  }, [fileTrees, setSelectedFiles]);
 
   const allTreesHaveLoaded = treeRoots.every((root) =>
     hasValue(fileTrees[root])
@@ -219,25 +176,23 @@ export function FileManager() {
   const onMoved = React.useCallback(
     (oldPath: string, newPath: string) => {
       if (!selectedFiles.includes(newPath)) {
-        setSelectedFiles((current) => {
-          return [...current, newPath];
-        });
+        setSelectedFiles((current) => [...current, newPath]);
       }
 
       const wasExpandedBeforeMove =
         expanded.includes(oldPath) && !expanded.includes(newPath);
 
       if (wasExpandedBeforeMove) {
-        setExpanded((expanded) => {
-          return [...expanded, newPath];
-        });
+        setExpanded((expanded) => [...expanded, newPath]);
       }
     },
     [expanded, selectedFiles, setSelectedFiles]
   );
 
   const handleUpload = (files: FileList | File[]) =>
-    uploader.uploadFiles(selectedFolder, files).then(reload);
+    uploader
+      .uploadFiles(selectedFolder, files)
+      .then(() => reload(deepestExpandRef.current));
 
   return (
     <>
@@ -250,7 +205,7 @@ export function FileManager() {
           />
         )}
         <FileManagerLocalContextProvider
-          reload={reload}
+          reload={() => reload(deepestExpandRef.current)}
           setContextMenu={setContextMenu}
         >
           <CreatePipelineButton />
@@ -294,3 +249,16 @@ export function FileManager() {
     </>
   );
 }
+
+const directoryLevel = (path: string) =>
+  segments(path).length - (isDirectory(path) ? 0 : 1);
+
+/** Returns the paths which exist in the provided file trees. */
+const filterExistingNodes = (
+  fileTrees: FileTrees,
+  combinedPaths: string[]
+): string[] =>
+  combinedPaths
+    .map(unpackPath)
+    .filter(({ root, path }) => findTreeNode(fileTrees[root], path))
+    .map(combinePath);
