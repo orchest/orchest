@@ -20,6 +20,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
+type setThirdPartyConfigFunc func(string, kubernetes.Interface, utils.KubernetesDistros, *orchestv1alpha1.OrchestCluster) bool
+
 var (
 	creationStages = [][]string{
 		{controller.OrchestDatabase, controller.Rabbitmq},
@@ -29,11 +31,20 @@ var (
 		{controller.OrchestWebserver, controller.BuildKitDaemon, controller.NodeAgent},
 	}
 
+	thirdPartyConfigFuncs = map[string]setThirdPartyConfigFunc{
+		registry.ArgoWorkflow:   setDefaultConfig,
+		registry.DockerRegistry: setDockerRegistryConfig,
+		registry.IngressNginx:   setIngressConfig,
+		registry.NvidiaPlugin:   setNvidiaConfig,
+	}
+
 	legacyDefaultDomain = "index.docker.io"
 	defaultDomain       = "docker.io"
 	// Registry helm parameters
 	registryServiceIP = "service.clusterIP"
 )
+
+// set the config for a third party components, and return true if it changes the OrchestCluster
 
 func determineNextPhase(orchest *orchestv1alpha1.OrchestCluster) (
 	orchestv1alpha1.OrchestPhase, orchestv1alpha1.OrchestPhase) {
@@ -189,136 +200,6 @@ func getOrchestComponent(name, hash string,
 
 }
 
-// setRegistryServiceIP defines the registry service IP if not defined
-func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
-	namespace string, app *orchestv1alpha1.ApplicationSpec) (bool, error) {
-
-	var changed = false
-
-	if app.Config.Helm == nil {
-		changed = true
-		app.Config.Helm = &orchestv1alpha1.ApplicationConfigHelm{}
-	}
-
-	if app.Config.Helm.Parameters == nil {
-		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
-	}
-
-	// We first check if there is an IP assigned by the controller for the service in Config
-	// then we check the actual IP of the service if exists, and if they are different the actual
-	// IP takes precedence and the configured IP will be changed to the actual one, (this is to
-	// fix the issue of the instances updated to v2022.07.6 because, controller in that version
-	// assigned the service IP, regardless of the IP of the present service.) If there was
-	// no service, we just find a free IP and set it in the configs
-
-	// We check the current controller assigned service IP first
-	serviceIpIndex := -1
-	for index, param := range app.Config.Helm.Parameters {
-		if param.Name == registryServiceIP {
-			serviceIpIndex = index
-			break
-		}
-	}
-
-	//Now we get the ClusterIP of the service if present
-	var currentIP string
-	registryService, err := client.CoreV1().Services(namespace).Get(ctx, registry.DockerRegistry, metav1.GetOptions{})
-	if err != nil {
-		if !kerrors.IsNotFound(err) {
-			return changed, err
-		}
-	} else {
-		currentIP = registryService.Spec.ClusterIP
-	}
-
-	// If the service is present
-	if currentIP != "" {
-		if serviceIpIndex >= 0 {
-			changed = app.Config.Helm.Parameters[serviceIpIndex].Value != currentIP || changed
-			app.Config.Helm.Parameters[serviceIpIndex].Value = currentIP
-			return changed, nil
-		} else {
-			changed = true
-			app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
-				orchestv1alpha1.HelmParameter{
-					Name:  registryServiceIP,
-					Value: currentIP,
-				})
-			return changed, nil
-		}
-	}
-
-	if serviceIpIndex >= 0 {
-		// If we are here, it means the the ip is already configured
-		return changed, nil
-	}
-
-	// the service ip is not defined, let's find a free IP
-	serviceList, err := client.CoreV1().Services("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return changed, err
-	}
-
-	// Sort the ip addresses
-	sort.Slice(serviceList.Items, func(i, j int) bool {
-
-		ip1 := net.ParseIP(serviceList.Items[i].Spec.ClusterIP).To4()
-		if ip1 == nil {
-			return false
-		}
-
-		ip2 := net.ParseIP(serviceList.Items[j].Spec.ClusterIP).To4()
-		if ip2 == nil {
-			return false
-		}
-
-		return bytes.Compare(ip1, ip2) < 0
-
-	})
-
-	// Find the first free IP
-	var serviceIP string
-	for i := 0; i < len(serviceList.Items)-1; i++ {
-
-		if serviceList.Items[i].Spec.ClusterIP == "" {
-			continue
-		}
-
-		nextIP := nextIP(net.ParseIP(serviceList.Items[i].Spec.ClusterIP).To4(), 1)
-		if nextIP == nil {
-			continue
-		}
-
-		// If next ip is not free
-		if nextIP.Equal(net.ParseIP(serviceList.Items[i+1].Spec.ClusterIP)) {
-			continue
-		}
-
-		serviceIP = nextIP.To4().String()
-		break
-	}
-
-	if serviceIP == "" {
-		lastIP := net.ParseIP(serviceList.Items[len(serviceList.Items)-1].
-			Spec.ClusterIP)
-		if lastIP != nil {
-			return changed, errors.Errorf("no free IP found in the cluster %s", lastIP.String())
-		}
-		lastIP = lastIP.To4()
-
-		serviceIP = nextIP(lastIP, 1).To4().String()
-	}
-
-	changed = true
-	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
-		orchestv1alpha1.HelmParameter{
-			Name:  registryServiceIP,
-			Value: serviceIP,
-		})
-
-	return changed, nil
-}
-
 // nextIP returns the next ip address
 func nextIP(ip net.IP, inc uint) net.IP {
 	v := uint(ip[0])<<24 + uint(ip[1])<<16 + uint(ip[2])<<8 + uint(ip[3])
@@ -436,24 +317,200 @@ func isCustomImage(orchest *orchestv1alpha1.OrchestCluster, component, imageName
 	return false
 }
 
-func isIngressAddonRequired(ctx context.Context, k8sDistro utils.KubernetesDistros, client kubernetes.Interface) bool {
+func setDefaultConfig(name string, client kubernetes.Interface, distro utils.KubernetesDistros,
+	orchest *orchestv1alpha1.OrchestCluster) bool {
 
-	// we first need to detect the k8s distribution
-	if k8sDistro == utils.NotDetected {
+	// If the config present, we won't add it
+	if _, ok := orchest.Spec.Applications[name]; ok {
+		return false
+	}
+	orchest.Spec.Applications[name] = orchestv1alpha1.ApplicationSpec{
+		Name:   name,
+		Config: orchestv1alpha1.ApplicationConfig{},
+	}
+	return true
+}
+
+func setDockerRegistryConfig(name string, client kubernetes.Interface, distro utils.KubernetesDistros,
+	orchest *orchestv1alpha1.OrchestCluster) bool {
+
+	// set docker-registry default values
+	var changed = false
+	app, ok := orchest.Spec.Applications[name]
+	if !ok {
+		app = orchestv1alpha1.ApplicationSpec{
+			Name: name,
+			Config: orchestv1alpha1.ApplicationConfig{
+				Helm: &orchestv1alpha1.ApplicationConfigHelm{},
+			},
+		}
+		orchest.Spec.Applications[name] = app
+	}
+
+	// We first check if there is an IP assigned by the controller for the service in Config
+	// then we check the actual IP of the service if exists, and if they are different the actual
+	// IP takes precedence and the configured IP will be changed to the actual one, (this is to
+	// fix the issue of the instances updated to v2022.07.6 because, controller in that version
+	// assigned the service IP, regardless of the IP of the present service.) If there was
+	// no service, we just find a free IP and set it in the configs
+
+	// We check the current controller assigned service IP first
+	serviceIpIndex := -1
+	for index, param := range app.Config.Helm.Parameters {
+		if param.Name == registryServiceIP {
+			serviceIpIndex = index
+			break
+		}
+	}
+
+	//Now we get the ClusterIP of the service if present
+	var currentIP string
+	registryService, err := client.CoreV1().Services(orchest.Namespace).Get(context.Background(), registry.DockerRegistry, metav1.GetOptions{})
+	if err != nil {
+		if !kerrors.IsNotFound(err) {
+			return false
+		}
+	} else {
+		currentIP = registryService.Spec.ClusterIP
+	}
+
+	// If the service is present
+	if currentIP != "" {
+		if serviceIpIndex >= 0 {
+			changed = app.Config.Helm.Parameters[serviceIpIndex].Value != currentIP || changed
+			app.Config.Helm.Parameters[serviceIpIndex].Value = currentIP
+			return changed
+		} else {
+			changed = true
+			app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
+				orchestv1alpha1.HelmParameter{
+					Name:  registryServiceIP,
+					Value: currentIP,
+				})
+			return changed
+		}
+	}
+
+	if serviceIpIndex >= 0 {
+		// If we are here, it means the the ip is already configured
+		return changed
+	}
+
+	// the service ip is not defined, let's find a free IP
+	serviceList, err := client.CoreV1().Services("").List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return changed
+	}
+
+	// Sort the ip addresses
+	sort.Slice(serviceList.Items, func(i, j int) bool {
+
+		ip1 := net.ParseIP(serviceList.Items[i].Spec.ClusterIP).To4()
+		if ip1 == nil {
+			return false
+		}
+
+		ip2 := net.ParseIP(serviceList.Items[j].Spec.ClusterIP).To4()
+		if ip2 == nil {
+			return false
+		}
+
+		return bytes.Compare(ip1, ip2) < 0
+
+	})
+
+	// Find the first free IP
+	var serviceIP string
+	for i := 0; i < len(serviceList.Items)-1; i++ {
+
+		if serviceList.Items[i].Spec.ClusterIP == "" {
+			continue
+		}
+
+		nextIP := nextIP(net.ParseIP(serviceList.Items[i].Spec.ClusterIP).To4(), 1)
+		if nextIP == nil {
+			continue
+		}
+
+		// If next ip is not free
+		if nextIP.Equal(net.ParseIP(serviceList.Items[i+1].Spec.ClusterIP)) {
+			continue
+		}
+
+		serviceIP = nextIP.To4().String()
+		break
+	}
+
+	if serviceIP == "" {
+		lastIP := net.ParseIP(serviceList.Items[len(serviceList.Items)-1].
+			Spec.ClusterIP)
+		if lastIP != nil {
+			return changed
+		}
+		lastIP = lastIP.To4()
+
+		serviceIP = nextIP(lastIP, 1).To4().String()
+	}
+
+	changed = true
+	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
+		orchestv1alpha1.HelmParameter{
+			Name:  registryServiceIP,
+			Value: serviceIP,
+		})
+
+	return changed
+}
+
+func setNvidiaConfig(name string, client kubernetes.Interface, distro utils.KubernetesDistros,
+	orchest *orchestv1alpha1.OrchestCluster) bool {
+	// GKE installs the nvidia device plugin itself
+	if distro == utils.GKE {
+		return false
+	}
+	return setDefaultConfig(name, client, distro, orchest)
+}
+
+func setIngressConfig(name string, client kubernetes.Interface, distro utils.KubernetesDistros,
+	orchest *orchestv1alpha1.OrchestCluster) bool {
+
+	if distro == utils.NotDetected {
 		klog.Error("Failed to detect k8s distribution")
 		return false
 	}
 
-	switch k8sDistro {
+	switch distro {
 	case utils.K3s, utils.EKS, utils.GKE, utils.DockerDesktop:
-		return !isNginxIngressInstalled(ctx, client)
+		if !isNginxIngressInstalled(client) {
+			return false
+		}
 	default:
 		return false
 	}
 
+	return setDefaultConfig(name, client, distro, orchest)
 }
 
-func syncThirdPartyApplication(appName string, orchest *orchestv1alpha1.OrchestCluster, k8sdistro utils.KubernetesDistros) bool {
+func isNginxIngressInstalled(client kubernetes.Interface) bool {
+
+	// Detect ingress class name
+	ingressClasses, err := client.NetworkingV1().IngressClasses().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	for _, ingressClass := range ingressClasses.Items {
+		if controller.IsNginxIngressClass(ingressClass.Spec.Controller) {
+			return true
+		}
+	}
+
+	return false
+
+}
+
+func syncThirdPartyApplication(client kubernetes.Interface, appName string,
+	orchest *orchestv1alpha1.OrchestCluster, distro utils.KubernetesDistros, setConfig setThirdPartyConfigFunc) bool {
 
 	changed := false
 	value, ok := orchest.Annotations[controller.GetAppAnnotationKey(appName)]
@@ -463,13 +520,7 @@ func syncThirdPartyApplication(appName string, orchest *orchestv1alpha1.OrchestC
 		// it has to be enaled, if not yet
 		if value == "true" {
 			if _, ok := orchest.Spec.Applications[appName]; !ok {
-				orchest.Spec.Applications[appName] = orchestv1alpha1.ApplicationSpec{
-					Name: appName,
-					Config: orchestv1alpha1.ApplicationConfig{
-						Helm: &orchestv1alpha1.ApplicationConfigHelm{},
-					},
-				}
-				changed = true
+				return setConfig(appName, client, distro, orchest)
 			}
 		} else if value == "false" {
 			// it has to be removed, if enabled
@@ -478,34 +529,9 @@ func syncThirdPartyApplication(appName string, orchest *orchestv1alpha1.OrchestC
 				changed = true
 			}
 		}
-	}
+	} // if the annotation is not present, the we leave the applications alone
 
 	return changed
-}
-
-func isNvidiaRequired(orchest *orchestv1alpha1.OrchestCluster, k8sdistro utils.KubernetesDistros) bool {
-
-	// GKE installs the nvidia device plugin itself
-	if k8sdistro == utils.GKE {
-		return false
-	}
-
-	if value, ok := orchest.Annotations[controller.GpuAnnotationKey]; ok && value == "true" {
-		return true
-	}
-
-	_, ok := orchest.Annotations[registry.NvidiaPlugin]
-
-	return !ok
-}
-
-func isIngressDisabled(orchest *orchestv1alpha1.OrchestCluster) bool {
-
-	if value, ok := orchest.Annotations[controller.IngressAnnotationKey]; ok && value == "false" {
-		return true
-	}
-
-	return false
 }
 
 func isUpdateRequired(orchest *orchestv1alpha1.OrchestCluster, component, imageName string) (newImage string, update bool) {
@@ -523,23 +549,5 @@ func isUpdateRequired(orchest *orchestv1alpha1.OrchestCluster, component, imageN
 
 	update = true
 	return
-
-}
-
-func isNginxIngressInstalled(ctx context.Context, client kubernetes.Interface) bool {
-
-	// Detect ingress class name
-	ingressClasses, err := client.NetworkingV1().IngressClasses().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return false
-	}
-
-	for _, ingressClass := range ingressClasses.Items {
-		if controller.IsNginxIngressClass(ingressClass.Spec.Controller) {
-			return true
-		}
-	}
-
-	return false
 
 }
