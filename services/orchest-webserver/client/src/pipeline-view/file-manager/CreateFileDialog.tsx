@@ -1,3 +1,4 @@
+import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { Checkbox, FormControlLabel } from "@mui/material";
@@ -12,7 +13,11 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
-import { ALLOWED_STEP_EXTENSIONS, StepExtension } from "@orchest/lib-utils";
+import {
+  ALLOWED_STEP_EXTENSIONS,
+  FetchError,
+  StepExtension,
+} from "@orchest/lib-utils";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { FileManagementRoot } from "../common";
@@ -95,15 +100,6 @@ export const CreateFileDialog = ({
   );
 
   React.useEffect(() => {
-    if (error) {
-      setAlert("Failed to create file", String(error), () => {
-        setError(null);
-        return true;
-      });
-    }
-  }, [error, setAlert, setError]);
-
-  React.useEffect(() => {
     if (isOpen) {
       reset(defaultFormState(canCreateStep));
     }
@@ -120,6 +116,22 @@ export const CreateFileDialog = ({
     fileName,
     extension
   );
+
+  React.useEffect(() => {
+    if (!error) return;
+
+    const message =
+      error instanceof FetchError && error.status === 409 ? (
+        `A file named "${fileName}" already exists.`
+      ) : (
+        <ErrorSummary error={error} />
+      );
+
+    setAlert("Error", message, () => {
+      setError(null);
+      return true;
+    });
+  }, [error, setAlert, setError, fileName]);
 
   return (
     <Dialog
