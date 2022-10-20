@@ -483,101 +483,18 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 	if copy.Spec.Applications == nil {
 		changed = true
+
 		copy.Spec.Applications = map[string]orchestv1alpha1.ApplicationSpec{}
 		for _, app := range occ.config.DefaultApplications {
-			copy.Spec.Applications[app.Name] = orchestv1alpha1.ApplicationSpec{
-				Name: app.Name,
-			}
-		}
-
-		for _, app := range occ.config.DefaultApplications {
-			copy.Spec.Applications[app.Name] = orchestv1alpha1.ApplicationSpec{
-				Name: app.Name,
-				Config: orchestv1alpha1.ApplicationConfig{
-					Helm: &orchestv1alpha1.ApplicationConfigHelm{},
-				},
-			}
+			// we enable the annotation, then the config will be added later
+			copy.Annotations[controller.GetAppAnnotationKey(app.Name)] = "true"
 		}
 	}
 
-	changed = changed || syncThirdPartyApplication(registry.NvidiaPlugin, copy, occ.k8sDistro)
-	changed = changed || syncThirdPartyApplication(registry.IngressNginx, copy, occ.k8sDistro)
-	changed = changed || syncThirdPartyApplication(registry.DockerRegistry, copy, occ.k8sDistro)
-	changed = changed || syncThirdPartyApplication(registry.ArgoWorkflow, copy, occ.k8sDistro)
-
-	/*
-		if isNvidiaRequired(copy, occ.k8sDistro) {
-
-			gpuEnabled := false
-			for _, app := range copy.Spec.Applications {
-				if app.Name == registry.NvidiaPlugin {
-					gpuEnabled = true
-					continue
-				}
-			}
-			if !gpuEnabled {
-				changed = true
-				copy.Spec.Applications = append(copy.Spec.Applications, orchestv1alpha1.ApplicationSpec{
-					Name: registry.NvidiaPlugin,
-					Config: orchestv1alpha1.ApplicationConfig{
-						Helm: &orchestv1alpha1.ApplicationConfigHelm{},
-					},
-				})
-			}
-		}
-	*/
-
-	/*
-		if isIngressDisabled(copy) {
-			ingressEnabled := false
-			applications := make([]orchestv1alpha1.ApplicationSpec, 0, 0)
-			for _, app := range copy.Spec.Applications {
-				if app.Name == registry.IngressNginx {
-					ingressEnabled = true
-					continue
-				}
-				applications = append(applications, app)
-			}
-
-			// If ingress is enabled, it has to be removed from the .Spec.Applications,
-			// k8s ensures we are using the latest object version.
-			if ingressEnabled {
-				copy.Spec.Applications = applications
-				changed = true
-			}
-		} else if isIngressAddonRequired(ctx, occ.k8sDistro, occ.Client()) {
-			ingressEnabled := false
-			for _, app := range copy.Spec.Applications {
-				if app.Name == registry.IngressNginx {
-					ingressEnabled = true
-				}
-			}
-
-			if !ingressEnabled {
-				copy.Spec.Applications = append(copy.Spec.Applications, orchestv1alpha1.ApplicationSpec{
-					Name: registry.IngressNginx,
-				})
-				changed = true
-			}
-		}
-	*/
-
-	// set docker-registry default values
-	/*
-		for i := 0; i < len(copy.Spec.Applications); i++ {
-			app := &copy.Spec.Applications[i]
-			if app.Name == registry.DockerRegistry {
-
-				registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), copy.Namespace, app)
-				if err != nil {
-					klog.Error(err)
-					return changed, err
-				}
-
-				changed = changed || registryChanged
-			}
-		}
-	*/
+	for name, configFunc := range thirdPartyConfigFuncs {
+		appChanged := syncThirdPartyApplication(occ.Client(), name, copy, occ.k8sDistro, configFunc)
+		changed = changed || appChanged
+	}
 
 	if changed || !reflect.DeepEqual(copy.Spec, orchest.Spec) {
 		_, err := occ.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
