@@ -1,6 +1,7 @@
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
+import { join, truncateForDisplay } from "@/utils/path";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -111,10 +112,8 @@ export const CreateFileDialog = ({
     "shouldCreateStep",
   ]);
 
-  const displayPath = combinePath(
-    `${prettifyRoot(root)}${selectedFolder}`,
-    fileName,
-    extension
+  const displayPath = truncateForDisplay(
+    join(prettifyRoot(root), selectedFolder, `${fileName}.${extension}`)
   );
 
   React.useEffect(() => {

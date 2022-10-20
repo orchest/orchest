@@ -1,6 +1,7 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { join, truncateForDisplay } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -118,7 +119,9 @@ export const CreateFolderDialog = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  {prettifyRoot(root) + lastSelectedFolder}
+                  {truncateForDisplay(
+                    join(prettifyRoot(root), lastSelectedFolder, "/")
+                  )}
                 </InputAdornment>
               ),
             }}
