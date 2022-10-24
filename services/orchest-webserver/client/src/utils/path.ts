@@ -66,6 +66,20 @@ export const isValidFilePath = (
   !isDirectory(path) &&
   hasExtension(path, ...allowedExtensions);
 
+export const parents = (path: string) => {
+  const parts = segments(path);
+  const above: string[] = [];
+  let i = parts.length;
+
+  while (i-- > 1) {
+    above.push(
+      (path.startsWith("/") ? "/" : "") + join(...parts.slice(0, -i)) + "/"
+    );
+  }
+
+  return above;
+};
+
 /** Returns true if the `ancestorPath` is a directory that includes `path`. */
 export const hasAncestor = (path: string, ancestorPath: string) =>
   isDirectory(ancestorPath) &&
