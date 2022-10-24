@@ -82,7 +82,7 @@ export const ProjectsTable = ({
     return projects.map((project) => {
       return {
         ...project,
-        id: project.path,
+        id: project.uuid,
         settings: true,
         disabled: projectsBeingDeleted.includes(project.uuid),
       };
