@@ -8,6 +8,7 @@ import type {
   Project,
   ReducerActionWithCallback,
 } from "@/types";
+import { FetchError } from "@orchest/lib-utils";
 import React from "react";
 
 export enum BUILD_IMAGE_SOLUTION_VIEW {
@@ -409,8 +410,11 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
       });
 
       if (!readOnlyReason) return true;
-      if (buildStatus === "environmentsBuildInProgress")
-        return new Error(readOnlyReason);
+      if (buildStatus === "environmentsBuildInProgress") {
+        // In read-only mode, readOnlyReason should be populated via FetchError.
+        // because requestStartSession in useAutoStartSession will check if result instanceof FetchError
+        return new FetchError(readOnlyReason);
+      }
 
       return triggerRequestBuild(validationData, requestedFromView);
     },
