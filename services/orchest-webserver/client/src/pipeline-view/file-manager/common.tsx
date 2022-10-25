@@ -331,7 +331,15 @@ export const getFilePathRelativeToPipeline = (
   fullFilePath: string | undefined,
   pipelineCwd: string
 ) => {
-  if (!hasValue(fullFilePath)) return pipelineCwd;
+  if (!hasValue(fullFilePath)) {
+    // By returning "/" editing the file path would always mean that
+    // the "/" has to be deleted first since specifying an absolute
+    // path wouldn't work.
+    if (pipelineCwd === "/") {
+      return "";
+    }
+    return pipelineCwd;
+  }
   return isInDataFolder(fullFilePath)
     ? getFilePathInDataFolder(fullFilePath)
     : relative(pipelineCwd, cleanFilePath(fullFilePath));
