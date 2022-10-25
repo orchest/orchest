@@ -9,8 +9,7 @@
 
 This page contains the installation instructions for self-hosting the open source version of Orchest.
 
-Alternatively, you can try out [our Cloud offering](https://cloud.orchest.io/signup)
-which comes with a free, fully configured Orchest instance.
+The easiest way to use Orchest is through our free [hosted version](https://cloud.orchest.io/signup). Get up and running with a fully configured Orchest instance in less than 2 minutes.
 
 ```{note}
 Orchest is in beta.
@@ -18,9 +17,9 @@ Orchest is in beta.
 
 ## Prerequisites
 
-To install Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). Any cluster should work. You can either pick a managed
+To install Orchest you will need a running [Kubernetes (k8s) cluster](https://kubernetes.io/docs/setup/). You can either pick a managed
 service by one of the certified [cloud platforms](https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/) or create a cluster
-locally. For single node deployments, we recommend using at (the very) least 2 CPU and 8GB of RAM
+yourself. For single node deployments, we recommend using at (the very) least 2 CPU and 8GB of RAM
 (see {ref}`CPU contention <cpu-contention-dns>`).
 Do note that only the following container runtimes are supported:
 
@@ -37,11 +36,7 @@ below. In case you have custom requirements, be sure to first check out the
 
 We recommend installing Orchest on a clean cluster to prevent clashes with existing cluster-level resources,
 even though installing Orchest on an existing cluster is fully supported.
-The supported operating systems are:
-
-- Linux (`x86_64`)
-- [Windows Subsystem for Linux 2](https://docs.microsoft.com/en-us/windows/wsl/about) (WSL2)
-- macOS (M1 Macs should use [Rosetta](https://support.apple.com/en-us/HT211861) for emulation)
+At this time we only support running Orchest on Linux (`x86_64`). Either through `minikube` on a Linux bare-metal/VM or on a Kubernetes cluster.
 
 ```{raw} html
 :file: install_widget.html
@@ -75,7 +70,7 @@ cluster, then one of the following subsections might be helpful:
   such as AWS EC2 instances.
 - {ref}`Scarse (CPU) resources - tweak DNS settings <cpu-contention-dns>`: Increase DNS query
   timeout to prevent name resolution failing during time of CPU resource contention. Especially
-  applicable for single node deployments close to the minimum requirement of 2 CPU.
+  applicable for single node deployments close to the minimum requirement of 2 vCPU.
 
 (install-fqdn)=
 
