@@ -157,9 +157,6 @@ The command below needs to be run in every terminal window you open!
 ```bash
 # Use minikube's Docker daemon:
 eval $(minikube -p minikube docker-env)
-
-# Verify whether you are using minikube's Docker daemon
-echo "$MINIKUBE_ACTIVE_DOCKERD"
 ```
 
 Next, you can build Orchest's images. Again, there is an important realization to make here and that
@@ -169,12 +166,14 @@ deploy the `orchest-controller` with tag `Y`, then the `orchest-controller` will
 images with tag `Y` from DockerHub (instead of using the locally built images with tag `X`). This
 will become important when {ref}`rebuilding images after making code changes <dev-rebuilding-images>`.
 
+```bash
+# Verify whether you are using minikube's Docker daemon
+echo "$MINIKUBE_ACTIVE_DOCKERD"
+```
+
 Let's build the minimal set of required images for Orchest to run:
 
 ```bash
-# Make sure you are still using minikube's Docker daemon!
-echo "$MINIKUBE_ACTIVE_DOCKERD"
-
 # Set the *tag* to the latest Orchest version available
 export TAG="$(orchest version --latest)"
 
