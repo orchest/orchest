@@ -69,7 +69,7 @@ export const useImportGitRepo = (
       );
 
       backgroundTaskPoller.startPollingBackgroundTask(uuid, (result) => {
-        if (result.status === "SUCCESS") {
+        if (["SUCCESS", "FAILURE"].includes(result.status)) {
           setData(result);
           backgroundTaskPoller.removeAllTasks();
           onComplete(result);

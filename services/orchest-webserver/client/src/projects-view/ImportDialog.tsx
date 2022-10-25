@@ -53,6 +53,8 @@ import React from "react";
 import { useImportGitRepo, validProjectName } from "./hooks/useImportGitRepo";
 
 const ERROR_MAPPING: Record<CreateProjectError, string> = {
+  "git clone failed":
+    "failed to clone repo. Only public repos can be imported.",
   "project move failed": "failed to move project because the directory exists.",
   "project name contains illegal character":
     "project name contains illegal character(s).",
@@ -542,7 +544,7 @@ export const ImportDialog = ({
               <>
                 <Stack direction="column" spacing={1}>
                   <Typography>
-                    Paste <Code>HTTPS</Code> link to <Code>git</Code>{" "}
+                    Paste <Code>HTTPS</Code> link to public <Code>git</Code>{" "}
                     repository:
                   </Typography>
                   <form
