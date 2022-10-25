@@ -48,6 +48,12 @@ No frameworks. No YAML. Just write your data processing code directly in **Pytho
 👉 Get started with our
 [quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial or have a look at our [video tutorials](https://www.orchest.io/video-tutorials) explaining some of Orchest's core concepts.
 
+## Roadmap
+
+Missing a feature? Have a look at [our public roadmap](https://github.com/orgs/orchest/projects/1)
+to see what the team is working on in the short and medium term.
+Still missing it? Please [let us know by opening an issue](https://github.com/orchest/orchest/issues/new/choose)!
+
 ## Examples
 
 Get started with an example project:
