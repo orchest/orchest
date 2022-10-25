@@ -224,6 +224,7 @@ export function checkGate(project_uuid: string) {
 }
 
 export type CreateProjectError =
+  | "git clone failed"
   | "project move failed"
   | "project name contains illegal character";
 
