@@ -44,11 +44,11 @@ export function ActionBar({
 
   const onFileCreated = React.useCallback(
     (file: CreatedFile) => {
-      setSelectedFiles([file.fullPath]);
+      setSelectedFiles([file.combinedPath]);
       reload();
 
       if (file.shouldCreateStep) {
-        createStep(file.fullPath);
+        createStep(file.combinedPath);
       }
     },
     [createStep, setSelectedFiles, reload]

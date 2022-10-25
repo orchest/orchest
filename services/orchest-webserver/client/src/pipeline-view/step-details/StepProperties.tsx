@@ -1,6 +1,6 @@
-import ProjectFilePicker from "@/components/ProjectFilePicker";
+import { FilePicker } from "@/components/FilePicker";
 import { StepState } from "@/types";
-import { hasExtension, join } from "@/utils/path";
+import { hasExtension, isDirectory, join } from "@/utils/path";
 import { pick } from "@/utils/record";
 import { toValidFilename } from "@/utils/toValidFilename";
 import FormControl from "@mui/material/FormControl";
@@ -16,7 +16,6 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import { SelectEnvironment } from "./SelectEnvironment";
-import { useStepDetailsContext } from "./StepDetailsContext";
 import { StepParameters } from "./StepParameters";
 import { useAutoFocusStepName } from "./store/useAutoFocusStepName";
 import { useDelayedSavingStepChanges } from "./useDelayedSavingStepChanges";
@@ -58,7 +57,6 @@ export const StepProperties = ({
   );
 
   const { step, setStepChanges } = useDelayedSavingStepChanges(handleSave);
-  const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
 
   const isNotebookStep = hasExtension(step.file_path, "ipynb");
   const titleInputRef = React.useRef<HTMLInputElement>();
@@ -100,13 +98,18 @@ export const StepProperties = ({
   const autogenerateFilePath = React.useRef(step.file_path.length === 0);
 
   const onChangeFilePath = React.useCallback(
-    (newFilePath: string) => {
-      if (newFilePath.length > 0) {
+    (filePath: string) => {
+      if (filePath.length > 0) {
         autogenerateFilePath.current = false;
       }
+
       setStepChanges((current) => {
-        return newFilePath !== current.file_path
-          ? { file_path: newFilePath }
+        return filePath !== current.file_path
+          ? {
+              file_path: filePath.startsWith("/")
+                ? filePath.substring(1)
+                : filePath,
+            }
           : current;
       });
     },
@@ -155,13 +158,13 @@ export const StepProperties = ({
           data-test-id="step-file-name-textfield"
         />
       ) : (
-        <ProjectFilePicker
-          value={step.file_path}
-          allowedExtensions={ALLOWED_STEP_EXTENSIONS}
-          pipelineCwd={pipelineCwd}
-          onChange={onChangeFilePath}
-          doesFileExist={doesStepFileExist}
-          isCheckingFileValidity={isCheckingFileValidity}
+        <FilePicker
+          root="/project-dir"
+          hideRoots={true}
+          selected={step.file_path}
+          accepts={(path) => !isDirectory(path)}
+          fileFilter={(path) => hasExtension(path, ...ALLOWED_STEP_EXTENSIONS)}
+          onChange={(_, newPath) => onChangeFilePath(newPath)}
         />
       )}
       {isNotebookStep && (

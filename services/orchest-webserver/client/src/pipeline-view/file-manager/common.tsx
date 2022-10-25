@@ -8,6 +8,7 @@ import {
   isDirectory,
   join,
   relative,
+  segments,
 } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
 import { ALLOWED_STEP_EXTENSIONS, fetcher, hasValue } from "@orchest/lib-utils";
@@ -106,18 +107,6 @@ export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
   return [sourcePath, newPath];
 };
 
-export function isDirectoryEntry(
-  entry: FileSystemEntry
-): entry is FileSystemDirectoryEntry {
-  return entry.isDirectory;
-}
-
-export function isFileEntry(
-  entry: FileSystemEntry
-): entry is FileSystemFileEntry {
-  return entry.isFile;
-}
-
 export const getActiveRoot = (
   selected: string[],
   treeRoots: readonly FileManagementRoot[]
@@ -129,47 +118,8 @@ export const getActiveRoot = (
   }
 };
 
-export const replaceTreeNode = (
-  root: TreeNode,
-  replacement: TreeNode
-): TreeNode => {
-  const children: TreeNode[] = [];
-
-  for (const child of root.children) {
-    if (pathMatchesNode(child, replacement.path)) {
-      children.push(replacement);
-    } else if (child.type === "file") {
-      children.push(child);
-    } else if (child.type === "directory") {
-      children.push(replaceTreeNode(child, replacement));
-    }
-  }
-
-  return { ...root, children };
-};
-
-/** Checks if the node matches the provided path. */
-const pathMatchesNode = (node: TreeNode, path: string) =>
-  node.path === path || (node.root && (path === "" || path === "/"));
-
-export const findTreeNode = (
-  root: TreeNode | undefined,
-  path: string
-): TreeNode | undefined => {
-  if (!root || pathMatchesNode(root, path)) return root;
-
-  for (const child of root.children) {
-    if (pathMatchesNode(child, path)) {
-      return child;
-    } else if (child.type === "directory") {
-      const node = findTreeNode(child, path);
-
-      if (hasValue(node)) return node;
-    }
-  }
-
-  return undefined;
-};
+export const directoryLevel = (path: string) =>
+  segments(path).length - (isDirectory(path) ? 0 : 1);
 
 export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
   filePath
@@ -226,27 +176,26 @@ export const findFilesByExtension = async ({
   root,
   projectUuid,
   extensions,
-  node,
+  path,
 }: {
   root: FileManagementRoot;
   projectUuid: string;
   extensions: string[];
-  node: TreeNode;
+  path: string;
 }) => {
-  if (node.type === "file") {
-    const isFileType = hasExtension(node.name, ...extensions);
-    return isFileType ? [node.name] : [];
-  } else if (node.type === "directory") {
-    const response = await searchFilePathsByExtension({
-      projectUuid,
-      root,
-      path: node.path,
-      extensions,
-    });
-
-    return response.files;
+  if (!isDirectory(path)) {
+    const isFileType = hasExtension(path, ...extensions);
+    return isFileType ? [basename(path)] : [];
   }
-  return [];
+
+  const response = await searchFilePathsByExtension({
+    projectUuid,
+    root,
+    path,
+    extensions,
+  });
+
+  return response.files;
 };
 
 /**

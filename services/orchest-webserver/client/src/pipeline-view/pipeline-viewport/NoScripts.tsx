@@ -1,3 +1,4 @@
+import { useFileApi } from "@/api/files/useFileApi";
 import { EmptyState } from "@/components/common/EmptyState";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
@@ -12,7 +13,8 @@ import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useCreateStep } from "../hooks/useCreateStep";
 
 export const NoScripts = () => {
-  const { selectedFiles, fetchFileTrees } = useFileManagerContext();
+  const { selectedFiles } = useFileManagerContext();
+  const expand = useFileApi((api) => api.expand);
   const { isReadOnly, pipeline, projectUuid } = usePipelineDataContext();
   const createStep = useCreateStep();
   const [isFileDialogOpen, setIsFileDialogOpen] = React.useState(false);
@@ -23,10 +25,12 @@ export const NoScripts = () => {
     fetch: cancelableFetch,
   });
 
+  const targetDirectory = lastSelectedFolderPath(selectedFiles);
+
   const handleFileUpload = (files: FileList | File[]) =>
     uploader
-      .uploadFiles(lastSelectedFolderPath(selectedFiles), files)
-      .then(() => fetchFileTrees());
+      .uploadFiles(targetDirectory, files)
+      .then(() => expand("/project-dir", targetDirectory));
 
   return (
     <>
@@ -65,9 +69,9 @@ export const NoScripts = () => {
         onClose={() => setIsFileDialogOpen(false)}
         onSuccess={(file) => {
           if (file.shouldCreateStep) {
-            createStep(file.projectPath);
+            createStep(file.path);
           }
-          fetchFileTrees();
+          expand("/project-dir", file.path);
         }}
       />
     </>

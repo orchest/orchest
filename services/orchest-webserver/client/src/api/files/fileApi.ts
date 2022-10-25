@@ -16,7 +16,7 @@ export type FetchNodeParams = {
   depth?: number;
 };
 
-export type DeleteNodeParams = {
+export type NodeParams = {
   projectUuid: string;
   root: string;
   path: string;
@@ -27,7 +27,7 @@ const fetchNode = (params: FetchNodeParams) =>
     join(FILE_MANAGEMENT_ENDPOINT, "browse") + "?" + queryArgs(prune(params))
   );
 
-const deleteNode = (params: DeleteNodeParams) =>
+const deleteNode = (params: NodeParams) =>
   fetcher<void>(
     join(FILE_MANAGEMENT_ENDPOINT, "delete") + "?" + queryArgs(params),
     { method: "POST" }
@@ -41,4 +41,11 @@ const moveNode = async (projectUuid: string, move: UnpackedMove) => {
   });
 };
 
-export const filesApi = { fetchNode, deleteNode, moveNode };
+const createNode = async (params: NodeParams) => {
+  await fetcher(
+    join(FILE_MANAGEMENT_ENDPOINT, "create") + "?" + queryArgs(params),
+    { method: "POST" }
+  );
+};
+
+export const filesApi = { fetchNode, deleteNode, moveNode, createNode };

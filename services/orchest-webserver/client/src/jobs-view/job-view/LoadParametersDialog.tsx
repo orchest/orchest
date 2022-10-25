@@ -1,10 +1,8 @@
-import ProjectFilePicker from "@/components/ProjectFilePicker";
-import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
+import { useFileApi } from "@/api/files/useFileApi";
+import { FilePicker } from "@/components/FilePicker";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import {
-  FileManagerContextProvider,
-  useFileManagerContext,
-} from "@/pipeline-view/file-manager/FileManagerContext";
+import { FileManagerContextProvider } from "@/pipeline-view/file-manager/FileManagerContext";
+import { hasExtension } from "@/utils/path";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -13,47 +11,31 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Stack from "@mui/material/Stack";
 import React from "react";
 
+type ProjectFilePickerHolderProps = {
+  selectedPath: string;
+  onChangeFilePath: (path: string) => void;
+};
+
 const ProjectFilePickerHolder = ({
   selectedPath,
-  pipelineCwd,
   onChangeFilePath,
-  pipelineUuid,
-  jobUuid,
-  runUuid,
-}: {
-  selectedPath: string;
-  pipelineCwd: string;
-  onChangeFilePath: React.Dispatch<React.SetStateAction<string>>;
-  pipelineUuid: string | undefined;
-  jobUuid: string | undefined;
-  runUuid: string | undefined;
-}) => {
-  const { fetchFileTrees } = useFileManagerContext();
+}: ProjectFilePickerHolderProps) => {
+  const init = useFileApi((api) => api.init);
+  const roots = useFileApi((api) => api.roots);
 
   React.useEffect(() => {
-    fetchFileTrees(1);
-  }, [fetchFileTrees]);
+    if (Object.keys(roots).length !== 0) return;
 
-  const { projectUuid } = useCustomRoute();
-
-  const [doesFileExist, isCheckingFileValidity] = useCheckFileValidity({
-    projectUuid,
-    pipelineUuid,
-    jobUuid,
-    runUuid,
-    path: selectedPath,
-    allowedExtensions: ["json"],
-    useProjectRoot: true,
-  });
+    init(2, ["/project-dir", "/data"]);
+  }, [init, roots]);
 
   return (
-    <ProjectFilePicker
-      value={selectedPath}
-      allowedExtensions={["json"]}
-      pipelineCwd={pipelineCwd}
+    <FilePicker
+      selected={selectedPath}
+      root="/project-dir"
+      hideRoots={true}
+      accepts={(path) => hasExtension(path, "json")}
       onChange={onChangeFilePath}
-      doesFileExist={doesFileExist}
-      isCheckingFileValidity={isCheckingFileValidity}
     />
   );
 };
@@ -69,11 +51,8 @@ export const LoadParametersDialog = ({
   onSubmit: (path: string) => void;
   pipelineUuid: string | undefined;
 }) => {
-  const [selectedPath, setSelectedPath] = React.useState("");
+  const [selectedPath, setSelectedPath] = React.useState("/");
   const { projectUuid, jobUuid, runUuid } = useCustomRoute();
-
-  // Always load parameters from project root
-  const pipelineCwd = "/";
 
   return (
     <Dialog
@@ -102,11 +81,7 @@ export const LoadParametersDialog = ({
             >
               <ProjectFilePickerHolder
                 selectedPath={selectedPath}
-                pipelineCwd={pipelineCwd}
                 onChangeFilePath={setSelectedPath}
-                pipelineUuid={pipelineUuid}
-                jobUuid={jobUuid}
-                runUuid={runUuid}
               />
             </FileManagerContextProvider>
           </Stack>

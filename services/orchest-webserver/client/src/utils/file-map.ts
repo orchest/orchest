@@ -12,7 +12,10 @@ export type FileMetadata = { isDirectory: boolean; fetchedAt: number };
 /** Maps a path to file metadata which is used to represent a set of files. */
 export type FileMap = { [path: string]: FileMetadata };
 
-const fileMetadata = (path: string, fetchedAt?: number): FileMetadata => ({
+export const fileMetadata = (
+  path: string,
+  fetchedAt?: number
+): FileMetadata => ({
   isDirectory: isDirectory(path),
   fetchedAt: fetchedAt ?? Date.now(),
 });

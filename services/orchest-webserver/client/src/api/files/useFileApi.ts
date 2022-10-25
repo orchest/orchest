@@ -5,6 +5,7 @@ import {
 } from "@/pipeline-view/file-manager/common";
 import { defineStoreScope } from "@/store/scoped";
 import * as fileMap from "@/utils/file-map";
+import { fileMetadata } from "@/utils/file-map";
 import { isDirectory } from "@/utils/path";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
 import { hasValue } from "@orchest/lib-utils";
@@ -36,6 +37,7 @@ export type FileApi = {
   >;
   delete: MemoizePending<(root: string, path: string) => Promise<void>>;
   move: MemoizePending<(move: UnpackedMove) => Promise<void>>;
+  create: MemoizePending<(root: string, path: string) => Promise<void>>;
 };
 
 export const useFileApi = create<FileApi>((set, get) => {
@@ -80,6 +82,20 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       set({ roots: { ...roots, [root]: newRoot } });
     }),
+    create: memoizeFor(500, async (root, path) => {
+      const { projectUuid } = get();
+
+      if (!projectUuid) return;
+
+      await filesApi.createNode({ root, path, projectUuid });
+
+      set(({ roots }) => ({
+        roots: {
+          ...roots,
+          [root]: fileMap.addToFileMap(roots[root], path),
+        },
+      }));
+    }),
     delete: memoizeFor(500, async (root, path) => {
       const { projectUuid } = get();
       if (!projectUuid) return;
@@ -121,21 +137,25 @@ export const useFileApi = create<FileApi>((set, get) => {
   };
 });
 
+/**
+ * Flattens the file tree into a map of files,
+ * to make state manipulation easier.
+ */
 export const createFileSet = (
   node: TreeNode,
-  record: fileMap.FileMap = {}
+  files: fileMap.FileMap = {}
 ): fileMap.FileMap => {
-  const createdAt = Date.now();
+  const fetchedAt = Date.now();
 
-  record[node.path] = { fetchedAt: createdAt };
+  files[node.path] = fileMetadata(node.path, fetchedAt);
 
   if (node.children) {
     for (const child of node.children) {
-      record[child.path] = { fetchedAt: createdAt };
+      files[child.path] = fileMetadata(node.path, fetchedAt);
 
-      createFileSet(child, record);
+      createFileSet(child, files);
     }
   }
 
-  return fileMap.sortFileMap(record);
+  return fileMap.sortFileMap(files);
 };

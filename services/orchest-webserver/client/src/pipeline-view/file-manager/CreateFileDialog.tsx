@@ -32,6 +32,9 @@ export type CreateFileDialogProps = {
   canCreateStep: boolean;
   onClose(): void;
   onSuccess(file: CreatedFile): void;
+  cwd?: string;
+  /** Hide the "create step" section entirely. */
+  hideCreateStep?: boolean;
 };
 
 export type FileFormData = {
@@ -41,10 +44,10 @@ export type FileFormData = {
 };
 
 export type CreatedFile = {
-  /** The path, relative to `/project-dir:/`. */
-  projectPath: string;
-  /** The path, starting with `/project-dir:/`. */
-  fullPath: string;
+  /** The path, relative to the root. */
+  path: string;
+  /** The path, including with the root. */
+  combinedPath: string;
   /** Whether the user wants to add the file as a step to the pipeline immediately. */
   shouldCreateStep: boolean;
 };
@@ -64,6 +67,8 @@ const combinePath = (
 export const CreateFileDialog = ({
   isOpen,
   root = "/project-dir",
+  cwd,
+  hideCreateStep,
   canCreateStep,
   onClose,
   onSuccess,
@@ -76,8 +81,8 @@ export const CreateFileDialog = ({
   const { run, setError, error, status } = useAsync<void>();
 
   const selectedFolder = React.useMemo(
-    () => lastSelectedFolderPath(selectedFiles),
-    [selectedFiles]
+    () => cwd ?? lastSelectedFolderPath(selectedFiles),
+    [selectedFiles, cwd]
   );
 
   const createFile = useCreateFile(root);
@@ -93,7 +98,11 @@ export const CreateFileDialog = ({
       await run(
         createFile(projectPath).then((fullPath) => {
           onClose();
-          onSuccess({ projectPath, fullPath, shouldCreateStep });
+          onSuccess({
+            path: projectPath,
+            combinedPath: fullPath,
+            shouldCreateStep,
+          });
         })
       );
     },
@@ -183,23 +192,25 @@ export const CreateFileDialog = ({
                 margin="normal"
               />
             </Grid>
-            <Grid item xs={12}>
-              <FormControlLabel
-                label="Create a new step for this file"
-                title={
-                  canCreateStep
-                    ? "Add this file as a step in the pipeline directly"
-                    : "No pipelines available to add step to"
-                }
-                disabled={!canCreateStep}
-                control={
-                  <Checkbox
-                    {...register("shouldCreateStep")}
-                    checked={shouldCreateStep}
-                  />
-                }
-              />
-            </Grid>
+            {!hideCreateStep && (
+              <Grid item xs={12}>
+                <FormControlLabel
+                  label="Create a new step for this file"
+                  title={
+                    canCreateStep
+                      ? "Add this file as a step in the pipeline directly"
+                      : "No pipelines available to add step to"
+                  }
+                  disabled={!canCreateStep}
+                  control={
+                    <Checkbox
+                      {...register("shouldCreateStep")}
+                      checked={shouldCreateStep}
+                    />
+                  }
+                />
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>
