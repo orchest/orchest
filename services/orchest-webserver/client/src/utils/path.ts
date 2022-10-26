@@ -173,3 +173,6 @@ export const normalizeSegments = (
 
   return result;
 };
+
+export const directoryLevel = (path: string) =>
+  segments(path).length - (isDirectory(path) ? 0 : 1);

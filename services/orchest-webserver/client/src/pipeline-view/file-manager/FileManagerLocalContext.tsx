@@ -5,6 +5,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
+import { unpackPath } from "@/utils/file";
 import { basename } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
 import Box from "@mui/material/Box";
@@ -15,7 +16,6 @@ import {
   filterRedundantChildPaths,
   findPipelineFiles,
   prettifyRoot,
-  unpackPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuMetadata, ContextMenuType } from "./FileManagerContextMenu";

@@ -1,8 +1,9 @@
-import { FileRoot, fileRoots, useFileApi } from "@/api/files/useFileApi";
+import { useFileApi } from "@/api/files/useFileApi";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { prettifyRoot } from "@/pipeline-view/file-manager/common";
 import { CreateFileDialog } from "@/pipeline-view/file-manager/CreateFileDialog";
 import { getIcon, SVGFileIcon } from "@/pipeline-view/file-manager/SVGFileIcon";
+import { FileRoot, fileRoots } from "@/utils/file";
 import { directChildren } from "@/utils/file-map";
 import { basename, dirname, isDirectory } from "@/utils/path";
 import { AddOutlined, FolderOutlined } from "@mui/icons-material";

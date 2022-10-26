@@ -1,95 +1,28 @@
-import { FileRoot, fileRoots } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { StepData } from "@/types";
+import {
+  FileRoot,
+  fileRoots,
+  isInDataFolder,
+  isPipelineFile,
+  Move,
+  UnpackedPath,
+  unpackPath,
+} from "@/utils/file";
 import {
   basename,
   dirname,
   hasAncestor,
   hasExtension,
   isDirectory,
-  join,
   relative,
-  segments,
 } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
 import { ALLOWED_STEP_EXTENSIONS, fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 
-export type FileTrees = Record<string, TreeNode>;
-
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
-
-export type TreeNode = {
-  children: TreeNode[];
-  path: string;
-  type: "directory" | "file";
-  name: string;
-  root: boolean;
-};
-
-export const ROOT_SEPARATOR = ":";
-
-export type UnpackedPath = {
-  /** Either `/project-dir` or `/data` */
-  root: FileRoot;
-  /** The path to the file, always starts with "/" */
-  path: string;
-};
-
-/** Returns true if the path has the `.orchest` extension. */
-export const isPipelineFile = (path: string) => hasExtension(path, "orchest");
-
-/** Returns true if the combined path is in the `/data:` file management root. */
-export const isInDataFolder = (combinedPath: string) =>
-  /^\/data\:?\//.test(combinedPath);
-
-/** Returns true if the combined path is in the `/project-dir:` file management root. */
-export const isInProjectFolder = (combinedPath: string) =>
-  /^\/project-dir\:?\//.test(combinedPath);
-
-/**
- * Unpacks an combined path into `root` and `path`.
- * For example `/project-dir:/a/b` will unpack into `/project-dir:` and `/a/b/`.
- *
- * Note: If the path provided is not a combined path, this function may return
- * something nonsensical. You can use `isCombinedPath` to check.
- */
-export const unpackPath = (combinedPath: string): UnpackedPath => {
-  const root = combinedPath.split(":")[0] as FileRoot;
-  const path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
-
-  return { root, path };
-};
-
-export const isCombinedPath = (path: string) => /^\/([a-z]|\-)+:\//.test(path);
-
-export const combinePath = ({ root, path }: UnpackedPath) =>
-  join(root + ROOT_SEPARATOR, path);
-
-/**
- * A tuple that describes a move.
- * The first value is the old path,
- * the second is the new path.
- */
-export type Move = readonly [string, string];
-
-export type UnpackedMove = {
-  oldRoot: FileRoot;
-  oldPath: string;
-  newRoot: FileRoot;
-  newPath: string;
-};
-
-export const isRename = (moves: readonly Move[]) =>
-  moves.length === 1 && dirname(moves[0][0]) === dirname(moves[0][1]);
-
-export const unpackMove = ([source, target]: Move): UnpackedMove => {
-  const { root: oldRoot, path: oldPath } = unpackPath(source);
-  const { root: newRoot, path: newPath } = unpackPath(target);
-
-  return { oldRoot, oldPath, newRoot, newPath };
-};
 
 export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
   if (sourcePath === dropPath || dropPath.startsWith(sourcePath)) {
@@ -114,9 +47,6 @@ export const getActiveRoot = (selected: string[]): FileRoot => {
     return unpackPath(selected[0]).root;
   }
 };
-
-export const directoryLevel = (path: string) =>
-  segments(path).length - (isDirectory(path) ? 0 : 1);
 
 export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
   filePath

@@ -1,4 +1,4 @@
-import { FileRoot, useFileApi } from "@/api/files/useFileApi";
+import { useFileApi } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -7,6 +7,19 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
+import {
+  combinePath,
+  FileRoot,
+  isCombinedPath,
+  isInDataFolder,
+  isInProjectFolder,
+  isPipelineFile,
+  isRename,
+  Move,
+  UnpackedPath,
+  unpackMove,
+  unpackPath,
+} from "@/utils/file";
 import { basename, dirname } from "@/utils/path";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -18,23 +31,13 @@ import React from "react";
 import { useOpenFile } from "../hooks/useOpenFile";
 import {
   cleanFilePath,
-  combinePath,
   FILE_MANAGER_ROOT_CLASS,
   filterRedundantChildPaths,
   findFilesByExtension,
   findPipelineFiles,
   getMoveFromDrop,
-  isCombinedPath,
-  isInDataFolder,
-  isInProjectFolder,
-  isPipelineFile,
-  isRename,
-  Move,
   pathFromElement,
   prettifyRoot,
-  UnpackedPath,
-  unpackMove,
-  unpackPath,
 } from "./common";
 import { DragIndicator } from "./DragIndicator";
 import { useFileManagerContext } from "./FileManagerContext";

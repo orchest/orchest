@@ -1,10 +1,18 @@
-import { TreeNode, UnpackedMove } from "@/pipeline-view/file-manager/common";
+import { UnpackedMove } from "@/utils/file";
 import { join } from "@/utils/path";
 import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
 import { fetcher } from "@orchest/lib-utils";
 
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
+
+export type TreeNode = {
+  children: TreeNode[];
+  path: string;
+  type: "directory" | "file";
+  name: string;
+  root: boolean;
+};
 
 export type FetchNodeParams = {
   projectUuid: string;

@@ -1,6 +1,7 @@
-import { FileRoot, useFileApi } from "@/api/files/useFileApi";
+import { useFileApi } from "@/api/files/useFileApi";
 import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { firstAncestor } from "@/utils/element";
+import { combinePath, FileRoot, unpackPath } from "@/utils/file";
 import { directChildren } from "@/utils/file-map";
 import { basename, dirname, extname, isDirectory } from "@/utils/path";
 import Box from "@mui/material/Box";
@@ -9,7 +10,6 @@ import TextField from "@mui/material/TextField";
 import produce from "immer";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { combinePath, unpackPath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { FileTreeItem } from "./FileTreeItem";
 

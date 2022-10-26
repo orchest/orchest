@@ -1,6 +1,7 @@
-import { fileRoots, useFileApi } from "@/api/files/useFileApi";
+import { useFileApi } from "@/api/files/useFileApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useUploader } from "@/hooks/useUploader";
+import { combinePath, fileRoots, unpackPath } from "@/utils/file";
 import { isDirectory } from "@/utils/path";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
@@ -8,12 +9,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { ActionBar } from "./ActionBar";
-import {
-  combinePath,
-  getActiveRoot,
-  lastSelectedFolderPath,
-  unpackPath,
-} from "./common";
+import { getActiveRoot, lastSelectedFolderPath } from "./common";
 import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
 import { useFileManagerContext } from "./FileManagerContext";

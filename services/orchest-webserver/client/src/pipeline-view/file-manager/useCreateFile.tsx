@@ -1,6 +1,6 @@
 import { useFileApi } from "@/api/files/useFileApi";
+import { combinePath, FileRoot } from "@/utils/file";
 import React from "react";
-import { ROOT_SEPARATOR } from "./common";
 
 /**
  * Creates a file and returns the absolute path of it.
@@ -14,14 +14,14 @@ type FileCreator = (path: string) => Promise<string>;
  * Returns a function which creates a file relative to the provided root.
  * The returned path will be an absolute project path, starting with `project-dir:/` or `data:/`.
  */
-export const useCreateFile = (root: string): FileCreator => {
+export const useCreateFile = (root: FileRoot): FileCreator => {
   const create = useFileApi((api) => api.create);
 
   const createFile = React.useCallback(
     async (path: string) => {
       await create(root, path);
 
-      return `${root}${ROOT_SEPARATOR}${path}`;
+      return combinePath({ root, path });
     },
     [create, root]
   );

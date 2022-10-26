@@ -1,4 +1,4 @@
-import { UnpackedMove } from "@/pipeline-view/file-manager/common";
+import { FileMetadata, UnpackedMove } from "./file";
 import {
   dirname,
   isDirectory,
@@ -8,7 +8,6 @@ import {
   segments,
 } from "./path";
 
-export type FileMetadata = { isDirectory: boolean; fetchedAt: number };
 /** Maps a path to file metadata which is used to represent a set of files. */
 export type FileMap = { [path: string]: FileMetadata };
 
@@ -62,7 +61,7 @@ export const removeFromFileMap = (
 };
 
 /** Moves the path within its own root or to a different one. */
-export const movePath = (
+export const moveBetween = (
   roots: Record<string, FileMap>,
   move: UnpackedMove
 ): Record<string, FileMap> => {

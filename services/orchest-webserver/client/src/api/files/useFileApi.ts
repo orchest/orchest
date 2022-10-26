@@ -1,25 +1,22 @@
-import {
-  directoryLevel,
-  TreeNode,
-  UnpackedMove,
-} from "@/pipeline-view/file-manager/common";
 import { defineStoreScope } from "@/store/scoped";
-import * as fileMap from "@/utils/file-map";
-import { fileMetadata } from "@/utils/file-map";
-import { dirname, isDirectory } from "@/utils/path";
+import { FileRoot, fileRoots, UnpackedMove } from "@/utils/file";
+import {
+  addToFileMap,
+  FileMap,
+  fileMetadata,
+  moveBetween,
+  removeFromFileMap,
+  replaceDirectoryContents,
+  sortFileMap,
+} from "@/utils/file-map";
+import { directoryLevel, dirname, isDirectory } from "@/utils/path";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
 import { hasValue } from "@orchest/lib-utils";
-import { filesApi } from "./fileApi";
-
-export const fileRoots = ["/project-dir", "/data"] as const;
-
-export type FileRoot = typeof fileRoots[number];
-
-export type RootMap = Record<FileRoot, fileMap.FileMap>;
+import { filesApi, TreeNode } from "./fileApi";
 
 export type FileApi = {
   /** The currently available file maps, organized by root name. */
-  roots: Record<string, fileMap.FileMap>;
+  roots: Record<string, FileMap>;
   /**
    * Fetches the provided directory and merges its entries into its corresponding root.
    * If a file path is provided, its parent directory is fetched instead.
@@ -32,9 +29,7 @@ export type FileApi = {
    * Anything deeper than the provided depth will be pruned in the updated roots.
    * @param depth How many levels of subdirectories to include, if omitted (or undefined) the current maximum depth of the root is used.
    */
-  init: MemoizePending<
-    (depth?: number) => Promise<Record<string, fileMap.FileMap>>
-  >;
+  init: MemoizePending<(depth?: number) => Promise<Record<string, FileMap>>>;
   delete: MemoizePending<(root: string, path: string) => Promise<void>>;
   move: MemoizePending<(move: UnpackedMove) => Promise<void>>;
   create: MemoizePending<(root: string, path: string) => Promise<void>>;
@@ -80,12 +75,12 @@ export const useFileApi = create<FileApi>((set, get) => {
       const node = await fetchNode(root, directory, 1);
       if (!node) return;
 
-      const contents = Object.keys(createFileSet(node)).filter(
+      const contents = Object.keys(createFileMap(node)).filter(
         (entry) => !isDirectory(directory) || entry !== directory
       );
 
       const { roots } = get();
-      const newRoot = fileMap.replaceDirectoryContents(roots[root], contents);
+      const newRoot = replaceDirectoryContents(roots[root], contents);
 
       set({ roots: { ...roots, [root]: newRoot } });
     }),
@@ -99,7 +94,7 @@ export const useFileApi = create<FileApi>((set, get) => {
       set(({ roots }) => ({
         roots: {
           ...roots,
-          [root]: fileMap.addToFileMap(roots[root], path),
+          [root]: addToFileMap(roots[root], path),
         },
       }));
     }),
@@ -112,7 +107,7 @@ export const useFileApi = create<FileApi>((set, get) => {
       set(({ roots }) => ({
         roots: {
           ...roots,
-          [root]: fileMap.removeFromFileMap(roots[root], path),
+          [root]: removeFromFileMap(roots[root], path),
         },
       }));
     }),
@@ -122,7 +117,7 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       await filesApi.moveNode(projectUuid, move);
 
-      set(({ roots }) => ({ roots: fileMap.movePath(roots, move) }));
+      set(({ roots }) => ({ roots: moveBetween(roots, move) }));
     }),
     init: memoizeFor(500, async (depth) => {
       const entries = await Promise.all(
@@ -134,7 +129,7 @@ export const useFileApi = create<FileApi>((set, get) => {
       ).then((roots) => roots.filter(hasValue));
 
       const roots = Object.fromEntries(
-        entries.map(([root, node]) => [root, createFileSet(node)])
+        entries.map(([root, node]) => [root, createFileMap(node)])
       );
 
       set({ roots });
@@ -148,21 +143,21 @@ export const useFileApi = create<FileApi>((set, get) => {
  * Flattens the file tree into a map of files,
  * to make state manipulation easier.
  */
-export const createFileSet = (
+export const createFileMap = (
   node: TreeNode,
-  files: fileMap.FileMap = {}
-): fileMap.FileMap => {
+  fileMap: FileMap = {}
+): FileMap => {
   const fetchedAt = Date.now();
 
-  files[node.path] = fileMetadata(node.path, fetchedAt);
+  fileMap[node.path] = fileMetadata(node.path, fetchedAt);
 
   if (node.children) {
     for (const child of node.children) {
-      files[child.path] = fileMetadata(node.path, fetchedAt);
+      fileMap[child.path] = fileMetadata(node.path, fetchedAt);
 
-      createFileSet(child, files);
+      createFileMap(child, fileMap);
     }
   }
 
-  return fileMap.sortFileMap(files);
+  return sortFileMap(fileMap);
 };
