@@ -65,7 +65,7 @@ export const useFileApi = create<FileApi>((set, get) => {
     Object.keys(get().roots[root] ?? {}).reduce(
       (depth, path) => Math.max(depth, directoryLevel(path)),
       0
-    );
+    ) + 1;
 
   return {
     roots: {},
