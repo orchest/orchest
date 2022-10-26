@@ -44,7 +44,7 @@ export type FilePickerProps = {
   /** Hides the create file button in the file picker. */
   hideCreateFile?: boolean;
   /** Override the automatically set scope parameters. */
-  overrides?: FileApiOverrides;
+  scope?: FileApiOverrides;
   /** Called once an accepted path has been selected. */
   onChange?: (root: FileRoot, path: string) => void;
   /** Only show files matching this filter. */
@@ -61,13 +61,13 @@ export const FilePicker = ({
   hideRoots,
   hideCreateFile,
   selected,
-  overrides,
+  scope,
   onChange,
   fileFilter = () => true,
   accepts = (path) => !isDirectory(path),
 }: FilePickerProps) => {
   selected = addLeadingSlash(selected ?? "/");
-  const roots = useFetchFileRoots(overrides);
+  const roots = useFetchFileRoots(scope);
   const expand = useFileApi((api) => api.expand);
   const [path, setPath] = React.useState(selected ?? "/");
   const [root, setRoot] = React.useState(startingRoot);
@@ -75,8 +75,8 @@ export const FilePicker = ({
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [isCreatingFile, setIsCreatingFile] = React.useState(false);
   const [expanding, setExpanding] = React.useState(false);
-  const overridesRef = React.useRef(overrides);
-  overridesRef.current = overrides;
+  const scopeRef = React.useRef(scope);
+  scopeRef.current = scope;
 
   /** The path if `path` is a directory, otherwise the dirname of the `path`. */
   const cwd = React.useMemo(() => {
@@ -101,7 +101,7 @@ export const FilePicker = ({
   React.useEffect(() => {
     setExpanding(true);
 
-    expand(root, cwd, overridesRef.current).then(() => setExpanding(false));
+    expand(root, cwd, scopeRef.current).then(() => setExpanding(false));
   }, [cwd, expand, root]);
 
   const openMenu = React.useCallback(() => {

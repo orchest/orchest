@@ -42,7 +42,7 @@ export const LoadParametersDialog = ({
             <FilePicker
               hideCreateFile
               hideRoots
-              overrides={{ pipelineUuid }}
+              scope={{ pipelineUuid }}
               root="/project-dir"
               fileFilter={(path) => hasExtension(path, ".json")}
               onChange={(_root, path) =>
