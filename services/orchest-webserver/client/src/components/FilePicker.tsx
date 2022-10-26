@@ -1,10 +1,8 @@
-import { useFileApi } from "@/api/files/useFileApi";
+import { FileRoot, fileRoots, useFileApi } from "@/api/files/useFileApi";
 import { useHasChanged } from "@/hooks/useHasChanged";
-import { FileManagementRoot, treeRoots } from "@/pipeline-view/common";
 import { prettifyRoot } from "@/pipeline-view/file-manager/common";
 import { CreateFileDialog } from "@/pipeline-view/file-manager/CreateFileDialog";
 import { getIcon, SVGFileIcon } from "@/pipeline-view/file-manager/SVGFileIcon";
-import { useCreateFile } from "@/pipeline-view/file-manager/useCreateFile";
 import { directChildren } from "@/utils/file-map";
 import { basename, dirname, isDirectory } from "@/utils/path";
 import { AddOutlined, FolderOutlined } from "@mui/icons-material";
@@ -35,7 +33,7 @@ export type FilePickerProps = {
    */
   selected?: string;
   /** The root to start in. Defaults to `"/project-dir". */
-  root?: FileManagementRoot;
+  root?: FileRoot;
   /** Hides the root selector from the file picker. */
   hideRoots?: boolean;
   fileFilter?: (path: string) => boolean;
@@ -59,7 +57,6 @@ export const FilePicker = ({
   const [root, setRoot] = React.useState(startingRoot);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const createFile = useCreateFile(root);
   const [isCreatingFile, setIsCreatingFile] = React.useState(false);
 
   /** The path if `path` is a directory, otherwise the dirname of the `path`. */
@@ -72,7 +69,7 @@ export const FilePicker = ({
   const rootChanged = useHasChanged(root, (p, c) => hasValue(p) && p !== c);
 
   React.useEffect(() => {
-    init(undefined, ["/project-dir", "/data"]);
+    init();
     setRoot((currentRoot) => currentRoot ?? "/project-dir");
   }, [init, root]);
 
@@ -167,11 +164,11 @@ export const FilePicker = ({
                 defaultValue={startingRoot}
                 value={root}
                 onChange={(event) => {
-                  setRoot(event.target.value as FileManagementRoot);
+                  setRoot(event.target.value as FileRoot);
                   setPath("/");
                 }}
               >
-                {treeRoots.map((root) => (
+                {fileRoots.map((root) => (
                   <FormControlLabel
                     key={root}
                     value={root}

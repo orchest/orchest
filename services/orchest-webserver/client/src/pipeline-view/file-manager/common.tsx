@@ -1,3 +1,4 @@
+import { FileRoot, fileRoots } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { StepData } from "@/types";
 import {
@@ -13,7 +14,6 @@ import {
 import { queryArgs } from "@/utils/text";
 import { ALLOWED_STEP_EXTENSIONS, fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { FileManagementRoot } from "../common";
 
 export type FileTrees = Record<string, TreeNode>;
 
@@ -32,7 +32,7 @@ export const ROOT_SEPARATOR = ":";
 
 export type UnpackedPath = {
   /** Either `/project-dir` or `/data` */
-  root: FileManagementRoot;
+  root: FileRoot;
   /** The path to the file, always starts with "/" */
   path: string;
 };
@@ -56,7 +56,7 @@ export const isInProjectFolder = (combinedPath: string) =>
  * something nonsensical. You can use `isCombinedPath` to check.
  */
 export const unpackPath = (combinedPath: string): UnpackedPath => {
-  const root = combinedPath.split(":")[0] as FileManagementRoot;
+  const root = combinedPath.split(":")[0] as FileRoot;
   const path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
 
   return { root, path };
@@ -75,9 +75,9 @@ export const combinePath = ({ root, path }: UnpackedPath) =>
 export type Move = readonly [string, string];
 
 export type UnpackedMove = {
-  oldRoot: FileManagementRoot;
+  oldRoot: FileRoot;
   oldPath: string;
-  newRoot: FileManagementRoot;
+  newRoot: FileRoot;
   newPath: string;
 };
 
@@ -107,12 +107,9 @@ export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
   return [sourcePath, newPath];
 };
 
-export const getActiveRoot = (
-  selected: string[],
-  treeRoots: readonly FileManagementRoot[]
-): FileManagementRoot => {
+export const getActiveRoot = (selected: string[]): FileRoot => {
   if (selected.length === 0) {
-    return treeRoots[0];
+    return fileRoots[0];
   } else {
     return unpackPath(selected[0]).root;
   }
@@ -178,7 +175,7 @@ export const findFilesByExtension = async ({
   extensions,
   path,
 }: {
-  root: FileManagementRoot;
+  root: FileRoot;
   projectUuid: string;
   extensions: string[];
   path: string;

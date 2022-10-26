@@ -1,3 +1,4 @@
+import { FileRoot } from "@/api/files/useFileApi";
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
@@ -21,14 +22,13 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import { useForm } from "react-hook-form";
-import { FileManagementRoot } from "../common";
 import { lastSelectedFolderPath, prettifyRoot } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { useCreateFile } from "./useCreateFile";
 
 export type CreateFileDialogProps = {
   isOpen: boolean;
-  root?: FileManagementRoot;
+  root?: FileRoot;
   canCreateStep: boolean;
   onClose(): void;
   onSuccess(file: CreatedFile): void;

@@ -1,4 +1,4 @@
-import { useFileApi } from "@/api/files/useFileApi";
+import { FileRoot, useFileApi } from "@/api/files/useFileApi";
 import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { firstAncestor } from "@/utils/element";
 import { directChildren } from "@/utils/file-map";
@@ -8,7 +8,6 @@ import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import produce from "immer";
 import React from "react";
-import { FileManagementRoot } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { combinePath, unpackPath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
@@ -16,7 +15,7 @@ import { FileTreeItem } from "./FileTreeItem";
 
 type FileTreeRowProps = {
   path: string;
-  root: FileManagementRoot;
+  root: FileRoot;
   hoveredPath: string | undefined;
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   onRename: (oldPath: string, newPath: string) => void;

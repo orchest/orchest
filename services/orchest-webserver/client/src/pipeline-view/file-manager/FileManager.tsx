@@ -1,4 +1,4 @@
-import { useFileApi } from "@/api/files/useFileApi";
+import { fileRoots, useFileApi } from "@/api/files/useFileApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useUploader } from "@/hooks/useUploader";
 import { isDirectory } from "@/utils/path";
@@ -6,12 +6,10 @@ import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { treeRoots } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { ActionBar } from "./ActionBar";
 import {
   combinePath,
-  directoryLevel,
   getActiveRoot,
   lastSelectedFolderPath,
   unpackPath,
@@ -57,26 +55,18 @@ export function FileManager() {
   const [contextMenu, setContextMenu] = React.useState<ContextMenuMetadata>(
     undefined
   );
-  const deepestExpandRef = React.useRef(0);
-  deepestExpandRef.current = React.useMemo(() => {
-    if (expanded.length === 0) return 0;
-    else return Math.max(...expanded.map(directoryLevel));
-  }, [expanded]);
 
-  const root = React.useMemo(() => getActiveRoot(selectedFiles, treeRoots), [
+  const root = React.useMemo(() => getActiveRoot(selectedFiles), [
     selectedFiles,
   ]);
 
-  const reload = React.useCallback(
-    async (depth?: number) => {
-      setInProgress(true);
+  const reload = React.useCallback(async () => {
+    setInProgress(true);
 
-      await init(depth, ["/project-dir", "/data"]);
+    await init();
 
-      setInProgress(false);
-    },
-    [init]
-  );
+    setInProgress(false);
+  }, [init]);
 
   const collapseAll = () => {
     setExpanded([]);
@@ -144,7 +134,7 @@ export function FileManager() {
     setExpanded(pruneMissingPaths);
   }, [roots, setSelectedFiles]);
 
-  const allTreesHaveLoaded = treeRoots.every((root) => hasValue(roots[root]));
+  const allTreesHaveLoaded = fileRoots.every((root) => hasValue(roots[root]));
 
   const onMoved = React.useCallback(
     (oldPath: string, newPath: string) => {
@@ -178,7 +168,7 @@ export function FileManager() {
           />
         )}
         <FileManagerLocalContextProvider
-          reload={() => reload(deepestExpandRef.current)}
+          reload={reload}
           setContextMenu={setContextMenu}
         >
           <CreatePipelineButton />
@@ -191,7 +181,7 @@ export function FileManager() {
             {allTreesHaveLoaded && (
               <>
                 <FileTree
-                  treeRoots={treeRoots}
+                  treeRoots={fileRoots}
                   expanded={expanded}
                   onMoved={onMoved}
                   handleToggle={handleToggle}

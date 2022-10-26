@@ -6,15 +6,16 @@ import {
 import { defineStoreScope } from "@/store/scoped";
 import * as fileMap from "@/utils/file-map";
 import { fileMetadata } from "@/utils/file-map";
-import { isDirectory } from "@/utils/path";
+import { dirname, isDirectory } from "@/utils/path";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
 import { hasValue } from "@orchest/lib-utils";
 import { filesApi } from "./fileApi";
 
-const create = defineStoreScope({
-  requires: [],
-  additional: ["projectUuid", "pipelineUuid", "jobUuid", "runUuid"],
-});
+export const fileRoots = ["/project-dir", "/data"] as const;
+
+export type FileRoot = typeof fileRoots[number];
+
+export type RootMap = Record<FileRoot, fileMap.FileMap>;
 
 export type FileApi = {
   /** The currently available file maps, organized by root name. */
@@ -27,21 +28,22 @@ export type FileApi = {
     (root: string, directory?: string | undefined) => Promise<void>
   >;
   /**
-   * Fetches (or reloads) all file trees to a certain depth.
+   * Fetches (or reloads) all file roots up to a certain depth.
    * Anything deeper than the provided depth will be pruned in the updated roots.
    * @param depth How many levels of subdirectories to include, if omitted (or undefined) the current maximum depth of the root is used.
-   * @param rootNames: The roots to fetch, if omitted the currently available roots are fetched.
    */
   init: MemoizePending<
-    (
-      depth?: number,
-      rootNames?: readonly string[]
-    ) => Promise<Record<string, fileMap.FileMap>>
+    (depth?: number) => Promise<Record<string, fileMap.FileMap>>
   >;
   delete: MemoizePending<(root: string, path: string) => Promise<void>>;
   move: MemoizePending<(move: UnpackedMove) => Promise<void>>;
   create: MemoizePending<(root: string, path: string) => Promise<void>>;
 };
+
+const create = defineStoreScope({
+  requires: [],
+  additional: ["projectUuid", "pipelineUuid", "jobUuid", "runUuid"],
+});
 
 export const useFileApi = create<FileApi>((set, get) => {
   const fetchNode = async (
@@ -122,9 +124,9 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       set(({ roots }) => ({ roots: fileMap.movePath(roots, move) }));
     }),
-    init: memoizeFor(500, async (depth, rootNames) => {
+    init: memoizeFor(500, async (depth) => {
       const entries = await Promise.all(
-        (rootNames ?? Object.keys(get().roots)).map((root) =>
+        fileRoots.map((root) =>
           fetchNode(root, undefined, depth ?? getDepth(root) ?? 2)
             .then((node) => (!node ? undefined : ([root, node] as const)))
             .catch(() => undefined)

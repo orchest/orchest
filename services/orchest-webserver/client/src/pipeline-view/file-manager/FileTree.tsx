@@ -1,4 +1,4 @@
-import { useFileApi } from "@/api/files/useFileApi";
+import { FileRoot, useFileApi } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -15,7 +15,6 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import { FileManagementRoot } from "../common";
 import { useOpenFile } from "../hooks/useOpenFile";
 import {
   cleanFilePath,
@@ -44,7 +43,7 @@ import { FileTreeItem } from "./FileTreeItem";
 import { FileTreeRow } from "./FileTreeRow";
 
 export type FileTreeProps = {
-  treeRoots: readonly FileManagementRoot[];
+  treeRoots: readonly FileRoot[];
   expanded: string[];
   handleToggle: (
     event: React.SyntheticEvent<Element, Event>,

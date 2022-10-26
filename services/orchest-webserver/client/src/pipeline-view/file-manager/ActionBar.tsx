@@ -1,3 +1,4 @@
+import { FileRoot } from "@/api/files/useFileApi";
 import { IconButton } from "@/components/common/IconButton";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
@@ -9,7 +10,6 @@ import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import React from "react";
-import { FileManagementRoot } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useCreateStep } from "../hooks/useCreateStep";
 import { CreatedFile, CreateFileDialog } from "./CreateFileDialog";
@@ -25,7 +25,7 @@ const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
 type OpenDialog = "file" | "folder";
 
 type ActionBarProps = {
-  rootFolder: FileManagementRoot;
+  rootFolder: FileRoot;
   uploadFiles: (files: File[] | FileList) => void;
   setExpanded: (items: string[]) => void;
 };

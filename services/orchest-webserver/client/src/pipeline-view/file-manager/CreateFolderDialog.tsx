@@ -1,3 +1,4 @@
+import { FileRoot } from "@/api/files/useFileApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -14,7 +15,6 @@ import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
 import { fetcher, FetchError } from "@orchest/lib-utils";
 import React from "react";
-import { FileManagementRoot } from "../common";
 import {
   FILE_MANAGEMENT_ENDPOINT,
   lastSelectedFolderPath,
@@ -29,7 +29,7 @@ export const CreateFolderDialog = ({
   onSuccess,
 }: {
   isOpen: boolean;
-  root: FileManagementRoot;
+  root: FileRoot;
   onClose: () => void;
   onSuccess: () => void;
 }) => {
