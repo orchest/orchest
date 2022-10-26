@@ -221,29 +221,29 @@ export const FilePicker = ({
                   <ListItemText>{basename(filePath)}</ListItemText>
                 </MenuItem>
               ))}
-            {!hideCreateFile && (
-              <>
-                <Stack direction="row" justifyContent="center" marginTop={1}>
-                  <Button
-                    startIcon={<AddOutlined />}
-                    onClick={() => setIsCreatingFile(true)}
-                  >
-                    New file
-                  </Button>
-                </Stack>
-
-                <CreateFileDialog
-                  root={root}
-                  cwd={cwd}
-                  isOpen={isCreatingFile}
-                  onSuccess={(file) => selectPath(file.path)}
-                  hideCreateStep={true}
-                  onClose={closeMenu}
-                  canCreateStep={false}
-                />
-              </>
-            )}
           </MenuList>
+          {!hideCreateFile && (
+            <>
+              <Stack direction="row" justifyContent="center" marginTop={1}>
+                <Button
+                  startIcon={<AddOutlined />}
+                  onClick={() => setIsCreatingFile(true)}
+                >
+                  New file
+                </Button>
+              </Stack>
+
+              <CreateFileDialog
+                root={root}
+                cwd={cwd}
+                isOpen={isCreatingFile}
+                onSuccess={(file) => selectPath(file.path)}
+                hideCreateStep={true}
+                onClose={closeMenu}
+                canCreateStep={false}
+              />
+            </>
+          )}
         </FormControl>
       </Popover>
     </Box>
