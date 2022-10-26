@@ -27,7 +27,7 @@ jobs:
     secrets:
       aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      github_pat_token: ${{ secrets.PAT_TOKEN }}
+      github_pat_token: ${{ secrets.PAT_RUNNER_ENABLED_TOKEN }}
 
   install_and_update_orchest:
     runs-on: [self-hosted, "${{  github.run_id  }}"]
@@ -40,9 +40,6 @@ jobs:
           /home/ubuntu/start_minikube.sh > /dev/null
 
       - uses: actions/checkout@v3
-        with:
-          repository: orchest/orchest
-          ref: dev
 
       - name: Install Orchest CLI
         run: |
@@ -103,4 +100,4 @@ jobs:
     secrets:
       aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      github_pat_token: ${{ secrets.PAT_TOKEN }}
+      github_pat_token: ${{ secrets.PAT_RUNNER_ENABLED_TOKEN }}
