@@ -1,5 +1,5 @@
 import { FileApiOverrides, useFileApi } from "@/api/files/useFileApi";
-import { useHasChanged } from "@/hooks/useHasChanged";
+import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { prettifyRoot } from "@/pipeline-view/file-manager/common";
 import { CreateFileDialog } from "@/pipeline-view/file-manager/CreateFileDialog";
 import { getIcon, SVGFileIcon } from "@/pipeline-view/file-manager/SVGFileIcon";
@@ -29,7 +29,6 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { PathBreadcrumbs } from "./PathBreadcrumbs";
 
@@ -63,9 +62,8 @@ export const FilePicker = ({
   onChange,
 }: FilePickerProps) => {
   selected = addLeadingSlash(selected ?? "/");
-  const roots = useFileApi((api) => api.roots);
+  const roots = useFetchFileRoots(overrides);
   const expand = useFileApi((api) => api.expand);
-  const init = useFileApi((api) => api.init);
   const [path, setPath] = React.useState(selected ?? "/");
   const [root, setRoot] = React.useState(startingRoot);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -80,18 +78,6 @@ export const FilePicker = ({
     else if (isDirectory(path)) return addLeadingSlash(path);
     else return addLeadingSlash(dirname(path));
   }, [path]);
-
-  const rootChanged = useHasChanged(root, (p, c) => hasValue(p) && p !== c);
-
-  React.useEffect(() => {
-    init(undefined, overridesRef.current);
-    setRoot((currentRoot) => currentRoot ?? "/project-dir");
-  }, [init, root]);
-
-  React.useEffect(() => {
-    if (!rootChanged) return;
-    init(undefined, overridesRef.current);
-  }, [init, rootChanged]);
 
   const bestMatch = React.useMemo(() => {
     const name = basename(path);

@@ -21,7 +21,6 @@ import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuMetadata, ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
-  reload: () => Promise<void>;
   handleClose: () => void;
   handleContextMenu: (
     event: React.MouseEvent,
@@ -71,9 +70,8 @@ const downloadFile = (
 };
 
 export const FileManagerLocalContextProvider: React.FC<{
-  reload: () => Promise<void>;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuMetadata>>;
-}> = ({ children, reload, setContextMenu }) => {
+}> = ({ children, setContextMenu }) => {
   const { setConfirm } = useGlobalContext();
   const {
     state: { pipelines = [], pipelineReadOnlyReason },
@@ -271,7 +269,6 @@ export const FileManagerLocalContextProvider: React.FC<{
   return (
     <FileManagerLocalContext.Provider
       value={{
-        reload,
         handleClose,
         handleContextMenu,
         handleSelect,

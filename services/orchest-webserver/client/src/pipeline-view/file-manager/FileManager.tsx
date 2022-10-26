@@ -1,5 +1,6 @@
 import { useFileApi } from "@/api/files/useFileApi";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { useUploader } from "@/hooks/useUploader";
 import { combinePath, fileRoots, unpackPath } from "@/utils/file";
 import { isDirectory } from "@/utils/path";
@@ -24,21 +25,16 @@ import { FileTreeContainer } from "./FileTreeContainer";
 const START_EXPANDED = ["/project-dir:/"];
 
 export function FileManager() {
-  const {
-    projectUuid,
-    pipelineUuid,
-    runUuid,
-    jobUuid,
-  } = usePipelineDataContext();
+  const { projectUuid } = usePipelineDataContext();
   const {
     isDragging,
     selectedFiles,
     setSelectedFiles,
   } = useFileManagerContext();
 
+  const roots = useFetchFileRoots();
+  const reload = useFileApi((api) => api.init);
   const expand = useFileApi((api) => api.expand);
-  const init = useFileApi((api) => api.init);
-  const roots = useFileApi((api) => api.roots);
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -55,14 +51,6 @@ export function FileManager() {
   const root = React.useMemo(() => getActiveRoot(selectedFiles), [
     selectedFiles,
   ]);
-
-  const reload = React.useCallback(async () => {
-    setInProgress(true);
-
-    await init();
-
-    setInProgress(false);
-  }, [init]);
 
   const collapseAll = () => {
     setExpanded([]);
@@ -105,14 +93,6 @@ export function FileManager() {
     },
     [expand, expanded, isDragging]
   );
-
-  React.useEffect(() => {
-    if (!projectUuid) return;
-    // The below causes a 400:
-    if (jobUuid && runUuid && !pipelineUuid) return;
-
-    reload();
-  }, [projectUuid, pipelineUuid, runUuid, jobUuid, reload]);
 
   React.useEffect(() => {
     if (Object.keys(roots).length === 0) return;
@@ -163,10 +143,7 @@ export function FileManager() {
             variant="determinate"
           />
         )}
-        <FileManagerLocalContextProvider
-          reload={reload}
-          setContextMenu={setContextMenu}
-        >
+        <FileManagerLocalContextProvider setContextMenu={setContextMenu}>
           <CreatePipelineButton />
           <ActionBar
             setExpanded={setExpanded}
