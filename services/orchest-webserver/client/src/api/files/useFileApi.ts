@@ -25,7 +25,7 @@ export type FileApi = {
    * If a file path is provided, its parent directory is fetched instead.
    */
   expand: MemoizePending<
-    (root: string, directory?: string | undefined) => Promise<void>
+    (root: FileRoot, directory?: string | undefined) => Promise<void>
   >;
   /**
    * Fetches (or reloads) all file roots up to a certain depth.
