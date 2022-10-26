@@ -34,8 +34,10 @@ export type FilePickerProps = {
   selected?: string;
   /** The root to start in. Defaults to `"/project-dir". */
   root?: FileRoot;
-  /** Hides the root selector from the file picker. */
+  /** Hides the root selector in the file picker. */
   hideRoots?: boolean;
+  /** Hides the create file button in the file picker. */
+  hideCreateFile?: boolean;
   fileFilter?: (path: string) => boolean;
   accepts?: (path: string) => boolean;
   onChange?: (root: string, path: string) => void;
@@ -44,6 +46,7 @@ export type FilePickerProps = {
 export const FilePicker = ({
   root: startingRoot = "/project-dir",
   hideRoots,
+  hideCreateFile,
   selected,
   accepts,
   fileFilter: fileFilter = () => true,
@@ -227,18 +230,20 @@ export const FilePicker = ({
                 New file
               </Button>
             </Stack>
+            {!hideCreateFile && (
+              <CreateFileDialog
+                root={root}
+                cwd={cwd}
+                isOpen={isCreatingFile}
+                onSuccess={(file) => selectPath(file.path)}
+                hideCreateStep={true}
+                onClose={closeMenu}
+                canCreateStep={false}
+              />
+            )}
           </MenuList>
         </FormControl>
       </Popover>
-      <CreateFileDialog
-        root={root}
-        cwd={cwd}
-        isOpen={isCreatingFile}
-        onSuccess={(file) => selectPath(file.path)}
-        hideCreateStep={true}
-        onClose={closeMenu}
-        canCreateStep={false}
-      />
     </Box>
   );
 };
