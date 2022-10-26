@@ -4,6 +4,7 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
@@ -79,14 +80,11 @@ export const FileTree = React.memo(function FileTreeComponent({
     hoveredPath,
     isDragging,
   } = useFileManagerContext();
-  const roots = useFileApi((api) => api.roots);
+  const roots = useFetchFileRoots();
+  const reload = useFileApi((api) => api.init);
   const moveFile = useFileApi((api) => api.move);
 
-  const {
-    handleSelect,
-    reload,
-    setFileInRename,
-  } = useFileManagerLocalContext();
+  const { handleSelect, setFileInRename } = useFileManagerLocalContext();
 
   const { navigateToJupyterLab } = useOpenFile();
 
