@@ -15,7 +15,6 @@ import {
 import { AddOutlined, FolderOutlined } from "@mui/icons-material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
@@ -119,6 +118,32 @@ export const FilePicker = ({
 
   return (
     <Box position="relative">
+      {!hideRoots && (
+        <FormControl fullWidth sx={{ paddingBottom: 3 }}>
+          <FormLabel>Location</FormLabel>
+          <RadioGroup
+            sx={{ padding: (theme) => theme.spacing(0, 3) }}
+            row={true}
+            defaultValue={startingRoot}
+            value={root}
+            onChange={(event) => {
+              setRoot(event.target.value as FileRoot);
+              setPath("/");
+            }}
+          >
+            {fileRoots.map((root) => (
+              <FormControlLabel
+                key={root}
+                value={root}
+                label={prettifyRoot(root)}
+                control={
+                  <Radio sx={{ marginRight: (theme) => theme.spacing(1) }} />
+                }
+              />
+            ))}
+          </RadioGroup>
+        </FormControl>
+      )}
       <TextField
         label="File path"
         fullWidth
@@ -158,38 +183,6 @@ export const FilePicker = ({
           },
         }}
       >
-        {!hideRoots && (
-          <>
-            <FormControl fullWidth sx={{ paddingBottom: 3 }}>
-              <FormLabel sx={{ padding: (theme) => theme.spacing(2) }}>
-                Location
-              </FormLabel>
-              <RadioGroup
-                sx={{ padding: (theme) => theme.spacing(0, 3) }}
-                defaultValue={startingRoot}
-                value={root}
-                onChange={(event) => {
-                  setRoot(event.target.value as FileRoot);
-                  setPath("/");
-                }}
-              >
-                {fileRoots.map((root) => (
-                  <FormControlLabel
-                    key={root}
-                    value={root}
-                    label={prettifyRoot(root)}
-                    control={
-                      <Radio
-                        sx={{ marginRight: (theme) => theme.spacing(1) }}
-                      />
-                    }
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
-            <Divider />
-          </>
-        )}
         <FormControl fullWidth>
           <FormLabel sx={{ padding: (theme) => theme.spacing(2) }}>
             <PathBreadcrumbs root={root} path={cwd} onChange={setPath} />
