@@ -1,8 +1,5 @@
-import { useFileApi } from "@/api/files/useFileApi";
 import { FilePicker } from "@/components/FilePicker";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { FileManagerContextProvider } from "@/pipeline-view/file-manager/FileManagerContext";
-import { hasExtension } from "@/utils/path";
+import { hasExtension, trimLeadingSlash } from "@/utils/path";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -10,35 +7,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Stack from "@mui/material/Stack";
 import React from "react";
-
-type ProjectFilePickerHolderProps = {
-  selectedPath: string;
-  onChangeFilePath: (path: string) => void;
-};
-
-const ProjectFilePickerHolder = ({
-  selectedPath,
-  onChangeFilePath,
-}: ProjectFilePickerHolderProps) => {
-  const init = useFileApi((api) => api.init);
-  const roots = useFileApi((api) => api.roots);
-
-  React.useEffect(() => {
-    if (Object.keys(roots).length !== 0) return;
-
-    init(2, ["/project-dir", "/data"]);
-  }, [init, roots]);
-
-  return (
-    <FilePicker
-      selected={selectedPath}
-      root="/project-dir"
-      hideRoots={true}
-      accepts={(path) => hasExtension(path, "json")}
-      onChange={onChangeFilePath}
-    />
-  );
-};
 
 export const LoadParametersDialog = ({
   isOpen,
@@ -52,7 +20,6 @@ export const LoadParametersDialog = ({
   pipelineUuid: string | undefined;
 }) => {
   const [selectedPath, setSelectedPath] = React.useState("/");
-  const { projectUuid, jobUuid, runUuid } = useCustomRoute();
 
   return (
     <Dialog
@@ -64,26 +31,24 @@ export const LoadParametersDialog = ({
     >
       <form
         id="load-parameters"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onSubmit={(event) => {
+          event.preventDefault();
           onSubmit(selectedPath);
         }}
       >
         <DialogTitle>Load job parameters file</DialogTitle>
         <DialogContent sx={{ overflowY: "visible" }}>
           <Stack direction="column" spacing={2}>
-            <FileManagerContextProvider
-              projectUuid={projectUuid}
-              pipelineUuid={pipelineUuid}
-              jobUuid={jobUuid}
-              runUuid={runUuid}
-            >
-              <ProjectFilePickerHolder
-                selectedPath={selectedPath}
-                onChangeFilePath={setSelectedPath}
-              />
-            </FileManagerContextProvider>
+            <FilePicker
+              hideCreateFile
+              hideRoots
+              overrides={{ pipelineUuid }}
+              root="/project-dir"
+              fileFilter={(path) => hasExtension(path, ".json")}
+              onChange={(_root, path) =>
+                setSelectedPath(trimLeadingSlash(path))
+              }
+            />
           </Stack>
         </DialogContent>
         <DialogActions>
