@@ -1,0 +1,202 @@
+# Workflow to start an ephemeral (from GH POV) self-hosted action runner
+# by starting an instance one from a stateful pool of AWS instances and
+# registering the runner on the fly. Steps:
+# - get a lock to ensure mutex while fetching an instance from the pool
+# - get a runner de-registration token in case de-registering a runner
+#   left there because of issues is needed
+# - get a runner registration token the register the ephemeral runner
+# - fetch an AWS instance from the existing pool, tag it (used later for
+#   removal), change its user data so that the worker will register on
+#   start, then start the instance. The instance is expected to have:
+#   - the actions-runner installation in /home/ubuntu/actions-runner
+#   - outbound access to the internet, inbound not required
+#
+#  !NOTE: the "Get lock" step mutex behaviour is only at the repository
+#  level, meaning that you can't safely use this action to allocate
+#  instances *from the same pool* across multiple repositories. Also note
+#  that, in order to perform locking, a branch in the repo will be
+#  created and commits will be done to it.
+#
+#  Example usage:
+# jobs:
+#   start_runner:
+#     uses: ./.github/workflows/start-self-hosted-worker.yml
+#     with:
+#       worker_labels: ${{  github.run_id  }}
+#     secrets:
+#       aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#       aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#       github_pat_token: ${{ secrets.PAT_RUNNER_ENABLED_TOKEN }}
+#
+#   do_work:
+#    runs-on: [self-hosted, "${{  github.run_id  }}" ]
+#    ...
+#
+#   stop_runner:
+#     needs: do_work
+#     if: ${{ always() }}
+#     uses: ./.github/workflows/stop-self-hosted-worker.yml
+#     with:
+#       worker_labels: ${{  github.run_id  }}
+#     secrets:
+#       aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#       aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#       github_pat_token: ${{ secrets.PAT_RUNNER_ENABLED_TOKEN }}
+#
+#  Do checkout "stop-self-hosted-worker.yml" for more info.
+name: Start self hosted worker
+
+on:
+  workflow_call:
+    inputs:
+      worker_labels:
+        type: string
+        description: |
+          Comma separated list of labels to apply to the worker. Given
+          the purpose of this workflow, only a single label is needed,
+          which is the label to make sure that this exact worker will
+          run the exact job(s) we want it to. This label should be
+          unique, that is, each worker should have its own unique making
+          label(s) to ensure that it exactly runs the job its meant to
+          and that the backing AWS instance is going to be put back into
+          the pool. Note for future development: if this label is not
+          unique anymore then mutex behaviour should be added to the
+          stop_self_hosted_worker to avoid race conditions. Note that
+          these labels should not contain secrets.
+        required: true
+
+    secrets:
+      aws_access_key_id:
+        required: true
+      aws_secret_access_key:
+        required: true
+      github_pat_token:
+        description: |
+          Classic PAT token with "repo" rights and manage_runners:org.
+          Used to get registration and de-registation tokens for the
+          runner.
+        required: true
+
+jobs:
+  start_self_hosted_worker:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Much sadness,
+      # https://github.com/community/community/discussions/5435.
+      # We need this mutex behaviour because we are not just creating
+      # and deleting instances but starting and stopping them from an
+      # existing pool, and we want to avoid race conditions or complex
+      # behaviour/logic.
+      - name: Get lock
+        uses: ben-z/gh-action-mutex@v1.0-alpha-5
+        with:
+          branch: start-self-hosted-worker-lock-do-not-delete
+
+      # Needed to deregister a leftover dangling runner in case issues
+      # have happened.
+      - name: Get runner deletion token
+        run: |
+          TOKEN=$(gh api \
+          --method POST \
+          -H "Accept: application/vnd.github+json" \
+          /repos/orchest/orchest/actions/runners/remove-token \
+          | jq '.token | values' -r)
+          [[ -z "$TOKEN" ]] && { echo "Failed to retrieve removal token." ; exit 1; }
+          echo "RUNNER_REMOVAL_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_pat_token }}
+
+      # Needed to register a new runner.
+      - name: Get runner creation token
+        run: |
+          TOKEN=$(gh api \
+          --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/orchest/orchest/actions/runners/registration-token \
+            | jq '.token | values' -r)
+          [[ -z "$TOKEN" ]] && { echo "Failed to retrieve runner token." ; exit 1; }
+          echo "RUNNER_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_pat_token }}
+
+      - name: Start ephemeral runner
+        run: |
+          echo "Starting worker $WORKER_NAME with labels $WORKER_LABELS."
+
+          # Try to get an instance for 30 minutes.
+          for try in {1..450} ; do
+            instance_id=$(aws ec2 describe-instances --region us-east-2 --no-paginate \
+              --filters 'Name=instance-state-name,Values=stopped' \
+              'Name=tag:oss-test-infra-runner,Values=true' \
+              --query 'Reservations[*].Instances[*].[InstanceId]' | \
+              jq '.[0][0][0] | values ' -r)
+            [[ -n "$instance_id" ]] && break
+            echo "Waiting for a worker instance to be available."
+            sleep 4
+          done
+          [[ -z "$instance_id" ]] && { echo "No available instance." ; exit 1; }
+          echo "Found $instance_id worker instance available."
+          # test_error
+
+          # Will be used later to stop the worker.
+          aws ec2 create-tags --region=us-east-2 --resources $instance_id \
+            --tags Key=oss-test-infra-runner-label,Value=$WORKER_LABELS
+
+          # Set the instance user data so that the worker will start and
+          # register itself.
+          echo $'Content-Type: multipart/mixed; boundary="//"
+          MIME-Version: 1.0
+
+          --//
+          Content-Type: text/cloud-config; charset="us-ascii"
+          MIME-Version: 1.0
+          Content-Transfer-Encoding: 7bit
+          Content-Disposition: attachment; filename="cloud-config.txt"
+
+          #cloud-config
+          cloud_final_modules:
+          - [scripts-user, always]
+
+          --//
+          Content-Type: text/x-shellscript; charset="us-ascii"
+          MIME-Version: 1.0
+          Content-Transfer-Encoding: 7bit
+          Content-Disposition: attachment; filename="userdata.txt"
+
+          #!/bin/bash
+          cd /home/ubuntu/actions-runner
+          su ubuntu -c \'
+
+          # Make really sure that an already registered worker is not in
+          # the way. Manually starting the instance for debugging purposes
+          # could make it happen.
+          ./config remove --token $RUNNER_REMOVAL_TOKEN
+          # https://github.com/actions/runner/discussions/1437
+          rm -rf .runner
+          ./config.sh remove
+
+          ./config.sh --url https://github.com/orchest/orchest \
+            --token $RUNNER_TOKEN \
+            --ephemeral \
+            --labels $WORKER_LABELS \
+            --name $WORKER_NAME \
+            --unattended
+          # Run in the background so that the rest of the startup sequence
+          # can proceed, e.g. to let the ssm manager start.
+          ./run.sh &
+            \'
+          --//--' | envsubst > user_data.txt
+            base64 user_data.txt > user_data_64.txt
+
+            aws ec2 modify-instance-attribute --region us-east-2 \
+              --instance-id $instance_id --attribute userData --value file://user_data_64.txt
+
+            aws ec2 start-instances --region us-east-2 --instance-ids $instance_id
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          WORKER_LABELS: '"${{ inputs.worker_labels }}"'
+          WORKER_NAME: '"worker-${{ inputs.worker_labels }}"'
