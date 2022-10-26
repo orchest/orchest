@@ -1,6 +1,13 @@
 import { FilePicker } from "@/components/FilePicker";
 import { StepState } from "@/types";
-import { hasExtension, isDirectory, join } from "@/utils/path";
+import { FileRoot, UnpackedPath } from "@/utils/file";
+import {
+  addLeadingSlash,
+  hasExtension,
+  isDirectory,
+  join,
+  relative,
+} from "@/utils/path";
 import { pick } from "@/utils/record";
 import { toValidFilename } from "@/utils/toValidFilename";
 import FormControl from "@mui/material/FormControl";
@@ -98,22 +105,16 @@ export const StepProperties = ({
   const autogenerateFilePath = React.useRef(step.file_path.length === 0);
 
   const onChangeFilePath = React.useCallback(
-    (filePath: string) => {
-      if (filePath.length > 0) {
+    (root: FileRoot, path: string) => {
+      if (path.length > 0) {
         autogenerateFilePath.current = false;
       }
 
-      setStepChanges((current) => {
-        return filePath !== current.file_path
-          ? {
-              file_path: filePath.startsWith("/")
-                ? filePath.substring(1)
-                : filePath,
-            }
-          : current;
+      setStepChanges({
+        file_path: toPipelinePath({ root, path }, pipelineCwd ?? "/"),
       });
     },
-    [setStepChanges]
+    [pipelineCwd, setStepChanges]
   );
 
   const onChangeKernel = (updatedKernel: string) => {
@@ -132,9 +133,11 @@ export const StepProperties = ({
 
   React.useEffect(() => {
     if (step.file_path.length === 0) {
-      onChangeFilePath(toValidFilename(step.title));
+      onChangeFilePath("/project-dir", toValidFilename(step.title));
     }
   }, [onChangeFilePath, step.file_path.length, step.title]);
+
+  const { root, path } = toProjectPath(step.file_path, pipelineCwd ?? "/");
 
   return (
     <Stack direction="column" spacing={3}>
@@ -150,7 +153,7 @@ export const StepProperties = ({
       />
       {readOnly ? (
         <TextField
-          value={step.file_path}
+          value={path}
           label="File path"
           disabled={readOnly}
           fullWidth
@@ -159,11 +162,11 @@ export const StepProperties = ({
         />
       ) : (
         <FilePicker
-          root="/project-dir"
-          selected={step.file_path}
+          root={root}
+          selected={path}
           accepts={(path) => !isDirectory(path)}
           fileFilter={(path) => hasExtension(path, ...ALLOWED_STEP_EXTENSIONS)}
-          onChange={(_, newPath) => onChangeFilePath(newPath)}
+          onChange={(root, newPath) => onChangeFilePath(root, newPath)}
         />
       )}
       {isNotebookStep && (
@@ -197,3 +200,14 @@ export const StepProperties = ({
     </Stack>
   );
 };
+
+const toPipelinePath = (
+  { root, path }: UnpackedPath,
+  pipelineCwd: string
+): string =>
+  root === "/data" ? join(root, path) : relative(pipelineCwd, path);
+
+const toProjectPath = (path: string, pipelineCwd: string): UnpackedPath =>
+  path.startsWith("/data/")
+    ? { root: "/data", path: path.substring("/data".length) }
+    : { root: "/project-dir", path: addLeadingSlash(join(pipelineCwd, path)) };
