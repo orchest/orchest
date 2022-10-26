@@ -1,21 +1,12 @@
 name: Integration tests
 
 on:
-  push:
-    branches:
-      - dev
-    # Run on all file changes, except for ... but always run when the
-    # workflow for integration tests is changed.
-    paths:
-      - "**"
-      - "!docs/**"
-      - "!.github/**"
-      - ".github/workflows/integration-tests.yml"
-      - "!README.md"
+  # Manual request.
+  workflow_dispatch:
+
   pull_request:
     branches:
       - master
-      - dev
     paths:
       - "**"
       - "!docs/**"
@@ -23,16 +14,27 @@ on:
       - ".github/workflows/integration-tests.yml"
       - "!README.md"
 
-# Pending or running workflows for the same branch will be cancelled,
-# always keep the latest.
 concurrency:
-  group: integration-tests-${{ github.ref }}
+  # (this workflow)-(this branch)
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  integration-tests:
-    runs-on: [self-hosted, Linux, X64]
-    environment: integration-tests
+  start_runner:
+    uses: ./.github/workflows/start-self-hosted-worker.yml
+    with:
+      worker_labels: ${{  github.run_id  }}-${{ matrix.id }}
+    secrets:
+      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      github_pat_token: ${{ secrets.PAT_RUNNER_ENABLED_TOKEN }}
+
+    # Create N workers, each with its own task.
+    strategy:
+      matrix:
+        id: [1, 2, 3]
+
+  run_e2e_tests:
     strategy:
       # When one test fails, do not cancel other runs, because this will
       # kill Cypress processes leaving the Dashboard hanging. This
@@ -40,78 +42,97 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        # For parallelism. See the link if you plan to increase it.
-        # https://docs.cypress.io/guides/guides/parallelization#Run-completion-delay
-        instance: [1]
+        id: [1, 2, 3]
+    runs-on: [self-hosted, "${{  github.run_id  }}-${{ matrix.id }}"]
 
     steps:
-      # Necessary because orchest might make the owner of the userdir
-      # root, which will break the checkout action.
-      - name: chown workspace
-        run: sudo chown -R $USER:$USER ${{ github.workspace }}
+      - name: Start minikube
+        # Ad hoc script to maintain the cluster across instance type
+        # changes and other caveats.
+        run: |
+          /home/ubuntu/start_minikube.sh > /dev/null
 
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: pnpm i --filter '@orchest/cypress'
+      - name: Install Orchest CLI
+        run: |
+          virtualenv -p python venv > /dev/null 2>&1
+          source venv/bin/activate
+          pip install --upgrade pyyaml
+          pip install -e orchest-cli
 
-      # Cleanup state before running tests.
+      - name: Start Orchest uninstall
+        run: |
+          # Make it happen in parallel with the build.
+          source venv/bin/activate
+          orchest uninstall &
+
+      - name: Build Orchest
+        run: |
+          ORCHEST_VERSION=$(
+            curl \
+              https://update-info.orchest.io/api/orchest/update-info/v3\?version\=TEST \
+              -s | jq -r '.latest_version | values')
+          [[ -z "$ORCHEST_VERSION" ]] && \
+            { echo "Failed to retrieve orchest version." ; exit 1; }
+          eval $(minikube -p minikube docker-env)
+          echo "Building with version $ORCHEST_VERSION"
+          bash scripts/build_container.sh \
+            -o $ORCHEST_VERSION \
+            -t $ORCHEST_VERSION
+
+      - name: Install Orchest
+        run: |
+          while kubectl describe namespace orchest > /dev/null 2>& 1; \
+            do echo "Waiting for Orchest uninstall to finish" && sleep 5; done
+          source venv/bin/activate
+          orchest install --dev
+
       - name: Pre cleanup
         run: |
           killall Cypress || echo "Did not need to kill Cypress."
           killall nodejs || echo "Did not need to kill Node.js."
           killall chrome || echo "Did not need to kill Chrome."
-          # Stop Orchest by killing all its resources.
-          # NOTE: We can not make use of the `orchest stop` to do this,
-          # because:
-          # - the command might have been broken by the version of the
-          #   previous deployment.
-          # - first building and then using `orchest stop` wouldn't
-          #   reliably work as the previous deployment does not need to
-          #   be compatible.
-          # NOTE: Assumes that `orchest stop` does not have any
-          # side-effects.
-          [ ! -z "$(docker ps -a -q -f network=orchest)" ] \
-            && docker rm -fv $(docker ps -a -q -f network=orchest)
-          docker image prune -f
-          [ ! -z "$(docker images --filter 'label=_orchest_project_uuid' -q)" ] \
-            && docker rmi -f $(docker images --filter "label=_orchest_project_uuid" -q)
-          exit 0
 
-      # Orchest won't be able to write files that are part of a project
-      # that was copied in the existing project directory otherwise.
-      # NOTE: the permissions have to be `2775` to make sure the sticky
-      # bit is set on the userdir which is done as part of the
-      # `clean_userdir.sh` script.
-      - name: Fix group w/x permissions.
+      - name: Install dependencies
         run: |
-          chmod 775 -R ${{ github.workspace }}
-          bash scripts/clean_userdir.sh
+          # https://github.com/cypress-io/cypress/issues/8948
+          sudo n 16.13.0
 
-      - name: Build and Start Orchest
-        run: |
-          bash scripts/build_container.sh
-          ./orchest start --cloud
+          pnpm i --filter '@orchest/cypress'
 
-      # Can't use the action provided by cypress because of
-      # https://github.com/cypress-io/github-action/issues/145.
-      - name: Run tests
+      - name: Run cypress tests
         run: |
-          umask 002 && scripts/run_integration_tests.sh -a -- --record \
-          --parallel --group "Integration tests"
+          # Temporary workaround for tests that break state when not
+          # passing.
+          rm cypress/cypress/integration/app.spec.ts
+
+          # TODO: Fix argument passing in script.
+          sed -i -e 's/cy:run -- /cy:run /g' \
+            scripts/run_integration_tests.sh
+
+          source venv/bin/activate
+          scripts/run_integration_tests.sh -a -- \
+            --config baseUrl="http://$(minikube ip)" \
+            --record true \
+            --parallel \
+            --group "Integration tests ${{ github.run_id }}"
         env:
           CYPRESS_PROJECT_ID: ${{ secrets.CYPRESS_PROJECT_ID }}
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-          # Recommended: passing the GitHub token lets this action
-          # correctly determine the unique run id necessary to re-run
-          # the checks.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Avoid consuming compute if Cypress leaves dangling processes.
-      - name: Post cleanup
-        if: always()
-        run: |
-          killall Cypress || echo "Did not need to kill Cypress."
-          killall nodejs || echo "Did not need to kill Node.js."
-          killall chrome || echo "Did not need to kill Chrome."
+  stop_runner:
+    needs: run_e2e_tests
+    if: ${{ always() }}
+    uses: ./.github/workflows/stop-self-hosted-worker.yml
+    with:
+      worker_labels: ${{  github.run_id  }}-${{ matrix.id }}
+    secrets:
+      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      github_pat_token: ${{ secrets.PAT_RUNNER_ENABLED_TOKEN }}
+
+    strategy:
+      matrix:
+        id: [1, 2, 3]
