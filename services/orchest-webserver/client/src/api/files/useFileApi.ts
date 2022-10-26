@@ -35,9 +35,11 @@ export type FileApi = {
   create: MemoizePending<(root: string, path: string) => Promise<void>>;
 };
 
+const additionalScope = ["jobUuid", "runUuid", "pipelineUuid"] as const;
+
 const create = defineStoreScope({
-  requires: [],
-  additional: ["projectUuid", "pipelineUuid", "jobUuid", "runUuid"],
+  requires: ["projectUuid"],
+  additional: additionalScope,
 });
 
 export const useFileApi = create<FileApi>((set, get) => {
@@ -67,6 +69,11 @@ export const useFileApi = create<FileApi>((set, get) => {
       0
     ) + 1;
 
+  subscribe(function clearOnScopeChange(prev, state) {
+    if (equalsShallow(prev, state, additionalScope)) return;
+
+    set({ roots: {} });
+  });
   return {
     roots: {},
     expand: memoizeFor(500, async (root, directory = "/") => {
