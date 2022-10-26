@@ -19,7 +19,10 @@ const create = defineStoreScope({
 export type FileApi = {
   /** The currently available file maps, organized by root name. */
   roots: Record<string, fileMap.FileMap>;
-  /** Expands the file tree in the specified root by fetching the provided directory. */
+  /**
+   * Fetches the provided directory and merges its entries into its corresponding root.
+   * If a file path is provided, its parent directory is fetched instead.
+   */
   expand: MemoizePending<
     (root: string, directory?: string | undefined) => Promise<void>
   >;
@@ -70,8 +73,10 @@ export const useFileApi = create<FileApi>((set, get) => {
   return {
     roots: {},
     expand: memoizeFor(500, async (root, directory = "/") => {
+      directory = isDirectory(directory) ? directory : dirname(directory);
+
       const node = await fetchNode(root, directory, 1);
-      if (!node) return undefined;
+      if (!node) return;
 
       const contents = Object.keys(createFileSet(node)).filter(
         (entry) => !isDirectory(directory) || entry !== directory
