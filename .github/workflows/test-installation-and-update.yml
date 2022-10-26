@@ -40,9 +40,6 @@ jobs:
           /home/ubuntu/start_minikube.sh > /dev/null
 
       - uses: actions/checkout@v3
-        with:
-          repository: orchest/orchest
-          ref: dev
 
       - name: Install Orchest CLI
         run: |
