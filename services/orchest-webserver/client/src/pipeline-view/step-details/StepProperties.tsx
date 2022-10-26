@@ -1,13 +1,7 @@
 import { FilePicker } from "@/components/FilePicker";
 import { StepState } from "@/types";
 import { FileRoot, UnpackedPath } from "@/utils/file";
-import {
-  addLeadingSlash,
-  hasExtension,
-  isDirectory,
-  join,
-  relative,
-} from "@/utils/path";
+import { addLeadingSlash, hasExtension, join, relative } from "@/utils/path";
 import { pick } from "@/utils/record";
 import { toValidFilename } from "@/utils/toValidFilename";
 import FormControl from "@mui/material/FormControl";
@@ -164,7 +158,6 @@ export const StepProperties = ({
         <FilePicker
           root={root}
           selected={path}
-          accepts={(path) => !isDirectory(path)}
           fileFilter={(path) => hasExtension(path, ...ALLOWED_STEP_EXTENSIONS)}
           onChange={(root, newPath) => onChangeFilePath(root, newPath)}
         />

@@ -45,9 +45,15 @@ export type FilePickerProps = {
   hideCreateFile?: boolean;
   /** Override the automatically set scope parameters. */
   overrides?: FileApiOverrides;
-  fileFilter?: (path: string) => boolean;
-  accepts?: (path: string) => boolean;
+  /** Called once an accepted path has been selected. */
   onChange?: (root: FileRoot, path: string) => void;
+  /** Only show files matching this filter. */
+  fileFilter?: (path: string) => boolean;
+  /**
+   * Which paths are accepted and will trigger `onChange`.
+   * By default, all non-directories are accepted.
+   */
+  accepts?: (path: string) => boolean;
 };
 
 export const FilePicker = ({
@@ -55,10 +61,10 @@ export const FilePicker = ({
   hideRoots,
   hideCreateFile,
   selected,
-  accepts,
   overrides,
-  fileFilter: fileFilter = () => true,
   onChange,
+  fileFilter = () => true,
+  accepts = (path) => !isDirectory(path),
 }: FilePickerProps) => {
   selected = addLeadingSlash(selected ?? "/");
   const roots = useFetchFileRoots(overrides);
