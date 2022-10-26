@@ -1,0 +1,106 @@
+name: Test installation and update
+
+on:
+  # Manual request.
+  workflow_dispatch:
+
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!.github/**"
+      - ".github/workflows/integration-tests.yml"
+      - "!README.md"
+
+concurrency:
+  # (this workflow)-(this branch)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  start_runner:
+    uses: ./.github/workflows/start-self-hosted-worker.yml
+    with:
+      worker_labels: ${{  github.run_id  }}
+    secrets:
+      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      github_pat_token: ${{ secrets.PAT_TOKEN }}
+
+  install_and_update_orchest:
+    runs-on: [self-hosted, "${{  github.run_id  }}"]
+
+    steps:
+      - name: Start minikube
+        # Ad hoc script to maintain the cluster across instance type
+        # changes and other caveats.
+        run: |
+          /home/ubuntu/start_minikube.sh > /dev/null
+
+      - uses: actions/checkout@v3
+        with:
+          repository: orchest/orchest
+          ref: dev
+
+      - name: Install Orchest CLI
+        run: |
+          virtualenv -p python venv > /dev/null 2>&1
+          source venv/bin/activate
+          pip install --upgrade pyyaml
+          pip install -e orchest-cli
+
+      - name: Start Orchest uninstall
+        run: |
+          # Make it happen in parallel with the build.
+          source venv/bin/activate
+          orchest uninstall &
+
+      - name: Build Orchest
+        run: |
+          ORCHEST_VERSION=$(
+            curl \
+              https://update-info.orchest.io/api/orchest/update-info/v3\?version\=TEST \
+              -s | jq -r '.latest_version | values')
+          [[ -z "$ORCHEST_VERSION" ]] && \
+            { echo "Failed to retrieve orchest version." ; exit 1; }
+          echo "Building with version $ORCHEST_VERSION"
+          eval $(minikube -p minikube docker-env)
+          bash scripts/build_container.sh \
+            -o $ORCHEST_VERSION \
+            -t $ORCHEST_VERSION \
+            -m
+
+      - name: Install Orchest
+        run: |
+          while kubectl describe namespace orchest > /dev/null 2>& 1; \
+            do echo "Waiting for Orchest uninstall to finish" && sleep 5; done
+          source venv/bin/activate
+          orchest install --dev
+          orchest version
+
+      - name: Build Orchest with new version
+        run: |
+          eval $(minikube -p minikube docker-env)
+          bash scripts/build_container.sh \
+            -o v2040.01.0 \
+            -t v2040.01.0 \
+            -m
+
+      - name: Update Orchest
+        run: |
+          source venv/bin/activate
+          orchest update --dev --version=v2040.01.0
+          orchest version | grep v2040.01.0
+
+  stop_runner:
+    needs: install_and_update_orchest
+    if: ${{ always() }}
+    uses: ./.github/workflows/stop-self-hosted-worker.yml
+    with:
+      worker_labels: ${{  github.run_id  }}
+    secrets:
+      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      github_pat_token: ${{ secrets.PAT_TOKEN }}
