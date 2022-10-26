@@ -11,7 +11,7 @@ import {
 } from "@/utils/file-map";
 import { directoryLevel, dirname, isDirectory } from "@/utils/path";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
-import { equalsShallow, prune } from "@/utils/record";
+import { prune } from "@/utils/record";
 import { hasValue } from "@orchest/lib-utils";
 import { filesApi, TreeNode } from "./fileApi";
 
@@ -65,7 +65,7 @@ export type FileApiOverrides = {
   pipelineUuid?: string;
 };
 
-export const useFileApi = create<FileApi>((set, get, { subscribe }) => {
+export const useFileApi = create<FileApi>((set, get) => {
   const fetchNode = async ({
     root,
     path,
@@ -95,12 +95,6 @@ export const useFileApi = create<FileApi>((set, get, { subscribe }) => {
       (depth, path) => Math.max(depth, directoryLevel(path)),
       0
     ) + 1;
-
-  subscribe(function clearOnScopeChange(prev, state) {
-    if (equalsShallow(prev, state, additionalScope)) return;
-
-    set({ roots: {} });
-  });
 
   return {
     roots: {},
