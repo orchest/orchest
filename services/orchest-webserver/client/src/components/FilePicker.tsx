@@ -68,6 +68,7 @@ export const FilePicker = ({
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [isCreatingFile, setIsCreatingFile] = React.useState(false);
+  const [expanding, setExpanding] = React.useState(false);
   const overridesRef = React.useRef(overrides);
   overridesRef.current = overrides;
 
@@ -92,7 +93,9 @@ export const FilePicker = ({
   }, [roots, root, path]);
 
   React.useEffect(() => {
-    expand(root, cwd, overridesRef.current);
+    setExpanding(true);
+
+    expand(root, cwd, overridesRef.current).then(() => setExpanding(false));
   }, [cwd, expand, root]);
 
   const openMenu = React.useCallback(() => {
@@ -114,7 +117,8 @@ export const FilePicker = ({
 
   if (Object.keys(roots[root] ?? {}).length === 0) return null;
 
-  const errorText = !roots[root][path] ? "File not found" : undefined;
+  const errorText =
+    !expanding && !roots[root][path] ? "File not found" : undefined;
 
   return (
     <Box position="relative">
