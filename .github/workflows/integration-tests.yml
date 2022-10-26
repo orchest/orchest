@@ -44,6 +44,7 @@ jobs:
       matrix:
         id: [1, 2, 3]
     runs-on: [self-hosted, "${{  github.run_id  }}-${{ matrix.id }}"]
+    environment: integration-tests
 
     steps:
       - name: Start minikube
