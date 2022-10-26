@@ -114,6 +114,7 @@ jobs:
           source venv/bin/activate
           scripts/run_integration_tests.sh -a -- \
             --config baseUrl="http://$(minikube ip)" \
+            --spec "cypress/integration/onboarding.spec.ts,cypress/integration/auth.spec.ts" \
             --record true \
             --parallel \
             --group "Integration tests ${{ github.run_id }}"
