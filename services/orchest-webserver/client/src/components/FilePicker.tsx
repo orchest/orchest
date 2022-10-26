@@ -1,11 +1,17 @@
-import { useFileApi } from "@/api/files/useFileApi";
+import { FileApiOverrides, useFileApi } from "@/api/files/useFileApi";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { prettifyRoot } from "@/pipeline-view/file-manager/common";
 import { CreateFileDialog } from "@/pipeline-view/file-manager/CreateFileDialog";
 import { getIcon, SVGFileIcon } from "@/pipeline-view/file-manager/SVGFileIcon";
 import { FileRoot, fileRoots } from "@/utils/file";
 import { directChildren } from "@/utils/file-map";
-import { basename, dirname, isDirectory } from "@/utils/path";
+import {
+  addLeadingSlash,
+  basename,
+  dirname,
+  isDirectory,
+  trimLeadingSlash,
+} from "@/utils/path";
 import { AddOutlined, FolderOutlined } from "@mui/icons-material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -39,9 +45,11 @@ export type FilePickerProps = {
   hideRoots?: boolean;
   /** Hides the create file button in the file picker. */
   hideCreateFile?: boolean;
+  /** Override the automatically set scope parameters. */
+  overrides?: FileApiOverrides;
   fileFilter?: (path: string) => boolean;
   accepts?: (path: string) => boolean;
-  onChange?: (root: string, path: string) => void;
+  onChange?: (root: FileRoot, path: string) => void;
 };
 
 export const FilePicker = ({
@@ -50,6 +58,7 @@ export const FilePicker = ({
   hideCreateFile,
   selected,
   accepts,
+  overrides,
   fileFilter: fileFilter = () => true,
   onChange,
 }: FilePickerProps) => {
@@ -62,6 +71,8 @@ export const FilePicker = ({
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [isCreatingFile, setIsCreatingFile] = React.useState(false);
+  const overridesRef = React.useRef(overrides);
+  overridesRef.current = overrides;
 
   /** The path if `path` is a directory, otherwise the dirname of the `path`. */
   const cwd = React.useMemo(() => {
@@ -73,18 +84,20 @@ export const FilePicker = ({
   const rootChanged = useHasChanged(root, (p, c) => hasValue(p) && p !== c);
 
   React.useEffect(() => {
-    init();
+    init(undefined, overridesRef.current);
     setRoot((currentRoot) => currentRoot ?? "/project-dir");
   }, [init, root]);
 
   React.useEffect(() => {
     if (!rootChanged) return;
-    init();
+    init(undefined, overridesRef.current);
   }, [init, rootChanged]);
 
   const bestMatch = React.useMemo(() => {
     const name = basename(path);
     const directory = addLeadingSlash(isDirectory(path) ? path : dirname(path));
+
+    if (!roots[root]) return undefined;
 
     return Object.keys(directChildren(roots[root], directory)).sort(
       (left, right) =>
@@ -94,7 +107,7 @@ export const FilePicker = ({
   }, [roots, root, path]);
 
   React.useEffect(() => {
-    expand(root, cwd);
+    expand(root, cwd, overridesRef.current);
   }, [cwd, expand, root]);
 
   const openMenu = React.useCallback(() => {
@@ -130,7 +143,9 @@ export const FilePicker = ({
         onKeyUp={(event) => {
           if (event.key === "Enter") {
             event.preventDefault();
-            selectPath(bestMatch);
+            if (bestMatch) {
+              selectPath(bestMatch);
+            }
           }
         }}
         InputProps={{
@@ -248,12 +263,6 @@ export const FilePicker = ({
     </Box>
   );
 };
-
-const addLeadingSlash = (path: string) =>
-  path.startsWith("/") ? path : "/" + path;
-
-const trimLeadingSlash = (path: string) =>
-  path.startsWith("/") ? path.substring(1) : path;
 
 const getMatchScore = (left: string, right: string) => {
   left = left.toLowerCase();

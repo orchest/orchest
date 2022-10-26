@@ -174,5 +174,11 @@ export const normalizeSegments = (
   return result;
 };
 
+export const addLeadingSlash = (path: string) =>
+  path.startsWith("/") ? path : "/" + path;
+
+export const trimLeadingSlash = (path: string) =>
+  path.startsWith("/") ? path.substring(1) : path;
+
 export const directoryLevel = (path: string) =>
   segments(path).length - (isDirectory(path) ? 0 : 1);
