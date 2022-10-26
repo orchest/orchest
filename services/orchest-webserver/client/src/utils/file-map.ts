@@ -119,7 +119,7 @@ export const replaceDirectoryContents = (
 export const isChildOf = (path: string, directory: string): boolean =>
   path.startsWith(directory) && path !== directory;
 
-/** Returns the children (including grandchildren) of the directory within the file map. */
+/** Given a file map, Returns the children (including grandchildren) of a directory. */
 export const children = (fileMap: FileMap, directory: string): FileMap =>
   Object.fromEntries(
     Object.entries(fileMap).filter(([path]) => isChildOf(path, directory))
@@ -130,8 +130,8 @@ export const isDirectChildOf = (path: string, directory: string): boolean =>
   segments(path.substring(directory.length)).length === 1;
 
 /**
- * Given a file map, returns the paths which are direct children of the directory within the file map.
- * The returned path are all absolute.
+ * Given a file map, returns the paths which are direct children of a directory.
+ * The returned paths are all absolute.
  */
 export const directChildren = (fileMap: FileMap, directory: string): FileMap =>
   Object.fromEntries(
