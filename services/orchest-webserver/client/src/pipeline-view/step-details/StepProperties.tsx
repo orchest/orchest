@@ -160,7 +160,6 @@ export const StepProperties = ({
       ) : (
         <FilePicker
           root="/project-dir"
-          hideRoots={true}
           selected={step.file_path}
           accepts={(path) => !isDirectory(path)}
           fileFilter={(path) => hasExtension(path, ...ALLOWED_STEP_EXTENSIONS)}
