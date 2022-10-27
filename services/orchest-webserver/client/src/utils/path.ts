@@ -97,7 +97,7 @@ export const normalize = (path: string) => {
   let normalized = normalizeSegments(segments(path), !isAbsolutePath).join("/");
 
   if (isAbsolutePath) normalized = "/" + normalized;
-  if (isDirectory(path)) normalized = normalized + "/";
+  if (isDirectory(path)) normalized = ensureDirectory(normalized);
 
   return normalized;
 };
@@ -184,11 +184,11 @@ export const ensureDirectory = (path: string) =>
 
 /** Adds a leading slash to the path if it doesn't already have one. */
 export const addLeadingSlash = (path: string) =>
-  path.startsWith("/") ? path : "/" + path;
+  path[0] === "/" ? path : "/" + path;
 
 /** Trims a leading slash to the path if it has one. */
 export const trimLeadingSlash = (path: string) =>
-  path.startsWith("/") ? path.substring(1) : path;
+  path[0] === "/" ? path.substring(1) : path;
 
 /**
  * Returns the directory level (or depth) of a path.
