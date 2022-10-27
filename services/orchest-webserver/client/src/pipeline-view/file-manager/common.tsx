@@ -221,19 +221,6 @@ export const getFilePathRelativeToPipeline = (
     : relative(pipelineCwd, cleanFilePath(fullFilePath));
 };
 
-export const lastSelectedFolderPath = (selectedFiles: string[]) => {
-  if (selectedFiles.length === 0) return "/";
-  // Note that the selection order in selectedFiles is backward,
-  // so we don't need to find from end
-  const lastSelected = selectedFiles[0];
-
-  // example:
-  // given:     /project-dir:/hello-world/foo/bar.py
-  // outcome:   /hello-world/foo/
-  const matches = lastSelected.match(/^\/[^\/]+:((\/[^\/]+)*\/)([^\/]*)/);
-  return matches ? matches[1] : "/";
-};
-
 /**
  * This function removes the child path if its ancestor path already appears in the list.
  * e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed.

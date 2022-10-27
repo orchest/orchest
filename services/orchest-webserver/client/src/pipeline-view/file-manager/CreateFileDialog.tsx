@@ -1,7 +1,7 @@
-import { FileRoot } from "@/api/files/useFileApi";
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
+import { FileRoot, unpackPath } from "@/utils/file";
 import { join, truncateForDisplay } from "@/utils/path";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -22,19 +22,20 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import { useForm } from "react-hook-form";
-import { lastSelectedFolderPath, prettifyRoot } from "./common";
-import { useFileManagerContext } from "./FileManagerContext";
+import { prettifyRoot } from "./common";
 import { useCreateFile } from "./useCreateFile";
 
 export type CreateFileDialogProps = {
-  isOpen: boolean;
-  root?: FileRoot;
-  canCreateStep: boolean;
-  onClose(): void;
-  onSuccess(file: CreatedFile): void;
-  cwd?: string;
+  /** The folder to create the new folder in. */
+  cwd: string;
+  /** In which root to create the folder. */
+  root: FileRoot;
   /** Hide the "create step" section entirely. */
   hideCreateStep?: boolean;
+  canCreateStep: boolean;
+  isOpen: boolean;
+  onClose(): void;
+  onSuccess(file: CreatedFile): void;
 };
 
 export type FileFormData = {
@@ -44,10 +45,10 @@ export type FileFormData = {
 };
 
 export type CreatedFile = {
+  /** The root the file was created in. */
+  root: FileRoot;
   /** The path, relative to the root. */
   path: string;
-  /** The path, including with the root. */
-  combinedPath: string;
   /** Whether the user wants to add the file as a step to the pipeline immediately. */
   shouldCreateStep: boolean;
 };
@@ -58,55 +59,37 @@ const defaultFormState = (canCreateStep: boolean) => ({
   shouldCreateStep: canCreateStep,
 });
 
-const combinePath = (
-  dirName: string,
-  fileName: string,
-  extension: StepExtension
-) => `${dirName}${fileName}.${extension}`;
-
 export const CreateFileDialog = ({
-  isOpen,
-  root = "/project-dir",
+  root,
   cwd,
+  isOpen,
   hideCreateStep,
   canCreateStep,
   onClose,
   onSuccess,
 }: CreateFileDialogProps) => {
   const { setAlert } = useGlobalContext();
-  const { selectedFiles } = useFileManagerContext();
   const { register, handleSubmit, watch, reset } = useForm<FileFormData>({
     defaultValues: defaultFormState(canCreateStep),
   });
   const { run, setError, error, status } = useAsync<void>();
 
-  const selectedFolder = React.useMemo(
-    () => cwd ?? lastSelectedFolderPath(selectedFiles),
-    [selectedFiles, cwd]
-  );
-
   const createFile = useCreateFile(root);
 
   const onSubmit = React.useCallback(
     async ({ shouldCreateStep, ...file }: FileFormData) => {
-      const projectPath = combinePath(
-        selectedFolder,
-        file.fileName,
-        file.extension
-      );
+      const projectPath = join(cwd, `${file.fileName}.${file.extension}`);
 
       await run(
-        createFile(projectPath).then((fullPath) => {
-          onClose();
-          onSuccess({
-            path: projectPath,
-            combinedPath: fullPath,
-            shouldCreateStep,
-          });
-        })
+        createFile(projectPath)
+          .then(unpackPath)
+          .then(({ root, path }) => {
+            onClose();
+            onSuccess({ root, path, shouldCreateStep });
+          })
       );
     },
-    [run, createFile, onSuccess, onClose, selectedFolder]
+    [cwd, run, createFile, onClose, onSuccess]
   );
 
   React.useEffect(() => {
@@ -122,7 +105,7 @@ export const CreateFileDialog = ({
   ]);
 
   const displayPath = truncateForDisplay(
-    join(prettifyRoot(root), selectedFolder, `${fileName}.${extension}`)
+    join(prettifyRoot(root), cwd, `${fileName}.${extension}`)
   );
 
   React.useEffect(() => {

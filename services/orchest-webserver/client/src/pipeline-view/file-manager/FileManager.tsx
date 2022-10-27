@@ -2,15 +2,14 @@ import { useFileApi } from "@/api/files/useFileApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { useUploader } from "@/hooks/useUploader";
-import { combinePath, fileRoots, unpackPath } from "@/utils/file";
-import { isDirectory } from "@/utils/path";
+import { combinePath, FileRoot, fileRoots, unpackPath } from "@/utils/file";
+import { dirname, isDirectory, nearestDirectory } from "@/utils/path";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { ActionBar } from "./ActionBar";
-import { getActiveRoot, lastSelectedFolderPath } from "./common";
 import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -22,7 +21,7 @@ import { FileManagerLocalContextProvider } from "./FileManagerLocalContext";
 import { FileTree } from "./FileTree";
 import { FileTreeContainer } from "./FileTreeContainer";
 
-const START_EXPANDED = ["/project-dir:/"];
+const DEFAULT_CWD = "/project-dir:/";
 
 export function FileManager() {
   const { projectUuid } = usePipelineDataContext();
@@ -42,25 +41,20 @@ export function FileManager() {
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [expanded, setExpanded] = React.useState<string[]>(START_EXPANDED);
+  const [expanded, setExpanded] = React.useState<string[]>([DEFAULT_CWD]);
   const [progress, setProgress] = React.useState(0);
   const [contextMenu, setContextMenu] = React.useState<ContextMenuMetadata>(
     undefined
   );
 
-  const root = React.useMemo(() => getActiveRoot(selectedFiles), [
-    selectedFiles,
-  ]);
+  const { root, path: cwd } = unpackPath(
+    nearestDirectory(selectedFiles[0] || DEFAULT_CWD)
+  );
 
   const collapseAll = () => {
     setExpanded([]);
     setContextMenu(undefined);
   };
-
-  const selectedFolder = React.useMemo(
-    () => lastSelectedFolderPath(selectedFiles),
-    [selectedFiles]
-  );
 
   const uploader = useUploader({
     projectUuid,
@@ -76,7 +70,7 @@ export function FileManager() {
   }, [uploader.inProgress]);
 
   const handleToggle = React.useCallback(
-    (event: React.SyntheticEvent<Element, Event>, paths: string[]) => {
+    (_: React.SyntheticEvent, paths: string[]) => {
       if (!isDragging) {
         const newPaths = paths.filter((path) => !expanded.includes(path));
 
@@ -100,7 +94,7 @@ export function FileManager() {
     const pruneMissingPaths = (paths: string[]) => {
       const filtered = paths
         .map(unpackPath)
-        .filter(({ root, path }) => roots[root][path])
+        .filter(({ root, path }) => roots[root]?.[path])
         .map(combinePath);
 
       return filtered.length !== paths.length ? filtered : paths;
@@ -128,10 +122,22 @@ export function FileManager() {
     [expanded, selectedFiles, setSelectedFiles]
   );
 
-  const handleUpload = (files: FileList | File[]) =>
-    uploader
-      .uploadFiles(selectedFolder, files)
-      .then(() => expand(root, selectedFolder));
+  const addExpand = React.useCallback((root: FileRoot, newPath: string) => {
+    const combinedPath = combinePath({ root, path: newPath });
+    const directory = dirname(combinedPath);
+
+    setExpanded((current) =>
+      current.includes(directory) ? current : [...current, directory]
+    );
+  }, []);
+
+  const handleUpload = React.useCallback(
+    (files: FileList | File[]) =>
+      uploader
+        .uploadFiles(cwd, files)
+        .then(() => expand(root, cwd).then(() => addExpand(root, cwd))),
+    [uploader, root, cwd, addExpand, expand]
+  );
 
   return (
     <>
@@ -148,7 +154,9 @@ export function FileManager() {
           <ActionBar
             setExpanded={setExpanded}
             uploadFiles={handleUpload}
-            rootFolder={root}
+            cwd={cwd}
+            root={root}
+            onCreated={addExpand}
           />
           <FileTreeContainer>
             {allTreesHaveLoaded && (

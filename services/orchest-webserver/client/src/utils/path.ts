@@ -42,6 +42,10 @@ export const extname = (path: string) => {
   return parts.length > 1 ? "." + parts.pop() : "";
 };
 
+/** Returns the path if it is a directory, otherwise its parent. */
+export const nearestDirectory = (path: string) =>
+  isDirectory(path) ? path : dirname(path);
+
 /**
  * Returns true if the path ends with one of the provided extensions.
  * The comparison ignores casing.
@@ -174,11 +178,22 @@ export const normalizeSegments = (
   return result;
 };
 
+/** Ensures that the path ends with a "/". */
+export const ensureDirectory = (path: string) =>
+  isDirectory(path) ? path : path + "/";
+
+/** Adds a leading slash to the path if it doesn't already have one. */
 export const addLeadingSlash = (path: string) =>
   path.startsWith("/") ? path : "/" + path;
 
+/** Trims a leading slash to the path if it has one. */
 export const trimLeadingSlash = (path: string) =>
   path.startsWith("/") ? path.substring(1) : path;
 
+/**
+ * Returns the directory level (or depth) of a path.
+ * Example: `"/foo/bar"` has a depth of `1`, since "bar" is a file.
+ * However: `"/foo/bar/"` has a depth of `2`, since "bar" is a directory.
+ */
 export const directoryLevel = (path: string) =>
-  segments(path).length - (isDirectory(path) ? 0 : 1);
+  segments(nearestDirectory(path)).length;

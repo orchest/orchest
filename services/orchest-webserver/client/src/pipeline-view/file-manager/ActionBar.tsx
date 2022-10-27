@@ -1,6 +1,7 @@
-import { FileRoot } from "@/api/files/useFileApi";
+import { useFileApi } from "@/api/files/useFileApi";
 import { IconButton } from "@/components/common/IconButton";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
+import { combinePath, FileRoot } from "@/utils/file";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
@@ -14,8 +15,6 @@ import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useCreateStep } from "../hooks/useCreateStep";
 import { CreatedFile, CreateFileDialog } from "./CreateFileDialog";
 import { CreateFolderDialog } from "./CreateFolderDialog";
-import { useFileManagerContext } from "./FileManagerContext";
-import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
   svg: { width: 20, height: 20 },
@@ -25,33 +24,36 @@ const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
 type OpenDialog = "file" | "folder";
 
 type ActionBarProps = {
-  rootFolder: FileRoot;
+  root: FileRoot;
+  cwd: string;
   uploadFiles: (files: File[] | FileList) => void;
   setExpanded: (items: string[]) => void;
+  onCreated: (root: FileRoot, path: string) => void;
 };
 
 export function ActionBar({
+  root,
+  cwd,
   uploadFiles,
-  rootFolder,
   setExpanded,
+  onCreated,
 }: ActionBarProps) {
+  const reload = useFileApi((api) => api.init);
   const [openDialog, setOpenDialog] = React.useState<OpenDialog | null>(null);
-  const { setSelectedFiles } = useFileManagerContext();
-  const { reload } = useFileManagerLocalContext();
   const { isReadOnly, pipeline } = usePipelineDataContext();
 
   const createStep = useCreateStep();
 
   const onFileCreated = React.useCallback(
-    (file: CreatedFile) => {
-      setSelectedFiles([file.combinedPath]);
-      reload();
+    ({ root, path, shouldCreateStep }: CreatedFile) => {
+      if (shouldCreateStep) {
+        const combinedPath = combinePath({ root, path });
 
-      if (file.shouldCreateStep) {
-        createStep(file.combinedPath);
+        createStep(combinedPath);
+        onCreated(root, path);
       }
     },
-    [createStep, setSelectedFiles, reload]
+    [createStep, onCreated]
   );
 
   const closeDialog = React.useCallback(() => setOpenDialog(null), []);
@@ -59,17 +61,19 @@ export function ActionBar({
   return (
     <>
       <CreateFileDialog
+        root={root}
+        cwd={cwd}
         isOpen={!isReadOnly && openDialog === "file"}
         canCreateStep={Boolean(pipeline)}
-        root={rootFolder}
         onClose={closeDialog}
         onSuccess={onFileCreated}
       />
       <CreateFolderDialog
+        root={root}
+        cwd={cwd}
         isOpen={!isReadOnly && openDialog === "folder"}
         onClose={closeDialog}
-        root={rootFolder}
-        onSuccess={reload}
+        onSuccess={(path) => onCreated(root, path)}
       />
       <Stack
         direction="row"
@@ -114,7 +118,7 @@ export function ActionBar({
             </FileManagerActionButton>
           )}
         </UploadFilesForm>
-        <FileManagerActionButton title="Refresh" onClick={reload}>
+        <FileManagerActionButton title="Refresh" onClick={() => reload()}>
           <RefreshOutlinedIcon />
         </FileManagerActionButton>
         <FileManagerActionButton

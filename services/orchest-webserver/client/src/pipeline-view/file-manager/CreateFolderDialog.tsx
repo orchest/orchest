@@ -1,9 +1,8 @@
-import { FileRoot } from "@/api/files/useFileApi";
+import { useFileApi } from "@/api/files/useFileApi";
+import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useAsync } from "@/hooks/useAsync";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { join, truncateForDisplay } from "@/utils/path";
-import { queryArgs } from "@/utils/text";
+import { FileRoot } from "@/utils/file";
+import { ensureDirectory, join, truncateForDisplay } from "@/utils/path";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
@@ -13,77 +12,60 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
-import { fetcher, FetchError } from "@orchest/lib-utils";
 import React from "react";
-import {
-  FILE_MANAGEMENT_ENDPOINT,
-  lastSelectedFolderPath,
-  prettifyRoot,
-} from "./common";
-import { useFileManagerContext } from "./FileManagerContext";
+import { prettifyRoot } from "./common";
+
+type CreateFolderDialogProps = {
+  isOpen: boolean;
+  /** The folder to create the new folder in. */
+  cwd: string;
+  /** In which root to create the folder. */
+  root: FileRoot;
+  onClose: () => void;
+  onSuccess?: (path: string) => void;
+};
 
 export const CreateFolderDialog = ({
   isOpen,
   root,
   onClose,
   onSuccess,
-}: {
-  isOpen: boolean;
-  root: FileRoot;
-  onClose: () => void;
-  onSuccess: () => void;
-}) => {
-  // Global state
+  cwd,
+}: CreateFolderDialogProps) => {
+  const createDirectory = useFileApi((api) => api.create);
   const { setAlert } = useGlobalContext();
-  const { projectUuid } = useCustomRoute();
-  const { selectedFiles } = useFileManagerContext();
 
-  const lastSelectedFolder = React.useMemo(() => {
-    return lastSelectedFolderPath(selectedFiles);
-  }, [selectedFiles]);
+  const [error, setError] = React.useState<unknown>();
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [path, setPath] = React.useState(() => "");
 
-  // local states
+  const onSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsCreating(true);
 
-  const [folderPath, setFolderPath] = React.useState(() => "");
+    const newPath = ensureDirectory(join(cwd, path));
 
-  const { run, setError, error, status: createFolderStatus } = useAsync<
-    void,
-    FetchError
-  >();
-  const isCreating = createFolderStatus === "PENDING";
-  const onSubmitModal = async () => {
-    if (isCreating) return;
-
-    await run(
-      fetcher(
-        `${FILE_MANAGEMENT_ENDPOINT}/create-dir?${queryArgs({
-          root,
-          path: `${lastSelectedFolder}${folderPath}/`,
-          projectUuid,
-        })}`,
-        { method: "POST" }
-      ).then(() => {
-        onSuccess();
-      })
-    );
-
-    onClose();
+    createDirectory(root, newPath)
+      .catch((reason) => setError(reason))
+      .then(() => {
+        setIsCreating(false);
+        onClose();
+        setPath("");
+        onSuccess?.(newPath);
+      });
   };
 
   React.useEffect(() => {
-    if (isOpen) {
-      setFolderPath("");
-    }
+    if (isOpen) setPath("");
   }, [isOpen]);
 
   React.useEffect(() => {
     if (error) {
       setAlert(
-        "Error",
-        `Unable to create file. ${error.message}`,
-        (resolve) => {
-          setError(null);
-          resolve(true);
+        "Failed to create folder",
+        <ErrorSummary error={error} />,
+        () => {
+          setError(undefined);
           return true;
         }
       );
@@ -93,35 +75,26 @@ export const CreateFolderDialog = ({
   return (
     <Dialog
       open={isOpen}
-      onClose={isCreating ? undefined : onClose}
+      onClose={onClose}
       data-test-id="file-manager-create-new-folder-dialog"
       maxWidth="sm"
       fullWidth
     >
-      <form
-        id="create-folder"
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onSubmitModal();
-        }}
-      >
+      <form id="create-folder" onSubmit={onSubmit}>
         <DialogTitle>Enter the desired folder name</DialogTitle>
         <DialogContent>
           <TextField
             label="Folder name"
             autoFocus
-            value={folderPath}
+            value={path}
             fullWidth
             disabled={isCreating}
-            onChange={(e) => setFolderPath(e.target.value)}
+            onChange={(event) => setPath(event.target.value)}
             data-test-id="file-manager-file-name-textfield"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  {truncateForDisplay(
-                    join(prettifyRoot(root), lastSelectedFolder)
-                  )}
+                  {truncateForDisplay(join(prettifyRoot(root), cwd))}
                 </InputAdornment>
               ),
             }}
@@ -129,11 +102,7 @@ export const CreateFolderDialog = ({
           />
         </DialogContent>
         <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            onClick={isCreating ? undefined : onClose}
-            tabIndex={-1}
-          >
+          <Button startIcon={<CloseIcon />} onClick={onClose} tabIndex={-1}>
             Cancel
           </Button>
           <Button
