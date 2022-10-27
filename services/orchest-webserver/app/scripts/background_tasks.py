@@ -33,7 +33,9 @@ def git_clone_project(args) -> Tuple[int, str]:
 
         # This way we clone in a directory with the name of the repo if
         # the project_name is not provided.
-        git_command = f"git clone {args.url}"
+        # - GIT_TERMINAL_PROMPT makes the `git` command fail if it has
+        #   to prompt the user for input, e.g. for their username.
+        git_command = f"GIT_TERMINAL_PROMPT=0 git clone {args.url}"
 
         # args.path contains the desired project name, if the user
         # specified it.

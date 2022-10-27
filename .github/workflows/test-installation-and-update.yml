@@ -1,4 +1,4 @@
-name: Integration tests
+name: Test installation and update
 
 on:
   # Manual request.
@@ -23,28 +23,14 @@ jobs:
   start_runner:
     uses: ./.github/workflows/start-self-hosted-worker.yml
     with:
-      worker_labels: ${{  github.run_id  }}-${{ matrix.id }}
+      worker_labels: ${{  github.run_id  }}
     secrets:
       aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       github_pat_token: ${{ secrets.PAT_RUNNER_ENABLED_TOKEN }}
 
-    # Create N workers, each with its own task.
-    strategy:
-      matrix:
-        id: [1, 2, 3]
-
-  run_e2e_tests:
-    strategy:
-      # When one test fails, do not cancel other runs, because this will
-      # kill Cypress processes leaving the Dashboard hanging. This
-      # behaviour might be modifiable in the paid version.
-      # https://github.com/cypress-io/github-action/issues/48
-      fail-fast: false
-      matrix:
-        id: [1, 2, 3]
-    runs-on: [self-hosted, "${{  github.run_id  }}-${{ matrix.id }}"]
-    environment: integration-tests
+  install_and_update_orchest:
+    runs-on: [self-hosted, "${{  github.run_id  }}"]
 
     steps:
       - name: Start minikube
@@ -76,11 +62,12 @@ jobs:
               -s | jq -r '.latest_version | values')
           [[ -z "$ORCHEST_VERSION" ]] && \
             { echo "Failed to retrieve orchest version." ; exit 1; }
-          eval $(minikube -p minikube docker-env)
           echo "Building with version $ORCHEST_VERSION"
+          eval $(minikube -p minikube docker-env)
           bash scripts/build_container.sh \
             -o $ORCHEST_VERSION \
-            -t $ORCHEST_VERSION
+            -t $ORCHEST_VERSION \
+            -m
 
       - name: Install Orchest
         run: |
@@ -88,53 +75,29 @@ jobs:
             do echo "Waiting for Orchest uninstall to finish" && sleep 5; done
           source venv/bin/activate
           orchest install --dev
+          orchest version
 
-      - name: Pre cleanup
+      - name: Build Orchest with new version
         run: |
-          killall Cypress || echo "Did not need to kill Cypress."
-          killall nodejs || echo "Did not need to kill Node.js."
-          killall chrome || echo "Did not need to kill Chrome."
+          eval $(minikube -p minikube docker-env)
+          bash scripts/build_container.sh \
+            -o v2040.01.0 \
+            -t v2040.01.0 \
+            -m
 
-      - name: Install dependencies
+      - name: Update Orchest
         run: |
-          # https://github.com/cypress-io/cypress/issues/8948
-          sudo n 16.13.0
-
-          pnpm i --filter '@orchest/cypress'
-
-      - name: Run cypress tests
-        run: |
-          # Temporary workaround for tests that break state when not
-          # passing.
-          rm cypress/cypress/integration/app.spec.ts
-
-          # TODO: Fix argument passing in script.
-          sed -i -e 's/cy:run -- /cy:run /g' \
-            scripts/run_integration_tests.sh
-
           source venv/bin/activate
-          scripts/run_integration_tests.sh -a -- \
-            --config baseUrl="http://$(minikube ip)" \
-            --spec "cypress/integration/onboarding.spec.ts,cypress/integration/auth.spec.ts" \
-            --record true \
-            --parallel \
-            --group "Integration tests ${{ github.run_id }}"
-        env:
-          CYPRESS_PROJECT_ID: ${{ secrets.CYPRESS_PROJECT_ID }}
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          orchest update --dev --version=v2040.01.0
+          orchest version | grep v2040.01.0
 
   stop_runner:
-    needs: run_e2e_tests
+    needs: install_and_update_orchest
     if: ${{ always() }}
     uses: ./.github/workflows/stop-self-hosted-worker.yml
     with:
-      worker_labels: ${{  github.run_id  }}-${{ matrix.id }}
+      worker_labels: ${{  github.run_id  }}
     secrets:
       aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       github_pat_token: ${{ secrets.PAT_RUNNER_ENABLED_TOKEN }}
-
-    strategy:
-      matrix:
-        id: [1, 2, 3]

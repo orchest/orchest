@@ -1,0 +1,101 @@
+# Sibling workflow of "start-self-hosted-worker", reading the docs of
+# that workflow is a required reading before continuing here.
+# This workflow will stop the instance that was started by the
+# "start-self-hosted-worker" and deal with some edge cases around it.
+name: Stop self hosted worker
+
+on:
+  workflow_call:
+    inputs:
+      worker_labels:
+        type: string
+        description: |
+          Unique making labels that were applied to the worker.
+        required: true
+
+    secrets:
+      aws_access_key_id:
+        required: true
+      aws_secret_access_key:
+        required: true
+      github_pat_token:
+        description: |
+          Classic PAT token with "repo" rights and manage_runners:org.
+        required: true
+
+jobs:
+  stop_self_hosted_workers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Stop ephemeral worker
+        run: |
+          echo "Stopping worker $WORKER_NAME with labels $WORKER_LABELS."
+
+          # Note: we can't clear user data before stopping the instance
+          # (AWS constraint) and we can't clear it after stopping it
+          # because it could be picked by a "start_self_hosted_worker" job
+          # grabbing the worker, and we don't want to limit the
+          # concurrency of this job.
+
+          # Check if runner de-registration needs to happen to cover
+          # failure cases.
+          runner_id=$(gh api \
+            -H "Accept: application/vnd.github.v3+json" \
+            /repos/orchest/orchest/actions/runners | \
+            jq -r \
+              ".runners[] | {name, id} | select((.name == $WORKER_NAME)) | .id | values ")
+          if [[ -n $runner_id ]]
+          then
+            echo "De-registering runner through id $runner_id"
+            gh api --method DELETE -H "Accept: application/vnd.github+json" \
+              /repos/orchest/orchest/actions/runners/$runner_id
+          else
+            echo "Runner already deregistered."
+          fi
+
+          instance_id=$(aws ec2 describe-instances --region us-east-2 --no-paginate \
+            --filters 'Name=tag:oss-test-infra-runner,Values=true' \
+            "Name=tag:oss-test-infra-runner-label,Values=${WORKER_LABELS}" \
+            --query 'Reservations[*].Instances[*].[InstanceId]' | \
+            jq '.[0][0][0] | values' -r)
+
+          # Happens if the job to start the worker failed before tagging,
+          # and, if that's the case, the worker was never started to begin
+          # with, and the user data was never modified.
+          [[ -z "$instance_id" ]] && { echo "No instance to stop." ; exit 0; }
+
+          # Possible states: pending | running | shutting-down |
+          # terminated | stopping | stopped.
+          instance_state=$(aws ec2 describe-instances --region us-east-2 --no-paginate \
+            --filters 'Name=tag:oss-test-infra-runner,Values=true' \
+            "Name=tag:oss-test-infra-runner-label,Values=${WORKER_LABELS}" \
+            --query 'Reservations[*].Instances[*].[State.Name]' | \
+            jq '.[0][0][0] | values' -r)
+          [[ -z "$instance_state" ]] && \
+            { echo "Failed to retrieve instance state." ; exit 1; }
+
+          # There was an early failure, wait for the instance to start to
+          # reduce the number of cases. 
+          if [ $instance_state == "pending" ]
+          then
+            echo "Instance is still pending, waiting for it to start."
+            timeout 300 aws ec2 wait instance-running --region=us-east-2 \
+              --instance-ids $instance_id
+            instance_state="running"
+          fi
+
+          if [ $instance_state == "running" ]
+          then
+            echo "Stopping worker instance."
+            aws ec2 stop-instances --region us-east-2 --instance-ids $instance_id
+          else
+            echo "Instance is $instance_state, nothing to do."
+          fi
+
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.github_pat_token }}
+          WORKER_LABELS: '"${{ inputs.worker_labels }}"'
+          WORKER_NAME: '"worker-${{ inputs.worker_labels }}"'

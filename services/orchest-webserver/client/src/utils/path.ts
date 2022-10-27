@@ -114,6 +114,28 @@ export const relative = (from: string, to: string) => {
 /** Returns the segments of the paths, ignoring empty segments. */
 export const segments = (path: string) => path.split("/").filter(Boolean);
 
+/**
+ * Truncates the path to display the root, topmost directory and file name.
+ * @param path The path to truncate
+ * @param delimiter What to replace the omitted segments with. Default " … ".
+ */
+export const truncateForDisplay = (path: string, delimiter = " … ") => {
+  const parts = segments(path);
+
+  if (parts.length <= 3) {
+    return path;
+  } else if (isDirectory(path)) {
+    return join(parts[0], delimiter, parts[parts.length - 1]) + "/";
+  } else {
+    return join(
+      parts[0],
+      delimiter,
+      parts[parts.length - 2],
+      parts[parts.length - 1]
+    );
+  }
+};
+
 /** Resolves `..` and `.`, and removes empty segments. */
 export const normalizeSegments = (
   segments: readonly string[],
