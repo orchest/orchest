@@ -173,7 +173,7 @@ export const FilePicker = ({
           onFocus: openMenu,
           ref: inputRef,
           startAdornment: hideRoots && (
-            <InputAdornment position="start">
+            <InputAdornment position="start" sx={{ pointerEvents: "none" }}>
               {prettifyRoot(root)}/
             </InputAdornment>
           ),
