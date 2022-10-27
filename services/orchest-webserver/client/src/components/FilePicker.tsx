@@ -187,7 +187,7 @@ export const FilePicker = ({
         disableRestoreFocus={true}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         PaperProps={{
-          sx: { marginTop: 1 },
+          sx: { marginTop: 1, overflow: "hidden" },
           style: {
             width: inputRef.current?.clientWidth,
           },
@@ -198,7 +198,7 @@ export const FilePicker = ({
             <PathBreadcrumbs root={root} path={cwd} onChange={setPath} />
           </FormLabel>
 
-          <MenuList>
+          <MenuList sx={{ maxHeight: 300, overflow: "auto" }}>
             {Object.keys(directChildren(roots[root] ?? {}, cwd))
               .filter(isDirectory)
               .map((directoryPath) => (
@@ -228,16 +228,16 @@ export const FilePicker = ({
                 </MenuItem>
               ))}
           </MenuList>
+
           {!hideCreateFile && (
-            <>
-              <Stack direction="row" justifyContent="center" marginTop={1}>
-                <Button
-                  startIcon={<AddOutlined />}
-                  onClick={() => setIsCreatingFile(true)}
-                >
-                  New file
-                </Button>
-              </Stack>
+            <Stack direction="row" justifyContent="center" marginTop={1}>
+              <Button
+                fullWidth
+                startIcon={<AddOutlined />}
+                onClick={() => setIsCreatingFile(true)}
+              >
+                New file
+              </Button>
 
               <CreateFileDialog
                 root={root}
@@ -248,7 +248,7 @@ export const FilePicker = ({
                 onClose={closeMenu}
                 canCreateStep={false}
               />
-            </>
+            </Stack>
           )}
         </FormControl>
       </Popover>
