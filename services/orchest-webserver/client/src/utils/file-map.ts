@@ -61,10 +61,10 @@ export const removeFromFileMap = (
 };
 
 /** Moves the path within its own root or to a different one. */
-export const moveBetween = (
-  roots: Record<string, FileMap>,
+export const moveBetween = <R extends string = string>(
+  roots: Partial<Record<R, FileMap>>,
   move: UnpackedMove
-): Record<string, FileMap> => {
+): Partial<Record<R, FileMap>> => {
   const oldRoot = { ...roots[move.oldRoot] };
   const newRoot =
     move.oldRoot === move.newRoot ? oldRoot : { ...roots[move.newRoot] };
@@ -105,14 +105,17 @@ export const replaceDirectoryContents = (
   const removed: string[] = Object.keys(
     directChildren(fileMap, directory)
   ).filter((path) => !contents.includes(path));
-
-  return sortFileMap(
-    Object.fromEntries(
-      Object.entries(removeFromFileMap(fileMap, ...removed)).concat(
-        contents.map((path) => [path, fileMetadata(path, replacedAt)])
-      )
-    )
+  // Add the directory using `addToFileMap` to avoid orphaned paths.
+  const newMap = addToFileMap(
+    removeFromFileMap(fileMap, ...removed),
+    directory
   );
+
+  for (const entry of contents) {
+    newMap[entry] = fileMetadata(entry, replacedAt);
+  }
+
+  return sortFileMap(newMap);
 };
 
 export const isChildOf = (path: string, directory: string): boolean =>

@@ -16,15 +16,18 @@ import { hasValue } from "@orchest/lib-utils";
 import { filesApi, TreeNode } from "./fileApi";
 
 export type FetchNodeParams = {
-  root: string;
+  root: FileRoot;
   path: string | undefined;
   depth: number;
   overrides?: FileApiOverrides;
 };
 
+type FileRoots = Partial<Record<FileRoot, FileMap>>;
+type FileRootEntry = readonly [FileRoot, FileMap];
+
 export type FileApi = {
   /** The currently available file maps, organized by root name. */
-  roots: Record<string, FileMap>;
+  roots: FileRoots;
   /**
    * Fetches the provided directory and merges its entries into its corresponding root.
    * If a file path is provided, its parent directory is fetched instead.
@@ -47,9 +50,15 @@ export type FileApi = {
       overrides?: FileApiOverrides
     ) => Promise<Record<string, FileMap>>
   >;
-  delete: MemoizePending<(root: string, path: string) => Promise<void>>;
+  delete: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
   move: MemoizePending<(move: UnpackedMove) => Promise<void>>;
-  create: MemoizePending<(root: string, path: string) => Promise<void>>;
+  /**
+   * Creates a file or directory with the specified path.
+   * Paths that end with `"/"` are considered directories.
+   * @root The root to create the file or directory in.
+   * @path The path of the file or directory.
+   */
+  create: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
 };
 
 const additionalScope = ["jobUuid", "runUuid", "pipelineUuid"] as const;
@@ -96,6 +105,16 @@ export const useFileApi = create<FileApi>((set, get) => {
       0
     ) + 1;
 
+  const updateRoot = (
+    root: FileRoot,
+    factory: (fileMap: FileMap) => FileMap
+  ) => {
+    const roots = get().roots;
+    const fileMap = roots[root] ?? {};
+
+    set({ roots: { ...roots, [root]: factory(fileMap) } });
+  };
+
   return {
     roots: {},
     expand: memoizeFor(500, async (root, directory = "/", overrides) => {
@@ -113,37 +132,27 @@ export const useFileApi = create<FileApi>((set, get) => {
         (entry) => !isDirectory(directory) || entry !== directory
       );
 
-      const { roots } = get();
-      const newRoot = replaceDirectoryContents(roots[root], contents);
-
-      set({ roots: { ...roots, [root]: newRoot } });
+      updateRoot(root, (fileMap) =>
+        replaceDirectoryContents(fileMap, contents)
+      );
     }),
     create: memoizeFor(500, async (root, path) => {
       const { projectUuid } = get();
 
-      if (!projectUuid) return;
+      if (isDirectory(path)) {
+        await filesApi.createDirectory({ root, path, projectUuid });
+      } else {
+        await filesApi.createFile({ root, path, projectUuid });
+      }
 
-      await filesApi.createNode({ root, path, projectUuid });
-
-      set(({ roots }) => ({
-        roots: {
-          ...roots,
-          [root]: addToFileMap(roots[root], path),
-        },
-      }));
+      updateRoot(root, (fileMap) => addToFileMap(fileMap, path));
     }),
     delete: memoizeFor(500, async (root, path) => {
       const { projectUuid } = get();
-      if (!projectUuid) return;
 
       await filesApi.deleteNode({ projectUuid, root, path });
 
-      set(({ roots }) => ({
-        roots: {
-          ...roots,
-          [root]: removeFromFileMap(roots[root], path),
-        },
-      }));
+      updateRoot(root, (fileMap) => removeFromFileMap(fileMap, path));
     }),
     move: memoizeFor(500, async (move) => {
       const { projectUuid } = get();
@@ -168,7 +177,7 @@ export const useFileApi = create<FileApi>((set, get) => {
       ).then((roots) => roots.filter(hasValue));
 
       const roots = Object.fromEntries(
-        entries.map(([root, node]) => [root, createFileMap(node)])
+        entries.map(([root, node]) => createRootEntry(root, node))
       );
 
       set({ roots });
@@ -178,14 +187,16 @@ export const useFileApi = create<FileApi>((set, get) => {
   };
 });
 
+const createRootEntry = (root: FileRoot, node: TreeNode): FileRootEntry => [
+  root,
+  createFileMap(node),
+];
+
 /**
  * Flattens the file tree into a map of files,
  * to make state manipulation easier.
  */
-export const createFileMap = (
-  node: TreeNode,
-  fileMap: FileMap = {}
-): FileMap => {
+const createFileMap = (node: TreeNode, fileMap: FileMap = {}): FileMap => {
   const fetchedAt = Date.now();
 
   fileMap[node.path] = fileMetadata(node.path, fetchedAt);

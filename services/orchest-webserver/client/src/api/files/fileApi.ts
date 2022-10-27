@@ -49,11 +49,24 @@ const moveNode = async (projectUuid: string, move: UnpackedMove) => {
   });
 };
 
-const createNode = async (params: NodeParams) => {
+const createFile = async (params: NodeParams) => {
   await fetcher(
     join(FILE_MANAGEMENT_ENDPOINT, "create") + "?" + queryArgs(params),
     { method: "POST" }
   );
 };
 
-export const filesApi = { fetchNode, deleteNode, moveNode, createNode };
+const createDirectory = async (params: NodeParams) => {
+  await fetcher(
+    join(FILE_MANAGEMENT_ENDPOINT, "create-dir") + "?" + queryArgs(params),
+    { method: "POST" }
+  );
+};
+
+export const filesApi = {
+  fetchNode,
+  deleteNode,
+  moveNode,
+  createFile,
+  createDirectory,
+};
