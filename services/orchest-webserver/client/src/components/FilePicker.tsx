@@ -91,7 +91,7 @@ export const FilePicker = ({
 
     if (!roots[root]) return undefined;
 
-    return Object.keys(directChildren(roots[root], directory)).sort(
+    return Object.keys(directChildren(roots[root] ?? {}, directory)).sort(
       (left, right) =>
         getMatchScore(basename(right), name) -
         getMatchScore(basename(left), name)
@@ -121,10 +121,10 @@ export const FilePicker = ({
     }
   };
 
-  if (Object.keys(roots[root] ?? {}).length === 0) return null;
+  if (!roots[root]) return null;
 
   const errorText =
-    !expanding && !roots[root][path] ? "File not found" : undefined;
+    !expanding && !roots[root]?.[path] ? "File not found" : undefined;
 
   return (
     <Box position="relative">
@@ -199,7 +199,7 @@ export const FilePicker = ({
           </FormLabel>
 
           <MenuList>
-            {Object.keys(directChildren(roots[root], cwd))
+            {Object.keys(directChildren(roots[root] ?? {}, cwd))
               .filter(isDirectory)
               .map((directoryPath) => (
                 <MenuItem
@@ -213,7 +213,7 @@ export const FilePicker = ({
                   <ListItemText>{basename(directoryPath)}/</ListItemText>
                 </MenuItem>
               ))}
-            {Object.keys(directChildren(roots[root], cwd))
+            {Object.keys(directChildren(roots[root] ?? {}, cwd))
               .filter((path) => !isDirectory(path) && fileFilter(path))
               .map((filePath) => (
                 <MenuItem
