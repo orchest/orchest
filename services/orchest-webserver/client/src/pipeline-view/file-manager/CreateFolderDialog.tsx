@@ -3,8 +3,6 @@ import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { FileRoot } from "@/utils/file";
 import { ensureDirectory, join, truncateForDisplay } from "@/utils/path";
-import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -81,7 +79,7 @@ export const CreateFolderDialog = ({
       fullWidth
     >
       <form id="create-folder" onSubmit={onSubmit}>
-        <DialogTitle>Enter the desired folder name</DialogTitle>
+        <DialogTitle>New folder</DialogTitle>
         <DialogContent>
           <TextField
             label="Folder name"
@@ -102,18 +100,17 @@ export const CreateFolderDialog = ({
           />
         </DialogContent>
         <DialogActions>
-          <Button startIcon={<CloseIcon />} onClick={onClose} tabIndex={-1}>
+          <Button onClick={onClose} tabIndex={-1}>
             Cancel
           </Button>
           <Button
-            startIcon={<AddIcon />}
             variant="contained"
             type="submit"
             form="create-folder"
             disabled={isCreating}
             data-test-id="file-manager-create-folder"
           >
-            Create folder
+            Save folder
           </Button>
         </DialogActions>
       </form>
