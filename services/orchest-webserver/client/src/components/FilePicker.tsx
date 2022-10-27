@@ -172,7 +172,7 @@ export const FilePicker = ({
         InputProps={{
           onFocus: openMenu,
           ref: inputRef,
-          startAdornment: (
+          startAdornment: hideRoots && (
             <InputAdornment position="start">
               {prettifyRoot(root)}/
             </InputAdornment>
