@@ -10,6 +10,7 @@ import {
 
 /** Maps a path to file metadata which is used to represent a set of files. */
 export type FileMap = { [path: string]: FileMetadata };
+export type FileMapEntry = readonly [string, FileMetadata];
 
 export const fileMetadata = (
   path: string,
@@ -19,10 +20,23 @@ export const fileMetadata = (
   fetchedAt: fetchedAt ?? Date.now(),
 });
 
-export const sortFileMap = (fileMap: FileMap) =>
-  Object.fromEntries(
-    Object.entries(fileMap).sort(([a], [b]) => a.localeCompare(b))
+/**
+ * Sorts the file map by path in ascending order with the directories first.
+ */
+export const sortFileMap = (fileMap: FileMap) => {
+  const entries = Object.entries(fileMap).sort(([a], [b]) =>
+    a.localeCompare(b)
   );
+  const directories: FileMapEntry[] = [];
+  const files: FileMapEntry[] = [];
+
+  for (const entry of entries) {
+    if (isDirectory(entry[0])) directories.push(entry);
+    else files.push(entry);
+  }
+
+  return Object.fromEntries([...directories, ...files]);
+};
 
 export const addToFileMap = (fileMap: FileMap, path: string): FileMap => {
   // Always include all parents to prevent orphans:
