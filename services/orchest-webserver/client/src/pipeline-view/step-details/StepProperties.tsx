@@ -1,7 +1,13 @@
 import { FilePicker } from "@/components/FilePicker";
 import { StepState } from "@/types";
 import { FileRoot, UnpackedPath } from "@/utils/file";
-import { addLeadingSlash, hasExtension, join, relative } from "@/utils/path";
+import {
+  addLeadingSlash,
+  basename,
+  hasExtension,
+  join,
+  relative,
+} from "@/utils/path";
 import { pick } from "@/utils/record";
 import { toValidFilename } from "@/utils/toValidFilename";
 import FormControl from "@mui/material/FormControl";
@@ -104,9 +110,10 @@ export const StepProperties = ({
         autogenerateFilePath.current = false;
       }
 
-      setStepChanges({
+      setStepChanges((current) => ({
         file_path: toPipelinePath({ root, path }, pipelineCwd ?? "/"),
-      });
+        title: current.title || basename(path).split(".")[0],
+      }));
     },
     [pipelineCwd, setStepChanges]
   );
