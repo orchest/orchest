@@ -12,7 +12,11 @@ import {
   isDirectory,
   trimLeadingSlash,
 } from "@/utils/path";
-import { AddOutlined, FolderOutlined } from "@mui/icons-material";
+import {
+  AddOutlined,
+  ArrowDropDown,
+  FolderOutlined,
+} from "@mui/icons-material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControl from "@mui/material/FormControl";
@@ -132,7 +136,7 @@ export const FilePicker = ({
         <FormControl fullWidth sx={{ paddingBottom: 3 }}>
           <FormLabel>Location</FormLabel>
           <RadioGroup
-            sx={{ padding: (theme) => theme.spacing(0, 3) }}
+            sx={{ padding: (theme) => theme.spacing(0, 1) }}
             row={true}
             defaultValue={startingRoot}
             value={root}
@@ -172,9 +176,19 @@ export const FilePicker = ({
         InputProps={{
           onFocus: openMenu,
           ref: inputRef,
+          sx: { paddingRight: 1 },
           startAdornment: hideRoots && (
             <InputAdornment position="start" sx={{ pointerEvents: "none" }}>
               {prettifyRoot(root)}/
+            </InputAdornment>
+          ),
+          endAdornment: (
+            <InputAdornment position="end" sx={{ pointerEvents: "none" }}>
+              <ArrowDropDown
+                sx={{
+                  transform: isMenuOpen ? "rotateZ(180deg)" : undefined,
+                }}
+              />
             </InputAdornment>
           ),
         }}
