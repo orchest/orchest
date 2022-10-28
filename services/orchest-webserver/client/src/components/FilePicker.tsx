@@ -9,6 +9,7 @@ import {
   addLeadingSlash,
   basename,
   dirname,
+  filename,
   isDirectory,
   trimLeadingSlash,
 } from "@/utils/path";
@@ -32,6 +33,7 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { PathBreadcrumbs } from "./PathBreadcrumbs";
 
@@ -73,6 +75,7 @@ export const FilePicker = ({
   selected = addLeadingSlash(selected ?? "/");
   const roots = useFetchFileRoots(scope);
   const expand = useFileApi((api) => api.expand);
+
   const [path, setPath] = React.useState(selected ?? "/");
   const [root, setRoot] = React.useState(startingRoot);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -81,6 +84,8 @@ export const FilePicker = ({
   const [expanding, setExpanding] = React.useState(false);
   const scopeRef = React.useRef(scope);
   scopeRef.current = scope;
+
+  const fileMap = roots[root];
 
   /** The path if `path` is a directory, otherwise the dirname of the `path`. */
   const cwd = React.useMemo(() => {
@@ -93,14 +98,14 @@ export const FilePicker = ({
     const name = basename(path);
     const directory = addLeadingSlash(isDirectory(path) ? path : dirname(path));
 
-    if (!roots[root]) return undefined;
+    if (!fileMap) return undefined;
 
-    return Object.keys(directChildren(roots[root] ?? {}, directory)).sort(
+    return Object.keys(directChildren(fileMap, directory)).sort(
       (left, right) =>
         getMatchScore(basename(right), name) -
         getMatchScore(basename(left), name)
     )[0];
-  }, [roots, root, path]);
+  }, [fileMap, path]);
 
   React.useEffect(() => {
     setExpanding(true);
@@ -125,10 +130,13 @@ export const FilePicker = ({
     }
   };
 
-  if (!roots[root]) return null;
+  if (!hasValue(fileMap)) return null;
 
-  const errorText =
-    !expanding && !roots[root]?.[path] ? "File not found" : undefined;
+  const search = filename(path).toLowerCase();
+  const matchesSearch = (child: string) =>
+    !search || basename(child).toLowerCase().includes(search);
+  const paths = Object.keys(directChildren(fileMap, cwd)).filter(matchesSearch);
+  const errorText = !expanding && !fileMap[path] ? "File not found" : undefined;
 
   return (
     <Box position="relative">
@@ -210,22 +218,20 @@ export const FilePicker = ({
             <PathBreadcrumbs root={root} path={cwd} onChange={setPath} />
           </FormLabel>
 
-          <MenuList sx={{ maxHeight: 300, overflow: "auto" }}>
-            {Object.keys(directChildren(roots[root] ?? {}, cwd))
-              .filter(isDirectory)
-              .map((directoryPath) => (
-                <MenuItem
-                  key={directoryPath}
-                  onClick={() => selectPath(directoryPath)}
-                  selected={bestMatch === directoryPath}
-                >
-                  <ListItemIcon>
-                    <FolderOutlined />
-                  </ListItemIcon>
-                  <ListItemText>{basename(directoryPath)}/</ListItemText>
-                </MenuItem>
-              ))}
-            {Object.keys(directChildren(roots[root] ?? {}, cwd))
+          <MenuList sx={{ maxHeight: 200, overflow: "auto" }}>
+            {paths.filter(isDirectory).map((directoryPath) => (
+              <MenuItem
+                key={directoryPath}
+                onClick={() => selectPath(directoryPath)}
+                selected={bestMatch === directoryPath}
+              >
+                <ListItemIcon>
+                  <FolderOutlined />
+                </ListItemIcon>
+                <ListItemText>{basename(directoryPath)}/</ListItemText>
+              </MenuItem>
+            ))}
+            {paths
               .filter((path) => !isDirectory(path) && fileFilter(path))
               .map((filePath) => (
                 <MenuItem

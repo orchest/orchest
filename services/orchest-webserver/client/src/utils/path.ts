@@ -20,6 +20,10 @@ export const isDirectory = (path: string) => path.endsWith("/");
 /** Returns the last segment of the path. */
 export const basename = (path: string) => segments(path).pop() ?? "";
 
+/** Returns the basename of the path for files and an empty string for directories. */
+export const filename = (path: string) =>
+  isDirectory(path) ? "" : basename(path);
+
 /**
  * Returns the path up until the last segment.
  * **Note:** The returned path ends with `/`.
