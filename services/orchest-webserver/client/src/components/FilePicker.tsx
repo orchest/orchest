@@ -33,7 +33,6 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { PathBreadcrumbs } from "./PathBreadcrumbs";
 
@@ -77,6 +76,7 @@ export const FilePicker = ({
   const expand = useFileApi((api) => api.expand);
 
   const [path, setPath] = React.useState(selected ?? "/");
+  const [bestMatch, setBestMatch] = React.useState("");
   const [root, setRoot] = React.useState(startingRoot);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -94,18 +94,15 @@ export const FilePicker = ({
     else return addLeadingSlash(dirname(path));
   }, [path]);
 
-  const bestMatch = React.useMemo(() => {
-    const name = basename(path);
-    const directory = addLeadingSlash(isDirectory(path) ? path : dirname(path));
+  const paths = React.useMemo(() => {
+    const search = filename(path).toLowerCase();
+    const matchesSearch = (child: string) =>
+      !search || basename(child).toLowerCase().includes(search);
 
-    if (!fileMap) return undefined;
-
-    return Object.keys(directChildren(fileMap, directory)).sort(
-      (left, right) =>
-        getMatchScore(basename(right), name) -
-        getMatchScore(basename(left), name)
-    )[0];
-  }, [fileMap, path]);
+    return Object.keys(directChildren(fileMap ?? {}, cwd))
+      .filter(matchesSearch)
+      .filter((child) => isDirectory(child) || fileFilter(child));
+  }, [path, fileMap, cwd, fileFilter]);
 
   React.useEffect(() => {
     setExpanding(true);
@@ -121,22 +118,64 @@ export const FilePicker = ({
     setIsMenuOpen(false);
   }, []);
 
-  const selectPath = (newPath: string) => {
-    setPath(newPath);
+  const selectPath = React.useCallback(
+    (newPath: string) => {
+      setPath(newPath);
 
-    if (accepts?.(newPath) ?? true) {
-      onChange?.(root, newPath);
-      closeMenu();
-    }
-  };
+      if (accepts?.(newPath) ?? true) {
+        onChange?.(root, newPath);
+        closeMenu();
+      }
+    },
+    [accepts, closeMenu, onChange, root]
+  );
 
-  if (!hasValue(fileMap)) return null;
+  React.useEffect(() => {
+    const name = basename(path);
 
-  const search = filename(path).toLowerCase();
-  const matchesSearch = (child: string) =>
-    !search || basename(child).toLowerCase().includes(search);
-  const paths = Object.keys(directChildren(fileMap, cwd)).filter(matchesSearch);
-  const errorText = !expanding && !fileMap[path] ? "File not found" : undefined;
+    if (!fileMap) return undefined;
+
+    const newBestMatch = [...paths].sort(
+      (left, right) =>
+        getMatchScore(basename(right), name) -
+        getMatchScore(basename(left), name)
+    )[0];
+
+    setBestMatch(newBestMatch);
+  }, [paths, path, fileMap]);
+
+  const onKeyUp = React.useCallback(
+    (event: KeyboardEvent) => {
+      if (!isMenuOpen) return;
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (bestMatch) {
+          selectPath(bestMatch);
+        }
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        const next = paths[paths.indexOf(bestMatch) + 1];
+
+        setBestMatch((current) => next ?? current);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        const previous = paths[paths.indexOf(bestMatch) - 1];
+
+        setBestMatch((current) => previous ?? current);
+      }
+    },
+    [bestMatch, isMenuOpen, paths, selectPath]
+  );
+
+  const errorText =
+    !expanding && !fileMap?.[path] ? "File not found" : undefined;
+
+  React.useEffect(() => {
+    document.addEventListener("keyup", onKeyUp);
+
+    return () => document.removeEventListener("keyup", onKeyUp);
+  }, [onKeyUp]);
 
   return (
     <Box position="relative">
@@ -166,19 +205,12 @@ export const FilePicker = ({
       )}
       <TextField
         label="File path"
+        autoComplete="off"
         fullWidth
         error={Boolean(errorText)}
         helperText={errorText}
         value={trimLeadingSlash(path)}
         onChange={({ target }) => setPath(target.value)}
-        onKeyUp={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            if (bestMatch) {
-              selectPath(bestMatch);
-            }
-          }
-        }}
         InputProps={{
           onFocus: openMenu,
           ref: inputRef,
@@ -219,32 +251,29 @@ export const FilePicker = ({
           </FormLabel>
 
           <MenuList sx={{ maxHeight: 200, overflow: "auto" }}>
-            {paths.filter(isDirectory).map((directoryPath) => (
+            {paths.map((child) => (
               <MenuItem
-                key={directoryPath}
-                onClick={() => selectPath(directoryPath)}
-                selected={bestMatch === directoryPath}
+                key={child}
+                onClick={() => selectPath(child)}
+                selected={bestMatch === child}
               >
-                <ListItemIcon>
-                  <FolderOutlined />
-                </ListItemIcon>
-                <ListItemText>{basename(directoryPath)}/</ListItemText>
+                {isDirectory(child) ? (
+                  <>
+                    <ListItemIcon>
+                      <FolderOutlined />
+                    </ListItemIcon>
+                    <ListItemText>{basename(child)}/</ListItemText>
+                  </>
+                ) : (
+                  <>
+                    <ListItemIcon>
+                      <SVGFileIcon icon={getIcon(child)} />
+                    </ListItemIcon>
+                    <ListItemText>{basename(child)}</ListItemText>
+                  </>
+                )}
               </MenuItem>
             ))}
-            {paths
-              .filter((path) => !isDirectory(path) && fileFilter(path))
-              .map((filePath) => (
-                <MenuItem
-                  key={filePath}
-                  onClick={() => selectPath(filePath)}
-                  selected={bestMatch === filePath}
-                >
-                  <ListItemIcon>
-                    <SVGFileIcon icon={getIcon(filePath)} />
-                  </ListItemIcon>
-                  <ListItemText>{basename(filePath)}</ListItemText>
-                </MenuItem>
-              ))}
           </MenuList>
 
           {!hideCreateFile && (
