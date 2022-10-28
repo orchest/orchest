@@ -150,9 +150,7 @@ export const FilePicker = ({
                 key={root}
                 value={root}
                 label={prettifyRoot(root)}
-                control={
-                  <Radio sx={{ marginRight: (theme) => theme.spacing(1) }} />
-                }
+                control={<Radio />}
               />
             ))}
           </RadioGroup>
