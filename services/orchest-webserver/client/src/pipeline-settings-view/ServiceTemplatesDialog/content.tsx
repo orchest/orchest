@@ -1,4 +1,4 @@
-import { IconRedis, IconStreamlit, IconTensorBoard, IconVSCode } from "@/icons";
+import { IconRedis, IconStreamlit, IconTensorBoard, IconVSCode, IconPostgreSQL } from "@/icons";
 import { Service } from "@/types";
 import DraftsOutlined from "@mui/icons-material/DraftsOutlined";
 import React from "react";
@@ -79,6 +79,18 @@ export const templates: ServiceTemplates = {
       image: "redis",
       name: "redis",
       ports: [6379],
+      scope: ["interactive", "noninteractive"],
+    },
+  },
+  postgres: {
+    label: "PostgreSQL",
+    icon: <IconPostgreSQL />,
+    config: {
+      exposed: false,
+      requires_authentication: true,
+      image: "postgres",
+      name: "postgres",
+      ports: [5432],
       scope: ["interactive", "noninteractive"],
     },
   },
