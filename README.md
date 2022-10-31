@@ -23,7 +23,7 @@ No frameworks. No YAML. Just write your data processing code directly in **Pytho
 </p>
 
 <p align="center">
-  <i>💡 Watch the <a target="_blank" href="https://vimeo.com/589879082">full narrated video</a> to learn more about building data pipelines in Orchest.</i>
+  <i>💡 Watch the <a target="_blank" href="https://vimeo.com/764866337">full narrated video</a> to learn more about building data pipelines in Orchest.</i>
  </p>
 
 > **Note**: Orchest is in **beta**.

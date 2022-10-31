@@ -23,7 +23,7 @@ The resulting Pipeline from this quickstart.
 ```
 
 ```{tip}
-👉 Building data pipelines in Orchest is easy! Check out our [introductory video](https://vimeo.com/589879082).
+👉 Building data pipelines in Orchest is easy! Check out our [introductory video](https://vimeo.com/764866337).
 ```
 
 (impatient)=
