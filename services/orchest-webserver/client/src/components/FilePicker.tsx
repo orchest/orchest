@@ -4,7 +4,7 @@ import { prettifyRoot } from "@/pipeline-view/file-manager/common";
 import { CreateFileDialog } from "@/pipeline-view/file-manager/CreateFileDialog";
 import { getIcon, SVGFileIcon } from "@/pipeline-view/file-manager/SVGFileIcon";
 import { FileRoot, fileRoots } from "@/utils/file";
-import { directChildren } from "@/utils/file-map";
+import { directoryContents } from "@/utils/file-map";
 import {
   addLeadingSlash,
   basename,
@@ -94,15 +94,20 @@ export const FilePicker = ({
     else return addLeadingSlash(dirname(path));
   }, [path]);
 
-  const paths = React.useMemo(() => {
+  const contents = React.useMemo(() => {
+    const paths = Object.keys(directoryContents(fileMap ?? {}, cwd)).filter(
+      (child) => isDirectory(child) || fileFilter(child)
+    );
+
     const search = filename(path).toLowerCase();
     const matchesSearch = (child: string) =>
       !search || basename(child).toLowerCase().includes(search);
 
-    return Object.keys(directChildren(fileMap ?? {}, cwd))
-      .filter(matchesSearch)
-      .filter((child) => isDirectory(child) || fileFilter(child));
-  }, [path, fileMap, cwd, fileFilter]);
+    // When the file picker is opened when a path has previously
+    // been selected, we don't want a filter based on search,
+    // since that will make the file picker look almost empty/broken.
+    return selected !== path ? paths.filter(matchesSearch) : paths;
+  }, [path, fileMap, cwd, selected, fileFilter]);
 
   React.useEffect(() => {
     setExpanding(true);
@@ -135,14 +140,14 @@ export const FilePicker = ({
 
     if (!fileMap) return undefined;
 
-    const newBestMatch = [...paths].sort(
+    const newBestMatch = [...contents].sort(
       (left, right) =>
         getMatchScore(basename(right), name) -
         getMatchScore(basename(left), name)
     )[0];
 
     setBestMatch(newBestMatch);
-  }, [paths, path, fileMap]);
+  }, [contents, path, fileMap]);
 
   const onKeyUp = React.useCallback(
     (event: KeyboardEvent) => {
@@ -155,17 +160,17 @@ export const FilePicker = ({
         }
       } else if (event.key === "ArrowDown") {
         event.preventDefault();
-        const next = paths[paths.indexOf(bestMatch) + 1];
+        const next = contents[contents.indexOf(bestMatch) + 1];
 
         setBestMatch((current) => next ?? current);
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
-        const previous = paths[paths.indexOf(bestMatch) - 1];
+        const previous = contents[contents.indexOf(bestMatch) - 1];
 
         setBestMatch((current) => previous ?? current);
       }
     },
-    [bestMatch, isMenuOpen, paths, selectPath]
+    [bestMatch, isMenuOpen, contents, selectPath]
   );
 
   const errorText =
@@ -251,7 +256,7 @@ export const FilePicker = ({
           </FormLabel>
 
           <MenuList sx={{ maxHeight: 200, overflow: "auto" }}>
-            {paths.map((child) => (
+            {contents.map((child) => (
               <MenuItem
                 key={child}
                 onClick={() => selectPath(child)}

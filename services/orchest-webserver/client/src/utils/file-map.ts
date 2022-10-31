@@ -117,7 +117,7 @@ export const replaceDirectoryContents = (
   const directory = dirname(contents[0]);
   const replacedAt = Date.now();
   const removed: string[] = Object.keys(
-    directChildren(fileMap, directory)
+    directoryContents(fileMap, directory)
   ).filter((path) => !contents.includes(path));
   // Add the directory using `addToFileMap` to avoid orphaned paths.
   const newMap = addToFileMap(
@@ -149,7 +149,10 @@ export const isDirectChildOf = (path: string, directory: string): boolean =>
  * Given a file map, returns the paths which are direct children of a directory.
  * The returned paths are all absolute.
  */
-export const directChildren = (fileMap: FileMap, directory: string): FileMap =>
+export const directoryContents = (
+  fileMap: FileMap,
+  directory: string
+): FileMap =>
   Object.fromEntries(
     Object.entries(fileMap).filter(([path]) => isDirectChildOf(path, directory))
   );

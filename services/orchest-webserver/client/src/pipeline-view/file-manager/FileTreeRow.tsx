@@ -2,7 +2,7 @@ import { useFileApi } from "@/api/files/useFileApi";
 import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { firstAncestor } from "@/utils/element";
 import { combinePath, FileRoot, unpackPath } from "@/utils/file";
-import { directChildren } from "@/utils/file-map";
+import { directoryContents } from "@/utils/file-map";
 import { basename, dirname, extname, isDirectory } from "@/utils/path";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
@@ -30,12 +30,12 @@ export const FileTreeRow = ({
   hoveredPath,
   onOpen,
 }: FileTreeRowProps) => {
-  const fileRoot = useFileApi((api) => api.roots[root]);
+  const fileMap = useFileApi((api) => api.roots[root] ?? {});
   const { isReadOnly } = usePipelineDataContext();
   const { handleContextMenu, fileInRename } = useFileManagerLocalContext();
   const { directories, files } = React.useMemo(
     () =>
-      Object.keys(directChildren(fileRoot, path)).reduce(
+      Object.keys(directoryContents(fileMap, path)).reduce(
         (all, path) =>
           produce(all, (draft) => {
             if (isDirectory(path)) draft.directories.push(path);
@@ -43,7 +43,7 @@ export const FileTreeRow = ({
           }),
         { directories: [] as string[], files: [] as string[] }
       ),
-    [path, fileRoot]
+    [path, fileMap]
   );
 
   return (
