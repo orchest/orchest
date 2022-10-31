@@ -20,7 +20,7 @@
 :alt: Visualizing a data pipeline in Orchest.
 :width: 800
 
-💡 Watch the [video](https://vimeo.com/589879082) to learn more.
+💡 Watch the [video](https://vimeo.com/764866337) to learn more.
 ```
 
 - Visually construct pipelines through Orchest user-friendly UI
