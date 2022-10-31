@@ -520,7 +520,7 @@ def generate_ipynb_from_template(kernel_name: str):
 
 
 def create_file(
-    file_path: str, kernel_name: Optional[str] = "python", content=Optional[str]
+    file_path: str, kernel_name: str = "python", content: Optional[str] = None
 ):
     """
     This function creates an empty file with the given `file_path`.
@@ -822,7 +822,7 @@ def get_orchest_update_info_json(cache: bool = True) -> dict:
             return data
 
 
-def get_interactive_run_logs_path(project_uuid: uuid, pipeline_uuid: str) -> str:
+def get_interactive_run_logs_path(project_uuid: str, pipeline_uuid: str) -> str:
     return os.path.join(
         get_project_directory(project_uuid),
         ".orchest",

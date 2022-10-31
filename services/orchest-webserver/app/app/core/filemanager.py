@@ -243,14 +243,14 @@ def process_request(
     if path is not None and not path.startswith("/"):
         raise ValueError("Argument path should always start with a forward-slash: '/'")
 
-    run_uuid = "snapshot" if snapshot_uuid is not None else run_uuid
+    run_uuid_or_snapshot = "snapshot" if snapshot_uuid is not None else run_uuid
 
     root_dir_path = _construct_root_dir_path(
         root=root,
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
         job_uuid=job_uuid,
-        run_uuid_or_snapshot=run_uuid,
+        run_uuid_or_snapshot=run_uuid_or_snapshot,
     )
 
     return (root_dir_path, depth_int)
