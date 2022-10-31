@@ -45,7 +45,7 @@ def get_pipeline_path(
             pipeline_run_uuid,
             pipeline_path,
         )
-    elif job_uuid is not None:
+    else:
         return safe_join(
             get_snapshot_directory(pipeline_uuid, project_uuid, job_uuid),
             pipeline_path,
@@ -85,27 +85,28 @@ def get_pipeline_directory(
 
 
 def get_project_directory(
-    project_uuid: str,
+    project_uuid: Optional[str] = None,
     pipeline_uuid: Optional[str] = None,
     job_uuid: Optional[str] = None,
-    run_uuid: Optional[str] = None,
+    run_uuid_or_snapshot: Optional[str] = None,
 ):
+    if project_uuid is None:
+        raise ValueError("project_uuid is required.")
     project_path = project_uuid_to_path(project_uuid)
 
-    if job_uuid is None and run_uuid is None:
-        # Load from user's projects directory.
+    # Inspecting current Project directory.
+    if run_uuid_or_snapshot is None and job_uuid is None:
         return safe_join(_config.USERDIR_PROJECTS, project_path)
 
-    if run_uuid is not None and (pipeline_uuid is None or job_uuid is None):
-        raise ValueError(
-            "pipeline_uuid and job_uuid are both required when run_uuid is provided."
-        )
+    # Inspect a run snapshot or a job snapshot.
+    # pipeline_uuid and job_uuid are required to proceed.
+    if pipeline_uuid is None or job_uuid is None:
+        raise ValueError("pipeline_uuid and job_uuid are both required.")
 
-    if pipeline_uuid is None and job_uuid is not None:
-        raise ValueError("pipeline_uuid is required when job_uuid is provided.")
+    run_uuid_or_snapshot = (
+        run_uuid_or_snapshot if run_uuid_or_snapshot is not None else "snapshot"
+    )
 
-    run_uuid_or_snapshot = run_uuid if run_uuid is not None else "snapshot"
-    # Load run if run_uuid is given, otherwise load snapshot.
     return safe_join(
         _config.USERDIR_JOBS,
         project_uuid,
@@ -154,7 +155,7 @@ def get_environment(environment_uuid, project_uuid):
     return read_environment_from_disk(environment_dir, project_uuid)
 
 
-def get_environments(project_uuid, language=None):
+def get_environments(project_uuid: str, language=None):
 
     environments = []
     project_dir = get_project_directory(project_uuid)
@@ -377,7 +378,9 @@ def pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid=None):
             return None
 
 
-def project_entity_counts(project_uuid, get_job_count=False, get_session_count=False):
+def project_entity_counts(
+    project_uuid: str, get_job_count=False, get_session_count=False
+):
 
     counts = {}
 
@@ -434,7 +437,7 @@ def get_api_entity_counts(endpoint, entity_key, project_uuid=None):
     return counts
 
 
-def project_uuid_to_path(project_uuid: str) -> str:
+def project_uuid_to_path(project_uuid: Optional[str] = None) -> str:
     project = Project.query.filter(Project.uuid == project_uuid).first()
     if project is not None:
         return project.path
@@ -731,10 +734,14 @@ def is_valid_pipeline_relative_path(
     return abs_path.startswith(project_path)
 
 
-def is_valid_data_path(path: str, is_absolute=False):
+def is_valid_data_path(path: Optional[str], is_absolute=False):
+    if path is None:
+        return False
     if not is_absolute and not path.startswith("/data/"):
         return False
     absolute_data_path = path if is_absolute else resolve_absolute_path(path)
+    if absolute_data_path is None:
+        return False
     return os.path.abspath(os.path.normpath(absolute_data_path)).startswith(
         _config.USERDIR_DATA
     )

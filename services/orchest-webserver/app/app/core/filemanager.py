@@ -30,7 +30,7 @@ def _construct_root_dir_path(
     project_uuid: Optional[str],
     pipeline_uuid: Optional[str] = None,
     job_uuid: Optional[str] = None,
-    run_uuid: Optional[str] = None,
+    run_uuid_or_snapshot: Optional[str] = None,
 ) -> str:
     """
     If root is not provided, default to PROJECT_DIR_PATH;
@@ -38,22 +38,20 @@ def _construct_root_dir_path(
     """
 
     root = PROJECT_DIR_PATH if root is None else root
-
     if root not in ALLOWED_ROOTS:
         raise ValueError(f"Received illegal root path: {root}.")
 
     if root == DATA_DIR_PATH:
         return _config.USERDIR_DATA
-
-    if root == PROJECT_DIR_PATH and project_uuid is None:
+    elif project_uuid is None:
         raise ValueError("project_uuid is required.")
-
-    return get_project_directory(
-        project_uuid=project_uuid,
-        pipeline_uuid=pipeline_uuid,
-        job_uuid=job_uuid,
-        run_uuid=run_uuid,
-    )
+    else:
+        return get_project_directory(
+            project_uuid=project_uuid,
+            pipeline_uuid=pipeline_uuid,
+            job_uuid=job_uuid,
+            run_uuid_or_snapshot=run_uuid_or_snapshot,
+        )
 
 
 def find_unique_duplicate_filepath(fp):
@@ -215,6 +213,7 @@ def process_request(
     pipeline_uuid: Optional[str] = None,
     job_uuid: Optional[str] = None,
     run_uuid: Optional[str] = None,
+    snapshot_uuid: Optional[str] = None,
     depth: Optional[str] = None,
     is_path_required: Optional[bool] = True,
 ) -> Tuple[str, Optional[int]]:
@@ -224,9 +223,10 @@ def process_request(
     if root == PROJECT_DIR_PATH and project_uuid is None:
         raise ValueError("Argument project_uuid is required if root is '/project-dir'.")
 
+    depth_int: Optional[int] = None
     if depth is not None:
         try:
-            depth = int(depth, 10)
+            depth_int = int(depth, 10)
         except Exception:
             raise ValueError(f"Invalid value for depth: {depth}")
 
@@ -243,12 +243,14 @@ def process_request(
     if path is not None and not path.startswith("/"):
         raise ValueError("Argument path should always start with a forward-slash: '/'")
 
+    run_uuid = "snapshot" if snapshot_uuid is not None else run_uuid
+
     root_dir_path = _construct_root_dir_path(
         root=root,
         project_uuid=project_uuid,
         pipeline_uuid=pipeline_uuid,
         job_uuid=job_uuid,
-        run_uuid=run_uuid,
+        run_uuid_or_snapshot=run_uuid,
     )
 
-    return (root_dir_path, depth)
+    return (root_dir_path, depth_int)
