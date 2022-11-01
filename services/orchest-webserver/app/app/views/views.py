@@ -6,6 +6,7 @@ import pathlib
 import subprocess
 import uuid
 import zipfile
+from typing import Optional
 
 import requests
 import sqlalchemy
@@ -967,7 +968,7 @@ def register_views(app, db):
         "/async/file-picker-tree/pipeline-cwd/<project_uuid>/<pipeline_uuid>",
         methods=["GET"],
     )
-    def pipeline_cwd(project_uuid, pipeline_uuid):
+    def pipeline_cwd(project_uuid: str, pipeline_uuid: str):
 
         pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
         project_dir = get_project_directory(project_uuid)
@@ -1099,18 +1100,21 @@ def register_views(app, db):
     def filemanager_exists():
         """Check whether file exists."""
 
-        path = request.args.get("path")
-        project_uuid = request.args.get("project_uuid")
-        pipeline_uuid = request.args.get("pipeline_uuid")
-        job_uuid = request.args.get("job_uuid")
-        run_uuid = request.args.get("run_uuid")
-        use_project_root_as_string = request.args.get("use_project_root")
+        path: Optional[str] = request.args.get("path")
+        project_uuid: Optional[str] = request.args.get("project_uuid")
+        pipeline_uuid: Optional[str] = request.args.get("pipeline_uuid")
+        job_uuid: Optional[str] = request.args.get("job_uuid")
+        run_uuid: Optional[str] = request.args.get("run_uuid")
+        use_project_root_as_string: Optional[str] = request.args.get("use_project_root")
 
         # string match query argument to bool
         use_project_root = (
             use_project_root_as_string is not None
             and use_project_root_as_string == "true"
         )
+
+        if path is None:
+            raise ValueError("Path is required.")
 
         # currently this endpoint only handles "/data"
         # if path is absolute
@@ -1139,7 +1143,7 @@ def register_views(app, db):
                 project_uuid=project_uuid,
                 pipeline_uuid=pipeline_uuid,
                 job_uuid=job_uuid,
-                run_uuid=run_uuid,
+                run_uuid_or_snapshot=run_uuid,
             )
             file_path = normalize_project_relative_path(path)
             file_path = os.path.join(project_dir, file_path)
@@ -1404,6 +1408,7 @@ def register_views(app, db):
         pipeline_uuid = request.args.get("pipeline_uuid")
         job_uuid = request.args.get("job_uuid")
         run_uuid = request.args.get("run_uuid")
+        snapshot_uuid = request.args.get("snapshot_uuid")
 
         try:
             root_dir_path, depth = process_request(
@@ -1413,6 +1418,7 @@ def register_views(app, db):
                 pipeline_uuid=pipeline_uuid,
                 job_uuid=job_uuid,
                 run_uuid=run_uuid,
+                snapshot_uuid=snapshot_uuid,
                 depth=depth_as_string,
                 is_path_required=False,
             )

@@ -1,4 +1,5 @@
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
 import { hasValue } from "@orchest/lib-utils";
@@ -44,7 +45,7 @@ export type FileManagerContextType = {
     root: FileManagementRoot,
     path?: string,
     depth?: number
-  ) => Promise<TreeNode>;
+  ) => Promise<TreeNode | undefined>;
   fileTrees: FileTrees;
   setFileTrees: React.Dispatch<React.SetStateAction<FileTrees>>;
   fileTreeDepth: React.MutableRefObject<number>;
@@ -85,20 +86,30 @@ export const FileManagerContextProvider: React.FC<{
 
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
 
-  const baseParamsRef = React.useRef<{
-    projectUuid?: string;
-    pipelineUuid?: string;
-    jobUuid?: string;
-    runUuid?: string;
-  }>({});
-  baseParamsRef.current = React.useMemo(
-    () =>
-      // Pipeline UUID only has to be included for jobs & job runs.
-      jobUuid && runUuid
-        ? { projectUuid, pipelineUuid, jobUuid, runUuid }
-        : { projectUuid },
-    [jobUuid, pipelineUuid, projectUuid, runUuid]
-  );
+  const { snapshotUuid } = useCustomRoute();
+
+  const baseParamsRef = React.useRef<
+    | {
+        projectUuid?: string;
+        pipelineUuid?: string;
+        jobUuid?: string;
+        runUuid?: string;
+        snapshotUuid?: string;
+      }
+    | undefined
+  >(undefined);
+
+  baseParamsRef.current = React.useMemo(() => {
+    // When inspecting a snapshot, pipelineUuid is derived later via the job.
+    // Before fetching its jobUuid, return undefined to prevent firing any request.
+    if (snapshotUuid && !pipelineUuid && jobUuid) return undefined;
+    if (snapshotUuid && pipelineUuid && jobUuid)
+      return { projectUuid, pipelineUuid, jobUuid, snapshotUuid };
+    // Pipeline UUID only has to be included for jobs & job runs.
+    return jobUuid && runUuid
+      ? { projectUuid, pipelineUuid, jobUuid, runUuid }
+      : { projectUuid };
+  }, [jobUuid, pipelineUuid, projectUuid, runUuid, snapshotUuid]);
 
   const resetMove = React.useCallback(() => {
     // Needs to be delayed to prevent tree toggle
@@ -113,11 +124,12 @@ export const FileManagerContextProvider: React.FC<{
   const { cancelableFetch } = useCancelableFetch();
 
   const browse = React.useCallback(
-    (
+    async (
       root: FileManagementRoot,
       path?: string | undefined,
       depth = hasValue(path) ? 1 : 2
     ) => {
+      if (!baseParamsRef.current) return;
       const params = { ...baseParamsRef.current, root, path, depth };
 
       return cancelableFetch<TreeNode>(
