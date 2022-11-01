@@ -152,7 +152,7 @@ export const FilePicker = ({
 
   React.useEffect(() => {
     // Ensure that the best match is always visible.
-    bestMatchRef.current?.scrollIntoView({ block: "end" });
+    bestMatchRef.current?.scrollIntoView({ block: "nearest" });
   }, [bestMatch]);
 
   const onKeyDown = React.useCallback(
