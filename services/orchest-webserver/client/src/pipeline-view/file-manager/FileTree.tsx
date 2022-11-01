@@ -1,3 +1,4 @@
+import { useFileApi } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -6,38 +7,37 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
-import { basename, dirname } from "@/utils/path";
-import { queryArgs } from "@/utils/text";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import TreeView from "@mui/lab/TreeView";
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import { fetcher, HEADER } from "@orchest/lib-utils";
-import React from "react";
-import { FileManagementRoot } from "../common";
-import { useOpenFile } from "../hooks/useOpenFile";
 import {
-  cleanFilePath,
   combinePath,
-  FileTrees,
-  FILE_MANAGEMENT_ENDPOINT,
-  FILE_MANAGER_ROOT_CLASS,
-  filterRedundantChildPaths,
-  findFilesByExtension,
-  findPipelineFiles,
-  getMoveFromDrop,
+  FileRoot,
   isCombinedPath,
   isInDataFolder,
   isInProjectFolder,
   isPipelineFile,
   isRename,
   Move,
-  pathFromElement,
-  prettifyRoot,
   UnpackedPath,
   unpackMove,
   unpackPath,
+} from "@/utils/file";
+import { basename, dirname } from "@/utils/path";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import TreeView from "@mui/lab/TreeView";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+import React from "react";
+import { useOpenFile } from "../hooks/useOpenFile";
+import {
+  cleanFilePath,
+  FILE_MANAGER_ROOT_CLASS,
+  filterRedundantChildPaths,
+  findFilesByExtension,
+  findPipelineFiles,
+  getMoveFromDrop,
+  pathFromElement,
+  prettifyRoot,
 } from "./common";
 import { DragIndicator } from "./DragIndicator";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -46,7 +46,7 @@ import { FileTreeItem } from "./FileTreeItem";
 import { FileTreeRow } from "./FileTreeRow";
 
 export type FileTreeProps = {
-  treeRoots: readonly FileManagementRoot[];
+  treeRoots: readonly FileRoot[];
   expanded: string[];
   handleToggle: (
     event: React.SyntheticEvent<Element, Event>,
@@ -78,14 +78,12 @@ export const FileTree = React.memo(function FileTreeComponent({
     setDragFile,
     hoveredPath,
     isDragging,
-    fileTrees,
   } = useFileManagerContext();
+  const roots = useFileApi((api) => api.roots);
+  const reload = useFileApi((api) => api.refresh);
+  const moveFile = useFileApi((api) => api.move);
 
-  const {
-    handleSelect,
-    reload,
-    setFileInRename,
-  } = useFileManagerLocalContext();
+  const { handleSelect, setFileInRename } = useFileManagerLocalContext();
 
   const { navigateToJupyterLab } = useOpenFile();
 
@@ -198,7 +196,7 @@ export const FileTree = React.memo(function FileTreeComponent({
             await movePipeline(projectUuid, pipeline.uuid, [oldPath, newPath]);
           }
         } else {
-          await moveFile(projectUuid, [oldPath, newPath]);
+          await moveFile(unpackMove([oldPath, newPath]));
         }
 
         onMoved(oldPath, newPath);
@@ -213,7 +211,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
       }
     },
-    [pipelineByPath, onMoved, setAlert, projectUuid]
+    [projectUuid, onMoved, pipelineByPath, moveFile, setAlert]
   );
 
   const saveMoves = React.useCallback(
@@ -277,10 +275,18 @@ export const FileTree = React.memo(function FileTreeComponent({
         }),
       confirm: (moves: readonly Move[]) =>
         new Promise<boolean>(async (resolve) => {
-          const overwrites = moves.filter(
-            ([, newPath]) =>
-              findNode(newPath, fileTrees).name === basename(newPath)
-          );
+          const overwrites = moves
+            .map(unpackMove)
+            .filter(({ newRoot, newPath }) =>
+              hasValue(roots[newRoot]?.[newPath])
+            )
+            .map(
+              ({ oldRoot, oldPath, newRoot, newPath }) =>
+                [
+                  combinePath({ root: oldRoot, path: oldPath }),
+                  combinePath({ root: newRoot, path: newPath }),
+                ] as Move
+            );
 
           if (overwrites.length) {
             setConfirm(
@@ -323,7 +329,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                 moves.map(([oldPath]) =>
                   findFilesByExtension({
                     root: "/project-dir",
-                    node: findNode(oldPath, fileTrees),
+                    path: oldPath,
                     extensions: ["ipynb", "orchest"],
                     projectUuid,
                   })
@@ -345,7 +351,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           }
         }),
     }),
-    [fileTrees, getFilesLockedBySession, projectUuid, setConfirm, stopSession]
+    [roots, getFilesLockedBySession, projectUuid, setConfirm, stopSession]
   );
 
   const handleMoves = React.useCallback(
@@ -428,7 +434,7 @@ export const FileTree = React.memo(function FileTreeComponent({
             >
               <FileTreeRow
                 setDragFile={setDragFile}
-                treeNodes={fileTrees[root].children}
+                path="/"
                 hoveredPath={hoveredPath}
                 root={root}
                 onOpen={onOpen}
@@ -547,28 +553,6 @@ const isInFileManager = (element?: HTMLElement | null): boolean =>
     classList.contains(FILE_MANAGER_ROOT_CLASS)
   );
 
-/**
- * Finds the node with the specified path in the file tree.
- * @param combinedPath The combined path, e.g: `/project-dir:/a/b.py`
- */
-const findNode = (combinedPath: string, fileTrees: FileTrees) => {
-  const { root, path } = unpackPath(combinedPath);
-  const segments = path.split("/").filter(Boolean);
-  let head = fileTrees[root];
-
-  for (const segment of segments) {
-    const node = head.children.find(({ name }) => name === segment);
-
-    if (!node) {
-      break;
-    }
-
-    head = node;
-  }
-
-  return head;
-};
-
 export const movePipeline = async (
   projectUuid: string,
   pipelineUuid: string,
@@ -580,13 +564,5 @@ export const movePipeline = async (
     method: "PUT",
     headers: HEADER.JSON,
     body: JSON.stringify({ path: newPath.replace(/^\//, "") }), // The path should be relative to `/project-dir:/`.
-  });
-};
-
-export const moveFile = async (projectUuid: string, move: Move) => {
-  const query = queryArgs({ ...unpackMove(move), projectUuid });
-
-  await fetcher(`${FILE_MANAGEMENT_ENDPOINT}/rename?${query}`, {
-    method: "POST",
   });
 };

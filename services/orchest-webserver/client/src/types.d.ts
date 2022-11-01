@@ -396,17 +396,6 @@ export type Service = {
   order: number;
 };
 
-export type FileTree = {
-  type: "directory" | "file";
-  name: string;
-  root?: boolean;
-  // Absolute path against the root, e.g. /folder/sub/file.py, will need to check if its root is `/project-dir:/ or `/data:/`;
-  // therefore, the complete absolute path would be `/project-dir:/folder/sub/file.py`
-  path?: string;
-  depth?: number;
-  children: FileTree[];
-};
-
 export type PipelineData = {
   env_variables: Record<string, string>;
   path: string;

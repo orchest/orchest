@@ -11,10 +11,6 @@ import { setOutgoingConnections } from "@/utils/webserver-utils";
 
 export const DRAG_CLICK_SENSITIVITY = 3;
 
-export type FileManagementRoot = "/project-dir" | "/data";
-
-export const treeRoots = ["/project-dir", "/data"] as const;
-
 export const updatePipelineJson = (
   pipelineJson: PipelineState | PipelineJson,
   steps: StepsDict

@@ -1,9 +1,11 @@
+import { useFileApi } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
+import { unpackPath } from "@/utils/file";
 import { basename } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
 import Box from "@mui/material/Box";
@@ -14,13 +16,11 @@ import {
   filterRedundantChildPaths,
   findPipelineFiles,
   prettifyRoot,
-  unpackPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuMetadata, ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
-  reload: () => Promise<void>;
   handleClose: () => void;
   handleContextMenu: (
     event: React.MouseEvent,
@@ -49,18 +49,6 @@ export const FileManagerLocalContext = React.createContext<
 export const useFileManagerLocalContext = () =>
   React.useContext(FileManagerLocalContext);
 
-const deleteFetch = (projectUuid: string, combinedPath: string) => {
-  const { root, path } = unpackPath(combinedPath);
-  return fetch(
-    `${FILE_MANAGEMENT_ENDPOINT}/delete?${queryArgs({
-      project_uuid: projectUuid,
-      path,
-      root,
-    })}`,
-    { method: "POST" }
-  );
-};
-
 const downloadFile = (
   projectUuid: string,
   combinedPath: string,
@@ -82,9 +70,8 @@ const downloadFile = (
 };
 
 export const FileManagerLocalContextProvider: React.FC<{
-  reload: () => Promise<void>;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuMetadata>>;
-}> = ({ children, reload, setContextMenu }) => {
+}> = ({ children, setContextMenu }) => {
   const { setConfirm } = useGlobalContext();
   const {
     state: { pipelines = [], pipelineReadOnlyReason },
@@ -110,6 +97,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   >();
   const [fileInRename, setFileInRename] = React.useState<string>();
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
+  const deleteFile = useFileApi((api) => api.delete);
 
   const handleContextMenu = React.useCallback(
     (
@@ -204,9 +192,9 @@ export const FileManagerLocalContextProvider: React.FC<{
       </Stack>,
       async (resolve) => {
         await Promise.all(
-          filesToDelete.map((combinedPath) =>
-            deleteFetch(projectUuid, combinedPath)
-          )
+          filesToDelete
+            .map(unpackPath)
+            .map(({ root, path }) => deleteFile(root, path))
         );
         // Send a GET request for file discovery
         // to ensure that the pipeline is removed from DB.
@@ -235,23 +223,22 @@ export const FileManagerLocalContextProvider: React.FC<{
           return true;
         }
 
-        await reload();
         resolve(true);
         return true;
       }
     );
   }, [
+    pipelineReadOnlyReason,
     contextMenuCombinedPath,
+    projectUuid,
+    handleClose,
     selectedFiles,
     selectedFilesWithoutRedundantChildPaths,
-    projectUuid,
-    reload,
     setConfirm,
-    handleClose,
-    pipelineReadOnlyReason,
+    dispatch,
+    deleteFile,
     pipeline?.path,
     navigateTo,
-    dispatch,
   ]);
 
   const handleDownload = React.useCallback(() => {
@@ -282,7 +269,6 @@ export const FileManagerLocalContextProvider: React.FC<{
   return (
     <FileManagerLocalContext.Provider
       value={{
-        reload,
         handleClose,
         handleContextMenu,
         handleSelect,

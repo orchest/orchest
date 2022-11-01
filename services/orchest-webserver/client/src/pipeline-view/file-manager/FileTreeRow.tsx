@@ -1,20 +1,21 @@
+import { useFileApi } from "@/api/files/useFileApi";
 import { useOnClickOutside } from "@/hooks/useOnClickOutside";
 import { firstAncestor } from "@/utils/element";
+import { combinePath, FileRoot, unpackPath } from "@/utils/file";
+import { directoryContents } from "@/utils/file-map";
 import { basename, dirname, extname, isDirectory } from "@/utils/path";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import produce from "immer";
 import React from "react";
-import { FileManagementRoot } from "../common";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { combinePath, TreeNode, unpackPath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { FileTreeItem } from "./FileTreeItem";
 
 type FileTreeRowProps = {
-  treeNodes: TreeNode[];
-  root: FileManagementRoot;
+  path: string;
+  root: FileRoot;
   hoveredPath: string | undefined;
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   onRename: (oldPath: string, newPath: string) => void;
@@ -22,32 +23,33 @@ type FileTreeRowProps = {
 };
 
 export const FileTreeRow = ({
-  treeNodes,
+  path,
   onRename,
   setDragFile,
   root,
   hoveredPath,
   onOpen,
 }: FileTreeRowProps) => {
+  const fileMap = useFileApi((api) => api.roots[root] ?? {});
   const { isReadOnly } = usePipelineDataContext();
   const { handleContextMenu, fileInRename } = useFileManagerLocalContext();
   const { directories, files } = React.useMemo(
     () =>
-      treeNodes.reduce(
-        (all, node) =>
+      Object.keys(directoryContents(fileMap, path)).reduce(
+        (all, path) =>
           produce(all, (draft) => {
-            if (node.type === "directory") draft.directories.push(node);
-            if (node.type === "file") draft.files.push(node);
+            if (isDirectory(path)) draft.directories.push(path);
+            else draft.files.push(path);
           }),
-        { directories: [] as TreeNode[], files: [] as TreeNode[] }
+        { directories: [] as string[], files: [] as string[] }
       ),
-    [treeNodes]
+    [path, fileMap]
   );
 
   return (
     <>
-      {directories.map((node) => {
-        const combinedPath = combinePath({ root, path: node.path });
+      {directories.map((path) => {
+        const combinedPath = combinePath({ root, path });
 
         return (
           <Box sx={{ position: "relative" }} key={combinedPath}>
@@ -69,10 +71,10 @@ export const FileTreeRow = ({
               nodeId={combinedPath}
               data-path={combinedPath}
               path={combinedPath}
-              labelText={node.name}
+              labelText={basename(path)}
             >
               <FileTreeRow
-                treeNodes={node.children}
+                path={path}
                 setDragFile={setDragFile}
                 root={root}
                 hoveredPath={hoveredPath}
@@ -83,8 +85,9 @@ export const FileTreeRow = ({
           </Box>
         );
       })}
-      {files.map((node) => {
-        const combinedPath = combinePath({ root, path: node.path });
+      {files.map((path) => {
+        const combinedPath = combinePath({ root, path });
+        const name = basename(path);
 
         return (
           <div style={{ position: "relative" }} key={combinedPath}>
@@ -99,8 +102,8 @@ export const FileTreeRow = ({
               nodeId={combinedPath}
               data-path={combinedPath}
               path={combinedPath}
-              labelText={node.name}
-              fileName={node.name}
+              labelText={name}
+              fileName={name}
               onDoubleClick={() => !isReadOnly && onOpen(combinedPath)}
             />
           </div>

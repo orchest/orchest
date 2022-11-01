@@ -2,6 +2,7 @@ import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
+import { unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
 import { join } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
@@ -11,7 +12,7 @@ import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useOpenFile } from "../hooks/useOpenFile";
-import { cleanFilePath, FILE_MANAGEMENT_ENDPOINT, unpackPath } from "./common";
+import { cleanFilePath, FILE_MANAGEMENT_ENDPOINT } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export type ContextMenuType = "tree" | "background";

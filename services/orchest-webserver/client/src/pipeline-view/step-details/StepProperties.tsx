@@ -1,6 +1,13 @@
-import ProjectFilePicker from "@/components/ProjectFilePicker";
+import { FilePicker } from "@/components/FilePicker";
 import { StepState } from "@/types";
-import { hasExtension, join } from "@/utils/path";
+import { FileRoot, UnpackedPath } from "@/utils/file";
+import {
+  addLeadingSlash,
+  basename,
+  hasExtension,
+  join,
+  relative,
+} from "@/utils/path";
 import { pick } from "@/utils/record";
 import { toValidFilename } from "@/utils/toValidFilename";
 import FormControl from "@mui/material/FormControl";
@@ -16,7 +23,6 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import { SelectEnvironment } from "./SelectEnvironment";
-import { useStepDetailsContext } from "./StepDetailsContext";
 import { StepParameters } from "./StepParameters";
 import { useAutoFocusStepName } from "./store/useAutoFocusStepName";
 import { useDelayedSavingStepChanges } from "./useDelayedSavingStepChanges";
@@ -58,7 +64,6 @@ export const StepProperties = ({
   );
 
   const { step, setStepChanges } = useDelayedSavingStepChanges(handleSave);
-  const { doesStepFileExist, isCheckingFileValidity } = useStepDetailsContext();
 
   const isNotebookStep = hasExtension(step.file_path, "ipynb");
   const titleInputRef = React.useRef<HTMLInputElement>();
@@ -100,17 +105,17 @@ export const StepProperties = ({
   const autogenerateFilePath = React.useRef(step.file_path.length === 0);
 
   const onChangeFilePath = React.useCallback(
-    (newFilePath: string) => {
-      if (newFilePath.length > 0) {
+    (root: FileRoot, path: string) => {
+      if (path.length > 0) {
         autogenerateFilePath.current = false;
       }
-      setStepChanges((current) => {
-        return newFilePath !== current.file_path
-          ? { file_path: newFilePath }
-          : current;
-      });
+
+      setStepChanges((current) => ({
+        file_path: toPipelinePath({ root, path }, pipelineCwd ?? "/"),
+        title: current.title || basename(path).split(".")[0],
+      }));
     },
-    [setStepChanges]
+    [pipelineCwd, setStepChanges]
   );
 
   const onChangeKernel = (updatedKernel: string) => {
@@ -129,9 +134,11 @@ export const StepProperties = ({
 
   React.useEffect(() => {
     if (step.file_path.length === 0) {
-      onChangeFilePath(toValidFilename(step.title));
+      onChangeFilePath("/project-dir", toValidFilename(step.title));
     }
   }, [onChangeFilePath, step.file_path.length, step.title]);
+
+  const { root, path } = toProjectPath(step.file_path, pipelineCwd ?? "/");
 
   return (
     <Stack direction="column" spacing={3}>
@@ -147,7 +154,7 @@ export const StepProperties = ({
       />
       {readOnly ? (
         <TextField
-          value={step.file_path}
+          value={path}
           label="File path"
           disabled={readOnly}
           fullWidth
@@ -155,13 +162,11 @@ export const StepProperties = ({
           data-test-id="step-file-name-textfield"
         />
       ) : (
-        <ProjectFilePicker
-          value={step.file_path}
-          allowedExtensions={ALLOWED_STEP_EXTENSIONS}
-          pipelineCwd={pipelineCwd}
-          onChange={onChangeFilePath}
-          doesFileExist={doesStepFileExist}
-          isCheckingFileValidity={isCheckingFileValidity}
+        <FilePicker
+          root={root}
+          selected={path}
+          fileFilter={(path) => hasExtension(path, ...ALLOWED_STEP_EXTENSIONS)}
+          onChange={(root, newPath) => onChangeFilePath(root, newPath)}
         />
       )}
       {isNotebookStep && (
@@ -195,3 +200,14 @@ export const StepProperties = ({
     </Stack>
   );
 };
+
+const toPipelinePath = (
+  { root, path }: UnpackedPath,
+  pipelineCwd: string
+): string =>
+  root === "/data" ? join(root, path) : relative(pipelineCwd, path);
+
+const toProjectPath = (path: string, pipelineCwd: string): UnpackedPath =>
+  path.startsWith("/data/")
+    ? { root: "/data", path: path.substring("/data".length) }
+    : { root: "/project-dir", path: addLeadingSlash(join(pipelineCwd, path)) };

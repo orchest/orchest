@@ -1,4 +1,4 @@
-import { FileManagementRoot } from "@/pipeline-view/common";
+import { FileRoot } from "@/api/files/useFileApi";
 import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { join } from "@/utils/path";
 import { prune } from "@/utils/record";
@@ -23,7 +23,7 @@ export function isUploadedViaDropzone(
 
 type UploadFileParams = {
   projectUuid?: string;
-  root: FileManagementRoot;
+  root: FileRoot;
   isProjectUpload?: boolean;
   fetch?: Fetcher;
 };
@@ -76,7 +76,7 @@ export const useUploader = ({
 
 export type CreateUploaderParams = {
   projectUuid?: string;
-  root: FileManagementRoot;
+  root: FileRoot;
   basePath: string;
   isProjectUpload?: boolean;
   fetch?: Fetcher<void>;

@@ -1,6 +1,7 @@
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
+import { FileRoot, unpackPath } from "@/utils/file";
 import { join, truncateForDisplay } from "@/utils/path";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import Button from "@mui/material/Button";
@@ -21,15 +22,18 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import { useForm } from "react-hook-form";
-import { FileManagementRoot } from "../common";
-import { lastSelectedFolderPath, prettifyRoot } from "./common";
-import { useFileManagerContext } from "./FileManagerContext";
+import { prettifyRoot } from "./common";
 import { useCreateFile } from "./useCreateFile";
 
 export type CreateFileDialogProps = {
-  isOpen: boolean;
-  root?: FileManagementRoot;
+  /** The folder to create the new folder in. */
+  cwd: string;
+  /** In which root to create the folder. */
+  root: FileRoot;
+  /** Hide the "create step" section entirely. */
+  hideCreateStep?: boolean;
   canCreateStep: boolean;
+  isOpen: boolean;
   onClose(): void;
   onSuccess(file: CreatedFile): void;
 };
@@ -41,10 +45,10 @@ export type FileFormData = {
 };
 
 export type CreatedFile = {
-  /** The path, relative to `/project-dir:/`. */
-  projectPath: string;
-  /** The path, starting with `/project-dir:/`. */
-  fullPath: string;
+  /** The root the file was created in. */
+  root: FileRoot;
+  /** The path, relative to the root. */
+  path: string;
   /** Whether the user wants to add the file as a step to the pipeline immediately. */
   shouldCreateStep: boolean;
 };
@@ -55,49 +59,37 @@ const defaultFormState = (canCreateStep: boolean) => ({
   shouldCreateStep: canCreateStep,
 });
 
-const combinePath = (
-  dirName: string,
-  fileName: string,
-  extension: StepExtension
-) => `${dirName}${fileName}.${extension}`;
-
 export const CreateFileDialog = ({
+  root,
+  cwd,
   isOpen,
-  root = "/project-dir",
+  hideCreateStep,
   canCreateStep,
   onClose,
   onSuccess,
 }: CreateFileDialogProps) => {
   const { setAlert } = useGlobalContext();
-  const { selectedFiles } = useFileManagerContext();
   const { register, handleSubmit, watch, reset } = useForm<FileFormData>({
     defaultValues: defaultFormState(canCreateStep),
   });
   const { run, setError, error, status } = useAsync<void>();
 
-  const selectedFolder = React.useMemo(
-    () => lastSelectedFolderPath(selectedFiles),
-    [selectedFiles]
-  );
-
   const createFile = useCreateFile(root);
 
   const onSubmit = React.useCallback(
     async ({ shouldCreateStep, ...file }: FileFormData) => {
-      const projectPath = combinePath(
-        selectedFolder,
-        file.fileName,
-        file.extension
-      );
+      const projectPath = join(cwd, `${file.fileName}.${file.extension}`);
 
       await run(
-        createFile(projectPath).then((fullPath) => {
-          onClose();
-          onSuccess({ projectPath, fullPath, shouldCreateStep });
-        })
+        createFile(projectPath)
+          .then(unpackPath)
+          .then(({ root, path }) => {
+            onClose();
+            onSuccess({ root, path, shouldCreateStep });
+          })
       );
     },
-    [run, createFile, onSuccess, onClose, selectedFolder]
+    [cwd, run, createFile, onClose, onSuccess]
   );
 
   React.useEffect(() => {
@@ -113,7 +105,7 @@ export const CreateFileDialog = ({
   ]);
 
   const displayPath = truncateForDisplay(
-    join(prettifyRoot(root), selectedFolder, `${fileName}.${extension}`)
+    join(prettifyRoot(root), cwd, `${fileName}.${extension}`)
   );
 
   React.useEffect(() => {
@@ -183,23 +175,25 @@ export const CreateFileDialog = ({
                 margin="normal"
               />
             </Grid>
-            <Grid item xs={12}>
-              <FormControlLabel
-                label="Create a new step for this file"
-                title={
-                  canCreateStep
-                    ? "Add this file as a step in the pipeline directly"
-                    : "No pipelines available to add step to"
-                }
-                disabled={!canCreateStep}
-                control={
-                  <Checkbox
-                    {...register("shouldCreateStep")}
-                    checked={shouldCreateStep}
-                  />
-                }
-              />
-            </Grid>
+            {!hideCreateStep && (
+              <Grid item xs={12}>
+                <FormControlLabel
+                  label="Create a new step for this file"
+                  title={
+                    canCreateStep
+                      ? "Add this file as a step in the pipeline directly"
+                      : "No pipelines available to add step to"
+                  }
+                  disabled={!canCreateStep}
+                  control={
+                    <Checkbox
+                      {...register("shouldCreateStep")}
+                      checked={shouldCreateStep}
+                    />
+                  }
+                />
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>

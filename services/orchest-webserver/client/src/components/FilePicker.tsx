@@ -1,372 +1,355 @@
-import { useHasChanged } from "@/hooks/useHasChanged";
-import { useOnClickOutside } from "@/hooks/useOnClickOutside";
-import { FileTree } from "@/types";
-import { hasExtension, join } from "@/utils/path";
-import FolderIcon from "@mui/icons-material/Folder";
-import TurnLeftOutlinedIcon from "@mui/icons-material/TurnLeftOutlined";
+import { FileScope, useFileApi } from "@/api/files/useFileApi";
+import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
+import { prettifyRoot } from "@/pipeline-view/file-manager/common";
+import { CreateFileDialog } from "@/pipeline-view/file-manager/CreateFileDialog";
+import { getIcon, SVGFileIcon } from "@/pipeline-view/file-manager/SVGFileIcon";
+import { FileRoot, fileRoots } from "@/utils/file";
+import { directoryContents } from "@/utils/file-map";
+import {
+  addLeadingSlash,
+  basename,
+  dirname,
+  filename,
+  isDirectory,
+  trimLeadingSlash,
+} from "@/utils/path";
+import { AddOutlined, FolderOutlined } from "@mui/icons-material";
+import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormLabel from "@mui/material/FormLabel";
 import InputAdornment from "@mui/material/InputAdornment";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
-import Paper from "@mui/material/Paper";
+import Popover from "@mui/material/Popover";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import React from "react";
-
-export const validatePathInTree = (path: string, tree: FileTree) => {
-  // path assumed to start with /
-
-  /**
-   * Valid inputs:
-   * "/def/def"
-   * "/def"
-   * "/abc/"
-   *
-   * Invalid inputs:
-   * "//asd" (empty directory component)
-   * "asd/asd.py" (missing the leading slash)
-   */
-
-  if (path === undefined || tree === undefined) {
-    return false;
-  }
-
-  // `path` represents the root of the tree
-  if (path === "") return true;
-
-  // Should always be absolute.
-  if (!path.startsWith("/")) return false;
-
-  let pathComponents = path.split("/");
-
-  let isFirstComponentDir = pathComponents.length > 2;
-
-  // `path` contains double slashes.
-  if (isFirstComponentDir && pathComponents[1] === "") return false;
-
-  if (isFirstComponentDir) {
-    for (let x = 0; x < tree.children.length; x++) {
-      let child = tree.children[x];
-
-      // Normally, `name` should be `path` without leading and trailing slashes,
-      // but sometimes `name` and `path` are not aligned for UI rendering purposes,
-      const matchingPathComponent =
-        child.name === pathComponents[1] ||
-        child.path?.replace(/^\//, "").replace(/\/$/, "") === pathComponents[1];
-
-      if (matchingPathComponent && child.type === "directory") {
-        // Path ends in directory
-        if (pathComponents[2] === "") return true;
-
-        return validatePathInTree(
-          "/" + pathComponents.slice(2).join("/"),
-          child
-        );
-      }
-    }
-    return false;
-  } else {
-    for (let x = 0; x < tree.children.length; x++) {
-      let child = tree.children[x];
-      if (child.name == pathComponents[1] && child.type == "file") {
-        return true;
-      }
-    }
-  }
-};
+import { PathBreadcrumbs } from "./PathBreadcrumbs";
 
 export type FilePickerProps = {
-  cwd: string;
-  absoluteCwd: string;
-  icon?: React.ReactNode;
-  helperText: string;
-  onChangeValue: (value: FilePickerProps["value"]) => void;
-  tree: FileTree;
-  value: string;
-  onSelectMenuItem: (node: FileTree) => void;
-  allowedExtensions: readonly string[];
-  generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
+  /**
+   * A path to the currently selected folder or file relative to the root.
+   * This path determines the starting CWD as well.
+   */
+  selected?: string;
+  /** The root to start in. Defaults to `"/project-dir". */
+  root?: FileRoot;
+  /** Hides the root selector in the file picker. */
+  hideRoots?: boolean;
+  /** Hides the create file button in the file picker. */
+  hideCreateFile?: boolean;
+  /** Override the automatically set scope parameters. */
+  scope?: FileScope;
+  /** Called once an accepted path has been selected. */
+  onChange?: (root: FileRoot, path: string) => void;
+  /** Only show files matching this filter. */
+  fileFilter?: (path: string) => boolean;
+  /**
+   * Which paths are accepted and will trigger `onChange`.
+   * By default, all non-directories are accepted.
+   */
+  accepts?: (path: string) => boolean;
 };
 
-const ITEM_HEIGHT = 48;
+export const FilePicker = ({
+  root: startingRoot = "/project-dir",
+  hideRoots,
+  hideCreateFile,
+  selected,
+  scope,
+  onChange,
+  fileFilter = () => true,
+  accepts = (path) => !isDirectory(path),
+}: FilePickerProps) => {
+  selected = addLeadingSlash(selected ?? "/");
+  const { roots } = useFetchFileRoots(scope);
+  const expand = useFileApi((api) => api.expand);
 
-const useFilePicker = ({
-  cwd,
-  tree,
-  absoluteCwd,
-  onChangeValue,
-  allowedExtensions,
-  generateRelativePath,
-}: Pick<
-  FilePickerProps,
-  "absoluteCwd" | "cwd" | "tree" | "onChangeValue" | "allowedExtensions"
-> & {
-  generateRelativePath: (absoluteFolderPath: string, cwd: string) => string;
-}) => {
-  const generateRelativePathRef = React.useRef(generateRelativePath);
-  const onChangeValueRef = React.useRef(onChangeValue);
+  const [path, setPath] = React.useState(selected ?? "/");
+  const [bestMatch, setBestMatch] = React.useState("");
+  const [root, setRoot] = React.useState(startingRoot);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const inputContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isCreatingFile, setIsCreatingFile] = React.useState(false);
+  const [expanding, setExpanding] = React.useState(false);
+  const bestMatchRef = React.useRef<HTMLLIElement | null>(null);
+  const scopeRef = React.useRef(scope);
+  scopeRef.current = scope;
 
-  const [absoluteFolderPath, setAbsoluteFolderPath] = React.useState<string>(
-    absoluteCwd
+  const fileMap = roots[root];
+
+  /** The path if `path` is a directory, otherwise the dirname of the `path`. */
+  const cwd = React.useMemo(() => {
+    if (!path) return "/";
+    else if (isDirectory(path)) return addLeadingSlash(path);
+    else return addLeadingSlash(dirname(path));
+  }, [path]);
+
+  const contents = React.useMemo(() => {
+    const paths = Object.keys(directoryContents(fileMap ?? {}, cwd)).filter(
+      (child) => isDirectory(child) || fileFilter(child)
+    );
+
+    const search = filename(path).toLowerCase();
+    const matchesSearch = (child: string) =>
+      !search || basename(child).toLowerCase().includes(search);
+
+    // When the file picker is opened when a path has previously
+    // been selected, we don't want a filter based on search,
+    // since that will make the file picker look almost empty/broken.
+    return selected !== path ? paths.filter(matchesSearch) : paths;
+  }, [path, fileMap, cwd, selected, fileFilter]);
+
+  React.useEffect(() => {
+    setExpanding(true);
+
+    expand(root, cwd, scopeRef.current).then(() => setExpanding(false));
+  }, [cwd, expand, root]);
+
+  const openMenu = React.useCallback(() => {
+    setIsOpen(true);
+  }, []);
+  const closeMenu = React.useCallback(() => {
+    setIsCreatingFile(false);
+    setIsOpen(false);
+  }, []);
+
+  const selectPath = React.useCallback(
+    (newPath: string) => {
+      setPath(newPath);
+
+      if (accepts?.(newPath) ?? true) {
+        onChange?.(root, newPath);
+        closeMenu();
+      }
+    },
+    [accepts, closeMenu, onChange, root]
   );
-  const onNavigateUp = () => {
-    setAbsoluteFolderPath((oldPath) => {
-      const newPath = oldPath.slice(
-        0,
-        oldPath.slice(0, -1).lastIndexOf("/") + 1
-      );
-
-      return newPath === "/" ? "" : newPath;
-    });
-  };
 
   React.useEffect(() => {
-    // If absoluteFolderPath doesn't match absoluteCwd, we need to update
-    // the value of the FilePicker field to be the directory user is viewing via the dropdown.
-    // as a visual feedback.
-    if (absoluteFolderPath !== absoluteCwd) {
-      onChangeValueRef.current(
-        generateRelativePathRef.current(absoluteFolderPath, cwd)
-      );
-    }
-  }, [absoluteFolderPath]); // eslint-disable-line react-hooks/exhaustive-deps
+    const name = basename(path);
 
-  const { isRootNode, options } = React.useMemo(() => {
-    // Absolute paths always start and end with a forward slash.
-    let pathComponents = absoluteFolderPath.slice(1, -1).split("/");
-    let currentNode = tree;
+    if (!fileMap) return undefined;
 
-    // traverse to the right directory node
-    for (let component of pathComponents) {
-      for (let child of currentNode.children) {
-        // Root nodes need to be handled differently.
-        // Because `node.name` is used to render UI, we have to check node.path, which ends with ":/".
-        // For the rest of the nodes, simply compare node.name.
-        const isRoot =
-          child.depth === 0 && /^\/(.*):\/$/.test(child.path || "");
-        const valueToCompare = isRoot
-          ? (child.path || "").replace(/\//g, "")
-          : child.name;
+    const newBestMatch = [...contents].sort(
+      (left, right) =>
+        getMatchScore(basename(right), name) -
+        getMatchScore(basename(left), name)
+    )[0];
 
-        if (valueToCompare === component) {
-          currentNode = child;
-          break;
+    setBestMatch(newBestMatch);
+  }, [contents, path, fileMap]);
+
+  React.useEffect(() => {
+    // Ensure that the best match is always visible.
+    bestMatchRef.current?.scrollIntoView({ block: "nearest" });
+  }, [bestMatch]);
+
+  React.useEffect(() => {
+    if (isOpen) inputRef.current?.focus();
+    else inputRef.current?.blur();
+  }, [isOpen]);
+
+  const onKeyDown = React.useCallback(
+    (event: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        const next = contents[contents.indexOf(bestMatch) + 1];
+
+        setBestMatch((current) => next ?? current);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        const previous = contents[contents.indexOf(bestMatch) - 1];
+
+        setBestMatch((current) => previous ?? current);
+      }
+    },
+    [bestMatch, isOpen, contents]
+  );
+
+  const onKeyUp = React.useCallback(
+    (event: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (bestMatch) {
+          selectPath(bestMatch);
         }
+      } else if (event.key === "Escape") {
+        setIsOpen(false);
       }
-    }
+    },
+    [bestMatch, isOpen, selectPath]
+  );
 
-    return {
-      isRootNode: currentNode.root,
-      options: currentNode.children.filter((childNode) => {
-        return (
-          childNode.type === "directory" ||
-          hasExtension(childNode.name, ...allowedExtensions)
-        );
-      }),
-    };
-  }, [absoluteFolderPath, tree, allowedExtensions]);
-
-  return {
-    absoluteFolderPath,
-    setAbsoluteFolderPath,
-    onNavigateUp,
-    isRootNode,
-    options,
-  };
-};
-
-// TODO: use MUI Dropdown when it is released
-
-const FilePicker: React.FC<FilePickerProps> = ({
-  cwd,
-  absoluteCwd, // Because the file tree could have multiple roots, e.g. /project-dir:/ or /data:/.
-  value,
-  tree,
-  onChangeValue,
-  helperText,
-  icon,
-  onSelectMenuItem,
-  generateRelativePath,
-  allowedExtensions,
-}) => {
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const inputRef = React.useRef<HTMLInputElement>();
-  const menuRef = React.useRef<HTMLDivElement | null>(null);
-  const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
-  useOnClickOutside(menuRef, () => setIsDropdownOpen(false));
-
-  const {
-    absoluteFolderPath,
-    setAbsoluteFolderPath,
-    onNavigateUp,
-    isRootNode,
-    options,
-  } = useFilePicker({
-    cwd,
-    absoluteCwd,
-    tree,
-    onChangeValue,
-    allowedExtensions,
-    generateRelativePath,
-  });
-
-  // When clicking on the dropdown menu, the built-in `onBlur` will be fired.
-  // Use a boolean to control if it's an intended blur behavior.
-  const isBlurAllowed = React.useRef(true);
-  const onMouseOverMenu = () => {
-    isBlurAllowed.current = false;
-  };
-  const onMouseLeaveMenu = () => {
-    isBlurAllowed.current = true;
-  };
-
-  const onFocusTextField = () => {
-    setIsDropdownOpen(true);
-  };
-
-  const onBlurTextField = () => {
-    if (isBlurAllowed.current) {
-      setIsDropdownOpen(false);
-    }
-  };
-
-  const onSelectListItem = (e: React.MouseEvent, selectedNode: FileTree) => {
-    onSelectMenuItem(selectedNode);
-    if (selectedNode.type === "directory") {
-      setAbsoluteFolderPath((oldPath) => {
-        const selectedNodePath = selectedNode.path || "";
-        // If it's root, it needs to be handled differently.
-        // It is either "/project-dir:/", or "/data:/".
-        if (["/project-dir:/", "/data:/"].includes(selectedNodePath))
-          return selectedNodePath;
-
-        return join(oldPath, selectedNode.name + "/");
-      });
-    } else {
-      e.preventDefault(); // To prevent trigger `onFocusTextField`.
-      onChangeValue(
-        generateRelativePath(`${absoluteFolderPath}${selectedNode.name}`, cwd)
-      );
-      inputRef.current?.focus();
-      setIsDropdownOpen(false);
-    }
-  };
-
-  const onTextFieldKeyUp = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
-      isBlurAllowed.current = false;
-      menuFirstItemRef.current?.focus();
-      if (!isDropdownOpen) setIsDropdownOpen(true);
-    }
-  };
-
-  const hasOptionChanged = useHasChanged(options);
-  React.useEffect(() => {
-    if (hasOptionChanged && isDropdownOpen) {
-      isBlurAllowed.current = false;
-      menuFirstItemRef.current?.focus();
-    }
-  }, [hasOptionChanged, isDropdownOpen]);
-
-  const onClick = () => {
-    if (!isDropdownOpen && inputRef.current === document.activeElement)
-      setIsDropdownOpen(true);
-  };
+  const errorText =
+    !expanding && !fileMap?.[path] ? "File not found" : undefined;
 
   React.useEffect(() => {
-    // Applying the logic to onKeyUp for `MenuItem` is prone to error.
-    // The DOM ref is not always valid because the DOM element constantly being updated.
-    const keyDownHandler = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isDropdownOpen) {
-        event.preventDefault();
-        inputRef.current?.focus();
-        setIsDropdownOpen(false);
-      }
-      if (
-        event.key === "Enter" &&
-        isDropdownOpen &&
-        menuFirstItemRef.current !== document.activeElement
-      ) {
-        // Some other MUI might aggressively grab the focus.
-        // As long as pressing Enter when Dropdown is open, force focusing the first menu element.
-        event.preventDefault();
-        menuFirstItemRef.current?.focus();
-      }
-    };
+    document.addEventListener("keyup", onKeyUp);
 
-    document.addEventListener("keydown", keyDownHandler);
+    return () => document.removeEventListener("keyup", onKeyUp);
+  }, [onKeyUp]);
 
-    return () => {
-      document.removeEventListener("keydown", keyDownHandler);
-    };
-  }, [isDropdownOpen]);
+  React.useEffect(() => {
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onKeyDown]);
 
   return (
-    <Box sx={{ position: "relative" }}>
+    <Box position="relative">
+      {!hideRoots && (
+        <FormControl fullWidth sx={{ paddingBottom: 3 }}>
+          <FormLabel>Location</FormLabel>
+          <RadioGroup
+            sx={{ padding: (theme) => theme.spacing(0, 1) }}
+            row={true}
+            defaultValue={startingRoot}
+            value={root}
+            onChange={(event) => {
+              setRoot(event.target.value as FileRoot);
+              setPath("/");
+            }}
+          >
+            {fileRoots.map((root) => (
+              <FormControlLabel
+                key={root}
+                value={root}
+                label={prettifyRoot(root)}
+                control={<Radio />}
+              />
+            ))}
+          </RadioGroup>
+        </FormControl>
+      )}
       <TextField
-        inputRef={inputRef}
-        onClick={onClick}
-        onFocusCapture={onFocusTextField}
-        onBlur={onBlurTextField}
-        onChange={(e) => onChangeValue(e.target.value)}
-        onKeyUp={onTextFieldKeyUp}
-        value={value}
         label="File path"
+        autoComplete="off"
         fullWidth
-        data-test-id="file-picker-file-path-textfield"
-        helperText={helperText || " "}
+        error={Boolean(errorText)}
+        helperText={errorText}
+        value={trimLeadingSlash(path)}
+        onChange={({ target }) => setPath(target.value)}
+        // This is the input element:
+        inputProps={{ ref: inputRef, onFocus: openMenu }}
+        // This is its container:
         InputProps={{
-          endAdornment: <InputAdornment position="end">{icon}</InputAdornment>,
+          ref: inputContainerRef,
+          sx: { paddingRight: 1 },
+          startAdornment: hideRoots && (
+            <InputAdornment position="start" sx={{ pointerEvents: "none" }}>
+              {prettifyRoot(root)}/
+            </InputAdornment>
+          ),
+          endAdornment: (
+            <InputAdornment position="end" sx={{ pointerEvents: "none" }}>
+              <ArrowDropDown
+                sx={{
+                  transform: isOpen ? "rotateZ(180deg)" : undefined,
+                }}
+              />
+            </InputAdornment>
+          ),
         }}
       />
-      {isDropdownOpen && (
-        <Paper
-          ref={menuRef}
-          elevation={4}
-          onMouseOver={onMouseOverMenu}
-          onMouseLeave={onMouseLeaveMenu}
-          sx={{
-            maxHeight: ITEM_HEIGHT * 4.5,
-            overflowY: "auto",
-            position: "absolute",
-            top: (theme) => theme.spacing(7),
-            zIndex: 10,
-          }}
-        >
-          <MenuList dense>
-            {options && !isRootNode && (
-              <MenuItem onClick={onNavigateUp} ref={menuFirstItemRef}>
-                <ListItemIcon>
-                  <TurnLeftOutlinedIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Navigate up</ListItemText>
-              </MenuItem>
-            )}
-            {options?.map((childNode, index) => {
-              const nodeName = childNode.name;
-              return (
-                <MenuItem
-                  key={childNode.name}
-                  onClick={(e) => onSelectListItem(e, childNode)}
-                  ref={isRootNode && index === 0 ? menuFirstItemRef : undefined}
-                >
-                  {childNode.type === "directory" && (
+      <Popover
+        open={isOpen}
+        onClose={closeMenu}
+        anchorEl={inputContainerRef.current}
+        disableAutoFocus={true}
+        disableRestoreFocus={true}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        PaperProps={{
+          sx: { marginTop: 1, overflow: "hidden" },
+          style: {
+            width: inputContainerRef.current?.clientWidth,
+          },
+        }}
+      >
+        <FormControl fullWidth>
+          <FormLabel sx={{ padding: (theme) => theme.spacing(2) }}>
+            <PathBreadcrumbs root={root} path={cwd} onChange={setPath} />
+          </FormLabel>
+
+          <MenuList sx={{ maxHeight: 200, overflow: "auto" }}>
+            {contents.map((child) => (
+              <MenuItem
+                key={child}
+                onClick={() => selectPath(child)}
+                selected={bestMatch === child}
+                ref={bestMatch === child ? bestMatchRef : null}
+              >
+                {isDirectory(child) ? (
+                  <>
                     <ListItemIcon>
-                      <FolderIcon fontSize="small" />
+                      <FolderOutlined />
                     </ListItemIcon>
-                  )}
-                  <ListItemText inset={childNode.type !== "directory"}>
-                    {`${nodeName}${childNode.type === "directory" ? "/" : ""}`}
-                  </ListItemText>
-                </MenuItem>
-              );
-            })}
+                    <ListItemText>{basename(child)}/</ListItemText>
+                  </>
+                ) : (
+                  <>
+                    <ListItemIcon>
+                      <SVGFileIcon icon={getIcon(child)} />
+                    </ListItemIcon>
+                    <ListItemText>{basename(child)}</ListItemText>
+                  </>
+                )}
+              </MenuItem>
+            ))}
           </MenuList>
-        </Paper>
-      )}
+
+          {!hideCreateFile && (
+            <Stack direction="row" justifyContent="center" marginTop={1}>
+              <Button
+                fullWidth
+                startIcon={<AddOutlined />}
+                onClick={() => setIsCreatingFile(true)}
+              >
+                New file
+              </Button>
+
+              <CreateFileDialog
+                root={root}
+                cwd={cwd}
+                isOpen={isCreatingFile}
+                onSuccess={(file) => selectPath(file.path)}
+                hideCreateStep={true}
+                onClose={closeMenu}
+                canCreateStep={false}
+              />
+            </Stack>
+          )}
+        </FormControl>
+      </Popover>
     </Box>
   );
 };
 
-export default FilePicker;
+const getMatchScore = (left: string, right: string) => {
+  left = left.toLowerCase();
+  right = right.toLowerCase();
+
+  let score = 0;
+
+  for (let i = 0; i < left.length; i++) {
+    if (left[i] === right[i]) {
+      score++;
+    } else {
+      break;
+    }
+  }
+
+  return score;
+};

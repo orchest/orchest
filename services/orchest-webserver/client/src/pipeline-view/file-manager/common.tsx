@@ -1,94 +1,28 @@
 import { Code } from "@/components/common/Code";
 import { StepData } from "@/types";
 import {
+  FileRoot,
+  fileRoots,
+  isInDataFolder,
+  isPipelineFile,
+  Move,
+  UnpackedPath,
+  unpackPath,
+} from "@/utils/file";
+import {
   basename,
   dirname,
   hasAncestor,
   hasExtension,
   isDirectory,
-  join,
   relative,
 } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
 import { ALLOWED_STEP_EXTENSIONS, fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { FileManagementRoot } from "../common";
-
-export type FileTrees = Record<string, TreeNode>;
 
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
-
-export type TreeNode = {
-  children: TreeNode[];
-  path: string;
-  type: "directory" | "file";
-  name: string;
-  root: boolean;
-};
-
-export const ROOT_SEPARATOR = ":";
-
-export type UnpackedPath = {
-  /** Either `/project-dir` or `/data` */
-  root: FileManagementRoot;
-  /** The path to the file, always starts with "/" */
-  path: string;
-};
-
-/** Returns true if the path has the `.orchest` extension. */
-export const isPipelineFile = (path: string) => hasExtension(path, "orchest");
-
-/** Returns true if the combined path is in the `/data:` file management root. */
-export const isInDataFolder = (combinedPath: string) =>
-  /^\/data\:?\//.test(combinedPath);
-
-/** Returns true if the combined path is in the `/project-dir:` file management root. */
-export const isInProjectFolder = (combinedPath: string) =>
-  /^\/project-dir\:?\//.test(combinedPath);
-
-/**
- * Unpacks an combined path into `root` and `path`.
- * For example `/project-dir:/a/b` will unpack into `/project-dir:` and `/a/b/`.
- *
- * Note: If the path provided is not a combined path, this function may return
- * something nonsensical. You can use `isCombinedPath` to check.
- */
-export const unpackPath = (combinedPath: string): UnpackedPath => {
-  const root = combinedPath.split(":")[0] as FileManagementRoot;
-  const path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
-
-  return { root, path };
-};
-
-export const isCombinedPath = (path: string) => /^\/([a-z]|\-)+:\//.test(path);
-
-export const combinePath = ({ root, path }: UnpackedPath) =>
-  join(root + ROOT_SEPARATOR, path);
-
-/**
- * A tuple that describes a move.
- * The first value is the old path,
- * the second is the new path.
- */
-export type Move = readonly [string, string];
-
-export type UnpackedMove = {
-  oldRoot: FileManagementRoot;
-  oldPath: string;
-  newRoot: FileManagementRoot;
-  newPath: string;
-};
-
-export const isRename = (moves: readonly Move[]) =>
-  moves.length === 1 && dirname(moves[0][0]) === dirname(moves[0][1]);
-
-export const unpackMove = ([source, target]: Move): UnpackedMove => {
-  const { root: oldRoot, path: oldPath } = unpackPath(source);
-  const { root: newRoot, path: newPath } = unpackPath(target);
-
-  return { oldRoot, oldPath, newRoot, newPath };
-};
 
 export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
   if (sourcePath === dropPath || dropPath.startsWith(sourcePath)) {
@@ -106,69 +40,12 @@ export const getMoveFromDrop = (sourcePath: string, dropPath: string): Move => {
   return [sourcePath, newPath];
 };
 
-export function isDirectoryEntry(
-  entry: FileSystemEntry
-): entry is FileSystemDirectoryEntry {
-  return entry.isDirectory;
-}
-
-export function isFileEntry(
-  entry: FileSystemEntry
-): entry is FileSystemFileEntry {
-  return entry.isFile;
-}
-
-export const getActiveRoot = (
-  selected: string[],
-  treeRoots: readonly FileManagementRoot[]
-): FileManagementRoot => {
+export const getActiveRoot = (selected: string[]): FileRoot => {
   if (selected.length === 0) {
-    return treeRoots[0];
+    return fileRoots[0];
   } else {
     return unpackPath(selected[0]).root;
   }
-};
-
-export const replaceTreeNode = (
-  root: TreeNode,
-  replacement: TreeNode
-): TreeNode => {
-  const children: TreeNode[] = [];
-
-  for (const child of root.children) {
-    if (pathMatchesNode(child, replacement.path)) {
-      children.push(replacement);
-    } else if (child.type === "file") {
-      children.push(child);
-    } else if (child.type === "directory") {
-      children.push(replaceTreeNode(child, replacement));
-    }
-  }
-
-  return { ...root, children };
-};
-
-/** Checks if the node matches the provided path. */
-const pathMatchesNode = (node: TreeNode, path: string) =>
-  node.path === path || (node.root && (path === "" || path === "/"));
-
-export const findTreeNode = (
-  root: TreeNode | undefined,
-  path: string
-): TreeNode | undefined => {
-  if (!root || pathMatchesNode(root, path)) return root;
-
-  for (const child of root.children) {
-    if (pathMatchesNode(child, path)) {
-      return child;
-    } else if (child.type === "directory") {
-      const node = findTreeNode(child, path);
-
-      if (hasValue(node)) return node;
-    }
-  }
-
-  return undefined;
 };
 
 export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
@@ -226,27 +103,26 @@ export const findFilesByExtension = async ({
   root,
   projectUuid,
   extensions,
-  node,
+  path,
 }: {
-  root: FileManagementRoot;
+  root: FileRoot;
   projectUuid: string;
   extensions: string[];
-  node: TreeNode;
+  path: string;
 }) => {
-  if (node.type === "file") {
-    const isFileType = hasExtension(node.name, ...extensions);
-    return isFileType ? [node.name] : [];
-  } else if (node.type === "directory") {
-    const response = await searchFilePathsByExtension({
-      projectUuid,
-      root,
-      path: node.path,
-      extensions,
-    });
-
-    return response.files;
+  if (!isDirectory(path)) {
+    const isFileType = hasExtension(path, ...extensions);
+    return isFileType ? [basename(path)] : [];
   }
-  return [];
+
+  const response = await searchFilePathsByExtension({
+    projectUuid,
+    root,
+    path,
+    extensions,
+  });
+
+  return response.files;
 };
 
 /**
@@ -343,19 +219,6 @@ export const getFilePathRelativeToPipeline = (
   return isInDataFolder(fullFilePath)
     ? getFilePathInDataFolder(fullFilePath)
     : relative(pipelineCwd, cleanFilePath(fullFilePath));
-};
-
-export const lastSelectedFolderPath = (selectedFiles: string[]) => {
-  if (selectedFiles.length === 0) return "/";
-  // Note that the selection order in selectedFiles is backward,
-  // so we don't need to find from end
-  const lastSelected = selectedFiles[0];
-
-  // example:
-  // given:     /project-dir:/hello-world/foo/bar.py
-  // outcome:   /hello-world/foo/
-  const matches = lastSelected.match(/^\/[^\/]+:((\/[^\/]+)*\/)([^\/]*)/);
-  return matches ? matches[1] : "/";
 };
 
 /**
