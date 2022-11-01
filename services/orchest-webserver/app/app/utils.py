@@ -5,7 +5,7 @@ import os
 import re
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional, Union
 
 import requests
 from flask import current_app, safe_join
@@ -88,7 +88,7 @@ def get_project_directory(
     project_uuid: Optional[str] = None,
     pipeline_uuid: Optional[str] = None,
     job_uuid: Optional[str] = None,
-    run_uuid_or_snapshot: Optional[str] = None,
+    run_uuid_or_snapshot: Optional[Union[Literal["snapshot"], str]] = None,
 ):
     if project_uuid is None:
         raise ValueError("project_uuid is required.")
