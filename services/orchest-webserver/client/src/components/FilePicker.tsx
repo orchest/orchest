@@ -82,6 +82,7 @@ export const FilePicker = ({
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [isCreatingFile, setIsCreatingFile] = React.useState(false);
   const [expanding, setExpanding] = React.useState(false);
+  const bestMatchRef = React.useRef<HTMLLIElement | null>(null);
   const scopeRef = React.useRef(scope);
   scopeRef.current = scope;
 
@@ -148,6 +149,11 @@ export const FilePicker = ({
 
     setBestMatch(newBestMatch);
   }, [contents, path, fileMap]);
+
+  React.useEffect(() => {
+    // Ensure that the best match is always visible.
+    bestMatchRef.current?.scrollIntoView({ block: "end" });
+  }, [bestMatch]);
 
   const onKeyUp = React.useCallback(
     (event: KeyboardEvent) => {
@@ -261,6 +267,7 @@ export const FilePicker = ({
                 key={child}
                 onClick={() => selectPath(child)}
                 selected={bestMatch === child}
+                ref={bestMatch === child ? bestMatchRef : null}
               >
                 {isDirectory(child) ? (
                   <>
