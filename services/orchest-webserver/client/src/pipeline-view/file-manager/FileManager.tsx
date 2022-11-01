@@ -31,8 +31,8 @@ export function FileManager() {
     setSelectedFiles,
   } = useFileManagerContext();
 
-  const roots = useFetchFileRoots();
-  const reload = useFileApi((api) => api.init);
+  const { roots } = useFetchFileRoots();
+  const reload = useFileApi((api) => api.refresh);
   const expand = useFileApi((api) => api.expand);
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -91,6 +91,8 @@ export function FileManager() {
   React.useEffect(() => {
     if (Object.keys(roots).length === 0) return;
 
+    console.log("PRUNING", roots);
+
     const pruneMissingPaths = (paths: string[]) => {
       const filtered = paths
         .map(unpackPath)
@@ -100,8 +102,8 @@ export function FileManager() {
       return filtered.length !== paths.length ? filtered : paths;
     };
 
-    setSelectedFiles(pruneMissingPaths);
-    setExpanded(pruneMissingPaths);
+    // setSelectedFiles(pruneMissingPaths);
+    // setExpanded(pruneMissingPaths);
   }, [roots, setSelectedFiles]);
 
   const allTreesHaveLoaded = fileRoots.every((root) => hasValue(roots[root]));
@@ -124,7 +126,7 @@ export function FileManager() {
 
   const addExpand = React.useCallback((root: FileRoot, newPath: string) => {
     const combinedPath = combinePath({ root, path: newPath });
-    const directory = dirname(combinedPath);
+    const directory = isDirectory(newPath) ? newPath : dirname(combinedPath);
 
     setExpanded((current) =>
       current.includes(directory) ? current : [...current, directory]

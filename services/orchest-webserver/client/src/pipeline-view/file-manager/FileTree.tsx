@@ -4,7 +4,6 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
@@ -80,8 +79,8 @@ export const FileTree = React.memo(function FileTreeComponent({
     hoveredPath,
     isDragging,
   } = useFileManagerContext();
-  const roots = useFetchFileRoots();
-  const reload = useFileApi((api) => api.init);
+  const roots = useFileApi((api) => api.roots);
+  const reload = useFileApi((api) => api.refresh);
   const moveFile = useFileApi((api) => api.move);
 
   const { handleSelect, setFileInRename } = useFileManagerLocalContext();
@@ -278,7 +277,9 @@ export const FileTree = React.memo(function FileTreeComponent({
         new Promise<boolean>(async (resolve) => {
           const overwrites = moves
             .map(unpackMove)
-            .filter(({ newRoot, newPath }) => hasValue(roots[newRoot][newPath]))
+            .filter(({ newRoot, newPath }) =>
+              hasValue(roots[newRoot]?.[newPath])
+            )
             .map(
               ({ oldRoot, oldPath, newRoot, newPath }) =>
                 [

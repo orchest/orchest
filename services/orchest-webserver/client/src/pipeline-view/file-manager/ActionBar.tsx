@@ -38,7 +38,7 @@ export function ActionBar({
   setExpanded,
   onCreated,
 }: ActionBarProps) {
-  const reload = useFileApi((api) => api.init);
+  const reload = useFileApi((api) => api.refresh);
   const [openDialog, setOpenDialog] = React.useState<OpenDialog | null>(null);
   const { isReadOnly, pipeline } = usePipelineDataContext();
 

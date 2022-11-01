@@ -1,4 +1,4 @@
-import { FileApiOverrides, useFileApi } from "@/api/files/useFileApi";
+import { FileScope, useFileApi } from "@/api/files/useFileApi";
 import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { prettifyRoot } from "@/pipeline-view/file-manager/common";
 import { CreateFileDialog } from "@/pipeline-view/file-manager/CreateFileDialog";
@@ -49,7 +49,7 @@ export type FilePickerProps = {
   /** Hides the create file button in the file picker. */
   hideCreateFile?: boolean;
   /** Override the automatically set scope parameters. */
-  scope?: FileApiOverrides;
+  scope?: FileScope;
   /** Called once an accepted path has been selected. */
   onChange?: (root: FileRoot, path: string) => void;
   /** Only show files matching this filter. */
@@ -72,7 +72,7 @@ export const FilePicker = ({
   accepts = (path) => !isDirectory(path),
 }: FilePickerProps) => {
   selected = addLeadingSlash(selected ?? "/");
-  const roots = useFetchFileRoots(scope);
+  const { roots } = useFetchFileRoots(scope);
   const expand = useFileApi((api) => api.expand);
 
   const [path, setPath] = React.useState(selected ?? "/");
