@@ -91,8 +91,6 @@ export function FileManager() {
   React.useEffect(() => {
     if (Object.keys(roots).length === 0) return;
 
-    console.log("PRUNING", roots);
-
     const pruneMissingPaths = (paths: string[]) => {
       const filtered = paths
         .map(unpackPath)
@@ -102,8 +100,8 @@ export function FileManager() {
       return filtered.length !== paths.length ? filtered : paths;
     };
 
-    // setSelectedFiles(pruneMissingPaths);
-    // setExpanded(pruneMissingPaths);
+    setSelectedFiles(pruneMissingPaths);
+    setExpanded(pruneMissingPaths);
   }, [roots, setSelectedFiles]);
 
   const allTreesHaveLoaded = fileRoots.every((root) => hasValue(roots[root]));
