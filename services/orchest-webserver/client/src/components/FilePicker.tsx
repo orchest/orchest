@@ -13,11 +13,8 @@ import {
   isDirectory,
   trimLeadingSlash,
 } from "@/utils/path";
-import {
-  AddOutlined,
-  ArrowDropDown,
-  FolderOutlined,
-} from "@mui/icons-material";
+import { AddOutlined, FolderOutlined } from "@mui/icons-material";
+import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControl from "@mui/material/FormControl";
@@ -78,7 +75,8 @@ export const FilePicker = ({
   const [path, setPath] = React.useState(selected ?? "/");
   const [bestMatch, setBestMatch] = React.useState("");
   const [root, setRoot] = React.useState(startingRoot);
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const inputContainerRef = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [isCreatingFile, setIsCreatingFile] = React.useState(false);
   const [expanding, setExpanding] = React.useState(false);
@@ -117,11 +115,11 @@ export const FilePicker = ({
   }, [cwd, expand, root]);
 
   const openMenu = React.useCallback(() => {
-    setIsMenuOpen(true);
+    setIsOpen(true);
   }, []);
   const closeMenu = React.useCallback(() => {
     setIsCreatingFile(false);
-    setIsMenuOpen(false);
+    setIsOpen(false);
   }, []);
 
   const selectPath = React.useCallback(
@@ -155,9 +153,14 @@ export const FilePicker = ({
     bestMatchRef.current?.scrollIntoView({ block: "nearest" });
   }, [bestMatch]);
 
+  React.useEffect(() => {
+    if (isOpen) inputRef.current?.focus();
+    else inputRef.current?.blur();
+  }, [isOpen]);
+
   const onKeyDown = React.useCallback(
     (event: KeyboardEvent) => {
-      if (!isMenuOpen) return;
+      if (!isOpen) return;
 
       if (event.key === "ArrowDown") {
         event.preventDefault();
@@ -171,12 +174,12 @@ export const FilePicker = ({
         setBestMatch((current) => previous ?? current);
       }
     },
-    [bestMatch, isMenuOpen, contents]
+    [bestMatch, isOpen, contents]
   );
 
   const onKeyUp = React.useCallback(
     (event: KeyboardEvent) => {
-      if (!isMenuOpen) return;
+      if (!isOpen) return;
 
       if (event.key === "Enter") {
         event.preventDefault();
@@ -184,10 +187,10 @@ export const FilePicker = ({
           selectPath(bestMatch);
         }
       } else if (event.key === "Escape") {
-        setIsMenuOpen(false);
+        setIsOpen(false);
       }
     },
-    [bestMatch, isMenuOpen, selectPath]
+    [bestMatch, isOpen, selectPath]
   );
 
   const errorText =
@@ -239,9 +242,11 @@ export const FilePicker = ({
         helperText={errorText}
         value={trimLeadingSlash(path)}
         onChange={({ target }) => setPath(target.value)}
+        // This is the input element:
+        inputProps={{ ref: inputRef, onFocus: openMenu }}
+        // This is its container:
         InputProps={{
-          onFocus: openMenu,
-          ref: inputRef,
+          ref: inputContainerRef,
           sx: { paddingRight: 1 },
           startAdornment: hideRoots && (
             <InputAdornment position="start" sx={{ pointerEvents: "none" }}>
@@ -252,7 +257,7 @@ export const FilePicker = ({
             <InputAdornment position="end" sx={{ pointerEvents: "none" }}>
               <ArrowDropDown
                 sx={{
-                  transform: isMenuOpen ? "rotateZ(180deg)" : undefined,
+                  transform: isOpen ? "rotateZ(180deg)" : undefined,
                 }}
               />
             </InputAdornment>
@@ -260,16 +265,16 @@ export const FilePicker = ({
         }}
       />
       <Popover
-        open={isMenuOpen}
+        open={isOpen}
         onClose={closeMenu}
-        anchorEl={inputRef.current}
+        anchorEl={inputContainerRef.current}
         disableAutoFocus={true}
         disableRestoreFocus={true}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         PaperProps={{
           sx: { marginTop: 1, overflow: "hidden" },
           style: {
-            width: inputRef.current?.clientWidth,
+            width: inputContainerRef.current?.clientWidth,
           },
         }}
       >
