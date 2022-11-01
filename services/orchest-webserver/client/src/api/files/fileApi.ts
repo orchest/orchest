@@ -17,6 +17,7 @@ export type TreeNode = {
 export type FetchNodeParams = {
   projectUuid: string;
   pipelineUuid?: string;
+  snapshotUuid?: string;
   jobUuid?: string;
   runUuid?: string;
   root: string;
