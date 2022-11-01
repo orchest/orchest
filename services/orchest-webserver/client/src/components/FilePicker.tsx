@@ -155,16 +155,11 @@ export const FilePicker = ({
     bestMatchRef.current?.scrollIntoView({ block: "end" });
   }, [bestMatch]);
 
-  const onKeyUp = React.useCallback(
+  const onKeyDown = React.useCallback(
     (event: KeyboardEvent) => {
       if (!isMenuOpen) return;
 
-      if (event.key === "Enter") {
-        event.preventDefault();
-        if (bestMatch) {
-          selectPath(bestMatch);
-        }
-      } else if (event.key === "ArrowDown") {
+      if (event.key === "ArrowDown") {
         event.preventDefault();
         const next = contents[contents.indexOf(bestMatch) + 1];
 
@@ -176,7 +171,23 @@ export const FilePicker = ({
         setBestMatch((current) => previous ?? current);
       }
     },
-    [bestMatch, isMenuOpen, contents, selectPath]
+    [bestMatch, isMenuOpen, contents]
+  );
+
+  const onKeyUp = React.useCallback(
+    (event: KeyboardEvent) => {
+      if (!isMenuOpen) return;
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (bestMatch) {
+          selectPath(bestMatch);
+        }
+      } else if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    },
+    [bestMatch, isMenuOpen, selectPath]
   );
 
   const errorText =
@@ -187,6 +198,12 @@ export const FilePicker = ({
 
     return () => document.removeEventListener("keyup", onKeyUp);
   }, [onKeyUp]);
+
+  React.useEffect(() => {
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onKeyDown]);
 
   return (
     <Box position="relative">
