@@ -24,11 +24,10 @@ type setThirdPartyConfigFunc func(string, kubernetes.Interface, utils.Kubernetes
 
 var (
 	creationStages = [][]string{
-		{controller.OrchestDatabase, controller.Rabbitmq},
-		{controller.OrchestApi},
-		{controller.CeleryWorker},
-		{controller.AuthServer},
-		{controller.OrchestWebserver, controller.BuildKitDaemon, controller.NodeAgent},
+		{controller.OrchestDatabase, controller.Rabbitmq, controller.BuildKitDaemon},
+		{controller.OrchestApi, controller.AuthServer},
+		{controller.CeleryWorker, controller.NodeAgent},
+		{controller.OrchestWebserver},
 	}
 
 	thirdPartyConfigFuncs = map[string]setThirdPartyConfigFunc{

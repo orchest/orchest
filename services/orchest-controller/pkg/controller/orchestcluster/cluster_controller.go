@@ -299,7 +299,7 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 
 	// Update the creation stages based on runtime
 	if runtime != "containerd" {
-		creationStages[len(creationStages)-1] = []string{controller.OrchestWebserver, controller.NodeAgent}
+		creationStages[0] = []string{controller.OrchestDatabase, controller.Rabbitmq}
 	}
 
 	return true, err
