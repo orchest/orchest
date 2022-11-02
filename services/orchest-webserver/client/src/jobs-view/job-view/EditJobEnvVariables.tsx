@@ -1,4 +1,4 @@
-import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
+import { EnvVarList, EnvVarPair } from "@/components/EnvVarList";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -57,7 +57,7 @@ export const EditJobEnvVariables = () => {
 
   return (
     <EnvVarList
-      value={envVariables || []}
+      variables={envVariables || []}
       setValue={setEnvVariables}
       readOnly={isReadOnly}
     />

@@ -5,7 +5,7 @@ import {
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
-import EnvVarList from "@/components/EnvVarList";
+import { EnvVarList } from "@/components/EnvVarList";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
@@ -583,7 +583,7 @@ export const PipelineSettingsView: React.FC = () => {
                 )}
                 {isReadOnly ? (
                   <EnvVarList
-                    value={envVariables}
+                    variables={envVariables}
                     readOnly
                     data-test-id="pipeline-read-only"
                   />
@@ -599,7 +599,7 @@ export const PipelineSettingsView: React.FC = () => {
                         Project environment variables
                       </Typography>
                       <EnvVarList
-                        value={projectEnvVariables}
+                        variables={projectEnvVariables}
                         readOnly
                         data-test-id="project-read-only"
                       />
@@ -613,7 +613,7 @@ export const PipelineSettingsView: React.FC = () => {
                         Pipeline environment variables
                       </Typography>
                       <EnvVarList
-                        value={envVariables}
+                        variables={envVariables}
                         setValue={setEnvVariables}
                         data-test-id="pipeline"
                       />

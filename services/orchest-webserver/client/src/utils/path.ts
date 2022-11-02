@@ -20,6 +20,10 @@ export const isDirectory = (path: string) => path.endsWith("/");
 /** Returns the last segment of the path. */
 export const basename = (path: string) => segments(path).pop() ?? "";
 
+/** Returns the basename of the path for files and an empty string for directories. */
+export const filename = (path: string) =>
+  isDirectory(path) ? "" : basename(path);
+
 /**
  * Returns the path up until the last segment.
  * **Note:** The returned path ends with `/`.
@@ -41,6 +45,10 @@ export const extname = (path: string) => {
 
   return parts.length > 1 ? "." + parts.pop() : "";
 };
+
+/** Returns the path if it is a directory, otherwise its parent. */
+export const nearestDirectory = (path: string) =>
+  isDirectory(path) ? path : dirname(path);
 
 /**
  * Returns true if the path ends with one of the provided extensions.
@@ -66,6 +74,20 @@ export const isValidFilePath = (
   !isDirectory(path) &&
   hasExtension(path, ...allowedExtensions);
 
+export const parents = (path: string) => {
+  const parts = segments(path);
+  const above: string[] = [];
+  let i = parts.length;
+
+  while (i-- > 1) {
+    above.push(
+      (path.startsWith("/") ? "/" : "") + join(...parts.slice(0, -i)) + "/"
+    );
+  }
+
+  return above;
+};
+
 /** Returns true if the `ancestorPath` is a directory that includes `path`. */
 export const hasAncestor = (path: string, ancestorPath: string) =>
   isDirectory(ancestorPath) &&
@@ -79,7 +101,7 @@ export const normalize = (path: string) => {
   let normalized = normalizeSegments(segments(path), !isAbsolutePath).join("/");
 
   if (isAbsolutePath) normalized = "/" + normalized;
-  if (isDirectory(path)) normalized = normalized + "/";
+  if (isDirectory(path)) normalized = ensureDirectory(normalized);
 
   return normalized;
 };
@@ -159,3 +181,23 @@ export const normalizeSegments = (
 
   return result;
 };
+
+/** Ensures that the path ends with a "/". */
+export const ensureDirectory = (path: string) =>
+  isDirectory(path) ? path : path + "/";
+
+/** Adds a leading slash to the path if it doesn't already have one. */
+export const addLeadingSlash = (path: string) =>
+  path[0] === "/" ? path : "/" + path;
+
+/** Trims a leading slash to the path if it has one. */
+export const trimLeadingSlash = (path: string) =>
+  path[0] === "/" ? path.substring(1) : path;
+
+/**
+ * Returns the directory level (or depth) of a path.
+ * Example: `"/foo/bar"` has a depth of `1`, since "bar" is a file.
+ * However: `"/foo/bar/"` has a depth of `2`, since "bar" is a directory.
+ */
+export const directoryLevel = (path: string) =>
+  segments(nearestDirectory(path)).length;

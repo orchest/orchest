@@ -1,39 +1,24 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { queryArgs } from "@/utils/text";
-import { fetcher } from "@orchest/lib-utils";
+import { useFileApi } from "@/api/files/useFileApi";
+import { combinePath, FileRoot } from "@/utils/file";
 import React from "react";
-import { FILE_MANAGEMENT_ENDPOINT, ROOT_SEPARATOR } from "./common";
 
-/**
- * Creates a file and returns the absolute path of it.
- *
- * If a `projectUuid` is not found in the current route,
- * this function will throw an error.
- */
+/** Creates a file and returns the absolute path of it. */
 type FileCreator = (path: string) => Promise<string>;
 
 /**
  * Returns a function which creates a file relative to the provided root.
- * The returned path will be an absolute project path, starting with `project-dir:/` or `data:/`.
+ * The returned path will be a combined project path, starting with `project-dir:/` or `data:/`.
  */
-export const useCreateFile = (root: string): FileCreator => {
-  const { projectUuid } = useCustomRoute();
+export const useCreateFile = (root: FileRoot): FileCreator => {
+  const create = useFileApi((api) => api.create);
 
   const createFile = React.useCallback(
     async (path: string) => {
-      if (!projectUuid) {
-        throw new Error("A project UUID was not found in the route.");
-      }
+      await create(root, path);
 
-      const query = queryArgs({ projectUuid, root, path });
-
-      await fetcher(`${FILE_MANAGEMENT_ENDPOINT}/create?${query}`, {
-        method: "POST",
-      });
-
-      return `${root}${ROOT_SEPARATOR}${path}`;
+      return combinePath({ root, path });
     },
-    [projectUuid, root]
+    [create, root]
   );
 
   return createFile;

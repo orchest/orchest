@@ -1,4 +1,5 @@
-import { FileTree } from "@/types";
+import { useFileApi } from "@/api/files/useFileApi";
+import { FileMap } from "@/utils/file-map";
 import { Point2D, stringifyPoint, subtractPoints } from "@/utils/geometry";
 import { hasExtension } from "@/utils/path";
 import { setRefs } from "@/utils/refs";
@@ -41,11 +42,12 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
     { children, className, sx, ...props },
     ref
   ) {
-    const { dragFile, fileTrees } = useFileManagerContext();
+    const roots = useFileApi((api) => api.roots);
+    const { dragFile } = useFileManagerContext();
     const { disabled, isFetchingPipelineJson } = usePipelineDataContext();
     const isFileTreeLoaded = React.useMemo(
-      () => Object.keys(fileTrees).length > 0,
-      [fileTrees]
+      () => Object.keys(roots).length > 0,
+      [roots]
     );
 
     const { scaleFactor, canvasPointAtPointer } = useCanvasScaling();
@@ -148,8 +150,8 @@ const PipelineViewportComponent = React.forwardRef<HTMLDivElement, BoxProps>(
 
     const hasScripts = React.useMemo(() => {
       // If there are steps: don't traverse the project dir.
-      return hasSteps || hasSomeScriptFile(fileTrees["/project-dir"]);
-    }, [fileTrees, hasSteps]);
+      return hasSteps || hasSomeScriptFile(roots["/project-dir"] ?? {});
+    }, [roots, hasSteps]);
 
     const hasEmptyState =
       !isFetchingPipelineJson &&
@@ -240,14 +242,7 @@ export const PipelineViewport = React.forwardRef<
   );
 });
 
-const hasSomeScriptFile = (node: FileTree | undefined | null, depth = 3) => {
-  if (depth <= 0) {
-    return false;
-  } else if (node?.path && node.type === "file") {
-    return hasExtension(node.path, ...ALLOWED_STEP_EXTENSIONS);
-  } else if (node?.children) {
-    return node.children.some((node) => hasSomeScriptFile(node, depth - 1));
-  } else {
-    return false;
-  }
-};
+const hasSomeScriptFile = (record: FileMap) =>
+  Object.keys(record).some((path) =>
+    hasExtension(path, ...ALLOWED_STEP_EXTENSIONS)
+  );

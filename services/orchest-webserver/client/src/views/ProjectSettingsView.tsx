@@ -1,6 +1,6 @@
 import { projectsApi } from "@/api/projects/projectsApi";
 import { PageTitle } from "@/components/common/PageTitle";
-import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
+import { EnvVarList, EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/layout/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -231,7 +231,7 @@ const ProjectSettingsView: React.FC = () => {
                 <h3 className="push-down">Project environment variables</h3>
 
                 <EnvVarList
-                  value={envVariables}
+                  variables={envVariables}
                   setValue={setUnsavedEnvVariables}
                   data-test-id="project"
                 />
