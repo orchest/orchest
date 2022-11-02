@@ -11,6 +11,7 @@ import (
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 )
@@ -408,7 +409,7 @@ loop:
 				klog.Errorf("Unrecognized event received for OrchestCluster, name=%s, namespace=%s, %s", sm.name, sm.namespace, info.responseEvent.String())
 			}
 		case <-sm.runChan:
-			orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
+			orchest, err := sm.controller.oClient.OrchestV1alpha1().OrchestClusters(sm.namespace).Get(ctx, sm.name, v1.GetOptions{})
 			if err != nil {
 				klog.Error("failed to get OrchestCluster, name=%s, namespace=%s", sm.name, sm.namespace)
 				continue
@@ -421,7 +422,7 @@ loop:
 
 func (sm *OrchestStateMachine) manage(ctx context.Context) error {
 
-	orchest, err := sm.controller.oClusterLister.OrchestClusters(sm.namespace).Get(sm.name)
+	orchest, err := sm.controller.oClient.OrchestV1alpha1().OrchestClusters(sm.namespace).Get(ctx, sm.name, v1.GetOptions{})
 
 	if err != nil {
 		if kerrors.IsNotFound(err) {
