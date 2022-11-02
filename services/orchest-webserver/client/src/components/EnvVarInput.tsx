@@ -58,6 +58,7 @@ export const EnvVarInput = ({
       <TextField
         label="Value"
         value={value}
+        autoComplete="off"
         type={revealed ? "text" : "password"}
         onChange={({ target }) => onChange(name, target.value)}
         disabled={readOnly}
