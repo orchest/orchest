@@ -1,5 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
+import { EnvVarList, EnvVarPair } from "@/components/EnvVarList";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Service } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
