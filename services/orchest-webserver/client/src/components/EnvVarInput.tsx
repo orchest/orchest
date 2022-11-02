@@ -61,6 +61,7 @@ export const EnvVarInput = ({
         autoComplete="off"
         type={revealed ? "text" : "password"}
         onChange={({ target }) => onChange(name, target.value)}
+        onBlur={() => setRevealed(!value)}
         disabled={readOnly}
         data-test-id={`environment-variable-input-${name}-value`}
         InputProps={{
