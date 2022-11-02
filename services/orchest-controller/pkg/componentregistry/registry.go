@@ -102,9 +102,9 @@ type ComponentRegistry struct {
 	components map[string]Component
 }
 
-func (registery *ComponentRegistry) Deploy(ctx context.Context, name, namespace string,
+func (registry *ComponentRegistry) Deploy(ctx context.Context, name, namespace string,
 	message Message, eventChan chan Event) {
-	addon, ok := registery.components[name]
+	addon, ok := registry.components[name]
 
 	if !ok {
 		err := errors.New(fmt.Sprintf("Component %s is not registered with the component registry", name))
@@ -116,9 +116,9 @@ func (registery *ComponentRegistry) Deploy(ctx context.Context, name, namespace 
 	addon.Update(ctx, namespace, message, eventChan)
 }
 
-func (registery *ComponentRegistry) Delete(ctx context.Context, name, namespace string,
+func (registry *ComponentRegistry) Delete(ctx context.Context, name, namespace string,
 	message Message, eventChan chan Event) {
-	addon, ok := registery.components[name]
+	addon, ok := registry.components[name]
 
 	if !ok {
 		err := errors.New(fmt.Sprintf("Component %s is not registered with the component registry", name))
