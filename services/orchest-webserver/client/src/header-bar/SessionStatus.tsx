@@ -18,7 +18,7 @@ const FAILURES_ERROR = 180;
 const FAILURES_TRYING = 5;
 
 export const SessionStatus = () => {
-  const { failures } = useSessionsPoller();
+  const { failures, isPolling } = useSessionsPoller();
   const [initialized, setInitialized] = React.useState(false);
   const [status, setStatus] = React.useState<ConnectionStatus>("ok");
 
@@ -38,13 +38,14 @@ export const SessionStatus = () => {
     const handle = window.setTimeout(() => {
       // If there hasn't been a failure for some time
       // we reset the state to remove the banner.
-      // This removes it from pages where the session is not needed.
       setStatus("ok");
       setInitialized(false);
     }, 2500);
 
     return () => window.clearTimeout(handle);
   }, [failures]);
+
+  if (!isPolling) return null;
 
   return (
     <>

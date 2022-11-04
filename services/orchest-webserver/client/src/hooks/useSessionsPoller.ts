@@ -44,7 +44,7 @@ export const useSessionsPoller = () => {
   // sessions are only needed when both conditions are met
   // 1. in the ConfigureJupyterLabView (they are root views without a pipeline_uuid)
   // 2. in the above views AND pipelineUuid is given AND is not read-only
-  const shouldPoll =
+  const isPolling =
     matchRooViews?.isExact ||
     (!pipelineReadOnlyReason &&
       hasValue(pipeline) &&
@@ -84,16 +84,16 @@ export const useSessionsPoller = () => {
           });
         }
       }),
-    shouldPoll ? 1000 : undefined
+    isPolling ? 1000 : undefined
   );
 
   React.useEffect(() => {
-    if (shouldPoll) fetchSessions();
-  }, [shouldPoll, fetchSessions]);
+    if (isPolling) fetchSessions();
+  }, [isPolling, fetchSessions]);
 
   React.useEffect(() => {
     if (error) setFailures((current) => current + 1);
   }, [error]);
 
-  return { failures, error };
+  return { failures, error, isPolling };
 };
