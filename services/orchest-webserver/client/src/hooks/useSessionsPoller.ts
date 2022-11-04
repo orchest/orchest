@@ -1,4 +1,3 @@
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import {
   getSessionKey,
@@ -24,13 +23,11 @@ type FetchSessionResponse = {
   status: TSessionStatus;
 };
 
-/**
- * NOTE: useSessionsPoller should only be placed in HeaderBar
- */
+/** NOTE: useSessionsPoller should only be placed in SessionStatus in HeaderBar*/
 export const useSessionsPoller = () => {
+  const [failures, setFailures] = React.useState(0);
   const { location, pipelineUuid } = useCustomRoute();
   const { dispatch } = useSessionsContext();
-  const { setAlert } = useGlobalContext();
   const {
     state: { pipeline, pipelineReadOnlyReason },
   } = useProjectsContext();
@@ -79,6 +76,8 @@ export const useSessionsPoller = () => {
     () =>
       fetchSessions().then((response) => {
         if (response) {
+          setFailures(0);
+
           dispatch({
             type: "SET_SESSIONS",
             payload: response,
@@ -93,9 +92,8 @@ export const useSessionsPoller = () => {
   }, [shouldPoll, fetchSessions]);
 
   React.useEffect(() => {
-    if (error) {
-      setAlert("Error", "Unable to fetch sessions.");
-      console.error("Unable to fetch sessions", error);
-    }
-  }, [error, setAlert]);
+    if (error) setFailures((current) => current + 1);
+  }, [error]);
+
+  return { failures, error };
 };
