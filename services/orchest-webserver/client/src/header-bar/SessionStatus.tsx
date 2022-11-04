@@ -19,11 +19,19 @@ const FAILURES_TRYING = 5;
 
 export const SessionStatus = () => {
   const { failures, isPolling } = useSessionsPoller();
-  const [initialized, setInitialized] = React.useState(false);
+  const [hadIssue, setHadIssue] = React.useState(false);
   const [status, setStatus] = React.useState<ConnectionStatus>("ok");
 
   React.useEffect(() => {
-    if (status !== "ok") setInitialized(true);
+    if (status !== "ok") setHadIssue(true);
+  }, [status]);
+
+  React.useEffect(() => {
+    // Clear the "success message" after some time.
+    const handle =
+      status === "ok" ? window.setTimeout(() => setHadIssue(false), 2500) : -1;
+
+    return () => window.clearTimeout(handle);
   }, [status]);
 
   React.useEffect(() => {
@@ -39,7 +47,7 @@ export const SessionStatus = () => {
       // If there hasn't been a failure for some time
       // we reset the state to remove the banner.
       setStatus("ok");
-      setInitialized(false);
+      setHadIssue(false);
     }, 2500);
 
     return () => window.clearTimeout(handle);
@@ -50,7 +58,7 @@ export const SessionStatus = () => {
   return (
     <>
       <Snackbar
-        open={initialized && status === "ok"}
+        open={hadIssue && status === "ok"}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         message={
           <Stack direction="row" spacing={2} alignItems="center">
