@@ -63,7 +63,6 @@ export const WebhookHint = () => {
     <SnackBar
       open={showHint}
       autoHideDuration={6000}
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       onClose={closeHintAndDisable}
       message="Use webhooks to get notified when pipeline runs fail"
       action={action}

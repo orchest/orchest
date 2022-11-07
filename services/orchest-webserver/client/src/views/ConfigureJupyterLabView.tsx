@@ -324,7 +324,6 @@ const ConfigureJupyterLabView: React.FC = () => {
         )}
       </Box>
       <SnackBar
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         open={showStoppingAllSessionsWarning}
         message="Stopping all active sessions..."
       />

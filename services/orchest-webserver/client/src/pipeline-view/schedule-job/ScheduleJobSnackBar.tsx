@@ -50,7 +50,6 @@ export const ScheduleJobSnackBar = () => {
   return (
     <SnackBar
       open={hasValue(snackBarMessage)}
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       autoHideDuration={3000}
       onClose={closeSnackBar}
       message={snackBarMessage}

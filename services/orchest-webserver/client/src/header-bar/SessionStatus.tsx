@@ -68,7 +68,6 @@ export const SessionStatus = () => {
     <>
       <Snackbar
         open={showConnected}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         message={
           <Stack direction="row" spacing={2} alignItems="center">
             <CheckOutlined sx={{ fill: green[400] }} />
@@ -79,7 +78,6 @@ export const SessionStatus = () => {
       />
       <SnackBar
         open={status === "trying"}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         message={
           <Stack direction="row" spacing={2} alignItems="center">
             <CircularProgress size={24} sx={{ color: blue[200] }} />
@@ -92,7 +90,6 @@ export const SessionStatus = () => {
       />
       <SnackBar
         open={status === "failed"}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         message={
           <Stack direction="row" spacing={2} alignItems="center">
             <ErrorOutline sx={{ fill: red[500] }} />
