@@ -16,10 +16,13 @@ type ConnectionStatus = "ok" | "trying" | "failed";
 
 const FAILURES_ERROR = 180;
 const FAILURES_TRYING = 5;
+const SHOW_CONNECTED_DURATION = 2500;
+const ERROR_FREE_GRACE_PERIOD = 10000;
 
 export const SessionStatus = () => {
   const { failures, isPolling } = useSessionsPoller();
   const [hadIssue, setHadIssue] = React.useState(false);
+  const [showConnected, setShowConnected] = React.useState(false);
   const [status, setStatus] = React.useState<ConnectionStatus>("ok");
 
   React.useEffect(() => {
@@ -27,30 +30,36 @@ export const SessionStatus = () => {
   }, [status]);
 
   React.useEffect(() => {
-    // Clear the "success message" after some time.
-    const handle =
-      status === "ok" ? window.setTimeout(() => setHadIssue(false), 2500) : -1;
+    if (hadIssue && status === "ok") {
+      setShowConnected(true);
 
-    return () => window.clearTimeout(handle);
+      const handle = window.setTimeout(() => {
+        setShowConnected(false);
+      }, SHOW_CONNECTED_DURATION);
+
+      return () => window.clearTimeout(handle);
+    }
+  }, [status, hadIssue]);
+
+  React.useEffect(() => {
+    if (status === "ok") {
+      const handle = window.setTimeout(() => {
+        setHadIssue(false);
+      }, ERROR_FREE_GRACE_PERIOD);
+
+      return () => window.clearTimeout(handle);
+    }
   }, [status]);
 
   React.useEffect(() => {
-    setStatus(
+    const newStatus =
       failures > FAILURES_ERROR
         ? "failed"
         : failures > FAILURES_TRYING
         ? "trying"
-        : "ok"
-    );
+        : "ok";
 
-    const handle = window.setTimeout(() => {
-      // If there hasn't been a failure for some time
-      // we reset the state to remove the banner.
-      setStatus("ok");
-      setHadIssue(false);
-    }, 2500);
-
-    return () => window.clearTimeout(handle);
+    setStatus(newStatus);
   }, [failures]);
 
   if (!isPolling) return null;
@@ -58,7 +67,7 @@ export const SessionStatus = () => {
   return (
     <>
       <Snackbar
-        open={hadIssue && status === "ok"}
+        open={showConnected}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         message={
           <Stack direction="row" spacing={2} alignItems="center">
