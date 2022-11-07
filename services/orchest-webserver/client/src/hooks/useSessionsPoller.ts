@@ -1,4 +1,3 @@
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import {
   getSessionKey,
@@ -24,13 +23,11 @@ type FetchSessionResponse = {
   status: TSessionStatus;
 };
 
-/**
- * NOTE: useSessionsPoller should only be placed in HeaderBar
- */
+/** NOTE: useSessionsPoller should only be placed in SessionStatus in HeaderBar*/
 export const useSessionsPoller = () => {
+  const [failures, setFailures] = React.useState(0);
   const { location, pipelineUuid } = useCustomRoute();
   const { dispatch } = useSessionsContext();
-  const { setAlert } = useGlobalContext();
   const {
     state: { pipeline, pipelineReadOnlyReason },
   } = useProjectsContext();
@@ -47,7 +44,7 @@ export const useSessionsPoller = () => {
   // sessions are only needed when both conditions are met
   // 1. in the ConfigureJupyterLabView (they are root views without a pipeline_uuid)
   // 2. in the above views AND pipelineUuid is given AND is not read-only
-  const shouldPoll =
+  const isPolling =
     matchRooViews?.isExact ||
     (!pipelineReadOnlyReason &&
       hasValue(pipeline) &&
@@ -79,23 +76,24 @@ export const useSessionsPoller = () => {
     () =>
       fetchSessions().then((response) => {
         if (response) {
+          setFailures(0);
+
           dispatch({
             type: "SET_SESSIONS",
             payload: response,
           });
         }
       }),
-    shouldPoll ? 1000 : undefined
+    isPolling ? 1000 : undefined
   );
 
   React.useEffect(() => {
-    if (shouldPoll) fetchSessions();
-  }, [shouldPoll, fetchSessions]);
+    if (isPolling) fetchSessions();
+  }, [isPolling, fetchSessions]);
 
   React.useEffect(() => {
-    if (error) {
-      setAlert("Error", "Unable to fetch sessions.");
-      console.error("Unable to fetch sessions", error);
-    }
-  }, [error, setAlert]);
+    if (error) setFailures((current) => current + 1);
+  }, [error]);
+
+  return { failures, error, isPolling };
 };
