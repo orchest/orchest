@@ -7,7 +7,6 @@ import CircularProgress from "@mui/material/CircularProgress";
 import blue from "@mui/material/colors/blue";
 import green from "@mui/material/colors/green";
 import red from "@mui/material/colors/red";
-import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -66,7 +65,7 @@ export const SessionStatus = () => {
 
   return (
     <>
-      <Snackbar
+      <SnackBar
         open={showConnected}
         message={
           <Stack direction="row" spacing={2} alignItems="center">
