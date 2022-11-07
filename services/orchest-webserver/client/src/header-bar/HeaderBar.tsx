@@ -1,6 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AppBar from "@mui/material/AppBar";
 import Stack from "@mui/material/Stack";
@@ -8,10 +7,10 @@ import Toolbar from "@mui/material/Toolbar";
 import React from "react";
 import { ProjectSelector } from "../project-selector/ProjectSelector";
 import { NavigationTabs } from "./NavigationTabs";
+import { SessionStatus } from "./SessionStatus";
 
 export const HeaderBar = () => {
   const { user_config } = useGlobalContext();
-  useSessionsPoller();
 
   const logoutHandler = () => {
     window.location.href = "/login/clear";
@@ -29,6 +28,8 @@ export const HeaderBar = () => {
         height: (theme) => theme.spacing(7),
       }}
     >
+      <SessionStatus />
+
       <Toolbar
         variant="dense"
         sx={{ justifyContent: "space-between", paddingLeft: "0 !important" }}
