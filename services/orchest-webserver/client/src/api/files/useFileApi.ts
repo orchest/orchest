@@ -52,6 +52,7 @@ export type FileApi = {
   >;
   delete: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
   move: MemoizePending<(move: UnpackedMove) => Promise<void>>;
+  duplicate: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
   /**
    * Creates a file or directory with the specified path.
    * Paths that end with `"/"` are considered directories.
@@ -98,24 +99,24 @@ export const useFileApi = create<FileApi>((set, get) => {
     set({ roots: { ...roots, [root]: factory(fileMap) } });
   };
 
+  const expand = async (root: FileRoot, directory = "/") => {
+    directory = isDirectory(directory) ? directory : dirname(directory);
+
+    const node = await fetchNode({ root, path: directory, depth: 1 });
+
+    if (!node) return;
+
+    const contents = Object.keys(createFileMap(node)).filter(
+      (entry) => !isDirectory(directory) || entry !== directory
+    );
+
+    updateRoot(root, (fileMap) => replaceDirectoryContents(fileMap, contents));
+  };
+
   return {
     roots: {},
     scope: {},
-    expand: memoizeFor(500, async (root, directory = "/") => {
-      directory = isDirectory(directory) ? directory : dirname(directory);
-
-      const node = await fetchNode({ root, path: directory, depth: 1 });
-
-      if (!node) return;
-
-      const contents = Object.keys(createFileMap(node)).filter(
-        (entry) => !isDirectory(directory) || entry !== directory
-      );
-
-      updateRoot(root, (fileMap) =>
-        replaceDirectoryContents(fileMap, contents)
-      );
-    }),
+    expand: memoizeFor(500, expand),
     create: memoizeFor(500, async (root, path) => {
       const { projectUuid } = get().scope;
 
@@ -146,6 +147,14 @@ export const useFileApi = create<FileApi>((set, get) => {
       await filesApi.moveNode(projectUuid, move);
 
       set(({ roots }) => ({ roots: moveBetween(roots, move) }));
+    }),
+    duplicate: memoizeFor(500, async (root, path) => {
+      const { projectUuid } = get().scope;
+
+      if (!projectUuid) return;
+
+      await filesApi.duplicate(projectUuid, root, path);
+      await expand(root, dirname(path));
     }),
     init: memoizeFor(500, async (depth, scope) => {
       set({ scope });
