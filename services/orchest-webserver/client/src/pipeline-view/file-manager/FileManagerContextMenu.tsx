@@ -1,3 +1,4 @@
+import { useFileApi } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -5,14 +6,13 @@ import { siteMap } from "@/routingConfig";
 import { unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
 import { join } from "@/utils/path";
-import { queryArgs } from "@/utils/text";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useOpenFile } from "../hooks/useOpenFile";
-import { cleanFilePath, FILE_MANAGEMENT_ENDPOINT } from "./common";
+import { cleanFilePath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export type ContextMenuType = "tree" | "background";
@@ -28,6 +28,7 @@ export const FileManagerContextMenu: React.FC<{
   metadata: ContextMenuMetadata | undefined;
 }> = ({ metadata, children }) => {
   const { setAlert } = useGlobalContext();
+  const duplicate = useFileApi((api) => api.duplicate);
   const { navigateTo, jobUuid, projectUuid, snapshotUuid } = useCustomRoute();
   const {
     pipelineUuid,
@@ -51,7 +52,6 @@ export const FileManagerContextMenu: React.FC<{
   }, [jobUuid, runUuid, snapshotUuid]);
 
   const {
-    reload,
     handleClose,
     handleContextRename,
     handleDelete,
@@ -60,22 +60,14 @@ export const FileManagerContextMenu: React.FC<{
   } = useFileManagerLocalContext();
 
   const handleDuplicate = React.useCallback(async () => {
-    if (isReadOnly || !projectUuid) return;
-
-    handleClose();
+    if (isReadOnly) return;
 
     const { root, path } = unpackPath(contextMenuCombinedPath);
 
-    await fetch(
-      `${FILE_MANAGEMENT_ENDPOINT}/duplicate?${queryArgs({
-        path,
-        root,
-        projectUuid,
-      })}`,
-      { method: "POST" }
-    );
-    reload();
-  }, [projectUuid, contextMenuCombinedPath, handleClose, reload, isReadOnly]);
+    await duplicate(root, path);
+
+    handleClose();
+  }, [isReadOnly, contextMenuCombinedPath, duplicate, handleClose]);
 
   const handleContextEdit = React.useCallback(() => {
     if (isReadOnly) return;

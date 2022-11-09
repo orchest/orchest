@@ -64,10 +64,19 @@ const createDirectory = async (params: NodeParams) => {
   );
 };
 
+const duplicate = async (projectUuid: string, root: string, path: string) =>
+  await fetch(
+    join(FILE_MANAGEMENT_ENDPOINT, "duplicate") +
+      "?" +
+      queryArgs({ path, root, projectUuid }),
+    { method: "POST" }
+  );
+
 export const filesApi = {
   fetchNode,
   deleteNode,
   moveNode,
   createFile,
+  duplicate,
   createDirectory,
 };
