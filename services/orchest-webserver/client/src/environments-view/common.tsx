@@ -19,8 +19,6 @@ export const isEnvironmentFailedToBuild = (
   status?: EnvironmentImageBuild["status"]
 ) => status && ["ABORTED", "FAILURE"].includes(status);
 
-export const BUILD_POLL_FREQUENCY = 1000;
-
 export const fetchSessionsInProject = async (projectUuid: string) => {
   const sessionData = await fetcher<{ sessions: OrchestSession[] }>(
     `/catch/api-proxy/api/sessions?project_uuid=${projectUuid}`
