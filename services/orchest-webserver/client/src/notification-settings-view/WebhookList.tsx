@@ -1,5 +1,9 @@
 import { IconButton } from "@/components/common/IconButton";
-import { DataTable, DataTableColumn } from "@/components/DataTable";
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableRow,
+} from "@/components/DataTable";
 import { useAppContext } from "@/contexts/AppContext";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { AsyncStatus } from "@/hooks/useAsync";
@@ -14,7 +18,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { CreateWebhookDialog } from "./create-webhook-dialog/CreateWebhookDialog";
 import {
-  deleteSuscriber,
+  deleteSubscriber,
   NotificationWebhookSubscriber,
 } from "./notification-webhooks";
 import { WebhookDocLink } from "./WebhookDocLink";
@@ -95,7 +99,7 @@ export const WebhookList = () => {
                 "Notice",
                 "Are you certain that you want to delete this webhook?",
                 async (resolve) => {
-                  deleteSuscriber(row.uuid).then(() => {
+                  deleteSubscriber(row.uuid).then(() => {
                     setWebhooks((current) =>
                       (current || []).filter((hook) => hook.uuid !== row.uuid)
                     );
@@ -113,12 +117,15 @@ export const WebhookList = () => {
     },
   ];
 
-  const webhookRows = webhooks.map(({ uuid, name, url, verify_ssl }) => ({
-    uuid,
-    name,
-    url,
-    verify_ssl,
-  }));
+  const webhookRows: DataTableRow<WebhookRow>[] = webhooks.map(
+    ({ uuid, name, url, verify_ssl }) => ({
+      id: uuid,
+      uuid,
+      name,
+      url,
+      verify_ssl,
+    })
+  );
 
   return (
     <Stack

@@ -30,7 +30,7 @@ export const PipelineParameters = ({
   );
 
   const onChangePipelineParameters = React.useCallback(
-    (value: Json) => {
+    (value: Record<string, Json> | undefined) => {
       onSave(JSON.stringify(value));
     },
     [onSave]
