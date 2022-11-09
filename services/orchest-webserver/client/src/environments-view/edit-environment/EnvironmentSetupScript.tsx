@@ -102,8 +102,6 @@ export const EnvironmentSetupScript = () => {
     [update]
   );
 
-  console.log({ isModified });
-
   const isBuilding = isEnvironmentBuilding(buildStatus);
 
   return (
