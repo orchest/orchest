@@ -160,7 +160,7 @@ export const stitches = createStitches({
   },
   utils: {
     include: mixins(),
-    inset: (config) => (
+    inset: (config: any) => (
       value:
         | keyof typeof config["theme"]["space"]
         | (string & Record<string, unknown>)

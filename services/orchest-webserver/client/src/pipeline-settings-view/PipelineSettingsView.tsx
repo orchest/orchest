@@ -28,12 +28,12 @@ import {
 } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import LightbulbOutlined from "@mui/icons-material/LightbulbOutlined";
 import ListIcon from "@mui/icons-material/List";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import SaveIcon from "@mui/icons-material/Save";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -42,12 +42,7 @@ import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {
-  Alert as CustomAlert,
-  AlertDescription,
-  AlertHeader,
-  Link,
-} from "@orchest/design-system";
+import { Link } from "@orchest/design-system";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { generatePipelineJsonForSaving, instantiateNewService } from "./common";
@@ -60,19 +55,17 @@ import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 
 export const ParameterDocs = () => {
   return (
-    <CustomAlert status="info">
-      <AlertDescription>
-        <>
-          <Link
-            target="_blank"
-            href="https://docs.orchest.io/en/stable/fundamentals/pipelines.html#parametrizing-pipelines"
-          >
-            Learn more
-          </Link>{" "}
-          about parametrizing your pipelines and steps.
-        </>
-      </AlertDescription>
-    </CustomAlert>
+    <Alert severity="info">
+      <>
+        <Link
+          target="_blank"
+          href="https://docs.orchest.io/en/stable/fundamentals/pipelines.html#parametrizing-pipelines"
+        >
+          Learn more
+        </Link>
+        {" about parametrizing your pipelines and steps."}
+      </>
+    </Alert>
   );
 };
 
@@ -635,22 +628,17 @@ export const PipelineSettingsView: React.FC = () => {
                     columns={columns}
                     rows={serviceRows}
                   />
-                  <CustomAlert status="info">
-                    <AlertHeader>
-                      <LightbulbOutlined fontSize="small" />
-                      Want to start using Services?
-                    </AlertHeader>
-                    <AlertDescription>
-                      <Link
-                        target="_blank"
-                        href="https://docs.orchest.io/en/stable/fundamentals/services.html"
-                        rel="noopener noreferrer"
-                      >
-                        Learn more about how to expand your pipeline’s
-                        capabilities.
-                      </Link>
-                    </AlertDescription>
-                  </CustomAlert>
+                  <Alert severity="info">
+                    <AlertTitle>Want to start using Services?</AlertTitle>
+                    <Link
+                      target="_blank"
+                      href="https://docs.orchest.io/en/stable/fundamentals/services.html"
+                      rel="noopener noreferrer"
+                    >
+                      Learn more about how to expand your pipeline’s
+                      capabilities.
+                    </Link>
+                  </Alert>
                   {!isReadOnly && (
                     <ServiceTemplatesDialog
                       onSelection={(template) => {

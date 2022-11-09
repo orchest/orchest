@@ -54,7 +54,7 @@ export type NotificationWebhookSubscriberWithSubscription = NotificationWebhookS
   subscriptions: NotificationSubscription[];
 };
 
-export const deleteSuscriber = (uuid: string) => {
+export const deleteSubscriber = (uuid: string) => {
   return fetcher<NotificationWebhookSubscriber>(
     `${NOTIFICATION_END_POINT}/subscribers/${uuid}`,
     { method: "DELETE" }

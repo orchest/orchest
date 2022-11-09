@@ -1,4 +1,8 @@
-import { DataTable, DataTableColumn } from "@/components/DataTable";
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableRow,
+} from "@/components/DataTable";
 import { Json, StrategyJson } from "@/types";
 import { getHeight } from "@/utils/jquery-replacement";
 import Stack from "@mui/material/Stack";
@@ -49,7 +53,7 @@ export const EditJobConfig = () => {
       : undefined;
   }, [parameterStrategy]);
 
-  const pipelineRunRows = React.useMemo(() => {
+  const pipelineRunRows = React.useMemo<DataTableRow<PipelineRunRow>[]>(() => {
     if (!pipelineJson?.name || !pipelineRuns) return [];
     return generatePipelineRunRows(pipelineRuns);
   }, [pipelineRuns, pipelineJson?.name]);

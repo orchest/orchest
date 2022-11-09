@@ -1,3 +1,4 @@
+import { DataTableRow } from "@/components/DataTable";
 import {
   JobChanges,
   JobChangesData,
@@ -134,7 +135,7 @@ export function generatePipelineRunParamCombinations(
 
 export function generatePipelineRunRows(
   pipelineRuns: Record<string, Json>[]
-): PipelineRunRow[] {
+): DataTableRow<PipelineRunRow>[] {
   return pipelineRuns.map((params: Record<string, Json>, index: number) => {
     const pipelineRunSpec = Object.entries(params).map(([fullParam, value]) => {
       // pipeline_parameters#something#another_something: "some-value"
@@ -144,6 +145,7 @@ export function generatePipelineRunRows(
     const spec = pipelineRunSpec.join(", ").trim();
 
     return {
+      id: index.toString(),
       uuid: index.toString(),
       spec: spec || "—",
     };
