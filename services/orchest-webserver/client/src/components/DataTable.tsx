@@ -434,8 +434,10 @@ enum FIXED_ROW_HEIGHT {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>;
+
 export const DataTable = React.forwardRef(function DataTable<
-  T extends Record<string, any>,
+  T extends AnyRecord,
   C = T
 >(
   {
