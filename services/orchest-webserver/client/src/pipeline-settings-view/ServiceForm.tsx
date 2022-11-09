@@ -469,7 +469,7 @@ const ServiceForm: React.FC<{
                   Environment variables
                 </FormSectionTitle>
                 <EnvVarList
-                  value={envVarsDictToList(service.env_variables || {})}
+                  variables={envVarsDictToList(service.env_variables || {})}
                   readOnly={disabled}
                   setValue={(
                     dispatcher: (
