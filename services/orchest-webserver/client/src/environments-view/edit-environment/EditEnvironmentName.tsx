@@ -7,14 +7,12 @@ import { useEditEnvironment } from "../stores/useEditEnvironment";
 export const EditEnvironmentName = () => {
   const { environmentUuid } = useCustomRoute();
 
-  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
-  const name = useEditEnvironment((state) => state.environmentChanges?.name);
+  const uuid = useEditEnvironment((state) => state.changes?.uuid);
+  const name = useEditEnvironment((state) => state.changes?.name);
   const latestBuildStatus = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild?.status
+    (state) => state.changes?.latestBuild?.status
   );
-  const setEnvironmentChanges = useEditEnvironment(
-    (state) => state.setEnvironmentChanges
-  );
+  const setEnvironmentChanges = useEditEnvironment((state) => state.update);
 
   const [value = "", setValue] = React.useState<string>();
   const [hasEdited, setHasEdited] = React.useState(false);

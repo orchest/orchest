@@ -68,14 +68,12 @@ const SetupScriptCodeMirror = React.memo(function SetupScriptCodeMirror({
 });
 
 export const EnvironmentSetupScript = () => {
-  const script = useEditEnvironment(
-    (state) => state.environmentChanges?.setup_script
-  );
+  const script = useEditEnvironment((state) => state.changes?.setup_script);
   const buildStatus = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild?.status
+    (state) => state.changes?.latestBuild?.status
   );
   const setBuilt = useEditEnvironment((state) => state.setBuilt);
-  const update = useEditEnvironment((state) => state.setEnvironmentChanges);
+  const update = useEditEnvironment((state) => state.update);
   const isModified = useEditEnvironment(
     (state) => script !== state.built?.setup_script
   );

@@ -5,11 +5,11 @@ type EditEnvironmentState = {
   /** The assumed built environment state. */
   built?: EnvironmentState;
   /** The changes to the environment state. */
-  environmentChanges?: EnvironmentState;
+  changes?: EnvironmentState;
   /** Initialize the store. */
-  initEnvironmentChanges: (state: EnvironmentState | undefined) => void;
+  init: (state: EnvironmentState | undefined) => void;
   /** Apply a partial update of the changes. */
-  setEnvironmentChanges: (
+  update: (
     changes:
       | Partial<EnvironmentState>
       | ((state: EnvironmentState) => Partial<EnvironmentState>)
@@ -19,23 +19,18 @@ type EditEnvironmentState = {
 };
 
 export const useEditEnvironment = create<EditEnvironmentState>((set) => ({
-  initEnvironmentChanges: (initial) =>
-    set((current) => ({
-      environmentChanges: initial,
-      built: current.built ?? initial,
-    })),
-  setEnvironmentChanges: (changes) =>
+  init: (initial) =>
+    set((current) => ({ changes: initial, built: current.built ?? initial })),
+  update: (changes) =>
     set((state) => {
-      if (!state.environmentChanges) return state;
+      if (!state.changes) return state;
 
       const patch =
-        changes instanceof Function
-          ? changes(state.environmentChanges)
-          : changes;
+        changes instanceof Function ? changes(state.changes) : changes;
 
       return {
-        environmentChanges: { ...state.environmentChanges, ...patch },
+        changes: { ...state.changes, ...patch },
       };
     }),
-  setBuilt: () => set((state) => ({ built: state.environmentChanges })),
+  setBuilt: () => set((state) => ({ built: state.changes })),
 }));

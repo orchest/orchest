@@ -7,11 +7,8 @@ import { useBuildEnvironmentImage } from "./hooks/useBuildEnvironmentImage";
 import { useEditEnvironment } from "./stores/useEditEnvironment";
 
 export const BuildEnvironmentButton = () => {
-  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
-  const latestBuild = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild
-  );
-
+  const uuid = useEditEnvironment((state) => state.changes?.uuid);
+  const latestBuild = useEditEnvironment((state) => state.changes?.latestBuild);
   const [triggerBuild, cancelBuild] = useBuildEnvironmentImage();
 
   const buildStatus = latestBuild?.status;
