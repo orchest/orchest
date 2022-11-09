@@ -8,14 +8,28 @@
   "scripts": {
     "ts:check": "tsc -p tsconfig.json --noEmit"
   },
-  "peerDependencies": {
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
-  },
   "devDependencies": {
-    "@types/react": "17.0.3",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "@babel/core": "^7.16.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.17.9",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
+    "@jest/transform": "^27.5.1",
+    "@types/chance": "^1.1.3",
+    "@types/codemirror": "^5.60.5",
+    "@types/jest": "^27.4.0",
+    "@types/node": "15.0.1",
+    "babel-jest": "^28.0.3",
+    "chance": "^1.1.8",
+    "cross-env": "^7.0.3",
+    "esbuild": "~0.14.53",
+    "esbuild-jest": "^0.5.0",
+    "jest": "^28.1.3",
+    "jest-environment-jsdom": "^28.1.3",
+    "jest-fetch-mock": "^3.0.3",
+    "jest-junit": "^13.0.0",
+    "jest-localstorage-mock": "^2.4.21",
+    "prop-types": "^15.8.1",
+    "ts-jest": "^28.0.7",
     "typescript": "4.5.4"
   }
 }
