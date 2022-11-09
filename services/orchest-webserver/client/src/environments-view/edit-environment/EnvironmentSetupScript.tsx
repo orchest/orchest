@@ -6,6 +6,7 @@ import {
 import { CodeMirror } from "@/components/common/CodeMirror";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import { grey } from "@mui/material/colors";
 import Typography from "@mui/material/Typography";
 import "codemirror/mode/shell/shell";
@@ -67,36 +68,67 @@ const SetupScriptCodeMirror = React.memo(function SetupScriptCodeMirror({
 });
 
 export const EnvironmentSetupScript = () => {
-  const setupScript = useEditEnvironment(
+  const script = useEditEnvironment(
     (state) => state.environmentChanges?.setup_script
   );
-  const latestBuildStatus = useEditEnvironment(
+  const buildStatus = useEditEnvironment(
     (state) => state.environmentChanges?.latestBuild?.status
   );
-  const setEnvironmentChanges = useEditEnvironment(
-    (state) => state.setEnvironmentChanges
+  const setBuilt = useEditEnvironment((state) => state.setBuilt);
+  const update = useEditEnvironment((state) => state.setEnvironmentChanges);
+  const isModified = useEditEnvironment(
+    (state) => script !== state.built?.setup_script
   );
 
-  const handleChangeSetupScript = React.useCallback(
-    (value: string) => {
-      setEnvironmentChanges({ setup_script: value });
-    },
-    [setEnvironmentChanges]
+  const [didRebuild, setDidRebuild] = React.useState(false);
+  const [builtSuccessfully, setBuiltSuccessfully] = React.useState(true);
+
+  React.useEffect(() => {
+    if (isEnvironmentBuilding(buildStatus)) {
+      setBuiltSuccessfully(false);
+      setDidRebuild(true);
+    } else if (buildStatus === "SUCCESS") {
+      setBuiltSuccessfully(true);
+    }
+  }, [buildStatus]);
+
+  React.useEffect(() => {
+    if (builtSuccessfully && didRebuild) {
+      setBuilt();
+      setDidRebuild(false);
+    }
+  }, [builtSuccessfully, didRebuild, setBuilt]);
+
+  const updateScript = React.useCallback(
+    (value: string) => update({ setup_script: value }),
+    [update]
   );
 
-  const isBuilding = isEnvironmentBuilding(latestBuildStatus);
+  console.log({ isModified });
+
+  const isBuilding = isEnvironmentBuilding(buildStatus);
 
   return (
     <Accordion defaultExpanded>
       <AccordionSummary aria-controls="setup-script" id="setup-script-header">
         <Typography component="h5" variant="h6">
-          Setup script {isBuilding ? "(read-only)" : ""}
+          Setup script
+          {(isModified || isBuilding) && (
+            <Chip
+              sx={{ marginLeft: 1 }}
+              size="small"
+              label={
+                isBuilding ? "Locked while building" : "Changes not yet built"
+              }
+            />
+          )}
         </Typography>
       </AccordionSummary>
+
       <AccordionDetails>
         <SetupScriptCodeMirror
-          onChange={handleChangeSetupScript}
-          value={setupScript}
+          onChange={updateScript}
+          value={script}
           locked={isBuilding}
         />
       </AccordionDetails>

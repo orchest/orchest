@@ -1,26 +1,41 @@
 import { EnvironmentState } from "@/types";
 import create from "zustand";
 
-export const useEditEnvironment = create<{
+type EditEnvironmentState = {
+  /** The assumed built environment state. */
+  built?: EnvironmentState;
+  /** The changes to the environment state. */
   environmentChanges?: EnvironmentState;
-  initEnvironmentChanges: (payload: EnvironmentState | undefined) => void;
+  /** Initialize the store. */
+  initEnvironmentChanges: (state: EnvironmentState | undefined) => void;
+  /** Apply a partial update of the changes. */
   setEnvironmentChanges: (
-    payload:
+    changes:
       | Partial<EnvironmentState>
       | ((state: EnvironmentState) => Partial<EnvironmentState>)
   ) => void;
-}>((set) => ({
-  initEnvironmentChanges: (value) => {
-    set({ environmentChanges: value });
-  },
-  setEnvironmentChanges: (value) => {
+  /** Sets the `built` state to the changes. */
+  setBuilt: () => void;
+};
+
+export const useEditEnvironment = create<EditEnvironmentState>((set) => ({
+  initEnvironmentChanges: (initial) =>
+    set((current) => ({
+      environmentChanges: initial,
+      built: current.built ?? initial,
+    })),
+  setEnvironmentChanges: (changes) =>
     set((state) => {
       if (!state.environmentChanges) return state;
-      const updatedPayload =
-        value instanceof Function ? value(state.environmentChanges) : value;
+
+      const patch =
+        changes instanceof Function
+          ? changes(state.environmentChanges)
+          : changes;
+
       return {
-        environmentChanges: { ...state.environmentChanges, ...updatedPayload },
+        environmentChanges: { ...state.environmentChanges, ...patch },
       };
-    });
-  },
+    }),
+  setBuilt: () => set((state) => ({ built: state.environmentChanges })),
 }));
