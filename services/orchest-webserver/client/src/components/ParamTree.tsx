@@ -1,35 +1,28 @@
 import { useParameterReservedKey } from "@/jobs-view/job-view/hooks/useParameterReservedKey";
 import { StrategyJson, StrategyJsonValue } from "@/types";
 import { omit } from "@/utils/record";
-import LightbulbOutlined from "@mui/icons-material/LightbulbOutlined";
-import {
-  Alert,
-  AlertDescription,
-  AlertHeader,
-  Link,
-} from "@orchest/design-system";
+import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
+import { Link } from "@orchest/design-system";
 import classNames from "classnames";
 import isString from "lodash.isstring";
 import React from "react";
 
 export const NoParameterAlert = () => {
   return (
-    <Alert status="info">
-      <AlertHeader>
-        <LightbulbOutlined fontSize="small" />
-        {`This pipeline doesn't have any parameters defined`}
-      </AlertHeader>
-      <AlertDescription>
-        <>
-          <Link
-            target="_blank"
-            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
-          >
-            Learn more
-          </Link>{" "}
-          about parametrizing your pipelines and steps.
-        </>
-      </AlertDescription>
+    <Alert severity="info">
+      <AlertTitle>
+        This pipeline doesn&apos;t have any parameters defined
+      </AlertTitle>
+      <>
+        <Link
+          target="_blank"
+          href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
+        >
+          Learn more
+        </Link>
+        {" about parametrizing your pipelines and steps."}
+      </>
     </Alert>
   );
 };
