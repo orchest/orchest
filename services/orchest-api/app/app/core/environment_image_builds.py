@@ -113,7 +113,7 @@ def write_environment_dockerfile(
     sps = ["sudo " + s for s in ps]
     ps = " && ".join(ps)
     sps = " && ".join(sps)
-    msg = (
+    ps_fail_msg = (
         'The base image must have USER root or "sudo" must be installed, "find" '
         "must also be installed."
     )
@@ -133,7 +133,8 @@ def write_environment_dockerfile(
         # The ! in front of echo is there so that the script will fail
         # since the statements in the "if" have failed, the echo is a
         # way of injecting the help message.
-        f'RUN ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
+        f"RUN ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) "
+        f'|| ! echo "{ps_fail_msg}") '
         f"&& bash < {bash_script} "
         # Needed to inject the rm statement this way, black was
         # introducing an error.
@@ -145,8 +146,21 @@ def write_environment_dockerfile(
     )
 
     # Make it so that the digest of the produced image is unique.
+    write_task_uuid = (
+        "{sudo} mkdir -p /orchest && "
+        f"echo '{task_uuid}' | {{sudo}} tee /orchest/task_{task_uuid}.txt"
+    )
+    non_sudo_write_task_uuid = write_task_uuid.format(sudo="")
+    sudo_write_task_uuid = write_task_uuid.format(sudo="sudo")
+    write_task_uuid_fail_msg = (
+        'The base image must have USER root or "sudo" must be installed, "tee" '
+        "must also be installed."
+    )
     statements.append(
-        f"RUN echo '{task_uuid}' | sudo tee /orchest/task_{task_uuid}.txt"
+        (
+            f"RUN ((if [ $(id -u) = 0 ]; then {non_sudo_write_task_uuid}; else "
+            f"{sudo_write_task_uuid}; fi) || ! echo '{write_task_uuid_fail_msg}') "
+        )
     )
     statements = "\n".join(statements)
 
