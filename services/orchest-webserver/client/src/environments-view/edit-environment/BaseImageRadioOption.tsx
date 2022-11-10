@@ -79,7 +79,7 @@ export const BaseImageRadioOption = React.memo(function BaseImageRadioOption({
   ...props
 }: BaseImageRadioOptionProps) {
   const latestBuildStatus = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild?.status
+    (state) => state.changes?.latestBuild?.status
   );
   const disabledOnBuilding = isEnvironmentBuilding(latestBuildStatus);
 

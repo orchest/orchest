@@ -18,13 +18,11 @@ import { useBaseImageStore } from "../stores/useBaseImageStore";
 export const useSelectBaseImage = () => {
   const environments = useEnvironmentsApi((state) => state.environments);
 
-  const setEnvironmentChanges = useEditEnvironment(
-    (state) => state.setEnvironmentChanges
-  );
-  const name = useEditEnvironment((state) => state.environmentChanges?.name);
-  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const setEnvironmentChanges = useEditEnvironment((state) => state.update);
+  const name = useEditEnvironment((state) => state.changes?.name);
+  const uuid = useEditEnvironment((state) => state.changes?.uuid);
   const latestBuildStatus = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild?.status
+    (state) => state.changes?.latestBuild?.status
   );
 
   const disabled = isEnvironmentBuilding(latestBuildStatus);
