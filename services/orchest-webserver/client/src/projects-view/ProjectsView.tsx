@@ -16,8 +16,8 @@ import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProj
 import { ImportDialog } from "./ImportDialog";
 import { ImportSuccessDialog } from "./ImportSuccessDialog";
 import { NoProject } from "./NoProject";
-import { ProjectList } from "./ProjectList";
 import { ProjectsHeader } from "./ProjectsHeader";
+import { ProjectsTable } from "./ProjectsTable";
 import { ProjectsTabs } from "./ProjectsTabs";
 import { ProjectTabPanel } from "./ProjectTabPanel";
 import { ProjectTabsContextProvider, PROJECT_TAB } from "./ProjectTabsContext";
@@ -94,7 +94,7 @@ export const ProjectsView = () => {
             index={PROJECT_TAB.MY_PROJECTS}
             sx={{ padding: (theme) => theme.spacing(2, 0) }}
           >
-            {hasLoadedProjects && hasProjects && <ProjectList />}
+            {hasLoadedProjects && hasProjects && <ProjectsTable />}
             {hasLoadedProjects && !hasProjects && (
               <NoProject
                 createProject={openCreateDialog}

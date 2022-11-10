@@ -1,4 +1,5 @@
-import { projectsApi } from "@/api/projects/projectsApi";
+import { useProjectsApi } from "@/api/projects/useProjectsApi";
+import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { Project } from "@/types";
 import Button from "@mui/material/Button";
@@ -7,76 +8,59 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useProjectName } from "./hooks/useProjectName";
-
-// TODO: move to project settings
 
 type RenameProjectDialogProps = {
-  projectUuid: string | undefined;
+  open: boolean;
+  project: Project;
   onClose: () => void;
-  onSaved: (newPath: string) => void;
-  projects: Project[];
 };
 
 export const RenameProjectDialog = ({
-  projectUuid,
-  projects,
+  open,
+  project,
   onClose,
-  onSaved,
 }: RenameProjectDialogProps) => {
   const { setAlert } = useGlobalContext();
+  const projects = useProjectsApi((api) => api.projects);
+  const renameProject = useProjectsApi((api) => api.rename);
 
-  const [projectName, setProjectName, validation] = useProjectName(
-    projects.filter(({ uuid }) => uuid !== projectUuid)
-  );
-  const [isUpdatingProjectPath, setIsUpdatingProjectPath] = React.useState(
-    false
-  );
+  const [validationMessage, setValidationMessage] = React.useState<string>();
+  const [newName, setNewName] = React.useState(project.path);
+  const [isUpdating, setIsUpdating] = React.useState(false);
 
   React.useEffect(() => {
-    const found =
-      hasValue(projectUuid) &&
-      projects.find((project) => project.uuid === projectUuid);
+    if (project) setNewName(project.path);
+  }, [project]);
 
-    if (found) setProjectName(found.path);
-  }, [projectUuid, projects, setProjectName]);
-
-  const isFormValid =
-    (projectName.length > 0 && validation.length === 0) ||
-    isUpdatingProjectPath;
+  React.useEffect(() => {
+    if (projects?.some((project) => project.path === newName)) {
+      setValidationMessage("A project with the same name already exists.");
+    }
+  }, [newName, projects]);
 
   const closeDialog = () => {
     onClose();
-    setProjectName("");
-    setIsUpdatingProjectPath(false);
+    setNewName("");
+    setIsUpdating(false);
   };
 
   const onSubmitEditProjectPathModal = async () => {
-    if (!isFormValid || !projectUuid) return;
+    if (validationMessage) return;
 
-    setIsUpdatingProjectPath(true);
+    setIsUpdating(true);
 
     try {
-      await projectsApi.put(projectUuid, { name: projectName });
-
-      onSaved(projectName);
-      closeDialog();
+      await renameProject(project.uuid, newName).then(closeDialog);
     } catch (error) {
-      setAlert("Error", String(error));
+      setAlert("Failed to rename project", <ErrorSummary error={error} />);
+    } finally {
+      setIsUpdating(false);
     }
-
-    setIsUpdatingProjectPath(false);
   };
 
   return (
-    <Dialog
-      fullWidth
-      maxWidth="xs"
-      open={hasValue(projectUuid)}
-      onClose={onClose}
-    >
+    <Dialog fullWidth maxWidth="xs" open={open} onClose={onClose}>
       <form
         id="edit-name"
         onSubmit={(event) => {
@@ -91,13 +75,13 @@ export const RenameProjectDialog = ({
             autoFocus
             required
             sx={{ marginTop: (theme) => theme.spacing(2) }}
-            value={projectName}
+            value={newName}
             label="Project name"
-            helperText={validation || " "}
-            error={validation.length > 0}
-            disabled={isUpdatingProjectPath}
+            helperText={validationMessage ?? " "}
+            error={Boolean(validationMessage)}
+            disabled={isUpdating}
             onChange={({ target }) => {
-              setProjectName(target.value.replace(/[^\w\.]/g, "-"));
+              setNewName(target.value.replace(/[^\w\.]/g, "-"));
             }}
           />
         </DialogContent>
@@ -105,7 +89,7 @@ export const RenameProjectDialog = ({
           <Button onClick={onClose}>Cancel</Button>
           <Button
             variant="contained"
-            disabled={!isFormValid}
+            disabled={Boolean(validationMessage)}
             type="submit"
             form="edit-name"
           >

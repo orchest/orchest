@@ -1,26 +1,24 @@
-import { Project } from "@/types";
-import { toQueryString } from "@/utils/routing";
-import { useFetcher } from "./useFetcher";
+import { FetchAllParams } from "@/api/projects/projectsApi";
+import { useProjectsApi } from "@/api/projects/useProjectsApi";
+import React from "react";
+import { useAsync } from "./useAsync";
 
-export const useFetchProjects = (params: {
-  shouldFetch?: boolean;
-  sessionCounts?: boolean;
-  activeJobCounts?: boolean;
-  skipDiscovery?: boolean;
-}) => {
-  const { shouldFetch = true, ...restParams } = params;
-  const queryString = toQueryString(restParams);
+export const useFetchProjects = ({
+  activeJobCounts,
+  sessionCounts,
+  skipDiscovery,
+}: FetchAllParams) => {
+  const { run, status, error } = useAsync<void>();
+  const init = useProjectsApi((state) => state.init);
+  const projects = useProjectsApi((state) => state.projects || []);
 
-  const { fetchData, data, setData, error, status } = useFetcher<Project[]>(
-    shouldFetch ? `/async/projects${queryString}` : undefined
-  );
+  const refresh = React.useCallback(() => {
+    return run(init({ activeJobCounts, sessionCounts, skipDiscovery }));
+  }, [init, run, activeJobCounts, sessionCounts, skipDiscovery]);
 
-  return {
-    projects: data,
-    error,
-    status,
-    isFetchingProjects: status === "PENDING",
-    fetchProjects: fetchData,
-    setProjects: setData,
-  };
+  React.useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { projects, refresh, error, isFetching: status === "PENDING" };
 };

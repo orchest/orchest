@@ -1,5 +1,5 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
+import { BackgroundTask } from "@/utils/webserver-utils";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 
@@ -27,22 +27,12 @@ export const useImportGitRepo = (
   onComplete: (result?: BackgroundTask) => void
 ) => {
   const { setAlert } = useGlobalContext();
-  const backgroundTaskPoller = React.useMemo(
-    () => new BackgroundTaskPoller(),
-    []
-  );
 
   const [data, setData] = React.useState<BackgroundTask>({
     uuid: "",
     result: null,
     status: "PENDING",
   });
-
-  React.useEffect(() => {
-    return () => {
-      backgroundTaskPoller.removeAllTasks();
-    };
-  }, [backgroundTaskPoller]);
 
   const startImport = React.useCallback(
     async (projectName: string | undefined) => {
@@ -56,7 +46,7 @@ export const useImportGitRepo = (
         return;
       }
 
-      const { uuid } = await fetcher<{ uuid: string }>(
+      const uuid = await fetcher<{ uuid: string }>(
         `/async/projects/import-git`,
         {
           method: "POST",
@@ -71,12 +61,11 @@ export const useImportGitRepo = (
       backgroundTaskPoller.startPollingBackgroundTask(uuid, (result) => {
         if (["SUCCESS", "FAILURE"].includes(result.status)) {
           setData(result);
-          backgroundTaskPoller.removeAllTasks();
           onComplete(result);
         }
       });
     },
-    [importUrl, onComplete, setAlert, backgroundTaskPoller, setData]
+    [importUrl, onComplete, setAlert, setData]
   );
 
   const clearImportResult = React.useCallback(() => {

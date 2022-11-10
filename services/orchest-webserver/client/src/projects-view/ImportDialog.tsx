@@ -227,9 +227,7 @@ export const ImportDialog = ({
     onCloseByParent
   );
 
-  const { projects, fetchProjects } = useFetchProjects({
-    shouldFetch: isOpen, // Should only be fired when the dialog is open.
-  });
+  const { projects } = useFetchProjects();
 
   // Keep state.projects up-to-date
   // After importing an project, it will immediately navigate to `/pipeline` of the new project
