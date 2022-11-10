@@ -72,7 +72,7 @@ export const EnvironmentSetupScript = () => {
   const buildStatus = useEditEnvironment(
     (state) => state.changes?.latestBuild?.status
   );
-  const setBuilt = useEditEnvironment((state) => state.setBuilt);
+  const applyChanges = useEditEnvironment((state) => state.applyChanges);
   const update = useEditEnvironment((state) => state.update);
   const isModified = useEditEnvironment(
     (state) => script !== state.built?.setup_script
@@ -92,10 +92,10 @@ export const EnvironmentSetupScript = () => {
 
   React.useEffect(() => {
     if (builtSuccessfully && didRebuild) {
-      setBuilt();
+      applyChanges();
       setDidRebuild(false);
     }
-  }, [builtSuccessfully, didRebuild, setBuilt]);
+  }, [builtSuccessfully, didRebuild, applyChanges]);
 
   const updateScript = React.useCallback(
     (value: string) => update({ setup_script: value }),

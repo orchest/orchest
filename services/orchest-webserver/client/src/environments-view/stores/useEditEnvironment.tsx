@@ -15,7 +15,7 @@ type EditEnvironmentState = {
       | ((state: EnvironmentState) => Partial<EnvironmentState>)
   ) => void;
   /** Sets the `built` state to the changes. */
-  setBuilt: () => void;
+  applyChanges: () => void;
 };
 
 export const useEditEnvironment = create<EditEnvironmentState>((set) => ({
@@ -32,5 +32,5 @@ export const useEditEnvironment = create<EditEnvironmentState>((set) => ({
         changes: { ...state.changes, ...patch },
       };
     }),
-  setBuilt: () => set((state) => ({ built: state.changes })),
+  applyChanges: () => set((state) => ({ built: state.changes })),
 }));
