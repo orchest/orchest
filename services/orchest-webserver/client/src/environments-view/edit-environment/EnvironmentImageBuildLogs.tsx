@@ -19,12 +19,10 @@ export const EnvironmentImageBuildLogs = () => {
   const { projectUuid, environmentUuid } = useCustomRoute();
   const { config } = useGlobalContext();
 
-  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
-  const latestBuild = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild
-  );
+  const uuid = useEditEnvironment((state) => state.changes?.uuid);
+  const latestBuild = useEditEnvironment((state) => state.changes?.latestBuild);
   const environmentChangesProjectUuid = useEditEnvironment(
-    (state) => state.environmentChanges?.project_uuid
+    (state) => state.changes?.project_uuid
   );
 
   const isTriggeringBuild = useEnvironmentsApi(

@@ -9,16 +9,14 @@ import { useEditEnvironment } from "../stores/useEditEnvironment";
  * Note: should only be used once in a view.
  */
 export const useUpdateBuildStatusInEnvironmentChanges = () => {
-  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
+  const uuid = useEditEnvironment((state) => state.changes?.uuid);
   const latestBuild = useEnvironmentsApi(
     (state) =>
       state.environments?.find((env) => env.uuid === uuid)?.latestBuild,
     isLatestBuildStatusUnchanged
   );
 
-  const setEnvironmentChanges = useEditEnvironment(
-    (state) => state.setEnvironmentChanges
-  );
+  const setEnvironmentChanges = useEditEnvironment((state) => state.update);
 
   React.useEffect(() => {
     setEnvironmentChanges({ latestBuild });
