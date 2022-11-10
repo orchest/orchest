@@ -78,24 +78,24 @@ export const EnvironmentSetupScript = () => {
     (state) => script !== state.built?.setup_script
   );
 
-  const [didRebuild, setDidRebuild] = React.useState(false);
+  const [startedRebuild, setStartedRebuild] = React.useState(false);
   const [builtSuccessfully, setBuiltSuccessfully] = React.useState(true);
 
   React.useEffect(() => {
     if (isEnvironmentBuilding(buildStatus)) {
       setBuiltSuccessfully(false);
-      setDidRebuild(true);
+      setStartedRebuild(true);
     } else if (buildStatus === "SUCCESS") {
       setBuiltSuccessfully(true);
     }
   }, [buildStatus]);
 
   React.useEffect(() => {
-    if (builtSuccessfully && didRebuild) {
+    if (builtSuccessfully && startedRebuild) {
       applyChanges();
-      setDidRebuild(false);
+      setStartedRebuild(false);
     }
-  }, [builtSuccessfully, didRebuild, applyChanges]);
+  }, [builtSuccessfully, startedRebuild, applyChanges]);
 
   const updateScript = React.useCallback(
     (value: string) => update({ setup_script: value }),
