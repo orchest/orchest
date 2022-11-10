@@ -1,16 +1,26 @@
 import { Project } from "@/types";
+import { join } from "@/utils/path";
+import { queryArgs } from "@/utils/text";
 import { fetcher, HEADER } from "@orchest/lib-utils";
+
+export const PROJECTS_API_URL = "/async/projects";
 
 export type PutProjectData = Partial<Omit<Project, "uuid"> & { name: string }>;
 
 export type NewProjectData = { project_uuid: string };
+
+export type FetchAllParams = {
+  sessionCounts?: boolean;
+  activeJobCounts?: boolean;
+  skipDiscovery?: boolean;
+};
 
 /**
  * Permanently deletes a project.
  * @param projectUuid The UUID of the project to delete.
  */
 const deleteProject = (projectUuid: string): Promise<void> =>
-  fetcher(`/async/projects/${projectUuid}`, { method: "DELETE" });
+  fetcher(join(PROJECTS_API_URL, projectUuid), { method: "DELETE" });
 
 /**
  * Used to update information about the project,
@@ -19,7 +29,7 @@ const deleteProject = (projectUuid: string): Promise<void> =>
  * @param data What information should be updated
  */
 export const put = (projectUuid: string, data: PutProjectData): Promise<void> =>
-  fetcher(`/async/projects/${projectUuid}`, {
+  fetcher(join(PROJECTS_API_URL, projectUuid), {
     method: "PUT",
     headers: HEADER.JSON,
     body: JSON.stringify(data),
@@ -27,10 +37,27 @@ export const put = (projectUuid: string, data: PutProjectData): Promise<void> =>
 
 /** Fetches the project with the given UUID   */
 export const fetchOne = (projectUuid: string) =>
-  fetcher<Project>(`/async/projects/${projectUuid}`);
+  fetcher<Project>(join(PROJECTS_API_URL, projectUuid));
+
+/** Starts the import of a git repo, and returns its UUID. */
+export const importGitRepo = (url: string, projectName: string) =>
+  fetcher<{ uuid: string }>(join(PROJECTS_API_URL, "/import-git"), {
+    method: "POST",
+    headers: HEADER.JSON,
+    body: JSON.stringify({ url, project_name: projectName }),
+  }).then(({ uuid }) => uuid);
 
 /** Fetches all available projects. */
-export const fetchAll = (): Promise<Project[]> => fetcher(`/async/projects`);
+export const fetchAll = ({
+  sessionCounts = false,
+  activeJobCounts = false,
+  skipDiscovery = true,
+}): Promise<Project[]> =>
+  fetcher(
+    PROJECTS_API_URL +
+      "?" +
+      queryArgs({ sessionCounts, activeJobCounts, skipDiscovery })
+  );
 
 /** Creates a new project with the provided name. */
 export const post = (projectName: string) =>
@@ -45,5 +72,6 @@ export const projectsApi = {
   fetchAll,
   post,
   put,
+  importGitRepo,
   delete: deleteProject,
 };

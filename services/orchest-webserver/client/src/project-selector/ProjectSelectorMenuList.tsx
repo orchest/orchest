@@ -1,7 +1,10 @@
 import { SearchField } from "@/components/SearchField";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { ellipsis } from "@/utils/styles";
+import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Typography from "@mui/material/Typography";
@@ -78,14 +81,28 @@ export const ProjectSelectorMenuList = ({
                 if (index === 0) menuFirstItemRef.current = ref;
               }}
               selected={validProjectUuid === project.uuid}
+              sx={{
+                "> button": { opacity: 0 },
+                "&:hover > button": { opacity: 1 },
+              }}
               onClick={() => selectProject(project.uuid)}
             >
-              <Typography
-                title={project.path}
-                sx={ellipsis((theme) => theme.spacing(40))}
+              <ListItemText>
+                <Typography
+                  title={project.path}
+                  sx={ellipsis((theme) => theme.spacing(40))}
+                >
+                  {project.path}
+                </Typography>
+              </ListItemText>
+              <IconButton
+                title="More options"
+                size="small"
+                // onClick={openProjectMenu(row.uuid)}
+                data-test-id={`project-selector-menu-list-button-${project.path}`}
               >
-                {project.path}
-              </Typography>
+                <MoreHorizOutlinedIcon fontSize="small" />
+              </IconButton>
             </MenuItem>
           );
         })}
