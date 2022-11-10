@@ -65,12 +65,17 @@ const createDirectory = async (params: NodeParams) => {
 };
 
 const duplicate = async (projectUuid: string, root: string, path: string) =>
-  await fetch(
+  await fetcher<void>(
     join(FILE_MANAGEMENT_ENDPOINT, "duplicate") +
       "?" +
       queryArgs({ path, root, projectUuid }),
     { method: "POST" }
   );
+
+const getDownloadUrl = (projectUuid: string, root: string, path: string) =>
+  join(FILE_MANAGEMENT_ENDPOINT, "download") +
+  "?" +
+  queryArgs({ path, root, projectUuid });
 
 export const filesApi = {
   fetchNode,
@@ -79,4 +84,5 @@ export const filesApi = {
   createFile,
   duplicate,
   createDirectory,
+  getDownloadUrl,
 };
