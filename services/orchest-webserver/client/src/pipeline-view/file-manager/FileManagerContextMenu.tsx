@@ -177,7 +177,7 @@ export const FileManagerContextMenu = ({
           Delete
         </MenuItem>
       )}
-      {hasPath && !isReadOnly && (
+      {hasPath && (
         <MenuItem dense disabled={isReadOnly} onClick={handleDownload}>
           Download
         </MenuItem>
