@@ -11,7 +11,6 @@ export type RouteName =
   | "jobs"
   | "jobRun"
   | "jobRunFilePreview"
-  | "snapshotFilePreview"
   | "pipelineReadonly"
   | "editJob"
   | "fileManager"
@@ -216,11 +215,13 @@ export const generatePathFromRoute = <T extends string>(
 };
 
 // Exclude detail views
-const excludedPaths = [
+const excludedPaths: readonly string[] = [
   siteMap.pipeline.path,
   siteMap.projectSettings.path,
   siteMap.jupyterLab.path,
   siteMap.filePreview.path,
+  siteMap.jobRunFilePreview.path,
+  siteMap.jobRun.path,
 ];
 
 // used in CommandPalette
