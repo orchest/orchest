@@ -18,7 +18,6 @@ const DEFAULT_MAIN_SIDE_PANEL_WIDTH = 300;
 export const MIN_MAIN_SIDE_PANEL_WIDTH = 280;
 const DEFAULT_SECONDARY_SIDE_PANEL_WIDTH = 450;
 export const MIN_SECONDARY_SIDE_PANEL_WIDTH = 420;
-export const MAX_WIDTH = window.innerWidth / 2;
 
 export const useLayoutStore = create(
   persist<LayoutState>(
@@ -29,7 +28,7 @@ export const useLayoutStore = create(
           mainSidePanelWidth: clamp(
             getValue(mainSidePanelWidth, value),
             MIN_MAIN_SIDE_PANEL_WIDTH,
-            MAX_WIDTH
+            window.innerWidth / 2
           ),
         }));
       },
@@ -39,7 +38,7 @@ export const useLayoutStore = create(
           secondarySidePanelWidth: clamp(
             getValue(secondarySidePanelWidth, value),
             MIN_SECONDARY_SIDE_PANEL_WIDTH,
-            MAX_WIDTH
+            window.innerWidth / 2
           ),
         }));
       },
