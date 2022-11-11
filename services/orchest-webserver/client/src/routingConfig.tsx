@@ -72,13 +72,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       scope: ["projectUuid", "pipelineUuid"],
     },
     {
-      name: "logs",
-      path: "/logs",
-      root: "/pipeline",
-      title: getTitle("Logs"),
-      scope: ["projectUuid", "pipelineUuid"],
-    },
-    {
       name: "environments",
       path: "/environments",
       title: getTitle("Environments"),
@@ -95,13 +88,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       path: "/job-run",
       root: "/jobs",
       title: getTitle("Job Run"),
-      scope: ["projectUuid", "jobRunUuid", "pipelineUuid"],
-    },
-    {
-      name: "jobRunLogs",
-      path: "/job-run/logs",
-      root: "/jobs",
-      title: getTitle("Job Run Logs"),
       scope: ["projectUuid", "jobRunUuid", "pipelineUuid"],
     },
     {
