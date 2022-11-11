@@ -27,18 +27,12 @@ export const getDefaultImageFromEnvironment = (
 export const useLoadSelectedBaseImage = () => {
   const { environmentUuid, projectUuid } = useCustomRoute();
   const environmentChangesProjectUuid = useEditEnvironment(
-    (state) => state.environmentChanges?.project_uuid
+    (state) => state.changes?.project_uuid
   );
-  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
-  const language = useEditEnvironment(
-    (state) => state.environmentChanges?.language
-  );
-  const gpuSupport = useEditEnvironment(
-    (state) => state.environmentChanges?.gpu_support
-  );
-  const baseImage = useEditEnvironment(
-    (state) => state.environmentChanges?.base_image
-  );
+  const uuid = useEditEnvironment((state) => state.changes?.uuid);
+  const language = useEditEnvironment((state) => state.changes?.language);
+  const gpuSupport = useEditEnvironment((state) => state.changes?.gpu_support);
+  const baseImage = useEditEnvironment((state) => state.changes?.base_image);
 
   const [setSelectedImage, setCustomImage] = useBaseImageStore((state) => [
     state.setSelectedImage,

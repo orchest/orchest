@@ -1335,11 +1335,15 @@ def register_views(app, db):
             with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_STORED) as zf:
                 zipdir(target_path, zf)
             memory_file.seek(0)
+
+            # "normpath" takes care of trailing slashes.
+            file_name = f"{os.path.basename(os.path.normpath(target_path))}.zip"
+
             return send_file(
                 memory_file,
                 mimetype="application/zip",
                 as_attachment=True,
-                attachment_filename=os.path.basename(target_path[:-1]) + ".zip",
+                attachment_filename=file_name,
             )
 
     @app.route("/async/file-management/import-project-from-data", methods=["POST"])
@@ -1384,7 +1388,7 @@ def register_views(app, db):
 
         # Make absolute path relative
         path_filter = path_filter[1:]
-        app.logger.info(f"Path filter {path_filter}")
+        app.logger.debug(f"Path filter {path_filter}")
 
         matches = []
 
@@ -1428,7 +1432,7 @@ def register_views(app, db):
         # Path
         path_filter = path if path else "/"
 
-        app.logger.info(f"Path filter {path_filter}")
+        app.logger.debug(f"Path filter {path_filter}")
 
         return jsonify(
             generate_tree(root_dir_path, path_filter=path_filter, depth=depth)

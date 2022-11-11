@@ -27,11 +27,9 @@ const getNextEnvironmentUuid = (
 
 export const EnvironmentMoreOptions = () => {
   const { setConfirm } = useGlobalContext();
-  const uuid = useEditEnvironment((state) => state.environmentChanges?.uuid);
-  const name = useEditEnvironment((state) => state.environmentChanges?.name);
-  const action = useEditEnvironment(
-    (state) => state.environmentChanges?.action
-  );
+  const uuid = useEditEnvironment((state) => state.changes?.uuid);
+  const name = useEditEnvironment((state) => state.changes?.name);
+  const action = useEditEnvironment((state) => state.changes?.action);
 
   const selectEnvironment = useSelectEnvironment();
   const deleteEnvironment = useEnvironmentsApi((state) => state.delete);

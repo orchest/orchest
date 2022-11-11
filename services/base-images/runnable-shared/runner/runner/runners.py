@@ -14,16 +14,24 @@ class Runner:
         self.step_uuid = step_uuid
         self.working_dir = working_dir
 
-    def run(self):
+    def run(self, file_path):
 
-        # current behaviour is to always clear old logs
+        # Current behaviour is to always clear old logs.
         self.clear_pipeline_step_log()
 
-        # make sure log directory exists
+        # Make sure log directory exists.
         self.create_log_dir()
 
-        # make sure each log starts with a unique uuid on its first line
+        # Make sure each log starts with a unique uuid on its first
+        # line.
         self.print_unique_line()
+
+        if not os.path.exists(file_path):
+            self.log_file_path_not_found(file_path)
+            raise ValueError(f"{file_path} not found.")
+        elif not os.path.isfile(file_path):
+            self.log_file_path_not_a_file(file_path)
+            raise ValueError(f"{file_path} not a file.")
 
     def print_unique_line(self):
 
@@ -68,11 +76,33 @@ class Runner:
             except OSError as exc:
                 raise exc
 
+    def log_file_path_not_a_file(self, file_path: str):
+        log_file_path = self.get_log_file_path()
+        try:
+            with open(log_file_path, "a") as file:
+                file.write(f'Orchest error: path "{file_path}" is not a file')
+        except IOError as e:
+            raise Exception(
+                "Could not write to log file %s. Error: %s [%s]"
+                % (log_file_path, e, type(e))
+            )
+
+    def log_file_path_not_found(self, file_path: str):
+        log_file_path = self.get_log_file_path()
+        try:
+            with open(log_file_path, "a") as file:
+                file.write(f'Orchest error: could not find file "{file_path}".')
+        except IOError as e:
+            raise Exception(
+                "Could not write to log file %s. Error: %s [%s]"
+                % (log_file_path, e, type(e))
+            )
+
 
 class ProcessRunner(Runner):
     def run(self, command, file_path):
 
-        super().run()
+        super().run(file_path)
 
         log_file_path = self.get_log_file_path()
 
@@ -91,7 +121,7 @@ class NotebookRunner(Runner):
 
     def run(self, file_path):
 
-        super().run()
+        super().run(file_path)
 
         # TODO: extend this mapping
         kernel_mapping = {

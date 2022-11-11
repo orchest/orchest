@@ -3,9 +3,9 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { useUploader } from "@/hooks/useUploader";
 import { combinePath, FileRoot, fileRoots, unpackPath } from "@/utils/file";
+import { Point2D } from "@/utils/geometry";
 import { dirname, isDirectory, nearestDirectory } from "@/utils/path";
 import LinearProgress from "@mui/material/LinearProgress";
-import MenuItem from "@mui/material/MenuItem";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
@@ -13,10 +13,7 @@ import { ActionBar } from "./ActionBar";
 import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
 import { useFileManagerContext } from "./FileManagerContext";
-import {
-  ContextMenuMetadata,
-  FileManagerContextMenu,
-} from "./FileManagerContextMenu";
+import { FileManagerContextMenu } from "./FileManagerContextMenu";
 import { FileManagerLocalContextProvider } from "./FileManagerLocalContext";
 import { FileTree } from "./FileTree";
 import { FileTreeContainer } from "./FileTreeContainer";
@@ -32,7 +29,6 @@ export function FileManager() {
   } = useFileManagerContext();
 
   const { roots } = useFetchFileRoots();
-  const reload = useFileApi((api) => api.refresh);
   const expand = useFileApi((api) => api.expand);
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -43,18 +39,11 @@ export function FileManager() {
 
   const [expanded, setExpanded] = React.useState<string[]>([DEFAULT_CWD]);
   const [progress, setProgress] = React.useState(0);
-  const [contextMenu, setContextMenu] = React.useState<ContextMenuMetadata>(
-    undefined
-  );
+  const [contextMenuOrigin, setContextMenuOrigin] = React.useState<Point2D>();
 
   const { root, path: cwd } = unpackPath(
     nearestDirectory(selectedFiles[0] || DEFAULT_CWD)
   );
-
-  const collapseAll = () => {
-    setExpanded([]);
-    setContextMenu(undefined);
-  };
 
   const uploader = useUploader({
     projectUuid,
@@ -149,7 +138,9 @@ export function FileManager() {
             variant="determinate"
           />
         )}
-        <FileManagerLocalContextProvider setContextMenu={setContextMenu}>
+        <FileManagerLocalContextProvider
+          setContextMenuOrigin={setContextMenuOrigin}
+        >
           <CreatePipelineButton />
           <ActionBar
             setExpanded={setExpanded}
@@ -167,24 +158,10 @@ export function FileManager() {
                   onMoved={onMoved}
                   handleToggle={handleToggle}
                 />
-                <FileManagerContextMenu metadata={contextMenu}>
-                  {contextMenu?.type === "background" && (
-                    <>
-                      <MenuItem dense onClick={collapseAll}>
-                        Collapse all
-                      </MenuItem>
-                      <MenuItem
-                        dense
-                        onClick={() => {
-                          reload();
-                          setContextMenu(undefined);
-                        }}
-                      >
-                        Refresh
-                      </MenuItem>
-                    </>
-                  )}
-                </FileManagerContextMenu>
+                <FileManagerContextMenu
+                  origin={contextMenuOrigin}
+                  onCollapse={() => setExpanded([])}
+                />
               </>
             )}
           </FileTreeContainer>

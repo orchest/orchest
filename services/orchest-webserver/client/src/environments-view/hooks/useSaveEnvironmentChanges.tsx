@@ -10,10 +10,10 @@ import { useEditEnvironment } from "../stores/useEditEnvironment";
  */
 export const useSaveEnvironmentChanges = () => {
   const { put } = useEnvironmentsApi();
-  const { environmentChanges } = useEditEnvironment();
+  const changes = useEditEnvironment((state) => state.changes);
 
   const save = React.useCallback(() => {
-    const environmentData = environmentDataFromState(environmentChanges);
+    const environmentData = environmentDataFromState(changes);
     if (environmentData) {
       // Saving an environment will invalidate the Jupyter <iframe>
       // TODO: perhaps this can be fixed with coordination between JLab +
@@ -21,7 +21,7 @@ export const useSaveEnvironmentChanges = () => {
       window.orchest.jupyter?.unload();
       put(environmentData.uuid, environmentData);
     }
-  }, [environmentChanges, put]);
+  }, [changes, put]);
 
-  useAutoSaveEnvironment(environmentChanges, save);
+  useAutoSaveEnvironment(changes, save);
 };

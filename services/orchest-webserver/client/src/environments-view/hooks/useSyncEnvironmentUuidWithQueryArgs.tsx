@@ -35,22 +35,15 @@ export const useSyncEnvironmentUuidWithQueryArgs = () => {
   const isEnvironmentUuidFromRouteInvalid =
     targetEnvironment && targetEnvironment.uuid !== environmentUuid;
 
-  const initEnvironmentChanges = useEditEnvironment(
-    (state) => state.initEnvironmentChanges
-  );
+  const init = useEditEnvironment((state) => state.init);
 
   React.useEffect(() => {
     if (isEnvironmentUuidFromRouteInvalid) {
       redirect(targetEnvironment.uuid);
     } else if (targetEnvironment) {
-      initEnvironmentChanges(targetEnvironment);
+      init(targetEnvironment);
     }
 
-    return () => initEnvironmentChanges(undefined);
-  }, [
-    isEnvironmentUuidFromRouteInvalid,
-    redirect,
-    targetEnvironment,
-    initEnvironmentChanges,
-  ]);
+    return () => init(undefined);
+  }, [isEnvironmentUuidFromRouteInvalid, redirect, targetEnvironment, init]);
 };
