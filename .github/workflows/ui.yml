@@ -52,3 +52,6 @@ jobs:
 
       - name: Lint pnpm packages
         run: pnpm run check
+
+      - name: Type check
+        run: pnpm run ts:check

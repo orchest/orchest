@@ -4,7 +4,7 @@ import React from "react";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 export const EnvironmentName = () => {
-  const name = useEditEnvironment((state) => state.environmentChanges?.name);
+  const name = useEditEnvironment((state) => state.changes?.name);
 
   const isNameEmpty = name?.trim().length === 0;
 

@@ -42,6 +42,7 @@ const App: React.FC<{ view: string; queryArgs: string }> = ({
       />
     );
   if (view === "/login/admin") return <Admin />;
+  return null;
 };
 
 export default App;

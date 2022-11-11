@@ -14,16 +14,14 @@ import { useEditEnvironment } from "./stores/useEditEnvironment";
 
 export const EnvironmentMenuList = () => {
   useSyncEnvironmentUuidWithQueryArgs();
-  const environmentChanges = useEditEnvironment(
-    (state) => state.environmentChanges
-  );
+  const changes = useEditEnvironment((state) => state.changes);
 
   const setEnvironment = useEnvironmentsApi((state) => state.setEnvironment);
   const environments = useEnvironmentsApi((state) => state.environments);
   const selectEnvironment = useSelectEnvironment();
 
   const updateStoreAndRedirect = (event: React.MouseEvent, uuid: string) => {
-    const environment = environmentDataFromState(environmentChanges);
+    const environment = environmentDataFromState(changes);
     if (environment) {
       setEnvironment(environment.uuid, environment);
     }
@@ -55,9 +53,8 @@ export const EnvironmentMenuList = () => {
       >
         {(environments || []).map((environment) => {
           const selected =
-            hasValue(environmentChanges) &&
-            environmentChanges.uuid === environment.uuid;
-          const data = selected ? environmentChanges : environment;
+            hasValue(changes) && changes.uuid === environment.uuid;
+          const data = selected ? changes : environment;
           const selectedData = pick(data, "uuid", "name", "language");
           const latestBuildStatus = data.latestBuild?.status;
 

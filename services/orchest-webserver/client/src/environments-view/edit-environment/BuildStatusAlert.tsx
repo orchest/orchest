@@ -25,7 +25,7 @@ const alertMessageMapping: Record<
 
 export const BuildStatusAlert = () => {
   const latestBuildStatus = useEditEnvironment(
-    (state) => state.environmentChanges?.latestBuild?.status
+    (state) => state.changes?.latestBuild?.status
   );
 
   const alert = alertMessageMapping[latestBuildStatus || ""];

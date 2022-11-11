@@ -11,7 +11,7 @@ import {
 import { useNotificationSettingsContext } from "./NotificationSettingsContext";
 
 type NotificationEventTypeRow = {
-  uuid: EventForDisplay;
+  id: EventForDisplay;
   name: EventForDisplay;
 };
 
@@ -121,6 +121,7 @@ export const NotificationEventsForm = () => {
   ];
 
   const eventTypeRows = notificationEventTypes.map((name) => ({
+    id: name,
     uuid: name,
     name,
   }));

@@ -30,7 +30,7 @@ export const useDragElementWithPosition = (
       position.current.delta[1] += event.clientY - position.current.prev[1];
       position.current.prev[1] = event.clientY;
       onDrag(position);
-      position.current.delta = { x: 0, y: 0 };
+      position.current.delta = [0, 0];
     },
     [onDrag]
   );

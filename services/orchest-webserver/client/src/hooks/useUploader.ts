@@ -1,5 +1,5 @@
-import { FileRoot } from "@/api/files/useFileApi";
 import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
+import { FileRoot } from "@/utils/file";
 import { join } from "@/utils/path";
 import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
