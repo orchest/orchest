@@ -9,6 +9,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
+from app import models
 from app import utils as app_utils
 from app.connections import k8s_core_api
 from app.core import image_utils
@@ -246,11 +247,6 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     Raises:
         See the check_environment_correctness_function
     """
-    # the project path we receive is relative to the projects directory
-    userdir_project_path = os.path.join(_config.USERDIR_PROJECTS, project_path)
-
-    # sanity checks, if not respected exception will be raised
-    check_environment_correctness(project_uuid, environment_uuid, userdir_project_path)
 
     env_builds_dir = _config.USERDIR_ENV_IMG_BUILDS
     # K8S_TODO: remove this?
@@ -259,8 +255,30 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     snapshot_path = f"{env_builds_dir}/{task_uuid}"
     if os.path.isdir(snapshot_path):
         rmtree(snapshot_path)
-    copytree(userdir_project_path, snapshot_path, use_gitignore=True)
-    # take the environment from the snapshot
+
+    try:
+        # The project path we receive is relative to the projects
+        # directory.
+        userdir_project_path = os.path.join(_config.USERDIR_PROJECTS, project_path)
+        copytree(userdir_project_path, snapshot_path, use_gitignore=True)
+    except OSError as e:
+        # This is a temporary band-aid to the fact that, currently, a
+        # project rename can happen while builds are queued. We use the
+        # fact that the orchest-webserver updates (PUTs) the orchest-api
+        # project name on a project rename and the fact that the project
+        # name currently coincides with the project path w.r.t. the
+        # projects directory.
+        # Note: this solution only covers 1 rename, i.e. it only tries
+        # once.
+        _logger.error(e)
+        proj = models.Project.query.filter_by(uuid=project_uuid).one()
+        userdir_project_path = os.path.join(_config.USERDIR_PROJECTS, proj.name)
+        copytree(userdir_project_path, snapshot_path, use_gitignore=True)
+
+    # Sanity checks, if not respected exception will be raised.
+    check_environment_correctness(project_uuid, environment_uuid, snapshot_path)
+
+    # Take the environment from the snapshot.
     environment_path = os.path.join(
         snapshot_path, f".orchest/environments/{environment_uuid}"
     )
@@ -302,7 +320,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         os.path.join(snapshot_path, dockerfile_name),
     )
 
-    # hide stuff from the user
+    # Hide stuff from the user.
     with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
         docker_ignore.write(".dockerignore\n")
         docker_ignore.write(".orchest\n")

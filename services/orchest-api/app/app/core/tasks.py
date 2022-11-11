@@ -217,10 +217,10 @@ def build_environment_image(
         Status of the environment build.
 
     """
-
-    return build_environment_image_task(
-        self.request.id, project_uuid, environment_uuid, image_tag, project_path
-    )
+    with application.app_context():
+        return build_environment_image_task(
+            self.request.id, project_uuid, environment_uuid, image_tag, project_path
+        )
 
 
 # Note: cannot use ignore_result and also AsyncResult to abort
