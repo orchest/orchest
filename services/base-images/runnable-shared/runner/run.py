@@ -40,10 +40,6 @@ def main():
     file_extension = get_filename_extension(filename)
     file_path = os.path.join(Config.PROJECT_DIR, filename)
 
-    # check if file exists in working directory
-    if not os.path.isfile(file_path):
-        raise Exception("File doesn't appear to exist in file path '%s'" % (file_path,))
-
     if file_extension == "ipynb":
 
         nr = NotebookRunner(pipeline_uuid, step_uuid, working_dir)
