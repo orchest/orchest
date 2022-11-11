@@ -83,7 +83,11 @@ export const FileTree = React.memo(function FileTreeComponent({
   const reload = useFileApi((api) => api.refresh);
   const moveFile = useFileApi((api) => api.move);
 
-  const { handleSelect, setFileInRename } = useFileManagerLocalContext();
+  const {
+    handleSelect,
+    setFileInRename,
+    handleContextMenu,
+  } = useFileManagerLocalContext();
 
   const { navigateToJupyterLab } = useOpenFile();
 
@@ -430,6 +434,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                     : undefined,
               }}
               data-path={combinedPath}
+              onContextMenu={(event) => handleContextMenu(event, combinedPath)}
               labelText={prettifyRoot(root)}
             >
               <FileTreeRow

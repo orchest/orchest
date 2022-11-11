@@ -15,14 +15,12 @@ export const FileTreeContainer: React.FC = ({ children }) => {
         flex: 1,
         padding: (theme) => theme.spacing(0, 1, 2),
       }}
-      onContextMenu={(e) => {
-        handleContextMenu(e, "", "background");
-      }}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      onContextMenu={(event) => handleContextMenu(event, "")}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
         // click away should clean up selected items
-        if (e.detail === 1 && !(e.metaKey || e.ctrlKey)) {
+        if (event.detail === 1 && !(event.metaKey || event.ctrlKey)) {
           setSelectedFiles([]);
         }
       }}

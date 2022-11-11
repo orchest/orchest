@@ -5,7 +5,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
-import { join } from "@/utils/path";
+import { hasExtension, isDirectory, join } from "@/utils/path";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
@@ -15,20 +15,16 @@ import { useOpenFile } from "../hooks/useOpenFile";
 import { cleanFilePath } from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
-export type ContextMenuType = "tree" | "background";
+type FileManagerContextMenuProps = { origin?: Point2D; onCollapse: () => void };
 
-export type ContextMenuMetadata =
-  | {
-      origin: Point2D;
-      type: ContextMenuType;
-    }
-  | undefined;
-
-export const FileManagerContextMenu: React.FC<{
-  metadata: ContextMenuMetadata | undefined;
-}> = ({ metadata, children }) => {
+export const FileManagerContextMenu = ({
+  origin,
+  onCollapse,
+}: FileManagerContextMenuProps) => {
+  const [left, top] = origin ?? [0, 0];
   const { setAlert } = useGlobalContext();
   const duplicate = useFileApi((api) => api.duplicate);
+  const refresh = useFileApi((api) => api.refresh);
   const { navigateTo, jobUuid, projectUuid, snapshotUuid } = useCustomRoute();
   const {
     pipelineUuid,
@@ -39,9 +35,7 @@ export const FileManagerContextMenu: React.FC<{
     isJobRun,
     isSnapshot,
   } = usePipelineDataContext();
-
   const isRunningOnSnapshot = isJobRun || isSnapshot;
-
   const { navigateToJupyterLab } = useOpenFile();
 
   const additionalQueryArgs = React.useMemo(() => {
@@ -53,47 +47,43 @@ export const FileManagerContextMenu: React.FC<{
 
   const {
     handleClose,
-    handleContextRename,
+    handleRename,
     handleDelete,
     handleDownload,
-    contextMenuCombinedPath = "",
+    contextMenuPath = "",
   } = useFileManagerLocalContext();
 
-  const handleDuplicate = React.useCallback(async () => {
+  const { root, path } = unpackPath(contextMenuPath);
+
+  const handleDuplicate = React.useCallback(() => {
     if (isReadOnly) return;
-
-    const { root, path } = unpackPath(contextMenuCombinedPath);
-
-    await duplicate(root, path);
-
+    duplicate(root, path);
     handleClose();
-  }, [isReadOnly, contextMenuCombinedPath, duplicate, handleClose]);
+  }, [isReadOnly, root, path, duplicate, handleClose]);
 
-  const handleContextEdit = React.useCallback(() => {
+  const handleEditFile = React.useCallback(() => {
     if (isReadOnly) return;
     handleClose();
-    navigateToJupyterLab(undefined, cleanFilePath(contextMenuCombinedPath));
-  }, [contextMenuCombinedPath, navigateToJupyterLab, handleClose, isReadOnly]);
+    navigateToJupyterLab(undefined, cleanFilePath(contextMenuPath));
+  }, [contextMenuPath, navigateToJupyterLab, handleClose, isReadOnly]);
 
-  const handleContextView = React.useCallback(() => {
+  const handleViewFile = React.useCallback(() => {
     handleClose();
 
     if (!pipelineUuid || !pipelineCwd) return;
 
     const foundStep = Object.values(pipelineJson?.steps || {}).find((step) => {
       const filePath = join(pipelineCwd, step.file_path);
-      return (
-        filePath.replace(/^\//, "") === cleanFilePath(contextMenuCombinedPath)
-      );
+      return filePath.replace(/^\//, "") === cleanFilePath(contextMenuPath);
     });
 
     if (!foundStep) {
       setAlert(
         "Warning",
         <div>
-          <Code>{cleanFilePath(contextMenuCombinedPath)}</Code> is not yet used
-          in this pipeline. To preview the file, you need to assign this file to
-          a step first.
+          <Code>{cleanFilePath(contextMenuPath)}</Code> is not yet used in this
+          pipeline. To preview the file, you need to assign this file to a step
+          first.
         </div>
       );
       return;
@@ -114,7 +104,7 @@ export const FileManagerContextMenu: React.FC<{
       }
     );
   }, [
-    contextMenuCombinedPath,
+    contextMenuPath,
     handleClose,
     isReadOnly,
     isRunningOnSnapshot,
@@ -127,92 +117,71 @@ export const FileManagerContextMenu: React.FC<{
     setAlert,
   ]);
 
-  const rootIsProject =
-    hasValue(contextMenuCombinedPath) &&
-    contextMenuCombinedPath.startsWith("/project-dir");
-
-  const contextPathIsFile =
-    contextMenuCombinedPath && !contextMenuCombinedPath.endsWith("/");
-
-  const contextPathIsAllowedFileType =
-    contextMenuCombinedPath &&
-    ALLOWED_STEP_EXTENSIONS.some((allowedType) =>
-      contextMenuCombinedPath
-        .toLocaleLowerCase()
-        .endsWith(`.${allowedType.toLocaleLowerCase()}`)
-    );
-
-  const menuItems =
-    metadata?.type === "tree"
-      ? [
-          !isReadOnly && contextPathIsFile && rootIsProject && (
-            <MenuItem
-              key="edit"
-              dense
-              disabled={isReadOnly}
-              onClick={handleContextEdit}
-            >
-              Edit
-            </MenuItem>
-          ),
-          pipelineUuid && contextPathIsAllowedFileType && (
-            <MenuItem key="view" dense onClick={handleContextView}>
-              View
-            </MenuItem>
-          ),
-          !isReadOnly && (
-            <MenuItem
-              key="rename"
-              dense
-              disabled={isReadOnly}
-              onClick={handleContextRename}
-            >
-              Rename
-            </MenuItem>
-          ),
-          !isReadOnly && (
-            <MenuItem
-              key="duplicate"
-              dense
-              disabled={isReadOnly}
-              onClick={handleDuplicate}
-            >
-              Duplicate
-            </MenuItem>
-          ),
-          !isReadOnly && (
-            <MenuItem
-              key="delete"
-              dense
-              disabled={isReadOnly}
-              onClick={handleDelete}
-            >
-              Delete
-            </MenuItem>
-          ),
-          <MenuItem key="download" dense onClick={handleDownload}>
-            Download
-          </MenuItem>,
-          children,
-        ].filter(Boolean)
-      : null;
+  const hasPath = Boolean(path);
+  const isInProjectDir = root === "/project-dir";
+  const isFile = !isDirectory(path);
+  const canView = isFile && hasExtension(path, ...ALLOWED_STEP_EXTENSIONS);
+  const isRoot = path === "/";
 
   return (
     <Menu
-      open={hasValue(metadata)}
+      open={hasValue(origin)}
       onClose={handleClose}
       anchorReference="anchorPosition"
-      anchorPosition={
-        hasValue(metadata)
-          ? {
-              top: metadata?.origin[1] ?? 0,
-              left: metadata?.origin[0] ?? 0,
-            }
-          : undefined
-      }
+      anchorPosition={{ left, top }}
     >
-      {menuItems}
-      {children}
+      {(!hasPath || isRoot) && (
+        <MenuItem
+          dense
+          onClick={() => {
+            onCollapse();
+            handleClose();
+          }}
+        >
+          Collapse all
+        </MenuItem>
+      )}
+      {(!hasPath || isRoot) && (
+        <MenuItem
+          dense
+          onClick={() => {
+            refresh();
+            handleClose();
+          }}
+        >
+          Refresh
+        </MenuItem>
+      )}
+      {hasPath && isFile && isInProjectDir && (
+        <MenuItem dense disabled={isReadOnly} onClick={handleEditFile}>
+          Edit
+        </MenuItem>
+      )}
+      {hasPath && pipelineUuid && canView && (
+        <MenuItem dense onClick={handleViewFile}>
+          View
+        </MenuItem>
+      )}
+      {hasPath && !isRoot && (
+        <MenuItem dense disabled={isReadOnly} onClick={handleRename}>
+          Rename
+        </MenuItem>
+      )}
+      {hasPath && !isRoot && (
+        <MenuItem dense disabled={isReadOnly} onClick={handleDuplicate}>
+          Duplicate
+        </MenuItem>
+      )}
+      {hasPath && !isRoot && (
+        <MenuItem dense disabled={isReadOnly} onClick={handleDelete}>
+          Delete
+        </MenuItem>
+      )}
+      {hasPath && (
+        <MenuItem dense disabled={isReadOnly} onClick={handleDownload}>
+          Download
+        </MenuItem>
+      )}
     </Menu>
   );
 };
