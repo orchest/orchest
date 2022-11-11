@@ -1,6 +1,5 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import {
-  MAX_WIDTH,
   MIN_SECONDARY_SIDE_PANEL_WIDTH,
   useSecondarySidePanelWidth,
 } from "@/components/layout/stores/useLayoutStore";
@@ -45,7 +44,7 @@ export const ScheduleJobPanel = () => {
       onSetSize={setPanelWidth}
       initialSize={panelWidth}
       minWidth={MIN_SECONDARY_SIDE_PANEL_WIDTH}
-      maxWidth={MAX_WIDTH}
+      maxWidth={window.innerWidth / 2}
       sx={{
         position: "relative",
         display: "flex",

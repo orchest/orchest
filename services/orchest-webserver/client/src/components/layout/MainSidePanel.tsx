@@ -2,7 +2,6 @@ import { ResizablePane } from "@/components/ResizablePane";
 import { SxProps, Theme } from "@mui/material";
 import React from "react";
 import {
-  MAX_WIDTH,
   MIN_MAIN_SIDE_PANEL_WIDTH,
   useMainSidePanelWidth,
 } from "./stores/useLayoutStore";
@@ -27,7 +26,7 @@ export const MainSidePanel: React.FC = (props) => {
       direction="horizontal"
       initialSize={mainSidePanelWidth}
       minWidth={MIN_MAIN_SIDE_PANEL_WIDTH}
-      maxWidth={MAX_WIDTH}
+      maxWidth={window.innerWidth / 2}
       position="relative"
       sx={paneSx}
       onSetSize={setMainSidePanelWidth}
