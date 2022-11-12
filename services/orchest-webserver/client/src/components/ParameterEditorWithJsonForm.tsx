@@ -68,6 +68,10 @@ export const ParameterEditorWithJsonForm = ({
     initialValue
   );
 
+  React.useEffect(() => {
+    setEditableParameters(JSON.stringify(initialValue, null, 2));
+  }, [initialValue]);
+
   const selectView = React.useCallback(
     (value: ParameterViewingMode) => {
       setViewingMode(value);
