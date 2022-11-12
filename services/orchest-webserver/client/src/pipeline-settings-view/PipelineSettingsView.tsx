@@ -10,7 +10,7 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
+import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import {
   PipelineSettingsTab,
@@ -45,6 +45,7 @@ import Typography from "@mui/material/Typography";
 import { Link } from "@orchest/design-system";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineDataContext } from "../pipeline-view/contexts/PipelineDataContext";
 import { generatePipelineJsonForSaving, instantiateNewService } from "./common";
 import { GenerateParametersDialog } from "./GenerateParametersDialog";
 import { usePipelineSettings } from "./hooks/usePipelineSettings";
@@ -135,14 +136,14 @@ export const PipelineSettingsView: React.FC = () => {
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
 
+  const { pipelineJson, setPipelineJson } = usePipelineDataContext();
   const { getSession } = useSessionsContext();
 
   const isRunningOnSnapshot =
     hasValue(jobUuid) && hasValue(runUuid || snapshotUuid);
   const isReadOnly = isRunningOnSnapshot || isReadOnlyFromQueryString;
 
-  const isBrowserTabFocused = useFocusBrowserTab();
-
+  const hasRegainedFocus = useRegainBrowserTabFocus();
   // Fetching data
   const {
     projectEnvVariables,
@@ -153,7 +154,6 @@ export const PipelineSettingsView: React.FC = () => {
     services,
     setServices,
     settings,
-    pipelineJson,
     pipelineName,
     setPipelineName,
     pipelineParameters,
@@ -164,7 +164,7 @@ export const PipelineSettingsView: React.FC = () => {
     jobUuid,
     runUuid,
     snapshotUuid,
-    isBrowserTabFocused,
+    hasRegainedFocus,
   });
 
   const { parameterSchema, parameterUiSchema } = useReadPipelineSchemaFiles({
@@ -361,7 +361,7 @@ export const PipelineSettingsView: React.FC = () => {
       type: "UPDATE_PIPELINE",
       payload: { uuid: pipelineUuid, ...payload },
     });
-
+    setPipelineJson(updatedPipelineJson);
     setAsSaved(errorMessages.length === 0);
   };
 
