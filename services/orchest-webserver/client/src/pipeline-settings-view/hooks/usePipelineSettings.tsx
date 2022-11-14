@@ -1,3 +1,4 @@
+import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { Service } from "@/types";
 import {
   useFetchPipelineSettingsData,
@@ -12,11 +13,9 @@ export const usePipelineSettings = ({
   jobUuid,
   runUuid,
   snapshotUuid,
-  isBrowserTabFocused,
+  hasRegainedFocus,
 }: UseFetchPipelineSettingsParams) => {
   const {
-    pipelineJson,
-    setPipelineJson,
     job,
     pipelineRun,
     pipeline,
@@ -28,9 +27,9 @@ export const usePipelineSettings = ({
     jobUuid,
     runUuid,
     snapshotUuid,
-    isBrowserTabFocused,
+    hasRegainedFocus,
   });
-
+  const { pipelineJson } = usePipelineDataContext();
   const [pipelineParameters, setPipelineParameters] = usePipelineProperty({
     initialValue: pipelineJson?.parameters
       ? JSON.stringify(pipelineJson.parameters)
@@ -81,8 +80,6 @@ export const usePipelineSettings = ({
     setServices,
     settings,
     setSettings,
-    pipelineJson,
-    setPipelineJson,
     pipelineParameters,
     setPipelineParameters,
   };

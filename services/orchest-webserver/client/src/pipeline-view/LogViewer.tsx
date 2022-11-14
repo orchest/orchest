@@ -35,32 +35,32 @@ export const LogViewer = ({
   >(null);
 
   const socket = useSocketIO("/pty");
-  const xtermRef = React.useRef<XTerm | null>(null);
+  const [xterm, setXterm] = React.useState<XTerm | null>(null);
   const fitAddon = React.useMemo(() => new FitAddon(), []);
 
   const onPtyOutputHandler = React.useCallback(
     (data) => {
-      if (data.session_uuid == sessionUuid && xtermRef.current) {
+      if (data.session_uuid === sessionUuid && xterm) {
         let lines = data.output.split("\n");
         for (let x = 0; x < lines.length; x++) {
-          if (x == lines.length - 1) {
-            xtermRef.current.terminal.write(lines[x]);
+          if (x === lines.length - 1) {
+            xterm.terminal.write(lines[x]);
           } else {
-            xtermRef.current.terminal.write(lines[x] + "\n\r");
+            xterm.terminal.write(lines[x] + "\n\r");
           }
         }
       }
     },
-    [sessionUuid]
+    [sessionUuid, xterm]
   );
 
   const onPtyReset = React.useCallback(
     (data: { session_uuid: string }) => {
       if (data.session_uuid === sessionUuid) {
-        xtermRef.current?.terminal.reset();
+        xterm?.terminal.reset();
       }
     },
-    [sessionUuid]
+    [sessionUuid, xterm]
   );
 
   const initializeSocketIOListener = React.useCallback(() => {
@@ -71,22 +71,34 @@ export const LogViewer = ({
   }, [onPtyOutputHandler, onPtyReset, socket]);
 
   const fitTerminal = React.useCallback(() => {
-    if (xtermRef.current?.terminal.element?.offsetParent !== null) {
-      setTimeout(() => {
-        try {
-          fitAddon.fit();
-        } catch {
-          console.warn(
-            "fitAddon.fit() failed - Xterm only allows fit when element is visible."
-          );
-        }
-      });
-    }
-  }, [fitAddon]);
+    if (!xterm?.terminal.element?.offsetParent) return;
+
+    setTimeout(() => {
+      try {
+        fitAddon.fit();
+      } catch {
+        console.warn(
+          "fitAddon.fit() failed - Xterm only allows fit when element is visible."
+        );
+      }
+    });
+  }, [fitAddon, xterm]);
+
+  const resizeObserver = React.useMemo(() => {
+    return new ResizeObserver(fitTerminal);
+  }, [fitTerminal]);
+
+  React.useEffect(() => {
+    if (!xterm?.terminalRef.current) return;
+
+    resizeObserver.observe(xterm.terminalRef.current);
+
+    return () => resizeObserver.disconnect();
+  }, [xterm, resizeObserver]);
 
   const startLogSession = React.useCallback(() => {
     if (!projectUuid || !pipelineUuid) return;
-    let data = {
+    const data = {
       action: "fetch-logs",
       session_uuid: sessionUuid,
       pipeline_uuid: pipelineUuid,
@@ -134,7 +146,6 @@ export const LogViewer = ({
     startLogSession();
 
     fitTerminal();
-    window.addEventListener("resize", fitTerminal);
 
     return () => {
       // stop logging
@@ -145,8 +156,6 @@ export const LogViewer = ({
 
       socket?.off("pty-output", onPtyOutputHandler);
       socket?.off("pty-reset", onPtyReset);
-
-      window.removeEventListener("resize", fitTerminal);
     };
   }, [
     fitTerminal,
@@ -172,7 +181,7 @@ export const LogViewer = ({
         ...terminalSx,
       }}
     >
-      <XTerm addons={[fitAddon]} ref={xtermRef} />
+      <XTerm addons={[fitAddon]} ref={setXterm} />
     </Box>
   );
 };

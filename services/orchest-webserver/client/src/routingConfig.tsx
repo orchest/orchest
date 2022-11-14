@@ -11,7 +11,6 @@ export type RouteName =
   | "jobs"
   | "jobRun"
   | "jobRunFilePreview"
-  | "snapshotFilePreview"
   | "pipelineReadonly"
   | "editJob"
   | "fileManager"
@@ -72,13 +71,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       scope: ["projectUuid", "pipelineUuid"],
     },
     {
-      name: "logs",
-      path: "/logs",
-      root: "/pipeline",
-      title: getTitle("Logs"),
-      scope: ["projectUuid", "pipelineUuid"],
-    },
-    {
       name: "environments",
       path: "/environments",
       title: getTitle("Environments"),
@@ -95,13 +87,6 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       path: "/job-run",
       root: "/jobs",
       title: getTitle("Job Run"),
-      scope: ["projectUuid", "jobRunUuid", "pipelineUuid"],
-    },
-    {
-      name: "jobRunLogs",
-      path: "/job-run/logs",
-      root: "/jobs",
-      title: getTitle("Job Run Logs"),
       scope: ["projectUuid", "jobRunUuid", "pipelineUuid"],
     },
     {
@@ -230,11 +215,13 @@ export const generatePathFromRoute = <T extends string>(
 };
 
 // Exclude detail views
-const excludedPaths = [
+const excludedPaths: readonly string[] = [
   siteMap.pipeline.path,
   siteMap.projectSettings.path,
   siteMap.jupyterLab.path,
   siteMap.filePreview.path,
+  siteMap.jobRunFilePreview.path,
+  siteMap.jobRun.path,
 ];
 
 // used in CommandPalette

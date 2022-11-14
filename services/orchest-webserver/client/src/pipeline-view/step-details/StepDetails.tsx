@@ -1,7 +1,6 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import {
-  MAX_WIDTH,
   MIN_SECONDARY_SIDE_PANEL_WIDTH,
   useSecondarySidePanelWidth,
 } from "@/components/layout/stores/useLayoutStore";
@@ -96,7 +95,7 @@ const StepDetailsComponent = ({ onSave, onClose }: StepDetailsProps) => {
         onSetSize={setStepDetailsPanelWidth}
         initialSize={stepDetailsPanelWidth}
         minWidth={MIN_SECONDARY_SIDE_PANEL_WIDTH}
-        maxWidth={MAX_WIDTH}
+        maxWidth={window.innerWidth / 2}
         sx={{
           position: "relative",
           display: "flex",

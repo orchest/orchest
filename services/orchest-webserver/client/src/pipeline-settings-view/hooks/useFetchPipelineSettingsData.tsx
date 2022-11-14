@@ -6,6 +6,8 @@ import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
 import { useFetchProject } from "@/hooks/useFetchProject";
+import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
+import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
@@ -36,7 +38,7 @@ export type UseFetchPipelineSettingsParams = {
   jobUuid: string | undefined;
   runUuid: string | undefined;
   snapshotUuid: string | undefined;
-  isBrowserTabFocused: boolean;
+  hasRegainedFocus: boolean;
 };
 
 export const useFetchPipelineSettingsData = ({
@@ -45,7 +47,6 @@ export const useFetchPipelineSettingsData = ({
   jobUuid,
   runUuid,
   snapshotUuid,
-  isBrowserTabFocused,
 }: UseFetchPipelineSettingsParams) => {
   const { job, fetchJob } = useFetchJob({
     jobUuid,
@@ -55,11 +56,8 @@ export const useFetchPipelineSettingsData = ({
     runUuid,
   });
 
-  const {
-    pipelineJson,
-    setPipelineJson,
-    fetchPipelineJson,
-  } = useFetchPipelineJson({
+  const { setPipelineJson } = usePipelineDataContext();
+  const { fetchPipelineJson } = useFetchPipelineJson({
     projectUuid,
     pipelineUuid,
     jobUuid,
@@ -81,7 +79,7 @@ export const useFetchPipelineSettingsData = ({
 
   const refetch = React.useCallback(() => {
     return Promise.allSettled([
-      fetchPipelineJson(),
+      fetchPipelineJson().then((data) => data && setPipelineJson(data)),
       fetchPipeline(),
       fetchProjectEnvVars(),
       fetchPipelineRun(),
@@ -89,6 +87,7 @@ export const useFetchPipelineSettingsData = ({
     ]);
   }, [
     fetchPipelineJson,
+    setPipelineJson,
     fetchPipeline,
     fetchProjectEnvVars,
     fetchPipelineRun,
@@ -106,30 +105,25 @@ export const useFetchPipelineSettingsData = ({
     state: { hasUnsavedChanges },
   } = useGlobalContext();
 
+  const hasRegainedFocus = useRegainBrowserTabFocus();
+
   React.useEffect(() => {
     // Only reinitialize if there is no change.
     // Otherwise, user would lose all of their progress when switching browser tabs.
-    if (isBrowserTabFocused && !hasUnsavedChanges) reinitialize();
-  }, [hasUnsavedChanges, isBrowserTabFocused, reinitialize]);
+    if (hasRegainedFocus && !hasUnsavedChanges) reinitialize();
+  }, [hasUnsavedChanges, hasRegainedFocus, reinitialize]);
 
   const { dispatch } = useProjectsContext();
 
   const initialized = React.useRef(false);
   React.useEffect(() => {
-    if (
-      !initialized.current &&
-      pipelineUuid &&
-      pipelineJson &&
-      (pipeline || job)
-    ) {
+    if (!initialized.current && pipelineUuid && (pipeline || job)) {
       initialized.current = true;
       dispatch({ type: "UPDATE_PIPELINE", payload: { uuid: pipelineUuid } });
     }
-  }, [job, pipeline, pipelineJson, pipelineUuid, initialized, dispatch]);
+  }, [job, pipeline, pipelineUuid, initialized, dispatch]);
 
   return {
-    pipelineJson,
-    setPipelineJson,
     job,
     pipelineRun,
     pipeline,
