@@ -986,7 +986,14 @@ def _get_user_service_deployment_service_manifest(
         "spec": {
             "type": "ClusterIP",
             "selector": metadata["labels"],
-            "ports": [{"port": port} for port in service_config["ports"]],
+            "ports": [
+                {
+                    "port": port,
+                    # Must be a DNS_LABEL.
+                    "name": f"port-{port}",
+                }
+                for port in service_config["ports"]
+            ],
         },
     }
 
