@@ -1,0 +1,26 @@
+{{- range .Values.storageClasses }}
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: {{ .name }}
+  {{- with .annotations }}
+  annotations:
+  {{ toYaml . | indent 4 }}
+  {{- end }}
+provisioner: efs.csi.aws.com
+{{- with .mountOptions }}
+mountOptions:
+{{ toYaml . }}
+{{- end }}
+{{- with .parameters }}
+parameters:
+{{ toYaml . | indent 2 }}
+{{- end }}
+{{- with .reclaimPolicy }}
+reclaimPolicy: {{ . }}
+{{- end }}
+{{- with .volumeBindingMode }}
+volumeBindingMode: {{ . }}
+{{- end }}
+---
+{{- end }}
