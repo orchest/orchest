@@ -24,7 +24,7 @@ func (state *DeployThirdPartyState) Do(ctx context.Context, stateMachine *Orches
 		if stateMachine.isCreated(application.Name) {
 			createdApps++
 		} else if ok := stateMachine.expectCreation(application.Name); !ok {
-			err := stateMachine.Create(ctx, application.Name, deployTimeOut, deployRetry, &application)
+			err := stateMachine.Create(ctx, application.Name, deployTimeOut, deployRetry, application.DeepCopy())
 			if err != nil {
 				return err
 			}

@@ -242,7 +242,7 @@ func (sm *OrchestStateMachine) Create(ctx context.Context, componentName string,
 		klog.Error(err)
 		return err
 	}
-	go registry.Registry.Deploy(ctx, componentName, sm.namespace, message, responseChan)
+	registry.Registry.Deploy(ctx, componentName, sm.namespace, message, responseChan)
 
 	return nil
 }
