@@ -34,6 +34,7 @@ var (
 		registry.ArgoWorkflow:   setDefaultConfig,
 		registry.DockerRegistry: setDockerRegistryConfig,
 		registry.IngressNginx:   setIngressConfig,
+		registry.EfsCsiDriver:   setDefaultConfig,
 		registry.NvidiaPlugin:   setNvidiaConfig,
 	}
 

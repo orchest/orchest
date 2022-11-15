@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"k8s.io/klog/v2"
 )
@@ -13,6 +14,7 @@ var (
 	ArgoWorkflow   = "argo-workflow"
 	DockerRegistry = "docker-registry"
 	IngressNginx   = "ingress-nginx"
+	EfsCsiDriver   = "efs-csi-driver"
 	NvidiaPlugin   = "nvidia-plugin"
 
 	Registry = ComponentRegistry{
@@ -99,11 +101,14 @@ type Component interface {
 }
 
 type ComponentRegistry struct {
+	lock       sync.RWMutex
 	components map[string]Component
 }
 
 func (registry *ComponentRegistry) Deploy(ctx context.Context, name, namespace string,
 	message Message, eventChan chan Event) {
+	registry.lock.RLock()
+	defer registry.lock.RUnlock()
 	addon, ok := registry.components[name]
 
 	if !ok {
@@ -113,7 +118,7 @@ func (registry *ComponentRegistry) Deploy(ctx context.Context, name, namespace s
 		return
 	}
 
-	addon.Update(ctx, namespace, message, eventChan)
+	go addon.Update(ctx, namespace, message, eventChan)
 }
 
 func (registry *ComponentRegistry) Delete(ctx context.Context, name, namespace string,
