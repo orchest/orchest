@@ -1344,6 +1344,7 @@ def register_views(app, db):
                 mimetype="application/zip",
                 as_attachment=True,
                 attachment_filename=file_name,
+                cache_timeout=0,
             )
 
     @app.route("/async/file-management/import-project-from-data", methods=["POST"])
