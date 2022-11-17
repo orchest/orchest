@@ -1092,7 +1092,7 @@ def register_views(app, db):
             return jsonify({"message": "Failed to process file_path."}), 500
 
         if os.path.isfile(file_path):
-            return send_file(file_path)
+            return send_file(filename_or_fp=file_path, cache_timeout=0)
         else:
             return jsonify({"message": "File does not exists."}), 404
 
