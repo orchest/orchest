@@ -127,14 +127,11 @@ class Jupyter {
       if (this.iframeHasLoaded) {
         this._unhide();
 
-        if (this.hasRendered() && this.hasRenderingProblem()) {
-          console.log("Reloading iframe because JupyterLab failed to render");
-
+        if (this.hasRendered() && !this.renderedCorrectly()) {
+          console.log("Reloading Jupyter: there was a rendering problem");
           this.reloadIframe();
         } else if (!this.hasJupyterIframe()) {
-          console.log(
-            "Reloading iframe page because JupyterLab page not loaded (4XX or 5XX)"
-          );
+          console.log("Reloading Jupyter: iframe failed to load (4XX or 5XX)");
           this.reloadIframe();
         } else if (this.hasJupyterIframe() && !this.hasRendered()) {
           // console.log("Still initializing page.");
@@ -245,16 +242,17 @@ class Jupyter {
     return false;
   }
 
-  hasRenderingProblem() {
+  renderedCorrectly() {
     const shellNode = this.getApp()?.shell?.node;
-    const contentPanel = shellNode?.querySelector("#jp-main-content-panel");
+    const iframeWidth = this.iframe?.clientWidth;
+    const contentWidth = shellNode?.querySelector("#jp-main-content-panel")
+      ?.clientWidth;
 
-    if (!contentPanel) return true;
+    if (!contentWidth || !iframeWidth) return false;
 
-    return (
-      contentPanel.clientWidth !== shellNode.clientWidth ||
-      contentPanel.clientWidth <= 500
-    );
+    const tolerance = 2;
+
+    return contentWidth > iframeWidth - tolerance;
   }
 
   reloadIframe() {
@@ -362,7 +360,7 @@ class Jupyter {
 
     tryUntilTrue(
       () => {
-        if (this.hasRendered() && !this.hasRenderingProblem()) {
+        if (this.hasRendered() && this.renderedCorrectly()) {
           return isFileOpen() || openOrRevealFile();
         } else {
           return false;
