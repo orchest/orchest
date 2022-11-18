@@ -5,7 +5,7 @@
 nameOverride: ""
 fullnameOverride: ""
 
-replicaCount: 2
+replicaCount: 1
 
 useFIPS: false
 
@@ -123,20 +123,20 @@ node:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9809
 
-storageClasses: []
+storageClasses:
 # Add StorageClass resources like:
-# - name: efs-sc
+  - name: efs-sc
 #   annotations:
 #     # Use that annotation if you want this to your default storageclass
 #     storageclass.kubernetes.io/is-default-class: "true"
-#   mountOptions:
-#   - tls
-#   parameters:
-#     provisioningMode: efs-ap
+    mountOptions:
+      - tls
+     parameters:
+     provisioningMode: efs-ap
 #     fileSystemId: fs-1122aabb
-#     directoryPerms: "700"
+     directoryPerms: "700"
 #     gidRangeStart: "1000"
 #     gidRangeEnd: "2000"
 #     basePath: "/dynamic_provisioning"
-#   reclaimPolicy: Delete
-#   volumeBindingMode: Immediate
+     reclaimPolicy: Delete
+     volumeBindingMode: Immediate
