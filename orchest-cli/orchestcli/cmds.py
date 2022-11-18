@@ -402,7 +402,12 @@ class OrchestCmds:
             sys.exit(1)
 
         utils.echo("Setting up the Orchest Cluster...", nl=True)
-        self._display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
+        self._wait_for_cluster_status(
+            ns,
+            cluster_name,
+            ClusterStatus.INITIALIZING,
+            ClusterStatus.RUNNING,
+        )
 
         # Print some final help messages depending on k8s distro.
         try:
@@ -785,7 +790,12 @@ class OrchestCmds:
             sys.exit(1)
 
         if watch_flag:
-            self._display_spinner(None, ClusterStatus.RUNNING)
+            self._wait_for_cluster_status(
+                ns,
+                cluster_name,
+                None,
+                ClusterStatus.RUNNING,
+            )
             utils.echo("Successfully updated Orchest!")
 
     def patch(
@@ -991,7 +1001,12 @@ class OrchestCmds:
                 f"Waiting for Orchest Cluster status to become: {curr_status.value}."
             )
             # In case of STOPPED the spinner will run for 10s anyways.
-            self._display_spinner(None, curr_status)
+            self._wait_for_cluster_status(
+                ns,
+                cluster_name,
+                None,
+                curr_status,
+            )
         else:
             if curr_status is None:
                 curr_status = ClusterStatus.UNKNOWN
@@ -1066,8 +1081,8 @@ class OrchestCmds:
                 if wait_for_status is not None:
                     f = open(os.devnull, "w")
                     try:
-                        visited_states = self._display_spinner(
-                            status, wait_for_status, file=f
+                        visited_states = self._wait_for_cluster_status(
+                            ns, cluster_name, status, wait_for_status, file=f
                         )
                     finally:
                         f.close()
@@ -1087,7 +1102,9 @@ class OrchestCmds:
                     utils.jecho({"status": status.value})
             else:
                 if wait_for_status is not None:
-                    self._display_spinner(status, wait_for_status)
+                    self._wait_for_cluster_status(
+                        ns, cluster_name, status, wait_for_status
+                    )
                 else:
                     utils.echo(status.value)
 
@@ -1115,7 +1132,12 @@ class OrchestCmds:
             sys.exit(1)
 
         if watch:
-            self._display_spinner(None, ClusterStatus.STOPPED)
+            self._wait_for_cluster_status(
+                ns,
+                cluster_name,
+                None,
+                ClusterStatus.STOPPED,
+            )
             utils.echo("Successfully stopped Orchest.")
 
     def start(self, watch: bool, **kwargs) -> None:
@@ -1142,7 +1164,7 @@ class OrchestCmds:
             sys.exit(1)
 
         if watch:
-            self._display_spinner(None, ClusterStatus.RUNNING)
+            self._wait_for_cluster_status(ns, cluster_name, None, ClusterStatus.RUNNING)
             utils.echo("Successfully started Orchest.")
 
     def restart(self, watch: bool, **kwargs) -> None:
@@ -1180,7 +1202,9 @@ class OrchestCmds:
             sys.exit(1)
 
         if watch:
-            self._display_spinner(status, ClusterStatus.RUNNING)
+            self._wait_for_cluster_status(
+                ns, cluster_name, status, ClusterStatus.RUNNING
+            )
             utils.echo("Successfully restarted Orchest.")
 
     # Application command.
@@ -1414,6 +1438,85 @@ class OrchestCmds:
                 raise
 
         return custom_object
+
+    def _wait_for_cluster_status(
+        self,
+        namespace: str,
+        cluster_name: str,
+        curr_status: t.Optional[ClusterStatus],
+        end_status: ClusterStatus,
+        file: t.Optional[t.IO] = None,
+    ) -> t.List[ClusterStatus]:
+
+        if utils.has_click_context():
+            return self._display_spinner(curr_status, end_status, file)
+
+        # NOTE: Assumes the `orchest-controller` changes the status of
+        # the Orchest Cluster based on the management command within 10s
+        # and the initial request getting the cluster status succeeding
+        # within that time as well. Meaning that the passed
+        # `curr_status` is actually no longer the actual status of the
+        # Cluster. Allowing the passed `curr_status` to equal the
+        # `end_status` (without requiring double invocation of this
+        # function, which would lead to other issues).
+        invocation_time = time.time()
+
+        err_file = sys.stderr if file is None else file
+
+        if curr_status is None:
+            curr_status = ClusterStatus.FETCHING
+            # FETCHING isn't actually a state of the cluster.
+            visited_states = []
+        else:
+            visited_states = [curr_status]
+        prev_status = curr_status
+
+        num_req_timeouts = 0
+        while curr_status != end_status or (time.time() - invocation_time < 10):
+            try:
+                resp = self._get_namespaced_custom_object(
+                    namespace, cluster_name, async_req=False
+                )
+            except client.ApiException as e:
+                if e.status == 504:  # timeout
+                    print("Failed to fetch Orchest cluster status.", file=err_file)
+
+                    num_req_timeouts += 1
+                    if num_req_timeouts > 3:
+                        print(
+                            (
+                                "Request timeout was hit for the 3rd time. Stopping"
+                                " displaying progress...\n",
+                            ),
+                            file=err_file,
+                        )
+                        raise
+
+                if e.status == 404:  # not found
+                    print(
+                        (
+                            "The CR Object defining the Orchest Cluster was removed"
+                            " by an external process during installation.",
+                        ),
+                        file=err_file,
+                    )
+                    raise
+
+            curr_status = _parse_cluster_status_from_custom_object(
+                resp,
+            )  # type: ignore
+
+            if curr_status is None:
+                curr_status = prev_status
+
+            if curr_status != prev_status:
+                prev_status = curr_status
+                visited_states.append(curr_status)
+
+            if curr_status != end_status:
+                time.sleep(4)
+
+        return visited_states
 
     def _display_spinner(
         self,
