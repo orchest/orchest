@@ -53,7 +53,7 @@ class Restart(Resource):
     @ns.response(code=500, model=schema.dictionary, description="Invalid request")
     def post(self):
         try:
-            cmds.restart(
+            cmds.OrchestCmds().restart(
                 False,
                 namespace=_config.ORCHEST_NAMESPACE,
                 cluster_name=_config.ORCHEST_CLUSTER,

@@ -245,7 +245,7 @@ def install(
         # REMOVABLE_ON_BREAKING_CHANGE
         utils.echo("The 'builder_pvc_size' parameter is deprecated and ignored.")
 
-    cmds.install(
+    cmds.OrchestCmds().install(
         multi_node,
         cloud,
         dev_mode,
@@ -267,7 +267,7 @@ def uninstall(**common_options) -> None:
 
     Uninstalls Orchest by removing the provided namespace.
     """
-    cmds.uninstall(**common_options)
+    cmds.OrchestCmds().uninstall(**common_options)
 
 
 @click.option(
@@ -314,7 +314,7 @@ def update(
         orchest update
 
     """
-    cmds.update(
+    cmds.OrchestCmds().update(
         version,
         watch_flag,
         dev_mode,
@@ -367,7 +367,7 @@ def patch(
         orchest patch --dev
 
     """
-    cmds.patch(dev, cloud, log_level, socket_path, **common_options)
+    cmds.OrchestCmds().patch(dev, cloud, log_level, socket_path, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -395,7 +395,7 @@ def version(json_flag: bool, latest_flag: bool, **common_options) -> None:
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.spec.orchest.version}"
 
     """
-    cmds.version(json_flag, latest_flag, **common_options)
+    cmds.OrchestCmds().version(json_flag, latest_flag, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -428,7 +428,7 @@ def status(
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.status.message}"
 
     """
-    cmds.status(json_flag, wait_for_status, **common_options)
+    cmds.OrchestCmds().status(json_flag, wait_for_status, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -449,7 +449,7 @@ def stop(watch: bool, **common_options) -> None:
     Equivalent `kubectl` command:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": true}}}'
     """
-    cmds.stop(watch, **common_options)
+    cmds.OrchestCmds().stop(watch, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -468,7 +468,7 @@ def start(watch: bool, **common_options) -> None:
     Equivalent `kubectl` command:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": false}}}'
     """
-    cmds.start(watch, **common_options)
+    cmds.OrchestCmds().start(watch, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -497,7 +497,7 @@ def restart(watch: bool, **common_options) -> None:
         \t-p='{"metadata": {"annotations": {"orchest.io/restart": "true"}}}'
 
     """
-    cmds.restart(watch, **common_options)
+    cmds.OrchestCmds().restart(watch, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -555,7 +555,7 @@ def adduser(
         # Get prompts to enter password and machine token.
         orchest adduser UserName --set-token
     """
-    cmds.adduser(
+    cmds.OrchestCmds().adduser(
         username,
         is_admin,
         non_interactive,
