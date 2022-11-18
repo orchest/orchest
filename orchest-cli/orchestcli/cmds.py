@@ -43,18 +43,16 @@ sys.stdout.reconfigure(encoding="utf-8")
 ORCHEST_NAMESPACE = re.compile("(namespace: )([-a-z]+)")
 
 
-# Keep in sync with the one in
-# services/orchest-api/app/app/connections.py.
-def _get_k8s_api_client() -> ApiClient:
-    configuration = Configuration.get_default_copy()
+def _get_k8s_api_client(configuration: Configuration) -> ApiClient:
+    # Keep in sync with the one in
+    # services/orchest-api/app/app/connections.py.
     _retry_strategy = Retry(
         total=5,
         backoff_factor=1,
     )
     # See urllib3 poolmanager.py usage of "retries".
     configuration.retries = _retry_strategy
-    a = ApiClient(configuration=configuration)
-    return a
+    return ApiClient(configuration=configuration)
 
 
 class LogLevel(str, enum.Enum):
@@ -95,35 +93,41 @@ class ClusterStatus(str, enum.Enum):
 
 
 class OrchestCmds:
-    def __init__(self):
+    def __init__(self, configuration: t.Optional[Configuration] = None):
 
-        try:
+        if configuration is None:
             try:
-                config.load_kube_config()
-            except config.config_exception.ConfigException:
-                config.load_incluster_config()
-        except Exception as e:
-            utils.echo(
-                "Aborting..."
-                f"\nCould not load kube-config file: {e}"
-                "\nFor example for minikube, you need to make sure your cluster"
-                " is started.",
-                err=True,
-            )
-            sys.exit(1)
+                try:
+                    config.load_kube_config()
+                except config.config_exception.ConfigException:
+                    config.load_incluster_config()
+            except Exception as e:
+                utils.echo(
+                    "Aborting..."
+                    f"\nCould not load kube-config file: {e}"
+                    "\nFor example for minikube, you need to make sure your cluster"
+                    " is started.",
+                    err=True,
+                )
+                sys.exit(1)
+            configuration = Configuration.get_default_copy()
 
-        self._setup_k8s_api_clients()
+        self._setup_k8s_api_clients(configuration)
         self._setup_partial_functions()
 
-    def _setup_k8s_api_clients(self):
-        self.API_CLIENT = _get_k8s_api_client()
-        self.APPS_API = client.AppsV1Api(api_client=_get_k8s_api_client())
-        self.CORE_API = client.CoreV1Api(api_client=_get_k8s_api_client())
+    def _setup_k8s_api_clients(self, configuration: Configuration):
+        self.API_CLIENT = _get_k8s_api_client(configuration)
+        self.APPS_API = client.AppsV1Api(api_client=_get_k8s_api_client(configuration))
+        self.CORE_API = client.CoreV1Api(api_client=_get_k8s_api_client(configuration))
         self.CUSTOM_OBJECT_API = client.CustomObjectsApi(
-            api_client=_get_k8s_api_client()
+            api_client=_get_k8s_api_client(configuration)
         )
-        self.EXT_API = client.ApiextensionsV1Api(api_client=_get_k8s_api_client())
-        self.RBAC_API = client.RbacAuthorizationV1Api(api_client=_get_k8s_api_client())
+        self.EXT_API = client.ApiextensionsV1Api(
+            api_client=_get_k8s_api_client(configuration)
+        )
+        self.RBAC_API = client.RbacAuthorizationV1Api(
+            api_client=_get_k8s_api_client(configuration)
+        )
 
     def _setup_partial_functions(self):
         self.get_namespaced_custom_object = partial(
