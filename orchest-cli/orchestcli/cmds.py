@@ -1184,7 +1184,7 @@ class OrchestCmds:
 
         try:
             if status == ClusterStatus.STOPPED:
-                self.start(**kwargs)
+                self.start(watch=watch, **kwargs)
             else:
                 status = ClusterStatus.RUNNING
                 self.patch_namespaced_custom_object(
