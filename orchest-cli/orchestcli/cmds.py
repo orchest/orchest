@@ -1016,7 +1016,7 @@ class OrchestCmds:
                 f"\n\torchest status --wait={ClusterStatus.RUNNING.value}"
             )
 
-    def version(self, json_flag: bool, latest_flag: bool, **kwargs) -> None:
+    def version(self, json_flag: bool, latest_flag: bool, **kwargs) -> str:
         """Gets Orchest version."""
         try:
             if latest_flag:
@@ -1053,10 +1053,11 @@ class OrchestCmds:
             utils.jecho({"version": version})
         else:
             utils.echo(version)
+        return version
 
     def status(
         self, json_flag: bool, wait_for_status: t.Optional[ClusterStatus], **kwargs
-    ) -> None:
+    ) -> t.Optional[str]:
         """Gets Orchest Cluster status."""
         ns, cluster_name = kwargs["namespace"], kwargs["cluster_name"]
 
@@ -1076,6 +1077,7 @@ class OrchestCmds:
             utils.echo(
                 "Failed to fetch Orchest Cluster status. Please try again.", err=True
             )
+            return None
         else:
             if json_flag:
                 if wait_for_status is not None:
@@ -1107,6 +1109,7 @@ class OrchestCmds:
                     )
                 else:
                     utils.echo(status.value)
+            return status.value
 
     def stop(self, watch: bool, **kwargs) -> None:
         """Stops Orchest."""
