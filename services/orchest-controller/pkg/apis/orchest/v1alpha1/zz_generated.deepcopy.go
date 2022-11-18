@@ -194,8 +194,15 @@ func (in *OrchestClusterSpec) DeepCopyInto(out *OrchestClusterSpec) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.DefaultNodeSelector != nil {
-		in, out := &in.DefaultNodeSelector, &out.DefaultNodeSelector
+	if in.ControlNodeSelector != nil {
+		in, out := &in.ControlNodeSelector, &out.ControlNodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.WorkerNodeSelector != nil {
+		in, out := &in.WorkerNodeSelector, &out.WorkerNodeSelector
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val

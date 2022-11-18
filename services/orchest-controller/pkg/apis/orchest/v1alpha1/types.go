@@ -225,7 +225,9 @@ type OrchestClusterSpec struct {
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 	// If single node is specified, node-selector will be chosed automatically by controller
-	DefaultNodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	ControlNodeSelector map[string]string `json:"controlNodeSelector,omitempty"`
+
+	WorkerNodeSelector map[string]string `json:"workerNodeSelector,omitempty"`
 
 	Orchest OrchestSpec `json:"orchest,omitempty"`
 
