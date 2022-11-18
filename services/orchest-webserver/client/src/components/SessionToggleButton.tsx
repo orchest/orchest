@@ -38,11 +38,9 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
     _: React.MouseEvent | React.ChangeEvent,
     checked: boolean
   ) => {
-    const shouldStart = checked || !session;
-
-    if (shouldStart) {
+    if (checked) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
-    } else {
+    } else if (!checked && (isLaunching || isRunning)) {
       stopSession(pipelineUuid);
     }
   };
@@ -54,7 +52,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       control={
         <Switch
           classes={{ root: isLaunching ? "launching" : "" }}
-          disabled={isLaunching || isStopping}
+          disabled={isStopping}
           size="small"
           inputProps={{
             "aria-label": `Switch ${isRunning ? "off" : "on"} session`,
