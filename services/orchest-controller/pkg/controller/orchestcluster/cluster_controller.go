@@ -292,14 +292,6 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 
 	var err error
 
-	// user-dir volume is not empty, let's validate the config
-	if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
-		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.UserDirVolume.StorageClass, metav1.GetOptions{})
-		if err != nil && kerrors.IsNotFound(err) {
-			return false, nil
-		}
-	}
-
 	// state volume is not empty, let's validate the config
 	if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
 		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.OrchestStateVolume.StorageClass, metav1.GetOptions{})
