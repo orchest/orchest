@@ -50,12 +50,12 @@ var (
 	StateMountPath = "/orchest/state"
 
 	// database paths
-	DBMountPath = "/userdir/.orchest/database/data"
-	DBSubPath   = ".orchest/database/data"
+	DBMountPath = "/orchest-state/database/data"
+	DBSubPath   = "database/data"
 
 	// rabbitmq paths
 	RabbitmountPath = "/var/lib/rabbitmq/mnesia"
-	RabbitSubPath   = ".orchest/rabbitmq-mnesia"
+	RabbitSubPath   = "rabbitmq-mnesia"
 
 	// Ingress constants
 	PrefixPathType            = netsv1.PathType("Prefix")

@@ -115,7 +115,7 @@ func NewDefaultControllerConfig() ControllerConfig {
 			"FLASK_ENV":                    "production",
 		},
 		OrchestDatabaseDefaultEnvVars: map[string]string{
-			"PGDATA":                    "/userdir/.orchest/database/data",
+			"PGDATA":                    controller.DBMountPath,
 			"POSTGRES_HOST_AUTH_METHOD": "trust",
 		},
 
