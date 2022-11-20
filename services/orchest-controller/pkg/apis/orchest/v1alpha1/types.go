@@ -30,7 +30,6 @@ const (
 	DeployingOrchest      OrchestPhase = "Deploying Orchest Control Plane"
 	DeployedOrchest       OrchestPhase = "Deployed Orchest Control Plane"
 	Restarting            OrchestPhase = "Restarting"
-	Starting              OrchestPhase = "Starting"
 	Running               OrchestPhase = "Running"
 	Stopping              OrchestPhase = "Stopping"
 	Cleanup               OrchestPhase = "Cleanup"
@@ -40,38 +39,6 @@ const (
 	Unknown               OrchestPhase = "Unknown"
 	Unhealthy             OrchestPhase = "Unhealthy"
 	Deleting              OrchestPhase = "Deleting"
-
-	/*
-		//Events
-		// DeployingThirdParties events
-		DeployingArgo         OrchestClusterEvent = "Deploying argo-workflow"
-		DeployingCertManager  OrchestClusterEvent = "Deploying cert-manager"
-		DeployingRegistry     OrchestClusterEvent = "Deploying docker-registry"
-		CreatingCertificates  OrchestClusterEvent = "Creating docker-registry certificates"
-		DeployingNginxIngress OrchestClusterEvent = "Deploying nginx-ingress"
-
-		// DeployingOrchest and Upgrading events
-		DeployingOrchestDatabase OrchestClusterEvent = "Deploying orchest-database"
-		UpgradingOrchestDatabase OrchestClusterEvent = "Upgrading orchest-database"
-
-		DeployingAuthServer OrchestClusterEvent = "Deploying auth-server"
-		UpgradingAuthServer OrchestClusterEvent = "Upgrading auth-server"
-
-		DeployingCeleryWorker OrchestClusterEvent = "Deploying celery-worker"
-		UpgradingCeleryWorker OrchestClusterEvent = "Upgrading celery-worker"
-
-		DeployingOrchestApi OrchestClusterEvent = "Deploying orchest-api"
-		UpgradingOrchestApi OrchestClusterEvent = "Upgrading orchest-api"
-
-		DeployingOrchestWebserver OrchestClusterEvent = "Deploying orchest-webserver"
-		UpgradingOrchestWebserver OrchestClusterEvent = "Upgrading orchest-webserver"
-
-		DeployingRabbitmq OrchestClusterEvent = "Deploying rabbitmq-server"
-		UpgradingRabbitmq OrchestClusterEvent = "Upgrading rabbitmq-server"
-
-		DeployingNodeAgent OrchestClusterEvent = "Deploying node-agent"
-		UpgradingNodeAgent OrchestClusterEvent = "Upgrading node-agent"
-	*/
 )
 
 type OrchestResourcesSpec struct {
@@ -79,10 +46,20 @@ type OrchestResourcesSpec struct {
 	UserDirVolumeSize string `json:"userDirVolumeSize,omitempty"`
 
 	// The Storage class of user-dir/
+	UserDirStorageClassName string `json:"userDirStorageClassName,omitempty"`
+
+	// Default storage class name
 	StorageClassName string `json:"storageClassName,omitempty"`
 
 	// Deprecated and ignored. TODO: remove it?
 	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
+}
+
+type Volume struct {
+	Name         string `json:"size"`
+	VolumeSize   string `json:"volumeSize"`
+	MountPath    string `json:"mountPath"`
+	StorageClass string `json:"storageClass"`
 }
 
 type OrchestComponentTemplate struct {
@@ -91,6 +68,8 @@ type OrchestComponentTemplate struct {
 
 	// List of environment variables to set in the container.
 	Env []corev1.EnvVar `json:"env,omitempty"`
+
+	Volumes []Volume `json:"volumes,omitempty"`
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
