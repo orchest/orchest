@@ -17,16 +17,18 @@ type HelmComponent struct {
 	name       string
 	deployDir  string
 	valuesPath string
+	namespace  string
 	client     kubernetes.Interface
 }
 
 func NewHelmComponent(client kubernetes.Interface,
-	name, deployDir string,
+	name, deployDir, namespace string,
 	valuesPath string) registry.Component {
 
 	return &HelmComponent{
 		name:       name,
 		client:     client,
+		namespace:  namespace,
 		deployDir:  deployDir,
 		valuesPath: valuesPath,
 	}
@@ -40,6 +42,10 @@ func (c *HelmComponent) Update(ctx context.Context, namespace string,
 	message registry.Message, eventChan chan registry.Event) {
 
 	var err error
+
+	if c.namespace != "" {
+		namespace = c.namespace
+	}
 
 	defer func() {
 		if err != nil {
@@ -109,6 +115,11 @@ func (c *HelmComponent) Update(ctx context.Context, namespace string,
 
 func (c *HelmComponent) Delete(ctx context.Context, namespace string,
 	message registry.Message, eventChan chan registry.Event) {
+
+	if c.namespace != "" {
+		namespace = c.namespace
+	}
+
 	err := helm.RemoveRelease(ctx, c.getReleaseName(namespace), namespace)
 
 	if err != nil {
