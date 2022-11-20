@@ -94,25 +94,25 @@ func InitThirdPartyComponents(client kubernetes.Interface, config registry.Compo
 
 	dockerRegistryComponent := NewWrapperComponent(registry.DockerRegistry, registryPreInstalls,
 		NewHelmComponent(client, registry.DockerRegistry,
-			path.Join(config.AssetDir, "thirdparty/docker-registry/helm"),
+			path.Join(config.AssetDir, "thirdparty/docker-registry/helm"), "",
 			path.Join(config.AssetDir, "thirdparty/docker-registry/orchest-values.yaml")))
 
 	registry.RegisterComponent(registry.DockerRegistry, dockerRegistryComponent)
 
 	registry.RegisterComponent(registry.ArgoWorkflow, NewHelmComponent(client, registry.ArgoWorkflow,
-		path.Join(config.AssetDir, "thirdparty/argo-workflows/helm"),
+		path.Join(config.AssetDir, "thirdparty/argo-workflows/helm"), "",
 		path.Join(config.AssetDir, "thirdparty/argo-workflows/orchest-values.yaml")))
 
 	registry.RegisterComponent(registry.IngressNginx, NewHelmComponent(client, registry.IngressNginx,
-		path.Join(config.AssetDir, "thirdparty/ingress-nginx/helm"),
+		path.Join(config.AssetDir, "thirdparty/ingress-nginx/helm"), "",
 		path.Join(config.AssetDir, "thirdparty/ingress-nginx/orchest-values.yaml")))
 
 	registry.RegisterComponent(registry.EfsCsiDriver, NewHelmComponent(client, registry.EfsCsiDriver,
-		path.Join(config.AssetDir, "thirdparty/efs-csi-driver/helm"),
+		path.Join(config.AssetDir, "thirdparty/efs-csi-driver/helm"), "kube-system",
 		path.Join(config.AssetDir, "thirdparty/efs-csi-driver/orchest-values.yaml")))
 
 	registry.RegisterComponent(registry.NvidiaPlugin, NewHelmComponent(client, registry.NvidiaPlugin,
-		path.Join(config.AssetDir, "thirdparty/nvidia-device-plugin/helm"),
+		path.Join(config.AssetDir, "thirdparty/nvidia-device-plugin/helm"), "",
 		path.Join(config.AssetDir, "thirdparty/nvidia-device-plugin/orchest-values.yaml")))
 }
 
