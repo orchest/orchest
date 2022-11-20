@@ -243,6 +243,21 @@ func getOrchestComponent(name, hash string,
 	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, template.Env)
 	template.Env = env
 
+	if template.NodeSelector == nil {
+		template.NodeSelector = make(map[string]string)
+	}
+
+	var orchestLabels map[string]string
+	if name == controller.NodeAgent || name == controller.BuildKitDaemon {
+		orchestLabels = orchest.Spec.WorkerNodeSelector
+	} else {
+		orchestLabels = orchest.Spec.ControlNodeSelector
+	}
+
+	for key, value := range orchestLabels {
+		template.NodeSelector[key] = value
+	}
+
 	return &orchestv1alpha1.OrchestComponent{
 		ObjectMeta: metadata,
 		Spec: orchestv1alpha1.OrchestComponentSpec{
