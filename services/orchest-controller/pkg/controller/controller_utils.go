@@ -70,6 +70,7 @@ var (
 	RegistryAnnotationKey  = "controller.orchest.io/deploy-registry"
 	IngressAnnotationKey   = "controller.orchest.io/deploy-ingress"
 	GpuAnnotationKey       = "controller.orchest.io/deploy-gpu"
+	EFSFileSystemId        = "controller.orchest.io/efs-filesystemid"
 	RestartAnnotationKey   = "orchest.io/restart"
 
 	// Runtime annotations
