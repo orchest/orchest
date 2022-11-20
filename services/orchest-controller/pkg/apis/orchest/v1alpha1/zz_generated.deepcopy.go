@@ -398,13 +398,13 @@ func (in *OrchestResourcesSpec) DeepCopyInto(out *OrchestResourcesSpec) {
 	*out = *in
 	if in.UserDirVolume != nil {
 		in, out := &in.UserDirVolume, &out.UserDirVolume
-		*out = make([]Volume, len(*in))
-		copy(*out, *in)
+		*out = new(Volume)
+		**out = **in
 	}
 	if in.OrchestStateVolume != nil {
 		in, out := &in.OrchestStateVolume, &out.OrchestStateVolume
-		*out = make([]Volume, len(*in))
-		copy(*out, *in)
+		*out = new(Volume)
+		**out = **in
 	}
 	return
 }
