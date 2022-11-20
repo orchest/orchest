@@ -57,13 +57,13 @@ func (c *ResourcesComponent) Update(ctx context.Context, namespace string,
 	generation := fmt.Sprint(orchest.Generation)
 
 	err = c.ensurePvc(ctx, generation, controller.UserDirName,
-		*orchest.Spec.Orchest.Resources.UserDirVolume, orchest)
+		*orchest.Spec.Orchest.Resources.UserDirVolume, corev1.ReadWriteMany, orchest)
 	if err != nil {
 		return
 	}
 
 	err = c.ensurePvc(ctx, generation, controller.StateVolumeName,
-		*orchest.Spec.Orchest.Resources.OrchestStateVolume, orchest)
+		*orchest.Spec.Orchest.Resources.OrchestStateVolume, corev1.ReadWriteOnce, orchest)
 	if err != nil {
 		return
 	}
@@ -81,12 +81,12 @@ func (c *ResourcesComponent) Delete(ctx context.Context, namespace string,
 	message registry.Message, eventChan chan registry.Event) {
 }
 
-func (c *ResourcesComponent) ensurePvc(ctx context.Context, curHash, name string,
-	volume orchestv1alpha1.Volume, orchest *orchestv1alpha1.OrchestCluster) error {
+func (c *ResourcesComponent) ensurePvc(ctx context.Context, curHash, name string, volume orchestv1alpha1.Volume,
+	am corev1.PersistentVolumeAccessMode, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// Retrive the created pvcs
 	oldPvc, err := c.client.CoreV1().PersistentVolumeClaims(orchest.Namespace).Get(ctx, name, metav1.GetOptions{})
-	newPvc := getPersistentVolumeClaim(name, curHash, volume, orchest)
+	newPvc := getPersistentVolumeClaim(name, curHash, volume, am, orchest)
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		_, err := c.client.CoreV1().PersistentVolumeClaims(orchest.Namespace).Create(ctx, newPvc, metav1.CreateOptions{})
@@ -142,14 +142,14 @@ func (c *ResourcesComponent) ensureRbacs(ctx context.Context, hash string, orche
 	return nil
 }
 
-func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume,
+func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume, am corev1.PersistentVolumeAccessMode,
 	orchest *orchestv1alpha1.OrchestCluster) *corev1.PersistentVolumeClaim {
 
 	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
 
 	accessMode := corev1.ReadWriteMany
 	if orchest.Spec.SingleNode != nil && *orchest.Spec.SingleNode {
-		accessMode = corev1.ReadWriteOnce
+		accessMode = am
 	}
 
 	spec := corev1.PersistentVolumeClaimSpec{
@@ -161,8 +161,8 @@ func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume,
 		},
 	}
 
-	if volume.VolumeSize != "" {
-		spec.StorageClassName = &volume.VolumeSize
+	if volume.StorageClass != "" {
+		spec.StorageClassName = &volume.StorageClass
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{
