@@ -39,11 +39,15 @@ var (
 	// PVC names
 	UserDirName = "userdir-pvc"
 
+	StateVolumeName = "orchest-state"
+
 	// Deprecated, the PVC is removed.
 	OldBuilderDirName = "image-builder-cache-pvc"
 
 	// Mount paths
 	UserdirMountPath = "/userdir"
+
+	StateMountPath = "/orchest/state"
 
 	// database paths
 	DBMountPath = "/userdir/.orchest/database/data"
