@@ -57,7 +57,13 @@ func (c *ResourcesComponent) Update(ctx context.Context, namespace string,
 	generation := fmt.Sprint(orchest.Generation)
 
 	err = c.ensurePvc(ctx, generation, controller.UserDirName,
-		orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
+		*orchest.Spec.Orchest.Resources.UserDirVolume, orchest)
+	if err != nil {
+		return
+	}
+
+	err = c.ensurePvc(ctx, generation, controller.StateVolumeName,
+		*orchest.Spec.Orchest.Resources.OrchestStateVolume, orchest)
 	if err != nil {
 		return
 	}
@@ -75,11 +81,12 @@ func (c *ResourcesComponent) Delete(ctx context.Context, namespace string,
 	message registry.Message, eventChan chan registry.Event) {
 }
 
-func (c *ResourcesComponent) ensurePvc(ctx context.Context, curHash, name, size string, orchest *orchestv1alpha1.OrchestCluster) error {
+func (c *ResourcesComponent) ensurePvc(ctx context.Context, curHash, name string,
+	volume orchestv1alpha1.Volume, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// Retrive the created pvcs
 	oldPvc, err := c.client.CoreV1().PersistentVolumeClaims(orchest.Namespace).Get(ctx, name, metav1.GetOptions{})
-	newPvc := getPersistentVolumeClaim(name, size, curHash, orchest)
+	newPvc := getPersistentVolumeClaim(name, curHash, volume, orchest)
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		_, err := c.client.CoreV1().PersistentVolumeClaims(orchest.Namespace).Create(ctx, newPvc, metav1.CreateOptions{})
@@ -135,7 +142,7 @@ func (c *ResourcesComponent) ensureRbacs(ctx context.Context, hash string, orche
 	return nil
 }
 
-func getPersistentVolumeClaim(name, volumeSize, hash string,
+func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume,
 	orchest *orchestv1alpha1.OrchestCluster) *corev1.PersistentVolumeClaim {
 
 	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
@@ -149,13 +156,13 @@ func getPersistentVolumeClaim(name, volumeSize, hash string,
 		AccessModes: []corev1.PersistentVolumeAccessMode{accessMode},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volumeSize),
+				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volume.VolumeSize),
 			},
 		},
 	}
 
-	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
-		spec.StorageClassName = &orchest.Spec.Orchest.Resources.StorageClassName
+	if volume.VolumeSize != "" {
+		spec.StorageClassName = &volume.VolumeSize
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{
