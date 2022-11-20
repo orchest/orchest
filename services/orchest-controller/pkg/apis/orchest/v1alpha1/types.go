@@ -41,25 +41,16 @@ const (
 	Deleting              OrchestPhase = "Deleting"
 )
 
-type OrchestResourcesSpec struct {
-	// If specified, this components will be deployed provided image
-	UserDirVolumeSize string `json:"userDirVolumeSize,omitempty"`
-
-	// The Storage class of user-dir/
-	UserDirStorageClassName string `json:"userDirStorageClassName,omitempty"`
-
-	// Default storage class name
-	StorageClassName string `json:"storageClassName,omitempty"`
-
-	// Deprecated and ignored. TODO: remove it?
-	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
-}
-
 type Volume struct {
-	Name         string `json:"size"`
 	VolumeSize   string `json:"volumeSize"`
 	MountPath    string `json:"mountPath"`
 	StorageClass string `json:"storageClass"`
+}
+
+type OrchestResourcesSpec struct {
+	UserDirVolume *Volume `json:"userDirVolume,omitempty"`
+
+	OrchestStateVolume *Volume `json:"orchestVolume,omitempty"`
 }
 
 type OrchestComponentTemplate struct {
@@ -68,8 +59,6 @@ type OrchestComponentTemplate struct {
 
 	// List of environment variables to set in the container.
 	Env []corev1.EnvVar `json:"env,omitempty"`
-
-	Volumes []Volume `json:"volumes,omitempty"`
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
