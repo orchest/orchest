@@ -34,7 +34,7 @@ var (
 		registry.ArgoWorkflow:   setDefaultConfig,
 		registry.DockerRegistry: setDockerRegistryConfig,
 		registry.IngressNginx:   setIngressConfig,
-		registry.EfsCsiDriver:   setDefaultConfig,
+		registry.EfsCsiDriver:   setEFSConfig,
 		registry.NvidiaPlugin:   setNvidiaConfig,
 	}
 
@@ -329,6 +329,47 @@ func setDefaultConfig(name string, client kubernetes.Interface, distro utils.Kub
 		Config: orchestv1alpha1.ApplicationConfig{},
 	}
 	return true
+}
+
+func setEFSConfig(name string, client kubernetes.Interface, distro utils.KubernetesDistros,
+	orchest *orchestv1alpha1.OrchestCluster) bool {
+
+	// If the config present, we won't add it
+	if _, ok := orchest.Spec.Applications[name]; ok {
+		return false
+	}
+
+	// if file-system id annotation is present
+	if fileSystemId, ok := orchest.Annotations[controller.EFSFileSystemId]; ok {
+
+		// add controller node-selector labels
+		params := make([]orchestv1alpha1.HelmParameter, 0, len(orchest.Spec.ControlNodeSelector)+1)
+		for key, value := range orchest.Spec.ControlNodeSelector {
+			paramName := "controller.nodeSelector." + strings.Replace(key, ".", "\\.", -1)
+
+			params = append(params, orchestv1alpha1.HelmParameter{
+				Name:  paramName,
+				Value: value,
+			})
+		}
+
+		params = append(params, orchestv1alpha1.HelmParameter{
+			Name:  "storageClasses[0].parameters.fileSystemId",
+			Value: fileSystemId,
+		})
+
+		orchest.Spec.Applications[name] = orchestv1alpha1.ApplicationSpec{
+			Name: name,
+			Config: orchestv1alpha1.ApplicationConfig{
+				Helm: &orchestv1alpha1.ApplicationConfigHelm{
+					Parameters: params,
+				},
+			},
+		}
+		return true
+	}
+
+	return false
 }
 
 func setDockerRegistryConfig(name string, client kubernetes.Interface, distro utils.KubernetesDistros,
