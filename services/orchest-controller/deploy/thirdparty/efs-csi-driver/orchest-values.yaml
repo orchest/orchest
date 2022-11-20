@@ -72,7 +72,7 @@ controller:
   affinity: {}
   # Specifies whether a service account should be created
   serviceAccount:
-    create: true
+    create: false
     name: efs-csi-controller-sa
     annotations: {}
     ## Enable if EKS IAM for SA is used
