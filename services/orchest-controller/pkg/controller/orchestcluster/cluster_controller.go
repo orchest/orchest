@@ -78,15 +78,16 @@ type ControllerConfig struct {
 
 func NewDefaultControllerConfig() ControllerConfig {
 	return ControllerConfig{
-		PostgresDefaultImage:      "postgres:13.1",
-		RabbitmqDefaultImage:      "rabbitmq:3",
-		OrchestDefaultVersion:     version.Version,
-		CeleryWorkerImageName:     "orchest/celery-worker",
-		OrchestApiImageName:       "orchest/orchest-api",
-		OrchestWebserverImageName: "orchest/orchest-webserver",
-		AuthServerImageName:       "orchest/auth-server",
-		UserdirDefaultVolumeSize:  "50Gi",
-		BuilddirDefaultVolumeSize: "25Gi",
+		PostgresDefaultImage:          "postgres:13.1",
+		RabbitmqDefaultImage:          "rabbitmq:3",
+		OrchestDefaultVersion:         version.Version,
+		CeleryWorkerImageName:         "orchest/celery-worker",
+		OrchestApiImageName:           "orchest/orchest-api",
+		OrchestWebserverImageName:     "orchest/orchest-webserver",
+		AuthServerImageName:           "orchest/auth-server",
+		UserdirDefaultVolumeSize:      "50Gi",
+		OrchestStateDefaultVolumeSize: "5Gi",
+		BuilddirDefaultVolumeSize:     "25Gi",
 		OrchestDefaultEnvVars: map[string]string{
 			"PYTHONUNBUFFERED":  "TRUE",
 			"ORCHEST_LOG_LEVEL": "INFO",
