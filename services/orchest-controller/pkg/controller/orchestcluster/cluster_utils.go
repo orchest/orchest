@@ -331,6 +331,37 @@ func setDefaultConfig(name string, client kubernetes.Interface, distro utils.Kub
 	return true
 }
 
+func setArgoWorkflowConfig(name string, client kubernetes.Interface, distro utils.KubernetesDistros,
+	orchest *orchestv1alpha1.OrchestCluster) bool {
+
+	// If the config present, we won't add it
+	if _, ok := orchest.Spec.Applications[name]; ok {
+		return false
+	}
+
+	// add controller node-selector labels
+	params := make([]orchestv1alpha1.HelmParameter, 0, len(orchest.Spec.ControlNodeSelector))
+	for key, value := range orchest.Spec.ControlNodeSelector {
+		paramName := "controller.nodeSelector." + strings.Replace(key, ".", "\\.", -1)
+
+		params = append(params, orchestv1alpha1.HelmParameter{
+			Name:  paramName,
+			Value: value,
+		})
+	}
+
+	orchest.Spec.Applications[name] = orchestv1alpha1.ApplicationSpec{
+		Name: name,
+		Config: orchestv1alpha1.ApplicationConfig{
+			Helm: &orchestv1alpha1.ApplicationConfigHelm{
+				Parameters: params,
+			},
+		},
+	}
+	return true
+
+}
+
 func setEFSConfig(name string, client kubernetes.Interface, distro utils.KubernetesDistros,
 	orchest *orchestv1alpha1.OrchestCluster) bool {
 
@@ -494,11 +525,25 @@ func setDockerRegistryConfig(name string, client kubernetes.Interface, distro ut
 	}
 
 	changed = true
-	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters,
-		orchestv1alpha1.HelmParameter{
-			Name:  registryServiceIP,
-			Value: serviceIP,
+
+	// add controller node-selector labels
+	params := make([]orchestv1alpha1.HelmParameter, 0, len(orchest.Spec.ControlNodeSelector)+1)
+	for key, value := range orchest.Spec.ControlNodeSelector {
+		paramName := "nodeSelector." + strings.Replace(key, ".", "\\.", -1)
+
+		params = append(params, orchestv1alpha1.HelmParameter{
+			Name:  paramName,
+			Value: value,
 		})
+	}
+
+	// add service-ip
+	params = append(params, orchestv1alpha1.HelmParameter{
+		Name:  registryServiceIP,
+		Value: serviceIP,
+	})
+
+	app.Config.Helm.Parameters = append(app.Config.Helm.Parameters, params...)
 
 	return changed
 }
