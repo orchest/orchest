@@ -12,7 +12,6 @@ We just changed things to support:
 
 import json
 import os
-import sys
 
 import click
 import yaml
@@ -243,12 +242,3 @@ def jecho(*args, **kwargs) -> None:
         if args and args[0] is not None:
             args = (json.dumps(args[0], sort_keys=True, indent=True), *args[1:])
     return click.echo(*args, **kwargs)  # type: ignore
-
-
-def exit_with_error(exception: Exception) -> None:
-    """Helper function to deal with "exiting" in code and CLI mode."""
-    if has_click_context():
-        sys.exit(1)
-    if exception is not None:
-        raise exception
-    raise Exception()

@@ -109,7 +109,7 @@ class OrchestCmds:
                     " is started.",
                     err=True,
                 )
-                utils.exit_with_error(e)
+                raise e
             configuration = Configuration.get_default_copy()
 
         self._setup_k8s_api_clients(configuration)
@@ -202,14 +202,14 @@ class OrchestCmds:
                     " in a short moment.",
                     err=True,
                 )
-                utils.exit_with_error()
+                raise RuntimeError()
             try:
                 txt_deploy_controller = _fetch_orchest_controller_manifests(
                     version, manifest_file_name
                 )
             except RuntimeError as e:
                 utils.echo(f"{e}", err=True)
-                utils.exit_with_error(e)
+                raise e
 
         # Makes the namespace configurable.
         txt_deploy_controller = _subst_namespace(subst=ns, string=txt_deploy_controller)
@@ -262,7 +262,7 @@ class OrchestCmds:
                 f"\n{conflicting_k8s_resources_msg}",
                 err=True,
             )
-            utils.exit_with_error()
+            raise RuntimeError()
 
         # Retry to create k8s objects that could not be created the
         # first time.
@@ -305,7 +305,7 @@ class OrchestCmds:
                     f"Installation aborted. Kubernetes API message:\n{exc_msg}",
                     err=True,
                 )
-                utils.exit_with_error()
+                raise RuntimeError()
 
         # Creating the OrchestCluster custom resource.
         metadata = {
@@ -399,7 +399,7 @@ class OrchestCmds:
                 utils.echo(
                     "Could not create the required namespaced custom object.", err=True
                 )
-            utils.exit_with_error(e)
+            raise e
 
         utils.echo("Setting up the Orchest Cluster...", nl=True)
         self._wait_for_cluster_status(
@@ -618,7 +618,7 @@ class OrchestCmds:
                 err=True,
             )
             utils.echo(e, err=True)
-            utils.exit_with_error(e)
+            raise e
 
         except KeyError as e:
             utils.echo(
@@ -631,7 +631,7 @@ class OrchestCmds:
                 " Orchest Cluster version.",
                 err=True,
             )
-            utils.exit_with_error(e)
+            raise e
 
         if version is None:
             version = _fetch_latest_available_version(curr_version, is_cloud_mode)
@@ -639,7 +639,7 @@ class OrchestCmds:
                 utils.echo(
                     "Failed to fetch latest available version to update to.", err=True
                 )
-                utils.exit_with_error()
+                raise RuntimeError()
         else:
             # Verify user input.
             if not _is_calver_version(version):
@@ -651,7 +651,7 @@ class OrchestCmds:
                 utils.echo(
                     "The version should follow CalVer, e.g. 'v2022.02.4'.", err=True
                 )
-                utils.exit_with_error()
+                raise RuntimeError()
 
         if curr_version == version:
             utils.echo(f"Orchest Cluster is already on version: {version}.")
@@ -663,7 +663,7 @@ class OrchestCmds:
                 f" which is newer than the given version '{version}'.",
                 err=True,
             )
-            utils.exit_with_error()
+            raise RuntimeError()
 
         manifest_file_name = "orchest-controller.yaml"
 
@@ -682,7 +682,7 @@ class OrchestCmds:
                 )
             except RuntimeError as e:
                 utils.echo(f"{e}", err=True)
-                utils.exit_with_error(e)
+                raise e
 
         # The namespace to install the controller in should be the same
         # as the namespace in which Orchest is currently installed.
@@ -700,7 +700,7 @@ class OrchestCmds:
                 f" manifests: \n{e}",
                 err=True,
             )
-            utils.exit_with_error(e)
+            raise e
 
         # Returns an iterator so we need to init it again to get the
         # `namespace` and `labels` of the `orchest-controller`
@@ -728,7 +728,7 @@ class OrchestCmds:
                     " 'orchest-controller'.",
                     err=True,
                 )
-                utils.exit_with_error(e)
+                raise e
 
         # Wait until the `orchest-controller` is successfully updated.
         # We don't accidentally want the old `orchest-controller` to
@@ -755,7 +755,7 @@ class OrchestCmds:
                     "expecting only 1.",
                     err=True,
                 )
-                utils.exit_with_error()
+                raise RuntimeError()
 
             controller_pod = resp.items[0]
             for container in controller_pod.spec.containers:
@@ -787,7 +787,7 @@ class OrchestCmds:
                 )
             else:
                 utils.echo(f"Reason: {e.reason}", err=True)
-            utils.exit_with_error(e)
+            raise e
 
         if watch_flag:
             self._wait_for_cluster_status(
@@ -940,7 +940,7 @@ class OrchestCmds:
         except CRObjectNotFound as e:
             utils.echo("Failed to patch Orchest Cluster.", err=True)
             utils.echo(e, err=True)
-            utils.exit_with_error(e)
+            raise e
         orchest_spec_patch = {
             "authServer": {
                 "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
@@ -983,7 +983,7 @@ class OrchestCmds:
                 )
             else:
                 utils.echo(f"Reason: {e.reason}", err=True)
-            utils.exit_with_error(e)
+            raise e
         else:
             utils.echo("Successfully patched the Orchest Cluster.")
 
@@ -1035,7 +1035,7 @@ class OrchestCmds:
             else:
                 utils.echo("Failed to fetch Orchest Cluster version.", err=True)
                 utils.echo(e, err=True)
-            utils.exit_with_error(e)
+            raise e
 
         except KeyError as e:
             if json_flag:
@@ -1047,7 +1047,7 @@ class OrchestCmds:
                     " Orchest Cluster version.",
                     err=True,
                 )
-            utils.exit_with_error(e)
+            raise e
 
         if json_flag:
             utils.jecho({"version": version})
@@ -1071,7 +1071,7 @@ class OrchestCmds:
             else:
                 utils.echo("Failed to fetch Orchest Cluster status.", err=True)
                 utils.echo(e, err=True)
-            utils.exit_with_error(e)
+            raise e
 
         if status is None:
             utils.echo(
@@ -1132,7 +1132,7 @@ class OrchestCmds:
                 )
             else:
                 utils.echo(f"Reason: {e.reason}", err=True)
-            utils.exit_with_error(e)
+            raise e
 
         if watch:
             self._wait_for_cluster_status(
@@ -1164,7 +1164,7 @@ class OrchestCmds:
                 )
             else:
                 utils.echo(f"Reason: {e.reason}", err=True)
-            utils.exit_with_error(e)
+            raise e
 
         if watch:
             self._wait_for_cluster_status(ns, cluster_name, None, ClusterStatus.RUNNING)
@@ -1180,7 +1180,7 @@ class OrchestCmds:
         except CRObjectNotFound as e:
             utils.echo("Failed to restart the Orchest Cluster.", err=True)
             utils.echo(e, err=True)
-            utils.exit_with_error(e)
+            raise e
 
         try:
             if status == ClusterStatus.STOPPED:
@@ -1202,7 +1202,7 @@ class OrchestCmds:
         except client.ApiException as e:
             utils.echo("Failed to restart the Orchest Cluster.", err=True)
             utils.echo(f"Reason: {e.reason}", err=True)
-            utils.exit_with_error(e)
+            raise e
 
         if watch:
             self._wait_for_cluster_status(
@@ -1236,13 +1236,13 @@ class OrchestCmds:
                     ),
                     err=True,
                 )
-                utils.exit_with_error()
+                raise RuntimeError()
             if non_interactive_token:
                 utils.echo(
                     "Can't use `--non-interactive-token` without `--non-interactive`",
                     err=True,
                 )
-                utils.exit_with_error()
+                raise RuntimeError()
 
             password = click.prompt(
                 "Password", hide_input=True, confirmation_prompt=True
@@ -1257,12 +1257,12 @@ class OrchestCmds:
         except ValueError as e:
             utils.echo(f"Failed to add specified user: {username}.", err=True)
             utils.echo(e, err=True)
-            utils.exit_with_error(e)
+            raise e
         except RuntimeError as e:
             utils.echo(f"Failed to add specified user: {username}.", err=True)
             # NOTE: A newline is already returned by the auth-server.
             utils.echo(e, err=True, nl=False)
-            utils.exit_with_error(e)
+            raise e
 
         utils.echo(
             f"Successfully added {'admin' if is_admin else ''} user: {username}."
@@ -1647,7 +1647,7 @@ class OrchestCmds:
                                     " could have completed regardless.",
                                     err=True,
                                 )
-                                utils.exit_with_error()
+                                raise RuntimeError()
 
                         echo(err=True)  # newline
                         echo(f"🙅 Failed to {click_ctx.command.name}.", err=True)
@@ -1657,7 +1657,7 @@ class OrchestCmds:
                                 " by an external process during installation.",
                                 err=True,
                             )
-                            utils.exit_with_error()
+                            raise RuntimeError()
                         else:
                             raise
 
