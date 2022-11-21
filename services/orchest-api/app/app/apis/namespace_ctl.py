@@ -152,7 +152,13 @@ class OrchestSettings(Resource):
     @api.doc("get_orchest_settings")
     def get(self):
         """Get Orchest settings as a json."""
-        return utils.OrchestSettings().as_dict(), 200
+
+        # TODO: decide what kind of abstraction we want to cover this
+        # case.
+        settings = utils.OrchestSettings().as_dict()
+        settings.pop("PAUSED", None)
+
+        return settings, 200
 
     @api.doc("update_orchest_settings")
     @api.expect(schema.dictionary)
