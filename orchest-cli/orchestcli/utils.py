@@ -197,6 +197,10 @@ def replace_from_yaml_single_item(k8s_client, yml_object, verbose=False, **kwarg
     return resp
 
 
+def has_click_context() -> bool:
+    return click.get_current_context(silent=True) is not None
+
+
 def echo(*args, **kwargs) -> None:
     """Wrapped `click.echo`.
 

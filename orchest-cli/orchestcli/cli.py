@@ -50,6 +50,7 @@ Implementation details:
 """
 
 import collections
+import sys
 import typing as t
 from gettext import gettext
 
@@ -126,6 +127,19 @@ class ClickHelpCategories(click.Group):
                 for category, rows in categories.items():
                     with formatter.section(gettext(category)):
                         formatter.write_dl(rows)
+
+
+def SilenceExceptions(cls):
+    class CommandWithSilencedExceptions(cls):
+        def invoke(self, ctx):
+            try:
+                return super(CommandWithSilencedExceptions, self).invoke(ctx)
+            except Exception:
+                # The command logic has already taken care of informing
+                # the user about the error.
+                sys.exit(1)
+
+    return CommandWithSilencedExceptions
 
 
 @click.group(
@@ -225,7 +239,7 @@ def cli():
     show_default=True,
     help="Size of the registry volume claim in Gi.",
 )
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 def install(
     multi_node: bool,
     cloud: bool,
@@ -245,7 +259,7 @@ def install(
         # REMOVABLE_ON_BREAKING_CHANGE
         utils.echo("The 'builder_pvc_size' parameter is deprecated and ignored.")
 
-    cmds.install(
+    cmds.OrchestCmds().install(
         multi_node,
         cloud,
         dev_mode,
@@ -261,13 +275,13 @@ def install(
 
 # TODO: Should be improved to remove the provided Orchest Cluster,
 # then the `orchest-controller` to remove the Cluster resources.
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 def uninstall(**common_options) -> None:
     """Uninstall Orchest.
 
     Uninstalls Orchest by removing the provided namespace.
     """
-    cmds.uninstall(**common_options)
+    cmds.OrchestCmds().uninstall(**common_options)
 
 
 @click.option(
@@ -293,7 +307,7 @@ def uninstall(**common_options) -> None:
     hidden=True,
     help="Run update in dev mode.",
 )
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 def update(
     version: t.Optional[str],
     watch_flag: bool,
@@ -314,7 +328,7 @@ def update(
         orchest update
 
     """
-    cmds.update(
+    cmds.OrchestCmds().update(
         version,
         watch_flag,
         dev_mode,
@@ -322,7 +336,7 @@ def update(
     )
 
 
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 @click.option(
     "--dev/--no-dev",
     is_flag=True,
@@ -367,10 +381,10 @@ def patch(
         orchest patch --dev
 
     """
-    cmds.patch(dev, cloud, log_level, socket_path, **common_options)
+    cmds.OrchestCmds().patch(dev, cloud, log_level, socket_path, **common_options)
 
 
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 @click.option(
     "--json",
     "json_flag",  # name for arg
@@ -395,10 +409,10 @@ def version(json_flag: bool, latest_flag: bool, **common_options) -> None:
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.spec.orchest.version}"
 
     """
-    cmds.version(json_flag, latest_flag, **common_options)
+    cmds.OrchestCmds().version(json_flag, latest_flag, **common_options)
 
 
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 @click.option(
     "--json",
     "json_flag",  # name for arg
@@ -428,10 +442,10 @@ def status(
         kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.status.message}"
 
     """
-    cmds.status(json_flag, wait_for_status, **common_options)
+    cmds.OrchestCmds().status(json_flag, wait_for_status, **common_options)
 
 
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 @click.option(
     "--watch/--no-watch",
     "watch",  # name for arg
@@ -449,10 +463,10 @@ def stop(watch: bool, **common_options) -> None:
     Equivalent `kubectl` command:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": true}}}'
     """
-    cmds.stop(watch, **common_options)
+    cmds.OrchestCmds().stop(watch, **common_options)
 
 
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 @click.option(
     "--watch/--no-watch",
     "watch",  # name for arg
@@ -468,10 +482,10 @@ def start(watch: bool, **common_options) -> None:
     Equivalent `kubectl` command:
         kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": false}}}'
     """
-    cmds.start(watch, **common_options)
+    cmds.OrchestCmds().start(watch, **common_options)
 
 
-@cli.command(cls=ClickCommonOptionsCmd)
+@cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 @click.option(
     "--watch/--no-watch",
     "watch",  # name for arg
@@ -497,7 +511,7 @@ def restart(watch: bool, **common_options) -> None:
         \t-p='{"metadata": {"annotations": {"orchest.io/restart": "true"}}}'
 
     """
-    cmds.restart(watch, **common_options)
+    cmds.OrchestCmds().restart(watch, **common_options)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -555,7 +569,7 @@ def adduser(
         # Get prompts to enter password and machine token.
         orchest adduser UserName --set-token
     """
-    cmds.adduser(
+    cmds.OrchestCmds().adduser(
         username,
         is_admin,
         non_interactive,
