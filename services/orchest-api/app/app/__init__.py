@@ -28,6 +28,7 @@ from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app import utils
 from app.apis import blueprint as api
+from app.apis import namespace_ctl
 from app.apis.namespace_jupyter_image_builds import CreateJupyterEnvironmentBuild
 from app.connections import db
 from app.core.notifications import analytics as api_analytics
@@ -361,4 +362,4 @@ def cleanup():
     app = create_app(
         config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
     )
-    utils.cleanup(app)
+    namespace_ctl.cleanup(app)
