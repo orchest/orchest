@@ -329,6 +329,11 @@ def schedule_job_runs(app, task_uuid: str) -> None:
     now = datetime.datetime.now(datetime.timezone.utc)
 
     with app.app_context():
+
+        if utils.OrchestSettings()["PAUSED"]:
+            logger.info("Orchest is paused, skipping job scheduling.")
+            return
+
         query = (
             models.Job.query.options(
                 load_only(

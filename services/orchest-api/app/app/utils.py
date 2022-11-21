@@ -441,6 +441,14 @@ class OrchestSettings:
             "condition": None,
             "apply-runtime-changes-function": lambda prev, new: False,
         },
+        # When True, Orchest is paused, which currently means that the
+        # job scheduler will not run.
+        "PAUSED": {
+            "default": False,
+            "type": bool,
+            "condition": None,
+            "apply-runtime-changes-function": lambda prev, new: True,
+        },
     }
     _cloud_unmodifiable_config_opts = [
         "TELEMETRY_UUID",
