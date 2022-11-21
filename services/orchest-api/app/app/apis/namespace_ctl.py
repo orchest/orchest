@@ -9,9 +9,15 @@ from flask_restx import Namespace, Resource
 from orchestcli import cmds
 
 from _orchest.internals import config as _config
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app import models, schema, utils
-from app.connections import db
-from app.core import scheduler
+from app.apis.namespace_environment_image_builds import AbortEnvironmentImageBuild
+from app.apis.namespace_jobs import AbortJob, AbortJobPipelineRun
+from app.apis.namespace_jupyter_image_builds import AbortJupyterEnvironmentBuild
+from app.apis.namespace_runs import AbortInteractivePipelineRun
+from app.apis.namespace_sessions import StopInteractiveSession
+from app.connections import db, k8s_core_api
+from app.core import scheduler, sessions
 from config import CONFIG_CLASS
 
 ns = Namespace("ctl", description="Orchest-api internal control.")
@@ -146,7 +152,13 @@ class OrchestSettings(Resource):
     @api.doc("get_orchest_settings")
     def get(self):
         """Get Orchest settings as a json."""
-        return utils.OrchestSettings().as_dict(), 200
+
+        # TODO: decide what kind of abstraction we want to cover this
+        # case.
+        config_as_dict = utils.OrchestSettings().as_dict()
+        config_as_dict.pop("PAUSED", None)
+
+        return config_as_dict, 200
 
     @api.doc("update_orchest_settings")
     @api.expect(schema.dictionary)
@@ -162,14 +174,22 @@ class OrchestSettings(Resource):
         invalid.
         """
         config = utils.OrchestSettings()
+        config_update = request.get_json()
         try:
-            config.update(request.get_json())
+            config.update(config_update)
         except (TypeError, ValueError) as e:
             current_app.logger.debug(e, exc_info=True)
             return {"message": f"{e}"}, 400
 
+        if config_update.get("PAUSED", False):
+            current_app.config["SCHEDULER"].add_job(
+                cleanup, args=[current_app._get_current_object()]
+            )
+
         requires_restart = config.save(current_app)
-        resp = {"requires_restart": requires_restart, "user_config": config.as_dict()}
+        config_as_dict = utils.OrchestSettings().as_dict()
+        config_as_dict.pop("PAUSED", None)
+        resp = {"requires_restart": requires_restart, "user_config": config_as_dict}
         return resp, 200
 
     @api.doc("set_orchest_settings")
@@ -187,14 +207,22 @@ class OrchestSettings(Resource):
         invalid.
         """
         config = utils.OrchestSettings()
+        new_config = request.get_json()
         try:
-            config.set(request.get_json())
+            config.set(new_config)
         except (TypeError, ValueError) as e:
             current_app.logger.debug(e, exc_info=True)
             return {"message": f"{e}"}, 400
 
+        if new_config.get("PAUSED", False):
+            current_app.config["SCHEDULER"].add_job(
+                cleanup, args=[current_app._get_current_object()]
+            )
+
         requires_restart = config.save(current_app)
-        resp = {"requires_restart": requires_restart, "user_config": config.as_dict()}
+        config_as_dict = utils.OrchestSettings().as_dict()
+        config_as_dict.pop("PAUSED", None)
+        resp = {"requires_restart": requires_restart, "user_config": config_as_dict}
         return resp, 200
 
 
@@ -317,3 +345,122 @@ class JupyterImageNodeStatus(Resource):
         utils.upsert_jupyter_image_on_node(tag, node)
         db.session.commit()
         return {}, 200
+
+
+def cleanup(app) -> None:
+    with app.app_context():
+        app.logger.info("Starting app cleanup.")
+
+        try:
+            app.logger.info("Aborting interactive pipeline runs.")
+            runs = models.InteractivePipelineRun.query.filter(
+                models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
+            ).all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for run in runs:
+                    AbortInteractivePipelineRun(tpe).transaction(run.uuid)
+
+            app.logger.info("Shutting down interactive sessions.")
+            int_sessions = models.InteractiveSession.query.all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for session in int_sessions:
+                    StopInteractiveSession(tpe).transaction(
+                        session.project_uuid, session.pipeline_uuid, async_mode=False
+                    )
+
+            app.logger.info("Aborting environment builds.")
+            builds = models.EnvironmentImageBuild.query.filter(
+                models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
+            ).all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for build in builds:
+                    AbortEnvironmentImageBuild(tpe).transaction(
+                        build.project_uuid,
+                        build.environment_uuid,
+                        build.image_tag,
+                    )
+
+            app.logger.info("Aborting jupyter builds.")
+            builds = models.JupyterImageBuild.query.filter(
+                models.JupyterImageBuild.status.in_(["PENDING", "STARTED"])
+            ).all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for build in builds:
+                    AbortJupyterEnvironmentBuild(tpe).transaction(build.uuid)
+
+            app.logger.info("Aborting running one off jobs.")
+            jobs = models.Job.query.filter_by(schedule=None, status="STARTED").all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for job in jobs:
+                    AbortJob(tpe).transaction(job.uuid)
+
+            app.logger.info("Aborting running pipeline runs of cron jobs.")
+            runs = models.NonInteractivePipelineRun.query.filter(
+                models.NonInteractivePipelineRun.status.in_(["STARTED"])
+            ).all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for run in runs:
+                    AbortJobPipelineRun(tpe).transaction(run.job_uuid, run.uuid)
+
+            # Delete old JupyterEnvironmentBuilds on to avoid
+            # accumulation in the DB. Leave the latest such that the
+            # user can see details about the last executed build after
+            # restarting Orchest.
+            jupyter_image_builds = (
+                models.JupyterImageBuild.query.order_by(
+                    models.JupyterImageBuild.requested_time.desc()
+                )
+                .offset(1)
+                .all()
+            )
+            # Can't use offset and .delete in conjunction in sqlalchemy
+            # unfortunately.
+            for jupyter_image_build in jupyter_image_builds:
+                db.session.delete(jupyter_image_build)
+
+            models.SchedulerJob.query.filter(
+                models.SchedulerJob.status == "STARTED"
+            ).update({"status": "FAILED"})
+
+            db.session.commit()
+
+            _cleanup_dangling_sessions(app)
+
+        except Exception as e:
+            app.logger.error("Cleanup failed.")
+            app.logger.error(e)
+
+
+def _cleanup_dangling_sessions(app):
+    """Shuts down all sessions in the namespace.
+
+    This is a cheap fallback in case session deletion didn't happen when
+    needed because, for example, of the k8s-api being down or being
+    unresponsive during high load. Over time this should/could be
+    substituted with a more refined approach where non interactive
+    sessions are stored in the db.
+
+    """
+    app.logger.info("Cleaning up dangling sessions.")
+    pods = k8s_core_api.list_namespaced_pod(
+        namespace=_config.ORCHEST_NAMESPACE,
+        # Can't use a field selector to select pods in 'not Terminating
+        # phase, see
+        # https://kubernetes.io/docs/concepts/workloads/pods/_print/ ,
+        # "This Terminating status is not one of the Pod phases.". This
+        # means we could catch pods of a session that are already being
+        # terminated. Note that when cleaning up interactive sessions in
+        # 'cleanup()' we wait for the session to be actually cleaned up
+        # through the argument async=False, so pods from interactive
+        # sessions won't be caught in this call.
+        label_selector="session_uuid",
+    )
+    sessions_to_cleanup = {pod.metadata.labels["session_uuid"] for pod in pods.items}
+    for uuid in sessions_to_cleanup:
+        app.logger.info(f"Cleaning up session {uuid}")
+        try:
+            sessions.shutdown(uuid, wait_for_completion=False)
+        # A session getting cleaned up through this logic is already
+        # an unexpected state, so let's be on the safe side.
+        except Exception as e:
+            app.logger.warning(e)

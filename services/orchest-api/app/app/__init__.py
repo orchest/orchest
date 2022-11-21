@@ -28,28 +28,12 @@ from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app import utils
 from app.apis import blueprint as api
-from app.apis.namespace_environment_image_builds import AbortEnvironmentImageBuild
-from app.apis.namespace_jobs import AbortJob, AbortJobPipelineRun
-from app.apis.namespace_jupyter_image_builds import (
-    AbortJupyterEnvironmentBuild,
-    CreateJupyterEnvironmentBuild,
-)
-from app.apis.namespace_runs import AbortInteractivePipelineRun
-from app.apis.namespace_sessions import StopInteractiveSession
-from app.connections import db, k8s_core_api
-from app.core import sessions
+from app.apis import namespace_ctl
+from app.apis.namespace_jupyter_image_builds import CreateJupyterEnvironmentBuild
+from app.connections import db
 from app.core.notifications import analytics as api_analytics
 from app.core.scheduler import add_recurring_jobs_to_scheduler
-from app.models import (
-    EnvironmentImageBuild,
-    InteractivePipelineRun,
-    InteractiveSession,
-    Job,
-    JupyterImageBuild,
-    NonInteractivePipelineRun,
-    SchedulerJob,
-    Setting,
-)
+from app.models import Job, JupyterImageBuild, Setting
 from config import CONFIG_CLASS
 
 
@@ -374,124 +358,8 @@ def register_orchest_stop():
         db.session.commit()
 
 
-def _cleanup_dangling_sessions(app):
-    """Shuts down all sessions in the namespace.
-
-    This is a cheap fallback in case session deletion didn't happen when
-    needed because, for example, of the k8s-api being down or being
-    unresponsive during high load. Over time this should/could be
-    substituted with a more refined approach where non interactive
-    sessions are stored in the db.
-
-    """
-    app.logger.info("Cleaning up dangling sessions.")
-    pods = k8s_core_api.list_namespaced_pod(
-        namespace=_config.ORCHEST_NAMESPACE,
-        # Can't use a field selector to select pods in 'not Terminating
-        # phase, see
-        # https://kubernetes.io/docs/concepts/workloads/pods/_print/ ,
-        # "This Terminating status is not one of the Pod phases.". This
-        # means we could catch pods of a session that are already being
-        # terminated. Note that when cleaning up interactive sessions in
-        # 'cleanup()' we wait for the session to be actually cleaned up
-        # through the argument async=False, so pods from interactive
-        # sessions won't be caught in this call.
-        label_selector="session_uuid",
-    )
-    sessions_to_cleanup = {pod.metadata.labels["session_uuid"] for pod in pods.items}
-    for uuid in sessions_to_cleanup:
-        app.logger.info(f"Cleaning up session {uuid}")
-        try:
-            sessions.shutdown(uuid, wait_for_completion=False)
-        # A session getting cleaned up through this logic is already
-        # an unexpected state, so let's be on the safe side.
-        except Exception as e:
-            app.logger.warning(e)
-
-
 def cleanup():
     app = create_app(
         config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
     )
-
-    with app.app_context():
-        app.logger.info("Starting app cleanup.")
-
-        try:
-            app.logger.info("Aborting interactive pipeline runs.")
-            runs = InteractivePipelineRun.query.filter(
-                InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
-            ).all()
-            with TwoPhaseExecutor(db.session) as tpe:
-                for run in runs:
-                    AbortInteractivePipelineRun(tpe).transaction(run.uuid)
-
-            app.logger.info("Shutting down interactive sessions.")
-            int_sessions = InteractiveSession.query.all()
-            with TwoPhaseExecutor(db.session) as tpe:
-                for session in int_sessions:
-                    StopInteractiveSession(tpe).transaction(
-                        session.project_uuid, session.pipeline_uuid, async_mode=False
-                    )
-
-            app.logger.info("Aborting environment builds.")
-            builds = EnvironmentImageBuild.query.filter(
-                EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
-            ).all()
-            with TwoPhaseExecutor(db.session) as tpe:
-                for build in builds:
-                    AbortEnvironmentImageBuild(tpe).transaction(
-                        build.project_uuid,
-                        build.environment_uuid,
-                        build.image_tag,
-                    )
-
-            app.logger.info("Aborting jupyter builds.")
-            builds = JupyterImageBuild.query.filter(
-                JupyterImageBuild.status.in_(["PENDING", "STARTED"])
-            ).all()
-            with TwoPhaseExecutor(db.session) as tpe:
-                for build in builds:
-                    AbortJupyterEnvironmentBuild(tpe).transaction(build.uuid)
-
-            app.logger.info("Aborting running one off jobs.")
-            jobs = Job.query.filter_by(schedule=None, status="STARTED").all()
-            with TwoPhaseExecutor(db.session) as tpe:
-                for job in jobs:
-                    AbortJob(tpe).transaction(job.uuid)
-
-            app.logger.info("Aborting running pipeline runs of cron jobs.")
-            runs = NonInteractivePipelineRun.query.filter(
-                NonInteractivePipelineRun.status.in_(["STARTED"])
-            ).all()
-            with TwoPhaseExecutor(db.session) as tpe:
-                for run in runs:
-                    AbortJobPipelineRun(tpe).transaction(run.job_uuid, run.uuid)
-
-            # Delete old JupyterEnvironmentBuilds on to avoid
-            # accumulation in the DB. Leave the latest such that the
-            # user can see details about the last executed build after
-            # restarting Orchest.
-            jupyter_image_builds = (
-                JupyterImageBuild.query.order_by(
-                    JupyterImageBuild.requested_time.desc()
-                )
-                .offset(1)
-                .all()
-            )
-            # Can't use offset and .delete in conjunction in sqlalchemy
-            # unfortunately.
-            for jupyter_image_build in jupyter_image_builds:
-                db.session.delete(jupyter_image_build)
-
-            SchedulerJob.query.filter(SchedulerJob.status == "STARTED").update(
-                {"status": "FAILED"}
-            )
-
-            db.session.commit()
-
-            _cleanup_dangling_sessions(app)
-
-        except Exception as e:
-            app.logger.error("Cleanup failed.")
-            app.logger.error(e)
+    namespace_ctl.cleanup(app)
