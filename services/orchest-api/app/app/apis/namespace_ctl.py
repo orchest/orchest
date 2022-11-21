@@ -155,10 +155,10 @@ class OrchestSettings(Resource):
 
         # TODO: decide what kind of abstraction we want to cover this
         # case.
-        settings = utils.OrchestSettings().as_dict()
-        settings.pop("PAUSED", None)
+        config_as_dict = utils.OrchestSettings().as_dict()
+        config_as_dict.pop("PAUSED", None)
 
-        return settings, 200
+        return config_as_dict, 200
 
     @api.doc("update_orchest_settings")
     @api.expect(schema.dictionary)
@@ -187,7 +187,9 @@ class OrchestSettings(Resource):
             )
 
         requires_restart = config.save(current_app)
-        resp = {"requires_restart": requires_restart, "user_config": config.as_dict()}
+        config_as_dict = utils.OrchestSettings().as_dict()
+        config_as_dict.pop("PAUSED", None)
+        resp = {"requires_restart": requires_restart, "user_config": config_as_dict}
         return resp, 200
 
     @api.doc("set_orchest_settings")
@@ -218,7 +220,9 @@ class OrchestSettings(Resource):
             )
 
         requires_restart = config.save(current_app)
-        resp = {"requires_restart": requires_restart, "user_config": config.as_dict()}
+        config_as_dict = utils.OrchestSettings().as_dict()
+        config_as_dict.pop("PAUSED", None)
+        resp = {"requires_restart": requires_restart, "user_config": config_as_dict}
         return resp, 200
 
 
