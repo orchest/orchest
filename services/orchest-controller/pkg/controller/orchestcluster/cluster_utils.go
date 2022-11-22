@@ -243,19 +243,23 @@ func getOrchestComponent(name, hash string,
 	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, template.Env)
 	template.Env = env
 
-	if template.NodeSelector == nil {
-		template.NodeSelector = make(map[string]string)
-	}
-
 	var orchestLabels map[string]string
+	// TODO: create a defined set of services that go to the control or
+	// worker plane.
 	if name == controller.NodeAgent || name == controller.BuildKitDaemon {
 		orchestLabels = orchest.Spec.WorkerNodeSelector
 	} else {
 		orchestLabels = orchest.Spec.ControlNodeSelector
 	}
+	if len(orchestLabels) > 0 {
+		if template.NodeSelector == nil {
+			template.NodeSelector = make(map[string]string)
+		}
 
-	for key, value := range orchestLabels {
-		template.NodeSelector[key] = value
+		for key, value := range orchestLabels {
+			template.NodeSelector[key] = value
+		}
+
 	}
 
 	return &orchestv1alpha1.OrchestComponent{
