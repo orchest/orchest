@@ -97,6 +97,7 @@ func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 					},
 				},
 			},
+			NodeSelector: component.Spec.Template.NodeSelector,
 			DNSConfig: &corev1.PodDNSConfig{
 				Options: []corev1.PodDNSConfigOption{
 					{Name: "timeout", Value: &dnsResolverTimeout},

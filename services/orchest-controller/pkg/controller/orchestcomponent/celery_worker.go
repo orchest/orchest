@@ -86,6 +86,7 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: controller.CeleryWorker,
+			NodeSelector:       component.Spec.Template.NodeSelector,
 			Volumes: []corev1.Volume{
 				{
 					Name: controller.UserDirName,

@@ -190,6 +190,7 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			ServiceAccountName: controller.OrchestApi,
 			Volumes:            volumes,
+			NodeSelector:       component.Spec.Template.NodeSelector,
 			DNSConfig: &corev1.PodDNSConfig{
 				Options: []corev1.PodDNSConfigOption{
 					{Name: "timeout", Value: &dnsResolverTimeout},
@@ -257,6 +258,7 @@ func getCleanupPod(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			RestartPolicy:      corev1.RestartPolicyNever,
 			ServiceAccountName: controller.OrchestApi,
+			NodeSelector:       component.Spec.Template.NodeSelector,
 			Containers: []corev1.Container{
 				{
 					Name: metadata.Name,

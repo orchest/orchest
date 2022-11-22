@@ -100,6 +100,7 @@ func getNodeAgentDaemonset(registryIP string, metadata metav1.ObjectMeta,
 		},
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: &one,
+			NodeSelector:                  component.Spec.Template.NodeSelector,
 			Volumes: []corev1.Volume{
 				{
 					Name: "runtimesocket",
