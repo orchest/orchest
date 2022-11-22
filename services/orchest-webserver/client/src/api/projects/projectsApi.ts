@@ -40,7 +40,7 @@ export const fetchOne = (projectUuid: string) =>
   fetcher<Project>(join(PROJECTS_API_URL, projectUuid));
 
 /** Starts the import of a git repo, and returns its UUID. */
-export const importGitRepo = (url: string, projectName: string) =>
+export const importGitRepo = (url: string, projectName?: string) =>
   fetcher<{ uuid: string }>(join(PROJECTS_API_URL, "/import-git"), {
     method: "POST",
     headers: HEADER.JSON,
@@ -52,7 +52,7 @@ export const fetchAll = ({
   sessionCounts = false,
   activeJobCounts = false,
   skipDiscovery = true,
-}): Promise<Project[]> =>
+} = {}): Promise<Project[]> =>
   fetcher(
     PROJECTS_API_URL +
       "?" +

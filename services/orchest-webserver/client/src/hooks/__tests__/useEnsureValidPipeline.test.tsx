@@ -1,7 +1,7 @@
 import {
+  ProjectContextState,
   ProjectsContextAction,
   ProjectsContextProvider,
-  ProjectsContextState,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { PipelineMetaData } from "@/types";
@@ -85,7 +85,7 @@ describe("useEnsureValidPipeline", () => {
       pipelineUuid: string | undefined;
     },
     {
-      state: ProjectsContextState;
+      state: ProjectContextState;
       dispatch: (value: ProjectsContextAction) => void;
       shouldShowAlert: boolean;
     }
