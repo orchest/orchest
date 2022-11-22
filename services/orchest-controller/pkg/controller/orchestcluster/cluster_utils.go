@@ -398,6 +398,7 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 // doesn't allow changing the selection later.
 func setHelmParamNodeSelector(ctx context.Context, client kubernetes.Interface,
 	namespace string, app *orchestv1alpha1.ApplicationSpec, selector map[string]string,
+	prefix string,
 ) (bool, error) {
 	if len(selector) == 0 {
 		return false, nil
@@ -422,7 +423,7 @@ func setHelmParamNodeSelector(ctx context.Context, client kubernetes.Interface,
 	}
 	// Add a node selector label for each key value pair.
 	for key, value := range selector {
-		paramName := "nodeSelector." + strings.Replace(key, ".", "\\.", -1)
+		paramName := prefix + "nodeSelector." + strings.Replace(key, ".", "\\.", -1)
 		new_parameters_dict[paramName] = orchestv1alpha1.HelmParameter{
 			Name:  paramName,
 			Value: value,

@@ -610,7 +610,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 			registryNodeSelectorChanged, err := setHelmParamNodeSelector(
 				ctx, occ.Client(), copy.Namespace,
-				app, controlNodeSelector)
+				app, controlNodeSelector, "")
 
 			if err != nil {
 				klog.Error(err)
@@ -618,6 +618,25 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 			}
 
 			changed = changed || registryIpChanged || registryNodeSelectorChanged
+			break
+		}
+	}
+
+	// Argo config.
+	for i := 0; i < len(copy.Spec.Applications); i++ {
+		app := &copy.Spec.Applications[i]
+		if app.Name == addons.ArgoWorkflow {
+			argoNodeSelectorChanged, err := setHelmParamNodeSelector(
+				ctx, occ.Client(), copy.Namespace,
+				app, controlNodeSelector, "controller.")
+
+			if err != nil {
+				klog.Error(err)
+				return changed, err
+			}
+
+			changed = changed || argoNodeSelectorChanged
+			break
 		}
 	}
 
