@@ -222,14 +222,6 @@ type OrchestClusterSpec struct {
 	// including session pods will be scheduled on the same node.
 	SingleNode *bool `json:"singleNode,omitempty"`
 
-	// NodeSelector is a selector which must be true for the pod to fit on a node.
-	// Selector which must match a node's labels for the pod to be scheduled on that node.
-	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-	// If single node is specified, node-selector will be chosed automatically by controller
-	ControlNodeSelector map[string]string `json:"controlNodeSelector,omitempty"`
-
-	WorkerNodeSelector map[string]string `json:"workerNodeSelector,omitempty"`
-
 	Orchest OrchestSpec `json:"orchest,omitempty"`
 
 	Postgres OrchestComponentTemplate `json:"postgres,omitempty"`
@@ -237,6 +229,12 @@ type OrchestClusterSpec struct {
 	RabbitMq OrchestComponentTemplate `json:"rabbitMq,omitempty"`
 
 	Applications []ApplicationSpec `json:"applications,omitempty"`
+
+	// If specified, pods considered to belong to the control plane or
+	// worker plane will be scheduled only on nodes having these labels.
+	ControlNodeSelector map[string]string `json:"controlNodeSelector,omitempty"`
+
+	WorkerNodeSelector map[string]string `json:"workerNodeSelector,omitempty"`
 }
 
 type Condition struct {
