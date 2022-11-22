@@ -1,6 +1,6 @@
+import { projectsApi } from "@/api/projects/projectsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { BackgroundTask } from "@/utils/webserver-utils";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { usePollBackgroundTask } from "@/hooks/useBackgroundTask";
 import React from "react";
 
 export const validProjectName = (
@@ -22,59 +22,38 @@ export const validProjectName = (
   return { valid: true, value: projectName };
 };
 
-export const useImportGitRepo = (
-  importUrl: string,
-  onComplete: (result?: BackgroundTask) => void
-) => {
+export const useImportGitRepo = (importUrl: string) => {
+  const [importTaskUuid, setImportTaskUuid] = React.useState<string>();
   const { setAlert } = useGlobalContext();
 
-  const [data, setData] = React.useState<BackgroundTask>({
-    uuid: "",
-    result: null,
-    status: "PENDING",
-  });
-
-  const startImport = React.useCallback(
+  const start = React.useCallback(
     async (projectName: string | undefined) => {
       const validation = validProjectName(projectName);
+
       if (!validation.valid) {
         setAlert(
           "Warning",
           `Invalid project name: ${projectName}. ${validation.reason}`
         );
-        onComplete();
-        return;
+      } else {
+        await projectsApi
+          .importGitRepo(importUrl, projectName)
+          .then(setImportTaskUuid);
       }
-
-      const uuid = await fetcher<{ uuid: string }>(
-        `/async/projects/import-git`,
-        {
-          method: "POST",
-          headers: HEADER.JSON,
-          body: JSON.stringify({
-            url: importUrl,
-            project_name: validation.value,
-          }),
-        }
-      );
-
-      backgroundTaskPoller.startPollingBackgroundTask(uuid, (result) => {
-        if (["SUCCESS", "FAILURE"].includes(result.status)) {
-          setData(result);
-          onComplete(result);
-        }
-      });
     },
-    [importUrl, onComplete, setAlert, setData]
+    [importUrl, setAlert]
   );
 
-  const clearImportResult = React.useCallback(() => {
-    setData({
-      uuid: "",
-      result: null,
-      status: "PENDING",
-    });
-  }, [setData]);
+  const { status, result } = usePollBackgroundTask(importTaskUuid) ?? {};
 
-  return { startImport, importResult: data, clearImportResult };
+  return {
+    /** Starts importing the project. */
+    start,
+    /** How the import is going, or `undefined` if the import has not started. */
+    status,
+    /** The path of project if the import was successful, otherwise `undefined`.  */
+    path: status === "SUCCESS" ? result : undefined,
+    /** The error if the import failed, otherwise `undefined`. */
+    error: status === "FAILURE" ? result : undefined,
+  };
 };

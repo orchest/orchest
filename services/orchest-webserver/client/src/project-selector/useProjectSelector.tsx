@@ -1,6 +1,5 @@
 import { hasValue } from "@orchest/lib-utils";
 import { useAutoChangeProject } from "./useAutoChangeProject";
-import { useFetchProjectsForSelector } from "./useFetchProjectsForSelector";
 import { useGetValidProjectUuid } from "./useGetValidProjectUuid";
 
 /**
@@ -11,8 +10,6 @@ export const useProjectSelector = (
   targetRoutePath: string | undefined,
   customNavigateTo: (projectUuid: string, path: string | undefined) => void
 ) => {
-  useFetchProjectsForSelector();
-
   const isMatchingProjectPaths = hasValue(targetRoutePath);
   const [
     validProjectUuid,

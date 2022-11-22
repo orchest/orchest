@@ -1,7 +1,7 @@
 import { ViewLayout } from "@/components/layout/ViewLayout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -12,7 +12,6 @@ import Stack from "@mui/material/Stack";
 import React from "react";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { ExampleList } from "./ExampleList";
-import { useFetchProjectsForProjectsView } from "./hooks/useFetchProjectsForProjectsView";
 import { ImportDialog } from "./ImportDialog";
 import { ImportSuccessDialog } from "./ImportSuccessDialog";
 import { NoProject } from "./NoProject";
@@ -26,13 +25,13 @@ export const ProjectsView = () => {
   const {
     state: { hasCompletedOnboarding },
   } = useGlobalContext();
+  const { projects, isLoaded } = useFetchProjects({
+    skipDiscovery: false,
+    activeJobCounts: true,
+    sessionCounts: false,
+  });
   const { navigateTo } = useCustomRoute();
-  const {
-    state: { hasLoadedProjects, hasProjects },
-  } = useProjectsContext();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
-
-  useFetchProjectsForProjectsView();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
@@ -94,8 +93,8 @@ export const ProjectsView = () => {
             index={PROJECT_TAB.MY_PROJECTS}
             sx={{ padding: (theme) => theme.spacing(2, 0) }}
           >
-            {hasLoadedProjects && hasProjects && <ProjectsTable />}
-            {hasLoadedProjects && !hasProjects && (
+            {isLoaded && projects.length !== 0 && <ProjectsTable />}
+            {isLoaded && projects.length === 0 && (
               <NoProject
                 createProject={openCreateDialog}
                 importProject={openImportDialog}
