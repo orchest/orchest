@@ -597,9 +597,9 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		}
 	}
 
-	// Docker-registry config.
 	for i := 0; i < len(copy.Spec.Applications); i++ {
 		app := &copy.Spec.Applications[i]
+		// Docker-registry config.
 		if app.Name == addons.DockerRegistry {
 
 			registryIpChanged, err := setRegistryServiceIP(ctx, occ.Client(), copy.Namespace, app)
@@ -618,14 +618,8 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 			}
 
 			changed = changed || registryIpChanged || registryNodeSelectorChanged
-			break
-		}
-	}
-
-	// Argo config.
-	for i := 0; i < len(copy.Spec.Applications); i++ {
-		app := &copy.Spec.Applications[i]
-		if app.Name == addons.ArgoWorkflow {
+			// Argo config.
+		} else if app.Name == addons.ArgoWorkflow {
 			argoNodeSelectorChanged, err := setHelmParamNodeSelector(
 				ctx, occ.Client(), copy.Namespace,
 				app, controlNodeSelector, "controller.")
@@ -636,7 +630,6 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 			}
 
 			changed = changed || argoNodeSelectorChanged
-			break
 		}
 	}
 
