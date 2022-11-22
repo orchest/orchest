@@ -172,6 +172,8 @@ class OrchestCmds:
         socket_path: t.Optional[str],
         userdir_pvc_size: int,
         registry_pvc_size: int,
+        ControlPlaneSelector: t.Optional[t.Dict[str, str]],
+        WorkerPlaneSelector: t.Optional[t.Dict[str, str]],
         **kwargs,
     ) -> None:
         """Installs Orchest."""
@@ -375,6 +377,12 @@ class OrchestCmds:
 
         if multi_node:
             spec["singleNode"] = False
+
+        if ControlPlaneSelector is not None:
+            spec["controlNodeSelector"] = ControlPlaneSelector
+
+        if WorkerPlaneSelector is not None:
+            spec["workerNodeSelector"] = WorkerPlaneSelector
 
         custom_object = {
             "apiVersion": "orchest.io/v1alpha1",
