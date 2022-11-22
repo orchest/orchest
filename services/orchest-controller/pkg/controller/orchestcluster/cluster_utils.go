@@ -3,6 +3,7 @@ package orchestcluster
 import (
 	"bytes"
 	"net"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -389,6 +390,61 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 			Name:  registryServiceIP,
 			Value: serviceIP,
 		})
+
+	return changed, nil
+}
+
+// If the selector is empty it assumes there is nothing to do and
+// doesn't allow changing the selection later.
+func setHelmParamNodeSelector(ctx context.Context, client kubernetes.Interface,
+	namespace string, app *orchestv1alpha1.ApplicationSpec, selector map[string]string,
+) (bool, error) {
+	if len(selector) == 0 {
+		return false, nil
+	}
+
+	var changed = false
+
+	if app.Config.Helm == nil {
+		changed = true
+		app.Config.Helm = &orchestv1alpha1.ApplicationConfigHelm{}
+	}
+
+	if app.Config.Helm.Parameters == nil {
+		changed = true
+		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
+	}
+
+	// Construct the would be parameters and compare with the old ones.
+	new_parameters_dict := make(map[string]orchestv1alpha1.HelmParameter)
+	for _, param := range app.Config.Helm.Parameters {
+		new_parameters_dict[param.Name] = param
+	}
+	// Add a node selector label for each key value pair.
+	for key, value := range selector {
+		paramName := "nodeSelector." + strings.Replace(key, ".", "\\.", -1)
+		new_parameters_dict[paramName] = orchestv1alpha1.HelmParameter{
+			Name:  paramName,
+			Value: value,
+		}
+	}
+
+	new_parameters := make([]orchestv1alpha1.HelmParameter, 0, len(new_parameters_dict))
+	for _, value := range new_parameters_dict {
+		new_parameters = append(new_parameters, value)
+	}
+
+	sort.Slice(new_parameters, func(i, j int) bool {
+		return new_parameters[i].Name < new_parameters[j].Name
+	})
+	sort.Slice(app.Config.Helm.Parameters, func(i, j int) bool {
+		return app.Config.Helm.Parameters[i].Name < app.Config.Helm.Parameters[j].Name
+	})
+
+	changed = !reflect.DeepEqual(new_parameters, app.Config.Helm.Parameters)
+	if changed {
+		app.Config.Helm.Parameters = new_parameters
+	}
 
 	return changed, nil
 }
