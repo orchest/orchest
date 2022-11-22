@@ -7,6 +7,8 @@ image:
   registry: docker.io
   name: orchest/orchest-controller
 
+controller:
+  nodeSelector: {}
 
 clusterLevelAddons:
   enableArgo: false

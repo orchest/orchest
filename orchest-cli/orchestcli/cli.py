@@ -50,6 +50,7 @@ Implementation details:
 """
 
 import collections
+import re
 import sys
 import typing as t
 from gettext import gettext
@@ -161,6 +162,25 @@ def cli():
     pass
 
 
+def _parse_labels_to_dict(ctx, param, value) -> t.Optional[t.Dict[str, str]]:
+    if value is None:
+        return None
+    group_of_kv_labels = (
+        # (Either start of string or comma separator)(key)
+        "((?:,|^)([a-zA-Z0-9][a-zA-Z0-9-_.]{0,61}[a-zA-Z0-9]?)"
+        # (value)
+        "=([a-zA-Z0-9][a-zA-Z0-9-_.]{0,61}[a-zA-Z0-9]?))+$"
+    )
+    if re.match(group_of_kv_labels, value):
+        selector_dict = {}
+        for kv_pair_string in value.split(","):
+            k, v = kv_pair_string.split("=")
+            selector_dict[k] = v
+        return selector_dict
+    else:
+        raise click.BadParameter("Labels validation failed.")
+
+
 @click.option(
     "--cloud",
     is_flag=True,
@@ -239,6 +259,24 @@ def cli():
     show_default=True,
     help="Size of the registry volume claim in Gi.",
 )
+@click.option(
+    "--control-plane-labels",
+    type=str,
+    default=None,
+    hidden=True,
+    show_default=True,
+    help="Label of nodes for the Orchest control plane.",
+    callback=_parse_labels_to_dict,
+)
+@click.option(
+    "--workers-plane-labels",
+    type=str,
+    default=None,
+    hidden=True,
+    show_default=True,
+    help="Label of nodes for the Orchest workers.",
+    callback=_parse_labels_to_dict,
+)
 @cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 def install(
     multi_node: bool,
@@ -251,6 +289,8 @@ def install(
     userdir_pvc_size: int,
     builder_pvc_size: int,
     registry_pvc_size: int,
+    control_plane_labels: t.Optional[t.Dict[str, str]],
+    workers_plane_labels: t.Optional[t.Dict[str, str]],
     **common_options,
 ) -> None:
     """Install Orchest."""
@@ -269,6 +309,8 @@ def install(
         socket_path,
         userdir_pvc_size,
         registry_pvc_size,
+        control_plane_labels,
+        workers_plane_labels,
         **common_options,
     )
 

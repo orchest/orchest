@@ -172,6 +172,8 @@ class OrchestCmds:
         socket_path: t.Optional[str],
         userdir_pvc_size: int,
         registry_pvc_size: int,
+        control_plane_selector: t.Optional[t.Dict[str, str]],
+        worker_plane_selector: t.Optional[t.Dict[str, str]],
         **kwargs,
     ) -> None:
         """Installs Orchest."""
@@ -222,6 +224,12 @@ class OrchestCmds:
             if yml_document is None:
                 continue
             try:
+                if control_plane_selector is not None:
+                    if yml_document.get("kind") == "Deployment":
+                        yml_document["spec"]["template"]["spec"][
+                            "nodeSelector"
+                        ] = control_plane_selector
+
                 utils.create_from_dict(
                     k8s_client=self.API_CLIENT,
                     data=yml_document,
@@ -375,6 +383,12 @@ class OrchestCmds:
 
         if multi_node:
             spec["singleNode"] = False
+
+        if control_plane_selector is not None:
+            spec["controlNodeSelector"] = control_plane_selector
+
+        if worker_plane_selector is not None:
+            spec["workerNodeSelector"] = worker_plane_selector
 
         custom_object = {
             "apiVersion": "orchest.io/v1alpha1",

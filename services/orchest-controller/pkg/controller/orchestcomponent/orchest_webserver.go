@@ -147,6 +147,7 @@ func getOrchestWebserverDeployment(metadata metav1.ObjectMeta,
 					{Name: "attempts", Value: &dnsResolverAttempts},
 				},
 			},
+			NodeSelector: component.Spec.Template.NodeSelector,
 			Containers: []corev1.Container{
 				{
 					Name:            controller.OrchestWebserver,

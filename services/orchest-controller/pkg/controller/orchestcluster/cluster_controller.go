@@ -399,6 +399,11 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 	changed := false
 
+	var controlNodeSelector = copy.Spec.ControlNodeSelector
+	if controlNodeSelector == nil {
+		controlNodeSelector = map[string]string{}
+	}
+
 	// Orchest configs
 	if copy.Spec.Orchest.Version == "" {
 		changed = true
@@ -592,18 +597,50 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		}
 	}
 
-	// set docker-registry default values
 	for i := 0; i < len(copy.Spec.Applications); i++ {
 		app := &copy.Spec.Applications[i]
+		// Docker-registry config.
 		if app.Name == addons.DockerRegistry {
 
-			registryChanged, err := setRegistryServiceIP(ctx, occ.Client(), copy.Namespace, app)
+			registryIpChanged, err := setRegistryServiceIP(ctx, occ.Client(), copy.Namespace, app)
 			if err != nil {
 				klog.Error(err)
 				return changed, err
 			}
 
-			changed = changed || registryChanged
+			registryNodeSelectorChanged, err := setHelmParamNodeSelector(
+				ctx, occ.Client(), copy.Namespace,
+				app, controlNodeSelector, "")
+
+			if err != nil {
+				klog.Error(err)
+				return changed, err
+			}
+
+			changed = changed || registryIpChanged || registryNodeSelectorChanged
+			// Argo config.
+		} else if app.Name == addons.ArgoWorkflow {
+			argoNodeSelectorChanged, err := setHelmParamNodeSelector(
+				ctx, occ.Client(), copy.Namespace,
+				app, controlNodeSelector, "controller.")
+
+			if err != nil {
+				klog.Error(err)
+				return changed, err
+			}
+
+			changed = changed || argoNodeSelectorChanged
+		} else if app.Name == addons.IngressNginx {
+			argoNodeSelectorChanged, err := setHelmParamNodeSelector(
+				ctx, occ.Client(), copy.Namespace,
+				app, controlNodeSelector, "controller.")
+
+			if err != nil {
+				klog.Error(err)
+				return changed, err
+			}
+
+			changed = changed || argoNodeSelectorChanged
 		}
 	}
 
