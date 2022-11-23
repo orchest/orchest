@@ -41,7 +41,8 @@ var (
 	OldBuilderDirName = "image-builder-cache-pvc"
 
 	// Mount paths
-	UserdirMountPath = "/userdir"
+	UserdirMountPath      = "/userdir"
+	OrchestStateMountPath = "/orchest/state"
 
 	// database paths
 	DBMountPath = "/userdir/.orchest/database/data"

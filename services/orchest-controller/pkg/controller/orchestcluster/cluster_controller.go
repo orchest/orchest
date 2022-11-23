@@ -46,7 +46,11 @@ type ControllerConfig struct {
 	OrchestWebserverImageName string
 	// auth-server default image to use if not provided
 	AuthServerImageName string
-	// user-dir volume size if not provided
+	// Default storage class when not specified for a volume.
+	DefaultStorageClass string
+	// Orchest state default volume size if not specified.
+	OrchestStateDefaultVolumeSize string
+	// User-dir default volume size if not specified.
 	UserdirDefaultVolumeSize string
 	// build-dir volume size if not provided
 	BuilddirDefaultVolumeSize string
@@ -212,6 +216,13 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	ctrl.ControleeGetter = occ.getOrchestCluster
 
 	occ.Controller = ctrl
+
+	if occ.config.DefaultStorageClass == "" {
+		sc, err := detectDefaultStorageClass(context.Background(), kClient)
+		if err != nil {
+			occ.config.DefaultStorageClass = sc
+		}
+	}
 
 	return &occ
 }
