@@ -245,23 +245,37 @@ func getOrchestComponent(name, hash string,
 	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, template.Env)
 	template.Env = env
 
-	var orchestLabels map[string]string
-	// TODO: create a defined set of services that go to the control or
-	// worker plane.
-	if name == controller.NodeAgent || name == controller.BuildKitDaemon {
-		orchestLabels = orchest.Spec.WorkerNodeSelector
+	var orchestStateVolumeName string
+	if orchest.Spec.Orchest.Resources.OrchestStateVolume == nil {
+		orchestStateVolumeName = controller.UserDirName
 	} else {
-		orchestLabels = orchest.Spec.ControlNodeSelector
+		orchestStateVolumeName = controller.OrchestStateVolumeName
 	}
-	if len(orchestLabels) > 0 {
-		if template.NodeSelector == nil {
-			template.NodeSelector = make(map[string]string)
-		}
 
-		for key, value := range orchestLabels {
-			template.NodeSelector[key] = value
-		}
-
+	switch name {
+	case controller.OrchestDatabase:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = orchestStateVolumeName
+	case controller.OrchestApi:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = controller.UserDirName
+	case controller.Rabbitmq:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = orchestStateVolumeName
+	case controller.CeleryWorker:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = controller.UserDirName
+	case controller.AuthServer:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+	case controller.OrchestWebserver:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = controller.UserDirName
+	case controller.NodeAgent:
+		template.NodeSelector = orchest.Spec.WorkerNodeSelector
+	case controller.BuildKitDaemon:
+		template.NodeSelector = orchest.Spec.WorkerNodeSelector
+	default:
+		return nil
 	}
 
 	return &orchestv1alpha1.OrchestComponent{

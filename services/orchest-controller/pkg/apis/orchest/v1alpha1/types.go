@@ -105,6 +105,9 @@ type OrchestComponentTemplate struct {
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// Name of the volume backing the component if any.
+	StateVolumeName string `json:"stateVolumeName,omitempty"`
 }
 
 type OrchestComponentStatus struct {

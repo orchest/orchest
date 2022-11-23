@@ -89,10 +89,10 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 			NodeSelector:       component.Spec.Template.NodeSelector,
 			Volumes: []corev1.Volume{
 				{
-					Name: controller.UserDirName,
+					Name: component.Spec.Template.StateVolumeName,
 					VolumeSource: corev1.VolumeSource{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: controller.UserDirName,
+							ClaimName: component.Spec.Template.StateVolumeName,
 							ReadOnly:  false,
 						},
 					},
@@ -129,7 +129,7 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					VolumeMounts: []corev1.VolumeMount{
 						{
-							Name:      controller.UserDirName,
+							Name:      component.Spec.Template.StateVolumeName,
 							MountPath: controller.UserdirMountPath,
 						},
 						{

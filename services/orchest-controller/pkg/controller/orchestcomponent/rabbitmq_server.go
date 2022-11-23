@@ -81,10 +81,10 @@ func getRabbitMqDeployment(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
 				{
-					Name: controller.UserDirName,
+					Name: component.Spec.Template.StateVolumeName,
 					VolumeSource: corev1.VolumeSource{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: controller.UserDirName,
+							ClaimName: component.Spec.Template.StateVolumeName,
 							ReadOnly:  false,
 						},
 					},
@@ -104,7 +104,7 @@ func getRabbitMqDeployment(metadata metav1.ObjectMeta,
 					Env: component.Spec.Template.Env,
 					VolumeMounts: []corev1.VolumeMount{
 						{
-							Name:      controller.UserDirName,
+							Name:      component.Spec.Template.StateVolumeName,
 							MountPath: controller.RabbitmountPath,
 							SubPath:   controller.RabbitSubPath,
 						},
