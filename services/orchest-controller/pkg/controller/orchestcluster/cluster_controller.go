@@ -367,8 +367,22 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
 
 	var err error
-	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
-		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.StorageClassName, metav1.GetOptions{})
+	if occ.config.DefaultStorageClass != "" {
+		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, occ.config.DefaultStorageClass, metav1.GetOptions{})
+		if err != nil && kerrors.IsNotFound(err) {
+			return false, nil
+		}
+	}
+
+	if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
+		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.UserDirVolume.StorageClass, metav1.GetOptions{})
+		if err != nil && kerrors.IsNotFound(err) {
+			return false, nil
+		}
+	}
+
+	if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
+		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.OrchestStateVolume.StorageClass, metav1.GetOptions{})
 		if err != nil && kerrors.IsNotFound(err) {
 			return false, nil
 		}
