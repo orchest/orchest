@@ -2,6 +2,7 @@ package orchestcluster
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"reflect"
 	"regexp"
@@ -36,8 +37,9 @@ var (
 		controller.NodeAgent,
 	}
 
-	legacyDefaultDomain = "index.docker.io"
-	defaultDomain       = "docker.io"
+	defaultStorageClassAnnotation = "storageclass.kubernetes.io/is-default-class"
+	legacyDefaultDomain           = "index.docker.io"
+	defaultDomain                 = "docker.io"
 	// Registry helm parameters
 	registryServiceIP = "service.clusterIP"
 )
@@ -646,4 +648,21 @@ func isNginxIngressInstalled(ctx context.Context, client kubernetes.Interface) b
 
 	return false
 
+}
+
+func detectDefaultStorageClass(ctx context.Context, client kubernetes.Interface) (string, error) {
+
+	// Get the storage class lists
+	scList, err := client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get storage class list")
+	}
+
+	for _, sc := range scList.Items {
+		if value, ok := sc.Annotations[defaultStorageClassAnnotation]; ok && value == "true" {
+			return sc.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to get the default StorageClass")
 }
