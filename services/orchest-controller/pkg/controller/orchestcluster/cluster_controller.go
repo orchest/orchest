@@ -77,15 +77,16 @@ type ControllerConfig struct {
 
 func NewDefaultControllerConfig() ControllerConfig {
 	return ControllerConfig{
-		PostgresDefaultImage:      "postgres:13.1",
-		RabbitmqDefaultImage:      "rabbitmq:3",
-		OrchestDefaultVersion:     version.Version,
-		CeleryWorkerImageName:     "orchest/celery-worker",
-		OrchestApiImageName:       "orchest/orchest-api",
-		OrchestWebserverImageName: "orchest/orchest-webserver",
-		AuthServerImageName:       "orchest/auth-server",
-		UserdirDefaultVolumeSize:  "50Gi",
-		BuilddirDefaultVolumeSize: "25Gi",
+		PostgresDefaultImage:          "postgres:13.1",
+		RabbitmqDefaultImage:          "rabbitmq:3",
+		OrchestDefaultVersion:         version.Version,
+		CeleryWorkerImageName:         "orchest/celery-worker",
+		OrchestApiImageName:           "orchest/orchest-api",
+		OrchestWebserverImageName:     "orchest/orchest-webserver",
+		AuthServerImageName:           "orchest/auth-server",
+		UserdirDefaultVolumeSize:      "50Gi",
+		OrchestStateDefaultVolumeSize: "5Gi",
+		BuilddirDefaultVolumeSize:     "25Gi",
 		OrchestDefaultEnvVars: map[string]string{
 			"PYTHONUNBUFFERED":  "TRUE",
 			"ORCHEST_LOG_LEVEL": "INFO",
@@ -572,9 +573,28 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.RabbitMq.Env = utils.GetEnvVarFromMap(occ.config.RabbitmqDefaultEnvVars)
 	}
 
+	// If not specified assume that we are in the mode which splits
+	// userdir and orchest state.
 	if copy.Spec.Orchest.Resources.UserDirVolumeSize == "" {
-		changed = true
-		copy.Spec.Orchest.Resources.UserDirVolumeSize = occ.config.UserdirDefaultVolumeSize
+
+		if copy.Spec.Orchest.Resources.UserDirVolume == nil {
+			changed = true
+			copy.Spec.Orchest.Resources.UserDirVolume = &orchestv1alpha1.Volume{
+				StorageClass: occ.config.DefaultStorageClass,
+				VolumeSize:   occ.config.UserdirDefaultVolumeSize,
+				MountPath:    controller.UserdirMountPath,
+			}
+		}
+
+		if copy.Spec.Orchest.Resources.OrchestStateVolume == nil {
+			changed = true
+			copy.Spec.Orchest.Resources.OrchestStateVolume = &orchestv1alpha1.Volume{
+				StorageClass: occ.config.DefaultStorageClass,
+				VolumeSize:   occ.config.OrchestStateDefaultVolumeSize,
+				MountPath:    controller.OrchestStateMountPath,
+			}
+
+		}
 	}
 
 	if copy.Spec.Applications == nil {
@@ -785,7 +805,8 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 	generation := fmt.Sprint(orchest.Generation)
 
 	// This is to avoid breaking changes w.r.t. the previous setup where
-	// the userdir and Orchest state were in the same pvc.
+	// the userdir and Orchest state were in the same pvc. TODO: better
+	// abstract the two different setups.
 	if orchest.Spec.Orchest.Resources.UserDirVolumeSize != "" {
 		var madeUpVolume = orchestv1alpha1.Volume{
 			VolumeSize: orchest.Spec.Orchest.Resources.UserDirVolumeSize,
