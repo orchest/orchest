@@ -34,7 +34,8 @@ var (
 	BuildKitDaemon    = "buildkit-daemon"
 
 	// PVC names
-	UserDirName = "userdir-pvc"
+	UserDirName            = "userdir-pvc"
+	OrchestStateVolumeName = "orchest-state"
 
 	// Deprecated, the PVC is removed.
 	OldBuilderDirName = "image-builder-cache-pvc"

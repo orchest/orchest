@@ -70,7 +70,7 @@ func registryCertgen(ctx context.Context,
 	return nil
 }
 
-func getPersistentVolumeClaim(name, volumeSize, hash string,
+func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume,
 	orchest *orchestv1alpha1.OrchestCluster) *corev1.PersistentVolumeClaim {
 
 	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
@@ -84,13 +84,13 @@ func getPersistentVolumeClaim(name, volumeSize, hash string,
 		AccessModes: []corev1.PersistentVolumeAccessMode{accessMode},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volumeSize),
+				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volume.VolumeSize),
 			},
 		},
 	}
 
-	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
-		spec.StorageClassName = &orchest.Spec.Orchest.Resources.StorageClassName
+	if volume.StorageClass != "" {
+		spec.StorageClassName = &volume.StorageClass
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{

@@ -84,10 +84,13 @@ type Volume struct {
 type OrchestResourcesSpec struct {
 	UserDirVolume *Volume `json:"userDirVolume,omitempty"`
 
-	OrchestStateVolume *Volume `json:"orchestVolume,omitempty"`
+	OrchestStateVolume *Volume `json:"orchestStateVolume,omitempty"`
+
+	// Used by old and "normal" deployments not involving separate
+	// userdir and orchest state volumes.
+	UserDirVolumeSize string `json:"userDirVolumeSize,omitempty"`
 
 	// Deprecated.
-	UserDirVolumeSize   string `json:"userDirVolumeSize,omitempty"`
 	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
 }
 

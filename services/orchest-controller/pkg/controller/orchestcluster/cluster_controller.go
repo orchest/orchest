@@ -759,10 +759,31 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 
 	generation := fmt.Sprint(orchest.Generation)
 
-	err = occ.ensurePvc(ctx, generation, controller.UserDirName,
-		orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
-	if err != nil {
-		return err
+	// This is to avoid breaking changes w.r.t. the previous setup where
+	// the userdir and Orchest state were in the same pvc.
+	if orchest.Spec.Orchest.Resources.UserDirVolumeSize != "" {
+		var madeUpVolume = orchestv1alpha1.Volume{
+			VolumeSize: orchest.Spec.Orchest.Resources.UserDirVolumeSize,
+		}
+		err = occ.ensurePvc(ctx, generation, controller.UserDirName,
+			madeUpVolume, orchest)
+	} else {
+		if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
+			err = occ.ensurePvc(ctx, generation, controller.UserDirName,
+				*orchest.Spec.Orchest.Resources.UserDirVolume, orchest)
+
+			if err != nil {
+				return err
+			}
+		}
+
+		if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
+			err = occ.ensurePvc(ctx, generation, controller.OrchestStateVolumeName,
+				*orchest.Spec.Orchest.Resources.OrchestStateVolume, orchest)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	err = occ.ensureRbacs(ctx, generation, orchest)
@@ -859,11 +880,12 @@ func (occ *OrchestClusterController) stopOrchest(ctx context.Context, orchest *o
 	return stopped, err
 }
 
-func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, name, size string, orchest *orchestv1alpha1.OrchestCluster) error {
+func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, name string,
+	volume orchestv1alpha1.Volume, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// Retrive the created pvcs
 	oldPvc, err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Get(ctx, name, metav1.GetOptions{})
-	newPvc := getPersistentVolumeClaim(name, size, curHash, orchest)
+	newPvc := getPersistentVolumeClaim(name, curHash, volume, orchest)
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		_, err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Create(ctx, newPvc, metav1.CreateOptions{})
