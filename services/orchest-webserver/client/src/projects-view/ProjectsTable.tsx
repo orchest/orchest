@@ -37,10 +37,10 @@ export const ProjectsTable = () => {
       event.preventDefault();
       event.stopPropagation();
 
-      setMenuAnchorEl(menuAnchorEl);
+      setMenuAnchorEl(event.target as HTMLElement);
       setOpenProject(projects.find(({ uuid }) => uuid === projectUuid));
     },
-    [projects, menuAnchorEl]
+    [projects]
   );
 
   const closeContextMenu = React.useCallback(() => {
@@ -110,7 +110,7 @@ export const ProjectsTable = () => {
         rows={projectRows}
         data-test-id="projects-table"
       />
-      {openProject && (
+      {openProject && menuAnchorEl && (
         <ProjectContextMenu
           project={openProject}
           anchorEl={menuAnchorEl}
