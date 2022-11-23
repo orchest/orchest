@@ -90,6 +90,9 @@ type OrchestResourcesSpec struct {
 	// userdir and orchest state volumes.
 	UserDirVolumeSize string `json:"userDirVolumeSize,omitempty"`
 
+	SeparateOrchestStateFromUserDir bool   `json:"separateOrchestStateFromUserDir,omitempty"`
+	OrchestStateVolumeSize          string `json:"orchestStateVolumeSize,omitempty"`
+
 	// Deprecated.
 	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
 }

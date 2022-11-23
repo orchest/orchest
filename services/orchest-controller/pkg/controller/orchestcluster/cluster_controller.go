@@ -573,15 +573,25 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 		copy.Spec.RabbitMq.Env = utils.GetEnvVarFromMap(occ.config.RabbitmqDefaultEnvVars)
 	}
 
+	if copy.Spec.Orchest.Resources.UserDirVolumeSize == "" {
+		changed = true
+		copy.Spec.Orchest.Resources.UserDirVolumeSize = occ.config.UserdirDefaultVolumeSize
+	}
+
+	if copy.Spec.Orchest.Resources.OrchestStateVolumeSize == "" {
+		changed = true
+		copy.Spec.Orchest.Resources.OrchestStateVolumeSize = occ.config.OrchestStateDefaultVolumeSize
+	}
+
 	// If not specified assume that we are in the mode which splits
 	// userdir and orchest state.
-	if copy.Spec.Orchest.Resources.UserDirVolumeSize == "" {
+	if copy.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
 
 		if copy.Spec.Orchest.Resources.UserDirVolume == nil {
 			changed = true
 			copy.Spec.Orchest.Resources.UserDirVolume = &orchestv1alpha1.Volume{
 				StorageClass: occ.config.DefaultStorageClass,
-				VolumeSize:   occ.config.UserdirDefaultVolumeSize,
+				VolumeSize:   copy.Spec.Orchest.Resources.UserDirVolumeSize,
 				MountPath:    controller.UserdirMountPath,
 			}
 		}
@@ -590,7 +600,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 			changed = true
 			copy.Spec.Orchest.Resources.OrchestStateVolume = &orchestv1alpha1.Volume{
 				StorageClass: occ.config.DefaultStorageClass,
-				VolumeSize:   occ.config.OrchestStateDefaultVolumeSize,
+				VolumeSize:   copy.Spec.Orchest.Resources.OrchestStateVolumeSize,
 				MountPath:    controller.OrchestStateMountPath,
 			}
 
@@ -805,9 +815,8 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 	generation := fmt.Sprint(orchest.Generation)
 
 	// This is to avoid breaking changes w.r.t. the previous setup where
-	// the userdir and Orchest state were in the same pvc. TODO: better
-	// abstract the two different setups.
-	if orchest.Spec.Orchest.Resources.UserDirVolumeSize != "" {
+	// the userdir and Orchest state were in the same pvc.
+	if !orchest.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
 		var madeUpVolume = orchestv1alpha1.Volume{
 			VolumeSize: orchest.Spec.Orchest.Resources.UserDirVolumeSize,
 		}
