@@ -25,11 +25,7 @@ export const ProjectsView = () => {
   const {
     state: { hasCompletedOnboarding },
   } = useGlobalContext();
-  const { projects, isLoaded } = useFetchProjects({
-    skipDiscovery: false,
-    activeJobCounts: true,
-    sessionCounts: false,
-  });
+  const { projects, isLoaded } = useFetchProjects();
   const { navigateTo } = useCustomRoute();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
 
