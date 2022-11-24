@@ -1,5 +1,6 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActiveProject } from "@/hooks/useActiveProject";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { siteMap } from "@/routingConfig";
 import AddIcon from "@mui/icons-material/Add";
 import Box from "@mui/material/Box";
@@ -19,16 +20,17 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
   sx,
 }) => {
   const { navigateTo } = useCustomRoute();
-  const {
-    state: { hasLoadedProjects, projectUuid },
-  } = useProjectsContext();
+  const { isLoaded: hasLoadedProjects } = useFetchProjects();
+  const activeProject = useActiveProject();
 
   const goToProjects = (e: React.MouseEvent) =>
     navigateTo(siteMap.projects.path, undefined, e);
 
+  if (!hasLoadedProjects) return null;
+
   return (
     <Box className="view-page" sx={sx}>
-      {!hasLoadedProjects ? null : projectUuid ? (
+      {activeProject?.uuid ? (
         children
       ) : (
         <div>

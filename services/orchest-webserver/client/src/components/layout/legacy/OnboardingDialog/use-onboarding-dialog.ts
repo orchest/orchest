@@ -1,11 +1,12 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useOnboardingDialog = () => {
+  const { projects } = useFetchProjects();
   const {
     state: { isShowingOnboarding },
     dispatch,
@@ -16,17 +17,17 @@ export const useOnboardingDialog = () => {
     false
   );
 
-  const projectsContext = useProjectsContext();
   const [importUrl] = useImportUrlFromQueryString();
 
-  const findQuickstart = projectsContext.state.projects?.find(
+  const quickstartProject = projects?.find(
     (project) => project.path === "quickstart"
   );
+
   const quickstart =
-    typeof findQuickstart === "undefined"
+    typeof quickstartProject === "undefined"
       ? undefined
       : {
-          project_uuid: findQuickstart.uuid,
+          project_uuid: quickstartProject.uuid,
           pipeline_uuid: "0915b350-b929-4cbd-b0d4-763cac0bb69f",
         };
 

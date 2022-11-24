@@ -23,18 +23,23 @@ export const DesignProvider: React.FC = ({ children }) => {
 
 /**
  * Providers that are specific to Orchest core, outer provider represents higher-level logic
- * - GlobalContext: app config, top-level UI config
  * - SessionsContext: handling sessions for the user
- * - ProjectsContext: handling the logic for projects, pipelines, etc.
+ * - ProjectContext: managing the active project
  */
 export const OrchestProvider: React.FC = ({ children }) => {
   return (
-    <GlobalContextProvider>
-      <Intercom>
-        <ProjectsContextProvider>
-          <SessionsContextProvider>{children}</SessionsContextProvider>
-        </ProjectsContextProvider>
-      </Intercom>
-    </GlobalContextProvider>
+    <ProjectsContextProvider>
+      <SessionsContextProvider>{children}</SessionsContextProvider>
+    </ProjectsContextProvider>
+  );
+};
+
+export const GlobalProviders: React.FC = ({ children }) => {
+  return (
+    <DesignProvider>
+      <GlobalContextProvider>
+        <Intercom>{children}</Intercom>
+      </GlobalContextProvider>
+    </DesignProvider>
   );
 };
