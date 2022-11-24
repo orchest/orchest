@@ -1,4 +1,4 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActiveProject } from "@/hooks/useActiveProject";
 import { ellipsis } from "@/utils/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
@@ -14,20 +14,14 @@ export const ProjectSelectorToggle = ({
   tabIndex,
   onClick,
   isOpen,
-  validProjectUuid,
 }: {
   tabIndex?: number;
   onClick: () => void;
   isOpen: boolean;
   validProjectUuid: string | undefined;
 }) => {
-  const {
-    state: { projects = [] },
-  } = useProjectsContext();
-  const projectName = React.useMemo(() => {
-    const found = projects.find((project) => project.uuid === validProjectUuid);
-    return found?.path;
-  }, [projects, validProjectUuid]);
+  const activeProject = useActiveProject();
+  const projectName = activeProject?.path;
 
   return (
     <Button

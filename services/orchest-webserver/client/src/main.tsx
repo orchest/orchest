@@ -3,7 +3,7 @@ import GlobalStyles from "@mui/material/GlobalStyles";
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
-import { DesignProvider, OrchestProvider } from "./contexts/Providers";
+import { GlobalProviders } from "./contexts/Providers";
 import Jupyter from "./jupyter/Jupyter";
 
 declare global {
@@ -29,7 +29,7 @@ window.addEventListener("load", async () => {
     await document.fonts.ready;
 
     ReactDOM.render(
-      <DesignProvider>
+      <GlobalProviders>
         <GlobalStyles
           styles={{
             "html, body": { height: "100%" },
@@ -38,11 +38,9 @@ window.addEventListener("load", async () => {
             },
           }}
         />
-        <OrchestProvider>
-          <CssBaseline />
-          <App />
-        </OrchestProvider>
-      </DesignProvider>,
+        <CssBaseline />
+        <App />
+      </GlobalProviders>,
       document.querySelector("#root")
     );
   } catch (error) {

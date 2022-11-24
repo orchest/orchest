@@ -12,6 +12,7 @@ import { OnboardingDialog } from "./components/layout/legacy/OnboardingDialog";
 import { SystemDialog } from "./components/SystemDialog";
 import { AppContextProvider } from "./contexts/AppContext";
 import { useGlobalContext } from "./contexts/GlobalContext";
+import { OrchestProvider } from "./contexts/Providers";
 import { HeaderBar } from "./header-bar/HeaderBar";
 import { useEditJob } from "./jobs-view/stores/useEditJob";
 import Jupyter from "./jupyter/Jupyter";
@@ -99,31 +100,36 @@ const App = () => {
         }
       }}
     >
-      <AppContextProvider>
-        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          <HeaderBar />
-          <Box
-            component="main"
-            sx={{
-              flex: 1,
-              overflow: "hidden",
-              position: "relative",
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
-            }}
-            id="main-content"
-            data-test-id="app"
-          >
-            <Routes />
-            <div ref={jupyterRef} className="persistent-view jupyter hidden" />
+      <OrchestProvider>
+        <AppContextProvider>
+          <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            <HeaderBar />
+            <Box
+              component="main"
+              sx={{
+                flex: 1,
+                overflow: "hidden",
+                position: "relative",
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+              }}
+              id="main-content"
+              data-test-id="app"
+            >
+              <Routes />
+              <div
+                ref={jupyterRef}
+                className="persistent-view jupyter hidden"
+              />
+            </Box>
           </Box>
-        </Box>
-        <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
-        <SystemDialog />
-        <OnboardingDialog />
-        <CommandPalette />
-      </AppContextProvider>
+          <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
+          <SystemDialog />
+          <OnboardingDialog />
+          <CommandPalette />
+        </AppContextProvider>
+      </OrchestProvider>
     </Router>
   );
 };

@@ -1,5 +1,5 @@
 import { SearchField } from "@/components/SearchField";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { ellipsis } from "@/utils/styles";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
 import Box from "@mui/material/Box";
@@ -22,9 +22,7 @@ export const ProjectSelectorMenuList = ({
     HTMLTextAreaElement | HTMLInputElement
   >;
 }) => {
-  const {
-    state: { projects = [] },
-  } = useProjectsContext();
+  const { projects } = useFetchProjects();
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
   const { searchTerm, setSearchTerm, filteredProjects } = useProjectList(
     projects
