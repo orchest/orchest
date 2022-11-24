@@ -174,6 +174,7 @@ class OrchestCmds:
         registry_pvc_size: int,
         control_plane_selector: t.Optional[t.Dict[str, str]],
         worker_plane_selector: t.Optional[t.Dict[str, str]],
+        separate_orchest_state_from_userdir: bool,
         **kwargs,
     ) -> None:
         """Installs Orchest."""
@@ -377,6 +378,7 @@ class OrchestCmds:
                 "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "resources": {
                     "userDirVolumeSize": f"{userdir_pvc_size}Gi",
+                    "separateOrchestStateFromUserDir": separate_orchest_state_from_userdir,  # noqa
                 },
             },
         }

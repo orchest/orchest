@@ -277,6 +277,15 @@ def _parse_labels_to_dict(ctx, param, value) -> t.Optional[t.Dict[str, str]]:
     help="Label of nodes for the Orchest workers.",
     callback=_parse_labels_to_dict,
 )
+@click.option(
+    "--separate-orchest-state-from-userdir",
+    "separate_orchest_state_from_userdir",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Create different volumes for the userdir and Orchest state.",
+)
 @cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 def install(
     multi_node: bool,
@@ -291,6 +300,7 @@ def install(
     registry_pvc_size: int,
     control_plane_labels: t.Optional[t.Dict[str, str]],
     workers_plane_labels: t.Optional[t.Dict[str, str]],
+    separate_orchest_state_from_userdir: bool,
     **common_options,
 ) -> None:
     """Install Orchest."""
@@ -311,6 +321,7 @@ def install(
         registry_pvc_size,
         control_plane_labels,
         workers_plane_labels,
+        separate_orchest_state_from_userdir,
         **common_options,
     )
 
