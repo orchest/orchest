@@ -3,26 +3,7 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { usePollBackgroundTask } from "@/hooks/useBackgroundTask";
 import React from "react";
 
-export const validProjectName = (
-  projectName: unknown
-): { valid: true; value: string } | { valid: false; reason: string } => {
-  const headsUpText = "Please make sure you enter a valid project name. ";
-  if (
-    typeof projectName !== "string" ||
-    projectName.length === 0 ||
-    projectName.match("[^A-Za-z0-9_.-]")
-  ) {
-    return {
-      valid: false,
-      reason:
-        headsUpText +
-        `A project name has to be a valid git repository name and thus can only contain alphabetic characters, numbers and the special characters: '_.-'. The regex would be [A-Za-z0-9_.-].`,
-    };
-  }
-  return { valid: true, value: projectName };
-};
-
-export const useImportGitRepo = (importUrl: string) => {
+export const useGitImport = (importUrl: string) => {
   const [importTaskUuid, setImportTaskUuid] = React.useState<string>();
   const { setAlert } = useGlobalContext();
 
@@ -56,4 +37,23 @@ export const useImportGitRepo = (importUrl: string) => {
     /** The error if the import failed, otherwise `undefined`. */
     error: status === "FAILURE" ? result : undefined,
   };
+};
+
+export const validProjectName = (
+  projectName: unknown
+): { valid: true; value: string } | { valid: false; reason: string } => {
+  const headsUpText = "Please make sure you enter a valid project name. ";
+  if (
+    typeof projectName !== "string" ||
+    projectName.length === 0 ||
+    projectName.match("[^A-Za-z0-9_.-]")
+  ) {
+    return {
+      valid: false,
+      reason:
+        headsUpText +
+        `A project name has to be a valid git repository name and thus can only contain alphabetic characters, numbers and the special characters: '_.-'. The regex would be [A-Za-z0-9_.-].`,
+    };
+  }
+  return { valid: true, value: projectName };
 };
