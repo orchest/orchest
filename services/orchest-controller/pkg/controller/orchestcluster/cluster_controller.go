@@ -221,7 +221,7 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 
 	if occ.config.DefaultStorageClass == "" {
 		sc, err := detectDefaultStorageClass(context.Background(), kClient)
-		if err != nil {
+		if err == nil {
 			occ.config.DefaultStorageClass = sc
 		}
 	}
@@ -595,6 +595,15 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 				VolumeSize:   copy.Spec.Orchest.Resources.UserDirVolumeSize,
 				MountPath:    controller.UserdirMountPath,
 			}
+		} else {
+			if copy.Spec.Orchest.Resources.UserDirVolume.VolumeSize == "" {
+				changed = true
+				copy.Spec.Orchest.Resources.UserDirVolume.VolumeSize = copy.Spec.Orchest.Resources.UserDirVolumeSize
+			}
+			if copy.Spec.Orchest.Resources.UserDirVolume.StorageClass == "" {
+				changed = true
+				copy.Spec.Orchest.Resources.UserDirVolume.StorageClass = occ.config.DefaultStorageClass
+			}
 		}
 
 		if copy.Spec.Orchest.Resources.OrchestStateVolume == nil {
@@ -604,7 +613,15 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 				VolumeSize:   copy.Spec.Orchest.Resources.OrchestStateVolumeSize,
 				MountPath:    controller.OrchestStateMountPath,
 			}
-
+		} else {
+			if copy.Spec.Orchest.Resources.OrchestStateVolume.VolumeSize == "" {
+				changed = true
+				copy.Spec.Orchest.Resources.OrchestStateVolume.VolumeSize = copy.Spec.Orchest.Resources.OrchestStateVolumeSize
+			}
+			if copy.Spec.Orchest.Resources.OrchestStateVolume.StorageClass == "" {
+				changed = true
+				copy.Spec.Orchest.Resources.OrchestStateVolume.StorageClass = occ.config.DefaultStorageClass
+			}
 		}
 	}
 

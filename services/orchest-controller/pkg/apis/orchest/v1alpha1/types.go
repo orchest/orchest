@@ -76,9 +76,9 @@ const (
 )
 
 type Volume struct {
-	VolumeSize   string `json:"volumeSize"`
-	MountPath    string `json:"mountPath"`
-	StorageClass string `json:"storageClass"`
+	VolumeSize   string `json:"volumeSize,omitempty"`
+	MountPath    string `json:"mountPath,omitempty"`
+	StorageClass string `json:"storageClass,omitempty"`
 }
 
 type OrchestResourcesSpec struct {

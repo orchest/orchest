@@ -246,10 +246,13 @@ func getOrchestComponent(name, hash string,
 	template.Env = env
 
 	var orchestStateVolumeName string
-	if orchest.Spec.Orchest.Resources.OrchestStateVolume == nil {
-		orchestStateVolumeName = controller.UserDirName
-	} else {
+
+	if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil &&
+		orchest.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
 		orchestStateVolumeName = controller.OrchestStateVolumeName
+	} else {
+
+		orchestStateVolumeName = controller.UserDirName
 	}
 
 	switch name {

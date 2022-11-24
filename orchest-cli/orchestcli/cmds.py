@@ -171,6 +171,9 @@ class OrchestCmds:
         fqdn: t.Optional[str],
         socket_path: t.Optional[str],
         userdir_pvc_size: int,
+        userdir_pvc_storage_class: t.Optional[str],
+        orchest_state_pvc_size: t.Optional[int],
+        orchest_state_pvc_storage_class: t.Optional[str],
         registry_pvc_size: int,
         control_plane_selector: t.Optional[t.Dict[str, str]],
         worker_plane_selector: t.Optional[t.Dict[str, str]],
@@ -370,16 +373,29 @@ class OrchestCmds:
                 }
             )
 
+        resources = {
+            "userDirVolumeSize": f"{userdir_pvc_size}Gi",
+            "separateOrchestStateFromUserDir": separate_orchest_state_from_userdir,
+        }
+
+        if orchest_state_pvc_size is not None:
+            resources["orchestStateVolumeSize"] = f"{orchest_state_pvc_size}Gi"
+
+        if userdir_pvc_storage_class is not None:
+            resources["userDirVolume"] = {"storageClass": userdir_pvc_storage_class}
+
+        if orchest_state_pvc_storage_class is not None:
+            resources["orchestStateVolume"] = {
+                "storageClass": orchest_state_pvc_storage_class
+            }
+
         spec = {
             "applications": applications,
             "orchest": {
                 "orchestHost": fqdn,
                 "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
-                "resources": {
-                    "userDirVolumeSize": f"{userdir_pvc_size}Gi",
-                    "separateOrchestStateFromUserDir": separate_orchest_state_from_userdir,  # noqa
-                },
+                "resources": resources,
             },
         }
 

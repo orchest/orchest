@@ -244,6 +244,31 @@ def _parse_labels_to_dict(ctx, param, value) -> t.Optional[t.Dict[str, str]]:
     help="Size of the userdir volume claim in Gi.",
 )
 @click.option(
+    "--userdir-pvc-storage-class",
+    "userdir_pvc_storage_class",
+    type=str,
+    default=None,
+    show_default=True,
+    hidden=True,
+)
+@click.option(
+    "--orchest-state-pvc-size",
+    "orchest_state_pvc_size",
+    type=click.IntRange(min=2),
+    default=None,
+    show_default=True,
+    hidden=True,
+    help="Size of the orchest state volume claim in Gi.",
+)
+@click.option(
+    "--orchest-state-pvc-storage-class",
+    "orchest_state_pvc_storage_class",
+    type=str,
+    default=None,
+    show_default=True,
+    hidden=True,
+)
+@click.option(
     "--builder-pvc-size",
     "builder_pvc_size",
     type=click.IntRange(min=5),
@@ -296,6 +321,9 @@ def install(
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
     userdir_pvc_size: int,
+    userdir_pvc_storage_class: t.Optional[str],
+    orchest_state_pvc_size: t.Optional[int],
+    orchest_state_pvc_storage_class: t.Optional[str],
     builder_pvc_size: int,
     registry_pvc_size: int,
     control_plane_labels: t.Optional[t.Dict[str, str]],
@@ -318,6 +346,9 @@ def install(
         fqdn,
         socket_path,
         userdir_pvc_size,
+        userdir_pvc_storage_class,
+        orchest_state_pvc_size,
+        orchest_state_pvc_storage_class,
         registry_pvc_size,
         control_plane_labels,
         workers_plane_labels,
