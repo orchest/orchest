@@ -264,7 +264,11 @@ func getOrchestComponent(name, hash string,
 		template.StateVolumeName = orchestStateVolumeName
 	case controller.CeleryWorker:
 		template.NodeSelector = orchest.Spec.ControlNodeSelector
-		template.StateVolumeName = controller.UserDirName
+		if orchest.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
+			template.StateVolumeName = controller.OrchestStateVolumeName
+		} else {
+			template.StateVolumeName = controller.UserDirName
+		}
 	case controller.AuthServer:
 		template.NodeSelector = orchest.Spec.ControlNodeSelector
 	case controller.OrchestWebserver:

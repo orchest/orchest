@@ -112,6 +112,7 @@ func NewDefaultControllerConfig() ControllerConfig {
 		CeleryWorkerDefaultEnvVars: map[string]string{
 			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
 			"FLASK_ENV":                    "production",
+			"CELERY_STATE_DIR":             "/userdir/.orchest",
 		},
 		OrchestDatabaseDefaultEnvVars: map[string]string{
 			"PGDATA":                    controller.DBMountPath,
