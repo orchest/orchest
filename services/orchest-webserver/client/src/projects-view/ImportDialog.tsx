@@ -46,7 +46,7 @@ import {
   validURL,
 } from "@orchest/lib-utils";
 import React from "react";
-import { useImportGitRepo, validProjectName } from "./hooks/useImportGitRepo";
+import { useGitImport, validProjectName } from "./hooks/useGitImport";
 
 const ERROR_MAPPING: Record<string, string> = {
   "git clone failed":
@@ -284,7 +284,7 @@ export const ImportDialog = ({
     onClose();
   }, [cancelAll, deleteTempProject, onClose, reset]);
 
-  const gitImport = useImportGitRepo(importUrl);
+  const gitImport = useGitImport(importUrl);
 
   React.useEffect(() => {
     const succeeded = hasValue(gitImport.path);
