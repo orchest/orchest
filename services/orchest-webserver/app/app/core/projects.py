@@ -6,7 +6,8 @@ import uuid
 from typing import List, Optional
 
 import requests
-from flask import current_app, safe_join
+from flask import current_app
+from werkzeug.utils import safe_join
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from _orchest.internals.utils import rmtree
