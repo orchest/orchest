@@ -5,7 +5,9 @@ import { fetcher, HEADER } from "@orchest/lib-utils";
 
 export const PROJECTS_API_URL = "/async/projects";
 
-export type PutProjectData = Partial<Omit<Project, "uuid"> & { name: string }>;
+export type ProjectUpdateData = Partial<
+  Omit<Project, "uuid"> & { name: string }
+>;
 
 export type NewProjectData = { project_uuid: string };
 
@@ -28,7 +30,10 @@ const deleteProject = (projectUuid: string): Promise<void> =>
  * @param projectUuid The UUID of the project to update
  * @param data What information should be updated
  */
-export const put = (projectUuid: string, data: PutProjectData): Promise<void> =>
+export const put = (
+  projectUuid: string,
+  data: ProjectUpdateData
+): Promise<void> =>
   fetcher(join(PROJECTS_API_URL, projectUuid), {
     method: "PUT",
     headers: HEADER.JSON,
@@ -49,9 +54,9 @@ export const importGitRepo = (url: string, projectName?: string) =>
 
 /** Fetches all available projects. */
 export const fetchAll = ({
-  sessionCounts = false,
-  activeJobCounts = false,
-  skipDiscovery = true,
+  sessionCounts = true,
+  activeJobCounts = true,
+  skipDiscovery = false,
 } = {}): Promise<Project[]> =>
   fetcher(
     PROJECTS_API_URL +
@@ -59,13 +64,13 @@ export const fetchAll = ({
       queryArgs({ sessionCounts, activeJobCounts, skipDiscovery })
   );
 
-/** Creates a new project with the provided name. */
+/** Creates a new project with the provided name, then returns its UUID. */
 export const post = (projectName: string) =>
-  fetcher<NewProjectData>("/async/projects", {
+  fetcher<NewProjectData>(PROJECTS_API_URL, {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({ name: projectName }),
-  });
+  }).then((data) => data.project_uuid);
 
 export const projectsApi = {
   fetchOne,

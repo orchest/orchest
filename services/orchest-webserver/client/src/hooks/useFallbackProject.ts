@@ -12,18 +12,20 @@ export const useFallbackProject = () => {
   const projects = useProjectsApi((api) => api.projects);
   const [storedUuid, setStoredUuid] = useLocalStorage(STORAGE_KEY, "");
 
-  const lastUsedProject = React.useMemo(
+  const fallback = React.useMemo(
     () =>
       Boolean(storedUuid)
         ? projects?.find(({ uuid }) => uuid === storedUuid)
-        : undefined,
+        : projects?.[0],
     [projects, storedUuid]
   );
 
-  const update = React.useCallback(
+  const setFallback = React.useCallback(
     (uuid: string | undefined) => setStoredUuid(uuid ?? ""),
     [setStoredUuid]
   );
 
-  return [lastUsedProject ?? projects?.[0], update] as const;
+  console.log(fallback?.path);
+
+  return { fallback, setFallback };
 };

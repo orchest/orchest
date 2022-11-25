@@ -1,14 +1,11 @@
-import { projectsApi } from "@/api/projects/projectsApi";
+import { useProjectsApi } from "@/api/projects/useProjectsApi";
+import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import {
-  INITIAL_PIPELINE_NAME,
-  INITIAL_PIPELINE_PATH,
-} from "@/pipeline-view/CreatePipelineDialog";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { siteMap } from "@/routingConfig";
-import { Project } from "@/types";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -18,11 +15,6 @@ import TextField from "@mui/material/TextField";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useProjectName } from "./hooks/useProjectName";
-
-const defaultPipeline = {
-  name: INITIAL_PIPELINE_NAME,
-  pipeline_path: INITIAL_PIPELINE_PATH,
-};
 
 type CreateProjectDialogProps = {
   open?: boolean;
@@ -39,10 +31,9 @@ export const CreateProjectDialog = ({
 }: CreateProjectDialogProps) => {
   const { setAlert } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
-  const {
-    state: { projects = [] },
-    dispatch,
-  } = useProjectsContext();
+  const { dispatch } = useProjectsContext();
+  const { projects } = useFetchProjects();
+  const createProject = useProjectsApi((api) => api.create);
 
   const { isOpen, onClose, onOpen } = useControlledIsOpen(
     isOpenByParent,
@@ -63,37 +54,18 @@ export const CreateProjectDialog = ({
 
     onClose();
     try {
-      const { project_uuid: projectUuid } = await projectsApi.post(projectName);
+      const newProject = await createProject(projectName);
 
-      dispatch((state) => {
-        const currentProjects = state.projects || [];
-        const newProject: Project = {
-          path: projectName,
-          uuid: projectUuid,
-          pipeline_count: 0,
-          active_job_count: 0,
-          environment_count: 1, // by default, a project gets an environment Python 3
-          project_snapshot_size: 0,
-          env_variables: {},
-          status: "READY",
-        };
-        return {
-          type: "SET_PROJECTS",
-          payload: [...currentProjects, newProject],
-        };
-      });
-
-      dispatch({ type: "SET_PROJECT", payload: projectUuid });
+      dispatch({ type: "SET_PROJECT", payload: newProject.uuid });
       postCreateCallback?.();
+
       navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid: projectUuid },
+        query: { projectUuid: newProject.uuid },
       });
     } catch (error) {
       postCreateCallback?.();
-      setAlert(
-        "Error",
-        `Could not create project. ${error.message || "Reason unknown."}`
-      );
+
+      setAlert("Failed to create project", <ErrorSummary error={error} />);
     }
   };
 
