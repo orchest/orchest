@@ -86,7 +86,7 @@ html_theme_options = {
         {"url": "https://orchest.io", "name": "Website"},
     ],
     "navbar_align": "left",
-    "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    "page_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
     "navbar_center": ["navbar-nav"],
     "navbar_end": ["theme-switcher", "navbar-icon-links.html", "search-field.html"],
     "show_toc_level": 1,

@@ -2,6 +2,16 @@ window.document.addEventListener("DOMContentLoaded", function () {
   const CONTAINER_CLASS = ".installer-container";
 
   let installerData = {
+    "Orchest Cloud": {
+      Managed: {
+        instructions: `
+<p>
+Simply go to <a href="https://cloud.orchest.io/signup">Orchest Cloud</a> and get up and running
+immediately 🔥.
+</p>
+            `,
+      },
+    },
     Cloud: {
       EKS: {
         instructions: `
