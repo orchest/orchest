@@ -802,7 +802,8 @@ def register_views(app, db):
             if os.path.isfile(file_path):
                 try:
 
-                    html_exporter = HTMLExporter({"embed_images": True})
+                    html_exporter = HTMLExporter()
+                    html_exporter.embed_images = True
 
                     (file_content, _) = html_exporter.from_filename(file_path)
 
