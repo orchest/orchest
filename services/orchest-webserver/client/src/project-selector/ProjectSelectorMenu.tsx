@@ -56,9 +56,7 @@ export const ProjectSelectorMenu = ({
     if (isProjectPage(window.location.pathname)) {
       navigateTo(window.location.pathname, { query: { projectUuid } });
     } else {
-      window.setTimeout(() => {
-        setFallback(projectUuid);
-      }, 300);
+      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
     }
 
     onClose();
