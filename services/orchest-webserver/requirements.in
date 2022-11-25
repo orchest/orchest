@@ -4,7 +4,6 @@ flask_sqlalchemy
 flask-marshmallow
 Flask-Migrate==2.6.0
 Flask-RESTful
-flask-script
 Flask-SocketIO>=5.0.0
 Flask>=2
 eventlet
