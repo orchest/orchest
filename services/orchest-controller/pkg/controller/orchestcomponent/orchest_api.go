@@ -136,10 +136,10 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 
 	volumes := []corev1.Volume{
 		{
-			Name: controller.UserDirName,
+			Name: component.Spec.Template.StateVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: controller.UserDirName,
+					ClaimName: component.Spec.Template.StateVolumeName,
 					ReadOnly:  false,
 				},
 			},
@@ -162,7 +162,7 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      controller.UserDirName,
+			Name:      component.Spec.Template.StateVolumeName,
 			MountPath: controller.UserdirMountPath,
 		},
 		{

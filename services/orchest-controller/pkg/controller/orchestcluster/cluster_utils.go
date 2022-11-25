@@ -2,6 +2,7 @@ package orchestcluster
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"reflect"
 	"regexp"
@@ -36,8 +37,9 @@ var (
 		controller.NodeAgent,
 	}
 
-	legacyDefaultDomain = "index.docker.io"
-	defaultDomain       = "docker.io"
+	defaultStorageClassAnnotation = "storageclass.kubernetes.io/is-default-class"
+	legacyDefaultDomain           = "index.docker.io"
+	defaultDomain                 = "docker.io"
 	// Registry helm parameters
 	registryServiceIP = "service.clusterIP"
 )
@@ -68,7 +70,7 @@ func registryCertgen(ctx context.Context,
 	return nil
 }
 
-func getPersistentVolumeClaim(name, volumeSize, hash string,
+func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume,
 	orchest *orchestv1alpha1.OrchestCluster) *corev1.PersistentVolumeClaim {
 
 	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
@@ -82,13 +84,13 @@ func getPersistentVolumeClaim(name, volumeSize, hash string,
 		AccessModes: []corev1.PersistentVolumeAccessMode{accessMode},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volumeSize),
+				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volume.VolumeSize),
 			},
 		},
 	}
 
-	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
-		spec.StorageClassName = &orchest.Spec.Orchest.Resources.StorageClassName
+	if volume.StorageClass != "" {
+		spec.StorageClassName = &volume.StorageClass
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{
@@ -243,23 +245,44 @@ func getOrchestComponent(name, hash string,
 	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, template.Env)
 	template.Env = env
 
-	var orchestLabels map[string]string
-	// TODO: create a defined set of services that go to the control or
-	// worker plane.
-	if name == controller.NodeAgent || name == controller.BuildKitDaemon {
-		orchestLabels = orchest.Spec.WorkerNodeSelector
+	var orchestStateVolumeName string
+
+	if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil &&
+		orchest.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
+		orchestStateVolumeName = controller.OrchestStateVolumeName
 	} else {
-		orchestLabels = orchest.Spec.ControlNodeSelector
+
+		orchestStateVolumeName = controller.UserDirName
 	}
-	if len(orchestLabels) > 0 {
-		if template.NodeSelector == nil {
-			template.NodeSelector = make(map[string]string)
-		}
 
-		for key, value := range orchestLabels {
-			template.NodeSelector[key] = value
+	switch name {
+	case controller.OrchestDatabase:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = orchestStateVolumeName
+	case controller.OrchestApi:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = controller.UserDirName
+	case controller.Rabbitmq:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = orchestStateVolumeName
+	case controller.CeleryWorker:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		if orchest.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
+			template.StateVolumeName = controller.OrchestStateVolumeName
+		} else {
+			template.StateVolumeName = controller.UserDirName
 		}
-
+	case controller.AuthServer:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+	case controller.OrchestWebserver:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = controller.UserDirName
+	case controller.NodeAgent:
+		template.NodeSelector = orchest.Spec.WorkerNodeSelector
+	case controller.BuildKitDaemon:
+		template.NodeSelector = orchest.Spec.WorkerNodeSelector
+	default:
+		return nil
 	}
 
 	return &orchestv1alpha1.OrchestComponent{
@@ -646,4 +669,21 @@ func isNginxIngressInstalled(ctx context.Context, client kubernetes.Interface) b
 
 	return false
 
+}
+
+func detectDefaultStorageClass(ctx context.Context, client kubernetes.Interface) (string, error) {
+
+	// Get the storage class lists
+	scList, err := client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get storage class list")
+	}
+
+	for _, sc := range scList.Items {
+		if value, ok := sc.Annotations[defaultStorageClassAnnotation]; ok && value == "true" {
+			return sc.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to get the default StorageClass")
 }

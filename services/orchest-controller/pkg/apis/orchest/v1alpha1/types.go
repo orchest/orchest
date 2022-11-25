@@ -75,14 +75,25 @@ const (
 	UpgradingBuildKitDaemon OrchestClusterEvent = "Upgrading buildkit-daemon"
 )
 
+type Volume struct {
+	VolumeSize   string `json:"volumeSize,omitempty"`
+	MountPath    string `json:"mountPath,omitempty"`
+	StorageClass string `json:"storageClass,omitempty"`
+}
+
 type OrchestResourcesSpec struct {
-	// If specified, this components will be deployed provided image
+	UserDirVolume *Volume `json:"userDirVolume,omitempty"`
+
+	OrchestStateVolume *Volume `json:"orchestStateVolume,omitempty"`
+
+	// Used by old and "normal" deployments not involving separate
+	// userdir and orchest state volumes.
 	UserDirVolumeSize string `json:"userDirVolumeSize,omitempty"`
 
-	// The Storage class of user-dir/
-	StorageClassName string `json:"storageClassName,omitempty"`
+	SeparateOrchestStateFromUserDir bool   `json:"separateOrchestStateFromUserDir,omitempty"`
+	OrchestStateVolumeSize          string `json:"orchestStateVolumeSize,omitempty"`
 
-	// Deprecated and ignored. TODO: remove it?
+	// Deprecated.
 	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
 }
 
@@ -97,6 +108,9 @@ type OrchestComponentTemplate struct {
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// Name of the volume backing the component if any.
+	StateVolumeName string `json:"stateVolumeName,omitempty"`
 }
 
 type OrchestComponentStatus struct {

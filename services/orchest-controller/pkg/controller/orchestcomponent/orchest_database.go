@@ -88,10 +88,10 @@ func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
 				{
-					Name: controller.UserDirName,
+					Name: component.Spec.Template.StateVolumeName,
 					VolumeSource: corev1.VolumeSource{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: controller.UserDirName,
+							ClaimName: component.Spec.Template.StateVolumeName,
 							ReadOnly:  false,
 						},
 					},
@@ -120,7 +120,7 @@ func getOrchestDatabaseDeployment(metadata metav1.ObjectMeta,
 					},
 					VolumeMounts: []corev1.VolumeMount{
 						{
-							Name:      controller.UserDirName,
+							Name:      component.Spec.Template.StateVolumeName,
 							MountPath: controller.DBMountPath,
 							SubPath:   controller.DBSubPath,
 						},

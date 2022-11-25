@@ -46,7 +46,11 @@ type ControllerConfig struct {
 	OrchestWebserverImageName string
 	// auth-server default image to use if not provided
 	AuthServerImageName string
-	// user-dir volume size if not provided
+	// Default storage class when not specified for a volume.
+	DefaultStorageClass string
+	// Orchest state default volume size if not specified.
+	OrchestStateDefaultVolumeSize string
+	// User-dir default volume size if not specified.
 	UserdirDefaultVolumeSize string
 	// build-dir volume size if not provided
 	BuilddirDefaultVolumeSize string
@@ -73,15 +77,16 @@ type ControllerConfig struct {
 
 func NewDefaultControllerConfig() ControllerConfig {
 	return ControllerConfig{
-		PostgresDefaultImage:      "postgres:13.1",
-		RabbitmqDefaultImage:      "rabbitmq:3",
-		OrchestDefaultVersion:     version.Version,
-		CeleryWorkerImageName:     "orchest/celery-worker",
-		OrchestApiImageName:       "orchest/orchest-api",
-		OrchestWebserverImageName: "orchest/orchest-webserver",
-		AuthServerImageName:       "orchest/auth-server",
-		UserdirDefaultVolumeSize:  "50Gi",
-		BuilddirDefaultVolumeSize: "25Gi",
+		PostgresDefaultImage:          "postgres:13.1",
+		RabbitmqDefaultImage:          "rabbitmq:3",
+		OrchestDefaultVersion:         version.Version,
+		CeleryWorkerImageName:         "orchest/celery-worker",
+		OrchestApiImageName:           "orchest/orchest-api",
+		OrchestWebserverImageName:     "orchest/orchest-webserver",
+		AuthServerImageName:           "orchest/auth-server",
+		UserdirDefaultVolumeSize:      "50Gi",
+		OrchestStateDefaultVolumeSize: "5Gi",
+		BuilddirDefaultVolumeSize:     "25Gi",
 		OrchestDefaultEnvVars: map[string]string{
 			"PYTHONUNBUFFERED":  "TRUE",
 			"ORCHEST_LOG_LEVEL": "INFO",
@@ -107,9 +112,10 @@ func NewDefaultControllerConfig() ControllerConfig {
 		CeleryWorkerDefaultEnvVars: map[string]string{
 			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
 			"FLASK_ENV":                    "production",
+			"CELERY_STATE_DIR":             "/userdir/.orchest",
 		},
 		OrchestDatabaseDefaultEnvVars: map[string]string{
-			"PGDATA":                    "/userdir/.orchest/database/data",
+			"PGDATA":                    controller.DBMountPath,
 			"POSTGRES_HOST_AUTH_METHOD": "trust",
 		},
 		DefaultApplications: []orchestv1alpha1.ApplicationSpec{
@@ -212,6 +218,13 @@ func NewOrchestClusterController(kClient kubernetes.Interface,
 	ctrl.ControleeGetter = occ.getOrchestCluster
 
 	occ.Controller = ctrl
+
+	if occ.config.DefaultStorageClass == "" {
+		sc, err := detectDefaultStorageClass(context.Background(), kClient)
+		if err == nil {
+			occ.config.DefaultStorageClass = sc
+		}
+	}
 
 	return &occ
 }
@@ -356,8 +369,22 @@ func (occ *OrchestClusterController) syncOrchestCluster(ctx context.Context, key
 func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
 
 	var err error
-	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
-		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.StorageClassName, metav1.GetOptions{})
+	if occ.config.DefaultStorageClass != "" {
+		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, occ.config.DefaultStorageClass, metav1.GetOptions{})
+		if err != nil && kerrors.IsNotFound(err) {
+			return false, nil
+		}
+	}
+
+	if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
+		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.UserDirVolume.StorageClass, metav1.GetOptions{})
+		if err != nil && kerrors.IsNotFound(err) {
+			return false, nil
+		}
+	}
+
+	if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
+		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.OrchestStateVolume.StorageClass, metav1.GetOptions{})
 		if err != nil && kerrors.IsNotFound(err) {
 			return false, nil
 		}
@@ -550,6 +577,52 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 	if copy.Spec.Orchest.Resources.UserDirVolumeSize == "" {
 		changed = true
 		copy.Spec.Orchest.Resources.UserDirVolumeSize = occ.config.UserdirDefaultVolumeSize
+	}
+
+	if copy.Spec.Orchest.Resources.OrchestStateVolumeSize == "" {
+		changed = true
+		copy.Spec.Orchest.Resources.OrchestStateVolumeSize = occ.config.OrchestStateDefaultVolumeSize
+	}
+
+	// If not specified assume that we are in the mode which splits
+	// userdir and orchest state.
+	if copy.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
+
+		if copy.Spec.Orchest.Resources.UserDirVolume == nil {
+			changed = true
+			copy.Spec.Orchest.Resources.UserDirVolume = &orchestv1alpha1.Volume{
+				StorageClass: occ.config.DefaultStorageClass,
+				VolumeSize:   copy.Spec.Orchest.Resources.UserDirVolumeSize,
+				MountPath:    controller.UserdirMountPath,
+			}
+		} else {
+			if copy.Spec.Orchest.Resources.UserDirVolume.VolumeSize == "" {
+				changed = true
+				copy.Spec.Orchest.Resources.UserDirVolume.VolumeSize = copy.Spec.Orchest.Resources.UserDirVolumeSize
+			}
+			if copy.Spec.Orchest.Resources.UserDirVolume.StorageClass == "" {
+				changed = true
+				copy.Spec.Orchest.Resources.UserDirVolume.StorageClass = occ.config.DefaultStorageClass
+			}
+		}
+
+		if copy.Spec.Orchest.Resources.OrchestStateVolume == nil {
+			changed = true
+			copy.Spec.Orchest.Resources.OrchestStateVolume = &orchestv1alpha1.Volume{
+				StorageClass: occ.config.DefaultStorageClass,
+				VolumeSize:   copy.Spec.Orchest.Resources.OrchestStateVolumeSize,
+				MountPath:    controller.OrchestStateMountPath,
+			}
+		} else {
+			if copy.Spec.Orchest.Resources.OrchestStateVolume.VolumeSize == "" {
+				changed = true
+				copy.Spec.Orchest.Resources.OrchestStateVolume.VolumeSize = copy.Spec.Orchest.Resources.OrchestStateVolumeSize
+			}
+			if copy.Spec.Orchest.Resources.OrchestStateVolume.StorageClass == "" {
+				changed = true
+				copy.Spec.Orchest.Resources.OrchestStateVolume.StorageClass = occ.config.DefaultStorageClass
+			}
+		}
 	}
 
 	if copy.Spec.Applications == nil {
@@ -759,10 +832,31 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 
 	generation := fmt.Sprint(orchest.Generation)
 
-	err = occ.ensurePvc(ctx, generation, controller.UserDirName,
-		orchest.Spec.Orchest.Resources.UserDirVolumeSize, orchest)
-	if err != nil {
-		return err
+	// This is to avoid breaking changes w.r.t. the previous setup where
+	// the userdir and Orchest state were in the same pvc.
+	if !orchest.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
+		var madeUpVolume = orchestv1alpha1.Volume{
+			VolumeSize: orchest.Spec.Orchest.Resources.UserDirVolumeSize,
+		}
+		err = occ.ensurePvc(ctx, generation, controller.UserDirName,
+			madeUpVolume, orchest)
+	} else {
+		if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
+			err = occ.ensurePvc(ctx, generation, controller.UserDirName,
+				*orchest.Spec.Orchest.Resources.UserDirVolume, orchest)
+
+			if err != nil {
+				return err
+			}
+		}
+
+		if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
+			err = occ.ensurePvc(ctx, generation, controller.OrchestStateVolumeName,
+				*orchest.Spec.Orchest.Resources.OrchestStateVolume, orchest)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	err = occ.ensureRbacs(ctx, generation, orchest)
@@ -859,11 +953,12 @@ func (occ *OrchestClusterController) stopOrchest(ctx context.Context, orchest *o
 	return stopped, err
 }
 
-func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, name, size string, orchest *orchestv1alpha1.OrchestCluster) error {
+func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, name string,
+	volume orchestv1alpha1.Volume, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// Retrive the created pvcs
 	oldPvc, err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Get(ctx, name, metav1.GetOptions{})
-	newPvc := getPersistentVolumeClaim(name, size, curHash, orchest)
+	newPvc := getPersistentVolumeClaim(name, curHash, volume, orchest)
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		_, err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Create(ctx, newPvc, metav1.CreateOptions{})
