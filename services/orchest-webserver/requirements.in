@@ -5,7 +5,7 @@ flask-marshmallow
 Flask-Migrate==2.6.0
 Flask-RESTful
 Flask-SocketIO>=5.0.0
-Flask>=2
+Flask<=2.2.2
 eventlet
 ipython  # required for consistent HTML rendering, see: https://github.com/jupyter/nbconvert/issues/1443
 ipython_genutils
