@@ -5,7 +5,7 @@ set -e
 umask 002
 
 # Release phase
-python migration_manager.py db upgrade
+FLASK_APP=migration_manager.py flask db upgrade
 
 if [ "$FLASK_ENV" = "development" ]; then
     while true; do
