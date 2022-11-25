@@ -3,6 +3,7 @@ import { SearchField } from "@/components/SearchField";
 import { useActiveProject } from "@/hooks/useActiveProject";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
+import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
@@ -15,17 +16,17 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { useProjectList } from "./useProjectList";
 
-export const ProjectSelectorMenuList = ({
-  validProjectUuid,
-  selectProject,
-  onSearchKeydown,
-}: {
-  validProjectUuid: string | undefined;
+type ProjectSelectorMenuListProps = {
   selectProject: (projectUuid: string) => void;
   onSearchKeydown: React.KeyboardEventHandler<
     HTMLTextAreaElement | HTMLInputElement
   >;
-}) => {
+};
+
+export const ProjectSelectorMenuList = ({
+  selectProject,
+  onSearchKeydown,
+}: ProjectSelectorMenuListProps) => {
   const { projects } = useFetchProjects();
   const activeProject = useActiveProject();
   const { navigateTo } = useCustomRoute();
@@ -61,7 +62,7 @@ export const ProjectSelectorMenuList = ({
 
   const onProjectDeleted = (project: Project) => {
     if (project.uuid === activeProject?.uuid) {
-      navigateTo("/projects", { query: {} });
+      navigateTo(siteMap.projects.path, { query: {} });
     }
   };
 
@@ -108,7 +109,7 @@ export const ProjectSelectorMenuList = ({
               ref={(ref) => {
                 if (index === 0) menuFirstItemRef.current = ref;
               }}
-              selected={validProjectUuid === project.uuid}
+              selected={activeProject?.uuid === project.uuid}
               sx={{
                 "> button": { opacity: 0 },
                 "&:hover > button": { opacity: 1 },

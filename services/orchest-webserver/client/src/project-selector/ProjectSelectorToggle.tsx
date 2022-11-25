@@ -10,16 +10,17 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
+type ProjectSelectorToggleProps = {
+  tabIndex?: number;
+  onClick: () => void;
+  isOpen: boolean;
+};
+
 export const ProjectSelectorToggle = ({
   tabIndex,
   onClick,
   isOpen,
-}: {
-  tabIndex?: number;
-  onClick: () => void;
-  isOpen: boolean;
-  validProjectUuid: string | undefined;
-}) => {
+}: ProjectSelectorToggleProps) => {
   const activeProject = useActiveProject();
   const projectName = activeProject?.path;
 

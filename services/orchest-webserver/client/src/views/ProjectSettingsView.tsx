@@ -1,4 +1,6 @@
 import { projectsApi } from "@/api/projects/projectsApi";
+import { useProjectsApi } from "@/api/projects/useProjectsApi";
+import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { PageTitle } from "@/components/common/PageTitle";
 import { EnvVarList, EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/layout/Layout";
@@ -39,17 +41,18 @@ const initialState: ProjectSettingsState = {
 };
 
 const ProjectSettingsView: React.FC = () => {
+  useSendAnalyticEvent("view:loaded", { name: siteMap.projectSettings.path });
+
   const {
     setAlert,
     setAsSaved,
     setConfirm,
     state: { hasUnsavedChanges },
   } = useGlobalContext();
-  const {
-    dispatch,
-    state: { projects },
-  } = useProjectsContext();
-  useSendAnalyticEvent("view:loaded", { name: siteMap.projectSettings.path });
+  const { dispatch } = useProjectsContext();
+  const projects = useProjectsApi((api) => api.projects);
+  const deleteProject = useProjectsApi((api) => api.delete);
+  const updateProject = useProjectsApi((api) => api.update);
   const { cancelableFetch } = useCancelableFetch();
   const { navigateTo, projectUuid } = useCustomRoute();
   const [envVariables, setEnvVariables] = React.useState<EnvVarPair[]>();
@@ -66,29 +69,7 @@ const ProjectSettingsView: React.FC = () => {
   const returnToProjects = (event: React.MouseEvent) =>
     navigateTo(siteMap.projects.path, undefined, event);
 
-  const requestDeleteProject = React.useCallback(
-    async (toBeDeletedId: string) => {
-      if (projectUuid === toBeDeletedId) {
-        dispatch({ type: "SET_PROJECT", payload: undefined });
-      }
-
-      try {
-        await projectsApi.delete(toBeDeletedId);
-
-        dispatch((current) => {
-          const updatedProjects = (current.projects || []).filter(
-            (project) => project.uuid !== toBeDeletedId
-          );
-          return { type: "SET_PROJECTS", payload: updatedProjects };
-        });
-      } catch (error) {
-        setAlert("Error", `Could not delete project. ${error.message}`);
-      }
-    },
-    [dispatch, projectUuid, setAlert]
-  );
-
-  const deleteProject = React.useCallback(() => {
+  const deleteWithConfirm = React.useCallback(() => {
     if (!projectUuid) return;
 
     const projectName = projects?.find((p) => p.uuid === projectUuid)?.path;
@@ -101,7 +82,18 @@ const ProjectSettingsView: React.FC = () => {
       {
         onConfirm: async (resolve) => {
           setAsSaved(true);
-          requestDeleteProject(projectUuid);
+
+          dispatch({ type: "SET_PROJECT", payload: undefined });
+
+          try {
+            await deleteProject(projectUuid);
+          } catch (error) {
+            setAlert(
+              "Failed to delete project",
+              <ErrorSummary error={error} />
+            );
+          }
+
           navigateTo(siteMap.projects.path);
           resolve(true);
           return true;
@@ -112,10 +104,12 @@ const ProjectSettingsView: React.FC = () => {
       }
     );
   }, [
+    deleteProject,
+    dispatch,
     navigateTo,
     projectUuid,
     projects,
-    requestDeleteProject,
+    setAlert,
     setAsSaved,
     setConfirm,
   ]);
@@ -139,9 +133,8 @@ const ProjectSettingsView: React.FC = () => {
       }
     }
 
-    projectsApi
-      .put(projectUuid, { env_variables: envVariablesObj.value })
-      .then(() => setAsSaved())
+    updateProject(projectUuid, { env_variables: envVariablesObj.value })
+      .then(() => setAsSaved)
       .catch((error) => console.error(error));
   };
 
@@ -255,7 +248,7 @@ const ProjectSettingsView: React.FC = () => {
           <Button
             variant="contained"
             color="error"
-            onClick={() => deleteProject()}
+            onClick={deleteWithConfirm}
             startIcon={<DeleteOutline />}
           >
             Delete Project
