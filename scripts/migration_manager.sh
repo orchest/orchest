@@ -53,15 +53,8 @@ pod_name=$(kubectl get pods -n orchest -l controller.orchest.io/component=${SERV
 # The rest of the commands will be passed to the migration script of the
 # service.
 COMMANDS="${@}"
-
-if [ "${SERVICE}" = "orchest-webserver" ]; then
-  kubectl exec -n orchest ${pod_name} -c orchest-webserver \
-    -- sh -c "FLASK_APP=migration_manager.py flask db ${COMMANDS}"
-else
-  kubectl exec -n orchest ${pod_name} -- python migration_manager.py db ${COMMANDS}
-fi
+kubectl exec -n orchest ${pod_name} -- python migration_manager.py db ${COMMANDS}
 code=$?
-
 if [ $code -eq 0 ] && [ ${COMMANDS} = "migrate" ]; then
   # Copy the revision files to the filesystem, this way the script works
   # both with or without --dev.
