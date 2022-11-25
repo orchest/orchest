@@ -3,7 +3,8 @@ import os
 import re
 from typing import List, Optional, Tuple
 
-from flask import jsonify, safe_join
+from flask import jsonify
+from werkzeug.utils import safe_join
 
 from _orchest.internals import config as _config
 from app.utils import get_project_directory

@@ -10,10 +10,11 @@ from typing import Optional
 
 import requests
 import sqlalchemy
-from flask import current_app, jsonify, request, safe_join, send_file
+from flask import current_app, jsonify, request, send_file
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
+from werkzeug.utils import safe_join
 
 from _orchest.internals import analytics
 from _orchest.internals import config as _config

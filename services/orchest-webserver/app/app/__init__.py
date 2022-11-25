@@ -19,10 +19,10 @@ from pprint import pformat
 import requests
 import werkzeug
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, request, safe_join, send_from_directory
-from flask_migrate import Migrate
+from flask import Flask, request, send_from_directory
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
+from werkzeug.utils import safe_join
 
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
@@ -89,8 +89,6 @@ def create_app(to_migrate_db=False):
         create_database(app.config["SQLALCHEMY_DATABASE_URI"])
     db.init_app(app)
     ma.init_app(app)
-    # Necessary for DB migrations.
-    Migrate().init_app(app, db)
 
     # NOTE: In this case we want to return ASAP as otherwise the DB
     # might be called (inside this function) before it is migrated.
