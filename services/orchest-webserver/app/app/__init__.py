@@ -162,7 +162,7 @@ def create_app(to_migrate_db=False):
             return send_from_directory(app.config["STATIC_DIR"], path)
         else:
             return send_from_directory(
-                app.config["STATIC_DIR"], "index.html", cache_timeout=0
+                app.config["STATIC_DIR"], "index.html", max_age=0
             )
 
     register_views(app, db)

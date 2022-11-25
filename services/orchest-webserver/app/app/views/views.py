@@ -1094,7 +1094,7 @@ def register_views(app, db):
             return jsonify({"message": "Failed to process file_path."}), 500
 
         if os.path.isfile(file_path):
-            return send_file(filename_or_fp=file_path, cache_timeout=0)
+            return send_file(filename_or_fp=file_path, max_age=0)
         else:
             return jsonify({"message": "File does not exists."}), 404
 
@@ -1345,8 +1345,8 @@ def register_views(app, db):
                 memory_file,
                 mimetype="application/zip",
                 as_attachment=True,
-                attachment_filename=file_name,
-                cache_timeout=0,
+                download_name=file_name,
+                max_age=0,
             )
 
     @app.route("/async/file-management/import-project-from-data", methods=["POST"])
