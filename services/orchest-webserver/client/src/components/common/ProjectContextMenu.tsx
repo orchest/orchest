@@ -10,22 +10,27 @@ import { RenameProjectDialog } from "./RenameProjectDialog";
 
 export type ProjectContextMenuProps = Omit<MenuProps, "open"> & {
   project: Project;
+  onDeleted?: () => void;
 };
 
 export const ProjectContextMenu = ({
   project,
+  onDeleted,
   ...menuProps
 }: ProjectContextMenuProps) => {
   const { navigateTo } = useCustomRoute();
   const deleteProject = useProjectsApi((api) => api.delete);
   const deleting = useProjectsApi((api) => api.deleting);
-  const deleteWithConfirm = useConfirm(deleteProject, {
-    title: `Delete "${project.path}"?`,
-    content:
-      "Warning: Deleting a Project is permanent. All associated Jobs and resources will be deleted and unrecoverable.",
-    cancelLabel: "Keep project",
-    confirmLabel: "Delete project",
-  });
+  const deleteWithConfirm = useConfirm(
+    () => deleteProject(project.uuid).then(onDeleted),
+    {
+      title: `Delete "${project.path}"?`,
+      content:
+        "Warning: Deleting a Project is permanent. All associated Jobs and resources will be deleted and unrecoverable.",
+      cancelLabel: "Keep project",
+      confirmLabel: "Delete project",
+    }
+  );
   const [isRenaming, setIsRenaming] = React.useState(false);
 
   const openSettings = (event: React.MouseEvent) =>
@@ -34,6 +39,11 @@ export const ProjectContextMenu = ({
       { query: { projectUuid: project.uuid } },
       event
     );
+
+  const closeAfter = (action: () => void) => {
+    action();
+    menuProps.onClose?.({}, "escapeKeyDown");
+  };
 
   return (
     <>
@@ -46,19 +56,19 @@ export const ProjectContextMenu = ({
       >
         <MenuItem
           data-test-id="project-context-menu-settings"
-          onClick={openSettings}
+          onClick={(event) => closeAfter(() => openSettings(event))}
         >
           Project settings
         </MenuItem>
         <MenuItem
           data-test-id="project-context-menu-rename"
-          onClick={() => setIsRenaming(true)}
+          onClick={() => closeAfter(() => setIsRenaming(true))}
         >
           Rename project
         </MenuItem>
         <MenuItem
           data-test-id="project-context-menu-delete"
-          onClick={() => deleteWithConfirm(project.uuid)}
+          onClick={() => closeAfter(() => deleteWithConfirm())}
           disabled={deleting.includes(project.uuid)}
         >
           Delete Project
@@ -68,7 +78,7 @@ export const ProjectContextMenu = ({
       <RenameProjectDialog
         project={project}
         open={isRenaming}
-        onClose={() => setIsRenaming(true)}
+        onClose={() => closeAfter(() => setIsRenaming(false))}
       />
     </>
   );

@@ -1,5 +1,9 @@
+import { ProjectContextMenu } from "@/components/common/ProjectContextMenu";
 import { SearchField } from "@/components/SearchField";
+import { useActiveProject } from "@/hooks/useActiveProject";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
+import { Project } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
 import Box from "@mui/material/Box";
@@ -23,6 +27,10 @@ export const ProjectSelectorMenuList = ({
   >;
 }) => {
   const { projects } = useFetchProjects();
+  const activeProject = useActiveProject();
+  const { navigateTo } = useCustomRoute();
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement>();
+  const [openProject, setOpenProject] = React.useState<Project>();
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
   const { searchTerm, setSearchTerm, filteredProjects } = useProjectList(
     projects
@@ -34,6 +42,28 @@ export const ProjectSelectorMenuList = ({
       : filteredProjects.length === 0 && searchTerm.length > 0
       ? "No Projects found"
       : null;
+
+  const openContextMenu = React.useCallback(
+    (event: React.MouseEvent, project: Project) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      setMenuAnchorEl(event.target as HTMLElement);
+      setOpenProject(project);
+    },
+    []
+  );
+
+  const closeContextMenu = React.useCallback(() => {
+    setMenuAnchorEl(undefined);
+    setOpenProject(undefined);
+  }, []);
+
+  const onProjectDeleted = (project: Project) => {
+    if (project.uuid === activeProject?.uuid) {
+      navigateTo("/projects", { query: {} });
+    }
+  };
 
   return (
     <>
@@ -96,7 +126,7 @@ export const ProjectSelectorMenuList = ({
               <IconButton
                 title="More options"
                 size="small"
-                // onClick={openProjectMenu(row.uuid)}
+                onClick={(event) => openContextMenu(event, project)}
                 data-test-id={`project-selector-menu-list-button-${project.path}`}
               >
                 <MoreHorizOutlinedIcon fontSize="small" />
@@ -105,6 +135,14 @@ export const ProjectSelectorMenuList = ({
           );
         })}
       </MenuList>
+      {openProject && menuAnchorEl && (
+        <ProjectContextMenu
+          project={openProject}
+          anchorEl={menuAnchorEl}
+          onClose={closeContextMenu}
+          onDeleted={() => onProjectDeleted(openProject)}
+        />
+      )}
     </>
   );
 };
