@@ -25,7 +25,5 @@ export const useFallbackProject = () => {
     [setStoredUuid]
   );
 
-  console.log(fallback?.path);
-
   return { fallback, setFallback };
 };
