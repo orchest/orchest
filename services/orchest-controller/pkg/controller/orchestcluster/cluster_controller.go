@@ -714,6 +714,17 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 			}
 
 			changed = changed || nginxNodeSelectorChanged
+		} else if app.Name == addons.EfsCsiDriver {
+			efsCsiControllerNodeSelectorChanged, err := setHelmParamNodeSelector(
+				ctx, occ.Client(), copy.Namespace,
+				app, controlNodeSelector, "controller.")
+
+			if err != nil {
+				klog.Error(err)
+				return changed, err
+			}
+
+			changed = changed || efsCsiControllerNodeSelectorChanged
 		}
 	}
 
