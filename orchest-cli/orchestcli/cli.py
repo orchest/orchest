@@ -181,6 +181,26 @@ def _parse_labels_to_dict(ctx, param, value) -> t.Optional[t.Dict[str, str]]:
         raise click.BadParameter("Labels validation failed.")
 
 
+def _parse_params_to_dict(ctx, param, value) -> t.Optional[t.Dict[str, str]]:
+    if value is None:
+        return None
+    # TODO: improve it.
+    group_of_kv_strings = (
+        # (Either start of string or comma separator)(key)
+        "((?:,|^)([^,=]+)"
+        # (value)
+        "=([^,=]+))+$"
+    )
+    if re.match(group_of_kv_strings, value):
+        selector_dict = {}
+        for kv_pair_string in value.split(","):
+            k, v = kv_pair_string.split("=")
+            selector_dict[k] = v
+        return selector_dict
+    else:
+        raise click.BadParameter("Parameters validation failed.")
+
+
 @click.option(
     "--cloud",
     is_flag=True,
@@ -221,6 +241,23 @@ def _parse_labels_to_dict(ctx, param, value) -> t.Optional[t.Dict[str, str]]:
     default=False,
     show_default=True,
     help="Disable deploying Nginx Ingress Controller as part of Orchest.",
+)
+@click.option(
+    "--efs-csi-driver",
+    "efs_csi_driver",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Deploy the EFS CSI driver.",
+)
+@click.option(
+    "--efs-csi-driver-parameters",
+    type=str,
+    default=None,
+    hidden=True,
+    show_default=True,
+    callback=_parse_params_to_dict,
 )
 @click.option(
     "--fqdn",
@@ -318,6 +355,8 @@ def install(
     dev_mode: bool,
     no_argo: bool,
     no_nginx: bool,
+    efs_csi_driver: bool,
+    efs_csi_driver_parameters: t.Optional[t.Dict[str, str]],
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
     userdir_pvc_size: int,
@@ -343,6 +382,8 @@ def install(
         dev_mode,
         no_argo,
         no_nginx,
+        efs_csi_driver,
+        efs_csi_driver_parameters,
         fqdn,
         socket_path,
         userdir_pvc_size,
