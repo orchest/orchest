@@ -863,6 +863,10 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 		err = occ.ensurePvc(ctx, generation, controller.UserDirName,
 			madeUpVolume, accessMode, orchest)
 	} else {
+		// TODO: the choice of ReadWriteMany here pretty much forces the
+		// resource backing the pvc to support that, perhaps it should
+		// be specifiable or detected automatically based on the storage
+		// class?
 		if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
 			err = occ.ensurePvc(ctx, generation, controller.UserDirName,
 				*orchest.Spec.Orchest.Resources.UserDirVolume,
