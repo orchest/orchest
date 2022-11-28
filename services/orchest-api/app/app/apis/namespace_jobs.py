@@ -114,7 +114,7 @@ class NextScheduledJob(Resource):
             next_job = next_job.filter_by(project_uuid=request.args["project_uuid"])
 
         next_job = (
-            next_job.filter(models.Job.status != "DRAFT")
+            next_job.filter(models.Job.status.in_(["PENDING", "STARTED"]))
             .filter(models.Job.next_scheduled_time.isnot(None))
             # Order by time ascending so that the job that will be
             # scheduled next is returned, even if the scheduler is
