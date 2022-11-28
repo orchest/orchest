@@ -13,6 +13,7 @@ var (
 	// list of all addons
 	ArgoWorkflow   = "argo-workflow"
 	DockerRegistry = "docker-registry"
+	EfsCsiDriver   = "efs-csi-driver"
 	IngressNginx   = "ingress-nginx"
 )
 
@@ -68,6 +69,11 @@ func NewAddonManager(client kubernetes.Interface, config AddonsConfig) *AddonMan
 		NewHelmDeployer(client, DockerRegistry,
 			path.Join(config.AssetDir, "thirdparty/docker-registry/helm"),
 			path.Join(config.AssetDir, "thirdparty/docker-registry/orchest-values.yaml")))
+
+	addonManager.AddAddon(EfsCsiDriver,
+		NewHelmDeployer(client, EfsCsiDriver,
+			path.Join(config.AssetDir, "thirdparty/efs-csi-driver/helm"),
+			path.Join(config.AssetDir, "thirdparty/efs-csi-driver/orchest-values.yaml")))
 
 	addonManager.AddAddon(IngressNginx,
 		NewHelmDeployer(client, IngressNginx,

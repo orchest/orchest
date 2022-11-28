@@ -704,7 +704,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 			changed = changed || argoNodeSelectorChanged
 		} else if app.Name == addons.IngressNginx {
-			argoNodeSelectorChanged, err := setHelmParamNodeSelector(
+			nginxNodeSelectorChanged, err := setHelmParamNodeSelector(
 				ctx, occ.Client(), copy.Namespace,
 				app, controlNodeSelector, "controller.")
 
@@ -713,7 +713,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 				return changed, err
 			}
 
-			changed = changed || argoNodeSelectorChanged
+			changed = changed || nginxNodeSelectorChanged
 		}
 	}
 
