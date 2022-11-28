@@ -92,7 +92,12 @@ func (m *AddonManager) Run(stopCh <-chan struct{}) {
 
 	// Enable default addons
 	for _, addonName := range m.config.Addons {
-		m.EnableAddon(ctx, addonName, m.config.DefaultNamespace)
+		namespace := m.config.DefaultNamespace
+		if addonName == EfsCsiDriver {
+			namespace = "kube-system"
+		}
+
+		m.EnableAddon(ctx, addonName, namespace)
 	}
 
 	<-stopCh

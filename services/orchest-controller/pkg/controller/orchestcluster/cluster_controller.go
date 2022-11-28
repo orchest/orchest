@@ -785,11 +785,14 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			updateConditionPreInstall,
 		}
 
+		namespace := orchest.Namespace
 		if application.Name == addons.DockerRegistry {
 			preInstallHooks = append(preInstallHooks, registryPreInstall)
+		} else if application.Name == addons.EfsCsiDriver {
+			namespace = "kube-system"
 		}
 
-		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
+		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, namespace, &application)
 		if err != nil {
 			klog.Error(err)
 			return err
