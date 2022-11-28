@@ -1181,7 +1181,12 @@ class UpdateJobParameters(TwoPhaseFunction):
         max_retained_pipeline_runs: int,
         confirm_draft,
     ):
-        job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+        job = (
+            models.Job.query.with_for_update()
+            .filter(models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"]))
+            .filter_by(uuid=job_uuid)
+            .one()
+        )
         old_job = job.as_dict()
 
         if name is not None:
