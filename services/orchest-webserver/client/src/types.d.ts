@@ -419,7 +419,7 @@ export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
   settings: PipelineSettings;
-  steps: Record<string, StepData>;
+  steps: Record<string, StepState>;
   uuid: string;
   version: string;
   services?: Record<string, Service>;
