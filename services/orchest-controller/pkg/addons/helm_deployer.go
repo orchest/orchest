@@ -46,7 +46,7 @@ func (d *HelmDeployer) Enable(ctx context.Context, preInstallHooks []PreInstallH
 	deployArgs := deployArgsBuilder.WithName(releaseName).
 		WithNamespace(namespace).
 		WithCreateNamespace().
-		WithAtomic().WithTimeout(time.Second * 180)
+		WithAtomic().WithTimeout(time.Minute * 10)
 
 	if d.valuesPath != "" {
 		deployArgs.WithValuesFile(d.valuesPath)
