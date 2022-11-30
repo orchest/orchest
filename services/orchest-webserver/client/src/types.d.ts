@@ -406,6 +406,7 @@ export type PipelineData = {
 
 export type PipelineMetaData = {
   uuid: string;
+  project_uuid: string;
   path: string; // Note that this path is relative to `/project-dir:`, i.e. it doesn't have a leading slash
   name: string;
 };
@@ -419,7 +420,7 @@ export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
   settings: PipelineSettings;
-  steps: Record<string, StepState>;
+  steps: Record<string, StepData>;
   uuid: string;
   version: string;
   services?: Record<string, Service>;

@@ -3,6 +3,7 @@ import type {
   PipelineData,
   PipelineJson,
   PipelineMetaData,
+  PipelineState,
   Project,
   StepData,
 } from "../types";
@@ -30,7 +31,7 @@ const generatePipelineDefinition = (
   pipelineUuid: string,
   pipelineName: string,
   stepCount = 2
-): PipelineJson => {
+): PipelineState => {
   const stepsDataDict: Record<string, StepData> = {};
 
   let prevStepUUid = "";
@@ -100,6 +101,7 @@ const generateMockPipelineData = (
     metadata: {
       uuid,
       path,
+      project_uuid: projectUuid,
       name: pipelineName,
     },
     pipeline: {
