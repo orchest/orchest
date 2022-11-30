@@ -1,4 +1,7 @@
 import { FileDescription } from "@/api/file-viewer/fileViewerApi";
+import { useActiveStep } from "@/hooks/useActiveStep";
+import { useRouteLink } from "@/hooks/useCustomRoute";
+import { join } from "@/utils/path";
 import { ellipsis } from "@/utils/styles";
 import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
 import Button from "@mui/material/Button";
@@ -7,6 +10,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { StepFileConnections } from "./StepConnections";
 
 export type FilePreviewHeaderProps = { file: FileDescription };
@@ -48,7 +52,9 @@ export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
           <Button onClick={toggleConnections}>
             {showConnections ? "Hide connections" : "Show connections"}
           </Button>
-          <Button variant="contained">Edit in JupyterLab</Button>
+
+          <JupyterLabButton />
+
           <IconButton title="More options" size="small">
             <MoreHorizOutlined fontSize="small" />
           </IconButton>
@@ -58,5 +64,20 @@ export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
         <StepFileConnections />
       </Collapse>
     </Stack>
+  );
+};
+
+const JupyterLabButton = () => {
+  const step = useActiveStep();
+  const { pipelineCwd } = usePipelineDataContext();
+  const url = useRouteLink("jupyterLab", {
+    filePath:
+      pipelineCwd && step?.file_path ? join(pipelineCwd, step.file_path) : "/",
+  });
+
+  return (
+    <Button variant="contained" href={url} disabled={!step}>
+      Edit in JupyterLab
+    </Button>
   );
 };

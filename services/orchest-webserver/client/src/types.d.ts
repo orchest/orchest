@@ -151,6 +151,7 @@ export type ScopeParameters = {
   pipelineUuid: string;
   environmentUuid: string;
   stepUuid: string;
+  filePath: string;
 };
 
 export type ScopeParameter = keyof ScopeParameters;
