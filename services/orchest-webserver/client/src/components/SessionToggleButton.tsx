@@ -2,7 +2,6 @@ import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { OrchestSession } from "@/types";
 import { Box, CircularProgress, Stack, Tooltip } from "@mui/material";
-import { blue, grey } from "@mui/material/colors";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { SxProps, Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
@@ -34,12 +33,12 @@ export const SessionToggleButton = ({
   const isStopping = status === "STOPPING";
   const isRunning = status === "RUNNING";
 
-  const statusLabel =
-    {
-      LAUNCHING: "Starting session…",
-      STOPPING: "Stopping session…",
-      RUNNING: "Stop session",
-    }[status] || "Start session";
+  const title = isRunning ? "Stop session" : "Start session";
+  const statusLabel = {
+    LAUNCHING: "Starting session…",
+    STOPPING: "Stopping session…",
+    RUNNING: "Stop session",
+  }[status];
 
   const onChange = (
     _: React.MouseEvent | React.ChangeEvent,
@@ -52,44 +51,46 @@ export const SessionToggleButton = ({
     }
   };
 
-  const title = isRunning ? "Stop session" : "Start session";
-
   return (
     <FormControlLabel
       disableTypography
       control={
-        <Switch
-          disabled={isStopping}
-          size="small"
-          title={title}
-          inputProps={{ "aria-label": title }}
-          sx={{ margin: (theme) => theme.spacing(0, 1) }}
-          className={className}
-          checked={isRunning || isStarting}
-          onChange={onChange}
-        />
+        <Tooltip title={statusLabel ?? "Start session"}>
+          <span>
+            <Switch
+              disabled={isStopping}
+              size="small"
+              inputProps={{ "aria-label": title }}
+              sx={{ margin: (theme) => theme.spacing(0, 1) }}
+              className={className}
+              checked={isRunning || isStarting}
+              onChange={onChange}
+            />
+          </span>
+        </Tooltip>
       }
       label={
-        <Tooltip title={statusLabel} placement="right-end">
-          <Stack direction="row" justifyContent="center">
-            {label}{" "}
+        <Stack direction="row" justifyContent="center">
+          {label}
+          <Tooltip
+            title={statusLabel ?? ""}
+            placement="right-end"
+            hidden={!status || status === "RUNNING"}
+          >
             <Box
               sx={{
-                opacity: isStarting || isStopping ? 1 : 0,
+                opacity: !status || status === "RUNNING" ? 0 : 1,
                 transition: "opacity 250ms ease-in",
               }}
             >
               <CircularProgress
                 size={18}
                 variant="indeterminate"
-                sx={{
-                  marginLeft: 1.5,
-                  svg: { color: isStopping ? grey[500] : blue[500] },
-                }}
+                sx={{ marginLeft: 1.5 }}
               />
             </Box>
-          </Stack>
-        </Tooltip>
+          </Tooltip>
+        </Stack>
       }
       sx={sx}
     />
