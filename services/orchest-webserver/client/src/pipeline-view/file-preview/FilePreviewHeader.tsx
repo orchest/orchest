@@ -11,7 +11,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { StepFileConnections } from "./StepConnections";
+import { StepFileConnections } from "./StepFileConnections";
 
 export type FilePreviewHeaderProps = { file: FileDescription };
 

@@ -17,11 +17,21 @@ export const StepFileConnections = () => {
 
   return (
     <Stack direction="row" paddingX={2} paddingY={1} alignItems="flex-start">
-      <Typography variant="subtitle2" color="text.secondary" flex="1 0.5 auto">
+      <Typography variant="subtitle2" color="text.secondary" flex="1 1 auto">
         Incoming:&nbsp;
-        <Listed items={connections.incoming}>
-          {(step) => <StepLink step={step} />}
-        </Listed>
+        {connections.incoming.length ? (
+          <Listed items={connections.incoming}>
+            {(step) => <StepLink step={step} />}
+          </Listed>
+        ) : (
+          <Typography
+            variant="subtitle2"
+            color="text.disabled"
+            component="span"
+          >
+            None
+          </Typography>
+        )}
       </Typography>
 
       <SeparatorArrow />
@@ -34,7 +44,7 @@ export const StepFileConnections = () => {
       >
         Step:&nbsp;
         <Typography variant="subtitle2" color="text.primary" component="span">
-          {step?.title ?? step?.file_path ? basename(step?.file_path) : ""}
+          {step?.title || step?.file_path ? basename(step?.file_path) : ""}
         </Typography>
       </Typography>
 
@@ -42,9 +52,19 @@ export const StepFileConnections = () => {
 
       <Typography variant="subtitle2" color="text.secondary" flex="1 1 auto">
         Outgoing:&nbsp;
-        <Listed items={connections.outgoing}>
-          {(step) => <StepLink step={step} />}
-        </Listed>
+        {connections.outgoing.length ? (
+          <Listed items={connections.outgoing}>
+            {(step) => <StepLink step={step} />}
+          </Listed>
+        ) : (
+          <Typography
+            variant="subtitle2"
+            color="text.disabled"
+            component="span"
+          >
+            None
+          </Typography>
+        )}
       </Typography>
     </Stack>
   );
