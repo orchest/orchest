@@ -1,13 +1,16 @@
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { OrchestSession } from "@/types";
+import { Box, CircularProgress, Stack, Tooltip } from "@mui/material";
+import { blue, grey } from "@mui/material/colors";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { SxProps, Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
 import React from "react";
 
-export type TSessionToggleButtonRef = HTMLButtonElement;
-type ISessionToggleButtonProps = {
+export type SessionToggleButtonRef = HTMLButtonElement;
+
+type SessionToggleButtonProps = {
   status?: OrchestSession["status"] | "";
   pipelineUuid: string;
   label?: React.ReactElement | string | number;
@@ -15,22 +18,26 @@ type ISessionToggleButtonProps = {
   sx?: SxProps<Theme>;
 };
 
-const SessionToggleButton = (props: ISessionToggleButtonProps) => {
+export const SessionToggleButton = ({
+  className,
+  label,
+  pipelineUuid,
+  sx,
+  ...props
+}: SessionToggleButtonProps) => {
   const { getSession, startSession, stopSession } = useSessionsContext();
-
-  const { className, label, pipelineUuid, sx } = props;
 
   const session = getSession(pipelineUuid);
   const status = props.status || session?.status || "";
 
-  const isLaunching = status === "LAUNCHING";
+  const isStarting = status === "LAUNCHING";
   const isStopping = status === "STOPPING";
   const isRunning = status === "RUNNING";
 
   const statusLabel =
     {
-      STOPPING: "Session stopping…",
-      LAUNCHING: "Session starting…",
+      LAUNCHING: "Starting session…",
+      STOPPING: "Stopping session…",
       RUNNING: "Stop session",
     }[status] || "Start session";
 
@@ -40,33 +47,51 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
   ) => {
     if (checked) {
       startSession(pipelineUuid, BUILD_IMAGE_SOLUTION_VIEW.PIPELINE);
-    } else if (!checked && (isLaunching || isRunning)) {
+    } else if (!checked && (isStarting || isRunning)) {
       stopSession(pipelineUuid);
     }
   };
 
+  const title = isRunning ? "Stop session" : "Start session";
+
   return (
     <FormControlLabel
       disableTypography
-      labelPlacement="start"
       control={
         <Switch
-          classes={{ root: isLaunching ? "launching" : "" }}
           disabled={isStopping}
           size="small"
-          inputProps={{
-            "aria-label": `Switch ${isRunning ? "off" : "on"} session`,
-          }}
+          title={title}
+          inputProps={{ "aria-label": title }}
           sx={{ margin: (theme) => theme.spacing(0, 1) }}
           className={className}
-          checked={isRunning || isLaunching}
+          checked={isRunning || isStarting}
           onChange={onChange}
         />
       }
-      label={label || statusLabel}
+      label={
+        <Tooltip title={statusLabel} placement="right-end">
+          <Stack direction="row" justifyContent="center">
+            {label}{" "}
+            <Box
+              sx={{
+                opacity: isStarting || isStopping ? 1 : 0,
+                transition: "opacity 250ms ease-in",
+              }}
+            >
+              <CircularProgress
+                size={18}
+                variant="indeterminate"
+                sx={{
+                  marginLeft: 1.5,
+                  svg: { color: isStopping ? grey[500] : blue[500] },
+                }}
+              />
+            </Box>
+          </Stack>
+        </Tooltip>
+      }
       sx={sx}
     />
   );
 };
-
-export default SessionToggleButton;
