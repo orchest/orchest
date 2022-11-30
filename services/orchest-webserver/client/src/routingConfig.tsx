@@ -68,7 +68,7 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       path: "/file-preview",
       root: "/pipeline",
       title: getTitle("Step File Preview"),
-      scope: ["projectUuid", "pipelineUuid"],
+      scope: ["projectUuid", "pipelineUuid", "stepUuid", "jobUuid", "runUuid"],
     },
     {
       name: "environments",
