@@ -376,19 +376,22 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 		}
 	}
 
-	if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
-		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.UserDirVolume.StorageClass, metav1.GetOptions{})
-		if err != nil && kerrors.IsNotFound(err) {
-			return false, nil
-		}
-	}
+	// EKS_TODO: temporarily disabled because it will lead to an "Error"
+	// state during installation if the storage class is being installed
+	// during the Orchest installation by an addon.
+	// if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
+	// 	_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.UserDirVolume.StorageClass, metav1.GetOptions{})
+	// 	if err != nil && kerrors.IsNotFound(err) {
+	// 		return false, nil
+	// 	}
+	// }
 
-	if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
-		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.OrchestStateVolume.StorageClass, metav1.GetOptions{})
-		if err != nil && kerrors.IsNotFound(err) {
-			return false, nil
-		}
-	}
+	// if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
+	// 	_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.OrchestStateVolume.StorageClass, metav1.GetOptions{})
+	// 	if err != nil && kerrors.IsNotFound(err) {
+	// 		return false, nil
+	// 	}
+	// }
 
 	// Detect runtime environment
 	runtime, socketPath, err := detectContainerRuntime(ctx, occ.Client(), orchest)
