@@ -1,7 +1,7 @@
 import { FileDescription } from "@/api/file-viewer/fileViewerApi";
 import { useActiveStep } from "@/hooks/useActiveStep";
 import { useRouteLink } from "@/hooks/useCustomRoute";
-import { join } from "@/utils/path";
+import { basename, join } from "@/utils/path";
 import { ellipsis } from "@/utils/styles";
 import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
 import Button from "@mui/material/Button";
@@ -45,7 +45,7 @@ export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
           width="inherit"
         >
           <Typography component="h2" variant="h5" sx={ellipsis()}>
-            {file.filename}
+            {basename(file.filename)}
           </Typography>
         </Stack>
 
