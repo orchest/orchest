@@ -154,7 +154,7 @@ export const FileManagerContextMenu = ({
       )}
       {hasPath && isFile && isInProjectDir && (
         <MenuItem dense disabled={isReadOnly} onClick={handleEditFile}>
-          Edit
+          Edit in JupyterLab
         </MenuItem>
       )}
       {hasPath && pipelineUuid && canView && (

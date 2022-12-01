@@ -1,7 +1,7 @@
 import { FileDescription } from "@/api/file-viewer/fileViewerApi";
+import { RouteLink } from "@/components/RouteLink";
 import { useActiveStep } from "@/hooks/useActiveStep";
-import { useRouteLink } from "@/hooks/useCustomRoute";
-import { basename, join } from "@/utils/path";
+import { basename } from "@/utils/path";
 import { ellipsis } from "@/utils/styles";
 import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
 import Button from "@mui/material/Button";
@@ -10,7 +10,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useJupyterLabLink } from "../hooks/useJupyterLabLink";
 import { StepFileConnections } from "./StepFileConnections";
 import { StepPipelineSelector } from "./StepPipelineSelector";
 
@@ -18,8 +18,9 @@ export type FilePreviewHeaderProps = { file: FileDescription };
 
 export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
   const [showConnections, setShowConnections] = React.useState(true);
-
   const toggleConnections = () => setShowConnections((current) => !current);
+  const activeStep = useActiveStep();
+  const jupyterLabUrl = useJupyterLabLink(activeStep);
 
   return (
     <Stack sx={{ borderBottom: (theme) => `1px solid ${theme.borderColor}` }}>
@@ -54,7 +55,14 @@ export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
             {showConnections ? "Hide connections" : "Show connections"}
           </Button>
 
-          <JupyterLabButton />
+          <Button
+            LinkComponent={RouteLink}
+            variant="contained"
+            href={jupyterLabUrl}
+            disabled={!activeStep}
+          >
+            Edit in JupyterLab
+          </Button>
 
           <IconButton title="More options" size="small">
             <MoreHorizOutlined fontSize="small" />
@@ -69,20 +77,5 @@ export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
         </Stack>
       </Collapse>
     </Stack>
-  );
-};
-
-const JupyterLabButton = () => {
-  const step = useActiveStep();
-  const { pipelineCwd } = usePipelineDataContext();
-  const url = useRouteLink("jupyterLab", {
-    filePath:
-      pipelineCwd && step?.file_path ? join(pipelineCwd, step.file_path) : "/",
-  });
-
-  return (
-    <Button variant="contained" href={url} disabled={!step}>
-      Edit in JupyterLab
-    </Button>
   );
 };
