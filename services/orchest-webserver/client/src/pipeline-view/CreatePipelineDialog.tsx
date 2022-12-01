@@ -100,7 +100,6 @@ export const CreatePipelineDialog = ({
           type: "ADD_PIPELINE",
           payload: {
             uuid: pipeline_uuid,
-            project_uuid: projectUuid,
             name,
             path,
           },

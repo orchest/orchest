@@ -101,7 +101,6 @@ const generateMockPipelineData = (
     metadata: {
       uuid,
       path,
-      project_uuid: projectUuid,
       name: pipelineName,
     },
     pipeline: {

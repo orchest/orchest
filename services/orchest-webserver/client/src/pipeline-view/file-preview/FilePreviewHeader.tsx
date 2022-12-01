@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { StepFileConnections } from "./StepFileConnections";
+import { StepPipelineSelector } from "./StepPipelineSelector";
 
 export type FilePreviewHeaderProps = { file: FileDescription };
 
@@ -60,8 +61,12 @@ export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
           </IconButton>
         </Stack>
       </Stack>
+
       <Collapse in={showConnections}>
-        <StepFileConnections />
+        <Stack spacing={1} paddingX={3} paddingY={1.5}>
+          <StepPipelineSelector />
+          <StepFileConnections />
+        </Stack>
       </Collapse>
     </Stack>
   );

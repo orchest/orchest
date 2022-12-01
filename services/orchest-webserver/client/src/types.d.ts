@@ -357,6 +357,7 @@ export type StepMetaData = {
 export type StepState = StepNode & {
   title: string;
   environment: string;
+  /** The file path relative to the project file. */
   file_path: string;
   parameters: Record<string, any>;
   meta_data: StepMetaData;
@@ -407,7 +408,6 @@ export type PipelineData = {
 
 export type PipelineMetaData = {
   uuid: string;
-  project_uuid: string;
   path: string; // Note that this path is relative to `/project-dir:`, i.e. it doesn't have a leading slash
   name: string;
 };

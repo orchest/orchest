@@ -164,6 +164,8 @@ const projectRootPaths = [
   siteMap.jupyterLab.path,
   siteMap.jobs.path,
   siteMap.environments.path,
+  siteMap.filePreview,
+  siteMap.jobRunFilePreview,
 ];
 
 const navigationPaths = [

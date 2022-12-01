@@ -16,19 +16,15 @@ export const StepFileConnections = () => {
   const connections = useStepConnections(step?.uuid);
 
   return (
-    <Stack direction="row" paddingX={2} paddingY={1} alignItems="flex-start">
-      <Typography variant="subtitle2" color="text.secondary" flex="1 1 auto">
+    <Stack direction="row" alignItems="space-between" maxWidth={900}>
+      <Typography variant="body2" color="text.secondary" flex="1 1 auto">
         Incoming:&nbsp;
         {connections.incoming.length ? (
           <Listed items={connections.incoming}>
             {(step) => <StepLink step={step} />}
           </Listed>
         ) : (
-          <Typography
-            variant="subtitle2"
-            color="text.disabled"
-            component="span"
-          >
+          <Typography variant="body2" color="text.disabled" component="span">
             None
           </Typography>
         )}
@@ -37,31 +33,27 @@ export const StepFileConnections = () => {
       <SeparatorArrow />
 
       <Typography
-        variant="subtitle2"
+        variant="body2"
         color="text.secondary"
         flex="1 0 auto"
         whiteSpace="nowrap"
       >
         Step:&nbsp;
-        <Typography variant="subtitle2" color="text.primary" component="span">
+        <Typography variant="body2" color="text.primary" component="span">
           {step?.title || step?.file_path ? basename(step?.file_path) : ""}
         </Typography>
       </Typography>
 
       <SeparatorArrow />
 
-      <Typography variant="subtitle2" color="text.secondary" flex="1 1 auto">
+      <Typography variant="body2" color="text.secondary" flex="1 1 auto">
         Outgoing:&nbsp;
         {connections.outgoing.length ? (
           <Listed items={connections.outgoing}>
             {(step) => <StepLink step={step} />}
           </Listed>
         ) : (
-          <Typography
-            variant="subtitle2"
-            color="text.disabled"
-            component="span"
-          >
+          <Typography variant="body2" color="text.disabled" component="span">
             None
           </Typography>
         )}
@@ -71,7 +63,7 @@ export const StepFileConnections = () => {
 };
 
 const SeparatorArrow = () => (
-  <Box flex="0" paddingX={5} position="relative">
+  <Box flex="1 0 auto" paddingX={5} position="relative">
     <ArrowForwardOutlined sx={{ position: "absolute" }} color="disabled" />
   </Box>
 );
