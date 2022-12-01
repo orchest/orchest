@@ -16,7 +16,7 @@ export const StepFileConnections = () => {
   const connections = useStepConnections(step?.uuid);
 
   return (
-    <Stack direction="row" alignItems="space-between" maxWidth={900}>
+    <Stack direction="row" alignItems="space-between" maxWidth={1000}>
       <Typography variant="body2" color="text.secondary" flex="1 1 auto">
         Incoming:&nbsp;
         {connections.incoming.length ? (
@@ -63,8 +63,11 @@ export const StepFileConnections = () => {
 };
 
 const SeparatorArrow = () => (
-  <Box flex="1 0 auto" paddingX={5} position="relative">
-    <ArrowForwardOutlined sx={{ position: "absolute" }} color="disabled" />
+  <Box flex="0.25 2 auto" paddingLeft={8} position="relative">
+    <ArrowForwardOutlined
+      sx={{ position: "absolute", left: (theme) => theme.spacing(2) }}
+      color="disabled"
+    />
   </Box>
 );
 
