@@ -168,6 +168,8 @@ class OrchestCmds:
         dev_mode: bool,
         no_argo: bool,
         no_nginx: bool,
+        efs_csi_driver: bool,
+        efs_csi_driver_parameters: t.Optional[t.Dict[str, str]],
         fqdn: t.Optional[str],
         socket_path: t.Optional[str],
         userdir_pvc_size: int,
@@ -372,6 +374,18 @@ class OrchestCmds:
                     },
                 }
             )
+
+        if efs_csi_driver:
+            helm_params = []
+            applications.append(
+                {
+                    "name": "efs-csi-driver",
+                    "config": {"helm": {"parameters": helm_params}},
+                }
+            )
+            if efs_csi_driver_parameters is not None:
+                for k, v in efs_csi_driver_parameters.items():
+                    helm_params.append({"name": k, "value": v})
 
         resources = {
             "userDirVolumeSize": f"{userdir_pvc_size}Gi",

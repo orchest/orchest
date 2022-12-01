@@ -70,18 +70,13 @@ func registryCertgen(ctx context.Context,
 	return nil
 }
 
-func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume,
+func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume, am corev1.PersistentVolumeAccessMode,
 	orchest *orchestv1alpha1.OrchestCluster) *corev1.PersistentVolumeClaim {
 
 	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
 
-	accessMode := corev1.ReadWriteMany
-	if orchest.Spec.SingleNode != nil && *orchest.Spec.SingleNode {
-		accessMode = corev1.ReadWriteOnce
-	}
-
 	spec := corev1.PersistentVolumeClaimSpec{
-		AccessModes: []corev1.PersistentVolumeAccessMode{accessMode},
+		AccessModes: []corev1.PersistentVolumeAccessMode{am},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volume.VolumeSize),

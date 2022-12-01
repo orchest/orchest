@@ -376,19 +376,22 @@ func (occ *OrchestClusterController) validateOrchestCluster(ctx context.Context,
 		}
 	}
 
-	if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
-		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.UserDirVolume.StorageClass, metav1.GetOptions{})
-		if err != nil && kerrors.IsNotFound(err) {
-			return false, nil
-		}
-	}
+	// EKS_TODO: temporarily disabled because it will lead to an "Error"
+	// state during installation if the storage class is being installed
+	// during the Orchest installation by an addon.
+	// if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
+	// 	_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.UserDirVolume.StorageClass, metav1.GetOptions{})
+	// 	if err != nil && kerrors.IsNotFound(err) {
+	// 		return false, nil
+	// 	}
+	// }
 
-	if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
-		_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.OrchestStateVolume.StorageClass, metav1.GetOptions{})
-		if err != nil && kerrors.IsNotFound(err) {
-			return false, nil
-		}
-	}
+	// if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
+	// 	_, err := occ.Client().StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.OrchestStateVolume.StorageClass, metav1.GetOptions{})
+	// 	if err != nil && kerrors.IsNotFound(err) {
+	// 		return false, nil
+	// 	}
+	// }
 
 	// Detect runtime environment
 	runtime, socketPath, err := detectContainerRuntime(ctx, occ.Client(), orchest)
@@ -704,7 +707,7 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 
 			changed = changed || argoNodeSelectorChanged
 		} else if app.Name == addons.IngressNginx {
-			argoNodeSelectorChanged, err := setHelmParamNodeSelector(
+			nginxNodeSelectorChanged, err := setHelmParamNodeSelector(
 				ctx, occ.Client(), copy.Namespace,
 				app, controlNodeSelector, "controller.")
 
@@ -713,7 +716,18 @@ func (occ *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Contex
 				return changed, err
 			}
 
-			changed = changed || argoNodeSelectorChanged
+			changed = changed || nginxNodeSelectorChanged
+		} else if app.Name == addons.EfsCsiDriver {
+			efsCsiControllerNodeSelectorChanged, err := setHelmParamNodeSelector(
+				ctx, occ.Client(), copy.Namespace,
+				app, controlNodeSelector, "controller.")
+
+			if err != nil {
+				klog.Error(err)
+				return changed, err
+			}
+
+			changed = changed || efsCsiControllerNodeSelectorChanged
 		}
 	}
 
@@ -774,11 +788,14 @@ func (occ *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Co
 			updateConditionPreInstall,
 		}
 
+		namespace := orchest.Namespace
 		if application.Name == addons.DockerRegistry {
 			preInstallHooks = append(preInstallHooks, registryPreInstall)
+		} else if application.Name == addons.EfsCsiDriver {
+			namespace = "kube-system"
 		}
 
-		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, orchest.Namespace, &application)
+		err = occ.addonManager.Get(application.Name).Enable(ctx, preInstallHooks, namespace, &application)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -838,12 +855,25 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 		var madeUpVolume = orchestv1alpha1.Volume{
 			VolumeSize: orchest.Spec.Orchest.Resources.UserDirVolumeSize,
 		}
+
+		// The specification of access mode here is also to avoid
+		// breaking changes.
+		accessMode := corev1.ReadWriteMany
+		if orchest.Spec.SingleNode != nil && *orchest.Spec.SingleNode {
+			accessMode = corev1.ReadWriteOnce
+		}
+
 		err = occ.ensurePvc(ctx, generation, controller.UserDirName,
-			madeUpVolume, orchest)
+			madeUpVolume, accessMode, orchest)
 	} else {
+		// TODO: the choice of ReadWriteMany here pretty much forces the
+		// resource backing the pvc to support that, perhaps it should
+		// be specifiable or detected automatically based on the storage
+		// class?
 		if orchest.Spec.Orchest.Resources.UserDirVolume != nil {
 			err = occ.ensurePvc(ctx, generation, controller.UserDirName,
-				*orchest.Spec.Orchest.Resources.UserDirVolume, orchest)
+				*orchest.Spec.Orchest.Resources.UserDirVolume,
+				corev1.ReadWriteMany, orchest)
 
 			if err != nil {
 				return err
@@ -852,7 +882,9 @@ func (occ *OrchestClusterController) manageOrchestCluster(ctx context.Context, o
 
 		if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil {
 			err = occ.ensurePvc(ctx, generation, controller.OrchestStateVolumeName,
-				*orchest.Spec.Orchest.Resources.OrchestStateVolume, orchest)
+				*orchest.Spec.Orchest.Resources.OrchestStateVolume,
+				corev1.ReadWriteOnce,
+				orchest)
 			if err != nil {
 				return err
 			}
@@ -954,11 +986,11 @@ func (occ *OrchestClusterController) stopOrchest(ctx context.Context, orchest *o
 }
 
 func (occ *OrchestClusterController) ensurePvc(ctx context.Context, curHash, name string,
-	volume orchestv1alpha1.Volume, orchest *orchestv1alpha1.OrchestCluster) error {
+	volume orchestv1alpha1.Volume, am corev1.PersistentVolumeAccessMode, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// Retrive the created pvcs
 	oldPvc, err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Get(ctx, name, metav1.GetOptions{})
-	newPvc := getPersistentVolumeClaim(name, curHash, volume, orchest)
+	newPvc := getPersistentVolumeClaim(name, curHash, volume, am, orchest)
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		_, err := occ.Client().CoreV1().PersistentVolumeClaims(orchest.Namespace).Create(ctx, newPvc, metav1.CreateOptions{})
