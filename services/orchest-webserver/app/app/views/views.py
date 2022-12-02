@@ -249,7 +249,7 @@ def register_views(app, db):
     def version():
         return {"version": _config.ORCHEST_VERSION}
 
-    @app.route("/async/user-config", methods=["GET", "POST"])
+    @app.route("/async/user-config", methods=["GET", "PUT", "POST"])
     def user_config():
 
         current_config = requests.get(
@@ -261,7 +261,7 @@ def register_views(app, db):
                 "user_config": current_config,
             }
 
-        if request.method == "POST":
+        if request.method in ["POST", "PUT"]:
             # Updated config, from client.
             request_body = request.get_json()
             config = request_body.get("config", None)
@@ -276,7 +276,10 @@ def register_views(app, db):
                 app.logger.debug(e, exc_info=True)
                 return {"message": "Given config is invalid JSON."}, 400
 
-            resp = requests.post(
+            req_f = requests.post
+            if request.method == "PUT":
+                req_f = requests.put
+            resp = req_f(
                 f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/ctl/orchest-settings',
                 json=config,
             )
