@@ -59,6 +59,7 @@ export function CodePreview({ file }: CodePreviewProps) {
         action={
           <Button
             LinkComponent={RouteLink}
+            size="small"
             href={jupyterLabLink}
             sx={{ color: blue[200] }}
           >
