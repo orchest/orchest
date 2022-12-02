@@ -114,7 +114,7 @@ class NextScheduledJob(Resource):
             next_job = next_job.filter_by(project_uuid=request.args["project_uuid"])
 
         next_job = (
-            next_job.filter(models.Job.status != "DRAFT")
+            next_job.filter(models.Job.status.in_(["PENDING", "STARTED"]))
             .filter(models.Job.next_scheduled_time.isnot(None))
             # Order by time ascending so that the job that will be
             # scheduled next is returned, even if the scheduler is
@@ -1181,7 +1181,12 @@ class UpdateJobParameters(TwoPhaseFunction):
         max_retained_pipeline_runs: int,
         confirm_draft,
     ):
-        job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+        job = (
+            models.Job.query.with_for_update()
+            .filter(models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"]))
+            .filter_by(uuid=job_uuid)
+            .one()
+        )
         old_job = job.as_dict()
 
         if name is not None:

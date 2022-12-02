@@ -65,22 +65,18 @@ Get started with an example project:
 
 👉 Check out the full list of [example projects](https://github.com/orchest/orchest-examples).
 
-## Installation
-
-Want to skip the installation and jump right in? Then try out our managed service by clicking:
-
 [![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
-For `macOS` and `Linux` we provide an automated convience script to install Orchest on
-[minikube](https://minikube.sigs.k8s.io/docs/). Run it with:
+## Installation
 
-```sh
-curl -fsSL https://get.orchest.io > convenience_install.sh
-bash convenience_install.sh
-```
+Want to skip [the installation](https://docs.orchest.io/en/stable/getting_started/installation.html)
+and jump right in? Then try out our managed service: [Orchest Cloud](https://cloud.orchest.io/signup).
 
-👉 For detailed instructions on how to deploy a self-hosted version, check out our [installation
-docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
+## Slack Community
+
+Join our Slack to chat about Orchest, ask questions, and share tips.
+
+[![Join us on Slack](https://img.shields.io/badge/%20-Join%20us%20on%20Slack-blue?style=for-the-badge&logo=slack&labelColor=5c5c5c)](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
 
 ## License
 
@@ -90,12 +86,6 @@ The software in this repository is licensed as follows:
   are licensed under the `Apache-2.0` license as defined in `orchest-sdk/LICENSE` and
   `orchest-cli/LICENSE` respectively.
 - Content outside of the above mentioned directories is available under the `AGPL-3.0` license.
-
-## Slack Community
-
-Join our Slack to chat about Orchest, ask questions, and share tips.
-
-[![Join us on Slack](https://img.shields.io/badge/%20-Join%20us%20on%20Slack-blue?style=for-the-badge&logo=slack&labelColor=5c5c5c)](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)
 
 ## Contributing
 

@@ -10,10 +10,11 @@ from typing import Optional
 
 import requests
 import sqlalchemy
-from flask import current_app, jsonify, request, safe_join, send_file
+from flask import current_app, jsonify, request, send_file
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
+from werkzeug.utils import safe_join
 
 from _orchest.internals import analytics
 from _orchest.internals import config as _config
@@ -802,6 +803,8 @@ def register_views(app, db):
                 try:
 
                     html_exporter = HTMLExporter()
+                    html_exporter.embed_images = True
+
                     (file_content, _) = html_exporter.from_filename(file_path)
 
                     # custom CSS
@@ -1092,7 +1095,7 @@ def register_views(app, db):
             return jsonify({"message": "Failed to process file_path."}), 500
 
         if os.path.isfile(file_path):
-            return send_file(filename_or_fp=file_path, cache_timeout=0)
+            return send_file(filename_or_fp=file_path, max_age=0)
         else:
             return jsonify({"message": "File does not exists."}), 404
 
@@ -1343,8 +1346,8 @@ def register_views(app, db):
                 memory_file,
                 mimetype="application/zip",
                 as_attachment=True,
-                attachment_filename=file_name,
-                cache_timeout=0,
+                download_name=file_name,
+                max_age=0,
             )
 
     @app.route("/async/file-management/import-project-from-data", methods=["POST"])

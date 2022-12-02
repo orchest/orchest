@@ -6,7 +6,8 @@ import uuid
 from collections import defaultdict
 
 import requests
-from flask import current_app, safe_join
+from flask import current_app
+from werkzeug.utils import safe_join
 
 import app.utils as utils
 from _orchest.internals import analytics

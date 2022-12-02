@@ -8,7 +8,8 @@ from datetime import datetime
 from typing import Dict, List, Literal, Optional, Union
 
 import requests
-from flask import current_app, safe_join
+from flask import current_app
+from werkzeug.utils import safe_join
 
 from _orchest.internals import compat as _compat
 from _orchest.internals import config as _config

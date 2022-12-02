@@ -4,17 +4,16 @@ flask_sqlalchemy
 flask-marshmallow
 Flask-Migrate==2.6.0
 Flask-RESTful
-flask-script
 Flask-SocketIO>=5.0.0
-Flask<2
+Flask<=2.2.2
 eventlet
 ipython  # required for consistent HTML rendering, see: https://github.com/jupyter/nbconvert/issues/1443
 ipython_genutils
 itsdangerous
 jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
-MarkupSafe<2.1.0
+MarkupSafe
 marshmallow-sqlalchemy
-nbconvert~=6.3.0
+nbconvert~=6.5.0
 nbformat
 psycopg2-binary
 python-engineio
@@ -24,4 +23,4 @@ requests
 simple-websocket
 six>=1.13.0
 SQLAlchemy-Utils
-Werkzeug<2.1.0  # Newer versions are broken with old Flask
+Werkzeug

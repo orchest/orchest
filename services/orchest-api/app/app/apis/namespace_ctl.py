@@ -208,6 +208,10 @@ class OrchestSettings(Resource):
         """
         config = utils.OrchestSettings()
         new_config = request.get_json()
+        # Workaround for the fact that PAUSED is currently an hidden
+        # setting.
+        new_config["PAUSED"] = new_config.get("PAUSED", config["PAUSED"])
+
         try:
             config.set(new_config)
         except (TypeError, ValueError) as e:
