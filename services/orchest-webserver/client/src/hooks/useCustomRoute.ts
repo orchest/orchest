@@ -1,7 +1,7 @@
 import { RouteName, siteMap } from "@/routingConfig";
 import { ScopeParameter, ScopeParameters } from "@/types";
 import { openInNewTab } from "@/utils/openInNewTab";
-import { pick, prune } from "@/utils/record";
+import { equalsShallow, pick, prune } from "@/utils/record";
 import { toQueryString } from "@/utils/routing";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -247,17 +247,17 @@ export const useNavigate = () => {
       event,
     }: NavigateOptions) => {
       const { path, scope = [] } = siteMap[route];
+      const isSamePath = path === window.location.pathname;
 
-      navigateTo(
-        path,
-        {
-          replace,
-          query: sticky
-            ? { ...pick(currentQuery, ...scope), ...prune(query) }
-            : prune(query),
-        },
-        event
-      );
+      const newQuery = sticky
+        ? { ...pick(currentQuery, ...scope), ...prune(query) }
+        : prune(query);
+
+      if (isSamePath && equalsShallow(newQuery, currentQuery)) {
+        return;
+      }
+
+      navigateTo(path, { replace, query: newQuery }, event);
     },
     [currentQuery, navigateTo]
   );
