@@ -52,7 +52,11 @@ const PipelineView = () => {
               <FileManager />
               {!pipelineReadOnlyReason && <SessionsPanel />}
             </MainSidePanel>
-            {path === "/file-preview" ? <FilePreview /> : <PipelineEditor />}
+            {path.endsWith("/file-preview") ? (
+              <FilePreview />
+            ) : (
+              <PipelineEditor />
+            )}
           </Stack>
 
           <FullScreenDialogHolder
