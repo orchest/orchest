@@ -1,5 +1,5 @@
 import { RouteName, siteMap } from "@/routingConfig";
-import { ScopeParameter } from "@/types";
+import { ScopeParameter, ScopeParameters } from "@/types";
 import { openInNewTab } from "@/utils/openInNewTab";
 import { pick, prune } from "@/utils/record";
 import { toQueryString } from "@/utils/routing";
@@ -210,5 +210,55 @@ export const useRouteLink = (
 
   return (
     path + toQueryString({ ...pick(currentRoute, ...scope), ...prune(params) })
+  );
+};
+
+export type NavigateOptions = {
+  route: RouteName;
+  query?: Partial<ScopeParameters>;
+  /**
+   * Preserve all previous query parameters that are supported by the page.
+   * Default: true.
+   */
+  sticky?: boolean;
+  /**
+   * Replace the state instead of pushing a new one.
+   * Default: false
+   */
+  replace?: boolean;
+
+  event?: React.MouseEvent;
+};
+
+/**
+ * Returns a function which is used to navigate between routes.
+ * Navigation is "sticky" by default: supported query parameters from
+ * the previous page are persisted when navigating between routes.
+ */
+export const useNavigate = () => {
+  const { navigateTo, ...currentQuery } = useCustomRoute();
+
+  return React.useCallback(
+    ({
+      route,
+      query = {},
+      sticky = true,
+      replace = false,
+      event,
+    }: NavigateOptions) => {
+      const { path, scope = [] } = siteMap[route];
+
+      navigateTo(
+        path,
+        {
+          replace,
+          query: sticky
+            ? { ...pick(currentQuery, ...scope), ...prune(query) }
+            : prune(query),
+        },
+        event
+      );
+    },
+    [currentQuery, navigateTo]
   );
 };

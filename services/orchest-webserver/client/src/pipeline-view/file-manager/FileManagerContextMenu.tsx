@@ -1,14 +1,10 @@
 import { useFileApi } from "@/api/files/useFileApi";
-import { Code } from "@/components/common/Code";
-import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/routingConfig";
 import { unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
-import { hasExtension, isDirectory, join } from "@/utils/path";
+import { isDirectory } from "@/utils/path";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useOpenFile } from "../hooks/useOpenFile";
@@ -22,28 +18,10 @@ export const FileManagerContextMenu = ({
   onCollapse,
 }: FileManagerContextMenuProps) => {
   const [left, top] = origin ?? [0, 0];
-  const { setAlert } = useGlobalContext();
   const duplicate = useFileApi((api) => api.duplicate);
   const refresh = useFileApi((api) => api.refresh);
-  const { navigateTo, jobUuid, projectUuid, snapshotUuid } = useCustomRoute();
-  const {
-    pipelineUuid,
-    pipelineCwd,
-    isReadOnly,
-    runUuid,
-    pipelineJson,
-    isJobRun,
-    isSnapshot,
-  } = usePipelineDataContext();
-  const isRunningOnSnapshot = isJobRun || isSnapshot;
+  const { isReadOnly } = usePipelineDataContext();
   const { openInJupyterLab } = useOpenFile();
-
-  const additionalQueryArgs = React.useMemo(() => {
-    if (!jobUuid) return {};
-    if (runUuid) return { jobUuid, runUuid };
-    if (snapshotUuid) return { jobUuid, snapshotUuid };
-    return {};
-  }, [jobUuid, runUuid, snapshotUuid]);
 
   const {
     handleClose,
@@ -67,60 +45,9 @@ export const FileManagerContextMenu = ({
     openInJupyterLab(cleanFilePath(contextMenuPath));
   }, [contextMenuPath, openInJupyterLab, handleClose, isReadOnly]);
 
-  const handleViewFile = React.useCallback(() => {
-    handleClose();
-
-    if (!pipelineUuid || !pipelineCwd) return;
-
-    const foundStep = Object.values(pipelineJson?.steps || {}).find((step) => {
-      const filePath = join(pipelineCwd, step.file_path);
-      return filePath.replace(/^\//, "") === cleanFilePath(contextMenuPath);
-    });
-
-    if (!foundStep) {
-      setAlert(
-        "Warning",
-        <div>
-          <Code>{cleanFilePath(contextMenuPath)}</Code> is not yet used in this
-          pipeline. To preview the file, you need to assign this file to a step
-          first.
-        </div>
-      );
-      return;
-    }
-
-    navigateTo(
-      isRunningOnSnapshot
-        ? siteMap.jobRunFilePreview.path
-        : siteMap.filePreview.path,
-      {
-        query: {
-          projectUuid,
-          pipelineUuid,
-          stepUuid: foundStep.uuid,
-          ...additionalQueryArgs,
-        },
-        state: { isReadOnly },
-      }
-    );
-  }, [
-    contextMenuPath,
-    handleClose,
-    isReadOnly,
-    isRunningOnSnapshot,
-    additionalQueryArgs,
-    navigateTo,
-    pipelineCwd,
-    pipelineJson?.steps,
-    pipelineUuid,
-    projectUuid,
-    setAlert,
-  ]);
-
   const hasPath = Boolean(path);
   const isInProjectDir = root === "/project-dir";
   const isFile = !isDirectory(path);
-  const canView = isFile && hasExtension(path, ...ALLOWED_STEP_EXTENSIONS);
   const isRoot = path === "/";
 
   return (
@@ -155,11 +82,6 @@ export const FileManagerContextMenu = ({
       {hasPath && isFile && isInProjectDir && (
         <MenuItem dense disabled={isReadOnly} onClick={handleEditFile}>
           Edit in JupyterLab
-        </MenuItem>
-      )}
-      {hasPath && pipelineUuid && canView && (
-        <MenuItem dense onClick={handleViewFile}>
-          View
         </MenuItem>
       )}
       {hasPath && !isRoot && (

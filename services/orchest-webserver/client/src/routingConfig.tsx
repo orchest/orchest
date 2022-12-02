@@ -10,7 +10,6 @@ export type RouteName =
   | "environments"
   | "jobs"
   | "jobRun"
-  | "jobRunFilePreview"
   | "pipelineReadonly"
   | "editJob"
   | "fileManager"
@@ -55,46 +54,53 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       name: "pipeline",
       path: "/pipeline",
       title: getTitle("Pipeline"),
-      scope: ["projectUuid", "pipelineUuid"],
+      scope: ["projectUuid", "pipelineUuid", "stepUuid"],
     },
     {
       name: "jupyterLab",
       path: "/jupyter-lab",
       title: getTitle("JupyterLab"),
-      scope: ["projectUuid", "pipelineUuid"],
+      scope: ["projectUuid", "pipelineUuid", "filePath"],
     },
     {
       name: "filePreview",
       path: "/file-preview",
       root: "/pipeline",
       title: getTitle("Step File Preview"),
-      scope: ["projectUuid", "pipelineUuid", "stepUuid", "jobUuid", "runUuid"],
+      scope: [
+        "projectUuid",
+        "pipelineUuid",
+        "stepUuid",
+        "jobUuid",
+        "runUuid",
+        "snapshotUuid",
+      ],
     },
     {
       name: "environments",
       path: "/environments",
       title: getTitle("Environments"),
-      scope: ["projectUuid"],
+      scope: ["projectUuid", "environmentUuid"],
     },
     {
       name: "jobs",
       path: "/jobs",
       title: getTitle("Jobs"),
-      scope: ["projectUuid"],
+      scope: ["projectUuid", "jobUuid"],
     },
     {
       name: "jobRun",
       path: "/job-run",
       root: "/jobs",
       title: getTitle("Job Run"),
-      scope: ["projectUuid", "jobRunUuid", "pipelineUuid"],
-    },
-    {
-      name: "jobRunFilePreview",
-      path: "/job-run/file-preview",
-      root: "/jobs",
-      title: getTitle("Job Run Step File Preview"),
-      scope: ["projectUuid", "jobRunUuid", "pipelineUuid", "snapshotUuid"],
+      scope: [
+        "projectUuid",
+        "pipelineUuid",
+        "jobUuid",
+        "runUuid",
+        "snapshotUuid",
+        "stepUuid",
+      ],
     },
     {
       name: "settings",
@@ -165,7 +171,6 @@ const projectRootPaths = [
   siteMap.jobs.path,
   siteMap.environments.path,
   siteMap.filePreview,
-  siteMap.jobRunFilePreview,
 ];
 
 const navigationPaths = [
@@ -222,7 +227,6 @@ const excludedPaths: readonly string[] = [
   siteMap.projectSettings.path,
   siteMap.jupyterLab.path,
   siteMap.filePreview.path,
-  siteMap.jobRunFilePreview.path,
   siteMap.jobRun.path,
 ];
 

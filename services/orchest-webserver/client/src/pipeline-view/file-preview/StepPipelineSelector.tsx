@@ -1,8 +1,7 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useActiveStep } from "@/hooks/useActiveStep";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useCustomRoute, useNavigate } from "@/hooks/useCustomRoute";
 import { useProjectPipelineJsons } from "@/hooks/useProjectPipelineJsons";
-import { siteMap } from "@/routingConfig";
 import { PipelineMetaData, PipelineState, StepData, StepState } from "@/types";
 import { addLeadingSlash, dirname, join } from "@/utils/path";
 import MenuItem from "@mui/material/MenuItem";
@@ -27,7 +26,8 @@ export const StepPipelineSelector = () => {
   const step = useActiveStep();
   const states = useProjectPipelineJsons();
   const { pipelines: metadata = [] } = useProjectsContext().state;
-  const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
+  const { pipelineUuid } = useCustomRoute();
+  const navigate = useNavigate();
 
   const pipelines = React.useMemo(() => {
     return bakePipelines(metadata, states);
@@ -63,15 +63,11 @@ export const StepPipelineSelector = () => {
     const stepUuid = usedIn.find((usage) => usage.meta.uuid === newPipelineUuid)
       ?.step.uuid;
 
-    if (!stepUuid || !pipelineUuid) return;
+    if (!stepUuid) return;
 
-    navigateTo(siteMap.filePreview.path, {
-      replace: false,
-      query: {
-        projectUuid,
-        pipelineUuid: newPipelineUuid,
-        stepUuid,
-      },
+    navigate({
+      route: "filePreview",
+      query: { pipelineUuid: newPipelineUuid, stepUuid },
     });
   };
 
