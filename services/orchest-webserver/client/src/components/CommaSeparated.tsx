@@ -1,12 +1,12 @@
 import React from "react";
 
-export type ListedProps<T> = {
+export type CommaSeparatedProps<T> = {
   items: readonly T[];
   children: (item: T) => React.ReactNode;
 };
 
 /** A helper for creating comma-separated lists. */
-export function Listed<T>({ items, children }: ListedProps<T>) {
+export function CommaSeparated<T>({ items, children }: CommaSeparatedProps<T>) {
   return (
     <>
       {items.map((item, index) => (

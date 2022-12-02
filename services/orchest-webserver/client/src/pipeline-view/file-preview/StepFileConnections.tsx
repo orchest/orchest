@@ -1,4 +1,4 @@
-import { Listed } from "@/components/Listed";
+import { CommaSeparated } from "@/components/CommaSeparated";
 import { RouteLink } from "@/components/RouteLink";
 import { useActiveStep } from "@/hooks/useActiveStep";
 import { useRouteLink } from "@/hooks/useCustomRoute";
@@ -20,9 +20,9 @@ export const StepFileConnections = () => {
       <Typography variant="body2" color="text.secondary" flex="1 1 auto">
         Incoming:&nbsp;
         {connections.incoming.length ? (
-          <Listed items={connections.incoming}>
+          <CommaSeparated items={connections.incoming}>
             {(step) => <StepLink step={step} />}
-          </Listed>
+          </CommaSeparated>
         ) : (
           <Typography variant="body2" color="text.disabled" component="span">
             None
@@ -49,9 +49,9 @@ export const StepFileConnections = () => {
       <Typography variant="body2" color="text.secondary" flex="1 1 auto">
         Outgoing:&nbsp;
         {connections.outgoing.length ? (
-          <Listed items={connections.outgoing}>
+          <CommaSeparated items={connections.outgoing}>
             {(step) => <StepLink step={step} />}
-          </Listed>
+          </CommaSeparated>
         ) : (
           <Typography variant="body2" color="text.disabled" component="span">
             None
