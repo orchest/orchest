@@ -20,7 +20,7 @@ import {
   unpackMove,
   unpackPath,
 } from "@/utils/file";
-import { basename, dirname } from "@/utils/path";
+import { basename, dirname, trimLeadingSlash } from "@/utils/path";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -29,6 +29,7 @@ import Stack from "@mui/material/Stack";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useOpenFile } from "../hooks/useOpenFile";
+import { useSelectedFiles } from "../hooks/useSelectedFiles";
 import {
   cleanFilePath,
   FILE_MANAGER_ROOT_CLASS,
@@ -48,7 +49,7 @@ import { FileTreeRow } from "./FileTreeRow";
 export type FileTreeProps = {
   treeRoots: readonly FileRoot[];
   expanded: string[];
-  onSelect: (root: FileRoot, path: string) => void;
+  onSelect: (selected: string[]) => void;
   handleToggle: (
     event: React.SyntheticEvent<Element, Event>,
     nodeIds: string[]
@@ -74,8 +75,8 @@ export const FileTree = React.memo(function FileTreeComponent({
     state: { pipelines = [] },
     dispatch,
   } = useProjectsContext();
+  const selectedFiles = useSelectedFiles((state) => state.selected);
   const {
-    selectedFiles,
     dragFile,
     setDragFile,
     hoveredPath,
@@ -98,7 +99,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       path = isCombinedPath(path) ? unpackPath(path).path : path;
 
       return pipelines.find(
-        (pipeline) => pipeline.path === path.replace(/^\//, "")
+        (pipeline) => pipeline.path === trimLeadingSlash(path)
       );
     },
     [pipelines]
@@ -417,7 +418,10 @@ export const FileTree = React.memo(function FileTreeComponent({
         defaultExpandIcon={<ChevronRightIcon />}
         expanded={expanded}
         selected={selectedFiles}
-        onNodeSelect={handleSelect}
+        onNodeSelect={(event, selected) => {
+          handleSelect(event, selected);
+          onSelect(selected);
+        }}
         onNodeToggle={handleToggle}
         multiSelect
       >
@@ -445,7 +449,6 @@ export const FileTree = React.memo(function FileTreeComponent({
                 hoveredPath={hoveredPath}
                 root={root}
                 onOpen={onOpen}
-                onSelect={onSelect}
                 onRename={(oldPath, newPath) =>
                   handleMoves([[oldPath, newPath]])
                 }

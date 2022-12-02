@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useSelectedFiles } from "../hooks/useSelectedFiles";
 import {
   allowedExtensionsMarkup,
   cleanFilePath,
@@ -14,7 +15,8 @@ import { useFileManagerContext } from "./FileManagerContext";
 export const useValidateFilesOnSteps = () => {
   const { setAlert } = useGlobalContext();
   const { pipelineJson } = usePipelineDataContext();
-  const { selectedFiles, dragFile } = useFileManagerContext();
+  const selectedFiles = useSelectedFiles((state) => state.selected);
+  const { dragFile } = useFileManagerContext();
 
   const filesToProcess = React.useMemo(() => {
     if (!dragFile?.path) return selectedFiles;

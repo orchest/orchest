@@ -50,7 +50,6 @@ export const FileTreeItem = ({
   path = "",
   labelText,
   onContextMenu,
-  onSelect,
   ...other
 }: FileTreeItemProps) => {
   const { setIsDragging, setDragFile } = useFileManagerContext();
@@ -78,7 +77,6 @@ export const FileTreeItem = ({
 
   return (
     <StyledTreeItemRoot
-      onClick={onSelect}
       onMouseDown={() => {
         if (!disableDragging) setPressed(true);
       }}

@@ -9,11 +9,11 @@ import Button from "@mui/material/Button";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { CreateFileDialog } from "../file-manager/CreateFileDialog";
-import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useCreateStep } from "../hooks/useCreateStep";
+import { useSelectedFiles } from "../hooks/useSelectedFiles";
 
 export const NoScripts = () => {
-  const { selectedFiles } = useFileManagerContext();
+  const selectedFiles = useSelectedFiles((state) => state.selected);
   const expand = useFileApi((api) => api.expand);
   const { isReadOnly, pipeline, projectUuid } = usePipelineDataContext();
   const createStep = useCreateStep();

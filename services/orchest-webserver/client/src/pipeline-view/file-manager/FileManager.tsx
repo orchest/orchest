@@ -15,6 +15,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useOpenFile } from "../hooks/useOpenFile";
+import { useSelectedFiles } from "../hooks/useSelectedFiles";
 import { ActionBar } from "./ActionBar";
 import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
@@ -29,11 +30,9 @@ const DEFAULT_CWD = "/project-dir:/";
 export function FileManager() {
   const { projectUuid } = usePipelineDataContext();
 
-  const {
-    isDragging,
-    selectedFiles,
-    setSelectedFiles,
-  } = useFileManagerContext();
+  const { isDragging } = useFileManagerContext();
+  const selectedFiles = useSelectedFiles((state) => state.selected);
+  const setSelectedFiles = useSelectedFiles((state) => state.setSelected);
 
   const { roots } = useFetchFileRoots();
   const expand = useFileApi((api) => api.expand);
@@ -138,6 +137,8 @@ export function FileManager() {
 
   const handleViewFile = React.useCallback(
     (filePath: string) => {
+      if (isDirectory(filePath)) return;
+
       if (hasExtension(filePath, ".orchest")) {
         openPipeline(filePath);
       } else {
@@ -145,6 +146,19 @@ export function FileManager() {
       }
     },
     [openPipeline, previewFile]
+  );
+
+  const handleSelection = React.useCallback(
+    (selected: string[]) => {
+      if (selected.length !== 1) return;
+
+      const { path } = unpackPath(selected[0]);
+
+      // We want selections to apply, animations to finish,
+      // and so on, before opening the preview window
+      setTimeout(() => handleViewFile(path), 50);
+    },
+    [handleViewFile]
   );
 
   return (
@@ -172,11 +186,11 @@ export function FileManager() {
             {allTreesHaveLoaded && (
               <>
                 <FileTree
+                  onSelect={handleSelection}
                   treeRoots={fileRoots}
                   expanded={expanded}
                   onMoved={onMoved}
                   handleToggle={handleToggle}
-                  onSelect={(root, path) => handleViewFile(path)}
                 />
                 <FileManagerContextMenu
                   origin={contextMenuOrigin}

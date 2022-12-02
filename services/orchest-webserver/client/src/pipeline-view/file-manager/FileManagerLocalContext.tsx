@@ -12,12 +12,12 @@ import { basename } from "@/utils/path";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
+import { useSelectedFiles } from "../hooks/useSelectedFiles";
 import {
   filterRedundantChildPaths,
   findPipelineFiles,
   prettifyRoot,
 } from "./common";
-import { useFileManagerContext } from "./FileManagerContext";
 
 export type FileManagerLocalContextType = {
   handleClose: () => void;
@@ -75,7 +75,8 @@ export const FileManagerLocalContextProvider: React.FC<{
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
-  const { selectedFiles, setSelectedFiles } = useFileManagerContext();
+  const selectedFiles = useSelectedFiles((state) => state.selected);
+  const setSelectedFiles = useSelectedFiles((state) => state.setSelected);
 
   // When deleting or downloading selectedFiles, we need to avoid
   // the redundant child paths.
@@ -108,6 +109,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   const handleSelect = React.useCallback(
     (event: React.SyntheticEvent<Element, Event>, selected: string[]) => {
       event.stopPropagation();
+
       setSelectedFiles(selected);
     },
     [setSelectedFiles]

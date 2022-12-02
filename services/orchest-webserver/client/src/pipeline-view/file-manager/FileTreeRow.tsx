@@ -20,7 +20,6 @@ type FileTreeRowProps = {
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   onRename: (oldPath: string, newPath: string) => void;
   onOpen: (filePath: string) => void;
-  onSelect: (root: FileRoot, path: string) => void;
 };
 
 export const FileTreeRow = ({
@@ -29,7 +28,6 @@ export const FileTreeRow = ({
   setDragFile,
   root,
   hoveredPath,
-  onSelect,
   onOpen,
 }: FileTreeRowProps) => {
   const fileMap = useFileApi((api) => api.roots[root] ?? {});
@@ -73,11 +71,9 @@ export const FileTreeRow = ({
               nodeId={combinedPath}
               data-path={combinedPath}
               path={combinedPath}
-              onSelect={() => onSelect(root, path)}
               labelText={basename(path)}
             >
               <FileTreeRow
-                onSelect={onSelect}
                 path={path}
                 setDragFile={setDragFile}
                 root={root}
@@ -108,7 +104,6 @@ export const FileTreeRow = ({
               path={combinedPath}
               labelText={name}
               fileName={name}
-              onSelect={() => onSelect(root, path)}
               onDoubleClick={() => !isReadOnly && onOpen(combinedPath)}
             />
           </div>
