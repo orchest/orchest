@@ -48,6 +48,7 @@ import { FileTreeRow } from "./FileTreeRow";
 export type FileTreeProps = {
   treeRoots: readonly FileRoot[];
   expanded: string[];
+  onSelect: (root: FileRoot, path: string) => void;
   handleToggle: (
     event: React.SyntheticEvent<Element, Event>,
     nodeIds: string[]
@@ -63,6 +64,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   treeRoots,
   expanded,
   handleToggle,
+  onSelect,
   onMoved,
 }: FileTreeProps) {
   const { setConfirm, setAlert } = useGlobalContext();
@@ -89,7 +91,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     handleContextMenu,
   } = useFileManagerLocalContext();
 
-  const { navigateToJupyterLab } = useOpenFile();
+  const { openInJupyterLab } = useOpenFile();
 
   const pipelineByPath = React.useCallback(
     (path) => {
@@ -126,7 +128,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           });
         }
       } else {
-        navigateToJupyterLab(undefined, cleanFilePath(path));
+        openInJupyterLab(cleanFilePath(path));
       }
     },
     [
@@ -135,7 +137,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       projectUuid,
       setAlert,
       navigateTo,
-      navigateToJupyterLab,
+      openInJupyterLab,
     ]
   );
 
@@ -443,6 +445,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                 hoveredPath={hoveredPath}
                 root={root}
                 onOpen={onOpen}
+                onSelect={onSelect}
                 onRename={(oldPath, newPath) =>
                   handleMoves([[oldPath, newPath]])
                 }

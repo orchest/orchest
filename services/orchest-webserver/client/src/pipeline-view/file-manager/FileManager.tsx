@@ -4,11 +4,17 @@ import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { useUploader } from "@/hooks/useUploader";
 import { combinePath, FileRoot, fileRoots, unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
-import { dirname, isDirectory, nearestDirectory } from "@/utils/path";
+import {
+  dirname,
+  hasExtension,
+  isDirectory,
+  nearestDirectory,
+} from "@/utils/path";
 import LinearProgress from "@mui/material/LinearProgress";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useOpenFile } from "../hooks/useOpenFile";
 import { ActionBar } from "./ActionBar";
 import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
@@ -22,6 +28,7 @@ const DEFAULT_CWD = "/project-dir:/";
 
 export function FileManager() {
   const { projectUuid } = usePipelineDataContext();
+
   const {
     isDragging,
     selectedFiles,
@@ -30,6 +37,7 @@ export function FileManager() {
 
   const { roots } = useFetchFileRoots();
   const expand = useFileApi((api) => api.expand);
+  const { openPipeline, previewFile } = useOpenFile();
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -128,6 +136,17 @@ export function FileManager() {
     [uploader, root, cwd, addExpand, expand]
   );
 
+  const handleViewFile = React.useCallback(
+    (filePath: string) => {
+      if (hasExtension(filePath, ".orchest")) {
+        openPipeline(filePath);
+      } else {
+        previewFile(filePath);
+      }
+    },
+    [openPipeline, previewFile]
+  );
+
   return (
     <>
       <FileManagerContainer ref={containerRef} uploadFiles={handleUpload}>
@@ -157,6 +176,7 @@ export function FileManager() {
                   expanded={expanded}
                   onMoved={onMoved}
                   handleToggle={handleToggle}
+                  onSelect={(root, path) => handleViewFile(path)}
                 />
                 <FileManagerContextMenu
                   origin={contextMenuOrigin}

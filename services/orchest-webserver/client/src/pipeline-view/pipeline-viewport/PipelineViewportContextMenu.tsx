@@ -45,7 +45,7 @@ export const PipelineViewportContextMenu = () => {
     );
   }, [selectedSteps, steps]);
 
-  const { openNotebook, openFilePreviewView } = useOpenFile();
+  const { openNotebook, previewFile: openFilePreviewView } = useOpenFile();
 
   if (!contextMenuUuid) return null;
 
@@ -155,14 +155,14 @@ export const PipelineViewportContextMenu = () => {
                 type: "SET_OPENED_STEP",
                 payload: contextMenuUuid,
               });
-              openNotebook(event, contextMenuUuid);
+              openNotebook(contextMenuUuid, event);
             },
           },
           {
             type: "item",
             title: "Open in File Viewer",
             action: ({ event }) => {
-              openFilePreviewView(event, contextMenuUuid);
+              openFilePreviewView(contextMenuUuid, event);
             },
           },
           {

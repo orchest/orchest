@@ -53,7 +53,7 @@ export const PipelineEditor = () => {
   const { pipelineCwd, isReadOnly, pipelineJson } = usePipelineDataContext();
   useAutoStartSession();
 
-  const { openNotebook, openFilePreviewView } = useOpenFile();
+  const { openNotebook, previewFile } = useOpenFile();
 
   const { scaleFactor } = useCanvasScaling();
   const {
@@ -96,9 +96,9 @@ export const PipelineEditor = () => {
 
   const onDoubleClickStep = (stepUuid: string) => {
     if (isReadOnly) {
-      openFilePreviewView(undefined, stepUuid);
+      previewFile(stepUuid);
     } else if (pipelineCwd) {
-      openNotebook(undefined, stepUuid);
+      openNotebook(stepUuid);
     }
   };
 

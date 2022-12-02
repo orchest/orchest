@@ -36,7 +36,7 @@ export const FileManagerContextMenu = ({
     isSnapshot,
   } = usePipelineDataContext();
   const isRunningOnSnapshot = isJobRun || isSnapshot;
-  const { navigateToJupyterLab } = useOpenFile();
+  const { openInJupyterLab } = useOpenFile();
 
   const additionalQueryArgs = React.useMemo(() => {
     if (!jobUuid) return {};
@@ -64,8 +64,8 @@ export const FileManagerContextMenu = ({
   const handleEditFile = React.useCallback(() => {
     if (isReadOnly) return;
     handleClose();
-    navigateToJupyterLab(undefined, cleanFilePath(contextMenuPath));
-  }, [contextMenuPath, navigateToJupyterLab, handleClose, isReadOnly]);
+    openInJupyterLab(cleanFilePath(contextMenuPath));
+  }, [contextMenuPath, openInJupyterLab, handleClose, isReadOnly]);
 
   const handleViewFile = React.useCallback(() => {
     handleClose();

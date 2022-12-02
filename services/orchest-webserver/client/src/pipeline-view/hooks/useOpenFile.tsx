@@ -1,6 +1,7 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { join } from "@/utils/path";
+import { addLeadingSlash, join, trimLeadingSlash } from "@/utils/path";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
@@ -15,11 +16,13 @@ export const useOpenFile = () => {
   } = useCustomRoute();
   const {
     pipelineCwd,
+    pipelineJson,
     runUuid,
     isReadOnly,
     isJobRun,
     isSnapshot,
   } = usePipelineDataContext();
+  const { pipelines = [] } = useProjectsContext().state;
 
   const {
     uiState: { steps },
@@ -35,8 +38,8 @@ export const useOpenFile = () => {
     [jobUuid, runUuid, isJobRun, isSnapshot, snapshotUuid]
   );
 
-  const navigateToJupyterLab = React.useCallback(
-    (e: React.MouseEvent | undefined, filePathRelativeToRoot: string) => {
+  const openInJupyterLab = React.useCallback(
+    (filePathRelativeToRoot: string, event?: React.MouseEvent) => {
       // JupyterLabView will start the session automatically,
       // so no need to check if there's a running session.
       navigateTo(
@@ -48,58 +51,107 @@ export const useOpenFile = () => {
             filePath: filePathRelativeToRoot,
           },
         },
-        e
+        event
       );
     },
     [navigateTo, pipelineUuid, projectUuid]
   );
 
   const notebookFilePath = React.useCallback(
-    (pipelineCwd: string, stepUUID: string) => {
-      return join(pipelineCwd, steps[stepUUID].file_path);
+    (pipelineCwd: string, stepUuid: string) => {
+      return join(pipelineCwd, steps[stepUuid].file_path);
     },
     [steps]
   );
 
   const openNotebook = React.useCallback(
-    (e: React.MouseEvent | undefined, stepUuid?: string) => {
+    (stepUuid?: string, event?: React.MouseEvent) => {
       if (pipelineCwd && stepUuid)
-        navigateToJupyterLab(e, notebookFilePath(pipelineCwd, stepUuid));
+        openInJupyterLab(notebookFilePath(pipelineCwd, stepUuid), event);
     },
-    [notebookFilePath, navigateToJupyterLab, pipelineCwd]
+    [notebookFilePath, openInJupyterLab, pipelineCwd]
   );
 
   const openFile = React.useCallback(
-    (e: React.MouseEvent | undefined, filePath: string) => {
+    (filePath: string, event?: React.MouseEvent) => {
       if (pipelineCwd && filePath)
-        navigateToJupyterLab(e, join(pipelineCwd, filePath));
+        openInJupyterLab(join(pipelineCwd, filePath), event);
     },
-    [navigateToJupyterLab, pipelineCwd]
+    [openInJupyterLab, pipelineCwd]
   );
 
-  const routePath =
+  const previewPath =
     isJobRun || isSnapshot
       ? siteMap.jobRunFilePreview.path
       : siteMap.filePreview.path;
 
-  const openFilePreviewView = React.useCallback(
-    (e: React.MouseEvent | undefined, stepUuid: string) => {
+  const previewFile = React.useCallback(
+    (filePath: string, event?: React.MouseEvent) => {
+      if (!pipelineUuid || !pipelineCwd) return;
+
+      const foundStep = Object.values(pipelineJson?.steps || {}).find(
+        (step) => {
+          const stepFilePath = join(pipelineCwd, step.file_path);
+
+          return addLeadingSlash(stepFilePath) === addLeadingSlash(filePath);
+        }
+      );
+
+      if (!foundStep) return;
+
       navigateTo(
-        routePath,
+        previewPath,
         {
           query: {
             projectUuid,
             pipelineUuid,
-            stepUuid,
+            stepUuid: foundStep.uuid,
             ...queryArgs,
           },
           state: { isReadOnly },
         },
-        e
+        event
       );
     },
-    [routePath, isReadOnly, queryArgs, navigateTo, pipelineUuid, projectUuid]
+    [
+      pipelineUuid,
+      pipelineCwd,
+      pipelineJson?.steps,
+      navigateTo,
+      previewPath,
+      projectUuid,
+      queryArgs,
+      isReadOnly,
+    ]
   );
 
-  return { navigateToJupyterLab, openNotebook, openFile, openFilePreviewView };
+  const openPipeline = React.useCallback(
+    (pipelinePath: string, event?: React.MouseEvent) => {
+      const selectedPipeline = pipelines.find(
+        ({ path }) => trimLeadingSlash(path) === trimLeadingSlash(pipelinePath)
+      );
+
+      navigateTo(
+        siteMap.pipeline.path,
+        {
+          query: {
+            projectUuid,
+            pipelineUuid: selectedPipeline?.uuid,
+            ...queryArgs,
+          },
+          state: { isReadOnly },
+        },
+        event
+      );
+    },
+    [isReadOnly, navigateTo, pipelines, projectUuid, queryArgs]
+  );
+
+  return {
+    openInJupyterLab,
+    openNotebook,
+    openFile,
+    previewFile,
+    openPipeline,
+  };
 };
