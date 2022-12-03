@@ -28,6 +28,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
+import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
 import { useOpenFile } from "../hooks/useOpenFile";
 import { useSelectedFiles } from "../hooks/useSelectedFiles";
 import {
@@ -42,7 +43,6 @@ import {
 } from "./common";
 import { DragIndicator } from "./DragIndicator";
 import { useFileManagerContext } from "./FileManagerContext";
-import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { FileTreeItem } from "./FileTreeItem";
 import { FileTreeRow } from "./FileTreeRow";
 

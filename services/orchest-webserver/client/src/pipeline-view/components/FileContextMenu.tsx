@@ -1,23 +1,22 @@
 import { useFileApi } from "@/api/files/useFileApi";
 import { unpackPath } from "@/utils/file";
-import { Point2D } from "@/utils/geometry";
 import { isDirectory } from "@/utils/path";
-import Menu from "@mui/material/Menu";
+import Menu, { MenuProps } from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { cleanFilePath } from "../file-manager/common";
 import { useOpenFile } from "../hooks/useOpenFile";
-import { cleanFilePath } from "./common";
 
-type FileManagerContextMenuProps = { origin?: Point2D; onCollapse: () => void };
+type FileContextMenuProps = {
+  onCollapse?: () => void;
+} & MenuProps;
 
-export const FileManagerContextMenu = ({
-  origin,
+export const FileContextMenu = ({
   onCollapse,
-}: FileManagerContextMenuProps) => {
-  const [left, top] = origin ?? [0, 0];
+  ...menuProps
+}: FileContextMenuProps) => {
   const duplicate = useFileApi((api) => api.duplicate);
   const refresh = useFileApi((api) => api.refresh);
   const { isReadOnly } = usePipelineDataContext();
@@ -50,14 +49,11 @@ export const FileManagerContextMenu = ({
   const isFile = !isDirectory(path);
   const isRoot = path === "/";
 
+  console.log({ menuProps });
+
   return (
-    <Menu
-      open={hasValue(origin)}
-      onClose={handleClose}
-      anchorReference="anchorPosition"
-      anchorPosition={{ left, top }}
-    >
-      {(!hasPath || isRoot) && (
+    <Menu {...menuProps}>
+      {!(hasPath || isRoot) && onCollapse && (
         <MenuItem
           dense
           onClick={() => {

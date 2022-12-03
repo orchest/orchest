@@ -12,12 +12,12 @@ import { basename } from "@/utils/path";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
-import { useSelectedFiles } from "../hooks/useSelectedFiles";
 import {
   filterRedundantChildPaths,
   findPipelineFiles,
   prettifyRoot,
-} from "./common";
+} from "../file-manager/common";
+import { useSelectedFiles } from "../hooks/useSelectedFiles";
 
 export type FileManagerLocalContextType = {
   handleClose: () => void;
@@ -32,6 +32,7 @@ export type FileManagerLocalContextType = {
   handleDelete: () => void;
   handleDownload: () => void;
   handleRename: () => void;
+  contextMenuOrigin: Point2D | undefined;
   contextMenuPath: string | undefined;
   fileInRename: string | undefined;
   setFileInRename: React.Dispatch<React.SetStateAction<string | undefined>>;
@@ -63,11 +64,7 @@ const download = (projectUuid: string, combinedPath: string, name: string) => {
   a.remove();
 };
 
-export const FileManagerLocalContextProvider: React.FC<{
-  setContextMenuOrigin: React.Dispatch<
-    React.SetStateAction<Point2D | undefined>
-  >;
-}> = ({ children, setContextMenuOrigin }) => {
+export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
   const { setConfirm } = useGlobalContext();
   const {
     state: { pipelines = [], pipelineReadOnlyReason },
@@ -92,16 +89,17 @@ export const FileManagerLocalContextProvider: React.FC<{
   const [contextMenuPath, setContextMenuPath] = React.useState<string>();
   const [fileInRename, setFileInRename] = React.useState<string>();
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
+  const [contextMenuOrigin, setContextMenuOrigin] = React.useState<Point2D>();
   const deleteFile = useFileApi((api) => api.delete);
 
   const handleContextMenu = React.useCallback(
     (event: React.MouseEvent, combinedPath: string | undefined) => {
+      console.log("handle", combinedPath);
+
       event.preventDefault();
       event.stopPropagation();
       setContextMenuPath(combinedPath);
-      setContextMenuOrigin((current) =>
-        !current ? [event.clientX - 2, event.clientY - 4] : undefined
-      );
+      setContextMenuOrigin([event.clientX - 2, event.clientY - 4]);
     },
     [setContextMenuOrigin]
   );
@@ -267,6 +265,7 @@ export const FileManagerLocalContextProvider: React.FC<{
         fileRenameNewName,
         setFileRenameNewName,
         setContextMenuOrigin,
+        contextMenuOrigin,
       }}
     >
       {children}

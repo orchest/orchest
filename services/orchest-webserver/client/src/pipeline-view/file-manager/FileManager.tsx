@@ -3,7 +3,6 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { useUploader } from "@/hooks/useUploader";
 import { combinePath, FileRoot, fileRoots, unpackPath } from "@/utils/file";
-import { Point2D } from "@/utils/geometry";
 import {
   dirname,
   hasExtension,
@@ -13,6 +12,11 @@ import {
 import LinearProgress from "@mui/material/LinearProgress";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { FileContextMenu } from "../components/FileContextMenu";
+import {
+  FileManagerLocalContextProvider,
+  useFileManagerLocalContext,
+} from "../contexts/FileManagerLocalContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useOpenFile } from "../hooks/useOpenFile";
 import { useSelectedFiles } from "../hooks/useSelectedFiles";
@@ -20,8 +24,6 @@ import { ActionBar } from "./ActionBar";
 import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
 import { useFileManagerContext } from "./FileManagerContext";
-import { FileManagerContextMenu } from "./FileManagerContextMenu";
-import { FileManagerLocalContextProvider } from "./FileManagerLocalContext";
 import { FileTree } from "./FileTree";
 import { FileTreeContainer } from "./FileTreeContainer";
 
@@ -33,6 +35,9 @@ export function FileManager() {
   const { isDragging } = useFileManagerContext();
   const selectedFiles = useSelectedFiles((state) => state.selected);
   const setSelectedFiles = useSelectedFiles((state) => state.setSelected);
+  const { contextMenuOrigin } = useFileManagerLocalContext();
+
+  console.log({ contextMenuOrigin });
 
   const { roots } = useFetchFileRoots();
   const expand = useFileApi((api) => api.expand);
@@ -46,7 +51,6 @@ export function FileManager() {
 
   const [expanded, setExpanded] = React.useState<string[]>([DEFAULT_CWD]);
   const [progress, setProgress] = React.useState(0);
-  const [contextMenuOrigin, setContextMenuOrigin] = React.useState<Point2D>();
 
   const { root, path: cwd } = unpackPath(
     nearestDirectory(selectedFiles[0] || DEFAULT_CWD)
@@ -171,9 +175,7 @@ export function FileManager() {
             variant="determinate"
           />
         )}
-        <FileManagerLocalContextProvider
-          setContextMenuOrigin={setContextMenuOrigin}
-        >
+        <FileManagerLocalContextProvider>
           <CreatePipelineButton />
           <ActionBar
             setExpanded={setExpanded}
@@ -192,8 +194,13 @@ export function FileManager() {
                   onMoved={onMoved}
                   handleToggle={handleToggle}
                 />
-                <FileManagerContextMenu
-                  origin={contextMenuOrigin}
+                <FileContextMenu
+                  open={Boolean(contextMenuOrigin)}
+                  anchorReference="anchorPosition"
+                  anchorPosition={{
+                    top: contextMenuOrigin?.[0] ?? 0,
+                    left: contextMenuOrigin?.[1] ?? 0,
+                  }}
                   onCollapse={() => setExpanded([])}
                 />
               </>
