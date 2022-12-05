@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 
 from _orchest.internals import config as _config
@@ -6,6 +7,20 @@ from _orchest.internals import config as _config
 assert (
     _config.CONTAINER_RUNTIME is not None
 ), "CONTAINER_RUNTIME should be set for the orchest-api and celery-worker."
+
+
+def _get_worker_plane_selector():
+    selector_string = os.environ.get("WORKER_PLANE_SELECTOR")
+    if selector_string is None:
+        return
+
+    try:
+        selector_dict = json.loads(selector_string)
+        if not isinstance(selector_dict, dict):
+            return
+        return selector_dict
+    except json.decoder.JSONDecodeError:
+        return
 
 
 class Config:
@@ -20,6 +35,8 @@ class Config:
     ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
     # must be uppercase
     SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/orchest_api"
+
+    WORKER_PLANE_SELECTOR = _get_worker_plane_selector()
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

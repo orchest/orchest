@@ -19,6 +19,8 @@ import time
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from flask import current_app
+
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from app import models, utils
@@ -28,15 +30,25 @@ from config import CONFIG_CLASS
 logger = utils.get_logger()
 
 
-def _get_k8s_nodes_information() -> Tuple[List[str], List[str]]:
-    return _get_k8s_nodes_information_cached_with_ttl(ttl_period=int(time.time() // 2))
+def _get_k8s_nodes_information(
+    label_selector: Optional[Dict[str, str]] = None
+) -> Tuple[List[str], List[str]]:
+    if label_selector is not None:
+        label_selector = ",".join(f"{k}={v}" for k, v in label_selector.items())
+    return _get_k8s_nodes_information_cached_with_ttl(
+        label_selector=label_selector, ttl_period=int(time.time() // 2)
+    )
 
 
 @lru_cache(maxsize=1)
 def _get_k8s_nodes_information_cached_with_ttl(
+    label_selector: Optional[str],
     ttl_period: int,
 ) -> Tuple[List[str], List[str]]:
-    nodes = k8s_core_api.list_node()
+    if label_selector is None:
+        nodes = k8s_core_api.list_node()
+    else:
+        nodes = k8s_core_api.list_node(label_selector=label_selector)
     known_nodes_names = []
     ready_nodes_names = []
     for node in nodes.items:
@@ -163,7 +175,12 @@ def _get_required_affinity(
     if not _should_constrain_to_nodes(scope, image_is_in_registry):
         return
 
-    _, cluster_nodes_known_to_be_ready = _get_k8s_nodes_information()
+    # Only consider nodes in the worker plane if the selector is
+    # available.
+    label_selector = current_app.config["WORKER_PLANE_SELECTOR"]
+    _, cluster_nodes_known_to_be_ready = _get_k8s_nodes_information(
+        label_selector=label_selector
+    )
 
     cluster_nodes_known_to_be_ready = set(cluster_nodes_known_to_be_ready)
     ready_nodes_with_image = [
