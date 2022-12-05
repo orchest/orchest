@@ -235,7 +235,8 @@ def build_jupyter_image(self, image_tag: str) -> str:
 
     """
 
-    return build_jupyter_image_task(self.request.id, image_tag)
+    with application.app_context():
+        return build_jupyter_image_task(self.request.id, image_tag)
 
 
 @celery.task(bind=True, base=AbortableTask)

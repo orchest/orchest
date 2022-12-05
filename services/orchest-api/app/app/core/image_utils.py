@@ -6,6 +6,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.utils import get_userdir_relpath
 from app import errors, utils
 from app.connections import k8s_core_api
+from app.core import pod_scheduling
 from config import CONFIG_CLASS
 
 ORCHEST_LOG_PREFIX = "[Orchest] "
@@ -177,6 +178,7 @@ def _get_image_builder_manifest(
             raise ValueError()
         container["args"] = [args]
 
+    pod_scheduling.modify_image_builder_pod_scheduling_behaviour(manifest)
     return manifest
 
 
