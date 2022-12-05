@@ -27,8 +27,7 @@ export const EditJobParameters = ({ isReadOnly }: EditJobParametersProps) => {
   const initialStrategyJson = useEditJob(
     (state) => state.jobChanges?.strategy_json,
     (existingStrategy = {}) => {
-      const existingStrategyKeys = Object.keys(existingStrategy);
-      return existingStrategyKeys.length > 0 && !hasChangedPipeline;
+      return hasChangedPipeline && Object.keys(existingStrategy).length > 0;
     }
   );
 
@@ -89,7 +88,7 @@ const ParameterEditor = ({
       <AccordionSummary aria-controls="job-parameters">
         <Typography variant="subtitle1">
           {parameter.title
-            ? capitalize(source) + " " + parameter.title
+            ? capitalize(source) + ": " + parameter.title
             : "Unnamed " + source}
         </Typography>
       </AccordionSummary>
