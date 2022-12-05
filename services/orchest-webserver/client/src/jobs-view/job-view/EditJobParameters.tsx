@@ -3,7 +3,6 @@ import {
   AccordionDetails,
   AccordionSummary,
 } from "@/components/Accordion";
-import { useHasChanged } from "@/hooks/useHasChanged";
 import { StrategyJsonValue } from "@/types";
 import { capitalize } from "@mui/material";
 import Typography from "@mui/material/Typography";
@@ -18,29 +17,18 @@ type EditJobParametersProps = {
 };
 
 export const EditJobParameters = ({ isReadOnly }: EditJobParametersProps) => {
-  // When updating parameter values, `state.jobChanges.strategy_json` is also updated.
-  // But we don't want to re-render the whole form when this happens.
-  // Therefore, in `equals` function, check if existingStrategy is still empty.
-  // Don't re-render if it already has properties.
-  const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
-  const hasChangedPipeline = useHasChanged(pipelineUuid);
-  const initialStrategyJson = useEditJob(
-    (state) => state.jobChanges?.strategy_json,
-    (existingStrategy = {}) => {
-      return hasChangedPipeline && Object.keys(existingStrategy).length > 0;
-    }
-  );
+  const strategyJson = useEditJob((state) => state.jobChanges?.strategy_json);
 
   // Get the "pipeline_parameters" key.
   const { reservedKey } = useParameterReservedKey();
 
   const parameters = React.useMemo(() => {
-    if (!initialStrategyJson || !reservedKey) return undefined;
+    if (!strategyJson || !reservedKey) return undefined;
 
-    const { [reservedKey]: pipelineParams, ...other } = initialStrategyJson;
+    const { [reservedKey]: pipelineParams, ...other } = strategyJson;
 
     return { pipeline: pipelineParams, steps: Object.values(other) };
-  }, [initialStrategyJson, reservedKey]);
+  }, [strategyJson, reservedKey]);
 
   const shouldRenderPipelineEditor = hasValue(parameters);
   const hasNoParameter =
