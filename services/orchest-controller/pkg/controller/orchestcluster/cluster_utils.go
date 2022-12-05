@@ -2,6 +2,7 @@ package orchestcluster
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
@@ -257,6 +258,15 @@ func getOrchestComponent(name, hash string,
 	case controller.OrchestApi:
 		template.NodeSelector = orchest.Spec.ControlNodeSelector
 		template.StateVolumeName = controller.UserDirName
+
+		if orchest.Spec.WorkerNodeSelector != nil && len(orchest.Spec.WorkerNodeSelector) > 0 {
+			jsonStr, _ := json.Marshal(orchest.Spec.WorkerNodeSelector)
+			template.Env = utils.MergeEnvVars(template.Env, []corev1.EnvVar{{
+				Name:  "WORKER_PLANE_SELECTOR",
+				Value: string(jsonStr),
+			}})
+		}
+
 	case controller.Rabbitmq:
 		template.NodeSelector = orchest.Spec.ControlNodeSelector
 		template.StateVolumeName = orchestStateVolumeName
@@ -266,6 +276,14 @@ func getOrchestComponent(name, hash string,
 			template.StateVolumeName = controller.OrchestStateVolumeName
 		} else {
 			template.StateVolumeName = controller.UserDirName
+		}
+
+		if orchest.Spec.WorkerNodeSelector != nil && len(orchest.Spec.WorkerNodeSelector) > 0 {
+			jsonStr, _ := json.Marshal(orchest.Spec.WorkerNodeSelector)
+			template.Env = utils.MergeEnvVars(template.Env, []corev1.EnvVar{{
+				Name:  "WORKER_PLANE_SELECTOR",
+				Value: string(jsonStr),
+			}})
 		}
 	case controller.AuthServer:
 		template.NodeSelector = orchest.Spec.ControlNodeSelector
