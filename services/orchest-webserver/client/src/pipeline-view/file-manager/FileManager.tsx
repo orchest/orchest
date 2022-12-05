@@ -13,10 +13,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileContextMenu } from "../components/FileContextMenu";
-import {
-  FileManagerLocalContextProvider,
-  useFileManagerLocalContext,
-} from "../contexts/FileManagerLocalContext";
+import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useOpenFile } from "../hooks/useOpenFile";
 import { useSelectedFiles } from "../hooks/useSelectedFiles";
@@ -35,9 +32,10 @@ export function FileManager() {
   const { isDragging } = useFileManagerContext();
   const selectedFiles = useSelectedFiles((state) => state.selected);
   const setSelectedFiles = useSelectedFiles((state) => state.setSelected);
-  const { contextMenuOrigin } = useFileManagerLocalContext();
-
-  console.log({ contextMenuOrigin });
+  const {
+    contextMenuOrigin,
+    setContextMenuOrigin,
+  } = useFileManagerLocalContext();
 
   const { roots } = useFetchFileRoots();
   const expand = useFileApi((api) => api.expand);
@@ -165,49 +163,48 @@ export function FileManager() {
     [handleViewFile]
   );
 
+  console.log(contextMenuOrigin);
+
   return (
-    <>
-      <FileManagerContainer ref={containerRef} uploadFiles={handleUpload}>
-        {inProgress && (
-          <LinearProgress
-            sx={{ position: "absolute", width: "100%" }}
-            value={progress}
-            variant="determinate"
-          />
+    <FileManagerContainer ref={containerRef} uploadFiles={handleUpload}>
+      {inProgress && (
+        <LinearProgress
+          sx={{ position: "absolute", width: "100%" }}
+          value={progress}
+          variant="determinate"
+        />
+      )}
+      <CreatePipelineButton />
+      <ActionBar
+        setExpanded={setExpanded}
+        uploadFiles={handleUpload}
+        cwd={cwd}
+        root={root}
+        onCreated={addExpand}
+      />
+      <FileTreeContainer>
+        {allTreesHaveLoaded && (
+          <>
+            <FileTree
+              onSelect={handleSelection}
+              treeRoots={fileRoots}
+              expanded={expanded}
+              onMoved={onMoved}
+              handleToggle={handleToggle}
+            />
+            <FileContextMenu
+              open={Boolean(contextMenuOrigin)}
+              anchorReference="anchorPosition"
+              anchorPosition={{
+                left: contextMenuOrigin?.[0] ?? 0,
+                top: contextMenuOrigin?.[1] ?? 0,
+              }}
+              onCollapse={() => setExpanded([])}
+              onClose={() => setContextMenuOrigin(undefined)}
+            />
+          </>
         )}
-        <FileManagerLocalContextProvider>
-          <CreatePipelineButton />
-          <ActionBar
-            setExpanded={setExpanded}
-            uploadFiles={handleUpload}
-            cwd={cwd}
-            root={root}
-            onCreated={addExpand}
-          />
-          <FileTreeContainer>
-            {allTreesHaveLoaded && (
-              <>
-                <FileTree
-                  onSelect={handleSelection}
-                  treeRoots={fileRoots}
-                  expanded={expanded}
-                  onMoved={onMoved}
-                  handleToggle={handleToggle}
-                />
-                <FileContextMenu
-                  open={Boolean(contextMenuOrigin)}
-                  anchorReference="anchorPosition"
-                  anchorPosition={{
-                    top: contextMenuOrigin?.[0] ?? 0,
-                    left: contextMenuOrigin?.[1] ?? 0,
-                  }}
-                  onCollapse={() => setExpanded([])}
-                />
-              </>
-            )}
-          </FileTreeContainer>
-        </FileManagerLocalContextProvider>
-      </FileManagerContainer>
-    </>
+      </FileTreeContainer>
+    </FileManagerContainer>
   );
 }

@@ -87,21 +87,20 @@ export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
   }, [pipelines, pipelineUuid]);
 
   const [contextMenuPath, setContextMenuPath] = React.useState<string>();
+  const [contextMenuOrigin, setContextMenuOrigin] = React.useState<Point2D>();
   const [fileInRename, setFileInRename] = React.useState<string>();
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
-  const [contextMenuOrigin, setContextMenuOrigin] = React.useState<Point2D>();
   const deleteFile = useFileApi((api) => api.delete);
 
   const handleContextMenu = React.useCallback(
     (event: React.MouseEvent, combinedPath: string | undefined) => {
-      console.log("handle", combinedPath);
-
       event.preventDefault();
       event.stopPropagation();
-      setContextMenuPath(combinedPath);
+
       setContextMenuOrigin([event.clientX - 2, event.clientY - 4]);
+      setContextMenuPath(combinedPath);
     },
-    [setContextMenuOrigin]
+    []
   );
 
   const handleSelect = React.useCallback(
