@@ -15,6 +15,8 @@ export const StepFileConnections = () => {
   const step = useActiveStep();
   const connections = useStepConnections(step?.uuid);
 
+  if (!connections.incoming.length && !connections.outgoing.length) return null;
+
   return (
     <Stack direction="row" alignItems="space-between" maxWidth={1000}>
       <Typography variant="body2" color="text.secondary" flex="1 1 auto">
