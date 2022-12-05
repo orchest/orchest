@@ -380,3 +380,12 @@ def modify_pipeline_scheduling_behaviour(scope: str, manifest: Dict[str, Any]) -
     if CONFIG_CLASS.SINGLE_NODE:
         return _modify_pipeline_scheduling_behaviour_single_node(scope, manifest)
     _modify_pipeline_scheduling_behaviour_multi_node(scope, manifest)
+
+
+def modify_image_builder_pod_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
+    if manifest["kind"] != "Pod":
+        raise ValueError("Expected a pod manifest.")
+    spec = manifest["spec"]
+    worker_plane_selector = current_app.config["WORKER_PLANE_SELECTOR"]
+    if worker_plane_selector is not None:
+        spec["nodeSelector"] = worker_plane_selector
