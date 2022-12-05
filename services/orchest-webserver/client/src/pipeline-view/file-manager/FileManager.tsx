@@ -15,6 +15,7 @@ import React from "react";
 import { FileContextMenu } from "../components/FileContextMenu";
 import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useExpandedFiles } from "../hooks/useExpandedFiles";
 import { useFileManagerState } from "../hooks/useFileManagerState";
 import { useOpenFile } from "../hooks/useOpenFile";
 import { ActionBar } from "./ActionBar";
@@ -47,7 +48,8 @@ export function FileManager() {
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [expanded, setExpanded] = React.useState<string[]>([DEFAULT_CWD]);
+  const expanded = useExpandedFiles();
+  const setExpanded = useFileManagerState((state) => state.setExpanded);
   const [progress, setProgress] = React.useState(0);
 
   const { root, path: cwd } = unpackPath(
@@ -83,7 +85,7 @@ export function FileManager() {
         setExpanded(paths);
       }
     },
-    [expand, expanded, isDragging]
+    [expand, expanded, isDragging, setExpanded]
   );
 
   React.useEffect(() => {
@@ -100,7 +102,7 @@ export function FileManager() {
 
     setSelectedFiles(pruneMissingPaths);
     setExpanded(pruneMissingPaths);
-  }, [roots, setSelectedFiles]);
+  }, [roots, setExpanded, setSelectedFiles]);
 
   const allTreesHaveLoaded = fileRoots.every((root) => hasValue(roots[root]));
 
@@ -117,17 +119,20 @@ export function FileManager() {
         setExpanded((expanded) => [...expanded, newPath]);
       }
     },
-    [expanded, selectedFiles, setSelectedFiles]
+    [expanded, selectedFiles, setExpanded, setSelectedFiles]
   );
 
-  const addExpand = React.useCallback((root: FileRoot, newPath: string) => {
-    const combinedPath = combinePath({ root, path: newPath });
-    const directory = isDirectory(newPath) ? newPath : dirname(combinedPath);
+  const addExpand = React.useCallback(
+    (root: FileRoot, newPath: string) => {
+      const combinedPath = combinePath({ root, path: newPath });
+      const directory = isDirectory(newPath) ? newPath : dirname(combinedPath);
 
-    setExpanded((current) =>
-      current.includes(directory) ? current : [...current, directory]
-    );
-  }, []);
+      setExpanded((current) =>
+        current.includes(directory) ? current : [...current, directory]
+      );
+    },
+    [setExpanded]
+  );
 
   const handleUpload = React.useCallback(
     (files: FileList | File[]) =>
@@ -163,8 +168,6 @@ export function FileManager() {
     [handleViewFile]
   );
 
-  console.log(contextMenuOrigin);
-
   return (
     <FileManagerContainer ref={containerRef} uploadFiles={handleUpload}>
       {inProgress && (
@@ -176,7 +179,6 @@ export function FileManager() {
       )}
       <CreatePipelineButton />
       <ActionBar
-        setExpanded={setExpanded}
         uploadFiles={handleUpload}
         cwd={cwd}
         root={root}
@@ -199,7 +201,6 @@ export function FileManager() {
                 left: contextMenuOrigin?.[0] ?? 0,
                 top: contextMenuOrigin?.[1] ?? 0,
               }}
-              onCollapse={() => setExpanded([])}
               onClose={() => setContextMenuOrigin(undefined)}
             />
           </>

@@ -7,19 +7,14 @@ import React from "react";
 import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { cleanFilePath } from "../file-manager/common";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 import { useOpenFile } from "../hooks/useOpenFile";
 
-type FileContextMenuProps = {
-  onCollapse?: () => void;
-} & MenuProps;
-
-export const FileContextMenu = ({
-  onCollapse,
-  ...menuProps
-}: FileContextMenuProps) => {
+export const FileContextMenu = (menuProps: MenuProps) => {
   const duplicate = useFileApi((api) => api.duplicate);
   const refresh = useFileApi((api) => api.refresh);
   const { isReadOnly } = usePipelineDataContext();
+  const setExpanded = useFileManagerState((state) => state.setExpanded);
   const { openInJupyterLab } = useOpenFile();
 
   const {
@@ -53,11 +48,11 @@ export const FileContextMenu = ({
 
   return (
     <Menu {...menuProps}>
-      {!(hasPath || isRoot) && onCollapse && (
+      {!(hasPath || isRoot) && (
         <MenuItem
           dense
           onClick={() => {
-            onCollapse();
+            setExpanded([]);
             handleClose();
           }}
         >

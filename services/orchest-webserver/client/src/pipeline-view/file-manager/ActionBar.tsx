@@ -13,6 +13,7 @@ import { styled } from "@mui/material/styles";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useCreateStep } from "../hooks/useCreateStep";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 import { CreatedFile, CreateFileDialog } from "./CreateFileDialog";
 import { CreateFolderDialog } from "./CreateFolderDialog";
 
@@ -27,7 +28,6 @@ type ActionBarProps = {
   root: FileRoot;
   cwd: string;
   uploadFiles: (files: File[] | FileList) => void;
-  setExpanded: (items: string[]) => void;
   onCreated: (root: FileRoot, path: string) => void;
 };
 
@@ -35,12 +35,12 @@ export function ActionBar({
   root,
   cwd,
   uploadFiles,
-  setExpanded,
   onCreated,
 }: ActionBarProps) {
   const reload = useFileApi((api) => api.refresh);
   const [openDialog, setOpenDialog] = React.useState<OpenDialog | null>(null);
   const { isReadOnly, pipeline } = usePipelineDataContext();
+  const setExpanded = useFileManagerState((state) => state.setExpanded);
 
   const createStep = useCreateStep();
 
