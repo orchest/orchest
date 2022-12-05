@@ -36,7 +36,7 @@ def _get_k8s_nodes_information() -> Tuple[List[str], List[str]]:
 def _get_k8s_nodes_information_cached_with_ttl(
     ttl_period: int,
 ) -> Tuple[List[str], List[str]]:
-    nodes = k8s_core_api.CoreV1Api.list_node()
+    nodes = k8s_core_api.list_node()
     known_nodes_names = []
     ready_nodes_names = []
     for node in nodes.items:
