@@ -33,7 +33,7 @@ repos:
           - eslint-plugin-react-hooks@4.2.0
           - "@typescript-eslint/eslint-plugin@4.29.3"
           - "@typescript-eslint/parser@4.29.3"
-  - repo: https://gitlab.com/pycqa/flake8
+  - repo: https://github.com/pycqa/flake8
     rev: 3.9.2
     hooks:
       - id: flake8
