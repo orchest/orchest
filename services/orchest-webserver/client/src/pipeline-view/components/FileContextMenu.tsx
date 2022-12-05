@@ -44,8 +44,6 @@ export const FileContextMenu = (menuProps: MenuProps) => {
   const isFile = !isDirectory(path);
   const isRoot = path === "/";
 
-  console.log({ menuProps });
-
   return (
     <Menu {...menuProps}>
       {!(hasPath || isRoot) && (
