@@ -121,6 +121,14 @@ const SettingsView: React.FC = () => {
     }
   }, [userConfig]);
 
+  // Assuming any 2TB+ available GB indication to be
+  // unreliable. This is mainly due to unconstrained
+  // storage systems like EFS that report a fictitious
+  // upper bound of the storage.
+  const isDiskUsageReliable = hostInfo
+    ? hostInfo.disk_info.avail_GB < 2000
+    : false;
+
   return (
     <Layout>
       <div className={"view-page orchest-settings"}>
@@ -201,17 +209,26 @@ const SettingsView: React.FC = () => {
               <div className="column">
                 {hostInfo ? (
                   <>
-                    <LinearProgress
-                      className="disk-size-info"
-                      variant="determinate"
-                      value={hostInfo.disk_info.used_pcent}
-                    />
+                    {isDiskUsageReliable && (
+                      <LinearProgress
+                        className="disk-size-info"
+                        variant="determinate"
+                        value={hostInfo.disk_info.used_pcent}
+                      />
+                    )}
 
-                    <div className="disk-size-info push-up-half">
+                    <div
+                      className={
+                        "disk-size-info" +
+                        (isDiskUsageReliable ? " push-up-half" : "")
+                      }
+                    >
                       <span>{hostInfo.disk_info.used_GB + "GB used"}</span>
-                      <span className="float-right">
-                        {hostInfo.disk_info.avail_GB + "GB free"}
-                      </span>
+                      {isDiskUsageReliable && (
+                        <span className="float-right">
+                          {hostInfo.disk_info.avail_GB + "GB free"}
+                        </span>
+                      )}
                     </div>
                   </>
                 ) : (
