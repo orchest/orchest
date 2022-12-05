@@ -10,10 +10,10 @@ import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { CreateFileDialog } from "../file-manager/CreateFileDialog";
 import { useCreateStep } from "../hooks/useCreateStep";
-import { useSelectedFiles } from "../hooks/useSelectedFiles";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 
 export const NoScripts = () => {
-  const selectedFiles = useSelectedFiles((state) => state.selected);
+  const selectedFiles = useFileManagerState((state) => state.selected);
   const expand = useFileApi((api) => api.expand);
   const { isReadOnly, pipeline, projectUuid } = usePipelineDataContext();
   const createStep = useCreateStep();

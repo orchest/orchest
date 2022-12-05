@@ -1,10 +1,10 @@
 import Box from "@mui/material/Box";
 import React from "react";
 import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
-import { useSelectedFiles } from "../hooks/useSelectedFiles";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 
 export const FileTreeContainer: React.FC = ({ children }) => {
-  const setSelectedFiles = useSelectedFiles((state) => state.setSelected);
+  const setSelectedFiles = useFileManagerState((state) => state.setSelected);
   const { handleContextMenu } = useFileManagerLocalContext();
 
   return (

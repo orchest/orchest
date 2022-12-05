@@ -15,8 +15,8 @@ import React from "react";
 import { FileContextMenu } from "../components/FileContextMenu";
 import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 import { useOpenFile } from "../hooks/useOpenFile";
-import { useSelectedFiles } from "../hooks/useSelectedFiles";
 import { ActionBar } from "./ActionBar";
 import { CreatePipelineButton } from "./CreatePipelineButton";
 import { FileManagerContainer } from "./FileManagerContainer";
@@ -30,8 +30,8 @@ export function FileManager() {
   const { projectUuid } = usePipelineDataContext();
 
   const { isDragging } = useFileManagerContext();
-  const selectedFiles = useSelectedFiles((state) => state.selected);
-  const setSelectedFiles = useSelectedFiles((state) => state.setSelected);
+  const selectedFiles = useFileManagerState((state) => state.selected);
+  const setSelectedFiles = useFileManagerState((state) => state.setSelected);
   const {
     contextMenuOrigin,
     setContextMenuOrigin,

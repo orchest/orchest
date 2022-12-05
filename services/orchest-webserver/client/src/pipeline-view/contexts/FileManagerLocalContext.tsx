@@ -17,7 +17,7 @@ import {
   findPipelineFiles,
   prettifyRoot,
 } from "../file-manager/common";
-import { useSelectedFiles } from "../hooks/useSelectedFiles";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 
 export type FileManagerLocalContextType = {
   handleClose: () => void;
@@ -72,8 +72,8 @@ export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
-  const selectedFiles = useSelectedFiles((state) => state.selected);
-  const setSelectedFiles = useSelectedFiles((state) => state.setSelected);
+  const selectedFiles = useFileManagerState((state) => state.selected);
+  const setSelectedFiles = useFileManagerState((state) => state.setSelected);
 
   // When deleting or downloading selectedFiles, we need to avoid
   // the redundant child paths.

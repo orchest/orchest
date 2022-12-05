@@ -1,11 +1,11 @@
 import create from "zustand";
 
-export type SelectedFilesState = {
+export type FileManagerState = {
   selected: string[];
   setSelected: (paths: string[] | ((current: string[]) => string[])) => void;
 };
 
-export const useSelectedFiles = create<SelectedFilesState>((set) => {
+export const useFileManagerState = create<FileManagerState>((set) => {
   return {
     selected: [],
     setSelected: (paths) => {

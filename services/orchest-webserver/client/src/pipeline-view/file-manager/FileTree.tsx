@@ -29,8 +29,8 @@ import Stack from "@mui/material/Stack";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 import { useOpenFile } from "../hooks/useOpenFile";
-import { useSelectedFiles } from "../hooks/useSelectedFiles";
 import {
   cleanFilePath,
   FILE_MANAGER_ROOT_CLASS,
@@ -75,7 +75,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     state: { pipelines = [] },
     dispatch,
   } = useProjectsContext();
-  const selectedFiles = useSelectedFiles((state) => state.selected);
+  const selectedFiles = useFileManagerState((state) => state.selected);
   const {
     dragFile,
     setDragFile,
