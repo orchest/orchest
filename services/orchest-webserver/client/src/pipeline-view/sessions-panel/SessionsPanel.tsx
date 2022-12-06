@@ -1,4 +1,4 @@
-import SessionToggleButton from "@/components/SessionToggleButton";
+import { SessionToggleButton } from "@/components/SessionToggleButton";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";

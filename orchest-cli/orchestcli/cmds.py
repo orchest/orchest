@@ -366,6 +366,7 @@ class OrchestCmds:
             "orchest": {
                 "orchestHost": fqdn,
                 "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
+                "orchestApi": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "resources": {
                     "userDirVolumeSize": f"{userdir_pvc_size}Gi",

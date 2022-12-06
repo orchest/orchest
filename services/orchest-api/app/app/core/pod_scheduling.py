@@ -15,13 +15,43 @@ GC could remove an image from the node in case of disk pressure.
 """
 import json
 import random
-from typing import Any, Dict, List, Optional, Union
+import time
+from functools import lru_cache
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
-from app import models
-from app.connections import db
+from app import models, utils
+from app.connections import db, k8s_core_api
 from config import CONFIG_CLASS
+
+logger = utils.get_logger()
+
+
+def _get_k8s_nodes_information() -> Tuple[List[str], List[str]]:
+    return _get_k8s_nodes_information_cached_with_ttl(ttl_period=int(time.time() // 2))
+
+
+@lru_cache(maxsize=1)
+def _get_k8s_nodes_information_cached_with_ttl(
+    ttl_period: int,
+) -> Tuple[List[str], List[str]]:
+    nodes = k8s_core_api.list_node()
+    known_nodes_names = []
+    ready_nodes_names = []
+    for node in nodes.items:
+        known_nodes_names.append(node.metadata.name)
+        is_ready = any(
+            condition
+            for condition in node.status.conditions
+            # Should either be "True" or "False" (i.e. a string),
+            # playing it safe.
+            if condition.type == "Ready" and condition.status in ["True", "true", True]
+        )
+        if is_ready:
+            ready_nodes_names.append(node.metadata.name)
+
+    return known_nodes_names, ready_nodes_names
 
 
 def _nodes_which_have_env_image(
@@ -110,19 +140,20 @@ def _get_required_affinity(
     scope: str,
     image: str,
 ) -> Optional[Dict[str, Any]]:
+
     if "orchest-env" in image:
         proj_uuid, env_uuid, tag = _utils.env_image_name_to_proj_uuid_env_uuid_tag(
             image
         )
         if tag is None:
             raise ValueError(f"Unexpected image without tag: {image}.")
-        nodes = _nodes_which_have_env_image(proj_uuid, env_uuid, tag)
+        nodes_with_image = _nodes_which_have_env_image(proj_uuid, env_uuid, tag)
         image_is_in_registry = _is_env_image_in_registry(proj_uuid, env_uuid, tag)
     elif _config.JUPYTER_IMAGE_NAME in image:
         tag = _utils.jupyter_image_name_to_tag(image)
         if tag is None:
             raise ValueError(f"Unexpected image without tag: {image}.")
-        nodes = _nodes_which_have_jupyter_image(tag)
+        nodes_with_image = _nodes_which_have_jupyter_image(tag)
         image_is_in_registry = _is_jupyter_image_in_registry(tag)
     # Pod with images that haven't been built in Orchest do not require
     # special scheduling.
@@ -132,7 +163,21 @@ def _get_required_affinity(
     if not _should_constrain_to_nodes(scope, image_is_in_registry):
         return
 
-    return _get_node_affinity(nodes)
+    _, cluster_nodes_known_to_be_ready = _get_k8s_nodes_information()
+
+    cluster_nodes_known_to_be_ready = set(cluster_nodes_known_to_be_ready)
+    ready_nodes_with_image = [
+        node for node in nodes_with_image if node in cluster_nodes_known_to_be_ready
+    ]
+    # Unforeseen case, do not provide any affinity.
+    if not ready_nodes_with_image:
+        logger.warn(
+            f"No nodes which have the image {image} are ready. This is an unforeseen "
+            "state, no node affinity will be set."
+        )
+        return
+
+    return _get_node_affinity(ready_nodes_with_image)
 
 
 def _get_pre_pull_init_container_manifest(
