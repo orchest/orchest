@@ -1,43 +1,57 @@
 import { useFileApi } from "@/api/files/useFileApi";
-import { unpackPath } from "@/utils/file";
-import { isDirectory } from "@/utils/path";
+import { FileRoot } from "@/utils/file";
+import { isDirectory, join } from "@/utils/path";
 import Menu, { MenuProps } from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import React from "react";
-import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { cleanFilePath } from "../file-manager/common";
-import { useFileManagerState } from "../hooks/useFileManagerState";
 import { useOpenFile } from "../hooks/useOpenFile";
 
-export const FileContextMenu = (menuProps: MenuProps) => {
+type FileContextMenuProps = MenuProps & {
+  /** The root */
+  root: FileRoot;
+  /** The path of the selected item. Used to determine which menu items to show. */
+  path: string;
+  /** When provided: shows the "Collapse" menu item if the `combinedPath` is a root directory. */
+  onClickCollapse?: () => void;
+  /** When provided: shows the "Rename" menu item, unless `combinedPath` is a root directory. */
+  onClickRename?: () => void;
+  /** When provided: shows the "Download" menu item. */
+  onClickDownload?: () => void;
+  /** When provided: shows the "Delete" menu item, unless `combinedPath` is a root directory. */
+  onClickDelete?: () => void;
+};
+
+export const FileContextMenu = ({
+  root,
+  path,
+  onClickCollapse,
+  onClickRename,
+  onClickDownload,
+  onClickDelete,
+  onClose,
+  ...menuProps
+}: FileContextMenuProps) => {
   const duplicate = useFileApi((api) => api.duplicate);
   const refresh = useFileApi((api) => api.refresh);
   const { isReadOnly } = usePipelineDataContext();
-  const setExpanded = useFileManagerState((state) => state.setExpanded);
   const { openInJupyterLab } = useOpenFile();
 
-  const {
-    handleClose,
-    handleRename,
-    handleDelete,
-    handleDownload,
-    contextMenuPath = "",
-  } = useFileManagerLocalContext();
-
-  const { root, path } = unpackPath(contextMenuPath);
+  const closeMenu = React.useCallback(() => {
+    onClose?.({}, "escapeKeyDown");
+  }, [onClose]);
 
   const handleDuplicate = React.useCallback(() => {
     if (isReadOnly) return;
     duplicate(root, path);
-    handleClose();
-  }, [isReadOnly, root, path, duplicate, handleClose]);
+    closeMenu();
+  }, [isReadOnly, duplicate, root, path, closeMenu]);
 
   const handleEditFile = React.useCallback(() => {
     if (isReadOnly) return;
-    handleClose();
-    openInJupyterLab(cleanFilePath(contextMenuPath));
-  }, [contextMenuPath, openInJupyterLab, handleClose, isReadOnly]);
+    closeMenu();
+    openInJupyterLab(root === "/data" ? join(root, path) : path);
+  }, [isReadOnly, closeMenu, openInJupyterLab, root, path]);
 
   const hasPath = Boolean(path);
   const isInProjectDir = root === "/project-dir";
@@ -45,13 +59,13 @@ export const FileContextMenu = (menuProps: MenuProps) => {
   const isRoot = path === "/";
 
   return (
-    <Menu {...menuProps}>
-      {!(hasPath || isRoot) && (
+    <Menu onClose={onClose} {...menuProps}>
+      {onClickCollapse && (!hasPath || isRoot) && (
         <MenuItem
           dense
           onClick={() => {
-            setExpanded([]);
-            handleClose();
+            onClickCollapse();
+            closeMenu();
           }}
         >
           Collapse all
@@ -62,7 +76,7 @@ export const FileContextMenu = (menuProps: MenuProps) => {
           dense
           onClick={() => {
             refresh();
-            handleClose();
+            closeMenu();
           }}
         >
           Refresh
@@ -73,8 +87,8 @@ export const FileContextMenu = (menuProps: MenuProps) => {
           Edit in JupyterLab
         </MenuItem>
       )}
-      {hasPath && !isRoot && (
-        <MenuItem dense disabled={isReadOnly} onClick={handleRename}>
+      {onClickRename && hasPath && !isRoot && (
+        <MenuItem dense disabled={isReadOnly} onClick={onClickRename}>
           Rename
         </MenuItem>
       )}
@@ -83,14 +97,19 @@ export const FileContextMenu = (menuProps: MenuProps) => {
           Duplicate
         </MenuItem>
       )}
-      {hasPath && !isRoot && (
-        <MenuItem dense disabled={isReadOnly} onClick={handleDelete}>
-          Delete
+      {onClickDownload && hasPath && (
+        <MenuItem dense disabled={isReadOnly} onClick={onClickDownload}>
+          Download
         </MenuItem>
       )}
-      {hasPath && (
-        <MenuItem dense disabled={isReadOnly} onClick={handleDownload}>
-          Download
+      {onClickDelete && hasPath && !isRoot && (
+        <MenuItem
+          dense
+          disabled={isReadOnly}
+          onClick={onClickDelete}
+          sx={{ color: (theme) => theme.palette.error.main }}
+        >
+          Delete
         </MenuItem>
       )}
     </Menu>

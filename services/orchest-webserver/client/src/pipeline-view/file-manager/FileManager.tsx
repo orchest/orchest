@@ -34,8 +34,12 @@ export function FileManager() {
   const selectedFiles = useFileManagerState((state) => state.selected);
   const setSelectedFiles = useFileManagerState((state) => state.setSelected);
   const {
+    contextMenuPath,
     contextMenuOrigin,
     setContextMenuOrigin,
+    handleDelete,
+    handleDownload,
+    handleRename,
   } = useFileManagerLocalContext();
 
   const { roots } = useFetchFileRoots();
@@ -194,15 +198,22 @@ export function FileManager() {
               onMoved={onMoved}
               handleToggle={handleToggle}
             />
-            <FileContextMenu
-              open={Boolean(contextMenuOrigin)}
-              anchorReference="anchorPosition"
-              anchorPosition={{
-                left: contextMenuOrigin?.[0] ?? 0,
-                top: contextMenuOrigin?.[1] ?? 0,
-              }}
-              onClose={() => setContextMenuOrigin(undefined)}
-            />
+            {contextMenuPath && (
+              <FileContextMenu
+                {...unpackPath(contextMenuPath)}
+                open={Boolean(contextMenuOrigin)}
+                anchorReference="anchorPosition"
+                anchorPosition={{
+                  left: contextMenuOrigin?.[0] ?? 0,
+                  top: contextMenuOrigin?.[1] ?? 0,
+                }}
+                onClose={() => setContextMenuOrigin(undefined)}
+                onClickDelete={handleDelete}
+                onClickDownload={handleDownload}
+                onClickRename={handleRename}
+                onClickCollapse={() => setExpanded([])}
+              />
+            )}
           </>
         )}
       </FileTreeContainer>

@@ -1,4 +1,3 @@
-import { filesApi } from "@/api/files/fileApi";
 import { useFileApi } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
@@ -6,7 +5,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
-import { unpackPath } from "@/utils/file";
+import { downloadFile, unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
 import { basename } from "@/utils/path";
 import Box from "@mui/material/Box";
@@ -47,22 +46,8 @@ export const FileManagerLocalContext = React.createContext<
   FileManagerLocalContextType
 >({} as FileManagerLocalContextType);
 
-export const useFileManagerLocalContext = () =>
+export const useFileManagerLocalContext = (): FileManagerLocalContextType =>
   React.useContext(FileManagerLocalContext);
-
-const download = (projectUuid: string, combinedPath: string, name: string) => {
-  if (!projectUuid) return;
-
-  const { root, path } = unpackPath(combinedPath);
-  const downloadUrl = filesApi.getDownloadUrl(projectUuid, root, path);
-
-  const a = document.createElement("a");
-  a.href = downloadUrl;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-};
 
 export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
   const { setConfirm } = useGlobalContext();
@@ -228,18 +213,18 @@ export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
     if (!contextMenuPath || !projectUuid) return;
     handleClose();
 
-    const name = basename(contextMenuPath);
-
     if (selectedFiles.includes(contextMenuPath)) {
-      selectedFilesWithoutRedundantChildPaths.forEach((combinedPath, i) => {
-        setTimeout(function () {
-          download(projectUuid, combinedPath, name);
-        }, i * 500);
-        // Seems like multiple download invocations works with 500ms
-        // Not the most reliable, might want to fall back to server side zip.
-      });
+      selectedFilesWithoutRedundantChildPaths
+        .map(unpackPath)
+        .forEach(({ root, path }, i) => {
+          // NOTE:
+          //  Seems like multiple download invocations works with 500ms
+          //  Not the most reliable, might want to fall back to server side zip.
+          setTimeout(() => downloadFile({ root, path, projectUuid }), i * 500);
+        });
     } else {
-      download(projectUuid, contextMenuPath, name);
+      const { root, path } = unpackPath(contextMenuPath);
+      downloadFile({ projectUuid, root, path });
     }
   }, [
     projectUuid,
