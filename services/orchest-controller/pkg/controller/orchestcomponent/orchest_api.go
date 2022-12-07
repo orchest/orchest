@@ -69,7 +69,9 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 	_, err = reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			ing := getIngressManifest(metadata, "/orchest-api", reconciler.ingressClass, true, false, component)
+			ing := getIngressManifest(metadata, "/orchest-api(/|$)(.*)", reconciler.ingressClass, true, false, component)
+			ing.ObjectMeta.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2"
+
 			_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Create(ctx, ing, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
 			return err
