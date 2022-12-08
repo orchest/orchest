@@ -6,6 +6,7 @@ import {
   useContextMenuContext,
 } from "@/components/ContextMenu";
 import { subtractPoints } from "@/utils/geometry";
+import { stepPathToProjectPath } from "@/utils/pipeline";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { SCALE_UNIT, useCanvasScaling } from "../contexts/CanvasScalingContext";
@@ -23,7 +24,7 @@ export const usePipelineViewportContextMenu = useContextMenuContext;
 
 export const PipelineViewportContextMenu = () => {
   const { position, ...props } = usePipelineViewportContextMenu(); // eslint-disable-line @typescript-eslint/no-unused-vars
-  const { isReadOnly } = usePipelineDataContext();
+  const { isReadOnly, pipelineCwd } = usePipelineDataContext();
   const environments = useEnvironmentsApi((state) => state.environments || []);
 
   const { canvasPointAtPointer } = useCanvasScaling();
@@ -45,7 +46,15 @@ export const PipelineViewportContextMenu = () => {
     );
   }, [selectedSteps, steps]);
 
-  const { openNotebook, previewFile: openFilePreviewView } = useOpenFile();
+  const { openNotebook, previewFile } = useOpenFile();
+
+  const previewStepFile = (stepUuid: string, event: React.MouseEvent) => {
+    const step = steps[stepUuid];
+
+    if (!step || !pipelineCwd) return;
+
+    previewFile(stepPathToProjectPath(step.file_path, pipelineCwd), event);
+  };
 
   if (!contextMenuUuid) return null;
 
@@ -160,9 +169,9 @@ export const PipelineViewportContextMenu = () => {
           },
           {
             type: "item",
-            title: "Open in File Viewer",
+            title: "Preview",
             action: ({ event }) => {
-              openFilePreviewView(contextMenuUuid, event);
+              previewStepFile(contextMenuUuid, event);
             },
           },
           {
