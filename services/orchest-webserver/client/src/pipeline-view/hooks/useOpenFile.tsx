@@ -1,8 +1,10 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useNavigate } from "@/hooks/useCustomRoute";
+import { useCustomRoute, useNavigate } from "@/hooks/useCustomRoute";
+import { RouteName } from "@/routingConfig";
 import { UnpackedPath } from "@/utils/file";
 import { join, trimLeadingSlash } from "@/utils/path";
 import { stepPathToProjectPath } from "@/utils/pipeline";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
@@ -11,6 +13,7 @@ export const useOpenFile = () => {
   const navigate = useNavigate();
   const { pipelineCwd, pipelineJson } = usePipelineDataContext();
   const { pipelines = [] } = useProjectsContext().state;
+  const { jobUuid } = useCustomRoute();
 
   const {
     uiState: { steps },
@@ -67,23 +70,27 @@ export const useOpenFile = () => {
         }
       );
 
+      const route: RouteName = hasValue(jobUuid)
+        ? "jobFilePreview"
+        : "filePreview";
+
       if (foundStep) {
         navigate({
-          route: "filePreview",
+          route,
           query: { stepUuid: foundStep.uuid },
           clear: ["fileRoot", "filePath"],
           event,
         });
       } else {
         navigate({
-          route: "filePreview",
+          route,
           query: { fileRoot: root, filePath: path },
           clear: ["stepUuid"],
           event,
         });
       }
     },
-    [pipelineCwd, pipelineJson?.steps, navigate]
+    [pipelineCwd, pipelineJson?.steps, jobUuid, navigate]
   );
 
   const openPipeline = React.useCallback(

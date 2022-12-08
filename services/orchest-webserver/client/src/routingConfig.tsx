@@ -7,6 +7,7 @@ export type RouteName =
   | "pipeline"
   | "jupyterLab"
   | "filePreview"
+  | "jobFilePreview"
   | "environments"
   | "jobs"
   | "jobRun"
@@ -66,7 +67,23 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       name: "filePreview",
       path: "/file-preview",
       root: "/pipeline",
-      title: getTitle("Step File Preview"),
+      title: getTitle("File Preview"),
+      scope: [
+        "projectUuid",
+        "pipelineUuid",
+        "stepUuid",
+        "jobUuid",
+        "runUuid",
+        "snapshotUuid",
+        "filePath",
+        "fileRoot",
+      ],
+    },
+    {
+      name: "jobFilePreview",
+      path: "/job-run/file-preview",
+      root: "/jobs",
+      title: getTitle("File Preview"),
       scope: [
         "projectUuid",
         "pipelineUuid",
