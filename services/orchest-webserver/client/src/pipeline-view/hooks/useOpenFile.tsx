@@ -99,8 +99,10 @@ export const useOpenFile = () => {
         ({ path }) => trimLeadingSlash(path) === trimLeadingSlash(pipelinePath)
       );
 
+      const route: RouteName = hasValue(jobUuid) ? "jobRun" : "pipeline";
+
       navigate({
-        route: "pipeline",
+        route: route,
         query: { pipelineUuid: selectedPipeline?.uuid },
         event,
       });

@@ -1,14 +1,16 @@
 import { CommaSeparated } from "@/components/CommaSeparated";
 import { RouteLink } from "@/components/RouteLink";
 import { useActiveStep } from "@/hooks/useActiveStep";
-import { useRouteLink } from "@/hooks/useCustomRoute";
+import { useCustomRoute, useRouteLink } from "@/hooks/useCustomRoute";
 import { useStepConnections } from "@/hooks/useStepConnections";
+import { RouteName } from "@/routingConfig";
 import { StepData } from "@/types";
 import { basename } from "@/utils/path";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const StepFileConnections = () => {
@@ -76,7 +78,11 @@ const SeparatorArrow = () => (
 type StepLinkProps = { step: StepData };
 
 const StepLink = ({ step }: StepLinkProps) => {
-  const url = useRouteLink("filePreview", { stepUuid: step.uuid });
+  const { jobUuid } = useCustomRoute();
+
+  const route: RouteName = hasValue(jobUuid) ? "jobFilePreview" : "filePreview";
+
+  const url = useRouteLink(route, { stepUuid: step.uuid });
 
   return (
     <RouteLink underline="hover" to={url}>
