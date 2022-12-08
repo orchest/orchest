@@ -2,7 +2,7 @@ import { FileRoot, UnpackedMove } from "@/utils/file";
 import { join } from "@/utils/path";
 import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, FetchError } from "@orchest/lib-utils";
 
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
 
@@ -23,6 +23,15 @@ export type FetchNodeParams = {
   root: string;
   path?: string;
   depth?: number;
+};
+
+export type ReadFileParams = {
+  projectUuid: string;
+  pipelineUuid?: string;
+  snapshotUuid?: string;
+  jobUuid?: string;
+  runUuid?: string;
+  path?: string;
 };
 
 export type NodeParams = {
@@ -86,6 +95,13 @@ const extensionSearch = ({ projectUuid, root, path, extensions }) =>
       queryArgs({ projectUuid, root, path, extensions: extensions.join(",") })
   ).then((data) => data.files);
 
+const readFile = (params: ReadFileParams) =>
+  fetch(
+    join(FILE_MANAGEMENT_ENDPOINT, "read") + "?" + queryArgs(params)
+  ).then((res) =>
+    res.ok ? res.text() : Promise.reject(FetchError.fromResponse(res))
+  );
+
 const getDownloadUrl = (projectUuid: string, root: string, path: string) =>
   join(FILE_MANAGEMENT_ENDPOINT, "download") +
   "?" +
@@ -102,6 +118,7 @@ export const filesApi = {
   duplicate,
   createDirectory,
   downloadFile,
+  readFile,
   getDownloadUrl,
   extensionSearch,
 };

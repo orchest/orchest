@@ -1,7 +1,7 @@
-import { filesApi } from "@/api/files/fileApi";
+import { useFileApi } from "@/api/files/useFileApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { FileRoot } from "@/utils/file";
-import { addLeadingSlash, basename, extname } from "@/utils/path";
+import { basename, extname } from "@/utils/path";
 import React from "react";
 import { useStepFile } from "./useStepFile";
 
@@ -15,6 +15,7 @@ type ActiveFile = {
 export const useActiveFile = (): ActiveFile | undefined => {
   const { stepFile } = useStepFile();
   const { filePath, fileRoot, stepUuid } = useCustomRoute();
+  const readFile = useFileApi((api) => api.read);
   const { projectUuid } = useCustomRoute();
   const [content, setContent] = React.useState<string>();
   const [name, setName] = React.useState<string>();
@@ -22,15 +23,10 @@ export const useActiveFile = (): ActiveFile | undefined => {
   React.useEffect(() => {
     if (!projectUuid || !filePath || !fileRoot || stepUuid) return;
 
-    filesApi
-      .downloadFile(
-        projectUuid,
-        fileRoot as FileRoot,
-        addLeadingSlash(filePath)
-      )
+    readFile(fileRoot as FileRoot, filePath)
       .then(setContent)
       .then(() => setName(basename(filePath)));
-  }, [fileRoot, filePath, projectUuid, stepUuid]);
+  }, [fileRoot, filePath, projectUuid, stepUuid, readFile]);
 
   React.useEffect(() => {
     if (!stepFile) return;
