@@ -1,9 +1,8 @@
-import { FileDescription } from "@/api/file-viewer/fileViewerApi";
 import { styled } from "@mui/material/styles";
 import React from "react";
 
 export type NotebookPreviewProps = {
-  file: FileDescription;
+  content: string;
 };
 
 const NotebookIframe = styled("iframe")({
@@ -12,6 +11,6 @@ const NotebookIframe = styled("iframe")({
   height: "100%",
 });
 
-export function NotebookPreview({ file }: NotebookPreviewProps) {
-  return <NotebookIframe srcDoc={file.content} />;
+export function NotebookPreview({ content }: NotebookPreviewProps) {
+  return <NotebookIframe srcDoc={content} />;
 }

@@ -1,4 +1,3 @@
-import { FileDescription } from "@/api/file-viewer/fileViewerApi";
 import { SnackBar } from "@/components/common/SnackBar";
 import { RouteLink } from "@/components/RouteLink";
 import { useActiveStep } from "@/hooks/useActiveStep";
@@ -14,17 +13,18 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import { useJupyterLabLink } from "../hooks/useJupyterLabLink";
 
 const MODE_MAPPING = {
-  py: "text/x-python",
-  sh: "text/x-sh",
-  r: "text/x-rsrc",
+  ".py": "text/x-python",
+  ".sh": "text/x-sh",
+  ".r": "text/x-rsrc",
   default: "text/plain",
 } as const;
 
 export interface CodePreviewProps {
-  file: FileDescription;
+  content: string;
+  extension: string;
 }
 
-export function CodePreview({ file }: CodePreviewProps) {
+export function CodePreview({ content, extension }: CodePreviewProps) {
   const [showMessage, setShowMessage] = React.useState(false);
   const activeStep = useActiveStep();
   const jupyterLabLink = useJupyterLabLink(activeStep);
@@ -44,11 +44,11 @@ export function CodePreview({ file }: CodePreviewProps) {
       sx={{ ".react-codemirror2, .CodeMirror": { height: "100%" } }}
     >
       <CodeMirror
-        value={file.content}
+        value={content}
         onBeforeChange={() => undefined}
         onKeyPress={() => setShowMessage(true)}
         options={{
-          mode: MODE_MAPPING[file?.ext.toLowerCase() ?? "default"],
+          mode: MODE_MAPPING[extension.toLowerCase() ?? "default"],
           theme: "jupyter",
           lineNumbers: true,
           readOnly: true,

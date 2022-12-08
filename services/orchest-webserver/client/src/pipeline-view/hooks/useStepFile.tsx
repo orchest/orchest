@@ -1,7 +1,4 @@
-import {
-  FileDescription,
-  fileViewerApi,
-} from "@/api/file-viewer/fileViewerApi";
+import { fileViewerApi, StepFile } from "@/api/file-viewer/fileViewerApi";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import React from "react";
@@ -14,8 +11,8 @@ export const useStepFile = () => {
     runUuid,
     stepUuid,
   } = useCustomRoute();
-  const { run, error, status } = useAsync<FileDescription>();
-  const [file, setFile] = React.useState<FileDescription>();
+  const { run, error, status } = useAsync<StepFile>();
+  const [stepFile, setFile] = React.useState<StepFile>();
 
   React.useEffect(() => {
     if (!projectUuid || !pipelineUuid || !stepUuid) return;
@@ -31,5 +28,5 @@ export const useStepFile = () => {
     ).then(setFile);
   }, [jobUuid, pipelineUuid, projectUuid, runUuid, stepUuid, run]);
 
-  return { file, error, status };
+  return { stepFile, error, status };
 };

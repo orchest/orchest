@@ -45,7 +45,7 @@ export const StepDetailsActions = () => {
             variant="text"
             onClick={(event) =>
               previewFile(
-                stepPathToProjectPath(step.file_path, pipelineCwd).path,
+                stepPathToProjectPath(step.file_path, pipelineCwd),
                 event
               )
             }

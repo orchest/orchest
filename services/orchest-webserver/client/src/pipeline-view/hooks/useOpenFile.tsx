@@ -1,6 +1,8 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useNavigate } from "@/hooks/useCustomRoute";
-import { addLeadingSlash, join, trimLeadingSlash } from "@/utils/path";
+import { UnpackedPath } from "@/utils/file";
+import { join, trimLeadingSlash } from "@/utils/path";
+import { stepPathToProjectPath } from "@/utils/pipeline";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
@@ -51,24 +53,35 @@ export const useOpenFile = () => {
   );
 
   const previewFile = React.useCallback(
-    (filePath: string, event?: React.MouseEvent) => {
+    ({ root, path }: UnpackedPath, event?: React.MouseEvent) => {
       if (!pipelineCwd) return;
 
       const foundStep = Object.values(pipelineJson?.steps || {}).find(
         (step) => {
-          const stepFilePath = join(pipelineCwd, step.file_path);
+          const { root: stepRoot, path: stepPath } = stepPathToProjectPath(
+            step.file_path,
+            pipelineCwd
+          );
 
-          return addLeadingSlash(stepFilePath) === addLeadingSlash(filePath);
+          return stepRoot === root && stepPath === path;
         }
       );
 
-      if (!foundStep) return;
-
-      navigate({
-        route: "filePreview",
-        query: { stepUuid: foundStep.uuid },
-        event,
-      });
+      if (foundStep) {
+        navigate({
+          route: "filePreview",
+          query: { stepUuid: foundStep.uuid },
+          clear: ["fileRoot", "filePath"],
+          event,
+        });
+      } else {
+        navigate({
+          route: "filePreview",
+          query: { fileRoot: root, filePath: path },
+          clear: ["stepUuid"],
+          event,
+        });
+      }
     },
     [pipelineCwd, pipelineJson?.steps, navigate]
   );

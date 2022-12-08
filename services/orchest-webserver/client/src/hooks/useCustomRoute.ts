@@ -105,6 +105,7 @@ const useCustomRoute = () => {
     "environment_uuid",
     "step_uuid",
     "file_path",
+    "file_root",
     "tab",
   ]);
 
@@ -117,6 +118,7 @@ const useCustomRoute = () => {
     environmentUuid,
     stepUuid,
     filePath,
+    fileRoot,
     tab,
   ] = valueArray.map((value) => {
     // if value is `null` or `undefined`, return `undefined`
@@ -175,6 +177,7 @@ const useCustomRoute = () => {
     runUuid,
     snapshotUuid,
     filePath,
+    fileRoot,
     location,
     prevPathname,
     tab,
@@ -216,6 +219,8 @@ export const useRouteLink = (
 export type NavigateOptions = {
   route: RouteName;
   query?: Partial<ScopeParameters>;
+  /** If `sticky` is true: Clear the following query parameters. */
+  clear?: ScopeParameter[];
   /**
    * Preserve all previous query parameters that are supported by the page.
    * Default: true.
@@ -242,6 +247,7 @@ export const useNavigate = () => {
     ({
       route,
       query = {},
+      clear = [],
       sticky = true,
       replace = false,
       event,
@@ -250,7 +256,13 @@ export const useNavigate = () => {
       const isSamePath = path === window.location.pathname;
 
       const newQuery = sticky
-        ? { ...pick(currentQuery, ...scope), ...prune(query) }
+        ? {
+            ...prune(
+              pick(currentQuery, ...scope),
+              ([name]) => !clear.includes(name as ScopeParameter)
+            ),
+            ...prune(query),
+          }
         : prune(query);
 
       if (isSamePath && equalsShallow(newQuery, currentQuery)) {

@@ -13,7 +13,7 @@ type ViewFileParams = {
   runUuid?: string;
 };
 
-export type FileDescription = {
+export type StepFile = {
   filename: string;
   ext: string;
   step_title: string;
@@ -26,7 +26,7 @@ export const fetchOne = ({
   stepUuid,
   ...query
 }: ViewFileParams) =>
-  fetcher<FileDescription>(
+  fetcher<StepFile>(
     join(BASE_URL, projectUuid, pipelineUuid, stepUuid) +
       "?" +
       queryArgs(prune(query))

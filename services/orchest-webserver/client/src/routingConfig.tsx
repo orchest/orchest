@@ -74,6 +74,8 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
         "jobUuid",
         "runUuid",
         "snapshotUuid",
+        "filePath",
+        "fileRoot",
       ],
     },
     {

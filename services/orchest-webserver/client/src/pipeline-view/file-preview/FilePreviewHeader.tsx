@@ -1,7 +1,5 @@
-import { FileDescription } from "@/api/file-viewer/fileViewerApi";
 import { RouteLink } from "@/components/RouteLink";
 import { useActiveStep } from "@/hooks/useActiveStep";
-import { basename } from "@/utils/path";
 import { ellipsis } from "@/utils/styles";
 import Button from "@mui/material/Button";
 import Collapse from "@mui/material/Collapse";
@@ -13,9 +11,9 @@ import { FilePreviewMoreOptionsButton } from "./FilePreviewMoreOptionsButton";
 import { StepFileConnections } from "./StepFileConnections";
 import { StepPipelineSelector } from "./StepPipelineSelector";
 
-export type FilePreviewHeaderProps = { file: FileDescription };
+export type FilePreviewHeaderProps = { name: string };
 
-export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
+export const FilePreviewHeader = ({ name }: FilePreviewHeaderProps) => {
   const [showConnections, setShowConnections] = React.useState(true);
   const toggleConnections = () => setShowConnections((current) => !current);
   const activeStep = useActiveStep();
@@ -45,7 +43,7 @@ export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
           width="inherit"
         >
           <Typography component="h2" variant="h5" sx={ellipsis()}>
-            {basename(file.filename)}
+            {name}
           </Typography>
         </Stack>
 

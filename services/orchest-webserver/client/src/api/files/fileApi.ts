@@ -91,6 +91,9 @@ const getDownloadUrl = (projectUuid: string, root: string, path: string) =>
   "?" +
   queryArgs({ path, root, projectUuid });
 
+const downloadFile = (projectUuid: string, root: string, path: string) =>
+  fetch(getDownloadUrl(projectUuid, root, path)).then((res) => res.text());
+
 export const filesApi = {
   fetchNode,
   deleteNode,
@@ -98,6 +101,7 @@ export const filesApi = {
   createFile,
   duplicate,
   createDirectory,
+  downloadFile,
   getDownloadUrl,
   extensionSearch,
 };

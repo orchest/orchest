@@ -5,22 +5,23 @@ import {
   FilePreviewHeader,
   NotebookPreview,
 } from "./file-preview";
-import { useStepFile } from "./hooks/useStepFile";
+import { useActiveFile } from "./hooks/useActiveFile";
 
 export const FilePreview = () => {
-  const { file } = useStepFile();
-  const isNotebook = file?.ext === "ipynb";
+  const file = useActiveFile();
 
   if (!file) return null;
 
+  const isNotebook = file.extension === ".ipynb";
+
   return (
     <Stack flex="1">
-      <FilePreviewHeader file={file} />
+      <FilePreviewHeader name={file.name} />
       <Stack flex="1">
-        {isNotebook ? (
-          <NotebookPreview file={file} />
+        {isNotebook && file.source === "step" ? (
+          <NotebookPreview content={file.content} />
         ) : (
-          <CodePreview file={file} />
+          <CodePreview content={file.content} extension={file.extension} />
         )}
       </Stack>
     </Stack>

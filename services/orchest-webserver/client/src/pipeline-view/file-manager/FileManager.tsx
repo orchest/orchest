@@ -2,7 +2,13 @@ import { useFileApi } from "@/api/files/useFileApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { useUploader } from "@/hooks/useUploader";
-import { combinePath, FileRoot, fileRoots, unpackPath } from "@/utils/file";
+import {
+  combinePath,
+  FileRoot,
+  fileRoots,
+  UnpackedPath,
+  unpackPath,
+} from "@/utils/file";
 import {
   dirname,
   hasExtension,
@@ -147,13 +153,13 @@ export function FileManager() {
   );
 
   const handleViewFile = React.useCallback(
-    (filePath: string) => {
-      if (isDirectory(filePath)) return;
+    (unpacked: UnpackedPath) => {
+      if (isDirectory(unpacked.path)) return;
 
-      if (hasExtension(filePath, ".orchest")) {
-        openPipeline(filePath);
+      if (hasExtension(unpacked.path, ".orchest")) {
+        openPipeline(unpacked.path);
       } else {
-        previewFile(filePath);
+        previewFile(unpacked);
       }
     },
     [openPipeline, previewFile]
@@ -163,11 +169,9 @@ export function FileManager() {
     (selected: string[]) => {
       if (selected.length !== 1) return;
 
-      const { path } = unpackPath(selected[0]);
-
       // We want selections to apply, animations to finish,
       // and so on, before opening the preview window
-      setTimeout(() => handleViewFile(path), 50);
+      setTimeout(() => handleViewFile(unpackPath(selected[0])), 50);
     },
     [handleViewFile]
   );
