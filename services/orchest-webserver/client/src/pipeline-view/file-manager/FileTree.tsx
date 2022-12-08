@@ -21,6 +21,7 @@ import {
   unpackPath,
 } from "@/utils/file";
 import { basename, dirname, trimLeadingSlash } from "@/utils/path";
+import { findPipelineFiles } from "@/utils/pipeline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -35,8 +36,6 @@ import {
   cleanFilePath,
   FILE_MANAGER_ROOT_CLASS,
   filterRedundantChildPaths,
-  findFilesByExtension,
-  findPipelineFiles,
   getMoveFromDrop,
   pathFromElement,
   prettifyRoot,
@@ -82,6 +81,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     hoveredPath,
     isDragging,
   } = useFileManagerContext();
+  const extensionSearch = useFileApi((api) => api.extensionSearch);
   const roots = useFileApi((api) => api.roots);
   const reload = useFileApi((api) => api.refresh);
   const moveFile = useFileApi((api) => api.move);
@@ -329,16 +329,14 @@ export const FileTree = React.memo(function FileTreeComponent({
       breakages: (moves: readonly Move[]) =>
         new Promise<boolean>(async (resolve) => {
           const willBreakSomeFile =
-            projectUuid &&
             isInDataFolder(moves[0][1]) &&
             (
               await Promise.all(
                 moves.map(([oldPath]) =>
-                  findFilesByExtension({
+                  extensionSearch({
                     root: "/project-dir",
                     path: oldPath,
                     extensions: ["ipynb", "orchest"],
-                    projectUuid,
                   })
                 )
               )
@@ -358,7 +356,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           }
         }),
     }),
-    [roots, getFilesLockedBySession, projectUuid, setConfirm, stopSession]
+    [getFilesLockedBySession, setConfirm, stopSession, roots, extensionSearch]
   );
 
   const handleMoves = React.useCallback(

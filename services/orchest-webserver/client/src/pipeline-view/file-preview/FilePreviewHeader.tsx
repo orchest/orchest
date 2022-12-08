@@ -3,14 +3,13 @@ import { RouteLink } from "@/components/RouteLink";
 import { useActiveStep } from "@/hooks/useActiveStep";
 import { basename } from "@/utils/path";
 import { ellipsis } from "@/utils/styles";
-import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
 import Button from "@mui/material/Button";
 import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useJupyterLabLink } from "../hooks/useJupyterLabLink";
+import { FilePreviewMoreOptionsButton } from "./FilePreviewMoreOptionsButton";
 import { StepFileConnections } from "./StepFileConnections";
 import { StepPipelineSelector } from "./StepPipelineSelector";
 
@@ -64,9 +63,7 @@ export const FilePreviewHeader = ({ file }: FilePreviewHeaderProps) => {
             Edit in JupyterLab
           </Button>
 
-          <IconButton title="More options" size="small">
-            <MoreHorizOutlined fontSize="small" />
-          </IconButton>
+          <FilePreviewMoreOptionsButton />
         </Stack>
       </Stack>
 

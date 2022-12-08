@@ -38,15 +38,18 @@ export const sortFileMap = (fileMap: FileMap) => {
   return Object.fromEntries([...directories, ...files]);
 };
 
-export const addToFileMap = (fileMap: FileMap, path: string): FileMap => {
+export const addToFileMap = (fileMap: FileMap, ...paths: string[]): FileMap => {
   // Always include all parents to prevent orphans:
-  const paths = [...parents(path), path];
+  const withParents = paths.flatMap((path) => [path, ...parents(path)]);
   const addedAt = Date.now();
 
   return sortFileMap({
     ...fileMap,
     ...Object.fromEntries(
-      paths.map((path) => [path, fileMap[path] ?? fileMetadata(path, addedAt)])
+      withParents.map((path) => [
+        path,
+        fileMap[path] ?? fileMetadata(path, addedAt),
+      ])
     ),
   });
 };

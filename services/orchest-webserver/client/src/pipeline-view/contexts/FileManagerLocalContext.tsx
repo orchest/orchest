@@ -8,12 +8,12 @@ import { siteMap } from "@/routingConfig";
 import { downloadFile, unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
 import { basename } from "@/utils/path";
+import { findPipelineFiles } from "@/utils/pipeline";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import {
   filterRedundantChildPaths,
-  findPipelineFiles,
   prettifyRoot,
 } from "../file-manager/common";
 import { useFileManagerState } from "../hooks/useFileManagerState";

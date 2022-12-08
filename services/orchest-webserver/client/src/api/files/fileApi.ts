@@ -1,4 +1,4 @@
-import { UnpackedMove } from "@/utils/file";
+import { FileRoot, UnpackedMove } from "@/utils/file";
 import { join } from "@/utils/path";
 import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
@@ -29,6 +29,13 @@ export type NodeParams = {
   projectUuid: string;
   root: string;
   path: string;
+};
+
+export type ExtensionSearchParams = {
+  projectUuid: string;
+  root: FileRoot;
+  path: string;
+  extensions: string[];
 };
 
 const fetchNode = (params: FetchNodeParams) =>
@@ -72,6 +79,13 @@ const duplicate = async (projectUuid: string, root: string, path: string) =>
     { method: "POST" }
   );
 
+const extensionSearch = ({ projectUuid, root, path, extensions }) =>
+  fetcher<{ files: string[] }>(
+    join(FILE_MANAGEMENT_ENDPOINT, "extension-search") +
+      "?" +
+      queryArgs({ projectUuid, root, path, extensions: extensions.join(",") })
+  ).then((data) => data.files);
+
 const getDownloadUrl = (projectUuid: string, root: string, path: string) =>
   join(FILE_MANAGEMENT_ENDPOINT, "download") +
   "?" +
@@ -85,4 +99,5 @@ export const filesApi = {
   duplicate,
   createDirectory,
   getDownloadUrl,
+  extensionSearch,
 };
