@@ -1,3 +1,4 @@
+import { stepPathToProjectPath } from "@/utils/pipeline";
 import { ellipsis } from "@/utils/styles";
 import { DeleteOutline } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
@@ -12,11 +13,14 @@ import { useStepDetailsContext } from "./StepDetailsContext";
 
 export const StepDetailsActions = () => {
   const { doesStepFileExist, step } = useStepDetailsContext();
+  const { pipelineCwd } = usePipelineDataContext();
   const { isReadOnly } = usePipelineDataContext();
   const { previewFile, openNotebook } = useOpenFile();
 
   const { deleteSteps } = useDeleteSteps();
   const onDelete = () => deleteSteps([step.uuid]);
+
+  if (!pipelineCwd) return null;
 
   return (
     <Box
@@ -39,8 +43,12 @@ export const StepDetailsActions = () => {
           </Button>
           <Button
             variant="text"
-            onClick={(event) => previewFile(step.uuid, event)}
-            onAuxClick={(event) => previewFile(step.uuid, event)}
+            onClick={(event) =>
+              previewFile(
+                stepPathToProjectPath(step.file_path, pipelineCwd).path,
+                event
+              )
+            }
             data-test-id="step-view-file"
             disabled={!doesStepFileExist}
           >
