@@ -57,7 +57,6 @@ from app.utils import (
     get_project_directory,
     get_project_snapshot_size,
     get_session_counts,
-    get_snapshot_directory,
     is_valid_data_path,
     is_valid_pipeline_relative_path,
     normalize_project_relative_path,
@@ -1022,10 +1021,6 @@ def register_views(app, db):
     def filemanager_read():
         """Read file contents and return."""
 
-        # This is just for the load JSON params at the moment.
-        # So limiting to JSON files.
-        ALLOWED_READ_FILE_EXTENIONS = [".json"]
-
         # Path is assumed to be relative to root of the project
         # directory (or absolute starting for data paths e.g. /data/abc)
         path = request.args.get("path")
@@ -1052,18 +1047,6 @@ def register_views(app, db):
                 400,
             )
 
-        ext = pathlib.Path(path).suffix
-        if ext not in ALLOWED_READ_FILE_EXTENIONS:
-            return (
-                jsonify(
-                    {
-                        "message": "Illegal extension: %s. Allowed extensions: %s"
-                        % (ext, ALLOWED_READ_FILE_EXTENIONS)
-                    }
-                ),
-                400,
-            )
-
         file_path = None
 
         if path.startswith("/"):
@@ -1072,25 +1055,21 @@ def register_views(app, db):
                 raise app_error.OutOfDataDirectoryError(
                     "Path points outside of the data directory."
                 )
-        elif any(
-            path.endswith(extension)
-            for extension in app.config["JSON_SCHEMA_FILE_EXTENSIONS"]
-        ):
-            pipeline_dir = get_pipeline_directory(
-                pipeline_uuid=pipeline_uuid,
+        elif pipeline_uuid is not None and job_uuid is not None:
+            project_dir = get_project_directory(
                 project_uuid=project_uuid,
+                pipeline_uuid=pipeline_uuid,
                 job_uuid=job_uuid,
-                pipeline_run_uuid=run_uuid,
+                run_uuid_or_snapshot=run_uuid,
             )
             file_path = normalize_project_relative_path(path)
-            file_path = os.path.join(pipeline_dir, file_path)
+            file_path = os.path.join(project_dir, file_path)
         else:
-            path_parent_dir = get_snapshot_directory(
-                pipeline_uuid, project_uuid, job_uuid
+            project_dir = get_project_directory(
+                project_uuid=project_uuid,
             )
             file_path = normalize_project_relative_path(path)
-            file_path = os.path.join(path_parent_dir, file_path)
-
+            file_path = os.path.join(project_dir, file_path)
         if file_path is None:
             return jsonify({"message": "Failed to process file_path."}), 500
 
