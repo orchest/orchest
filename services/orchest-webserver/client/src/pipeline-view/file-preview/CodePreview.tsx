@@ -40,7 +40,7 @@ export function CodePreview({ content, extension }: CodePreviewProps) {
   return (
     <Box
       height="100%"
-      flex="1"
+      maxHeight="100%"
       sx={{ ".react-codemirror2, .CodeMirror": { height: "100%" } }}
     >
       <CodeMirror
@@ -52,6 +52,7 @@ export function CodePreview({ content, extension }: CodePreviewProps) {
           theme: "jupyter",
           lineNumbers: true,
           readOnly: true,
+          lineWrapping: true,
         }}
       />
       <SnackBar

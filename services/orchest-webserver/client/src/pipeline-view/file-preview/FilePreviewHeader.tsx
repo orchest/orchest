@@ -11,9 +11,9 @@ import { FilePreviewMoreOptionsButton } from "./FilePreviewMoreOptionsButton";
 import { StepFileConnections } from "./StepFileConnections";
 import { StepPipelineSelector } from "./StepPipelineSelector";
 
-export type FilePreviewHeaderProps = { name: string };
+export type FilePreviewHeaderProps = { name: string; isStep: boolean };
 
-export const FilePreviewHeader = ({ name }: FilePreviewHeaderProps) => {
+export const FilePreviewHeader = ({ name, isStep }: FilePreviewHeaderProps) => {
   const [showConnections, setShowConnections] = React.useState(true);
   const toggleConnections = () => setShowConnections((current) => !current);
   const activeStep = useActiveStep();
@@ -48,15 +48,16 @@ export const FilePreviewHeader = ({ name }: FilePreviewHeaderProps) => {
         </Stack>
 
         <Stack direction="row" flexShrink={0} spacing={1.5} alignItems="center">
-          <Button onClick={toggleConnections}>
-            {showConnections ? "Hide connections" : "Show connections"}
-          </Button>
+          {isStep && (
+            <Button onClick={toggleConnections}>
+              {showConnections ? "Hide connections" : "Show connections"}
+            </Button>
+          )}
 
           <Button
             LinkComponent={RouteLink}
             variant="contained"
             href={jupyterLabUrl}
-            disabled={!activeStep}
           >
             Edit in JupyterLab
           </Button>
@@ -65,12 +66,14 @@ export const FilePreviewHeader = ({ name }: FilePreviewHeaderProps) => {
         </Stack>
       </Stack>
 
-      <Collapse in={showConnections}>
-        <Stack spacing={1} paddingX={3} paddingY={1.5}>
-          <StepPipelineSelector />
-          <StepFileConnections />
-        </Stack>
-      </Collapse>
+      {isStep && (
+        <Collapse in={showConnections}>
+          <Stack spacing={1} paddingX={3} paddingY={1.5}>
+            <StepPipelineSelector />
+            <StepFileConnections />
+          </Stack>
+        </Collapse>
+      )}
     </Stack>
   );
 };
