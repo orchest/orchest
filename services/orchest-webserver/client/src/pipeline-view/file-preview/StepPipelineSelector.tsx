@@ -69,7 +69,7 @@ export const StepPipelineSelector = () => {
     if (!stepUuid) return;
 
     navigate({
-      route: hasValue(jobUuid) ? "jobRunFilePreview" : "filePreview",
+      route: hasValue(jobUuid) ? "jobFilePreview" : "filePreview",
       query: { pipelineUuid: newPipelineUuid, stepUuid },
     });
   };
