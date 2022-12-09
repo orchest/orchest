@@ -44,7 +44,7 @@ export const StepFileConnections = () => {
       >
         Step:&nbsp;
         <Typography variant="body2" color="text.primary" component="span">
-          {step?.title || step?.file_path ? basename(step?.file_path) : ""}
+          {step?.title || (step?.file_path ? basename(step?.file_path) : "")}
         </Typography>
       </Typography>
 
@@ -81,7 +81,6 @@ const StepLink = ({ step }: StepLinkProps) => {
   const { jobUuid } = useCustomRoute();
 
   const route: RouteName = hasValue(jobUuid) ? "jobFilePreview" : "filePreview";
-
   const url = useRouteLink(route, { stepUuid: step.uuid });
 
   return (
