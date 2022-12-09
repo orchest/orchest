@@ -1,7 +1,7 @@
 import { SnackBar } from "@/components/common/SnackBar";
 import { RouteLink } from "@/components/RouteLink";
 import { useActiveStep } from "@/hooks/useActiveStep";
-import { Button } from "@mui/material";
+import { Button, SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import blue from "@mui/material/colors/blue";
 import Stack from "@mui/material/Stack";
@@ -24,6 +24,15 @@ export interface CodePreviewProps {
   extension: string;
 }
 
+const codePreviewSx: SxProps<Theme> = {
+  ".react-codemirror2, .CodeMirror": { height: "100%" },
+  ".CodeMirror-linenumber, .CodeMirror-gutter, .CodeMirror-gutters": {
+    backgroundColor: (theme) => `${theme.palette.background.paper} !important`,
+    paddingLeft: 1,
+    paddingRight: 0,
+  },
+};
+
 export function CodePreview({ content, extension }: CodePreviewProps) {
   const [showMessage, setShowMessage] = React.useState(false);
   const activeStep = useActiveStep();
@@ -38,11 +47,7 @@ export function CodePreview({ content, extension }: CodePreviewProps) {
   }, [showMessage]);
 
   return (
-    <Box
-      height="100%"
-      maxHeight="100%"
-      sx={{ ".react-codemirror2, .CodeMirror": { height: "100%" } }}
-    >
+    <Box height="100%" maxHeight="100%" sx={codePreviewSx}>
       <CodeMirror
         value={content}
         onBeforeChange={() => undefined}
@@ -55,6 +60,7 @@ export function CodePreview({ content, extension }: CodePreviewProps) {
           lineWrapping: true,
         }}
       />
+
       <SnackBar
         open={showMessage}
         action={
