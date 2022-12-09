@@ -20,7 +20,7 @@ export const FilePreviewHeader = ({ name, isStep }: FilePreviewHeaderProps) => {
   const jupyterLabUrl = useJupyterLabLink(activeStep);
 
   return (
-    <Stack sx={{ borderBottom: (theme) => `1px solid ${theme.borderColor}` }}>
+    <Stack>
       <Stack
         direction="row"
         alignItems="center"
@@ -29,8 +29,7 @@ export const FilePreviewHeader = ({ name, isStep }: FilePreviewHeaderProps) => {
         width="inherit"
         sx={{
           backgroundColor: (theme) => theme.palette.background.paper,
-          borderBottom: (theme) =>
-            `1px solid ${showConnections ? theme.borderColor : "transparent"}`,
+          borderBottom: (theme) => `1px solid ${theme.borderColor}`,
           padding: (theme) => theme.spacing(0, 3, 0, 2),
           height: (theme) => theme.spacing(7),
         }}
@@ -68,7 +67,15 @@ export const FilePreviewHeader = ({ name, isStep }: FilePreviewHeaderProps) => {
 
       {isStep && (
         <Collapse in={showConnections}>
-          <Stack spacing={1} paddingX={3} paddingY={1.5}>
+          <Stack
+            sx={{
+              spacing: 1,
+              paddingX: 3,
+              paddingY: 1.5,
+              borderBottom: (theme) => `1px solid ${theme.borderColor}`,
+              "&:empty": { display: "none" },
+            }}
+          >
             <StepPipelineSelector />
             <StepFileConnections />
           </Stack>
