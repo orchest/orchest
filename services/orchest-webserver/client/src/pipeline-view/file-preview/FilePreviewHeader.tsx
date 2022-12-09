@@ -8,14 +8,16 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { useJupyterLabLink } from "../hooks/useJupyterLabLink";
 import { FilePreviewMoreOptionsButton } from "./FilePreviewMoreOptionsButton";
+import { useFilePreviewState } from "./hooks/useFilePreviewState";
 import { StepFileConnections } from "./StepFileConnections";
 import { StepPipelineSelector } from "./StepPipelineSelector";
 
 export type FilePreviewHeaderProps = { name: string; isStep: boolean };
 
 export const FilePreviewHeader = ({ name, isStep }: FilePreviewHeaderProps) => {
-  const [showConnections, setShowConnections] = React.useState(true);
-  const toggleConnections = () => setShowConnections((current) => !current);
+  const showConnections = useFilePreviewState((s) => s.showConnections);
+  const setShowConnections = useFilePreviewState((s) => s.setShowConnections);
+  const toggleConnections = () => setShowConnections(!showConnections);
   const activeStep = useActiveStep();
   const jupyterLabUrl = useJupyterLabLink(activeStep);
 
