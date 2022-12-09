@@ -3,7 +3,8 @@ import { useActiveStep } from "@/hooks/useActiveStep";
 import { useCustomRoute, useNavigate } from "@/hooks/useCustomRoute";
 import { useProjectPipelineJsons } from "@/hooks/useProjectPipelineJsons";
 import { PipelineMetaData, PipelineState, StepData, StepState } from "@/types";
-import { addLeadingSlash, dirname, join } from "@/utils/path";
+import { dirname } from "@/utils/path";
+import { stepPathToProjectPath } from "@/utils/pipeline";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
@@ -26,9 +27,8 @@ export const StepPipelineSelector = () => {
   const step = useActiveStep();
   const states = useProjectPipelineJsons();
   const { pipelines: metadata = [] } = useProjectsContext().state;
-  const { pipelineUuid } = useCustomRoute();
+  const { pipelineUuid, jobUuid } = useCustomRoute();
   const navigate = useNavigate();
-
   const pipelines = React.useMemo(() => {
     return bakePipelines(metadata, states);
   }, [metadata, states]);
@@ -40,21 +40,24 @@ export const StepPipelineSelector = () => {
 
     if (!pipeline) return undefined;
 
-    return addLeadingSlash(join(dirname(pipeline.meta.path), step.file_path));
+    const cwd = dirname(pipeline.meta.path);
+
+    return stepPathToProjectPath(step.file_path, cwd);
   }, [pipelines, step, pipelineUuid]);
 
   const usedIn = React.useMemo<UsedIn[]>(() => {
+    if (!stepFilePath) return [];
+
     return pipelines
       .map(({ meta, state }) => {
         const cwd = dirname(meta.path);
-        const step = Object.values(state.steps).find(
-          ({ file_path }) =>
-            addLeadingSlash(join(cwd, file_path)) === stepFilePath
-        );
+        const step = Object.values(state.steps).find(({ file_path }) => {
+          const { root, path } = stepPathToProjectPath(file_path, cwd);
 
-        if (!step) return undefined;
+          return root === stepFilePath.root && path === stepFilePath.path;
+        });
 
-        return { step, meta, state };
+        return step ? { step, meta, state } : undefined;
       })
       .filter(hasValue);
   }, [pipelines, stepFilePath]);
@@ -66,7 +69,7 @@ export const StepPipelineSelector = () => {
     if (!stepUuid) return;
 
     navigate({
-      route: "filePreview",
+      route: hasValue(jobUuid) ? "jobRunFilePreview" : "filePreview",
       query: { pipelineUuid: newPipelineUuid, stepUuid },
     });
   };
