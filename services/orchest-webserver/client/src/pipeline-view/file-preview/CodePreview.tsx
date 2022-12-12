@@ -58,6 +58,7 @@ export function CodePreview({ content, extension }: CodePreviewProps) {
           lineNumbers: true,
           readOnly: true,
           lineWrapping: true,
+          cursorBlinkRate: 0,
         }}
       />
 
