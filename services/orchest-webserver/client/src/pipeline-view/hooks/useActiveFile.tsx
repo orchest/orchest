@@ -9,7 +9,7 @@ type ActiveFile = {
   extension: string;
   content: string;
   name: string;
-  source: "file" | "step";
+  hasStep: boolean;
 };
 
 export const useActiveFile = (): ActiveFile | undefined => {
@@ -40,7 +40,7 @@ export const useActiveFile = (): ActiveFile | undefined => {
   return {
     content,
     name,
-    source: stepFile && !fileRoot && !filePath ? "step" : "file",
+    hasStep: Boolean(stepFile && !fileRoot && !filePath),
     extension: extname(name),
   };
 };
