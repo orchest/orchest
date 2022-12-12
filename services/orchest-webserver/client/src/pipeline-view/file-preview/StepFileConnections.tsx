@@ -5,13 +5,17 @@ import { useCurrentQuery, useRouteLink } from "@/hooks/useCustomRoute";
 import { useStepConnections } from "@/hooks/useStepConnections";
 import { RouteName } from "@/routingConfig";
 import { StepData } from "@/types";
+import { combinePath } from "@/utils/file";
 import { basename } from "@/utils/path";
+import { stepPathToProjectPath } from "@/utils/pipeline";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 
 export const StepFileConnections = () => {
   const step = useActiveStep();
@@ -81,9 +85,20 @@ const StepLink = ({ step }: StepLinkProps) => {
   const { jobUuid } = useCurrentQuery();
   const route: RouteName = hasValue(jobUuid) ? "jobFilePreview" : "filePreview";
   const url = useRouteLink({ route, query: { stepUuid: step.uuid } });
+  const { pipelineCwd } = usePipelineDataContext();
+  const selectExclusive = useFileManagerState((state) => state.selectExclusive);
+
+  const onClick = () => {
+    if (!pipelineCwd) return;
+
+    const combinedPath = combinePath(
+      stepPathToProjectPath(step.file_path, pipelineCwd)
+    );
+    selectExclusive(combinedPath);
+  };
 
   return (
-    <RouteLink underline="hover" to={url}>
+    <RouteLink onClick={onClick} underline="hover" to={url}>
       {basename(step.file_path)}
     </RouteLink>
   );

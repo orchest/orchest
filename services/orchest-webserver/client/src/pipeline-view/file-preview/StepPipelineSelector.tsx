@@ -34,8 +34,7 @@ export type StepPipelines = {
 export const StepPipelineSelector = () => {
   const step = useActiveStep();
   const states = useProjectPipelineJsons();
-  const setSelected = useFileManagerState((state) => state.setSelected);
-  const setExpanded = useFileManagerState((state) => state.setExpanded);
+  const selectExclusive = useFileManagerState((state) => state.selectExclusive);
   const { pipelines: metadata = [] } = useProjectsContext().state;
   const { pipelineUuid, jobUuid } = useCurrentQuery();
   const navigate = useNavigate();
@@ -82,15 +81,7 @@ export const StepPipelineSelector = () => {
       path: usage.meta.path,
     });
 
-    setExpanded((expanded) =>
-      expanded.includes(dirname(combinedPath))
-        ? expanded
-        : [...expanded, dirname(combinedPath)]
-    );
-    setSelected((selected) =>
-      selected.length > 1 ? selected : [combinedPath]
-    );
-
+    selectExclusive(combinedPath);
     navigate({
       route: hasValue(jobUuid) ? "jobFilePreview" : "filePreview",
       query: { pipelineUuid: newPipelineUuid, stepUuid: usage.step.uuid },
