@@ -1,10 +1,16 @@
+import { RouteLink } from "@/components/RouteLink";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useActiveStep } from "@/hooks/useActiveStep";
-import { useCustomRoute, useNavigate } from "@/hooks/useCustomRoute";
+import {
+  useCurrentQuery,
+  useNavigate,
+  useRouteLink,
+} from "@/hooks/useCustomRoute";
 import { useProjectPipelineJsons } from "@/hooks/useProjectPipelineJsons";
 import { PipelineMetaData, PipelineState, StepData, StepState } from "@/types";
 import { dirname } from "@/utils/path";
 import { stepPathToProjectPath } from "@/utils/pipeline";
+import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
@@ -27,7 +33,7 @@ export const StepPipelineSelector = () => {
   const step = useActiveStep();
   const states = useProjectPipelineJsons();
   const { pipelines: metadata = [] } = useProjectsContext().state;
-  const { pipelineUuid, jobUuid } = useCustomRoute();
+  const { pipelineUuid, jobUuid } = useCurrentQuery();
   const navigate = useNavigate();
   const pipelines = React.useMemo(() => {
     return bakePipelines(metadata, states);
@@ -74,6 +80,12 @@ export const StepPipelineSelector = () => {
     });
   };
 
+  const pipelineLink = useRouteLink({
+    route: hasValue(jobUuid) ? "pipeline" : "jobRun",
+    query: { pipelineUuid },
+    clear: ["stepUuid"],
+  });
+
   if (usedIn.length < 2) return null;
 
   return (
@@ -103,6 +115,14 @@ export const StepPipelineSelector = () => {
           </MenuItem>
         ))}
       </Select>
+      <Button
+        sx={{ marginLeft: 0 }}
+        size="small"
+        LinkComponent={RouteLink}
+        href={pipelineLink}
+      >
+        Open
+      </Button>
     </Stack>
   );
 };

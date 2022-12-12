@@ -1,7 +1,7 @@
 import { CommaSeparated } from "@/components/CommaSeparated";
 import { RouteLink } from "@/components/RouteLink";
 import { useActiveStep } from "@/hooks/useActiveStep";
-import { useCustomRoute, useRouteLink } from "@/hooks/useCustomRoute";
+import { useCurrentQuery, useRouteLink } from "@/hooks/useCustomRoute";
 import { useStepConnections } from "@/hooks/useStepConnections";
 import { RouteName } from "@/routingConfig";
 import { StepData } from "@/types";
@@ -78,10 +78,9 @@ const SeparatorArrow = () => (
 type StepLinkProps = { step: StepData };
 
 const StepLink = ({ step }: StepLinkProps) => {
-  const { jobUuid } = useCustomRoute();
-
+  const { jobUuid } = useCurrentQuery();
   const route: RouteName = hasValue(jobUuid) ? "jobFilePreview" : "filePreview";
-  const url = useRouteLink(route, { stepUuid: step.uuid });
+  const url = useRouteLink({ route, query: { stepUuid: step.uuid } });
 
   return (
     <RouteLink underline="hover" to={url}>

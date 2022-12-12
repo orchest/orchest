@@ -27,7 +27,7 @@ const useLocationState = <T>(stateNames: string[]) => {
 // console.log(foo); // '123'
 // console.log(bar); // 'abc'
 // NOTE: the returned value is ALWAYS a string
-const useLocationQuery = (
+export const useLocationQuery = (
   queryStrings: string[]
 ): (string | boolean | null | undefined)[] => {
   const location = useLocation();
@@ -43,7 +43,7 @@ const useLocationQuery = (
   });
 };
 
-const useHistoryListener = <T>({
+export const useHistoryListener = <T>({
   forward,
   backward,
   onPush,
@@ -86,16 +86,7 @@ export type NavigateParams = {
   replace?: boolean;
 };
 
-// these are common use cases that are all over the place
-// if there are specific cases that you need to pass some querystrings or states
-// better make use of useLocationQuery and useLocationState
-const useCustomRoute = () => {
-  const history = useHistory();
-  const location = useLocation();
-
-  const [isReadOnly, prevPathname] = useLocationState<
-    [boolean, string, boolean]
-  >(["isReadOnly", "prevPathname"]);
+export const useCurrentQuery = () => {
   const valueArray = useLocationQuery([
     "job_uuid",
     "run_uuid",
@@ -125,6 +116,32 @@ const useCustomRoute = () => {
     // stringify the value for all the other cases.
     return !hasValue(value) ? undefined : String(value);
   });
+
+  return {
+    projectUuid,
+    pipelineUuid,
+    environmentUuid,
+    stepUuid,
+    jobUuid,
+    runUuid,
+    snapshotUuid,
+    filePath,
+    fileRoot,
+    tab,
+  };
+};
+
+// these are common use cases that are all over the place
+// if there are specific cases that you need to pass some query strings or states
+// better make use of useLocationQuery and useLocationState
+export const useCustomRoute = () => {
+  const history = useHistory();
+  const location = useLocation();
+  const query = useCurrentQuery();
+
+  const [isReadOnly, prevPathname] = useLocationState<
+    [boolean, string, boolean]
+  >(["isReadOnly", "prevPathname"]);
 
   const navigateTo = React.useCallback(
     (
@@ -169,26 +186,10 @@ const useCustomRoute = () => {
   return {
     navigateTo,
     isReadOnly,
-    projectUuid,
-    pipelineUuid,
-    environmentUuid,
-    stepUuid,
-    jobUuid,
-    runUuid,
-    snapshotUuid,
-    filePath,
-    fileRoot,
     location,
     prevPathname,
-    tab,
+    ...query,
   };
-};
-
-export {
-  useLocationState,
-  useLocationQuery,
-  useHistoryListener,
-  useCustomRoute,
 };
 
 export const useCreateRouteLink = () => {
@@ -204,19 +205,7 @@ export const useCreateRouteLink = () => {
   };
 };
 
-export const useRouteLink = (
-  name: RouteName,
-  params: Partial<Record<ScopeParameter, string>>
-) => {
-  const { path, scope = [] } = siteMap[name];
-  const currentRoute = useCustomRoute();
-
-  return (
-    path + toQueryString({ ...pick(currentRoute, ...scope), ...prune(params) })
-  );
-};
-
-export type NavigateOptions = {
+export type NavigationOptions = {
   route: RouteName;
   query?: Partial<ScopeParameters>;
   /** If `sticky` is true: Clear the following query parameters. */
@@ -231,8 +220,32 @@ export type NavigateOptions = {
    * Default: false
    */
   replace?: boolean;
+};
 
+export type NavigateOptions = NavigationOptions & {
   event?: React.MouseEvent;
+};
+
+/**
+ * Returns a link to the specified route.
+ * Note: Links are "sticky" by default,
+ * meaning that the query parameters that are
+ * supported by the provided route are preserved.
+ */
+export const useRouteLink = ({
+  route,
+  sticky = true,
+  query = {},
+  clear = [],
+}: NavigationOptions) => {
+  const { path, scope } = siteMap[route];
+  const currentQuery = useCurrentQuery();
+  const newQuery = prune(
+    sticky ? stickyQuery(currentQuery, { query, scope }) : prune(query),
+    ([name]) => !clear.includes(name as ScopeParameter)
+  );
+
+  return path + toQueryString(newQuery);
 };
 
 /**
@@ -241,7 +254,8 @@ export type NavigateOptions = {
  * the previous page are persisted when navigating between routes.
  */
 export const useNavigate = () => {
-  const { navigateTo, ...currentQuery } = useCustomRoute();
+  const { navigateTo } = useCustomRoute();
+  const currentQuery = useCurrentQuery();
 
   return React.useCallback(
     ({
@@ -254,16 +268,10 @@ export const useNavigate = () => {
     }: NavigateOptions) => {
       const { path, scope = [] } = siteMap[route];
       const isSamePath = path === window.location.pathname;
-
-      const newQuery = sticky
-        ? {
-            ...prune(
-              pick(currentQuery, ...scope),
-              ([name]) => !clear.includes(name as ScopeParameter)
-            ),
-            ...prune(query),
-          }
-        : prune(query);
+      const newQuery = prune(
+        sticky ? stickyQuery(currentQuery, { query, scope }) : prune(query),
+        ([name]) => !clear.includes(name as ScopeParameter)
+      );
 
       if (isSamePath && equalsShallow(newQuery, currentQuery)) {
         return;
@@ -274,3 +282,16 @@ export const useNavigate = () => {
     [currentQuery, navigateTo]
   );
 };
+
+type StickyQuery = {
+  scope: ScopeParameter[];
+  query: Partial<ScopeParameters>;
+};
+
+const stickyQuery = (
+  currentQuery: Record<string, string | undefined>,
+  { query, scope }: StickyQuery
+) => ({
+  ...prune(pick(currentQuery, ...scope)),
+  ...prune(query),
+});
