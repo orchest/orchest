@@ -2,6 +2,7 @@ import { useFileApi } from "@/api/files/useFileApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { FileRoot } from "@/utils/file";
 import { basename, extname } from "@/utils/path";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useStepFile } from "./useStepFile";
 
@@ -35,7 +36,7 @@ export const useActiveFile = (): ActiveFile | undefined => {
     setName(stepFile.filename);
   }, [stepFile]);
 
-  if (!content || !name) return undefined;
+  if (!hasValue(content) || !name) return undefined;
 
   return {
     content,
