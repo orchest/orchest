@@ -78,7 +78,7 @@ class JupyterEnvironmentBuild(Resource):
     @api.doc("get_jupyter_image_build")
     @api.marshal_with(schema.jupyter_image_build, code=200)
     def get(self, jupyter_image_build_uuid):
-        """Fetch a Jupyter build given its uuid."""
+        """Fetch a Jupyter build given its uuid. #CLOUD"""
         jupyter_image_build = models.JupyterImageBuild.query.filter_by(
             uuid=jupyter_image_build_uuid
         ).one_or_none()
