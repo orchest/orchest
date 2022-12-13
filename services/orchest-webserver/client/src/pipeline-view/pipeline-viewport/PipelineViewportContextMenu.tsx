@@ -7,6 +7,7 @@ import {
 } from "@/components/ContextMenu";
 import { subtractPoints } from "@/utils/geometry";
 import { stepPathToProjectPath } from "@/utils/pipeline";
+import red from "@mui/material/colors/red";
 import React from "react";
 import { createStepAction } from "../action-helpers/eventVarsHelpers";
 import { SCALE_UNIT, useCanvasScaling } from "../contexts/CanvasScalingContext";
@@ -130,6 +131,25 @@ export const PipelineViewportContextMenu = () => {
       : [
           {
             type: "item",
+            title: "Edit in JupyterLab",
+            disabled: isReadOnly,
+            action: ({ event }) => {
+              uiStateDispatch({
+                type: "SET_OPENED_STEP",
+                payload: contextMenuUuid,
+              });
+              openNotebook(contextMenuUuid, event);
+            },
+          },
+          {
+            type: "item",
+            title: "File Preview",
+            action: ({ event }) => {
+              previewStepFile(contextMenuUuid, event);
+            },
+          },
+          {
+            type: "item",
             title: "Duplicate",
             disabled: isReadOnly || selectionContainsNotebooks,
             action: () => {
@@ -142,37 +162,9 @@ export const PipelineViewportContextMenu = () => {
           {
             type: "item",
             title: "Delete",
+            color: red[500],
             disabled: isReadOnly,
             action: deleteSelectedSteps,
-          },
-          {
-            type: "item",
-            title: "Properties",
-            action: () => {
-              uiStateDispatch({
-                type: "SELECT_STEPS",
-                payload: { uuids: [contextMenuUuid] },
-              });
-            },
-          },
-          {
-            type: "item",
-            title: "Open in JupyterLab",
-            disabled: isReadOnly,
-            action: ({ event }) => {
-              uiStateDispatch({
-                type: "SET_OPENED_STEP",
-                payload: contextMenuUuid,
-              });
-              openNotebook(contextMenuUuid, event);
-            },
-          },
-          {
-            type: "item",
-            title: "Preview",
-            action: ({ event }) => {
-              previewStepFile(contextMenuUuid, event);
-            },
           },
           {
             type: "separator",
