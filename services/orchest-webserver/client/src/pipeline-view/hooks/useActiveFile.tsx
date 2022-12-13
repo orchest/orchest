@@ -36,7 +36,7 @@ export const useActiveFile = (): ActiveFile | undefined => {
     setName(stepFile.filename);
   }, [stepFile]);
 
-  if (!hasValue(content) || !name) return undefined;
+  if (!hasValue(content) || !hasValue(name)) return undefined;
 
   return {
     content,
