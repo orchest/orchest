@@ -620,7 +620,6 @@ def _get_jupyter_enterprise_gateway_rbac_manifests(
                     "pods",
                 ],
                 "verbs": [
-                    "create",
                     "get",
                     "list",
                     "watch",
