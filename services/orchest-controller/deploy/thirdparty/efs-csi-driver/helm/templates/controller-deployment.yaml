@@ -1,0 +1,128 @@
+{{- if .Values.controller.create }}
+# Controller Service
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: efs-csi-controller
+  labels:
+    app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: efs-csi-controller
+      app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: efs-csi-controller
+        app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- with .Values.controller.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      nodeSelector:
+        kubernetes.io/os: linux
+        {{- with .Values.controller.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      serviceAccountName: {{ .Values.controller.serviceAccount.name }}
+      priorityClassName: system-cluster-critical
+      {{- with .Values.controller.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: efs-plugin
+          securityContext:
+            privileged: true
+          image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --endpoint=$(CSI_ENDPOINT)
+            - --logtostderr
+            {{- if .Values.controller.tags }}
+            - --tags={{ include "aws-efs-csi-driver.tags" .Values.controller.tags }}
+            {{- end }}
+            - --v={{ .Values.controller.logLevel }}
+            - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
+            - --vol-metrics-opt-in={{ hasKey .Values.controller "volMetricsOptIn" | ternary .Values.controller.volMetricsOptIn false }}
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            {{- if .Values.controller.regionalStsEndpoints }}
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: regional
+            {{- end }}
+            - name: CSI_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            {{- if .Values.useFIPS }}
+            - name: AWS_USE_FIPS_ENDPOINT
+              value: "true"
+            {{- end }}
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+          ports:
+            - name: healthz
+              containerPort: {{ .Values.controller.healthPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 5
+          {{- with .Values.controller.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+        - name: csi-provisioner
+          image: {{ printf "%s:%s" .Values.sidecars.csiProvisioner.image.repository .Values.sidecars.csiProvisioner.image.tag }}
+          imagePullPolicy: {{ .Values.sidecars.csiProvisioner.image.pullPolicy }}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --v={{ .Values.controller.logLevel }}
+            - --feature-gates=Topology=true
+            {{- if .Values.controller.extraCreateMetadata }}
+            - --extra-create-metadata
+            {{- end }}
+            - --leader-election
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+          {{- with .Values.sidecars.csiProvisioner.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+        - name: liveness-probe
+          image: {{ printf "%s:%s" .Values.sidecars.livenessProbe.image.repository .Values.sidecars.livenessProbe.image.tag }}
+          imagePullPolicy: {{ .Values.sidecars.livenessProbe.image.pullPolicy }}
+          args:
+            - --csi-address=/csi/csi.sock
+            - --health-port={{ .Values.controller.healthPort }}
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+          {{- with .Values.sidecars.livenessProbe.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
+      {{- with .Values.controller.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

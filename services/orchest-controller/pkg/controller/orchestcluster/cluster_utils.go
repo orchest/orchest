@@ -2,7 +2,10 @@ package orchestcluster
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"net"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -35,8 +38,9 @@ var (
 		controller.NodeAgent,
 	}
 
-	legacyDefaultDomain = "index.docker.io"
-	defaultDomain       = "docker.io"
+	defaultStorageClassAnnotation = "storageclass.kubernetes.io/is-default-class"
+	legacyDefaultDomain           = "index.docker.io"
+	defaultDomain                 = "docker.io"
 	// Registry helm parameters
 	registryServiceIP = "service.clusterIP"
 )
@@ -67,27 +71,22 @@ func registryCertgen(ctx context.Context,
 	return nil
 }
 
-func getPersistentVolumeClaim(name, volumeSize, hash string,
+func getPersistentVolumeClaim(name, hash string, volume orchestv1alpha1.Volume, am corev1.PersistentVolumeAccessMode,
 	orchest *orchestv1alpha1.OrchestCluster) *corev1.PersistentVolumeClaim {
 
 	metadata := controller.GetMetadata(name, hash, orchest, OrchestClusterKind)
 
-	accessMode := corev1.ReadWriteMany
-	if orchest.Spec.SingleNode != nil && *orchest.Spec.SingleNode {
-		accessMode = corev1.ReadWriteOnce
-	}
-
 	spec := corev1.PersistentVolumeClaimSpec{
-		AccessModes: []corev1.PersistentVolumeAccessMode{accessMode},
+		AccessModes: []corev1.PersistentVolumeAccessMode{am},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volumeSize),
+				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(volume.VolumeSize),
 			},
 		},
 	}
 
-	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
-		spec.StorageClassName = &orchest.Spec.Orchest.Resources.StorageClassName
+	if volume.StorageClass != "" {
+		spec.StorageClassName = &volume.StorageClass
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{
@@ -242,6 +241,63 @@ func getOrchestComponent(name, hash string,
 	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, template.Env)
 	template.Env = env
 
+	var orchestStateVolumeName string
+
+	if orchest.Spec.Orchest.Resources.OrchestStateVolume != nil &&
+		orchest.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
+		orchestStateVolumeName = controller.OrchestStateVolumeName
+	} else {
+
+		orchestStateVolumeName = controller.UserDirName
+	}
+
+	switch name {
+	case controller.OrchestDatabase:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = orchestStateVolumeName
+	case controller.OrchestApi:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = controller.UserDirName
+
+		if orchest.Spec.WorkerNodeSelector != nil && len(orchest.Spec.WorkerNodeSelector) > 0 {
+			jsonStr, _ := json.Marshal(orchest.Spec.WorkerNodeSelector)
+			template.Env = utils.MergeEnvVars(template.Env, []corev1.EnvVar{{
+				Name:  "WORKER_PLANE_SELECTOR",
+				Value: string(jsonStr),
+			}})
+		}
+
+	case controller.Rabbitmq:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = orchestStateVolumeName
+	case controller.CeleryWorker:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		if orchest.Spec.Orchest.Resources.SeparateOrchestStateFromUserDir {
+			template.StateVolumeName = controller.OrchestStateVolumeName
+		} else {
+			template.StateVolumeName = controller.UserDirName
+		}
+
+		if orchest.Spec.WorkerNodeSelector != nil && len(orchest.Spec.WorkerNodeSelector) > 0 {
+			jsonStr, _ := json.Marshal(orchest.Spec.WorkerNodeSelector)
+			template.Env = utils.MergeEnvVars(template.Env, []corev1.EnvVar{{
+				Name:  "WORKER_PLANE_SELECTOR",
+				Value: string(jsonStr),
+			}})
+		}
+	case controller.AuthServer:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+	case controller.OrchestWebserver:
+		template.NodeSelector = orchest.Spec.ControlNodeSelector
+		template.StateVolumeName = controller.UserDirName
+	case controller.NodeAgent:
+		template.NodeSelector = orchest.Spec.WorkerNodeSelector
+	case controller.BuildKitDaemon:
+		template.NodeSelector = orchest.Spec.WorkerNodeSelector
+	default:
+		return nil
+	}
+
 	return &orchestv1alpha1.OrchestComponent{
 		ObjectMeta: metadata,
 		Spec: orchestv1alpha1.OrchestComponentSpec{
@@ -389,6 +445,62 @@ func setRegistryServiceIP(ctx context.Context, client kubernetes.Interface,
 			Name:  registryServiceIP,
 			Value: serviceIP,
 		})
+
+	return changed, nil
+}
+
+// If the selector is empty it assumes there is nothing to do and
+// doesn't allow changing the selection later.
+func setHelmParamNodeSelector(ctx context.Context, client kubernetes.Interface,
+	namespace string, app *orchestv1alpha1.ApplicationSpec, selector map[string]string,
+	prefix string,
+) (bool, error) {
+	if len(selector) == 0 {
+		return false, nil
+	}
+
+	var changed = false
+
+	if app.Config.Helm == nil {
+		changed = true
+		app.Config.Helm = &orchestv1alpha1.ApplicationConfigHelm{}
+	}
+
+	if app.Config.Helm.Parameters == nil {
+		changed = true
+		app.Config.Helm.Parameters = []orchestv1alpha1.HelmParameter{}
+	}
+
+	// Construct the would be parameters and compare with the old ones.
+	new_parameters_dict := make(map[string]orchestv1alpha1.HelmParameter)
+	for _, param := range app.Config.Helm.Parameters {
+		new_parameters_dict[param.Name] = param
+	}
+	// Add a node selector label for each key value pair.
+	for key, value := range selector {
+		paramName := prefix + "nodeSelector." + strings.Replace(key, ".", "\\.", -1)
+		new_parameters_dict[paramName] = orchestv1alpha1.HelmParameter{
+			Name:  paramName,
+			Value: value,
+		}
+	}
+
+	new_parameters := make([]orchestv1alpha1.HelmParameter, 0, len(new_parameters_dict))
+	for _, value := range new_parameters_dict {
+		new_parameters = append(new_parameters, value)
+	}
+
+	sort.Slice(new_parameters, func(i, j int) bool {
+		return new_parameters[i].Name < new_parameters[j].Name
+	})
+	sort.Slice(app.Config.Helm.Parameters, func(i, j int) bool {
+		return app.Config.Helm.Parameters[i].Name < app.Config.Helm.Parameters[j].Name
+	})
+
+	changed = !reflect.DeepEqual(new_parameters, app.Config.Helm.Parameters)
+	if changed {
+		app.Config.Helm.Parameters = new_parameters
+	}
 
 	return changed, nil
 }
@@ -570,4 +682,21 @@ func isNginxIngressInstalled(ctx context.Context, client kubernetes.Interface) b
 
 	return false
 
+}
+
+func detectDefaultStorageClass(ctx context.Context, client kubernetes.Interface) (string, error) {
+
+	// Get the storage class lists
+	scList, err := client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get storage class list")
+	}
+
+	for _, sc := range scList.Items {
+		if value, ok := sc.Annotations[defaultStorageClassAnnotation]; ok && value == "true" {
+			return sc.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to get the default StorageClass")
 }

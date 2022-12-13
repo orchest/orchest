@@ -34,13 +34,15 @@ var (
 	BuildKitDaemon    = "buildkit-daemon"
 
 	// PVC names
-	UserDirName = "userdir-pvc"
+	UserDirName            = "userdir-pvc"
+	OrchestStateVolumeName = "orchest-state"
 
 	// Deprecated, the PVC is removed.
 	OldBuilderDirName = "image-builder-cache-pvc"
 
 	// Mount paths
-	UserdirMountPath = "/userdir"
+	UserdirMountPath      = "/userdir"
+	OrchestStateMountPath = "/orchest/state"
 
 	// database paths
 	DBMountPath = "/userdir/.orchest/database/data"

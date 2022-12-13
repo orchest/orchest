@@ -69,7 +69,9 @@ func (reconciler *OrchestApiReconciler) Reconcile(ctx context.Context, component
 	_, err = reconciler.ingLister.Ingresses(component.Namespace).Get(component.Name)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			ing := getIngressManifest(metadata, "/orchest-api", reconciler.ingressClass, true, false, component)
+			ing := getIngressManifest(metadata, "/orchest-api(/|$)(.*)", reconciler.ingressClass, true, false, component)
+			ing.ObjectMeta.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2"
+
 			_, err = reconciler.Client().NetworkingV1().Ingresses(component.Namespace).Create(ctx, ing, metav1.CreateOptions{})
 			reconciler.EnqueueAfter(component)
 			return err
@@ -136,10 +138,10 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 
 	volumes := []corev1.Volume{
 		{
-			Name: controller.UserDirName,
+			Name: component.Spec.Template.StateVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: controller.UserDirName,
+					ClaimName: component.Spec.Template.StateVolumeName,
 					ReadOnly:  false,
 				},
 			},
@@ -162,7 +164,7 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      controller.UserDirName,
+			Name:      component.Spec.Template.StateVolumeName,
 			MountPath: controller.UserdirMountPath,
 		},
 		{
@@ -190,6 +192,7 @@ func getOrchestApiDeployment(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			ServiceAccountName: controller.OrchestApi,
 			Volumes:            volumes,
+			NodeSelector:       component.Spec.Template.NodeSelector,
 			DNSConfig: &corev1.PodDNSConfig{
 				Options: []corev1.PodDNSConfigOption{
 					{Name: "timeout", Value: &dnsResolverTimeout},
@@ -257,6 +260,7 @@ func getCleanupPod(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			RestartPolicy:      corev1.RestartPolicyNever,
 			ServiceAccountName: controller.OrchestApi,
+			NodeSelector:       component.Spec.Template.NodeSelector,
 			Containers: []corev1.Container{
 				{
 					Name: metadata.Name,

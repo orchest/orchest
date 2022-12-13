@@ -46,6 +46,9 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&controllerConfig.UserdirDefaultVolumeSize,
 		"userdirSize", controllerConfig.UserdirDefaultVolumeSize, "The default size for userdir pvc")
 
+	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestStateDefaultVolumeSize,
+		"orchestStateVolumeSize", controllerConfig.OrchestStateDefaultVolumeSize, "The default size for the Orchest state pvc if exists")
+
 	cmd.PersistentFlags().StringVar(&controllerConfig.BuilddirDefaultVolumeSize,
 		"builderSize", controllerConfig.BuilddirDefaultVolumeSize, "The default size for builddir pvc")
 

@@ -109,10 +109,10 @@ func getOrchestWebserverDeployment(metadata metav1.ObjectMeta,
 
 	volumes := []corev1.Volume{
 		{
-			Name: controller.UserDirName,
+			Name: component.Spec.Template.StateVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: controller.UserDirName,
+					ClaimName: component.Spec.Template.StateVolumeName,
 					ReadOnly:  false,
 				},
 			},
@@ -121,7 +121,7 @@ func getOrchestWebserverDeployment(metadata metav1.ObjectMeta,
 
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      controller.UserDirName,
+			Name:      component.Spec.Template.StateVolumeName,
 			MountPath: controller.UserdirMountPath,
 		},
 	}
@@ -147,6 +147,7 @@ func getOrchestWebserverDeployment(metadata metav1.ObjectMeta,
 					{Name: "attempts", Value: &dnsResolverAttempts},
 				},
 			},
+			NodeSelector: component.Spec.Template.NodeSelector,
 			Containers: []corev1.Container{
 				{
 					Name:            controller.OrchestWebserver,

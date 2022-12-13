@@ -111,6 +111,7 @@ def _get_formatted_active_jupyter_imgs(
 class ActiveCustomJupyterImages(Resource):
     @api.doc("active_custom_jupyter_images")
     def get(self):
+        # CLOUD
         active_custom_jupyter_images = _get_formatted_active_jupyter_imgs(
             stored_in_registry=request.args.get(
                 "stored_in_registry", default=None, type=lambda v: v in ["True", "true"]

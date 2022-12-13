@@ -86,6 +86,7 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: controller.CeleryWorker,
+			NodeSelector:       component.Spec.Template.NodeSelector,
 			Volumes: []corev1.Volume{
 				{
 					Name: controller.UserDirName,
@@ -142,6 +143,35 @@ func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
 			},
 		},
 	}
+
+	if component.Spec.Template.StateVolumeName == controller.OrchestStateVolumeName {
+		var celery_state_dir = "/celery-state"
+		for i := 0; i < len(template.Spec.Containers[0].Env); i++ {
+			if template.Spec.Containers[0].Env[i].Name == "CELERY_STATE_DIR" {
+				template.Spec.Containers[0].Env[i].Value = celery_state_dir
+			}
+		}
+		template.Spec.Volumes = append(template.Spec.Volumes,
+			corev1.Volume{
+				Name: component.Spec.Template.StateVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: component.Spec.Template.StateVolumeName,
+						ReadOnly:  false,
+					},
+				},
+			},
+		)
+
+		template.Spec.Containers[0].VolumeMounts = append(
+			template.Spec.Containers[0].VolumeMounts,
+			corev1.VolumeMount{
+				Name:      component.Spec.Template.StateVolumeName,
+				MountPath: celery_state_dir,
+			},
+		)
+	}
+
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metadata,
 		Spec: appsv1.DeploymentSpec{

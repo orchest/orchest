@@ -118,7 +118,7 @@ class EnvironmentImageBuild(Resource):
     @api.doc("get_environment_image_build")
     @api.marshal_with(schema.environment_image_build, code=200)
     def get(self, project_uuid, environment_uuid, image_tag):
-        """Fetch an environment build."""
+        """Fetch an environment build. #CLOUD."""
         env_build = models.EnvironmentImageBuild.query.filter_by(
             project_uuid=project_uuid,
             environment_uuid=environment_uuid,
