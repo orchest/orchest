@@ -168,10 +168,18 @@ class OrchestCmds:
         dev_mode: bool,
         no_argo: bool,
         no_nginx: bool,
+        efs_csi_driver: bool,
+        efs_csi_driver_parameters: t.Optional[t.Dict[str, str]],
         fqdn: t.Optional[str],
         socket_path: t.Optional[str],
         userdir_pvc_size: int,
+        userdir_pvc_storage_class: t.Optional[str],
+        orchest_state_pvc_size: t.Optional[int],
+        orchest_state_pvc_storage_class: t.Optional[str],
         registry_pvc_size: int,
+        control_plane_selector: t.Optional[t.Dict[str, str]],
+        worker_plane_selector: t.Optional[t.Dict[str, str]],
+        separate_orchest_state_from_userdir: bool,
         **kwargs,
     ) -> None:
         """Installs Orchest."""
@@ -222,6 +230,12 @@ class OrchestCmds:
             if yml_document is None:
                 continue
             try:
+                if control_plane_selector is not None:
+                    if yml_document.get("kind") == "Deployment":
+                        yml_document["spec"]["template"]["spec"][
+                            "nodeSelector"
+                        ] = control_plane_selector
+
                 utils.create_from_dict(
                     k8s_client=self.API_CLIENT,
                     data=yml_document,
@@ -361,6 +375,34 @@ class OrchestCmds:
                 }
             )
 
+        if efs_csi_driver:
+            helm_params = []
+            applications.append(
+                {
+                    "name": "efs-csi-driver",
+                    "config": {"helm": {"parameters": helm_params}},
+                }
+            )
+            if efs_csi_driver_parameters is not None:
+                for k, v in efs_csi_driver_parameters.items():
+                    helm_params.append({"name": k, "value": v})
+
+        resources = {
+            "userDirVolumeSize": f"{userdir_pvc_size}Gi",
+            "separateOrchestStateFromUserDir": separate_orchest_state_from_userdir,
+        }
+
+        if orchest_state_pvc_size is not None:
+            resources["orchestStateVolumeSize"] = f"{orchest_state_pvc_size}Gi"
+
+        if userdir_pvc_storage_class is not None:
+            resources["userDirVolume"] = {"storageClass": userdir_pvc_storage_class}
+
+        if orchest_state_pvc_storage_class is not None:
+            resources["orchestStateVolume"] = {
+                "storageClass": orchest_state_pvc_storage_class
+            }
+
         spec = {
             "applications": applications,
             "orchest": {
@@ -368,14 +410,18 @@ class OrchestCmds:
                 "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "orchestApi": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
-                "resources": {
-                    "userDirVolumeSize": f"{userdir_pvc_size}Gi",
-                },
+                "resources": resources,
             },
         }
 
         if multi_node:
             spec["singleNode"] = False
+
+        if control_plane_selector is not None:
+            spec["controlNodeSelector"] = control_plane_selector
+
+        if worker_plane_selector is not None:
+            spec["workerNodeSelector"] = worker_plane_selector
 
         custom_object = {
             "apiVersion": "orchest.io/v1alpha1",

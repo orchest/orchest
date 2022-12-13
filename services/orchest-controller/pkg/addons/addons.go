@@ -13,6 +13,7 @@ var (
 	// list of all addons
 	ArgoWorkflow   = "argo-workflow"
 	DockerRegistry = "docker-registry"
+	EfsCsiDriver   = "efs-csi-driver"
 	IngressNginx   = "ingress-nginx"
 )
 
@@ -69,6 +70,11 @@ func NewAddonManager(client kubernetes.Interface, config AddonsConfig) *AddonMan
 			path.Join(config.AssetDir, "thirdparty/docker-registry/helm"),
 			path.Join(config.AssetDir, "thirdparty/docker-registry/orchest-values.yaml")))
 
+	addonManager.AddAddon(EfsCsiDriver,
+		NewHelmDeployer(client, EfsCsiDriver,
+			path.Join(config.AssetDir, "thirdparty/efs-csi-driver/helm"),
+			path.Join(config.AssetDir, "thirdparty/efs-csi-driver/orchest-values.yaml")))
+
 	addonManager.AddAddon(IngressNginx,
 		NewHelmDeployer(client, IngressNginx,
 			path.Join(config.AssetDir, "thirdparty/ingress-nginx/helm"),
@@ -86,7 +92,12 @@ func (m *AddonManager) Run(stopCh <-chan struct{}) {
 
 	// Enable default addons
 	for _, addonName := range m.config.Addons {
-		m.EnableAddon(ctx, addonName, m.config.DefaultNamespace)
+		namespace := m.config.DefaultNamespace
+		if addonName == EfsCsiDriver {
+			namespace = "kube-system"
+		}
+
+		m.EnableAddon(ctx, addonName, namespace)
 	}
 
 	<-stopCh

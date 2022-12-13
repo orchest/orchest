@@ -188,6 +188,7 @@ func getBuildKitDaemonDaemonset(metadata metav1.ObjectMeta,
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: &var_one,
 			Volumes:                       volumes,
+			NodeSelector:                  component.Spec.Template.NodeSelector,
 			Containers: []corev1.Container{
 				{
 					Name:            controller.BuildKitDaemon,

@@ -145,7 +145,10 @@ class ActiveEnvironmentImagesToPush(Resource):
     @api.doc("get_environment_images_to_push")
     @api.marshal_with(schema.active_environment_images, code=200)
     def get(self):
-        """To be used by the image-pusher to get images to push."""
+        """To be used by the image-pusher to get images to push.
+
+        #CLOUD
+        """
 
         active_env_images = _get_formatted_active_environment_imgs(
             stored_in_registry=False,

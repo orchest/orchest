@@ -50,6 +50,7 @@ Implementation details:
 """
 
 import collections
+import re
 import sys
 import typing as t
 from gettext import gettext
@@ -161,6 +162,45 @@ def cli():
     pass
 
 
+def _parse_labels_to_dict(ctx, param, value) -> t.Optional[t.Dict[str, str]]:
+    if value is None:
+        return None
+    group_of_kv_labels = (
+        # (Either start of string or comma separator)(key)
+        "((?:,|^)([a-zA-Z0-9][a-zA-Z0-9-_.]{0,61}[a-zA-Z0-9]?)"
+        # (value)
+        "=([a-zA-Z0-9][a-zA-Z0-9-_.]{0,61}[a-zA-Z0-9]?))+$"
+    )
+    if re.match(group_of_kv_labels, value):
+        selector_dict = {}
+        for kv_pair_string in value.split(","):
+            k, v = kv_pair_string.split("=")
+            selector_dict[k] = v
+        return selector_dict
+    else:
+        raise click.BadParameter("Labels validation failed.")
+
+
+def _parse_params_to_dict(ctx, param, value) -> t.Optional[t.Dict[str, str]]:
+    if value is None:
+        return None
+    # TODO: improve it.
+    group_of_kv_strings = (
+        # (Either start of string or comma separator)(key)
+        "((?:,|^)([^,=]+)"
+        # (value)
+        "=([^,=]+))+$"
+    )
+    if re.match(group_of_kv_strings, value):
+        selector_dict = {}
+        for kv_pair_string in value.split(","):
+            k, v = kv_pair_string.split("=")
+            selector_dict[k] = v
+        return selector_dict
+    else:
+        raise click.BadParameter("Parameters validation failed.")
+
+
 @click.option(
     "--cloud",
     is_flag=True,
@@ -203,6 +243,23 @@ def cli():
     help="Disable deploying Nginx Ingress Controller as part of Orchest.",
 )
 @click.option(
+    "--efs-csi-driver",
+    "efs_csi_driver",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Deploy the EFS CSI driver.",
+)
+@click.option(
+    "--efs-csi-driver-parameters",
+    type=str,
+    default=None,
+    hidden=True,
+    show_default=True,
+    callback=_parse_params_to_dict,
+)
+@click.option(
     "--fqdn",
     default=None,
     show_default=True,
@@ -224,6 +281,31 @@ def cli():
     help="Size of the userdir volume claim in Gi.",
 )
 @click.option(
+    "--userdir-pvc-storage-class",
+    "userdir_pvc_storage_class",
+    type=str,
+    default=None,
+    show_default=True,
+    hidden=True,
+)
+@click.option(
+    "--orchest-state-pvc-size",
+    "orchest_state_pvc_size",
+    type=click.IntRange(min=2),
+    default=None,
+    show_default=True,
+    hidden=True,
+    help="Size of the orchest state volume claim in Gi.",
+)
+@click.option(
+    "--orchest-state-pvc-storage-class",
+    "orchest_state_pvc_storage_class",
+    type=str,
+    default=None,
+    show_default=True,
+    hidden=True,
+)
+@click.option(
     "--builder-pvc-size",
     "builder_pvc_size",
     type=click.IntRange(min=5),
@@ -239,6 +321,33 @@ def cli():
     show_default=True,
     help="Size of the registry volume claim in Gi.",
 )
+@click.option(
+    "--control-plane-labels",
+    type=str,
+    default=None,
+    hidden=True,
+    show_default=True,
+    help="Label of nodes for the Orchest control plane.",
+    callback=_parse_labels_to_dict,
+)
+@click.option(
+    "--workers-plane-labels",
+    type=str,
+    default=None,
+    hidden=True,
+    show_default=True,
+    help="Label of nodes for the Orchest workers.",
+    callback=_parse_labels_to_dict,
+)
+@click.option(
+    "--separate-orchest-state-from-userdir",
+    "separate_orchest_state_from_userdir",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Create different volumes for the userdir and Orchest state.",
+)
 @cli.command(cls=SilenceExceptions(ClickCommonOptionsCmd))
 def install(
     multi_node: bool,
@@ -246,11 +355,19 @@ def install(
     dev_mode: bool,
     no_argo: bool,
     no_nginx: bool,
+    efs_csi_driver: bool,
+    efs_csi_driver_parameters: t.Optional[t.Dict[str, str]],
     fqdn: t.Optional[str],
     socket_path: t.Optional[str],
     userdir_pvc_size: int,
+    userdir_pvc_storage_class: t.Optional[str],
+    orchest_state_pvc_size: t.Optional[int],
+    orchest_state_pvc_storage_class: t.Optional[str],
     builder_pvc_size: int,
     registry_pvc_size: int,
+    control_plane_labels: t.Optional[t.Dict[str, str]],
+    workers_plane_labels: t.Optional[t.Dict[str, str]],
+    separate_orchest_state_from_userdir: bool,
     **common_options,
 ) -> None:
     """Install Orchest."""
@@ -265,10 +382,18 @@ def install(
         dev_mode,
         no_argo,
         no_nginx,
+        efs_csi_driver,
+        efs_csi_driver_parameters,
         fqdn,
         socket_path,
         userdir_pvc_size,
+        userdir_pvc_storage_class,
+        orchest_state_pvc_size,
+        orchest_state_pvc_storage_class,
         registry_pvc_size,
+        control_plane_labels,
+        workers_plane_labels,
+        separate_orchest_state_from_userdir,
         **common_options,
     )
 

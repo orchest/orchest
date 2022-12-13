@@ -1,23 +1,33 @@
 """Module to inject scheduling and related changes in k8s resources.
 
-Module to modify scheduling behaviour of all k8s resources that could
-involve environment images or custom jupyter images. It uses the fact
-that the orchest-api knows that a certain image is on a certain node and
-if it has been pushed to the registry already to schedule everything
-that is part of the "interactive" scope of Orchest (interactive pipeline
-runs, sessions, services, shells, etc.) to nodes that already have the
-image to avoid the user waiting for the image to be pulled. The
-"non-interactive" scope is less constrained.
+Module to modify scheduling behaviour of all k8s resources of interest,
+in particular, those that could involve environment images or custom
+jupyter images or resources for which the split between the control
+plane and workers plane is of interest, if defined.
+
+For the env and jupyter images, it uses the fact that the orchest-api
+knows that a certain image is on a certain node and if it has been
+pushed to the registry already to schedule everything that is part of
+the "interactive" scope of Orchest (interactive pipeline runs, sessions,
+services, shells, etc.) to nodes that already have the image to avoid
+the user waiting for the image to be pulled. The "non-interactive" scope
+is less constrained.
 
 For the time being the pre-pull init container is injected in both
 interactive and non-interactive scopes, to account for the fact that k8s
 GC could remove an image from the node in case of disk pressure.
+
+For the image builder, a node selector is injected if the worker plane
+labels are defined.
+
 """
 import json
 import random
 import time
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+from flask import current_app
 
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
@@ -28,15 +38,25 @@ from config import CONFIG_CLASS
 logger = utils.get_logger()
 
 
-def _get_k8s_nodes_information() -> Tuple[List[str], List[str]]:
-    return _get_k8s_nodes_information_cached_with_ttl(ttl_period=int(time.time() // 2))
+def _get_k8s_nodes_information(
+    label_selector: Optional[Dict[str, str]] = None
+) -> Tuple[List[str], List[str]]:
+    if label_selector is not None:
+        label_selector = ",".join(f"{k}={v}" for k, v in label_selector.items())
+    return _get_k8s_nodes_information_cached_with_ttl(
+        label_selector=label_selector, ttl_period=int(time.time() // 2)
+    )
 
 
 @lru_cache(maxsize=1)
 def _get_k8s_nodes_information_cached_with_ttl(
+    label_selector: Optional[str],
     ttl_period: int,
 ) -> Tuple[List[str], List[str]]:
-    nodes = k8s_core_api.list_node()
+    if label_selector is None:
+        nodes = k8s_core_api.list_node()
+    else:
+        nodes = k8s_core_api.list_node(label_selector=label_selector)
     known_nodes_names = []
     ready_nodes_names = []
     for node in nodes.items:
@@ -136,7 +156,7 @@ def _should_constrain_to_nodes(scope: str, image_is_in_registry: bool) -> bool:
     return scope == "interactive" or not image_is_in_registry
 
 
-def _get_required_affinity(
+def _get_required_affinity_for_image_build_in_orchest(
     scope: str,
     image: str,
 ) -> Optional[Dict[str, Any]]:
@@ -163,7 +183,12 @@ def _get_required_affinity(
     if not _should_constrain_to_nodes(scope, image_is_in_registry):
         return
 
-    _, cluster_nodes_known_to_be_ready = _get_k8s_nodes_information()
+    # Only consider nodes in the worker plane if the selector is
+    # available.
+    label_selector = current_app.config["WORKER_PLANE_SELECTOR"]
+    _, cluster_nodes_known_to_be_ready = _get_k8s_nodes_information(
+        label_selector=label_selector
+    )
 
     cluster_nodes_known_to_be_ready = set(cluster_nodes_known_to_be_ready)
     ready_nodes_with_image = [
@@ -226,7 +251,9 @@ def modify_kernel_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
     init_containers.append(_get_pre_pull_init_container_manifest(image))
     spec["initContainers"] = init_containers
 
-    required_affinity = _get_required_affinity("interactive", image)
+    required_affinity = _get_required_affinity_for_image_build_in_orchest(
+        "interactive", image
+    )
     if required_affinity is not None:
         if spec.get("affinity") is not None:
             raise ValueError("Expected no previously set affinity.")
@@ -251,7 +278,7 @@ def _modify_deployment_pod_scheduling_behaviour(
     init_containers.append(_get_pre_pull_init_container_manifest(image))
     spec["initContainers"] = init_containers
 
-    required_affinity = _get_required_affinity(scope, image)
+    required_affinity = _get_required_affinity_for_image_build_in_orchest(scope, image)
     if required_affinity is not None:
         if spec.get("affinity") is not None:
             raise ValueError("Expected no previously set affinity.")
@@ -300,7 +327,9 @@ def _modify_pipeline_scheduling_behaviour_single_node(
     # By using only 1 image to specify affinity we are doing a bit of a
     # breach of abstraction, we are "using" the fact that we are in
     # single_node.
-    required_affinity = _get_required_affinity(scope, images[0])
+    required_affinity = _get_required_affinity_for_image_build_in_orchest(
+        scope, images[0]
+    )
     if required_affinity is not None:
         if spec.get("affinity") is not None:
             raise ValueError("Expected no previously set affinity.")
@@ -341,7 +370,9 @@ def _modify_pipeline_scheduling_behaviour_multi_node(
                 "Didn't find any pod spec patch among the step task parameters."
             )
 
-        required_affinity = _get_required_affinity(scope, image)
+        required_affinity = _get_required_affinity_for_image_build_in_orchest(
+            scope, image
+        )
         if required_affinity is not None:
             if pod_spec_patch.get("affinity") is not None:
                 raise ValueError("Expected no previously set affinity.")
@@ -363,3 +394,15 @@ def modify_pipeline_scheduling_behaviour(scope: str, manifest: Dict[str, Any]) -
     if CONFIG_CLASS.SINGLE_NODE:
         return _modify_pipeline_scheduling_behaviour_single_node(scope, manifest)
     _modify_pipeline_scheduling_behaviour_multi_node(scope, manifest)
+
+
+def modify_image_builder_pod_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
+    if manifest["kind"] != "Pod":
+        raise ValueError("Expected a pod manifest.")
+    spec = manifest["spec"]
+    worker_plane_selector = current_app.config["WORKER_PLANE_SELECTOR"]
+    if worker_plane_selector is not None:
+        if spec.get("nodeSelector") is not None:
+            raise ValueError("Expected no previously set nodeSelector.")
+
+        spec["nodeSelector"] = worker_plane_selector

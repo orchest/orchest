@@ -1,0 +1,3 @@
+To verify that aws-efs-csi-driver has started, run:
+
+    kubectl get pod -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "aws-efs-csi-driver.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
