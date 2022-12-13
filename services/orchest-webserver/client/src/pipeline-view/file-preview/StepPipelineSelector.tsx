@@ -33,7 +33,7 @@ export type StepPipelines = {
 
 export const StepPipelineSelector = () => {
   const step = useActiveStep();
-  const states = useProjectPipelineJsons();
+  const { states, refresh } = useProjectPipelineJsons();
   const selectExclusive = useFileManagerState((state) => state.selectExclusive);
   const { pipelines: metadata = [] } = useProjectsContext().state;
   const { pipelineUuid, jobUuid } = useCurrentQuery();
@@ -41,6 +41,9 @@ export const StepPipelineSelector = () => {
   const pipelines = React.useMemo(() => {
     return bakePipelines(metadata, states);
   }, [metadata, states]);
+
+  // Always reload pipeline definitions on render
+  React.useEffect(refresh, [refresh]);
 
   const stepFilePath = React.useMemo(() => {
     if (!step) return undefined;

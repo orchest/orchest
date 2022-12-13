@@ -21,40 +21,39 @@ export const useProjectPipelineJsons = () => {
     else return snapshots?.find((snapshot) => snapshot.uuid === snapshotUuid);
   }, [snapshotUuid, snapshots]);
 
-  React.useEffect(() => {
-    if (status !== "IDLE" || !projectUuid) return;
+  const refresh = React.useCallback(() => {
+    if (!projectUuid) return;
 
-    if (snapshotUuid && !snapshot) {
+    if (snapshotUuid) {
       run(fetchSnapshot(snapshotUuid));
     } else {
-      const promises = pipelines
-        ?.filter((pipeline) => !definitions[pipeline.uuid])
-        .map((pipeline) =>
-          fetchOne({
-            projectUuid,
-            pipelineUuid: pipeline.uuid,
-            jobUuid,
-            runUuid,
-          })
-        );
+      const promises = pipelines?.map((pipeline) =>
+        fetchOne({
+          projectUuid,
+          pipelineUuid: pipeline.uuid,
+          jobUuid,
+          runUuid,
+        })
+      );
 
       if (promises?.length) run(Promise.all(promises));
     }
   }, [
     pipelines,
     projectUuid,
-    definitions,
     fetchOne,
-    status,
     run,
     snapshotUuid,
-    snapshot,
     jobUuid,
     runUuid,
     fetchSnapshot,
   ]);
 
-  return React.useMemo(
+  React.useEffect(() => {
+    if (status === "IDLE") refresh();
+  }, [refresh, status]);
+
+  const states = React.useMemo(
     () =>
       snapshot?.pipelines
         ? Object.values(snapshot?.pipelines).map(({ definition }) =>
@@ -65,4 +64,6 @@ export const useProjectPipelineJsons = () => {
             .filter(Boolean) ?? [],
     [definitions, pipelines, snapshot?.pipelines]
   );
+
+  return { states, refresh };
 };
