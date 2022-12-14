@@ -97,35 +97,49 @@ export const StepPipelineSelector = () => {
     clear: ["stepUuid"],
   });
 
-  if (usedIn.length < 2) return null;
+  if (usedIn.length === 0) return null;
 
   return (
     <Stack position="relative" direction="row" spacing={1} alignItems="center">
-      <Typography variant="body2" color="text.secondary">
-        Used in {usedIn.length} Pipelines:
-      </Typography>
-      <Select
-        size="small"
-        value={pipelineUuid}
-        onChange={(event) => changePipeline(event.target.value)}
-        sx={{
-          padding: "0 !important",
-          fontSize: "14px",
-          fieldset: { border: "none" },
-          ".MuiSelect-select": { padding: 0 },
-        }}
-      >
-        {usedIn.map(({ meta }) => (
-          <MenuItem
-            key={meta.uuid}
-            selected={pipelineUuid === meta.uuid}
-            value={meta.uuid}
-            dense
+      {usedIn.length === 1 ? (
+        <>
+          <Typography variant="body2" color="text.secondary">
+            Used in:
+          </Typography>
+          <Typography variant="body2" color="text.primary">
+            {usedIn[0].meta.path}
+          </Typography>
+        </>
+      ) : (
+        <>
+          <Typography variant="body2" color="text.secondary">
+            Used in {usedIn.length} Pipelines:
+          </Typography>
+          <Select
+            size="small"
+            value={pipelineUuid}
+            onChange={(event) => changePipeline(event.target.value)}
+            sx={{
+              padding: "0 !important",
+              fontSize: "14px",
+              fieldset: { border: "none" },
+              ".MuiSelect-select": { padding: 0 },
+            }}
           >
-            {meta.path}
-          </MenuItem>
-        ))}
-      </Select>
+            {usedIn.map(({ meta }) => (
+              <MenuItem
+                key={meta.uuid}
+                selected={pipelineUuid === meta.uuid}
+                value={meta.uuid}
+                dense
+              >
+                {meta.path}
+              </MenuItem>
+            ))}
+          </Select>
+        </>
+      )}
+
       <Button
         sx={{ marginLeft: 0 }}
         size="small"
