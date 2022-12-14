@@ -12,7 +12,6 @@ import requests
 import sqlalchemy
 from flask import current_app, jsonify, request, send_file
 from flask_restful import Api, Resource
-from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import safe_join
 
@@ -49,6 +48,7 @@ from app.utils import (
     get_environment_directory,
     get_environments,
     get_job_counts,
+    get_notebook_html,
     get_orchest_examples_json,
     get_orchest_update_info_json,
     get_pipeline_directory,
@@ -801,16 +801,7 @@ def register_views(app, db):
             if os.path.isfile(file_path):
                 try:
 
-                    html_exporter = HTMLExporter()
-                    html_exporter.embed_images = True
-
-                    (file_content, _) = html_exporter.from_filename(file_path)
-
-                    # custom CSS
-                    custom_style = "<style>.CodeMirror pre {overflow: auto}</style>"
-                    file_content = file_content.replace(
-                        "</head>", custom_style + "</head>", 1
-                    )
+                    file_content = get_notebook_html(file_path)
 
                 except IOError as error:
                     app.logger.info(
@@ -1074,7 +1065,10 @@ def register_views(app, db):
             return jsonify({"message": "Failed to process file_path."}), 500
 
         if os.path.isfile(file_path):
-            return send_file(file_path, max_age=0)
+            if file_path.endswith(".ipynb"):
+                return get_notebook_html(file_path)
+            else:
+                return send_file(file_path, max_age=0)
         else:
             return jsonify({"message": "File does not exists."}), 404
 

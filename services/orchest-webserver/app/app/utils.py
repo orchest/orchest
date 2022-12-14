@@ -9,6 +9,7 @@ from typing import Dict, List, Literal, Optional, Union
 
 import requests
 from flask import current_app
+from nbconvert import HTMLExporter
 from werkzeug.utils import safe_join
 
 from _orchest.internals import compat as _compat
@@ -792,6 +793,19 @@ def get_orchest_examples_json() -> dict:
 
 
 _DEFAULT_ORCHEST_UPDATE_INFO_JSON = {"latest_version": None}
+
+
+def get_notebook_html(notebook_path):
+    html_exporter = HTMLExporter()
+    html_exporter.embed_images = True
+
+    (file_content, _) = html_exporter.from_filename(notebook_path)
+
+    # custom CSS
+    custom_style = "<style>.CodeMirror pre {overflow: auto}</style>"
+    file_content = file_content.replace("</head>", custom_style + "</head>", 1)
+
+    return file_content
 
 
 def get_orchest_update_info_json(cache: bool = True) -> dict:

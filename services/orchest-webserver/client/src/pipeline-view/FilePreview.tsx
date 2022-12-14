@@ -30,7 +30,7 @@ export const FilePreview = () => {
     <Stack width="100%" overflow="auto">
       <FilePreviewHeader name={file.name} isStep={file.hasStep} />
       <Stack flex="1" width="100%">
-        {isNotebook && file.hasStep ? (
+        {isNotebook ? (
           <NotebookPreview content={file.content} />
         ) : (
           <CodePreview content={file.content} extension={file.extension} />
