@@ -1,4 +1,3 @@
-import { filesApi } from "@/api/files/fileApi";
 import { useFileApi } from "@/api/files/useFileApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
@@ -6,18 +5,18 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
-import { unpackPath } from "@/utils/file";
+import { downloadFile, unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
 import { basename } from "@/utils/path";
+import { findPipelineFiles } from "@/utils/pipeline";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import {
   filterRedundantChildPaths,
-  findPipelineFiles,
   prettifyRoot,
-} from "./common";
-import { useFileManagerContext } from "./FileManagerContext";
+} from "../file-manager/common";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 
 export type FileManagerLocalContextType = {
   handleClose: () => void;
@@ -32,6 +31,7 @@ export type FileManagerLocalContextType = {
   handleDelete: () => void;
   handleDownload: () => void;
   handleRename: () => void;
+  contextMenuOrigin: Point2D | undefined;
   contextMenuPath: string | undefined;
   fileInRename: string | undefined;
   setFileInRename: React.Dispatch<React.SetStateAction<string | undefined>>;
@@ -46,28 +46,10 @@ export const FileManagerLocalContext = React.createContext<
   FileManagerLocalContextType
 >({} as FileManagerLocalContextType);
 
-export const useFileManagerLocalContext = () =>
+export const useFileManagerLocalContext = (): FileManagerLocalContextType =>
   React.useContext(FileManagerLocalContext);
 
-const download = (projectUuid: string, combinedPath: string, name: string) => {
-  if (!projectUuid) return;
-
-  const { root, path } = unpackPath(combinedPath);
-  const downloadUrl = filesApi.getDownloadUrl(projectUuid, root, path);
-
-  const a = document.createElement("a");
-  a.href = downloadUrl;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-};
-
-export const FileManagerLocalContextProvider: React.FC<{
-  setContextMenuOrigin: React.Dispatch<
-    React.SetStateAction<Point2D | undefined>
-  >;
-}> = ({ children, setContextMenuOrigin }) => {
+export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
   const { setConfirm } = useGlobalContext();
   const {
     state: { pipelines = [], pipelineReadOnlyReason },
@@ -75,7 +57,8 @@ export const FileManagerLocalContextProvider: React.FC<{
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
-  const { selectedFiles, setSelectedFiles } = useFileManagerContext();
+  const selectedFiles = useFileManagerState((state) => state.selected);
+  const setSelectedFiles = useFileManagerState((state) => state.setSelected);
 
   // When deleting or downloading selectedFiles, we need to avoid
   // the redundant child paths.
@@ -89,6 +72,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [pipelines, pipelineUuid]);
 
   const [contextMenuPath, setContextMenuPath] = React.useState<string>();
+  const [contextMenuOrigin, setContextMenuOrigin] = React.useState<Point2D>();
   const [fileInRename, setFileInRename] = React.useState<string>();
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
   const deleteFile = useFileApi((api) => api.delete);
@@ -97,17 +81,17 @@ export const FileManagerLocalContextProvider: React.FC<{
     (event: React.MouseEvent, combinedPath: string | undefined) => {
       event.preventDefault();
       event.stopPropagation();
+
+      setContextMenuOrigin([event.clientX - 2, event.clientY - 4]);
       setContextMenuPath(combinedPath);
-      setContextMenuOrigin((current) =>
-        !current ? [event.clientX - 2, event.clientY - 4] : undefined
-      );
     },
-    [setContextMenuOrigin]
+    []
   );
 
   const handleSelect = React.useCallback(
     (event: React.SyntheticEvent<Element, Event>, selected: string[]) => {
       event.stopPropagation();
+
       setSelectedFiles(selected);
     },
     [setSelectedFiles]
@@ -229,18 +213,18 @@ export const FileManagerLocalContextProvider: React.FC<{
     if (!contextMenuPath || !projectUuid) return;
     handleClose();
 
-    const name = basename(contextMenuPath);
-
     if (selectedFiles.includes(contextMenuPath)) {
-      selectedFilesWithoutRedundantChildPaths.forEach((combinedPath, i) => {
-        setTimeout(function () {
-          download(projectUuid, combinedPath, name);
-        }, i * 500);
-        // Seems like multiple download invocations works with 500ms
-        // Not the most reliable, might want to fall back to server side zip.
-      });
+      selectedFilesWithoutRedundantChildPaths
+        .map(unpackPath)
+        .forEach(({ root, path }, i) => {
+          // NOTE:
+          //  Seems like multiple download invocations works with 500ms
+          //  Not the most reliable, might want to fall back to server side zip.
+          setTimeout(() => downloadFile({ root, path, projectUuid }), i * 500);
+        });
     } else {
-      download(projectUuid, contextMenuPath, name);
+      const { root, path } = unpackPath(contextMenuPath);
+      downloadFile({ projectUuid, root, path });
     }
   }, [
     projectUuid,
@@ -265,6 +249,7 @@ export const FileManagerLocalContextProvider: React.FC<{
         fileRenameNewName,
         setFileRenameNewName,
         setContextMenuOrigin,
+        contextMenuOrigin,
       }}
     >
       {children}

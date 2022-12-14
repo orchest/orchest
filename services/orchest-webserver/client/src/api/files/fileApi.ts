@@ -1,8 +1,8 @@
-import { UnpackedMove } from "@/utils/file";
+import { FileRoot, UnpackedMove } from "@/utils/file";
 import { join } from "@/utils/path";
 import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, FetchError } from "@orchest/lib-utils";
 
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
 
@@ -25,10 +25,26 @@ export type FetchNodeParams = {
   depth?: number;
 };
 
+export type ReadFileParams = {
+  projectUuid: string;
+  pipelineUuid?: string;
+  snapshotUuid?: string;
+  jobUuid?: string;
+  runUuid?: string;
+  path?: string;
+};
+
 export type NodeParams = {
   projectUuid: string;
   root: string;
   path: string;
+};
+
+export type ExtensionSearchParams = {
+  projectUuid: string;
+  root: FileRoot;
+  path: string;
+  extensions: string[];
 };
 
 const fetchNode = (params: FetchNodeParams) =>
@@ -72,10 +88,27 @@ const duplicate = async (projectUuid: string, root: string, path: string) =>
     { method: "POST" }
   );
 
+const extensionSearch = ({ projectUuid, root, path, extensions }) =>
+  fetcher<{ files: string[] }>(
+    join(FILE_MANAGEMENT_ENDPOINT, "extension-search") +
+      "?" +
+      queryArgs({ projectUuid, root, path, extensions: extensions.join(",") })
+  ).then((data) => data.files);
+
+const readFile = (params: ReadFileParams) =>
+  fetch(
+    join(FILE_MANAGEMENT_ENDPOINT, "read") + "?" + queryArgs(params)
+  ).then((res) =>
+    res.ok ? res.text() : Promise.reject(FetchError.fromResponse(res))
+  );
+
 const getDownloadUrl = (projectUuid: string, root: string, path: string) =>
   join(FILE_MANAGEMENT_ENDPOINT, "download") +
   "?" +
   queryArgs({ path, root, projectUuid });
+
+const downloadFile = (projectUuid: string, root: string, path: string) =>
+  fetch(getDownloadUrl(projectUuid, root, path)).then((res) => res.text());
 
 export const filesApi = {
   fetchNode,
@@ -84,5 +117,8 @@ export const filesApi = {
   createFile,
   duplicate,
   createDirectory,
+  downloadFile,
+  readFile,
   getDownloadUrl,
+  extensionSearch,
 };

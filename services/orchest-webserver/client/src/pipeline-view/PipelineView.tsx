@@ -8,10 +8,12 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useRouteMatch } from "react-router-dom";
 import { PipelineSettingsView } from "../pipeline-settings-view/PipelineSettingsView";
 import { FullScreenDialogHolder } from "./components/FullScreenDialogHolder";
 import { PipelineContextProviders } from "./contexts/PipelineContextProviders";
 import { FileManager } from "./file-manager/FileManager";
+import { FilePreview } from "./FilePreview";
 import { PipelineFileName } from "./pipeline-canvas-header-bar/PipelineFileName";
 import { PipelineLogs } from "./pipeline-logs-dialog/PipelineLogs";
 import { PipelineEditor } from "./PipelineEditor";
@@ -39,6 +41,7 @@ const PipelineView = () => {
   const {
     state: { pipelineReadOnlyReason, projectUuid },
   } = useProjectsContext();
+  const { path } = useRouteMatch();
 
   return (
     <Layout disablePadding={hasValue(projectUuid)}>
@@ -49,8 +52,13 @@ const PipelineView = () => {
               <FileManager />
               {!pipelineReadOnlyReason && <SessionsPanel />}
             </MainSidePanel>
-            <PipelineEditor />
+            {path.endsWith("/file-preview") ? (
+              <FilePreview />
+            ) : (
+              <PipelineEditor />
+            )}
           </Stack>
+
           <FullScreenDialogHolder
             dialogId="logs"
             title={<FullScreenDialogHeader title="Logs" />}

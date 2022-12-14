@@ -8,7 +8,6 @@ import { ProjectsView } from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
 import SettingsView from "./settings-view/SettingsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
-import FilePreviewView from "./views/FilePreviewView";
 import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";
 import ManageUsersView from "./views/ManageUsersView";
@@ -24,11 +23,11 @@ const pathComponentMapping = {
   "/project-settings": ProjectSettingsView,
   "/pipeline": PipelineView,
   "/jupyter-lab": JupyterLabView,
-  "/file-preview": FilePreviewView,
+  "/file-preview": PipelineView,
   "/environments": EnvironmentsView,
   "/jobs": JobsView,
   "/job-run": PipelineView,
-  "/job-run/file-preview": FilePreviewView,
+  "/job-run/file-preview": PipelineView,
   "/settings": SettingsView,
   "/notification-settings": NotificationSettingsView,
   "/configure-jupyter-lab": ConfigureJupyterLabView,

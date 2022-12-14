@@ -3,16 +3,22 @@ import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import TreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
+import { useFirstRender } from "@/hooks/useFirstRender";
+import TreeItem, {
+  treeItemClasses,
+  TreeItemProps,
+  useTreeItem,
+} from "@mui/lab/TreeItem";
 import { alpha } from "@mui/material";
 import Box from "@mui/material/Box";
 import { styled, SxProps, Theme } from "@mui/material/styles";
 import React from "react";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 import { cleanFilePath } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { getIcon, SVGFileIcon } from "./SVGFileIcon";
 
-const StyledTreeItemRoot = styled(TreeItem)(({ theme }) => ({
+const StyledTreeItem = styled(TreeItem)(({ theme }) => ({
   [`& .${treeItemClasses.content}`]: {
     padding: theme.spacing(0, 0.5),
     [`.${treeItemClasses.label}`]: {
@@ -58,6 +64,28 @@ export const FileTreeItem = ({
   } = useProjectsContext();
   const { setConfirm } = useGlobalContext();
   const { getSession, stopSession } = useSessionsContext();
+  const selectedFiles = useFileManagerState((state) => state.selected);
+  const { selected, handleSelection } = useTreeItem(path);
+
+  // FIXME:
+  //  This is a hack to ensure that the internal state of the
+  //  "last selected item" within the file tree has been set
+  //  if the file tree is re-rendered.
+  //
+  //  If this is not performed, range-select (shift) does not work
+  //  and the behavior of the file tree can be generally erratic.
+  //
+  //  Let's push a real fix to this to @mui/lab when there's time,
+  //  as this should probably be default behavior.
+  //
+
+  useFirstRender(() => {
+    const lastSelectedFile = selectedFiles[selectedFiles.length - 1];
+
+    if (lastSelectedFile && selected) {
+      handleSelection((new Event("IGNORE") as unknown) as React.SyntheticEvent);
+    }
+  });
 
   const icon = !fileName ? undefined : fileName.endsWith(".orchest") ? (
     <OrchestFileIcon size={22} />
@@ -76,7 +104,7 @@ export const FileTreeItem = ({
   };
 
   return (
-    <StyledTreeItemRoot
+    <StyledTreeItem
       onMouseDown={() => {
         if (!disableDragging) setPressed(true);
       }}

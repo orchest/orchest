@@ -11,7 +11,7 @@ import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
 const BackToJob = () => {
   const { isSnapshot, isJobRun, job, jobUuid } = usePipelineDataContext();
-  const jobLink = useRouteLink("jobs", { jobUuid });
+  const jobLink = useRouteLink({ route: "jobs", query: { jobUuid } });
   const isRunningOnSnapshot = isSnapshot || isJobRun;
 
   return isRunningOnSnapshot && job ? (

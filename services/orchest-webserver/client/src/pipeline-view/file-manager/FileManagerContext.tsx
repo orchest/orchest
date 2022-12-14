@@ -13,8 +13,7 @@ export type FilePathChange = {
 };
 
 export type FileManagerContextType = {
-  selectedFiles: string[];
-  setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>;
+  // TODO: Move the rest of this to `useSelectedFiles`
   dragFile: DragFile | undefined;
   setDragFile: React.Dispatch<React.SetStateAction<DragFile | undefined>>;
   hoveredPath: string | undefined;
@@ -36,19 +35,6 @@ export const FileManagerContextProvider: React.FC<{
   jobUuid?: string | undefined;
   runUuid?: string | undefined;
 }> = ({ children }) => {
-  const [selectedFiles, _setSelectedFiles] = React.useState<string[]>([]);
-
-  const setSelectedFiles = React.useCallback(
-    (stateAction: React.SetStateAction<string[]>) => {
-      _setSelectedFiles((current) => {
-        const updated =
-          stateAction instanceof Function ? stateAction(current) : stateAction;
-        return [...new Set(updated)]; // ensure no duplication
-      });
-    },
-    []
-  );
-
   const [dragFile, setDragFile] = React.useState<{
     labelText: string;
     path: string;
@@ -69,8 +55,6 @@ export const FileManagerContextProvider: React.FC<{
   return (
     <FileManagerContext.Provider
       value={{
-        selectedFiles,
-        setSelectedFiles,
         dragFile,
         setDragFile,
         hoveredPath,

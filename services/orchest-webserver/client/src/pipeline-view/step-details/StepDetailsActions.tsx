@@ -1,3 +1,4 @@
+import { stepPathToProjectPath } from "@/utils/pipeline";
 import { ellipsis } from "@/utils/styles";
 import { DeleteOutline } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
@@ -12,11 +13,14 @@ import { useStepDetailsContext } from "./StepDetailsContext";
 
 export const StepDetailsActions = () => {
   const { doesStepFileExist, step } = useStepDetailsContext();
+  const { pipelineCwd } = usePipelineDataContext();
   const { isReadOnly } = usePipelineDataContext();
-  const { openFilePreviewView, openNotebook } = useOpenFile();
+  const { previewFile, openNotebook } = useOpenFile();
 
   const { deleteSteps } = useDeleteSteps();
   const onDelete = () => deleteSteps([step.uuid]);
+
+  if (!pipelineCwd) return null;
 
   return (
     <Box
@@ -29,8 +33,8 @@ export const StepDetailsActions = () => {
         <Stack direction="row" spacing={2}>
           <Button
             variant="contained"
-            onClick={(event) => openNotebook(event, step.uuid)}
-            onAuxClick={(event) => openNotebook(event, step.uuid)}
+            onClick={(event) => openNotebook(step.uuid, event)}
+            onAuxClick={(event) => openNotebook(step.uuid, event)}
             data-test-id="step-view-in-jupyterlab"
             disabled={!doesStepFileExist || isReadOnly}
             sx={{ ...ellipsis(), flex: "1 1 auto", display: "flex" }}
@@ -39,8 +43,12 @@ export const StepDetailsActions = () => {
           </Button>
           <Button
             variant="text"
-            onClick={(event) => openFilePreviewView(event, step.uuid)}
-            onAuxClick={(event) => openFilePreviewView(event, step.uuid)}
+            onClick={(event) =>
+              previewFile(
+                stepPathToProjectPath(step.file_path, pipelineCwd),
+                event
+              )
+            }
             data-test-id="step-view-file"
             disabled={!doesStepFileExist}
           >
