@@ -107,7 +107,7 @@ export const useOpenFile = () => {
         event,
       });
     },
-    [navigate, pipelines]
+    [jobUuid, navigate, pipelines]
   );
 
   return {
