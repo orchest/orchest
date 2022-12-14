@@ -21,7 +21,10 @@ export const FileTreeContainer: React.FC = ({ children }) => {
         event.preventDefault();
         event.stopPropagation();
         // click away should clean up selected items
-        if (event.detail === 1 && !(event.metaKey || event.ctrlKey)) {
+        if (
+          event.detail === 1 &&
+          !(event.metaKey || event.ctrlKey || event.shiftKey)
+        ) {
           setSelectedFiles([]);
         }
       }}
