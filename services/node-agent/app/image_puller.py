@@ -160,9 +160,9 @@ class ImagePuller(object):
         async with aiohttp.ClientSession(trust_env=True) as session:
             while True:
                 try:
-                    await self._enqueue_pre_pull_orchest_images(session, queue)
                     await self._enqueue_active_environment_images(session, queue)
                     await self._enqueue_active_jupyter_images(session, queue)
+                    await self._enqueue_pre_pull_orchest_images(session, queue)
                 except Exception as ex:
                     self.logger.error(
                         f"Attempt '{self.interval}' to get active images"
