@@ -417,6 +417,9 @@ export const FileTree = React.memo(function FileTreeComponent({
         expanded={expanded}
         selected={selectedFiles}
         onNodeSelect={(event, selected) => {
+          // See: FIXME in FileTreeItem.tsx
+          if (event.type === "IGNORE") return;
+
           handleSelect(event, selected);
           onSelect(selected);
         }}

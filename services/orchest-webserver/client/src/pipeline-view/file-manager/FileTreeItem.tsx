@@ -83,7 +83,7 @@ export const FileTreeItem = ({
     const lastSelectedFile = selectedFiles[selectedFiles.length - 1];
 
     if (lastSelectedFile && selected) {
-      handleSelection((new Event(":(") as unknown) as React.SyntheticEvent);
+      handleSelection((new Event("IGNORE") as unknown) as React.SyntheticEvent);
     }
   });
 
