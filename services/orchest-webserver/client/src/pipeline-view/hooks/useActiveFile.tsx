@@ -1,8 +1,7 @@
 import { useFileApi } from "@/api/files/useFileApi";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import { FileRoot } from "@/utils/file";
 import { basename, extname } from "@/utils/path";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useStepFile } from "./useStepFile";
 
@@ -11,37 +10,41 @@ type ActiveFile = {
   content: string;
   name: string;
   hasStep: boolean;
+  root: FileRoot;
+  path: string;
 };
 
 export const useActiveFile = (): ActiveFile | undefined => {
   const { stepFile } = useStepFile();
-  const { filePath, fileRoot, stepUuid } = useCustomRoute();
+  const { projectUuid, filePath, fileRoot, stepUuid } = useCurrentQuery();
   const readFile = useFileApi((api) => api.read);
-  const { projectUuid } = useCustomRoute();
-  const [content, setContent] = React.useState<string>();
-  const [name, setName] = React.useState<string>();
+  const [active, setActive] = React.useState<ActiveFile>();
 
   React.useEffect(() => {
     if (!projectUuid || !filePath || !fileRoot || stepUuid) return;
 
-    readFile(fileRoot as FileRoot, filePath)
-      .then(setContent)
-      .then(() => setName(basename(filePath)));
+    readFile(fileRoot as FileRoot, filePath).then((content) =>
+      setActive({
+        extension: extname(filePath),
+        name: basename(filePath),
+        root: fileRoot as FileRoot,
+        path: filePath,
+        hasStep: false,
+        content,
+      })
+    );
   }, [fileRoot, filePath, projectUuid, stepUuid, readFile]);
 
   React.useEffect(() => {
     if (!stepFile) return;
 
-    setContent(stepFile.content);
-    setName(stepFile.filename);
+    setActive({
+      name: basename(stepFile.path),
+      extension: extname(stepFile.path),
+      hasStep: true,
+      ...stepFile,
+    });
   }, [stepFile]);
 
-  if (!hasValue(content) || !hasValue(name)) return undefined;
-
-  return {
-    content,
-    name,
-    hasStep: Boolean(stepFile && !fileRoot && !filePath),
-    extension: extname(name),
-  };
+  return active;
 };
