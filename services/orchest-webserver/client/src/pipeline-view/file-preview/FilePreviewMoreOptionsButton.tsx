@@ -61,6 +61,7 @@ export const FilePreviewMoreOptionsButton = () => {
         open={isOpened}
         root={root}
         path={path}
+        showEdit={false}
         onClickDownload={handleDownload}
         onClickDelete={handleDelete}
         onClose={() => setIsOpened(false)}

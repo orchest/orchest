@@ -12,6 +12,8 @@ type FileContextMenuProps = MenuProps & {
   root: FileRoot;
   /** The path of the selected item. Used to determine which menu items to show. */
   path: string;
+  /** Show the "Edit in Jupyter Lab" option. True by default. */
+  showEdit?: boolean;
   /** When provided: shows the "Collapse" menu item if the `combinedPath` is a root directory. */
   onClickCollapse?: () => void;
   /** When provided: shows the "Rename" menu item, unless `combinedPath` is a root directory. */
@@ -30,6 +32,7 @@ export const FileContextMenu = ({
   onClickDownload,
   onClickDelete,
   onClose,
+  showEdit = true,
   ...menuProps
 }: FileContextMenuProps) => {
   const duplicate = useFileApi((api) => api.duplicate);
@@ -82,7 +85,7 @@ export const FileContextMenu = ({
           Refresh
         </MenuItem>
       )}
-      {hasPath && isFile && isInProjectDir && (
+      {hasPath && isFile && isInProjectDir && showEdit && (
         <MenuItem dense disabled={isReadOnly} onClick={handleEditFile}>
           Edit in JupyterLab
         </MenuItem>
