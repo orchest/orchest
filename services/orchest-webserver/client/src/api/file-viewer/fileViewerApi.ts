@@ -24,12 +24,13 @@ export const fetchOne = ({
   projectUuid,
   pipelineUuid,
   stepUuid,
+  runUuid: pipelineRunUuid,
   ...query
 }: ViewFileParams) =>
   fetcher<StepFile>(
     join(BASE_URL, projectUuid, pipelineUuid, stepUuid) +
       "?" +
-      queryArgs(prune(query))
+      queryArgs(prune({ ...query, pipelineRunUuid }))
   );
 
 export const fileViewerApi = { fetchOne };
