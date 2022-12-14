@@ -1,5 +1,6 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute, useNavigate } from "@/hooks/useCustomRoute";
+import { useFetchActiveJob } from "@/hooks/useFetchActiveJob";
+import { useFetchActivePipelines } from "@/hooks/useFetchActivePipelines";
 import { RouteName } from "@/routingConfig";
 import { UnpackedPath } from "@/utils/file";
 import { join, trimLeadingSlash } from "@/utils/path";
@@ -11,8 +12,9 @@ import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
 export const useOpenFile = () => {
   const navigate = useNavigate();
+  const activeJob = useFetchActiveJob();
   const { pipelineCwd, pipelineJson } = usePipelineDataContext();
-  const { pipelines = [] } = useProjectsContext().state;
+  const pipelines = useFetchActivePipelines();
   const { jobUuid } = useCustomRoute();
 
   const {
@@ -95,19 +97,27 @@ export const useOpenFile = () => {
 
   const openPipeline = React.useCallback(
     (pipelinePath: string, event?: React.MouseEvent) => {
-      const selectedPipeline = pipelines.find(
-        ({ path }) => trimLeadingSlash(path) === trimLeadingSlash(pipelinePath)
-      );
+      const { uuid } =
+        pipelines.find(({ path }) => {
+          return trimLeadingSlash(path) === trimLeadingSlash(pipelinePath);
+        }) ?? {};
 
-      const route: RouteName = hasValue(jobUuid) ? "jobRun" : "pipeline";
+      if (!uuid) return;
+      // NOTE:
+      //  If you try to navigate to a pipeline which is different
+      //  to the one in the job, the `file-manager/browse` API will fail
+      //  and crash the page.
+      if (activeJob && uuid !== activeJob.pipeline_uuid) return;
+
+      const route: RouteName = hasValue(activeJob) ? "jobRun" : "pipeline";
 
       navigate({
         route: route,
-        query: { pipelineUuid: selectedPipeline?.uuid },
+        query: { pipelineUuid: uuid },
         event,
       });
     },
-    [jobUuid, navigate, pipelines]
+    [activeJob, navigate, pipelines]
   );
 
   return {
