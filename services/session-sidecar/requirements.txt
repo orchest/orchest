@@ -10,7 +10,7 @@ backoff==1.11.1
     # via posthog
 cachetools==5.0.0
     # via google-auth
-certifi==2021.10.8
+certifi==2022.12.7
     # via
     #   kubernetes
     #   requests
