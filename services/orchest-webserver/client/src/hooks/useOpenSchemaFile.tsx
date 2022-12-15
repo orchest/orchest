@@ -17,12 +17,12 @@ export const useOpenSchemaFile = (
   const createFile = useCreateFile("/project-dir");
 
   const openSchemaFile = React.useCallback(
-    async (e: React.MouseEvent, filePath: string, type: JsonSchemaType) => {
+    async (event: React.MouseEvent, filePath: string, type: JsonSchemaType) => {
       const shouldCreateFile = shouldCreateFileRef.current(type);
 
       const sidecarFilePath = `${filePath}.${type}.json`;
       if (shouldCreateFile) await createFile(sidecarFilePath);
-      openFile(e, sidecarFilePath);
+      openFile(sidecarFilePath, event);
     },
     [createFile, openFile]
   );

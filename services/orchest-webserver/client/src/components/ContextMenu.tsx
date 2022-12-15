@@ -82,13 +82,12 @@ export const ContextMenuContextProvider: React.FC = ({ children }) => {
 type ContextMenuItemAction = {
   type: "item";
   title: string;
+  color?: string;
   disabled?: boolean;
   action: (props: { event: React.MouseEvent; position: Point2D }) => void;
 };
 
-type ContextMenuItemSeparator = {
-  type: "separator";
-};
+type ContextMenuItemSeparator = { type: "separator" };
 
 export type ContextMenuItem = ContextMenuItemAction | ContextMenuItemSeparator;
 
@@ -118,6 +117,7 @@ export const ContextMenu = ({
                 key={index}
                 onClick={(e) => onSelectMenuItem(e, menuItem)}
                 disabled={menuItem.disabled}
+                sx={{ color: menuItem.color }}
               >
                 {menuItem.title}
               </MenuItem>

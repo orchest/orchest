@@ -19,6 +19,7 @@ import { usePipelineUiStateContext } from "./contexts/PipelineUiStateContext";
 import { getFilePathRelativeToPipeline } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
+import { useFileManagerState } from "./hooks/useFileManagerState";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 import { usePipelineViewportContextMenu } from "./pipeline-viewport/PipelineViewportContextMenu";
@@ -136,7 +137,8 @@ const PipelineStepComponent = React.forwardRef<
     uiState: { stepSelector, grabbedStep, selectedSteps, selectedConnection },
     uiStateDispatch,
   } = usePipelineUiStateContext();
-  const { selectedFiles, dragFile, resetMove } = useFileManagerContext();
+  const selectedFiles = useFileManagerState((state) => state.selected);
+  const { dragFile, resetMove } = useFileManagerContext();
 
   const {
     pipelineCanvasState: { panningState },

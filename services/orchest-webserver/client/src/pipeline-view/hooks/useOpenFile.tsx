@@ -1,105 +1,130 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/routingConfig";
-import { join } from "@/utils/path";
+import { useCustomRoute, useNavigate } from "@/hooks/useCustomRoute";
+import { useFetchActiveJob } from "@/hooks/useFetchActiveJob";
+import { useFetchActivePipelines } from "@/hooks/useFetchActivePipelines";
+import { RouteName } from "@/routingConfig";
+import { UnpackedPath } from "@/utils/file";
+import { join, trimLeadingSlash } from "@/utils/path";
+import { stepPathToProjectPath } from "@/utils/pipeline";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
 
 export const useOpenFile = () => {
-  const {
-    navigateTo,
-    pipelineUuid,
-    projectUuid,
-    jobUuid,
-    snapshotUuid,
-  } = useCustomRoute();
-  const {
-    pipelineCwd,
-    runUuid,
-    isReadOnly,
-    isJobRun,
-    isSnapshot,
-  } = usePipelineDataContext();
+  const navigate = useNavigate();
+  const activeJob = useFetchActiveJob();
+  const { pipelineCwd, pipelineJson } = usePipelineDataContext();
+  const pipelines = useFetchActivePipelines();
+  const { jobUuid } = useCustomRoute();
 
   const {
     uiState: { steps },
   } = usePipelineUiStateContext();
 
-  const queryArgs = React.useMemo(
-    () =>
-      isJobRun
-        ? { jobUuid, runUuid }
-        : isSnapshot
-        ? { jobUuid, snapshotUuid }
-        : {},
-    [jobUuid, runUuid, isJobRun, isSnapshot, snapshotUuid]
-  );
-
-  const navigateToJupyterLab = React.useCallback(
-    (e: React.MouseEvent | undefined, filePathRelativeToRoot: string) => {
+  const openInJupyterLab = React.useCallback(
+    (filePathRelativeToRoot: string, event?: React.MouseEvent) => {
       // JupyterLabView will start the session automatically,
       // so no need to check if there's a running session.
-      navigateTo(
-        siteMap.jupyterLab.path,
-        {
-          query: {
-            projectUuid,
-            pipelineUuid,
-            filePath: filePathRelativeToRoot,
-          },
-        },
-        e
-      );
+      navigate({
+        route: "jupyterLab",
+        query: { filePath: filePathRelativeToRoot },
+        event,
+      });
     },
-    [navigateTo, pipelineUuid, projectUuid]
+    [navigate]
   );
 
   const notebookFilePath = React.useCallback(
-    (pipelineCwd: string, stepUUID: string) => {
-      return join(pipelineCwd, steps[stepUUID].file_path);
+    (pipelineCwd: string, stepUuid: string) => {
+      return join(pipelineCwd, steps[stepUuid].file_path);
     },
     [steps]
   );
 
   const openNotebook = React.useCallback(
-    (e: React.MouseEvent | undefined, stepUuid?: string) => {
+    (stepUuid?: string, event?: React.MouseEvent) => {
       if (pipelineCwd && stepUuid)
-        navigateToJupyterLab(e, notebookFilePath(pipelineCwd, stepUuid));
+        openInJupyterLab(notebookFilePath(pipelineCwd, stepUuid), event);
     },
-    [notebookFilePath, navigateToJupyterLab, pipelineCwd]
+    [notebookFilePath, openInJupyterLab, pipelineCwd]
   );
 
   const openFile = React.useCallback(
-    (e: React.MouseEvent | undefined, filePath: string) => {
+    (filePath: string, event?: React.MouseEvent) => {
       if (pipelineCwd && filePath)
-        navigateToJupyterLab(e, join(pipelineCwd, filePath));
+        openInJupyterLab(join(pipelineCwd, filePath), event);
     },
-    [navigateToJupyterLab, pipelineCwd]
+    [openInJupyterLab, pipelineCwd]
   );
 
-  const routePath =
-    isJobRun || isSnapshot
-      ? siteMap.jobRunFilePreview.path
-      : siteMap.filePreview.path;
+  const previewFile = React.useCallback(
+    ({ root, path }: UnpackedPath, event?: React.MouseEvent) => {
+      if (!pipelineCwd) return;
 
-  const openFilePreviewView = React.useCallback(
-    (e: React.MouseEvent | undefined, stepUuid: string) => {
-      navigateTo(
-        routePath,
-        {
-          query: {
-            projectUuid,
-            pipelineUuid,
-            stepUuid,
-            ...queryArgs,
-          },
-          state: { isReadOnly },
-        },
-        e
+      const foundStep = Object.values(pipelineJson?.steps || {}).find(
+        (step) => {
+          const { root: stepRoot, path: stepPath } = stepPathToProjectPath(
+            step.file_path,
+            pipelineCwd
+          );
+
+          return stepRoot === root && stepPath === path;
+        }
       );
+
+      const route: RouteName = hasValue(jobUuid)
+        ? "jobFilePreview"
+        : "filePreview";
+
+      if (foundStep) {
+        navigate({
+          route,
+          query: { stepUuid: foundStep.uuid },
+          clear: ["fileRoot", "filePath"],
+          event,
+        });
+      } else {
+        navigate({
+          route,
+          query: { fileRoot: root, filePath: path },
+          clear: ["stepUuid"],
+          event,
+        });
+      }
     },
-    [routePath, isReadOnly, queryArgs, navigateTo, pipelineUuid, projectUuid]
+    [pipelineCwd, pipelineJson?.steps, jobUuid, navigate]
   );
 
-  return { navigateToJupyterLab, openNotebook, openFile, openFilePreviewView };
+  const openPipeline = React.useCallback(
+    (pipelinePath: string, event?: React.MouseEvent) => {
+      const { uuid } =
+        pipelines.find(({ path }) => {
+          return trimLeadingSlash(path) === trimLeadingSlash(pipelinePath);
+        }) ?? {};
+
+      if (!uuid) return;
+      // NOTE:
+      //  If you try to navigate to a pipeline which is different
+      //  to the one in the job, the `file-manager/browse` API will fail
+      //  and crash the page.
+      if (activeJob && uuid !== activeJob.pipeline_uuid) return;
+
+      const route: RouteName = hasValue(activeJob) ? "jobRun" : "pipeline";
+
+      navigate({
+        route: route,
+        query: { pipelineUuid: uuid },
+        event,
+      });
+    },
+    [activeJob, navigate, pipelines]
+  );
+
+  return {
+    openInJupyterLab,
+    openNotebook,
+    openFile,
+    previewFile,
+    openPipeline,
+  };
 };

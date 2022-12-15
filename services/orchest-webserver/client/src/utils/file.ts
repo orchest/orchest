@@ -1,5 +1,6 @@
+import { filesApi } from "@/api/files/fileApi";
 import { FileMap } from "./file-map";
-import { dirname, hasExtension, join } from "./path";
+import { basename, dirname, hasExtension, join } from "./path";
 
 export type FileMetadata = { isDirectory: boolean; fetchedAt: number };
 
@@ -70,4 +71,27 @@ export const unpackMove = ([source, target]: Move): UnpackedMove => {
   const { root: newRoot, path: newPath } = unpackPath(target);
 
   return { oldRoot, oldPath, newRoot, newPath };
+};
+
+export type FileDownload = {
+  projectUuid: string;
+  root: FileRoot;
+  path: string;
+  name?: string;
+};
+
+export const downloadFile = ({
+  projectUuid,
+  root,
+  path,
+  name = basename(path),
+}: FileDownload) => {
+  const downloadUrl = filesApi.getDownloadUrl(projectUuid, root, path);
+
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 };

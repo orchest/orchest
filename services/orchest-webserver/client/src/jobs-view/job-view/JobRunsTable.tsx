@@ -170,10 +170,13 @@ const RunRow = ({
   onCollapse,
 }: RunRowProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const pipelineUrl = useRouteLink("jobRun", {
-    runUuid: run.uuid,
-    jobUuid: run.job_uuid,
-    pipelineUuid: run.pipeline_uuid,
+  const pipelineUrl = useRouteLink({
+    route: "jobRun",
+    query: {
+      runUuid: run.uuid,
+      jobUuid: run.job_uuid,
+      pipelineUuid: run.pipeline_uuid,
+    },
   });
 
   return (

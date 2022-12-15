@@ -1,13 +1,16 @@
 import Box from "@mui/material/Box";
 import React from "react";
-import { useFileManagerContext } from "./FileManagerContext";
-import { useFileManagerLocalContext } from "./FileManagerLocalContext";
+import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 
 export const FileTreeContainer: React.FC = ({ children }) => {
-  const { setSelectedFiles } = useFileManagerContext();
+  const setSelectedFiles = useFileManagerState((state) => state.setSelected);
   const { handleContextMenu } = useFileManagerLocalContext();
+  const containerRef = React.useRef<HTMLElement>();
+
   return (
     <Box
+      ref={containerRef}
       sx={{
         userSelect: "none",
         maxHeight: "100%",
@@ -17,12 +20,9 @@ export const FileTreeContainer: React.FC = ({ children }) => {
       }}
       onContextMenu={(event) => handleContextMenu(event, "")}
       onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        // click away should clean up selected items
-        if (event.detail === 1 && !(event.metaKey || event.ctrlKey)) {
-          setSelectedFiles([]);
-        }
+        if (event.target !== containerRef.current) return;
+
+        setSelectedFiles([]);
       }}
     >
       {children}

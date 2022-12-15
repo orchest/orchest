@@ -4,9 +4,7 @@ import {
   FileRoot,
   fileRoots,
   isInDataFolder,
-  isPipelineFile,
   Move,
-  UnpackedPath,
   unpackPath,
 } from "@/utils/file";
 import {
@@ -17,8 +15,7 @@ import {
   isDirectory,
   relative,
 } from "@/utils/path";
-import { queryArgs } from "@/utils/text";
-import { ALLOWED_STEP_EXTENSIONS, fetcher, hasValue } from "@orchest/lib-utils";
+import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
@@ -74,56 +71,6 @@ export const removeLeadingSymbols = (filePath: string) =>
 // this function cleans up the leading "./"
 export const getStepFilePath = (step: StepData) =>
   removeLeadingSymbols(step.file_path);
-
-export const searchFilePathsByExtension = ({
-  projectUuid,
-  root,
-  path,
-  extensions,
-}: {
-  projectUuid: string;
-  root: string;
-  path: string;
-  extensions: string[];
-}) => {
-  const query = queryArgs({
-    projectUuid,
-    root,
-    path,
-    extensions: extensions.join(","),
-  });
-
-  return fetcher<{ files: string[] }>(
-    `${FILE_MANAGEMENT_ENDPOINT}/extension-search?` + query
-  );
-};
-
-/** This function returns a list of file_path that ends with the given extensions. */
-export const findFilesByExtension = async ({
-  root,
-  projectUuid,
-  extensions,
-  path,
-}: {
-  root: FileRoot;
-  projectUuid: string;
-  extensions: string[];
-  path: string;
-}) => {
-  if (!isDirectory(path)) {
-    const isFileType = hasExtension(path, ...extensions);
-    return isFileType ? [basename(path)] : [];
-  }
-
-  const response = await searchFilePathsByExtension({
-    projectUuid,
-    root,
-    path,
-    extensions,
-  });
-
-  return response.files;
-};
 
 /**
  * Notebook files cannot be reused in the same pipeline, this function separate Notebook files that are already in use
@@ -240,33 +187,4 @@ export const filterRedundantChildPaths = (paths: readonly string[]) => {
   }
 
   return ancestors;
-};
-
-export const findPipelineFiles = async (
-  projectUuid: string,
-  filePaths: UnpackedPath[]
-): Promise<UnpackedPath[]> => {
-  const paths = await Promise.all(
-    filePaths.map(({ root, path }) => {
-      if (isDirectory(path)) {
-        return searchFilePathsByExtension({
-          projectUuid,
-          extensions: ["orchest"],
-          root,
-          path,
-        }).then((response) =>
-          response.files.map((file) => ({
-            root,
-            path: `/${file}`,
-          }))
-        );
-      } else {
-        return isPipelineFile(path) ? { root, path } : null;
-      }
-    })
-  );
-
-  return paths
-    .filter((value) => hasValue(value))
-    .flatMap((value) => value as UnpackedPath);
 };

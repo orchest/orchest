@@ -20,7 +20,8 @@ import {
   unpackMove,
   unpackPath,
 } from "@/utils/file";
-import { basename, dirname } from "@/utils/path";
+import { basename, dirname, trimLeadingSlash } from "@/utils/path";
+import { findPipelineFiles } from "@/utils/pipeline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -28,26 +29,26 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
+import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
+import { useFileManagerState } from "../hooks/useFileManagerState";
 import { useOpenFile } from "../hooks/useOpenFile";
 import {
   cleanFilePath,
   FILE_MANAGER_ROOT_CLASS,
   filterRedundantChildPaths,
-  findFilesByExtension,
-  findPipelineFiles,
   getMoveFromDrop,
   pathFromElement,
   prettifyRoot,
 } from "./common";
 import { DragIndicator } from "./DragIndicator";
 import { useFileManagerContext } from "./FileManagerContext";
-import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { FileTreeItem } from "./FileTreeItem";
 import { FileTreeRow } from "./FileTreeRow";
 
 export type FileTreeProps = {
   treeRoots: readonly FileRoot[];
   expanded: string[];
+  onSelect: (selected: string[]) => void;
   handleToggle: (
     event: React.SyntheticEvent<Element, Event>,
     nodeIds: string[]
@@ -63,6 +64,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   treeRoots,
   expanded,
   handleToggle,
+  onSelect,
   onMoved,
 }: FileTreeProps) {
   const { setConfirm, setAlert } = useGlobalContext();
@@ -72,13 +74,14 @@ export const FileTree = React.memo(function FileTreeComponent({
     state: { pipelines = [] },
     dispatch,
   } = useProjectsContext();
+  const selectedFiles = useFileManagerState((state) => state.selected);
   const {
-    selectedFiles,
     dragFile,
     setDragFile,
     hoveredPath,
     isDragging,
   } = useFileManagerContext();
+  const extensionSearch = useFileApi((api) => api.extensionSearch);
   const roots = useFileApi((api) => api.roots);
   const reload = useFileApi((api) => api.refresh);
   const moveFile = useFileApi((api) => api.move);
@@ -89,14 +92,14 @@ export const FileTree = React.memo(function FileTreeComponent({
     handleContextMenu,
   } = useFileManagerLocalContext();
 
-  const { navigateToJupyterLab } = useOpenFile();
+  const { openInJupyterLab } = useOpenFile();
 
   const pipelineByPath = React.useCallback(
     (path) => {
       path = isCombinedPath(path) ? unpackPath(path).path : path;
 
       return pipelines.find(
-        (pipeline) => pipeline.path === path.replace(/^\//, "")
+        (pipeline) => pipeline.path === trimLeadingSlash(path)
       );
     },
     [pipelines]
@@ -126,7 +129,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           });
         }
       } else {
-        navigateToJupyterLab(undefined, cleanFilePath(path));
+        openInJupyterLab(cleanFilePath(path));
       }
     },
     [
@@ -135,7 +138,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       projectUuid,
       setAlert,
       navigateTo,
-      navigateToJupyterLab,
+      openInJupyterLab,
     ]
   );
 
@@ -326,16 +329,14 @@ export const FileTree = React.memo(function FileTreeComponent({
       breakages: (moves: readonly Move[]) =>
         new Promise<boolean>(async (resolve) => {
           const willBreakSomeFile =
-            projectUuid &&
             isInDataFolder(moves[0][1]) &&
             (
               await Promise.all(
                 moves.map(([oldPath]) =>
-                  findFilesByExtension({
+                  extensionSearch({
                     root: "/project-dir",
                     path: oldPath,
                     extensions: ["ipynb", "orchest"],
-                    projectUuid,
                   })
                 )
               )
@@ -355,7 +356,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           }
         }),
     }),
-    [roots, getFilesLockedBySession, projectUuid, setConfirm, stopSession]
+    [getFilesLockedBySession, setConfirm, stopSession, roots, extensionSearch]
   );
 
   const handleMoves = React.useCallback(
@@ -415,7 +416,13 @@ export const FileTree = React.memo(function FileTreeComponent({
         defaultExpandIcon={<ChevronRightIcon />}
         expanded={expanded}
         selected={selectedFiles}
-        onNodeSelect={handleSelect}
+        onNodeSelect={(event, selected) => {
+          // See: FIXME in FileTreeItem.tsx
+          if (event.type === "IGNORE") return;
+
+          handleSelect(event, selected);
+          onSelect(selected);
+        }}
         onNodeToggle={handleToggle}
         multiSelect
       >

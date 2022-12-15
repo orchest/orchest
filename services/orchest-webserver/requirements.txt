@@ -26,7 +26,7 @@ bidict==0.22.0
     # via python-socketio
 bleach==5.0.1
     # via nbconvert
-certifi==2022.9.24
+certifi==2022.12.7
     # via requests
 charset-normalizer==2.1.1
     # via requests
@@ -56,7 +56,7 @@ flask==2.2.2
     #   flask-restful
     #   flask-socketio
     #   flask-sqlalchemy
-    #   orchest-internals
+    #   sanitized-package
 flask-marshmallow==0.14.0
     # via -r requirements.in
 flask-migrate==2.6.0
@@ -77,8 +77,6 @@ h11==0.14.0
     # via wsproto
 idna==3.4
     # via requests
-importlib-metadata==5.1.0
-    # via flask
 ipython==8.6.0
     # via -r requirements.in
 ipython-genutils==0.2.0
@@ -157,7 +155,7 @@ pickleshare==0.7.5
 platformdirs==2.5.4
     # via jupyter-core
 posthog==1.4.7
-    # via orchest-internals
+    # via sanitized-package
 prompt-toolkit==3.0.33
     # via ipython
 psycopg2-binary==2.9.5
@@ -197,9 +195,9 @@ pyzmq==24.0.1
 requests==2.28.1
     # via
     #   -r requirements.in
-    #   orchest-internals
     #   posthog
     #   python-socketio
+    #   sanitized-package
 simple-websocket==0.9.0
     # via -r requirements.in
 six==1.16.0
@@ -258,8 +256,6 @@ werkzeug==2.2.2
     #   flask
 wsproto==1.2.0
     # via simple-websocket
-zipp==3.10.0
-    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
