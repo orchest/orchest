@@ -7,7 +7,7 @@ import { Layout } from "@/components/layout/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useCustomRoute, useNavigate } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { RouteName, siteMap } from "@/routingConfig";
 import { Project } from "@/types";
@@ -56,6 +56,12 @@ const ProjectSettingsView: React.FC = () => {
   const { cancelableFetch } = useCancelableFetch();
   const { navigateTo, projectUuid } = useCustomRoute();
   const [envVariables, setEnvVariables] = React.useState<EnvVarPair[]>();
+  const [fatalError, setFatalError] = React.useState<unknown>();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (fatalError) navigate({ route: "projects" });
+  }, [fatalError, navigate]);
 
   const setUnsavedEnvVariables = React.useCallback(
     (value: React.SetStateAction<EnvVarPair[] | undefined>) => {
@@ -155,7 +161,7 @@ const ProjectSettingsView: React.FC = () => {
         setEnvVariables(envVariablesDictToArray(env_variables));
         setState((prevState) => ({ ...prevState, ...newState }));
       })
-      .catch((error) => console.error(error));
+      .catch(setFatalError);
   }, [cancelableFetch, projectUuid]);
 
   const paths = React.useMemo(() => {
