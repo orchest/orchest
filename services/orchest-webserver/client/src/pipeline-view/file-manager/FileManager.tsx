@@ -1,4 +1,5 @@
 import { useFileApi } from "@/api/files/useFileApi";
+import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFetchFileRoots } from "@/hooks/useFetchFileRoots";
 import { useUploader } from "@/hooks/useUploader";
@@ -61,6 +62,11 @@ export function FileManager() {
   const expanded = useExpandedFiles();
   const setExpanded = useFileManagerState((state) => state.setExpanded);
   const [progress, setProgress] = React.useState(0);
+  const { fileRoot, filePath } = useCurrentQuery();
+  const currentPath =
+    fileRoot && filePath
+      ? combinePath({ root: fileRoot as FileRoot, path: filePath })
+      : undefined;
 
   const { root, path: cwd } = unpackPath(
     nearestDirectory(selectedFiles[0] || DEFAULT_CWD)
@@ -165,15 +171,12 @@ export function FileManager() {
     [openPipeline, previewFile]
   );
 
-  const handleSelection = React.useCallback(
-    (selected: string[]) => {
-      if (selected.length !== 1) return;
-
-      // We want selections to apply, animations to finish,
-      // and so on, before opening the preview window
-      setTimeout(() => handleViewFile(unpackPath(selected[0])), 50);
+  const handlePreview = React.useCallback(
+    (selected: string) => {
+      if (currentPath === selected) return;
+      handleViewFile(unpackPath(selected));
     },
-    [handleViewFile]
+    [currentPath, handleViewFile]
   );
 
   return (
@@ -196,7 +199,7 @@ export function FileManager() {
         {allTreesHaveLoaded && (
           <>
             <FileTree
-              onSelect={handleSelection}
+              onSelect={handlePreview}
               treeRoots={fileRoots}
               expanded={expanded}
               onMoved={onMoved}
