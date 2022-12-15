@@ -89,7 +89,7 @@ export const StepPipelineSelector = () => {
   };
 
   const pipelineLink = useRouteLink({
-    route: hasValue(jobUuid) ? "pipeline" : "jobRun",
+    route: hasValue(jobUuid) ? "jobRun" : "pipeline",
     query: { pipelineUuid },
     clear: ["stepUuid"],
   });
