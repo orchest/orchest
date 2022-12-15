@@ -7,7 +7,7 @@ import { useFetchActivePipelineRun } from "@/hooks/useFetchActivePipelineRun";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { JobData, PipelineJson, PipelineMetaData } from "@/types";
+import { JobData, PipelineMetaData, PipelineState } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
@@ -20,8 +20,8 @@ export type PipelineDataContextType = {
   runUuid?: string;
   jobUuid?: string;
   isReadOnly: boolean;
-  pipelineJson?: PipelineJson;
-  setPipelineJson: StateDispatcher<PipelineJson>;
+  pipelineJson?: PipelineState;
+  setPipelineJson: StateDispatcher<PipelineState>;
   isFetchingPipelineJson: boolean;
   /** If true, this pipeline is from a job run. */
   isJobRun: boolean;

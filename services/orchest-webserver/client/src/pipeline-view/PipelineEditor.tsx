@@ -3,6 +3,7 @@ import { useHasChanged } from "@/hooks/useHasChanged";
 import { Connection, StepState } from "@/types";
 import { getOffset } from "@/utils/element";
 import { createRect, Point2D } from "@/utils/geometry";
+import { stepPathToProjectPath } from "@/utils/pipeline";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -53,7 +54,7 @@ export const PipelineEditor = () => {
   const { pipelineCwd, isReadOnly, pipelineJson } = usePipelineDataContext();
   useAutoStartSession();
 
-  const { openNotebook, openFilePreviewView } = useOpenFile();
+  const { openNotebook, previewFile } = useOpenFile();
 
   const { scaleFactor } = useCanvasScaling();
   const {
@@ -95,10 +96,14 @@ export const PipelineEditor = () => {
   );
 
   const onDoubleClickStep = (stepUuid: string) => {
+    const step = steps[stepUuid];
+
+    if (!step || !pipelineCwd) return;
+
     if (isReadOnly) {
-      openFilePreviewView(undefined, stepUuid);
+      previewFile(stepPathToProjectPath(step.file_path, pipelineCwd));
     } else if (pipelineCwd) {
-      openNotebook(undefined, stepUuid);
+      openNotebook(stepUuid);
     }
   };
 

@@ -151,6 +151,8 @@ export type ScopeParameters = {
   pipelineUuid: string;
   environmentUuid: string;
   stepUuid: string;
+  filePath: string;
+  fileRoot: string;
 };
 
 export type ScopeParameter = keyof ScopeParameters;
@@ -356,6 +358,7 @@ export type StepMetaData = {
 export type StepState = StepNode & {
   title: string;
   environment: string;
+  /** The file path relative to the project file. */
   file_path: string;
   parameters: Record<string, any>;
   meta_data: StepMetaData;

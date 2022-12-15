@@ -62,7 +62,7 @@ class Config:
     # Image building.
     _RUNTIME_TO_IMAGE_BUILDER = {
         "docker": f"docker.io/orchest/image-builder-buildx:{ORCHEST_VERSION}",
-        "containerd": f"orchest/image-builder-buildkit:{ORCHEST_VERSION}",
+        "containerd": f"docker.io/orchest/image-builder-buildkit:{ORCHEST_VERSION}",
     }
     IMAGE_BUILDER_IMAGE = _RUNTIME_TO_IMAGE_BUILDER[_config.CONTAINER_RUNTIME]
 

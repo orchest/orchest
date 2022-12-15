@@ -9,8 +9,8 @@ import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import produce from "immer";
 import React from "react";
+import { useFileManagerLocalContext } from "../contexts/FileManagerLocalContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { FileTreeItem } from "./FileTreeItem";
 
 type FileTreeRowProps = {

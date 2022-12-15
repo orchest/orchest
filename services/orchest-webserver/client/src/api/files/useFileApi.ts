@@ -8,11 +8,17 @@ import {
   replaceDirectoryContents,
   sortFileMap,
 } from "@/utils/file-map";
-import { directoryLevel, dirname, isDirectory } from "@/utils/path";
+import {
+  directoryLevel,
+  dirname,
+  isDirectory,
+  join,
+  trimLeadingSlash,
+} from "@/utils/path";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
 import { hasValue } from "@orchest/lib-utils";
 import create from "zustand";
-import { filesApi, TreeNode } from "./fileApi";
+import { ExtensionSearchParams, filesApi, TreeNode } from "./fileApi";
 
 export type FetchNodeParams = {
   root: FileRoot;
@@ -60,6 +66,12 @@ export type FileApi = {
    * @path The path of the file or directory.
    */
   create: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
+
+  extensionSearch: MemoizePending<
+    (params: Omit<ExtensionSearchParams, "projectUuid">) => Promise<string[]>
+  >;
+
+  read: MemoizePending<(root: FileRoot, path: string) => Promise<string>>;
 };
 
 export type FileScope = {
@@ -189,6 +201,31 @@ export const useFileApi = create<FileApi>((set, get) => {
       );
 
       set({ roots });
+    }),
+    extensionSearch: memoizeFor(500, async (params) => {
+      const { projectUuid } = get().scope;
+
+      if (!projectUuid) return [];
+
+      const paths = await filesApi.extensionSearch({ projectUuid, ...params });
+
+      updateRoot(params.root, (fileMap) => addToFileMap(fileMap, ...paths));
+
+      return paths;
+    }),
+    read: memoizeFor(500, async (root, path) => {
+      const { scope } = get();
+      const { projectUuid } = scope;
+
+      if (!hasValue(projectUuid)) {
+        throw new Error("A project is not in scope.");
+      }
+
+      return await filesApi.readFile({
+        ...scope,
+        projectUuid,
+        path: root === "/data" ? join(root, path) : trimLeadingSlash(path),
+      });
     }),
   };
 });

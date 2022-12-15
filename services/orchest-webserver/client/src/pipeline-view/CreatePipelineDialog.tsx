@@ -80,6 +80,8 @@ export const CreatePipelineDialog = ({
   );
   const createPipeline = React.useCallback(
     async ({ name, path }: { name: string; path: string }) => {
+      if (!projectUuid) return;
+
       try {
         const response = await run(
           fetcher<{ pipeline_uuid: string }>(
