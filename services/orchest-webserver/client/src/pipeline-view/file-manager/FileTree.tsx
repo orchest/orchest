@@ -48,7 +48,7 @@ import { FileTreeRow } from "./FileTreeRow";
 export type FileTreeProps = {
   treeRoots: readonly FileRoot[];
   expanded: string[];
-  onSelect: (selected: string[]) => void;
+  onSelect: (combinedPath: string) => void;
   handleToggle: (
     event: React.SyntheticEvent<Element, Event>,
     nodeIds: string[]
@@ -421,7 +421,6 @@ export const FileTree = React.memo(function FileTreeComponent({
           if (event.type === "IGNORE") return;
 
           handleSelect(event, selected);
-          onSelect(selected);
         }}
         onNodeToggle={handleToggle}
         multiSelect
@@ -450,6 +449,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                 hoveredPath={hoveredPath}
                 root={root}
                 onOpen={onOpen}
+                onClick={onSelect}
                 onRename={(oldPath, newPath) =>
                   handleMoves([[oldPath, newPath]])
                 }
