@@ -3,6 +3,7 @@ import { useConfirm } from "@/hooks/useConfirm";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
+import red from "@mui/material/colors/red";
 import Menu, { MenuProps } from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import React from "react";
@@ -29,6 +30,7 @@ export const ProjectContextMenu = ({
         "Warning: Deleting a Project is permanent. All associated Jobs and resources will be deleted and unrecoverable.",
       cancelLabel: "Keep project",
       confirmLabel: "Delete project",
+      confirmButtonColor: "error",
     }
   );
   const [isRenaming, setIsRenaming] = React.useState(false);
@@ -51,7 +53,7 @@ export const ProjectContextMenu = ({
         data-test-id="project-context-menu"
         transformOrigin={{ horizontal: "right", vertical: "top" }}
         anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-        open={true}
+        open={!isRenaming}
         {...menuProps}
       >
         <MenuItem
@@ -62,14 +64,15 @@ export const ProjectContextMenu = ({
         </MenuItem>
         <MenuItem
           data-test-id="project-context-menu-rename"
-          onClick={() => closeAfter(() => setIsRenaming(true))}
+          onClick={() => setIsRenaming(true)}
         >
-          Rename project
+          Rename Project
         </MenuItem>
         <MenuItem
           data-test-id="project-context-menu-delete"
           onClick={() => closeAfter(() => deleteWithConfirm())}
           disabled={deleting.includes(project.uuid)}
+          sx={{ color: red[500] }}
         >
           Delete Project
         </MenuItem>
