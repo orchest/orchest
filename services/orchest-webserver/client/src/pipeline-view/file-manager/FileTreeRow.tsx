@@ -17,10 +17,13 @@ type FileTreeRowProps = {
   path: string;
   root: FileRoot;
   hoveredPath: string | undefined;
+  onClick: (filePath: string) => void;
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   onRename: (oldPath: string, newPath: string) => void;
   onOpen: (filePath: string) => void;
 };
+
+const DOUBLE_CLICK_TIMEOUT = 400;
 
 export const FileTreeRow = ({
   path,
@@ -29,6 +32,7 @@ export const FileTreeRow = ({
   root,
   hoveredPath,
   onOpen,
+  onClick,
 }: FileTreeRowProps) => {
   const fileMap = useFileApi((api) => api.roots[root] ?? {});
   const { isReadOnly } = usePipelineDataContext();
@@ -45,6 +49,52 @@ export const FileTreeRow = ({
       ),
     [path, fileMap]
   );
+
+  /*
+   * NOTE:
+   *  The double "onClick" and "onDoubleClick" handlers
+   *  can sometimes end up "fighting each other".
+   *  It all depends on the time it takes for the side-effects of
+   *  the "onClick" handler to run, the timing of the clicks themselves
+   *  and when re-rendering occurs along this process.
+   *
+   *  Keeping track of the "click state" externally gives
+   *  us more fine-grained control, and allows us to be more
+   *  lenient with how we measure double clicks.
+   */
+
+  const clickTimeoutRef = React.useRef<number>();
+  const doubleClickThrottleRef = React.useRef<number>();
+
+  const onDoubleClick = (combinedPath: string) => {
+    if (doubleClickThrottleRef.current) return;
+
+    window.clearTimeout(clickTimeoutRef.current);
+    clickTimeoutRef.current = undefined;
+
+    doubleClickThrottleRef.current = window.setTimeout(
+      () => (doubleClickThrottleRef.current = undefined),
+      100
+    );
+
+    if (isReadOnly) return;
+
+    onOpen(combinedPath);
+  };
+
+  const onSingleClick = (combinedPath: string) => {
+    if (clickTimeoutRef.current) {
+      // There was a click in the last 400ms
+      onDoubleClick(combinedPath);
+    } else {
+      onClick(combinedPath);
+
+      clickTimeoutRef.current = window.setTimeout(
+        () => (clickTimeoutRef.current = undefined),
+        DOUBLE_CLICK_TIMEOUT
+      );
+    }
+  };
 
   return (
     <>
@@ -78,6 +128,7 @@ export const FileTreeRow = ({
                 setDragFile={setDragFile}
                 root={root}
                 hoveredPath={hoveredPath}
+                onClick={onClick}
                 onOpen={onOpen}
                 onRename={onRename}
               />
@@ -104,7 +155,8 @@ export const FileTreeRow = ({
               path={combinedPath}
               labelText={name}
               fileName={name}
-              onDoubleClick={() => !isReadOnly && onOpen(combinedPath)}
+              onClick={() => onSingleClick(combinedPath)}
+              onDoubleClick={() => onDoubleClick(combinedPath)}
             />
           </div>
         );
