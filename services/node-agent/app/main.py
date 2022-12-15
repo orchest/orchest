@@ -52,6 +52,7 @@ if __name__ == "__main__":
         nargs="?",
         help="Specifies number of async pullers, default 4.",
         default=4,
+        type=int,
     )
     parser.add_argument(
         "--orchest-api-host",
