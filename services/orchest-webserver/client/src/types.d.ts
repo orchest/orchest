@@ -213,7 +213,7 @@ export type JupyterImageBuild = {
   requested_time: string;
   started_time: null | string;
   status: TStatus;
-  uuid: string;
+  uuid: null;
 };
 
 export type PipelineStepStatus =
