@@ -1,4 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { pick } from "@/utils/record";
 import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
@@ -28,7 +29,8 @@ export const EnvironmentMenuList = () => {
     selectEnvironment(event, uuid);
   };
 
-  const { hasLoadedBuildStatus } = useFetchBuildStatus();
+  const { environmentUuid } = useCustomRoute();
+  const { hasLoadedBuildStatus } = useFetchBuildStatus(environmentUuid);
 
   return (
     <Stack
