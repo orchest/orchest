@@ -3,6 +3,7 @@ import { ScopeParameter, ScopeParameters } from "@/types";
 import { openInNewTab } from "@/utils/openInNewTab";
 import { equalsShallow, pick, prune } from "@/utils/record";
 import { toQueryString } from "@/utils/routing";
+import { ALL_SCOPE_PARAMETERS } from "@/utils/scope";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useHistory, useLocation } from "react-router-dom";
@@ -294,9 +295,11 @@ export const useNavigate = () => {
         ([name]) => !clear.includes(name as ScopeParameter)
       );
 
-      if (isSamePath && equalsShallow(newQuery, currentQuery)) {
-        return;
-      }
+      const isSameUrl =
+        isSamePath &&
+        equalsShallow(newQuery, currentQuery, ALL_SCOPE_PARAMETERS);
+
+      if (isSameUrl) return;
 
       navigateTo(path, { replace, query: newQuery }, event);
     },
