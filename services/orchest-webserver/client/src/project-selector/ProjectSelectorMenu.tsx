@@ -1,6 +1,5 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFallbackProject } from "@/hooks/useFallbackProject";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { CreateProjectDialog } from "@/projects-view/CreateProjectDialog";
 import { ImportDialog } from "@/projects-view/ImportDialog";
@@ -26,7 +25,6 @@ export const ProjectSelectorMenu = ({
   onClose,
 }: ProjectSelectorMenuProps) => {
   const { dispatch } = useProjectsContext();
-  const { setFallback } = useFallbackProject();
   const { navigateTo, location, tab } = useCustomRoute();
 
   const customNavigation = React.useCallback(
