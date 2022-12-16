@@ -121,7 +121,7 @@ const baseState: ProjectContextState = {
 };
 
 export const ProjectsContextProvider: React.FC = ({ children }) => {
-  const { projects, isLoaded } = useFetchProjects();
+  const { projects, hasData } = useFetchProjects();
   const activeProject = useActiveProject();
 
   const [pipelinesByProject, setPipelinesByProject] = useLocalStorage<
@@ -145,7 +145,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
   );
 
   React.useEffect(() => {
-    if (!isLoaded) return;
+    if (!hasData) return;
 
     // Prune "active pipelines" from projects that no longer exist:
 
@@ -158,7 +158,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         )
       );
     });
-  }, [projects, isLoaded, setPipelinesByProject]);
+  }, [projects, hasData, setPipelinesByProject]);
 
   const stringifiedLastSeenPipelines = React.useMemo(
     () => JSON.stringify(pipelinesByProject),

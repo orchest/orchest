@@ -20,7 +20,7 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
   sx,
 }) => {
   const { navigateTo } = useCustomRoute();
-  const { isLoaded: hasLoadedProjects } = useFetchProjects();
+  const { hasData: hasLoadedProjects } = useFetchProjects();
   const activeProject = useActiveProject();
 
   const goToProjects = (e: React.MouseEvent) =>

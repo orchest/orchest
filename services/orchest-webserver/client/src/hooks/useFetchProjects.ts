@@ -13,7 +13,7 @@ const BASE_PARAMS: FetchAllParams = {
 export const useFetchProjects = () => {
   const { run, status, error } = useAsync<ProjectMap>();
   const init = useProjectsApi((api) => api.init);
-  const projects = useProjectsApi((api) => api.projects || {});
+  const projects = useProjectsApi((api) => api.projects);
 
   const refresh = React.useCallback(
     (params: Partial<FetchAllParams> = {}) =>
@@ -24,10 +24,15 @@ export const useFetchProjects = () => {
   React.useEffect(() => void refresh(), [refresh]);
 
   return {
-    projects,
-    isLoaded: hasValue(projects),
+    projects: projects || {},
+    /** Whether data is currently being fetched. */
     isFetching: status === "PENDING",
-    isEmpty: Object.keys(projects).length === 0,
+    /** Whether fetching has completed. */
+    isFetched: status === "RESOLVED",
+    /** Whether data has ever been fetched. */
+    hasData: hasValue(projects),
+    /** Whether there are some projects. */
+    isEmpty: projects ? Object.keys(projects).length === 0 : true,
     refresh,
     error,
   };
