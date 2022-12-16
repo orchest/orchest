@@ -14,7 +14,7 @@ export const useActiveProject = () => {
   const { projectUuid: queriedUuid } = useCurrentQuery();
   const navigate = useNavigate();
   const { fallback, setFallback } = useFallbackProject();
-  const activeProject = React.useMemo(() => {
+  const queriedProject = React.useMemo(() => {
     if (!queriedUuid) return undefined;
     else return projects?.[queriedUuid];
   }, [projects, queriedUuid]);
@@ -32,8 +32,8 @@ export const useActiveProject = () => {
   }, [fallback, navigate, queriedUuid]);
 
   React.useEffect(() => {
-    if (activeProject?.uuid) setFallback(activeProject?.uuid);
-  }, [activeProject?.uuid, setFallback]);
+    if (queriedProject?.uuid) setFallback(queriedProject.uuid);
+  }, [queriedProject?.uuid, setFallback]);
 
-  return activeProject ?? fallback;
+  return queriedProject ?? fallback;
 };
