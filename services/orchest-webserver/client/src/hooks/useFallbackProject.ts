@@ -13,10 +13,7 @@ export const useFallbackProject = () => {
   const [storedUuid, setStoredUuid] = useLocalStorage(STORAGE_KEY, "");
 
   const fallback = React.useMemo(
-    () =>
-      Boolean(storedUuid)
-        ? projects?.find(({ uuid }) => uuid === storedUuid)
-        : projects?.[0],
+    () => (Boolean(storedUuid) ? projects?.[storedUuid] : projects?.[0]),
     [projects, storedUuid]
   );
 

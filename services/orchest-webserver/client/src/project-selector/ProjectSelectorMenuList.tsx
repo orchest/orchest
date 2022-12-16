@@ -27,20 +27,18 @@ export const ProjectSelectorMenuList = ({
   selectProject,
   onSearchKeydown,
 }: ProjectSelectorMenuListProps) => {
-  const { projects } = useFetchProjects();
+  const { isLoaded, isEmpty } = useFetchProjects();
   const activeProject = useActiveProject();
   const { navigateTo } = useCustomRoute();
   const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement>();
   const [openProject, setOpenProject] = React.useState<Project>();
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
-  const { searchTerm, setSearchTerm, filteredProjects } = useProjectList(
-    projects
-  );
+  const { searchTerm, setSearchTerm, filteredProjects } = useProjectList();
 
   const noProjectsMessage =
-    projects.length === 0
+    isLoaded && isEmpty
       ? "No projects yet"
-      : filteredProjects.length === 0 && searchTerm.length > 0
+      : isLoaded && filteredProjects.length === 0 && searchTerm.length > 0
       ? "No Projects found"
       : null;
 

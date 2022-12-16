@@ -78,7 +78,7 @@ const ProjectSettingsView: React.FC = () => {
   const deleteWithConfirm = React.useCallback(() => {
     if (!projectUuid) return;
 
-    const projectName = projects?.find((p) => p.uuid === projectUuid)?.path;
+    const projectName = projects?.[projectUuid]?.path;
 
     if (!projectName) return;
 

@@ -5,8 +5,8 @@ import { useCurrentQuery, useNavigate } from "./useCustomRoute";
 import { useFallbackProject } from "./useFallbackProject";
 
 /**
- * Returns the currently selected project (based on the current URL).
- * If no project is selected, the last used (or first available) project is returned as a fallback,
+ * Returns the currently selected project based on the `project_uuid` in the URL.
+ * If no `project_uuid` is specified, the last used (or first available) project is returned as a fallback,
  * and the URL is updated to match the fallback project (if the current route is project-specific).
  */
 export const useActiveProject = () => {
@@ -15,7 +15,8 @@ export const useActiveProject = () => {
   const navigate = useNavigate();
   const { fallback, setFallback } = useFallbackProject();
   const activeProject = React.useMemo(() => {
-    return projects?.find(({ uuid }) => uuid === queriedUuid);
+    if (!queriedUuid) return undefined;
+    else return projects?.[queriedUuid];
   }, [projects, queriedUuid]);
 
   React.useEffect(() => {

@@ -244,12 +244,15 @@ const findCurrentRoute = (): RouteName | undefined => {
  * meaning that the query parameters that are
  * supported by the provided route are preserved.
  */
-export const useRouteLink = ({
+export function useRouteLink(
+  options: NavigateOptions & { route: RouteName }
+): string;
+export function useRouteLink({
   route = findCurrentRoute(),
   sticky = true,
   query = {},
   clear = [],
-}: NavigationOptions) => {
+}: NavigationOptions): string | undefined {
   const currentQuery = useCurrentQuery();
 
   if (!route) return undefined;
@@ -262,7 +265,7 @@ export const useRouteLink = ({
   );
 
   return path + toQueryString(newQuery);
-};
+}
 
 /**
  * Returns a function which is used to navigate between routes.

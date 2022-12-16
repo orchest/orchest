@@ -1,8 +1,9 @@
-import { Project } from "@/types";
+import { useProjectsApi } from "@/api/projects/useProjectsApi";
 import React from "react";
 import { validProjectName } from "../common";
 
-export const useProjectName = (projects: Project[]) => {
+export const useProjectName = () => {
+  const projects = useProjectsApi((api) => Object.values(api.projects ?? {}));
   const [projectName, setProjectName] = React.useState<string>("");
 
   const validation = React.useMemo(() => {

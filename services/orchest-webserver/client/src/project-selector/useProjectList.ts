@@ -1,13 +1,14 @@
 import { useDebounce } from "@/hooks/useDebounce";
-import { Project } from "@/types";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
 import React from "react";
 
-export const useProjectList = (projects: Project[]) => {
+export const useProjectList = () => {
+  const { projects } = useFetchProjects();
   const [searchTerm, setSearchTerm] = React.useState("");
   const debouncedSearchTerm = useDebounce(searchTerm.trim());
 
   const filteredProjects = React.useMemo(() => {
-    return projects.filter((project) =>
+    return Object.values(projects).filter((project) =>
       project.path.includes(debouncedSearchTerm)
     );
   }, [debouncedSearchTerm, projects]);

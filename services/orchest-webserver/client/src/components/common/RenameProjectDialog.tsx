@@ -34,9 +34,9 @@ export const RenameProjectDialog = ({
   }, [project]);
 
   React.useEffect(() => {
-    console.log(newName, projects);
+    if (!projects) return;
 
-    if (projects?.some((project) => project.path === newName)) {
+    if (Object.values(projects).some((project) => project.path === newName)) {
       setValidationMessage("A project with the same name already exists.");
     } else {
       setValidationMessage(undefined);

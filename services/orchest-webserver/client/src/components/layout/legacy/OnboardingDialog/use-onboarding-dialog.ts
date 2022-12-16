@@ -19,7 +19,7 @@ export const useOnboardingDialog = () => {
 
   const [importUrl] = useImportUrlFromQueryString();
 
-  const quickstartProject = projects?.find(
+  const quickstartProject = Object.values(projects)?.find(
     (project) => project.path === "quickstart"
   );
 
