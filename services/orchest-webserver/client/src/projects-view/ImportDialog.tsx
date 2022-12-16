@@ -343,7 +343,7 @@ export const ImportDialog = ({
   );
 
   const projectPaths = React.useMemo(
-    () => projects.map((project) => project.path),
+    () => Object.values(projects).map((project) => project.path),
     [projects]
   );
 

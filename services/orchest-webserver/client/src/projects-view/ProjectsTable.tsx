@@ -38,7 +38,7 @@ export const ProjectsTable = () => {
       event.stopPropagation();
 
       setMenuAnchorEl(event.target as HTMLElement);
-      setOpenProject(projects.find(({ uuid }) => uuid === projectUuid));
+      setOpenProject(projects?.[projectUuid]);
     },
     [projects]
   );
@@ -90,7 +90,7 @@ export const ProjectsTable = () => {
 
   const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(
     () =>
-      projects.map((project) => ({
+      Object.values(projects).map((project) => ({
         ...project,
         id: project.uuid,
         settings: true,

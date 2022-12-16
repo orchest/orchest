@@ -153,8 +153,8 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
       if (!current) return {};
 
       return Object.fromEntries(
-        Object.entries(current).filter(([projectUuid]) =>
-          projects.some((project) => project.uuid === projectUuid)
+        Object.entries(current).filter(
+          ([projectUuid]) => projects?.[projectUuid]
         )
       );
     });
@@ -265,9 +265,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           // Ensure that projectUuid is valid in the state.
           // So that we could show proper warnings in case user provides
           // an invalid projectUuid from the route args.
-          const foundProject = projects.find(
-            (project) => project.uuid === action.payload
-          );
+          const foundProject = projects?.[action.payload];
 
           if (!foundProject) return state;
 

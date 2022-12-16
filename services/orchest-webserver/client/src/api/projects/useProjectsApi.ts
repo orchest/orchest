@@ -4,12 +4,15 @@ import create from "zustand";
 import { persist } from "zustand/middleware";
 import { FetchAllParams, projectsApi, ProjectUpdateData } from "./projectsApi";
 
+export type ProjectMap = { [uuid: string]: Project };
+
 export type ProjectsApi = {
-  projects: Project[] | undefined;
+  /** A map of the currently available projects by UUID. */
+  projects: ProjectMap | undefined;
   /** A list of the project UUIDs currently being deleted. */
   deleting: string[];
   /** Loads all available projects. */
-  init: MemoizePending<(params: FetchAllParams) => Promise<Project[]>>;
+  init: MemoizePending<(params: FetchAllParams) => Promise<ProjectMap>>;
   /** Creates a project with the  */
   create: MemoizePending<(projectName: string) => Promise<Project>>;
   /** Updates the project with the new data. */
@@ -28,7 +31,7 @@ export const useProjectsApi = create(
   persist<ProjectsApi>(
     (set) => {
       const reload = async (params: FetchAllParams = {}) => {
-        const projects = await projectsApi.fetchAll(params);
+        const projects = await projectsApi.fetchAll(params).then(toProjectMap);
 
         set({ projects });
 
@@ -37,7 +40,7 @@ export const useProjectsApi = create(
 
       const reloadAndFind = async (uuid: string, params?: FetchAllParams) => {
         const projects = await reload(params);
-        const project = projects.find((project) => project.uuid === uuid);
+        const project = projects[uuid];
 
         if (project) return project;
 
@@ -50,12 +53,10 @@ export const useProjectsApi = create(
         init: memoizeFor(500, reload),
         create: memoizeFor(500, async (name) => {
           const uuid = await projectsApi.post(name);
-
           return await reloadAndFind(uuid);
         }),
         update: memoizeFor(500, async (uuid, data) => {
           await projectsApi.put(uuid, data);
-
           return await reloadAndFind(uuid);
         }),
         rename: memoizeFor(500, async (uuid: string, newName: string) => {
@@ -81,3 +82,6 @@ export const useProjectsApi = create(
     }
   )
 );
+
+const toProjectMap = (projects: Project[]): ProjectMap =>
+  Object.fromEntries(projects.map((project) => [project.uuid, project]));

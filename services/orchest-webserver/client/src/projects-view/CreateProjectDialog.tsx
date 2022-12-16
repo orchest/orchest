@@ -4,7 +4,6 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { siteMap } from "@/routingConfig";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -32,7 +31,6 @@ export const CreateProjectDialog = ({
   const { setAlert } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
   const { dispatch } = useProjectsContext();
-  const { projects } = useFetchProjects();
   const createProject = useProjectsApi((api) => api.create);
 
   const { isOpen, onClose, onOpen } = useControlledIsOpen(
@@ -40,7 +38,7 @@ export const CreateProjectDialog = ({
     onCloseByParent
   );
 
-  const [projectName, setProjectName, validation] = useProjectName(projects);
+  const [projectName, setProjectName, validation] = useProjectName();
 
   const closeDialog = () => {
     onClose();
