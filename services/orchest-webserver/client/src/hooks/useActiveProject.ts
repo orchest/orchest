@@ -1,7 +1,7 @@
 import { useProjectsApi } from "@/api/projects/useProjectsApi";
 import { isProjectPage } from "@/routingConfig";
 import React from "react";
-import { useCustomRoute } from "./useCustomRoute";
+import { useCurrentQuery, useNavigate } from "./useCustomRoute";
 import { useFallbackProject } from "./useFallbackProject";
 
 /**
@@ -11,7 +11,8 @@ import { useFallbackProject } from "./useFallbackProject";
  */
 export const useActiveProject = () => {
   const projects = useProjectsApi((api) => api.projects);
-  const { projectUuid: queriedUuid, navigateTo } = useCustomRoute();
+  const { projectUuid: queriedUuid } = useCurrentQuery();
+  const navigate = useNavigate();
   const { fallback, setFallback } = useFallbackProject();
   const activeProject = React.useMemo(() => {
     return projects?.find(({ uuid }) => uuid === queriedUuid);
@@ -21,12 +22,13 @@ export const useActiveProject = () => {
     if (!isProjectPage(window.location.pathname)) return;
 
     if (!queriedUuid && fallback) {
-      navigateTo(window.location.pathname, {
+      navigate({
+        sticky: false,
         query: { projectUuid: fallback.uuid },
         replace: true,
       });
     }
-  }, [fallback, navigateTo, queriedUuid]);
+  }, [fallback, navigate, queriedUuid]);
 
   React.useEffect(() => {
     if (activeProject?.uuid) setFallback(activeProject?.uuid);

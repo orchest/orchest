@@ -206,12 +206,14 @@ export const useCreateRouteLink = () => {
 };
 
 export type NavigationOptions = {
-  route: RouteName;
+  /** The new route to navigate to. If omitted, the current route is used. */
+  route?: RouteName;
+  /** The new scope parameters to use in the query. */
   query?: Partial<ScopeParameters>;
   /** If `sticky` is true: Clear the following query parameters. */
   clear?: ScopeParameter[];
   /**
-   * Preserve all previous query parameters that are supported by the page.
+   * Preserve all previous query parameters that are supported by the route.
    * Default: true.
    */
   sticky?: boolean;
@@ -226,6 +228,16 @@ export type NavigateOptions = NavigationOptions & {
   event?: React.MouseEvent;
 };
 
+const findCurrentRoute = (): RouteName | undefined => {
+  const path = window.location.pathname;
+
+  for (const [routeName, data] of Object.entries(siteMap)) {
+    if (data.path === path) return routeName as RouteName;
+  }
+
+  return undefined;
+};
+
 /**
  * Returns a link to the specified route.
  * Note: Links are "sticky" by default,
@@ -233,13 +245,17 @@ export type NavigateOptions = NavigationOptions & {
  * supported by the provided route are preserved.
  */
 export const useRouteLink = ({
-  route,
+  route = findCurrentRoute(),
   sticky = true,
   query = {},
   clear = [],
 }: NavigationOptions) => {
-  const { path, scope } = siteMap[route];
   const currentQuery = useCurrentQuery();
+
+  if (!route) return undefined;
+
+  const { path, scope } = siteMap[route];
+
   const newQuery = prune(
     sticky ? stickyQuery(currentQuery, { query, scope }) : prune(query),
     ([name]) => !clear.includes(name as ScopeParameter)
@@ -259,13 +275,15 @@ export const useNavigate = () => {
 
   return React.useCallback(
     ({
-      route,
+      route = findCurrentRoute(),
       query = {},
       clear = [],
       sticky = true,
       replace = false,
       event,
     }: NavigateOptions) => {
+      if (!route) return;
+
       const { path, scope = [] } = siteMap[route];
       const isSamePath = path === window.location.pathname;
       const newQuery = prune(
