@@ -25,7 +25,7 @@ export const ProjectsView = () => {
   const {
     state: { hasCompletedOnboarding },
   } = useGlobalContext();
-  const { isLoaded, isEmpty } = useFetchProjects();
+  const { hasData, isEmpty } = useFetchProjects();
   const { navigateTo } = useCustomRoute();
   useSendAnalyticEvent("view:loaded", { name: siteMap.projects.path });
 
@@ -89,8 +89,8 @@ export const ProjectsView = () => {
             index={PROJECT_TAB.MY_PROJECTS}
             sx={{ padding: (theme) => theme.spacing(2, 0) }}
           >
-            {isLoaded && !isEmpty && <ProjectsTable />}
-            {isLoaded && isEmpty && (
+            {hasData && !isEmpty && <ProjectsTable />}
+            {hasData && isEmpty && (
               <NoProject
                 createProject={openCreateDialog}
                 importProject={openImportDialog}
