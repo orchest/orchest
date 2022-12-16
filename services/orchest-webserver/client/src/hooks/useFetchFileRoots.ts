@@ -2,7 +2,7 @@ import { FileScope, useFileApi } from "@/api/files/useFileApi";
 import { equalsShallow } from "@/utils/record";
 import React from "react";
 import { useAsync } from "./useAsync";
-import { useScopeParameters } from "./useScopeParameters";
+import { useCurrentQuery } from "./useCustomRoute";
 
 const START_DEPTH = 2;
 
@@ -13,7 +13,7 @@ export const useFetchFileRoots = ({
   jobUuid,
   runUuid,
 }: FileScope = {}) => {
-  const scope = useScopeParameters();
+  const scope = useCurrentQuery();
   const currentScope = useFileApi((api) => api.scope);
   const roots = useFileApi((api) => api.roots);
   const init = useFileApi((api) => api.init);
