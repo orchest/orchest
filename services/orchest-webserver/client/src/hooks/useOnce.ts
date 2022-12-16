@@ -11,12 +11,13 @@ export const useOnce = <C extends AnyFunction>(
   const called = React.useRef(false);
   const result = React.useRef<ReturnType<C>>();
 
-  React.useEffect(() => {
-    if (called.current || !condition) return;
-
-    result.current = callback();
+  // We want this result back in the
+  // first render cycle if possible.
+  // Don't run this as a `useEffect`.
+  if (condition && !called.current) {
     called.current = true;
-  }, [callback, condition]);
+    result.current = callback();
+  }
 
   return result.current;
 };
