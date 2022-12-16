@@ -196,7 +196,7 @@ export type CustomImage = Pick<
 >;
 
 export type EnvironmentImageBuild = {
-  uuid: string;
+  uuid: null; // TODO: clean this up on BE
   environment_uuid: string;
   finished_time: string;
   project_path: string;
@@ -213,7 +213,7 @@ export type JupyterImageBuild = {
   requested_time: string;
   started_time: null | string;
   status: TStatus;
-  uuid: string;
+  uuid: null;
 };
 
 export type PipelineStepStatus =
