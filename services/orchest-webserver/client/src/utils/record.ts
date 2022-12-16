@@ -61,3 +61,7 @@ export const equalsShallow = <T extends AnyRecord, A extends T>(
   actual: A,
   props = propsOf(expected)
 ) => props.every((prop) => actual[prop] === expected[prop]);
+
+export const toMap = <T>(arr: T[], key = "uuid") => {
+  return new Map<typeof key, T>(arr.map((env) => [env[key], env]));
+};
