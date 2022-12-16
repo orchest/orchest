@@ -1,4 +1,5 @@
 import { useActiveProject } from "@/hooks/useActiveProject";
+import { siteMap } from "@/routingConfig";
 import { ellipsis } from "@/utils/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
@@ -9,6 +10,7 @@ import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useLocation } from "react-router-dom";
 
 type ProjectSelectorToggleProps = {
   tabIndex?: number;
@@ -21,8 +23,10 @@ export const ProjectSelectorToggle = ({
   onClick,
   isOpen,
 }: ProjectSelectorToggleProps) => {
+  const { pathname } = useLocation();
   const activeProject = useActiveProject();
-  const projectName = activeProject?.path;
+  const projectName =
+    pathname === siteMap.projects.path ? undefined : activeProject?.path;
 
   return (
     <Button
