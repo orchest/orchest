@@ -1,4 +1,5 @@
 import React from "react";
+import { ProjectNotFoundMessage } from "./ProjectNotFoundMessage";
 import { ProjectSelectorMenu } from "./ProjectSelectorMenu";
 import { ProjectSelectorToggle } from "./ProjectSelectorToggle";
 
@@ -10,6 +11,7 @@ export const ProjectSelector = () => {
     <>
       <ProjectSelectorToggle onClick={toggle} tabIndex={0} isOpen={isOpen} />
       <ProjectSelectorMenu open={isOpen} onClose={() => setIsOpen(false)} />
+      <ProjectNotFoundMessage />
     </>
   );
 };
