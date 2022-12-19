@@ -25,8 +25,8 @@ export const useFetchProjects = () => {
   const tabRegainedFocus = useRegainBrowserTabFocus();
 
   React.useEffect(() => {
-    if (status === "PENDING") return;
     if (!tabRegainedFocus) return;
+    if (status !== "RESOLVED") return;
 
     refresh();
   }, [refresh, tabRegainedFocus, status]);
