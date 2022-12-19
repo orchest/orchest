@@ -4,6 +4,11 @@ import React from "react";
 import { useCurrentQuery, useNavigate } from "./useCustomRoute";
 import { useFallbackProject } from "./useFallbackProject";
 
+// On some navigation events, this hook runs before `projectUuid`
+// is available from `useCurrentQuery`, so we give it a grace
+// period before assuming that we should redirect to the fallback project.
+const FALLBACK_GRACE_PERIOD = 150;
+
 /**
  * Returns the currently selected project based on the `project_uuid` in the URL.
  * If no `project_uuid` is specified, the last used (or first available) project is returned as a fallback,
@@ -19,16 +24,22 @@ export const useActiveProject = () => {
     else return projects?.[queriedUuid];
   }, [projects, queriedUuid]);
 
-  React.useEffect(() => {
-    if (!isProjectPage(window.location.pathname)) return;
+  const fallbackGracePeriodRef = React.useRef<number>();
 
-    if (!queriedUuid && fallback) {
-      navigate({
-        sticky: false,
-        query: { projectUuid: fallback.uuid },
-        replace: true,
-      });
-    }
+  React.useEffect(() => {
+    window.clearTimeout(fallbackGracePeriodRef.current);
+
+    fallbackGracePeriodRef.current = window.setTimeout(() => {
+      if (!isProjectPage(window.location.pathname)) return;
+
+      if (!queriedUuid && fallback) {
+        navigate({
+          sticky: false,
+          query: { projectUuid: fallback.uuid },
+          replace: true,
+        });
+      }
+    }, FALLBACK_GRACE_PERIOD);
   }, [fallback, navigate, queriedUuid]);
 
   React.useEffect(() => {
