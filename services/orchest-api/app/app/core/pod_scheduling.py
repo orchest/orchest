@@ -161,7 +161,7 @@ def _get_node_affinity_to_label_selector(selector: Dict[str, str]) -> Dict[str, 
     }
 
 
-def _is_image_of_interest(image: str) -> bool:
+def _requires_pre_puller(image: str) -> bool:
     return "orchest-env" in image or _config.JUPYTER_IMAGE_NAME in image
 
 
@@ -313,13 +313,10 @@ def modify_kernel_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
         raise ValueError("Expected a single container in the pod.")
     image = spec["containers"][0]["image"]
 
-    # No special affinity or pre-pull required.
-    if not _is_image_of_interest(image):
-        return
-
-    init_containers = spec.get("initContainers", [])
-    init_containers.append(_get_pre_pull_init_container_manifest(image))
-    spec["initContainers"] = init_containers
+    if _requires_pre_puller(image):
+        init_containers = spec.get("initContainers", [])
+        init_containers.append(_get_pre_pull_init_container_manifest(image))
+        spec["initContainers"] = init_containers
 
     required_affinity = _get_required_affinity("interactive", image, _Plane.WORKER)
     if required_affinity is not None:
@@ -338,13 +335,10 @@ def _modify_deployment_pod_scheduling_behaviour(
         raise ValueError("Expected a single container in the deployment.")
     image = spec["containers"][0]["image"]
 
-    # No special affinity or pre-pull required.
-    if not _is_image_of_interest(image):
-        return
-
-    init_containers = spec.get("initContainers", [])
-    init_containers.append(_get_pre_pull_init_container_manifest(image))
-    spec["initContainers"] = init_containers
+    if _requires_pre_puller(image):
+        init_containers = spec.get("initContainers", [])
+        init_containers.append(_get_pre_pull_init_container_manifest(image))
+        spec["initContainers"] = init_containers
 
     required_affinity = _get_required_affinity(scope, image, plane)
     if required_affinity is not None:
