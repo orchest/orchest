@@ -3,6 +3,7 @@ import { ProjectMap, useProjectsApi } from "@/api/projects/useProjectsApi";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useAsync } from "./useAsync";
+import { useRegainBrowserTabFocus } from "./useFocusBrowserTab";
 
 const BASE_PARAMS: FetchAllParams = {
   activeJobCounts: true,
@@ -20,6 +21,15 @@ export const useFetchProjects = () => {
       run(init({ ...BASE_PARAMS, ...params })),
     [init, run]
   );
+
+  const tabRegainedFocus = useRegainBrowserTabFocus();
+
+  React.useEffect(() => {
+    if (status === "PENDING") return;
+    if (!tabRegainedFocus) return;
+
+    refresh();
+  }, [refresh, tabRegainedFocus, status]);
 
   React.useEffect(() => void refresh(), [refresh]);
 
