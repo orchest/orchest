@@ -7,7 +7,7 @@ import {
   EnvironmentState,
   EnvironmentValidationData,
 } from "@/types";
-import { pick } from "@/utils/record";
+import { mapRecord, pick } from "@/utils/record";
 import create from "zustand";
 
 export type EnvironmentBuildStatus =
@@ -115,7 +115,17 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
         language
       );
 
-      set({ projectUuid, environments });
+      set((state) => {
+        // `latestBuild` should be persisted as it was fetched from another endpoint..
+        const environmentsMap = mapRecord(state.environments || []);
+        return {
+          projectUuid,
+          environments: environments.map((env) => {
+            const latestBuild = environmentsMap[env.uuid]?.latestBuild;
+            return { ...env, latestBuild };
+          }),
+        };
+      });
       return environments;
     },
     post: async (environmentName: string, spec: EnvironmentSpec) => {
@@ -222,12 +232,10 @@ export const useEnvironmentsApi = create<EnvironmentsApi>((set, get) => {
 
       if (hasActionChanged || status !== get().status) {
         set((state) => {
-          const environmentsMap = new Map(
-            (state.environments || []).map((env) => [env.uuid, env])
-          );
+          const environmentsMap = mapRecord(state.environments || []);
           return {
             environments: validatedEnvironments.map((env) => ({
-              ...environmentsMap.get(env.uuid),
+              ...environmentsMap[env.uuid],
               ...env,
             })),
             status,

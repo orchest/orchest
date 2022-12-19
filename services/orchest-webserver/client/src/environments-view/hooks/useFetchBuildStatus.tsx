@@ -8,7 +8,7 @@ import React from "react";
  * Fetches the latest environment image builds by polling.
  * Returns the latest environmentImageBuild of the given environment UUID.
  */
-export const useFetchBuildStatus = (environmentUuid?: string) => {
+export const useFetchBuildStatus = (environmentUuid: string | undefined) => {
   const projectUuid = useEnvironmentsApi((state) => state.projectUuid);
   const { projectUuid: validProjectUuid } = useValidQueryArgs({ projectUuid });
   const isStoreLoaded = useEnvironmentsApi(

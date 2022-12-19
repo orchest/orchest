@@ -9,8 +9,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import aiodocker
 
-from _orchest.internals import config as _config
-
 
 class RuntimeType(Enum):
     Docker = "docker"
@@ -231,12 +229,7 @@ class ContainerRuntime(object):
         image_names = []
         if self.container_runtime == RuntimeType.Docker:
             try:
-                filters = {
-                    "label": [
-                        f"maintainer={_config.ORCHEST_MAINTAINER_LABEL}",
-                    ]
-                }
-                for img in await self.aclient.images.list(filters=filters):
+                for img in await self.aclient.images.list():
                     names = img.get("RepoTags")
                     # Unfortunately RepoTags is mapped to None
                     # instead of not being there in some cases.
