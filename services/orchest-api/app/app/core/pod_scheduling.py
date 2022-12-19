@@ -118,7 +118,7 @@ def _is_jupyter_image_in_registry(tag: Union[int, str]) -> bool:
     ).scalar()
 
 
-def _get_node_affinity(node_names: List[str]) -> Dict[str, Any]:
+def _get_node_affinity_to_random_node(node_names: List[str]) -> Dict[str, Any]:
     # Need to set a specific node at the application level:
     # https://github.com/kubernetes/kubernetes/issues/78238.
     return {
@@ -144,7 +144,9 @@ def _is_image_of_interest(image: str) -> bool:
     return "orchest-env" in image or _config.JUPYTER_IMAGE_NAME in image
 
 
-def _should_constrain_to_nodes(scope: str, image_is_in_registry: bool) -> bool:
+def _should_constrain_to_nodes_with_image(
+    scope: str, image_is_in_registry: bool
+) -> bool:
     # Everything that belongs to the interactive scope is constrained to
     # nodes that already have the image for the sake of getting things
     # to the user quicker. When it comes to the non-interactive scope we
@@ -156,7 +158,7 @@ def _should_constrain_to_nodes(scope: str, image_is_in_registry: bool) -> bool:
     return scope == "interactive" or not image_is_in_registry
 
 
-def _get_required_affinity_for_image_build_in_orchest(
+def _get_required_affinity_for_image_built_in_orchest(
     scope: str,
     image: str,
 ) -> Optional[Dict[str, Any]]:
@@ -180,7 +182,7 @@ def _get_required_affinity_for_image_build_in_orchest(
     else:
         return
 
-    if not _should_constrain_to_nodes(scope, image_is_in_registry):
+    if not _should_constrain_to_nodes_with_image(scope, image_is_in_registry):
         return
 
     # Only consider nodes in the worker plane if the selector is
@@ -202,7 +204,7 @@ def _get_required_affinity_for_image_build_in_orchest(
         )
         return
 
-    return _get_node_affinity(ready_nodes_with_image)
+    return _get_node_affinity_to_random_node(ready_nodes_with_image)
 
 
 def _get_pre_pull_init_container_manifest(
@@ -251,7 +253,7 @@ def modify_kernel_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
     init_containers.append(_get_pre_pull_init_container_manifest(image))
     spec["initContainers"] = init_containers
 
-    required_affinity = _get_required_affinity_for_image_build_in_orchest(
+    required_affinity = _get_required_affinity_for_image_built_in_orchest(
         "interactive", image
     )
     if required_affinity is not None:
@@ -278,7 +280,7 @@ def _modify_deployment_pod_scheduling_behaviour(
     init_containers.append(_get_pre_pull_init_container_manifest(image))
     spec["initContainers"] = init_containers
 
-    required_affinity = _get_required_affinity_for_image_build_in_orchest(scope, image)
+    required_affinity = _get_required_affinity_for_image_built_in_orchest(scope, image)
     if required_affinity is not None:
         if spec.get("affinity") is not None:
             raise ValueError("Expected no previously set affinity.")
@@ -327,7 +329,7 @@ def _modify_pipeline_scheduling_behaviour_single_node(
     # By using only 1 image to specify affinity we are doing a bit of a
     # breach of abstraction, we are "using" the fact that we are in
     # single_node.
-    required_affinity = _get_required_affinity_for_image_build_in_orchest(
+    required_affinity = _get_required_affinity_for_image_built_in_orchest(
         scope, images[0]
     )
     if required_affinity is not None:
@@ -370,7 +372,7 @@ def _modify_pipeline_scheduling_behaviour_multi_node(
                 "Didn't find any pod spec patch among the step task parameters."
             )
 
-        required_affinity = _get_required_affinity_for_image_build_in_orchest(
+        required_affinity = _get_required_affinity_for_image_built_in_orchest(
             scope, image
         )
         if required_affinity is not None:
