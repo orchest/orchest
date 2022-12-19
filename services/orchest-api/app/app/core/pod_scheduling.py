@@ -367,6 +367,12 @@ def modify_user_service_scheduling_behaviour(
     _modify_deployment_pod_scheduling_behaviour(scope, manifest, _Plane.WORKER)
 
 
+def modify_session_sidecar_scheduling_behaviour(
+    scope: str, manifest: Dict[str, Any]
+) -> None:
+    _modify_deployment_pod_scheduling_behaviour(scope, manifest, _Plane.WORKER)
+
+
 def _modify_pipeline_scheduling_behaviour_single_node(
     scope: str, manifest: Dict[str, Any]
 ) -> None:
