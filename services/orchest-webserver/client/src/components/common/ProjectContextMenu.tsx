@@ -25,7 +25,7 @@ export const ProjectContextMenu = ({
   const deleteWithConfirm = useConfirm(
     () => deleteProject(project.uuid).then(onDeleted),
     {
-      title: `Delete "${project.path}"?`,
+      title: `Delete ${project.path}?`,
       content:
         "Warning: Deleting a Project is permanent. All associated Jobs and resources will be deleted and unrecoverable.",
       cancelLabel: "Keep project",

@@ -37,7 +37,7 @@ export const RenameProjectDialog = ({
     if (!projects) return;
 
     if (Object.values(projects).some((project) => project.path === newName)) {
-      setValidationMessage("A project with the same name already exists.");
+      setValidationMessage("Project name already exists.");
     } else {
       setValidationMessage(undefined);
     }
@@ -72,7 +72,7 @@ export const RenameProjectDialog = ({
           onSubmitEditProjectPathModal();
         }}
       >
-        <DialogTitle>Rename project</DialogTitle>
+        <DialogTitle>Rename Project</DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -80,7 +80,7 @@ export const RenameProjectDialog = ({
             required
             sx={{ marginTop: (theme) => theme.spacing(2) }}
             value={newName}
-            label="Project name"
+            label="Name"
             helperText={validationMessage ?? " "}
             error={Boolean(validationMessage)}
             disabled={isUpdating}
@@ -97,7 +97,7 @@ export const RenameProjectDialog = ({
             type="submit"
             form="edit-name"
           >
-            Save
+            Rename
           </Button>
         </DialogActions>
       </form>

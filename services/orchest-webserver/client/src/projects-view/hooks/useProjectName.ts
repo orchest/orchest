@@ -9,7 +9,7 @@ export const useProjectName = () => {
   const validation = React.useMemo(() => {
     if (!projectName) return "";
     if (projects.map((p) => p.path).includes(projectName))
-      return "a project with the same name already exists.";
+      return "Project name already exists.";
     const projectNameValidation = validProjectName(projectName);
 
     return projectNameValidation.valid ? "" : projectNameValidation.reason;
