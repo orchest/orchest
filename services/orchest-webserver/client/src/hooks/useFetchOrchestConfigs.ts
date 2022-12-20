@@ -1,11 +1,11 @@
-import { orchestConfigsApi } from "@/api/system-config/orchestConfigsApi";
-import { OrchestConfigs } from "@/types";
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import React from "react";
 import { useAsync } from "./useAsync";
 
 export const useFetchOrchestConfigs = () => {
-  const { run } = useAsync<OrchestConfigs>();
+  const { run } = useAsync();
+  const fetchConfig = useOrchestConfigsApi((state) => state.fetch);
   React.useEffect(() => {
-    run(orchestConfigsApi.fetch());
-  }, [run]);
+    run(fetchConfig());
+  }, [run, fetchConfig]);
 };
