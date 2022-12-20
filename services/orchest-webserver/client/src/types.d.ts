@@ -152,6 +152,7 @@ export type ScopeParameters = {
   stepUuid: string;
   filePath: string;
   fileRoot: string;
+  tab: string;
 };
 
 export type ScopeParameter = keyof ScopeParameters;

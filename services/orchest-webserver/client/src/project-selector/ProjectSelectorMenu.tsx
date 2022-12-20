@@ -1,12 +1,10 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { ImportProjectButton } from "@/home-view/components/ImportProjectButton";
+import { NewProjectButton } from "@/home-view/components/NewProjectButton";
+import { HomeTabs as HomeTab } from "@/home-view/HomeView";
+import { useCurrentQuery, useNavigate } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
-import { CreateProjectDialog } from "@/projects-view/CreateProjectDialog";
-import { ImportDialog } from "@/projects-view/ImportDialog";
-import { PROJECT_TAB } from "@/projects-view/ProjectTabsContext";
 import { isProjectPage, siteMap } from "@/routingConfig";
-import AddIcon from "@mui/icons-material/Add";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
@@ -25,43 +23,42 @@ export const ProjectSelectorMenu = ({
   onClose,
 }: ProjectSelectorMenuProps) => {
   const { dispatch } = useProjectsContext();
-  const { navigateTo, location, tab } = useCustomRoute();
+  const navigate = useNavigate();
+  const { tab } = useCurrentQuery();
 
   const customNavigation = React.useCallback(
-    (targetTab: PROJECT_TAB) => {
+    (homeTab: HomeTab) => {
       onClose();
       const didPathChange =
-        location.pathname !== siteMap.projects.path ||
-        (location.pathname === siteMap.projects.path &&
-          tab !== targetTab.toString());
+        window.location.pathname !== siteMap.home.path ||
+        (window.location.pathname === siteMap.home.path && tab !== homeTab);
 
-      if (didPathChange)
-        navigateTo(siteMap.projects.path, { query: { tab: targetTab } });
+      if (didPathChange) navigate({ route: "home", query: { tab: homeTab } });
     },
-    [location.pathname, navigateTo, onClose, tab]
+    [navigate, onClose, tab]
   );
 
   const goToProjects = () => {
-    customNavigation(PROJECT_TAB.MY_PROJECTS);
+    customNavigation("projects");
   };
   const goToExamples = () => {
-    customNavigation(PROJECT_TAB.EXAMPLE_PROJECTS);
+    customNavigation("examples");
   };
 
   const selectProject = (projectUuid: string) => {
     dispatch({ type: "SET_PROJECT", payload: projectUuid });
 
     if (isProjectPage(window.location.pathname)) {
-      navigateTo(window.location.pathname, { query: { projectUuid } });
+      navigate({ query: { projectUuid } });
     } else {
-      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+      navigate({ route: "pipeline", query: { projectUuid }, sticky: false });
     }
 
     onClose();
   };
 
   const createButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const [importUrl, setImportUrl] = useImportUrlFromQueryString("");
+  const [importUrl] = useImportUrlFromQueryString(undefined);
 
   return (
     <ProjectSelectorPopover open={open} onClose={onClose}>
@@ -73,50 +70,20 @@ export const ProjectSelectorMenu = ({
           padding: (theme) => theme.spacing(1, 2, 0),
         }}
       >
-        <CreateProjectDialog postCreateCallback={onClose}>
-          {(onOpen) => (
-            <Button
-              variant="text"
-              ref={createButtonRef}
-              tabIndex={0}
-              startIcon={<AddIcon />}
-              onClick={onOpen}
-              sx={{ flex: 1 }}
-              data-test-id="project-selector-menu-new-project"
-            >
-              New
-            </Button>
-          )}
-        </CreateProjectDialog>
+        <NewProjectButton
+          sx={{ flex: 1 }}
+          variant="text"
+          ref={createButtonRef}
+          tabIndex={0}
+        >
+          New
+        </NewProjectButton>
         <Divider
           orientation="vertical"
           flexItem
           sx={{ height: (theme) => theme.spacing(4.5) }}
         />
-        <ImportDialog
-          importUrl={importUrl}
-          setImportUrl={setImportUrl}
-          onImportComplete={(newProject) => {
-            onClose();
-            navigateTo(siteMap.pipeline.path, {
-              query: { projectUuid: newProject.uuid },
-            });
-          }}
-          confirmButtonLabel={`Save & view`}
-        >
-          {(onOpen) => (
-            <Button
-              variant="text"
-              tabIndex={0}
-              startIcon={<DownloadOutlinedIcon />}
-              onClick={onOpen}
-              sx={{ flex: 1 }}
-              data-test-id="import-project"
-            >
-              Import
-            </Button>
-          )}
-        </ImportDialog>
+        <ImportProjectButton importUrl={importUrl} />
       </Stack>
       <ProjectSelectorMenuList
         selectProject={selectProject}

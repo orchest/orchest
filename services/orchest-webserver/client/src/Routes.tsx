@@ -1,10 +1,10 @@
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
 import { EnvironmentsView } from "./environments-view/EnvironmentsView";
+import { HomeView } from "./home-view/HomeView";
 import { JobsView } from "./jobs-view/JobsView";
 import { NotificationSettingsView } from "./notification-settings-view/NotificationSettingsView";
 import PipelineView from "./pipeline-view/PipelineView";
-import { ProjectsView } from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
 import SettingsView from "./settings-view/SettingsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
@@ -19,7 +19,6 @@ import UpdateView from "./views/UpdateView";
 // It should not be in the file that imports many other components.
 // It will make it very difficult for unit testing
 const pathComponentMapping = {
-  "/projects": ProjectsView,
   "/project-settings": ProjectSettingsView,
   "/pipeline": PipelineView,
   "/jupyter-lab": JupyterLabView,
@@ -34,6 +33,7 @@ const pathComponentMapping = {
   "/update": UpdateView,
   "/manage-users": ManageUsersView,
   "/help": HelpView,
+  "/": HomeView,
   //  "*": NotFound,
 };
 
@@ -42,9 +42,6 @@ const Routes = () => {
 
   return (
     <Switch>
-      <Route exact path="/">
-        <Redirect to={siteMap.projects.path} />
-      </Route>
       {getOrderedRoutes().map((route) => {
         const { name, path, title } = route;
         const shouldBeExact = name !== "notFound"; // notFound uses * as a fallback, it cannot be exact
@@ -63,7 +60,7 @@ const Routes = () => {
         );
       })}
       <Route path="*">
-        <Redirect to={siteMap.projects.path} />
+        <Redirect to={siteMap.home.path} />
       </Route>
     </Switch>
   );

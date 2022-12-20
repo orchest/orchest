@@ -1,7 +1,9 @@
 import { useExamplesApi } from "@/api/examples/useExamplesApi";
-import { useAsync } from "@/hooks/useAsync";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useAsync } from "./useAsync";
 
+/** Fetches (or re-fetches) all examples on mount. */
 export const useFetchExamples = () => {
   const examples = useExamplesApi((api) => api.examples);
   const fetchAll = useExamplesApi((api) => api.fetchAll);
@@ -13,5 +15,10 @@ export const useFetchExamples = () => {
     run(fetchAll());
   }, [status, fetchAll, run]);
 
-  return { examples, status, error };
+  return {
+    examples: examples || [],
+    hasData: hasValue(examples),
+    isFetching: status === "PENDING",
+    error,
+  };
 };

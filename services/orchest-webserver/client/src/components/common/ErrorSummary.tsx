@@ -1,3 +1,4 @@
+import { useToggle } from "@/hooks/useToggle";
 import { extractErrorDetails } from "@/utils/error";
 import { ArrowRightSharp } from "@mui/icons-material";
 import { Collapse, Stack } from "@mui/material";
@@ -12,7 +13,7 @@ export type ErrorSummaryProps = {
 };
 
 export const ErrorSummary = ({ error }: ErrorSummaryProps) => {
-  const [showDetails, setShowDetails] = React.useState(false);
+  const [showDetails, toggleDetails] = useToggle();
   const { name, message, stack } = extractErrorDetails(error);
 
   return (
@@ -31,7 +32,7 @@ export const ErrorSummary = ({ error }: ErrorSummaryProps) => {
       {stack && (
         <Box marginTop={4}>
           <Stack
-            onClick={() => setShowDetails(!showDetails)}
+            onClick={() => toggleDetails()}
             direction="row"
             justifyContent="flex-start"
             alignItems="center"

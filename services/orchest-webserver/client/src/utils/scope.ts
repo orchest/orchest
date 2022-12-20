@@ -10,6 +10,7 @@ export const ALL_SCOPE_PARAMETERS: readonly ScopeParameter[] = [
   "stepUuid",
   "filePath",
   "fileRoot",
+  "tab",
 ];
 
 export const getMissingParameters = <S extends ScopeParameter>(

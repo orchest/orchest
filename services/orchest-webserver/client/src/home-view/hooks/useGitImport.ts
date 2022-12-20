@@ -3,12 +3,13 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { usePollBackgroundTask } from "@/hooks/usePollBackgroundTask";
 import React from "react";
 
-export const useGitImport = (importUrl: string) => {
+export const useGitImport = (importUrl: string | undefined) => {
   const [importTaskUuid, setImportTaskUuid] = React.useState<string>();
   const { setAlert } = useGlobalContext();
 
   const start = React.useCallback(
     async (projectName: string | undefined) => {
+      if (!importUrl) return;
       const validation = validProjectName(projectName);
 
       if (!validation.valid) {

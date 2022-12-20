@@ -1,6 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/routingConfig";
+import { useNavigate } from "@/hooks/useCustomRoute";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -86,7 +85,7 @@ const CloseButton = ({ onClose }: { onClose: () => void }) => (
 );
 
 export const OnboardingDialog: React.FC = () => {
-  const { navigateTo } = useCustomRoute();
+  const navigate = useNavigate();
 
   const {
     isOnboardingDialogOpen,
@@ -110,7 +109,8 @@ export const OnboardingDialog: React.FC = () => {
       setSlide({ index: 0, direction: 0 });
       if (!hasImportUrl) {
         if (hasValue(quickstart)) {
-          navigateTo(siteMap.pipeline.path, {
+          navigate({
+            route: "pipeline",
             query: {
               projectUuid: quickstart.project_uuid,
               pipelineUuid: quickstart.pipeline_uuid,
@@ -118,7 +118,7 @@ export const OnboardingDialog: React.FC = () => {
           });
           return;
         }
-        navigateTo(siteMap.projects.path);
+        navigate({ route: "home", sticky: false, query: { tab: "projects" } });
       }
     });
   };

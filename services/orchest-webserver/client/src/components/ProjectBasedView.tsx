@@ -23,8 +23,8 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
   const { hasData: hasLoadedProjects } = useFetchProjects();
   const activeProject = useActiveProject();
 
-  const goToProjects = (e: React.MouseEvent) =>
-    navigateTo(siteMap.projects.path, undefined, e);
+  const goToHome = (e: React.MouseEvent) =>
+    navigateTo(siteMap.home.path, undefined, e);
 
   if (!hasLoadedProjects) return null;
 
@@ -37,8 +37,8 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
           <p className="push-down">{message}</p>
           <Button
             variant="contained"
-            onClick={goToProjects}
-            onAuxClick={goToProjects}
+            onClick={goToHome}
+            onAuxClick={goToHome}
             startIcon={<AddIcon />}
             autoFocus
           >

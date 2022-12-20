@@ -21,7 +21,7 @@ export const ProjectNotFoundMessage = () => {
     if (!hasValue(projectUuid) || !isFetched || !hasData) return;
 
     if (!projects[projectUuid] && isProjectPage(window.location.href)) {
-      navigate({ route: "projects", sticky: false });
+      navigate({ route: "home", query: { tab: "projects" }, sticky: false });
       setIsShowing(true);
     }
   }, [hasData, isFetched, navigate, projectUuid, projects]);

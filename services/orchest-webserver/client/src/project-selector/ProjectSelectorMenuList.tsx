@@ -60,7 +60,7 @@ export const ProjectSelectorMenuList = ({
 
   const onProjectDeleted = (project: Project) => {
     if (project.uuid === activeProject?.uuid) {
-      navigate({ route: "projects", sticky: false });
+      navigate({ route: "home", query: { tab: "projects" }, sticky: false });
     }
   };
 

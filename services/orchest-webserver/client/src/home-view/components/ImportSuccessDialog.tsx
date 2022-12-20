@@ -1,46 +1,50 @@
+import { useNavigate } from "@/hooks/useCustomRoute";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
+import Dialog, { DialogProps } from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import React from "react";
+import { ProjectIdentifiers } from "./ImportProjectDialog";
 
-type ImportSuccessDialogProps = {
-  open: boolean;
-  projectName: string;
-  viewPipeline: (e: React.MouseEvent) => void;
-  onClose: (e: React.MouseEvent) => void;
+export type ImportSuccessDialogProps = Omit<DialogProps, "children"> & {
+  project: ProjectIdentifiers;
 };
 
-const ImportSuccessDialog = ({
-  open,
-  projectName,
-  viewPipeline,
-  onClose,
+export const ImportSuccessDialog = ({
+  project,
+  ...dialogProps
 }: ImportSuccessDialogProps) => {
+  const navigate = useNavigate();
+  const viewPipeline = () =>
+    navigate({
+      route: "pipeline",
+      query: { projectUuid: project.uuid },
+      sticky: false,
+    });
+
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog {...dialogProps}>
       <DialogTitle>Import complete</DialogTitle>
       <DialogContent>
         <div className="project-import-modal">
           <p className="push-down">
-            You have imported <span className="bold">{projectName}</span>{" "}
+            You have imported <span className="bold">{project.path}</span>{" "}
             successfully! It is now visible in your project list.
           </p>
         </div>
       </DialogContent>
       <DialogActions>
         <Button
-          onClick={onClose}
+          onClick={() => dialogProps.onClose?.({}, "backdropClick")}
           data-test-id="import-success-dialog-close-button"
         >
-          Continue browsing
+          Close
         </Button>
         <Button
           variant="contained"
           autoFocus
           onClick={viewPipeline}
-          onAuxClick={viewPipeline}
           data-test-id="import-success-dialog-view-pipeline-button"
         >
           View pipeline
@@ -49,5 +53,3 @@ const ImportSuccessDialog = ({
     </Dialog>
   );
 };
-
-export { ImportSuccessDialog };
