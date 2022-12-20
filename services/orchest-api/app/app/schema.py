@@ -45,6 +45,8 @@ pagination_data = Model(
     },
 )
 
+_task_statuses = ["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"]
+
 
 def _session_base_url(s) -> str:
     if isinstance(s, dict):
@@ -336,7 +338,7 @@ pipeline_run_pipeline_step = Model(
         "status": fields.String(
             required=True,
             description="Status of the step",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+            enum=_task_statuses,
         ),
         "started_time": fields.String(
             required=True, description="Time at which the step started executing"
@@ -415,7 +417,7 @@ status_update = Model(
         "status": fields.String(
             required=True,
             description="New status of executable, e.g. pipeline or step",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+            enum=_task_statuses,
         ),
         "cluster_node": fields.String(
             required=False,
@@ -629,7 +631,7 @@ job = Model(
         "status": fields.String(
             required=True,
             description="Status of the job.",
-            enum=["DRAFT", "PENDING", "STARTED", "PAUSED", "SUCCESS", "ABORTED"],
+            enum=["DRAFT", "PAUSED"] + _task_statuses,
         ),
         "created_time": fields.String(
             required=True, description="Time at which the job was created"
@@ -689,7 +691,7 @@ environment_image_build = Model(
         "status": fields.String(
             required=True,
             description="Status of the build",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+            enum=_task_statuses,
         ),
     },
 )
@@ -783,9 +785,7 @@ jupyter_image_build = Model(
             required=True, description="Time at which the build finished executing"
         ),
         "status": fields.String(
-            required=True,
-            description="Status of the build",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+            required=True, description="Status of the build", enum=_task_statuses
         ),
     },
 )
