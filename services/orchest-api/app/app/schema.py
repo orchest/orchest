@@ -11,6 +11,7 @@ import sys
 
 from flask_restx import Model, Namespace, fields
 
+from app import errors as self_errors
 from app import models, utils
 
 dictionary = Model("Dictionary", {})
@@ -1119,6 +1120,10 @@ snapshots = Model(
     },
 )
 
+_git_import_errors = [
+    _type.__name__ for _type in utils.get_descendant_types(self_errors.GitImportError)
+]
+
 git_import = Model(
     "GitImport",
     {
@@ -1127,7 +1132,12 @@ git_import = Model(
         "requested_name": fields.String(required=False),
         "status": fields.String(required=True, enum=_task_statuses),
         "project_uuid": fields.String(required=False),
-        "result": fields.Raw(),
+        "result": fields.Raw(
+            description=(
+                'In some FAILURE cases "error" will be mapped to an error code, '
+                f"possible codes: {_git_import_errors}."
+            )
+        ),
     },
 )
 

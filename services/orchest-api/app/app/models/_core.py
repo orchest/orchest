@@ -1314,10 +1314,10 @@ class GitImport(BaseModel):
     )
 
     status = db.Column(db.String(15), unique=False, nullable=False)
-    # Used to deliver status code, stdout, stderr and other related
-    # data in a not so much schema constrained way. Given that "old"
-    # data of this model doesn't matter migrations can happen easily in
-    # case we want to move to more tailoed fields later.
+    # Used to deliver extra information such as error codes in a not so
+    # much schema constrained way. Given that "old" data of this model
+    # doesn't matter migrations can happen easily in case we want to
+    # move to more tailored fields later.
     result = db.Column(JSONB, nullable=False, server_default="{}")
 
     def __repr__(self):

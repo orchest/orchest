@@ -59,3 +59,23 @@ class ImageRegistryDeletionError(Exception):
 
 class DeliveryFailed(Exception):
     pass
+
+
+class GitImportError(Exception):
+    pass
+
+
+class GitCloneFailed(GitImportError):
+    def __init__(self, *args, status_code: int, stdout: str, stderr: str, **kwargs):
+        self.status_code = status_code
+        self.stdout = stdout
+        self.stderr = stderr
+        super().__init__(*args)
+
+
+class ProjectWithSameNameExists(GitImportError):
+    pass
+
+
+class ProjectNotDiscoveredByWebServer(GitImportError):
+    pass

@@ -3,7 +3,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Needed to daemonize celery workers.
 RUN apt-get update \
-     && apt-get install -y supervisor rsync netcat jq curl \
+     && apt-get install -y git supervisor rsync netcat jq curl \
      && mkdir -p /var/log/supervisor
 
 # Get all requirements in place.

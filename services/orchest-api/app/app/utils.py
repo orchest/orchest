@@ -5,7 +5,7 @@ import uuid
 from collections import ChainMap
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Container, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Container, Dict, Iterable, List, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import requests
@@ -950,3 +950,14 @@ def update_steps_status(run_uuid: str, step_uuids: Iterable[str], status: str) -
             models.PipelineRunStep.step_uuid.in_(list(step_uuids)),
         ],
     )
+
+
+def get_descendant_types(_class: type) -> Set[type]:
+    descendants = set()
+    to_process = [_class]
+    while to_process:
+        current_class = to_process.pop()
+        for child in current_class.__subclasses__():
+            descendants.add(child)
+            to_process.append(child)
+    return descendants
