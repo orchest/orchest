@@ -1,3 +1,4 @@
+import { useFetchOrchestConfigs } from "@/hooks/useFetchOrchestConfigs";
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import theme from "@/theme";
 import { ThemeProvider } from "@mui/material/styles";
@@ -38,6 +39,7 @@ export const GlobalProviders: React.FC = ({ children }) => {
  * - ProjectContext: managing the active project
  */
 export const OrchestProvider: React.FC = ({ children }) => {
+  useFetchOrchestConfigs();
   return (
     <ProjectsContextProvider>
       <SessionsContextProvider>{children}</SessionsContextProvider>
