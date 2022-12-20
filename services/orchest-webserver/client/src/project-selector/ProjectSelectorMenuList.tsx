@@ -114,7 +114,7 @@ export const ProjectSelectorMenuList = ({
                 "> button": {
                   opacity: openProject?.uuid === project.uuid ? 1 : 0,
                 },
-                "&:hover > button": { opacity: 1 },
+                "&:hover > button, &.Mui-focusVisible > button": { opacity: 1 },
               }}
               onClick={() => selectProject(project.uuid)}
             >
