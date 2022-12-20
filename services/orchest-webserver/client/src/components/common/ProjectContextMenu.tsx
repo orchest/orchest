@@ -66,7 +66,7 @@ export const ProjectContextMenu = ({
           data-test-id="project-context-menu-rename"
           onClick={() => setIsRenaming(true)}
         >
-          Rename Project
+          Rename
         </MenuItem>
         <MenuItem
           data-test-id="project-context-menu-delete"
@@ -74,7 +74,7 @@ export const ProjectContextMenu = ({
           disabled={deleting.includes(project.uuid)}
           sx={{ color: red[500] }}
         >
-          Delete Project
+          Delete
         </MenuItem>
       </Menu>
 
