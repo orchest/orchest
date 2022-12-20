@@ -12,6 +12,7 @@ import IconButton from "@mui/material/IconButton";
 import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
+import { PopoverPosition } from "@mui/material/Popover";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useProjectList } from "./useProjectList";
@@ -30,7 +31,7 @@ export const ProjectSelectorMenuList = ({
   const { hasData, isEmpty } = useFetchProjects();
   const activeProject = useActiveProject();
   const { navigateTo } = useCustomRoute();
-  const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement>();
+  const [menuAnchor, setMenuAnchor] = React.useState<PopoverPosition>();
   const [openProject, setOpenProject] = React.useState<Project>();
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
   const { searchTerm, setSearchTerm, filteredProjects } = useProjectList();
@@ -47,14 +48,14 @@ export const ProjectSelectorMenuList = ({
       event.preventDefault();
       event.stopPropagation();
 
-      setMenuAnchorEl(event.target as HTMLElement);
+      setMenuAnchor({ top: event.clientY, left: event.clientX });
       setOpenProject(project);
     },
     []
   );
 
   const closeContextMenu = React.useCallback(() => {
-    setMenuAnchorEl(undefined);
+    setMenuAnchor(undefined);
     setOpenProject(undefined);
   }, []);
 
@@ -103,6 +104,7 @@ export const ProjectSelectorMenuList = ({
           return (
             <MenuItem
               key={project.uuid}
+              onContextMenu={(event) => openContextMenu(event, project)}
               tabIndex={0}
               ref={(ref) => {
                 if (index === 0) menuFirstItemRef.current = ref;
@@ -136,10 +138,11 @@ export const ProjectSelectorMenuList = ({
           );
         })}
       </MenuList>
-      {openProject && menuAnchorEl && (
+      {openProject && menuAnchor && (
         <ProjectContextMenu
           project={openProject}
-          anchorEl={menuAnchorEl}
+          anchorReference="anchorPosition"
+          anchorPosition={menuAnchor}
           onClose={closeContextMenu}
           onDeleted={() => onProjectDeleted(openProject)}
         />
