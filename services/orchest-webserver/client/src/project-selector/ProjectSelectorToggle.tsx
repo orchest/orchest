@@ -1,5 +1,5 @@
 import { useActiveProject } from "@/hooks/useActiveProject";
-import { siteMap } from "@/routingConfig";
+import { isProjectPage } from "@/routingConfig";
 import { ellipsis } from "@/utils/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
@@ -25,8 +25,7 @@ export const ProjectSelectorToggle = ({
 }: ProjectSelectorToggleProps) => {
   const { pathname } = useLocation();
   const activeProject = useActiveProject();
-  const projectName =
-    pathname === siteMap.projects.path ? undefined : activeProject?.path;
+  const projectName = isProjectPage(pathname) ? activeProject?.path : undefined;
 
   return (
     <Button

@@ -269,6 +269,4 @@ export const getPageCommands = (projectUuid: string | undefined) =>
     });
 
 export const isProjectPage = (path: string) =>
-  Object.values(siteMap)
-    .find((item) => item.path === path)
-    ?.scope.includes("projectUuid") ?? false;
+  navigationRoutes.some((route) => route.path === path);
