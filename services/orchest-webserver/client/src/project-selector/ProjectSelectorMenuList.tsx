@@ -1,9 +1,8 @@
 import { ProjectContextMenu } from "@/components/common/ProjectContextMenu";
 import { SearchField } from "@/components/SearchField";
 import { useActiveProject } from "@/hooks/useActiveProject";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useNavigate } from "@/hooks/useCustomRoute";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
-import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
@@ -30,7 +29,7 @@ export const ProjectSelectorMenuList = ({
 }: ProjectSelectorMenuListProps) => {
   const { hasData, isEmpty } = useFetchProjects();
   const activeProject = useActiveProject();
-  const { navigateTo } = useCustomRoute();
+  const navigate = useNavigate();
   const [menuAnchor, setMenuAnchor] = React.useState<PopoverPosition>();
   const [openProject, setOpenProject] = React.useState<Project>();
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
@@ -61,7 +60,7 @@ export const ProjectSelectorMenuList = ({
 
   const onProjectDeleted = (project: Project) => {
     if (project.uuid === activeProject?.uuid) {
-      navigateTo(siteMap.projects.path, { query: {} });
+      navigate({ route: "projects", sticky: false });
     }
   };
 

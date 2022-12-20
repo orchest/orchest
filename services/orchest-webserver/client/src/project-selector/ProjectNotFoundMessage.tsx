@@ -1,10 +1,9 @@
 import { SnackBar } from "@/components/common/SnackBar";
 import { useCurrentQuery, useNavigate } from "@/hooks/useCustomRoute";
 import { useFetchProjects } from "@/hooks/useFetchProjects";
+import { isProjectPage } from "@/routingConfig";
 import { isUuid } from "@/utils/uuid";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import blue from "@mui/material/colors/blue";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -21,11 +20,24 @@ export const ProjectNotFoundMessage = () => {
   React.useEffect(() => {
     if (!hasValue(projectUuid) || !isFetched || !hasData) return;
 
-    if (!projects[projectUuid]) {
-      setIsShowing(true);
+    if (!projects[projectUuid] && isProjectPage(window.location.href)) {
       navigate({ route: "projects", sticky: false });
+      setIsShowing(true);
     }
   }, [hasData, isFetched, navigate, projectUuid, projects]);
+
+  const open =
+    isShowing &&
+    hasValue(lastSeenUuidRef.current) &&
+    isUuid(lastSeenUuidRef.current);
+
+  React.useEffect(() => {
+    if (!open) return;
+
+    const handle = window.setTimeout(() => setIsShowing(false), 7500);
+
+    return () => window.clearTimeout(handle);
+  }, [open]);
 
   return (
     <SnackBar
@@ -39,17 +51,7 @@ export const ProjectNotFoundMessage = () => {
           <Typography variant="subtitle2">
             Project <code>{lastSeenUuidRef.current}</code> was not found
           </Typography>
-          It may have been deleted.
         </Box>
-      }
-      action={
-        <Button
-          size="small"
-          onClick={() => setIsShowing(false)}
-          sx={{ color: blue[200] }}
-        >
-          OK
-        </Button>
       }
     />
   );
