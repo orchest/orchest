@@ -25,6 +25,7 @@ COPY celery_daemon_configs/worker_builds.conf \
      celery_daemon_configs/worker_interactive.conf \
      celery_daemon_configs/worker_jobs.conf \
      celery_daemon_configs/worker_deliveries.conf \
+     celery_daemon_configs/worker_other_tasks.conf \
      /etc/supervisor/conf.d/
 
 # To be consistent with the other services.
