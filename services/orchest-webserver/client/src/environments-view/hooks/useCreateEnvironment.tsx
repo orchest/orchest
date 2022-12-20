@@ -1,5 +1,5 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { useAsync } from "@/hooks/useAsync";
 import { EnvironmentData, EnvironmentSpec, Language } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
@@ -7,7 +7,8 @@ import React from "react";
 import { DEFAULT_BASE_IMAGES, getNewEnvironmentName } from "../common";
 
 export const useCreateEnvironment = () => {
-  const { config } = useGlobalContext();
+  const config = useOrchestConfigsApi((state) => state.config);
+
   const { run, status } = useAsync<EnvironmentData | undefined>();
 
   const environments = useEnvironmentsApi((state) => state.environments);

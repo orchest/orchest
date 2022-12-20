@@ -1,4 +1,4 @@
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { CustomImage, Language } from "@/types";
 import Alert from "@mui/material/Alert";
 import Checkbox from "@mui/material/Checkbox";
@@ -37,8 +37,7 @@ const isDefaultImage = (baseImage: string) => {
 };
 
 export const CustomImageDetails = () => {
-  const { config } = useGlobalContext();
-
+  const config = useOrchestConfigsApi((state) => state.config);
   const {
     selectedImage,
     customImage,
