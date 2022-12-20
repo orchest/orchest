@@ -1119,6 +1119,26 @@ snapshots = Model(
     },
 )
 
+git_import = Model(
+    "GitImport",
+    {
+        "uuid": fields.String(required=True),
+        "url": fields.String(required=True),
+        "requested_name": fields.String(required=False),
+        "status": fields.String(required=True, enum=_task_statuses),
+        "project_uuid": fields.String(required=False),
+        "result": fields.Raw(),
+    },
+)
+
+git_import_request = Model(
+    "GitImportRequest",
+    {
+        "url": fields.String(required=True),
+        "project_name": fields.String(required=False),
+    },
+)
+
 
 def register_schema(api: Namespace) -> Namespace:
     current_module = sys.modules[__name__]
