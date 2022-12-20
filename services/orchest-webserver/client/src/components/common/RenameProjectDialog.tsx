@@ -35,13 +35,16 @@ export const RenameProjectDialog = ({
 
   React.useEffect(() => {
     if (!projects) return;
+    const anotherProjectHasSameName = Object.values(projects).some(
+      ({ path, uuid }) => path === newName && uuid !== project.uuid
+    );
 
-    if (Object.values(projects).some((project) => project.path === newName)) {
+    if (anotherProjectHasSameName) {
       setValidationMessage("Project name already exists.");
     } else {
       setValidationMessage(undefined);
     }
-  }, [newName, projects]);
+  }, [newName, project, projects]);
 
   const closeDialog = () => {
     onClose();
@@ -93,7 +96,7 @@ export const RenameProjectDialog = ({
           <Button onClick={onClose}>Cancel</Button>
           <Button
             variant="contained"
-            disabled={Boolean(validationMessage)}
+            disabled={Boolean(validationMessage) || newName === project.path}
             type="submit"
             form="edit-name"
           >
