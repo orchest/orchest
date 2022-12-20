@@ -6,8 +6,10 @@ import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
+import { useProductTour } from "@/tour";
 import { Project } from "@/types";
 import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { CreateProjectDialog } from "./CreateProjectDialog";
@@ -68,6 +70,8 @@ export const ProjectsView = () => {
     setImportWhenOpen(true);
   };
 
+  const resume = useProductTour((state) => state.resume);
+
   return (
     <>
       <ProjectTabsContextProvider>
@@ -114,6 +118,7 @@ export const ProjectsView = () => {
             )}
             <ExampleList importProject={importExample} />
           </ProjectTabPanel>
+          <Button onClick={() => resume("pipeline-editor")}>Resume tour</Button>
         </ViewLayout>
       </ProjectTabsContextProvider>
 

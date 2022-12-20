@@ -1,7 +1,9 @@
 import { useEditJob } from "@/jobs-view/stores/useEditJob";
 import theme from "@/theme";
+import { stepList } from "@/tour";
 import { ThemeProvider } from "@mui/material/styles";
 import { DesignSystemProvider } from "@orchest/design-system";
+import { TourProvider } from "@reactour/tour";
 import { domMax, LazyMotion } from "framer-motion";
 import React from "react";
 import { BrowserRouter as Router } from "react-router-dom";
@@ -85,9 +87,11 @@ export const AppProviders: React.FC = ({ children }) => {
     <DesignProvider>
       <GlobalProviders>
         <RouteProvider>
-          <OrchestProvider>
-            <AppContextProvider>{children}</AppContextProvider>
-          </OrchestProvider>
+          <TourProvider steps={stepList} scrollSmooth>
+            <OrchestProvider>
+              <AppContextProvider>{children}</AppContextProvider>
+            </OrchestProvider>
+          </TourProvider>
         </RouteProvider>
       </GlobalProviders>
     </DesignProvider>

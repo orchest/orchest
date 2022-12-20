@@ -26,6 +26,7 @@
     "@openreplay/tracker": "^3.5.16",
     "@orchest/design-system": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
+    "@reactour/tour": "^3.1.6",
     "@use-gesture/react": "^10.2.10",
     "ajv": "^8.6.0",
     "classnames": "^2.3.1",
