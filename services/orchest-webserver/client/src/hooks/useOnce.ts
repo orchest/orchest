@@ -1,16 +1,23 @@
+import { AnyFunction } from "@/types";
 import React from "react";
 
-export const useOnce = (condition: boolean, callback?: () => void) => {
-  const ran = React.useRef(false);
-  const didRun = ran.current;
+/**
+ * Runs the provided callback some condition has been met.
+ */
+export const useOnce = <C extends AnyFunction>(
+  condition: boolean,
+  callback: C
+): ReturnType<C> | undefined => {
+  const called = React.useRef(false);
+  const result = React.useRef<ReturnType<C>>();
 
-  React.useEffect(() => {
-    if (didRun) return;
-    else if (condition) {
-      callback?.();
-      ran.current = true;
-    }
-  }, [callback, didRun, condition]);
+  // We want this result back in the
+  // first render cycle if possible.
+  // Don't run this as a `useEffect`.
+  if (condition && !called.current) {
+    called.current = true;
+    result.current = callback();
+  }
 
-  return didRun;
+  return result.current;
 };

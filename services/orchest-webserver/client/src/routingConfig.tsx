@@ -267,3 +267,6 @@ export const getPageCommands = (projectUuid: string | undefined) =>
         },
       };
     });
+
+export const isProjectPage = (path: string) =>
+  navigationRoutes.some((route) => route.path === path);

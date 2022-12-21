@@ -1,9 +1,10 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
 import { CreateProjectDialog } from "@/projects-view/CreateProjectDialog";
 import { ImportDialog } from "@/projects-view/ImportDialog";
 import { PROJECT_TAB } from "@/projects-view/ProjectTabsContext";
-import { siteMap } from "@/routingConfig";
+import { isProjectPage, siteMap } from "@/routingConfig";
 import AddIcon from "@mui/icons-material/Add";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import Button from "@mui/material/Button";
@@ -14,17 +15,16 @@ import { GoToExamplesButton } from "./GoToExamplesButton";
 import { ProjectSelectorMenuList } from "./ProjectSelectorMenuList";
 import { ProjectSelectorPopover } from "./ProjectSelectorPopover";
 
+type ProjectSelectorMenuProps = {
+  open: boolean;
+  onClose: () => void;
+};
+
 export const ProjectSelectorMenu = ({
   open,
   onClose,
-  validProjectUuid,
-  selectProject,
-}: {
-  open: boolean;
-  onClose: () => void;
-  validProjectUuid: string | undefined;
-  selectProject: (projectUuid: string) => void;
-}) => {
+}: ProjectSelectorMenuProps) => {
+  const { dispatch } = useProjectsContext();
   const { navigateTo, location, tab } = useCustomRoute();
 
   const customNavigation = React.useCallback(
@@ -46,6 +46,18 @@ export const ProjectSelectorMenu = ({
   };
   const goToExamples = () => {
     customNavigation(PROJECT_TAB.EXAMPLE_PROJECTS);
+  };
+
+  const selectProject = (projectUuid: string) => {
+    dispatch({ type: "SET_PROJECT", payload: projectUuid });
+
+    if (isProjectPage(window.location.pathname)) {
+      navigateTo(window.location.pathname, { query: { projectUuid } });
+    } else {
+      navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+    }
+
+    onClose();
   };
 
   const createButtonRef = React.useRef<HTMLButtonElement | null>(null);
@@ -107,7 +119,6 @@ export const ProjectSelectorMenu = ({
         </ImportDialog>
       </Stack>
       <ProjectSelectorMenuList
-        validProjectUuid={validProjectUuid}
         selectProject={selectProject}
         onSearchKeydown={(e) => {
           if (e.key === "ArrowUp") {

@@ -1,38 +1,68 @@
+import { ProjectContextMenu } from "@/components/common/ProjectContextMenu";
 import { SearchField } from "@/components/SearchField";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActiveProject } from "@/hooks/useActiveProject";
+import { useNavigate } from "@/hooks/useCustomRoute";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
+import { Project } from "@/types";
 import { ellipsis } from "@/utils/styles";
+import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
+import { PopoverPosition } from "@mui/material/Popover";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useProjectList } from "./useProjectList";
 
-export const ProjectSelectorMenuList = ({
-  validProjectUuid,
-  selectProject,
-  onSearchKeydown,
-}: {
-  validProjectUuid: string | undefined;
+type ProjectSelectorMenuListProps = {
   selectProject: (projectUuid: string) => void;
   onSearchKeydown: React.KeyboardEventHandler<
     HTMLTextAreaElement | HTMLInputElement
   >;
-}) => {
-  const {
-    state: { projects = [] },
-  } = useProjectsContext();
+};
+
+export const ProjectSelectorMenuList = ({
+  selectProject,
+  onSearchKeydown,
+}: ProjectSelectorMenuListProps) => {
+  const { hasData, isEmpty } = useFetchProjects();
+  const activeProject = useActiveProject();
+  const navigate = useNavigate();
+  const [menuAnchor, setMenuAnchor] = React.useState<PopoverPosition>();
+  const [openProject, setOpenProject] = React.useState<Project>();
   const menuFirstItemRef = React.useRef<HTMLLIElement | null>(null);
-  const { searchTerm, setSearchTerm, filteredProjects } = useProjectList(
-    projects
-  );
+  const { searchTerm, setSearchTerm, filteredProjects } = useProjectList();
 
   const noProjectsMessage =
-    projects.length === 0
+    hasData && isEmpty
       ? "No projects yet"
-      : filteredProjects.length === 0 && searchTerm.length > 0
+      : hasData && filteredProjects.length === 0 && searchTerm.length > 0
       ? "No Projects found"
       : null;
+
+  const openContextMenu = React.useCallback(
+    (event: React.MouseEvent, project: Project) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      setMenuAnchor({ top: event.clientY, left: event.clientX });
+      setOpenProject(project);
+    },
+    []
+  );
+
+  const closeContextMenu = React.useCallback(() => {
+    setMenuAnchor(undefined);
+    setOpenProject(undefined);
+  }, []);
+
+  const onProjectDeleted = (project: Project) => {
+    if (project.uuid === activeProject?.uuid) {
+      navigate({ route: "projects", sticky: false });
+    }
+  };
 
   return (
     <>
@@ -73,23 +103,49 @@ export const ProjectSelectorMenuList = ({
           return (
             <MenuItem
               key={project.uuid}
+              onContextMenu={(event) => openContextMenu(event, project)}
               tabIndex={0}
               ref={(ref) => {
                 if (index === 0) menuFirstItemRef.current = ref;
               }}
-              selected={validProjectUuid === project.uuid}
+              selected={activeProject?.uuid === project.uuid}
+              sx={{
+                "> button": {
+                  opacity: openProject?.uuid === project.uuid ? 1 : 0,
+                },
+                "&:hover > button, &.Mui-focusVisible > button": { opacity: 1 },
+              }}
               onClick={() => selectProject(project.uuid)}
             >
-              <Typography
-                title={project.path}
-                sx={ellipsis((theme) => theme.spacing(40))}
+              <ListItemText>
+                <Typography
+                  title={project.path}
+                  sx={ellipsis((theme) => theme.spacing(40))}
+                >
+                  {project.path}
+                </Typography>
+              </ListItemText>
+              <IconButton
+                title="More options"
+                size="small"
+                onClick={(event) => openContextMenu(event, project)}
+                data-test-id={`project-selector-menu-list-button-${project.path}`}
               >
-                {project.path}
-              </Typography>
+                <MoreHorizOutlinedIcon fontSize="small" />
+              </IconButton>
             </MenuItem>
           );
         })}
       </MenuList>
+      {openProject && menuAnchor && (
+        <ProjectContextMenu
+          project={openProject}
+          anchorReference="anchorPosition"
+          anchorPosition={menuAnchor}
+          onClose={closeContextMenu}
+          onDeleted={() => onProjectDeleted(openProject)}
+        />
+      )}
     </>
   );
 };

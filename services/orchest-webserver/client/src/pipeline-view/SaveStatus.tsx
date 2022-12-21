@@ -1,5 +1,5 @@
 import {
-  ProjectsContextState,
+  ProjectContextState,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { useMounted } from "@/hooks/useMounted";
@@ -8,7 +8,7 @@ import Fade from "@mui/material/Fade";
 import React from "react";
 
 const saveStatusMapping: Record<
-  ProjectsContextState["pipelineSaveStatus"],
+  ProjectContextState["pipelineSaveStatus"],
   string
 > = { saved: "Auto-saved", saving: "Saving …" };
 

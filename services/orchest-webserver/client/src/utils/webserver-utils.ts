@@ -223,23 +223,6 @@ export function checkGate(project_uuid: string) {
   });
 }
 
-export type CreateProjectError =
-  | "git clone failed"
-  | "project move failed"
-  | "project name contains illegal character";
-
-export type BackgroundTask =
-  | {
-      uuid: string;
-      status: "SUCCESS" | "FAILURE";
-      result: CreateProjectError | string;
-    }
-  | {
-      uuid: string;
-      status: "PENDING";
-      result: null;
-    };
-
 export const pipelinePathToJsonLocation = (
   pipelinePath: string | undefined
 ) => {
@@ -248,69 +231,6 @@ export const pipelinePathToJsonLocation = (
   }
   return pipelinePath.slice(0, -".orchest".length) + ".parameters.json";
 };
-
-export class BackgroundTaskPoller {
-  private END_STATUSES: string[];
-  private taskCallbacks: Record<string, (task: BackgroundTask) => void>;
-  private activeTasks: Record<string, boolean>;
-
-  public POLL_FREQUENCY: number;
-
-  constructor() {
-    this.END_STATUSES = ["SUCCESS", "FAILURE"];
-    this.POLL_FREQUENCY = 3000;
-
-    this.taskCallbacks = {};
-    this.activeTasks = {};
-  }
-
-  startPollingBackgroundTask(
-    taskUuid: string,
-    onComplete: (task: BackgroundTask) => void
-  ) {
-    // default to no-op callback
-    if (!onComplete) {
-      onComplete = () => {}; // eslint-disable-line @typescript-eslint/no-empty-function
-    }
-
-    this.activeTasks[taskUuid] = true;
-    this.taskCallbacks[taskUuid] = onComplete;
-    this.executeDelayedRequest(taskUuid);
-  }
-
-  executeDelayedRequest(taskUuid: string) {
-    setTimeout(() => {
-      if (this.activeTasks[taskUuid]) {
-        this.requestStatus(taskUuid);
-      }
-    }, this.POLL_FREQUENCY);
-  }
-
-  removeTask(taskUuid: string) {
-    delete this.activeTasks[taskUuid];
-  }
-
-  removeAllTasks() {
-    this.activeTasks = {};
-  }
-
-  async requestStatus(taskUuid: string) {
-    try {
-      const data = await fetcher<BackgroundTask>(
-        `/async/background-tasks/${taskUuid}`
-      );
-
-      if (this.END_STATUSES.includes(data.status)) {
-        this.taskCallbacks[taskUuid](data);
-        this.removeTask(taskUuid);
-      } else {
-        this.executeDelayedRequest(taskUuid);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-}
 
 export function getScrollLineHeight() {
   const el = document.createElement("div");

@@ -41,6 +41,7 @@ export const useLocalStorage = <T>(
           cachedItemString.current = JSON.stringify(valueToStore);
           if (privateKey)
             window.localStorage.setItem(privateKey, cachedItemString.current);
+
           return valueToStore;
         });
       } catch (error) {

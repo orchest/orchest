@@ -1,4 +1,4 @@
-import { useScopeParameters } from "@/hooks/useScopeParameters";
+import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import { ScopeParameter } from "@/types";
 import { equalsShallow, pick, prune } from "@/utils/record";
 import { assertInScope } from "@/utils/scope";
@@ -117,7 +117,7 @@ export function createScopedStore<
     selector?: (state: WithScopes<T, S, A>) => U,
     equals?: (a: U, b: U) => boolean
   ) {
-    const scopeParameters = useScopeParameters();
+    const scopeParameters = useCurrentQuery();
 
     // Prune nullish values from the required parameters:
     // We don't want to reset the store until NEW values are set.

@@ -4,7 +4,7 @@ import Chip from "@mui/material/Chip";
 import React from "react";
 
 export const GoToExamplesButton = ({ onClick }: { onClick: () => void }) => {
-  const { data: examples } = useFetchExamples();
+  const { examples } = useFetchExamples();
   const examplesCountString = React.useMemo(() => {
     if (!examples) return null;
     return examples.length > 99 ? "99+" : examples.length.toString();
