@@ -1336,3 +1336,23 @@ class AuthUser(BaseModel):
     __tablename__ = "auth_users"
 
     uuid = db.Column(db.String(36), primary_key=True)
+
+
+class GitConfig(BaseModel):
+    """Git config of the users.
+
+    To be injected in contexts which require it.
+    """
+
+    __tablename__ = "git_configs"
+
+    uuid = db.Column(db.String(36), primary_key=True)
+    auth_user_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("auth_users.uuid", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+        unique=True,
+    )
+    name = db.Column(db.String(), nullable=False)
+    email = db.Column(db.String(), nullable=False)
