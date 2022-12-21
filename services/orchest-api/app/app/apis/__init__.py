@@ -1,6 +1,7 @@
 from flask import Blueprint
 from flask_restx import Api
 
+from app.apis.namespace_auth_users import api as ns_auth_users
 from app.apis.namespace_ctl import api as ns_ctl
 from app.apis.namespace_environment_image_builds import api as ns_env_image_builds
 from app.apis.namespace_environment_images import api as ns_env_images
@@ -28,6 +29,7 @@ api = Api(
     description="Back-end API for Orchest",
 )
 
+api.add_namespace(ns_auth_users)
 api.add_namespace(ns_ctl)
 api.add_namespace(ns_env_image_builds)
 api.add_namespace(ns_env_images)

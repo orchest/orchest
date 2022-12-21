@@ -1149,6 +1149,13 @@ git_import_request = Model(
     },
 )
 
+auth_user_request = Model(
+    "AuthUserRequest",
+    {
+        "uuid": fields.String(required=True),
+    },
+)
+
 
 def register_schema(api: Namespace) -> Namespace:
     current_module = sys.modules[__name__]
