@@ -1156,6 +1156,28 @@ auth_user_request = Model(
     },
 )
 
+git_config = Model(
+    "GitConfig",
+    {
+        "uuid": fields.String(required=True),
+        "name": fields.String(required=True),
+        "email": fields.String(required=True),
+    },
+)
+
+git_configs = Model(
+    "GitConfigs",
+    {"git_configs": fields.List(fields.Nested(git_config))},
+)
+
+git_config_request = Model(
+    "GitConfigRequest",
+    {
+        "name": fields.String(required=True),
+        "email": fields.String(required=True),
+    },
+)
+
 
 def register_schema(api: Namespace) -> Namespace:
     current_module = sys.modules[__name__]
