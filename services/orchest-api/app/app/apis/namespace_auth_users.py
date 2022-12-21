@@ -5,6 +5,7 @@ import uuid
 import sqlalchemy
 from flask import request
 from flask_restx import Namespace, Resource
+from sqlalchemy.orm import defer
 
 from app import models, schema
 from app.connections import db
@@ -132,5 +133,66 @@ class GitConfig(Resource):
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
         models.GitConfig.query.filter(models.GitConfig.uuid == git_config_uuid).delete()
+        db.session.commit()
+        return {}, 200
+
+
+@api.route("/<string:auth_user_uuid>/ssh-keys")
+class SSHKeyList(Resource):
+    @api.marshal_with(schema.ssh_keys, code=200)
+    def get(self, auth_user_uuid: str):
+        models.AuthUser.query.get_or_404(
+            auth_user_uuid, description=f"No user {auth_user_uuid}."
+        )
+
+        # The redundant "defer" and the manual serialization is to be
+        # really, really sure that the key doesn't get out this way.
+        ssh_keys = (
+            models.SSHKey.query.options(defer(models.SSHKey.key))
+            .filter(models.SSHKey.auth_user_uuid == auth_user_uuid)
+            .all()
+        )
+        ssh_keys = [
+            {"name": key.name, "created_time": key.created_time} for key in ssh_keys
+        ]
+        return {"ssh_keys": ssh_keys}, 200
+
+    @api.expect(schema.ssh_key_request)
+    @api.marshal_with(schema.ssh_key, code=201)
+    def post(self, auth_user_uuid: str):
+        """Allows to set a new SSHKey for a user.
+
+        Note: the "name" and "key" fields are only verified to be of
+        the string type, no other check is currently done.
+        """
+        data = request.get_json()
+        if not isinstance(data.get("name"), str):
+            return {"message": "Name is not a string."}, 400
+        if not isinstance(data.get("key"), str):
+            return {"message": "Key is not a string."}, 400
+
+        models.AuthUser.query.get_or_404(
+            auth_user_uuid, description=f"No user {auth_user_uuid}."
+        )
+
+        ssh_key = models.SSHKey(
+            uuid=str(uuid.uuid4()),
+            auth_user_uuid=auth_user_uuid,
+            name=data["name"],
+            key=data["key"].strip(),
+        )
+        db.session.add(ssh_key)
+        db.session.commit()
+
+        return {"name": ssh_key.name, "created_time": ssh_key.created_time}, 201
+
+
+@api.route("/<string:auth_user_uuid>/ssh-keys/<string:ssh_key_uuid>")
+class SSHKey(Resource):
+    def delete(self, auth_user_uuid: str, ssh_key_uuid: str):
+        models.AuthUser.query.get_or_404(
+            auth_user_uuid, description=f"No user {auth_user_uuid}."
+        )
+        models.SSHKey.query.filter(models.SSHKey.uuid == ssh_key_uuid).delete()
         db.session.commit()
         return {}, 200

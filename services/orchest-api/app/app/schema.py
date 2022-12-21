@@ -1178,6 +1178,27 @@ git_config_request = Model(
     },
 )
 
+ssh_key = Model(
+    "SSHKey",
+    {
+        "name": fields.String(required=True),
+        "created_time": fields.String(required=True),
+    },
+)
+
+ssh_keys = Model(
+    "SSHKeys",
+    {"ssh_keys": fields.List(fields.Nested(ssh_key))},
+)
+
+ssh_key_request = Model(
+    "SSHKeyRequest",
+    {
+        "name": fields.String(required=True),
+        "key": fields.String(required=True),
+    },
+)
+
 
 def register_schema(api: Namespace) -> Namespace:
     current_module = sys.modules[__name__]
