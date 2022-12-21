@@ -1,11 +1,11 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
 } from "@/components/Accordion";
 import { ImageBuildLog } from "@/components/ImageBuildLog";
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFocusBrowserTab } from "@/hooks/useFocusBrowserTab";
 import Typography from "@mui/material/Typography";
@@ -17,7 +17,7 @@ import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 export const EnvironmentImageBuildLogs = () => {
   const { projectUuid, environmentUuid } = useCustomRoute();
-  const { config } = useGlobalContext();
+  const config = useOrchestConfigsApi((state) => state.config);
 
   const uuid = useEditEnvironment((state) => state.changes?.uuid);
   const latestBuild = useEditEnvironment((state) => state.changes?.latestBuild);

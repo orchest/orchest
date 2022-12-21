@@ -1,5 +1,5 @@
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { IconButton } from "@/components/common/IconButton";
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AppBar from "@mui/material/AppBar";
 import Stack from "@mui/material/Stack";
@@ -10,7 +10,7 @@ import { NavigationTabs } from "./NavigationTabs";
 import { SessionStatus } from "./SessionStatus";
 
 export const HeaderBar = () => {
-  const { user_config } = useGlobalContext();
+  const userConfig = useOrchestConfigsApi((state) => state.userConfig);
 
   const logoutHandler = () => {
     window.location.href = "/login/clear";
@@ -37,7 +37,7 @@ export const HeaderBar = () => {
         <ProjectSelector />
         <Stack direction="row" justifyContent="flex-end">
           <NavigationTabs />
-          {user_config?.AUTH_ENABLED && (
+          {userConfig?.AUTH_ENABLED && (
             <IconButton
               title="Logout"
               tabIndex={0}

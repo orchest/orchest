@@ -1,4 +1,4 @@
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useMounted } from "./useMounted";
@@ -77,7 +77,7 @@ const useSendAnalyticEvent = (
   event?: string | undefined,
   props?: StringifyReactElement
 ) => {
-  const { config } = useGlobalContext();
+  const config = useOrchestConfigsApi((state) => state.config);
   const mounted = useMounted();
   const shouldSend = config?.TELEMETRY_DISABLED === false && mounted.current;
 

@@ -1,3 +1,4 @@
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
@@ -33,8 +34,8 @@ const ConfigureJupyterLabView: React.FC = () => {
     setAlert,
     setConfirm,
     setAsSaved,
-    config,
   } = useGlobalContext();
+  const config = useOrchestConfigsApi((state) => state.config);
   const {
     deleteAllSessions,
     state: { sessionsKillAllInProgress, sessions },
