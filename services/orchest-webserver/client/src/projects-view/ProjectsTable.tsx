@@ -6,6 +6,7 @@ import {
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
@@ -29,9 +30,11 @@ export const ProjectsTable = () => {
   const { navigateTo } = useCustomRoute();
   const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement>();
   const [openProject, setOpenProject] = React.useState<Project>();
-  const onRowClick = (event: React.MouseEvent, projectUuid: string) =>
+  const { dispatch } = useProjectsContext();
+  const onRowClick = (event: React.MouseEvent, projectUuid: string) => {
+    dispatch({ type: "SET_PROJECT", payload: projectUuid });
     navigateTo(siteMap.pipeline.path, { query: { projectUuid } }, event);
-
+  };
   const openContextMenu = React.useCallback(
     (event: React.MouseEvent, projectUuid: string) => {
       event.preventDefault();
