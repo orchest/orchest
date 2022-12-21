@@ -115,7 +115,8 @@ def register_views(app: Flask) -> None:
     def logout() -> Response | None:
         resp = redirect_response("/")
         resp.set_cookie("auth_token", "", samesite="Lax")
-        resp.set_cookie("auth_username", samesite="Lax")
+        resp.set_cookie("auth_username", "", samesite="Lax")
+        resp.set_cookie("auth_user_uuid", "", samesite="Lax")
         return resp
 
     def redirect_response(url: str, redirect_type: str = "server") -> Response:
@@ -185,6 +186,7 @@ def register_views(app: Flask) -> None:
                     # samesite="Lax" to avoid CSRF attacks.
                     resp.set_cookie("auth_token", token.token, samesite="Lax")
                     resp.set_cookie("auth_username", username, samesite="Lax")
+                    resp.set_cookie("auth_user_uuid", user.uuid, samesite="Lax")
 
                     return resp
 
