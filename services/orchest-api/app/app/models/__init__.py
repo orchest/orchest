@@ -1,4 +1,5 @@
 from app.models._core import (
+    AuthUser,
     ClientHeartbeat,
     ClusterNode,
     Environment,

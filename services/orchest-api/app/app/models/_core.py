@@ -1322,3 +1322,17 @@ class GitImport(BaseModel):
 
     def __repr__(self):
         return f"<GitImport: {self.uuid}>"
+
+
+class AuthUser(BaseModel):
+    """Model to persist a reference to auth users.
+
+    Said reference is used to keep track of ownership of some Orchest
+    entities created by the user, and to delete those upon the deletion
+    of the user record.
+
+    """
+
+    __tablename__ = "auth_users"
+
+    uuid = db.Column(db.String(36), primary_key=True)
