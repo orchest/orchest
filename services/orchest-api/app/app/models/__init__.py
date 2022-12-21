@@ -25,6 +25,7 @@ from app.models._core import (
     SchedulerJob,
     Setting,
     Snapshot,
+    SSHKey,
 )
 from app.models._events import (
     AnalyticsSubscriber,

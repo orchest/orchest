@@ -1356,3 +1356,28 @@ class GitConfig(BaseModel):
     )
     name = db.Column(db.String(), nullable=False)
     email = db.Column(db.String(), nullable=False)
+
+
+class SSHKey(BaseModel):
+    """SSHKeys of the user.
+
+    To be injected in contexts which require it.
+    """
+
+    __tablename__ = "ssh_keys"
+
+    uuid = db.Column(db.String(36), primary_key=True)
+    auth_user_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("auth_users.uuid", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    name = db.Column(db.String(), nullable=False)
+    key = deferred(db.Column(db.String(), nullable=False))
+
+    created_time = db.Column(
+        db.DateTime,
+        nullable=False,
+        server_default=text("timezone('utc', now())"),
+    )
