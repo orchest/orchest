@@ -6,7 +6,7 @@ import { NotificationSettingsView } from "./notification-settings-view/Notificat
 import PipelineView from "./pipeline-view/PipelineView";
 import { ProjectsView } from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
-import SettingsView from "./settings-view/SettingsView";
+import { SettingsView } from "./settings-view/SettingsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";

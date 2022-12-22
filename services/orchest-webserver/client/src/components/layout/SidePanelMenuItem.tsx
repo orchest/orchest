@@ -8,11 +8,12 @@ import React from "react";
 type SidePanelMenuItemProps = {
   uuid: string;
   title: string;
-  subtitle: string;
-  statusIcon: React.ReactNode;
-  statusIconTooltip: string;
+  subtitle?: string;
+  statusIcon?: React.ReactNode;
+  statusIconTooltip?: string;
   selected: boolean;
-  showStatusIcon: boolean;
+  showStatusIcon?: boolean;
+  divider?: boolean;
   onClick: (event: React.MouseEvent, uuid: string) => void;
 };
 
@@ -24,6 +25,7 @@ export const SidePanelMenuItem = React.memo(function SidePanelMenuItem({
   statusIconTooltip,
   selected,
   onClick,
+  divider = true,
   showStatusIcon,
 }: SidePanelMenuItemProps) {
   const isTitleEmpty = title.trim().length === 0;
@@ -31,7 +33,7 @@ export const SidePanelMenuItem = React.memo(function SidePanelMenuItem({
     <MenuItem
       key={uuid}
       selected={selected}
-      divider
+      divider={divider}
       onClick={(event) => onClick(event, uuid)}
       sx={{
         display: "flex",
@@ -59,17 +61,19 @@ export const SidePanelMenuItem = React.memo(function SidePanelMenuItem({
         >
           {isTitleEmpty ? "(Unnamed)" : title}
         </Typography>
-        <Typography
-          variant="body2"
-          sx={{
-            ...ellipsis(),
-            color: (theme) => theme.palette.action.active,
-          }}
-        >
-          {subtitle}
-        </Typography>
+        {subtitle && (
+          <Typography
+            variant="body2"
+            sx={{
+              ...ellipsis(),
+              color: (theme) => theme.palette.action.active,
+            }}
+          >
+            {subtitle}
+          </Typography>
+        )}
       </Stack>
-      {showStatusIcon && (
+      {showStatusIcon && statusIconTooltip && (
         <Tooltip title={statusIconTooltip}>
           <Stack
             justifyContent="center"
