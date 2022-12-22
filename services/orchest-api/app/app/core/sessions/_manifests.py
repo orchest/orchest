@@ -44,6 +44,11 @@ def _get_common_volumes_and_volume_mounts(
         "hostPath": {"path": container_runtime_socket, "type": "Socket"},
     }
 
+    volumes["known-hosts"] = {
+        "name": "known-hosts",
+        "configMap": {"name": CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP},
+    }
+
     volume_mounts["data"] = {
         "name": "userdir-pvc",
         "mountPath": container_data_dir,
@@ -53,6 +58,12 @@ def _get_common_volumes_and_volume_mounts(
         "name": "userdir-pvc",
         "mountPath": container_project_dir,
         "subPath": relative_project_dir,
+    }
+
+    volume_mounts["known-hosts"] = {
+        "name": "known-hosts",
+        "mountPath": "/etc/ssh/ssh_known_hosts",
+        "subPath": "known_hosts",
     }
 
     if pipeline_path is not None:
@@ -373,6 +384,7 @@ def _get_environment_shell_deployment_service_manifest(
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                         volumes_dict["container-runtime-socket"],
+                        volumes_dict["known-hosts"],
                     ],
                     "containers": [
                         {
@@ -383,6 +395,7 @@ def _get_environment_shell_deployment_service_manifest(
                                 volume_mounts_dict["project-dir"],
                                 volume_mounts_dict["data"],
                                 volume_mounts_dict["pipeline-file"],
+                                volume_mounts_dict["known-hosts"],
                             ],
                             "command": ["/orchest/bootscript.sh"],
                             "args": [
@@ -469,6 +482,7 @@ def _get_jupyter_server_deployment_service_manifest(
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                         volumes_dict["container-runtime-socket"],
+                        volumes_dict["known-hosts"],
                     ],
                     "containers": [
                         {
@@ -480,6 +494,7 @@ def _get_jupyter_server_deployment_service_manifest(
                                 volume_mounts_dict["data"],
                                 volume_mounts_dict["jupyterlab-lab"],
                                 volume_mounts_dict["jupyterlab-user-settings"],
+                                volume_mounts_dict["known-hosts"],
                             ],
                             "env": [
                                 {
