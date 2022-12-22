@@ -7,7 +7,6 @@ import sqlalchemy
 from flask import request
 from flask_restx import Namespace, Resource
 from kubernetes import client
-from sqlalchemy.orm import defer
 
 from _orchest.internals import config as _config
 from app import models, schema
@@ -148,17 +147,9 @@ class SSHKeyList(Resource):
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
 
-        # The redundant "defer" and the manual serialization is to be
-        # really, really sure that the key doesn't get out this way.
-        ssh_keys = (
-            models.SSHKey.query.options(defer(models.SSHKey.key))
-            .filter(models.SSHKey.auth_user_uuid == auth_user_uuid)
-            .all()
-        )
-        ssh_keys = [
-            {"name": key.name, "created_time": key.created_time, "uuid": key.uuid}
-            for key in ssh_keys
-        ]
+        ssh_keys = models.SSHKey.query.filter(
+            models.SSHKey.auth_user_uuid == auth_user_uuid
+        ).all()
         return {"ssh_keys": ssh_keys}, 200
 
     @api.expect(schema.ssh_key_request)
@@ -183,7 +174,6 @@ class SSHKeyList(Resource):
             uuid=str(uuid.uuid4()),
             auth_user_uuid=auth_user_uuid,
             name=data["name"],
-            key=data["key"].strip(),
         )
         db.session.add(ssh_key)
         db.session.commit()
@@ -191,11 +181,7 @@ class SSHKeyList(Resource):
         # reference in the DB against which a DELETE can be called.
         _create_ssh_secret(f"ssh-key-{ssh_key.uuid}", f'{data["key"].strip()}\n')
 
-        return {
-            "name": ssh_key.name,
-            "created_time": ssh_key.created_time,
-            "uuid": ssh_key.uuid,
-        }, 201
+        return ssh_key, 201
 
 
 @api.route("/<string:auth_user_uuid>/ssh-keys/<string:ssh_key_uuid>")

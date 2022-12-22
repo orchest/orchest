@@ -1361,7 +1361,9 @@ class GitConfig(BaseModel):
 class SSHKey(BaseModel):
     """SSHKeys of the user.
 
-    To be injected in contexts which require it.
+    To be injected in contexts which require it. Note that this is
+    pretty much an in-db reference, the secret part is stored as a k8s
+    secret.
     """
 
     __tablename__ = "ssh_keys"
@@ -1374,7 +1376,6 @@ class SSHKey(BaseModel):
         nullable=False,
     )
     name = db.Column(db.String(), nullable=False)
-    key = deferred(db.Column(db.String(), nullable=False))
 
     created_time = db.Column(
         db.DateTime,
