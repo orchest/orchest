@@ -1181,6 +1181,7 @@ git_config_request = Model(
 ssh_key = Model(
     "SSHKey",
     {
+        "uuid": fields.String(required=True),
         "name": fields.String(required=True),
         "created_time": fields.String(required=True),
     },

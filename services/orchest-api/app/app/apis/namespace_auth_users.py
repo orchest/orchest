@@ -1,14 +1,17 @@
 """API endpoints to track references to auth-users and related data."""
 
+import base64
 import uuid
 
 import sqlalchemy
 from flask import request
 from flask_restx import Namespace, Resource
+from kubernetes import client
 from sqlalchemy.orm import defer
 
+from _orchest.internals import config as _config
 from app import models, schema
-from app.connections import db
+from app.connections import db, k8s_core_api
 
 api = Namespace("auth-users", description="Manage references to auth-users.")
 api = schema.register_schema(api)
@@ -153,7 +156,8 @@ class SSHKeyList(Resource):
             .all()
         )
         ssh_keys = [
-            {"name": key.name, "created_time": key.created_time} for key in ssh_keys
+            {"name": key.name, "created_time": key.created_time, "uuid": key.uuid}
+            for key in ssh_keys
         ]
         return {"ssh_keys": ssh_keys}, 200
 
@@ -183,8 +187,15 @@ class SSHKeyList(Resource):
         )
         db.session.add(ssh_key)
         db.session.commit()
+        # Do it after committing so if anything fails there is still a
+        # reference in the DB against which a DELETE can be called.
+        _create_ssh_secret(f"ssh-key-{ssh_key.uuid}", f'{data["key"].strip()}\n')
 
-        return {"name": ssh_key.name, "created_time": ssh_key.created_time}, 201
+        return {
+            "name": ssh_key.name,
+            "created_time": ssh_key.created_time,
+            "uuid": ssh_key.uuid,
+        }, 201
 
 
 @api.route("/<string:auth_user_uuid>/ssh-keys/<string:ssh_key_uuid>")
@@ -193,6 +204,34 @@ class SSHKey(Resource):
         models.AuthUser.query.get_or_404(
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
+        # Delete from the db before committing so that the secret
+        # removal must have succeeded for the reference from the db to
+        # be deleted.
+        _delete_secret(f"ssh-key-{ssh_key_uuid}")
         models.SSHKey.query.filter(models.SSHKey.uuid == ssh_key_uuid).delete()
         db.session.commit()
         return {}, 200
+
+
+def _create_ssh_secret(name: str, secret: str) -> None:
+    secret_b64 = base64.b64encode(secret.encode()).decode()
+    manifest = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "metadata": {"name": name},
+        "type": "kubernetes.io/ssh-auth",
+        "data": {"ssh-privatekey": secret_b64},
+    }
+    k8s_core_api.create_namespaced_secret(
+        namespace=_config.ORCHEST_NAMESPACE, body=manifest
+    )
+
+
+def _delete_secret(name: str) -> None:
+    try:
+        k8s_core_api.delete_namespaced_secret(
+            namespace=_config.ORCHEST_NAMESPACE, name=name
+        )
+    except client.rest.ApiException as e:
+        if e.status != 404:
+            raise e
