@@ -1,24 +1,17 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useFetcher } from "@/hooks/useFetcher";
-import { Example } from "@/types";
+import { useExamplesApi } from "@/api/examples/useExamplesApi";
+import { useAsync } from "@/hooks/useAsync";
 import React from "react";
 
-const useFetchExamples = (shouldFetch = true) => {
-  const { dispatch } = useProjectsContext();
-  const { data, status, error } = useFetcher<
-    { creation_time: string; entries: Example[] },
-    Example[]
-  >(shouldFetch ? "/async/orchest-examples" : undefined, {
-    transform: (data) => data.entries,
-  });
+export const useFetchExamples = () => {
+  const examples = useExamplesApi((api) => api.examples);
+  const fetchAll = useExamplesApi((api) => api.fetchAll);
+  const { run, error, status } = useAsync<void>();
 
   React.useEffect(() => {
-    if (status === "RESOLVED" && data) {
-      dispatch({ type: "SET_EXAMPLES", payload: data });
-    }
-  }, [data, status]);
+    if (status !== "IDLE") return;
 
-  return { data, status, error };
+    run(fetchAll());
+  }, [status, fetchAll, run]);
+
+  return { examples, status, error };
 };
-
-export { useFetchExamples };

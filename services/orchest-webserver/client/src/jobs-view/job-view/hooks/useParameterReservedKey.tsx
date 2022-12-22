@@ -1,8 +1,8 @@
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 
 export const useParameterReservedKey = () => {
-  const { config } = useGlobalContext();
-  const reservedKey = config?.PIPELINE_PARAMETERS_RESERVED_KEY;
-
+  const reservedKey = useOrchestConfigsApi(
+    (state) => state.config?.PIPELINE_PARAMETERS_RESERVED_KEY
+  );
   return { reservedKey };
 };

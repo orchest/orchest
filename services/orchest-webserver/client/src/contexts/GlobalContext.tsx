@@ -1,12 +1,5 @@
-import { useAsync } from "@/hooks/useAsync";
-import {
-  OrchestConfig,
-  OrchestServerConfig,
-  OrchestUserConfig,
-  ReducerActionWithCallback,
-} from "@/types";
+import { ReducerActionWithCallback } from "@/types";
 import { ButtonProps } from "@mui/material/Button";
-import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 type PlainTextToHtmlProps = { text: string };
@@ -155,10 +148,6 @@ type GlobalContext = {
   setConfirm: ConfirmDispatcher;
   deletePromptMessage: () => void;
   setAsSaved: (value?: boolean) => void;
-  config: OrchestConfig | undefined;
-  user_config: OrchestUserConfig | undefined;
-  hideIntercom: () => void;
-  showIntercom: () => void;
 };
 
 const Context = React.createContext<GlobalContext | null>(null);
@@ -335,26 +324,8 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
   };
 };
 
-const useFetchSystemConfig = (shouldStart: boolean) => {
-  const { data, run } = useAsync<OrchestServerConfig>();
-  React.useEffect(() => {
-    if (shouldStart) run(fetcher("/async/server-config"));
-  }, [run, shouldStart]);
-  return (data || {}) as {
-    config?: OrchestConfig;
-    user_config?: OrchestUserConfig;
-  };
-};
-
-// `shouldStart` is only useful when running tests.
-// Use it to control the side effects within AppContext when mocking.
-export const GlobalContextProvider: React.FC<{ shouldStart?: boolean }> = ({
-  children,
-  shouldStart = true,
-}) => {
+export const GlobalContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
-
-  const { config, user_config } = useFetchSystemConfig(shouldStart);
 
   /**
    * =========================== side effects
@@ -395,36 +366,15 @@ export const GlobalContextProvider: React.FC<{ shouldStart?: boolean }> = ({
     [dispatch]
   );
 
-  const setDisplayOfIntercom = React.useCallback((value: "block" | "none") => {
-    const intercomElement = document.querySelector(
-      ".intercom-lightweight-app"
-    ) as HTMLElement;
-
-    if (hasValue(intercomElement?.style?.display))
-      intercomElement.style.display = value;
-  }, []);
-
-  const hideIntercom = React.useCallback(() => {
-    setDisplayOfIntercom("none");
-  }, [setDisplayOfIntercom]);
-
-  const showIntercom = React.useCallback(() => {
-    setDisplayOfIntercom("block");
-  }, [setDisplayOfIntercom]);
-
   return (
     <Context.Provider
       value={{
-        config,
-        user_config,
         state,
         dispatch,
         setAlert,
         setConfirm,
         deletePromptMessage,
         setAsSaved,
-        hideIntercom,
-        showIntercom,
       }}
     >
       {children}

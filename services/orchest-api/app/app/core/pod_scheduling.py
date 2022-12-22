@@ -24,6 +24,7 @@ labels are defined.
 import json
 import random
 import time
+from enum import Enum
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -36,6 +37,11 @@ from app.connections import db, k8s_core_api
 from config import CONFIG_CLASS
 
 logger = utils.get_logger()
+
+
+class _Plane(str, Enum):
+    WORKER = "WORKER"
+    CONTROL = "CONTROL"
 
 
 def _get_k8s_nodes_information(
@@ -118,7 +124,7 @@ def _is_jupyter_image_in_registry(tag: Union[int, str]) -> bool:
     ).scalar()
 
 
-def _get_node_affinity(node_names: List[str]) -> Dict[str, Any]:
+def _get_node_affinity_to_random_node(node_names: List[str]) -> Dict[str, Any]:
     # Need to set a specific node at the application level:
     # https://github.com/kubernetes/kubernetes/issues/78238.
     return {
@@ -140,11 +146,28 @@ def _get_node_affinity(node_names: List[str]) -> Dict[str, Any]:
     }
 
 
-def _is_image_of_interest(image: str) -> bool:
+def _get_node_affinity_to_label_selector(selector: Dict[str, str]) -> Dict[str, Any]:
+    # Need to set a specific node at the application level:
+    # https://github.com/kubernetes/kubernetes/issues/78238.
+    match_expressions = []
+    for k, v in selector.items():
+        match_expressions.append({"key": k, "operator": "In", "values": [str(v)]})
+    return {
+        "nodeAffinity": {
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+                "nodeSelectorTerms": [{"matchExpressions": match_expressions}],
+            }
+        }
+    }
+
+
+def _requires_pre_puller(image: str) -> bool:
     return "orchest-env" in image or _config.JUPYTER_IMAGE_NAME in image
 
 
-def _should_constrain_to_nodes(scope: str, image_is_in_registry: bool) -> bool:
+def _should_constrain_to_nodes_with_image(
+    scope: str, image_is_in_registry: bool
+) -> bool:
     # Everything that belongs to the interactive scope is constrained to
     # nodes that already have the image for the sake of getting things
     # to the user quicker. When it comes to the non-interactive scope we
@@ -156,53 +179,100 @@ def _should_constrain_to_nodes(scope: str, image_is_in_registry: bool) -> bool:
     return scope == "interactive" or not image_is_in_registry
 
 
-def _get_required_affinity_for_image_build_in_orchest(
-    scope: str,
-    image: str,
-) -> Optional[Dict[str, Any]]:
-
+def _get_image_information(image: str) -> Tuple[bool, bool, Optional[List[str]]]:
+    """Returns (built in Orchest, in registry, nodes with image)."""
     if "orchest-env" in image:
         proj_uuid, env_uuid, tag = _utils.env_image_name_to_proj_uuid_env_uuid_tag(
             image
         )
         if tag is None:
             raise ValueError(f"Unexpected image without tag: {image}.")
-        nodes_with_image = _nodes_which_have_env_image(proj_uuid, env_uuid, tag)
-        image_is_in_registry = _is_env_image_in_registry(proj_uuid, env_uuid, tag)
+        return (
+            True,
+            _is_env_image_in_registry(proj_uuid, env_uuid, tag),
+            _nodes_which_have_env_image(proj_uuid, env_uuid, tag),
+        )
+
     elif _config.JUPYTER_IMAGE_NAME in image:
         tag = _utils.jupyter_image_name_to_tag(image)
         if tag is None:
             raise ValueError(f"Unexpected image without tag: {image}.")
-        nodes_with_image = _nodes_which_have_jupyter_image(tag)
-        image_is_in_registry = _is_jupyter_image_in_registry(tag)
-    # Pod with images that haven't been built in Orchest do not require
-    # special scheduling.
+        return (
+            True,
+            _is_jupyter_image_in_registry(tag),
+            _nodes_which_have_jupyter_image(tag),
+        )
     else:
-        return
+        return (
+            False,
+            False,
+            None,
+        )
 
-    if not _should_constrain_to_nodes(scope, image_is_in_registry):
-        return
 
-    # Only consider nodes in the worker plane if the selector is
-    # available.
-    label_selector = current_app.config["WORKER_PLANE_SELECTOR"]
-    _, cluster_nodes_known_to_be_ready = _get_k8s_nodes_information(
-        label_selector=label_selector
+def _get_required_affinity(
+    scope: str, image: str, plane: _Plane
+) -> Optional[Dict[str, Any]]:
+
+    (
+        image_built_in_orchest,
+        image_is_in_registry,
+        nodes_with_image,
+    ) = _get_image_information(image)
+    worker_plane_label_selector = current_app.config["WORKER_PLANE_SELECTOR"]
+
+    # Scheduling will be based on these two values. We need to take care
+    # of 4 cases:
+    # Case 1: T, T -> worker nodes with the image.
+    # Case 2: T, F -> worker nodes.
+    # Case 3: F, T -> any node with the image.
+    # Case 4: F, F -> any node.
+    schedule_on_worker_plane = (
+        plane == _Plane.WORKER and worker_plane_label_selector is not None
+    )
+    constrain_to_nodes_with_image = (
+        image_built_in_orchest
+        and _should_constrain_to_nodes_with_image(scope, image_is_in_registry)
     )
 
-    cluster_nodes_known_to_be_ready = set(cluster_nodes_known_to_be_ready)
-    ready_nodes_with_image = [
-        node for node in nodes_with_image if node in cluster_nodes_known_to_be_ready
-    ]
-    # Unforeseen case, do not provide any affinity.
-    if not ready_nodes_with_image:
-        logger.warn(
-            f"No nodes which have the image {image} are ready. This is an unforeseen "
-            "state, no node affinity will be set."
+    # Cases 1, 3.
+    if constrain_to_nodes_with_image:
+        # Through the selector we cover both cases.
+        selector = worker_plane_label_selector if schedule_on_worker_plane else None
+        logger.debug(
+            f"Scheduling pod with image {image} on nodes with image having labels "
+            f"{selector}."
         )
-        return
 
-    return _get_node_affinity(ready_nodes_with_image)
+        _, cluster_nodes_known_to_be_ready = _get_k8s_nodes_information(
+            label_selector=selector
+        )
+
+        cluster_nodes_known_to_be_ready = set(cluster_nodes_known_to_be_ready)
+        ready_nodes_with_image = [
+            node for node in nodes_with_image if node in cluster_nodes_known_to_be_ready
+        ]
+        # Unforeseen case, do not provide any affinity.
+        if not ready_nodes_with_image:
+            logger.warn(
+                f"No nodes which have the image {image} are ready. This is an "
+                "unforeseen state, no node affinity will be set."
+            )
+            return
+        return _get_node_affinity_to_random_node(ready_nodes_with_image)
+
+    # Cases 2, 4.
+    else:
+        # Case 4.
+        if not schedule_on_worker_plane:
+            logger.debug(f"Not constraining scheduling for pod with image {image}.")
+            return
+        # Case 2.
+        logger.debug(
+            f"Scheduling pod with image {image} on worker nodes having labels "
+            f"{worker_plane_label_selector}."
+        )
+        return _get_node_affinity_to_label_selector(worker_plane_label_selector)
 
 
 def _get_pre_pull_init_container_manifest(
@@ -243,17 +313,12 @@ def modify_kernel_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
         raise ValueError("Expected a single container in the pod.")
     image = spec["containers"][0]["image"]
 
-    # No special affinity or pre-pull required.
-    if not _is_image_of_interest(image):
-        return
+    if _requires_pre_puller(image):
+        init_containers = spec.get("initContainers", [])
+        init_containers.append(_get_pre_pull_init_container_manifest(image))
+        spec["initContainers"] = init_containers
 
-    init_containers = spec.get("initContainers", [])
-    init_containers.append(_get_pre_pull_init_container_manifest(image))
-    spec["initContainers"] = init_containers
-
-    required_affinity = _get_required_affinity_for_image_build_in_orchest(
-        "interactive", image
-    )
+    required_affinity = _get_required_affinity("interactive", image, _Plane.WORKER)
     if required_affinity is not None:
         if spec.get("affinity") is not None:
             raise ValueError("Expected no previously set affinity.")
@@ -261,7 +326,7 @@ def modify_kernel_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
 
 
 def _modify_deployment_pod_scheduling_behaviour(
-    scope: str, manifest: Dict[str, Any]
+    scope: str, manifest: Dict[str, Any], plane: _Plane
 ) -> None:
     if manifest["kind"] != "Deployment":
         raise ValueError("Expected a deployment manifest.")
@@ -270,15 +335,12 @@ def _modify_deployment_pod_scheduling_behaviour(
         raise ValueError("Expected a single container in the deployment.")
     image = spec["containers"][0]["image"]
 
-    # No special affinity or pre-pull required.
-    if not _is_image_of_interest(image):
-        return
+    if _requires_pre_puller(image):
+        init_containers = spec.get("initContainers", [])
+        init_containers.append(_get_pre_pull_init_container_manifest(image))
+        spec["initContainers"] = init_containers
 
-    init_containers = spec.get("initContainers", [])
-    init_containers.append(_get_pre_pull_init_container_manifest(image))
-    spec["initContainers"] = init_containers
-
-    required_affinity = _get_required_affinity_for_image_build_in_orchest(scope, image)
+    required_affinity = _get_required_affinity(scope, image, plane)
     if required_affinity is not None:
         if spec.get("affinity") is not None:
             raise ValueError("Expected no previously set affinity.")
@@ -286,17 +348,23 @@ def _modify_deployment_pod_scheduling_behaviour(
 
 
 def modify_env_shell_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
-    _modify_deployment_pod_scheduling_behaviour("interactive", manifest)
+    _modify_deployment_pod_scheduling_behaviour("interactive", manifest, _Plane.WORKER)
 
 
 def modify_jupyter_server_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
-    _modify_deployment_pod_scheduling_behaviour("interactive", manifest)
+    _modify_deployment_pod_scheduling_behaviour("interactive", manifest, _Plane.WORKER)
 
 
 def modify_user_service_scheduling_behaviour(
     scope: str, manifest: Dict[str, Any]
 ) -> None:
-    _modify_deployment_pod_scheduling_behaviour(scope, manifest)
+    _modify_deployment_pod_scheduling_behaviour(scope, manifest, _Plane.WORKER)
+
+
+def modify_session_sidecar_scheduling_behaviour(
+    scope: str, manifest: Dict[str, Any]
+) -> None:
+    _modify_deployment_pod_scheduling_behaviour(scope, manifest, _Plane.WORKER)
 
 
 def _modify_pipeline_scheduling_behaviour_single_node(
@@ -327,9 +395,7 @@ def _modify_pipeline_scheduling_behaviour_single_node(
     # By using only 1 image to specify affinity we are doing a bit of a
     # breach of abstraction, we are "using" the fact that we are in
     # single_node.
-    required_affinity = _get_required_affinity_for_image_build_in_orchest(
-        scope, images[0]
-    )
+    required_affinity = _get_required_affinity(scope, images[0], _Plane.WORKER)
     if required_affinity is not None:
         if spec.get("affinity") is not None:
             raise ValueError("Expected no previously set affinity.")
@@ -370,9 +436,7 @@ def _modify_pipeline_scheduling_behaviour_multi_node(
                 "Didn't find any pod spec patch among the step task parameters."
             )
 
-        required_affinity = _get_required_affinity_for_image_build_in_orchest(
-            scope, image
-        )
+        required_affinity = _get_required_affinity(scope, image, _Plane.WORKER)
         if required_affinity is not None:
             if pod_spec_patch.get("affinity") is not None:
                 raise ValueError("Expected no previously set affinity.")

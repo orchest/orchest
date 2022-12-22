@@ -1,7 +1,7 @@
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/layout/Layout";
 import { useOnboardingDialog } from "@/components/layout/legacy/OnboardingDialog";
-import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -45,7 +45,7 @@ const HelpItem: React.FC<{
 };
 
 const HelpView: React.FC = () => {
-  const { config } = useGlobalContext();
+  const config = useOrchestConfigsApi((state) => state.config);
 
   useSendAnalyticEvent("view:loaded", { name: siteMap.help.path });
   const { setIsOnboardingDialogOpen } = useOnboardingDialog();
