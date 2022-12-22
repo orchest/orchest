@@ -12,7 +12,9 @@ from _orchest.internals import config as _config
 from app import models, schema
 from app.connections import db, k8s_core_api
 
-api = Namespace("auth-users", description="Manage references to auth-users.")
+api = Namespace(
+    "auth-users", description="Manage references to auth-users and related data."
+)
 api = schema.register_schema(api)
 
 

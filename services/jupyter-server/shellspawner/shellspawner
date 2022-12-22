@@ -268,6 +268,7 @@ def connect(environment_shell: str, environments: List[Dict[str, Any]]):
     command = (
         "sshpass -p jovyan ssh "
         + "-o LogLevel=quiet "
+        + "-o ForwardAgent=yes "
         + "-o StrictHostKeyChecking=no -o ConnectTimeout=5 "
         + f"-o UserKnownHostsFile=/dev/null {user}@{hostname} -t "
         + '"cd /project-dir; '
