@@ -463,6 +463,27 @@ def _get_jupyter_server_deployment_service_manifest(
         project_uuid, userdir_pvc, project_dir, pipeline_path
     )
 
+    volumes = [
+        volumes_dict["userdir-pvc"],
+        volumes_dict["container-runtime-socket"],
+        volumes_dict["known-hosts"],
+    ]
+
+    volume_mounts = [
+        volume_mounts_dict["project-dir"],
+        volume_mounts_dict["data"],
+        volume_mounts_dict["jupyterlab-lab"],
+        volume_mounts_dict["jupyterlab-user-settings"],
+        volume_mounts_dict["known-hosts"],
+    ]
+
+    if session_config.get("auth_user_uuid") is not None:
+        v, vm = utils.get_user_ssh_keys_volumes_and_mounts(
+            session_config.get("auth_user_uuid")
+        )
+        volumes.extend(v)
+        volume_mounts.extend(vm)
+
     deployment_manifest = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -479,23 +500,13 @@ def _get_jupyter_server_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
-                    "volumes": [
-                        volumes_dict["userdir-pvc"],
-                        volumes_dict["container-runtime-socket"],
-                        volumes_dict["known-hosts"],
-                    ],
+                    "volumes": volumes,
                     "containers": [
                         {
                             "name": metadata["name"],
                             "image": utils.get_jupyter_server_image_to_use(),
                             "imagePullPolicy": "IfNotPresent",
-                            "volumeMounts": [
-                                volume_mounts_dict["project-dir"],
-                                volume_mounts_dict["data"],
-                                volume_mounts_dict["jupyterlab-lab"],
-                                volume_mounts_dict["jupyterlab-user-settings"],
-                                volume_mounts_dict["known-hosts"],
-                            ],
+                            "volumeMounts": volume_mounts,
                             "env": [
                                 {
                                     "name": "ORCHEST_PROJECT_UUID",

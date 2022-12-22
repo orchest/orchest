@@ -995,3 +995,36 @@ def get_known_hosts_list() -> List[str]:
     except requests.exceptions.RequestException as e:
         logger.warning(e)
     return known_hosts_fingerprints
+
+
+def get_user_ssh_keys_volumes_and_mounts(
+    auth_user_uuid: str,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    vols = []
+    mounts = []
+
+    for ssh_key in models.SSHKey.query.filter(
+        models.SSHKey.auth_user_uuid == auth_user_uuid
+    ).all():
+        vols.append(
+            {
+                "name": f"ssh-key-{ssh_key.uuid}",
+                "secret": {
+                    "secretName": f"ssh-key-{ssh_key.uuid}",
+                    "optional": False,
+                    # https://kubernetes.io/docs/concepts/configuration/secret/#secret-files-permissions
+                    # Decimal notation for 0600.
+                    # Currently not working due to:
+                    # https://github.com/kubernetes/kubernetes/issues/57923
+                    "defaultMode": 384,
+                },
+            },
+        )
+        mounts.append(
+            {
+                "name": f"ssh-key-{ssh_key.uuid}",
+                "mountPath": f"/tmp/ssh-secrets/ssh-key-{ssh_key.uuid}",
+                "subPath": "ssh-privatekey",
+            }
+        )
+    return vols, mounts

@@ -278,6 +278,7 @@ def register_orchest_api_views(app, db):
             "project_dir": project_dir,
             "userdir_pvc": app.config["USERDIR_PVC"],
             "services": services,
+            "auth_user_uuid": request.cookies.get("auth_user_uuid"),
         }
 
         resp = requests.post(

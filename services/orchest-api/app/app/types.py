@@ -88,7 +88,7 @@ class SessionConfig(TypedDict):
 
 
 class InteractiveSessionConfig(SessionConfig):
-    pass
+    auth_user_uuid: Optional[str]
 
 
 class NonInteractiveSessionConfig(SessionConfig):
