@@ -37,7 +37,7 @@ def _git_clone_project(
         result = subprocess.run(
             shlex.split(git_command),
             cwd=tmp_path,
-            env={"GIT_TERMINAL_PROMPT": "0"},
+            env={**os.environ, **{"GIT_TERMINAL_PROMPT": "0"}},
         )
         if result.returncode != 0:
             sys.exit(1)

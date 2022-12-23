@@ -1,7 +1,6 @@
 import copy
 import json
 import os
-import shlex
 import shutil
 import time
 import uuid
@@ -493,11 +492,27 @@ def _get_git_import_pod_manifest(
     project_name: Optional[str],
     auth_user_uuid: Optional[str],
 ) -> Dict[str, Any]:
-    args = f"--task-uuid {pod_name} --repo-url {repo_url}"
+    args = (
+        """
+        if [ -d "/tmp/ssh-secrets/" ]; then
+            eval "$(ssh-agent -s)"
+            for file in /tmp/ssh-secrets/*; do
+            # Need to copy to set permissions since secrets are read only and
+            # we are getting hit by
+            # https://kubernetes.io/docs/concepts/configuration/secret/#secret-files-permissions
+            cp "$file" "${file}_copy"
+            chmod 600 "${file}_copy"
+            ssh-add "${file}_copy"
+            rm "${file}_copy"
+            done
+        fi;
+        """
+        "python /orchest/services/orchest-api/app/scripts/git-import.py "
+        f"--task-uuid {pod_name} --repo-url {repo_url}"
+    )
 
     if project_name is not None:
         args += f" --project-name {project_name}"
-    args = shlex.split(args)
 
     volumes = [
         {
@@ -506,12 +521,23 @@ def _get_git_import_pod_manifest(
                 "claimName": "userdir-pvc",
             },
         },
+        # TODO reuse existing definition
+        {
+            "name": "known-hosts",
+            "configMap": {"name": CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP},
+        },
     ]
 
     volume_mounts = [
         {
             "name": "userdir-pvc",
             "mountPath": "/userdir",
+        },
+        # TODO reuse existing definition
+        {
+            "name": "known-hosts",
+            "mountPath": "/etc/ssh/ssh_known_hosts",
+            "subPath": "known_hosts",
         },
     ]
 
@@ -529,11 +555,8 @@ def _get_git_import_pod_manifest(
                 {
                     "name": "git-import",
                     "image": f"orchest/celery-worker:{_config.ORCHEST_VERSION}",
-                    "command": [
-                        "python",
-                        "/orchest/services/orchest-api/app/scripts/git-import.py",  # noqa
-                    ],
-                    "args": args,
+                    "command": ["/bin/sh", "-c"],
+                    "args": [args],
                     "volumeMounts": volume_mounts,
                 },
             ],
