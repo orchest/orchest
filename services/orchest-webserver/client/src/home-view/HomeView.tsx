@@ -1,6 +1,7 @@
 import { ViewLayout } from "@/components/layout/ViewLayout";
 import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import React from "react";
+import { AllRunsTab } from "./AllRunsTab";
 import { ExamplesTab } from "./ExamplesTab";
 import { HomeHeader } from "./HomeHeader";
 import { ProjectsTab } from "./ProjectsTab";
@@ -17,6 +18,7 @@ export const HomeView = () => {
     >
       {tab === "examples" && <ExamplesTab />}
       {tab === "projects" && <ProjectsTab />}
+      {tab === "all-runs" && <AllRunsTab />}
     </ViewLayout>
   );
 };

@@ -104,7 +104,10 @@ export const useActivePipelineRun = create<ActiveRunApi>(
         return await pipelineRunsApi.fetchOne(runUuid);
       } else if (state.pipelineUuid) {
         return await pipelineRunsApi
-          .fetchAll(state.projectUuid, state.pipelineUuid)
+          .fetchAll({
+            projectUuid: state.projectUuid,
+            pipelineUuid: state.pipelineUuid,
+          })
           .then((runs) => runs[0]);
       } else {
         return undefined;

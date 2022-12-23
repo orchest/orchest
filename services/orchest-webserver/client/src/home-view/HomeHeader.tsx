@@ -1,4 +1,4 @@
-import { NavigationTabs } from "@/components/common/NavigationTabsProps";
+import { NavigationTabs } from "@/components/common/NavigationTabs";
 import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import HomeOutlined from "@mui/icons-material/HomeOutlined";
 import Box from "@mui/material/Box";
@@ -50,8 +50,9 @@ export const HomeHeader = ({ scrolled }: HomeHeaderProps) => {
 
       <Box sx={{ borderBottom: scrolled ? 0 : 1, borderColor: "divider" }}>
         <NavigationTabs defaultTab="projects">
-          <Tab label="My projects" value="projects" />
+          <Tab label="Projects" value="projects" />
           <Tab label="Examples" value="examples" />
+          <Tab label="All runs" value="all-runs" />
         </NavigationTabs>
       </Box>
     </Stack>
