@@ -1146,6 +1146,7 @@ git_import_request = Model(
     {
         "url": fields.String(required=True),
         "project_name": fields.String(required=False),
+        "auth_user_uuid": fields.String(required=False),
     },
 )
 

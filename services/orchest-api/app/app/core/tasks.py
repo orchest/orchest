@@ -393,7 +393,12 @@ def process_notifications_deliveries(self):
 
 
 @celery.task(bind=True, base=AbortableTask)
-def git_import(self, url: str, project_name: Optional[str]):
+def git_import(
+    self,
+    url: str,
+    project_name: Optional[str] = None,
+    auth_user_uuid: Optional[str] = None,
+):
     with application.app_context():
         try:
             models.GitImport.query.filter(
@@ -402,7 +407,9 @@ def git_import(self, url: str, project_name: Optional[str]):
             db.session.commit()
 
             pod_name = f"git-import-{self.request.id}"
-            project_uuid = _run_git_import_pod(pod_name, url, project_name)
+            project_uuid = _run_git_import_pod(
+                pod_name, url, project_name, auth_user_uuid
+            )
 
             models.GitImport.query.filter(
                 models.GitImport.uuid == self.request.id
@@ -424,10 +431,15 @@ def git_import(self, url: str, project_name: Optional[str]):
 
 
 def _run_git_import_pod(
-    pod_name: str, repo_url: str, project_name: Optional[str]
+    pod_name: str,
+    repo_url: str,
+    project_name: Optional[str],
+    auth_user_uuid: Optional[str],
 ) -> str:
     try:
-        manifest = _get_git_import_pod_manifest(pod_name, repo_url, project_name)
+        manifest = _get_git_import_pod_manifest(
+            pod_name, repo_url, project_name, auth_user_uuid
+        )
         k8s_core_api.create_namespaced_pod(_config.ORCHEST_NAMESPACE, manifest)
         exit_code_to_exception = {
             2: self_errors.ProjectWithSameNameExists(),
@@ -476,13 +488,37 @@ def _run_git_import_pod(
 
 
 def _get_git_import_pod_manifest(
-    pod_name: str, repo_url: str, project_name: Optional[str]
+    pod_name: str,
+    repo_url: str,
+    project_name: Optional[str],
+    auth_user_uuid: Optional[str],
 ) -> Dict[str, Any]:
     args = f"--task-uuid {pod_name} --repo-url {repo_url}"
 
     if project_name is not None:
         args += f" --project-name {project_name}"
     args = shlex.split(args)
+
+    volumes = [
+        {
+            "name": "userdir-pvc",
+            "persistentVolumeClaim": {
+                "claimName": "userdir-pvc",
+            },
+        },
+    ]
+
+    volume_mounts = [
+        {
+            "name": "userdir-pvc",
+            "mountPath": "/userdir",
+        },
+    ]
+
+    if auth_user_uuid is not None:
+        v, vm = utils.get_user_ssh_keys_volumes_and_mounts(auth_user_uuid)
+        volumes.extend(v)
+        volume_mounts.extend(vm)
 
     manifest = {
         "apiVersion": "v1",
@@ -498,26 +534,11 @@ def _get_git_import_pod_manifest(
                         "/orchest/services/orchest-api/app/scripts/git-import.py",  # noqa
                     ],
                     "args": args,
-                    # "securityContext": {
-                    #     "privileged": True,
-                    # },
-                    "volumeMounts": [
-                        {
-                            "name": "userdir-pvc",
-                            "mountPath": "/userdir",
-                        },
-                    ],
+                    "volumeMounts": volume_mounts,
                 },
             ],
             "restartPolicy": "Never",
-            "volumes": [
-                {
-                    "name": "userdir-pvc",
-                    "persistentVolumeClaim": {
-                        "claimName": "userdir-pvc",
-                    },
-                },
-            ],
+            "volumes": volumes,
         },
     }
     pod_scheduling.modify_git_import_scheduling_behaviour(manifest)
