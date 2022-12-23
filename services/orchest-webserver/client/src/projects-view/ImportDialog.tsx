@@ -1,9 +1,10 @@
 import { projectsApi } from "@/api/projects/projectsApi";
+import { useProjectsApi } from "@/api/projects/useProjectsApi";
 import { Code } from "@/components/common/Code";
+import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { DropZone } from "@/components/DropZone";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useControlledIsOpen } from "@/hooks/useControlledIsOpen";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -18,12 +19,7 @@ import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
 import { queryArgs } from "@/utils/text";
-import {
-  BackgroundTask,
-  CreateProjectError,
-  isNumber,
-  withPlural,
-} from "@/utils/webserver-utils";
+import { isNumber, withPlural } from "@/utils/webserver-utils";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -50,9 +46,9 @@ import {
   validURL,
 } from "@orchest/lib-utils";
 import React from "react";
-import { useImportGitRepo, validProjectName } from "./hooks/useImportGitRepo";
+import { useGitImport, validProjectName } from "./hooks/useGitImport";
 
-const ERROR_MAPPING: Record<CreateProjectError, string> = {
+const ERROR_MAPPING: Record<string, string> = {
   "git clone failed":
     "failed to clone repo. Only public repos can be imported.",
   "project move failed": "failed to move project because the directory exists.",
@@ -60,7 +56,7 @@ const ERROR_MAPPING: Record<CreateProjectError, string> = {
     "project name contains illegal character(s).",
 } as const;
 
-const getMappedErrorMessage = (key: CreateProjectError | string | null) => {
+const getMappedErrorMessage = (key: string | null) => {
   if (key && ERROR_MAPPING[key] !== undefined) {
     return ERROR_MAPPING[key];
   } else {
@@ -169,14 +165,14 @@ const ProjectMetadata = ({
   );
 };
 
-type ImportStatus =
+type DisplayStatus =
   | "READY"
   | "IMPORTING"
   | "UPLOADING"
   | "FILES_STORED"
   | "SAVING_PROJECT_NAME";
 
-const dialogTitleMappings: Record<ImportStatus, string> = {
+const dialogTitleMappings: Record<DisplayStatus, string> = {
   READY: "Import project",
   IMPORTING: "Importing project",
   UPLOADING: "Uploading project",
@@ -211,6 +207,8 @@ export const ImportDialog = ({
 }: ImportDialogProps) => {
   const { setAlert } = useGlobalContext();
   const { navigateTo } = useCustomRoute();
+  const { projects, refresh: reloadProjects } = useFetchProjects();
+  const deleteProject = useProjectsApi((api) => api.delete);
 
   const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
     if (onImportCompleteByParent) {
@@ -226,18 +224,6 @@ export const ImportDialog = ({
     isOpenByParent,
     onCloseByParent
   );
-
-  const { projects, fetchProjects } = useFetchProjects({
-    shouldFetch: isOpen, // Should only be fired when the dialog is open.
-  });
-
-  // Keep state.projects up-to-date
-  // After importing an project, it will immediately navigate to `/pipeline` of the new project
-  // If state.projects doesn't contain the new project, it will show "project doesn't exist" error in `/pipeline`.
-  const { dispatch } = useProjectsContext();
-  React.useEffect(() => {
-    if (projects) dispatch({ type: "SET_PROJECTS", payload: projects });
-  }, [dispatch, projects]);
 
   // Because import will occur before user giving a name,
   // a temporary projectName (`project.path`) is needed to start with.
@@ -256,12 +242,9 @@ export const ImportDialog = ({
     setShouldShowImportUrlValidation,
   ] = React.useState(false);
 
-  const [importStatus, setImportStatus] = React.useState<ImportStatus>("READY");
+  const [status, setStatus] = React.useState<DisplayStatus>("READY");
   const [newProjectUuid, setNewProjectUuid] = React.useState<string>();
-
-  const isAllowedToCloseWithEscape = React.useMemo(() => {
-    return importStatus === "READY";
-  }, [importStatus]);
+  const canCloseWithEscape = status === "READY";
 
   const { cancelableFetch, cancelAll } = useCancelableFetch();
   const { uploadFiles, reset: resetUploader, ...uploader } = useUploader({
@@ -274,7 +257,7 @@ export const ImportDialog = ({
     setShouldShowImportUrlValidation(false);
     setImportUrl("");
     setProjectName("");
-    setImportStatus("READY");
+    setStatus("READY");
     setNewProjectUuid(undefined);
     setTempProjectName(undefined);
     resetUploader();
@@ -284,21 +267,13 @@ export const ImportDialog = ({
     if (!newProjectUuid) return;
 
     try {
-      await projectsApi.delete(newProjectUuid);
-      // Delete the temp project from ProjectsContext manually instead of relying on fetchProjects and the useEffect,
-      // because fetchProjects is forbidden when open is false.
-      dispatch((currentState) => {
-        const updatedProjects = (currentState.projects || []).filter(
-          (project) => project.uuid !== newProjectUuid
-        );
-        return { type: "SET_PROJECTS", payload: updatedProjects };
-      });
+      await deleteProject(newProjectUuid);
     } catch (error) {
       console.error(
         `Failed to delete the temporary project with UUID ${newProjectUuid}. ${error}`
       );
     }
-  }, [newProjectUuid, dispatch]);
+  }, [newProjectUuid, deleteProject]);
 
   const closeDialog = React.useCallback(async () => {
     // if user forces closing the dialog, cancel all cancelable promises,
@@ -309,87 +284,76 @@ export const ImportDialog = ({
     onClose();
   }, [cancelAll, deleteTempProject, onClose, reset]);
 
-  const onFinishedImportingGitRepo = React.useCallback(
-    async (result: BackgroundTask | undefined) => {
-      if (!result) {
-        // failed to import
-        setImportStatus("READY");
-        return;
-      }
-      if (result.status === "FAILURE") {
-        setImportStatus("READY");
-        setShouldShowImportUrlValidation(false);
-      }
-      if (result.status === "SUCCESS") {
-        setImportStatus("FILES_STORED");
-        // result.result is project.path (tempProjectName), but project_uuid is not yet available,
-        // because it requires a file-discovery request to instantiate `project_uuid`.
-        // Therefore, send another GET call to get its uuid.
-        try {
-          const fetchedProjects = await projectsApi.fetchAll();
-          const foundProject = (fetchedProjects || []).find(
-            (project) => project.path === result.result
-          );
-
-          if (!foundProject) {
-            // This is a no-op, unless BE is broken.
-            throw new Error("Unable to fetch the project list.");
-            return;
-          }
-
-          setNewProjectUuid(foundProject.uuid);
-        } catch (error) {
-          await closeDialog();
-          await setAlert(
-            "Error",
-            `Failed to import Git repository. ${error.message || ""}`
-          );
-          fetchProjects();
-        }
-      }
-    },
-    [closeDialog, fetchProjects, setAlert]
-  );
-
-  const {
-    startImport: fireImportGitRepoRequest,
-    importResult,
-    clearImportResult,
-  } = useImportGitRepo(importUrl, onFinishedImportingGitRepo);
-
-  const startImportGitRepo = React.useCallback(() => {
-    setImportStatus("IMPORTING");
-    const gitProjectName = getProjectNameFromUrl(importUrl);
-    setProjectName(gitProjectName);
-    // This makes the temp name a bit more meaningful,
-    // so that user could somehow recognize it in case the process is interrupted.
-    setTempProjectName(`${gitProjectName}-${uuidv4()}`);
-
-    fireImportGitRepoRequest(`${gitProjectName}-${uuidv4()}`);
-  }, [fireImportGitRepoRequest, importUrl]);
+  const gitImport = useGitImport(importUrl);
 
   React.useEffect(() => {
-    if (importWhenOpen && importUrl && importStatus === "READY") {
+    const succeeded = hasValue(gitImport.path);
+
+    if (!succeeded) {
+      setStatus("READY");
+      return;
+    }
+
+    setStatus("FILES_STORED");
+
+    // We now have the path of the project, but a UUID is not yet available.
+    // The back-end has to discover the project through the file system, and assign a UUID to it:
+    // Since we don't want to update the UI, we call the Projects API directly, instead of `reloadProjects`
+    projectsApi
+      .fetchAll({ skipDiscovery: false })
+      .then((projects = []) => {
+        const importedProject = projects.find(
+          (project) => project.path === gitImport.path
+        );
+
+        if (importedProject) {
+          setNewProjectUuid(importedProject?.uuid);
+        }
+      })
+      .catch((error) => {
+        closeDialog().then(() => {
+          setAlert("Import failed", <ErrorSummary error={error} />);
+        });
+
+        // This will update the UI as well:
+        reloadProjects();
+      });
+  }, [closeDialog, gitImport.path, reloadProjects, setAlert]);
+
+  const startImportGitRepo = React.useCallback(() => {
+    setStatus("IMPORTING");
+    const gitProjectName = getProjectNameFromUrl(importUrl);
+    setProjectName(gitProjectName);
+
+    const tempName = `${gitProjectName}-${uuidv4()}`;
+    setTempProjectName(tempName);
+
+    gitImport.start(tempName);
+  }, [gitImport, importUrl]);
+
+  React.useEffect(() => {
+    if (importWhenOpen && importUrl && status === "READY") {
       startImportGitRepo();
     }
-  }, [importWhenOpen, importUrl, importStatus, startImportGitRepo]);
+  }, [importWhenOpen, importUrl, status, startImportGitRepo]);
 
   const importUrlValidation = React.useMemo(
     () => validateImportUrl(importUrl),
     [importUrl]
   );
 
-  const existingProjectNames = React.useMemo(() => {
-    return (projects || []).map((project) => project.path);
-  }, [projects]);
+  const projectPaths = React.useMemo(
+    () => Object.values(projects).map((project) => project.path),
+    [projects]
+  );
 
   const projectNameValidation = React.useMemo(() => {
     // Before the dialog is fully closed,
     // the new name is already saved into BE, so it will prompt with "project name already exists" error.
-    if (["SAVING_PROJECT_NAME", "READY"].includes(importStatus))
+    if (["SAVING_PROJECT_NAME", "READY"].includes(status))
       return { error: false, helperText: " " };
 
-    if (existingProjectNames.includes(projectName)) {
+    if (projectPaths.includes(projectName)) {
       return {
         error: true,
         helperText: `A project with the name "${projectName}" already exists.`,
@@ -402,14 +366,14 @@ export const ImportDialog = ({
       // to prevent UI jumping because of the height of `helperText` of `TextField`.
       helperText: validation.valid ? " " : validation.reason,
     };
-  }, [existingProjectNames, projectName, importStatus]);
+  }, [projectPaths, projectName, status]);
 
   const saveProjectName = async () => {
     if (!newProjectUuid || projectNameValidation.error) return;
-    setImportStatus("SAVING_PROJECT_NAME");
+    setStatus("SAVING_PROJECT_NAME");
     try {
       await projectsApi.put(newProjectUuid, { name: projectName });
-      await fetchProjects();
+      await reloadProjects();
       onImportComplete({ path: projectName, uuid: newProjectUuid });
       reset();
     } catch (error) {
@@ -417,7 +381,7 @@ export const ImportDialog = ({
       // Because we want user to give a meaningful name before closing,
       // user is not allowed to close the dialog before successfully submit and save projectName.
       // NOTE: user will get stuck here if changing project name cannot be done.
-      setImportStatus("FILES_STORED");
+      setStatus("FILES_STORED");
     }
   };
 
@@ -427,7 +391,7 @@ export const ImportDialog = ({
 
   const createProjectAndUploadFiles = React.useCallback(
     async (projectName: string, files: File[] | FileList) => {
-      setImportStatus("UPLOADING");
+      setStatus("UPLOADING");
 
       await uploadFiles(`/${projectName}/`, files);
 
@@ -479,7 +443,7 @@ export const ImportDialog = ({
       try {
         setProjectName("");
         await createProjectAndUploadFiles(tempProjectName, files);
-        setImportStatus("FILES_STORED");
+        setStatus("FILES_STORED");
         setTempProjectName(undefined);
       } catch (error) {
         setAlert("Error", "Failed to upload files.");
@@ -489,7 +453,7 @@ export const ImportDialog = ({
     [
       createProjectAndUploadFiles,
       tempProjectName,
-      setImportStatus,
+      setStatus,
       setProjectName,
       setAlert,
       reset,
@@ -499,15 +463,10 @@ export const ImportDialog = ({
   // If `filesToUpload` is provided, it means that the parent component has gotten files already.
   // Immediately jump to `IMPORTING`.
   React.useEffect(() => {
-    if (filesToUpload && tempProjectName && importStatus === "READY") {
+    if (filesToUpload && tempProjectName && status === "READY") {
       uploadFilesAndSetImportStatus(filesToUpload);
     }
-  }, [
-    filesToUpload,
-    tempProjectName,
-    importStatus,
-    uploadFilesAndSetImportStatus,
-  ]);
+  }, [filesToUpload, tempProjectName, status, uploadFilesAndSetImportStatus]);
 
   const theme = useTheme();
 
@@ -515,21 +474,21 @@ export const ImportDialog = ({
 
   // While creating the temp project, cancel is not allowed.
   // the UUID of the temp project is needed for later operations in case user wants to cancel the whole process.
-  const isShowingCancelButton = isAllowedToCloseWithEscape;
+  const isShowingCancelButton = canCloseWithEscape;
 
   const title = React.useMemo(() => {
-    const mappedTitle = dialogTitleMappings[importStatus];
+    const mappedTitle = dialogTitleMappings[status];
     return hideUploadOption
       ? mappedTitle.replace(/^Upload/, "Import")
       : mappedTitle;
-  }, [importStatus, hideUploadOption]);
+  }, [status, hideUploadOption]);
 
   return (
     <>
       {hasValue(children) && children(onOpen)}
       <Dialog
         open={isOpen}
-        onClose={isAllowedToCloseWithEscape ? closeDialog : undefined}
+        onClose={canCloseWithEscape ? closeDialog : undefined}
         fullWidth
         maxWidth="sm"
       >
@@ -540,7 +499,7 @@ export const ImportDialog = ({
             spacing={2}
             data-test-id="import-project-dialog"
           >
-            {importStatus === "READY" && (
+            {status === "READY" && (
               <>
                 <Stack direction="column" spacing={1}>
                   <Typography>
@@ -568,7 +527,7 @@ export const ImportDialog = ({
                             // When showing the FAILURE alert, the space of helperText should be removed.
                             // In other cases, helperText should take space to prevent UI jumping.
                             helperText:
-                              importResult?.status === "FAILURE" ? "" : " ",
+                              gitImport?.status === "FAILURE" ? "" : " ",
                           })}
                       value={importUrl}
                       onChange={(e) => {
@@ -579,14 +538,12 @@ export const ImportDialog = ({
                       data-test-id="project-url-textfield"
                     />
                   </form>
-                  {importResult?.status === "FAILURE" && (
+                  {gitImport?.status === "FAILURE" && (
                     <Alert
                       severity="error"
                       sx={{ marginTop: (theme) => theme.spacing(1) }}
-                      onClose={clearImportResult}
                     >
-                      Import failed:{" "}
-                      {getMappedErrorMessage(importResult.result)}
+                      Import failed: {getMappedErrorMessage(gitImport.status)}
                     </Alert>
                   )}
                 </Stack>
@@ -662,7 +619,7 @@ export const ImportDialog = ({
                 )}
               </>
             )}
-            {importStatus !== "READY" && (
+            {status !== "READY" && (
               <Stack direction="column" spacing={2}>
                 {filesToUpload && (
                   <ProjectMetadata value={newProjectMetadata} />
@@ -670,9 +627,7 @@ export const ImportDialog = ({
                 <Stack direction="row" spacing={1} alignItems="center">
                   <LinearProgress
                     variant={
-                      importStatus === "IMPORTING"
-                        ? "indeterminate"
-                        : "determinate"
+                      status === "IMPORTING" ? "indeterminate" : "determinate"
                     }
                     value={uploader.inProgress ? uploader.progress : 100}
                     sx={{ margin: (theme) => theme.spacing(1, 0), flex: 1 }}
@@ -680,9 +635,9 @@ export const ImportDialog = ({
                   <Typography variant="caption">
                     {uploader.inProgress
                       ? `${uploader.progress}%`
-                      : importStatus === "IMPORTING"
+                      : status === "IMPORTING"
                       ? "Importing..."
-                      : importStatus === "FILES_STORED"
+                      : status === "FILES_STORED"
                       ? "Imported"
                       : undefined}
                   </Typography>
@@ -705,7 +660,7 @@ export const ImportDialog = ({
                     {...(projectName.length > 0
                       ? projectNameValidation
                       : { helperText: " " })}
-                    disabled={importStatus === "SAVING_PROJECT_NAME"}
+                    disabled={status === "SAVING_PROJECT_NAME"}
                     data-test-id="import-dialog-name-input"
                   />
                 </form>
@@ -723,7 +678,7 @@ export const ImportDialog = ({
               {`Cancel${hideUploadOption ? "" : " upload"}`}
             </Button>
           )}
-          {importStatus === "READY" ? (
+          {status === "READY" ? (
             <Button
               variant="contained"
               disabled={importUrlValidation.error}
@@ -740,7 +695,7 @@ export const ImportDialog = ({
                 !projectName ||
                 projectNameValidation.error ||
                 ["IMPORTING", "UPLOADING", "SAVING_PROJECT_NAME"].includes(
-                  importStatus
+                  status
                 )
               }
               type="submit"

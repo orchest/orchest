@@ -225,7 +225,7 @@ def _get_session_sidecar_deployment_manifest(
         pipeline_path,
     )
 
-    return {
+    deployment_manifest = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
         "metadata": metadata,
@@ -297,6 +297,10 @@ def _get_session_sidecar_deployment_manifest(
             },
         },
     }
+    pod_scheduling.modify_session_sidecar_scheduling_behaviour(
+        session_type.value, deployment_manifest
+    )
+    return deployment_manifest
 
 
 def _get_orchest_sdk_vars(

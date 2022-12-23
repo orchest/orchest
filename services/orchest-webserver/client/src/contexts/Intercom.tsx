@@ -1,13 +1,10 @@
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import React from "react";
 import { IntercomProvider } from "react-use-intercom";
-import { useGlobalContext } from "./GlobalContext";
 
 export const Intercom: React.FC = ({ children }) => {
-  const { config } = useGlobalContext();
-
-  return (
-    <IntercomProvider appId={config?.INTERCOM_APP_ID || ""}>
-      {children}
-    </IntercomProvider>
+  const appId = useOrchestConfigsApi(
+    (state) => state.config?.INTERCOM_APP_ID || ""
   );
+  return <IntercomProvider appId={appId}>{children}</IntercomProvider>;
 };

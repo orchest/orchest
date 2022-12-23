@@ -1,4 +1,5 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActiveProject } from "@/hooks/useActiveProject";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { navigationRoutes, siteMap } from "@/routingConfig";
@@ -11,6 +12,7 @@ import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material/styles";
 import Tabs from "@mui/material/Tabs";
 import Tooltip from "@mui/material/Tooltip";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getProjectMenuItems, NavItem } from "./common";
 import { CustomTab } from "./CustomTab";
@@ -136,15 +138,16 @@ export const NavigationTabsBase = ({
 };
 
 export const NavigationTabs = () => {
+  const project = useActiveProject();
   const {
-    state: { projects = [], hasLoadedProjects, projectUuid, pipeline },
+    state: { pipeline },
   } = useProjectsContext();
+  const disabled = !hasValue(project);
 
-  const disabled = hasLoadedProjects && projects.length === 0;
-
-  const projectMenuItems = React.useMemo(() => {
-    return getProjectMenuItems(projectUuid, pipeline?.uuid);
-  }, [projectUuid, pipeline?.uuid]);
+  const projectMenuItems = React.useMemo(
+    () => getProjectMenuItems(project?.uuid, pipeline?.uuid),
+    [project?.uuid, pipeline?.uuid]
+  );
 
   return (
     <NavigationTabsBase

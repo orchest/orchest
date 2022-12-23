@@ -1,9 +1,12 @@
+import { useProjectsApi } from "@/api/projects/useProjectsApi";
 import { IconButton } from "@/components/common/IconButton";
+import { ProjectContextMenu } from "@/components/common/ProjectContextMenu";
 import {
   DataTable,
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Project } from "@/types";
@@ -21,21 +24,32 @@ export type ProjectRow = Pick<
   settings: boolean;
 };
 
-export const ProjectsTable = ({
-  projects,
-  projectsBeingDeleted,
-  openProjectMenu,
-}: {
-  projects: Project[];
-  projectsBeingDeleted: string[];
-  openProjectMenu: (
-    uuid: string
-  ) => (event: React.MouseEvent<HTMLElement>) => void;
-}) => {
+export const ProjectsTable = () => {
+  const projects = useProjectsApi((api) => api.projects ?? []);
+  const deleting = useProjectsApi((api) => api.deleting);
   const { navigateTo } = useCustomRoute();
-  const onRowClick = (e: React.MouseEvent, projectUuid: string) => {
-    navigateTo(siteMap.pipeline.path, { query: { projectUuid } }, e);
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement>();
+  const [openProject, setOpenProject] = React.useState<Project>();
+  const { dispatch } = useProjectsContext();
+  const onRowClick = (event: React.MouseEvent, projectUuid: string) => {
+    dispatch({ type: "SET_PROJECT", payload: projectUuid });
+    navigateTo(siteMap.pipeline.path, { query: { projectUuid } }, event);
   };
+  const openContextMenu = React.useCallback(
+    (event: React.MouseEvent, projectUuid: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      setMenuAnchorEl(event.target as HTMLElement);
+      setOpenProject(projects?.[projectUuid]);
+    },
+    [projects]
+  );
+
+  const closeContextMenu = React.useCallback(() => {
+    setMenuAnchorEl(undefined);
+    setOpenProject(undefined);
+  }, []);
 
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
     return [
@@ -59,12 +73,12 @@ export const ProjectsTable = ({
         label: "",
         sx: { margin: (theme) => theme.spacing(-0.5, 0), textAlign: "right" },
         render: function ProjectSettingsButton(row, disabled) {
-          return !projectsBeingDeleted.includes(row.uuid) ? (
+          return !deleting.includes(row.uuid) ? (
             <IconButton
               title="More options"
               disabled={disabled}
               size="small"
-              onClick={openProjectMenu(row.uuid)}
+              onClick={(event) => openContextMenu(event, row.uuid)}
               data-test-id={`project-settings-button-${row.id}`}
             >
               <MoreHorizOutlinedIcon fontSize="small" />
@@ -75,29 +89,37 @@ export const ProjectsTable = ({
         },
       },
     ];
-  }, [projectsBeingDeleted, openProjectMenu]);
+  }, [deleting, openContextMenu]);
 
-  const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
-    if (!projects) return [];
-    return projects.map((project) => {
-      return {
+  const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(
+    () =>
+      Object.values(projects).map((project) => ({
         ...project,
         id: project.uuid,
         settings: true,
-        disabled: projectsBeingDeleted.includes(project.uuid),
-      };
-    });
-  }, [projects, projectsBeingDeleted]);
+        disabled: deleting.includes(project.uuid),
+      })),
+    [deleting, projects]
+  );
 
   return (
-    <DataTable<ProjectRow>
-      id="projects-table"
-      isLoading={!hasValue(projects)}
-      hideSearch
-      onRowClick={onRowClick}
-      columns={columns}
-      rows={projectRows}
-      data-test-id="projects-table"
-    />
+    <>
+      <DataTable<ProjectRow>
+        id="projects-table"
+        isLoading={!hasValue(projects)}
+        hideSearch
+        onRowClick={onRowClick}
+        columns={columns}
+        rows={projectRows}
+        data-test-id="projects-table"
+      />
+      {openProject && menuAnchorEl && (
+        <ProjectContextMenu
+          project={openProject}
+          anchorEl={menuAnchorEl}
+          onClose={closeContextMenu}
+        />
+      )}
+    </>
   );
 };
