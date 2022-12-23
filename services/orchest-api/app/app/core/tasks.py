@@ -3,6 +3,7 @@ import json
 import os
 import shlex
 import shutil
+import time
 import uuid
 from typing import Any, Dict, List, Optional, Union
 
@@ -443,6 +444,7 @@ def _run_git_import_pod(
                     raise
             if pod.status.phase == "Succeeded" or pod.status.phase == "Failed":
                 break
+            time.sleep(1)
         else:
             raise TimeoutError()
 
