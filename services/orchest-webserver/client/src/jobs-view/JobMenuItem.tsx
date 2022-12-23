@@ -1,7 +1,7 @@
+import { SystemStatusIcon } from "@/components/common/SystemStatusIcon";
 import { SidePanelMenuItem } from "@/components/layout/SidePanelMenuItem";
 import { JobStatus } from "@/types";
 import React from "react";
-import { JobStatusIcon } from "./JobStatusIcon";
 
 type JobMenuItemProps = {
   uuid: string;
@@ -29,7 +29,11 @@ export const JobMenuItem = React.memo(function JobMenuItem({
       showStatusIcon
       statusIconTooltip={jobStatus || ""}
       subtitle={subtitle}
-      statusIcon={<JobStatusIcon status={jobStatus} />}
+      statusIcon={
+        jobStatus ? (
+          <SystemStatusIcon size="small" flavor="job" status={jobStatus} />
+        ) : null
+      }
     />
   );
 });

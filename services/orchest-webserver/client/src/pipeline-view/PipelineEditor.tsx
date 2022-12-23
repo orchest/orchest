@@ -4,6 +4,8 @@ import { Connection, StepState } from "@/types";
 import { getOffset } from "@/utils/element";
 import { createRect, Point2D } from "@/utils/geometry";
 import { stepPathToProjectPath } from "@/utils/pipeline";
+import { ellipsis } from "@/utils/styles";
+import { alpha, Typography } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -288,12 +290,31 @@ export const PipelineEditor = () => {
                 }}
               />
               <StepExecutionState stepUuid={step.uuid} />
-              <div className="step-label-holder">
-                <div className={"step-label"}>
-                  {step.title}
-                  <span className="filename">{step.file_path}</span>
-                </div>
-              </div>
+              <Stack
+                justifyContent="center"
+                alignItems="center"
+                height="73px"
+                borderRadius="8px 8px 0 0"
+                sx={{
+                  transition: "background-color 340ms 50ms ease-in",
+                  backgroundColor: (theme) => theme.palette.background.paper,
+                  "&:hover": {
+                    backgroundColor: (theme) =>
+                      alpha(theme.palette.background.paper, 0.8),
+                  },
+                }}
+              >
+                <Typography sx={ellipsis()} color="text.primary">
+                  {step.title || "—"}
+                </Typography>
+                <Typography
+                  sx={ellipsis()}
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  {step.file_path}
+                </Typography>
+              </Stack>
               <ConnectionDot
                 outgoing
                 isReadOnly={isReadOnly}

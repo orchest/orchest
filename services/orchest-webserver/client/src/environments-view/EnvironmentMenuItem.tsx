@@ -1,8 +1,7 @@
+import { SystemStatusIcon } from "@/components/common/SystemStatusIcon";
 import { SidePanelMenuItem } from "@/components/layout/SidePanelMenuItem";
-import { TStatus } from "@/components/Status";
-import { EnvironmentState } from "@/types";
+import { EnvironmentState, ImageBuildStatus } from "@/types";
 import React from "react";
-import { BuildStatusIcon } from "./BuildStatusIcon";
 import { LANGUAGE_MAP } from "./common";
 
 type EnvironmentMenuItemProps = Pick<
@@ -12,7 +11,7 @@ type EnvironmentMenuItemProps = Pick<
   selected: boolean;
   showStatusIcon: boolean;
   onClick: (event: React.MouseEvent, uuid: string) => void;
-  latestBuildStatus: TStatus | undefined;
+  latestBuildStatus: ImageBuildStatus | undefined;
 };
 
 export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
@@ -33,7 +32,15 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
       showStatusIcon={showStatusIcon}
       statusIconTooltip={latestBuildStatus || "Draft"}
       subtitle={LANGUAGE_MAP[language]}
-      statusIcon={<BuildStatusIcon latestBuildStatus={latestBuildStatus} />}
+      statusIcon={
+        latestBuildStatus && (
+          <SystemStatusIcon
+            status={latestBuildStatus}
+            flavor="build"
+            size="small"
+          />
+        )
+      }
     />
   );
 });

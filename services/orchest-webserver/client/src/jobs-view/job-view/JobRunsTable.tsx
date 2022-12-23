@@ -1,14 +1,13 @@
 import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
+import { SystemStatusChip } from "@/components/common/SystemStatusChip";
 import { RouteLink } from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
-import { PipelineRun, PipelineRunStatus } from "@/types";
+import { PipelineRun } from "@/types";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cs
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
-import { blue, green, red } from "@mui/material/colors";
 import IconButton from "@mui/material/IconButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -25,13 +24,7 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useCancelJobRun } from "../../hooks/useCancelJobRun";
-import {
-  canCancelRun,
-  formatPipelineParams,
-  formatRunStatus,
-  humanizeDate,
-} from "../common";
-import { JobStatusIcon } from "../JobStatusIcon";
+import { canCancelRun, formatPipelineParams, humanizeDate } from "../common";
 
 export type JobRunsTableProps = {
   runs: PipelineRun[];
@@ -214,7 +207,7 @@ const RunRow = ({
           </Stack>
         </TableCell>
         <TableCell style={cellStyle[3]}>
-          <StatusChip status={run.status} />
+          <SystemStatusChip status={run.status} flavor="job" size="small" />
         </TableCell>
 
         <TableCell style={cellStyle[4]}>
@@ -276,26 +269,5 @@ export const NoParameterAlert = () => {
     <Typography variant="body2">
       <i>{`This Pipeline didn't have any Parameters defined.`}</i>
     </Typography>
-  );
-};
-
-const statusColor: Record<PipelineRunStatus, string | undefined> = {
-  ABORTED: red[50],
-  STARTED: blue[50],
-  PENDING: undefined,
-  FAILURE: red[50],
-  SUCCESS: green[50],
-};
-
-const StatusChip = ({ status }: { status: PipelineRunStatus }) => {
-  return (
-    <Chip
-      sx={{
-        paddingLeft: (theme) => theme.spacing(0.5),
-        backgroundColor: statusColor[status],
-      }}
-      icon={<JobStatusIcon status={status} />}
-      label={formatRunStatus(status)}
-    />
   );
 };

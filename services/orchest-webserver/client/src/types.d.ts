@@ -1,4 +1,3 @@
-import { TStatus } from "./components/Status";
 import { Point2D } from "./utils/geometry";
 
 declare module "react" {
@@ -195,6 +194,14 @@ export type CustomImage = Pick<
   "base_image" | "language" | "gpu_support"
 >;
 
+export type ImageBuildStatus =
+  | "IDLE"
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED"
+  | "PENDING";
+
 export type EnvironmentImageBuild = {
   uuid: null; // TODO: clean this up on BE
   environment_uuid: string;
@@ -204,7 +211,7 @@ export type EnvironmentImageBuild = {
   image_tag: string;
   requested_time: string;
   started_time: string;
-  status: TStatus;
+  status: ImageBuildStatus;
   celery_task_uuid: string;
 };
 
@@ -212,26 +219,26 @@ export type JupyterImageBuild = {
   finished_time: null | string;
   requested_time: string;
   started_time: null | string;
-  status: TStatus;
+  status: ImageBuildStatus;
   uuid: null;
 };
 
 export type PipelineStepStatus =
+  | "IDLE"
   | "STARTED"
   | "SUCCESS"
   | "FAILURE"
   | "ABORTED"
-  | "PENDING"
-  | "IDLE";
+  | "PENDING";
 
 export type JobStatus =
+  | "DRAFT"
   | "PENDING"
   | "STARTED"
   | "PAUSED"
   | "SUCCESS"
   | "ABORTED"
-  | "FAILURE"
-  | "DRAFT";
+  | "FAILURE";
 
 export type PipelineRunStep = {
   run_uuid: string;

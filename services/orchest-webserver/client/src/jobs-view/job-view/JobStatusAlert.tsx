@@ -1,9 +1,9 @@
+import { SystemStatusIcon } from "@/components/common/SystemStatusIcon";
 import Alert, { AlertProps } from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Collapse from "@mui/material/Collapse";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { JobStatusIcon } from "../JobStatusIcon";
 import { useEditJob } from "../stores/useEditJob";
 import { useJobActions } from "./hooks/useJobActions";
 
@@ -16,7 +16,7 @@ const alertMessageMapping: Record<
     message: "Job paused",
   },
   ABORTED: {
-    severity: "error",
+    severity: "warning",
     message: "Job cancelled",
   },
   FAILURE: {
@@ -40,7 +40,9 @@ export const JobStatusAlert = () => {
       {hasValue(alert) && (
         <Alert
           severity={alert.severity}
-          icon={<JobStatusIcon status={jobStatus} />}
+          icon={
+            jobStatus && <SystemStatusIcon flavor="job" status={jobStatus} />
+          }
           action={
             jobStatus === "PAUSED" ? (
               <Button color="inherit" size="small" onClick={resumeJob}>
