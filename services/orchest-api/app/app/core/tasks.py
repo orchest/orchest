@@ -527,7 +527,7 @@ def _get_git_import_pod_manifest(
         "spec": {
             "containers": [
                 {
-                    "name": "image-builder",
+                    "name": "git-import",
                     "image": f"orchest/celery-worker:{_config.ORCHEST_VERSION}",
                     "command": [
                         "python",

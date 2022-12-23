@@ -3,7 +3,7 @@
 Script used by the pod in charge of pulling from git, exit codes:
 - 1 -> GitCloneFailed
 - 2 -> ProjectWithSameNameExists
-- 3 -> ProjectNotDiscoveredByWebServergg
+- 3 -> ProjectNotDiscoveredByWebServer
 """
 import argparse
 import os
