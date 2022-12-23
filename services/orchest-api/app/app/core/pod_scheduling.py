@@ -306,6 +306,16 @@ def _get_pre_pull_init_container_manifest(
 
 
 def modify_kernel_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
+    modify_pod_scheduling_behaviour("interactive", manifest, _Plane.WORKER)
+
+
+def modify_git_import_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
+    modify_pod_scheduling_behaviour("noninteractive", manifest, _Plane.WORKER)
+
+
+def modify_pod_scheduling_behaviour(
+    scope: str, manifest: Dict[str, Any], plane: _Plane
+) -> None:
     if manifest["kind"] != "Pod":
         raise ValueError("Expected a pod manifest.")
     spec = manifest["spec"]
@@ -318,7 +328,7 @@ def modify_kernel_scheduling_behaviour(manifest: Dict[str, Any]) -> None:
         init_containers.append(_get_pre_pull_init_container_manifest(image))
         spec["initContainers"] = init_containers
 
-    required_affinity = _get_required_affinity("interactive", image, _Plane.WORKER)
+    required_affinity = _get_required_affinity(scope, image, plane)
     if required_affinity is not None:
         if spec.get("affinity") is not None:
             raise ValueError("Expected no previously set affinity.")

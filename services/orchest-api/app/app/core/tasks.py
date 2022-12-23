@@ -19,7 +19,7 @@ from app import errors as self_errors
 from app import models, utils
 from app.celery_app import make_celery
 from app.connections import db, k8s_core_api, k8s_custom_obj_api
-from app.core import environments, notifications, registry, scheduler
+from app.core import environments, notifications, pod_scheduling, registry, scheduler
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipeline_runs import run_pipeline_workflow
@@ -520,4 +520,5 @@ def _get_git_import_pod_manifest(
             ],
         },
     }
+    pod_scheduling.modify_git_import_scheduling_behaviour(manifest)
     return manifest
