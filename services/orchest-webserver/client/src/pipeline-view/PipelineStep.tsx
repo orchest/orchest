@@ -1,12 +1,14 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { StepRunState } from "@/hooks/useActivePipelineRun";
+import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import { Connection, StepMetaData, StepState } from "@/types";
 import { Point2D } from "@/utils/geometry";
 import { getMouseDelta } from "@/utils/mouse";
+import { statusColor } from "@/utils/system-status";
 import Box from "@mui/material/Box";
+import { lighten } from "@mui/material/styles";
 import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
@@ -24,64 +26,8 @@ import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 import { usePipelineViewportContextMenu } from "./pipeline-viewport/PipelineViewportContextMenu";
 
-export const STEP_WIDTH = 190;
+export const STEP_WIDTH = 200;
 export const STEP_HEIGHT = 105;
-
-const stepStatusMapping: Record<string, JSX.Element> = {
-  SUCCESS: <span className="success">✓ </span>,
-  FAILURE: <span className="failure">✗ </span>,
-  ABORTED: <span className="aborted">❗ </span>,
-};
-
-export const StepStatus = ({ value }: { value: string }) => {
-  if (!stepStatusMapping[value]) return null;
-  return stepStatusMapping[value];
-};
-
-const formatDuration = (start: Date, end: Date) =>
-  formatSeconds(Math.round((+end - +start) / 1000));
-
-const formatSeconds = (seconds: number) => {
-  const hrs = ~~(seconds / 3600);
-  const mins = ~~((seconds % 3600) / 60);
-  const secs = ~~seconds % 60;
-
-  let duration = "";
-
-  if (hrs > 0) duration += hrs + "h ";
-  if (mins > 0) duration += mins + "m ";
-
-  return duration + secs + "s";
-};
-
-export const getStateText = ({
-  status,
-  started_time,
-  finished_time,
-  server_time,
-}: StepRunState) => {
-  const duration =
-    started_time && finished_time
-      ? ` (${formatDuration(started_time, finished_time)})`
-      : started_time && server_time
-      ? ` (${formatDuration(started_time, server_time)})`
-      : "";
-
-  switch (status) {
-    case "SUCCESS":
-      return "Completed" + duration;
-    case "FAILURE":
-      return "Failure" + duration;
-    case "STARTED":
-      return "Running" + duration;
-    case "PENDING":
-      return "Pending";
-    case "ABORTED":
-      return "Canceled";
-    default:
-      return "Ready";
-  }
-};
 
 type PipelineStepProps = {
   data: StepState;
@@ -408,6 +354,9 @@ const PipelineStepComponent = React.forwardRef<
     draggedStepPositions,
   ]);
 
+  const currentRun = useActivePipelineRun();
+  const status = currentRun.stepStates?.[uuid]?.status;
+
   // use mouseTracker to get mouse movements
   // mutate the local metadata without update the central state in useEventVars
   // ONLY selected steps are re-rendered, so we can get away from performance penalty
@@ -437,18 +386,42 @@ const PipelineStepComponent = React.forwardRef<
     setIsHovering(false);
   };
 
+  const backgroundBase = statusColor(status);
+
   return (
     <>
       <Box
         data-type="step"
         data-uuid={uuid}
         data-test-title={title}
-        data-test-id={"pipeline-step"}
+        data-test-id="pipeline-step"
         ref={ref}
+        sx={{
+          position: "absolute",
+          transition:
+            "background-color 600ms ease-in, border-color 200ms ease-out",
+          backgroundColor: lighten(backgroundBase, 0.875),
+          "&:hover": {
+            backgroundColor: lighten(backgroundBase, 0.825),
+          },
+          border: (theme) =>
+            selected
+              ? `2px solid ${theme.palette.primary.main}`
+              : `2px solid transparent`,
+          borderRadius: 2,
+          cursor: "pointer",
+          userSelect: "none",
+          height: STEP_HEIGHT,
+          width: STEP_WIDTH,
+          textAlign: "center",
+          zIndex: 2,
+          lineHeight: "normal",
+          boxShadow: 2,
+          visibility: metadata.hidden ? "hidden" : "visible",
+        }}
         className={classNames(
           "pipeline-step",
           (selected || isHovering) && "selected",
-          metadata.hidden && "hidden",
           isStartNodeOfNewConnection && "creating-connection"
         )}
         style={{ transform, zIndex }}
