@@ -32,7 +32,7 @@ export const useStepFile = (stepUuid?: string) => {
       fileViewerApi.fetchOne({
         projectUuid,
         pipelineUuid,
-        stepUuid: stepUuid,
+        stepUuid,
         jobUuid,
         runUuid,
       })
