@@ -1,6 +1,6 @@
 import { SystemStatusIcon } from "@/components/common/SystemStatusIcon";
+import { StepRunState } from "@/hooks/useActivePipelineRun";
 import { useStepFileStatus } from "@/hooks/useStepFileStatus";
-import { PipelineStepStatus } from "@/types";
 import {
   statusColor,
   statusTextColor,
@@ -29,12 +29,11 @@ const formatDuration = (start: Date, end: Date) =>
 export const StepExecutionState = ({ stepUuid }: { stepUuid: string }) => {
   const { stepRunStates } = useInteractiveRuns();
   const fileStatus = useStepFileStatus(stepUuid);
+  const stepRunState: StepRunState = stepRunStates
+    ? stepRunStates[stepUuid] || { status: "IDLE" }
+    : { status: "IDLE" };
 
-  const executionState = stepRunStates
-    ? stepRunStates[stepUuid] || { status: "IDLE" as PipelineStepStatus }
-    : { status: "IDLE" as PipelineStepStatus };
-
-  const { started_time, finished_time, server_time } = executionState;
+  const { started_time, finished_time, server_time } = stepRunState;
 
   const duration =
     started_time && finished_time
@@ -44,9 +43,7 @@ export const StepExecutionState = ({ stepUuid }: { stepUuid: string }) => {
       : "";
 
   const showDuration =
-    duration &&
-    executionState.status !== "ABORTED" &&
-    fileStatus !== "not-found";
+    duration && stepRunState.status !== "ABORTED" && fileStatus !== "not-found";
 
   return (
     <Typography
@@ -67,17 +64,17 @@ export const StepExecutionState = ({ stepUuid }: { stepUuid: string }) => {
         fontSize: 14,
         lineHeight: 1.8,
         userSelect: "none",
-        color: statusTextColor(executionState.status),
+        color: statusTextColor(stepRunState.status),
       }}
     >
       {fileStatus !== "not-found" ? (
         <>
           <SystemStatusIcon
-            status={executionState.status}
+            status={stepRunState.status}
             flavor="pipeline"
             size="small"
           />
-          {statusTitle(executionState.status, "pipeline")}
+          {statusTitle(stepRunState.status, "pipeline")}
         </>
       ) : (
         <em>File not found</em>
@@ -89,7 +86,7 @@ export const StepExecutionState = ({ stepUuid }: { stepUuid: string }) => {
           sx={{
             height: "20px",
             marginLeft: "2px",
-            backgroundColor: alpha(statusColor(executionState.status), 0.12),
+            backgroundColor: alpha(statusColor(stepRunState.status), 0.12),
           }}
         />
       )}
