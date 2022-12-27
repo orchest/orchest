@@ -1,4 +1,3 @@
-import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { Layout } from "@/components/layout/Layout";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
@@ -10,7 +9,6 @@ const ManageUsersView: React.FC = () => {
 
   return (
     <Layout>
-      <BackToOrchestSettingsButton />
       <Box
         className="view-page no-padding manage-users fullheight"
         sx={{ marginTop: (theme) => theme.spacing(2) }}

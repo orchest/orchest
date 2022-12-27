@@ -49,11 +49,11 @@ const ReturnToJobsAlert = () => {
 export const NotificationSettingsView = () => {
   return (
     <SettingsViewLayout
-      header={() => (
+      header={
         <Typography variant="h4" flex={1}>
           Notifications
         </Typography>
-      )}
+      }
     >
       <Stack
         direction="column"

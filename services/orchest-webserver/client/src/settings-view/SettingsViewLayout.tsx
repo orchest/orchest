@@ -1,21 +1,27 @@
 import { SidePanelMenuItem } from "@/components/layout/SidePanelMenuItem";
-import { ViewLayout, ViewLayoutProps } from "@/components/layout/ViewLayout";
+import { ViewLayout } from "@/components/layout/ViewLayout";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
+import Box from "@mui/material/Box";
 import ListSubheader from "@mui/material/ListSubheader";
 import MenuList from "@mui/material/MenuList";
 import React from "react";
 
 type SettingsViewLayoutProps = {
   children: React.ReactNode;
-  header?: ViewLayoutProps["header"];
+  header?: React.ReactNode;
 };
 
 export const SettingsViewLayout = ({
   children,
   header,
 }: SettingsViewLayoutProps) => (
-  <ViewLayout sidePanel={<SettingsMenuList />} header={header}>
+  <ViewLayout
+    sidePanel={<SettingsMenuList />}
+    header={() => (
+      <Box sx={{ marginBottom: (theme) => theme.spacing(2) }}>{header}</Box>
+    )}
+  >
     {children}
   </ViewLayout>
 );

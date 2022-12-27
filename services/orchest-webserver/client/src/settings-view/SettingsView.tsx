@@ -112,9 +112,7 @@ export const SettingsView = () => {
     ? hostInfo.disk_info.avail_GB < 2000
     : false;
   return (
-    <SettingsViewLayout
-      header={() => <Typography variant="h4">General</Typography>}
-    >
+    <SettingsViewLayout header={<Typography variant="h4">General</Typography>}>
       <Stack direction="column" spacing={3}>
         <Stack direction="column" alignItems="flex-start" spacing={1}>
           <Typography variant="h5">Version</Typography>
@@ -158,7 +156,7 @@ export const SettingsView = () => {
                 variant="caption"
                 sx={{
                   whiteSpace: "nowrap",
-                  color: (theme) => theme.palette.action.selected,
+                  color: (theme) => theme.palette.action.active,
                 }}
               >
                 {`${hostInfo.disk_info.used_GB} / ${hostInfo.disk_info.avail_GB} GB`}
