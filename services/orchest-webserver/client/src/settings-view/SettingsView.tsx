@@ -1,15 +1,14 @@
 import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { Code } from "@/components/common/Code";
+import { CircularProgressIcon } from "@/components/common/icons/CircularProgressIcon";
 import { useAppContext } from "@/contexts/AppContext";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import StyledButtonOutlined from "@/styled-components/StyledButton";
-import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SaveIcon from "@mui/icons-material/Save";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -60,7 +59,7 @@ export const SettingsView = () => {
   const restartOrchest = () => {
     return setConfirm(
       "Warning",
-      "Are you sure you want to restart Orchest? This will kill all running Orchest containers (including kernels/pipelines).",
+      "Are you sure you want to restart Orchest? This will terminate all running Orchest containers (including kernels/pipelines).",
       async (resolve) => {
         setStatus("restarting");
         setRequiresRestart([]);
@@ -164,38 +163,34 @@ export const SettingsView = () => {
             </Stack>
           </Stack>
         )}
-        <h3>Controls</h3>
-        <div className="columns">
-          <div className="column">
-            <p>
-              Restart Orchest will force quit ongoing builds, jobs and sessions.
-            </p>
-          </div>
-          <div className="column">
-            {status !== "restarting" ? (
-              <StyledButtonOutlined
-                variant="outlined"
-                color="secondary"
-                startIcon={<PowerSettingsNewIcon />}
+        <Stack direction="column" alignItems="flex-start" spacing={1}>
+          <Typography variant="h5">Orchest status</Typography>
+          <Stack direction="row" spacing={2}>
+            <Chip
+              label={status}
+              icon={
+                status === "restarting" ? (
+                  <CircularProgressIcon fontSize="medium" />
+                ) : undefined
+              }
+              color={status === "online" ? "success" : "default"}
+              sx={{ textTransform: "capitalize" }}
+              variant="outlined"
+            />
+            {status !== "restarting" && (
+              <Button
+                variant="text"
                 onClick={restartOrchest}
-                data-test-id="restart"
+                onAuxClick={restartOrchest}
+                sx={{ marginLeft: (theme) => theme.spacing(2) }}
               >
                 Restart
-              </StyledButtonOutlined>
-            ) : (
-              <>
-                <LinearProgress className="push-down" />
-                <p>This can take up to 1 minute.</p>
-              </>
+              </Button>
             )}
-            <p className="push-up">
-              {`Orchest's current status is `}
-              <i>{status}</i>
-              {`.`}
-            </p>
-          </div>
-        </div>
-        <Box>
+          </Stack>
+        </Stack>
+        <Stack direction="column" alignItems="flex-start" spacing={1}>
+          <Typography variant="h5">Custom configuration</Typography>
           <CodeMirror
             value={userConfig || ""}
             options={{
@@ -232,7 +227,7 @@ export const SettingsView = () => {
                 .join(" ")} to take effect.`}</Alert>
             )}
           </Stack>
-        </Box>
+        </Stack>
       </Stack>
     </SettingsViewLayout>
   );
