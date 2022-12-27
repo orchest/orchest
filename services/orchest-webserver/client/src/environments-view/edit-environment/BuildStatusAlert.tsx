@@ -36,13 +36,11 @@ export const BuildStatusAlert = () => {
         <Alert
           severity={alert.severity}
           icon={
-            latestBuildStatus && (
-              <SystemStatusIcon
-                status={latestBuildStatus}
-                flavor="build"
-                size="small"
-              />
-            )
+            <SystemStatusIcon
+              status={latestBuildStatus}
+              flavor="build"
+              size="small"
+            />
           }
         >
           {alert.message}

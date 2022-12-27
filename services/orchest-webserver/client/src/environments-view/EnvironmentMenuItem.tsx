@@ -33,13 +33,11 @@ export const EnvironmentMenuItem = React.memo(function EnvironmentMenuItem({
       statusIconTooltip={latestBuildStatus || "Draft"}
       subtitle={LANGUAGE_MAP[language]}
       statusIcon={
-        latestBuildStatus && (
-          <SystemStatusIcon
-            status={latestBuildStatus}
-            flavor="build"
-            size="small"
-          />
-        )
+        <SystemStatusIcon
+          status={latestBuildStatus}
+          flavor="build"
+          size="small"
+        />
       }
     />
   );

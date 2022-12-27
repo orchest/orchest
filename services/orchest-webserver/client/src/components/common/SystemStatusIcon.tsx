@@ -9,7 +9,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import React from "react";
 
 export type SystemStatusIconProps = {
-  status: SystemStatus;
+  status?: SystemStatus;
   flavor: StatusFlavor;
   size?: "small" | "medium" | "large";
 };

@@ -80,7 +80,7 @@ export const StepExecutionState = ({ stepUuid }: { stepUuid: string }) => {
           {statusTitle(executionState.status, "pipeline")}
         </>
       ) : (
-        "File not found"
+        <em>File not found</em>
       )}
       {showDuration && (
         <Chip

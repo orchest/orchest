@@ -40,9 +40,7 @@ export const JobStatusAlert = () => {
       {hasValue(alert) && (
         <Alert
           severity={alert.severity}
-          icon={
-            jobStatus && <SystemStatusIcon flavor="job" status={jobStatus} />
-          }
+          icon={<SystemStatusIcon flavor="job" status={jobStatus} />}
           action={
             jobStatus === "PAUSED" ? (
               <Button color="inherit" size="small" onClick={resumeJob}>

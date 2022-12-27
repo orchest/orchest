@@ -11,7 +11,7 @@ import React from "react";
 import { SystemStatusIcon } from "./SystemStatusIcon";
 
 export type SystemStatusChipProps = {
-  status: SystemStatus;
+  status?: SystemStatus;
   flavor: StatusFlavor;
   size: "small" | "medium";
 };
@@ -21,6 +21,8 @@ export const SystemStatusChip = ({
   flavor,
   size,
 }: SystemStatusChipProps) => {
+  if (!status) return null;
+
   return (
     <Chip
       sx={{

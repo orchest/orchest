@@ -30,9 +30,7 @@ export const JobMenuItem = React.memo(function JobMenuItem({
       statusIconTooltip={jobStatus || ""}
       subtitle={subtitle}
       statusIcon={
-        jobStatus ? (
-          <SystemStatusIcon size="small" flavor="job" status={jobStatus} />
-        ) : null
+        <SystemStatusIcon size="small" flavor="job" status={jobStatus} />
       }
     />
   );
