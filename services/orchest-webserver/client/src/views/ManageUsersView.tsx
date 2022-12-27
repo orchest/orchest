@@ -1,17 +1,24 @@
-import { Layout } from "@/components/layout/Layout";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
+import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import React from "react";
 
 const ManageUsersView: React.FC = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.manageUsers.path });
 
   return (
-    <Layout>
+    <SettingsViewLayout
+      header={<Typography variant="h4">Manage user</Typography>}
+      fixedWidth={false}
+    >
       <Box
-        className="view-page no-padding manage-users fullheight"
-        sx={{ marginTop: (theme) => theme.spacing(2) }}
+        sx={{
+          marginTop: (theme) => theme.spacing(2),
+          width: "100%",
+          height: "100%",
+        }}
       >
         <iframe
           className="borderless fullsize"
@@ -19,7 +26,7 @@ const ManageUsersView: React.FC = () => {
           data-test-id="auth-admin-iframe"
         />
       </Box>
-    </Layout>
+    </SettingsViewLayout>
   );
 };
 

@@ -10,17 +10,20 @@ import React from "react";
 type SettingsViewLayoutProps = {
   children: React.ReactNode;
   header?: React.ReactNode;
+  fixedWidth?: boolean;
 };
 
 export const SettingsViewLayout = ({
   children,
   header,
+  fixedWidth = true,
 }: SettingsViewLayoutProps) => (
   <ViewLayout
     sidePanel={<SettingsMenuList />}
     header={() => (
       <Box sx={{ marginBottom: (theme) => theme.spacing(2) }}>{header}</Box>
     )}
+    fixedWidth={fixedWidth}
   >
     {children}
   </ViewLayout>
