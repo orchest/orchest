@@ -7,6 +7,7 @@ import PipelineView from "./pipeline-view/PipelineView";
 import { ProjectsView } from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
 import { SettingsView } from "./settings-view/SettingsView";
+import { ConfigureGitSshView } from "./views/ConfigureGitSshView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";
@@ -31,6 +32,7 @@ const pathComponentMapping = {
   "/settings": SettingsView,
   "/notification-settings": NotificationSettingsView,
   "/configure-jupyter-lab": ConfigureJupyterLabView,
+  "/configure-git-ssh": ConfigureGitSshView,
   "/update": UpdateView,
   "/manage-users": ManageUsersView,
   "/help": HelpView,
