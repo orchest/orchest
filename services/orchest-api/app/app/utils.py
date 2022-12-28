@@ -1041,3 +1041,15 @@ def get_known_hosts_volume_and_mount() -> Tuple[Dict[str, Any]]:
         "subPath": "known_hosts",
     }
     return vol, vol_mount
+
+
+def get_auth_user_git_config_setup_script(auth_user_uuid: str) -> str:
+    git_config = models.GitConfig.query.filter(
+        models.GitConfig.auth_user_uuid == auth_user_uuid
+    ).one_or_none()
+    if git_config is None:
+        return ""
+    return (
+        f'git config --global --replace-all user.name "{git_config.name}"; '
+        f'git config --global --replace-all user.email "{git_config.email}"; '
+    )

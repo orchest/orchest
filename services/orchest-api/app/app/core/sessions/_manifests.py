@@ -325,6 +325,7 @@ def _get_environment_shell_deployment_service_manifest(
     userdir_pvc: str,
     project_dir: str,
     environment_image: str,
+    auth_user_uuid: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     """
     This manifest generation is in core/sessions
@@ -355,6 +356,17 @@ def _get_environment_shell_deployment_service_manifest(
 
     registry_ip = utils.get_registry_ip()
     registry_environment_image = f"{registry_ip}/{environment_image}"
+    env = _get_orchest_sdk_vars(
+        project_uuid,
+        pipeline_uuid,
+        _config.PIPELINE_FILE,
+        session_uuid,
+        SessionType.INTERACTIVE,
+    )
+
+    args = "/orchest/bootscript.sh shell"
+    if auth_user_uuid is not None:
+        args = utils.get_auth_user_git_config_setup_script(auth_user_uuid) + args
 
     deployment_manifest = {
         "apiVersion": "apps/v1",
@@ -394,17 +406,9 @@ def _get_environment_shell_deployment_service_manifest(
                                 volume_mounts_dict["pipeline-file"],
                                 volume_mounts_dict["known-hosts"],
                             ],
-                            "command": ["/orchest/bootscript.sh"],
-                            "args": [
-                                "shell",
-                            ],
-                            "env": _get_orchest_sdk_vars(
-                                project_uuid,
-                                pipeline_uuid,
-                                _config.PIPELINE_FILE,
-                                session_uuid,
-                                SessionType.INTERACTIVE,
-                            ),
+                            "command": ["/bin/sh", "-c"],
+                            "args": [args],
+                            "env": env,
                             "resources": {
                                 "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                             },
@@ -474,12 +478,54 @@ def _get_jupyter_server_deployment_service_manifest(
         volume_mounts_dict["known-hosts"],
     ]
 
+    env = [
+        {
+            "name": "ORCHEST_PROJECT_UUID",
+            "value": project_uuid,
+        },
+        {
+            "name": "ORCHEST_PIPELINE_UUID",
+            "value": session_config["pipeline_uuid"],
+        },
+        # Note, this is not the ORCHEST_PIPELINE_PATH that's used by the
+        # SDK that points to the absolute path of the mounted pipeline
+        # file.  ORCHEST_SESSION_PIPELINE_PATH is used to let the
+        # shellspawner pass the relative pipeline path to the
+        # environment-shells endpoint.
+        {
+            "name": "ORCHEST_SESSION_PIPELINE_PATH",
+            "value": session_config["pipeline_path"],
+        },
+        {
+            "name": "ORCHEST_API_ADDRESS",
+            "value": CONFIG_CLASS.ORCHEST_API_ADDRESS,
+        },
+        {
+            "name": "ORCHEST_WEBSERVER_ADDRESS",
+            "value": CONFIG_CLASS.ORCHEST_WEBSERVER_ADDRESS,
+        },
+        {"name": "ORCHEST_SESSION_UUID", "value": session_uuid},
+    ]
+
+    args = (
+        "/start.sh --allow-root --port=8888 --no-browser "
+        f'--gateway-url=http://jupyter-eg-{session_uuid}:8888/{metadata["name"]} '
+        f'--notebook-dir={_config.PROJECT_DIR} --ServerApp.base_url=/{metadata["name"]}'
+    )
+
     if session_config.get("auth_user_uuid") is not None:
         v, vm = utils.get_user_ssh_keys_volumes_and_mounts(
             session_config.get("auth_user_uuid")
         )
         volumes.extend(v)
         volume_mounts.extend(vm)
+
+        args = (
+            utils.get_auth_user_git_config_setup_script(
+                session_config.get("auth_user_uuid")
+            )
+            + args
+        )
 
     deployment_manifest = {
         "apiVersion": "apps/v1",
@@ -504,50 +550,9 @@ def _get_jupyter_server_deployment_service_manifest(
                             "image": utils.get_jupyter_server_image_to_use(),
                             "imagePullPolicy": "IfNotPresent",
                             "volumeMounts": volume_mounts,
-                            "env": [
-                                {
-                                    "name": "ORCHEST_PROJECT_UUID",
-                                    "value": project_uuid,
-                                },
-                                {
-                                    "name": "ORCHEST_PIPELINE_UUID",
-                                    "value": session_config["pipeline_uuid"],
-                                },
-                                # Note, this is not the
-                                # ORCHEST_PIPELINE_PATH
-                                # that's used by the SDK that points
-                                # to the absolute path of the mounted
-                                # pipeline file.
-                                # ORCHEST_SESSION_PIPELINE_PATH is used
-                                # to let the shellspawner pass the
-                                # relative pipeline path to the
-                                # environment-shells endpoint.
-                                {
-                                    "name": "ORCHEST_SESSION_PIPELINE_PATH",
-                                    "value": session_config["pipeline_path"],
-                                },
-                                {
-                                    "name": "ORCHEST_API_ADDRESS",
-                                    "value": CONFIG_CLASS.ORCHEST_API_ADDRESS,
-                                },
-                                {
-                                    "name": "ORCHEST_WEBSERVER_ADDRESS",
-                                    "value": CONFIG_CLASS.ORCHEST_WEBSERVER_ADDRESS,
-                                },
-                                {"name": "ORCHEST_SESSION_UUID", "value": session_uuid},
-                            ],
-                            "args": [
-                                "--allow-root",
-                                "--port=8888",
-                                "--no-browser",
-                                (
-                                    "--gateway-url="
-                                    f"http://jupyter-eg-{session_uuid}:8888/"
-                                    f'{metadata["name"]}'
-                                ),
-                                f"--notebook-dir={_config.PROJECT_DIR}",
-                                f'--ServerApp.base_url=/{metadata["name"]}',
-                            ],
+                            "env": env,
+                            "command": ["/bin/sh", "-c"],
+                            "args": [args],
                             "resources": {
                                 "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                             },

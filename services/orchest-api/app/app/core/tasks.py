@@ -539,6 +539,7 @@ def _get_git_import_pod_manifest(
         v, vm = utils.get_user_ssh_keys_volumes_and_mounts(auth_user_uuid)
         volumes.extend(v)
         volume_mounts.extend(vm)
+        args = utils.get_auth_user_git_config_setup_script(auth_user_uuid) + args
 
     manifest = {
         "apiVersion": "v1",
@@ -551,6 +552,7 @@ def _get_git_import_pod_manifest(
                     "image": f"orchest/celery-worker:{_config.ORCHEST_VERSION}",
                     "command": ["/bin/sh", "-c"],
                     "args": [args],
+                    "env": [],
                     "volumeMounts": volume_mounts,
                 },
             ],
