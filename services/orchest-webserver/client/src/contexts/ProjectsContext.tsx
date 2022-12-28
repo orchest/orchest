@@ -1,11 +1,11 @@
 import { useEnvironmentsApi } from "@/api/environments/useEnvironmentsApi";
+import { useActiveProject } from "@/hooks/useActiveProject";
 import { useCancelablePromise } from "@/hooks/useCancelablePromise";
+import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type {
   EnvironmentValidationData,
-  Example,
   PipelineMetaData,
-  Project,
   ReducerActionWithCallback,
 } from "@/types";
 import { FetchError } from "@orchest/lib-utils";
@@ -32,8 +32,8 @@ export type RequestBuildDispatcher = (
   requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
 ) => Promise<true | Error>;
 
-const ProjectsContext = React.createContext<IProjectsContext>(
-  {} as IProjectsContext
+const ProjectsContext = React.createContext<ProjectContext>(
+  {} as ProjectContext
 );
 
 export type PipelineReadOnlyReason =
@@ -44,16 +44,13 @@ export type PipelineReadOnlyReason =
   | "environmentsFailedToBuild"
   | "JupyterEnvironmentBuildInProgress";
 
-export type ProjectsContextState = {
+export type ProjectContextState = {
+  /** The UUID of the active project. */
   projectUuid?: string;
   pipelineReadOnlyReason?: PipelineReadOnlyReason;
   pipelineSaveStatus: "saved" | "saving";
   pipelines: PipelineMetaData[] | undefined;
   pipeline: PipelineMetaData | undefined;
-  projects: Project[] | undefined;
-  examples: Example[] | undefined;
-  hasProjects: boolean;
-  hasLoadedProjects: boolean;
   hasLoadedPipelinesInPipelineEditor: boolean;
   newPipelineUuid: string | undefined;
   buildRequest?: BuildRequest;
@@ -76,19 +73,11 @@ type Action =
     }
   | {
       type: "SET_PIPELINE_SAVE_STATUS";
-      payload: ProjectsContextState["pipelineSaveStatus"];
+      payload: ProjectContextState["pipelineSaveStatus"];
     }
   | {
       type: "SET_PROJECT";
-      payload: ProjectsContextState["projectUuid"];
-    }
-  | {
-      type: "SET_PROJECTS";
-      payload: Project[];
-    }
-  | {
-      type: "SET_EXAMPLES";
-      payload: Example[];
+      payload: ProjectContextState["projectUuid"];
     }
   | {
       type: "SET_PIPELINE_READONLY_REASON";
@@ -110,12 +99,12 @@ type Action =
     };
 
 export type ProjectsContextAction = ReducerActionWithCallback<
-  ProjectsContextState,
+  ProjectContextState,
   Action
 >;
 
-export interface IProjectsContext {
-  state: ProjectsContextState;
+export interface ProjectContext {
+  state: ProjectContextState;
   dispatch: (value: ProjectsContextAction) => void;
   ensureEnvironmentsAreBuilt: (
     requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
@@ -123,77 +112,66 @@ export interface IProjectsContext {
   requestBuild: RequestBuildDispatcher;
 }
 
-const initialState: ProjectsContextState = {
+const baseState: ProjectContextState = {
   pipelineSaveStatus: "saved",
   pipelines: undefined,
   pipeline: undefined,
-  projects: undefined,
-  examples: undefined,
-  hasProjects: false,
-  hasLoadedProjects: false,
   hasLoadedPipelinesInPipelineEditor: false,
   newPipelineUuid: undefined,
 };
 
 export const ProjectsContextProvider: React.FC = ({ children }) => {
-  // Read and write localstorage in the context to ensure that the state
-  // is updated synchronously.
-  const [lastSeenProjectUuid, setLastSeenProjectUuid] = useLocalStorage<string>(
-    "pipelineEditor.lastSeenProjectUuid",
-    ""
-  );
-  const [lastSeenPipelines, setLastSeenPipelines] = useLocalStorage<
+  const { projects, hasData } = useFetchProjects();
+  const activeProject = useActiveProject();
+
+  const [pipelinesByProject, setPipelinesByProject] = useLocalStorage<
     Record<string, string>
   >("pipelineEditor.lastSeenPipelines", {});
 
-  const setLastSeenPipeline = React.useCallback(
+  const setActivePipeline = React.useCallback(
     (projectUuid: string | undefined, pipelineUuid: string | null) => {
       if (!projectUuid) return;
-      setLastSeenPipelines((current) => {
+
+      setPipelinesByProject((active) => {
         if (!pipelineUuid) {
-          delete current[projectUuid];
-          return current;
+          delete active[projectUuid];
+          return active;
         }
-        if (current[projectUuid] === pipelineUuid) return current;
-        return { ...current, [projectUuid]: pipelineUuid };
+        if (active[projectUuid] === pipelineUuid) return active;
+        return { ...active, [projectUuid]: pipelineUuid };
       });
     },
-    [setLastSeenPipelines]
+    [setPipelinesByProject]
   );
 
-  const cleanProjectsFromLocalstorage = React.useCallback(
-    (projects: Project[]) => {
-      const currentProjectUuids = new Set(
-        projects.map((project) => project.uuid)
+  React.useEffect(() => {
+    if (!hasData) return;
+
+    // Prune "active pipelines" from projects that no longer exist:
+
+    setPipelinesByProject((current) => {
+      if (!current) return {};
+
+      return Object.fromEntries(
+        Object.entries(current).filter(
+          ([projectUuid]) => projects?.[projectUuid]
+        )
       );
-      setLastSeenPipelines((current) => {
-        if (!current) return {};
-
-        return Object.entries(current).reduce(
-          (all, [persistedProjectUuid, persistedPipelineUuid]) => {
-            return currentProjectUuids.has(persistedProjectUuid)
-              ? { ...all, [persistedProjectUuid]: persistedPipelineUuid }
-              : all;
-          },
-          {} as Record<string, string>
-        );
-      });
-    },
-    [setLastSeenPipelines]
-  );
+    });
+  }, [projects, hasData, setPipelinesByProject]);
 
   const stringifiedLastSeenPipelines = React.useMemo(
-    () => JSON.stringify(lastSeenPipelines),
-    [lastSeenPipelines]
+    () => JSON.stringify(pipelinesByProject),
+    [pipelinesByProject]
   );
 
   const memoizedReducer = React.useCallback(
-    (state: ProjectsContextState, _action: ProjectsContextAction) => {
+    (state: ProjectContextState, _action: ProjectsContextAction) => {
       const action = _action instanceof Function ? _action(state) : _action;
 
       switch (action.type) {
         case "ADD_PIPELINE": {
-          setLastSeenPipeline(state.projectUuid, action.payload.uuid);
+          setActivePipeline(state.projectUuid, action.payload.uuid);
           return {
             ...state,
             pipelines: state.pipelines
@@ -212,7 +190,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             (pipeline) => pipeline.uuid === uuid
           );
 
-          setLastSeenPipeline(state.projectUuid, targetPipeline?.uuid || null);
+          setActivePipeline(state.projectUuid, targetPipeline?.uuid || null);
           if (!targetPipeline) return { ...state, pipeline: undefined };
 
           const updatedPipeline = { ...targetPipeline, ...changes };
@@ -226,13 +204,14 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           };
         }
         case "LOAD_PIPELINES": {
-          const cachedPipelineUuid = lastSeenPipelines[state.projectUuid || ""];
+          const cachedPipelineUuid =
+            pipelinesByProject[state.projectUuid || ""];
           const found = action.payload.find(
             (pipeline) => pipeline.uuid === cachedPipelineUuid
           );
           const targetPipeline = found || action.payload[0];
 
-          setLastSeenPipeline(state.projectUuid, targetPipeline?.uuid);
+          setActivePipeline(state.projectUuid, targetPipeline?.uuid);
 
           return {
             ...state,
@@ -259,10 +238,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
             : state.pipeline;
 
           if (isCurrentPipelineRemoved)
-            setLastSeenPipeline(
-              state.projectUuid,
-              targetPipeline?.uuid || null
-            );
+            setActivePipeline(state.projectUuid, targetPipeline?.uuid || null);
 
           return {
             ...state,
@@ -277,7 +253,6 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           return { ...state, pipelineReadOnlyReason: action.payload };
         case "SET_PROJECT": {
           if (!action.payload) {
-            setLastSeenProjectUuid("");
             return {
               ...state,
               projectUuid: undefined,
@@ -286,40 +261,20 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
               hasLoadedPipelinesInPipelineEditor: false,
             };
           }
+
           // Ensure that projectUuid is valid in the state.
           // So that we could show proper warnings in case user provides
           // an invalid projectUuid from the route args.
-          const foundProject = (state.projects || []).find(
-            (project) => project.uuid === action.payload
-          );
+          const foundProject = projects?.[action.payload];
 
-          setLastSeenProjectUuid(foundProject ? foundProject.uuid : "");
           if (!foundProject) return state;
+
           return {
             ...state,
             projectUuid: foundProject.uuid,
             pipelines: undefined,
             pipeline: undefined,
             hasLoadedPipelinesInPipelineEditor: false,
-          };
-        }
-        case "SET_PROJECTS": {
-          cleanProjectsFromLocalstorage(action.payload);
-          const initialProjectUuid = action.payload.some(
-            (project) => project.uuid === lastSeenProjectUuid
-          )
-            ? lastSeenProjectUuid
-            : action.payload[0]?.uuid;
-
-          if (initialProjectUuid !== lastSeenProjectUuid)
-            setLastSeenProjectUuid(initialProjectUuid);
-
-          return {
-            ...state,
-            projects: action.payload,
-            projectUuid: initialProjectUuid,
-            hasProjects: action.payload.length > 0,
-            hasLoadedProjects: true,
           };
         }
         case "SET_BUILD_REQUEST": {
@@ -333,9 +288,6 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
           };
         case "CANCEL_BUILD_REQUEST":
           return { ...state, buildRequest: undefined };
-        case "SET_EXAMPLES": {
-          return { ...state, examples: action.payload };
-        }
         default: {
           console.log("Unknown action in ProjectsContext: ", action);
           return state;
@@ -344,12 +296,14 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      cleanProjectsFromLocalstorage,
-      setLastSeenPipeline,
+      setActivePipeline,
       stringifiedLastSeenPipelines, // lastSeenPipelines should be stringified to prevent unnecessary rerender.
     ]
   );
-  const [state, dispatch] = React.useReducer(memoizedReducer, initialState);
+  const [state, dispatch] = React.useReducer(memoizedReducer, {
+    ...baseState,
+    projectUuid: activeProject?.uuid,
+  });
 
   const { makeCancelable } = useCancelablePromise();
   const requestBuild = React.useCallback(

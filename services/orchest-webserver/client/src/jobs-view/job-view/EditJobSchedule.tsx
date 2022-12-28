@@ -1,6 +1,6 @@
 import CronScheduleInput from "@/components/CronScheduleInput";
 import { DateTimeInput } from "@/components/DateTimeInput";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActiveProject } from "@/hooks/useActiveProject";
 import { JobDocLink } from "@/jobs-view/JobDocLink";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -16,17 +16,13 @@ import {
   useJobScheduleOption,
 } from "./hooks/useJobScheduleOption";
 
+const SIZE_LIMIT = 50;
+
 const SnapshotOversizedWarning = () => {
-  const {
-    state: { projects = [], projectUuid },
-  } = useProjectsContext();
+  const project = useActiveProject();
+  const isSnapshotTooBig = (project?.project_snapshot_size ?? 0) > SIZE_LIMIT;
 
-  const shouldShowSnapshotSizeTooBigWarning = React.useMemo(() => {
-    const project = projects.find((project) => project.uuid === projectUuid);
-    return (project?.project_snapshot_size ?? 0) > 50;
-  }, [projects, projectUuid]);
-
-  return shouldShowSnapshotSizeTooBigWarning ? (
+  return isSnapshotTooBig ? (
     <Alert
       severity="warning"
       sx={{

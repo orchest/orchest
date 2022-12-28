@@ -1,5 +1,6 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActiveProject } from "@/hooks/useActiveProject";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
@@ -42,6 +43,7 @@ export const usePipelineDataContext = () =>
 
 export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const { setAlert } = useGlobalContext();
+  const activeProject = useActiveProject();
   useEnsureValidPipeline();
 
   const {
@@ -53,7 +55,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   } = useCustomRoute();
 
   const {
-    state: { pipeline, pipelines, projectUuid, pipelineReadOnlyReason },
+    state: { pipeline, pipelines, pipelineReadOnlyReason },
   } = useProjectsContext();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
@@ -81,7 +83,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   } = useFetchPipelineJson({
     // This `projectUuid` cannot be from route. It has to be from ProjectsContext, aligned with `pipeline?.uuid`.
     // Otherwise, when user switch to another project, pipeline?.uuid does not exist.
-    projectUuid,
+    projectUuid: activeProject?.uuid,
     pipelineUuid,
     jobUuid,
     runUuid: activePipelineRun?.uuid,
@@ -89,6 +91,8 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   });
 
   React.useEffect(() => {
+    if (!activeProject) return;
+
     // This case is hit when a user tries to load a pipeline that belongs
     // to a run that has not started yet. The project files are only
     // copied when the run starts. Before start, the pipeline.json thus
@@ -103,15 +107,19 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
         (resolve) => {
           resolve(true);
           if (jobUuid) {
-            navigateTo(siteMap.jobs.path, { query: { projectUuid, jobUuid } });
+            navigateTo(siteMap.jobs.path, {
+              query: { projectUuid: activeProject.uuid, jobUuid },
+            });
           } else {
-            navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+            navigateTo(siteMap.pipeline.path, {
+              query: { projectUuid: activeProject.uuid },
+            });
           }
 
           return true;
         }
       );
-  }, [error, setAlert, navigateTo, projectUuid, jobUuid]);
+  }, [error, setAlert, navigateTo, jobUuid, activeProject]);
 
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
   const isSnapshot = hasValue(jobUuid) && hasValue(snapshotUuid);
@@ -125,7 +133,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     <PipelineDataContext.Provider
       value={{
         disabled,
-        projectUuid,
+        projectUuid: activeProject?.uuid,
         pipelineUuid,
         pipeline,
         pipelineCwd,

@@ -1,4 +1,5 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActiveProject } from "@/hooks/useActiveProject";
+import { isProjectPage } from "@/routingConfig";
 import { ellipsis } from "@/utils/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import Box from "@mui/material/Box";
@@ -9,25 +10,22 @@ import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useLocation } from "react-router-dom";
+
+type ProjectSelectorToggleProps = {
+  tabIndex?: number;
+  onClick: () => void;
+  isOpen: boolean;
+};
 
 export const ProjectSelectorToggle = ({
   tabIndex,
   onClick,
   isOpen,
-  validProjectUuid,
-}: {
-  tabIndex?: number;
-  onClick: () => void;
-  isOpen: boolean;
-  validProjectUuid: string | undefined;
-}) => {
-  const {
-    state: { projects = [] },
-  } = useProjectsContext();
-  const projectName = React.useMemo(() => {
-    const found = projects.find((project) => project.uuid === validProjectUuid);
-    return found?.path;
-  }, [projects, validProjectUuid]);
+}: ProjectSelectorToggleProps) => {
+  const { pathname } = useLocation();
+  const activeProject = useActiveProject();
+  const projectName = isProjectPage(pathname) ? activeProject?.path : undefined;
 
   return (
     <Button

@@ -110,7 +110,7 @@ export interface OrchestUserConfig {
   TELEMETRY_UUID: string;
 }
 
-export interface OrchestServerConfig {
+export interface OrchestConfigs {
   config: OrchestConfig;
   user_config: OrchestUserConfig;
 }

@@ -1,6 +1,17 @@
 import { ScopeParameter, ScopeParameters } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 
+export const ALL_SCOPE_PARAMETERS: readonly ScopeParameter[] = [
+  "projectUuid",
+  "pipelineUuid",
+  "jobUuid",
+  "runUuid",
+  "environmentUuid",
+  "stepUuid",
+  "filePath",
+  "fileRoot",
+];
+
 export const getMissingParameters = <S extends ScopeParameter>(
   parameters: Partial<ScopeParameters>,
   desired: readonly S[]

@@ -1,3 +1,4 @@
+import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/layout/Layout";
@@ -34,8 +35,9 @@ const SettingsView: React.FC = () => {
     setAsSaved,
     setConfirm,
     state: { hasUnsavedChanges },
-    config: orchestConfig,
   } = useGlobalContext();
+
+  const orchestConfig = useOrchestConfigsApi((state) => state.config);
 
   const { orchestVersion, checkUpdate } = useAppContext();
 
