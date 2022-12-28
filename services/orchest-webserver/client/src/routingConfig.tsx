@@ -189,7 +189,7 @@ const projectRootPaths = [
   siteMap.jupyterLab.path,
   siteMap.jobs.path,
   siteMap.environments.path,
-  siteMap.filePreview,
+  siteMap.filePreview.path,
 ];
 
 const navigationPaths = [
@@ -269,4 +269,4 @@ export const getPageCommands = (projectUuid: string | undefined) =>
     });
 
 export const isProjectPage = (path: string) =>
-  navigationRoutes.some((route) => route.path === path);
+  withinProjectRoutes.some((route) => route.path === path);

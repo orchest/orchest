@@ -1,8 +1,8 @@
+import { SystemStatusIcon } from "@/components/common/SystemStatusIcon";
 import Alert, { AlertProps } from "@mui/material/Alert";
 import Collapse from "@mui/material/Collapse";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { BuildStatusIcon } from "../BuildStatusIcon";
 import { useEditEnvironment } from "../stores/useEditEnvironment";
 
 const alertMessageMapping: Record<
@@ -14,7 +14,7 @@ const alertMessageMapping: Record<
     message: "Build failed",
   },
   ABORTED: {
-    severity: "error",
+    severity: "warning",
     message: "Build cancelled",
   },
   SUCCESS: {
@@ -35,7 +35,13 @@ export const BuildStatusAlert = () => {
       {hasValue(alert) && (
         <Alert
           severity={alert.severity}
-          icon={<BuildStatusIcon latestBuildStatus={latestBuildStatus} />}
+          icon={
+            <SystemStatusIcon
+              status={latestBuildStatus}
+              flavor="build"
+              size="small"
+            />
+          }
         >
           {alert.message}
         </Alert>

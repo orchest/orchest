@@ -1,6 +1,6 @@
 import { projectsApi } from "@/api/projects/projectsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { usePollBackgroundTask } from "@/hooks/useBackgroundTask";
+import { usePollBackgroundTask } from "@/hooks/usePollBackgroundTask";
 import React from "react";
 
 export const useGitImport = (importUrl: string) => {

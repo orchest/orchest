@@ -23,7 +23,8 @@ export const usePollBackgroundTask = (taskUuid: string | undefined) => {
     if (!taskUuid) return;
 
     const handle = window.setInterval(async () => {
-      const task = await backgroundTasksApi.fetchOne(taskUuid);
+      const task = await run(backgroundTasksApi.fetchOne(taskUuid));
+      if (!task) return;
 
       setBackgroundTask(task);
 

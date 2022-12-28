@@ -2,19 +2,14 @@ import { FileRoot, fileRoots, UnpackedMove } from "@/utils/file";
 import {
   addToFileMap,
   FileMap,
+  fileMapDepth,
   fileMetadata,
   moveBetween,
   removeFromFileMap,
   replaceDirectoryContents,
   sortFileMap,
 } from "@/utils/file-map";
-import {
-  directoryLevel,
-  dirname,
-  isDirectory,
-  join,
-  trimLeadingSlash,
-} from "@/utils/path";
+import { dirname, isDirectory, join, trimLeadingSlash } from "@/utils/path";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
 import { hasValue } from "@orchest/lib-utils";
 import create from "zustand";
@@ -95,11 +90,7 @@ export const useFileApi = create<FileApi>((set, get) => {
     return filesApi.fetchNode({ ...scope, projectUuid, root, path, depth });
   };
 
-  const getDepth = (root: string) =>
-    Object.keys(get().roots[root] ?? {}).reduce(
-      (depth, path) => Math.max(depth, directoryLevel(path)),
-      0
-    ) + 1;
+  const getDepth = (root: string) => fileMapDepth(get().roots[root] ?? {});
 
   const updateRoot = (
     root: FileRoot,

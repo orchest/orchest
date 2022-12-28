@@ -1,5 +1,6 @@
 import { FileMetadata, UnpackedMove } from "./file";
 import {
+  directoryLevel,
   dirname,
   isDirectory,
   join,
@@ -159,3 +160,9 @@ export const directoryContents = (
   Object.fromEntries(
     Object.entries(fileMap).filter(([path]) => isDirectChildOf(path, directory))
   );
+
+export const fileMapDepth = (fileMap: FileMap) =>
+  Object.keys(fileMap).reduce(
+    (depth, path) => Math.max(depth, directoryLevel(path)),
+    0
+  ) + 1;

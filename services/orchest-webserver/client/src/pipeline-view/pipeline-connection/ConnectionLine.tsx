@@ -24,7 +24,9 @@ const ConnectionLineSvg = ({
     >
       <path
         id="path"
-        stroke={selected ? theme.palette.primary.main : "#000"}
+        stroke={
+          selected ? theme.palette.primary.main : theme.palette.text.primary
+        }
         strokeWidth={selected ? 3 : 2}
         fill="none"
         d={d}
