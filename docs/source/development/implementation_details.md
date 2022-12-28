@@ -310,3 +310,20 @@ Example:
   activities belonging to the interactive scope could be scheduled on any node. This means that the
   time window during which there is single node pressure is given by the time it takes to push the
   newly built image to the registry and spread it to the other nodes.
+
+## Git config and SSH keys injection
+
+The `/auth-users/` API endpoints of the `orchest-api` allows setting up a git configuration (name,
+email) and a number of SSH private keys for an auth user. When it comes to the git configuration, it
+is set for `environment-shells`, the `jupyter server` and `git imports` by manipulating the command
+and arguments of the deployment/pod.
+
+When it comes to private SSH keys, those are only injected for the `jupyter server` and `git imports`, first, the keys are setup as volumes mounted into the pod, then, those are read up by some
+simple bash logic which is injected by, again, by manipulating the command and arguments of the
+deployment/pod. By making use of agent forwarding, the `environment shell` will be able to make use
+of those keys seamlessly since the ssh connection of the shell starts from the `jupyter server`.
+
+All of this happens only if the `orchest-api` is made aware that an interactive session or git
+import is requested by a particular auth user. This is responsibility of the `orchest-webserver` ,
+which acts as a proxy for all client -> `orchest-api` interactions, and in this context will add the
+auth user uuid to the payload destined to be consumed by the `orchest-api`.
