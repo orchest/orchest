@@ -3,11 +3,12 @@ import os
 import uuid
 from typing import Optional
 
+import validators
 from flask import current_app, request
 from flask_restx import Namespace, Resource
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from app import models, schema
+from app import models, schema, utils
 from app.celery_app import make_celery
 from app.connections import db
 
@@ -40,6 +41,12 @@ class GitImportList(Resource):
             models.AuthUser.query.get_or_404(
                 auth_user_uuid, description=f"No user {auth_user_uuid}."
             )
+
+        repo_url = data.get("url", "")
+        if not validators.url(repo_url) and not utils.is_valid_ssh_destination(
+            repo_url
+        ):
+            return {"message": f"Invalid repository url {repo_url}."}, 400
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:

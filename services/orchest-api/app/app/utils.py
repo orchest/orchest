@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import time
 import uuid
 from collections import ChainMap
@@ -1070,3 +1071,8 @@ def get_add_ssh_secrets_script() -> str:
             done
         fi;
         """
+
+
+def is_valid_ssh_destination(destination: str) -> bool:
+    """Note: it's quite loose."""
+    return bool(re.match(r"^[\w\d._-]+@[\w\d.-]+(:[\w\d._/-]+)*$", destination))
