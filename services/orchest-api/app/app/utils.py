@@ -1053,3 +1053,20 @@ def get_auth_user_git_config_setup_script(auth_user_uuid: str) -> str:
         f'git config --global --replace-all user.name "{git_config.name}"; '
         f'git config --global --replace-all user.email "{git_config.email}"; '
     )
+
+
+def get_add_ssh_secrets_script() -> str:
+    return """
+        if [ -d "/tmp/ssh-secrets/" ]; then
+            eval "$(ssh-agent -s)"
+            for file in /tmp/ssh-secrets/*; do
+            # Need to copy to set permissions since secrets are read only and
+            # we are getting hit by
+            # https://kubernetes.io/docs/concepts/configuration/secret/#secret-files-permissions
+            cp "$file" "${file}_copy"
+            chmod 600 "${file}_copy"
+            ssh-add "${file}_copy"
+            rm "${file}_copy"
+            done
+        fi;
+        """

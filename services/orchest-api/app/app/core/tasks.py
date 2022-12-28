@@ -493,21 +493,7 @@ def _get_git_import_pod_manifest(
     project_name: Optional[str],
     auth_user_uuid: Optional[str],
 ) -> Dict[str, Any]:
-    args = (
-        """
-        if [ -d "/tmp/ssh-secrets/" ]; then
-            eval "$(ssh-agent -s)"
-            for file in /tmp/ssh-secrets/*; do
-            # Need to copy to set permissions since secrets are read only and
-            # we are getting hit by
-            # https://kubernetes.io/docs/concepts/configuration/secret/#secret-files-permissions
-            cp "$file" "${file}_copy"
-            chmod 600 "${file}_copy"
-            ssh-add "${file}_copy"
-            rm "${file}_copy"
-            done
-        fi;
-        """
+    args = utils.get_add_ssh_secrets_script() + (
         "python /orchest/services/orchest-api/app/scripts/git-import.py "
         f"--task-uuid {pod_name} --repo-url {repo_url}"
     )

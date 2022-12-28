@@ -507,7 +507,7 @@ def _get_jupyter_server_deployment_service_manifest(
         {"name": "ORCHEST_SESSION_UUID", "value": session_uuid},
     ]
 
-    args = (
+    args = utils.get_add_ssh_secrets_script() + (
         "/start.sh --allow-root --port=8888 --no-browser "
         f'--gateway-url=http://jupyter-eg-{session_uuid}:8888/{metadata["name"]} '
         f'--notebook-dir={_config.PROJECT_DIR} --ServerApp.base_url=/{metadata["name"]}'

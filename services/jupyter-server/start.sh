@@ -49,23 +49,6 @@ release_lock() {
     rm -rf $lockdir
 }
 
-setup_ssh_keys(){
-    if [ -d "/tmp/ssh-secrets/" ]; then
-        eval "$(ssh-agent -s)"
-        for file in /tmp/ssh-secrets/*; do
-        # Need to copy to set permissions since secrets are read only and
-        # we are getting hit by
-        # https://kubernetes.io/docs/concepts/configuration/secret/#secret-files-permissions
-        cp "$file" "${file}_copy"
-        chmod 600 "${file}_copy"
-        ssh-add "${file}_copy"
-        rm "${file}_copy"
-        done
-    fi
-}
-
-setup_ssh_keys
-
 start_jupyterlab(){
 
     release_lock
