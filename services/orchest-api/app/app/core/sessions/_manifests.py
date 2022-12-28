@@ -44,11 +44,6 @@ def _get_common_volumes_and_volume_mounts(
         "hostPath": {"path": container_runtime_socket, "type": "Socket"},
     }
 
-    volumes["known-hosts"] = {
-        "name": "known-hosts",
-        "configMap": {"name": CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP},
-    }
-
     volume_mounts["data"] = {
         "name": "userdir-pvc",
         "mountPath": container_data_dir,
@@ -60,12 +55,6 @@ def _get_common_volumes_and_volume_mounts(
         "subPath": relative_project_dir,
     }
 
-    volume_mounts["known-hosts"] = {
-        "name": "known-hosts",
-        "mountPath": "/etc/ssh/ssh_known_hosts",
-        "subPath": "known_hosts",
-    }
-
     if pipeline_path is not None:
         relative_pipeline_path = os.path.join(relative_project_dir, pipeline_path)
 
@@ -74,6 +63,10 @@ def _get_common_volumes_and_volume_mounts(
             "mountPath": container_pipeline_path,
             "subPath": relative_pipeline_path,
         }
+
+    known_hosts_vol, known_hosts_vol_mount = utils.get_known_hosts_volume_and_mount()
+    volumes["known-hosts"] = known_hosts_vol
+    volume_mounts["known-hosts"] = known_hosts_vol_mount
 
     return volumes, volume_mounts
 

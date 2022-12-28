@@ -1028,3 +1028,16 @@ def get_user_ssh_keys_volumes_and_mounts(
             }
         )
     return vols, mounts
+
+
+def get_known_hosts_volume_and_mount() -> Tuple[Dict[str, Any]]:
+    vol = {
+        "name": "known-hosts",
+        "configMap": {"name": CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP},
+    }
+    vol_mount = {
+        "name": "known-hosts",
+        "mountPath": "/etc/ssh/ssh_known_hosts",
+        "subPath": "known_hosts",
+    }
+    return vol, vol_mount

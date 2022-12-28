@@ -514,6 +514,8 @@ def _get_git_import_pod_manifest(
     if project_name is not None:
         args += f" --project-name {project_name}"
 
+    known_hosts_vol, known_hosts_vol_mount = utils.get_known_hosts_volume_and_mount()
+
     volumes = [
         {
             "name": "userdir-pvc",
@@ -521,11 +523,7 @@ def _get_git_import_pod_manifest(
                 "claimName": "userdir-pvc",
             },
         },
-        # TODO reuse existing definition
-        {
-            "name": "known-hosts",
-            "configMap": {"name": CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP},
-        },
+        known_hosts_vol,
     ]
 
     volume_mounts = [
@@ -533,12 +531,7 @@ def _get_git_import_pod_manifest(
             "name": "userdir-pvc",
             "mountPath": "/userdir",
         },
-        # TODO reuse existing definition
-        {
-            "name": "known-hosts",
-            "mountPath": "/etc/ssh/ssh_known_hosts",
-            "subPath": "known_hosts",
-        },
+        known_hosts_vol_mount,
     ]
 
     if auth_user_uuid is not None:
