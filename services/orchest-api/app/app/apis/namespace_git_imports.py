@@ -81,5 +81,5 @@ class ImportGitProject(TwoPhaseFunction):
     def _revert(self):
         models.GitImport.query.filter(
             models.GitImport.uuid == self.collateral_kwargs["git_import_uuid"]
-        ).update({"status":"FAILURE"})
+        ).update({"status": "FAILURE"})
         db.session.commit()
