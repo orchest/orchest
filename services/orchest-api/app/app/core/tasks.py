@@ -443,6 +443,7 @@ def _run_git_import_pod(
         exit_code_to_exception = {
             2: self_errors.ProjectWithSameNameExists(),
             3: self_errors.ProjectNotDiscoveredByWebServer(),
+            4: self_errors.NoAccessRightsOrRepoDoesNotExists(),
         }
         for _ in range(30 * 60):
             try:

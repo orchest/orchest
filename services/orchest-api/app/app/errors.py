@@ -79,3 +79,7 @@ class ProjectWithSameNameExists(GitImportError):
 
 class ProjectNotDiscoveredByWebServer(GitImportError):
     pass
+
+
+class NoAccessRightsOrRepoDoesNotExists(GitImportError):
+    pass

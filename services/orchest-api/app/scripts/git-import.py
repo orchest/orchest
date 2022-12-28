@@ -4,6 +4,7 @@ Script used by the pod in charge of pulling from git, exit codes:
 - 1 -> GitCloneFailed
 - 2 -> ProjectWithSameNameExists
 - 3 -> ProjectNotDiscoveredByWebServer
+- 4 -> NoAccessRightsOrRepoDoesNotExists
 """
 import argparse
 import os
@@ -38,8 +39,15 @@ def _git_clone_project(
             shlex.split(git_command),
             cwd=tmp_path,
             env={**os.environ, **{"GIT_TERMINAL_PROMPT": "0"}},
+            capture_output=True,
         )
         if result.returncode != 0:
+            # Sadly git error codes aren't cleanly mapped.
+            if (
+                result.stderr is not None
+                and "correct access rights" in result.stderr.decode().lower()
+            ):
+                sys.exit(4)
             sys.exit(1)
 
         # Should be the only directory in there, also this way we get
