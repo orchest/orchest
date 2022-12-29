@@ -261,20 +261,23 @@ export type PipelineRun = {
   project_uuid: string;
   pipeline_uuid: string;
   status: PipelineRunStatus;
+  server_time: string;
   started_time: string;
-  finished_time: string;
+  finished_time: string | null;
   pipeline_steps: PipelineRunStep[];
   env_variables: Record<string, string>;
+  parameters: Record<string, Json>;
+};
+
+export type JobRun = PipelineRun & {
   job_uuid: string;
   job_run_index: number;
   job_run_pipeline_run_index: number;
   pipeline_run_index: number;
-  parameters: Record<string, Json>;
-  server_time: string;
 };
 
 export type JobRunsPage = {
-  pipeline_runs: PipelineRun[];
+  pipeline_runs: JobRun[];
   pagination_data: Pagination;
 };
 

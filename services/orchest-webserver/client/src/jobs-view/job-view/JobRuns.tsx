@@ -3,17 +3,18 @@ import {
   AccordionDetails,
   AccordionSummary,
 } from "@/components/Accordion";
+import { PipelineRunsTable } from "@/components/pipeline-runs/PipelineRunsTable";
 import { useDebounce } from "@/hooks/useDebounce";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import OutlinedInput from "@mui/material/OutlinedInput";
+import TablePagination from "@mui/material/TablePagination";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 import { useJobRunsPage } from "./hooks/useJobRunsPage";
 import { usePollPageJobRuns } from "./hooks/usePollJobRuns";
-import { JobRunsTable } from "./JobRunsTable";
 
 export const JobRuns = () => {
   const jobStatus = useEditJob((state) => state.jobChanges?.status);
@@ -70,15 +71,23 @@ export const JobRuns = () => {
           />
         </Box>
         {pagination && runs && (
-          <JobRunsTable
-            runs={runs}
-            pageSize={pageSize}
-            setPageSize={setPageSize}
-            pageNumber={pageNumber}
-            setPageNumber={setPageNumber}
-            onLineToggled={(openCount) => setHasExpandedRow(openCount > 0)}
-            totalCount={pagination.total_items}
-          />
+          <>
+            <PipelineRunsTable
+              runs={runs}
+              onLineToggled={(openCount) => setHasExpandedRow(openCount > 0)}
+            />
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={pagination.total_items}
+              rowsPerPage={pageSize}
+              page={pageNumber - 1}
+              onPageChange={(_, newPage) => setPageNumber(newPage + 1)}
+              onRowsPerPageChange={(event) =>
+                setPageSize(Number(event.target.value))
+              }
+            />
+          </>
         )}
       </AccordionDetails>
     </Accordion>

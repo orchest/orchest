@@ -1,4 +1,4 @@
-import { JobRunsPage, PipelineRun, PipelineRunStatus } from "@/types";
+import { JobRun, JobRunsPage, PipelineRunStatus } from "@/types";
 import { join } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
 import { fetcher } from "@orchest/lib-utils";
@@ -20,10 +20,10 @@ export type JobRunsPageQuery = {
 export type StepStatusUpdate = StatusUpdate & { stepUuid: string };
 
 export const fetchOne = (jobUuid: string, runUuid: string) =>
-  fetcher<PipelineRun>(join(BASE_URL, jobUuid, runUuid));
+  fetcher<JobRun>(join(BASE_URL, jobUuid, runUuid));
 
 export const fetchAll = (jobUuid: string) =>
-  fetcher<PipelineRun[]>(join(BASE_URL, jobUuid, "pipeline_runs"));
+  fetcher<JobRun[]>(join(BASE_URL, jobUuid, "pipeline_runs"));
 
 export const fetchPage = (jobUuid: string, pageQuery: JobRunsPageQuery) =>
   fetcher<JobRunsPage>(

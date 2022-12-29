@@ -4,7 +4,6 @@ import {
   JobChangesData,
   JobData,
   Json,
-  PipelineRun,
   PipelineRunStatus,
   StrategyJson,
 } from "@/types";
@@ -200,7 +199,3 @@ export const humanizeDate = (isoDateString: string) => {
   const date = parseDate(ensureUTC(isoDateString));
   return format(date, "MMM d yyyy, p");
 };
-
-export const canCancelRun = (
-  run: PipelineRun | undefined
-): run is PipelineRun => run?.status === "STARTED" || run?.status === "PENDING";

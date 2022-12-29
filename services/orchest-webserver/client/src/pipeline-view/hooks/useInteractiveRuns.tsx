@@ -4,7 +4,7 @@ import { useGlobalContext } from "@/contexts/GlobalContext";
 import { BUILD_IMAGE_SOLUTION_VIEW } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
-import { useCancelJobRun } from "@/hooks/useCancelJobRun";
+import { useCancelPipelineRun } from "@/hooks/useCancelPipelineRun";
 import React from "react";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { usePipelineRuns } from "./usePipelineRuns";
@@ -18,9 +18,8 @@ export const useInteractiveRuns = () => {
     return getSession(pipeline?.uuid);
   }, [getSession, pipeline?.uuid]);
 
-  const cancel = useActivePipelineRun((state) => state.cancel);
-  const cancelJobRun = useCancelJobRun(cancel);
-  const isJobRun = useActivePipelineRun((state) => state.isJobRun);
+  const activeRun = useActivePipelineRun((api) => api.run);
+  const cancelActiveRun = useCancelPipelineRun(activeRun);
   const isSessionRunning = session?.status === "RUNNING";
 
   const {
@@ -30,7 +29,7 @@ export const useInteractiveRuns = () => {
     startRun,
   } = usePipelineRuns(pipelineJson);
 
-  const cancelRun = React.useCallback(async () => {
+  const cancelActiveRunWithGuards = React.useCallback(async () => {
     if (displayStatus === "IDLING") {
       console.error("There is no pipeline running.");
       return;
@@ -41,24 +40,10 @@ export const useInteractiveRuns = () => {
 
     setDisplayStatus("CANCELING");
 
-    if (isJobRun()) {
-      cancelJobRun();
-    } else {
-      await cancel().catch((error) =>
-        setAlert(
-          "Failed to cancel pipeline run",
-          <ErrorSummary error={error} />
-        )
-      );
-    }
-  }, [
-    displayStatus,
-    isJobRun,
-    cancelJobRun,
-    setDisplayStatus,
-    cancel,
-    setAlert,
-  ]);
+    cancelActiveRun()?.catch((error) =>
+      setAlert("Failed to cancel run", <ErrorSummary error={error} />)
+    );
+  }, [displayStatus, setDisplayStatus, cancelActiveRun, setAlert]);
 
   const runSteps = React.useCallback(
     (uuids: string[], type: RunStepsType) => {
@@ -86,7 +71,7 @@ export const useInteractiveRuns = () => {
     displayStatus,
     setDisplayStatus,
     startRun,
-    cancelRun,
+    cancelActiveRun: cancelActiveRunWithGuards,
     runSteps,
     session,
   };

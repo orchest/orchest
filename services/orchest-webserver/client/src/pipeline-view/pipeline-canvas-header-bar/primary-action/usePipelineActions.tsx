@@ -22,7 +22,11 @@ export const usePipelineActions = () => {
     state: { pipeline },
   } = useProjectsContext();
 
-  const { displayStatus, runSteps, cancelRun } = useInteractiveRuns();
+  const {
+    displayStatus,
+    runSteps,
+    cancelActiveRun: cancelRun,
+  } = useInteractiveRuns();
 
   const doRunSteps = React.useCallback(
     (stepsToRun: string[], type: RunStepsType) => {
