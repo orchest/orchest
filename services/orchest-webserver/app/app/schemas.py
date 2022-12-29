@@ -26,8 +26,3 @@ class EnvironmentSchema(ma.Schema):
             "gpu_support",
             "setup_script",
         )
-
-
-class BackgroundTaskSchema(ma.Schema):
-    class Meta:
-        fields = ("uuid", "task_type", "status", "code", "result")
