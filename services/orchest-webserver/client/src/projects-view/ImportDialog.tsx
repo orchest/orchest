@@ -287,25 +287,22 @@ export const ImportDialog = ({
   const gitImport = useGitImport(importUrl);
 
   React.useEffect(() => {
-    const succeeded = hasValue(gitImport.path);
+    if ([undefined, "PENDING", "STARTED"].includes(gitImport.status)) {
+      return;
+    }
 
-    if (!succeeded) {
+    if (gitImport.status == "FAILURE" || gitImport.status == "ABORTED") {
       setStatus("READY");
       return;
     }
 
     setStatus("FILES_STORED");
 
-    // We now have the path of the project, but a UUID is not yet available.
-    // The back-end has to discover the project through the file system, and assign a UUID to it:
-    // Since we don't want to update the UI, we call the Projects API directly, instead of `reloadProjects`
+    // Since we don't want to update the UI, we call the Projects API
+    // directly, instead of `reloadProjects`
     projectsApi
-      .fetchAll({ skipDiscovery: false })
-      .then((projects = []) => {
-        const importedProject = projects.find(
-          (project) => project.path === gitImport.path
-        );
-
+      .fetchOne(gitImport.projectUuid)
+      .then((importedProject) => {
         if (importedProject) {
           setNewProjectUuid(importedProject?.uuid);
         }
@@ -318,7 +315,7 @@ export const ImportDialog = ({
         // This will update the UI as well:
         reloadProjects();
       });
-  }, [closeDialog, gitImport.path, reloadProjects, setAlert]);
+  }, [closeDialog, gitImport.projectUuid, reloadProjects, setAlert]);
 
   const startImportGitRepo = React.useCallback(() => {
     setStatus("IMPORTING");
