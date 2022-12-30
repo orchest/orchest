@@ -6,15 +6,8 @@ import React from "react";
 import { GitConfigAttribute } from "./GitConfigAttribute";
 
 export const ConfigureGitSshView = () => {
-  useFetchGitConfigs();
   return (
-    <SettingsViewLayout
-      header={
-        <Typography variant="h4" flex={1}>
-          Git & SSH
-        </Typography>
-      }
-    >
+    <GitSshLayout>
       <Stack spacing={2}>
         <Typography variant="h5" gutterBottom>
           Git user configuration
@@ -32,6 +25,21 @@ export const ConfigureGitSshView = () => {
           errorMessage="Invalid email"
         />
       </Stack>
+    </GitSshLayout>
+  );
+};
+
+const GitSshLayout: React.FC = ({ children }) => {
+  useFetchGitConfigs();
+  return (
+    <SettingsViewLayout
+      header={
+        <Typography variant="h4" flex={1}>
+          Git & SSH
+        </Typography>
+      }
+    >
+      {children}
     </SettingsViewLayout>
   );
 };

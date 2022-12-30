@@ -6,7 +6,7 @@ import { useAsync } from "./useAsync";
 import { useRegainBrowserTabFocus } from "./useFocusBrowserTab";
 
 export const useFetchGitConfigs = () => {
-  const getGitConfig = useGitConfigsApi((state) => state.get);
+  const getGitConfig = useGitConfigsApi((state) => state.getConfig);
   const { run } = useAsync<GitConfig | undefined>();
 
   const hasRegainedFocus = useRegainBrowserTabFocus();

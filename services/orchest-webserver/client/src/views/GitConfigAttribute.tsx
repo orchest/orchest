@@ -83,7 +83,7 @@ const useUpdateGitConfigAttribute = (
     hasValue(config) && value !== config[name] ? value : undefined;
 
   const debouncedValue = useDebounce(updatedValue, 250);
-  const update = useGitConfigsApi((state) => state.update);
+  const update = useGitConfigsApi((state) => state.updateConfig);
 
   const configRef = React.useRef(config);
   configRef.current = config;

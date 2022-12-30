@@ -188,6 +188,12 @@ export type GitConfig = {
   email: string;
 };
 
+export type SshKey = {
+  uuid: string;
+  name: string;
+  created_time: string;
+};
+
 export type Project = {
   path: string;
   uuid: string;
