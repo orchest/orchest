@@ -158,12 +158,17 @@ def _migrate_1_2_1(pipeline: dict) -> None:
         del services[old_name]
 
 
+def _migrate_1_2_2(pipeline: dict) -> None:
+    pipeline["settings"]["max_steps_parallelism"] = 0
+
+
 # version: (migration function, version to which it's migrated)
 _version_to_migration_function = {
     "1.0.0": (_migrate_1_0_0, "1.1.0"),
     "1.1.0": (_migrate_1_1_0, "1.2.0"),
     "1.2.0": (_migrate_1_2_0, "1.2.1"),
     "1.2.1": (_migrate_1_2_1, "1.2.2"),
+    "1.2.2": (_migrate_1_2_2, "1.2.3"),
 }
 
 # Make sure no forward version is repeated.

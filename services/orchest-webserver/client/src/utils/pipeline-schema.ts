@@ -29,6 +29,9 @@ export const pipelineSchema = {
         data_passing_memory_size: {
           type: "string",
         },
+        max_steps_parallelism: {
+          type: "integer",
+        },
       },
       type: "object",
     },
