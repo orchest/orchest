@@ -2,8 +2,10 @@ import React from "react";
 
 type StringPredicate = (value: string) => boolean;
 
-export const useTextField = (predicate: StringPredicate) => {
+export const useTextField = (predicate: StringPredicate = () => true) => {
   const [isDirty, setIsInputDirty] = React.useState(false);
+  const [value, setValue] = React.useState("");
+
   const setAsDirtyOnBlur = React.useCallback(
     (
       onBlur?: (
@@ -11,12 +13,12 @@ export const useTextField = (predicate: StringPredicate) => {
       ) => void
     ) => (event: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement>) => {
       setIsInputDirty(true);
+      setValue((value) => value.trim());
       onBlur?.(event);
     },
     []
   );
 
-  const [value, setValue] = React.useState("");
   const predicateRef = React.useRef(predicate);
 
   const handleChange = React.useCallback(
@@ -34,6 +36,7 @@ export const useTextField = (predicate: StringPredicate) => {
 
   return {
     value,
+    setValue,
     handleChange,
     setAsDirtyOnBlur,
     isDirty,

@@ -182,6 +182,12 @@ export type GitImport = {
   status: GitImportStatus;
 };
 
+export type GitConfig = {
+  uuid: string;
+  name: string;
+  email: string;
+};
+
 export type Project = {
   path: string;
   uuid: string;

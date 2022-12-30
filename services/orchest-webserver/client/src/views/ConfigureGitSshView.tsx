@@ -1,34 +1,12 @@
-import { useTextField } from "@/hooks/useTextField";
+import { useFetchGitConfigs } from "@/hooks/useFetchGitConfigs";
 import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { GitConfigAttribute } from "./GitConfigAttribute";
 
 export const ConfigureGitSshView = () => {
-  const {
-    value: username,
-    handleChange: handleChangeUsername,
-    isValid: isValidUserName,
-    isDirty: isUsernameDirty,
-    setAsDirtyOnBlur: onBlurUsername,
-  } = useTextField((value) => value.trim().length === 0);
-  const usernameError = React.useMemo(() => {
-    if (isUsernameDirty && !isValidUserName) return "Username cannot be blank.";
-    return " ";
-  }, [isUsernameDirty, isValidUserName]);
-
-  const {
-    value: email,
-    handleChange: handleChangeEmail,
-    isValid: isValidEmail,
-    isDirty: isEmailDirty,
-    setAsDirtyOnBlur: onBlurEmail,
-  } = useTextField((value) => /^\S+@\S+\.\S+$/.test(value.trim()));
-  const emailError = React.useMemo(() => {
-    if (isEmailDirty && !isValidEmail) return "Invalid email";
-    return " ";
-  }, [isEmailDirty, isValidEmail]);
+  useFetchGitConfigs();
   return (
     <SettingsViewLayout
       header={
@@ -41,25 +19,17 @@ export const ConfigureGitSshView = () => {
         <Typography variant="h5" gutterBottom>
           Git user configuration
         </Typography>
-        <TextField
-          value={username}
-          onChange={handleChangeUsername}
-          onBlur={onBlurUsername()}
+        <GitConfigAttribute
+          name="name"
           label="Username"
-          name="username"
-          error={usernameError !== " "}
-          helperText={usernameError}
-          sx={{ width: "50%", minWidth: (theme) => theme.spacing(50) }}
+          predicate={(value) => value.trim().length > 0}
+          errorMessage="Username cannot be blank."
         />
-        <TextField
-          value={email}
-          onChange={handleChangeEmail}
-          onBlur={onBlurEmail()}
-          label="Email"
+        <GitConfigAttribute
           name="email"
-          error={emailError !== " "}
-          helperText={emailError}
-          sx={{ width: "30%", minWidth: (theme) => theme.spacing(50) }}
+          label="Email"
+          predicate={(value) => /^\S+@\S+\.\S+$/.test(value.trim())}
+          errorMessage="Invalid email"
         />
       </Stack>
     </SettingsViewLayout>
