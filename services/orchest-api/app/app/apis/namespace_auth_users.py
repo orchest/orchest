@@ -114,9 +114,15 @@ class GitConfig(Resource):
         being strings, to behave closely to "git config".
         """
         data = request.get_json()
-        if not isinstance(data.get("name"), str):
+        if data is None:
+            return {"message": "Invalid git config"}, 400
+
+        name = data.get("name")
+        email = data.get("email")
+
+        if not isinstance(name, str):
             return {"message": "Name is not a string."}, 400
-        if not isinstance(data.get("email"), str):
+        if not isinstance(email, str):
             return {"message": "Email is not a string."}, 400
 
         models.AuthUser.query.get_or_404(
@@ -125,12 +131,14 @@ class GitConfig(Resource):
         git_config = models.GitConfig.query.get_or_404(
             git_config_uuid, description=f"No git config {git_config_uuid}."
         )
-        if data["name"] is not None:
-            git_config.name = data["name"]
-        if data["email"] is not None:
-            git_config.email = data["email"]
+        git_config.name = name
+        git_config.email = email
         db.session.commit()
-        return {}, 200
+        return {
+            "uuid": git_config_uuid,
+            "name": name,
+            "email": email,
+        }, 200
 
     def delete(self, auth_user_uuid: str, git_config_uuid: str):
         models.AuthUser.query.get_or_404(
