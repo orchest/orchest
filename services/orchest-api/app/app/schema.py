@@ -1146,6 +1146,58 @@ git_import_request = Model(
     {
         "url": fields.String(required=True),
         "project_name": fields.String(required=False),
+        "auth_user_uuid": fields.String(required=False),
+    },
+)
+
+auth_user_request = Model(
+    "AuthUserRequest",
+    {
+        "uuid": fields.String(required=True),
+    },
+)
+
+git_config = Model(
+    "GitConfig",
+    {
+        "uuid": fields.String(required=True),
+        "name": fields.String(required=True),
+        "email": fields.String(required=True),
+    },
+)
+
+git_configs = Model(
+    "GitConfigs",
+    {"git_configs": fields.List(fields.Nested(git_config))},
+)
+
+git_config_request = Model(
+    "GitConfigRequest",
+    {
+        "name": fields.String(required=True),
+        "email": fields.String(required=True),
+    },
+)
+
+ssh_key = Model(
+    "SSHKey",
+    {
+        "uuid": fields.String(required=True),
+        "name": fields.String(required=True),
+        "created_time": fields.String(required=True),
+    },
+)
+
+ssh_keys = Model(
+    "SSHKeys",
+    {"ssh_keys": fields.List(fields.Nested(ssh_key))},
+)
+
+ssh_key_request = Model(
+    "SSHKeyRequest",
+    {
+        "name": fields.String(required=True),
+        "key": fields.String(required=True),
     },
 )
 

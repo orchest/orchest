@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 from _orchest.internals import config as _config
 from app import utils
@@ -18,6 +19,7 @@ def launch_environment_shell(
     userdir_pvc: str,
     project_dir: str,
     environment_image: str,
+    auth_user_uuid: Optional[str] = None,
 ) -> None:
     """Starts environment shell
 
@@ -36,6 +38,8 @@ def launch_environment_shell(
             note this is always a single path component.
         environment_image: The full image specification that can be
             given directly as the image string to the container runtime.
+        auth_user_uuid: uuid of the auth user for which to inject the
+         git configuration if exists.
 
 
     The resources created in k8s
@@ -63,6 +67,7 @@ def launch_environment_shell(
         userdir_pvc,
         project_dir,
         environment_image,
+        auth_user_uuid,
     )
 
     ns = _config.ORCHEST_NAMESPACE

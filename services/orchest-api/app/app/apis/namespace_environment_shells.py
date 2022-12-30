@@ -148,4 +148,5 @@ class CreateEnvironmentShell(TwoPhaseFunction):
             environment_shell_config["userdir_pvc"],
             environment_shell_config["project_dir"],
             environment_image_string,
+            environment_shell_config.get("auth_user_uuid"),
         )

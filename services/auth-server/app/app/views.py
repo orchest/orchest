@@ -21,6 +21,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.connections import db
 from app.models import Token, User
 from app.utils import PathType, _AuthCacheDictionary, get_auth_cache, set_auth_cache
+from config import CONFIG_CLASS
 
 # This auth_cache is shared between requests
 # within the same Flask process
@@ -115,7 +116,8 @@ def register_views(app: Flask) -> None:
     def logout() -> Response | None:
         resp = redirect_response("/")
         resp.set_cookie("auth_token", "", samesite="Lax")
-        resp.set_cookie("auth_username", samesite="Lax")
+        resp.set_cookie("auth_username", "", samesite="Lax")
+        resp.set_cookie("auth_user_uuid", "", samesite="Lax")
         return resp
 
     def redirect_response(url: str, redirect_type: str = "server") -> Response:
@@ -185,6 +187,7 @@ def register_views(app: Flask) -> None:
                     # samesite="Lax" to avoid CSRF attacks.
                     resp.set_cookie("auth_token", token.token, samesite="Lax")
                     resp.set_cookie("auth_username", username, samesite="Lax")
+                    resp.set_cookie("auth_user_uuid", user.uuid, samesite="Lax")
 
                     return resp
 
@@ -212,6 +215,24 @@ def register_views(app: Flask) -> None:
                 elif self_username == to_delete_username:
                     return jsonify({"error": "Deleting own user is not allowed."}), 405
                 else:
+                    resp = requests.delete(
+                        (
+                            f"http://{CONFIG_CLASS.ORCHEST_API_ADDRESS}/api/"
+                            f"auth-users/{user.uuid}"
+                        )
+                    )
+                    if resp.status_code != 200:
+                        return (
+                            jsonify(
+                                {
+                                    "error": (
+                                        "Failed to delete auth-user reference in "
+                                        "orchest-api."
+                                    )
+                                }
+                            ),
+                            500,
+                        )
                     db.session.delete(user)
                     db.session.commit()
                     return ""
@@ -251,6 +272,21 @@ def register_views(app: Flask) -> None:
                 uuid=str(uuid.uuid4()),
             )
 
+            resp = requests.post(
+                f"http://{CONFIG_CLASS.ORCHEST_API_ADDRESS}/api/auth-users/",
+                json={"uuid": user.uuid},
+            )
+            if resp.status_code != 201:
+                return (
+                    jsonify(
+                        {
+                            "error": (
+                                "Failed to create auth-user reference in orchest-api."
+                            )
+                        }
+                    ),
+                    500,
+                )
             db.session.add(user)
             db.session.commit()
             return ""

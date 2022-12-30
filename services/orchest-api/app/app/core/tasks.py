@@ -1,16 +1,15 @@
 import copy
 import json
 import os
-import shlex
 import shutil
-import subprocess
 import time
-from typing import Dict, List, Optional, Union
+import uuid
+from typing import Any, Dict, List, Optional, Union
 
-import requests
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.signals import worker_process_init
 from celery.utils.log import get_task_logger
+from kubernetes import client
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree
@@ -18,8 +17,8 @@ from app import create_app
 from app import errors as self_errors
 from app import models, utils
 from app.celery_app import make_celery
-from app.connections import db, k8s_custom_obj_api
-from app.core import environments, notifications, registry, scheduler
+from app.connections import db, k8s_core_api, k8s_custom_obj_api
+from app.core import environments, notifications, pod_scheduling, registry, scheduler
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipeline_runs import run_pipeline_workflow
@@ -253,8 +252,8 @@ def delete_job_pipeline_run_directories(
 ) -> str:
     """Deletes a list of job pipeline run directories given uuids."""
     job_dir = os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
-    for uuid in pipeline_run_uuids:
-        shutil.rmtree(os.path.join(job_dir, uuid), ignore_errors=True)
+    for ppl_run_uuid in pipeline_run_uuids:
+        shutil.rmtree(os.path.join(job_dir, ppl_run_uuid), ignore_errors=True)
 
     return "SUCCESS"
 
@@ -393,7 +392,12 @@ def process_notifications_deliveries(self):
 
 
 @celery.task(bind=True, base=AbortableTask)
-def git_import(self, url: str, project_name: Optional[str]):
+def git_import(
+    self,
+    url: str,
+    project_name: Optional[str] = None,
+    auth_user_uuid: Optional[str] = None,
+):
     with application.app_context():
         try:
             models.GitImport.query.filter(
@@ -401,7 +405,10 @@ def git_import(self, url: str, project_name: Optional[str]):
             ).update({"status": "STARTED"})
             db.session.commit()
 
-            project_uuid = _git_clone_project(self.request.id, url, project_name)
+            pod_name = f"git-import-{self.request.id}"
+            project_uuid = _run_git_import_pod(
+                pod_name, url, project_name, auth_user_uuid
+            )
 
             models.GitImport.query.filter(
                 models.GitImport.uuid == self.request.id
@@ -412,6 +419,8 @@ def git_import(self, url: str, project_name: Optional[str]):
             result = {}
             if isinstance(e, self_errors.GitImportError):
                 result["error"] = type(e).__name__
+            if isinstance(e, TimeoutError):
+                result["error"] = "TimeoutError"
             models.GitImport.query.filter(
                 models.GitImport.uuid == self.request.id
             ).update({"status": "FAILURE", "result": result})
@@ -420,89 +429,122 @@ def git_import(self, url: str, project_name: Optional[str]):
     return "SUCCESS"
 
 
-def _git_clone_project(task_uuid: str, url: str, project_name: str) -> Optional[str]:
-    """Clone a git repo given a URL into the projects directory."""
-
+def _run_git_import_pod(
+    pod_name: str,
+    repo_url: str,
+    project_name: Optional[str],
+    auth_user_uuid: Optional[str],
+) -> str:
     try:
-
-        # This way we clone in a directory with the name of the repo
-        # if the project_name is not provided.
-        # - GIT_TERMINAL_PROMPT makes the `git` command fail if it
-        # has to prompt the user for input, e.g. for their username.
-        git_command = f"git clone {url}"
-        if project_name is not None and project_name:
-            git_command += f' "{project_name}"'
-
-        logger.info(f"Running {git_command}.")
-        # Avoid collisions.
-        tmp_path = f"/tmp/{task_uuid}/"
-        os.mkdir(tmp_path)
-        result = subprocess.run(
-            shlex.split(git_command),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=tmp_path,
-            env={"GIT_TERMINAL_PROMPT": "0"},
+        manifest = _get_git_import_pod_manifest(
+            pod_name, repo_url, project_name, auth_user_uuid
         )
-        if result.returncode != 0:
-            raise self_errors.GitCloneFailed(
-                status_code=result.returncode,
-                stdout=result.stdout,
-                stderr=result.stderr,
-            )
-
-        # Should be the only directory in there, also this way we get
-        # the directory without knowing the repo name if the
-        # project_name has not been provided.
-        inferred_project_name = os.listdir(tmp_path)[0]
-
-        from_path = os.path.join(tmp_path, inferred_project_name)
-        exit_code = os.system(f'mv "{from_path}" /userdir/projects/')
-        if exit_code != 0:
-            raise self_errors.ProjectWithSameNameExists()
-
-        # Set correct group permission as git clone ignores setgid on
-        # projects directory.
-        projects_gid = os.stat("/userdir/projects").st_gid
-        os.system(
-            'chown -R :%s "%s"'
-            % (
-                projects_gid,
-                os.path.join("/userdir/projects", inferred_project_name),
-            )
-        )
-
-        # GETting the /async/projects endpoint triggers the discovering
-        # of projects that have been created or deleted through the file
-        # system, so that Orchest can re-sync projects.
-        # The task is considered done once the project has been
-        # discovered or if the project has been renamed/deleted (doesn't
-        # exist anymore at the desired path.). The project not being
-        # part of the projects returned by /async/projects is a rare
-        # occurrence that can happen if a concurrent request is leading
-        # to the discovery of the same project, which puts it in a
-        # INITIALIZING status.
-        for _ in range(5):
-            resp = requests.get(
-                f"{CONFIG_CLASS.ORCHEST_WEBSERVER_ADDRESS}/async/projects"
-            )
-            if resp.status_code != 200:
-                time.sleep(1)
-                continue
-
-            project = [
-                proj for proj in resp.json() if proj["path"] == inferred_project_name
-            ]
-            if project or not os.path.exists(
-                f"/userdir/projects/{inferred_project_name}"
-            ):
-                return project[0]["uuid"] if project else None
+        k8s_core_api.create_namespaced_pod(_config.ORCHEST_NAMESPACE, manifest)
+        exit_code_to_exception = {
+            2: self_errors.ProjectWithSameNameExists(),
+            3: self_errors.ProjectNotDiscoveredByWebServer(),
+            4: self_errors.NoAccessRightsOrRepoDoesNotExists(),
+        }
+        for _ in range(30 * 60):
+            try:
+                pod = k8s_core_api.read_namespaced_pod(
+                    pod_name, namespace=_config.ORCHEST_NAMESPACE
+                )
+            # Assume it's a race condition w.r.t. the pod being created.
+            except client.ApiException as e:
+                if e.status != 404:
+                    raise
+            if pod.status.phase == "Succeeded" or pod.status.phase == "Failed":
+                break
             time.sleep(1)
+        else:
+            raise TimeoutError()
 
-        raise self_errors.ProjectNotDiscoveredByWebServer()
+        logs = k8s_core_api.read_namespaced_pod_log(
+            pod_name, namespace=_config.ORCHEST_NAMESPACE
+        )
 
-    except Exception:
-        raise
-    # Cleanup the tmp directory in any case.
+        if pod.status.phase == "Failed":
+            exit_code = pod.status.container_statuses[0].state.terminated.exit_code
+            raise exit_code_to_exception.get(
+                exit_code,
+                self_errors.GitCloneFailed(
+                    status_code=exit_code, stdout="", stderr=logs
+                ),
+            )
+        else:
+            project_uuid = logs.split()[-1].strip()
+            # Make sure the project_uuid is being passed.
+            try:
+                uuid.UUID(project_uuid, version=4)
+            except ValueError:
+                raise self_errors.GitCloneFailed()
+            return project_uuid
     finally:
-        os.system(f'rm -rf "{tmp_path}"')
+        k8s_core_api.delete_namespaced_pod(
+            pod_name,
+            _config.ORCHEST_NAMESPACE,
+        )
+
+
+def _get_git_import_pod_manifest(
+    pod_name: str,
+    repo_url: str,
+    project_name: Optional[str],
+    auth_user_uuid: Optional[str],
+) -> Dict[str, Any]:
+    args = utils.get_add_ssh_secrets_script() + (
+        "python /orchest/services/orchest-api/app/scripts/git-import.py "
+        f"--task-uuid {pod_name} --repo-url {repo_url}"
+    )
+
+    if project_name is not None:
+        args += f" --project-name {project_name}"
+
+    known_hosts_vol, known_hosts_vol_mount = utils.get_known_hosts_volume_and_mount()
+
+    volumes = [
+        {
+            "name": "userdir-pvc",
+            "persistentVolumeClaim": {
+                "claimName": "userdir-pvc",
+            },
+        },
+        known_hosts_vol,
+    ]
+
+    volume_mounts = [
+        {
+            "name": "userdir-pvc",
+            "mountPath": "/userdir",
+        },
+        known_hosts_vol_mount,
+    ]
+
+    if auth_user_uuid is not None:
+        v, vm = utils.get_user_ssh_keys_volumes_and_mounts(auth_user_uuid)
+        volumes.extend(v)
+        volume_mounts.extend(vm)
+        args = utils.get_auth_user_git_config_setup_script(auth_user_uuid) + args
+
+    manifest = {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {"name": pod_name},
+        "spec": {
+            "containers": [
+                {
+                    "name": "git-import",
+                    "image": f"orchest/celery-worker:{_config.ORCHEST_VERSION}",
+                    "command": ["/bin/sh", "-c"],
+                    "args": [args],
+                    "env": [],
+                    "volumeMounts": volume_mounts,
+                },
+            ],
+            "restartPolicy": "Never",
+            "volumes": volumes,
+        },
+    }
+    pod_scheduling.modify_git_import_scheduling_behaviour(manifest)
+    return manifest

@@ -1,10 +1,12 @@
 from app.models._core import (
+    AuthUser,
     ClientHeartbeat,
     ClusterNode,
     Environment,
     EnvironmentImage,
     EnvironmentImageBuild,
     EnvironmentImageOnNode,
+    GitConfig,
     GitImport,
     InteractivePipelineRun,
     InteractiveSession,
@@ -23,6 +25,7 @@ from app.models._core import (
     SchedulerJob,
     Setting,
     Snapshot,
+    SSHKey,
 )
 from app.models._events import (
     AnalyticsSubscriber,
