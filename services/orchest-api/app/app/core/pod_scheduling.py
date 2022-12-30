@@ -34,7 +34,6 @@ from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from app import models, utils
 from app.connections import db, k8s_core_api
-from config import CONFIG_CLASS
 
 logger = utils.get_logger()
 
@@ -465,7 +464,10 @@ def _modify_pipeline_scheduling_behaviour_multi_node(
 def modify_pipeline_scheduling_behaviour(scope: str, manifest: Dict[str, Any]) -> None:
     if manifest["kind"] != "Workflow":
         raise ValueError("Expected a workflow manifest.")
-    if CONFIG_CLASS.SINGLE_NODE:
+
+    if any(
+        True for template in manifest["spec"]["templates"] if "containerSet" in template
+    ):
         return _modify_pipeline_scheduling_behaviour_single_node(scope, manifest)
     _modify_pipeline_scheduling_behaviour_multi_node(scope, manifest)
 

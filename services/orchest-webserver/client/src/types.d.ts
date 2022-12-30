@@ -445,6 +445,7 @@ export type PipelineMetaData = {
 export type PipelineSettings = {
   auto_eviction?: boolean;
   data_passing_memory_size?: string;
+  max_steps_parallelism?: integer;
 };
 
 export type PipelineJson = {

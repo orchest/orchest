@@ -33,7 +33,9 @@ from config import CONFIG_CLASS
 logger = utils.get_logger()
 
 
-def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -> dict:
+def _step_to_workflow_manifest_task(
+    pipeline: Pipeline, step: PipelineStep, run_config: RunConfig
+) -> dict:
     # The working directory is the location of the file being executed.
     project_relative_file_path = os.path.join(
         os.path.split(run_config["pipeline_path"])[0], step.properties["file_path"]
@@ -72,9 +74,9 @@ def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -
         + run_config["env_uuid_to_image"][step.properties["environment"]]
     )
 
-    if CONFIG_CLASS.SINGLE_NODE:
-        # NOTE: In the single-node case we don't run an initContainer to
-        # pre-pull images.
+    if _run_as_container_set(pipeline):
+        # NOTE: In this case we don't run an initContainer to pre-pull
+        # images.
         task = {
             # "Name cannot begin with a digit when using either
             # 'depends' or 'dependencies'".
@@ -154,6 +156,15 @@ def _step_to_workflow_manifest_task(step: PipelineStep, run_config: RunConfig) -
     return task
 
 
+def _run_as_container_set(pipeline: Pipeline) -> bool:
+    # About the parallelism check, see:
+    # https://linear.app/orchest/issue/ORC-1121/allow-limiting-step-parallelism-at-the-pipeline-level
+    return (
+        CONFIG_CLASS.SINGLE_NODE
+        and pipeline.properties["settings"]["max_steps_parallelism"] <= 0
+    )
+
+
 def _get_pipeline_argo_templates(
     entrypoint_name: str,
     volume_mounts: List[dict],
@@ -165,7 +176,7 @@ def _get_pipeline_argo_templates(
     # verify that you aren't breaking anything when changing thins here.
     # TODO: add tests for this.
     # https://argoproj.github.io/argo-workflows/fields/#template
-    if CONFIG_CLASS.SINGLE_NODE:
+    if _run_as_container_set(pipeline):
         templates = [
             {
                 "name": entrypoint_name,
@@ -190,7 +201,7 @@ def _get_pipeline_argo_templates(
                     "retryStrategy": {"retries": 0},
                     "volumeMounts": volume_mounts,
                     "containers": [
-                        _step_to_workflow_manifest_task(step, run_config)
+                        _step_to_workflow_manifest_task(pipeline, step, run_config)
                         for step in pipeline.steps
                     ],
                 },
@@ -207,7 +218,7 @@ def _get_pipeline_argo_templates(
                 "dag": {
                     "failFast": True,
                     "tasks": [
-                        _step_to_workflow_manifest_task(step, run_config)
+                        _step_to_workflow_manifest_task(pipeline, step, run_config)
                         for step in pipeline.steps
                     ],
                 },
@@ -314,6 +325,11 @@ def _pipeline_to_workflow_manifest(
             ),
         },
     }
+
+    if pipeline.properties["settings"]["max_steps_parallelism"] > 0:
+        manifest["spec"]["parallelism"] = pipeline.properties["settings"][
+            "max_steps_parallelism"
+        ]
     pod_scheduling.modify_pipeline_scheduling_behaviour(
         run_config["session_type"], manifest
     )
@@ -376,6 +392,7 @@ def run_pipeline_workflow(
     steps_to_start = {step.properties["uuid"] for step in pipeline.steps}
     steps_to_finish = set(steps_to_start)
     had_failed_steps = False
+    run_as_container_set = _run_as_container_set(pipeline)
     try:
         manifest = _pipeline_to_workflow_manifest(
             session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
@@ -394,7 +411,7 @@ def run_pipeline_workflow(
             )
             workflow_nodes: dict = resp.get("status", {}).get("nodes", {})
             for argo_node in workflow_nodes.values():
-                if CONFIG_CLASS.SINGLE_NODE:
+                if run_as_container_set:
                     if argo_node.get("type", "") != "Container":
                         continue
 
