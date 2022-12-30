@@ -5,6 +5,7 @@ from app.models._core import (
     EnvironmentImage,
     EnvironmentImageBuild,
     EnvironmentImageOnNode,
+    GitImport,
     InteractivePipelineRun,
     InteractiveSession,
     InteractiveSessionInUseImage,

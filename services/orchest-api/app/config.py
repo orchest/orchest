@@ -106,6 +106,7 @@ class Config:
         "app.core.tasks.build_jupyter_image": {"queue": "builds"},
         "app.core.tasks.registry_garbage_collection": {"queue": "builds"},
         "app.core.tasks.process_notifications_deliveries": {"queue": "deliveries"},
+        "app.core.tasks.git_import": {"queue": "other-tasks"},
     }
 
 

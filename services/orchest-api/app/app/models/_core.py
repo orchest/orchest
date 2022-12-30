@@ -1285,3 +1285,40 @@ ForeignKeyConstraint(
     [ClusterNode.name],
     ondelete="CASCADE",
 )
+
+
+class GitImport(BaseModel):
+    """Model to persist git imports.
+
+    The persisted data is of real interest only while the FE polls the
+    status during a GUI import, i.e. schema migrations for this model
+    are a bit less constrained than usual.
+    """
+
+    __tablename__ = "git_imports"
+
+    uuid = db.Column(
+        db.String(36), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    # URL from where to fetch the project.
+    url = db.Column(db.String(), nullable=False)
+    # Name that the project should have after importing.
+    requested_name = db.Column(db.String(255), nullable=True)
+
+    project_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"),
+        # Gets populated later in case of success.
+        nullable=True,
+    )
+
+    status = db.Column(db.String(15), unique=False, nullable=False)
+    # Used to deliver extra information such as error codes in a not so
+    # much schema constrained way. Given that "old" data of this model
+    # doesn't matter migrations can happen easily in case we want to
+    # move to more tailored fields later.
+    result = db.Column(JSONB, nullable=False, server_default="{}")
+
+    def __repr__(self):
+        return f"<GitImport: {self.uuid}>"

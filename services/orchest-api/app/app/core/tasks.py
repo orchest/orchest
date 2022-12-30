@@ -1,9 +1,13 @@
 import copy
 import json
 import os
+import shlex
 import shutil
+import subprocess
+import time
 from typing import Dict, List, Optional, Union
 
+import requests
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.signals import worker_process_init
 from celery.utils.log import get_task_logger
@@ -386,3 +390,119 @@ def process_notifications_deliveries(self):
             scheduler.notify_scheduled_job_failed(self.request.id)
             raise e
     return "SUCCESS"
+
+
+@celery.task(bind=True, base=AbortableTask)
+def git_import(self, url: str, project_name: Optional[str]):
+    with application.app_context():
+        try:
+            models.GitImport.query.filter(
+                models.GitImport.uuid == self.request.id
+            ).update({"status": "STARTED"})
+            db.session.commit()
+
+            project_uuid = _git_clone_project(self.request.id, url, project_name)
+
+            models.GitImport.query.filter(
+                models.GitImport.uuid == self.request.id
+            ).update({"status": "SUCCESS", "project_uuid": project_uuid})
+            db.session.commit()
+        except Exception as e:
+            logger.error(e)
+            result = {}
+            if isinstance(e, self_errors.GitImportError):
+                result["error"] = type(e).__name__
+            models.GitImport.query.filter(
+                models.GitImport.uuid == self.request.id
+            ).update({"status": "FAILURE", "result": result})
+            db.session.commit()
+            return "FAILURE"
+    return "SUCCESS"
+
+
+def _git_clone_project(task_uuid: str, url: str, project_name: str) -> Optional[str]:
+    """Clone a git repo given a URL into the projects directory."""
+
+    try:
+
+        # This way we clone in a directory with the name of the repo
+        # if the project_name is not provided.
+        # - GIT_TERMINAL_PROMPT makes the `git` command fail if it
+        # has to prompt the user for input, e.g. for their username.
+        git_command = f"git clone {url}"
+        if project_name is not None and project_name:
+            git_command += f' "{project_name}"'
+
+        logger.info(f"Running {git_command}.")
+        # Avoid collisions.
+        tmp_path = f"/tmp/{task_uuid}/"
+        os.mkdir(tmp_path)
+        result = subprocess.run(
+            shlex.split(git_command),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=tmp_path,
+            env={"GIT_TERMINAL_PROMPT": "0"},
+        )
+        if result.returncode != 0:
+            raise self_errors.GitCloneFailed(
+                status_code=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
+
+        # Should be the only directory in there, also this way we get
+        # the directory without knowing the repo name if the
+        # project_name has not been provided.
+        inferred_project_name = os.listdir(tmp_path)[0]
+
+        from_path = os.path.join(tmp_path, inferred_project_name)
+        exit_code = os.system(f'mv "{from_path}" /userdir/projects/')
+        if exit_code != 0:
+            raise self_errors.ProjectWithSameNameExists()
+
+        # Set correct group permission as git clone ignores setgid on
+        # projects directory.
+        projects_gid = os.stat("/userdir/projects").st_gid
+        os.system(
+            'chown -R :%s "%s"'
+            % (
+                projects_gid,
+                os.path.join("/userdir/projects", inferred_project_name),
+            )
+        )
+
+        # GETting the /async/projects endpoint triggers the discovering
+        # of projects that have been created or deleted through the file
+        # system, so that Orchest can re-sync projects.
+        # The task is considered done once the project has been
+        # discovered or if the project has been renamed/deleted (doesn't
+        # exist anymore at the desired path.). The project not being
+        # part of the projects returned by /async/projects is a rare
+        # occurrence that can happen if a concurrent request is leading
+        # to the discovery of the same project, which puts it in a
+        # INITIALIZING status.
+        for _ in range(5):
+            resp = requests.get(
+                f"{CONFIG_CLASS.ORCHEST_WEBSERVER_ADDRESS}/async/projects"
+            )
+            if resp.status_code != 200:
+                time.sleep(1)
+                continue
+
+            project = [
+                proj for proj in resp.json() if proj["path"] == inferred_project_name
+            ]
+            if project or not os.path.exists(
+                f"/userdir/projects/{inferred_project_name}"
+            ):
+                return project[0]["uuid"] if project else None
+            time.sleep(1)
+
+        raise self_errors.ProjectNotDiscoveredByWebServer()
+
+    except Exception:
+        raise
+    # Cleanup the tmp directory in any case.
+    finally:
+        os.system(f'rm -rf "{tmp_path}"')

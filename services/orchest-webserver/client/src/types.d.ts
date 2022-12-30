@@ -160,6 +160,28 @@ export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
   queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
 };
 
+export type GitImportStatus =
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED"
+  | "PENDING";
+
+export type GitImportError =
+  | "GitImportError"
+  | "GitCloneFailed"
+  | "ProjectWithSameNameExists"
+  | "ProjectNotDiscoveredByWebServer";
+
+export type GitImport = {
+  uuid: string;
+  url: string;
+  project_uuid?: str;
+  requested_name: string;
+  result: { error?: GitImportError };
+  status: GitImportStatus;
+};
+
 export type Project = {
   path: string;
   uuid: string;

@@ -11,6 +11,7 @@ import sys
 
 from flask_restx import Model, Namespace, fields
 
+from app import errors as self_errors
 from app import models, utils
 
 dictionary = Model("Dictionary", {})
@@ -44,6 +45,8 @@ pagination_data = Model(
         "total_pages": fields.Integer(required=True),
     },
 )
+
+_task_statuses = ["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"]
 
 
 def _session_base_url(s) -> str:
@@ -336,7 +339,7 @@ pipeline_run_pipeline_step = Model(
         "status": fields.String(
             required=True,
             description="Status of the step",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+            enum=_task_statuses,
         ),
         "started_time": fields.String(
             required=True, description="Time at which the step started executing"
@@ -415,7 +418,7 @@ status_update = Model(
         "status": fields.String(
             required=True,
             description="New status of executable, e.g. pipeline or step",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+            enum=_task_statuses,
         ),
         "cluster_node": fields.String(
             required=False,
@@ -629,7 +632,7 @@ job = Model(
         "status": fields.String(
             required=True,
             description="Status of the job.",
-            enum=["DRAFT", "PENDING", "STARTED", "PAUSED", "SUCCESS", "ABORTED"],
+            enum=["DRAFT", "PAUSED"] + _task_statuses,
         ),
         "created_time": fields.String(
             required=True, description="Time at which the job was created"
@@ -689,7 +692,7 @@ environment_image_build = Model(
         "status": fields.String(
             required=True,
             description="Status of the build",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+            enum=_task_statuses,
         ),
     },
 )
@@ -783,9 +786,7 @@ jupyter_image_build = Model(
             required=True, description="Time at which the build finished executing"
         ),
         "status": fields.String(
-            required=True,
-            description="Status of the build",
-            enum=["PENDING", "STARTED", "SUCCESS", "FAILURE", "ABORTED"],
+            required=True, description="Status of the build", enum=_task_statuses
         ),
     },
 )
@@ -1116,6 +1117,35 @@ snapshots = Model(
         "snapshots": fields.List(
             fields.Nested(snapshot), description="Collection of all snapshots"
         ),
+    },
+)
+
+_git_import_errors = [
+    _type.__name__ for _type in utils.get_descendant_types(self_errors.GitImportError)
+]
+
+git_import = Model(
+    "GitImport",
+    {
+        "uuid": fields.String(required=True),
+        "url": fields.String(required=True),
+        "requested_name": fields.String(required=False),
+        "status": fields.String(required=True, enum=_task_statuses),
+        "project_uuid": fields.String(required=False),
+        "result": fields.Raw(
+            description=(
+                'In some FAILURE cases "error" will be mapped to an error code, '
+                f"possible codes: {_git_import_errors}."
+            )
+        ),
+    },
+)
+
+git_import_request = Model(
+    "GitImportRequest",
+    {
+        "url": fields.String(required=True),
+        "project_name": fields.String(required=False),
     },
 )
 
