@@ -11,17 +11,19 @@ type ResolvedStepFile = Omit<StepFile, "filename" | "ext"> & {
   root: FileRoot;
 };
 
-export const useStepFile = () => {
+export const useStepFile = (stepUuid?: string) => {
   const {
     pipelineUuid,
     projectUuid,
     jobUuid,
     runUuid,
-    stepUuid,
+    stepUuid: queriedStepUuid,
   } = useCurrentQuery();
   const { run, error, status } = useAsync<StepFile>();
   const [stepFile, setFile] = React.useState<ResolvedStepFile>();
   const { pipelineCwd } = usePipelineDataContext();
+
+  stepUuid = stepUuid ?? queriedStepUuid;
 
   React.useEffect(() => {
     if (!projectUuid || !pipelineUuid || !stepUuid || !pipelineCwd) return;

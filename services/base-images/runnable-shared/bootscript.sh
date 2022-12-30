@@ -18,6 +18,7 @@ elif [ "$1" = "shell" ]; then
     # Start and stop ssh using `service` to create required directories
     sudo service ssh start
     sudo service ssh stop
+    echo "AllowAgentForwarding yes" >> /etc/ssh/sshd_config
     sudo /usr/sbin/sshd -D
 else
 

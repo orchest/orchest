@@ -1,11 +1,12 @@
 import logging
 import os
+import re
 import time
 import uuid
 from collections import ChainMap
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Container, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Container, Dict, Iterable, List, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import requests
@@ -950,3 +951,128 @@ def update_steps_status(run_uuid: str, step_uuids: Iterable[str], status: str) -
             models.PipelineRunStep.step_uuid.in_(list(step_uuids)),
         ],
     )
+
+
+def get_descendant_types(_class: type) -> Set[type]:
+    descendants = set()
+    to_process = [_class]
+    while to_process:
+        current_class = to_process.pop()
+        for child in current_class.__subclasses__():
+            descendants.add(child)
+            to_process.append(child)
+    return descendants
+
+
+def get_known_hosts_list() -> List[str]:
+    """Returns a list of known hosts for ssh.
+
+    Since automatically trusting hosts would expose the user to man in
+    the middle attacks we define a static list and, where possible, try
+    to update it automatically on the fly by requesting fingerprints to
+    trusted endpoints.
+    """
+
+    known_hosts_fingerprints = [
+        "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl",  # noqa
+        "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=",  # noqa
+        "github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==",  # noqa
+        "gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf",  # noqa
+        "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9",  # noqa
+        "gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=",  # noqa
+        "bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==",  # noqa
+        "ssh.dev.azure.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H",  # noqa
+        "vs-ssh.visualstudio.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H",  # noqa
+    ]
+
+    try:
+        response = requests.get("https://api.github.com/meta", timeout=5)
+        if response.status_code != 200:
+            raise requests.exceptions.RequestException()
+        data = response.json()
+        known_hosts_fingerprints.extend(
+            f"github.com {item}" for item in data.get("ssh_keys", [])
+        )
+    except requests.exceptions.RequestException as e:
+        logger.warning(e)
+    return known_hosts_fingerprints
+
+
+def get_user_ssh_keys_volumes_and_mounts(
+    auth_user_uuid: str,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    vols = []
+    mounts = []
+
+    for ssh_key in models.SSHKey.query.filter(
+        models.SSHKey.auth_user_uuid == auth_user_uuid
+    ).all():
+        vols.append(
+            {
+                "name": f"ssh-key-{ssh_key.uuid}",
+                "secret": {
+                    "secretName": f"ssh-key-{ssh_key.uuid}",
+                    "optional": False,
+                    # https://kubernetes.io/docs/concepts/configuration/secret/#secret-files-permissions
+                    # Decimal notation for 0600.
+                    # Currently not working due to:
+                    # https://github.com/kubernetes/kubernetes/issues/57923
+                    "defaultMode": 384,
+                },
+            },
+        )
+        mounts.append(
+            {
+                "name": f"ssh-key-{ssh_key.uuid}",
+                "mountPath": f"/tmp/ssh-secrets/ssh-key-{ssh_key.uuid}",
+                "subPath": "ssh-privatekey",
+            }
+        )
+    return vols, mounts
+
+
+def get_known_hosts_volume_and_mount() -> Tuple[Dict[str, Any]]:
+    vol = {
+        "name": "known-hosts",
+        "configMap": {"name": CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP},
+    }
+    vol_mount = {
+        "name": "known-hosts",
+        "mountPath": "/etc/ssh/ssh_known_hosts",
+        "subPath": "known_hosts",
+    }
+    return vol, vol_mount
+
+
+def get_auth_user_git_config_setup_script(auth_user_uuid: str) -> str:
+    git_config = models.GitConfig.query.filter(
+        models.GitConfig.auth_user_uuid == auth_user_uuid
+    ).one_or_none()
+    if git_config is None:
+        return ""
+    return (
+        f'git config --global --replace-all user.name "{git_config.name}"; '
+        f'git config --global --replace-all user.email "{git_config.email}"; '
+    )
+
+
+def get_add_ssh_secrets_script() -> str:
+    return """
+        if [ -d "/tmp/ssh-secrets/" ]; then
+            eval "$(ssh-agent -s)"
+            for file in /tmp/ssh-secrets/*; do
+            # Need to copy to set permissions since secrets are read only and
+            # we are getting hit by
+            # https://kubernetes.io/docs/concepts/configuration/secret/#secret-files-permissions
+            cp "$file" "${file}_copy"
+            chmod 600 "${file}_copy"
+            ssh-add "${file}_copy"
+            rm "${file}_copy"
+            done
+        fi;
+        """
+
+
+def is_valid_ssh_destination(destination: str) -> bool:
+    """Note: it's quite loose."""
+    return bool(re.match(r"^[\w\d._-]+@[\w\d.-]+(:[\w\d._/-]+)*$", destination))

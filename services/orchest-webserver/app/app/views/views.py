@@ -31,7 +31,6 @@ from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
     CreateProject,
     DeleteProject,
-    ImportGitProject,
     RenameProject,
     SyncProjectPipelinesDBState,
     discoverFSCreatedProjects,
@@ -39,7 +38,7 @@ from app.core.projects import (
 )
 from app.kernel_manager import populate_kernels
 from app.models import Environment, Pipeline, Project
-from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
+from app.schemas import EnvironmentSchema, ProjectSchema
 from app.utils import (
     check_pipeline_correctness,
     create_file,
@@ -78,8 +77,6 @@ def register_views(app, db):
 
     environment_schema = EnvironmentSchema()
     environments_schema = EnvironmentSchema(many=True)
-
-    background_task_schema = BackgroundTaskSchema()
 
     def register_environments(db, api):
         class EnvironmentsResource(Resource):
@@ -383,20 +380,28 @@ def register_views(app, db):
         except Exception as e:
             return jsonify({"message": str(e)}), 409
 
-    class ImportGitProjectListResource(Resource):
-        def post(self):
+    @app.route("/async/projects/import-git", methods=["POST"])
+    def git_import_post():
+        """See the orchest-api swagger docs for git-import. #CLOUD"""
+        resp = requests.post(
+            (
+                f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
+                "/git-imports/"
+            ),
+            json=request.get_json(),
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
-            try:
-                with TwoPhaseExecutor(db.session) as tpe:
-                    task = ImportGitProject(tpe).transaction(
-                        request.json["url"], request.json.get("project_name")
-                    )
-            except Exception as e:
-                return jsonify({"message": str(e)}), 500
-
-            return background_task_schema.dump(task)
-
-    api.add_resource(ImportGitProjectListResource, "/async/projects/import-git")
+    @app.route("/async/projects/import-git/<git_import_uuid>", methods=["GET"])
+    def git_import_get(git_import_uuid: str):
+        """See the orchest-api swagger docs for git-import."""
+        resp = requests.get(
+            (
+                f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
+                f"/git-imports/{git_import_uuid}"
+            )
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/async/projects/<project_uuid>", methods=["GET"])
     def project_get(project_uuid):

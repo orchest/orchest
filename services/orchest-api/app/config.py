@@ -46,6 +46,7 @@ class Config:
     REGISTRY_ADDRESS = f"https://{_config.REGISTRY_FQDN}"
     # This is mounted to both the celery worker and orchest-api.
     REGISTRY_TLS_CERT_BUNDLE = "/usr/lib/ssl/certs/additional-ca-cert-bundle.crt"
+    KNOWN_HOSTS_CONFIGMAP = "orchest-known-hosts"
 
     # How often different internal scheduler tasks run.
     CLEANUP_OLD_SCHEDULER_JOB_RECORDS_INTERVAL = 5 * 60
@@ -106,6 +107,7 @@ class Config:
         "app.core.tasks.build_jupyter_image": {"queue": "builds"},
         "app.core.tasks.registry_garbage_collection": {"queue": "builds"},
         "app.core.tasks.process_notifications_deliveries": {"queue": "deliveries"},
+        "app.core.tasks.git_import": {"queue": "other-tasks"},
     }
 
 

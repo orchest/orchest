@@ -1,10 +1,10 @@
-import { projectsApi } from "@/api/projects/projectsApi";
+import { gitImportsApi } from "@/api/git-imports/gitImportsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { usePollBackgroundTask } from "@/hooks/useBackgroundTask";
+import { usePollGitImport } from "@/hooks/usePollGitImport";
 import React from "react";
 
 export const useGitImport = (importUrl: string) => {
-  const [importTaskUuid, setImportTaskUuid] = React.useState<string>();
+  const [gitImportUuid, setGitImportUuid] = React.useState<string>();
   const { setAlert } = useGlobalContext();
 
   const start = React.useCallback(
@@ -17,25 +17,26 @@ export const useGitImport = (importUrl: string) => {
           `Invalid project name: ${projectName}. ${validation.reason}`
         );
       } else {
-        await projectsApi
+        await gitImportsApi
           .importGitRepo(importUrl, projectName)
-          .then(setImportTaskUuid);
+          .then(setGitImportUuid);
       }
     },
     [importUrl, setAlert]
   );
 
-  const { status, result } = usePollBackgroundTask(importTaskUuid) ?? {};
+  const { status, project_uuid, result } =
+    usePollGitImport(gitImportUuid) ?? {};
 
   return {
     /** Starts importing the project. */
     start,
     /** How the import is going, or `undefined` if the import has not started. */
     status,
-    /** The path of project if the import was successful, otherwise `undefined`.  */
-    path: status === "SUCCESS" ? result : undefined,
+    /** The uuid of the project if it was imported successfully.*/
+    projectUuid: project_uuid,
     /** The error if the import failed, otherwise `undefined`. */
-    error: status === "FAILURE" ? result : undefined,
+    error: result?.error,
   };
 };
 
