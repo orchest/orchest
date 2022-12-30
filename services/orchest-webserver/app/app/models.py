@@ -95,22 +95,6 @@ class Environment(BaseModel):
         return f"<Environment {self.name}:{self.base_image}:{self.uuid}>"
 
 
-class BackgroundTask(BaseModel):
-    """BackgroundTasks, models all tasks to be run in the background."""
-
-    __tablename__ = "background_tasks"
-
-    uuid = db.Column(db.String(36), primary_key=True, unique=True, nullable=False)
-    # see background_task_executor types
-    task_type = db.Column(db.String(50), unique=False, nullable=True)
-    status = db.Column(db.String(15), unique=False, nullable=False)
-    code = db.Column(db.String(15), unique=False, nullable=True)
-    result = db.Column(db.String(), unique=False, nullable=True)
-
-    def __repr__(self):
-        return f"<BackgroundTask: {self.uuid}>"
-
-
 class SchedulerJob(BaseModel):
     """Latest run of a job assigned to a Scheduler."""
 
