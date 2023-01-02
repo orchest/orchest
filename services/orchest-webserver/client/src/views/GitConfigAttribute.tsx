@@ -1,7 +1,6 @@
 import { useGitConfigsApi } from "@/api/git-configs/useGitConfigsApi";
 import { useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useHasChanged } from "@/hooks/useHasChanged";
 import { useTextField } from "@/hooks/useTextField";
 import { GitConfig } from "@/types";
 import { omit, prune } from "@/utils/record";
@@ -64,14 +63,14 @@ const useInitGitConfigAttribute = (
   name: keyof Omit<GitConfig, "uuid">,
   setValue: React.Dispatch<React.SetStateAction<string>>
 ) => {
-  const config = useGitConfigsApi((state) => state.config);
-  const shouldInit = useHasChanged(
-    config,
-    (prev, curr) => !hasValue(prev) && hasValue(curr)
+  const initialConfig = useGitConfigsApi(
+    (state) => state.config,
+    (prev) => hasValue(prev) // Only re-render if previous value is undefined.
   );
+
   React.useEffect(() => {
-    if (shouldInit && config) setValue(config[name]);
-  }, [shouldInit, setValue, config, name]);
+    if (initialConfig) setValue(initialConfig[name]);
+  }, [setValue, initialConfig, name]);
 };
 
 const GIT_CONFIG_KEYS: (keyof GitConfig)[] = ["uuid", "name", "email"];
