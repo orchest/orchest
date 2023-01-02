@@ -1,12 +1,14 @@
 import { useGitConfigsApi } from "@/api/git-configs/useGitConfigsApi";
+import { useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { useTextField } from "@/hooks/useTextField";
 import { GitConfig } from "@/types";
-import { omit } from "@/utils/record";
+import { omit, prune } from "@/utils/record";
 import TextField from "@mui/material/TextField";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import shallow from "zustand/shallow";
 
 type GitConfigAttributeProps = {
   name: keyof Omit<GitConfig, "uuid">;
@@ -72,33 +74,31 @@ const useInitGitConfigAttribute = (
   }, [shouldInit, setValue, config, name]);
 };
 
+const GIT_CONFIG_KEYS: (keyof GitConfig)[] = ["uuid", "name", "email"];
+
 /** Watch the change of the attribute and update BE accordingly. */
 const useUpdateGitConfigAttribute = (
   name: keyof Omit<GitConfig, "uuid">,
   value: string
 ) => {
-  const config = useGitConfigsApi((state) => state.config);
+  const newConfig = useGitConfigsApi((state) => {
+    if (!state.config || !value) return;
+    if (value === state.config[name]) return;
 
-  const updatedValue =
-    hasValue(config) && value !== config[name] ? value : undefined;
+    const updatedValue = prune({ ...state.config, [name]: value });
+    const hasAllKeys = GIT_CONFIG_KEYS.every((key) =>
+      hasValue(updatedValue[key])
+    );
 
-  const debouncedValue = useDebounce(updatedValue, 250);
-  const update = useGitConfigsApi((state) => state.updateConfig);
+    return hasAllKeys ? omit(updatedValue, "uuid") : undefined;
+  }, shallow);
 
-  const configRef = React.useRef(config);
-  configRef.current = config;
+  const payload = useDebounce(newConfig, 250);
+
+  const { run } = useAsync();
+  const requestToUpdate = useGitConfigsApi((state) => state.updateConfig);
 
   React.useEffect(() => {
-    const config = configRef.current;
-    if (!config) return;
-    const restConfig = omit(config, "uuid", name);
-    if (
-      debouncedValue &&
-      Object.values(restConfig).some((value) => (value as string).length > 0)
-    )
-      update({ [name]: debouncedValue, ...restConfig } as Omit<
-        GitConfig,
-        "uuid"
-      >);
-  }, [debouncedValue, update, name]);
+    if (payload) run(requestToUpdate(payload));
+  }, [payload, requestToUpdate, run]);
 };
