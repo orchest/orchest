@@ -1,33 +1,47 @@
 import { useGitConfigsApi } from "@/api/git-configs/useGitConfigsApi";
-import { useAsync } from "@/hooks/useAsync";
+import { IconButton } from "@/components/common/IconButton";
 import { useFetchGitConfigs } from "@/hooks/useFetchGitConfigs";
 import { useFetchSshKeys } from "@/hooks/useFetchSshKeys";
-import { useTextField } from "@/hooks/useTextField";
+import { useOpenDialog } from "@/hooks/useOpenDialog";
 import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
+import { humanizeDate } from "@/utils/date-time";
+import { ellipsis } from "@/utils/styles";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { CreateSshKeyDialog } from "./CreateSshKeyDialog";
+import { DeleteSshKeyDialog } from "./DeleteSshKeyDialog";
 import { GitConfigAttribute } from "./GitConfigAttribute";
 
 export const ConfigureGitSshView = () => {
   const sshKeys = useGitConfigsApi((state) => state.sshKeys || []);
-  const [isSshKeyDialogOpen, setIsSshKeyDialogOpen] = React.useState(false);
-  const showAddSshKeyDialog = () => setIsSshKeyDialogOpen(true);
-  const closeAddSshKeyDialog = () => setIsSshKeyDialogOpen(false);
+  const [
+    isCreateSshKeyDialogOpen,
+    showCreateAddSshKeyDialog,
+    closeCreateAddSshKeyDialog,
+  ] = useOpenDialog();
+
+  const [sshKeyUuidToDelete, setSshKeyUuidToDelete] = React.useState<
+    string | undefined
+  >();
+  const sshKeyToDelete = React.useMemo(
+    () => sshKeys.find((key) => key.uuid === sshKeyUuidToDelete),
+    [sshKeyUuidToDelete, sshKeys]
+  );
+
+  const showDeleteSshKeyDialog = (uuid: string) => setSshKeyUuidToDelete(uuid);
+  const closeDeleteSshKeyDialog = () => setSshKeyUuidToDelete(undefined);
+
   return (
     <GitSshLayout>
       <Stack spacing={2}>
-        <Stack spacing={2}>
+        <Stack direction="column" spacing={2}>
           <Typography variant="h5" gutterBottom>
             Git user configuration
           </Typography>
@@ -44,30 +58,52 @@ export const ConfigureGitSshView = () => {
             errorMessage="Invalid email"
           />
         </Stack>
-        <Stack spacing={2}>
+        <Stack direction="column" alignItems="flex-start" spacing={2}>
           <Typography variant="h5" gutterBottom>
             SSH keys
           </Typography>
-          <MenuList>
+          <MenuList
+            sx={{
+              minWidth: (theme) => ({ xs: "95%", md: theme.spacing(100) }),
+            }}
+          >
             {sshKeys.map((sshKey) => {
               return (
-                <MenuItem key={sshKey.uuid} divider>
-                  <Stack direction="row" alignItems="center">
-                    <Box>{sshKey.name}</Box>
-                    <Box>{sshKey.created_time}</Box>
+                <MenuItem key={sshKey.uuid} divider sx={{ width: "100%" }}>
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    sx={{ width: "100%" }}
+                  >
+                    <Box sx={{ flex: 1, ...ellipsis() }}>{sshKey.name}</Box>
+                    <Box sx={{ flex: 1 }}>
+                      {humanizeDate(sshKey.created_time, "yyyy-MM-dd")}
+                    </Box>
+                    <Box>
+                      <IconButton
+                        title="Delete key"
+                        onClick={() => showDeleteSshKeyDialog(sshKey.uuid)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
                   </Stack>
                 </MenuItem>
               );
             })}
           </MenuList>
-          <Button startIcon={<AddIcon />} onClick={showAddSshKeyDialog}>
+          <Button startIcon={<AddIcon />} onClick={showCreateAddSshKeyDialog}>
             Add ssh key
           </Button>
         </Stack>
       </Stack>
       <CreateSshKeyDialog
-        isOpen={isSshKeyDialogOpen}
-        close={closeAddSshKeyDialog}
+        isOpen={isCreateSshKeyDialogOpen}
+        close={closeCreateAddSshKeyDialog}
+      />
+      <DeleteSshKeyDialog
+        sshKey={sshKeyToDelete}
+        close={closeDeleteSshKeyDialog}
       />
     </GitSshLayout>
   );
@@ -86,102 +122,5 @@ const GitSshLayout: React.FC = ({ children }) => {
     >
       {children}
     </SettingsViewLayout>
-  );
-};
-
-type CreateSshKeyDialogProps = {
-  isOpen: boolean;
-  close: () => void;
-};
-
-const CreateSshKeyDialog = ({ isOpen, close }: CreateSshKeyDialogProps) => {
-  const createSshKey = useGitConfigsApi((state) => state.createSshKey);
-  const { run, status } = useAsync();
-
-  const [key, setKey] = React.useState("");
-  const [name, setNickname] = React.useState("");
-
-  const save = async () => {
-    if (!name || !key) return;
-    await run(createSshKey({ name, key }));
-    close();
-  };
-  return (
-    <Dialog open={isOpen}>
-      <DialogTitle>Add SSH Key</DialogTitle>
-      <DialogContent>
-        <SshAttribute
-          name="key"
-          label="SSH Key"
-          onChangeValue={setKey}
-          predicate={(value) => value.trim().length > 0}
-          errorMessage="SSH key cannot be blank."
-        />
-        <SshAttribute
-          name="name"
-          label="Nickname"
-          onChangeValue={setNickname}
-          predicate={(value) => value.trim().length > 0}
-          errorMessage="Nickname cannot be blank."
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={status !== "PENDING" ? close : undefined}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={save}
-          disabled={status === "PENDING"}
-        >
-          Save key
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
-
-type SshAttributeProps = {
-  name: "key" | "name";
-  label: "SSH Key" | "Nickname";
-  errorMessage: string;
-  predicate: (value: string) => boolean;
-  onChangeValue: (value: string) => void;
-};
-
-export const SshAttribute = ({
-  name,
-  label,
-  errorMessage,
-  predicate,
-  onChangeValue,
-}: SshAttributeProps) => {
-  const {
-    value,
-    handleChange,
-    isValid,
-    isDirty,
-    setAsDirtyOnBlur: handleBlur,
-  } = useTextField(predicate);
-
-  const error = React.useMemo(() => {
-    if (isDirty && !isValid) return errorMessage;
-    return " ";
-  }, [isDirty, isValid, errorMessage]);
-
-  return (
-    <TextField
-      value={value}
-      onChange={(event) => {
-        handleChange(event);
-        onChangeValue(event.target.value);
-      }}
-      onBlur={handleBlur()}
-      label={label}
-      name={name}
-      required
-      error={error !== " "}
-      helperText={error}
-    />
   );
 };

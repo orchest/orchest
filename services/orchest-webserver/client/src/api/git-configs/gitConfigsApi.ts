@@ -63,6 +63,7 @@ const deleteSshKey = (
   fetcher(join(GIT_CONFIGS_API_URL, authUserUuid, "ssh-keys", sshKeyUuid), {
     method: "DELETE",
     headers: HEADER.JSON,
+    body: JSON.stringify({}),
   });
 
 export const gitConfigsApi = {
