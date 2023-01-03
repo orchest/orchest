@@ -1,6 +1,7 @@
 import { useGitConfigsApi } from "@/api/git-configs/useGitConfigsApi";
 import { useAsync } from "@/hooks/useAsync";
 import { useTextField } from "@/hooks/useTextField";
+import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -34,9 +35,15 @@ export const CreateSshKeyDialog = ({
   const onClose = status !== "PENDING" ? close : undefined;
 
   return (
-    <Dialog open={isOpen} onClose={onClose}>
+    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Add SSH Key</DialogTitle>
       <DialogContent>
+        <Alert
+          severity="warning"
+          sx={{ marginTop: (theme) => theme.spacing(1) }}
+        >
+          SSH key passphrases are not supported
+        </Alert>
         <Stack direction="column">
           <SshAttribute
             name="key"
@@ -44,6 +51,8 @@ export const CreateSshKeyDialog = ({
             onChangeValue={setKey}
             predicate={(value) => value.trim().length > 0}
             errorMessage="SSH key cannot be blank."
+            helperMessage="Generate and paste your private key"
+            multiline
           />
           <SshAttribute
             name="name"
@@ -55,7 +64,9 @@ export const CreateSshKeyDialog = ({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button tabIndex={-1} onClick={onClose}>
+          Cancel
+        </Button>
         <Button
           variant="contained"
           onClick={save}
@@ -72,16 +83,20 @@ type SshAttributeProps = {
   name: "key" | "name";
   label: "SSH Key" | "Nickname";
   errorMessage: string;
+  helperMessage?: string;
   predicate: (value: string) => boolean;
   onChangeValue: (value: string) => void;
+  multiline?: boolean;
 };
 
 export const SshAttribute = ({
   name,
   label,
   errorMessage,
+  helperMessage,
   predicate,
   onChangeValue,
+  multiline,
 }: SshAttributeProps) => {
   const {
     value,
@@ -93,8 +108,10 @@ export const SshAttribute = ({
 
   const error = React.useMemo(() => {
     if (isDirty && !isValid) return errorMessage;
-    return " ";
-  }, [isDirty, isValid, errorMessage]);
+    return helperMessage ?? DEFAULT_HELPER_TEXT;
+  }, [isDirty, isValid, errorMessage, helperMessage]);
+
+  const showError = ![helperMessage, DEFAULT_HELPER_TEXT].includes(error);
 
   return (
     <TextField
@@ -107,9 +124,12 @@ export const SshAttribute = ({
       label={label}
       name={name}
       required
-      error={error !== " "}
+      multiline={multiline}
+      error={showError}
       helperText={error}
       sx={{ marginTop: (theme) => theme.spacing(2) }}
     />
   );
 };
+
+const DEFAULT_HELPER_TEXT = " ";
