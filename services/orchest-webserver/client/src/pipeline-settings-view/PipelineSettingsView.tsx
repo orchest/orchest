@@ -154,6 +154,7 @@ export const PipelineSettingsView: React.FC = () => {
     services,
     setServices,
     settings,
+    setSettings,
     pipelineName,
     setPipelineName,
     pipelineParameters,
@@ -557,6 +558,33 @@ export const PipelineSettingsView: React.FC = () => {
                         <Box sx={{ marginTop: 2 }}>
                           <ParameterDocs />
                         </Box>
+                      </div>
+                      <div className="clear"></div>
+                    </div>
+
+                    <div className="columns">
+                      <div className="column">
+                        <h3>Max steps parallelism</h3>
+                      </div>
+                      <div className="column">
+                        <TextField
+                          value={settings.max_steps_parallelism}
+                          margin="normal"
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              ...{
+                                max_steps_parallelism: parseInt(e.target.value),
+                              },
+                            })
+                          }
+                          label="Max steps parallelism"
+                          InputLabelProps={{ shrink: true }}
+                          disabled={isReadOnly}
+                          fullWidth
+                          type="number"
+                          data-test-id="pipeline-settings-configuration-max-steps-parallelism"
+                        />
                       </div>
                       <div className="clear"></div>
                     </div>

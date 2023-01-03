@@ -29,6 +29,7 @@ class PipelineStepProperties(TypedDict):
 class PipelineSettings(TypedDict):
     auto_eviction: bool
     data_passing_memory_size: str  # 1GB and similar.
+    max_steps_parallelism: int
 
 
 class ServiceDefinition(TypedDict):

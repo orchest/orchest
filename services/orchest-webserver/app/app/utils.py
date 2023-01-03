@@ -684,6 +684,10 @@ def check_pipeline_correctness(pipeline_json):
     ):
         invalid_entries["data_passing_memory_size"] = "invalid_value"
 
+    max_steps_parallelism = pipeline_json["settings"].get("max_steps_parallelism", 0)
+    if not isinstance(max_steps_parallelism, int):
+        invalid_entries["max_steps_parallelism"] = "invalid_value"
+
     if not is_services_definition_valid(pipeline_json.get("services", {})):
         invalid_entries["services"] = "invalid_value"
 
