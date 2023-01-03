@@ -10,8 +10,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import MenuItem from "@mui/material/MenuItem";
-import MenuList from "@mui/material/MenuList";
+import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -40,7 +39,7 @@ export const ConfigureGitSshView = () => {
 
   return (
     <GitSshLayout>
-      <Stack spacing={2}>
+      <Stack spacing={3}>
         <Stack direction="column" spacing={2}>
           <Typography variant="h5" gutterBottom>
             Git user configuration
@@ -62,36 +61,72 @@ export const ConfigureGitSshView = () => {
           <Typography variant="h5" gutterBottom>
             SSH keys
           </Typography>
-          <MenuList
-            sx={{
-              minWidth: (theme) => ({ xs: "95%", md: theme.spacing(100) }),
-            }}
-          >
-            {sshKeys.map((sshKey) => {
-              return (
-                <MenuItem key={sshKey.uuid} divider sx={{ width: "100%" }}>
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    sx={{ width: "100%" }}
+          {sshKeys.length > 0 && (
+            <Box
+              sx={{
+                minWidth: (theme) => ({ xs: "95%", md: theme.spacing(100) }),
+              }}
+            >
+              <Box
+                sx={{
+                  width: "100%",
+                  fontWeight: (theme) => theme.typography.fontWeightMedium,
+                }}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  sx={{ width: "100%" }}
+                >
+                  <Box
+                    sx={{
+                      padding: (theme) => theme.spacing(2),
+                      flex: 1,
+                    }}
                   >
-                    <Box sx={{ flex: 1, ...ellipsis() }}>{sshKey.name}</Box>
-                    <Box sx={{ flex: 1 }}>
-                      {humanizeDate(sshKey.created_time, "yyyy-MM-dd")}
-                    </Box>
-                    <Box>
-                      <IconButton
-                        title="Delete key"
-                        onClick={() => showDeleteSshKeyDialog(sshKey.uuid)}
+                    Nickname
+                  </Box>
+                  <Box sx={{ flex: 1 }}>Date added</Box>
+                  <Box sx={{ minWidth: (theme) => theme.spacing(5) }} />
+                </Stack>
+                <Divider />
+              </Box>
+              {sshKeys.map((sshKey) => {
+                return (
+                  <Box key={sshKey.uuid} sx={{ width: "100%" }}>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      sx={{ width: "100%" }}
+                    >
+                      <Box
+                        sx={{
+                          padding: (theme) => theme.spacing(2),
+                          flex: 1,
+                          ...ellipsis(),
+                        }}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  </Stack>
-                </MenuItem>
-              );
-            })}
-          </MenuList>
+                        {sshKey.name}
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        {humanizeDate(sshKey.created_time, "yyyy-MM-dd")}
+                      </Box>
+                      <Box>
+                        <IconButton
+                          title="Delete key"
+                          onClick={() => showDeleteSshKeyDialog(sshKey.uuid)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Stack>
+                    <Divider />
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+
           <Button startIcon={<AddIcon />} onClick={showCreateAddSshKeyDialog}>
             Add ssh key
           </Button>
