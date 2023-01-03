@@ -88,7 +88,7 @@ const GitSshLayout: React.FC = ({ children }) => {
             Orchest uses the SSH protocol to securely communicate with Git.
           </Typography>
           <Link
-            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html"
+            href="https://docs.orchest.io/en/stable/fundamentals/git_config_ssh_keys.html"
             target="_blank"
             rel="noreferrer"
             sx={{
