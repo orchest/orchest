@@ -1,17 +1,9 @@
 import { useGitConfigsApi } from "@/api/git-configs/useGitConfigsApi";
-import { IconButton } from "@/components/common/IconButton";
 import { useFetchGitConfigs } from "@/hooks/useFetchGitConfigs";
 import { useFetchSshKeys } from "@/hooks/useFetchSshKeys";
 import { useOpenDialog } from "@/hooks/useOpenDialog";
 import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
-import { humanizeDate } from "@/utils/date-time";
-import { ellipsis } from "@/utils/styles";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -19,6 +11,7 @@ import React from "react";
 import { CreateSshKeyDialog } from "./CreateSshKeyDialog";
 import { DeleteSshKeyDialog } from "./DeleteSshKeyDialog";
 import { GitConfigAttribute } from "./GitConfigAttribute";
+import { SshKeyList } from "./SshKeyList";
 
 export const ConfigureGitSshView = () => {
   const sshKeys = useGitConfigsApi((state) => state.sshKeys || []);
@@ -60,78 +53,11 @@ export const ConfigureGitSshView = () => {
           />
         </Stack>
         <Stack direction="column" alignItems="flex-start" spacing={2}>
-          <Typography variant="h6" gutterBottom>
-            SSH keys
-          </Typography>
-          {sshKeys.length > 0 && (
-            <Box
-              sx={{
-                minWidth: (theme) => ({ xs: "95%", md: theme.spacing(100) }),
-              }}
-            >
-              <Box
-                sx={{
-                  width: "100%",
-                  fontWeight: (theme) => theme.typography.fontWeightMedium,
-                }}
-              >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  sx={{ width: "100%" }}
-                >
-                  <Box
-                    sx={{
-                      padding: (theme) => theme.spacing(2),
-                      flex: 1,
-                    }}
-                  >
-                    Nickname
-                  </Box>
-                  <Box sx={{ flex: 1 }}>Date added</Box>
-                  <Box sx={{ minWidth: (theme) => theme.spacing(5) }} />
-                </Stack>
-                <Divider />
-              </Box>
-              {sshKeys.map((sshKey) => {
-                return (
-                  <Box key={sshKey.uuid} sx={{ width: "100%" }}>
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      sx={{ width: "100%" }}
-                    >
-                      <Box
-                        sx={{
-                          padding: (theme) => theme.spacing(2),
-                          flex: 1,
-                          ...ellipsis(),
-                        }}
-                      >
-                        {sshKey.name}
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        {humanizeDate(sshKey.created_time, "yyyy-MM-dd")}
-                      </Box>
-                      <Box>
-                        <IconButton
-                          title="Delete key"
-                          onClick={() => showDeleteSshKeyDialog(sshKey.uuid)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    </Stack>
-                    <Divider />
-                  </Box>
-                );
-              })}
-            </Box>
-          )}
-
-          <Button startIcon={<AddIcon />} onClick={showCreateAddSshKeyDialog}>
-            Add ssh key
-          </Button>
+          <SshKeyList
+            list={sshKeys}
+            onDelete={showDeleteSshKeyDialog}
+            onCreate={showCreateAddSshKeyDialog}
+          />
         </Stack>
       </Stack>
       <CreateSshKeyDialog
