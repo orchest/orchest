@@ -224,7 +224,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   return (
     <SettingsViewLayout
       header={
-        <Typography variant="h4" flex={1}>
+        <Typography variant="h5" flex={1}>
           Configure JupyterLab
         </Typography>
       }

@@ -111,10 +111,10 @@ export const SettingsView = () => {
     ? hostInfo.disk_info.avail_GB < 2000
     : false;
   return (
-    <SettingsViewLayout header={<Typography variant="h4">General</Typography>}>
+    <SettingsViewLayout header={<Typography variant="h5">General</Typography>}>
       <Stack direction="column" spacing={3}>
         <Stack direction="column" alignItems="flex-start" spacing={1}>
-          <Typography variant="h5">Version</Typography>
+          <Typography variant="h6">Version</Typography>
           <Stack direction="row" alignItems="center" spacing={2}>
             {orchestVersion && (
               <Code sx={{ marginBottom: 0 }}>{orchestVersion}</Code>
@@ -139,7 +139,7 @@ export const SettingsView = () => {
             spacing={1}
             sx={{ width: "100%" }}
           >
-            <Typography variant="h5">Disk volume</Typography>
+            <Typography variant="h6">Disk volume</Typography>
             <Stack
               direction="row"
               alignItems="center"
@@ -164,7 +164,7 @@ export const SettingsView = () => {
           </Stack>
         )}
         <Stack direction="column" alignItems="flex-start" spacing={1}>
-          <Typography variant="h5">Orchest status</Typography>
+          <Typography variant="h6">Orchest status</Typography>
           <Stack direction="row" spacing={2}>
             <Chip
               label={status}
@@ -190,7 +190,7 @@ export const SettingsView = () => {
           </Stack>
         </Stack>
         <Stack direction="column" alignItems="flex-start" spacing={1}>
-          <Typography variant="h5">Custom configuration</Typography>
+          <Typography variant="h6">Custom configuration</Typography>
           <CodeMirror
             value={userConfig || ""}
             options={{

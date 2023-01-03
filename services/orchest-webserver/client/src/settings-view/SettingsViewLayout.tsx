@@ -2,26 +2,31 @@ import { SidePanelMenuItem } from "@/components/layout/SidePanelMenuItem";
 import { ViewLayout } from "@/components/layout/ViewLayout";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import Box from "@mui/material/Box";
 import ListSubheader from "@mui/material/ListSubheader";
 import MenuList from "@mui/material/MenuList";
+import Stack from "@mui/material/Stack";
 import React from "react";
 
 type SettingsViewLayoutProps = {
   children: React.ReactNode;
   header?: React.ReactNode;
+  description?: React.ReactNode;
   fixedWidth?: boolean;
 };
 
 export const SettingsViewLayout = ({
   children,
   header,
+  description,
   fixedWidth = true,
 }: SettingsViewLayoutProps) => (
   <ViewLayout
     sidePanel={<SettingsMenuList />}
     header={() => (
-      <Box sx={{ marginBottom: (theme) => theme.spacing(2) }}>{header}</Box>
+      <Stack spacing={2}>
+        {header}
+        {description}
+      </Stack>
     )}
     fixedWidth={fixedWidth}
   >

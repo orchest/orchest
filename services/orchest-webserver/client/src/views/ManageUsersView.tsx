@@ -10,7 +10,7 @@ const ManageUsersView: React.FC = () => {
 
   return (
     <SettingsViewLayout
-      header={<Typography variant="h4">Manage user</Typography>}
+      header={<Typography variant="h5">Manage users</Typography>}
       fixedWidth={false}
     >
       <Box

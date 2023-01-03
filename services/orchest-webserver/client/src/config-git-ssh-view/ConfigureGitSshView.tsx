@@ -8,9 +8,11 @@ import { humanizeDate } from "@/utils/date-time";
 import { ellipsis } from "@/utils/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
@@ -41,7 +43,7 @@ export const ConfigureGitSshView = () => {
     <GitSshLayout>
       <Stack spacing={3}>
         <Stack direction="column" spacing={2}>
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h6" gutterBottom>
             Git user configuration
           </Typography>
           <GitConfigAttribute
@@ -58,7 +60,7 @@ export const ConfigureGitSshView = () => {
           />
         </Stack>
         <Stack direction="column" alignItems="flex-start" spacing={2}>
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h6" gutterBottom>
             SSH keys
           </Typography>
           {sshKeys.length > 0 && (
@@ -150,9 +152,35 @@ const GitSshLayout: React.FC = ({ children }) => {
   return (
     <SettingsViewLayout
       header={
-        <Typography variant="h4" flex={1}>
-          Git & SSH
+        <Typography variant="h5" flex={1}>
+          Git & SSH settings
         </Typography>
+      }
+      description={
+        <Stack direction="row" spacing={1} alignItems="baseline">
+          <Typography color="text.secondary">
+            Orchest uses the SSH protocol to securely communicate with Git.
+          </Typography>
+          <Link
+            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html"
+            target="_blank"
+            rel="noreferrer"
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              margin: (theme) => theme.spacing(0, 1),
+            }}
+          >
+            Git & SSH docs
+            <OpenInNewIcon
+              sx={{
+                fontSize: (theme) => theme.spacing(2),
+                marginLeft: (theme) => theme.spacing(0.5),
+              }}
+            />
+          </Link>
+        </Stack>
       }
     >
       {children}
