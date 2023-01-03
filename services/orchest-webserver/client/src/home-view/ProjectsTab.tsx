@@ -4,11 +4,11 @@ import { ProjectsEmptyState } from "./components/ProjectsEmptyState";
 import { ProjectTable } from "./components/ProjectTable";
 
 export const ProjectsTab = () => {
-  const { hasData, isFetched } = useFetchProjects();
+  const { isFetched, isEmpty } = useFetchProjects();
 
-  if (isFetched && !hasData) {
+  if (isFetched && isEmpty) {
     return <ProjectsEmptyState />;
+  } else {
+    return <ProjectTable />;
   }
-
-  return <ProjectTable />;
 };
