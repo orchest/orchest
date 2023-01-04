@@ -287,14 +287,16 @@ export const ImportDialog = ({
   const gitImport = useGitImport(importUrl);
 
   React.useEffect(() => {
-    if ([undefined, "PENDING", "STARTED"].includes(gitImport.status)) {
-      return;
-    }
-
-    if (gitImport.status == "FAILURE" || gitImport.status == "ABORTED") {
+    const importStatus = gitImport.status;
+    if (!hasValue(importStatus)) return;
+    if (gitImport.status === "FAILURE" || gitImport.status === "ABORTED") {
       setStatus("READY");
-      return;
     }
+  }, [gitImport.status]);
+
+  const hasImported = gitImport.status === "SUCCESS";
+  React.useEffect(() => {
+    if (!hasImported) return;
 
     setStatus("FILES_STORED");
 
@@ -315,7 +317,13 @@ export const ImportDialog = ({
         // This will update the UI as well:
         reloadProjects();
       });
-  }, [closeDialog, gitImport.projectUuid, reloadProjects, setAlert]);
+  }, [
+    closeDialog,
+    gitImport.projectUuid,
+    hasImported,
+    reloadProjects,
+    setAlert,
+  ]);
 
   const startImportGitRepo = React.useCallback(() => {
     setStatus("IMPORTING");

@@ -173,7 +173,7 @@ export type GitImportError =
   | "ProjectWithSameNameExists"
   | "ProjectNotDiscoveredByWebServer";
 
-export type GitImport = {
+export type GitImportOperation = {
   uuid: string;
   url: string;
   project_uuid?: str;
