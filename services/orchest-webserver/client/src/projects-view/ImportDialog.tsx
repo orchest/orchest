@@ -43,6 +43,7 @@ import {
   hasValue,
   HEADER,
   uuidv4,
+  validGitRepo,
   validURL,
 } from "@orchest/lib-utils";
 import React from "react";
@@ -91,16 +92,16 @@ const HelperText: React.FC = ({ children }) => (
 const validateImportUrl = (
   importUrl: string
 ): { error: boolean; helperText: React.ReactNode } => {
-  if (!validURL(importUrl))
+  if (!validURL(importUrl) && !validGitRepo(importUrl))
     return {
       error: true,
-      helperText: <HelperText>Not a valid HTTPS git repository URL</HelperText>,
+      helperText: <HelperText>Not a valid git repository URL</HelperText>,
     };
 
   // if the URL is not from Orchest, warn the user about it.
-  const isOrchestExample = /^https:\/\/github.com\/orchest(\-examples)?\//.test(
-    importUrl
-  );
+  const isOrchestExample =
+    /^https:\/\/github.com\/orchest(\-examples)?\//.test(importUrl) ||
+    importUrl.startsWith("git@github.com:orchest/");
 
   if (!isOrchestExample)
     return {

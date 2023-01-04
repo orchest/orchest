@@ -72,6 +72,12 @@ export function validURL(
   }
 }
 
+export function validGitRepo(url: string) {
+  return /((http|git|ssh|http(s)|file|\/?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:/\-~]+)(\.git)(\/)?/.test(
+    url
+  );
+}
+
 // used in orchest-webserver only
 export function kernelNameToLanguage(kernel_name: string): string {
   let mapping = {
