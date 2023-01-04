@@ -213,16 +213,6 @@ export const ImportDialog = ({
   const { projects, refresh: reloadProjects } = useFetchProjects();
   const deleteProject = useProjectsApi((api) => api.delete);
 
-  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
-    if (onImportCompleteByParent) {
-      onImportCompleteByParent(newProject);
-      return;
-    }
-    navigateTo(siteMap.pipeline.path, {
-      query: { projectUuid: newProject.uuid },
-    });
-  };
-
   const { isOpen, onClose, onOpen } = useControlledIsOpen(
     isOpenByParent,
     onCloseByParent
@@ -256,6 +246,8 @@ export const ImportDialog = ({
     fetch: cancelableFetch,
   });
 
+  const gitImport = useGitImport(importUrl);
+
   const reset = React.useCallback(() => {
     setShouldShowImportUrlValidation(false);
     setImportUrl("");
@@ -264,7 +256,8 @@ export const ImportDialog = ({
     setNewProjectUuid(undefined);
     setTempProjectName(undefined);
     resetUploader();
-  }, [setImportUrl, resetUploader]);
+    gitImport.reset();
+  }, [setImportUrl, resetUploader, gitImport]);
 
   const deleteTempProject = React.useCallback(async () => {
     if (!newProjectUuid) return;
@@ -287,8 +280,6 @@ export const ImportDialog = ({
     onClose();
   }, [cancelAll, deleteTempProject, onClose, reset]);
 
-  const gitImport = useGitImport(importUrl);
-
   React.useEffect(() => {
     const importStatus = gitImport.status;
     if (!hasValue(importStatus)) return;
@@ -299,14 +290,15 @@ export const ImportDialog = ({
 
   const hasImported = gitImport.status === "SUCCESS";
   React.useEffect(() => {
-    if (!hasImported) return;
+    const { projectUuid } = gitImport;
+    if (!hasImported || !projectUuid) return;
 
     setStatus("FILES_STORED");
 
     // Since we don't want to update the UI, we call the Projects API
     // directly, instead of `reloadProjects`
     projectsApi
-      .fetchOne(gitImport.projectUuid)
+      .fetchOne(projectUuid)
       .then((importedProject) => {
         if (importedProject) {
           setNewProjectUuid(importedProject?.uuid);
@@ -320,13 +312,7 @@ export const ImportDialog = ({
         // This will update the UI as well:
         reloadProjects();
       });
-  }, [
-    closeDialog,
-    gitImport.projectUuid,
-    hasImported,
-    reloadProjects,
-    setAlert,
-  ]);
+  }, [closeDialog, gitImport, hasImported, reloadProjects, setAlert]);
 
   const startImportGitRepo = React.useCallback(() => {
     setStatus("IMPORTING");
@@ -375,6 +361,17 @@ export const ImportDialog = ({
       helperText: validation.valid ? " " : validation.reason,
     };
   }, [projectPaths, projectName, status]);
+
+  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
+    if (onImportCompleteByParent) {
+      reset();
+      onImportCompleteByParent(newProject);
+      return;
+    }
+    navigateTo(siteMap.pipeline.path, {
+      query: { projectUuid: newProject.uuid },
+    });
+  };
 
   const saveProjectName = async () => {
     if (!newProjectUuid || projectNameValidation.error) return;
@@ -490,6 +487,8 @@ export const ImportDialog = ({
       ? mappedTitle.replace(/^Upload/, "Import")
       : mappedTitle;
   }, [status, hideUploadOption]);
+
+  console.log("DEV 👻👻👻👻 ", status, gitImport.status);
 
   return (
     <>

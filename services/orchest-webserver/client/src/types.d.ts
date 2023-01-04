@@ -176,7 +176,7 @@ export type GitImportError =
 export type GitImportOperation = {
   uuid: string;
   url: string;
-  project_uuid?: str;
+  project_uuid?: string;
   requested_name: string;
   result: { error?: GitImportError };
   status: GitImportStatus;

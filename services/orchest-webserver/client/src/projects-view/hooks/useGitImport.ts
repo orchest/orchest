@@ -14,6 +14,7 @@ export const useGitImport = (importUrl: string) => {
     run,
     status: requestImportStatus,
     data: gitImportOperationUuid,
+    setData: setImportOperationUuid,
   } = useAsync<string>();
 
   const start = React.useCallback(
@@ -33,8 +34,14 @@ export const useGitImport = (importUrl: string) => {
     [importUrl, setAlert, run, requestImportStatus]
   );
 
-  const { status, project_uuid, result } =
-    usePollGitImport(gitImportOperationUuid) ?? {};
+  const { status, project_uuid, result, reset: resetPoller } = usePollGitImport(
+    gitImportOperationUuid
+  );
+
+  const reset = React.useCallback(() => {
+    setImportOperationUuid(undefined);
+    resetPoller();
+  }, [resetPoller, setImportOperationUuid]);
 
   return {
     /** Request to start a new git-import operation. */
@@ -45,6 +52,8 @@ export const useGitImport = (importUrl: string) => {
     projectUuid: project_uuid,
     /** The error if the import failed, otherwise `undefined`. */
     error: result?.error,
+    /** Reset the git import states */
+    reset,
   };
 };
 

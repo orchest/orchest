@@ -15,7 +15,13 @@ const hasFinished = (status: GitImportOperation["status"]) =>
  * @returns The git import if it exists, or `undefined`.
  */
 export const usePollGitImport = (operationUuid: string | undefined) => {
-  const { run, data: gitImport } = useAsync<GitImportOperation>();
+  const { run, data: gitImport, setData: setGitImport } = useAsync<
+    GitImportOperation | undefined
+  >();
+
+  const reset = React.useCallback(() => {
+    setGitImport(undefined);
+  }, [setGitImport]);
 
   React.useEffect(() => {
     if (!operationUuid) return;
@@ -35,5 +41,5 @@ export const usePollGitImport = (operationUuid: string | undefined) => {
     };
   }, [run, operationUuid]);
 
-  return gitImport;
+  return { ...gitImport, reset };
 };
