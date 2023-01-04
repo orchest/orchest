@@ -67,7 +67,9 @@ const getMappedErrorMessage = (key: string | null) => {
 
 const getProjectNameFromUrl = (importUrl: string) => {
   const matchGithubRepoName = importUrl.match(/\/([^\/]+)\/?$/);
-  return matchGithubRepoName ? matchGithubRepoName[1] : "";
+  return matchGithubRepoName
+    ? matchGithubRepoName[1].replace(/\.git$/, "")
+    : "";
 };
 
 const HelperText: React.FC = ({ children }) => (
