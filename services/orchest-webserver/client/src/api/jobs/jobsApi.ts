@@ -1,4 +1,3 @@
-import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import {
   JobChangesData,
   JobData,
@@ -6,12 +5,19 @@ import {
   PipelineJson,
   StrategyJson,
 } from "@/types";
+import { join } from "@/utils/path";
+import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
+import { filesApi } from "../files/fileApi";
 
-const fetchAll = async (projectUuid: string): Promise<JobData[]> => {
+const BASE_URL = "/catch/api-proxy/api/jobs";
+
+const fetchAll = async (
+  projectUuid?: string | undefined
+): Promise<JobData[]> => {
   return fetcher<{ jobs: JobData[] }>(
-    `/catch/api-proxy/api/jobs?${queryArgs({ projectUuid })}`
+    BASE_URL + "?" + queryArgs(prune({ projectUuid }))
   ).then((response) => response.jobs);
 };
 
@@ -24,11 +30,8 @@ const fetchOne = async (
         aggregateRunStatuses,
       })}`
     : "";
-  const job = await fetcher<JobData>(
-    `/catch/api-proxy/api/jobs/${jobUuid}${queryString}`
-  );
 
-  return job;
+  return await fetcher<JobData>(join(BASE_URL, jobUuid) + queryString);
 };
 
 const post = (
@@ -37,7 +40,7 @@ const post = (
   pipelineName: string,
   newJobName: string
 ) =>
-  fetcher<JobData>("/catch/api-proxy/api/jobs", {
+  fetcher<JobData>(BASE_URL, {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({
@@ -56,7 +59,7 @@ const post = (
   });
 
 const put = async ({ uuid, schedule, ...changes }: JobChangesData) => {
-  await fetcher(`/catch/api-proxy/api/jobs/${uuid}`, {
+  await fetcher(join(BASE_URL, uuid), {
     method: "PUT",
     headers: HEADER.JSON,
     body: JSON.stringify({ ...changes, cron_schedule: schedule }),
@@ -65,7 +68,7 @@ const put = async ({ uuid, schedule, ...changes }: JobChangesData) => {
 };
 
 const putJobPipelineUuid = (jobUuid: string, pipelineUuid: string) => {
-  return fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/pipeline`, {
+  return fetcher(join(BASE_URL, jobUuid, "pipeline"), {
     method: "PUT",
     headers: HEADER.JSON,
     body: JSON.stringify({ pipeline_uuid: pipelineUuid }),
@@ -73,28 +76,22 @@ const putJobPipelineUuid = (jobUuid: string, pipelineUuid: string) => {
 };
 
 const deleteJob = (jobUuid: string) =>
-  fetcher(`/catch/api-proxy/api/jobs/cleanup/${jobUuid}`, {
-    method: "DELETE",
-  });
+  fetcher(join(BASE_URL, "cleanup", jobUuid), { method: "DELETE" });
 
 const cancelJob = (jobUuid: string) =>
-  fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`, {
-    method: "DELETE",
-  });
+  fetcher(join(BASE_URL, jobUuid), { method: "DELETE" });
 
 const resumeCronJob = (jobUuid: string) =>
   fetcher<{ next_scheduled_time: string }>(
-    `/catch/api-proxy/api/jobs/cronjobs/resume/${jobUuid}`,
+    join(BASE_URL, "cronjobs/resume", jobUuid),
     { method: "POST" }
   );
 
 const pauseCronJob = (jobUuid: string) =>
-  fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${jobUuid}`, {
-    method: "POST",
-  });
+  fetcher(join(BASE_URL, "cronjobs/pause", jobUuid), { method: "POST" });
 
 const duplicate = (jobUuid: string) =>
-  fetcher<JobData>("/catch/api-proxy/api/jobs/duplicate", {
+  fetcher<JobData>(join(BASE_URL, "duplicate"), {
     method: "POST",
     headers: HEADER.JSON,
     body: JSON.stringify({ job_uuid: jobUuid }),
@@ -102,27 +99,26 @@ const duplicate = (jobUuid: string) =>
 
 const triggerScheduledRuns = (jobUuid: string) =>
   fetcher<{ next_scheduled_time: string }>(
-    `/catch/api-proxy/api/jobs/${jobUuid}/runs/trigger`,
+    join(BASE_URL, jobUuid, "runs/trigger"),
     { method: "POST" }
   );
 
 type ParamConfig = Record<string, Record<string, string>>;
 
-// TODO: Move this to future fileManagerApi implementation.
 const fetchParamConfig = (
   projectUuid: string,
   pipelineUuid: string,
   jobUuid: string,
   path: string
 ) =>
-  fetcher<ParamConfig>(
-    `${FILE_MANAGEMENT_ENDPOINT}/read?${queryArgs({
+  filesApi
+    .readFile({
       projectUuid,
       pipelineUuid,
       jobUuid,
       path,
-    })}`
-  );
+    })
+    .then((data) => JSON.parse(data) as ParamConfig);
 
 const toStringifiedParams = (params: Record<string, Json>, wrap?: boolean) => {
   return Object.entries(params).reduce((all, [paramKey, value]) => {
