@@ -384,10 +384,7 @@ def register_views(app, db):
     def git_import_post():
         """See the orchest-api swagger docs for git-import. #CLOUD"""
         resp = requests.post(
-            (
-                f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
-                "/git-imports/"
-            ),
+            (f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api" "/git-imports/"),
             json=request.get_json(),
         )
         return resp.content, resp.status_code, resp.headers.items()
