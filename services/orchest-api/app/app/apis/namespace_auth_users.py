@@ -200,9 +200,9 @@ class SSHKey(Resource):
         models.AuthUser.query.get_or_404(
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
-        # Delete from the db before committing so that the secret
-        # removal must have succeeded for the reference from the db to
-        # be deleted.
+        # Delete from k8s before committing so that the secret removal
+        # must have succeeded for the reference from the db to be
+        # deleted.
         _delete_secret(f"ssh-key-{ssh_key_uuid}")
         models.SSHKey.query.filter(models.SSHKey.uuid == ssh_key_uuid).delete()
         db.session.commit()
