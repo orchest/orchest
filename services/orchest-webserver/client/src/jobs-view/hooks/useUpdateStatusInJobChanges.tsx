@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
 
@@ -7,7 +7,7 @@ import { useEditJob } from "../stores/useEditJob";
  * Note: should only be used once in a view.
  */
 export const useUpdateStatusInJobChanges = () => {
-  const jobs = useJobsApi((state) => state.jobs);
+  const jobs = useProjectJobsApi((state) => state.jobs);
   const setJobChanges = useEditJob((state) => state.setJobChanges);
   const uuid = useEditJob((state) => state.jobChanges?.uuid);
 

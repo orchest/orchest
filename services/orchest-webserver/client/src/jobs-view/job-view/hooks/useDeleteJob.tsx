@@ -1,10 +1,10 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useAsync } from "@/hooks/useAsync";
 import React from "react";
 
 export const useDeleteJob = () => {
   const { run, status } = useAsync();
-  const deleteJobRequest = useJobsApi((state) => state.delete);
+  const deleteJobRequest = useProjectJobsApi((state) => state.delete);
 
   const deleteJob = React.useCallback(
     (jobUuid: string) => {

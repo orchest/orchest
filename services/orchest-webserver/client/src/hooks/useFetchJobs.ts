@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { JobData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -9,8 +9,8 @@ export const useFetchJobs = (projectUuid: string | undefined) => {
   const { projectUuid: validProjectUuid } = useValidQueryArgs({ projectUuid });
 
   const { run, status, error } = useAsync<JobData[]>();
-  const request = useJobsApi((state) => state.fetchAll);
-  const jobs = useJobsApi((state) => state.jobs || []);
+  const request = useProjectJobsApi((state) => state.fetchAll);
+  const jobs = useProjectJobsApi((state) => state.jobs || []);
 
   const isAllowedToFetch = hasValue(validProjectUuid) && status !== "PENDING";
 

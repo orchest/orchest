@@ -1,5 +1,5 @@
 import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useCancelJob } from "@/hooks/useCancelJob";
 import { useSelectJob } from "@/jobs-view/hooks/useSelectJob";
 import React from "react";
@@ -12,10 +12,10 @@ export const useJobActions = () => {
   const { selectJob } = useSelectJob();
 
   const cancel = useCancelJob();
-  const resumeCronJob = useJobsApi((state) => state.resumeCronJob);
-  const pauseCronJob = useJobsApi((state) => state.pauseCronJob);
-  const duplicate = useJobsApi((state) => state.duplicate);
-  const triggerScheduledRuns = useJobsApi(
+  const resumeCronJob = useProjectJobsApi((state) => state.resumeCronJob);
+  const pauseCronJob = useProjectJobsApi((state) => state.pauseCronJob);
+  const duplicate = useProjectJobsApi((state) => state.duplicate);
+  const triggerScheduledRuns = useProjectJobsApi(
     (state) => state.triggerScheduledRuns
   );
   const fetchPage = useJobRunsApi((state) => state.fetchPage);

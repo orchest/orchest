@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { DraftJobData, JobStatus } from "@/types";
 import { toUtcDateTimeString } from "@/utils/date-time";
 import { omit } from "@/utils/record";
@@ -10,8 +10,8 @@ import { useEditJob } from "../stores/useEditJob";
  * Submit a draft job.
  */
 export const useScheduleJob = () => {
-  const put = useJobsApi((state) => state.put);
-  const setJobs = useJobsApi((state) => state.setJobs);
+  const put = useProjectJobsApi((state) => state.put);
+  const setJobs = useProjectJobsApi((state) => state.setJobs);
   const jobChanges = useEditJob((state) => state.jobChanges);
   const stopEditing = useEditJob((state) => state.stopEditing);
 

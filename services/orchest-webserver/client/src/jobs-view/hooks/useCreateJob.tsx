@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { RouteLink } from "@/components/RouteLink";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -74,8 +74,8 @@ export const useCreateJob = (desiredPipeline?: PipelineMetaData) => {
   const pipeline = useFirstBestPipeline(desiredPipeline);
   const { setAlert } = useGlobalContext();
   const { name, uuid: pipelineUuid } = pipeline || {};
-  const jobs = useJobsApi((state) => state.jobs || []);
-  const post = useJobsApi((state) => state.post);
+  const jobs = useProjectJobsApi((state) => state.jobs || []);
+  const post = useProjectJobsApi((state) => state.post);
 
   const newJobName = React.useMemo(() => {
     return getUniqueName(

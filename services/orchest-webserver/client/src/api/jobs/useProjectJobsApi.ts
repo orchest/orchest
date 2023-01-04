@@ -3,7 +3,7 @@ import { omit } from "@/utils/record";
 import create from "zustand";
 import { jobsApi } from "./jobsApi";
 
-export type JobsApi = {
+export type ProjectJobsApi = {
   projectUuid?: string;
   jobs?: JobData[];
   setJobs: (
@@ -39,7 +39,7 @@ export type JobsApi = {
   }) => Promise<StrategyJson | undefined>;
 };
 
-export const useJobsApi = create<JobsApi>((set, get) => {
+export const useProjectJobsApi = create<ProjectJobsApi>((set, get) => {
   return {
     setJobs: (value) => {
       set((state) => {

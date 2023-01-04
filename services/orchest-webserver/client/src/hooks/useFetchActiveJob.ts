@@ -1,5 +1,5 @@
 import { jobsApi } from "@/api/jobs/jobsApi";
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { JobData } from "@/types";
 import React from "react";
 import { useAsync } from "./useAsync";
@@ -8,7 +8,7 @@ import { useCurrentQuery } from "./useCustomRoute";
 export const useFetchActiveJob = () => {
   const { jobUuid } = useCurrentQuery();
   const [job, setJob] = React.useState<JobData>();
-  const jobs = useJobsApi((api) => api.jobs);
+  const jobs = useProjectJobsApi((api) => api.jobs);
   const { status, run } = useAsync<JobData>();
 
   React.useEffect(() => {

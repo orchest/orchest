@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { IconButton } from "@/components/common/IconButton";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { JobData } from "@/types";
@@ -33,7 +33,7 @@ export const JobMoreOptions = () => {
   const { selectJob } = useSelectJob();
   const { deleteJob, isDeletingJob } = useDeleteJob();
 
-  const jobs = useJobsApi((state) => state.jobs || []);
+  const jobs = useProjectJobsApi((state) => state.jobs || []);
 
   const [anchorElement, setAnchorElement] = React.useState<
     Element | undefined

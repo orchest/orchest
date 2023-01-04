@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useSnapshotsApi } from "@/api/snapshots/useSnapshotsApi";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { PipelineMetaData } from "@/types";
@@ -9,7 +9,7 @@ import { useCurrentQuery } from "./useCustomRoute";
 
 export const useFetchActivePipelines = (): PipelineMetaData[] => {
   const { snapshotUuid: snapshotUuidFromQuery, jobUuid } = useCurrentQuery();
-  const activeJob = useJobsApi((api) =>
+  const activeJob = useProjectJobsApi((api) =>
     api.jobs?.find(({ uuid }) => uuid === jobUuid)
   );
   const snapshotUuid = snapshotUuidFromQuery ?? activeJob?.snapshot_uuid;

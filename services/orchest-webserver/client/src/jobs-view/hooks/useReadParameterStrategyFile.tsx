@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { pipelinePathToJsonLocation } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -20,7 +20,7 @@ export const useReadParameterStrategyFile = () => {
 
   const { reservedKey } = useParameterReservedKey();
 
-  const readParameterStrategyFile = useJobsApi(
+  const readParameterStrategyFile = useProjectJobsApi(
     (state) => state.fetchParameterStrategy
   );
   const setJobChanges = useEditJob((state) => state.setJobChanges);

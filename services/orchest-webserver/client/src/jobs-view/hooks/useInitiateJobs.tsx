@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchJobs } from "@/hooks/useFetchJobs";
 import { useShouldRefetchPerProject } from "@/hooks/useShouldRefetchPerProject";
@@ -13,7 +13,7 @@ export const useInitiateJobs = () => {
 
   const shouldRefetch = useShouldRefetchPerProject();
 
-  const shouldFetch = useJobsApi(
+  const shouldFetch = useProjectJobsApi(
     (state) => hasValue(projectUuid) && (!hasValue(state.jobs) || shouldRefetch)
   );
   const { fetchJobs } = useFetchJobs(projectUuid);
@@ -21,7 +21,7 @@ export const useInitiateJobs = () => {
     if (shouldFetch) fetchJobs();
   }, [shouldFetch, fetchJobs]);
 
-  const setJobs = useJobsApi((state) => state.setJobs);
+  const setJobs = useProjectJobsApi((state) => state.setJobs);
   React.useEffect(() => {
     if (!projectUuid) setJobs(undefined);
   }, [projectUuid, setJobs]);

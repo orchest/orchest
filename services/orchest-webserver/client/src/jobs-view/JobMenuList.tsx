@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { formatServerDateTime } from "@/utils/webserver-utils";
 import MenuList from "@mui/material/MenuList";
 import Stack from "@mui/material/Stack";
@@ -19,7 +19,7 @@ export const JobMenuList = () => {
   const jobChangesStatus = useEditJob((state) => state.jobChanges?.status);
   const { withConfirmation } = useUnsavedChangesWarning();
 
-  const jobs = useJobsApi((state) => state.jobs || []);
+  const jobs = useProjectJobsApi((state) => state.jobs || []);
   const { selectJob } = useSelectJob();
   usePollJobsStatus();
 
