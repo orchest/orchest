@@ -9,16 +9,19 @@ export const useFetchExamples = () => {
   const fetchAll = useExamplesApi((api) => api.fetchAll);
   const { run, error, status } = useAsync<void>();
 
+  const refresh = React.useCallback(() => run(fetchAll()), [run, fetchAll]);
+
   React.useEffect(() => {
     if (status !== "IDLE") return;
 
-    run(fetchAll());
-  }, [status, fetchAll, run]);
+    refresh();
+  }, [status, refresh, run]);
 
   return {
     examples: examples || [],
     hasData: hasValue(examples),
     isFetching: status === "PENDING",
+    refresh,
     error,
   };
 };
