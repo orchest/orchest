@@ -9,7 +9,7 @@ export type PipelineRunContextMenuProps = MenuProps & {
   run: PipelineRun;
 };
 
-export const PipelineContextMenu = ({
+export const PipelineRunContextMenu = ({
   run,
   ...menuProps
 }: PipelineRunContextMenuProps) => {

@@ -415,6 +415,10 @@ export type PipelineData = {
   path: string;
   project_uuid: string;
   status: "READY" | string;
+  /**
+   * An identifier for the pipeline.
+   * **Note:** This identifier is only unique within its project.
+   */
   uuid: string;
 };
 

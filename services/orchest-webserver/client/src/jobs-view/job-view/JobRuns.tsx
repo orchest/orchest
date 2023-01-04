@@ -74,7 +74,8 @@ export const JobRuns = () => {
           <>
             <PipelineRunsTable
               runs={runs}
-              onLineToggled={(openCount) => setHasExpandedRow(openCount > 0)}
+              expandable={true}
+              breadcrumbs={true}
             />
             <TablePagination
               rowsPerPageOptions={[5, 10, 25]}

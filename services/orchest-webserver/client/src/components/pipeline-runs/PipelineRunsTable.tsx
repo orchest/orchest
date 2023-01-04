@@ -7,33 +7,17 @@ import { PipelineRunRow } from "./PipelineRunRow";
 
 export type JobRunsTableProps = {
   runs: PipelineRun[];
-  onLineToggled?: (openRows: number) => void;
+  expandable?: boolean;
+  breadcrumbs?: boolean;
 };
 
-type ContextMenuState = {
-  isOpen?: boolean;
-  run?: PipelineRun | undefined;
-  anchorEl?: Element | undefined;
-};
-
-export const PipelineRunsTable = ({
-  runs,
-  onLineToggled,
-}: JobRunsTableProps) => {
-  const [expanded, setExpanded] = React.useState<number>(0);
-
+export const PipelineRunsTable = ({ runs, ...rowProps }: JobRunsTableProps) => {
   return (
     <TableContainer>
       <Table>
         <TableBody>
           {runs.map((run) => (
-            <PipelineRunRow
-              key={run.uuid}
-              run={run}
-              onToggle={(open) =>
-                setExpanded((count) => count + (open ? 1 : -1))
-              }
-            />
+            <PipelineRunRow {...rowProps} key={run.uuid} run={run} />
           ))}
         </TableBody>
       </Table>

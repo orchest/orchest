@@ -4,6 +4,7 @@ import { JobRun, PipelineRun } from "@/types";
 import { isJobRun } from "@/utils/pipeline-run";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
+import Box from "@mui/material/Box";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
@@ -12,24 +13,28 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { SystemStatusChip } from "../common/SystemStatusChip";
+import { PipelineRunBreadcrumbs } from "./PipelineRunBreadcrumbs";
+import { PipelineRunContextMenu } from "./PipelineRunContextMenu";
 
 export type PipelineRunRowProps = {
   run: PipelineRun | JobRun;
-  onToggle?: (isOpen: boolean) => void;
-  onContextMenu?: (anchorEl: Element) => void;
+  expandable?: boolean;
+  breadcrumbs?: boolean;
 };
 
 export const PipelineRunRow = ({
   run,
-  onContextMenu,
-  onToggle,
+  expandable = false,
+  breadcrumbs = false,
 }: PipelineRunRowProps) => {
   const [isExpanded, toggleRow] = useToggle();
+  const [isMenuOpen, toggleMenu] = useToggle();
+  const moreButtonRef = React.useRef<HTMLButtonElement>(null);
 
   return (
     <>
       <TableRow sx={{ "& > *": { borderBottom: "unset" } }}>
-        {isJobRun(run) && (
+        {expandable && (
           <TableCell sx={{ width: 0, padding: 0, margin: 0 }}>
             <IconButton
               aria-label="expand row"
@@ -45,14 +50,23 @@ export const PipelineRunRow = ({
             </IconButton>
           </TableCell>
         )}
+
         <TableCell sx={{ width: "100%" }}>
-          {isJobRun(run) ? "#" + (run.job_run_index + 1) : "Interactive run"}{" "}
-          <span>
-            {formatPipelineParams(run.parameters ?? {})
-              .join(", ")
-              .trim()}
-          </span>
+          <Stack justifyContent="center">
+            <Box>
+              {isJobRun(run)
+                ? "#" + (run.job_run_index + 1)
+                : "Interactive run"}{" "}
+              <span>
+                {formatPipelineParams(run.parameters ?? {})
+                  .join(", ")
+                  .trim()}
+              </span>
+            </Box>
+            {breadcrumbs && <PipelineRunBreadcrumbs run={run} />}
+          </Stack>
         </TableCell>
+
         <TableCell sx={{ textAlign: "right" }}>
           <SystemStatusChip status={run.status} flavor="job" size="small" />
         </TableCell>
@@ -61,32 +75,28 @@ export const PipelineRunRow = ({
           {run.started_time ? humanizeDate(run.started_time) : "—"}
         </TableCell>
 
-        {onContextMenu && (
-          <TableCell sx={{ textAlign: "right" }}>
-            <IconButton
-              onClick={({ currentTarget }) => onContextMenu?.(currentTarget)}
-            >
-              <MoreHorizOutlined fontSize="small" />
-            </IconButton>
-          </TableCell>
-        )}
+        <TableCell sx={{ textAlign: "right" }}>
+          <IconButton ref={moreButtonRef} onClick={() => toggleMenu(true)}>
+            <MoreHorizOutlined fontSize="small" />
+          </IconButton>
+        </TableCell>
       </TableRow>
 
-      {onToggle && (
+      {expandable && (
         <TableRow>
           <TableCell sx={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
-            <Collapse
-              in={isExpanded}
-              timeout="auto"
-              onEnter={() => onToggle?.(true)}
-              onExited={() => onToggle?.(false)}
-              unmountOnExit
-            >
+            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
               <RunDetails run={run} />
             </Collapse>
           </TableCell>
         </TableRow>
       )}
+
+      <PipelineRunContextMenu
+        open={isMenuOpen}
+        run={run}
+        anchorEl={moreButtonRef.current}
+      />
     </>
   );
 };
@@ -115,6 +125,6 @@ export const RunDetails = ({ run }: RunDetailsProps) => {
 
 export const NoParameterAlert = () => (
   <Typography variant="body2">
-    <i>{`This Pipeline didn't have any Parameters defined.`}</i>
+    <i>{"This Pipeline didn't have any Parameters defined."}</i>
   </Typography>
 );
