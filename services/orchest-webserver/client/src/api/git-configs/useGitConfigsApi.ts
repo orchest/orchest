@@ -13,8 +13,13 @@ const getAuthUserUuid = () => {
 };
 
 export type GitConfigsApi = {
-  config: GitConfig | undefined;
+  config: Partial<GitConfig> | undefined;
   sshKeys: SshKey[] | undefined;
+  setConfig: (
+    value:
+      | Partial<GitConfig>
+      | ((currentConfig: Partial<GitConfig> | undefined) => Partial<GitConfig>)
+  ) => void;
   getConfig: () => Promise<GitConfig | undefined>;
   updateConfig: (value: Omit<GitConfig, "uuid">) => Promise<GitConfig>;
   getSshKeys: () => Promise<SshKey[]>;
@@ -25,20 +30,27 @@ export type GitConfigsApi = {
 export const useGitConfigsApi = create<GitConfigsApi>((set, get) => ({
   config: undefined,
   sshKeys: undefined,
+  setConfig: (config) => {
+    set((state) => {
+      const updated =
+        config instanceof Function ? config(state.config) : config;
+      return { config: updated };
+    });
+  },
   getConfig: async () => {
     const authUserUuid = getAuthUserUuid();
     const config = await gitConfigsApi.fetchGitConfig(authUserUuid);
-    if (config) set({ config });
+    set({ config: config || { email: "", name: "" } });
     return config;
   },
   updateConfig: async (value) => {
     const authUserUuid = getAuthUserUuid();
-    const existingConfig = get().config;
-    const config = !existingConfig
+    const configUuid = get().config?.uuid;
+    const config = !configUuid
       ? await gitConfigsApi.postGitConfig(authUserUuid, value)
       : await gitConfigsApi.putGitConfig(authUserUuid, {
           ...value,
-          uuid: existingConfig.uuid,
+          uuid: configUuid,
         });
     set({ config });
     return config;

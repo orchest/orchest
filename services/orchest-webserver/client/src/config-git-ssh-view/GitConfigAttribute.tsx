@@ -1,19 +1,15 @@
 import { useGitConfigsApi } from "@/api/git-configs/useGitConfigsApi";
-import { useAsync } from "@/hooks/useAsync";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useTextField } from "@/hooks/useTextField";
+import { GIT_CONFIG_KEYS } from "@/hooks/useUpdateGitConfig";
 import { GitConfig } from "@/types";
-import { omit, prune } from "@/utils/record";
 import TextField from "@mui/material/TextField";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import shallow from "zustand/shallow";
 
 type GitConfigAttributeProps = {
   name: keyof Omit<GitConfig, "uuid">;
   label: string;
   errorMessage: string;
-  predicate: (value: string) => boolean;
 };
 
 /**
@@ -24,7 +20,6 @@ export const GitConfigAttribute = ({
   name,
   label,
   errorMessage,
-  predicate,
 }: GitConfigAttributeProps) => {
   const {
     value,
@@ -33,10 +28,13 @@ export const GitConfigAttribute = ({
     isValid,
     isDirty,
     setAsDirtyOnBlur: handleBlur,
-  } = useTextField(predicate);
+  } = useTextField(GIT_CONFIG_KEYS[name]);
 
   useInitGitConfigAttribute(name, setValue);
-  useUpdateGitConfigAttribute(name, value.trim());
+  const setConfig = useGitConfigsApi((state) => state.setConfig);
+  React.useEffect(() => {
+    setConfig((config) => ({ ...config, [name]: value }));
+  }, [name, value, setConfig]);
 
   const error = React.useMemo(() => {
     if (isDirty && !isValid) return errorMessage;
@@ -65,39 +63,14 @@ const useInitGitConfigAttribute = (
 ) => {
   const initialConfig = useGitConfigsApi(
     (state) => state.config,
-    (prev) => hasValue(prev) // Only re-render if previous value is undefined.
+    (prev, curr) => {
+      const hasLoaded = !hasValue(prev?.uuid) && hasValue(curr?.uuid);
+      return !hasLoaded; // Note that this function is `equal`. It rerenders when false.
+    }
   );
 
+  const initialValue = initialConfig?.[name];
   React.useEffect(() => {
-    if (initialConfig) setValue(initialConfig[name]);
-  }, [setValue, initialConfig, name]);
-};
-
-const GIT_CONFIG_KEYS: (keyof GitConfig)[] = ["uuid", "name", "email"];
-
-/** Watch the change of the attribute and update BE accordingly. */
-const useUpdateGitConfigAttribute = (
-  name: keyof Omit<GitConfig, "uuid">,
-  value: string
-) => {
-  const newConfig = useGitConfigsApi((state) => {
-    if (!state.config || !value) return;
-    if (value === state.config[name]) return;
-
-    const updatedValue = prune({ ...state.config, [name]: value });
-    const hasAllKeys = GIT_CONFIG_KEYS.every((key) =>
-      hasValue(updatedValue[key])
-    );
-
-    return hasAllKeys ? omit(updatedValue, "uuid") : undefined;
-  }, shallow);
-
-  const payload = useDebounce(newConfig, 250);
-
-  const { run } = useAsync();
-  const requestToUpdate = useGitConfigsApi((state) => state.updateConfig);
-
-  React.useEffect(() => {
-    if (payload) run(requestToUpdate(payload));
-  }, [payload, requestToUpdate, run]);
+    if (initialValue) setValue(initialValue);
+  }, [setValue, initialValue]);
 };

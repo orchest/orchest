@@ -2,6 +2,7 @@ import { useGitConfigsApi } from "@/api/git-configs/useGitConfigsApi";
 import { useFetchGitConfigs } from "@/hooks/useFetchGitConfigs";
 import { useFetchSshKeys } from "@/hooks/useFetchSshKeys";
 import { useOpenDialog } from "@/hooks/useOpenDialog";
+import { useUpdateGitConfig } from "@/hooks/useUpdateGitConfig";
 import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Alert from "@mui/material/Alert";
@@ -43,13 +44,11 @@ export const ConfigureGitSshView = () => {
           <GitConfigAttribute
             name="name"
             label="Username"
-            predicate={(value) => value.trim().length > 0}
             errorMessage="Username cannot be blank."
           />
           <GitConfigAttribute
             name="email"
             label="Email"
-            predicate={(value) => /^\S+@\S+\.\S+$/.test(value.trim())}
             errorMessage="Invalid email"
           />
         </Stack>
@@ -76,6 +75,7 @@ export const ConfigureGitSshView = () => {
 const GitSshLayout: React.FC = ({ children }) => {
   const isAnonymous = useFetchGitConfigs();
   useFetchSshKeys();
+  useUpdateGitConfig();
   return (
     <SettingsViewLayout
       header={

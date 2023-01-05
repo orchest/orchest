@@ -28,7 +28,10 @@ const postGitConfig = (
   });
 
 /** Modify the git username and email of the given UUID of the git config */
-const putGitConfig = (authUserUuid: string, payload: GitConfig) =>
+const putGitConfig = (
+  authUserUuid: string,
+  payload: GitConfig & { uuid: string }
+) =>
   fetcher<GitConfig>(
     join(GIT_CONFIGS_API_URL, authUserUuid, "git-configs", payload.uuid),
     {

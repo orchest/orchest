@@ -184,7 +184,7 @@ export type GitImportOperation = {
 };
 
 export type GitConfig = {
-  uuid: string;
+  uuid?: string;
   name: string;
   email: string;
 };
