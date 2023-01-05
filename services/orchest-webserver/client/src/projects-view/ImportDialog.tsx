@@ -16,7 +16,7 @@ import {
 } from "@/hooks/useUploader";
 import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/routingConfig";
-import { Project } from "@/types";
+import { GitImportError, Project } from "@/types";
 import { queryArgs } from "@/utils/text";
 import { isNumber, withPlural } from "@/utils/webserver-utils";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
@@ -49,19 +49,18 @@ import {
 import React from "react";
 import { useGitImport, validProjectName } from "./hooks/useGitImport";
 
-const ERROR_MAPPING: Record<string, string> = {
-  "git clone failed":
-    "failed to clone repo. Only public repos can be imported.",
-  "project move failed": "failed to move project because the directory exists.",
-  "project name contains illegal character":
-    "project name contains illegal character(s).",
+const ERROR_MAPPING: Partial<Record<GitImportError, string>> = {
+  ProjectWithSameNameExists:
+    "Failed to move project because the directory already exists.",
+  NoAccessRightsOrRepoDoesNotExists:
+    "SSH key is required or the repository doesn't exist",
 } as const;
 
-const getMappedErrorMessage = (key: string | null) => {
+const getMappedErrorMessage = (key: GitImportError | undefined) => {
   if (key && ERROR_MAPPING[key] !== undefined) {
     return ERROR_MAPPING[key];
   } else {
-    return "Unknown error. Please try again.";
+    return "Failed to clone repo. Please try again.";
   }
 };
 
@@ -563,7 +562,7 @@ export const ImportDialog = ({
                       severity="error"
                       sx={{ marginTop: (theme) => theme.spacing(1) }}
                     >
-                      Import failed: {getMappedErrorMessage(gitImport.status)}
+                      Import failed: {getMappedErrorMessage(gitImport.error)}
                     </Alert>
                   )}
                 </Stack>

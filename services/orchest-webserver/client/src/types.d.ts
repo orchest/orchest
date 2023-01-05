@@ -171,7 +171,8 @@ export type GitImportError =
   | "GitImportError"
   | "GitCloneFailed"
   | "ProjectWithSameNameExists"
-  | "ProjectNotDiscoveredByWebServer";
+  | "ProjectNotDiscoveredByWebServer"
+  | "NoAccessRightsOrRepoDoesNotExists";
 
 export type GitImportOperation = {
   uuid: string;
