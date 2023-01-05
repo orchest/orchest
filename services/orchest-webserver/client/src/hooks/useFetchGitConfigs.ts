@@ -5,9 +5,10 @@ import React from "react";
 import { useAsync } from "./useAsync";
 import { useRegainBrowserTabFocus } from "./useFocusBrowserTab";
 
+/** Fetch user's git config; returns false if user is not authenticated. */
 export const useFetchGitConfigs = () => {
   const getGitConfig = useGitConfigsApi((state) => state.getConfig);
-  const { run } = useAsync<GitConfig | undefined>();
+  const { run, error } = useAsync<GitConfig | undefined>();
 
   const hasRegainedFocus = useRegainBrowserTabFocus();
   const shouldFetch = useGitConfigsApi(
@@ -17,4 +18,6 @@ export const useFetchGitConfigs = () => {
   React.useEffect(() => {
     if (shouldFetch) run(getGitConfig());
   }, [getGitConfig, run, shouldFetch]);
+
+  return hasValue(error);
 };

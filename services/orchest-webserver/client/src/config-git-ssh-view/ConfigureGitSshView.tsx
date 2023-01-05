@@ -4,6 +4,7 @@ import { useFetchSshKeys } from "@/hooks/useFetchSshKeys";
 import { useOpenDialog } from "@/hooks/useOpenDialog";
 import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -73,7 +74,7 @@ export const ConfigureGitSshView = () => {
 };
 
 const GitSshLayout: React.FC = ({ children }) => {
-  useFetchGitConfigs();
+  const isAnonymous = useFetchGitConfigs();
   useFetchSshKeys();
   return (
     <SettingsViewLayout
@@ -83,33 +84,41 @@ const GitSshLayout: React.FC = ({ children }) => {
         </Typography>
       }
       description={
-        <Stack direction="row" spacing={1} alignItems="baseline">
-          <Typography color="text.secondary">
-            Orchest uses the SSH protocol to securely communicate with Git.
-          </Typography>
-          <Link
-            href="https://docs.orchest.io/en/stable/fundamentals/git_config_ssh_keys.html"
-            target="_blank"
-            rel="noreferrer"
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              margin: (theme) => theme.spacing(0, 1),
-            }}
-          >
-            Git & SSH docs
-            <OpenInNewIcon
+        <Stack direction="column" spacing={2}>
+          <Stack direction="row" spacing={1} alignItems="baseline">
+            <Typography color="text.secondary">
+              Orchest uses the SSH protocol to securely communicate with Git.
+            </Typography>
+            <Link
+              href="https://docs.orchest.io/en/stable/fundamentals/git_config_ssh_keys.html"
+              target="_blank"
+              rel="noreferrer"
               sx={{
-                fontSize: (theme) => theme.spacing(2),
-                marginLeft: (theme) => theme.spacing(0.5),
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                margin: (theme) => theme.spacing(0, 1),
               }}
-            />
-          </Link>
+            >
+              Git & SSH docs
+              <OpenInNewIcon
+                sx={{
+                  fontSize: (theme) => theme.spacing(2),
+                  marginLeft: (theme) => theme.spacing(0.5),
+                }}
+              />
+            </Link>
+          </Stack>
+          {isAnonymous && (
+            <Alert severity="info">
+              To set up git & ssh keys, you need to enable authentication and
+              log in with your credentials.
+            </Alert>
+          )}
         </Stack>
       }
     >
-      {children}
+      {!isAnonymous && children}
     </SettingsViewLayout>
   );
 };
