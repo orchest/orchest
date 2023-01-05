@@ -488,8 +488,6 @@ export const ImportDialog = ({
       : mappedTitle;
   }, [status, hideUploadOption]);
 
-  console.log("DEV 👻👻👻👻 ", status, gitImport.status);
-
   return (
     <>
       {hasValue(children) && children(onOpen)}
