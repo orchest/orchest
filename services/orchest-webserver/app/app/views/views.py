@@ -383,9 +383,14 @@ def register_views(app, db):
     @app.route("/async/projects/import-git", methods=["POST"])
     def git_import_post():
         """See the orchest-api swagger docs for git-import. #CLOUD"""
+        req_json = request.get_json()
+        k = "auth_user_uuid"
+        if k not in req_json and k in request.cookies:
+            req_json[k] = request.cookies[k]
+
         resp = requests.post(
             (f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/git-imports/"),
-            json=request.get_json(),
+            json=req_json,
         )
         return resp.content, resp.status_code, resp.headers.items()
 
