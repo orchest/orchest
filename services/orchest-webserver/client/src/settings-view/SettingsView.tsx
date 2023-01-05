@@ -3,6 +3,7 @@ import { Code } from "@/components/common/Code";
 import { CircularProgressIcon } from "@/components/common/icons/CircularProgressIcon";
 import { useAppContext } from "@/contexts/AppContext";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import SaveIcon from "@mui/icons-material/Save";
@@ -36,6 +37,15 @@ export const SettingsView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.settings.path });
 
   const [status, setStatus] = useOrchestStatus();
+
+  const hasRestarted = useHasChanged(
+    status,
+    (prev, curr) => prev === "restarting" && curr === "online"
+  );
+
+  React.useEffect(() => {
+    if (hasRestarted) window.location.reload();
+  }, [hasRestarted]);
 
   const hostInfo = useHostInfo();
 
