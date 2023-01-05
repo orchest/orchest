@@ -171,15 +171,28 @@ export type GitImportError =
   | "GitImportError"
   | "GitCloneFailed"
   | "ProjectWithSameNameExists"
-  | "ProjectNotDiscoveredByWebServer";
+  | "ProjectNotDiscoveredByWebServer"
+  | "NoAccessRightsOrRepoDoesNotExists";
 
-export type GitImport = {
+export type GitImportOperation = {
   uuid: string;
   url: string;
-  project_uuid?: str;
+  project_uuid?: string;
   requested_name: string;
   result: { error?: GitImportError };
   status: GitImportStatus;
+};
+
+export type GitConfig = {
+  uuid?: string;
+  name: string;
+  email: string;
+};
+
+export type SshKey = {
+  uuid: string;
+  name: string;
+  created_time: string;
 };
 
 export type Project = {

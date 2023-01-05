@@ -1,4 +1,3 @@
-import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/layout/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -146,7 +145,6 @@ const UpdateView: React.FC = () => {
 
   return (
     <Layout>
-      <BackToOrchestSettingsButton />
       <Paper
         sx={{
           padding: (theme) => theme.spacing(3, 3, 1, 3),

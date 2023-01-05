@@ -11,6 +11,8 @@ export type ViewLayoutProps = StackProps & {
   sidePanel?: React.ReactNode;
   /** A sticky header that floats above the main content (children). */
   header?: StickyHeaderProps["children"];
+  /**  */
+  fixedWidth?: boolean;
 };
 
 /**
@@ -21,20 +23,21 @@ export type ViewLayoutProps = StackProps & {
  * which is used in many views.
  */
 export const ViewLayout = React.forwardRef<HTMLDivElement, ViewLayoutProps>(
-  function ViewLayout({ sidePanel, header, children, ...props }, ref) {
+  function ViewLayout(
+    { sidePanel, header, fixedWidth = true, children, ...props },
+    ref
+  ) {
     return (
       <Layout disablePadding>
         <Stack {...props} ref={ref} direction="row" width="100%" height="100%">
           {sidePanel && <MainSidePanel>{sidePanel}</MainSidePanel>}
-
           <ScrollPane>
             {header && (
               <StickyHeader zIndex={2}>
                 {(state) => <CenteredStack>{header(state)}</CenteredStack>}
               </StickyHeader>
             )}
-
-            <CenteredStack>{children}</CenteredStack>
+            {fixedWidth ? <CenteredStack>{children}</CenteredStack> : children}
           </ScrollPane>
         </Stack>
       </Layout>

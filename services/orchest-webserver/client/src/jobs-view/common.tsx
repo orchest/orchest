@@ -8,10 +8,8 @@ import {
   PipelineRunStatus,
   StrategyJson,
 } from "@/types";
-import { toValidDateString } from "@/utils/date-time";
 import { pick } from "@/utils/record";
 import capitalize from "@mui/utils/capitalize";
-import format from "date-fns/format";
 import React from "react";
 
 export const pickJobChangesData = (
@@ -180,25 +178,6 @@ export const formatRunStatus = (status: PipelineRunStatus) => {
     default:
       return capitalize(status.toLowerCase());
   }
-};
-
-const ensureUTC = (isoDateString: string) => {
-  const validIsoDateString = toValidDateString(isoDateString);
-  return validIsoDateString.endsWith("+00:00")
-    ? validIsoDateString
-    : validIsoDateString + "+00:00";
-};
-
-const parseDate = (date: string) => {
-  const parsed = Date.parse(date);
-  // Date.parse would fail on Safari if the date is separated with "-".
-  if (!isNaN(parsed)) return parsed;
-  return Date.parse(date.replace(/-/g, "/").replace(/[a-z]+/gi, " "));
-};
-
-export const humanizeDate = (isoDateString: string) => {
-  const date = parseDate(ensureUTC(isoDateString));
-  return format(date, "MMM d yyyy, p");
 };
 
 export const canCancelRun = (

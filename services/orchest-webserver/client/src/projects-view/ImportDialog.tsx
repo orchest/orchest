@@ -1,6 +1,5 @@
 import { projectsApi } from "@/api/projects/projectsApi";
 import { useProjectsApi } from "@/api/projects/useProjectsApi";
-import { Code } from "@/components/common/Code";
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { DropZone } from "@/components/DropZone";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
@@ -17,7 +16,7 @@ import {
 } from "@/hooks/useUploader";
 import { FILE_MANAGEMENT_ENDPOINT } from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/routingConfig";
-import { Project } from "@/types";
+import { GitImportError, Project } from "@/types";
 import { queryArgs } from "@/utils/text";
 import { isNumber, withPlural } from "@/utils/webserver-utils";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
@@ -32,6 +31,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { alpha, SxProps, Theme } from "@mui/material/styles";
@@ -43,30 +43,32 @@ import {
   hasValue,
   HEADER,
   uuidv4,
+  validGitRepo,
   validURL,
 } from "@orchest/lib-utils";
 import React from "react";
 import { useGitImport, validProjectName } from "./hooks/useGitImport";
 
-const ERROR_MAPPING: Record<string, string> = {
-  "git clone failed":
-    "failed to clone repo. Only public repos can be imported.",
-  "project move failed": "failed to move project because the directory exists.",
-  "project name contains illegal character":
-    "project name contains illegal character(s).",
+const ERROR_MAPPING: Partial<Record<GitImportError, string>> = {
+  ProjectWithSameNameExists:
+    "Failed to move project because the directory already exists.",
+  NoAccessRightsOrRepoDoesNotExists:
+    "SSH key is required or the repository doesn't exist",
 } as const;
 
-const getMappedErrorMessage = (key: string | null) => {
+const getMappedErrorMessage = (key: GitImportError | undefined) => {
   if (key && ERROR_MAPPING[key] !== undefined) {
     return ERROR_MAPPING[key];
   } else {
-    return "Unknown error. Please try again.";
+    return "Failed to clone repo. Please try again.";
   }
 };
 
 const getProjectNameFromUrl = (importUrl: string) => {
   const matchGithubRepoName = importUrl.match(/\/([^\/]+)\/?$/);
-  return matchGithubRepoName ? matchGithubRepoName[1] : "";
+  return matchGithubRepoName
+    ? matchGithubRepoName[1].replace(/\.git$/, "")
+    : "";
 };
 
 const HelperText: React.FC = ({ children }) => (
@@ -91,16 +93,16 @@ const HelperText: React.FC = ({ children }) => (
 const validateImportUrl = (
   importUrl: string
 ): { error: boolean; helperText: React.ReactNode } => {
-  if (!validURL(importUrl))
+  if (!validURL(importUrl) && !validGitRepo(importUrl))
     return {
       error: true,
-      helperText: <HelperText>Not a valid HTTPS git repository URL</HelperText>,
+      helperText: <HelperText>Not a valid git repository URL</HelperText>,
     };
 
   // if the URL is not from Orchest, warn the user about it.
-  const isOrchestExample = /^https:\/\/github.com\/orchest(\-examples)?\//.test(
-    importUrl
-  );
+  const isOrchestExample =
+    /^https:\/\/github.com\/orchest(\-examples)?\//.test(importUrl) ||
+    importUrl.startsWith("git@github.com:orchest/");
 
   if (!isOrchestExample)
     return {
@@ -210,16 +212,6 @@ export const ImportDialog = ({
   const { projects, refresh: reloadProjects } = useFetchProjects();
   const deleteProject = useProjectsApi((api) => api.delete);
 
-  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
-    if (onImportCompleteByParent) {
-      onImportCompleteByParent(newProject);
-      return;
-    }
-    navigateTo(siteMap.pipeline.path, {
-      query: { projectUuid: newProject.uuid },
-    });
-  };
-
   const { isOpen, onClose, onOpen } = useControlledIsOpen(
     isOpenByParent,
     onCloseByParent
@@ -253,6 +245,8 @@ export const ImportDialog = ({
     fetch: cancelableFetch,
   });
 
+  const gitImport = useGitImport(importUrl);
+
   const reset = React.useCallback(() => {
     setShouldShowImportUrlValidation(false);
     setImportUrl("");
@@ -261,7 +255,8 @@ export const ImportDialog = ({
     setNewProjectUuid(undefined);
     setTempProjectName(undefined);
     resetUploader();
-  }, [setImportUrl, resetUploader]);
+    gitImport.reset();
+  }, [setImportUrl, resetUploader, gitImport]);
 
   const deleteTempProject = React.useCallback(async () => {
     if (!newProjectUuid) return;
@@ -284,24 +279,25 @@ export const ImportDialog = ({
     onClose();
   }, [cancelAll, deleteTempProject, onClose, reset]);
 
-  const gitImport = useGitImport(importUrl);
-
   React.useEffect(() => {
-    if ([undefined, "PENDING", "STARTED"].includes(gitImport.status)) {
-      return;
-    }
-
-    if (gitImport.status == "FAILURE" || gitImport.status == "ABORTED") {
+    const importStatus = gitImport.status;
+    if (!hasValue(importStatus)) return;
+    if (gitImport.status === "FAILURE" || gitImport.status === "ABORTED") {
       setStatus("READY");
-      return;
     }
+  }, [gitImport.status]);
+
+  const hasImported = gitImport.status === "SUCCESS";
+  React.useEffect(() => {
+    const { projectUuid } = gitImport;
+    if (!hasImported || !projectUuid) return;
 
     setStatus("FILES_STORED");
 
     // Since we don't want to update the UI, we call the Projects API
     // directly, instead of `reloadProjects`
     projectsApi
-      .fetchOne(gitImport.projectUuid)
+      .fetchOne(projectUuid)
       .then((importedProject) => {
         if (importedProject) {
           setNewProjectUuid(importedProject?.uuid);
@@ -315,7 +311,7 @@ export const ImportDialog = ({
         // This will update the UI as well:
         reloadProjects();
       });
-  }, [closeDialog, gitImport.projectUuid, reloadProjects, setAlert]);
+  }, [closeDialog, gitImport, hasImported, reloadProjects, setAlert]);
 
   const startImportGitRepo = React.useCallback(() => {
     setStatus("IMPORTING");
@@ -364,6 +360,17 @@ export const ImportDialog = ({
       helperText: validation.valid ? " " : validation.reason,
     };
   }, [projectPaths, projectName, status]);
+
+  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
+    if (onImportCompleteByParent) {
+      reset();
+      onImportCompleteByParent(newProject);
+      return;
+    }
+    navigateTo(siteMap.pipeline.path, {
+      query: { projectUuid: newProject.uuid },
+    });
+  };
 
   const saveProjectName = async () => {
     if (!newProjectUuid || projectNameValidation.error) return;
@@ -499,9 +506,24 @@ export const ImportDialog = ({
             {status === "READY" && (
               <>
                 <Stack direction="column" spacing={1}>
-                  <Typography>
-                    Paste <Code>HTTPS</Code> link to public <Code>git</Code>{" "}
-                    repository:
+                  <Typography
+                    variant="body1"
+                    sx={{ display: "flex", alignItems: "center" }}
+                  >
+                    {"Paste URL of the git repository ("}
+                    <Link
+                      href="https://docs.orchest.io/en/stable/fundamentals/git_config_ssh_keys.html"
+                      target="_blank"
+                      rel="noreferrer"
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
+                    >
+                      see docs
+                    </Link>
+                    {"):"}
                   </Typography>
                   <form
                     id="import-project"
@@ -540,7 +562,7 @@ export const ImportDialog = ({
                       severity="error"
                       sx={{ marginTop: (theme) => theme.spacing(1) }}
                     >
-                      Import failed: {getMappedErrorMessage(gitImport.status)}
+                      Import failed: {getMappedErrorMessage(gitImport.error)}
                     </Alert>
                   )}
                 </Stack>

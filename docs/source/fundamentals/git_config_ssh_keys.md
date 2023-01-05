@@ -20,7 +20,21 @@ injected.
    There are numerous guides about creating SSH key pairs online, for example on
    [github](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent). In pretty much all cases,
    you will have to setup the *private* key in Orchest and the *public key* in the server
-   or service where the repository resides.
+   or service where the repository resides. Moreover, the key must be created
+   **without password**.
+```
+
+## Setting up a git configuration and ssh keys
+
+You can set up the git configurations and ssh keys for your user through _Settings_ > _Git & SSH_.
+In this view, fill your username and email that you would like to use to commit the changes. To add
+SSH keys, click _Add SSH Key_ to open the dialog, fill in the ssh key and the nickname of this key.
+Note that a meaningful nickname is preferred because, for security reasons, the submitted ssh keys will not be shown in the UI again. In case of any security instances, you could always delete the key and create a new one.
+
+```{figure} ../img/add-ssh-key.png
+:align: center
+:width: 600
+:alt: Add a new ssh key for your user
 ```
 
 After setting up the git configuration for your user, you can verify that it works by

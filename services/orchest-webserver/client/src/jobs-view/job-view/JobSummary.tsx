@@ -1,13 +1,13 @@
 import { RouteLink } from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
 import { JobData } from "@/types";
+import { humanizeDate } from "@/utils/date-time";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import cronstrue from "cronstrue";
 import React from "react";
-import { humanizeDate } from "../common";
 import { useSnapshot } from "../hooks/useSnapshot";
 import { useActiveJob } from "./hooks/useActiveJob";
 

@@ -1,9 +1,6 @@
 import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
-import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
 import { Code } from "@/components/common/Code";
-import { PageTitle } from "@/components/common/PageTitle";
 import { SnackBar } from "@/components/common/SnackBar";
-import { Layout } from "@/components/layout/Layout";
 import { LegacyImageBuildLog } from "@/components/legacy/LegacyImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -11,11 +8,11 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
+import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import { JupyterImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
@@ -225,15 +222,16 @@ const ConfigureJupyterLabView: React.FC = () => {
     Object.keys(sessions).length > 0;
 
   return (
-    <Layout>
-      <BackToOrchestSettingsButton />
-      <Box
-        className={"view-page jupyterlab-config-page"}
-        sx={{ marginTop: (theme) => theme.spacing(2) }}
-      >
+    <SettingsViewLayout
+      header={
+        <Typography variant="h5" flex={1}>
+          Configure JupyterLab
+        </Typography>
+      }
+    >
+      <Stack sx={{ marginTop: (theme) => theme.spacing(2) }}>
         {hasValue(jupyterSetupScript) ? (
           <>
-            <PageTitle>Configure JupyterLab</PageTitle>
             <p className="push-down">
               You can install JupyterLab extensions using the bash script below.
             </p>
@@ -323,12 +321,12 @@ const ConfigureJupyterLabView: React.FC = () => {
         ) : (
           <LinearProgress />
         )}
-      </Box>
+      </Stack>
       <SnackBar
         open={showStoppingAllSessionsWarning}
         message="Stopping all active sessions..."
       />
-    </Layout>
+    </SettingsViewLayout>
   );
 };
 

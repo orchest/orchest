@@ -5,6 +5,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
+import { CenteredStack } from "./CenteredStack";
 
 type User = { username: string };
 
@@ -31,7 +32,7 @@ const UserList: React.FC<{
 
   return (
     <Box sx={{ marginTop: 6, marginBottom: 4 }}>
-      <Typography variant="h5">Delete users</Typography>
+      <Typography variant="h6">Delete users</Typography>
       <Stack direction="column" sx={{ marginTop: 2 }}>
         {data.map((user) => {
           return (
@@ -111,9 +112,9 @@ const Admin = () => {
   const isValid = userNameValidation === " " && newPassword.length > 0;
 
   return (
-    <Box sx={{ margin: 4 }}>
+    <CenteredStack>
       <Box>
-        <Typography variant="h5" sx={{ marginBottom: 4 }}>
+        <Typography variant="h6" sx={{ marginBottom: 4 }}>
           Add a user
         </Typography>
         <Stack direction="column" alignItems="flex-start" spacing={1}>
@@ -152,13 +153,13 @@ const Admin = () => {
             {formError}
           </Typography>
         )}
+        <UserList
+          data={users}
+          onDelete={onDelete}
+          onFailedToDelete={setFormError}
+        />
       </Box>
-      <UserList
-        data={users}
-        onDelete={onDelete}
-        onFailedToDelete={setFormError}
-      />
-    </Box>
+    </CenteredStack>
   );
 };
 

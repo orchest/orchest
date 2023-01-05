@@ -3,6 +3,7 @@ import { SystemStatusChip } from "@/components/common/SystemStatusChip";
 import { RouteLink } from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
 import { PipelineRun } from "@/types";
+import { humanizeDate } from "@/utils/date-time";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cs
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
@@ -24,7 +25,7 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useCancelJobRun } from "../../hooks/useCancelJobRun";
-import { canCancelRun, formatPipelineParams, humanizeDate } from "../common";
+import { canCancelRun, formatPipelineParams } from "../common";
 
 export type JobRunsTableProps = {
   runs: PipelineRun[];
