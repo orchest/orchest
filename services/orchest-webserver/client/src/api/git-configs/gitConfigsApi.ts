@@ -41,6 +41,13 @@ const putGitConfig = (
     }
   );
 
+/** Delete the git config of the given UUID. Note that this endpoint is not exposed to UI. */
+const deleteGitConfig = (authUserUuid: string, gitConfigUuid: string) =>
+  fetcher<GitConfig>(
+    join(GIT_CONFIGS_API_URL, authUserUuid, "git-configs", gitConfigUuid),
+    { method: "DELETE" }
+  );
+
 /** Fetches SSH keys of an authenticated user. */
 const fetchSshKeys = (authUserUuid: string): Promise<SshKey[]> =>
   fetcher<{ ssh_keys: SshKey[] }>(
@@ -71,6 +78,7 @@ export const gitConfigsApi = {
   fetchGitConfig,
   postGitConfig,
   putGitConfig,
+  deleteGitConfig,
   fetchSshKeys,
   postSshKey,
   deleteSshKey,

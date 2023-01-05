@@ -6,7 +6,7 @@ import { gitConfigsApi } from "./gitConfigsApi";
 
 const COOKIE_KEY_AUTH_USER_UUID = "auth_user_uuid";
 
-const getAuthUserUuid = () => {
+export const getAuthUserUuid = () => {
   const authUserUuid = cookie.get(COOKIE_KEY_AUTH_USER_UUID);
   if (!authUserUuid) throw new FetchError("User is not yet authenticated.");
   return authUserUuid;
