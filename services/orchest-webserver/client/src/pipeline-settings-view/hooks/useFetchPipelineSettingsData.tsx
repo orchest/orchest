@@ -48,9 +48,7 @@ export const useFetchPipelineSettingsData = ({
   runUuid,
   snapshotUuid,
 }: UseFetchPipelineSettingsParams) => {
-  const { job, fetchJob } = useFetchJob({
-    jobUuid,
-  });
+  const { job, refresh: fetchJob } = useFetchJob(jobUuid);
   const { pipelineRun, fetchPipelineRun } = useFetchPipelineRun({
     jobUuid,
     runUuid,

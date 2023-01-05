@@ -81,7 +81,7 @@ const JobRunBreadcrumbs = ({ run }: JobRunBreadcrumbsProps) => {
 const InteractiveRunBreadcrumbs = ({ run }: PipelineRunBreadcrumbsProps) => {
   const project = useProjectsApi((api) => api.projects?.[run.project_uuid]);
   const pipeline = usePipelinesApi((api) =>
-    api.get(run.project_uuid, run.pipeline_uuid)
+    api.find(run.project_uuid, run.pipeline_uuid)
   );
 
   const pipelineLink = useRouteLink({

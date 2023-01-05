@@ -5,7 +5,7 @@ import React from "react";
 import { useAsync } from "./useAsync";
 import { useValidQueryArgs } from "./useValidQueryArgs";
 
-export const useFetchJobs = (projectUuid: string | undefined) => {
+export const useFetchProjectJobs = (projectUuid: string | undefined) => {
   const { projectUuid: validProjectUuid } = useValidQueryArgs({ projectUuid });
 
   const { run, status, error } = useAsync<JobData[]>();

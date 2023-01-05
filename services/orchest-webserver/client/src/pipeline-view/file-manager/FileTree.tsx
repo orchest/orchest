@@ -1,10 +1,10 @@
 import { useFileApi } from "@/api/files/useFileApi";
+import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
 import {
@@ -237,7 +237,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
         dispatch({
           type: "SET_PIPELINES",
-          payload: await fetchPipelines(projectUuid),
+          payload: await pipelinesApi.fetchForProject(projectUuid),
         });
       }
 

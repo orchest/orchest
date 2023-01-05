@@ -1,39 +1,9 @@
-import type { PipelineMetaData } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
-import { useFetcher, UseFetcherParams } from "./useFetcher";
+import { usePipelinesApi } from "@/api/pipelines/usePipelinesApi";
+import { useHydrate } from "./useHydrate";
 
-export const fetchPipelines = (projectUuid: string) =>
-  fetcher<{ result: PipelineMetaData[] }>(
-    `/async/pipelines/${projectUuid}`
-  ).then((response) => response.result);
+export function useFetchPipelines() {
+  const pipelines = usePipelinesApi((api) => api.pipelines);
+  const state = useHydrate(usePipelinesApi((api) => api.fetchAll));
 
-export const useFetchPipelines = (
-  projectUuid: string | undefined,
-  params?: Omit<
-    UseFetcherParams<
-      { success: boolean; result: PipelineMetaData[] },
-      PipelineMetaData[]
-    >,
-    "transform"
-  >
-) => {
-  const { revalidateOnFocus = true, ...rest } = params || {};
-
-  const { data, error, status, fetchData, setData } = useFetcher<
-    { success: boolean; result: PipelineMetaData[] },
-    PipelineMetaData[]
-  >(projectUuid ? `/async/pipelines/${projectUuid}` : undefined, {
-    revalidateOnFocus,
-    ...rest,
-    transform: (response) => response.result,
-  });
-
-  return {
-    pipelines: data,
-    error,
-    isFetchingPipelines: status === "PENDING",
-    fetchPipelines: fetchData,
-    setPipelines: setData,
-    status,
-  };
-};
+  return { pipelines, ...state };
+}

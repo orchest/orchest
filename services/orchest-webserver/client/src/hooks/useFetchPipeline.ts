@@ -7,7 +7,9 @@ export const useFetchPipeline = (
   pipelineUuid: string | undefined
 ) => {
   const pipeline = usePipelinesApi((api) =>
-    projectUuid && pipelineUuid ? api.get(projectUuid, pipelineUuid) : undefined
+    projectUuid && pipelineUuid
+      ? api.find(projectUuid, pipelineUuid)
+      : undefined
   );
   const fetchPipeline = usePipelinesApi((api) => api.fetchOne);
   const { run, error, status } = useAsync();

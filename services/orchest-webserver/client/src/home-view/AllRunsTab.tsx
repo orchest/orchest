@@ -1,15 +1,22 @@
 import { PipelineRunsTable } from "@/components/pipeline-runs/PipelineRunsTable";
+import { useFetchJobs } from "@/hooks/useFetchJobs";
+import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { usePollPipelineRuns } from "@/hooks/usePollPipelineRuns";
 import React from "react";
 
-const POLL_TIMEOUT = 5000;
-
 export const AllRunsTab = () => {
-  const { runs: interactiveRuns } = usePollPipelineRuns(POLL_TIMEOUT);
+  useFetchJobs();
+  useFetchPipelines();
+  const { runs: interactiveRuns } = usePollPipelineRuns();
 
   return (
-    <PipelineRunsTable
-      runs={interactiveRuns.filter((run) => run.status === "STARTED")}
-    />
+    <>
+      <PipelineRunsTable
+        breadcrumbs
+        runs={interactiveRuns.filter(
+          (run) => run.status === "STARTED" || run.status === "PENDING"
+        )}
+      />
+    </>
   );
 };

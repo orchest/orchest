@@ -5,7 +5,7 @@ import { pipelinesApi } from "./pipelinesApi";
 
 export type PipelinesApi = {
   pipelines: PipelineData[] | undefined;
-  get: (projectUuid: string, pipelineUuid: string) => PipelineData | undefined;
+  find: (projectUuid: string, pipelineUuid: string) => PipelineData | undefined;
   fetchAll: MemoizePending<() => Promise<void>>;
   fetchOne: MemoizePending<
     (projectUuid: string, pipelineUuid: string) => Promise<void>
@@ -27,7 +27,7 @@ export const usePipelinesApi = create<PipelinesApi>((set, get) => {
 
   return {
     pipelines: undefined,
-    get: (projectUuid: string, pipelineUuid: string) => {
+    find: (projectUuid: string, pipelineUuid: string) => {
       return get().pipelines?.find(
         ({ uuid, project_uuid }) =>
           uuid === pipelineUuid && project_uuid === projectUuid
