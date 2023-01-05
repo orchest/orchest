@@ -1,6 +1,5 @@
 import { projectsApi } from "@/api/projects/projectsApi";
 import { useProjectsApi } from "@/api/projects/useProjectsApi";
-import { Code } from "@/components/common/Code";
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { DropZone } from "@/components/DropZone";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
@@ -32,6 +31,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { alpha, SxProps, Theme } from "@mui/material/styles";
@@ -507,9 +507,24 @@ export const ImportDialog = ({
             {status === "READY" && (
               <>
                 <Stack direction="column" spacing={1}>
-                  <Typography>
-                    Paste <Code>HTTPS</Code> link to public <Code>git</Code>{" "}
-                    repository:
+                  <Typography
+                    variant="body1"
+                    sx={{ display: "flex", alignItems: "center" }}
+                  >
+                    {"Paste URL of the git repository ("}
+                    <Link
+                      href="https://docs.orchest.io/en/stable/fundamentals/git_config_ssh_keys.html"
+                      target="_blank"
+                      rel="noreferrer"
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
+                    >
+                      see docs
+                    </Link>
+                    {"):"}
                   </Typography>
                   <form
                     id="import-project"
