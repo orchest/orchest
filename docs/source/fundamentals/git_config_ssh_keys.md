@@ -20,7 +20,8 @@ injected.
    There are numerous guides about creating SSH key pairs online, for example on
    [github](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent). In pretty much all cases,
    you will have to setup the *private* key in Orchest and the *public key* in the server
-   or service where the repository resides.
+   or service where the repository resides. Moreover, the key must be created
+   **without password**.
 ```
 
 ## Setting up a git configuration and ssh keys
