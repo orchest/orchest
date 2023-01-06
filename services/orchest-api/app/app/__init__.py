@@ -31,6 +31,7 @@ from app import utils
 from app.apis import blueprint as api
 from app.apis import namespace_ctl
 from app.apis.namespace_jupyter_image_builds import CreateJupyterEnvironmentBuild
+from app.celery_app import make_celery
 from app.connections import db, k8s_core_api
 from app.core.notifications import analytics as api_analytics
 from app.core.scheduler import add_recurring_jobs_to_scheduler
@@ -123,9 +124,11 @@ def create_app(
                 attributes.flag_modified(job, "pipeline_definition")
                 db.session.commit()
 
-    # Keep analytics subscribed to all events of interest.
     with app.app_context():
+        # Keep analytics subscribed to all events of interest.
         api_analytics.upsert_analytics_subscriptions()
+
+        app.config["CELERY"] = make_celery(app)
 
     # Create a background scheduler (in a daemon thread) for every
     # gunicorn worker. The individual schedulers do not cause duplicate

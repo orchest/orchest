@@ -26,7 +26,6 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from app import errors as self_errors
 from app import types as app_types
-from app.celery_app import make_celery
 from app.connections import db, k8s_core_api
 from config import CONFIG_CLASS
 
@@ -346,14 +345,14 @@ def _set_celery_worker_parallelism_at_runtime(
     # We don't query the celery-worker and rely on arguments because the
     # worker might take some time to spawn new processes, leading to
     # race conditions.
-    celery = make_celery(current_app)
+    celery = current_app.config["CELERY"]
     worker = f"celery@{worker}"
     celery.control.pool_grow(new_parallelism - current_parallelism, [worker])
     return True
 
 
 def _get_worker_parallelism(worker: str) -> int:
-    celery = make_celery(current_app)
+    celery = current_app.config["CELERY"]
     worker = f"celery@{worker}"
     stats = celery.control.inspect([worker]).stats()
     return len(stats[worker]["pool"]["processes"])

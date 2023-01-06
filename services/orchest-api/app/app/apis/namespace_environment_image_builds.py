@@ -10,7 +10,6 @@ from sqlalchemy import desc, func, or_
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
-from app.celery_app import make_celery
 from app.connections import db
 from app.core import events
 from app.utils import get_logger, update_status_db, upsert_cluster_node
@@ -365,7 +364,7 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
         image_tag: str,
         project_path: str,
     ):
-        celery = make_celery(current_app)
+        celery = current_app.config["CELERY"]
         celery_job_kwargs = {
             "project_uuid": project_uuid,
             "environment_uuid": environment_uuid,
@@ -423,11 +422,11 @@ class AbortEnvironmentImageBuild(TwoPhaseFunction):
         if not celery_task_uuid:
             return
 
-        celery_app = make_celery(current_app)
+        celery = current_app.config["CELERY"]
         # Make use of both constructs (revoke, abort) so we cover both a
         # task that is pending and a task which is running.
-        celery_app.control.revoke(celery_task_uuid, timeout=1.0)
-        res = AbortableAsyncResult(celery_task_uuid, app=celery_app)
+        celery.control.revoke(celery_task_uuid, timeout=1.0)
+        res = AbortableAsyncResult(celery_task_uuid, app=celery)
         # It is responsibility of the task to terminate by reading it's
         # aborted status.
         res.abort()
