@@ -91,6 +91,9 @@ def create_app(
         # Necessary for db migrations.
         Migrate().init_app(app, db)
 
+        with app.app_context():
+            app.config["CELERY"] = make_celery(app, use_backend_db=True)
+
         # NOTE: In this case we want to return ASAP as otherwise the DB
         # might be called (inside this function) before it is migrated.
         if to_migrate_db:
@@ -127,8 +130,6 @@ def create_app(
     with app.app_context():
         # Keep analytics subscribed to all events of interest.
         api_analytics.upsert_analytics_subscriptions()
-
-        app.config["CELERY"] = make_celery(app)
 
     # Create a background scheduler (in a daemon thread) for every
     # gunicorn worker. The individual schedulers do not cause duplicate
