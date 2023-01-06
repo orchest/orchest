@@ -37,13 +37,7 @@ orchest install
 </pre>
 </div>
 </p>
-
-<p>
-If you are running Orchest in a multi node cluster, nodes leaving the cluster
-after joining aren't supported at the moment, and will cause scheduling issues
-for some pods. We expect to release an improvement on this in December 2022.
-</p>
-        `,
+`,
       },
       GKE: {
         instructions: `
@@ -69,12 +63,6 @@ orchest install
       -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 </pre>
 </div>
-</p>
-
-<p>
-If you are running Orchest in a multi node cluster, nodes leaving the cluster
-after joining aren't supported at the moment, and will cause scheduling issues
-for some pods. We expect to release an improvement on this in December 2022.
 </p>
 `,
       },

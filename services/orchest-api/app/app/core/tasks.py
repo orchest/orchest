@@ -2,20 +2,22 @@ import copy
 import json
 import os
 import shutil
-from typing import Dict, List, Optional, Union
+import time
+import uuid
+from typing import Any, Dict, List, Optional, Union
 
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.signals import worker_process_init
 from celery.utils.log import get_task_logger
+from kubernetes import client
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree
 from app import create_app
 from app import errors as self_errors
 from app import models, utils
-from app.celery_app import make_celery
-from app.connections import db, k8s_custom_obj_api
-from app.core import environments, notifications, registry, scheduler
+from app.connections import db, k8s_core_api, k8s_custom_obj_api
+from app.core import environments, notifications, pod_scheduling, registry, scheduler
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipeline_runs import run_pipeline_workflow
@@ -31,7 +33,7 @@ logger = get_task_logger(__name__)
 # /userdir bind to access the DB which is probably not a good idea.
 # create_all should only be called once per app right?
 application = create_app(CONFIG_CLASS, use_db=True, register_api=False)
-celery = make_celery(application, use_backend_db=True)
+celery = application.config["CELERY"]
 
 
 @worker_process_init.connect
@@ -249,8 +251,8 @@ def delete_job_pipeline_run_directories(
 ) -> str:
     """Deletes a list of job pipeline run directories given uuids."""
     job_dir = os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
-    for uuid in pipeline_run_uuids:
-        shutil.rmtree(os.path.join(job_dir, uuid), ignore_errors=True)
+    for ppl_run_uuid in pipeline_run_uuids:
+        shutil.rmtree(os.path.join(job_dir, ppl_run_uuid), ignore_errors=True)
 
     return "SUCCESS"
 
@@ -386,3 +388,162 @@ def process_notifications_deliveries(self):
             scheduler.notify_scheduled_job_failed(self.request.id)
             raise e
     return "SUCCESS"
+
+
+@celery.task(bind=True, base=AbortableTask)
+def git_import(
+    self,
+    url: str,
+    project_name: Optional[str] = None,
+    auth_user_uuid: Optional[str] = None,
+):
+    with application.app_context():
+        try:
+            models.GitImport.query.filter(
+                models.GitImport.uuid == self.request.id
+            ).update({"status": "STARTED"})
+            db.session.commit()
+
+            pod_name = f"git-import-{self.request.id}"
+            project_uuid = _run_git_import_pod(
+                pod_name, url, project_name, auth_user_uuid
+            )
+
+            models.GitImport.query.filter(
+                models.GitImport.uuid == self.request.id
+            ).update({"status": "SUCCESS", "project_uuid": project_uuid})
+            db.session.commit()
+        except Exception as e:
+            logger.error(e)
+            result = {}
+            if isinstance(e, self_errors.GitImportError):
+                result["error"] = type(e).__name__
+            if isinstance(e, TimeoutError):
+                result["error"] = "TimeoutError"
+            models.GitImport.query.filter(
+                models.GitImport.uuid == self.request.id
+            ).update({"status": "FAILURE", "result": result})
+            db.session.commit()
+            return "FAILURE"
+    return "SUCCESS"
+
+
+def _run_git_import_pod(
+    pod_name: str,
+    repo_url: str,
+    project_name: Optional[str],
+    auth_user_uuid: Optional[str],
+) -> str:
+    try:
+        manifest = _get_git_import_pod_manifest(
+            pod_name, repo_url, project_name, auth_user_uuid
+        )
+        k8s_core_api.create_namespaced_pod(_config.ORCHEST_NAMESPACE, manifest)
+        exit_code_to_exception = {
+            2: self_errors.ProjectWithSameNameExists(),
+            3: self_errors.ProjectNotDiscoveredByWebServer(),
+            4: self_errors.NoAccessRightsOrRepoDoesNotExists(),
+        }
+        for _ in range(30 * 60):
+            try:
+                pod = k8s_core_api.read_namespaced_pod(
+                    pod_name, namespace=_config.ORCHEST_NAMESPACE
+                )
+            # Assume it's a race condition w.r.t. the pod being created.
+            except client.ApiException as e:
+                if e.status != 404:
+                    raise
+            if pod.status.phase == "Succeeded" or pod.status.phase == "Failed":
+                break
+            time.sleep(1)
+        else:
+            raise TimeoutError()
+
+        logs = k8s_core_api.read_namespaced_pod_log(
+            pod_name, namespace=_config.ORCHEST_NAMESPACE
+        )
+
+        if pod.status.phase == "Failed":
+            exit_code = pod.status.container_statuses[0].state.terminated.exit_code
+            raise exit_code_to_exception.get(
+                exit_code,
+                self_errors.GitCloneFailed(
+                    status_code=exit_code, stdout="", stderr=logs
+                ),
+            )
+        else:
+            project_uuid = logs.split()[-1].strip()
+            # Make sure the project_uuid is being passed.
+            try:
+                uuid.UUID(project_uuid, version=4)
+            except ValueError:
+                raise self_errors.GitCloneFailed()
+            return project_uuid
+    finally:
+        k8s_core_api.delete_namespaced_pod(
+            pod_name,
+            _config.ORCHEST_NAMESPACE,
+        )
+
+
+def _get_git_import_pod_manifest(
+    pod_name: str,
+    repo_url: str,
+    project_name: Optional[str],
+    auth_user_uuid: Optional[str],
+) -> Dict[str, Any]:
+    args = utils.get_add_ssh_secrets_script() + (
+        "python /orchest/services/orchest-api/app/scripts/git-import.py "
+        f"--task-uuid {pod_name} --repo-url {repo_url}"
+    )
+
+    if project_name is not None:
+        args += f" --project-name {project_name}"
+
+    known_hosts_vol, known_hosts_vol_mount = utils.get_known_hosts_volume_and_mount()
+
+    volumes = [
+        {
+            "name": "userdir-pvc",
+            "persistentVolumeClaim": {
+                "claimName": "userdir-pvc",
+            },
+        },
+        known_hosts_vol,
+    ]
+
+    volume_mounts = [
+        {
+            "name": "userdir-pvc",
+            "mountPath": "/userdir",
+        },
+        known_hosts_vol_mount,
+    ]
+
+    if auth_user_uuid is not None:
+        v, vm = utils.get_user_ssh_keys_volumes_and_mounts(auth_user_uuid)
+        volumes.extend(v)
+        volume_mounts.extend(vm)
+        args = utils.get_auth_user_git_config_setup_script(auth_user_uuid) + args
+
+    manifest = {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {"name": pod_name},
+        "spec": {
+            "containers": [
+                {
+                    "name": "git-import",
+                    "image": f"orchest/celery-worker:{_config.ORCHEST_VERSION}",
+                    "command": ["/bin/sh", "-c"],
+                    "args": [args],
+                    "env": [],
+                    "volumeMounts": volume_mounts,
+                },
+            ],
+            "restartPolicy": "Never",
+            "volumes": volumes,
+        },
+    }
+    pod_scheduling.modify_git_import_scheduling_behaviour(manifest)
+    return manifest

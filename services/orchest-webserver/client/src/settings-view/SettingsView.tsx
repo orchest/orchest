@@ -1,22 +1,15 @@
 import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { Code } from "@/components/common/Code";
-import { PageTitle } from "@/components/common/PageTitle";
-import { Layout } from "@/components/layout/Layout";
+import { CircularProgressIcon } from "@/components/common/icons/CircularProgressIcon";
 import { useAppContext } from "@/contexts/AppContext";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import StyledButtonOutlined from "@/styled-components/StyledButton";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import PeopleIcon from "@mui/icons-material/People";
-import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SaveIcon from "@mui/icons-material/Save";
-import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
-import TuneIcon from "@mui/icons-material/Tune";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -27,9 +20,9 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import { useHostInfo } from "./hooks/useHostInfo";
 import { useOrchestStatus } from "./hooks/useOrchestStatus";
 import { useOrchestUserConfig } from "./hooks/useOrchestUserConfig";
+import { SettingsViewLayout } from "./SettingsViewLayout";
 
-const SettingsView: React.FC = () => {
-  const { navigateTo } = useCustomRoute();
+export const SettingsView = () => {
   const {
     setAlert,
     setAsSaved,
@@ -44,6 +37,15 @@ const SettingsView: React.FC = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.settings.path });
 
   const [status, setStatus] = useOrchestStatus();
+
+  const hasRestarted = useHasChanged(
+    status,
+    (prev, curr) => prev === "restarting" && curr === "online"
+  );
+
+  React.useEffect(() => {
+    if (hasRestarted) window.location.reload();
+  }, [hasRestarted]);
 
   const hostInfo = useHostInfo();
 
@@ -64,22 +66,10 @@ const SettingsView: React.FC = () => {
       );
   }, [saveUserConfigError, setAlert]);
 
-  const onClickManageUsers = (e: React.MouseEvent) => {
-    navigateTo(siteMap.manageUsers.path, undefined, e);
-  };
-
-  const loadNotificationSettings = (e: React.MouseEvent) => {
-    navigateTo(siteMap.notificationSettings.path, undefined, e);
-  };
-
-  const loadConfigureJupyterLab = (e: React.MouseEvent) => {
-    navigateTo(siteMap.configureJupyterLab.path, undefined, e);
-  };
-
   const restartOrchest = () => {
     return setConfirm(
       "Warning",
-      "Are you sure you want to restart Orchest? This will kill all running Orchest containers (including kernels/pipelines).",
+      "Are you sure you want to restart Orchest? This will terminate all running Orchest containers (including kernels/pipelines).",
       async (resolve) => {
         setStatus("restarting");
         setRequiresRestart([]);
@@ -130,230 +120,125 @@ const SettingsView: React.FC = () => {
   const isDiskUsageReliable = hostInfo
     ? hostInfo.disk_info.avail_GB < 2000
     : false;
-
   return (
-    <Layout>
-      <div className={"view-page orchest-settings"}>
-        <PageTitle>Orchest settings</PageTitle>
-        <div className="push-down">
-          <div>
-            {userConfig === undefined ? (
-              <Typography>Loading config...</Typography>
-            ) : (
-              <Box>
-                <CodeMirror
-                  value={userConfig}
-                  options={{
-                    mode: "application/json",
-                    theme: "jupyter",
-                    lineNumbers: true,
-                  }}
-                  onBeforeChange={(editor, data, value) => {
-                    setUserConfig(value);
-                  }}
-                />
-                <Stack
-                  direction="column"
-                  spacing={2}
-                  sx={{
-                    marginTop: (theme) => theme.spacing(2),
-                    marginBottom: (theme) => theme.spacing(2),
-                  }}
-                >
-                  {!isValidUserConfig && (
-                    <Alert severity="warning">
-                      Your input is not valid JSON.
-                    </Alert>
-                  )}
-                  {requiresRestart.length > 0 && (
-                    <Alert severity="info">{`Restart Orchest for the changes to ${requiresRestart
-                      .map((val) => `"${val}"`)
-                      .join(" ")} to take effect.`}</Alert>
-                  )}
-                </Stack>
-                <Button
-                  variant="contained"
-                  startIcon={<SaveIcon />}
-                  onClick={() => saveUserConfig()}
-                >
-                  {hasUnsavedChanges ? "SAVE*" : "SAVE"}
-                </Button>
-              </Box>
-            )}
-          </div>
-        </div>
-        <h3>System status</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Version information.</p>
-          </div>
-          <div className="column">
-            {orchestVersion ? (
-              <p>{orchestVersion}</p>
-            ) : (
-              <LinearProgress className="push-down" />
+    <SettingsViewLayout header={<Typography variant="h5">General</Typography>}>
+      <Stack direction="column" spacing={3}>
+        <Stack direction="column" alignItems="flex-start" spacing={1}>
+          <Typography variant="h6">Version</Typography>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            {orchestVersion && (
+              <Code sx={{ marginBottom: 0 }}>{orchestVersion}</Code>
             )}
             {orchestConfig?.FLASK_ENV === "development" && (
-              <p>
-                <Code>development mode</Code>
-              </p>
+              <Code>development mode</Code>
             )}
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        {orchestConfig?.CLOUD && (
-          <>
-            <div className="columns">
-              <div className="column">
-                <p>Disk usage.</p>
-              </div>
-              <div className="column">
-                {hostInfo ? (
-                  <>
-                    {isDiskUsageReliable && (
-                      <LinearProgress
-                        className="disk-size-info"
-                        variant="determinate"
-                        value={hostInfo.disk_info.used_pcent}
-                      />
-                    )}
-
-                    <div
-                      className={
-                        "disk-size-info" +
-                        (isDiskUsageReliable ? " push-up-half" : "")
-                      }
-                    >
-                      <span>{hostInfo.disk_info.used_GB + "GB used"}</span>
-                      {isDiskUsageReliable && (
-                        <span className="float-right">
-                          {hostInfo.disk_info.avail_GB + "GB free"}
-                        </span>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <LinearProgress className="push-down disk-size-info" />
-                )}
-              </div>
-            </div>
-            <div className="clear"></div>
-          </>
-        )}
-
-        <h3>Notification settings</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Get notified about specific events in Orchest.</p>
-          </div>
-          <div className="column">
-            <StyledButtonOutlined
-              variant="outlined"
-              color="secondary"
-              startIcon={<NotificationsNoneIcon />}
-              onClick={loadNotificationSettings}
-              onAuxClick={loadNotificationSettings}
-            >
-              Notification settings
-            </StyledButtonOutlined>
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>JupyterLab configuration</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Configure JupyterLab by installing server extensions.</p>
-          </div>
-          <div className="column">
-            <StyledButtonOutlined
-              variant="outlined"
-              color="secondary"
-              startIcon={<TuneIcon />}
-              onClick={loadConfigureJupyterLab}
-              onAuxClick={loadConfigureJupyterLab}
-            >
-              Configure JupyterLab
-            </StyledButtonOutlined>
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Updates</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Update Orchest from the web UI using the built in updater.</p>
-          </div>
-          <div className="column">
-            <StyledButtonOutlined
-              variant="outlined"
-              color="secondary"
-              startIcon={<SystemUpdateAltIcon />}
+            <Button
+              variant="text"
               onClick={checkUpdate}
               onAuxClick={checkUpdate}
+              sx={{ marginLeft: (theme) => theme.spacing(2) }}
             >
-              Check for updates
-            </StyledButtonOutlined>
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Controls</h3>
-        <div className="columns">
-          <div className="column">
-            <p>
-              Restart Orchest will force quit ongoing builds, jobs and sessions.
-            </p>
-          </div>
-          <div className="column">
-            {status !== "restarting" ? (
-              <StyledButtonOutlined
-                variant="outlined"
-                color="secondary"
-                startIcon={<PowerSettingsNewIcon />}
+              Check for update
+            </Button>
+          </Stack>
+        </Stack>
+        {hostInfo && isDiskUsageReliable && (
+          <Stack
+            direction="column"
+            alignItems="flex-start"
+            spacing={1}
+            sx={{ width: "100%" }}
+          >
+            <Typography variant="h6">Disk volume</Typography>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={2}
+              sx={{ width: "100%", maxWidth: (theme) => theme.spacing(80) }}
+            >
+              <LinearProgress
+                variant="determinate"
+                value={hostInfo.disk_info.used_pcent}
+                sx={{ height: 4, width: "100%" }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  whiteSpace: "nowrap",
+                  color: (theme) => theme.palette.action.active,
+                }}
+              >
+                {`${hostInfo.disk_info.used_GB} / ${hostInfo.disk_info.avail_GB} GB`}
+              </Typography>
+            </Stack>
+          </Stack>
+        )}
+        <Stack direction="column" alignItems="flex-start" spacing={1}>
+          <Typography variant="h6">Orchest status</Typography>
+          <Stack direction="row" spacing={2}>
+            <Chip
+              label={status}
+              icon={
+                status === "restarting" ? (
+                  <CircularProgressIcon fontSize="medium" />
+                ) : undefined
+              }
+              color={status === "online" ? "success" : "default"}
+              sx={{ textTransform: "capitalize" }}
+              variant="outlined"
+            />
+            {status !== "restarting" && (
+              <Button
+                variant="text"
                 onClick={restartOrchest}
-                data-test-id="restart"
+                onAuxClick={restartOrchest}
+                sx={{ marginLeft: (theme) => theme.spacing(2) }}
               >
                 Restart
-              </StyledButtonOutlined>
-            ) : (
-              <>
-                <LinearProgress className="push-down" />
-                <p>This can take up to 1 minute.</p>
-              </>
+              </Button>
             )}
-            <p className="push-up">
-              {`Orchest's current status is `}
-              <i>{status}</i>
-              {`.`}
-            </p>
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Authentication</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Manage Orchest users using the user admin panel.</p>
-          </div>
-          <div className="column">
-            <StyledButtonOutlined
-              variant="outlined"
-              color="secondary"
-              onClick={onClickManageUsers}
-              onAuxClick={onClickManageUsers}
-              startIcon={<PeopleIcon />}
-              data-test-id="manage-users"
+          </Stack>
+        </Stack>
+        <Stack direction="column" alignItems="flex-start" spacing={1}>
+          <Typography variant="h6">Custom configuration</Typography>
+          <CodeMirror
+            value={userConfig || ""}
+            options={{
+              mode: "application/json",
+              theme: "jupyter",
+              lineNumbers: true,
+            }}
+            onBeforeChange={(editor, data, value) => {
+              setUserConfig(value);
+            }}
+          />
+          <Stack
+            direction="row"
+            spacing={3}
+            sx={{
+              marginTop: (theme) => theme.spacing(1),
+              marginBottom: (theme) => theme.spacing(1),
+            }}
+          >
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              disabled={!isValidUserConfig}
+              onClick={() => saveUserConfig()}
             >
-              Manage users
-            </StyledButtonOutlined>
-          </div>
-          <div className="clear"></div>
-        </div>
-      </div>
-    </Layout>
+              {hasUnsavedChanges ? "SAVE*" : "SAVE"}
+            </Button>
+            {!isValidUserConfig && (
+              <Alert severity="warning">Your input is not valid JSON.</Alert>
+            )}
+            {requiresRestart.length > 0 && (
+              <Alert severity="info">{`Restart Orchest for the changes to ${requiresRestart
+                .map((val) => `"${val}"`)
+                .join(" ")} to take effect.`}</Alert>
+            )}
+          </Stack>
+        </Stack>
+      </Stack>
+    </SettingsViewLayout>
   );
 };
-
-export default SettingsView;

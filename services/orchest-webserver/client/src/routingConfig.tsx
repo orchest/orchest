@@ -17,6 +17,7 @@ export type RouteName =
   | "settings"
   | "notificationSettings"
   | "configureJupyterLab"
+  | "configureGitSsh"
   | "update"
   | "manageUsers"
   | "help"
@@ -142,6 +143,13 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       scope: [],
     },
     {
+      name: "configureGitSsh",
+      path: "/configure-git-ssh",
+      root: "/settings",
+      title: getTitle("Configure JupyterLab"),
+      scope: [],
+    },
+    {
       name: "update",
       path: "/update",
       root: "/settings",
@@ -189,7 +197,7 @@ const projectRootPaths = [
   siteMap.jupyterLab.path,
   siteMap.jobs.path,
   siteMap.environments.path,
-  siteMap.filePreview,
+  siteMap.filePreview.path,
 ];
 
 const navigationPaths = [
@@ -269,4 +277,4 @@ export const getPageCommands = (projectUuid: string | undefined) =>
     });
 
 export const isProjectPage = (path: string) =>
-  navigationRoutes.some((route) => route.path === path);
+  withinProjectRoutes.some((route) => route.path === path);

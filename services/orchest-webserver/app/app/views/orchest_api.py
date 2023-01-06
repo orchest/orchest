@@ -278,6 +278,7 @@ def register_orchest_api_views(app, db):
             "project_dir": project_dir,
             "userdir_pvc": app.config["USERDIR_PVC"],
             "services": services,
+            "auth_user_uuid": request.cookies.get("auth_user_uuid"),
         }
 
         resp = requests.post(
@@ -305,6 +306,7 @@ def register_orchest_api_views(app, db):
                 "environment_uuid": project_envs[0].uuid,
                 "userdir_pvc": app.config["USERDIR_PVC"],
                 "project_dir": project_dir,
+                "auth_user_uuid": request.cookies.get("auth_user_uuid"),
             }
 
             url = (
@@ -584,4 +586,22 @@ def register_orchest_api_views(app, db):
             f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
             f"snapshots/{snapshot_uuid}"
         )
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route(
+        "/catch/api-proxy/api/auth-users/<path:path>",
+        methods=["GET", "POST", "PUT", "DELETE"],
+    )
+    def catch_api_proxy_auth_users(path):
+        # Note: doesn't preserve query args atm.
+        req_json = request.get_json() if request.is_json else None
+        resp = requests.request(
+            method=request.method,
+            url=(
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+                f"/api/auth-users/{path}"
+            ),
+            json=req_json,
+        )
+
         return resp.content, resp.status_code, resp.headers.items()

@@ -6,6 +6,7 @@ from typing import List
 
 from flask import current_app, request
 from flask_restx import Namespace, Resource
+from kubernetes import client
 from orchestcli import cmds
 
 from _orchest.internals import config as _config
@@ -357,6 +358,26 @@ def cleanup(app) -> None:
         app.logger.info("Starting app cleanup.")
 
         try:
+            app.logger.info("Aborting git imports.")
+            git_imports = models.GitImport.query.filter(
+                models.GitImport.status.in_(["STARTED"])
+            ).all()
+            for git_import in git_imports:
+                app.logger.info(f"Aborting git import {git_import.uuid}.")
+
+                try:
+                    k8s_core_api.delete_namespaced_pod(
+                        f"git-import-{git_import.uuid}",
+                        _config.ORCHEST_NAMESPACE,
+                    )
+                except client.ApiException as e:
+                    if e.status != 404:
+                        raise
+
+            models.GitImport.query.filter(
+                models.GitImport.status.in_(["STARTED"])
+            ).update({"status": "ABORTED"})
+
             app.logger.info("Aborting interactive pipeline runs.")
             runs = models.InteractivePipelineRun.query.filter(
                 models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"])

@@ -26,7 +26,6 @@ $mdcComponentPadding: 16px;
 $codeSize: 14px;
 $defaultFontSize: 15px;
 $borderColor: rgba(0, 0, 0, 0.12);
-$stepBorderRadius: 6px;
 $mdcBorderRadius: 4px;
 $dialogBackground: rgba(0, 0, 0, 0.32);
 
@@ -785,14 +784,6 @@ button.themed-secondary {
 
     &.panning {
       cursor: grabbing;
-
-      .pipeline-steps-holder {
-        .pipeline-step {
-          &:active {
-            background: #fff;
-          }
-        }
-      }
     }
   }
 
@@ -808,99 +799,6 @@ button.themed-secondary {
     }
 
     .pipeline-step {
-      position: absolute;
-      background: #fff;
-      padding: calc(var(--space-5) / 2) var(--space-5);
-      border: 1px solid $borderColor;
-      border-radius: $stepBorderRadius;
-      cursor: pointer;
-      user-select: none;
-      width: $pipelineStepWidth;
-      height: $pipelineStepHeight;
-      text-align: center;
-      z-index: 2;
-      line-height: normal;
-
-      &.hidden {
-        display: none;
-      }
-
-      .execution-indicator {
-        position: absolute;
-        width: 100%;
-        background: #eee;
-        left: 0;
-        bottom: 0;
-        font-size: 12px;
-        padding: 4px;
-        color: #666;
-        opacity: 1;
-        border-radius: 0 0 6px 6px;
-        user-select: none;
-        -webkit-user-select: none;
-
-        span.success {
-          color: #16bd43;
-        }
-        span.failure {
-          color: red;
-        }
-        span.aborted {
-          color: orange;
-        }
-      }
-
-      &.running {
-        .execution-indicator {
-          background: $secondary;
-          color: #fff;
-        }
-      }
-
-      box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
-
-      &.selected {
-        border-color: $secondary;
-        background: rgb(245, 245, 255);
-      }
-
-      &:active {
-        background: rgb(250, 250, 250);
-      }
-
-      &.creating-connection {
-        &:active {
-          background: #fff;
-        }
-      }
-
-      .step-label-holder {
-        display: block;
-        height: 100%;
-        overflow: hidden;
-        transform: translateY(-11px);
-        user-select: none;
-        -webkit-user-select: none;
-      }
-
-      .step-label {
-        text-overflow: ellipsis;
-        height: calc(#{$pipelineStepHeight} - var(--space-5));
-        max-height: calc(#{$pipelineStepHeight} - var(--space-5));
-        width: calc(#{$pipelineStepWidth} - var(--space-5) * 2);
-        max-width: calc(#{$pipelineStepWidth} - var(--space-5) * 2);
-        display: table-cell;
-        vertical-align: middle;
-        overflow: hidden;
-        font-size: $defaultFontSize;
-      }
-      span.filename {
-        display: block;
-        font-size: 14px;
-        padding-top: 4px;
-        color: #555;
-      }
-
       .connection-point {
         display: block;
         width: 30px;

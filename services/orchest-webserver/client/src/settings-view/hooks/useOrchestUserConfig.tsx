@@ -24,7 +24,7 @@ export const useOrchestUserConfig = (
 
   React.useEffect(() => {
     if (!userConfigJson || !orchestConfig) return;
-    let visibleJSON = configToVisibleConfig(orchestConfig, userConfigJson);
+    const visibleJSON = configToVisibleConfig(orchestConfig, userConfigJson);
     _setUserConfig(JSON.stringify(visibleJSON, null, 2));
   }, [orchestConfig, userConfigJson, _setUserConfig]);
 

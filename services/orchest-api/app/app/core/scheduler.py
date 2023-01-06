@@ -31,7 +31,6 @@ from sqlalchemy.orm import load_only
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import models, utils
 from app.apis.namespace_jobs import RunJob
-from app.celery_app import make_celery
 from app.connections import db
 from app.core import environments
 
@@ -439,7 +438,7 @@ def process_images_for_deletion(app, task_uuid: str) -> None:
                 notify_scheduled_job_succeeded(task_uuid)
                 return
 
-            celery = make_celery(app)
+            celery = app.config["CELERY"]
             app.logger.info("Sending registry garbage collection task.")
             res = celery.send_task(
                 name="app.core.tasks.registry_garbage_collection", task_id=task_uuid
@@ -453,7 +452,7 @@ def process_images_for_deletion(app, task_uuid: str) -> None:
 def process_notification_deliveries(app, task_uuid: str) -> None:
     with app.app_context():
         app.logger.debug("Sending process notifications deliveries task.")
-        celery = make_celery(app)
+        celery = app.config["CELERY"]
         res = celery.send_task(
             name="app.core.tasks.process_notifications_deliveries", task_id=task_uuid
         )

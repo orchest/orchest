@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 import uuid
-from typing import List, Optional
+from typing import List
 
 import requests
 from flask import current_app
@@ -15,7 +15,7 @@ from app import error
 from app.connections import db
 from app.core.pipelines import AddPipelineFromFS, CreatePipeline, DeletePipeline
 from app.kernel_manager import populate_kernels
-from app.models import BackgroundTask, Environment, Pipeline, Project
+from app.models import Environment, Pipeline, Project
 from app.utils import (
     find_pipelines_in_dir,
     get_environments,
@@ -392,48 +392,6 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
 
     def _collateral(self):
         pass
-
-
-class ImportGitProject(TwoPhaseFunction):
-    def _transaction(self, url: str, project_name: Optional[str] = None):
-        n_uuid = str(uuid.uuid4())
-        new_task = BackgroundTask(
-            uuid=n_uuid, task_type="GIT_CLONE_PROJECT", status="PENDING"
-        )
-        db.session.add(new_task)
-
-        # To be later used by the collateral function.
-        self.collateral_kwargs["n_uuid"] = n_uuid
-        self.collateral_kwargs["url"] = url
-        self.collateral_kwargs["project_name"] = project_name
-        return new_task
-
-    def _collateral(self, n_uuid: str, url: str, project_name: str):
-        # Start the background process in charge of cloning.
-        file_dir = os.path.dirname(os.path.realpath(__file__))
-        args = [
-            "python3",
-            "-m",
-            "scripts.background_tasks",
-            "--type",
-            "git_clone_project",
-            "--uuid",
-            n_uuid,
-            "--url",
-            url,
-        ]
-
-        if project_name:
-            args.append("--path")
-            args.append(str(project_name))
-
-        subprocess.Popen(
-            args, cwd=os.path.join(file_dir, "../.."), stderr=subprocess.STDOUT
-        )
-
-    def _revert(self):
-        BackgroundTask.query.filter_by(uuid=self.collateral_kwargs["n_uuid"]).delete()
-        db.session.commit()
 
 
 # Need to have these two functions here because of circular imports.

@@ -16,7 +16,7 @@ const InnerDot = ({ active, sx, ...props }: InnerDotProps) => {
     <Box
       sx={{
         background: (theme) =>
-          active ? theme.palette.primary.main : theme.palette.common.black,
+          active ? theme.palette.primary.main : theme.palette.text.primary,
         borderRadius: DOT_SIZE,
         width: DOT_SIZE,
         height: DOT_SIZE,

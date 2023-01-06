@@ -10,7 +10,6 @@ from sqlalchemy import desc, or_
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
-from app.celery_app import make_celery
 from app.connections import db
 from app.core import events
 from app.errors import SessionInProgressException
@@ -249,7 +248,7 @@ class CreateJupyterEnvironmentBuild(TwoPhaseFunction):
         return jupyter_image_build
 
     def _collateral(self, task_id: str, image_tag: str):
-        celery = make_celery(current_app)
+        celery = current_app.config["CELERY"]
 
         celery.send_task(
             "app.core.tasks.build_jupyter_image",
@@ -292,11 +291,11 @@ class AbortJupyterEnvironmentBuild(TwoPhaseFunction):
         if not jupyter_image_build_uuid:
             return
 
-        celery_app = make_celery(current_app)
+        celery = current_app.config["CELERY"]
         # Make use of both constructs (revoke, abort) so we cover both a
         # task that is pending and a task which is running.
-        celery_app.control.revoke(jupyter_image_build_uuid, timeout=1.0)
-        res = AbortableAsyncResult(jupyter_image_build_uuid, app=celery_app)
+        celery.control.revoke(jupyter_image_build_uuid, timeout=1.0)
+        res = AbortableAsyncResult(jupyter_image_build_uuid, app=celery)
         # It is responsibility of the task to terminate by reading it's
         # aborted status.
         res.abort()
