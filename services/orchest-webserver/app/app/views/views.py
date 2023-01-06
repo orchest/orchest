@@ -707,6 +707,7 @@ def register_views(app, db):
             pipeline_augmented = {
                 "uuid": pipeline.uuid,
                 "path": pipeline.path,
+                "project_uuid": pipeline.project_uuid,
             }
 
             pipeline_json = get_pipeline_json(pipeline.uuid, pipeline.project_uuid)
