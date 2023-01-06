@@ -9,7 +9,6 @@ from flask_restx import Namespace, Resource
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import models, schema, utils
-from app.celery_app import make_celery
 from app.connections import db
 
 api = Namespace("git-imports", description="Initiate and track git imports.")
@@ -102,7 +101,7 @@ class ImportGitProject(TwoPhaseFunction):
         project_name: Optional[str],
         auth_user_uuid: Optional[str],
     ):
-        celery = make_celery(current_app)
+        celery = current_app.config["CELERY"]
         celery.send_task(
             "app.core.tasks.git_import",
             kwargs={

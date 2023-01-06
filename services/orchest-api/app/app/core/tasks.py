@@ -16,7 +16,6 @@ from _orchest.internals.utils import copytree
 from app import create_app
 from app import errors as self_errors
 from app import models, utils
-from app.celery_app import make_celery
 from app.connections import db, k8s_core_api, k8s_custom_obj_api
 from app.core import environments, notifications, pod_scheduling, registry, scheduler
 from app.core.environment_image_builds import build_environment_image_task
@@ -34,7 +33,7 @@ logger = get_task_logger(__name__)
 # /userdir bind to access the DB which is probably not a good idea.
 # create_all should only be called once per app right?
 application = create_app(CONFIG_CLASS, use_db=True, register_api=False)
-celery = make_celery(application, use_backend_db=True)
+celery = application.config["CELERY"]
 
 
 @worker_process_init.connect
