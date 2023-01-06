@@ -31,6 +31,10 @@ class AuthUsersList(Resource):
 @api.param("auth_user_uuid", "")
 class AuthUser(Resource):
     def delete(self, auth_user_uuid: str):
+        for ssh_key in models.SSHKey.query.filter(
+            models.SSHKey.auth_user_uuid == auth_user_uuid
+        ).all():
+            _delete_ssh_key(ssh_key.uuid)
         models.AuthUser.query.filter(models.AuthUser.uuid == auth_user_uuid).delete()
         db.session.commit()
         return {}, 200
@@ -200,11 +204,7 @@ class SSHKey(Resource):
         models.AuthUser.query.get_or_404(
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
-        # Delete from k8s before committing so that the secret removal
-        # must have succeeded for the reference from the db to be
-        # deleted.
-        _delete_secret(f"ssh-key-{ssh_key_uuid}")
-        models.SSHKey.query.filter(models.SSHKey.uuid == ssh_key_uuid).delete()
+        _delete_ssh_key(ssh_key_uuid)
         db.session.commit()
         return {}, 200
 
@@ -223,7 +223,14 @@ def _create_ssh_secret(name: str, secret: str) -> None:
     )
 
 
-def _delete_secret(name: str) -> None:
+def _delete_ssh_key(ssh_key_uuid: str) -> None:
+    # Delete from k8s before committing so that the secret removal must
+    # have succeeded for the reference from the db to be deleted.
+    _delete_secret_from_k8s(f"ssh-key-{ssh_key_uuid}")
+    models.SSHKey.query.filter(models.SSHKey.uuid == ssh_key_uuid).delete()
+
+
+def _delete_secret_from_k8s(name: str) -> None:
     try:
         k8s_core_api.delete_namespaced_secret(
             namespace=_config.ORCHEST_NAMESPACE, name=name
