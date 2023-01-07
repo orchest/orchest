@@ -9,7 +9,7 @@ from flask_restx import Namespace, Resource
 from kubernetes import client
 
 from _orchest.internals import config as _config
-from app import models, schema
+from app import models, schema, utils
 from app.connections import db, k8s_core_api
 
 api = Namespace(
@@ -44,6 +44,8 @@ class AuthUser(Resource):
 class GitConfigList(Resource):
     @api.marshal_with(schema.git_configs, code=200)
     def get(self, auth_user_uuid: str):
+        utils.upsert_auth_user_uuid(auth_user_uuid)
+
         models.AuthUser.query.get_or_404(
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
@@ -68,6 +70,7 @@ class GitConfigList(Resource):
         The values of "name" and "email" are not checked aside for them
         being strings, to behave closely to "git config".
         """
+        utils.upsert_auth_user_uuid(auth_user_uuid)
         data = request.get_json()
         if not isinstance(data.get("name"), str):
             return {"message": "Name is not a string."}, 400
@@ -100,6 +103,7 @@ class GitConfigList(Resource):
 class GitConfig(Resource):
     @api.marshal_with(schema.git_config, code=200)
     def get(self, auth_user_uuid: str, git_config_uuid: str):
+        utils.upsert_auth_user_uuid(auth_user_uuid)
         models.AuthUser.query.get_or_404(
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
@@ -117,6 +121,7 @@ class GitConfig(Resource):
         The values of "name" and "email" are not checked aside for them
         being strings, to behave closely to "git config".
         """
+        utils.upsert_auth_user_uuid(auth_user_uuid)
         data = request.get_json()
         if data is None:
             return {"message": "Invalid git config"}, 400
@@ -157,6 +162,7 @@ class GitConfig(Resource):
 class SSHKeyList(Resource):
     @api.marshal_with(schema.ssh_keys, code=200)
     def get(self, auth_user_uuid: str):
+        utils.upsert_auth_user_uuid(auth_user_uuid)
         models.AuthUser.query.get_or_404(
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
@@ -169,6 +175,7 @@ class SSHKeyList(Resource):
     @api.expect(schema.ssh_key_request)
     @api.marshal_with(schema.ssh_key, code=201)
     def post(self, auth_user_uuid: str):
+        utils.upsert_auth_user_uuid(auth_user_uuid)
         """Allows to set a new SSHKey for a user.
 
         Note: the "name" and "key" fields are only verified to be of
@@ -201,6 +208,7 @@ class SSHKeyList(Resource):
 @api.route("/<string:auth_user_uuid>/ssh-keys/<string:ssh_key_uuid>")
 class SSHKey(Resource):
     def delete(self, auth_user_uuid: str, ssh_key_uuid: str):
+        utils.upsert_auth_user_uuid(auth_user_uuid)
         models.AuthUser.query.get_or_404(
             auth_user_uuid, description=f"No user {auth_user_uuid}."
         )
