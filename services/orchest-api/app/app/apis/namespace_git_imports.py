@@ -37,6 +37,7 @@ class GitImportList(Resource):
         if auth_user_uuid is not None:
             if not isinstance(auth_user_uuid, str):
                 return {"message": f"Invalid auth_user_uuid {auth_user_uuid}."}, 400
+            utils.upsert_auth_user_uuid(auth_user_uuid)
             models.AuthUser.query.get_or_404(
                 auth_user_uuid, description=f"No user {auth_user_uuid}."
             )

@@ -1075,3 +1075,16 @@ def get_add_ssh_secrets_script() -> str:
 def is_valid_ssh_destination(destination: str) -> bool:
     """Note: it's quite loose."""
     return bool(re.match(r"^[\w\d._-]+@[\w\d.-]+(:[\w\d._/-]+)*$", destination))
+
+
+def upsert_auth_user_uuid(auth_user_uuid: str) -> None:
+    stmt = insert(models.AuthUser).values(
+        [
+            dict(
+                uuid=auth_user_uuid,
+            )
+        ]
+    )
+    stmt = stmt.on_conflict_do_nothing(index_elements=[models.AuthUser.uuid])
+    db.session.execute(stmt)
+    db.session.commit()
