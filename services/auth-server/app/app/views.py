@@ -73,6 +73,13 @@ def register_views(app: Flask) -> None:
         # If authentication is not enabled then the request is always
         # authenticated (by definition).
         if not app.config["AUTH_ENABLED"]:
+            # Make sure no auth cookies are there if auth mode is not
+            # enabled. This covers an edge case when setting auth mode
+            # from True to False and allows the FE to correctly take
+            # some decision w.r.t. the presence of cookies. The redirect
+            # to login will cause cookies to be cleared in this case.
+            if request.cookies.get("auth_user_uuid"):
+                return False
             return True
 
         # Force a login to get newly defined cookies for previously
@@ -115,7 +122,8 @@ def register_views(app: Flask) -> None:
         else:
             res = serve_static_or_dev(path)
 
-        # See comment in /auth.
+        # See comment in is_authenticated about AUTH_ENABLED and the
+        # auth_user_uuid.
         if (
             isinstance(res, ResponseBase)
             and not app.config["AUTH_ENABLED"]
@@ -136,13 +144,6 @@ def register_views(app: Flask) -> None:
     def index() -> Tuple[Literal[""], Literal[200]] | Tuple[Literal[""], Literal[401]]:
         # validate authentication through token
         if is_authenticated(request):
-            # Make sure no auth cookies are there if auth mode is not
-            # enabled. This covers an edge case when setting auth mode
-            # from True to False and allows the FE to correctly take
-            # some decision w.r.t. the presence of cookies. The redirect
-            # to login will cause cookies to be cleared in this case.
-            if not app.config["AUTH_ENABLED"] and request.cookies.get("auth_user_uuid"):
-                return "", 401
             return "", 200
         else:
             return "", 401
