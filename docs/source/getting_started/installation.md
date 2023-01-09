@@ -53,6 +53,36 @@ Your Kubernetes cluster has to be up in order for the `orchest-cli` to be able t
 
 (custom-install-requirements)=
 
+## Self hosting a multi node deployment
+
+If you want to self-host and manage a multi-node Orchest installation, there are a few things to
+consider, mostly pertaining to storage. Most likely, you'll need to get accustomed to
+the Orchest CRD to be aware of what can be customized, e.g. backing a PVC with an EFS.
+
+### The docker registry
+
+The Orchest deployment includes a docker registry to store images of built environments. This single
+write storage will get larger as you add more environments to your project, so you'll need to choose
+a storage option that can handle the increased size or that can be resized later.
+
+### The user directory
+
+Orchest stores most of its data in the user directory, which is used by various services, pipeline steps, and other internal processes. In a multi-node setup, the `userdir` PVC needs to be backed by storage that can handle multiple writers across nodes, such as NFS or EFS. Alternatively, you could use a distributed file system and an host path for the volume.
+
+### Control plane and worker nodes
+
+A multi node cluster allows to separate what we could consider the Orchest control plane from the
+work to be done, like running user pipelines. This can improve stability, performance and costs by
+making sure the two take place in different nodes of the cluster. The `orchest-cli` `install`
+command has some hidden flags that allow you to do this based on node labels. This isn't exactly a
+feature we consider published but more like an internal function that we mention here to ease the
+life of users with more advanced requirements. You'll have to take a look at the `orchest-cli` code
+in the Orchest repo, overall, this particular feature can be considered stable.
+
+When the control plane and worker nodes are separated, the `userdir` is split into an orchest state
+PVC and the `userdir`. If the control plane is only on a single node, the orchest state PVC can be a
+simple volume.
+
 ## Custom requirements
 
 If you have **custom requirements** (or preferences) for deploying Orchest on your Kubernetes
