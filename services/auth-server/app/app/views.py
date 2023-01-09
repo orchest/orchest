@@ -36,6 +36,13 @@ def _logout(response: ResponseBase) -> None:
     response.delete_cookie("auth_user_uuid", samesite="Lax")
 
 
+def _has_all_required_cookies(cookies: Dict) -> bool:
+    return all(
+        cookie in cookies
+        for cookie in ["auth_token", "auth_username", "auth_user_uuid"]
+    )
+
+
 def register_views(app: Flask) -> None:
     @app.after_request
     def add_header(r: Response) -> Response:
@@ -67,6 +74,11 @@ def register_views(app: Flask) -> None:
         # authenticated (by definition).
         if not app.config["AUTH_ENABLED"]:
             return True
+
+        # Force a login to get newly defined cookies for previously
+        # existing sessions.
+        if not _has_all_required_cookies(request.cookies):
+            return False
 
         cookie_token = request.cookies.get("auth_token")
         username = request.cookies.get("auth_username")
@@ -205,6 +217,8 @@ def register_views(app: Flask) -> None:
                     db.session.commit()
 
                     resp = redirect_response(redirect_url, redirect_type)
+                    # Check _has_all_required_cookies if you add new
+                    # cookies.
                     # samesite="Lax" to avoid CSRF attacks.
                     resp.set_cookie("auth_token", token.token, samesite="Lax")
                     resp.set_cookie("auth_username", username, samesite="Lax")
