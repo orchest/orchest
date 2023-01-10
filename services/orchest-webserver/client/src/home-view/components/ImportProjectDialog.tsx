@@ -200,7 +200,7 @@ export const ImportProjectDialog = ({
 }: ImportProjectDialogProps) => {
   const { setAlert } = useGlobalContext();
   const navigate = useNavigate();
-  const { projects, refresh: reloadProjects } = useFetchProjects();
+  const { projects, reload: reloadProjects } = useFetchProjects();
   const deleteProject = useProjectsApi((api) => api.delete);
   const [importUrl, setImportUrl] = React.useState(initialImportUrl ?? "");
 
