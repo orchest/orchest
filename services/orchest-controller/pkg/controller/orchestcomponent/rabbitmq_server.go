@@ -79,6 +79,11 @@ func getRabbitMqDeployment(metadata metav1.ObjectMeta,
 			Labels: matchLabels,
 		},
 		Spec: corev1.PodSpec{
+			// This implies the name of the state db used by rabbitmq.
+			// If not fixed, this will be the name of the pod, thus will
+			// change on every restart and lead to a loss of state, i.e.
+			// the old file(s) will be there but won't be picked up.
+			Hostname: "orchest-rabbit",
 			Volumes: []corev1.Volume{
 				{
 					Name: component.Spec.Template.StateVolumeName,

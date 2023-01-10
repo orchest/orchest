@@ -16,6 +16,7 @@ import time
 from typing import Any, Dict, List, Set
 
 from celery.contrib.abortable import AbortableAsyncResult
+from kubernetes import client
 
 import app.utils as utils
 from _orchest.internals import config as _config
@@ -397,9 +398,20 @@ def run_pipeline_workflow(
         manifest = _pipeline_to_workflow_manifest(
             session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
         )
-        k8s_custom_obj_api.create_namespaced_custom_object(
-            "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
-        )
+        try:
+            k8s_custom_obj_api.create_namespaced_custom_object(
+                "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
+            )
+        # It's difficult to reproduce but it looks like that, on some
+        # cases during a restart, rabbitmq has given the task to the
+        # worker again, likely due to the worker losing connection (?).
+        # This makes it so that the workflow is not cancelled and failed
+        # unnecessarily.
+        except client.rest.ApiException as api_exception:
+            if not (
+                api_exception.status == 409 and "AlreadyExists" in api_exception.body
+            ):
+                raise api_exception
 
         while steps_to_finish:
             resp = k8s_custom_obj_api.get_namespaced_custom_object(
