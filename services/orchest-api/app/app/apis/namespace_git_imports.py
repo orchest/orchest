@@ -38,9 +38,6 @@ class GitImportList(Resource):
             if not isinstance(auth_user_uuid, str):
                 return {"message": f"Invalid auth_user_uuid {auth_user_uuid}."}, 400
             utils.upsert_auth_user_uuid(auth_user_uuid)
-            models.AuthUser.query.get_or_404(
-                auth_user_uuid, description=f"No user {auth_user_uuid}."
-            )
 
         repo_url = data.get("url", "")
         if not validators.url(repo_url) and not utils.is_valid_ssh_destination(

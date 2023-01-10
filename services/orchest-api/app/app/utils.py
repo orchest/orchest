@@ -1078,6 +1078,24 @@ def is_valid_ssh_destination(destination: str) -> bool:
 
 
 def upsert_auth_user_uuid(auth_user_uuid: str) -> None:
+    """Upserts an auth_user_uuid.
+
+    Used to take care of pre-existing users for features that require
+    an auth_user_uuid. Alternatives:
+    - doing so on orchest-api start would require the api doing requests
+      to the auth-server, which we don't like, and which would imply
+      the controller having to respect this constraint when starting
+      Orchest.
+    - a request from the auth-server to the orchest-api when the
+      auth-server starts would lead to an issue similar the the
+      precedent point. Among these 3 alternatives this is the best imo.
+    - using a schema migration to add these uuids during an update felt
+      too risky, and it would again add a constraint to the controller
+      when it comes to the order things are started, in an implicit and
+      perhaps subtle way.
+
+    # REMOVABLE_ON_BREAKING_CHANGE
+    """
     stmt = insert(models.AuthUser).values(
         [
             dict(

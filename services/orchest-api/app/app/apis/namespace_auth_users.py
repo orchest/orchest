@@ -46,9 +46,6 @@ class GitConfigList(Resource):
     def get(self, auth_user_uuid: str):
         utils.upsert_auth_user_uuid(auth_user_uuid)
 
-        models.AuthUser.query.get_or_404(
-            auth_user_uuid, description=f"No user {auth_user_uuid}."
-        )
         git_configs = models.GitConfig.query.filter(
             models.GitConfig.auth_user_uuid == auth_user_uuid
         ).all()
@@ -77,10 +74,6 @@ class GitConfigList(Resource):
         if not isinstance(data.get("email"), str):
             return {"message": "Email is not a string."}, 400
 
-        models.AuthUser.query.get_or_404(
-            auth_user_uuid, description=f"No user {auth_user_uuid}."
-        )
-
         try:
             git_config = models.GitConfig(
                 uuid=str(uuid.uuid4()),
@@ -104,9 +97,6 @@ class GitConfig(Resource):
     @api.marshal_with(schema.git_config, code=200)
     def get(self, auth_user_uuid: str, git_config_uuid: str):
         utils.upsert_auth_user_uuid(auth_user_uuid)
-        models.AuthUser.query.get_or_404(
-            auth_user_uuid, description=f"No user {auth_user_uuid}."
-        )
         return (
             models.GitConfig.query.get_or_404(
                 git_config_uuid, description=f"No git config {git_config_uuid}."
@@ -134,9 +124,6 @@ class GitConfig(Resource):
         if not isinstance(email, str):
             return {"message": "Email is not a string."}, 400
 
-        models.AuthUser.query.get_or_404(
-            auth_user_uuid, description=f"No user {auth_user_uuid}."
-        )
         git_config = models.GitConfig.query.get_or_404(
             git_config_uuid, description=f"No git config {git_config_uuid}."
         )
@@ -163,9 +150,6 @@ class SSHKeyList(Resource):
     @api.marshal_with(schema.ssh_keys, code=200)
     def get(self, auth_user_uuid: str):
         utils.upsert_auth_user_uuid(auth_user_uuid)
-        models.AuthUser.query.get_or_404(
-            auth_user_uuid, description=f"No user {auth_user_uuid}."
-        )
 
         ssh_keys = models.SSHKey.query.filter(
             models.SSHKey.auth_user_uuid == auth_user_uuid
@@ -187,10 +171,6 @@ class SSHKeyList(Resource):
         if not isinstance(data.get("key"), str):
             return {"message": "Key is not a string."}, 400
 
-        models.AuthUser.query.get_or_404(
-            auth_user_uuid, description=f"No user {auth_user_uuid}."
-        )
-
         ssh_key = models.SSHKey(
             uuid=str(uuid.uuid4()),
             auth_user_uuid=auth_user_uuid,
@@ -209,9 +189,6 @@ class SSHKeyList(Resource):
 class SSHKey(Resource):
     def delete(self, auth_user_uuid: str, ssh_key_uuid: str):
         utils.upsert_auth_user_uuid(auth_user_uuid)
-        models.AuthUser.query.get_or_404(
-            auth_user_uuid, description=f"No user {auth_user_uuid}."
-        )
         _delete_ssh_key(ssh_key_uuid)
         db.session.commit()
         return {}, 200
