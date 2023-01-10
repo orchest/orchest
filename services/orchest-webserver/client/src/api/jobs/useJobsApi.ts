@@ -8,12 +8,26 @@ export type JobMap = { [jobUuid: string]: JobData };
 
 export type JobsApi = {
   jobs: JobMap | undefined;
+  fetchOne: MemoizePending<
+    (jobUuid: string | undefined) => Promise<JobData | undefined>
+  >;
   fetchAll: MemoizePending<() => Promise<JobData[]>>;
 };
 
 export const useJobsApi = create<JobsApi>((set) => {
   return {
     jobs: undefined,
+    fetchOne: memoizeFor(500, async (jobUuid) => {
+      if (!jobUuid) return;
+
+      const job = await jobsApi.fetchOne(jobUuid, true);
+
+      if (!job) return undefined;
+
+      set(({ jobs }) => ({ jobs: { ...jobs, [job.uuid]: job } }));
+
+      return job;
+    }),
     fetchAll: memoizeFor(500, async () => {
       const jobs = await jobsApi.fetchAll();
 

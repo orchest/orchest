@@ -38,7 +38,7 @@ export const PipelineLogs = () => {
     name: isJobRun ? "/job-run/logs" : "/logs",
   });
 
-  const { job } = useFetchJob({ jobUuid });
+  const { job } = useFetchJob(jobUuid);
   const isQueryArgsComplete = hasValue(pipelineUuid) && hasValue(projectUuid);
 
   const sortedSteps = React.useMemo(() => {

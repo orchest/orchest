@@ -10,7 +10,7 @@ export const useCancelJobRun = () => {
   const cancelJob = useJobRunsApi((api) => api.cancel);
 
   return useConfirm(
-    (runUuid) => {
+    (runUuid: string) => {
       cancelJob(runUuid).catch((error) =>
         setAlert("Failed to cancel job run", <ErrorSummary error={error} />)
       );

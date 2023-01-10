@@ -1,9 +1,9 @@
 import { useFileApi } from "@/api/files/useFileApi";
+import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { fetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import { downloadFile, unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
@@ -166,7 +166,9 @@ export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
         );
         // Send a GET request for file discovery
         // to ensure that the pipeline is removed from DB.
-        const updatedPipelines = await fetchPipelines(projectUuid);
+        const updatedPipelines = await pipelinesApi.fetchForProject(
+          projectUuid
+        );
         dispatch({ type: "SET_PIPELINES", payload: updatedPipelines });
 
         const shouldRedirect = filesToDelete.some((fileToDelete) => {

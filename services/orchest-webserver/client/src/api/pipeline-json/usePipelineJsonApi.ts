@@ -1,9 +1,9 @@
-import { PipelineState } from "@/types";
+import { PipelineJsonState } from "@/types";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { FetchPipelineJsonParams, pipelineJsonApi } from "./pipelineJsonApi";
 
-export type PipelineMap = { [pipelineUuid: string]: PipelineState };
+export type PipelineMap = { [pipelineUuid: string]: PipelineJsonState };
 
 export type PipelineJsonApi = {
   pipelines: PipelineMap;

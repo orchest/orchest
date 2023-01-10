@@ -14,7 +14,7 @@ export const useFetchActivePipelines = (): PipelineMetaData[] => {
   );
   const snapshotUuid = snapshotUuidFromQuery ?? activeJob?.snapshot_uuid;
   const snapshot = useSnapshotsApi((api) =>
-    api.snapshots?.find(({ uuid }) => uuid === snapshotUuid)
+    snapshotUuid ? api.snapshots?.[snapshotUuid] : undefined
   );
   const fetchSnapshot = useSnapshotsApi((api) => api.fetchOne);
   const { pipelines: projectPipelines } = useProjectsContext().state;
@@ -32,6 +32,7 @@ export const useFetchActivePipelines = (): PipelineMetaData[] => {
         uuid,
         path: data.path,
         name: basename(data.path).replace(/\.orchest$/i, ""),
+        project_uuid: snapshot.project_uuid,
       }));
     } else if (!jobUuid) {
       return projectPipelines ?? [];

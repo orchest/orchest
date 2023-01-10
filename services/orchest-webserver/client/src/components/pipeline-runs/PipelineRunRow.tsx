@@ -1,6 +1,6 @@
 import { useToggle } from "@/hooks/useToggle";
 import { formatPipelineParams, humanizeDate } from "@/jobs-view/common";
-import { JobRun, PipelineRun } from "@/types";
+import { PipelineRun } from "@/types";
 import { isJobRun } from "@/utils/pipeline-run";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
@@ -17,8 +17,11 @@ import { PipelineRunBreadcrumbs } from "./PipelineRunBreadcrumbs";
 import { PipelineRunContextMenu } from "./PipelineRunContextMenu";
 
 export type PipelineRunRowProps = {
-  run: PipelineRun | JobRun;
+  /** The run to display: either an interactive or job run. */
+  run: PipelineRun;
+  /** Whether or not the rows should be expandable, revealing all parameters. */
   expandable?: boolean;
+  /** Whether or not breadcrumbs (project, pipeline, job) should be displayed in each row. */
   breadcrumbs?: boolean;
 };
 
@@ -94,6 +97,7 @@ export const PipelineRunRow = ({
 
       <PipelineRunContextMenu
         open={isMenuOpen}
+        onClose={() => toggleMenu(false)}
         run={run}
         anchorEl={moreButtonRef.current}
       />

@@ -1,5 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchPipelines } from "@/hooks/useFetchPipelines";
+import { useFetchProjectPipelines } from "@/hooks/useFetchProjectPipelines";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { withinProjectRoutes } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
@@ -11,18 +11,17 @@ export const useAutoFetchPipelinesBase = (
   shouldFetch: boolean
 ) => {
   const { state, dispatch } = useProjectsContext();
-
-  const { pipelines, status } = useFetchPipelines(
+  const { pipelines, isLoaded } = useFetchProjectPipelines(
     projectUuidFromRoute === state.projectUuid && shouldFetch
       ? projectUuidFromRoute
       : undefined
   );
 
   React.useEffect(() => {
-    if (status === "RESOLVED" && pipelines) {
-      dispatch({ type: "LOAD_PIPELINES", payload: pipelines });
+    if (pipelines && isLoaded) {
+      dispatch({ type: "LOAD_PIPELINES", payload: Object.values(pipelines) });
     }
-  }, [status, pipelines, dispatch]);
+  }, [pipelines, dispatch, isLoaded]);
 
   return pipelines;
 };

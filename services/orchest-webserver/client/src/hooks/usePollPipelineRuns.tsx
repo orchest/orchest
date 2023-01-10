@@ -1,16 +1,18 @@
 import React from "react";
 import { useFetchPipelineRuns } from "./useFetchPipelineRuns";
 
-export const usePollPipelineRuns = (timeout: number) => {
-  const { runs, refresh } = useFetchPipelineRuns();
+const POLL_TIMEOUT = 5000;
+
+export const usePollPipelineRuns = () => {
+  const { runs, reload } = useFetchPipelineRuns();
 
   React.useEffect(() => {
     const handle = window.setInterval(() => {
-      refresh();
-    }, timeout);
+      reload();
+    }, POLL_TIMEOUT);
 
     return () => window.clearInterval(handle);
-  }, [refresh, timeout]);
+  }, [reload]);
 
   return { runs };
 };

@@ -410,22 +410,29 @@ export type Service = {
   order: number;
 };
 
-export type PipelineData = {
-  env_variables: Record<string, string>;
-  path: string;
-  project_uuid: string;
-  status: "READY" | string;
+export type PipelineMetaData = {
   /**
    * An identifier for the pipeline.
-   * **Note:** This identifier is only unique within its project.
+   * This identifier is only unique within its project.
    */
   uuid: string;
+  /**
+   * The UUID of the project which the pipeline belongs to.
+   * Used together with the pipeline UUID to uniquely identify the pipeline.
+   */
+  project_uuid: string;
+  /** The path to the project, relative to the project directory. */
+  path: string;
+  /** A human-readable name for the pipeline (usage is discouraged in favor of `path`). */
+  name: string;
 };
 
-export type PipelineMetaData = {
-  uuid: string;
-  path: string; // Note that this path is relative to `/project-dir:`, i.e. it doesn't have a leading slash
-  name: string;
+export type PipelineStatus = "READY" | PipelineRunStatus;
+
+/** Contains pipeline metadata plus additional state information. */
+export type PipelineState = PipelineMetaData & {
+  env_variables: Record<string, string>;
+  status: PipelineStatus;
 };
 
 export type PipelineSettings = {
@@ -444,7 +451,9 @@ export type PipelineJson = {
   hash?: string;
 };
 
-export type PipelineState = PipelineJson & { steps: Record<string, StepState> };
+export type PipelineJsonState = PipelineJson & {
+  steps: Record<string, StepState>;
+};
 
 export type Example = {
   description: string; // 280 characters

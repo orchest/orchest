@@ -8,7 +8,7 @@ import { useFetchActivePipelineRun } from "@/hooks/useFetchActivePipelineRun";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/routingConfig";
-import { JobData, PipelineMetaData, PipelineState } from "@/types";
+import { JobData, PipelineJsonState, PipelineMetaData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
@@ -21,8 +21,8 @@ export type PipelineDataContextType = {
   runUuid?: string;
   jobUuid?: string;
   isReadOnly: boolean;
-  pipelineJson?: PipelineState;
-  setPipelineJson: StateDispatcher<PipelineState>;
+  pipelineJson?: PipelineJsonState;
+  setPipelineJson: StateDispatcher<PipelineJsonState>;
   isFetchingPipelineJson: boolean;
   /** If true, this pipeline is from a job run. */
   isJobRun: boolean;
@@ -124,10 +124,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
   const isSnapshot = hasValue(jobUuid) && hasValue(snapshotUuid);
   const isInteractive = !isJobRun && !isSnapshot;
-
-  const { job } = useFetchJob({
-    jobUuid: isJobRun || isSnapshot ? jobUuid : undefined,
-  });
+  const { job } = useFetchJob(isJobRun || isSnapshot ? jobUuid : undefined);
 
   return (
     <PipelineDataContext.Provider

@@ -1,6 +1,6 @@
 import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchJobs } from "@/hooks/useFetchJobs";
+import { useFetchProjectJobs } from "@/hooks/useFetchProjectJobs";
 import { useShouldRefetchPerProject } from "@/hooks/useShouldRefetchPerProject";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -16,7 +16,7 @@ export const useInitiateJobs = () => {
   const shouldFetch = useProjectJobsApi(
     (state) => hasValue(projectUuid) && (!hasValue(state.jobs) || shouldRefetch)
   );
-  const { fetchJobs } = useFetchJobs(projectUuid);
+  const { fetchJobs } = useFetchProjectJobs(projectUuid);
   React.useEffect(() => {
     if (shouldFetch) fetchJobs();
   }, [shouldFetch, fetchJobs]);

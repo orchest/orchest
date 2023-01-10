@@ -3,6 +3,10 @@ import { PipelineRun } from "@/types";
 import { isJobRun } from "@/utils/pipeline-run";
 import { useCancelJobRun } from "./useCancelJobRun";
 
+/**
+ * Returns a function that cancels the provided run.
+ * Supports both job and interactive runs.
+ */
 export const useCancelPipelineRun = (run: PipelineRun | undefined) => {
   const cancelJobRun = useCancelJobRun();
   const cancelInteractiveRun = usePipelineRunsApi((api) => api.cancel);

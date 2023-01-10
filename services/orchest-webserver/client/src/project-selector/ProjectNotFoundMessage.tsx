@@ -11,20 +11,20 @@ import React from "react";
 export const ProjectNotFoundMessage = () => {
   const navigate = useNavigate();
   const { projectUuid } = useCurrentQuery();
-  const { isFetched, hasData, projects } = useFetchProjects();
+  const { isLoaded, hasData, projects } = useFetchProjects();
   const lastSeenUuidRef = React.useRef(projectUuid);
   lastSeenUuidRef.current = projectUuid ?? lastSeenUuidRef.current;
 
   const [isShowing, setIsShowing] = React.useState(false);
 
   React.useEffect(() => {
-    if (!hasValue(projectUuid) || !isFetched || !hasData) return;
+    if (!hasValue(projectUuid) || !isLoaded || !hasData) return;
 
     if (!projects[projectUuid] && isProjectPage(window.location.href)) {
       navigate({ route: "home", query: { tab: "projects" }, sticky: false });
       setIsShowing(true);
     }
-  }, [hasData, isFetched, navigate, projectUuid, projects]);
+  }, [hasData, isLoaded, navigate, projectUuid, projects]);
 
   const open =
     isShowing &&

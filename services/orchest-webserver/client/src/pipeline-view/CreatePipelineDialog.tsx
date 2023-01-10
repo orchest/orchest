@@ -27,7 +27,7 @@ const getValidNewPipelineName = (
   pipelines: Pick<PipelineMetaData, "name">[]
 ) => {
   const largestExistingNumber = pipelines.reduce((existingNumber, pipeline) => {
-    const matches = pipeline.name.match(regExp);
+    const matches = pipeline.name?.match(regExp);
     if (!matches) return existingNumber;
     // if the name is "Main", matches[1] will be undefined, we count it as 0
     // if the name is "Main 123", matches[1] will be " 123", trim it and parse it as Integer
@@ -100,6 +100,7 @@ export const CreatePipelineDialog = ({
           type: "ADD_PIPELINE",
           payload: {
             uuid: pipeline_uuid,
+            project_uuid: projectUuid,
             name,
             path,
           },

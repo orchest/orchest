@@ -7,19 +7,19 @@ import React from "react";
 import { ExampleList } from "./components/ExampleList";
 
 export const ExamplesTab = () => {
-  const { isFetching, error, refresh } = useFetchExamples();
+  const { isLoading, error, reload } = useFetchExamples();
 
   return (
     <>
       <ExampleList />
       <SnackBar
-        open={hasValue(error) || true}
+        open={hasValue(error)}
         message="Failed to fetch examples"
         action={
           <Button
             sx={{ color: blue[200] }}
-            onClick={() => refresh()}
-            disabled={isFetching}
+            onClick={reload}
+            disabled={isLoading}
           >
             Retry
           </Button>

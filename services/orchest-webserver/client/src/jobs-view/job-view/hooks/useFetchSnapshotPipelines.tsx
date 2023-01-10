@@ -11,11 +11,7 @@ export const useFetchSnapshotPipelines = () => {
       ? state.jobChanges?.snapshot_uuid
       : undefined
   );
-  const { fetchSnapshot, snapshot } = useFetchSnapshot();
-
-  React.useEffect(() => {
-    if (snapshotUuid) fetchSnapshot(snapshotUuid);
-  }, [fetchSnapshot, snapshotUuid]);
+  const { snapshot } = useFetchSnapshot(snapshotUuid);
 
   const pipelines = React.useMemo(() => {
     return snapshot?.pipelines ? Object.values(snapshot.pipelines) : undefined;

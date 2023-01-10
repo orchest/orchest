@@ -4,9 +4,11 @@ import create from "zustand";
 import { pipelineRunsApi } from "./pipelineRunsApi";
 
 export type PipelineRunsApi = {
-  cancel: MemoizePending<(runUuid: string) => Promise<void>>;
-  fetchAll: MemoizePending<() => Promise<PipelineRun[]>>;
   runs: PipelineRun[] | undefined;
+  /** Cancels an (interactive) pipeline run. */
+  cancel: MemoizePending<(runUuid: string) => Promise<void>>;
+  /** Fetches all pipeline runs for all projects. */
+  fetchAll: MemoizePending<() => Promise<PipelineRun[]>>;
 };
 
 /** State container for interactive pipeline runs. */

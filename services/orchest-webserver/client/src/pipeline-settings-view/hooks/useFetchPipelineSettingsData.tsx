@@ -2,9 +2,9 @@ import { EnvVarPair } from "@/components/EnvVarList";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchJob } from "@/hooks/useFetchJob";
-import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
+import { useFetchPipelineState } from "@/hooks/useFetchPipelineState";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
@@ -48,9 +48,7 @@ export const useFetchPipelineSettingsData = ({
   runUuid,
   snapshotUuid,
 }: UseFetchPipelineSettingsParams) => {
-  const { job, fetchJob } = useFetchJob({
-    jobUuid,
-  });
+  const { job, reload: fetchJob } = useFetchJob(jobUuid);
   const { pipelineRun, fetchPipelineRun } = useFetchPipelineRun({
     jobUuid,
     runUuid,
@@ -65,7 +63,7 @@ export const useFetchPipelineSettingsData = ({
     snapshotUuid,
   });
 
-  const { pipeline, refresh: fetchPipeline } = useFetchPipeline(
+  const { pipeline, reload: fetchPipeline } = useFetchPipelineState(
     projectUuid,
     pipelineUuid
   );

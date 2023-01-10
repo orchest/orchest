@@ -1,5 +1,4 @@
-import { useActivePipelineRun } from "@/hooks/useActivePipelineRun";
-import { useCancelJobRun } from "@/hooks/useCancelJobRun";
+import { useCancelPipelineRun } from "@/hooks/useCancelPipelineRun";
 import { useFetchActivePipelineRun } from "@/hooks/useFetchActivePipelineRun";
 import { isPipelineRunning } from "@/utils/pipeline";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
@@ -9,8 +8,7 @@ import React from "react";
 
 export const CancelJobRunButton = () => {
   const activeRun = useFetchActivePipelineRun();
-  const cancelActiveRun = useActivePipelineRun((state) => state.cancel);
-  const cancel = useCancelJobRun(cancelActiveRun);
+  const cancel = useCancelPipelineRun(activeRun);
   const isCancelable = isPipelineRunning(activeRun?.status);
 
   const title = isCancelable ? "Cancel the job run" : "The job is not running";

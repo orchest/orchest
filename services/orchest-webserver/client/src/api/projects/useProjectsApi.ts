@@ -12,7 +12,7 @@ export type ProjectsApi = {
   /** A list of the project UUIDs currently being deleted. */
   deleting: string[];
   /** Loads all available projects. */
-  init: MemoizePending<(params: FetchAllParams) => Promise<ProjectMap>>;
+  fetchAll: MemoizePending<(params?: FetchAllParams) => Promise<ProjectMap>>;
   /** Creates a project with the  */
   create: MemoizePending<(projectName: string) => Promise<Project>>;
   /** Updates the project with the new data. */
@@ -50,7 +50,7 @@ export const useProjectsApi = create(
       return {
         projects: undefined,
         deleting: [],
-        init: memoizeFor(500, reload),
+        fetchAll: memoizeFor(500, reload),
         create: memoizeFor(500, async (name) => {
           const uuid = await projectsApi.post(name);
           return await reloadAndFind(uuid);
